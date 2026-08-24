@@ -17,7 +17,14 @@ Occupant repair, which closed 2026-08-23.
 ## Status
 
 ✅ **TASK 6 SHIPPED 2026-08-24.** ~~🔴 **NOT STARTED.**~~ Decomposed 2026-08-24 against the tree, and
-the first task landed the same day. **Remaining: 9, then 8, then 7.**
+the first task landed the same day.
+
+🔴 **THE ORDER MOVED AGAIN ON 2026-08-24, WITH THE USER IN THE ROOM: 6 → 8 → 7/9.** ~~Remaining: 9,
+then 8, then 7.~~ **Task 9 was opened and put back down** (**G21**). Its stated reason for going
+second was that it is *exercisable by fixture* — and ***that is the reason [`0040`](0040-the-business-is-the-actor-and-the-building-is-premises.md)
+**F43** had already refuted, one day before this document was written***: a mechanism exercised only by
+hand-built fixtures is a mechanism with no world in it. **Task 8 is next** — it is unblocked, it creates
+the actor the milestone's risk names, and it is what gives task 9 a subject that exists.
 
 ⚠ **The census below was taken on 2026-08-24 and it corrects the risk statement in three numbers**
 (**G1**). ***The risk stands; the figures stating it have drifted*** — which is the second time in two
@@ -179,7 +186,7 @@ legal here. 🔴 **Splitting it moves the refusal count and `RefusalCountTests` 
 a saved `BusinessTable.Kind`, `World.CreateBusiness(premises, kind = 0)`, the migration walk
 (`RulesetMigration.BusinessKind`), two `RulesetShape` members, and
 [`rulesets/tenanted.toml`](../rulesets/tenanted.toml) — the fourteenth shipped file — guarded by
-`BusinessKindLoadTests`. **The whole assertion tier is green at 2,108.** Findings **G14**–**G20** below.
+`BusinessKindLoadTests`. **The whole assertion tier is green at 2,108.** Findings **G14**–**G23** below.
 
 ⚠ **There is no `BusinessKindDefinition` type and that is the decision, not an omission.** A
 `[[business]]` carries a `name` and nothing else, because `adr/0141` gives the trade `jobs`, shift hours
@@ -209,7 +216,23 @@ Building. ***It does not need a Business the city created; it needs a Business.*
   than one switch … a single method taking an `(entity kind, slot)` pair would be two switches wearing
   one signature."* ***Follow it rather than collapsing it.***
 
-### 8. **What creates a Business, and what capitalises one.** *(third — ⚠ **an OBLIGATION and not a block**)*
+### 8. **What creates a Business, and what capitalises one.** *(NEXT, as of 2026-08-24)*
+
+✅ **THE SOURCE IS SETTLED: [`adr/0145`](../docs/adr/0145-a-business-is-founded-by-a-household-or-arrives-through-a-gate-and-both-land-in-the-pool.md),
+2026-08-24, with the user in the room.** **Two channels** — a **Household founds** one, spending part
+of its balance; or one **arrives through a gate** carrying a band. Both create it **unpremised**, into
+the pool milestone 25 built, and neither tenants anything, so `adr/0069` is preserved. ⚠ **The founding
+channel is a TRANSFER and issues nothing**, so **G8**'s already-miscounted map of money's doors gains
+**one** rather than two.
+
+- 🔴 **THREE numbers are owed, not one** — a founding band, an arrival band and a founding **rate**.
+  `0002` §D2 holds one row and must become three. ⚠ **The rate has no precedent to copy.**
+- 🔴 **The founding TRIGGER is the open work**: which Household founds, on what condition. ⚠ **It must
+  not become a demand scalar** — there is no RCI meter and the Unplaced Pool is the only demand signal
+  the design admits — so the condition has to be a property a Household already has.
+- ✅ **`UnpremisedTable.Gate` should now be declared**, and the table's own sentence is what licenses
+  it: it was omitted because *"a column meaningless for every one of its rows is worse than one
+  meaningless for half of them"*, and with two channels it is meaningful for half.
 
 - ⚠ **Smaller than `0040` reads, because the exit shipped at milestone 25** (**G9**). The pool, the
   give-up clock, `Retire` and `Depart(Handle<Business>)` all exist. **What is owed is a source and a
@@ -365,6 +388,45 @@ recorded. **The refusal count stays put; decision 3 reopens at task 9.**
 reference that drifted within one task, because task 6 added lines above it. Replaced with the
 **symbol**, which is `adr/0093`'s writing half — *name a symbol, never a time* — arriving on the same
 sentence that had just been caught by its reading half.
+
+**G21 — 🔴 THIS DOCUMENT'S TASK ORDER REPEATED THE MISTAKE MILESTONE 25 CLOSED ON, ONE DAY LATE.**
+Task 9 was ordered second on the stated ground that it is ***exercisable by fixture*** — *"it does not
+need a Business the city created; it needs a Business."* **`0040` F43, recorded 2026-08-23, is the
+refutation**: milestone 25 shipped a mechanism every test of which built its Ruleset by hand, nothing
+noticed it was invisible in every shipped world, and the closing task had to ship a **fourteenth
+Ruleset file** to make it observable. ***A mechanism exercised only by hand-built fixtures is a
+mechanism with no world in it.*** This document was written **2026-08-24** and used the refuted
+reasoning as an ordering criterion.
+
+⚠ **Task 9's case is STRONGER than F43's, not weaker.** F43's mechanism at least fired in a world once
+a Ruleset was written for it. Task 9's would be reachable by **no Ruleset at all**, for two independent
+reasons found on opening it (**G22**): nothing creates a Business, and nothing can give one a Rule.
+
+**Reordered to 6 → 8 → 7/9 with the user in the room, 2026-08-24.** Task 8 creates the actor, which is
+the risk `06` names, and it is what makes task 9's subject exist.
+
+**G22 — 🔴 NOTHING CAN GIVE A BUSINESS A RULE, AND NO TASK IN THIS MILESTONE OWNS THAT.**
+`World.ArmOccupant` takes a **Household**, reads the **Building's** kind, and hands every
+`BinTenancy.Occupant` Bin and Rule from `BinsOf(kind)`/`RulesOf(kind)` to that Household. ⚠ **Run the
+same function for a Business and a bakery inherits the Rules of the families living upstairs**, which
+is [`adr/0141`](../docs/adr/0141-a-tenant-owns-what-leaves-with-it-and-the-premises-own-the-capacity.md)'s
+own argument inverted — *the same shopfront hosts a bakery and then a barber* is the claim that the
+trade is **not** a property of the walls. ***So a Business's Bins and Rules must come from its
+`[[business]]` kind, and task 6 deliberately gave that kind nothing but a name.***
+
+🔴 **`BinTenancy` is `Premises | Occupant` and cannot express the distinction.** Both a Household and a
+Business are Occupants, so the enum that decides whose Bin it is cannot say *which tenant*. **Task 6's
+own `RulesetShape` note said the trade gets `jobs`, shift hours and the wage at task 7 and named no
+Bins and no Rules** — so the gap is real rather than deferred. **Unassigned by tasks 6, 7, 8 and 9
+alike; it is the first thing task 9 needs and it is nobody's.**
+
+**G23 — task 9's readout half has a fork `0040` and this document both missed.** `Readouts.ScopeOf`
+returns **exactly one** `ReadoutScope` per Readout id and the loader tests it with an **equality**
+(`RulesetLoader.ReadApply`). `Readout.Balance` is declared `Household`-scoped. ***A Business has a
+balance too, so one declared scalar now belongs to two entities and the declaration cannot say so.***
+⚠ **G11 called this half *genuinely small* and it is not** — it read the entry points, which are small,
+and not the scope declaration, which is a fork. **Left open; it is task 9's to settle and it is likely
+an ADR** (0145–0149 are reserved to this milestone).
 
 ## What decomposition found
 
