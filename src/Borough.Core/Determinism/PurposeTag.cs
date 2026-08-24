@@ -408,4 +408,50 @@ public enum PurposeTag : ulong
     /// </para>
     /// </remarks>
     UnpremisedDraw = 22,
+
+    /// <summary>
+    /// Which housed Household is asked whether it founds a Business this pass.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Milestone 27 task 8, and <c>adr/0145</c>'s amendment is what it draws for</b> — <em>a
+    /// Household founds on its own means, and never on the city's need.</em> The pass draws a bounded
+    /// sample of housed Households and each drawn one founds if its balance covers the band, so this
+    /// tag decides <b>who is asked</b> and the balance decides the answer.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Distinct from <see cref="PoolDraw"/> and <see cref="UnpremisedDraw"/> for the reason those
+    /// two are distinct from each other</b>, and it binds harder here: all three run on the same
+    /// <c>[placement]</c> trigger in one pass. Sharing a tag would make ***the families who start
+    /// shops correlate with the families who get housed***, which is a relationship no ADR argues for
+    /// and which nothing downstream could untangle.
+    /// </para>
+    /// <para>
+    /// <b>Drawn on the sample INDEX rather than on a Household id</b>, as <see cref="UnpremisedDraw"/>
+    /// is: the pass is choosing positions in a population, not asking a known Household a question.
+    /// The Household's own id enters where a per-Household decision is made, and there is none here —
+    /// whether it founds is read off its balance, not drawn.
+    /// </para>
+    /// </remarks>
+    FoundingDraw = 25,
+
+    /// <summary>
+    /// Which trade a founding Household opens.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Uniform over the declared <c>[[business]]</c> kinds, and uniform is a decision rather than a
+    /// default.</b> <c>adr/0145</c> settles who founds and says nothing about what they found, because
+    /// at task 8 a trade declares nothing but its name — there is no margin, no wage and no fill rate
+    /// to prefer one over another. ⚠ <b>With no information distinguishing the trades, anything other
+    /// than uniform would be a preference nobody argued for.</b> ***The day a trade carries numbers,
+    /// this becomes a choice and wants an ADR.***
+    /// </para>
+    /// <para>
+    /// <b>Its own tag rather than <see cref="FoundingDraw"/>'s</b>, for that tag's own reason: sharing
+    /// would tie <em>which family founds</em> to <em>what they open</em>, so the bakeries and the
+    /// barbers would be founded by systematically different Households.
+    /// </para>
+    /// </remarks>
+    FoundingTrade = 26,
 }

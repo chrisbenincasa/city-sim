@@ -167,9 +167,9 @@ public sealed class World
         Businesses = new BusinessTable(PerThousand(citizens, 150), Buildings, Bins);
 
         // adr/0142's collection, and its capacity hint assumes even less than the Business table's:
-        // nothing creates a Business, so this pool is EMPTY in every world the simulation builds on
-        // its own and every row in it today was put there by a fixture. A hint, since it grows.
-        UnpremisedPool = new UnpremisedTable(8, Businesses);
+        // milestone 27 task 8 gave this pool its inflow (adr/0145), so it is no longer empty in every
+        // world -- a Ruleset stating [business] founds into it. A hint, since it grows.
+        UnpremisedPool = new UnpremisedTable(8, Businesses, Buildings);
         RulesetTrail = new RulesetTrailTable();
         CondemnationTrail = new CondemnationTrailTable(Lots.Rows);
 
@@ -957,7 +957,12 @@ public sealed class World
     /// </param>
     public Handle<Business> CreateBusiness(Handle<Building> premises, byte kind = 0)
     {
-        int buildingSlot = Buildings.Rows.Resolve(premises);
+        // A DEFAULT handle is accepted and means unpremised, which milestone 27 task 8 made
+        // reachable (adr/0145): a founded Business is created with no premises and looks for them
+        // from the pool. It is not a new state -- BusinessTable.Building is Reference.Severable and
+        // adr/0142 makes unpremised a legitimate steady state -- it is the state finally being
+        // expressible at CREATION rather than only arrived at by demolition.
+        bool premised = Buildings.Rows.TryResolve(premises, out int buildingSlot);
 
         Handle<Business> handle = Businesses.Rows.Allocate();
         int slot = Businesses.Rows.Resolve(handle);
@@ -974,7 +979,12 @@ public sealed class World
             Businesses.Balance[slot] = balance;
         }
 
-        BuildingBusinesses.InsertOrdered(buildingSlot, slot);
+        // Only when there are premises to list it against. An unpremised Business is in the pool's
+        // list and in no Building's.
+        if (premised)
+        {
+            BuildingBusinesses.InsertOrdered(buildingSlot, slot);
+        }
 
         return handle;
     }
@@ -1065,6 +1075,85 @@ public sealed class World
         Bins.Rows.TryResolve(Businesses.Balance[Businesses.Rows.Resolve(business)], out int bin)
             ? new Money(Bins.LevelAt(bin))
             : Money.Zero;
+
+    /// <summary>
+    /// A Household founds a Business, spending part of its balance to capitalise it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>adr/0145</c>'s founding channel, and it is a TRANSFER rather than an issuance.</b> The
+    /// band moves from the founder's balance Bin into the new Business's, so
+    /// <c>MoneySupply.Issued</c> is untouched and <c>Invariant.MoneyIsConserved</c> needs no new case.
+    /// ⚠ <b>That is the half of <c>adr/0145</c> that decided the shape</b>: had founding issued, this
+    /// would be the third production door into a money supply whose map already miscounts at two.
+    /// </para>
+    /// <para>
+    /// <b>The Business is created UNPREMISED and joins the pool</b>, with no gate — a founder is
+    /// inside the city and came through no door. Nothing is tenanted here, which is
+    /// <c>adr/0069</c>'s <em>construction houses nobody</em> holding on the commercial side:
+    /// placement is what puts an occupant into standing stock.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>A Business founded here and never tenanted EXPORTS this money.</b>
+    /// <see cref="Depart(Handle{Business})"/> subtracts the balance from the supply when the give-up
+    /// bound expires (<c>adr/0142</c>), so found-then-fail is a one-way leak of household wealth out
+    /// of the city. ***It is emergent from two ADRs and neither shows it alone***, which is why it is
+    /// written at the site as well as in the record.
+    /// </para>
+    /// </remarks>
+    /// <param name="founder">The Household putting up the capital. Must be able to afford the band.</param>
+    /// <param name="kind">Which trade, indexed into <c>[[business]]</c>.</param>
+    /// <param name="band">What the founder spends. Never negative.</param>
+    /// <param name="now">The Tick the spell in the pool begins.</param>
+    /// <returns>The Business, already in the unpremised pool.</returns>
+    public Handle<Business> Found(
+        Handle<Household> founder, byte kind, Money band, Ticks now)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(band.Raw, nameof(band));
+
+        int founderSlot = Households.Rows.Resolve(founder);
+        Handle<Bin> from = Households.Balance[founderSlot];
+
+        if (from.IsNone)
+        {
+            throw new InvalidOperationException(
+                "a Household with no balance Bin cannot found a Business. The caller tests "
+                + "affordability against BalanceOf, which reads zero for such a Household, so "
+                + "reaching here means the band was zero -- which the loader refuses.");
+        }
+
+        // Affordability is NOT re-asserted here, and deliberately: Withdraw already requires the
+        // amount to be within the Bin's level, under Invariant.BinLevelIsWithinCapacity, which is
+        // the invariant that actually names this condition. A second Require would either duplicate
+        // it or -- worse -- label an affordability failure as a conservation failure, which is a
+        // wrong diagnosis written into the one channel that exists to give a right one.
+
+        // No premises: the Business is created unpremised and looks for them from the pool. The
+        // default handle is what BusinessTable.Building's severable declaration already expects.
+        Handle<Business> business = CreateBusiness(default, kind);
+
+        // Out before in, so no instant exists in which the band is in two Bins at once. A reader
+        // folding the State Hash between the two would see money that is not there.
+        Withdraw(from, band.Raw, now);
+
+        int slot = Businesses.Rows.Resolve(business);
+        Handle<Bin> into = Businesses.Balance[slot];
+
+        if (into.IsNone)
+        {
+            throw new InvalidOperationException(
+                "a Business was created with no balance Bin while a Ruleset declaring [founding] was "
+                + "in force. CreateBusiness opens one whenever the Ruleset declares a money Resource "
+                + "and the loader refuses [founding] without one, so the two have drifted.");
+        }
+
+        Deposit(into, band.Raw, now);
+
+        // No gate: see UnpremisedTable.Gate. A founder came from inside the city.
+        UnpremisedPool.Join(Businesses, business, default, now);
+
+        return business;
+    }
 
     /// <summary>
     /// Moves a housed Household into the Unplaced Pool, keeping its balance.
@@ -1521,7 +1610,11 @@ public sealed class World
         }
 
         Businesses.Building[slot] = default;
-        UnpremisedPool.Join(Businesses, business, now);
+
+        // No gate: a Business that LOST its premises is inside the city however it got here, and the
+        // gate column records how it ARRIVED rather than where it is. adr/0145 makes the column
+        // meaningful for the arrival channel; an orphan is neither channel and reads default.
+        UnpremisedPool.Join(Businesses, business, default, now);
     }
 
     /// <summary>

@@ -186,7 +186,7 @@ legal here. 🔴 **Splitting it moves the refusal count and `RefusalCountTests` 
 a saved `BusinessTable.Kind`, `World.CreateBusiness(premises, kind = 0)`, the migration walk
 (`RulesetMigration.BusinessKind`), two `RulesetShape` members, and
 [`rulesets/tenanted.toml`](../rulesets/tenanted.toml) — the fourteenth shipped file — guarded by
-`BusinessKindLoadTests`. **The whole assertion tier is green at 2,108.** Findings **G14**–**G24** below.
+`BusinessKindLoadTests`. **The whole assertion tier is green at 2,108.** Findings **G14**–**G25** below.
 
 ⚠ **There is no `BusinessKindDefinition` type and that is the decision, not an omission.** A
 `[[business]]` carries a `name` and nothing else, because `adr/0141` gives the trade `jobs`, shift hours
@@ -216,7 +216,27 @@ Building. ***It does not need a Business the city created; it needs a Business.*
   than one switch … a single method taking an `(entity kind, slot)` pair would be two switches wearing
   one signature."* ***Follow it rather than collapsing it.***
 
-### 8. **What creates a Business, and what capitalises one.** *(NEXT, as of 2026-08-24)*
+### 8. **What creates a Business, and what capitalises one.** *(FOUNDING CHANNEL SHIPPED 2026-08-24)*
+
+✅ **THE FOUNDING HALF IS BUILT AND MEASURED. `rulesets/founded.toml` is the FIRST SHIPPED FILE IN
+WHICH THE SIMULATION CREATES A BUSINESS** — **114 founded** over 4,096 Ticks at 2,000 Citizens.
+***That is milestone 27's named risk retired on its main axis***: the economic actor now exists in a
+world rather than in a fixture. `World.Found`, `FoundingRuleset`, `PlacementEngine.Found`,
+`UnpremisedTable.Gate`, `purpose_tag` 25 and 26, **seven new refusals** (`adr/0048`: 141 → 148), and
+the assertion tier green at **2,114**.
+
+- ✅ **`adr/0006` is satisfied and MEASURED rather than argued**: with the bound patched to one Day,
+  **170 founded, 138 retired, the pool settling at 32**. The size is bounded because the drain rate is
+  proportional to the stock — which is the claim `adr/0006` actually makes, and is not *the pool
+  empties*.
+- 🔴 **The seventh refusal is the one that matters and it was found by trying to write the Ruleset**
+  (**G25**): `[founding]` is an inflow into the unpremised pool and **nothing tenants a Business**, so
+  a file stating it without `gives_up_after_days` grows a collection with elapsed time. ⚠ **The base
+  file states no such key**, so the first draft of `founded.toml` was an `adr/0006` violation.
+- 🔴 **The arrival channel is NOT built.** `adr/0145` names two channels; this is one. `Gate` is
+  declared and every row reads `default` until it lands.
+- 🔴 **Nothing tenants a Business, so `founded.toml` LEAKS BY CONSTRUCTION** — its header says so at
+  length. Founding is a transfer; departing is an export.
 
 ✅ **THE SOURCE IS SETTLED: [`adr/0145`](../docs/adr/0145-a-business-is-founded-by-a-household-or-arrives-through-a-gate-and-both-land-in-the-pool.md),
 2026-08-24, with the user in the room.** **Two channels** — a **Household founds** one, spending part
@@ -453,6 +473,19 @@ an arrival band and a founding duration — because *what a founder spends* and 
 carries* are different quantities with different arguments, which the single-channel reading had hidden.
 ***A row that looks like one number because nobody has decided the shape is a row that will grow when
 somebody does.***
+
+**G25 — the demonstration Ruleset found a refusal the ADR had not, and it found it by refusing to be
+written.** `founded.toml` is `taxed.toml` plus a trade and a channel — and `taxed.toml` states no
+`[placement] gives_up_after_days`, because it has no gate and therefore no inflow into the Unplaced
+Pool. ⚠ **`[founding]` is an inflow into the OTHER pool**, so the first draft founded Businesses into
+a collection with no sink, which is `adr/0006` outright. ***The defect was in the file rather than in
+the code, and it surfaced because the file had to be written at all*** — which is `plans/0040` **F43**
+paying for itself one milestone later: had task 8 shipped fixture-only, the mechanism would have been
+correct, tested, green, and unbounded in the first world anybody wrote for it.
+
+⚠ **`adr/0130` had already made this argument for the other pool and could not see this one.** *Whoever
+builds the gate owes the give-up rule* is now two checks over two collections, and neither is reachable
+from the other. ***A rule stated once about one collection does not generalise itself.***
 
 ## What decomposition found
 

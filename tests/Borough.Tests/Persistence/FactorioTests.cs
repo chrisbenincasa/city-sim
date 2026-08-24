@@ -124,7 +124,7 @@ public sealed class FactorioTests(ITestOutputHelper output)
     /// ***A structural test over one fixture measures the fixture's content as much as the
     /// structure***, and the corollary this keeps re-proving is that <b>a table with no production
     /// writer needs a fixture named for it or its columns are carried by the format and checked by
-    /// nothing</b>. The union of the SIX is 250 of 250, and <see cref="UnreachableColumns"/> pins that
+    /// nothing</b>. The union of the SIX is 251 of 251, and <see cref="UnreachableColumns"/> pins that
     /// there is no residue.
     /// </para>
     /// </remarks>
@@ -158,7 +158,8 @@ public sealed class FactorioTests(ITestOutputHelper output)
         // Milestone 25 task 5, and the SIXTH fixture for the fourth's reason a third time. The
         // unpremised pool has a production writer -- DestroyBuilding -- but it can only fire on a
         // Building that HAS a Business in it, and nothing creates one. So every world above leaves
-        // the table empty and BOTH of its saved columns unreachable -- `business` and `since` --
+        // the table empty and all THREE of its saved columns unreachable -- `business`, `gate` and
+        // `since`; it was two until milestone 27 task 8 declared `gate` (adr/0145) --
         // exactly as `business` was before GoldenFixtures.Build() was added for it. The `five` here
         // was copied from the paragraph above on the day it was written; UnpremisedTable has only
         // ever had two.

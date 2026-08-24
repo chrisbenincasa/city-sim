@@ -995,6 +995,78 @@ public readonly record struct PlacementRuleset(
 }
 
 /// <summary>
+/// The <c>[founding]</c> table: what it costs a Household to found a Business, and how often every
+/// Household reconsiders founding one.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b><c>adr/0145</c>'s founding channel, and the whole table is two numbers because the trigger is
+/// deliberately thin.</b> A Household founds on its own <em>means</em> and never on the city's
+/// <em>need</em> — so there is no threshold on shop count, no vacancy term and no demand key, and the
+/// absence of those keys is the decision rather than an omission. ***A key that read a shortage would
+/// be the RCI meter this design refuses, whatever it was called.***
+/// </para>
+/// <para>
+/// ⚠ <b><see cref="ReconsiderTicks"/> is a DURATION and the sample is derived from it</b>
+/// (<c>adr/0059</c>): the file states how long it takes every Household to consider founding once, and
+/// the engine divides. Authoring a count instead would make the quantity the city actually feels — the
+/// fraction of it starting a business per cycle — depend on how big the city is.
+/// </para>
+/// <para>
+/// <b>There is no arrival band here and that is not an oversight.</b> <c>adr/0145</c>'s other channel
+/// is a Business arriving through a gate, and what an immigrant carries belongs to the
+/// <see cref="HinterlandDefinition"/> it comes from, exactly as a Household's does. ***Two channels,
+/// two homes, because the numbers answer to different worlds.***
+/// </para>
+/// </remarks>
+public readonly record struct FoundingRuleset(Money FoundingBand, int ReconsiderTicks)
+{
+    /// <summary>A Ruleset in which no Household ever founds a Business.</summary>
+    public static FoundingRuleset None => default;
+
+    /// <summary>Whether the founding channel runs at all.</summary>
+    /// <remarks>
+    /// <b>Keyed on the period rather than on the band</b>, because a band of zero is a coherent world
+    /// — a shop founded with no capital, which then cannot pay for anything and gives up — whereas a
+    /// period of zero is not a cadence at all. ⚠ <b>The loader refuses a zero period</b>, so this
+    /// reads <c>false</c> only for a file that states no <c>[founding]</c> table.
+    /// </remarks>
+    public bool Runs => ReconsiderTicks != 0;
+
+    /// <summary>
+    /// How many Households to look at this pass, given how many there are.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="PlacementRuleset.SampleFor"/>'s derivation with a different population</b>, and
+    /// the same <c>adr/0059</c> argument underneath it. ⚠ <b>The draw is with REPLACEMENT</b>, so this
+    /// is a rate and not coverage: about <c>1/e</c> of Households go unlooked-at in any period, and a
+    /// reader wanting *every Household considered once* will not get it from this number.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It divides by the period and multiplies by the trigger interval</b>, which is
+    /// <c>[placement]</c>'s — the founding pass runs on placement's trigger rather than owning one.
+    /// A second cadence would be a second thing to tune for no stated benefit, and the loader refuses
+    /// a <c>[founding]</c> table in a file with no <c>[placement]</c>.
+    /// </para>
+    /// </remarks>
+    /// <param name="households">How many Households the sample is drawn from.</param>
+    /// <param name="interval">The <c>[placement]</c> trigger interval, in Ticks.</param>
+    public int SampleFor(int households, uint interval)
+    {
+        if (ReconsiderTicks < 1)
+        {
+            throw new InvalidOperationException(
+                $"[founding] has a reconsider period of {ReconsiderTicks}. It is how long every "
+                + "Household takes to consider founding once, so it divides; the loader refuses "
+                + "anything below the placement interval, and this Ruleset was not built by it.");
+        }
+
+        return (int)IntegerMath.CeilDiv((long)households * interval, ReconsiderTicks);
+    }
+}
+
+/// <summary>
 /// The <c>[roads]</c> table — <b>what a Ruleset says about the shape and speed of the road
 /// network</b>, realised by <c>Borough.Core.Space.RoadGenerator</c> and read on every rebuild of the
 /// Road Graph's derived columns.
@@ -2376,6 +2448,18 @@ public sealed class Ruleset
     public MarketRuleset Market { get; init; } = MarketRuleset.None;
 
     /// <summary>
+    /// The <c>[founding]</c> table, or <see cref="FoundingRuleset.None"/> when the file states none —
+    /// which is a city in which no Household ever founds a shop.
+    /// </summary>
+    /// <remarks>
+    /// <b>Absent is the ten shipped files and it is a real city rather than a broken one</b>
+    /// (<c>adr/0145</c>): the founding channel is one of two ways a Business enters, so a file with no
+    /// <c>[founding]</c> table still gets shops if it declares a gate. ⚠ <b>A file with NEITHER gets
+    /// no Businesses at all</b>, which is every world that existed before milestone 27 task 8.
+    /// </remarks>
+    public FoundingRuleset Founding { get; init; } = FoundingRuleset.None;
+
+    /// <summary>
     /// What the Hinterland at <paramref name="hinterland"/> charges for <paramref name="resource"/>.
     /// </summary>
     /// <remarks>
@@ -2536,6 +2620,7 @@ public sealed class Ruleset
             Hinterlands = Hinterlands,
             HinterlandPrices = HinterlandPrices,
             Market = Market,
+            Founding = Founding,
             ResourceKeys = ResourceKeys,
             KindKeys = KindKeys,
             BusinessKindCount = BusinessKindCount,
