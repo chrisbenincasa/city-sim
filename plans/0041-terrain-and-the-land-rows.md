@@ -479,10 +479,19 @@ Two hash-bearing world-creation numbers under
 [`adr/0044`](../docs/adr/0044-the-map-layer-diffusion-cadence-is-the-designers-number-not-the-profilers.md),
 each owing a **machine, a world and a quantity** under
 [`adr/0052`](../docs/adr/0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md).
-⚠ **The world does not exist**: `adr/0124` names *a world with varied terrain* as the ratifier's world,
-and no shipped Ruleset has any terrain at all. ***So the world is part of the deliverable***, which is
-milestone 12 task 1's lesson (`twinned.toml` was a WORLD and not code) arriving before this milestone
-instead of during it.
+⚠ **The world did not exist when this was written, and it does now.** `adr/0124` names *a world with
+varied terrain* as the ratifier's world; **`rulesets/varied.toml` shipped with task 2 on 2026-08-23**,
+and every world has varied terrain regardless, because the generator runs unconditionally and the
+Ruleset does not shape it (**F8**). ***So the world was part of the deliverable***, which is milestone
+12 task 1's lesson (`twinned.toml` was a WORLD and not code) arriving before this milestone instead of
+during it — **and that half is discharged.**
+
+🔴 **What is still open is the ratifier, and it is the harder half.** Two numbers, each owing a
+machine, **a world** and a **quantity**. The world is now answerable. ⚠ **The quantity is not, and the
+reason is the one F9 recorded**: Sealing decays toward farmland recovering, `MapLayers.Fertility` is
+the only thing that reads Sealing against terrain, and **nothing reads Fertility** — so *how fast does
+land recover* has no readout to be measured at. ***A ratifier that names a quantity nothing computes is
+a category and not a name***, which is exactly what `adr/0052` was amended twice to refuse.
 
 ### 6. Does `adr/0021`'s **seed + edits** save ship here? — *arguable*. **Recommendation: no**
 
