@@ -65,6 +65,7 @@ of the order they were found in:
 | **4** | **the text was never true** — it describes a mechanism and was wrong on the day | **nothing** | open the mechanism; write names rather than times |
 | **5** | a **number** is quoted away from the sentence that qualifies it | **worse than nothing** — repetition makes a bare figure read as *more* settled | name the number after what it measures; quote the sentence, never the digits |
 | **6** | a **description** is filed under the wrong declaration — two `///` blocks, one member | **nothing**, and no check this corpus had could see it: the defect is in a **doc-comment** and every other check is document-to-document | a code-against-code test — `DocCommentAttachmentTests`. Found **40** sites in 31 files the day it was written |
+| **7** | **two documents claim ONE ordinal**, on branches that have not met | **nothing, and git makes it worse** — the filenames differ, so the duplicate merges with no conflict | ✅ a check that compares numbered files *to each other* — `PlanIdentityTests.No_two_numbered_documents_claim_one_ordinal`, 2026-08-24 |
 
 **Causes 4 and 5 are siblings and the difference is worth holding.** Both are about a decision taken from
 something that looked like established fact. Cause 4's source sentence is **wrong**; Cause 5's source
@@ -779,6 +780,71 @@ and were reviewed by hand; one was carried back verbatim (`BinTable.Create`'s *l
 `adr/0056` had since **refused**, and a `Readouts` paragraph whose `adr/0006` argument had already
 moved to `IndexList.Length`. ***A block left stacked on its replacement is not evidence that its
 author meant to keep it.***
+
+### Cause 7 — two documents claim one ordinal
+
+**Added 2026-08-24, on a sighting from the milestone 24 session** (worktree `city-sim-q8`, branch
+`milestone-24-terrain-scoping`), which merged `main` into its branch and hit **four** ordinal
+collisions at once: ADRs, a `PurposeTag`, an `Invariant` and a **plan number**. ⚠ **This one was found
+by a person looking, and that is the entry.**
+
+**Two of the four merged CLEANLY, and they are the two the corpus was supposed to cover.** The
+`PurposeTag` collision conflicted loudly and the `Invariant` one did not — it was caught by the
+**compiler**, `CA1069`, because an enum with two members at one value does not build. That leaves the
+documents: **`plans/0041` existed twice, on two branches, under two different slugs**, and git merged
+it without a murmur ***because the filenames differed***. Nothing in the corpus noticed either.
+
+🔴 **`PlanIdentityTests` looks like the check for this and is not.** Its one assertion is that a
+numbered document's **heading** agrees with its **own filename** — read the test rather than the name
+([`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)).
+It loops per file and never compares two files to each other. So two `plans/0041-*.md` with different
+slugs each agree with themselves, pass all thirty-two corpus checks, and land. ***A filename is not a
+declaration, so nothing declares it twice.*** ⚠ **And the gap covers `docs/adr/` identically** — the
+same loop iterates `["plans", "docs/adr"]` in one array, so two `adr/0145-*.md` pass the same way.
+
+🔴 **THE ADR HALF IS THE WORSE ONE, and the reason is not obvious: an ADR is cited BY NUMBER, in
+prose.** A plan is usually reached by a link, so a duplicate leaves the link still opening *a* file.
+An ADR is written into sentences as bare text — *`adr/0006`* — and **measured 2026-08-24, that is the
+dominant form by 3.6 to 1: 6,592 bare-number citations across 162 files, against 1,839 that carry the
+slug.** ⚠ **The peer session estimated *nine documents* and the real figure is 162**; it was checked
+rather than taken, which is the only reason the row says the right thing. So duplicating an ADR number
+makes **thousands of existing sentences ambiguous** while ***every link in the corpus still resolves
+and every check stays green***. `LinkResolutionTests` opens the file it was handed; it has no opinion
+about whether the number in a sentence names one document.
+
+⚠ **The asymmetry is the whole finding, and it decides where the repair goes.** A `PurposeTag` or an
+`Invariant` is a **compiled symbol**, so a collision is a build error and the machinery already exists
+— on `main`, not in this corpus. An **ADR number or a plan number is a filename**, so a collision is
+two files sitting quietly beside each other. ***The corpus's numbering scheme is the one identity
+space in this project with no uniqueness check at all***, and it is the space `PROCESS.md` uses for
+every citation.
+
+⚠ **It is Cause 1 with the copies in different documents rather than the same one.** Cause 1's tell is
+*the copies disagree*; here there is nothing to disagree, because each document is internally
+consistent and the contradiction is only visible from outside both. **That is why it needs a new row
+rather than a sighting under an old one.**
+
+✅ **PAID THE SAME DAY** — `PlanIdentityTests.No_two_numbered_documents_claim_one_ordinal`, beside the
+test that could not see it. It groups `plans/*.md` and `docs/adr/*.md` by leading ordinal and fails on
+any group above one, naming every claimant. ⚠ **It is a corpus check and not a convention, because a
+convention is what both sessions were already following** when this happened. **Watched fire on a real
+collision before it was committed** — a second `plans/0041-*.md` under a different slug, which is the
+sighting reproduced — as this repository requires of any diagnostic. ⚠ **Keyed on directory as well as
+number**: `plans/0041` and `adr/0041` are different documents and always were. **`0000` and `0000a` are
+different ordinals**, so the suffix is part of the key and the board and its archive both pass.
+
+⚠ **It catches a collision at the MERGE and not at the moment it is created**, because a check running
+on one branch cannot see the other branch's file — and the moment of creation is when it is cheap to
+fix. ***The test is the backstop; the sessions telling each other is the fix.*** It is the same shape as
+`PlanIdentityTests` and belongs beside it. ⚠ **A check that runs on one branch cannot see the other
+branch's file**, so this catches a collision at the **merge** and not at the moment it is created —
+which is the moment it is cheap to fix, and is why the sessions also told each other. ***The test is
+the backstop; the message is the fix.***
+
+**No ordinal is owed by this session.** Milestone 27's four commits touch no ADR, no `PurposeTag` and
+no `Invariant`, checked rather than assumed; `plans/0041` is this session's and the other branch
+renumbered to `0042`. **Reserved forward for milestone 27's remaining tasks: ADRs 0145–0149,
+`PurposeTag` 25+, `Invariant` 56+** — below the other branch's 0150 and above its 24 and 55.
 
 ### Session K's collection — three, all paid in the sitting, and one is a new Cause
 
