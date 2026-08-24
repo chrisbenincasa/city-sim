@@ -392,7 +392,7 @@ public class LayerFieldsTests
 
     private static MapLayers Layers(int pollutionTau) => new(new LayerRuleset(
         LayerSchedule.Default,
-        new LayerRates(LandValueTau: 8, PollutionTau: pollutionTau)));
+        new LayerRates(LandValueTau: 8, PollutionTau: pollutionTau, WoodlandRegrowthDays: 0)));
 
     /// <summary>
     /// The named holes fail loudly rather than returning zero.
@@ -428,14 +428,25 @@ public class LayerFieldsTests
     /// Noise is not in <see cref="Layer"/>, and this is the test that notices somebody adding it.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <c>02 §2.5</c>'s procedure exists because <em>"add a Map Layer" was the reflex answer four
     /// times running and was the right answer once</em>. This slice is where the reflex would fire.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It was <em>three</em> until milestone 24 task 8b and <see cref="Layer.Woodland"/> is the
+    /// fourth, which is this test doing its job rather than failing at it.</b> The two additions this
+    /// milestone made — Sealing and Woodland — are both <b>counts per Cell with no kernel and no
+    /// range</b>, and what puts them on this enum is neither a field nor a query: it is that each
+    /// happens <em>on a clock</em>, so each needs a cadence and the cadences must be staggered apart.
+    /// ***This enum is the stagger's membership list, and a Layer that is not a field is still a Layer
+    /// for that purpose.***
+    /// </para>
     /// </remarks>
     [Fact]
-    public void There_are_exactly_three_Map_Layers()
+    public void There_are_exactly_four_Map_Layers()
     {
         Assert.Equal(
-            [Layer.IndustrialPollution, Layer.LandValue, Layer.Sealing],
+            [Layer.IndustrialPollution, Layer.LandValue, Layer.Sealing, Layer.Woodland],
             Enum.GetValues<Layer>());
     }
 

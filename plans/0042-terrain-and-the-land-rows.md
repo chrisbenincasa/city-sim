@@ -15,7 +15,7 @@ fourth recurrence and the first that actually collided.
 
 ## Status
 
-🔵 **SCOPED 2026-08-22, out of sequence, and SPLIT in the scoping.** **Tasks 1, 2, 3, 4, 5, 6a and 8a are DONE.** ⚠ **Every decision this half owes is now SETTLED** (2026-08-24), so **tasks 6b, 8b and 9 are all startable**. Task 3 was
+🔵 **SCOPED 2026-08-22, out of sequence, and SPLIT in the scoping.** **Tasks 1, 2, 3, 4, 5, 6a, 8a and 8b are DONE.** ⚠ **Every decision this half owes is now SETTLED** (2026-08-24), so **tasks 6b and 9 are startable**. Task 3 was
 CODE-COMPLETE and BLOCKED for one day — see F7; it was built ahead of task 2 because the Sealing write path needs
 no terrain, and running it turned up a whole-map cost that
 [`0002`](0002-open-questions.md) §C now owns. **Task 2 landed 2026-08-23** (`a23b46f`, re-baselined in `79efc64`) — **see F8**, whose finding is that the column's home was a third option neither candidate named. **Decisions 1, 1b, 2, 3, 4 and 7 were settled first**
@@ -741,7 +741,7 @@ task 6b's to answer**, and it is *arguable* rather than measurable.
 | **6b** | **A Water Body's Bin** — the capacity, the outflow rate and a **sixth** `BinOwnerKind`. ✅ **UNBLOCKED 2026-08-24 by decision 12** — the family question was a correction and not a design sitting: Waste is a **Good**, Sewage is a **Utility**, the split was already in `CONTEXT.md` → Resource, and two copies of one sentence named the wrong half. **No `ResourceFamily` change.** ⚠ **It still owes one *arguable* answer**: whether a Water Body's Bin holds exactly one Utility-family Resource, or whether `02:256`'s *"dumping"* puts a **Good** in it. ⚠ **It must take the two water tables back out of `_writableTables`**, because a Bin's level is a write. ⚠ **This row said *a fifth* `BinOwnerKind` and was correct on the day it was written** — milestone 27 landed `Business = 3` on `main`. ***A merge made a plan row stale without touching the plan.*** | 6a, decision 12 |
 | **7** | **Desirability's shoreline term** — `w₅`, and the caveat test `adr/0123` requires. ⚠ **It depends on 6b and NOT on 6a**, and this row said *6* until 2026-08-24: `adr/0034`, `CONTEXT.md` → Water Body and `02:256` all make the term's intensity **the Bin's level**, so a shoreline term built on the graph alone would be present and permanently zero — the working-mechanism-that-says-something-false failure `adr/0123` exists to prevent | 6b |
 | **8a** | ✅ **DONE 2026-08-24** — see **F10**. **Woodland is placed and cleared** — a `Saved<int>("woodland")` Tile count on a dense `WoodlandCellTable` of its own, placed by the generator, and **bounded by `TilesInCell − Sealing`** so that sealing clears forest with no verb and no event ([`adr/0158`](../docs/adr/0158-woodland-is-a-tile-count-per-cell-bounded-by-sealing-because-the-ground-has-one-budget-and-not-two.md)). ⚠ **Authors no number and opens no §D row**, exactly as `TerrainGenerator` authors none. 🔴 Moves every State Hash. ⚠ **It has no consumer** — the Timber chain is unplaced — so it is **F9** a second time and is taken anyway | 2, 3, decision 8 |
-| **8b** | **Woodland's regrowth** — a cadence and a rate on unsealed, unoccupied land. 🔴 **This is `adr/0022`'s *"regrowth speed is the load-bearing constant"*, which had never had an owner**: no ADR, no §D row, no ratifier and no Ruleset key. ✅ **UNBLOCKED 2026-08-24 by decision 10** — its stated condition was *stays open until 8a lands*, and 8a landed. **One `plans/0002` §D2 row opened**, naming Woodland against Sealing over a long run; 8b moves it to §D1 on the day it writes the numbers | 8a |
+| **8b** | ✅ **DONE 2026-08-24** — see **F13**. **Woodland's regrowth** — `LayerSchedule.Woodland` at **period `TICKS_PER_DAY`, offset 80**, `RegrowWoodland` in `MapLayers.Step`, and `[layers] woodland_regrowth_days = 512` in `varied.toml`. 🔴 **This is `adr/0022`'s *"regrowth speed is the load-bearing constant"*, and it had never had an owner** — no ADR, no §D row, no ratifier and no Ruleset key. ⚠ **It needed a COLUMN the scoping did not anticipate**: `WoodlandCellTable.Potential`, because regrowth needs a ceiling and both ceilings that need no column are wrong. **Moved the §D2 row to §D1.** 🔴 Moves every State Hash | 8a |
 | **9** | **Hazard Regions** — derived at generation, never read in a Tick. ⚠ **Floodplain depth is stored SPARSELY, where the floodplain is** (`adr/0156`), because `01 §5.2` spreads Flood *by depth* and a whole-map height field is what this milestone does not build | 2 |
 | **10** | **The long run** — 100k+ Ticks, no collection and no magnitude trending at steady state | all |
 
@@ -1285,4 +1285,67 @@ the two doc-comments in `LayerSchedule` still quoting a **Day as 8,192 Ticks** �
 made it 2,048 — were corrected in passing, and they are `plans/0012` **Cause 1** in the one place the
 corpus checks cannot see, because ***every mechanical check in `tests/Borough.Tests/Corpus/` is
 document-to-document and a doc-comment is neither end of that.***
+
+### F13 — regrowth needed a ceiling, and both ceilings that cost nothing were wrong
+
+**The task was scoped as *a cadence and a rate* and it needed a saved column.**
+
+`WoodlandGenerator` lays forest from its own noise field and `MapLayers.Seal` takes it away; nothing
+recorded **what had been there**. So the first question regrowth asks — *grow back to what?* — had no
+answer in the build, and the two answers that need no storage are both wrong:
+
+- **Toward the bare Cell**, `TilesInCell − Sealing`. Every unbuilt Cell becomes full forest given
+  time, which erases the property `adr/0022` put Woodland in for: ***"a heavily forested seed is a
+  Materials-rich, farmland-poor start" is a statement about the SEED***, and a map that converges on
+  uniform forest has no seeds.
+- **Toward the terrain type's own share**, from `[[terrain]]`. It would disagree with the generator on
+  the **first Tick**, because `WoodlandGenerator` reads `PurposeTag.Woodland`'s field and not terrain —
+  so a Cell laid above its type's ceiling would start shrinking, which looks exactly like a defect.
+
+**So `WoodlandCellTable` gained `Potential`, saved, written once by `Lay`.** ⚠ **Saved rather than
+derived is forced rather than chosen** — it is a function of the `WorldKey`, so it looks derivable, but
+`World`'s own note on `_tables` says a save does not carry the `WorldKey` back into the generator,
+which is why `TerrainCellTable` is saved for the same reason. ***A column nothing can rebuild is not
+derived state, however cheap its formula looks.***
+
+✅ **And the pair turned out to be a readout the design had already asked for.** `adr/0022` is titled
+*land is a stock the city spends*; `Potential − Tiles` summed over the map is exactly what has been
+spent. The column was added for the ceiling and the readout came free.
+
+**Three things this task did differently because of F12, one milestone-task earlier.**
+
+⚠ **The curve is LINEAR, and that is task 4's lesson applied rather than a modelling preference.** An
+exponential approach would need a caveat about the multiplier between its time constant and the felt
+duration — and F12 is that caveat being derived on paper, written into three documents, and refuted by
+the first instrument that measured it. ***A linear rate makes the authored number and the felt number
+the same number***, so there is nothing to mis-quote.
+
+⚠ **The step is floored at one Tile and the loader refuses a duration past a Cell, which is F12's
+stall wearing the other sign.** `RoundDiv(1024, days)` is zero past `TilesInCell`, so an authored 2,000
+Days would put back *nothing, for ever* while reading as a very slow rate. It is guarded **twice**,
+because the first line of defence for the identical bug turned out to be nobody at all.
+
+⚠ **The whole-map sweep was measured on the day it was written**, which is `adr/0073` and **F7** — this
+milestone has already been burned once by an unmeasured whole-world pass. **1.357 ms a pass**, on the
+reference machine, `varied.toml` at 4,000 Citizens: **0.004% of the budget amortised and 8.7% of a
+single Tick**, and it is the spike rather than the average that `05 §9` cares about. Routed to
+[`plans/0013`](0013-tick-budget.md), which also gained a row saying **task 4's decay pass is still
+unmeasured**.
+
+🔴 **And the measurement found a caveat about what the key means.** The instrument put **26.6%** of a
+map's forest back in 65 passes of a 512-Day rate, where the duration alone predicts 12.7%. The step is
+**absolute**, so ***the authored duration is a FULL Cell's recovery time and not every Cell's*** — a
+Cell the seed left a quarter wooded returns in a quarter of the stated Days. Scaling each Cell's step
+by its own ceiling is refused, because that division rounds to zero on exactly the thinly wooded Cells
+it would exist to slow: the fix reintroducing the defect. **The clause is written into the key's
+doc-comment, `varied.toml`'s header, `CONTEXT.md` and the §D1 row, and asserted by a test**, on
+`plans/0012` **Cause 5** — ***found by measuring, and it would not have been found by reading.***
+
+⚠ **The two halves of milestone 24 are one loop and neither task closes it.** Task 4 lets Sealing fall;
+8b lets Woodland rise into the room it leaves. A paved Cell takes its ground back over **197–468 Days**
+and its trees back over **512** — roughly 700 end to end, about eighteen hours of play at 1× — and that
+compound is the ratchet `adr/0022` is protecting. ⚠ **`adr/0158`'s stated trap is now live**: both
+numbers are unratified, so a long run reading one against the other has **two unratified numbers
+measuring each other**. ***The bound supplies a readout and not a ratifier***, so task 10 reads each
+against its own stated duration.
 

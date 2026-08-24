@@ -403,6 +403,11 @@ public sealed class MapLayers
         {
             DecaySealing(terrain);
         }
+
+        if (Schedule.IsDue(Layer.Woodland, tick))
+        {
+            RegrowWoodland();
+        }
     }
 
     /// <summary>
@@ -669,6 +674,89 @@ public sealed class MapLayers
     }
 
     /// <summary>
+    /// Puts back one pass of forest everywhere there is room for it. <c>adr/0022</c>, <c>adr/0158</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>This is the constant <c>adr/0022</c> calls load-bearing by name</b> — <em>"the first
+    /// response is more reboot levers, not faster regrowth; regrowth speed is the load-bearing
+    /// constant and loosening it deletes the arc"</em> — <b>and until milestone 24 task 8b it had no
+    /// owner at all</b>: no ADR, no <c>plans/0002</c> row, no ratifier and no Ruleset key, carried for
+    /// the life of the project by that one sentence.
+    /// </para>
+    /// <para>
+    /// <b>The ceiling is <see cref="WoodlandCellTable.Potential"/> and the room is Sealing, and a Cell
+    /// gets the smaller.</b> Growing toward the bare Cell would turn every unbuilt Cell into full
+    /// forest given time and erase the seed's character, which is the property <c>adr/0022</c> put
+    /// Woodland in for. Ignoring Sealing would break <c>adr/0158</c>'s <c>Woodland + Sealing ≤
+    /// TilesInCell</c> — ***the one budget the ground has*** — from the only writer that raises
+    /// Woodland.
+    /// </para>
+    /// <para>
+    /// <b>A dense whole-map walk, and that is named rather than hidden.</b> <c>02 §10</c> calls a
+    /// whole-world sweep the wrong shape and <c>plans/0042</c> <b>F7</b> is this milestone getting
+    /// burned by one already. It is taken here because ***forest grows where the city is not***, so
+    /// the sparse residency index is precisely the wrong set: the Cells with Layer rows are the Cells
+    /// something happened to. The cost is measured rather than asserted and belongs to
+    /// <c>plans/0013</c>.
+    /// </para>
+    /// <para>
+    /// <b>Zero means never and is reached by the Ruleset saying nothing.</b> Every world before this
+    /// one had a ratchet with no release, which is <c>adr/0006</c>'s concern wearing the other sign —
+    /// and it is still reachable, because a file that states no regrowth is a legitimate world and not
+    /// a misconfiguration.
+    /// </para>
+    /// </remarks>
+    public void RegrowWoodland()
+    {
+        int step = _ruleset.Rates.WoodlandTilesPerPass;
+
+        if (step <= 0)
+        {
+            return;
+        }
+
+        for (int cell = 0; cell < CellGrid.WorldCellCount; cell++)
+        {
+            int standing = _woodland.Tiles[cell];
+            int ceiling = _woodland.Potential[cell];
+
+            if (standing >= ceiling)
+            {
+                continue;
+            }
+
+            // The room Sealing leaves. Read through the residency index rather than through the
+            // Cell query, because that query re-derives the slot from a coordinate this loop already
+            // holds -- and it is read at all only for Cells with forest still owed, which on a
+            // generated map is a small fraction of the walk.
+            int room = CellGrid.TilesInCell - SealingAt(cell);
+
+            if (ceiling > room)
+            {
+                ceiling = room;
+            }
+
+            if (standing >= ceiling)
+            {
+                continue;
+            }
+
+            int grown = standing + step;
+
+            _woodland.Tiles[cell] = grown > ceiling ? ceiling : grown;
+        }
+    }
+
+    /// <summary>Sealing at a Cell index, or zero where no Layer row exists.</summary>
+    private int SealingAt(int cell)
+    {
+        int slot = _residency.SlotAt(cell);
+
+        return slot < 0 ? 0 : _cells.Sealing[slot];
+    }
+
+    /// <summary>
     /// Absorbs one cadence's worth of every Cell's pollution source. <c>adr/0051</c>.
     /// </summary>
     /// <remarks>
@@ -794,6 +882,7 @@ public sealed class MapLayers
         Layer.IndustrialPollution => Pollution(east, north),
         Layer.LandValue => LandValue(east, north),
         Layer.Sealing => Sealing(east, north),
+        Layer.Woodland => _woodland.At(east, north),
         _ => throw new ArgumentOutOfRangeException(nameof(layer)),
     };
 

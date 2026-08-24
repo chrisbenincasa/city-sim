@@ -69,7 +69,7 @@ public static class WoodlandGenerator
                 int tiles = (int)IntegerMath.RoundDiv(
                     (long)at * CellGrid.TilesInCell, ValueNoise.Ceiling);
 
-                woodland.Set(new Cells(east), new Cells(north), tiles);
+                woodland.Lay(new Cells(east), new Cells(north), tiles);
             }
         }
     }

@@ -59,6 +59,18 @@ public sealed class CellResidency
             ? _slots[CellGrid.Index(east, north)] - 1
             : NotResident;
 
+    /// <summary>
+    /// The slot holding a Cell already resolved to an index, or <see cref="NotResident"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>For a caller walking the dense grid in index order, which <see cref="Slot"/> would make
+    /// re-derive the index it is already standing on.</b> There is exactly one such caller —
+    /// <see cref="MapLayers.RegrowWoodland"/>, because forest grows where the city is not and so
+    /// cannot walk the resident set.
+    /// </remarks>
+    /// <param name="index">A <see cref="CellGrid.Index"/>, which the caller is responsible for.</param>
+    public int SlotAt(int index) => _slots[index] - 1;
+
     /// <summary>The slot holding a Cell, allocating a row if there is none.</summary>
     /// <exception cref="ArgumentOutOfRangeException">The Cell is off the map.</exception>
     public int Ensure(LayerCellTable cells, Cells east, Cells north)

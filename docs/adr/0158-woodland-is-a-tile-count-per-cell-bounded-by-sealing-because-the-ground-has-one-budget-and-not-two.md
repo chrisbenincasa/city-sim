@@ -153,6 +153,19 @@ shape `01 §5.5` forbids by name.
   authors no number**, exactly as `TerrainGenerator` authors none.
 - **`0022:137`'s *"regrowth speed is the load-bearing constant"* acquires an owner it has never had.**
   It is 8b's, and 8b cannot land without a named machine, world and quantity under `0052`.
+  ✅ **LANDED 2026-08-24.** `[layers] woodland_regrowth_days = 512` in `rulesets/varied.toml`, on a
+  cadence of a Day at offset 80, with a `plans/0002` §D1 row and milestone 24's long run as its
+  ratifier. ⚠ **It needed a column this ADR did not anticipate** — `WoodlandCellTable.Potential`,
+  saved, written once by the generator — because regrowth needs a **ceiling**, and both ceilings that
+  need no column are wrong: the bare Cell converges every map on uniform forest and erases the seed's
+  character, and the terrain type disagrees with `WoodlandGenerator` on the first Tick because that
+  generator reads its own noise field. ✅ **The pair is also the readout this ADR asked for** —
+  `Potential − Tiles` summed over the map is *what the city has spent*, which is
+  [`0022`](0022-land-is-a-stock-the-city-spends.md)'s own title made observable.
+- ⚠ **And the trap named above is now live rather than hypothetical.** Sealing's decay landed
+  unratified at task 4 and regrowth landed unratified here, so a long run reading Woodland against
+  Sealing has **two unratified numbers measuring each other**. ***What the bound supplies is a readout
+  and not a ratifier***, so the run reads each against its own stated duration.
 - **Woodland has no consumer, and that is recorded rather than dodged.** The Timber chain is unplaced —
   `06` has no row for Forestry, and `02 §2.3` says outright that no milestone builds a farm. So 8a
   ships a producer nobody reads, which is **F9** arriving a second time three tasks later. It is taken

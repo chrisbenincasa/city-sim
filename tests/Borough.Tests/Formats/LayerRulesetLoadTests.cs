@@ -163,6 +163,8 @@ public sealed class LayerRulesetLoadTests
     [InlineData("pollution_decay_ticks = -1", "duration in Ticks")]
     [InlineData("sealing_decay_period = 0", "expressible as a period")]
     [InlineData("sealing_decay_offset = -1", "which Tick of the cycle")]
+    [InlineData("woodland_regrowth_period = 0", "expressible as a period")]
+    [InlineData("woodland_regrowth_days = 0", "refused because it would mean INSTANTLY")]
     public void A_Layer_number_outside_its_range_is_refused_by_name(string line, string because)
     {
         RulesetRefusal refusal = Refused($"""
@@ -174,6 +176,50 @@ public sealed class LayerRulesetLoadTests
 
         Assert.Contains(because, refusal.Reason, StringComparison.Ordinal);
         Assert.Equal(6, refusal.Line);
+    }
+
+    /// <summary>
+    /// 🔴 A regrowth duration the mechanism cannot express is refused rather than floored in silence.
+    /// </summary>
+    /// <remarks>
+    /// One pass puts back <c>TilesInCell ÷ days</c> Tiles, so past a Cell's Tile count that step is
+    /// under one, the floor of one Tile takes over, and ***the ground recovers in <c>TilesInCell</c>
+    /// Days whatever the file said***. That is milestone 24 task 4's stall wearing the other sign —
+    /// see <c>plans/0042</c> <b>F12</b> — and it is guarded twice on purpose, because the first line
+    /// of defence for the identical bug turned out to be nobody at all.
+    /// </remarks>
+    [Theory]
+    [InlineData(1_025)]
+    [InlineData(100_000)]
+    public void A_regrowth_duration_past_a_Cell_is_refused(int days)
+    {
+        RulesetRefusal refusal = Refused($"""
+            {Nothing}
+
+            [layers]
+            woodland_regrowth_days = {days}
+            """);
+
+        Assert.Contains($"woodland_regrowth_days is {days}", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("1024", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// ⚠ Absent means <b>never</b>, and the two keys on this pair bound zero in opposite directions.
+    /// </summary>
+    /// <remarks>
+    /// <c>sealing_decay_tau = 0</c> is a <em>time constant</em> and zero means <b>never</b>, which is
+    /// rock's real answer. <c>woodland_regrowth_days = 0</c> is a <em>duration</em> and zero means
+    /// <b>instantly</b> — the opposite of the absence somebody writing it would mean. ***Two keys
+    /// about ground recovering, both bounded at zero, and the value means opposite things in each.***
+    /// </remarks>
+    [Fact]
+    public void A_Ruleset_that_states_no_regrowth_gets_a_world_where_forest_never_returns()
+    {
+        Ruleset rules = Accepted($"{Nothing}\n\n[layers]\nland_value_tau = 8");
+
+        Assert.Equal(0, rules.Layers.Rates.WoodlandRegrowthDays);
+        Assert.Equal(0, rules.Layers.Rates.WoodlandTilesPerPass);
     }
 
     /// <summary>
@@ -392,7 +438,7 @@ public sealed class LayerRulesetLoadTests
 
         world.Adopt(
             Ruleset.Empty.WithLayers(new LayerRuleset(
-                new LayerSchedule(new LayerCadence(16, 1), new LayerCadence(64, 5), LayerSchedule.Default.Sealing),
+                new LayerSchedule(new LayerCadence(16, 1), new LayerCadence(64, 5), LayerSchedule.Default.Sealing, LayerSchedule.Default.Woodland),
                 LayerRates.Default)),
             0x1111_1111_1111_1111UL,
             Ticks.Zero,

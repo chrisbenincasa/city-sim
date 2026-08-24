@@ -47,6 +47,20 @@ public enum Layer : byte
     /// </para>
     /// </remarks>
     Sealing = 2,
+
+    /// <summary>
+    /// Forest coming back on ground nothing is standing on. <b>Not a field, and not diffused.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>Here for the same reason <see cref="Sealing"/> is, one milestone-task later.</b> It is a
+    /// count per Cell rather than a field, it has no kernel and no range, and what puts it on this
+    /// enum is that it happens <em>on a clock</em>: <c>adr/0022</c> — <em>"forest regrows on unsealed,
+    /// unoccupied land — slowly"</em> — is a statement about elapsed time and about nothing else.
+    /// ⚠ <b>Its cadence is a Day, like Sealing's, and its offset is not</b>, because a Tick carrying
+    /// both would make the two halves of one loop fire together and there would be no reading of the
+    /// map in between.
+    /// </remarks>
+    Woodland = 3,
 }
 
 /// <summary>
@@ -112,11 +126,15 @@ public readonly struct LayerSchedule
     /// <param name="landValue">Land value's cadence.</param>
     /// <param name="sealing">Sealing's decay cadence. Milestone 24 task 4.</param>
     public LayerSchedule(
-        LayerCadence industrialPollution, LayerCadence landValue, LayerCadence sealing)
+        LayerCadence industrialPollution,
+        LayerCadence landValue,
+        LayerCadence sealing,
+        LayerCadence woodland)
     {
         IndustrialPollution = industrialPollution;
         LandValue = landValue;
         Sealing = sealing;
+        Woodland = woodland;
     }
 
     /// <summary>
@@ -131,7 +149,8 @@ public readonly struct LayerSchedule
     public static LayerSchedule Default { get; } = new(
         industrialPollution: new LayerCadence(Period: 64, Offset: 0),
         landValue: new LayerCadence(Period: 256, Offset: 16),
-        sealing: new LayerCadence(Period: Ticks.PerDay, Offset: 48));
+        sealing: new LayerCadence(Period: Ticks.PerDay, Offset: 48),
+        woodland: new LayerCadence(Period: Ticks.PerDay, Offset: 80));
 
     /// <summary>Industrial pollution's cadence.</summary>
     public LayerCadence IndustrialPollution { get; }
@@ -153,12 +172,25 @@ public readonly struct LayerSchedule
     /// </remarks>
     public LayerCadence Sealing { get; }
 
+    /// <summary>How often forest grows back. <b>A Day, and offset 80.</b></summary>
+    /// <remarks>
+    /// <b>A Day for Sealing's reason and offset 80 for the opposite one.</b> The period is a Day
+    /// because <c>adr/0022</c> states the intent in elapsed time and the Ruleset authors a duration in
+    /// Days, so nothing converts. ⚠ <b>The offset must not be 48</b>: Sealing's decay opens the room
+    /// that regrowth fills, so firing both on one Tick would run the two halves of that loop with no
+    /// Tick in between for anything to read the map — and it would put two whole-map sweeps in one
+    /// Tick's budget, which is the collision the stagger exists to prevent (<c>05 §9</c>). **80** is
+    /// congruent to neither 0 mod 64 nor 16 mod 256 and is not 48, which is all four Layers require.
+    /// </remarks>
+    public LayerCadence Woodland { get; }
+
     /// <summary>The cadence of one Layer.</summary>
     public LayerCadence For(Layer layer) => layer switch
     {
         Layer.IndustrialPollution => IndustrialPollution,
         Layer.LandValue => LandValue,
         Layer.Sealing => Sealing,
+        Layer.Woodland => Woodland,
         _ => throw new ArgumentOutOfRangeException(nameof(layer)),
     };
 
@@ -185,8 +217,58 @@ public readonly struct LayerSchedule
 /// (<c>adr/0051</c>). <b>Zero means never</b>, which is the pre-<c>adr/0051</c> behaviour and is kept
 /// reachable only so the accumulating case can be written in a test and watched to fail.
 /// </param>
-public readonly record struct LayerRates(int LandValueTau, int PollutionTau)
+/// <param name="WoodlandRegrowthDays">
+/// How many Days a <b>fully wooded</b> Cell, cleared to bare ground, takes to return to what the seed
+/// laid. <b>Zero means never</b>, which is what every world before milestone 24 task 8b had.
+/// ⚠ <b>The duration is denominated against a FULL Cell and a thinly wooded one returns sooner</b> —
+/// see <see cref="WoodlandTilesPerPass"/>, which is where that caveat is argued.
+/// </param>
+public readonly record struct LayerRates(
+    int LandValueTau, int PollutionTau, int WoodlandRegrowthDays)
 {
+    /// <summary>
+    /// How many Tiles one scheduled pass puts back. <b>Linear, and floored at one Tile.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>Linear rather than an exponential approach, and task 4 is why.</b> The two rates in this
+    /// type are time constants, and a time constant is <em>not</em> the duration a designer means —
+    /// milestone 24 task 4 shipped a caveat about the multiplier between them, got the multiplier
+    /// wrong, and had it refuted by the first instrument that measured it
+    /// (<c>plans/0042</c> <b>F12</b>). ***A linear rate makes the authored number and the felt number
+    /// the same number***, so there is no multiplier to mis-quote and no caveat to travel wrong.
+    /// </para>
+    /// <para>
+    /// <b>The Ruleset states the DURATION and this derives the step</b>, which is
+    /// <c>adr/0059</c>'s rule and <c>pollution_decay_ticks</c>' precedent: authoring <em>2 Tiles a
+    /// pass</em> would silently mean half the recovery the day somebody changed the cadence.
+    /// </para>
+    /// <para>
+    /// ⚠ 🔴 <b>The step is ABSOLUTE, so the authored duration is the recovery time of a FULL Cell and
+    /// not of every Cell.</b> A Cell whose <see cref="WoodlandCellTable.Potential"/> is a quarter of
+    /// the Cell comes back in a quarter of the stated Days, because forest advances at so many Tiles a
+    /// pass wherever it advances at all. ***Found by measuring rather than by reading***: the cost
+    /// instrument put <b>26.6%</b> of the map's forest back in 65 passes of a 512-Day rate, where the
+    /// duration alone predicts 12.7%. The alternative — scaling the step by each Cell's ceiling so
+    /// every Cell takes the same <em>fraction</em> of the duration — is refused because it reintroduces
+    /// a per-Cell division whose result rounds to zero on exactly the thinly wooded Cells it exists to
+    /// slow down, which is the defect below arriving through the fix for it. ⚠ <b>So the key names a
+    /// full Cell, and any figure quoted from it carries that clause</b> (<c>plans/0012</c> Cause 5).
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Floored at one Tile, and the floor is the same defect task 4 found wearing the other
+    /// sign.</b> <c>RoundDiv(1024, days)</c> is zero for any duration past
+    /// <see cref="CellGrid.TilesInCell"/>, so an authored 2,000 Days would put back <em>nothing, for
+    /// ever</em> while reading as a very slow rate. The loader refuses above the Cell for that reason,
+    /// and the floor is here so the refusal is a second line of defence rather than the only one.
+    /// </para>
+    /// </remarks>
+    public int WoodlandTilesPerPass => WoodlandRegrowthDays <= 0
+        ? 0
+        : Max(1, IntegerMath.RoundDiv(CellGrid.TilesInCell, WoodlandRegrowthDays));
+
+    private static int Max(int a, int b) => a > b ? a : b;
+
     /// <summary>
     /// <b>Pollution's tau is derived rather than picked, and the derivation is the whole argument for
     /// it.</b>
@@ -220,7 +302,8 @@ public readonly record struct LayerRates(int LandValueTau, int PollutionTau)
     public static LayerRates Default => From(
         landValueTau: 8,
         pollutionDecayTicks: DefaultPollutionDecayTicks,
-        pollutionPeriod: LayerSchedule.Default.IndustrialPollution.Period);
+        pollutionPeriod: LayerSchedule.Default.IndustrialPollution.Period,
+        woodlandRegrowthDays: 0);
 
     /// <summary>
     /// One Day, which is what a shut-down factory's plume is meant to fade over.
@@ -274,12 +357,16 @@ public readonly record struct LayerRates(int LandValueTau, int PollutionTau)
     /// </param>
     /// <param name="pollutionPeriod">The pollution cadence the decay will run at.</param>
     public static LayerRates From(
-        int landValueTau, int pollutionDecayTicks, int pollutionPeriod) =>
+        int landValueTau,
+        int pollutionDecayTicks,
+        int pollutionPeriod,
+        int woodlandRegrowthDays) =>
         new(
             landValueTau,
             pollutionDecayTicks <= 0 || pollutionPeriod <= 0
                 ? 0
-                : IntegerMath.RoundDiv(pollutionDecayTicks, pollutionPeriod));
+                : IntegerMath.RoundDiv(pollutionDecayTicks, pollutionPeriod),
+            woodlandRegrowthDays);
 }
 
 /// <summary>

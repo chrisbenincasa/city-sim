@@ -14,9 +14,10 @@ public readonly struct WoodlandCell;
 /// <remarks>
 /// <para>
 /// <c>adr/0158</c>, milestone 24 task 8a. <see cref="WoodlandGenerator.LayInto"/> fills it at world
-/// creation and <see cref="MapLayers.Seal"/> takes from it as ground is built on. <b>Nothing puts
-/// Woodland back yet</b> — regrowth is task 8b, and it carries the rate this table deliberately does
-/// not know about.
+/// creation and <see cref="MapLayers.Seal"/> takes from it as ground is built on. ✅ <b>Milestone 24
+/// task 8b puts it back</b> — <see cref="MapLayers.RegrowWoodland"/>, on a cadence, toward
+/// <see cref="Potential"/>. This paragraph said <em>nothing puts Woodland back yet</em>, and the rate
+/// still lives in the Ruleset rather than here.
 /// </para>
 /// <para>
 /// <b>A table of its own rather than a column on <see cref="LayerCellTable"/>, and it is the same
@@ -67,6 +68,7 @@ public sealed class WoodlandCellTable
         _rows = new Rows<WoodlandCell>("woodland_cell", CellGrid.WorldCellCount);
 
         Tiles = _rows.Saved<int>("tiles");
+        Potential = _rows.Saved<int>("potential");
 
         _rows.Seal();
 
@@ -89,6 +91,40 @@ public sealed class WoodlandCellTable
     /// </remarks>
     public Column<int> Tiles { get; }
 
+    /// <summary>
+    /// What the seed laid here — the ceiling regrowth climbs back toward. <b>Written once, at world
+    /// creation, and never again.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>Regrowth needs a ceiling, and the two candidates that need no column are both wrong.</b>
+    /// Growing back to <see cref="CellGrid.TilesInCell"/> minus Sealing turns every unbuilt Cell into
+    /// full forest given time, which erases the thing <c>adr/0022</c> put Woodland in for — <em>"a
+    /// heavily forested seed is a Materials-rich, farmland-poor start"</em> is a property of the
+    /// <em>seed</em>, and a map that converges on uniform forest has no seeds. Taking the ceiling from
+    /// the terrain type instead would disagree with <see cref="WoodlandGenerator"/> on the first Tick,
+    /// because that generator reads its own noise field and not terrain — a Cell laid above its type's
+    /// ceiling would start shrinking, which looks exactly like a defect.
+    /// </para>
+    /// <para>
+    /// <b>Saved rather than derived, and that is forced rather than chosen.</b> It is a function of
+    /// the <c>WorldKey</c>, so it looks derivable — but <c>World</c>'s own note on this list says a
+    /// save does not carry the <c>WorldKey</c> back into the generator, which is why
+    /// <see cref="TerrainCellTable"/> is saved for the same reason. ***A column nothing can rebuild is
+    /// not derived state, however cheap its formula looks.***
+    /// </para>
+    /// <para>
+    /// ✅ <b>And the pair is a readout the design already asked for.</b> <c>adr/0022</c> is called
+    /// <em>land is a stock the city spends</em>; <c>Potential − Tiles</c> summed over the map is
+    /// exactly what has been spent, which is the quantity <c>plans/0002</c> §D names for ratifying the
+    /// regrowth rate. The second column was added for the ceiling and the readout came free.
+    /// </para>
+    /// </remarks>
+    public Column<int> Potential { get; }
+
+    /// <summary>What the seed laid at this Cell. Zero where nothing was ever laid.</summary>
+    public int PotentialAt(Cells east, Cells north) => Potential[Slot(east, north)];
+
     /// <summary>How many of one Cell's Tiles are wooded.</summary>
     /// <exception cref="ArgumentOutOfRangeException">The Cell is off the map.</exception>
     public int At(Cells east, Cells north) => Tiles[Slot(east, north)];
@@ -110,6 +146,26 @@ public sealed class WoodlandCellTable
         ArgumentOutOfRangeException.ThrowIfGreaterThan(tiles, CellGrid.TilesInCell);
 
         Tiles[Slot(east, north)] = tiles;
+    }
+
+    /// <summary>
+    /// Lays this Cell's forest and records the ceiling it may grow back to. <b>World creation only.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>One call writing both columns, rather than two setters.</b> The invariant is that
+    /// <see cref="Potential"/> is what the generator laid — so a caller that could raise the ceiling
+    /// without laying the trees, or lay them without a ceiling, is a caller that can put the pair into
+    /// a state world creation never produces. There is exactly one writer and this is its door.
+    /// </remarks>
+    public void Lay(Cells east, Cells north, int tiles)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(tiles);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(tiles, CellGrid.TilesInCell);
+
+        int slot = Slot(east, north);
+
+        Tiles[slot] = tiles;
+        Potential[slot] = tiles;
     }
 
     /// <summary>

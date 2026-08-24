@@ -450,6 +450,56 @@ kernel_metres         = 1024
 pollution_decay_ticks = 2048
 land_value_tau        = 8
 
+# ---------------------------------------------------------------------------------------------------
+# THE SECOND THING THIS FILE ADDS, AND IT IS THE ONE adr/0022 CALLS LOAD-BEARING BY NAME:
+#
+#     "the first response is more reboot levers, not faster regrowth; REGROWTH SPEED IS THE
+#      LOAD-BEARING CONSTANT and loosening it deletes the arc."
+#
+# 🔴 UNTIL 2026-08-24 IT HAD NO OWNER. No ADR, no plans/0002 row, no named ratifier, no key here, and
+# adr/0052 had never been applied to it -- a hash-bearing constant an ADR calls load-bearing, carried
+# for the life of the project by that one sentence. Milestone 24 task 8b, plans/0042 decision 10.
+#
+# ⚠ IT IS A DURATION AND NOT A RATE, and that is the shape of the fix rather than a preference. The
+# key says how many Days a Cell cleared of ALL its forest takes to return to what the seed laid; the
+# per-pass Tile count is derived from it. Authoring "2 Tiles a pass" instead would silently mean half
+# the recovery the day somebody retuned the cadence -- pollution_decay_ticks' precedent, and adr/0059's
+# rule. ⚠ IT IS ALSO WHY THE CURVE IS LINEAR: task 4 shipped an exponential decay beside this and a
+# caveat about the multiplier between its time constant and the felt duration, GOT THE MULTIPLIER
+# WRONG, and had it refuted by the first instrument that measured it (plans/0042 F12). A linear rate
+# makes the authored number and the felt number THE SAME NUMBER, so there is no multiplier to quote
+# and no caveat to travel wrong.
+#
+# ⚠ 🔴 THE DURATION IS A FULL CELL'S AND NOT EVERY CELL'S, AND THAT CLAUSE TRAVELS WITH THE NUMBER.
+# The step is absolute -- so many Tiles a pass, wherever forest advances at all -- so a Cell the seed
+# left a quarter wooded comes back in a quarter of the stated Days. MEASURED rather than read: the
+# cost instrument put 26.6% of the map's forest back in 65 passes of this rate, where the duration
+# alone predicts 12.7%. The alternative, scaling each Cell's step by its own ceiling, is refused
+# because that division rounds to zero on exactly the thinly wooded Cells it would exist to slow.
+#
+# 512 DAYS, AND IT IS ANCHORED ON THE WORD "slowly" AND ON WHAT SITS BESIDE IT. adr/0022 says only
+# that forest regrows "slowly"; what makes 512 legible is the comparison with the Sealing recovery in
+# the [[terrain]] tables below, which runs 197 Days on floodplain to 468 on thin soil. So a Cell that
+# was PAVED and then abandoned takes its ground back first and its trees back after -- roughly 700
+# Days end to end -- and that compound is the ratchet adr/0022 is protecting. At the reference tick
+# rate a Day is 2m08s, so 512 Days is about EIGHTEEN HOURS of play at 1x. ⚠ THE REAL-TIME READING IS
+# THE POINT, because adr/0022's subject is "what the last hours of a game feel like" and no in-world
+# figure answers that question.
+#
+# ⚠ OMITTING THE KEY MEANS FOREST NEVER RETURNS, which is what all fifteen shipped files said by
+# saying nothing, and it stays a legitimate world rather than a misconfiguration. A STATED ZERO IS
+# REFUSED, because a duration of zero Days means INSTANTLY and not never -- the two spellings would
+# mean opposite things, which is why this key refuses the value adr/0159's sea level refuses for the
+# opposite reason. The ceiling is 1,024, a Cell's Tile count: past it the derived step rounds to
+# nothing, a floor of one Tile takes over, and the authored duration would silently not be the
+# duration.
+#
+# 🔴 UNRATIFIED, ONE plans/0002 §D1 ROW, and its ratifier is milestone 24's long run -- total Woodland
+# against total Sealing over 100k+ Ticks. ⚠ REFUTING IN BOTH DIRECTIONS: regrowth so fast that
+# clearing costs nothing deletes adr/0022's arc, which is the failure that ADR names; so slow that a
+# cleared map never recovers is a one-way ratchet, which is adr/0006's concern wearing the other sign.
+woodland_regrowth_days = 512
+
 # The road network. plans/0020 (milestone 5a), and the first section here that describes the
 # *ground* rather than what happens on it. adr/0014: Streets snap to the grid, Arterials are
 # freeform between authored Junction pieces, and the Road Graph is uniform regardless of which of

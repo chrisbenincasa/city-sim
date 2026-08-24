@@ -2905,6 +2905,34 @@ public static class RulesetLoader
                 out int pollutionOffset);
             int landValuePeriod = Cadence("land_value", schedule.LandValue, out int landValueOffset);
             int sealingPeriod = Cadence("sealing_decay", schedule.Sealing, out int sealingOffset);
+            int woodlandPeriod = Cadence("woodland_regrowth", schedule.Woodland, out int woodlandOffset);
+
+            // Absent means NEVER, and a stated zero is refused because it means the opposite. This is
+            // a DURATION rather than a time constant, so 0 Days reads as "instantly" -- the one value
+            // a designer must not be able to reach by writing a number that looks like an absence.
+            // adr/0159's rule about a second spelling of an existing state, arriving where the two
+            // spellings would mean different things. The ceiling is the Cell: past TilesInCell the
+            // derived step rounds to nothing and the floor takes over, so the authored duration would
+            // silently not be the duration. Milestone 24 task 8b, adr/0022.
+            int regrowthDays = Number("woodland_regrowth_days", rates.WoodlandRegrowthDays,
+                minimum: 1,
+                "It is how many Days a Cell cleared of all its forest takes to grow back to what the "
+                + $"seed laid, so it runs 1 to {CellGrid.TilesInCell}. Omit the key for a world where "
+                + "forest never returns, which is what every Ruleset said by saying nothing. Zero is "
+                + "refused because it would mean INSTANTLY rather than never.");
+
+            if (regrowthDays > CellGrid.TilesInCell)
+            {
+                Refuse(LineOf("woodland_regrowth_days"), null,
+                    $"woodland_regrowth_days is {regrowthDays}, and the ceiling is "
+                    + $"{CellGrid.TilesInCell} -- a Cell's Tile count. One pass puts back "
+                    + "TilesInCell / days Tiles, so past the Cell that is less than one Tile and the "
+                    + "floor of one takes over: the ground would recover in TilesInCell Days whatever "
+                    + "this said. A duration the mechanism cannot express is worse than one it "
+                    + "refuses (adr/0022).");
+
+                regrowthDays = rates.WoodlandRegrowthDays;
+            }
 
             int metres = Number("kernel_metres", constants.IndustrialPollutionMetres, minimum: 1,
                 "A kernel with no reach is not a diffused field.");
@@ -2983,8 +3011,9 @@ public static class RulesetLoader
                 new LayerSchedule(
                     new LayerCadence(pollutionPeriod, pollutionOffset),
                     new LayerCadence(landValuePeriod, landValueOffset),
-                    new LayerCadence(sealingPeriod, sealingOffset)),
-                LayerRates.From(landValueTau, decayTicks, pollutionPeriod),
+                    new LayerCadence(sealingPeriod, sealingOffset),
+                    new LayerCadence(woodlandPeriod, woodlandOffset)),
+                LayerRates.From(landValueTau, decayTicks, pollutionPeriod, regrowthDays),
                 stated,
                 desirability,
                 fertility);

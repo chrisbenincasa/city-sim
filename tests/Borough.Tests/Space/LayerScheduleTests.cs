@@ -119,8 +119,8 @@ public class LayerScheduleTests
     [Fact]
     public void Two_diffusion_cadences_produce_two_hash_traces()
     {
-        ulong[] slow = Trace(new LayerSchedule(new LayerCadence(64, 0), new LayerCadence(256, 16), LayerSchedule.Default.Sealing));
-        ulong[] fast = Trace(new LayerSchedule(new LayerCadence(32, 0), new LayerCadence(256, 16), LayerSchedule.Default.Sealing));
+        ulong[] slow = Trace(new LayerSchedule(new LayerCadence(64, 0), new LayerCadence(256, 16), LayerSchedule.Default.Sealing, LayerSchedule.Default.Woodland));
+        ulong[] fast = Trace(new LayerSchedule(new LayerCadence(32, 0), new LayerCadence(256, 16), LayerSchedule.Default.Sealing, LayerSchedule.Default.Woodland));
 
         Assert.NotEqual(slow, fast);
     }
@@ -146,8 +146,8 @@ public class LayerScheduleTests
     [Fact]
     public void The_settled_field_is_the_same_at_either_cadence()
     {
-        World slow = Build(new LayerSchedule(new LayerCadence(64, 0), new LayerCadence(256, 16), LayerSchedule.Default.Sealing));
-        World fast = Build(new LayerSchedule(new LayerCadence(32, 0), new LayerCadence(256, 16), LayerSchedule.Default.Sealing));
+        World slow = Build(new LayerSchedule(new LayerCadence(64, 0), new LayerCadence(256, 16), LayerSchedule.Default.Sealing, LayerSchedule.Default.Woodland));
+        World fast = Build(new LayerSchedule(new LayerCadence(32, 0), new LayerCadence(256, 16), LayerSchedule.Default.Sealing, LayerSchedule.Default.Woodland));
 
         foreach (World world in (World[])[slow, fast])
         {
