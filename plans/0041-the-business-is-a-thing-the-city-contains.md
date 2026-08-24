@@ -738,6 +738,33 @@ the disagreement is invisible, because the list is derived and therefore folds i
 🔴 **This one would be invisible in the same way**: an unrostered worker makes no Trip, and no
 invariant counts Trips that should have happened.
 
+**G31 — 🔴 THERE IS NO UNKNOWN-KEY CHECK IN `RulesetLoader`, SO EVERY TYPO IN EVERY RULESET IS
+SILENT.** Found 2026-08-24 by task 7 writing a test that asserted one exists. ***It does not.*** Every
+table reads the keys it wants by name — `TryInteger(table, "jobs", …)` — and **nothing ever enumerates
+a table's actual keys**, so a key the loader does not look for is not merely unread, it is
+**unnoticed**. `occupent = 3`, `revisit_tics = 1024`, a `[[building]]` key spelled for a
+`[[business]]`: all load clean, all do nothing, none says a word.
+
+⚠ **It is the exact failure class this loader has 150 refusals to prevent**, arriving underneath all
+of them. `adr/0048`'s standing rule is *refuse a file that would load and run and mean nothing*, and
+***a mistyped key is that file by construction*** — the designer wrote a number, the number has no
+effect, and the only symptom is a city that behaves as though they had not.
+
+🔴 **The claim was made three times before it was checked**, which is this session's own second
+instance of the thing `plans/0012`'s new survival section is about. Task 7's first draft asserted the
+unknown-key check in `BusinessKindDefinition`'s doc comment, in `ReadBusinessKinds`' remark and in
+`tenanted.toml`'s header — **all three written from the same assumption, none from the code** — and
+the test written to *demonstrate* it is what refuted it. ***Writing the test is what made the claim
+falsifiable; writing it three times in prose did not.***
+
+⚠ **Not fixed here, and the reason is scope rather than cost.** Closing it means every table
+declaring its permitted key set, which touches every reader in the file and would move the refusal
+count by a lot. **What task 7 shipped instead is one named refusal for `wage`**, because
+[`adr/0141`](../docs/adr/0141-a-tenant-owns-what-leaves-with-it-and-the-premises-own-the-capacity.md)
+gives a designer positive reason to write that key and the general gap would swallow it. ***A named
+refusal for the one key somebody will actually type is not a substitute for the check and must not be
+recorded as one.***
+
 ## What decomposition found
 
 **G1 — 🔴 the risk cell states three numbers and all three have drifted.** `06:95` and `0003:250` say

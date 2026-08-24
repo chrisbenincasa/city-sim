@@ -212,10 +212,18 @@ public static class RulesetShape
             return RulesetChange.BusinessKindCount;
         }
 
-        // Identity only, because a Business kind declares nothing else to compare. There is no
-        // CompareBusinessKind beside CompareKind for the same reason there is no
-        // BusinessKindDefinition: adr/0141 gives the trade `jobs`, shift hours and the wage, and all
-        // three arrive with milestone 27 task 7. On that day this grows a shape check.
+        // Identity only, and it STAYS identity only now that BusinessKindDefinition exists
+        // (milestone 27 task 7). The prediction here was that a definition would grow a shape check,
+        // and reading CompareKind is what refuted it: that method compares a Building kind's
+        // identity, its Bins and its Rules, and does NOT compare KindDefinition.Jobs or the Shift
+        // band. Those are tuning -- read at a write site, pointed at by no live state -- so a reload
+        // retunes the standing city and needs no migration (adr/0068, adr/0064). Every member of
+        // BusinessKindDefinition is the same shape, so there is nothing here to compare.
+        //
+        // What a trade would have to gain before this grows a check is STRUCTURE: Bins or Rules,
+        // which are adr/0141's other two rows and belong to no task in this milestone. The wage is
+        // not it either -- that is adr/0026 at milestone 15, and this comment claimed all three of
+        // adr/0141's Declares row arrived at task 7 when two of them do (plans/0012, Cause 4).
         for (int i = 1; i <= current.BusinessKindCount; i++)
         {
             if (current.BusinessKindKey((byte)i) != replacement.BusinessKindKey((byte)i))

@@ -128,6 +128,7 @@ public static class RulesetLoader
         private readonly Dictionary<string, ushort> _conditions = new(StringComparer.Ordinal);
 
         private readonly List<TableSyntaxBase> _kindTables = [];
+        private readonly List<TableSyntaxBase> _businessKindTables = [];
         private readonly List<TableSyntaxBase> _ruleTables = [];
         private readonly List<TableSyntaxBase> _zoneRuleTables = [];
         private readonly List<TableSyntaxBase> _policyTables = [];
@@ -179,6 +180,7 @@ public static class RulesetLoader
                 out MapEmission[] emissions);
             KindDefinition[] kinds = ReadKinds(rules, inputs, outputs, out BinDeclaration[] bins,
                 out RuleId[] kindRules);
+            BusinessKindDefinition[] businessKinds = ReadBusinessKinds();
             ZoneRuleDefinition[] zoneRules = ReadZoneRules();
             PolicyDefinition[] policies = ReadPolicies();
             HinterlandDefinition[] hinterlands = ReadHinterlands(out Money[] hinterlandPrices);
@@ -261,6 +263,7 @@ public static class RulesetLoader
                     KindKeys = Keys(_kinds),
                     BusinessKindCount = _businessKinds.Count,
                     BusinessKindKeys = Keys(_businessKinds),
+                    BusinessKinds = businessKinds,
                 },
                 names);
         }
@@ -308,12 +311,14 @@ public static class RulesetLoader
                             break;
                         }
 
-                        // No table is kept for a second pass, because a [[business]] declares nothing
-                        // but its name. adr/0141 gives the trade `jobs`, shift hours and the wage, and
-                        // all three arrive with milestone 27 task 7 -- so what a business kind buys
-                        // today is IDENTITY: a Business row can name its trade and keep that name
-                        // across a reload. A ReadBusinessKinds pass with no keys to read would be a
-                        // walk over nothing.
+                        // Kept for a second pass as of milestone 27 task 7. Until then a [[business]]
+                        // declared nothing but its name and what it bought was IDENTITY -- a Business
+                        // row naming its trade and keeping that name across a reload -- so no table
+                        // was retained and ReadBusinessKinds would have walked over nothing. It now
+                        // reads TWO of adr/0141's three: `jobs` and the Shift band. The wage is
+                        // adr/0026 at milestone 15 (06:99), so stating one here is refused as an
+                        // unknown key.
+                        _businessKindTables.Add(table);
                         Register(_businessKinds, table, "business", (byte)(_businessKinds.Count + 1));
                         break;
 
@@ -1310,6 +1315,93 @@ public static class RulesetLoader
             }
 
             return ((int)from, (int)to);
+        }
+
+        /// <summary>
+        /// Reads what each <c>[[business]]</c> trade declares: <c>jobs</c> and the Shift band.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Two of <c>adr/0141</c>'s three.</b> That ADR gives the trade <c>jobs</c>, shift hours
+        /// and the wage; the wage is <c>adr/0026</c> at milestone 15 (<c>06:99</c>), so no value is
+        /// read for it and <b>the key is refused by name</b>. ⚠ <b>By name, because there is no
+        /// unknown-key check in this loader</b> — every table reads what it wants and ignores the
+        /// rest, so a stray key is silent everywhere (<c>plans/0041</c> <b>G31</b>). <c>wage</c> earns
+        /// a named refusal because <c>adr/0141</c> gives a designer positive reason to write it, and
+        /// a key that loads clean and does nothing is the class this loader refuses elsewhere.
+        /// </para>
+        /// <para>
+        /// <b><see cref="ReadShiftStartBand"/> is reused rather than mirrored</b>, and every one of
+        /// its refusals transfers word for word: the band is meaningless without <c>jobs</c>, both
+        /// bounds are required wherever <c>jobs</c> is above zero, and an hour outside the Day is out
+        /// of range. ***Nothing about those messages is specific to premises*** — they say
+        /// <em>this kind</em>, which a trade is. ⚠ <b>So the band contributes no new refusal site</b>;
+        /// this pass adds exactly <b>two</b>, the negative <c>jobs</c> and the wage.
+        /// </para>
+        /// </remarks>
+        private BusinessKindDefinition[] ReadBusinessKinds()
+        {
+            var definitions = new BusinessKindDefinition[_businessKindTables.Count];
+
+            for (int i = 0; i < _businessKindTables.Count; i++)
+            {
+                TableSyntaxBase table = _businessKindTables[i];
+                string? name = TryString(table, "name", out string? found, required: false)
+                    ? found
+                    : null;
+
+                // KindDefinition.Jobs' rule unchanged (adr/0068 by way of milestone 5b-bis task 2):
+                // optional, because a trade employing nobody is a coherent thing to declare, and
+                // refused negative because it reads as "sack everybody".
+                int jobs = 0;
+
+                if (TryInteger(table, "jobs", out long employs, required: false, name))
+                {
+                    if (employs < 0)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "jobs") ?? table), name,
+                            $"jobs is {employs}. It counts Citizens a Business of this trade "
+                            + "employs, so it cannot be negative; omit it for a trade that employs "
+                            + "nobody.");
+                    }
+                    else
+                    {
+                        jobs = employs > int.MaxValue ? int.MaxValue : (int)employs;
+                    }
+                }
+
+                // adr/0141's third Declares member, refused by NAME because it is the one key a
+                // designer has positive reason to write. That ADR tells them the trade declares the
+                // wage; the wage is adr/0026 and arrives at milestone 15 (06:99). Without this, `wage
+                // = 100` loads clean and does nothing for ever -- the refusal class plans/0014 task 3
+                // established, and the one this loader is least willing to ship.
+                //
+                // ⚠ It is a NAMED refusal rather than an unknown-key check because THERE IS NO
+                // UNKNOWN-KEY CHECK IN THIS LOADER AT ALL. Every table reads the keys it wants by
+                // name and ignores the rest, so a typo anywhere in any Ruleset is silent. That is a
+                // real gap and it is filed rather than fixed here (plans/0041 G31): closing it
+                // touches every table and is not this task's.
+                if (Find(table, "wage") is not null)
+                {
+                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "wage") ?? table), name,
+                        "this trade states a wage. adr/0141 does give the trade `jobs`, shift hours "
+                        + "AND the wage -- but a wage is not a declared number, it MOVES: adr/0026 "
+                        + "has each Business post one and adjust it by its own fill rate, which "
+                        + "arrives at milestone 15 and cannot be a key on a kind. Delete it; the "
+                        + "two keys that do work here are `jobs` and the Shift band.");
+                }
+
+                (int shiftFrom, int shiftTo) = ReadShiftStartBand(table, name, jobs);
+
+                definitions[i] = new BusinessKindDefinition
+                {
+                    Jobs = jobs,
+                    ShiftStartEarliestHour = shiftFrom,
+                    ShiftStartLatestHour = shiftTo,
+                };
+            }
+
+            return definitions;
         }
 
         // ---- zone rules -----------------------------------------------------------------------

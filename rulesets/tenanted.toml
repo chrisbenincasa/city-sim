@@ -22,9 +22,32 @@
 # tables at all. Two rather than one because one trade cannot demonstrate that ids are assigned in
 # declaration order within their own namespace.
 #
-# WHY NEITHER DECLARES ANYTHING ELSE. A [[business]] carries a `name` and nothing more, because
-# adr/0141 gives the trade `jobs`, shift hours and the wage and all three arrive with milestone 27
-# TASK 7, where the Workplace stops being a Building. A key here would be a key nothing reads.
+# WHAT EACH TRADE DECLARES, AS OF MILESTONE 27 TASK 7. Both now state `jobs` and a Shift band. This
+# header said "a [[business]] carries a `name` and nothing more ... a key here would be a key nothing
+# reads", which was true for exactly one day and is the sentence task 7 came back and changed.
+#
+# ⚠ NOTHING READS `jobs` HERE EITHER, AND THAT IS THE POINT RATHER THAN AN OBJECTION. A Workplace is
+# still a Building handle, so employment is still keyed on the BUILDING kind. What these keys buy
+# today is that they are READ, VALIDATED AND REFUSED at load: `jobs` is refused negative, and the
+# Shift band is paired with it in both directions -- a band without `jobs` is refused, and `jobs`
+# without a band is refused, because a defaulted hour 0 is MIDNIGHT and would be a placeholder that
+# could not announce itself (adr/0101). ***A key that is validated is not a key nothing reads.***
+#
+# WHY TWO OF THREE. adr/0141's Declares row gives the trade `jobs`, shift hours AND THE WAGE. The wage
+# is adr/0026 and arrives at milestone 15 (06:99), so there is no wage key and stating one here is
+# REFUSED BY NAME. ⚠ By name, because this loader has NO unknown-key check -- every table reads the
+# keys it wants and ignores the rest, so a typo anywhere is silent (plans/0041 G31). `wage` earns a
+# named refusal because adr/0141 gives a designer positive reason to write it, and a key that loads
+# clean and does nothing for ever is the one thing this loader will not ship. A doc comment in
+# RulesetShape claimed all three of adr/0141's Declares row arrived together and was wrong about one
+# (plans/0012, Cause 4).
+#
+# WHY 8 JOBS AND A 6-10 BAND. Both are the dwelling kind's own numbers, copied deliberately rather
+# than chosen: this file exists to show that DECLARING a trade changes nothing, and a trade whose
+# numbers differ from the premises' would make a reader ask which difference produced the result.
+# 🔴 THEY RATIFY NOTHING. plans/0002 D1 holds the dwelling's `jobs`; these are the same unratified
+# number wearing a second hat, and no run on this file can ratify either, because nothing employs
+# anybody through a trade yet.
 #
 # ⚠ THE NAMESPACE INDEPENDENCE IS ASSERTED BY A TEST AND NOT BY THIS FILE. The sharpest demonstration
 # would be a [[business]] named "dwelling", colliding with the [[building]] above -- and that would be
@@ -380,10 +403,16 @@ outputs = []
 # These carry a name and nothing else. See this file's header for why, and for the fact that nothing
 # creates a Business to wear either of them yet.
 [[business]]
-name = "bakery"
+name                       = "bakery"
+jobs                       = 8
+shift_start_earliest_hour  = 6
+shift_start_latest_hour    = 10
 
 [[business]]
-name = "barber"
+name                       = "barber"
+jobs                       = 8
+shift_start_earliest_hour  = 6
+shift_start_latest_hour    = 10
 
 [[zone_rule]]
 name          = "housing"

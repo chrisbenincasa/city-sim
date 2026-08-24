@@ -21,11 +21,17 @@ namespace Borough.Tests.Formats;
 /// because <c>adr/0141</c>'s entire argument is that the premises and the trade are uncorrelated.
 /// </para>
 /// <para>
-/// <b>A Business kind declares nothing but its name and there is nothing else to assert.</b> There is
-/// no <c>jobs</c>, no shift band and no wage until milestone 27 task 7, so every test here is about
-/// registration, ids and identity across a reload. ⚠ <b>A class this thin is the honest shape</b>
-/// rather than a gap: the kind buys identity today and behaviour later, and asserting behaviour it
-/// does not have would be asserting the test's own fixture.
+/// <b>Task 7 gave the trade a definition, and the tests at the foot of this class are that half.</b>
+/// ~~A Business kind declares nothing but its name~~ — it now declares <c>jobs</c> and a Shift band
+/// (<see cref="BusinessKindDefinition"/>), which is two of <c>adr/0141</c>'s three. <b>The wage is the
+/// third and is NOT here</b>: it is <c>adr/0026</c> at milestone 15, so a file stating one is refused
+/// as an unknown key like any typo.
+/// </para>
+/// <para>
+/// ⚠ <b>Nothing in the simulation reads <c>jobs</c> off a trade yet</b>, because a Workplace is
+/// still a Building handle. ***So every assertion here is about the LOADER***, which is the honest
+/// scope — and <c>rulesets/tenanted.toml</c> proves the other half by declaring both keys and still
+/// producing <c>minimal.toml</c>'s city sample for sample.
 /// </para>
 /// </remarks>
 public sealed class BusinessKindLoadTests
@@ -417,5 +423,178 @@ public sealed class BusinessKindLoadTests
         }
 
         return samples;
+    }
+
+    /// <summary>A trade's declaration survives the loader and reads back off the Ruleset.</summary>
+    [Fact]
+    public void A_trade_declares_jobs_and_a_shift_band()
+    {
+        Ruleset rules = Accepted($"""
+            {Nothing}
+
+            [[business]]
+            name = "bakery"
+            jobs = 8
+            shift_start_earliest_hour = 6
+            shift_start_latest_hour = 10
+
+            [[business]]
+            name = "barber"
+            jobs = 3
+            shift_start_earliest_hour = 9
+            shift_start_latest_hour = 9
+            """);
+
+        BusinessKindDefinition bakery = rules.BusinessKind(1);
+        BusinessKindDefinition barber = rules.BusinessKind(2);
+
+        Assert.Equal(8, bakery.Jobs);
+        Assert.Equal(6, bakery.ShiftStartEarliestHour);
+        Assert.Equal(10, bakery.ShiftStartLatestHour);
+
+        // Equal bounds are allowed and mean a trade whose Shifts all start together. Asserted rather
+        // than assumed because ReadShiftStartBand refuses `to < from`, and equality sits exactly on
+        // the boundary of that comparison.
+        Assert.Equal(3, barber.Jobs);
+        Assert.Equal(9, barber.ShiftStartEarliestHour);
+        Assert.Equal(9, barber.ShiftStartLatestHour);
+    }
+
+    /// <summary>A trade employing nobody is ordinary, and states no band.</summary>
+    [Fact]
+    public void A_trade_may_employ_nobody()
+    {
+        Ruleset rules = Accepted($"""
+            {Nothing}
+
+            [[business]]
+            name = "bakery"
+            """);
+
+        Assert.Equal(0, rules.BusinessKind(1).Jobs);
+        Assert.Equal(0, rules.BusinessKind(1).ShiftStartEarliestHour);
+    }
+
+    /// <summary>Negative <c>jobs</c> reads as <em>sack everybody</em> and is refused.</summary>
+    [Fact]
+    public void A_trade_cannot_employ_a_negative_number()
+    {
+        RulesetRefusal refusal = Refused($"""
+            {Nothing}
+
+            [[business]]
+            name = "bakery"
+            jobs = -1
+            """);
+
+        Assert.Contains("cannot be negative", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The Shift band is paired with <c>jobs</c> in both directions, and both halves are asserted.
+    /// </summary>
+    /// <remarks>
+    /// <b>Two assertions rather than one, because the pairing is two refusals.</b> A band without
+    /// <c>jobs</c> is a band that means nothing; <c>jobs</c> without a band would default to hour 0,
+    /// and <b>midnight is a real answer</b> — so the defaulted value could not announce itself as a
+    /// placeholder (<c>adr/0101</c>). ⚠ <b>These messages are <c>ReadShiftStartBand</c>'s own</b>,
+    /// reused rather than mirrored, which is why this pass added no refusal site at all.
+    /// </remarks>
+    [Fact]
+    public void The_shift_band_and_jobs_require_each_other()
+    {
+        RulesetRefusal bandAlone = Refused($"""
+            {Nothing}
+
+            [[business]]
+            name = "bakery"
+            shift_start_earliest_hour = 6
+            shift_start_latest_hour = 10
+            """);
+
+        Assert.Contains("employs nobody", bandAlone.Reason, StringComparison.Ordinal);
+
+        RulesetRefusal jobsAlone = Refused($"""
+            {Nothing}
+
+            [[business]]
+            name = "bakery"
+            jobs = 8
+            """);
+
+        Assert.Contains("states no Shift-start band", jobsAlone.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>An hour outside the Day is refused, on both bounds.</summary>
+    [Fact]
+    public void A_shift_hour_outside_the_day_is_refused()
+    {
+        Assert.Contains("out of range", Refused($"""
+            {Nothing}
+
+            [[business]]
+            name = "bakery"
+            jobs = 8
+            shift_start_earliest_hour = 24
+            shift_start_latest_hour = 24
+            """).Reason, StringComparison.Ordinal);
+
+        // A band running backwards is the case a single range check would miss.
+        Assert.Contains("out of range", Refused($"""
+            {Nothing}
+
+            [[business]]
+            name = "bakery"
+            jobs = 8
+            shift_start_earliest_hour = 10
+            shift_start_latest_hour = 6
+            """).Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A wage key is refused, because the wage is <c>adr/0026</c> at milestone 15 and not this
+    /// milestone's.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>This asserts a SCOPE BOUNDARY rather than a mechanism</b>, and it is here because the
+    /// alternative is worse than a missing feature: a <c>wage</c> key that loaded and did nothing
+    /// would be the <em>loads clean and does nothing</em> class this loader refuses everywhere else.
+    /// ***When milestone 15 lands, this test is the thing to delete rather than to discover.***
+    /// </remarks>
+    [Fact]
+    public void A_trade_cannot_state_a_wage_yet()
+    {
+        RulesetRefusal refusal = Refused($"""
+            {Nothing}
+
+            [[business]]
+            name = "bakery"
+            jobs = 8
+            shift_start_earliest_hour = 6
+            shift_start_latest_hour = 10
+            wage = 100
+            """);
+
+        Assert.Contains("wage", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>An id no trade carries is a corrupt row rather than a question, so it throws.</summary>
+    /// <remarks>
+    /// <b>The difference from <see cref="Ruleset.BusinessKindKey"/>, which defaults instead.</b> A key
+    /// is asked for by migration code walking two Rulesets that disagree about how many kinds exist; a
+    /// definition is asked for by a caller already holding a live Business's kind column.
+    /// </remarks>
+    [Fact]
+    public void An_id_no_trade_carries_throws()
+    {
+        Ruleset rules = Accepted($"""
+            {Nothing}
+
+            [[business]]
+            name = "bakery"
+            """);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => rules.BusinessKind(0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => rules.BusinessKind(2));
     }
 }

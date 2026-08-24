@@ -602,6 +602,79 @@ public readonly record struct KindDefinition(
 }
 
 /// <summary>
+/// What a <c>[[business]]</c> trade declares: how many Citizens it employs, and the band its Shifts
+/// start in.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>The second kind namespace grows a definition</b> (<c>adr/0141</c>, milestone 27 task 7). Task 6
+/// shipped <c>[[business]]</c> as names only, because a trade that declares nothing but its name buys
+/// <em>identity</em> — a Business row can name its trade and keep that name across a reload — and a
+/// read pass with no keys to read would be a walk over nothing. This is what it reads once there are
+/// keys.
+/// </para>
+/// <para>
+/// ⚠ <b>Two of <c>adr/0141</c>'s three, and the third is not this milestone's.</b> That ADR's
+/// <em>Declares</em> row gives the trade <c>jobs</c>, shift hours <em>and the wage</em>. The wage
+/// arrives with <c>adr/0026</c> at milestone 15 — <c>docs/06</c> places it there and
+/// <see cref="Readouts"/> says the same — so there is no wage key here and a Ruleset stating one is
+/// refused as unknown. <b>A doc comment in <c>RulesetShape</c> claimed all three arrived together and
+/// was wrong about one</b> (<c>plans/0012</c>, Cause 4).
+/// </para>
+/// <para>
+/// <b>Every member is <em>tuning</em>, which is why no shape check compares them.</b>
+/// <see cref="RulesetShape"/> compares a Building kind's identity, its Bins and its Rules and
+/// <b>does not compare <see cref="KindDefinition.Jobs"/></b> — a ceiling is read at a write site and
+/// pointed at by no live state, so lowering it reaches every Building already standing and dismisses
+/// the overflow (<c>adr/0068</c>, <c>adr/0064</c>). ***The same is true here member for member***, so
+/// a reload that retunes a trade needs no migration and produces no
+/// <see cref="RulesetChange"/>. ⚠ <b>Hash-bearing all the same</b>: retuning moves the standing city.
+/// </para>
+/// <para>
+/// ⚠ <b>Nothing reads <see cref="Jobs"/> yet.</b> A Workplace is still a
+/// <see cref="Entities.Building"/> handle, so employment is still keyed on the <em>building</em> kind
+/// through <see cref="Entities.World.TryDeclaredJobs"/>. This type is the declaration half landing
+/// first, on its own, so that the handle move is a change of subject rather than a change of subject
+/// <em>and</em> a new Ruleset surface at once.
+/// </para>
+/// </remarks>
+public readonly record struct BusinessKindDefinition
+{
+    /// <summary>
+    /// How many Citizens a Business of this trade employs. Zero means it employs nobody.
+    /// </summary>
+    /// <remarks>
+    /// <b>Counts Citizens and never Households</b>, for
+    /// <see cref="KindDefinition.Jobs"/>' reason unchanged: employment is on the
+    /// <see cref="Entities.Citizen"/>, and a Household with two adults working different sides of the
+    /// city is what a per-Household count could not express. ⚠ <b>Optional, and refused negative</b> —
+    /// a negative reads as <em>sack everybody</em>, which is not a sentence anybody meant to write.
+    /// </remarks>
+    public int Jobs { get; init; }
+
+    /// <summary>
+    /// The earliest in-world hour a job of this trade starts at. Paired with
+    /// <see cref="ShiftStartLatestHour"/> and with <see cref="Jobs"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b><c>adr/0101</c>'s Shift band, on the trade rather than the premises</b>, which is that ADR's
+    /// own word arriving where it pointed: a Shift start hour belongs to the <em>Workplace</em>, and a
+    /// Workplace is where you are employed. ⚠ <b>Paired with <see cref="Jobs"/> in both directions</b>
+    /// — a workplace with no hours and an hour with no workplace are each half a mechanism — and the
+    /// defaulted <c>0</c> is refused rather than defaulted because <b>midnight is a real answer</b>
+    /// and would be a placeholder that could not announce itself.
+    /// </remarks>
+    public int ShiftStartEarliestHour { get; init; }
+
+    /// <summary>
+    /// The latest in-world hour a job of this trade starts at. Equal bounds mean a trade whose Shifts
+    /// all start together.
+    /// </summary>
+    public int ShiftStartLatestHour { get; init; }
+}
+
+
+/// <summary>
 /// One Zone Rule: a time trigger, a sample of Lots, and the kind it builds on those that qualify.
 /// </summary>
 /// <remarks>
@@ -2569,6 +2642,38 @@ public sealed class Ruleset
     public ulong BusinessKindKey(byte kind) =>
         BusinessKindKeys.Length == 0 ? kind : BusinessKindKeys[kind - 1];
 
+    /// <summary>What each Business kind declares, indexed by <c>kind - 1</c>.</summary>
+    /// <remarks>
+    /// <b>An <c>init</c> property rather than a constructor argument, on
+    /// <see cref="BusinessKindKeys"/>' precedent and for its reason.</b> The nine positional arrays
+    /// are the structure a Ruleset is built from; the second kind namespace arrived after them and
+    /// grows the same way it did. ⚠ <b>Empty is the ordinary case</b> — twelve of the fourteen shipped
+    /// files declare no trade at all — and an empty array here means exactly what
+    /// <see cref="BusinessKindCount"/> zero means.
+    /// </remarks>
+    public BusinessKindDefinition[] BusinessKinds { get; init; } = [];
+
+    /// <summary>What the Business kind with this id declares.</summary>
+    /// <remarks>
+    /// ⚠ <b>Throws where <see cref="BusinessKindKey"/> defaults, and the difference is deliberate.</b>
+    /// A key is asked for by migration code walking two Rulesets that may disagree about how many
+    /// kinds exist, so it answers for an id it does not hold. <b>A definition is asked for by a caller
+    /// that has already resolved a live Business's kind column</b>, where an out-of-range id is a
+    /// corrupt row rather than a question — <see cref="Kind"/>'s shape exactly.
+    /// </remarks>
+    public BusinessKindDefinition BusinessKind(byte kind)
+    {
+        if (kind == 0 || kind > BusinessKinds.Length)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(kind),
+                kind,
+                $"no Business kind carries id {kind}; this Ruleset declares {BusinessKinds.Length}.");
+        }
+
+        return BusinessKinds[kind - 1];
+    }
+
     /// <summary>This Ruleset with different Map Layer data, and everything else shared.</summary>
     /// <remarks>
     /// <para>
@@ -2625,6 +2730,7 @@ public sealed class Ruleset
             KindKeys = KindKeys,
             BusinessKindCount = BusinessKindCount,
             BusinessKindKeys = BusinessKindKeys,
+            BusinessKinds = BusinessKinds,
         };
 
     /// <summary>How many Resources are declared. Ids run <c>1..ResourceCount</c>.</summary>
