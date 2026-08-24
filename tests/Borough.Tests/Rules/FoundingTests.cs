@@ -50,7 +50,7 @@ public sealed class FoundingTests(Xunit.Abstractions.ITestOutputHelper output)
 
         PlacementActivity activity = running.Placement.Drain();
 
-        _out.WriteLine($"founded.toml: founded={activity.Founded.Sum} retired={activity.Retired.Sum} live={founded.Businesses.Rows.LiveCount} pool={founded.UnpremisedPool.Count}");
+        _out.WriteLine($"founded.toml: founded={activity.Founded.Sum} premised={activity.Premised.Sum} retired={activity.Retired.Sum} live={founded.Businesses.Rows.LiveCount} pool={founded.UnpremisedPool.Count}");
 
         Assert.True(
             activity.Founded.Sum > 0,
@@ -136,5 +136,68 @@ public sealed class FoundingTests(Xunit.Abstractions.ITestOutputHelper output)
             world.UnpremisedPool.Count < activity.Founded.Sum,
             $"the pool holds {world.UnpremisedPool.Count} of {activity.Founded.Sum} ever founded, so "
             + "nothing is actually leaving it.");
+    }
+
+    /// <summary>
+    /// A founded Business finds premises, and the room it takes is room a Household cannot have.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The middle of the mechanism</b> (<c>adr/0147</c>). Milestone 25 shipped the exit and task 8
+    /// shipped the entrance; until this pass existed <c>founded.toml</c> founded Businesses that could
+    /// only wait and leave, which its own header calls a leak by construction.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The premised count does NOT equal the live-and-premised count, and that is the mechanism
+    /// rather than a discrepancy.</b> <c>founded.toml</c> descends from <c>minimal.toml</c>, which
+    /// condemns Buildings throughout a run — and <c>World.Destroy</c> unpremises every tenant of a
+    /// Building it takes down (<c>adr/0144</c>). ***So a shop can take premises, lose them to
+    /// condemnation, and return to the pool to look again***, which is why the flow exceeds the
+    /// standing count.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_founded_business_finds_premises_and_takes_a_households_room()
+    {
+        (World world, Simulation running) = City("founded.toml", 0xF0DDU, 2_000);
+
+        for (int tick = 0; tick < 4_096; tick++)
+        {
+            running.Step(TickInput.Empty);
+        }
+
+        PlacementActivity activity = running.Placement.Drain();
+        int premisedNow = world.Businesses.Rows.LiveCount - world.UnpremisedPool.Count;
+
+        _out.WriteLine(
+            $"premises: founded={activity.Founded.Sum} premised={activity.Premised.Sum} "
+            + $"standing={premisedNow} pooled={world.UnpremisedPool.Count}");
+
+        Assert.True(
+            activity.Premised.Sum > 0,
+            "no Business took premises, so the pass did nothing and adr/0147 is untested.");
+
+        // The flow counts events and the standing count is a state. Losing premises to condemnation
+        // is what separates them, so the flow is at least the standing count and usually more.
+        Assert.True(
+            activity.Premised.Sum >= premisedNow,
+            $"{activity.Premised.Sum} premise events cannot leave {premisedNow} standing -- a "
+            + "Business is premised once per event and unpremised only by losing its Building.");
+
+        // Every premised Business occupies a slot inside its ceiling. This is the assertion that
+        // would fail if HasRoom had gone on counting Households alone.
+        for (int slot = 0; slot < world.Businesses.Rows.SlotCount; slot++)
+        {
+            if (!world.Businesses.Rows.IsLive(slot)
+                || !world.Buildings.Rows.TryResolve(world.Businesses.Building[slot], out int building))
+            {
+                continue;
+            }
+
+            Assert.True(
+                world.TryDeclaredOccupancy(world.Buildings.Kind[building], out int allowed)
+                && world.Tenants(building) <= allowed,
+                $"Building {building} holds more tenants than its kind admits.");
+        }
     }
 }

@@ -454,4 +454,46 @@ public enum PurposeTag : ulong
     /// </para>
     /// </remarks>
     FoundingTrade = 26,
+
+    /// <summary>
+    /// Which <em>Business</em> a lowered occupancy ceiling evicts from its premises.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="OverflowEviction"/>'s other half, and it is a separate tag because the two draws
+    /// range over DIFFERENT ID SPACES</b> (<c>adr/0147</c>). <c>World.Loser</c> draws on an entity's
+    /// monotonic id; Household ids and Business ids are independent sequences allocated by different
+    /// tables, so <b>Household 5 and Business 5 both exist</b> and under one tag would draw the
+    /// <em>identical value</em>. ⚠ ***Two tenants of one Building would be perfectly correlated in a
+    /// decision about which of them loses their place*** — which is the invisible correlation the
+    /// distinct-tag rule exists to prevent, arriving somewhere it never could before.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>This is the build's first draw over a MIXED population, and that is why the hazard is
+    /// new.</b> Every prior draw ranged over one table, so one tag was one id space and the rule had
+    /// nothing to bite on. <c>adr/0141</c> made a Building's occupancy list hold tenants of any kind;
+    /// this is the first place that costs something.
+    /// </para>
+    /// </remarks>
+    BusinessOverflowEviction = 27,
+
+    /// <summary>Which pooled Business the placement pass tries to give premises this occasion.</summary>
+    /// <remarks>
+    /// <b>Its own tag rather than <see cref="UnpremisedDraw"/>'s, and the two run on the SAME tick over
+    /// the SAME pool.</b> That tag draws who is asked <em>whether they have given up</em>; this one
+    /// draws who is <em>tried</em>. ⚠ ***Sharing would make the Business most likely to be offered
+    /// premises the same one most likely to be asked to leave***, which is a correlation between two
+    /// decisions about one actor and is invisible in every output either produces.
+    /// </remarks>
+    PremisesDraw = 28,
+
+    /// <summary>Which Lot a pooled Business looks at when it is tried.</summary>
+    /// <remarks>
+    /// <b><see cref="PlacementCandidate"/>'s other half</b>, separate for
+    /// <see cref="BusinessOverflowEviction"/>'s reason exactly: the draw is keyed on the seeker's
+    /// monotonic id, and Household ids and Business ids are independent sequences from different
+    /// tables. Under one tag <b>Household 5 and Business 5 would look at the identical Lots in the
+    /// identical order</b>, so a shop would trail a family around the city.
+    /// </remarks>
+    PremisesCandidate = 29,
 }

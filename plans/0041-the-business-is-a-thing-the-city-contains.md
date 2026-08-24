@@ -48,10 +48,20 @@ Business, so pointing a Workplace at one puts employment at **zero in every ship
 of fifteen Rulesets declare no trade, and `founded.toml`'s 114 are all unpremised until they leave.
 ⚠ **`PlacementEngine.cs:190` says this milestone owes the pass and none of its four tasks names it.**
 
-**Remaining: a Business placement pass, then 7, then task 8's Citizen half, then 9.** ⚠ **The
-placement pass is not yet specified and needs a decision** — `adr/0141` makes `occupants` count
-tenants of any kind, so a Business competes with families for capacity and `adr/0068`'s eviction
-reaches both.
+✅ **THE PLACEMENT PASS SHIPPED 2026-08-24, and the decision it needed went to the user in the room**
+— [`adr/0147`](../docs/adr/0147-a-business-takes-premises-by-placement-and-one-ceiling-counts-both-kinds-of-tenant.md):
+**one ceiling over both kinds**, so a shop takes a family's room. `PlacementEngine.Tenant`,
+`World.Premise`, `World.Tenants`, three `purpose_tag`s (27, 28, 29) and **no new Ruleset number**.
+
+**MEASURED on `founded.toml`, 4,096 Ticks at 2,000 Citizens: founded 113, premised 69, standing 38,
+pooled 75.** ⚠ **The flow and the standing count differ BY DESIGN and it is the best thing the run
+showed**: `founded.toml` descends from `minimal.toml`, which condemns Buildings throughout, and
+`World.Destroy` unpremises every tenant of a Building it takes down. ***So 31 shops took premises, lost
+them to condemnation and went back to the pool to look again*** — which is
+[`adr/0144`](../docs/adr/0144-a-tenant-that-loses-its-premises-keeps-only-its-money-and-waits-a-households-wait.md)
+running for the first time on a Business the simulation created.
+
+**Remaining: 7, then task 8's Citizen half, then 9.**
 
 ⚠ **The census below was taken on 2026-08-24 and it corrects the risk statement in three numbers**
 (**G1**). ***The risk stands; the figures stating it have drifted*** — which is the second time in two
@@ -810,6 +820,40 @@ Business placed into a dwelling **competes with families for the same capacity**
 [`adr/0068`](../docs/adr/0068-a-buildings-occupancy-is-declared-by-its-kind-and-an-over-capacity-building-evicts.md)'s
 *an over-capacity Building evicts* then reaches both. ⚠ **That is a design change with an eviction
 consequence and not a mechanical one**, which is why this is filed rather than built on sight.
+
+**G33 — `World.Unpremise` never removed the Business from its Building's list, and the defect was a
+save/reload divergence hiding behind an unreachable path.** Shipped at milestone 25 task 5, it set
+`Businesses.Building[slot] = default` and joined the pool — and **left the row threaded into the
+premises it had just left.** ⚠ **`BuildingBusinesses` is derived**, so a **rebuilt** world walks
+`Businesses.Building` and omits the ghost while a **maintained** one keeps it. ***That is a
+`(derived AND rebuilt)` disagreement, which folds into no hash and is therefore invisible to every
+determinism check the build has.***
+
+🔴 **It was unreachable rather than benign.** Nothing called `Unpremise` from `src/` except
+`World.Destroy`, which drains the list with `PopFront` **before** calling it — so the missing line
+never mattered. `adr/0147`'s pass is what made it reachable, and **`EvictOverflow` is what would have
+found it the hard way**: that loop drains until `Tenants(slot)` falls, and a ghost tenant is a count
+that never falls. ***A silent divergence would have surfaced as a hang.***
+
+⚠ **The fix is a `Remove` and not an assert, because one caller legitimately arrives with the row
+already gone.** `Destroy`'s `PopFront` drain means `Remove` walks, fails and returns `false` — a
+no-op bounded by `occupants`, which is a Ruleset constant. ***An assert would have been correct about
+the invariant and wrong about the caller.***
+
+**G34 — the first draw over a MIXED population is the first place the distinct-tag rule has teeth.**
+`CLAUDE.md`'s randomness rule — *every distinct use gets a distinct `purpose_tag`; reusing one
+correlates two decisions invisibly* — has been satisfied by construction until now, because **every
+prior draw ranged over one table** and one tag was one id space. `adr/0141` made a Building's
+occupancy hold tenants of any kind, and `World.Loser` draws on an entity's **monotonic id**. 🔴
+**Household ids and Business ids are independent sequences from different tables**, so Household 5 and
+Business 5 both exist and under one tag would draw the **identical value** — ***two tenants of one
+Building perfectly correlated in the decision about which of them loses their place.***
+
+⚠ **It generalises past eviction and cost three tags rather than one.** The same argument applies to
+*which pooled Business is tried* against *which pooled Business is asked whether it gave up* (both
+over the unpremised pool, both on the same Tick), and to *which Lot a shop looks at* against *which
+Lot a family looks at*. **27, 28 and 29.** ***A rule that has never bound is not a rule anybody has
+tested, and this one bound in three places the moment a second population appeared.***
 
 ## What decomposition found
 

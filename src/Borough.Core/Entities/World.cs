@@ -1609,12 +1609,74 @@ public sealed class World
             return;
         }
 
+        // ⚠ The Building's list FIRST, and this line was missing until milestone 27's placement pass
+        // placement pass (adr/0147). Without it an unpremised Business stays threaded into the
+        // premises it just left -- a ghost tenant. It was invisible while nothing called this from
+        // src/ and nothing read the list for a decision, and it is a REAL defect either way:
+        // BuildingBusinesses is derived, so a REBUILT world walks Businesses.Building and omits the
+        // ghost while a MAINTAINED one keeps it. That is a save/reload divergence in a derived
+        // structure, which is exactly the failure Employ's own remark describes from the other end --
+        // "the disagreement is invisible, because the list is derived and therefore folds into no
+        // hash." Found by EvictOverflow, which reads the list's LENGTH and would have looped for ever
+        // draining a count that never fell.
+        //
+        // Remove rather than an assert, because ONE caller legitimately arrives with the row already
+        // gone: Destroy drains BuildingBusinesses with PopFront and then calls this per tenant, so by
+        // the time control reaches here the row is off the list. IndexList.Remove walks, fails to
+        // find it and returns false, which is a no-op -- and the list is at most `occupants` long, so
+        // the wasted walk is bounded by a Ruleset constant.
+        if (Buildings.Rows.TryResolve(Businesses.Building[slot], out int buildingSlot))
+        {
+            BuildingBusinesses.Remove(buildingSlot, slot);
+        }
+
         Businesses.Building[slot] = default;
 
         // No gate: a Business that LOST its premises is inside the city however it got here, and the
         // gate column records how it ARRIVED rather than where it is. adr/0145 makes the column
         // meaningful for the arrival channel; an orphan is neither channel and reads default.
         UnpremisedPool.Join(Businesses, business, default, now);
+    }
+
+    /// <summary>
+    /// Gives an unpremised Business premises, linking it into that Building's business list.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="Unpremise"/>'s inverse, and <see cref="Place(Handle{Household}, Handle{Building})"/>'s
+    /// mirror</b> (<c>adr/0147</c>). Milestone 25 shipped the exit before anything could take the
+    /// entrance: <c>Unpremise</c> has existed since task 5 and ***this is the method it was the
+    /// inverse of before that method was written.***
+    /// </para>
+    /// <para>
+    /// <b>It does not ask <see cref="HasRoom"/>, and <see cref="Employ"/> is the precedent.</b> A
+    /// ceiling guard belongs at the door a <em>sampling</em> caller comes through, where refusing is
+    /// an ordinary outcome it already handles; a bare mutator that refused would leave its caller
+    /// believing a write happened. ⚠ <b>The pooled check is different and IS here</b> — premising
+    /// something already premised would leave it in the pool at a position a later <c>Leave</c> would
+    /// swap a live member into, which is <c>Unpremise</c>'s own stated reason for its guard.
+    /// </para>
+    /// <para>
+    /// <b>The Building's list is <see cref="BuildingBusinesses"/> and it is ordered</b>, which is what
+    /// makes a rebuilt world byte-identical to a maintained one — the property every intrusive list
+    /// in this build earns the same way.
+    /// </para>
+    /// </remarks>
+    public void Premise(Handle<Business> business, Handle<Building> premises)
+    {
+        int slot = Businesses.Rows.Resolve(business);
+        int buildingSlot = Buildings.Rows.Resolve(premises);
+
+        if (!Businesses.IsUnpremised(slot))
+        {
+            Invariants.Report(Invariant.ABusinessIsPremisedOrItIsInThePool, slot);
+            return;
+        }
+
+        UnpremisedPool.Leave(Businesses, Businesses.PoolPosition(slot));
+
+        Businesses.Building[slot] = premises;
+        BuildingBusinesses.InsertOrdered(buildingSlot, slot);
     }
 
     /// <summary>
@@ -3565,7 +3627,29 @@ public sealed class World
     /// </remarks>
     public bool HasRoom(int buildingSlot) =>
         TryDeclaredOccupancy(Buildings.Kind[buildingSlot], out int occupants)
-        && Occupants.Length(buildingSlot) < occupants;
+        && Tenants(buildingSlot) < occupants;
+
+    /// <summary>
+    /// How many tenants of <em>any</em> kind <paramref name="buildingSlot"/> holds — Households and
+    /// Businesses together.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>occupants</c> counts tenants of any kind</b> (<c>adr/0141</c>, built by <c>adr/0147</c>),
+    /// so ***a dwelling declaring three holds three families, or two families and a shop.*** The
+    /// consequence is the point: **a city that fills with shops houses fewer people, from one number,
+    /// with no rule expressing it.**
+    /// </para>
+    /// <para>
+    /// <b>Two lists summed rather than one list holding both.</b> Each intrusive list threads a
+    /// <c>next</c> column on its own owner's table — <c>Households.DwellingNext</c> and
+    /// <c>BusinessTable.BuildingNext</c> — so a single mixed list would need a discriminated element
+    /// to know which table a slot indexes, which is the polymorphic column <c>adr/0143</c>
+    /// deliberately left unbuilt. ***An add costs less than a column.***
+    /// </para>
+    /// </remarks>
+    public int Tenants(int buildingSlot) =>
+        Occupants.Length(buildingSlot) + BuildingBusinesses.Length(buildingSlot);
 
     /// <summary>
     /// Evicts into the Unplaced Pool every Occupant a lowered ceiling has left over
@@ -3608,9 +3692,20 @@ public sealed class World
 
             if (TryDeclaredOccupancy(kind, out int allowed))
             {
-                while (Occupants.Length(slot) > allowed)
+                // adr/0147: the ceiling counts tenants of any kind, so the loop drains until the SUM
+                // fits and the draw ranges over both lists. adr/0141's own words -- "an over-capacity
+                // Building evicts, and it never asked what the overflow was" -- so there is no kind
+                // preference here and adding one would be a policy claim (PLAYER GOVERNS).
+                while (Tenants(slot) > allowed)
                 {
-                    Unplace(Households.Rows.At(Loser(slot, now, key)));
+                    if (LosingTenant(slot, now, key, out int household, out int business))
+                    {
+                        Unplace(Households.Rows.At(household));
+                    }
+                    else
+                    {
+                        Unpremise(Businesses.Rows.At(business), now);
+                    }
                 }
             }
 
@@ -3657,6 +3752,73 @@ public sealed class World
         }
 
         return worst;
+    }
+
+    /// <summary>
+    /// The tenant of <paramref name="buildingSlot"/> holding the highest draw across <em>both</em>
+    /// kinds. Returns <c>true</c> when that tenant is a Household.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="Loser"/> widened to the mixed population <c>adr/0141</c> created</b>, and built
+    /// by <c>adr/0147</c>. The two walks are separate because the two lists are separate; the
+    /// comparison is one, because ***the ceiling is one.***
+    /// </para>
+    /// <para>
+    /// 🔴 <b>The two draws use DIFFERENT purpose tags and that is load-bearing.</b> A draw is keyed on
+    /// an entity's monotonic id, and Household ids and Business ids are <b>independent sequences from
+    /// different tables</b> — so Household 5 and Business 5 both exist and under one tag would draw
+    /// the <em>identical value</em>. ⚠ ***Two tenants of one Building would be perfectly correlated in
+    /// a decision about which of them loses their place.*** This is the build's first draw over a
+    /// mixed population, which is why the distinct-tag rule has never had anything to bite on before.
+    /// </para>
+    /// <para>
+    /// <b>Ties go to the Household, and a tie is not reachable.</b> The two tags make a collision a
+    /// hash coincidence rather than a structural certainty; the <c>&gt;</c> comparison resolves one
+    /// deterministically if it ever happens, which is what a determinism guarantee needs — an answer,
+    /// not an absence of the question.
+    /// </para>
+    /// </remarks>
+    private bool LosingTenant(
+        int buildingSlot, Ticks now, WorldKey key, out int household, out int business)
+    {
+        household = Rows.NoSlot;
+        business = Rows.NoSlot;
+
+        ulong highest = 0;
+        bool any = false;
+
+        foreach (int occupant in Occupants.Walk(buildingSlot))
+        {
+            ulong draw = Randomness.Draw(
+                key, Households.Rows.IdAt(occupant), now, PurposeTag.OverflowEviction);
+
+            if (!any || draw > highest)
+            {
+                household = occupant;
+                business = Rows.NoSlot;
+                highest = draw;
+                any = true;
+            }
+        }
+
+        foreach (int tenant in BuildingBusinesses.Walk(buildingSlot))
+        {
+            ulong draw = Randomness.Draw(
+                key, Businesses.Rows.IdAt(tenant), now, PurposeTag.BusinessOverflowEviction);
+
+            if (!any || draw > highest)
+            {
+                business = tenant;
+                household = Rows.NoSlot;
+                highest = draw;
+                any = true;
+            }
+        }
+
+        // The winner clears the loser, so exactly one of the two is set on return and the caller
+        // cannot evict the wrong one by reading a stale value from the walk that did not win.
+        return business == Rows.NoSlot;
     }
 
     /// <summary>

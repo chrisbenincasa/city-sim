@@ -54,12 +54,14 @@ public sealed class PlacementEngine
     private int _tickDeparted;
     private int _tickRetired;
     private int _tickFounded;
+    private int _tickPremised;
 
     private RuleFlow _consideredFlow;
     private RuleFlow _placedFlow;
     private RuleFlow _departedFlow;
     private RuleFlow _retiredFlow;
     private RuleFlow _foundedFlow;
+    private RuleFlow _premisedFlow;
 
     /// <param name="world">The tables this drains, and the Ruleset it drains under. Not copied.</param>
     /// <param name="key">The world seed, as the draws' first coordinate.</param>
@@ -92,13 +94,15 @@ public sealed class PlacementEngine
     public PlacementActivity Drain()
     {
         var activity = new PlacementActivity(
-            _consideredFlow, _placedFlow, _departedFlow, _retiredFlow, _foundedFlow);
+            _consideredFlow, _placedFlow, _departedFlow, _retiredFlow, _foundedFlow,
+            _premisedFlow);
 
         _consideredFlow = default;
         _placedFlow = default;
         _departedFlow = default;
         _retiredFlow = default;
         _foundedFlow = default;
+        _premisedFlow = default;
 
         return activity;
     }
@@ -125,6 +129,7 @@ public sealed class PlacementEngine
             // trigger, and returning here would make the unpremised sink conditional on there being
             // unhoused HOUSEHOLDS -- so a city that housed everybody would stop retiring shops, and
             // adr/0006's bound would hold only while the other pool was non-empty.
+            Tenant(tick);
             Retire(tick);
             Found(tick);
             CloseTick();
@@ -173,6 +178,7 @@ public sealed class PlacementEngine
             }
         }
 
+        Tenant(tick);
         Retire(tick);
         Found(tick);
         CloseTick();
@@ -528,6 +534,104 @@ public sealed class PlacementEngine
     }
 
     /// <summary>
+    /// Pooled Businesses look for premises, and the ones that find room take them.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The middle of the mechanism, and the debt the build named for itself</b> (<c>adr/0147</c>).
+    /// <see cref="Retire"/>'s own remark said <em>"nothing tenants a Business … the placement pass
+    /// that would is milestone 27's"</em>, and complained that ***this half has nothing to try***
+    /// where the Household half tries to house somebody and only then asks whether they gave up.
+    /// <b>It has something to try now, and it runs FIRST for that exact reason</b> — a Business that
+    /// could take premises this Tick must not be retired before it is offered any.
+    /// </para>
+    /// <para>
+    /// <b>It introduces no number.</b> Same trigger, same sample derivation, same candidate count as
+    /// the Household pass — which is <see cref="Retire"/>'s standing argument unchanged: a second
+    /// cadence would be hash-bearing and owed a ratifier (<c>adr/0052</c>), and the world that would
+    /// ratify one is the world this pass is building. ***A shared cadence is a declared stand-in and
+    /// not a claim that the two patiences are equal.***
+    /// </para>
+    /// <para>
+    /// <b>Any Building with room, and that is <c>adr/0147</c> rather than an omission.</b> A Business
+    /// carries its own <c>jobs</c> now, so it needs no special kind to sit in — and no shipped Ruleset
+    /// declares a workplace kind, which is why <c>jobs</c> sat on <c>dwelling</c> in the first place.
+    /// ⚠ <b>The room it takes is a Household's room</b>: <see cref="Entities.World.Tenants"/> counts
+    /// both kinds against one ceiling, so ***a city that fills with shops houses fewer people.***
+    /// </para>
+    /// </remarks>
+    private void Tenant(Ticks tick)
+    {
+        int pool = _world.UnpremisedPool.Count;
+
+        if (pool == 0)
+        {
+            return;
+        }
+
+        int lots = _world.Lots.Rows.SlotCount;
+
+        if (lots == 0)
+        {
+            return;
+        }
+
+        PlacementRuleset placement = _world.Rules.Placement;
+        Span<int> into = Scratch(placement.SampleFor(pool));
+
+        for (int draw = 0; draw < into.Length; draw++)
+        {
+            ulong entity = Randomness.Mix((ulong)(uint)draw << 32);
+            ulong value = Randomness.Draw(_key, entity, tick, PurposeTag.PremisesDraw);
+
+            into[draw] = (int)(value % (ulong)(uint)pool);
+        }
+
+        for (int i = 0; i < into.Length; i++)
+        {
+            // Bounded against the CURRENT count for Retire's stated reason: the positions were drawn
+            // against the pool as it stood at the top, and Premise shrinks it by swapping the last
+            // member into the vacated slot.
+            int position = into[i];
+
+            if (position >= _world.UnpremisedPool.Count)
+            {
+                continue;
+            }
+
+            Handle<Business> seeker = _world.UnpremisedPool.At(position);
+            int slot = _world.Businesses.Rows.Resolve(seeker);
+            ulong id = _world.Businesses.Rows.IdAt(slot);
+
+            for (int look = 0; look < placement.Candidates; look++)
+            {
+                // Keyed on the Business's monotonic id rather than its pool position, so who a shop
+                // looks at does not change because an unrelated Business left the pool ahead of it.
+                ulong entity = Randomness.Mix(id ^ ((ulong)(uint)look << 32));
+                ulong value = Randomness.Draw(_key, entity, tick, PurposeTag.PremisesCandidate);
+
+                int lot = (int)(value % (ulong)(uint)lots);
+
+                if (!_world.Lots.Rows.IsLive(lot))
+                {
+                    continue;
+                }
+
+                int building = _world.Lots.BuildingOn(lot);
+
+                if (building == Rows.NoSlot || !_world.HasRoom(building))
+                {
+                    continue;
+                }
+
+                _world.Premise(seeker, _world.Buildings.Rows.At(building));
+                _tickPremised++;
+                break;
+            }
+        }
+    }
+
+    /// <summary>
     /// Housed Households consider founding a Business, and the ones that can afford it do.
     /// </summary>
     /// <remarks>
@@ -651,12 +755,14 @@ public sealed class PlacementEngine
         _departedFlow = _departedFlow.Fold(_tickDeparted);
         _retiredFlow = _retiredFlow.Fold(_tickRetired);
         _foundedFlow = _foundedFlow.Fold(_tickFounded);
+        _premisedFlow = _premisedFlow.Fold(_tickPremised);
 
         _tickConsidered = 0;
         _tickPlaced = 0;
         _tickDeparted = 0;
         _tickRetired = 0;
         _tickFounded = 0;
+        _tickPremised = 0;
     }
 }
 
@@ -685,4 +791,5 @@ public sealed class PlacementEngine
 /// <paramref name="Considered"/></b>, which counts Households.
 /// </param>
 public readonly record struct PlacementActivity(
-    RuleFlow Considered, RuleFlow Placed, RuleFlow Departed, RuleFlow Retired, RuleFlow Founded);
+    RuleFlow Considered, RuleFlow Placed, RuleFlow Departed, RuleFlow Retired, RuleFlow Founded,
+    RuleFlow Premised);
