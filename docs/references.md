@@ -231,6 +231,123 @@ Cited for structure rather than documentation. Park rating does not *cause* atte
 
 ---
 
+## 10. Genre prior art — how waste is carried, and why nobody carries it one way
+
+Absent until milestone 24's task 6 needed it, and the gap is the same shape as §9's. The question that
+sent me here is narrow and structural: [`adr/0031`](adr/0031-one-resource-abstraction-and-depth-not-count.md)
+distinguishes Resource families on **one axis — whether moving it between Districts requires a Vehicle**
+— and the corpus answers that question about Waste four different ways.
+[`CONTEXT.md`](../CONTEXT.md) → Water Body calls it *"the Waste family"*; `CONTEXT.md` → Resource puts it
+in the **Good** row, moving as a Shipment; [`04 §1`](04-economy-and-goods.md) calls it *"service capacity
+… coverage rather than a Good"*; and `adr/0031`'s own table lists it among the four escapees, quoting
+[`03 §1`](03-agent-architecture.md)'s *"production → flow → treatment"*. The build has no `Waste` member
+in `ResourceFamily` at all.
+
+**The finding is that the question is malformed, and the genre has known it for twenty-five years.**
+Every title below that models waste seriously ships **two** mechanisms, and the seam falls exactly on
+`adr/0031`'s axis: solid refuse moves in a **vehicle on the road network**, liquid waste moves through a
+**pipe or flow network with no vehicle**. No surveyed title unifies them.
+
+Sourcing is the same difficulty §9 records — community wikis rather than developer statements, and no
+design rationale was found for the split in any title. It is treated below as **convergent practice**,
+which is evidence about what works and not a reason. `adr/0043` types the disposition question as
+*arguable*; nothing here decides it.
+
+**Cities: Skylines 1 (Colossal Order, 2015) — refuse is a Vehicle, and the road network is the
+constraint.** `USE`
+[Garbage disposal](https://skylines.paradoxwikis.com/Garbage_disposal) · [Water and sewage](https://skylines.paradoxwikis.com/Water_and_sewage)
+
+Every building accumulates garbage in its own buffer, and the only way to clear it is a truck: *"Garbage
+collection is completely dependent on the road network, as the only way to clear out garbage is for a
+garbage truck to drive by and collect it, meaning traffic levels and road design have a big impact on how
+much garbage accumulates in buildings."* Landfills fill and then need **outbound** trucks to empty
+themselves into incinerators — so the disposal site is a stock with an inflow and an outflow, both
+vehicular. ***This is the purest "waste is a Good" implementation in the genre***: a Shipment, in a
+Vehicle, in the jam.
+
+The same game runs sewage the other way, and the contrast inside one title is the useful part. *"Drain
+pipes simply dump raw sewage into the water and can quickly cause massive amounts of water pollution"*,
+and the counterplay is positional: *"You want to place your pumping station upstream of any sewage drains
+so that it will not be contaminated by water pollution."* **No vehicle appears anywhere in that
+sentence.**
+
+⚠ **Read the water half as `SCOPE` rather than `USE`.** CS1's water is a simulated fluid with enough
+fidelity that a pump's draw can reverse a river's flow locally — a widely reported behaviour, and
+secondhand here. `CONTEXT.md` → Water Body is a **graph with an outflow rate to the next body
+downstream**, which is deliberately several orders coarser. The lesson to take is that *contamination is
+carried by the water's own direction*; the lesson to refuse is the fluid simulation that makes it true.
+
+**Workers & Resources: Soviet Republic (3Division, 2019) — the split, and the exception that proves the
+axis.** `USE`
+[Waste management](https://wiki.hoodedhorse.com/Workers_Resources_Soviet_Republic/Waste_management) · [Sewage](https://wiki.hoodedhorse.com/Workers_Resources_Soviet_Republic/Sewage)
+
+The most instructive title here, because it ships both mechanisms at full detail and lets one of them
+break the rule. Refuse is produced by dwellings and workplaces, collected by **garbage trucks**, stored
+in dumps or containers, and burned in incinerators that may generate power or heat. Wastewater is
+collected *"through small, medium, big sewage pipes"* to a treatment plant, and *"wastewater can be dumped
+in a river or lake with the help of a sewage discharge."*
+
+🔴 **And wastewater may also be moved by a sewage truck**, which is the detail worth keeping. A pipe is
+the *cheap* way to move liquid waste, not the only way — so the family axis is about what the mechanism
+**is denominated in**, never about what a desperate player can physically do. A design that made
+"Utility" mean *cannot be trucked* would be contradicted by a shipped game; one that makes it mean *flows
+on a graph by default* is not.
+
+**SimCity 4 (Maxis, 2003) — two systems, two vocabularies, one city.** `USE`
+[StrategyWiki: Sanitation](https://strategywiki.org/wiki/SimCity_4/Sanitation)
+
+Garbage is a landfill **zone** you paint, plus a Recycling Center and a Waste-to-Energy plant; sewage is a
+**pipe network** with treatment plants, and the treatment plants *"don't pollute the ground so can be
+plopped close to water"*. The garbage half is notably softer than CS1's — capacity and coverage rather
+than a completed trip — which is worth noting against §9's finding that SC4 and CS diverge on almost
+everything: **on this question they agree about the seam and disagree about the fidelity either side of
+it.**
+
+**SimCity 3000 (Maxis, 1999) — waste crosses an ownership boundary, and transport is what gates it.**
+`USE`
+[Simtropolis: To export, or dispose of garbage on your own](https://community.simtropolis.com/omnibus/other-games/to-export-or-dispose-of-garbage-on-your-own-in-simcity-3000-r660/) · [SimCity Wiki: Garbage](https://simcity.fandom.com/wiki/Garbage)
+
+Neighbouring mayors buy and sell garbage disposal, and a city with spare capacity **earns** by importing
+it. The gate is the part to steal: *"Garbage deals are only available if you have built road, rail or
+seaport connections to a neighboring city."* ***Waste is a tradeable commodity whose trade is
+conditioned on a transport link***, which is
+[`adr/0050`](adr/0050-crossing-an-ownership-boundary-is-a-trade-and-payment-is-implicit-in-the-scope.md)'s
+shape arriving from an unexpected direction, and a direct precedent for a Hinterland that accepts
+outflow. Both citations are secondhand community documentation.
+
+**Timberborn (Mechanistry, 2021) — contamination as a property of the water graph.** `SCOPE`
+
+Cited for structure rather than documentation, as §9 cites RollerCoaster Tycoon. Badwater enters the
+river network and travels **downstream**, contaminating what it reaches; the counterplay is damming,
+diverting and outlasting it rather than collecting it. **It is the clearest statement in any of these
+titles that pollution can be a property of a flow network and not of a place** — which is what a Water
+Body with a capacity and a downstream edge is trying to be.
+
+### What this says about the disposition question, and what it does not
+
+**Convergent practice across four independent lineages** — Maxis 1999 and 2003, Colossal Order 2015,
+3Division 2019 — is that solid and liquid waste are **different mechanisms with different transport**,
+and every one of them puts the seam on the axis `adr/0031` already uses. That is corroboration of a
+strong kind: not one designer's taste, but four teams who agreed about nothing else.
+
+⚠ **It does not settle what `CONTEXT.md` should say, and it must not be read as having done so.**
+[`0043`](adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md) types the
+question *arguable*, so it is settled by argument in a sitting, and this section is an input to that
+sitting rather than its conclusion. What it does establish is that ***the corpus's four answers are not
+four positions***: `CONTEXT.md` → Resource is describing refuse, `CONTEXT.md` → Water Body is describing
+effluent, and both are right about the thing they are looking at. The defect is that one word is doing
+two jobs.
+
+⚠ **One thing here is a genuine warning rather than a precedent.** CS1's water pollution is legible to a
+player because the water is *visibly* flowing and the pollution is *visibly* on it. A graph with an
+outflow rate has neither property, and
+[`00-vision.md`](00-vision.md)'s honesty pillar is what would be spent if a city were poisoned by an edge
+nobody can see. **Whatever family Waste lands in, a Water Body that fouls needs something to look at** —
+which is `CLAUDE.md`'s Definition of done arriving at this subject early rather than late.
+
+---
+
+
 ## Notes on sourcing
 
 Citybound's **project page carries a real bibliography** (the source of most citations above), but its **codebase contains exactly one technical reference** — a Wikipedia link to the Intelligent Driver Model in `intelligent_acceleration.rs`. A repo-wide search for `paper`, `thesis`, `algorithm`, `inspired`, `based on`, `grammar`, and `orienteering` returns nothing else.
