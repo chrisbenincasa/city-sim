@@ -208,6 +208,45 @@ no registry, no ledger parsing, no judgement about what a document means. Resolv
 not the corpus; and **check the anchor separately or not at all**, since a `#heading` fragment is a
 different and much weaker claim than a file existing.
 
+### 🔴 Why a defect SURVIVES is not why it was written, and this ledger had never separated the two
+
+**Every Cause below is a mechanism by which a defect gets WRITTEN.** Status copied to three places,
+an ADR's write that does not land, a number quoted away from its sentence — each names how a wrong
+sentence came to exist. ⚠ **None of them says why nobody caught it**, and the ledger has been
+accumulating that second thing inline, under whichever Cause happened to be next, for as long as it has
+existed. ***It is a different axis and it is not a Cause 8***, because a survival property is not a way
+of writing something — **it is a coat any Cause can wear.** Two are known:
+
+**1. Overdetermination — a statement wrong in TWO ways reads as a considered alternative.** Raised by
+the concurrent milestone 24 session, 2026-08-24, and it is the better half of what it found.
+`CONTEXT.md` → Water Body and [`adr/0034`](../docs/adr/0034-fields-are-sorted-by-source-geometry.md) §4
+both carried *"a Bin holding the **Waste family**"*. 🔴 **That sentence is wrong twice**:
+[`adr/0031`](../docs/adr/0031-one-resource-abstraction-and-depth-not-count.md) leaves **three** families
+— Good, Utility, Money — so there is no Waste family at all; **and** Waste is settled as a **Good** in
+that ADR's own words, *"Waste answers itself — it needs a Vehicle, so it is a Good"*, so the sentence
+also picks the wrong one of the two that could have been meant. ⚠ **Being wrong twice is what saved
+it.** A single wrong word reads as a slip and invites a check; ***a phrase that is confidently wrong in
+two dimensions at once reads as somebody's deliberate position***, and a reader's next move becomes
+*find the argument for this* rather than *check this*. **Three sessions looked straight at it.** The
+session that found it had built an entire `references.md` §10 survey before noticing `CONTEXT.md`
+already held the correct split two hundred lines away. ⚠ **The underlying Cause was plain Cause 1** —
+two copies, one edited, neither aware of the other. ***The concealment is the part that cost three
+sessions.***
+
+**2. No instrument — the claim's shape is outside what any check can see.** Filed twice on 2026-08-24
+from opposite directions. `adr/0145` argued from a `BusinessTable` column that does not exist, and
+`CitizenTable.Employment` is `Saved` — therefore **hashed** — with no writer or reader anywhere in
+`src/` ([`plans/0041`](0041-the-business-is-a-thing-the-city-contains.md) **G29**). ⚠ **Every corpus
+check is document-to-document**; `RefusalCountTests` is the sole document-to-code exception and it
+counts one construct in one file. ***So a prose claim about a table's contents and a saved column with
+no writer are the same hole seen from two sides***, and neither has an owner.
+
+⚠ **The practical use of this section is what it changes about a sweep.** Reading for defects means
+reading for *sentences that look wrong*. **Both survival properties defeat that** — the first by looking
+right, the second by being unreachable — so ***a sweep that only reads prose finds neither.*** The
+first is caught by checking a confident claim against its cited ADR **even when it reads as settled**;
+the second is caught only by reading the code the prose describes.
+
 ### Cause 1 — status is stored in three places that disagree
 
 **The same six facts live in `0003`'s ledger, `0003`'s gate board, and `0002`'s Readiness table.**
