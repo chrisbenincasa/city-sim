@@ -42,8 +42,16 @@ on the same day and they are unrelated:
    the Household's money, the founder is recorded by the **employment link** rather than a column, and
    ***an unpremised Business has no Building for a `Workplace` handle to address.***
 
-**Remaining: 7, then task 8's Citizen half, then 9.** ⚠ **Task 7 still empties the city of jobs while it
-lands** and that argument is untouched — which is why task 8's founding pass had to go first, and did.
+🔴 **THE ORDER MOVED A FOURTH TIME, 2026-08-24, AND THIS ONE IS A CORRECTION** (**G32**).
+~~Remaining: 7, then task 8's Citizen half, then 9.~~ **Task 7 cannot go next.** Nothing tenants a
+Business, so pointing a Workplace at one puts employment at **zero in every shipped world** — thirteen
+of fifteen Rulesets declare no trade, and `founded.toml`'s 114 are all unpremised until they leave.
+⚠ **`PlacementEngine.cs:190` says this milestone owes the pass and none of its four tasks names it.**
+
+**Remaining: a Business placement pass, then 7, then task 8's Citizen half, then 9.** ⚠ **The
+placement pass is not yet specified and needs a decision** — `adr/0141` makes `occupants` count
+tenants of any kind, so a Business competes with families for capacity and `adr/0068`'s eviction
+reaches both.
 
 ⚠ **The census below was taken on 2026-08-24 and it corrects the risk statement in three numbers**
 (**G1**). ***The risk stands; the figures stating it have drifted*** — which is the second time in two
@@ -764,6 +772,44 @@ count by a lot. **What task 7 shipped instead is one named refusal for `wage`**,
 gives a designer positive reason to write that key and the general gap would swallow it. ***A named
 refusal for the one key somebody will actually type is not a substitute for the check and must not be
 recorded as one.***
+
+**G32 — 🔴 NOTHING TENANTS A BUSINESS, THE BUILD SAYS THIS MILESTONE OWES IT, AND NONE OF ITS FOUR
+TASKS NAMES IT.** Found 2026-08-24 on opening the handle move. `PlacementEngine.cs:190` states the
+debt in its own words: *"nothing tenants a Business — `World.CreateBusiness` has no production caller
+and the placement pass that would is milestone **27**'s."* ⚠ **Tasks 6, 7, 8 and 9 are the kind table,
+jobs to the employer, what creates and capitalises one, and a Rule reading a balance.** ***A pass that
+puts a Business into premises is in none of them.***
+
+**The evidence, counted rather than argued.** `PlacementEngine` names Business eleven times and
+**never writes `Businesses.Building`** — the only writers anywhere are `World.cs:970`
+(`CreateBusiness`, taking premises from its caller, and every caller is a test) and `World.cs:1612`
+(clearing it on departure). `World.Place` is Household-shaped throughout: `Handle<Household>`,
+`Households.IsUnplaced`, and a `HasRoom` that counts Households.
+
+🔴 **So the handle move CANNOT go next, and the reason is arithmetic rather than judgement.** Point
+`CitizenTable.Workplace` at a Business and employment is the number of Citizens working at a
+**premised** Business. **Thirteen of the fifteen shipped Rulesets declare no `[[business]]` at all**;
+`tenanted.toml` names two trades and instantiates neither; `founded.toml` founds 114 and **every one
+of them is unpremised by construction**, waits out the give-up bound and leaves. ***So employment
+would be zero in every world that ships***, and the commute, traffic and parking suites go with it.
+
+⚠ **This document predicted the symptom and misattributed the cause, and that is the correction worth
+keeping.** The status block says task 7 *"empties the city of jobs"* and concluded task 8's founding
+pass had to land first — **which it did, and it was necessary and not sufficient.** ***Founding fills
+a POOL; employment needs PREMISES***, and nothing carries a Business from the first to the second.
+🔴 **Task 7's own survey repeated the error one step later**, closing with *task 8's founding pass had
+to go first, and did* — treating a discharged precondition as the only one. ⚠ **The tell was in the
+survey's own finding**: it recorded that *an unpremised Business employs nobody, and that is correct*
+without asking **how many Businesses are premised in any shipped world.** ***The answer is none, and
+it was one grep away from a paragraph that had already framed the question.***
+
+**What the pass needs is a decision this milestone has not taken.**
+[`adr/0141`](../docs/adr/0141-a-tenant-owns-what-leaves-with-it-and-the-premises-own-the-capacity.md)
+says `occupants` *"stops being how many Households and becomes how many tenants of any kind"* — so a
+Business placed into a dwelling **competes with families for the same capacity**, and
+[`adr/0068`](../docs/adr/0068-a-buildings-occupancy-is-declared-by-its-kind-and-an-over-capacity-building-evicts.md)'s
+*an over-capacity Building evicts* then reaches both. ⚠ **That is a design change with an eviction
+consequence and not a mechanical one**, which is why this is filed rather than built on sight.
 
 ## What decomposition found
 
