@@ -136,12 +136,20 @@ row.*** **Blocks task 7 and nothing else.**
 
 ### 3. ⚠ NEW — what does the `sweeps` refusal say once half of it is answerable?
 
-`RulesetLoader.cs:2170-2192` refuses `"business"` and `"building"` from **one** case block whose
+`RulesetLoader.ReadSubject` refuses `"business"` and `"building"` from **one** case block whose
 message gives a **separate reason per subject**: *"A Business has a balance and no pass that moves it;
-a Building population needs the predicate that selects it, and neither exists."* ⚠ **Task 6 makes the
-first clause false and leaves the second standing.** `0040` **F9** found this; what it did not settle is
-whether the block splits, the message is rewritten, or `sweeps = "business"` becomes legal here.
-🔴 **Splitting it moves the refusal count off 140 and `RefusalCountTests` will say so** (**G3**).
+a Building population needs the predicate that selects it, and neither exists."*
+🔴 ~~**Task 6 makes the first clause false and leaves the second standing.**~~ **IT DOES NOT, AND THIS
+DECISION DOES NOT OPEN YET** — checked against the message on 2026-08-24, the day task 6 shipped
+(**G20**). The refusal's stated reason for `business` is ***"a Business has a balance and no pass that
+moves it"***, and **task 6 added no pass** — it added a *kind*. The clause is still true word for word,
+so the message needs no edit, the block needs no split, and **the refusal count stays where task 6 left
+it**. ⚠ **The prediction reasoned from a reason the message does not give**: decomposition assumed
+`sweeps = "business"` was refused for having *nothing to key on*, which is what the milestone's risk
+cell says about `Declares` and `BinsOf` — but this refusal never said that. **The trigger is a pass that
+moves a Business's balance, which is task 9 at the earliest.** `0040` **F9** found the block; what it
+did not settle is whether the block splits, the message is rewritten, or `sweeps = "business"` becomes
+legal here. 🔴 **Splitting it moves the refusal count and `RefusalCountTests` will say so** (**G3**).
 
 ---
 
@@ -171,7 +179,7 @@ whether the block splits, the message is rewritten, or `sweeps = "business"` bec
 a saved `BusinessTable.Kind`, `World.CreateBusiness(premises, kind = 0)`, the migration walk
 (`RulesetMigration.BusinessKind`), two `RulesetShape` members, and
 [`rulesets/tenanted.toml`](../rulesets/tenanted.toml) — the fourteenth shipped file — guarded by
-`BusinessKindLoadTests`. **The whole assertion tier is green at 2,108.** Findings **G14**–**G19** below.
+`BusinessKindLoadTests`. **The whole assertion tier is green at 2,108.** Findings **G14**–**G20** below.
 
 ⚠ **There is no `BusinessKindDefinition` type and that is the decision, not an omission.** A
 `[[business]]` carries a `name` and nothing else, because `adr/0141` gives the trade `jobs`, shift hours
@@ -339,6 +347,24 @@ added. ⚠ **No shipped Ruleset does this and none ever did** — the recorded f
 constants and trace headers, *outside* the file — so this is a deviation caught the same hour rather
 than a corpus defect. **The repair is to name the runner that prints it, not to keep the digits
 current.**
+
+**G20 — decomposition's own open decision 3 rested on a false premise, and task 6 disproved it by
+landing.** The decision predicted task 6 would falsify half the `sweeps` refusal message. It did not:
+the message refuses `business` because ***"a Business has a balance and no pass that moves it"***, and
+task 6 added a **kind** rather than a **pass** — verified against `World`, where every write to
+`Businesses.Balance` is a creation, a lookup or a rebuild and none is a per-Tick pass. **Caught only
+because the message was read instead of the plan's description of it.** ⚠ **The prediction reasoned
+from a reason the message does not give**: decomposition assumed `sweeps = "business"` was refused for
+having *nothing to key on*, which is what the milestone's risk cell says about `Declares` and `BinsOf`
+— a true sentence about a different thing. ***This is [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+catching a description written by this milestone's own decomposition eight hours earlier***, which is
+the shortest gap between writing a wrong description and being misled by it that this corpus has
+recorded. **The refusal count stays put; decision 3 reopens at task 9.**
+
+⚠ **The same entry cited `RulesetLoader.cs:2170-2192` and `ReadSubject` now starts at 2188** — a line
+reference that drifted within one task, because task 6 added lines above it. Replaced with the
+**symbol**, which is `adr/0093`'s writing half — *name a symbol, never a time* — arriving on the same
+sentence that had just been caught by its reading half.
 
 ## What decomposition found
 
