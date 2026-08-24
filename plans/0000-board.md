@@ -204,10 +204,14 @@ Phase 2 ledger **first**. [`0000a`](0000a-board-archive.md) holds the recovery p
 **What the project is.** A city-builder whose simulation is an ordinary C# library with no game engine
 inside it. Godot will be the display layer and has not been started.
 
-**Where it is.** **Phase 2, between milestones.** Phase 1 is closed; Phase 2 has shipped **5a through
-11** and **12** is the live row; the hash-moving queue is open on items **8, 10, 12, 13 and 14**.
-⚠ **Enumerated in [`0003`](0003-build-plan.md), never totalled here** — a total in prose is a fact
-that drifts.
+**Where it is.** **Phase 2, between milestones.** Phase 1 is closed; **12 closed at task 6, 25 closed
+at group A**, and the live row is **27**.
+⚠ **Which milestones have shipped and which queue items stand open are [`0003`](0003-build-plan.md)'s,
+enumerated there and never here.** This sentence carried its own copy of both until 2026-08-23 and both
+had drifted: it named **12** as the live row two closures later, and it named queue items **8** and
+**10**, which ***have no row in that queue at all***, while **13**, **15**, **17** and **18** stood open.
+***A view that keeps its own copy of the source is no longer a view*** — the correction the *Done*
+section took on 2026-08-22, arriving one section later and by the same route.
 
 **What works.** Typed tables with every field declared once, integer-only arithmetic, a deterministic
 eight-phase Tick, replay and save/load that both recompute their own hash, Map Layers with diffusion,
@@ -264,7 +268,7 @@ parallelism names *nothing else running in this repository* as its first control
 
 | | Track | Task | Plan | Why this one |
 |---|---|---|---|---|
-| **1** | code | 🔴 **Milestone 25 — the Business is the actor and the Building is premises.** Not started; **session V owns the scoping and it is OPEN**, so this row is *decide, then build*. ⚠ **Two contradictions inside the corpus have to be settled first**: which Bins belong to a tenant, and whether jobs are premises or employer. **Milestone 12 closed at task 6 on 2026-08-22** and its tasks 7–10 are milestone **26**, blocked on this | [`0039`](0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md) | **It blocks 26, which is milestone 12's own remainder** — a purchase needs a payer and the payer is what this builds |
+| **1** | code | 🔴 **Milestone 27 — the Business is a thing the city contains.** Not started, and **UNGATED as of 2026-08-23**: its one gate was milestone **25**, which closed that day. ⚠ **It has no plan document of its own** — its tasks are [`0040`](0040-the-business-is-the-actor-and-the-building-is-premises.md)'s **6 through 9**, kept there as written because they are the specification 27 inherits, and **task 6, the `[[business]]` kind table, needs nothing that does not exist**. ⚠ **Task 8 is blocked from inside the milestone** on [`0002`](0002-open-questions.md) **§D2**, the capitalisation band — hash-bearing, and owed a named ratifier | [`0040`](0040-the-business-is-the-actor-and-the-building-is-premises.md) tasks 6–9 | **It carries milestone 25's ORIGINAL risk** — *that the economic actor does not exist in the build* — and **26 is blocked on it**: 25 made the payer **nameable**, and 27 is what makes one **exist** |
 | **2** | spike | ⚠ **Do NOT delete `spikes/S2.Routing/`.** The 5a gate is discharged, but another session is doing research inside it, so it is live work. 51 tracked C# files, 29,719 lines | [`0010`](0010-s2-routing.md) → *R7* | ⚠ ***A deletion held twice for unrelated reasons is the row that gets struck when the wrong one clears*** |
 | **3** | spike | **S5 owes two captures** — the 4-thread Lane kernel rung, which is bimodal, and the canonical `performance` re-capture. 2 threads is settled at 1.84–1.93× | [`0019`](0019-s5-lane-kernel.md) | ⚠ **Quote the supply-side multiple as *at least 1.84× and plausibly near 4×*, never as 4× bare** |
 | **4** | tidy | ⏸ **HELD — do not delete `spikes/S4.Kernels/` yet.** S4 task 11, open since the spike closed | [`0004`](0004-s4-kernel-benchmark.md) | ⚠ **Held 2026-08-22 on a stated condition, where it previously read *gated on nothing*.** It goes when we are certain we will not revisit what it holds, and nobody is certain yet. ***A deletion that might be revisited is a bet rather than tidying***, and this row was ranked as housekeeping. **The condition is the trigger — do not promote this row because the suite is green** |
@@ -307,8 +311,13 @@ board-tracked axis and nothing else lists them in one place.
 [`0024`](0024-session-j-the-save-the-map-and-the-outside.md), [`0025`](0025-the-player-model.md),
 [`0027`](0027-session-t-the-target-speed.md), [`0029`](0029-session-e-fidelity.md) and the ADRs each
 produced. **Open:** N, and what is open is task 5's residue. **Never opened:** G, R, L.
-🔴 **V open** — the Business is the actor,
-[`0039`](0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md), **opened 2026-08-22**.
+✅ **V closed 2026-08-22** — the Business is the actor,
+[`0039`](0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md), **opened and closed
+the same day**, into [`adr/0141`](../docs/adr/0141-a-tenant-owns-what-leaves-with-it-and-the-premises-own-the-capacity.md)
+and [`adr/0142`](../docs/adr/0142-an-unpremised-business-emigrates-so-the-sink-is-the-one-households-already-use.md).
+🔴 **Its fifth question did not close and changed type on the way** — *what capitalises a Business* is a
+hash-bearing **number** rather than a shape, so it left §A for [`0002`](0002-open-questions.md) **§D2**
+and is owned by milestone **27**.
 ✅ **U closed 2026-08-22** — the Pool or the seller,
 [`0038`](0038-session-u-the-pool-or-the-seller.md), into
 [`adr/0139`](../docs/adr/0139-a-district-pool-is-a-market-and-not-a-store-so-stock-stays-with-the-seller.md).
@@ -319,14 +328,13 @@ produced. **Open:** N, and what is open is task 5's residue. **Never opened:** G
 
 ### The argument track — a menu, not a queue
 
-~~**Nothing in it gates a slice.**~~ 🔴 **V DOES** — it blocks milestone **26**, which is milestone 12's capped-off remainder, and it is milestone-sized. ⚠ **U also did, for one afternoon on 2026-08-22, and closed the same day**
+~~**Nothing in it gates a slice.**~~ ~~🔴 **V DOES** — it blocks milestone **26**, which is milestone 12's capped-off remainder, and it is milestone-sized.~~ ✅ **NOTHING IN IT GATES A SLICE AGAIN, 2026-08-23** — V opened and closed on 2026-08-22, and milestone **25**, the row it unblocked, closed the next day. ⚠ **U also gated something, for one afternoon on 2026-08-22, and closed the same day**
 into [`adr/0139`](../docs/adr/0139-a-district-pool-is-a-market-and-not-a-store-so-stock-stays-with-the-seller.md)
 — the standing rule working rather than failing: *an argument session runs when something concrete is
 blocked on it.* Take from the three below when something is waiting and leave them alone otherwise. **Closed sessions are in [`0000a`](0000a-board-archive.md).**
 
 | | Session | What is missing | Unblocks |
 |---|---|---|---|
-| 🔴 **V** | **The Business is the actor and the Building is premises**, [`0039`](0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md) | ⚠ **On its main axis a CORRECTION and not a design change** — `adr/0113` decided it, `adr/0114` wrote the target shape, and the build never arrived. 🔴 **Two places the corpus contradicts itself are the real work**: which Bins belong to a tenant, and whether jobs are premises or employer. | milestone **25**, and **26** behind it |
 | **G** | `adr/0016` — the lane is the entity | Carries the order-of-magnitude claim the whole microscopic tier rests on. ⚠ **Partly discharged by S5** | milestone **21** |
 | **R** | `05 §6`'s threading policy | The obligation `06` could not give a milestone | lint 4 |
 | **L** | **A presentation design** | **It does not exist.** Every other phase is backed by a design document; rendering has none | **Phase 3** |
