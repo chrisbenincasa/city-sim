@@ -54,6 +54,26 @@ public enum RulesetChange
     /// <summary>A kind's Rules changed: a different Rule, or a different number of them.</summary>
     KindRules,
 
+    /// <summary>A Business kind was added or removed.</summary>
+    /// <remarks>
+    /// <b>A second kind namespace, and it earns its own member for this file's stated test</b> — what
+    /// does live state point at. <c>BusinessTable.Kind</c> is a saved column holding a
+    /// <c>[[business]]</c> id, so the trade is exactly as exposed to a renumbering as the premises
+    /// are. ⚠ <b>It is NOT folded into <see cref="KindCount"/></b>: the two namespaces are independent
+    /// (<c>adr/0141</c>), so one file may add a trade and delete a premises kind and net to zero.
+    /// </remarks>
+    BusinessKindCount,
+
+    /// <summary>
+    /// A Business kind id names a different declaration than it did. The file was reordered.
+    /// </summary>
+    /// <remarks>
+    /// <inheritdoc cref="ResourceIdentity" path="/remarks"/>
+    /// The trade's version: every bakery becomes whatever <c>[[business]]</c> now sits at that id,
+    /// keeping its premises and its balance, and nothing records that the shop changed trade.
+    /// </remarks>
+    BusinessKindIdentity,
+
     /// <summary>A Rule was added or removed.</summary>
     RuleCount,
 
@@ -184,6 +204,23 @@ public static class RulesetShape
             if (change != RulesetChange.None)
             {
                 return change;
+            }
+        }
+
+        if (current.BusinessKindCount != replacement.BusinessKindCount)
+        {
+            return RulesetChange.BusinessKindCount;
+        }
+
+        // Identity only, because a Business kind declares nothing else to compare. There is no
+        // CompareBusinessKind beside CompareKind for the same reason there is no
+        // BusinessKindDefinition: adr/0141 gives the trade `jobs`, shift hours and the wage, and all
+        // three arrive with milestone 27 task 7. On that day this grows a shape check.
+        for (int i = 1; i <= current.BusinessKindCount; i++)
+        {
+            if (current.BusinessKindKey((byte)i) != replacement.BusinessKindKey((byte)i))
+            {
+                return RulesetChange.BusinessKindIdentity;
             }
         }
 

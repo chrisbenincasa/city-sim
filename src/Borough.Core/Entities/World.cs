@@ -786,6 +786,19 @@ public sealed class World
             }
         }
 
+        // The trade, on the second kind namespace (adr/0141). A Business whose [[business]] the new
+        // file does not name keeps its row, its premises and its balance and loses only the word --
+        // so this is NOT counted in `derelicted`, which is a Building's word for a Building's loss.
+        // A derelict Building keeps Bins and Rules its kind no longer declares; a Business kind
+        // declares nothing yet, so there is nothing else to lose.
+        for (int slot = 0; slot < Businesses.Rows.SlotCount; slot++)
+        {
+            if (Businesses.Rows.IsLive(slot))
+            {
+                Businesses.Kind[slot] = migration.BusinessKind(Businesses.Kind[slot]);
+            }
+        }
+
         return new RulesetDegradation(derelicted, dropped, rearmed);
     }
 
@@ -929,7 +942,20 @@ public sealed class World
     /// </para>
     /// </remarks>
     /// <param name="premises">The Building it occupies.</param>
-    public Handle<Business> CreateBusiness(Handle<Building> premises)
+    /// <param name="kind">
+    /// Which trade, indexed into <c>[[business]]</c> — <b>not</b> the premises' kind namespace
+    /// (<c>adr/0141</c>). <b>Zero, the default, means this Business names no trade</b>, which is a
+    /// legal state and the one every fixture predating milestone 27 is in.
+    /// <para>
+    /// ⚠ <b>It is optional rather than required, and that is an argument about consequence rather
+    /// than tidiness.</b> <see cref="CreateBuilding"/>'s kind is required because a Building cannot be
+    /// fitted without one — its Bins and Rules are read off it. A Business kind declares
+    /// <em>nothing</em> until milestone 27's task 7 gives it <c>jobs</c>, so requiring it here would
+    /// force seventeen call sites to name a value nothing reads. ***When the kind acquires a
+    /// consequence, making it required is a change with a reason behind it.***
+    /// </para>
+    /// </param>
+    public Handle<Business> CreateBusiness(Handle<Building> premises, byte kind = 0)
     {
         int buildingSlot = Buildings.Rows.Resolve(premises);
 
@@ -937,6 +963,7 @@ public sealed class World
         int slot = Businesses.Rows.Resolve(handle);
 
         Businesses.Building[slot] = premises;
+        Businesses.Kind[slot] = kind;
 
         // CreateHousehold's line, for its reason (adr/0114).
         if (TryMoneyResource(out ResourceId money))

@@ -2469,6 +2469,22 @@ public sealed class Ruleset
     /// <summary>What the Building kind with this id is, as a key comparable across Rulesets.</summary>
     public ulong KindKey(byte kind) => KindKeys.Length == 0 ? kind : KindKeys[kind - 1];
 
+    /// <inheritdoc cref="ResourceKeys"/>
+    /// <remarks>
+    /// <inheritdoc cref="ResourceKeys" path="/remarks"/>
+    /// <para>
+    /// ⚠ <b>A separate key family from <see cref="KindKeys"/>, and it has to be.</b> The two kind
+    /// namespaces are independent (<c>adr/0141</c>), so a file may name a <c>[[building]]</c> and a
+    /// <c>[[business]]</c> the same word. Hashing them into one family would make a bakery <em>the
+    /// premises</em> on reload.
+    /// </para>
+    /// </remarks>
+    public ulong[] BusinessKindKeys { get; init; } = [];
+
+    /// <summary>What the Business kind with this id is, as a key comparable across Rulesets.</summary>
+    public ulong BusinessKindKey(byte kind) =>
+        BusinessKindKeys.Length == 0 ? kind : BusinessKindKeys[kind - 1];
+
     /// <summary>This Ruleset with different Map Layer data, and everything else shared.</summary>
     /// <remarks>
     /// <para>
@@ -2522,6 +2538,8 @@ public sealed class Ruleset
             Market = Market,
             ResourceKeys = ResourceKeys,
             KindKeys = KindKeys,
+            BusinessKindCount = BusinessKindCount,
+            BusinessKindKeys = BusinessKindKeys,
         };
 
     /// <summary>How many Resources are declared. Ids run <c>1..ResourceCount</c>.</summary>
@@ -2547,6 +2565,30 @@ public sealed class Ruleset
 
     /// <summary>How many Building kinds are declared. Ids run <c>1..KindCount</c>.</summary>
     public int KindCount => _kinds.Length;
+
+    /// <summary>How many Business kinds are declared. Ids run <c>1..BusinessKindCount</c>.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A count rather than a definition array, because a Business kind declares nothing yet.</b>
+    /// <c>adr/0141</c> gives it <c>jobs</c>, shift hours and the wage — and all three belong to
+    /// milestone 27's <em>task 7</em>, where the Workplace stops being a Building. Until one of them
+    /// lands there is no field to put in a <c>BusinessKindDefinition</c>, and inventing the type empty
+    /// would be a shape with nothing in it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>What the kind buys before it declares anything is IDENTITY.</b> A Business row can name its
+    /// trade, the name survives a reload through <see cref="BusinessKindKeys"/>, and
+    /// <c>World.CreateBusiness</c> has a kind to create <em>from</em> — which is what milestone 27's
+    /// task 8 needs and what its risk says is missing.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is an init property rather than a constructor parameter</b>, on
+    /// <see cref="KindKeys"/>'s precedent: the constructor's nine positional parameters are named by
+    /// every hand-built Ruleset in the test suite, and a tenth would edit all of them to say
+    /// <em>nothing here</em>.
+    /// </para>
+    /// </remarks>
+    public int BusinessKindCount { get; init; }
 
     /// <summary>
     /// Every Zone Rule, in declaration order — which is the order a trigger evaluates them in.
@@ -2597,6 +2639,15 @@ public sealed class Ruleset
     /// </para>
     /// </remarks>
     public bool Declares(byte kind) => kind != 0 && kind <= _kinds.Length;
+
+    /// <summary>Whether this Ruleset declares a Business kind with this id.</summary>
+    /// <remarks>
+    /// <b>The Business half of <see cref="Declares"/>, and derelict means the same thing here.</b> A
+    /// Business whose trade a reloaded Ruleset no longer names keeps its row and its balance — the
+    /// money is conserved either way (<c>adr/0024</c>) — and reads as a trade nobody declared, exactly
+    /// as <c>02 §4.3</c> has a Building do.
+    /// </remarks>
+    public bool DeclaresBusiness(byte kind) => kind != 0 && kind <= BusinessKindCount;
 
     /// <summary>One Building kind, or a throw.</summary>
     /// <exception cref="ArgumentOutOfRangeException">No kind carries that id.</exception>

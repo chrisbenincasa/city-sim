@@ -956,6 +956,31 @@ but a wrong fact positioned where it is load-bearing on a decision about its own
 rule instead. Prefer the second: it is the form that cannot rot. Unpaid because it is the same sweep as
 item 3, and both are one commit by whoever does either.
 
+✅ **A THIRD instance landed 2026-08-24 and is REPAIRED, and it carries a wrinkle the pair above does
+not.** `FactorioTests` held three column counts: two comments each said a table's saved columns numbered
+*five*, where `business` has **four** and `unpremised` has **two**; and the union total lived in **two
+places at two values**, *187* in the `UnreachableColumns` doc-comment against *249* in the remarks
+eleven lines below it. ⚠ **The `business` five was NEVER right** — that table had three saved columns
+when the comment was written — so this is not a count that rotted but a count that was **wrong on the
+day**, which the pair above has no example of. And the `unpremised` five was **copied from the
+paragraph above it** in the same commit that wrote it, which is **Cause 5** — a figure taken from a
+neighbouring sentence without its subject — arriving inside a single file.
+
+⚠ **The test was green throughout and could not have gone red.** It asserts an empty *residue* and
+prints the totals; nothing in it compares a prose count to `SavedColumns`, and nothing could, because
+the prose is a comment. ***This is the blind spot named at the head of this document arriving with an
+example*** — `tests/Borough.Tests/Corpus/` is document-to-document, so a number that lives only in a
+doc-comment is invisible to all thirty-two checks.
+
+**Repaired the way this entry's own second option prescribes, and it is worth recording that the second
+option was available here and not above.** The per-table counts are now stated with the column names
+beside them and a note saying they were counted from `BusinessTable`'s constructor; the **union totals
+were deleted rather than corrected**, because the test prints `250 of 250` on every run and a document
+holding a copy of a number the run emits is the drift with extra steps. ***Where a machine already
+states a figure, the repair is to delete the copy, not to update it.*** Found while shipping milestone
+27 task 6, filed and repaired the same day under [`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md);
+[`plans/0041`](0041-the-business-is-a-thing-the-city-contains.md) **G14** owns the full version.
+
 **5. ⚠ `Column.FoldBytes`'s remark claims a byte-order property the fold does not have.** It reads
 *"a State Hash whose value depends on the host's byte order is a hash that reports a divergence on a
 port"*, and assembles `ulong`s through `BinaryPrimitives.ReadUInt64LittleEndian` on that ground

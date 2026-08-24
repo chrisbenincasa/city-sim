@@ -16,7 +16,8 @@ Occupant repair, which closed 2026-08-23.
 
 ## Status
 
-🔴 **NOT STARTED. Decomposed 2026-08-24 against the tree.**
+✅ **TASK 6 SHIPPED 2026-08-24.** ~~🔴 **NOT STARTED.**~~ Decomposed 2026-08-24 against the tree, and
+the first task landed the same day. **Remaining: 9, then 8, then 7.**
 
 ⚠ **The census below was taken on 2026-08-24 and it corrects the risk statement in three numbers**
 (**G1**). ***The risk stands; the figures stating it have drifted*** — which is the second time in two
@@ -165,6 +166,23 @@ whether the block splits, the message is rewritten, or `sweeps = "business"` bec
   in a fixture. `business` is reachable only through `GoldenFixtures.Build()`.
 - 🔴 **Owed on the day: `adr/0048`.** See **G3**.
 
+✅ **SHIPPED 2026-08-24.** A fifth namespace (`RulesetNames`), `[[business]]` parsed and registered
+(`RulesetLoader.cs`), `Ruleset.BusinessKindCount`/`BusinessKindKeys`/`BusinessKindKey`/`DeclaresBusiness`,
+a saved `BusinessTable.Kind`, `World.CreateBusiness(premises, kind = 0)`, the migration walk
+(`RulesetMigration.BusinessKind`), two `RulesetShape` members, and
+[`rulesets/tenanted.toml`](../rulesets/tenanted.toml) — the fourteenth shipped file — guarded by
+`BusinessKindLoadTests`. **The whole assertion tier is green at 2,108.** Findings **G14**–**G19** below.
+
+⚠ **There is no `BusinessKindDefinition` type and that is the decision, not an omission.** A
+`[[business]]` carries a `name` and nothing else, because `adr/0141` gives the trade `jobs`, shift hours
+and the wage and ***all three arrive with task 7***. `RulesetShape` compares identity and has no
+`CompareBusinessKind`, for the same reason. **On the day task 7 lands, both grow.**
+
+⚠ **The `kind` parameter on `World.CreateBusiness` is OPTIONAL and the argument is about consequence
+rather than convenience.** `CreateBuilding`'s kind is required because a Building cannot be fitted
+without one; a Business kind declares nothing until task 7, so requiring it would make **seventeen test
+call sites** name a value nothing reads.
+
 ### 9. **A Rule can read a Business's balance.** *(second — it needs only the kind, and a fixture)*
 
 ⚠ **Moved ahead of 7 and 8** because it is the one entry in group B that is **exercisable by fixture**,
@@ -269,6 +287,58 @@ suites go with it.**
   funds one, employs through one, and a Rule can read its balance.
 
 ---
+
+## What task 6 found
+
+**G14 — 🔴 `FactorioTests` carried THREE wrong column counts and the corruption test could not see any
+of them.** Two comments said a table's saved columns numbered *five*: `business` has **four** (and had
+**three** before this task, so the number was never right), and `unpremised` has **two** — that one was
+copied from the paragraph above it on the day it was written. And the union total lived in **two
+places at two values**: the `UnreachableColumns` doc said *187* while the remarks eleven lines away
+said *249*. ⚠ **The test itself was green throughout and would have stayed green**, because it asserts
+on an *empty residue* and prints the totals; nothing compares a prose count to `SavedColumns`. ***A
+number in a comment beside the code it describes is exactly as exposed as one in a document***, and
+`tests/Borough.Tests/Corpus/` is document-to-document by construction, so no mechanical check reaches
+it. **Repaired by counting from `BusinessTable`'s constructor and by deleting the totals rather than
+correcting them** — the run prints `250 of 250`, so the document had no business holding a copy.
+
+**G15 — the golden re-record needed a FIXTURE change before the number was taken, and this is
+`Golden/README.md`'s own lesson arriving for the fourth time.** Both Businesses in
+`GoldenFixtures.Build()` carried kind `0`. A straight re-record would have moved the baseline on the
+day the column landed and then **stayed put for ever however the trades were shuffled** — covering the
+column's *existence* and never its *value*. They now carry kinds **1** and **2**, and the two hashes
+differ (`0xD92277A7748AC804` at kind 0 against the committed `0xD32D3335AA6D991E`), which is the proof
+the value is folded. ⚠ **Both trades are DERELICT** — `minimal.toml` declares no `[[business]]` — which
+is legal exactly as a derelict Building is, and is why `tenanted.toml` exists to cover the other half.
+
+**G16 — only ONE of the four golden artefacts moved, and which one is the finding.** `world-hash.txt`
+moved; **neither session trace did, and no Ruleset content hash did**. `GoldenFixtures.Build()` is the
+only golden world that holds a Business at all — the sessions run `populate` over `minimal.toml` and
+nothing creates one — so a column added to a table with no live rows folds nothing. ***A saved column
+can move one baseline and leave the others alone, and that is the baselines reaching different tables
+rather than a hash being missed.***
+
+**G17 — `RulesetWithLayersTests` caught the two new properties being dropped on the hot-reload copy,
+and it exists for that.** `Ruleset.WithLayers` is hand-spelled, so `BusinessKindCount` and
+`BusinessKindKeys` had to be added to it by hand; `Every_settable_property_is_carried_across` went red
+on the first run. ⚠ **They are `init` properties rather than constructor parameters, on `KindKeys`'
+precedent** — the constructor's nine positional parameters are named by every hand-built test Ruleset,
+and adding a tenth would edit all of them to say nothing.
+
+**G18 — `tenanted.toml` and `minimal.toml` produce the IDENTICAL city, and that equality is the task's
+demonstration.** 200 Ticks at 10,000 Citizens, State Hash sampled every 64: `0xE1C095A33C529A68`,
+`0xBD0CF73451B88C49`, `0x992AA56D04096835` on both files. ***Two trades declared and neither
+instantiated leaves the simulation bit-identical***, which is *a Business kind declares nothing until
+task 7* stated as a number instead of as a promise. **Guarded by `BusinessKindLoadTests.The_two_trades_change_nothing_about_the_city`**, which carries its own control — `evicted.toml` is traced alongside and asserted *different*, because two traces of four zeroes are equal and an equality that compares nothing passes. ⚠ **It is a tripwire and is meant to go red**: the day task 8 creates a Business the two files stop agreeing, and the response then is to **delete the test rather than loosen it** — an equality weakened to a tolerance asserts nothing.
+
+**G19 — a Ruleset cannot state its own content hash, and this header did for the length of one edit.**
+The fingerprint covers the comments (`CLAUDE.md`'s `congested.toml` cell says so about a *golden*
+file), so writing the value into the file it fingerprints invalidates it on the next keystroke — which
+is what happened: `0x3291B0CCD977EB3A` became `0xB690D3419F285764` because the sentence quoting it was
+added. ⚠ **No shipped Ruleset does this and none ever did** — the recorded fingerprints live in fixture
+constants and trace headers, *outside* the file — so this is a deviation caught the same hour rather
+than a corpus defect. **The repair is to name the runner that prints it, not to keep the digits
+current.**
 
 ## What decomposition found
 

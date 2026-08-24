@@ -72,11 +72,14 @@ public sealed class RulesetMigration
 {
     private readonly ResourceId[] _resources;
     private readonly byte[] _kinds;
+    private readonly byte[] _businessKinds;
 
-    private RulesetMigration(ResourceId[] resources, byte[] kinds, ResourceId familyChanged)
+    private RulesetMigration(
+        ResourceId[] resources, byte[] kinds, byte[] businessKinds, ResourceId familyChanged)
     {
         _resources = resources;
         _kinds = kinds;
+        _businessKinds = businessKinds;
         FamilyChanged = familyChanged;
     }
 
@@ -153,7 +156,27 @@ public sealed class RulesetMigration
             }
         }
 
-        return new RulesetMigration(resources, kinds, familyChanged);
+        // The same walk over the second kind namespace, and it has to be its own map: the two
+        // namespaces are independent (adr/0141), so a [[building]] and a [[business]] may share a
+        // name and hash to the same key while being different declarations. Folding them into one
+        // array would migrate a bakery into the premises it rents.
+        var businessKinds = new byte[current.BusinessKindCount];
+
+        for (int i = 1; i <= current.BusinessKindCount; i++)
+        {
+            ulong key = current.BusinessKindKey((byte)i);
+
+            for (int j = 1; j <= replacement.BusinessKindCount; j++)
+            {
+                if (replacement.BusinessKindKey((byte)j) == key)
+                {
+                    businessKinds[i - 1] = (byte)j;
+                    break;
+                }
+            }
+        }
+
+        return new RulesetMigration(resources, kinds, businessKinds, familyChanged);
     }
 
     /// <summary>
@@ -175,4 +198,18 @@ public sealed class RulesetMigration
     /// <inheritdoc cref="Resource" path="/remarks"/>
     public byte Kind(byte was) =>
         was == 0 || was > _kinds.Length ? (byte)0 : _kinds[was - 1];
+
+    /// <summary>
+    /// What a live Business's kind becomes, or zero — which is a trade nobody declares any more.
+    /// </summary>
+    /// <inheritdoc cref="Resource" path="/remarks"/>
+    /// <remarks>
+    /// <b>Dereliction is cheaper here than for a Building and the difference is worth stating.</b> A
+    /// derelict Building keeps Bins and Rules its kind no longer declares; a Business kind declares
+    /// <em>nothing</em> until milestone 27's task 7, so a Business whose trade is deleted loses only
+    /// the word. Its balance is untouched, because money is conserved whoever holds it
+    /// (<c>adr/0024</c>).
+    /// </remarks>
+    public byte BusinessKind(byte was) =>
+        was == 0 || was > _businessKinds.Length ? (byte)0 : _businessKinds[was - 1];
 }

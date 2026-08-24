@@ -528,8 +528,19 @@ internal static class GoldenFixtures
         // derived column no world populates. How many Businesses may share a Building is undesigned
         // (adr/0070) and this does not settle it -- the list is what keeps that question open, and a
         // fixture holding one element would leave the list's own machinery uncovered.
-        Handle<Business> business = world.CreateBusiness(buildings[2]);
-        world.CreateBusiness(buildings[2]);
+        // TWO DIFFERENT TRADES, and for this comment's own reason one paragraph up. A kind of zero
+        // would leave business.kind covered as a column and uncovered as a VALUE -- the baseline
+        // would move when the column was added and never again when a trade changed, which is the
+        // failure README.md keeps recording: a re-record that is complete and still reaches nothing.
+        // Two distinct non-zero ids make the hash sensitive to which trade is where.
+        //
+        // ⚠ BOTH ARE DERELICT HERE, deliberately. minimal.toml declares no [[business]], so these ids
+        // name nothing under the Ruleset this fixture loads -- which is a legal state (adr/0141's
+        // second namespace has the same dereliction 02 §4.3 gives a Building) and the honest one,
+        // because nothing creates a Business from a kind until milestone 27 task 8. The trade being
+        // NAMED is covered by rulesets/tenanted.toml and BusinessKindLoadTests instead.
+        Handle<Business> business = world.CreateBusiness(buildings[2], kind: 1);
+        world.CreateBusiness(buildings[2], kind: 2);
 
         // Two Bin writes summing to zero, which is the whole of what a transfer is since adr/0114 --
         // and both drain a wait list, which is the property the pair of column writes this replaced

@@ -41,7 +41,10 @@ public sealed class FactorioTests(ITestOutputHelper output)
 
     /// <summary>
     /// The columns <see cref="Every_saved_column_reaches_the_file_and_no_other_one_does"/> cannot reach,
-    /// because their table stands empty in every world the test builds. <b>Empty: all 187 are covered.</b>
+    /// because their table stands empty in every world the test builds. <b>Empty: every column is
+    /// covered.</b> ⚠ <b>The total is deliberately NOT stated here</b> — it read <em>187</em> while
+    /// the remarks below read <em>249</em>, which is one count in two places drifting in one of
+    /// them. The test prints both numbers on every run; read them from there.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -110,8 +113,10 @@ public sealed class FactorioTests(ITestOutputHelper output)
     /// and — worse — makes it look as though the rebuild is being checked when it is not.
     /// </para>
     /// <para>
-    /// ⚠ <b>Five worlds, because a corruption test can only speak about a table that has rows in it,
-    /// and one fixture covered 170 of 187 columns.</b> The golden fixture leaves <c>route_hop</c> empty
+    /// ⚠ <b>SIX worlds, because a corruption test can only speak about a table that has rows in it,
+    /// and one fixture covered 170 of the 187 columns there were then.</b> ⚠ <b>Both figures are
+    /// dated and neither is the total</b> — the run prints the current one. The golden fixture
+    /// leaves <c>route_hop</c> empty
     /// — 5c made the path source opt-in, so a world with nobody driving produces none — and <b>no
     /// shipped Ruleset fills <c>layer_cell</c> at all</b>, since none of the four emits pollution and
     /// <c>SetLandValueTarget</c> has only test callers. ⚠ <b>The fourth is milestone 10 task 4b's</b>:
@@ -119,7 +124,7 @@ public sealed class FactorioTests(ITestOutputHelper output)
     /// ***A structural test over one fixture measures the fixture's content as much as the
     /// structure***, and the corollary this keeps re-proving is that <b>a table with no production
     /// writer needs a fixture named for it or its columns are carried by the format and checked by
-    /// nothing</b>. The union of the SIX is 249 of 249, and <see cref="UnreachableColumns"/> pins that
+    /// nothing</b>. The union of the SIX is 250 of 250, and <see cref="UnreachableColumns"/> pins that
     /// there is no residue.
     /// </para>
     /// </remarks>
@@ -136,8 +141,13 @@ public sealed class FactorioTests(ITestOutputHelper output)
         // The golden fixture, milestone 10 task 4b, and it is here for the reason the paragraph above
         // gives rather than a new one: `business` has no production writer -- no pass places one,
         // because what would is milestone 13's commercial placement -- so a stepped world leaves the
-        // table empty and all five of its saved columns unreachable. This fixture is the only world
-        // that holds a Business.
+        // table empty and all FOUR of its saved columns unreachable -- `building`, `kind`, `bin_head`
+        // and `bin_tail`. This fixture is the only world that holds a Business.
+        //
+        // ⚠ The count said `five` until 2026-08-24 and was never right: `business` had THREE saved
+        // columns when this fixture was added and milestone 27 task 6's `kind` is the fourth. Counted
+        // from BusinessTable's constructor rather than carried forward, which is the only way a
+        // number in a comment beside a table stays true.
         Scan(GoldenFixtures.Build(), reached, []);
 
         // Milestone 12 task 3, and the fourth fixture's reason a second time: the watershed writes
@@ -148,8 +158,10 @@ public sealed class FactorioTests(ITestOutputHelper output)
         // Milestone 25 task 5, and the SIXTH fixture for the fourth's reason a third time. The
         // unpremised pool has a production writer -- DestroyBuilding -- but it can only fire on a
         // Building that HAS a Business in it, and nothing creates one. So every world above leaves
-        // the table empty and all five of its saved columns unreachable, exactly as `business` was
-        // before GoldenFixtures.Build() was added for it.
+        // the table empty and BOTH of its saved columns unreachable -- `business` and `since` --
+        // exactly as `business` was before GoldenFixtures.Build() was added for it. The `five` here
+        // was copied from the paragraph above on the day it was written; UnpremisedTable has only
+        // ever had two.
         Scan(WithUnpremised(), reached, []);
 
         List<string> unreachable = [.. every.Where(name => !reached.Contains(name))];

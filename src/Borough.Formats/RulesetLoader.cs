@@ -119,6 +119,11 @@ public static class RulesetLoader
         // it. A Dictionary would be the obvious home and 05 section 4 lint 3 bans walking one.
         private readonly List<ResourceFamily> _families = [];
         private readonly Dictionary<string, byte> _kinds = new(StringComparer.Ordinal);
+
+        // A SECOND kind namespace, not a widening of the first (adr/0141). The premises and the trade
+        // are uncorrelated, so a file may name a [[building]] and a [[business]] the same word and
+        // mean two different things -- which one map could not express.
+        private readonly Dictionary<string, byte> _businessKinds = new(StringComparer.Ordinal);
         private readonly Dictionary<string, ushort> _rules = new(StringComparer.Ordinal);
         private readonly Dictionary<string, ushort> _conditions = new(StringComparer.Ordinal);
 
@@ -225,7 +230,7 @@ public static class RulesetLoader
             // Ruleset is Borough.Core and holds none -- so these four maps were built while parsing
             // and dropped, and the resolution path the architecture assumes had no implementation.
             // See RulesetNames.
-            var names = new RulesetNames(_kinds, _conditions, _resources, _rules);
+            var names = new RulesetNames(_kinds, _businessKinds, _conditions, _resources, _rules);
 
             return RulesetLoadResult.Accepted(new Ruleset(
                     [.. _families], rules, kinds, inputs, outputs, emissions, bins, kindRules,
@@ -248,6 +253,8 @@ public static class RulesetLoader
                     Market = market,
                     ResourceKeys = Keys(_resources),
                     KindKeys = Keys(_kinds),
+                    BusinessKindCount = _businessKinds.Count,
+                    BusinessKindKeys = Keys(_businessKinds),
                 },
                 names);
         }
@@ -284,6 +291,24 @@ public static class RulesetLoader
 
                         _kindTables.Add(table);
                         Register(_kinds, table, "building", (byte)(_kinds.Count + 1));
+                        break;
+
+                    case "business":
+                        if (_businessKinds.Count >= byte.MaxValue)
+                        {
+                            Refuse(LineOf(table), null,
+                                $"more than {byte.MaxValue - 1} Business kinds are declared, and a "
+                                + "Business's kind column is one byte wide.");
+                            break;
+                        }
+
+                        // No table is kept for a second pass, because a [[business]] declares nothing
+                        // but its name. adr/0141 gives the trade `jobs`, shift hours and the wage, and
+                        // all three arrive with milestone 27 task 7 -- so what a business kind buys
+                        // today is IDENTITY: a Business row can name its trade and keep that name
+                        // across a reload. A ReadBusinessKinds pass with no keys to read would be a
+                        // walk over nothing.
+                        Register(_businessKinds, table, "business", (byte)(_businessKinds.Count + 1));
                         break;
 
                     case "rule":
@@ -482,9 +507,9 @@ public static class RulesetLoader
                     default:
                         Refuse(LineOf(table), null,
                             $"'{section}' is not a Ruleset section. The sections are "
-                            + "[[resource]], [[building]], [[rule]], [[zone_rule]], [[policy]], "
-                            + "[[hinterland]], [[lattice]], [layers], [placement], [roads], [lots], "
-                            + "[trips], [jobs], [households], [traffic], [parking], "
+                            + "[[resource]], [[building]], [[business]], [[rule]], [[zone_rule]], "
+                            + "[[policy]], [[hinterland]], [[lattice]], [layers], [placement], "
+                            + "[roads], [lots], [trips], [jobs], [households], [traffic], [parking], "
                             + "[districts] and [market].");
                         break;
                 }

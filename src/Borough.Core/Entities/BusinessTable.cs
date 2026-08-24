@@ -65,6 +65,7 @@ public sealed class BusinessTable
         // clearing it in DestroyBuilding -- is a write to a saved column, so a demolition would move
         // the State Hash for a reason that has nothing to do with the demolition.
         Building = _rows.SavedHandle("building", buildings.Rows, reference: Reference.Severable);
+        Kind = _rows.Saved<byte>("kind");
         BinHead = _rows.SavedHandle("bin_head", bins.Rows);
         BinTail = _rows.SavedHandle("bin_tail", bins.Rows);
         Balance = _rows.DerivedHandle("balance", bins.Rows, reference: Reference.Required);
@@ -79,6 +80,30 @@ public sealed class BusinessTable
 
     /// <summary>The Building this Business occupies.</summary>
     public HandleColumn<Building> Building { get; }
+
+    /// <summary>Which Business kind — the trade. Resolved through the Ruleset.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The second kind namespace, and it is deliberately not the Building's.</b> <c>adr/0141</c>:
+    /// <em>the premises and the trade are not correlated, and nothing in a single kind table can
+    /// express that</em> — putting <em>bakery</em> on the walls would make a tenant leaving demolish
+    /// the shop in order to stop being one. So this id indexes <c>[[business]]</c> and never
+    /// <c>[[building]]</c>, and the two may legitimately carry the same name for different things.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A Business kind declares nothing yet, and the column is still worth its byte.</b> What it
+    /// buys is that a Business can NAME its trade and keep that name across a reload
+    /// (<see cref="Ruleset.BusinessKindKeys"/>). <c>jobs</c>, shift hours and the wage arrive at
+    /// milestone 27's task 7; until then this is identity and nothing else.
+    /// </para>
+    /// <para>
+    /// <b>Zero is legal and means the trade is derelict</b> — the kind is one a reloaded Ruleset no
+    /// longer declares, or the Business was made by a fixture that named none. The row and its balance
+    /// survive either way, because money is conserved regardless of who is holding it
+    /// (<c>adr/0024</c>).
+    /// </para>
+    /// </remarks>
+    public Column<byte> Kind { get; }
 
     /// <summary>
     /// This Business's money Bin — its balance (<c>adr/0114</c>).
