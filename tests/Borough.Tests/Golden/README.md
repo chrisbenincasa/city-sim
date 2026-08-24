@@ -401,6 +401,20 @@ true of the fixtures as well as of the code*** — the same defect as the `const
 commits earlier, where a stale binary reported the pre-edit `RulesetHash` and the failure message
 quoted a number that no longer existed anywhere in the tree.
 
+**Milestone 24 task 4 moved THREE Ruleset content hashes and NOT ONE State Hash sample, and that
+combination is the one worth naming here.** Sealing's decay was scheduled for the first time — a third
+`LayerCadence`, a `DecaySealing` call in `MapLayers.Step`, and the rate moved out of `[layers]` onto
+each `[[terrain]]` table — so twelve shipped Rulesets lost a key and gained a comment, and
+`minimal.toml`, `minimal-tuned.toml` and `congested.toml` are three of the twelve. ⚠ **The city did not
+move, and it could not have**: `DecaySealing` returns immediately when the Ruleset states no
+`[[terrain]]`, and **none of the fifteen shipped files except `rulesets/varied.toml` states one** —
+which is not a fixture here. So `session-trace.txt`, `driving-session-trace.txt` and `world-hash.txt`
+were **not** regenerated; what was edited is the four literals in two files, plus the `ruleset` header
+line each trace carries. ***A comment edit to a shipped Ruleset moves a file fingerprint and never a
+State Hash***, which is the distinction `adr/0100` and the repository map both spend a paragraph on,
+and this is the cleanest example of it the directory has: a scheduled mechanism landed, and the
+committed city is bit-identical.
+
 ## The driving session
 
 **Milestone 7 task 8 added a second session, and the reason it is a second rather than a wider first is
