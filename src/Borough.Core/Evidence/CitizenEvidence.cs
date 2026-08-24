@@ -89,7 +89,7 @@ public readonly struct CitizenEvidence
         Handle<Citizen> citizen,
         Handle<Household> household,
         Handle<Building> home,
-        Handle<Building> workplace,
+        Handle<Business> workplace,
         byte activity,
         Ticks plannedCommute,
         ushort reachFailures,
@@ -129,12 +129,12 @@ public readonly struct CitizenEvidence
     /// </summary>
     /// <remarks>
     /// ⚠ <b>Unset covers two cases the build genuinely does not separate</b>: never employed, and
-    /// employed at a Building since demolished. <c>CitizenTable.Workplace</c> is
+    /// employed by a Business since departed, or one whose premises were demolished. <c>CitizenTable.Workplace</c> is
     /// <c>Reference.Severable</c>, and a workplace that no longer resolves <em>is</em> the job no
     /// longer existing rather than a break in the handle — so the assembler reports the unset handle
     /// for both, which is what the simulation itself believes.
     /// </remarks>
-    public Handle<Building> Workplace { get; }
+    public Handle<Business> Workplace { get; }
 
     /// <summary>What they are doing, as an id the host resolves.</summary>
     public byte Activity { get; }

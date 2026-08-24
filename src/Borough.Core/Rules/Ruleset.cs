@@ -448,35 +448,33 @@ public readonly record struct KindDefinition(
     /// </para>
     /// </remarks>
     public int Occupants { get; init; }
-
     /// <summary>
-    /// How many Citizens a Building of this kind employs. Zero means it employs nobody.
+    /// The Business kind a Building of this kind comes with, or <c>0</c> for none.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b><see cref="Occupants"/>'s rule a second time, and it transplants for the reason that one
-    /// did rather than by analogy</b> (<c>adr/0068</c>, milestone 5b-bis task 2). It is an authored
-    /// number keyed on the kind, read at a write site, and pointed at by no live state — so it is a
-    /// property of the Ruleset in force, and lowering it reaches every Building already standing.
-    /// The overflow is <b>dismissed</b> rather than left to drain: <c>adr/0064</c>'s <em>leave it to
-    /// drain</em> turns on a Bin having a consumer, and a job has a holder and no consumer exactly as
-    /// occupancy does — nothing would ever spend a Building's surplus employment down.
+    /// <b><c>adr/0148</c>: a premises kind may declare its trade, and construction instantiates it.</b>
+    /// A Zone Rule raising a Building of this kind creates a <see cref="Entities.Business"/> of this
+    /// trade, already premised, taking one of <see cref="Occupants"/>' slots. ***It is drawn from no
+    /// pool***, which is why this does not reach
+    /// <c>adr/0069</c>'s <em>construction houses nobody</em>: nothing is taken out of the Unplaced Pool
+    /// and nothing out of the unpremised one, so no demand signal is drained.
     /// </para>
     /// <para>
-    /// <b>Zero rather than absent, and most kinds mean it.</b> A dwelling employs nobody, which is
-    /// every kind in every shipped Ruleset at the time this was written, and it wants no ceremony. A
-    /// kind the Ruleset does not declare at all is a different thing again — see
-    /// <see cref="Entities.World.TryDeclaredJobs"/> — because dereliction must not sack a District.
+    /// <b>It is IDENTITY rather than tuning, and <see cref="RulesetShape"/> compares it</b> — alone
+    /// among this type's members. Repointing a kind at a different trade on reload would leave every
+    /// standing Building of it holding a shop of the wrong trade, which is the Bins-and-Rules case
+    /// exactly (<c>02 §4.3</c>), so a reload that moves it is refused rather than migrated.
     /// </para>
     /// <para>
-    /// <b>It counts Citizens and never Households</b>, which is the one place this is not a copy of
-    /// <see cref="Occupants"/>. <c>CONTEXT.md</c> → Household holds the Provider List and the money;
-    /// employment is on the <see cref="Entities.Citizen"/>, with <c>Experience</c> and
-    /// <c>SkillTier</c> beside it, and a Household with two adults working different sides of the
-    /// city is the case a per-Household count could not express.
+    /// ⚠ <b>The Business it makes carries no flag.</b> A kind-declared trade and a founded one differ
+    /// in how they arrive and in nothing afterwards — condemn its premises and it lands in the
+    /// unpremised pool with <c>adr/0144</c>'s empty balance like any other. <b>It has no founder</b>,
+    /// because <c>adr/0146</c> governs founding and nobody founded this.
     /// </para>
     /// </remarks>
-    public int Jobs { get; init; }
+    public byte Business { get; init; }
+
 
     /// <summary>
     /// How many Vehicles a Building of this kind can park. Zero means it provides no parking.
@@ -487,7 +485,7 @@ public readonly record struct KindDefinition(
     /// milestone 7 task 1), and it transplants for the reason the others did rather than by analogy:
     /// an authored number keyed on the kind, read at a write site, pointed at by no live state — so
     /// it is a property of the Ruleset in force, and lowering it reaches every Building already
-    /// standing. The overflow is <b>dismissed</b> rather than left to drain, on <see cref="Jobs"/>'
+    /// standing. The overflow is <b>dismissed</b> rather than left to drain, on <see cref="Occupants"/>'
     /// side of <c>adr/0064</c>'s line: a Bin is left to drain because it has a consumer, and a parked
     /// car has a <em>holder</em> and no consumer exactly as a job does, so nothing would ever spend a
     /// Building's surplus parking down.
@@ -553,52 +551,6 @@ public readonly record struct KindDefinition(
     /// </para>
     /// </remarks>
     public int ArrivalsPerDay { get; init; }
-
-    /// <summary>
-    /// The earliest in-world hour a job of this kind starts at. See <see cref="ShiftStartLatestHour"/>.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <b>A band rather than an hour, and each Building draws inside it</b> (<c>adr/0101</c>). A kind
-    /// authoring a single start hour would give every Building of that kind the same one, and the
-    /// corpus has exactly one Building kind — so the whole city would leave at one moment and the
-    /// result would be a <em>sharper</em> peak than the uniform window this replaces, not a shape. The
-    /// band is the thing a designer has a reason for (<em>bakeries open early, offices at nine</em>)
-    /// and the Building's own hour is drawn from it against the Building's monotonic id, which is
-    /// <c>adr/0059</c> once more: state the reason, derive the instance.
-    /// </para>
-    /// <para>
-    /// <b>Hours rather than Ticks, because that is what a designer means.</b> The conversion is
-    /// <see cref="Quantities.Ticks.AtHour"/> and it rounds — an hour is 85.33 Ticks and does not
-    /// divide the Day.
-    /// </para>
-    /// </remarks>
-    public int ShiftStartEarliestHour { get; init; }
-
-    /// <summary>
-    /// The latest in-world hour a job of this kind starts at, inclusive.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <b>There is no <em>undeclared</em> value here and there does not need to be, because the loader
-    /// closes the case at the door.</b> A kind with <see cref="Jobs"/> above zero is refused unless it
-    /// states both bounds, and a kind stating either bound is refused unless it employs somebody — so
-    /// the pair is meaningful at every site that reads it and the defaulted <c>0, 0</c> is
-    /// <em>unreachable</em> rather than ambiguous.
-    /// </para>
-    /// <para>
-    /// That matters because <b>midnight is a legitimate answer</b>, so a zero meaning <em>unset</em>
-    /// would be a placeholder sitting inside the range of legitimate answers — the trap session F
-    /// named and <c>adr/0098</c> dodged by omitting a whole table. A key cannot be omitted alone the
-    /// way a table can, so <b>a refusal is the cheaper form of the same discipline</b>.
-    /// </para>
-    /// <para>
-    /// <b>Equal bounds are permitted and mean a kind whose shifts all start together.</b> That is a
-    /// coherent workplace rather than a degenerate one, so it is not refused; what is refused is a
-    /// band running backwards.
-    /// </para>
-    /// </remarks>
-    public int ShiftStartLatestHour { get; init; }
 }
 
 /// <summary>
@@ -624,18 +576,17 @@ public readonly record struct KindDefinition(
 /// <para>
 /// <b>Every member is <em>tuning</em>, which is why no shape check compares them.</b>
 /// <see cref="RulesetShape"/> compares a Building kind's identity, its Bins and its Rules and
-/// <b>does not compare <see cref="KindDefinition.Jobs"/></b> — a ceiling is read at a write site and
+/// <b>does not compare a Building kind's occupancy or parking</b> — a ceiling is read at a write site and
 /// pointed at by no live state, so lowering it reaches every Building already standing and dismisses
 /// the overflow (<c>adr/0068</c>, <c>adr/0064</c>). ***The same is true here member for member***, so
 /// a reload that retunes a trade needs no migration and produces no
 /// <see cref="RulesetChange"/>. ⚠ <b>Hash-bearing all the same</b>: retuning moves the standing city.
 /// </para>
 /// <para>
-/// ⚠ <b>Nothing reads <see cref="Jobs"/> yet.</b> A Workplace is still a
-/// <see cref="Entities.Building"/> handle, so employment is still keyed on the <em>building</em> kind
-/// through <see cref="Entities.World.TryDeclaredJobs"/>. This type is the declaration half landing
-/// first, on its own, so that the handle move is a change of subject rather than a change of subject
-/// <em>and</em> a new Ruleset surface at once.
+/// ⚠ <b>This is where employment lives now, and the Building kind states none of it.</b> A Workplace
+/// is a <see cref="Entities.Business"/> handle as of milestone 27 task 7, and
+/// <c>[[building]] jobs</c> with its Shift band is <b>refused at load</b> rather than ignored
+/// (<c>adr/0148</c>). ***A Building employs nobody; the trade tenanting it does.***
 /// </para>
 /// </remarks>
 public readonly record struct BusinessKindDefinition
@@ -644,8 +595,8 @@ public readonly record struct BusinessKindDefinition
     /// How many Citizens a Business of this trade employs. Zero means it employs nobody.
     /// </summary>
     /// <remarks>
-    /// <b>Counts Citizens and never Households</b>, for
-    /// <see cref="KindDefinition.Jobs"/>' reason unchanged: employment is on the
+    /// <b>Counts Citizens and never Households</b>, for the reason employment always had: a job has
+    /// one holder, that holder is a
     /// <see cref="Entities.Citizen"/>, and a Household with two adults working different sides of the
     /// city is what a per-Household count could not express. ⚠ <b>Optional, and refused negative</b> —
     /// a negative reads as <em>sack everybody</em>, which is not a sentence anybody meant to write.

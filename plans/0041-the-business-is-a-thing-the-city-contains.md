@@ -30,6 +30,16 @@ the actor the milestone's risk names, and it is what gives task 9 a subject that
 milestone's named risk is retired on its main axis: the economic actor exists in a city rather than in
 a fixture.
 
+✅ **TASK 7 SHIPPED 2026-08-24, IN TWO HALVES, AND THE SECOND WAS NOT IN THIS PLAN.** The handle move
+landed and **emptied every shipped city** — 66 assertions failing on one sentence, *nobody is employed
+anywhere* — because employment now needs a Business and the only thing that creates one is
+`[founding]`, which one shipped file states. ⚠ **This document predicted that failure word for word in
+task 7's own entry** and held that task 8 discharged it; task 8 put founding in the **build**, not in
+the **worlds** (**G35**). [`adr/0148`](../docs/adr/0148-a-premises-kind-may-declare-its-trade-and-instantiating-one-is-not-housing-anybody.md)
+is the content half: a `[[building]]` kind may name one trade and construction instantiates it. **All
+fifteen shipped Rulesets changed**, `[[building]] jobs` and the Shift band are now **refused**, and the
+assertion tier is green at **2,125** with **every golden artefact re-recorded**. Findings **G35**–**G38**.
+
 🔴 **THE ORDER MOVED A THIRD TIME, 2026-08-24, AND TASK 7 IS NOW THE CRITICAL PATH.** Two things did it
 on the same day and they are unrelated:
 
@@ -839,6 +849,49 @@ that never falls. ***A silent divergence would have surfaced as a hang.***
 already gone.** `Destroy`'s `PopFront` drain means `Remove` walks, fails and returns `false` — a
 no-op bounded by `occupants`, which is a Ruleset constant. ***An assert would have been correct about
 the invariant and wrong about the caller.***
+
+**G35 — a mechanism can be in the BUILD and in no WORLD, and this plan's own mitigation was the first
+kind.** Task 7's entry states the risk exactly — *"move `jobs` to the employer before anything creates
+an employer and `World.HasJob` returns `false` everywhere: employment goes to zero, every commute stops,
+and the traffic, parking and commute suites go with it"* — and records it as discharged because task 8's
+founding pass *"had to land first. It did."* ⚠ **It landed in one file of fifteen.** The check that would
+have caught it is [`0040`](0040-the-business-is-the-actor-and-the-building-is-premises.md) **F43**'s own
+question, which this milestone already carries in task 10 and asked one task too late: ***which world
+contains one, and does any shipped file produce one?*** 🔴 **A prerequisite is discharged by the WORLDS
+the next task runs against, never by the code existing.** The symptom was 66 red assertions whose
+messages all said the same sentence, which is the cheapest possible diagnosis and was still a full
+triage after the fact.
+
+**G36 — 🔴 A SOURCE IS PAIRED WITH THE SINK THAT INVERTS IT, AND A TIMEOUT IS NOT ONE.** `adr/0148`'s
+first draft had a kind-declared shop land in the unpremised pool on demolition, like any other tenant —
+which reads as correct and is an `adr/0006` violation. Measured on `minimal.toml`, which condemns every
+dwelling it raises: **121 Businesses became 1,095 over 32,768 Ticks**, the unpremised pool carrying 907
+of them, and the Unplaced Pool climbing behind it because re-premised shops took housing slots in
+Buildings that already had their own. ⚠ **`gives_up_after_days` does not close it and that is the
+finding**: `founded.toml` declares one and reached **1,275** on the same run. ***A bound drains a stock
+at a rate; construction-creates-and-nothing-destroys is a source with no sink at all.*** With demolition
+made `Fit`'s inverse the same run holds Businesses **equal to Buildings** at every reading. 🔴 **The
+`adr/0006` obligation was satisfied by ARITHMETIC, not by a long run** — the long-run tests had been
+failing on it for two edit cycles and I read them as content drift.
+
+**G37 — 🔴 `SyntheticCity` SIZED THE CITY BY THE WRONG CEILING, AND THE TWO QUESTIONS HAD BEEN THE SAME
+QUESTION UNTIL THAT DAY.** `occupants` is one ceiling over both kinds of tenant (`adr/0147`), so the day
+a premises could come with a shop, *how many tenants fit* and *how many families fit* stopped having the
+same answer — and `WantedBuildings` divided the Household count by the tenant ceiling, building **a
+quarter too few homes** and queueing the difference for ever. ⚠ **Raising `occupants` 3 → 4 in the
+content is what made the bug reachable AND is what makes it invisible**: the number moved and its
+meaning moved with it, so a reader checking that housing was preserved would confirm it from the
+Ruleset and still be wrong about the generator. `World.TryDeclaredHousing` now carries the distinction
+and says in its own remarks which callers must ask it.
+
+**G38 — clearing a severable handle is not tidier than leaving it stale; it deletes the mechanism.**
+`DestroyBusiness` was first written to sever `Citizens.Workplace` to `default` along with draining the
+worker list. Two tests refuted it from opposite sides: `ColumnBytesTests` could no longer construct a
+stale severable handle **because nothing in the build produced one any more**, and `EvidenceTests` found
+its severable branch unreachable. ⚠ **The two writes look like one act and are not**: the intrusive list
+*must* be drained, because it is `(derived AND rebuilt)` and a recycled row with a live `WorkerHead`
+hands its successor somebody else's staff; the handle *must not* be cleared, because `Reference.Severable`
+exists to answer *my employer is gone* and `default` answers *I never had one*.
 
 **G34 — the first draw over a MIXED population is the first place the distinct-tag rule has teeth.**
 `CLAUDE.md`'s randomness rule — *every distinct use gets a distinct `purpose_tag`; reusing one

@@ -472,8 +472,12 @@ public static class SyntheticCity
     /// </remarks>
     private static int WantedBuildings(World world)
     {
+        // TryDeclaredHousing and NOT TryDeclaredOccupancy, and the difference is a quarter of the
+        // city's homes (adr/0148). `occupants` is one ceiling over both kinds of tenant, so a kind
+        // that comes with a trade spends one slot on it -- and a generator sizing the world by the
+        // ceiling would build too few Buildings and queue the difference for ever.
         int occupancy =
-            world.TryDeclaredOccupancy(DwellingKind, out int declared) && declared > 0
+            world.TryDeclaredHousing(DwellingKind, out int declared) && declared > 0
                 ? declared
                 : UndeclaredOccupancy;
 

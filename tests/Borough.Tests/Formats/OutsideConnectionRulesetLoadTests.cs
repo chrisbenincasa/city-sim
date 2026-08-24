@@ -153,10 +153,7 @@ public sealed class OutsideConnectionRulesetLoadTests
             {OneKind}
             arrivals_per_day = 40
             occupants = 3
-            jobs = 8
             parking = 2
-            shift_start_earliest_hour = 6
-            shift_start_latest_hour = 10
             {Sink}
             """);
 
@@ -164,7 +161,6 @@ public sealed class OutsideConnectionRulesetLoadTests
 
         Assert.Equal(40, kind.ArrivalsPerDay);
         Assert.Equal(3, kind.Occupants);
-        Assert.Equal(8, kind.Jobs);
         Assert.Equal(2, kind.Parking);
     }
 }

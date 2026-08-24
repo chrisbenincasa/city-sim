@@ -73,11 +73,15 @@ public sealed class ColumnBytesTests(ITestOutputHelper output)
         World world = Stepped(512);
 
         int citizen = FindEmployedCitizen(world);
-        Handle<Building> workplace = world.Citizens.Workplace[citizen];
+        Handle<Business> workplace = world.Citizens.Workplace[citizen];
 
-        world.DestroyBuilding(workplace, new Ticks(512));
+        // The employer is destroyed rather than its premises, because since adr/0141 the Workplace
+        // is a Business — and demolishing the Building leaves the Business standing in the
+        // unpremised pool, which severs nothing. What this test needs is a handle whose target is
+        // gone.
+        world.DestroyBusiness(workplace);
 
-        Assert.False(world.Buildings.Rows.TryResolve(workplace, out _));
+        Assert.False(world.Businesses.Rows.TryResolve(workplace, out _));
         Assert.Equal(workplace, world.Citizens.Workplace[citizen]);
 
         ulong before = world.HashState();
@@ -88,7 +92,7 @@ public sealed class ColumnBytesTests(ITestOutputHelper output)
 
         // The same dangling handle, not a repaired one and not a zeroed one.
         Assert.Equal(workplace, world.Citizens.Workplace[citizen]);
-        Assert.False(world.Buildings.Rows.TryResolve(world.Citizens.Workplace[citizen], out _));
+        Assert.False(world.Businesses.Rows.TryResolve(world.Citizens.Workplace[citizen], out _));
         Assert.Equal(before, world.HashState());
     }
 
@@ -212,7 +216,7 @@ public sealed class ColumnBytesTests(ITestOutputHelper output)
         for (int slot = 0; slot < world.Citizens.Rows.SlotCount; slot++)
         {
             if (world.Citizens.Rows.IsLive(slot)
-                && world.Buildings.Rows.TryResolve(world.Citizens.Workplace[slot], out _))
+                && world.Businesses.Rows.TryResolve(world.Citizens.Workplace[slot], out _))
             {
                 return slot;
             }

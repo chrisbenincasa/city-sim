@@ -144,7 +144,19 @@ public sealed class World
         // gets no row, so this is a ceiling on what a fully-provisioned city allocates.
         CarParks = new Parking.CarParkTable(PerThousand(citizens, 150), Buildings, Roads.Segments);
 
-        Citizens = new CitizenTable(citizens, Households, Buildings, CarParks);
+        // Sized off the Building count rather than off the population: a Business occupies premises,
+        // so what bounds it is how many premises there are. How many may share one is undesigned
+        // (adr/0070), so one apiece is the capacity hint that assumes least -- and it is a hint, since
+        // the table grows.
+        //
+        // ⚠ CONSTRUCTED BEFORE Citizens as of milestone 27 task 7, and the order is forced rather
+        // than tidied: CitizenTable.Workplace is a handle into THIS table now (adr/0141), so the
+        // rows it addresses have to exist first. The reverse dependency does not exist and must not
+        // be created -- a Business points at its premises and at no Citizen, and the worker list is
+        // an intrusive index list whose `next` column lives on the Citizen.
+        Businesses = new BusinessTable(PerThousand(citizens, 150), Buildings, Bins);
+
+        Citizens = new CitizenTable(citizens, Households, Buildings, Businesses, CarParks);
 
         // Sized for a city in trouble rather than a healthy one: the Pool is empty when everybody is
         // housed, and the table's job is to absorb a District emptying without reallocating mid-Tick.
@@ -159,12 +171,6 @@ public sealed class World
         Clock = new ClockTable();
         Treasury = new TreasuryTable();
         MoneySupply = new MoneySupplyTable();
-
-        // Sized off the Building count rather than off the population: a Business occupies premises,
-        // so what bounds it is how many premises there are. How many may share one is undesigned
-        // (adr/0070), so one apiece is the capacity hint that assumes least -- and it is a hint, since
-        // the table grows.
-        Businesses = new BusinessTable(PerThousand(citizens, 150), Buildings, Bins);
 
         // adr/0142's collection, and its capacity hint assumes even less than the Business table's:
         // milestone 27 task 8 gave this pool its inflow (adr/0145), so it is no longer empty in every
@@ -676,7 +682,7 @@ public sealed class World
         // before its first rebuild, and absent is the state every guard is written against. The
         // Shift start band is per kind and the Shift length band is [jobs]', so retuning either
         // moves the standing city's departures -- adr/0064's disposition, on a third axis.
-        Commutes.Rebuild(Citizens, Buildings, rules, Key);
+        Commutes.Rebuild(Citizens, Buildings, Businesses, rules, Key);
 
         RulesetTrail.Record(now, contentHash, cost);
 
@@ -1472,7 +1478,7 @@ public sealed class World
 
         // The departure bucket, and it is joined here for the reason the member list is: a derived
         // index maintained at the door is the only kind RebuildDerived can be checked against.
-        Commutes.Add(Citizens, Buildings, Rules, Key, slot);
+        Commutes.Add(Citizens, Buildings, Businesses, Rules, Key, slot);
 
         return handle;
     }
@@ -1632,6 +1638,20 @@ public sealed class World
 
         Businesses.Building[slot] = default;
 
+        // ⚠ AND OFF THE COMMUTE ROSTER, every worker of this employer. Both departure buckets are
+        // computed from the Workplace's premises (adr/0101), so a Business that loses its premises
+        // strands its staff in buckets nothing will ever empty: CommuteRoster's phase lookup returns
+        // false for an unpremised employer, so a REBUILT world drops them and a maintained one would
+        // not. That is (derived AND rebuilt) broken, and it is the same argument DestroyBuilding
+        // carried when the fact lived on the Building.
+        //
+        // ⚠ The jobs SURVIVE. This is not a dismissal -- the staff keep their employer and lose only
+        // the journey, which is what an employer between premises means.
+        foreach (int worker in Workers.Walk(slot))
+        {
+            Commutes.Remove(Citizens, worker);
+        }
+
         // No gate: a Business that LOST its premises is inside the city however it got here, and the
         // gate column records how it ARRIVED rather than where it is. adr/0145 makes the column
         // meaningful for the arrival channel; an orphan is neither channel and reads default.
@@ -1677,6 +1697,18 @@ public sealed class World
 
         Businesses.Building[slot] = premises;
         BuildingBusinesses.InsertOrdered(buildingSlot, slot);
+
+        // ⚠ AND BACK ONTO THE ROSTER, which is Unpremise's mirror and is the only place in the build
+        // where a Workplace GAINS a location. Every prior transition ran one way -- a demolition took
+        // a workplace away and nothing ever gave one back -- so this direction has no precedent to
+        // copy and would have failed silently: an unrostered worker makes no Trip, and no invariant
+        // counts Trips that should have happened.
+        //
+        // After the handle is written, because the phase lookup reads it.
+        foreach (int worker in Workers.Walk(slot))
+        {
+            Commutes.Add(Citizens, Buildings, Businesses, Rules, Key, worker);
+        }
     }
 
     /// <summary>
@@ -1762,6 +1794,28 @@ public sealed class World
             BuildingBusinesses.Remove(buildingSlot, slot);
         }
 
+        // ⚠ THE STAFF COME OFF THE LIST AND THEIR HANDLES ARE LEFT TO GO STALE, which is the split
+        // that matters. The list is (derived AND rebuilt) and threads Citizens.WorkerNext through the
+        // row about to be freed, so a freed row recycled with a live WorkerHead would hand its
+        // successor somebody else's staff -- that has to be drained, from the head rather than by a
+        // walk, since a walk would read its next link out of state it had already cleared.
+        //
+        // 🔴 The Workplace handle is NOT cleared, and clearing it would be the mistake. It is
+        // declared Reference.Severable precisely so that it may point at a freed row and answer `my
+        // employer is gone` when asked -- writing `default` instead answers `I never had one`, which
+        // is a different sentence, costs a write per worker, and leaves the severable mechanism with
+        // no producer in the whole build. EmploymentEngine already reads it the right way round.
+        //
+        // The commute DOES come off the roster: both departure buckets are computed from the
+        // employer's premises (adr/0101), so a stranded worker sits in a bucket nothing will empty.
+        int worker = Workers.PopFront(slot);
+
+        while (worker != Rows.NoSlot)
+        {
+            Commutes.Remove(Citizens, worker);
+            worker = Workers.PopFront(slot);
+        }
+
         Handle<Bin> owned = Businesses.BinHead[slot];
 
         while (!owned.IsNone)
@@ -1776,6 +1830,47 @@ public sealed class World
         }
 
         Businesses.Rows.Free(business);
+    }
+
+    /// <summary>
+    /// Ends a Business with the premises it came with, when those premises come down.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>adr/0148</c>'s SINK, and it is the inverse of its source rather than a timeout.</b>
+    /// Construction instantiates the trade a kind declares; demolition destroys it. ***Without this
+    /// pairing the shop count is unbounded*** — measured on <c>rulesets/minimal.toml</c>, which
+    /// condemns every dwelling it raises: 121 Businesses became <b>1,095</b> over 32,768 Ticks, with
+    /// the unpremised pool carrying 907 of them. That is <c>adr/0006</c> exactly, and
+    /// <c>gives_up_after_days</c> does not close it — a bound drains a stock at a rate, and this is a
+    /// source with no matching sink.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Only ONE Business dies with a Building, and it is chosen by trade rather than by a
+    /// column.</b> <see cref="Fit"/> creates at most one of the kind's declared trade, so demolition
+    /// destroys at most one of it and every other tenant is unpremised into the pool as before
+    /// (<c>adr/0144</c>). The flag <c>adr/0148</c> refused stays refused: a stored *"came with the
+    /// premises"* bit would distinguish two Businesses that are identical in every column, and the
+    /// only case it decides differently is one where both outcomes are the same.
+    /// </para>
+    /// <para>
+    /// <b>The money leaves the world with it</b>, exactly as <see cref="Depart(Handle{Business})"/>
+    /// makes it leave with an emigrant. A kind-declared shop holds nothing today, so the write is
+    /// zero in every shipped world — it is here because <c>Invariant.MoneyIsConserved</c> would
+    /// report the day one of them earned something, and it would report it far from here.
+    /// </para>
+    /// </remarks>
+    private void Raze(Handle<Business> business)
+    {
+        int slot = Businesses.Rows.Resolve(business);
+
+        // Before DestroyBusiness, which frees the Bin. Depart's line and its reason.
+        if (Bins.Rows.TryResolve(Businesses.Balance[slot], out int balance))
+        {
+            MoneySupply.Issued[MoneySupplyTable.Slot] -= new Money(Bins.LevelAt(balance));
+        }
+
+        DestroyBusiness(business);
     }
 
     /// <summary>Retires a Citizen, unlinking it from its Household first.</summary>
@@ -1943,8 +2038,8 @@ public sealed class World
 
         Buildings.OccupantHead.Span.Clear();
         Buildings.OccupantTail.Span.Clear();
-        Buildings.WorkerHead.Span.Clear();
-        Buildings.WorkerTail.Span.Clear();
+        Businesses.WorkerHead.Span.Clear();
+        Businesses.WorkerTail.Span.Clear();
         Buildings.BusinessHead.Span.Clear();
         Buildings.BusinessTail.Span.Clear();
         Businesses.BuildingNext.Span.Clear();
@@ -2063,7 +2158,7 @@ public sealed class World
         for (int slot = 0; slot < Citizens.Rows.SlotCount; slot++)
         {
             if (Citizens.Rows.IsLive(slot)
-                && Buildings.Rows.TryResolve(Citizens.Workplace[slot], out int workplaceSlot))
+                && Businesses.Rows.TryResolve(Citizens.Workplace[slot], out int workplaceSlot))
             {
                 workers.InsertOrdered(workplaceSlot, slot);
             }
@@ -2206,7 +2301,7 @@ public sealed class World
         // The commute roster, which clears its own head and tail for BuildingsInCells' reason: they
         // are arrays over the Day rather than columns over a table, so the block at the top of this
         // method -- which is a list of columns -- cannot reach them.
-        Commutes.Rebuild(Citizens, Buildings, Rules, Key);
+        Commutes.Rebuild(Citizens, Buildings, Businesses, Rules, Key);
     }
 
     /// <summary>The Households living in each Building.</summary>
@@ -2226,7 +2321,7 @@ public sealed class World
     /// <summary>The Citizens who work in each Building.</summary>
     /// <inheritdoc cref="Occupants"/>
     public IndexList Workers =>
-        new(Buildings.WorkerHead, Buildings.WorkerTail, Citizens.WorkerNext);
+        new(Businesses.WorkerHead, Businesses.WorkerTail, Citizens.WorkerNext);
 
     /// <summary>
     /// The Businesses occupying each Building — the second Occupant list (<c>adr/0113</c>).
@@ -2497,6 +2592,23 @@ public sealed class World
             CreateCarPark(building, spaces);
         }
 
+        // adr/0148: the trade this kind comes with, instantiated already premised. It is DRAWN FROM
+        // NO POOL -- neither the Unplaced Pool nor the unpremised one is touched -- which is why this
+        // does not reach adr/0069's "construction houses nobody": that rule protects a demand signal
+        // from being drained by construction, and nothing here drains one. What it makes is an
+        // ORDINARY Business carrying no flag and no founder, and it takes one of the kind's occupant
+        // slots exactly as a Household does (adr/0147).
+        //
+        // Asked rather than assumed, for the Bins' reason and the Car Park's: a refit meets a
+        // Building that already holds the trade it came with, and a second one would double the
+        // city's employment on every reload.
+        byte trade = Rules.Kind(kind).Business;
+
+        if (trade != 0 && !HoldsTrade(buildingSlot, trade))
+        {
+            CreateBusiness(building, trade);
+        }
+
         int armed = 0;
 
         foreach (RuleId rule in Rules.RulesOf(kind))
@@ -2512,6 +2624,30 @@ public sealed class World
         }
 
         return armed;
+    }
+
+    /// <summary>Whether a Building already holds a Business of this trade.</summary>
+    /// <remarks>
+    /// <b><see cref="Fit"/>'s idempotence for <c>adr/0148</c>'s declared trade</b>, and it asks the
+    /// same question the Bin walk and the Car Park check ask. ⚠ <b>It asks about the TRADE and not
+    /// about the count</b>: a Building may hold a second Business of the same trade that walked in
+    /// through <c>adr/0147</c>'s placement pass, and the one this refuses to duplicate is the one the
+    /// kind declares. That is a deliberate over-refusal — a refit will not re-add a shop to a Building
+    /// whose declared shop already left and was replaced by an identical one — and the alternative is
+    /// a saved column recording which Business a kind put there, which is the flag
+    /// <c>adr/0148</c> refuses.
+    /// </remarks>
+    private bool HoldsTrade(int buildingSlot, byte trade)
+    {
+        foreach (int business in BuildingBusinesses.Walk(buildingSlot))
+        {
+            if (Businesses.Kind[business] == trade)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -3559,6 +3695,45 @@ public sealed class World
     }
 
     /// <summary>
+    /// How many <em>Households</em> a Building of <paramref name="kind"/> can hold, or <c>false</c>
+    /// where the Ruleset declares no such kind.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="TryDeclaredOccupancy"/> minus the trade the kind comes with</b>
+    /// (<c>adr/0148</c>). One ceiling counts both kinds of tenant (<c>adr/0147</c>), so a kind
+    /// declaring <c>occupants = 4</c> and a trade holds <b>three</b> families — and ***the two
+    /// questions stopped having the same answer on the day a premises could come with a shop.***
+    /// </para>
+    /// <para>
+    /// 🔴 <b>Anything sizing a city must ask THIS one</b>, and a caller that asks the other builds
+    /// too few homes and queues the difference for ever. That is not hypothetical: it is what
+    /// <see cref="SyntheticCity"/> did for the length of one test run, and the symptom was an
+    /// Unplaced Pool growing 6.5% a reading — <c>adr/0006</c>'s shape, produced by arithmetic rather
+    /// than by a missing sink.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is a property of the KIND and not of a standing Building.</b> A Building may hold a
+    /// second shop that walked in through placement, and then houses fewer families than this says;
+    /// the live question is <see cref="HasRoom"/>, which counts what is actually there.
+    /// </para>
+    /// </remarks>
+    internal bool TryDeclaredHousing(byte kind, out int households)
+    {
+        if (!TryDeclaredOccupancy(kind, out int occupants))
+        {
+            households = 0;
+            return false;
+        }
+
+        households = Rules.Kind(kind).Business != 0 && occupants > 0
+            ? occupants - 1
+            : occupants;
+
+        return true;
+    }
+
+    /// <summary>
     /// Whether <paramref name="kind"/> is an Outside Connection — a gate the city can be entered
     /// through (<c>adr/0088</c>).
     /// </summary>
@@ -3709,11 +3884,26 @@ public sealed class World
                 }
             }
 
-            // Asked separately rather than inside the branch above, because the two ceilings have
-            // independent derelict cases: a kind is either declared or it is not, and both readings
-            // of that come from the same two-compare predicate, but a Building that houses nobody
-            // and employs a hundred is an ordinary kind rather than a corner.
-            if (TryDeclaredJobs(kind, out int posts))
+        }
+
+        // 🔴 THE JOBS CEILING MOVED OUT OF THE BUILDING LOOP, and it had to. It used to sit inside it,
+        // passing Buildings.Kind[slot] to TryDeclaredJobs and indexing Workers by a Building slot --
+        // and since milestone 27 task 7 both of those read the BUSINESS namespace (adr/0141). A
+        // Building kind byte is not a trade byte and a Building slot is not a Business slot; the old
+        // shape agreed with the new one only where both coincided numerically, which is a fixture
+        // property rather than a fact about the city.
+        //
+        // ⚠ The paragraph this replaces argued the two ceilings are asked SEPARATELY because their
+        // derelict cases are independent. That argument survives and gets stronger: they are now
+        // asked over DIFFERENT TABLES, so they could not share a loop even if somebody wanted them to.
+        for (int slot = 0; slot < Businesses.Rows.SlotCount; slot++)
+        {
+            if (!Businesses.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            if (TryDeclaredJobs(Businesses.Kind[slot], out int posts))
             {
                 while (Workers.Length(slot) > posts)
                 {
@@ -3837,13 +4027,18 @@ public sealed class World
     /// </remarks>
     internal bool TryDeclaredJobs(byte kind, out int jobs)
     {
-        if (!Rules.Declares(kind))
+        // ⚠ The BUSINESS kind as of milestone 27 task 7 (adr/0141): a Citizen is employed by a trade
+        // and not by premises, so the ceiling is declared by the trade. The derelict rule below is
+        // unchanged and transplants for its own reason rather than by analogy -- a TRADE the Ruleset
+        // no longer declares keeps the workers it has and takes nobody new, because a designer
+        // deleting a paragraph must not sack a District.
+        if (!Rules.DeclaresBusiness(kind))
         {
             jobs = 0;
             return false;
         }
 
-        jobs = Rules.Kind(kind).Jobs;
+        jobs = Rules.BusinessKind(kind).Jobs;
         return true;
     }
 
@@ -4094,9 +4289,9 @@ public sealed class World
     /// <see cref="HasRoom"/>'s exact shape: a full employer is an ordinary answer rather than a
     /// fault, so this is where the cost of asking is paid and there is no invariant behind it.
     /// </remarks>
-    public bool HasJob(int buildingSlot) =>
-        TryDeclaredJobs(Buildings.Kind[buildingSlot], out int jobs)
-        && Workers.Length(buildingSlot) < jobs;
+    public bool HasJob(int businessSlot) =>
+        TryDeclaredJobs(Businesses.Kind[businessSlot], out int jobs)
+        && Workers.Length(businessSlot) < jobs;
 
     /// <summary>
     /// Gives a Citizen a Workplace, linking them into that Building's worker list.
@@ -4123,10 +4318,10 @@ public sealed class World
     /// appearances and this now has one too.
     /// </para>
     /// </remarks>
-    public void Employ(Handle<Citizen> citizen, Handle<Building> workplace, Ticks plannedCommute)
+    public void Employ(Handle<Citizen> citizen, Handle<Business> workplace, Ticks plannedCommute)
     {
         int slot = Citizens.Rows.Resolve(citizen);
-        int buildingSlot = Buildings.Rows.Resolve(workplace);
+        int buildingSlot = Businesses.Rows.Resolve(workplace);
 
         Unlist(slot);
 
@@ -4153,7 +4348,7 @@ public sealed class World
             buildingSlot);
 
         Workers.InsertOrdered(buildingSlot, slot);
-        Commutes.Add(Citizens, Buildings, Rules, Key, slot);
+        Commutes.Add(Citizens, Buildings, Businesses, Rules, Key, slot);
     }
 
     /// <summary>
@@ -4281,7 +4476,7 @@ public sealed class World
     /// </remarks>
     private void Unlist(int citizenSlot)
     {
-        if (Buildings.Rows.TryResolve(Citizens.Workplace[citizenSlot], out int workplaceSlot))
+        if (Businesses.Rows.TryResolve(Citizens.Workplace[citizenSlot], out int workplaceSlot))
         {
             Workers.Remove(workplaceSlot, citizenSlot);
         }
@@ -4545,13 +4740,18 @@ public sealed class World
         // is (derived AND rebuilt) broken. Unlisting from Workers is NOT enough and the reason is
         // exactly what makes the handle Severable -- the write path has to say what the rebuild path
         // would say, at every list keyed on the severed thing rather than at the first one.
-        IndexList workers = Workers;
-        int worker = workers.PopFront(slot);
-        while (worker != Rows.NoSlot)
-        {
-            Commutes.Remove(Citizens, worker);
-            worker = workers.PopFront(slot);
-        }
+        // 🔴 THE WORKER LIST IS NOT DRAINED HERE, and this block used to do exactly that. Since
+        // milestone 27 task 7 `Workers` is indexed by BUSINESS slot (adr/0141), so popping it at a
+        // BUILDING slot read out of bounds the moment the two tables differed in width -- and every
+        // world that demolishes anything threw. The paragraph above is kept because its ARGUMENT is
+        // untouched and now belongs one level down: the write path still has to say what the rebuild
+        // path would say, at every list keyed on the severed thing.
+        //
+        // What changed is WHICH fact is severed. Demolishing premises no longer ends a job -- the
+        // employer survives the demolition, unpremised, and keeps its workers (adr/0142, adr/0144).
+        // What it ends is the JOURNEY, because a Business with no premises has nowhere to be
+        // travelled to. So the un-rostering moved into Unpremise, which is where the fact now lives
+        // and which the BuildingBusinesses drain below calls once per tenant.
 
         // The Businesses next, unlisted and NOT destroyed, which is the worker branch's answer on the
         // Occupant axis rather than the Household branch's. A Household is evicted to the Unplaced
@@ -4572,6 +4772,23 @@ public sealed class World
         // off this list one at a time rather than the two heads being dropped underneath them.
         // IndexList.Clear leaves every element's next link intact, and a Business in no list pointing
         // at its old sibling is a (derived AND rebuilt) disagreement no hash can see.
+        // ⚠ adr/0148: the trade this KIND came with dies with the premises, and every other tenant
+        // is pooled. Fit creates one of the declared trade at construction, so this destroys one --
+        // the pairing that keeps the shop count bounded, and the reason Raze exists. See Raze.
+        byte declared = Rules.Declares(Buildings.Kind[slot]) ? Rules.Kind(Buildings.Kind[slot]).Business : (byte)0;
+
+        if (declared != 0)
+        {
+            foreach (int came in BuildingBusinesses.Walk(slot))
+            {
+                if (Businesses.Kind[came] == declared)
+                {
+                    Raze(Businesses.Rows.At(came));
+                    break;
+                }
+            }
+        }
+
         IndexList premises = BuildingBusinesses;
         int tenant = premises.PopFront(slot);
         while (tenant != Rows.NoSlot)

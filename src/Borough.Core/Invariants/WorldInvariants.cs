@@ -1019,12 +1019,12 @@ public static class WorldInvariants
         // Severable and a demolished employer leaves the Citizen holding a dangling one.
         Count(
             world.Workers,
-            world.Buildings.Rows,
+            world.Businesses.Rows,
             world.Citizens.Rows,
             Invariant.CitizenIsInExactlyOneWorkplace,
             report,
             absentIsLegal: slot =>
-                !world.Buildings.Rows.TryResolve(world.Citizens.Workplace[slot], out _));
+                !world.Businesses.Rows.TryResolve(world.Citizens.Workplace[slot], out _));
     }
 
     /// <summary>

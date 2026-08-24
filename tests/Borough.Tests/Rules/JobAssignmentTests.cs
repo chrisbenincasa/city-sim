@@ -72,7 +72,7 @@ public sealed class JobAssignmentTests
         for (int slot = 0; slot < world.Citizens.Rows.SlotCount; slot++)
         {
             if (world.Citizens.Rows.IsLive(slot)
-                && world.Buildings.Rows.IsValid(world.Citizens.Workplace[slot]))
+                && world.Businesses.Rows.IsValid(world.Citizens.Workplace[slot]))
             {
                 total++;
             }
@@ -170,8 +170,14 @@ public sealed class JobAssignmentTests
 
         for (int slot = 0; slot < world.Citizens.Rows.SlotCount; slot++)
         {
+            // Two hops since adr/0141. The Budget is a claim about a *walk*, and a Business has no
+            // location of its own — so what is priced is the premises it borrows, and an unpremised
+            // employer is skipped rather than counted: there is no walk to refuse.
             if (!world.Citizens.Rows.IsLive(slot)
-                || !world.Buildings.Rows.TryResolve(world.Citizens.Workplace[slot], out int work))
+                || !world.Businesses.Rows.TryResolve(
+                    world.Citizens.Workplace[slot], out int employer)
+                || !world.Buildings.Rows.TryResolve(
+                    world.Businesses.Building[employer], out int work))
             {
                 continue;
             }
@@ -218,17 +224,20 @@ public sealed class JobAssignmentTests
         Simulation simulation = Run(GoldenFixtures.Rules());
         World world = simulation.World;
 
-        for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
+        // Over Businesses rather than Buildings since adr/0141: the ceiling is declared by the trade
+        // and the worker list hangs off the Business, so a walk over Buildings here would be asking
+        // the premises a question only the tenant can answer.
+        for (int slot = 0; slot < world.Businesses.Rows.SlotCount; slot++)
         {
-            if (!world.Buildings.Rows.IsLive(slot)
-                || !world.TryDeclaredJobs(world.Buildings.Kind[slot], out int jobs))
+            if (!world.Businesses.Rows.IsLive(slot)
+                || !world.TryDeclaredJobs(world.Businesses.Kind[slot], out int jobs))
             {
                 continue;
             }
 
             Assert.True(
                 world.Workers.Length(slot) <= jobs,
-                $"building {slot} holds {world.Workers.Length(slot)} workers against {jobs} jobs.");
+                $"business {slot} holds {world.Workers.Length(slot)} workers against {jobs} jobs.");
         }
     }
 

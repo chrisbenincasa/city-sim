@@ -130,7 +130,13 @@ public sealed class CommuteEngine
     {
         CitizenTable citizens = _world.Citizens;
 
-        if (!_world.Buildings.Rows.TryResolve(citizens.Workplace[citizen], out int workplace))
+        // Two hops as of milestone 27 task 7: a Workplace is a Business, and a Business sits in
+        // premises. An employer with no premises has nowhere to travel to -- a founder before
+        // placement (adr/0146, adr/0147) -- and that is a Citizen with a job and no journey rather
+        // than a defect.
+        if (!_world.Businesses.Rows.TryResolve(citizens.Workplace[citizen], out int employer)
+            || !_world.Buildings.Rows.TryResolve(
+                _world.Businesses.Building[employer], out int workplace))
         {
             return;
         }

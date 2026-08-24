@@ -61,6 +61,12 @@ public sealed class FoundingTests(Xunit.Abstractions.ITestOutputHelper output)
 
         // The control. taxed.toml is founded.toml minus the three added tables, so if IT founds
         // something the founding is coming from somewhere other than [founding].
+        //
+        // ⚠ THE CONTROL IS THE COUNTER AND NOT THE ROW COUNT, and it stopped being the row count on
+        // the day adr/0148 landed: every shipped file's dwelling kind now comes with a trade, so
+        // taxed.toml holds a Business per standing Building and always will. What it must not do is
+        // FOUND one -- the row count answers "are there shops", and the question here is "did the
+        // [founding] pass run in a file that does not state it".
         (World control, Simulation controlRunning) = City("taxed.toml", 0xF0DDU, 2_000);
 
         for (int tick = 0; tick < 4_096; tick++)
@@ -68,7 +74,13 @@ public sealed class FoundingTests(Xunit.Abstractions.ITestOutputHelper output)
             controlRunning.Step(TickInput.Empty);
         }
 
-        Assert.Equal(0, control.Businesses.Rows.LiveCount);
+        PlacementActivity controlActivity = controlRunning.Placement.Drain();
+
+        _out.WriteLine(
+            $"taxed.toml: founded={controlActivity.Founded.Sum} "
+            + $"live={control.Businesses.Rows.LiveCount} (all of them came with their premises)");
+
+        Assert.Equal(0, controlActivity.Founded.Sum);
     }
 
     /// <summary>
@@ -177,12 +189,16 @@ public sealed class FoundingTests(Xunit.Abstractions.ITestOutputHelper output)
             activity.Premised.Sum > 0,
             "no Business took premises, so the pass did nothing and adr/0147 is untested.");
 
-        // The flow counts events and the standing count is a state. Losing premises to condemnation
-        // is what separates them, so the flow is at least the standing count and usually more.
+        // ⚠ THE STANDING COUNT IS NOT COMPARABLE TO THE FLOW, and it was until adr/0148. Most shops
+        // standing in this world came with their premises and were never premised by this pass at
+        // all, so `premised >= standing` is now false by construction rather than by a defect. What
+        // the flow can still be held against is the POOL: every founded Business lands there, and a
+        // pass that never emptied it would leave it holding everything ever founded.
         Assert.True(
-            activity.Premised.Sum >= premisedNow,
-            $"{activity.Premised.Sum} premise events cannot leave {premisedNow} standing -- a "
-            + "Business is premised once per event and unpremised only by losing its Building.");
+            world.UnpremisedPool.Count < activity.Founded.Sum,
+            $"the pool holds {world.UnpremisedPool.Count} of {activity.Founded.Sum} ever founded "
+            + "while the pass recorded " + activity.Premised.Sum + " premise events, so what it is "
+            + "premising is not coming out of the pool.");
 
         // Every premised Business occupies a slot inside its ceiling. This is the assertion that
         // would fail if HasRoom had gone on counting Households alone.

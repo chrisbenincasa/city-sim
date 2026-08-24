@@ -124,6 +124,13 @@ public static class RulesetLoader
         // are uncorrelated, so a file may name a [[building]] and a [[business]] the same word and
         // mean two different things -- which one map could not express.
         private readonly Dictionary<string, byte> _businessKinds = new(StringComparer.Ordinal);
+        /// <summary>
+        /// The three <c>[[building]]</c> keys <c>adr/0148</c> moved to <c>[[business]]</c>, refused
+        /// by name here so an author is told where they went rather than that they are unknown.
+        /// </summary>
+        private static readonly string[] EmploymentKeysThatMoved =
+            ["jobs", "shift_start_earliest_hour", "shift_start_latest_hour"];
+
         private readonly Dictionary<string, ushort> _rules = new(StringComparer.Ordinal);
         private readonly Dictionary<string, ushort> _conditions = new(StringComparer.Ordinal);
 
@@ -1139,22 +1146,21 @@ public static class RulesetLoader
                     }
                 }
 
-                // adr/0068's rule applied to employment (milestone 5b-bis task 2). Optional on
-                // occupants' reasoning and refused negative on the same: it reads as "sack
-                // everybody", which is a sentence somebody meant to write.
-                int jobs = 0;
-
-                if (TryInteger(table, "jobs", out long employs, required: false, name))
+                // adr/0141 gave `jobs` and the Shift band to the TRADE, and adr/0148 removed them
+                // from here rather than leaving them parsed and unread. A key nothing reads is this
+                // corpus's own named failure mode, so all three are refused by name -- and the
+                // message says where they went, because a bare "unknown key" would send an author
+                // looking for a typo.
+                foreach (string moved in EmploymentKeysThatMoved)
                 {
-                    if (employs < 0)
+                    if (Find(table, moved) is not null)
                     {
-                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "jobs") ?? table), name,
-                            $"jobs is {employs}. It counts Citizens a Building of this kind employs, "
-                            + "so it cannot be negative; omit it for a kind that employs nobody.");
-                    }
-                    else
-                    {
-                        jobs = employs > int.MaxValue ? int.MaxValue : (int)employs;
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, moved) ?? table), name,
+                            $"{moved} is stated on a [[building]] kind. Employment belongs to the "
+                            + "TRADE and not to the premises (adr/0141), so it moved to [[business]] "
+                            + "at milestone 27 -- state it there, and name the trade on this kind "
+                            + "with `business = \"<name>\"` so a Building of it comes with one "
+                            + "(adr/0148). A Building employs nobody.");
                     }
                 }
 
@@ -1213,22 +1219,43 @@ public static class RulesetLoader
                     }
                 }
 
-                // adr/0101's Shift band. Paired with `jobs` in both directions, because a workplace
-                // with no hours and an hour with no workplace are each half a mechanism -- and
-                // because the defaulted 0,0 would otherwise mean *midnight*, which is a legitimate
-                // answer and therefore a placeholder that could not announce itself.
-                (int shiftFrom, int shiftTo) = ReadShiftStartBand(table, name, jobs);
+                // adr/0148: the trade a Building of this kind comes with. Optional, because almost
+                // every kind that has ever shipped comes with none -- and resolved to an id HERE
+                // rather than deferred, because [[business]] registration runs in the table walk
+                // above and the name -> id direction is discarded when Read() returns.
+                byte business = 0;
+
+                if (TryString(table, "business", out string? trade, required: false, name)
+                    && trade is not null)
+                {
+                    if (!_businessKinds.TryGetValue(trade, out business))
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "business") ?? table), name,
+                            $"business is \"{trade}\", and no [[business]] declares that trade. A "
+                            + "kind naming a trade nothing declares would raise Buildings that come "
+                            + "with nothing, which loads clean and employs nobody.");
+                    }
+                    else if (occupants <= 0)
+                    {
+                        // A premises with no room for the shop it comes with is half a sentence.
+                        // adr/0147 counts one ceiling over both kinds of tenant, so a declared trade
+                        // needs a slot to sit in exactly as a Household does.
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "business") ?? table), name,
+                            $"business is \"{trade}\" and occupants is {occupants}. A Building of "
+                            + "this kind comes with a trade and has no room to hold it -- one "
+                            + "ceiling counts both kinds of tenant (adr/0147), so declare at least "
+                            + "one occupant, or drop the trade.");
+                    }
+                }
 
                 definitions[i] = new KindDefinition(
                     binFirst, allBins.Count - binFirst, ruleFirst, allRules.Count - ruleFirst)
                 {
                     CondemnAfter = condemnAfter,
                     Occupants = occupants,
-                    Jobs = jobs,
+                    Business = business,
                     Parking = parking,
                     ArrivalsPerDay = arrivalsPerDay,
-                    ShiftStartEarliestHour = shiftFrom,
-                    ShiftStartLatestHour = shiftTo,
                 };
             }
 

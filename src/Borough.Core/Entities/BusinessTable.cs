@@ -72,6 +72,12 @@ public sealed class BusinessTable
         BuildingNext = _rows.Derived<int>("building_next");
         PoolSlot = _rows.Derived<int>("pool_slot");
 
+        // Moved here from BuildingTable by milestone 27 task 7 (adr/0141): a Citizen is employed by
+        // a TRADE and not by premises, so the list of who works somewhere hangs off the employer.
+        // Derived, because it is rebuilt from CitizenTable.Workplace and folds into no hash.
+        WorkerHead = _rows.Derived<int>("worker_head");
+        WorkerTail = _rows.Derived<int>("worker_tail");
+
         _rows.Seal();
     }
 
@@ -177,6 +183,18 @@ public sealed class BusinessTable
     /// zero-filled column reads as <em>premised</em> rather than as <em>at position 0</em>.
     /// </remarks>
     public Column<int> PoolSlot { get; }
+
+    /// <summary>The first Citizen this Business employs. Zero means it employs nobody.</summary>
+    /// <remarks>
+    /// <b>The reverse index behind <see cref="CitizenTable.Workplace"/></b>, moved off the Building
+    /// when the Workplace stopped being one (<c>adr/0141</c>, milestone 27 task 7). ⚠ <b>An
+    /// unpremised Business can hold workers</b> — its founder is one (<c>adr/0146</c>) — and they
+    /// make no Trip, because a commute needs a location and this Business has none yet.
+    /// </remarks>
+    public Column<int> WorkerHead { get; }
+
+    /// <summary>The last Citizen this Business employs, so an append needs no walk.</summary>
+    public Column<int> WorkerTail { get; }
 
     /// <summary>Whether this Business is in the unpremised pool.</summary>
     public bool IsUnpremised(int slot) => PoolSlot[slot] != 0;

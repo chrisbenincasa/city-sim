@@ -404,8 +404,13 @@ public sealed class CarOwnershipTests
 
         for (int slot = 0; slot < citizens.Rows.SlotCount; slot++)
         {
+            // Two hops to the workplace since adr/0141: the Workplace is a Business and a Business
+            // borrows its premises' location, so an unpremised employer is skipped here rather than
+            // routed to — there is no Address to walk to.
             if (!citizens.Rows.IsLive(slot)
-                || !world.Buildings.Rows.TryResolve(citizens.Workplace[slot], out int workplace)
+                || !world.Businesses.Rows.TryResolve(citizens.Workplace[slot], out int employer)
+                || !world.Buildings.Rows.TryResolve(
+                    world.Businesses.Building[employer], out int workplace)
                 || !world.Households.Rows.TryResolve(citizens.HouseholdOf[slot], out int household)
                 || !world.Buildings.Rows.TryResolve(
                     world.Households.Dwelling[household], out int home))

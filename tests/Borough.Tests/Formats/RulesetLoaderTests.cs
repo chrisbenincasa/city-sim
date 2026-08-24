@@ -1333,33 +1333,44 @@ public sealed class RulesetLoaderTests
     // ---- employment, adr/0068's rule on a second axis (5b-bis task 2) ---------------------------
 
     /// <summary>
-    /// A kind that declares no <c>jobs</c> employs nobody.
+    /// A kind that declares no trade comes with none.
     /// </summary>
     /// <remarks>
     /// <b>The default is load-bearing here in a way it was not for occupancy</b>, because it is the
-    /// state of every kind in every shipped Ruleset rather than of most of them. It is also what
-    /// deleted <c>SyntheticCity</c>'s workplace stride: the populator handed out employment that no
-    /// declaration granted, which was expressible only once this key existed to contradict it.
+    /// state of every kind that ever shipped before <c>adr/0148</c> rather than of most of them —
+    /// and <c>0</c> is unambiguous, since Business kind ids are one-based exactly as Building kind
+    /// ids are.
     /// </remarks>
     [Fact]
-    public void A_kind_that_declares_no_jobs_employs_nobody()
+    public void A_kind_that_declares_no_trade_comes_with_none()
     {
         Ruleset ruleset = Accepted(Bakery);
 
-        Assert.Equal(0, ruleset.Kind(1).Jobs);
+        Assert.Equal(0, ruleset.Kind(1).Business);
     }
 
-    /// <summary>A kind that declares <c>jobs</c> carries the number through to the core.</summary>
-    [Fact]
-    public void A_kind_that_declares_jobs_carries_the_number()
+    /// <summary>
+    /// The three employment keys are refused on a <c>[[building]]</c>, and told where they went.
+    /// </summary>
+    /// <remarks>
+    /// <b><c>adr/0148</c>, and the message is the point rather than the refusal.</b> These keys were
+    /// legal in every shipped Ruleset until milestone 27, so the author most likely to write one is
+    /// somebody copying a file that predates the move. ***A bare "unknown key" would send them
+    /// looking for a typo***, so the refusal names <c>[[business]]</c> and the <c>business</c> key.
+    /// </remarks>
+    [Theory]
+    [InlineData("jobs = 8")]
+    [InlineData("shift_start_earliest_hour = 6")]
+    [InlineData("shift_start_latest_hour = 10")]
+    public void An_employment_key_on_a_building_kind_is_refused_and_says_where_it_went(string key)
     {
-        Ruleset ruleset = Accepted(Bakery.Replace(
+        RulesetRefusal refusal = Refused(Bakery.Replace(
             "name = \"bakery\"\n",
-            "name = \"bakery\"\njobs = 12\n"
-            + "shift_start_earliest_hour = 6\nshift_start_latest_hour = 10\n",
+            $"name = \"bakery\"\n{key}\n",
             StringComparison.Ordinal));
 
-        Assert.Equal(12, ruleset.Kind(1).Jobs);
+        Assert.Contains("[[business]]", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("A Building employs nobody", refusal.Reason, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -1371,14 +1382,14 @@ public sealed class RulesetLoaderTests
     /// written rather than inherited because a guard with no test is invisible to the next reader.
     /// </remarks>
     [Fact]
-    public void A_negative_jobs_is_refused()
+    public void A_kind_naming_an_undeclared_trade_is_refused()
     {
         RulesetRefusal refusal = Refused(Bakery.Replace(
             "name = \"bakery\"\n",
-            "name = \"bakery\"\njobs = -1\n",
+            "name = \"bakery\"\nbusiness = \"greengrocer\"\n",
             StringComparison.Ordinal));
 
-        Assert.Contains("jobs is -1", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("no [[business]] declares that trade", refusal.Reason, StringComparison.Ordinal);
         Assert.Contains("employs nobody", refusal.Reason, StringComparison.Ordinal);
     }
 
@@ -1397,12 +1408,11 @@ public sealed class RulesetLoaderTests
     {
         Ruleset ruleset = Accepted(Bakery.Replace(
             "name = \"bakery\"\n",
-            "name = \"bakery\"\noccupants = 0\njobs = 9\n"
-            + "shift_start_earliest_hour = 6\nshift_start_latest_hour = 10\n",
+            "name = \"bakery\"\noccupants = 0\nparking = 9\n",
             StringComparison.Ordinal));
 
         Assert.Equal(0, ruleset.Kind(1).Occupants);
-        Assert.Equal(9, ruleset.Kind(1).Jobs);
+        Assert.Equal(9, ruleset.Kind(1).Parking);
     }
     // ---- [[building]] parking (adr/0120) ---------------------------------------------------------
 
@@ -1476,12 +1486,10 @@ public sealed class RulesetLoaderTests
     {
         Ruleset ruleset = Accepted(Bakery.Replace(
             "name = \"bakery\"\n",
-            "name = \"bakery\"\noccupants = 40\njobs = 9\nparking = 0\n"
-            + "shift_start_earliest_hour = 6\nshift_start_latest_hour = 10\n",
+            "name = \"bakery\"\noccupants = 40\nparking = 0\n",
             StringComparison.Ordinal));
 
         Assert.Equal(40, ruleset.Kind(1).Occupants);
-        Assert.Equal(9, ruleset.Kind(1).Jobs);
         Assert.Equal(0, ruleset.Kind(1).Parking);
     }
 

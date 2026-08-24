@@ -54,6 +54,18 @@ public enum RulesetChange
     /// <summary>A kind's Rules changed: a different Rule, or a different number of them.</summary>
     KindRules,
 
+    /// <summary>
+    /// A Building kind's declared trade changed, so every Building of it holds the wrong shop.
+    /// </summary>
+    /// <remarks>
+    /// <b><c>adr/0148</c>'s <c>[[building]] business</c> key.</b> Construction instantiates the trade
+    /// a kind declares, so a live <c>BusinessTable</c> row points back at this — which is this file's
+    /// stated test for structure against tuning, met. ⚠ <b>Adding a trade where a kind had none is
+    /// this change too</b>, and refuses for the same reason in reverse: the standing Buildings would
+    /// never get the shop, and only the ones raised after the swap would employ anybody.
+    /// </remarks>
+    KindTrade,
+
     /// <summary>A Business kind was added or removed.</summary>
     /// <remarks>
     /// <b>A second kind namespace, and it earns its own member for this file's stated test</b> — what
@@ -213,12 +225,11 @@ public static class RulesetShape
         }
 
         // Identity only, and it STAYS identity only now that BusinessKindDefinition exists
-        // (milestone 27 task 7). The prediction here was that a definition would grow a shape check,
-        // and reading CompareKind is what refuted it: that method compares a Building kind's
-        // identity, its Bins and its Rules, and does NOT compare KindDefinition.Jobs or the Shift
-        // band. Those are tuning -- read at a write site, pointed at by no live state -- so a reload
-        // retunes the standing city and needs no migration (adr/0068, adr/0064). Every member of
-        // BusinessKindDefinition is the same shape, so there is nothing here to compare.
+        // (milestone 27 task 7). Every member of it -- `jobs` and the two Shift bounds -- is tuning:
+        // read at a write site, pointed at by no live state, so a reload retunes the standing city
+        // and needs no migration (adr/0068, adr/0064). ⚠ The Building kind's `business` key is the
+        // opposite and CompareKind does compare it (adr/0148), which is the same test coming out the
+        // other way: a live Business row points at that one.
         //
         // What a trade would have to gain before this grows a check is STRUCTURE: Bins or Rules,
         // which are adr/0141's other two rows and belong to no task in this milestone. The wage is
@@ -308,6 +319,17 @@ public static class RulesetShape
         if (current.KindKey(kind) != replacement.KindKey(kind))
         {
             return RulesetChange.KindIdentity;
+        }
+
+        // adr/0148, and it is the ONE member of KindDefinition this file compares. The rest are
+        // tuning -- read at a write site, pointed at by no live state -- but a declared trade IS
+        // pointed at: every Building of this kind holds a Business row created from it, so
+        // repointing the kind would leave the standing city full of shops of a trade the kind no
+        // longer names, with nothing recording that they were ever right. That is the Bins case
+        // exactly (02 §4.3), so it is structure and it refuses.
+        if (current.Kind(kind).Business != replacement.Kind(kind).Business)
+        {
+            return RulesetChange.KindTrade;
         }
 
         ReadOnlySpan<BinDeclaration> wasBins = current.BinsOf(kind);
