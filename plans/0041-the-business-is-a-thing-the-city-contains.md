@@ -22,7 +22,9 @@ Occupant repair, which closed 2026-08-23.
 (**G1**). ***The risk stands; the figures stating it have drifted*** — which is the second time in two
 days that a milestone's own risk cell has been the thing that was stale.
 
-🔴 **Decomposition changed the ORDER, and that is this document's result** (**G5**). `0040` lists the
+🔴 **Decomposition changed the ORDER, and that is this document's result** (**G5**). ⚠ **A second
+result arrived by correction on the same day: THIS DOCUMENT'S OWN *blocked* READING OF TASK 8 WAS
+WRONG** (**G13**), so ***nothing blocks the milestone's first three tasks.*** `0040` lists the
 tasks **6, 7, 8, 9**. Run in that order, **task 7 empties the city of jobs** — every commute, every
 work Trip and the traffic, parking and commute suites with them. The order is **6 → 9 → 8 → 7**, and
 the reason is in the Ruleset's own header rather than in any ADR.
@@ -95,11 +97,22 @@ amended twice). **A category is not a name.**
 
 ## Open decisions
 
-### 1. 🔴 What capitalises a Business? — **inherited as `0040` decision 4, unchanged**
+### 1. ⚠ What capitalises a Business? — **inherited as `0040` decision 4, and RETYPED 2026-08-24**
 
-`0002` §D2 owns it. ⚠ **It blocks task 8, and task 8 is now second rather than third** (**G5**), so
-***the milestone stalls one task in rather than three.*** That is the cost of the re-ordering and it is
-recorded here rather than discovered later.
+`0002` §D2 owns it. 🔴 **IT IS NOT A BLOCK AND THIS DOCUMENT SAID IT WAS** (**G13**).
+[`adr/0052`](../docs/adr/0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md)
+opens by refusing that reading outright — *"**This does not require ratifying a number before choosing
+it.** Often that is impossible and forcing it is worse than the disease… ***The rule governs the record,
+not the timing.***"* ⚠ **What task 8 owes is a ratifier NAMED on the day the band is written** — a
+machine, a world and a quantity — **not a settled number.**
+
+**The world is milestone 27's own demonstration Ruleset**, the first file to declare `[[business]]`,
+which **task 8 itself produces**. ***So the circularity dissolves the way [`0002`](0002-open-questions.md)
+§D2's tâtonnement row already dissolved it***: *a number is unratifiable because no world exercises it,
+not because it is new.* ⚠ **The quantity is still owed and a category is not a name.**
+
+✅ **So nothing blocks tasks 6, 9 or 8**, and the only genuine open decision is **2**, which blocks
+**task 7** — the last one.
 
 ⚠ **`0040` decision 3 already settled the adjacent half**: a Business shares
 `[placement] gives_up_after_days` as a **stand-in**, so no second bound and no second ratifier is owed.
@@ -170,7 +183,7 @@ Building. ***It does not need a Business the city created; it needs a Business.*
   than one switch … a single method taking an `(entity kind, slot)` pair would be two switches wearing
   one signature."* ***Follow it rather than collapsing it.***
 
-### 8. **What creates a Business, and what capitalises one.** *(third — 🔴 BLOCKED on decision 1)*
+### 8. **What creates a Business, and what capitalises one.** *(third — ⚠ **an OBLIGATION and not a block**)*
 
 - ⚠ **Smaller than `0040` reads, because the exit shipped at milestone 25** (**G9**). The pool, the
   give-up clock, `Retire` and `Depart(Handle<Business>)` all exist. **What is owed is a source and a
@@ -375,3 +388,25 @@ and the milestone written beside it, is the cheapest specification in this corpu
 invisible to every corpus check, which is **G7a**'s class again.
 
 ---
+
+**G13 — 🔴 THIS DOCUMENT CALLED TASK 8 *BLOCKED* AND `adr/0052` REFUSES THAT READING IN ITS OPENING
+PARAGRAPH.** The record says: *"This does not require ratifying a number before choosing it… **The rule
+governs the record, not the timing.**"* And
+[`0037`](0037-goods-between-buildings-the-district-pool.md):249 had **already made this exact
+correction** for an identical situation — *"3 is an obligation, not a fork."* ⚠ **The wording was
+inherited from [`0040`](0040-the-business-is-the-actor-and-the-building-is-premises.md) task 8 and
+carried forward without being checked against the ADR it cites**, which is
+[`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+pointed at a decision record rather than at code.
+
+🔴 **It is the same shape as G5 and it was committed by the document that reported G5.** G5's finding is
+that a correct sentence sat in `plans/0003`'s gate column while the task order two lines away ignored it.
+Here a correct sentence sits in `adr/0052`'s **first paragraph** while a plan citing that ADR by name
+called the number a blocker. ⚠ **Citing a record is not applying it** — which is
+`adr/0052`'s **own** stated failure mode, at its line 39. ***So the ADR predicted the way it would be
+misread, and this document then misread it that way.***
+
+**No mechanical check reaches this either**, and the two sightings now differ in a way that matters:
+G5's correct sentence lived in a *plan*, and this one lives in an *ADR's opening claim*. A check that
+asked whether a plan's use of a decision agrees with that decision's own summary is conceivable and is
+**not proposed** — it needs the corpus to know which sentence of an ADR is its claim, and nothing does.
