@@ -16,7 +16,7 @@ Guiding concepts: `SOLVE THE ACTUAL PROBLEM`, `LEGIBLE CAUSE`.
 
 **Arguable** under [`0043`](0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md).
 What seals, and at what width, is a modelling choice about the unit; the decay rate that follows it is
-measurable and belongs to [`0041`](../../plans/0041-terrain-and-the-land-rows.md)'s decision 5, filed
+measurable and belongs to [`0042`](../../plans/0042-terrain-and-the-land-rows.md)'s decision 5, filed
 rather than settled here.
 
 > ## ⚠ CORRECTED 2026-08-22, by measuring it
@@ -128,7 +128,7 @@ deliverable**, and writing the helper before a consumer exists is
 - **`LayerCellTable.Sealing` becomes non-zero on every shipped Ruleset, so every State Hash moves.** Under
   [`0100`](0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md) that costs
   nothing and **must not be cited as a reason to defer, narrow or split the work.**
-- **[`0041`](../../plans/0041-terrain-and-the-land-rows.md)'s precondition 2 third blocker clears**, and
+- **[`0042`](../../plans/0042-terrain-and-the-land-rows.md)'s precondition 2 third blocker clears**, and
   the two [`0124`](0124-terrain-suitability-is-baked-at-world-creation-and-the-layer-holes-that-need-it-move-to-milestone-24.md)
   did enumerate — `sealing_decay_tau = 0` everywhere, and `MapLayers.Step` never calling `DecaySealing` —
   become reachable for the first time.

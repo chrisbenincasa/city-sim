@@ -3,7 +3,7 @@
 > **⚠ Corrected 2026-08-24, hours after it was written, and about the table rather than the quantity.**
 > The first draft put the column on **`LayerCellTable`**, reasoning that Woodland joins the category
 > Sealing already occupies. ***That is right about the category and wrong about the storage, and what it
-> missed is a sentence `plans/0041` **F7** had already written***: *"The Cell table's sparsity was
+> missed is a sentence `plans/0042` **F7** had already written***: *"The Cell table's sparsity was
 > load-bearing and stated nowhere."* `SetLandValueTargets` is `O(live Cell rows)` at four desirability
 > samples each. **Woodland is the one quantity that exists where the city is not**, so placing it there
 > creates a row for every wooded Cell at world creation and makes the table dense on **every** world,
@@ -100,7 +100,7 @@ that would otherwise each have needed deciding:
   Woodland is exhausted declines through the ordinary path rather than through a *move the logging camp*
   mechanism. A count that falls as Sealing rises supplies exactly that, and supplies it as arithmetic.
 - **Woodland area becomes a readout of Sealing.** This is the consequence worth naming, because
-  `plans/0041` decision 5 has been blocked on the want of one. Sealing's decay rate is a *measurable*
+  `plans/0042` decision 5 has been blocked on the want of one. Sealing's decay rate is a *measurable*
   number under [`0043`](0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)
   whose ratifier owes a **quantity** under
   [`0052`](0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md), and **F9**
@@ -148,7 +148,7 @@ shape `01 §5.5` forbids by name.
   flagging: a reader of `Seal` who expects one column touched will be wrong.
 - **The bound is checkable, so it becomes an invariant.** `Woodland + Sealing ≤ TilesInCell` is
   `O(1)` at the write site, which is where `02 §10` puts a check of that frequency.
-- **`plans/0041` task 8 splits into 8a and 8b** along the line task 3 and task 4 are already split on:
+- **`plans/0042` task 8 splits into 8a and 8b** along the line task 3 and task 4 are already split on:
   the write path ships without the rate, and the rate ships with its own `plans/0002` §D1 row. **8a
   authors no number**, exactly as `TerrainGenerator` authors none.
 - **`0022:137`'s *"regrowth speed is the load-bearing constant"* acquires an owner it has never had.**

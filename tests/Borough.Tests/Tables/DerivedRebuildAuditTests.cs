@@ -132,6 +132,8 @@ public sealed class DerivedRebuildAuditTests
             Run(Stepped(512)),
             Run(Stepped(2048)),
             Run(Severed()),
+            Run(Stocked()),
+            Run(Orphaned()),
             Run(GoldenFixtures.Build()),
         ];
 
@@ -188,7 +190,18 @@ public sealed class DerivedRebuildAuditTests
         // about its own tree, which is the sentence above happening to the assertion rather than to a
         // column: ***a count of a whole is a fact no single branch holds***, and only the merge can
         // take it.
-        Assert.Equal(38, all.Length);
+        //
+        // 40 as of milestone 25 task 1, 2026-08-23: adr/0143 makes household.balance and
+        // business.balance DERIVED, where both were saved. An Occupant now owns a LIST of Bins --
+        // adr/0141, a Bin belongs to the Occupant whose leaving would empty it -- and the balance is
+        // one entry in it, so a second saved handle to the same Bin would be two saved facts that can
+        // disagree. ⚠ The list itself is SAVED and adds nothing here: a tenant-owned Bin names no
+        // owner, so its membership is recoverable from nothing and it fails this audit's premise
+        // rather than passing it.
+        // 40 -> 41: business.pool_slot, milestone 25 task 5. The reverse index into the unpremised
+        // pool, derived for HouseholdTable.PoolSlot's reason -- the pool table is the saved truth and
+        // a saved reverse index would be a second fact free to disagree with it.
+        Assert.Equal(41, all.Length);
         Assert.Single(ScratchColumns(Stepped(0)));
     }
 
@@ -310,6 +323,67 @@ public sealed class DerivedRebuildAuditTests
         Assert.True(
             world.Roads.Connectivity.FootComponents > 1,
             "severance.toml no longer severs, so the connectivity labels are all zero again.");
+
+        return world;
+    }
+
+    /// <summary>
+    /// A city whose Buildings hold <b>two Bins each</b>, which no shipped Ruleset produces any more.
+    /// </summary>
+    /// <remarks>
+    /// <b>⚠ It exists because <c>adr/0141</c> emptied the only fixture that walked
+    /// <c>bin.bin_next</c>.</b> Every shipped dwelling declares <c>sundries</c> and <c>repairs</c>;
+    /// milestone 25 moved <c>sundries</c> to the tenant, so a Building holds <b>one</b> Bin in every
+    /// world the simulation builds on its own and the link in its Bin list is never written. ***The
+    /// column stayed derived, stayed rebuilt and stayed correct, and stopped being provable*** — which
+    /// is the failure this test exists to name, arriving as a side effect of a change three files
+    /// away. <c>TestRulesets.Stocked</c> says why the repair is a fixture rather than a second Bin on
+    /// a shipped kind.
+    /// </remarks>
+    private static World Stocked()
+    {
+        var key = WorldKey.FromSeed(GoldenFixtures.Seed);
+        var world = new World(GoldenFixtures.Population, TestRulesets.Stocked);
+
+        for (int i = 0; i < 4; i++)
+        {
+            Handle<Lot> lot = world.Lots.Create(new Tiles(i * 3), new Tiles(i * 5), zone: 1);
+
+            world.CreateBuilding(lot, kind: 1, new Ticks(0), key);
+        }
+
+        return world;
+    }
+
+    /// <summary>
+    /// A world holding one Business in the unpremised pool, its premises demolished under it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>It exists because milestone 25 task 5 gave <c>BusinessTable</c> a <c>pool_slot</c>, and
+    /// nothing the simulation builds on its own can populate it.</b> The column is the reverse index
+    /// into the unpremised pool, rebuilt from that pool's saved rows — so exercising it needs a
+    /// Business that has actually lost its premises, and ***nothing creates a Business at all***
+    /// (<c>World.CreateBusiness</c> has no <c>src/</c> caller until milestone 27 task 8). ⚠ <b>This
+    /// test caught it on the first run</b>, which is the third time in two milestones: <c>bin.bin_next</c>
+    /// in task 2, <c>car_park.segment_next</c> at milestone 7, and now this.
+    /// </para>
+    /// <para>
+    /// <b>Demolition rather than a hand-written pool row, because the pool is not public state a test
+    /// should be able to forge.</b> Going through <c>DestroyBuilding</c> exercises the path the
+    /// simulation would take and asserts nothing about it — ***a fixture that writes the answer it is
+    /// checking for is a fixture that cannot fail.***
+    /// </para>
+    /// </remarks>
+    private static World Orphaned()
+    {
+        var world = new World(1_000, GoldenFixtures.Rules());
+
+        Handle<Lot> lot = world.Lots.Create(new Tiles(1), new Tiles(2), zone: 1);
+        Handle<Building> premises = world.Buildings.Create(world.Lots, lot, kind: 1);
+
+        world.CreateBusiness(premises);
+        world.DestroyBuilding(premises, Ticks.Zero);
 
         return world;
     }

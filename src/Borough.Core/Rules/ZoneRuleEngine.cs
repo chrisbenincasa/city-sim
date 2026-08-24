@@ -28,11 +28,24 @@ using Borough.Core.Tables;
 /// <param name="Occupied">Sampled Lots with one.</param>
 /// <param name="Created">Buildings built — the subset of <paramref name="Vacant"/> that qualified.</param>
 /// <param name="Demolished">
-/// Buildings condemned — the subset of <paramref name="Occupied"/> whose failure pressure had crossed
-/// their kind's threshold.
+/// Buildings condemned — the subset of <paramref name="Occupied"/> whose <b>premises'</b> failure
+/// pressure had crossed their kind's threshold.
+/// </param>
+/// <param name="Ended">
+/// <b>Tenancies ended</b> — Households evicted because <em>their own</em> Rules crossed the same
+/// threshold, leaving the premises standing (<c>adr/0141</c>). ⚠ <b>It is not a subset of
+/// <paramref name="Demolished"/> and never overlaps it</b>: a demolition ends every tenancy in the
+/// Building through <c>World.DestroyBuilding</c> and is counted once, as one Building. ***The two
+/// counters are what makes the split visible at all***, since before this the second outcome did not
+/// exist and a starving tenant was reported as a demolished Building.
 /// </param>
 public readonly record struct ZoneActivity(
-    RuleFlow Triggers, RuleFlow Vacant, RuleFlow Occupied, RuleFlow Created, RuleFlow Demolished)
+    RuleFlow Triggers,
+    RuleFlow Vacant,
+    RuleFlow Occupied,
+    RuleFlow Created,
+    RuleFlow Demolished,
+    RuleFlow Ended)
 {
     /// <summary>Lots evaluated over the interval, which is what a trigger is charged for.</summary>
     /// <remarks>
@@ -95,12 +108,14 @@ public sealed class ZoneRuleEngine
     private int _tickOccupied;
     private int _tickCreated;
     private int _tickDemolished;
+    private int _tickEnded;
 
     private RuleFlow _triggerFlow;
     private RuleFlow _vacantFlow;
     private RuleFlow _occupiedFlow;
     private RuleFlow _createdFlow;
     private RuleFlow _demolishedFlow;
+    private RuleFlow _endedFlow;
 
     /// <param name="world">The tables this sweeps, and the Ruleset it sweeps under. Not copied.</param>
     /// <param name="key">The world seed, as the sample's first coordinate.</param>
@@ -122,13 +137,14 @@ public sealed class ZoneRuleEngine
     public ZoneActivity Drain()
     {
         var activity = new ZoneActivity(
-            _triggerFlow, _vacantFlow, _occupiedFlow, _createdFlow, _demolishedFlow);
+            _triggerFlow, _vacantFlow, _occupiedFlow, _createdFlow, _demolishedFlow, _endedFlow);
 
         _triggerFlow = default;
         _vacantFlow = default;
         _occupiedFlow = default;
         _createdFlow = default;
         _demolishedFlow = default;
+        _endedFlow = default;
 
         return activity;
     }
@@ -327,12 +343,117 @@ public sealed class ZoneRuleEngine
             return;
         }
 
+        // THE PREMISES' OWN RULES ONLY, which is adr/0141 and the whole of what changed here. The
+        // unset handle is the premises (RuleInstanceTable.Household), so the same walk answers both
+        // verdicts and the discriminator is a parameter rather than a branch.
+        int worst = Worst(building, tenant: default, threshold, tick);
+
+        if (worst >= 0)
+        {
+            // Both writes are outside the walk, because demolition empties the list being walked, and
+            // the trail is written before the demolition rather than after it: DestroyBuilding frees
+            // the Rule Instance holding the condition and the Building row holding the kind, so a Tick
+            // later there is nothing left to copy. That one-line lifetime is the whole reason the
+            // trail is a table.
+            _world.CondemnationTrail.Record(
+                tick,
+                _world.Lots.Rows.At(lot),
+                kind,
+                _world.RuleInstances.Reported[worst]);
+
+            _world.DestroyBuilding(_world.Buildings.Rows.At(building), tick);
+            _tickDemolished++;
+
+            // A demolition ends every tenancy in the Building, through DestroyBuilding's own walk of
+            // the occupant list. There is nothing left to end, and the Building row is gone.
+            return;
+        }
+
+        // The tenancies, each judged on ITS OWN Rules. ⚠ This is what adr/0141 means by *what changes
+        // is what dies*: a Building whose tenant starves used to fall down, so ONE STARVING TENANT
+        // CONDEMNED THE OTHER'S SHOP. The pressure mechanism is untouched -- same durations, same
+        // threshold, same cross-multiplied comparison -- and only the subject of the verdict moved.
+        //
+        // Restarted from the front after every eviction, because World.Unplace removes the Household
+        // from the list being walked. A Building holds `occupants` of them -- three in every shipped
+        // Ruleset -- so the rescan is over single digits and is cheaper than a second decode API.
+        bool ended = true;
+
+        while (ended)
+        {
+            ended = false;
+
+            foreach (int occupant in _world.Occupants.Walk(building))
+            {
+                Handle<Household> household = _world.Households.Rows.At(occupant);
+
+                if (Worst(building, household, threshold, tick) < 0)
+                {
+                    continue;
+                }
+
+                // ⚠ NOTHING RECORDS *WHY* THIS TENANCY ENDED, and that is deliberate rather than
+                // missed. The condemnation trail is a LOT's -- it names the Lot, the kind and the
+                // condition behind a demolition -- and a tenancy that ends leaves the Lot, the kind
+                // and the Building exactly as they were, so an entry there would be a demolition
+                // record for a Building still standing. The channel that carries `why is this
+                // Household unhoused` is adr/0130's and ships with the Pool's give-up bound, which is
+                // plans/0040 task 5. Filed rather than invented here.
+                _world.Unplace(household);
+                _tickEnded++;
+                ended = true;
+                break;
+            }
+        }
+    }
+
+    /// <summary>
+    /// The worst-starved Rule Instance one subject runs on this Building past
+    /// <paramref name="threshold"/> missed firings, or <c>-1</c> when none of them is.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>One walk answers both verdicts, and <paramref name="tenant"/> is the whole difference</b>
+    /// (<c>adr/0141</c>). The unset handle selects the Rules the premises run themselves; a Household
+    /// selects that tenant's. ***Spelling it as one function is what keeps the two verdicts from
+    /// drifting into two pressure models***, which is the failure <c>adr/0053</c>'s
+    /// <em>missed firings rather than Ticks</em> was already guarding against on the other axis.
+    /// </para>
+    /// <para>
+    /// <b>The walk does not stop at the first Rule past its threshold, and the reason is attribution
+    /// rather than the predicate</b>: the verdict is an <em>or</em> and any exceedance settles it, but
+    /// the trail records ONE condition and <see cref="Condemn"/>'s remarks say which one the design
+    /// means — the subject's pressure is the LONGEST of its Rules'. That maximum is stored nowhere.
+    /// </para>
+    /// <para>
+    /// <b>Missed firings, compared by cross-multiplying</b> — <c>elapsed/rate</c> against
+    /// <c>worstElapsed/worstRate</c>, for the reason <see cref="Condemn"/> gives for multiplying the
+    /// threshold: the division would be spelled through <see cref="Arithmetic.IntegerMath"/> for an
+    /// answer nothing keeps. Strictly greater, so a tie leaves the earlier Rule in place and the
+    /// choice is a function of the Building's own Rule list rather than of the order two equal
+    /// pressures were met in.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Both subjects are measured against the SAME <c>condemn_after</c>, which is the premises'
+    /// kind's.</b> A tenant has no kind to declare its own — a Household never will, and a Business
+    /// gets one at milestone 27 — so a second threshold would be a number with nowhere to be authored.
+    /// <c>adr/0052</c> is not owed a ratifier here because no number is chosen; what is chosen is that
+    /// there is only one.
+    /// </para>
+    /// </remarks>
+    private int Worst(int building, Handle<Household> tenant, int threshold, Ticks tick)
+    {
         int worst = -1;
         ulong worstElapsed = 0;
         uint worstRate = 0;
 
         foreach (int instance in _world.BuildingRules.Walk(building))
         {
+            if (_world.RuleInstances.Household[instance] != tenant)
+            {
+                continue;
+            }
+
             if (!_world.RuleInstances.IsStarving(instance))
             {
                 continue;
@@ -346,18 +467,6 @@ public sealed class ZoneRuleEngine
                 continue;
             }
 
-            // The walk no longer stops at the first Rule past its threshold, and the reason is
-            // attribution rather than the predicate: the verdict is an or and any exceedance settles
-            // it, but the trail records ONE condition and the remark above already says which one the
-            // design means — the Building's pressure is the LONGEST of its Rules'. That maximum was
-            // never stored anywhere because until milestone 6 nothing read it. The extra cost is one
-            // full walk of a handful, on condemnation Ticks only; the miss branch always walked it all.
-            //
-            // Missed firings, compared by cross-multiplying — elapsed/rate against worstElapsed/
-            // worstRate — for the reason the paragraph above gives for multiplying the threshold: the
-            // division would be spelled through IntegerMath for an answer nothing keeps. Strictly
-            // greater, so a tie leaves the earlier Rule in place and the choice is a function of the
-            // Building's own Rule list rather than of the order two equal pressures were met in.
             if (worst < 0 || elapsed * worstRate > worstElapsed * rate)
             {
                 worst = instance;
@@ -366,23 +475,7 @@ public sealed class ZoneRuleEngine
             }
         }
 
-        if (worst < 0)
-        {
-            return;
-        }
-
-        // Both writes are outside the walk, because demolition empties the list being walked, and the
-        // trail is written before the demolition rather than after it: DestroyBuilding frees the Rule
-        // Instance holding the condition and the Building row holding the kind, so a Tick later there
-        // is nothing left to copy. That one-line lifetime is the whole reason the trail is a table.
-        _world.CondemnationTrail.Record(
-            tick,
-            _world.Lots.Rows.At(lot),
-            kind,
-            _world.RuleInstances.Reported[worst]);
-
-        _world.DestroyBuilding(_world.Buildings.Rows.At(building), tick);
-        _tickDemolished++;
+        return worst;
     }
 
     /// <summary>A span of at least <paramref name="size"/>, growing the buffer once if it must.</summary>
@@ -426,11 +519,13 @@ public sealed class ZoneRuleEngine
         _occupiedFlow = _occupiedFlow.Fold(_tickOccupied);
         _createdFlow = _createdFlow.Fold(_tickCreated);
         _demolishedFlow = _demolishedFlow.Fold(_tickDemolished);
+        _endedFlow = _endedFlow.Fold(_tickEnded);
 
         _tickTriggers = 0;
         _tickVacant = 0;
         _tickOccupied = 0;
         _tickCreated = 0;
         _tickDemolished = 0;
+        _tickEnded = 0;
     }
 }

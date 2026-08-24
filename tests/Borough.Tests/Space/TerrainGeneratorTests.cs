@@ -219,7 +219,7 @@ public sealed class TerrainGeneratorTests
     /// A populated world's terrain is the generator's, and populating it is what wrote it.
     /// </summary>
     /// <remarks>
-    /// <c>plans/0041</c> decision 3 places the pass inside
+    /// <c>plans/0042</c> decision 3 places the pass inside
     /// <see cref="SyntheticCity.PopulateInto"/>, between the already-populated refusal and
     /// <c>LayLand</c>. This asserts the wiring rather than the placement — a pass nobody calls lays
     /// nothing, and every column would read <see cref="TerrainKind.Ordinary"/> without saying so.

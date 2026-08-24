@@ -819,6 +819,20 @@ the room is a habit this corpus has already recorded**, and this table is where 
   So the **41% share is not a forecast** — it is what this Ruleset costs. **The durable half is the
   unit cost**, and even that is a floor, because these Rules carry one term and `02 §4.3`'s bakery
   carries four.
+- 🔴 **THE BIN RULE ROW'S MULTIPLICAND MOVED ON 2026-08-23 AND THE MEASUREMENT IS NOW STALE.**
+  `06` milestone 25 task 2 moved `sundries` to the Household under
+  [`adr/0141`](../docs/adr/0141-a-tenant-owns-what-leaves-with-it-and-the-premises-own-the-capacity.md),
+  so `rulesets/minimal.toml`'s dwelling went from **3 Rule Instances per Building** to **1 premises
+  Rule plus 2 per Household** — **7** at `occupants = 3`. ⚠ **The 11,586 due per Tick was measured
+  against the old file and is not a figure this Ruleset produces any more.** **The unit cost is
+  untouched**, because nothing about an evaluation changed — which is this row's own claim that the
+  durable half is the unit, tested by the first thing to move the other half. ***A re-measurement is
+  owed and no verdict turns on it***: the row was already labelled *measured and still not
+  representative*, and it is now measured, **stale** and still not representative. ⚠ **The share is
+  not simply 2.33× either** — `consume` fires once per Household where it used to apply `occupancy`
+  times in one evaluation, so the *applications* are unchanged and the *evaluations* are not, and
+  those are the two halves the row multiplies. Nothing in this document may be updated by arithmetic;
+  the number comes back from the instrument.
 - **The Bin Rule row supersedes an earlier Phase-2-only estimate of ~60% and a whole-Tick estimate of
   67%.** The first multiplied a measured Phase 2 by an *inferred* Phase 3 re-check; the second
   measured all eight phases but in a fixture. Neither should be quoted.

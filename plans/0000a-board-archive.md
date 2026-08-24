@@ -102,6 +102,7 @@ the missing ones stay missing***.
 | **E** | `adr/0005` + `adr/0007` — fidelity; all four questions answered | 2026-08-16 | [`0029`](0029-session-e-fidelity.md) |
 | **K** | `06`'s Phase 2 ordering, re-derived — 5a–5c frozen, then 6–24 | 2026-08-16 | [`06`](../docs/06-roadmap.md), [`PROCESS.md`](../PROCESS.md) → *Numbering* |
 | **T** | The target speed — opened and closed the same day | 2026-08-16 | [`0027`](0027-session-t-the-target-speed.md), [`adr/0105`](../docs/adr/0105-the-target-speed-is-4x-at-a-million-and-a-rung-dilates-rather-than-being-withdrawn.md) |
+| **V** | The Business is the actor and the Building is premises — four of five questions closed; the fifth changed type on the way and left for `0002` §D2 | 2026-08-22 | [`0039`](0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md), [`adr/0141`](../docs/adr/0141-a-tenant-owns-what-leaves-with-it-and-the-premises-own-the-capacity.md), [`adr/0142`](../docs/adr/0142-an-unpremised-business-emigrates-so-the-sink-is-the-one-households-already-use.md) |
 
 ## Closed rows of *Two audits the corpus assigned itself*
 

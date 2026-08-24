@@ -32,7 +32,7 @@ namespace Borough.Tests.Space;
 /// </para>
 /// <para>
 /// ⚠ <b>It is an instrument and asserts nothing.</b> Re-running it re-derives constants; what it is
-/// for is producing the figures <c>plans/0041</c> <b>F8</b> and <c>plans/0013</c> quote. The numbers
+/// for is producing the figures <c>plans/0042</c> <b>F8</b> and <c>plans/0013</c> quote. The numbers
 /// move the day the fold, the guard or the table's width does.
 /// </para>
 /// </remarks>

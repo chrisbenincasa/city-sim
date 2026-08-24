@@ -390,6 +390,26 @@ public enum PurposeTag : ulong
     EmigrantBalance = 21,
 
     /// <summary>
+    /// Which Business in the unpremised pool is looked at this pass.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="PoolDraw"/>'s sibling, and distinct from it for that tag's own stated reason one
+    /// collection across.</b> The two draws run on the same trigger in the same pass, so sharing a tag
+    /// would tie them together — ***the Businesses looked at would correlate with the Households
+    /// housed***, and a run in which many families were placed would be a run in which many shops
+    /// happened to be examined. Two decisions, two tags.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>What it decides today is only WHEN a Business is asked whether it has given up</b>, since
+    /// nothing tenants one (<c>adr/0142</c>, milestone 25 task 5). It becomes a draw over a real
+    /// choice the day a Business placement pass ships, and it is separate now so that the day it does,
+    /// no correlation has to be untangled.
+    /// </para>
+    /// </remarks>
+    UnpremisedDraw = 22,
+
+    /// <summary>
     /// Which of the five terrain types a Cell is, drawn once at world creation.
     /// </summary>
     /// <remarks>
@@ -401,14 +421,23 @@ public enum PurposeTag : ulong
     /// (<c>adr/0021</c>), so the Tick coordinate carries nothing and says so.
     /// </para>
     /// <para>
-    /// <b>Woodland will need its own tag and must not borrow this one</b> (task 8, and it is
-    /// <em>unbuilt</em> rather than undesigned). Woodland sits <em>on</em> terrain, so a shared tag
-    /// would make every wooded Cell the same terrain type as every other wooded Cell — the forest
-    /// and the rock as one draw wearing two names, which is a correlation nothing in the city could
-    /// refute. The tag is added when the mechanism that draws it is built, per this file's own rule.
+    /// ✅ <b>Woodland got its own tag and did not borrow this one</b> — <see cref="Woodland"/>,
+    /// <c>adr/0158</c>, milestone 24 task 8a. Woodland sits <em>on</em> terrain, so a shared tag would
+    /// make every wooded Cell the same terrain type as every other wooded Cell — the forest and the
+    /// rock as one draw wearing two names, which is a correlation nothing in the city could refute.
+    /// ***This paragraph read <em>will need</em> and <em>unbuilt</em> until the tag was added***, which
+    /// is this file's own rule working: the tag arrives with the mechanism that draws it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>This ordinal was 22 until the merge with <c>main</c> on 2026-08-24, and it moved because
+    /// milestone 25 had independently taken 22 for <see cref="UnpremisedDraw"/>.</b> A tag is an
+    /// argument to <c>Randomness.Draw</c>, so <b>an ordinal IS the decision's identity</b> and moving
+    /// one changes every draw made under it — here, the terrain map of every world. ***The branch
+    /// yielded rather than the trunk***, which is the rule <c>34d0386</c> applied to ADR numbers on
+    /// this same branch. Both baselines were re-recorded in the merge.
     /// </para>
     /// </remarks>
-    TerrainType = 22,
+    TerrainType = 23,
 
     /// <summary>
     /// How much of a Cell is wooded, drawn once at world creation.
@@ -430,5 +459,5 @@ public enum PurposeTag : ulong
     /// <em>a heavily forested seed</em> is a thing that can happen.
     /// </para>
     /// </remarks>
-    Woodland = 23,
+    Woodland = 24,
 }

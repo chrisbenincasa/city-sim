@@ -290,8 +290,52 @@ public readonly record struct BinCapacity
     }
 }
 
-/// <summary>One Bin a Building kind is given when it is built: which Resource, and its capacity.</summary>
-public readonly record struct BinDeclaration(ResourceId Resource, BinCapacity Capacity);
+/// <summary>
+/// Whose level a Bin holds. <b>The premises declare every Bin's capacity either way</b>
+/// (<c>adr/0141</c>).
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>It is a property of the Bin and not of the Building</b>, which is what makes one kind able to
+/// declare both: <c>rulesets/minimal.toml</c>'s dwelling keeps <c>repairs</c> — the roof — and hands
+/// <c>sundries</c> to whoever lives there. The test is <c>CONTEXT.md</c> → Building's, stated as a
+/// question about leaving: ***does the Bin empty when the tenant goes?*** Flour goes with the baker;
+/// the roof does not.
+/// </para>
+/// <para>
+/// ⚠ <b>Capacity does not move with it</b> (<c>adr/0141</c>, and it is the half found by trying to
+/// route around it). <see cref="Borough.Core.Entities.World.CreateBin"/> reads its ceiling from the
+/// <em>building</em> kind at the creation site, and neither a Household nor a Business has a kind
+/// byte to read one from. ***A shop holds what fits in the shop, and what is in it is the
+/// shopkeeper's.***
+/// </para>
+/// <para>
+/// <b><see cref="Premises"/> is zero so that absence is the shipped behaviour.</b> Every Bin in
+/// every Ruleset written before this existed belongs to its Building, and a defaulted enum saying so
+/// is the difference between a migration and a rewrite.
+/// </para>
+/// </remarks>
+public enum BinTenancy : byte
+{
+    /// <summary>The Building's own. It stays when the tenant leaves.</summary>
+    Premises = 0,
+
+    /// <summary>The Occupant's. <b>It leaves with them</b>, which is the whole definition.</summary>
+    Occupant = 1,
+}
+
+/// <summary>
+/// One Bin a Building kind is given when it is built: which Resource, its capacity, and whose level
+/// it is.
+/// </summary>
+/// <remarks>
+/// <b>The kind declares an Occupant's Bin as well as its own, and that is not a contradiction.</b>
+/// <c>adr/0141</c> splits <em>who declares the ceiling</em> from <em>who holds the level</em>, and
+/// this type is the first place both appear together: the premises answer the first for every Bin on
+/// the Lot, and <see cref="Tenancy"/> answers the second.
+/// </remarks>
+public readonly record struct BinDeclaration(
+    ResourceId Resource, BinCapacity Capacity, BinTenancy Tenancy = BinTenancy.Premises);
 
 /// <summary>
 /// One Bin Rule, as ids and integers. The slices index into <see cref="Ruleset"/>'s flat arrays.
@@ -313,6 +357,35 @@ public readonly record struct RuleDefinition(
 {
     /// <summary>Whether this Rule records a condition and leaves the chain failed.</summary>
     public bool IsTerminal => !Reports.IsNone;
+
+    /// <summary>
+    /// Whose Rule this is: the premises', or the Occupant's. <b>Derived from the Rule's own
+    /// <see cref="Scope.Local"/> terms, never authored</b> (<c>adr/0141</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Derived rather than authored because the Bins already answer it.</b> <c>adr/0141</c>
+    /// declined to split Rules from their Bins — *"a Rule whose Bins all belong to a tenant is a
+    /// tenant's Rule wearing the premises' name"* — so an <c>owner</c> key on a <c>[[rule]]</c> would
+    /// be a second, authorable statement of a fact the terms already make, and the failure mode of
+    /// two statements of one fact is that they disagree. <b>The loader computes it and refuses a Rule
+    /// whose local terms disagree</b>, which is <c>adr/0050</c> at the parse site: a term crossing an
+    /// ownership boundary is a <em>trade</em>, and a trade is <see cref="Scope.Pool"/> rather than a
+    /// second <see cref="Scope.Local"/>.
+    /// </para>
+    /// <para>
+    /// <b>A Rule with no local term at all is the premises'.</b> Nothing about it leaves with a
+    /// tenant, and the alternative — refusing it — would refuse a Rule that only emits into a Map
+    /// Layer, which is a coherent thing for a building to do.
+    /// </para>
+    /// <para>
+    /// <b>An init property rather than a positional parameter</b>, on
+    /// <see cref="KindDefinition.CondemnAfter"/>'s precedent and for its reason: the default is the
+    /// behaviour of every Ruleset written before this existed, and the forty-odd construction sites
+    /// in the test suite are all stating it.
+    /// </para>
+    /// </remarks>
+    public BinTenancy Tenancy { get; init; }
 }
 
 /// <summary>One Building kind: the Bins it is given, the Rules it runs, and when it falls down.</summary>

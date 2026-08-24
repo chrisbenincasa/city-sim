@@ -43,7 +43,9 @@ public sealed class HouseholdTable
         PoolSlot = _rows.Derived<int>("pool_slot");
         MemberHead = _rows.Derived<int>("member_head");
         MemberTail = _rows.Derived<int>("member_tail");
-        Balance = _rows.SavedHandle("balance", bins.Rows, reference: Reference.Required);
+        BinHead = _rows.SavedHandle("bin_head", bins.Rows);
+        BinTail = _rows.SavedHandle("bin_tail", bins.Rows);
+        Balance = _rows.DerivedHandle("balance", bins.Rows, reference: Reference.Required);
 
         _rows.Seal();
     }
@@ -122,8 +124,50 @@ public sealed class HouseholdTable
     /// milestone <b>14</b>. ***A threshold stored as a stock reads as a second account, and every
     /// document that later names the pair inherits it.***
     /// </para>
+    /// <para>
+    /// 🔴 <b>It is <see cref="Disposition.Derived"/> as of <c>adr/0143</c>, and it used to be saved.</b>
+    /// A Household now owns a <em>list</em> of Bins — <see cref="BinHead"/> — and the balance is one
+    /// entry in it, so keeping a second saved handle to the same Bin would be two saved facts that can
+    /// disagree. It is maintained at the write site and re-derived by <c>World.RebuildDerived</c>,
+    /// exactly as a Building's Bin list is. ⚠ <b>The O(1) access it exists for is unchanged</b>; what
+    /// moved is which of the two is the truth.
+    /// </para>
     /// </remarks>
     public HandleColumn<Bin> Balance { get; }
+
+    /// <summary>
+    /// Head of this Household's own Bins. <b>The Household is the owner and this is the truth of it</b>
+    /// (<c>adr/0141</c>, <c>adr/0143</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A Bin belongs to the Occupant whose leaving would empty it, and to the premises otherwise</b>
+    /// — <c>adr/0141</c>. Flour goes with the baker; the roof does not. This list is the tenant's half
+    /// of that line, threaded through <see cref="BinTable.OwnerNext"/>.
+    /// </para>
+    /// <para>
+    /// <b>Saved rather than derived, and forced rather than chosen.</b> A Building's Bin list rebuilds
+    /// because a Building-owned Bin names its Building; an Occupant-owned Bin names no owner at all, so
+    /// <em>a derived list is only derivable when the element names its owner</em> — <c>DistrictPoolTable</c>'s
+    /// rule, applied to the case that produced it. <c>adr/0143</c> records why the alternative, a
+    /// polymorphic owner column on the Bin, is not built.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Handles rather than slot indices</b>, so the State Hash folds a never-reused id rather than
+    /// a recycled slot. <see cref="Tables.IndexList"/> is the <c>int</c> form and is right for a derived
+    /// list, which is never folded; a saved one may not borrow it.
+    /// </para>
+    /// </remarks>
+    public HandleColumn<Bin> BinHead { get; }
+
+    /// <summary>Tail of this Household's Bins, so a new one appends rather than push-fronts.</summary>
+    /// <remarks>
+    /// <b>Append order is the order they were opened</b>, which is <c>adr/0033</c>'s reason for a tail
+    /// on every intrusive list in this project: a push-front list hands back the reverse, and a walk
+    /// whose order depends on insertion direction is a different city rather than a different
+    /// implementation.
+    /// </remarks>
+    public HandleColumn<Bin> BinTail { get; }
 
     /// <summary>Whether this Household is in the Unplaced Pool.</summary>
     public bool IsUnplaced(int slot) => PoolSlot[slot] != 0;

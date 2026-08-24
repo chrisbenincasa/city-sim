@@ -1,0 +1,412 @@
+# 0041 — The Business is a thing the city contains
+
+**[`06`](../docs/06-roadmap.md) milestone 27.** ✅ **Ungated** — its one gate was milestone **25**, the
+Occupant repair, which closed 2026-08-23.
+
+> ⚠ **This document decomposes; it does not specify.** The specification is
+> [`0040`](0040-the-business-is-the-actor-and-the-building-is-premises.md)'s **tasks 6–9**, kept there
+> as written when milestone 25 was capped at group A — the same treatment
+> [`0037`](0037-goods-between-buildings-the-district-pool.md) gives milestone 26's. ***`0040` owns what
+> the tasks are; this document owns what order they go in, what they need, and what decomposition
+> found.*** Where the two disagree about a task's content, `0040` wins.
+
+> ***Milestone 25 made the payer nameable. This one makes one exist.***
+
+---
+
+## Status
+
+🔴 **NOT STARTED. Decomposed 2026-08-24 against the tree.**
+
+⚠ **The census below was taken on 2026-08-24 and it corrects the risk statement in three numbers**
+(**G1**). ***The risk stands; the figures stating it have drifted*** — which is the second time in two
+days that a milestone's own risk cell has been the thing that was stale.
+
+🔴 **Decomposition changed the ORDER, and that is this document's result** (**G5**). ⚠ **A second
+result arrived by correction on the same day: THIS DOCUMENT'S OWN *blocked* READING OF TASK 8 WAS
+WRONG** (**G13**), so ***nothing blocks the milestone's first three tasks.*** `0040` lists the
+tasks **6, 7, 8, 9**. Run in that order, **task 7 empties the city of jobs** — every commute, every
+work Trip and the traffic, parking and commute suites with them. The order is **6 → 9 → 8 → 7**, and
+the reason is in the Ruleset's own header rather than in any ADR.
+
+---
+
+## The named risk, as `06` states it
+
+**That the Business is a TABLE and not an actor the city can create.** It has no kind, so `Declares`,
+`BinsOf` and `sweeps = "business"` have nothing to key on; `jobs` sits on the **dwelling** kind in every
+shipped Ruleset, so a fill rate has no employer to belong to ([`adr/0026`](../docs/adr/0026-wages-are-posted-locally-and-never-cleared.md));
+and 🔴 ***nothing funds one.***
+
+⚠ **`06`'s cell states this risk with three numbers and all three are stale.** See **G1**. The
+milestone is not smaller than advertised — ***it is the same risk with a bigger table under it.***
+
+---
+
+## What the build already holds — surveyed 2026-08-24
+
+**Counted against the tree**, and ⚠ ***a count of call sites is not an argument about what the city
+is*** — it sizes the work and settles nothing.
+
+| Symbol | `src/` | `tests/` | Note |
+|---|---|---|---|
+| `World.CreateBusiness` | **0** | **17** | `World.cs:931`. ***Nothing in the simulation creates a Business*** |
+| `World.Endow` | 2 | — | `SyntheticCity.cs:277` and `World.cs:1242`. **Household-only; no Business overload** |
+| `World.Depart(Handle<Business>)` | 1 | — | `World.cs:1524`. ⚠ **The exit already exists and is symmetric** |
+| `World.BalanceOf(Handle<Business>)` | **0** | — | `World.cs:1037`. Exists, unused |
+| `Readouts.DeclaredSet` | — | — | `Readouts.cs:119`. **Exactly two** |
+| `Readouts.ScopeOf` | 2 | — | `Readouts.cs:152`. **A ternary, not a switch** |
+| `RulesetNames` maps | — | — | `RulesetNames.cs:52-55`. **Four, and all id→name only** |
+| Refusal sites in `RulesetLoader.cs` | **140** | — | Machine-checked against `adr/0048:78` |
+| Sites assuming a Workplace is a Building | **33** | — | Enumerated by the task 7 survey |
+
+### `BusinessTable` — six columns, and still no kind
+
+`BusinessTable.cs:67-72`. **Saved:** `building` (`Reference.Severable`), `bin_head`, `bin_tail`.
+**Derived:** `balance` (`Reference.Required`), `building_next`, `pool_slot`. ⚠ **`06` and `0003` both
+say *three columns*** — true before milestone 25 tasks 1 and 5, false since (**G1**).
+
+### What already works, and it is more than the risk implies
+
+- **The sink is complete.** `Depart(Handle<Business>)` (`World.cs:1524-1554`) mirrors the Household's
+  exactly: refuse a premised Business, subtract the balance from `MoneySupply.Issued`, leave the pool,
+  destroy the row. **`UnpremisedTable`, the give-up clock and `PlacementEngine.Retire` all shipped at
+  milestone 25 task 5.**
+- **A Business-owned Bin is representable.** `BinOwnerKind.Business` is live and `CreateBusiness`
+  already opens a balance Bin through it (`World.cs:944`).
+- **`World.BalanceOf(Handle<Business>)` exists** and has zero `src/` callers.
+
+***So what is missing is a kind, a source, a band, and a third subject — not a subsystem.***
+
+### 🔴 Precondition 1 — nothing creates a Business, and no fixture-free path exists
+
+`World.CreateBusiness` has **no `src/` caller**. Three source comments say so in place:
+`PlacementEngine.cs:184-185`, `UnpremisedTable.cs:19-27`, `BusinessTable.cs:100-106`. ⚠ **Tests fund a
+Business by TRANSFER and never by endowment** — `GoldenFixtures.cs:535-541`, `BusinessTests.cs:55-66`,
+`UnpremisedPoolTests.cs:78-86` all withdraw from a Household and deposit into the Business, because
+there is no door.
+
+### 🔴 Precondition 2 — task 8 is blocked from inside the milestone
+
+[`0002`](0002-open-questions.md) **§D2**, *what capitalises a Business* — hash-bearing, and owed a
+named ratifier: **a machine, a world and a quantity**
+([`adr/0052`](../docs/adr/0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md),
+amended twice). **A category is not a name.**
+
+---
+
+## Open decisions
+
+### 1. ⚠ What capitalises a Business? — **inherited as `0040` decision 4, and RETYPED 2026-08-24**
+
+`0002` §D2 owns it. 🔴 **IT IS NOT A BLOCK AND THIS DOCUMENT SAID IT WAS** (**G13**).
+[`adr/0052`](../docs/adr/0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md)
+opens by refusing that reading outright — *"**This does not require ratifying a number before choosing
+it.** Often that is impossible and forcing it is worse than the disease… ***The rule governs the record,
+not the timing.***"* ⚠ **What task 8 owes is a ratifier NAMED on the day the band is written** — a
+machine, a world and a quantity — **not a settled number.**
+
+**The world is milestone 27's own demonstration Ruleset**, the first file to declare `[[business]]`,
+which **task 8 itself produces**. ***So the circularity dissolves the way [`0002`](0002-open-questions.md)
+§D2's tâtonnement row already dissolved it***: *a number is unratifiable because no world exercises it,
+not because it is new.* ⚠ **The quantity is still owed and a category is not a name.**
+
+✅ **So nothing blocks tasks 6, 9 or 8**, and the only genuine open decision is **2**, which blocks
+**task 7** — the last one.
+
+⚠ **`0040` decision 3 already settled the adjacent half**: a Business shares
+`[placement] gives_up_after_days` as a **stand-in**, so no second bound and no second ratifier is owed.
+`adr/0142`'s argument against sharing is **deferred to this milestone**, and task 8 is the first day a
+Business exists in numbers anybody can have an opinion about.
+
+### 2. 🔴 NEW — does `jobs` move to the business kind, or to the Business row? — **found by decomposition**
+
+**Task 7 says *jobs and shift hours move to the employer* and does not say which.** The build makes it
+a real fork, because the two land in different places:
+
+- **On the business kind** — `KindDefinition.Jobs` in a second kind namespace. Mirrors the building
+  kind exactly, costs no new column, and keeps a fill rate authored.
+- **On the Business row** — a saved column. Lets two bakeries of one kind employ different numbers,
+  which is what `adr/0026`'s *a fill rate is a property of an employer* could be read to require.
+
+⚠ **This is not `adr/0043`-measurable** — no number refutes either. It is forced by what `adr/0026`
+means by *employer*, and ***the ADR uses the word without ever saying whether it means the kind or the
+row.*** **Blocks task 7 and nothing else.**
+
+### 3. ⚠ NEW — what does the `sweeps` refusal say once half of it is answerable?
+
+`RulesetLoader.cs:2170-2192` refuses `"business"` and `"building"` from **one** case block whose
+message gives a **separate reason per subject**: *"A Business has a balance and no pass that moves it;
+a Building population needs the predicate that selects it, and neither exists."* ⚠ **Task 6 makes the
+first clause false and leaves the second standing.** `0040` **F9** found this; what it did not settle is
+whether the block splits, the message is rewritten, or `sweeps = "business"` becomes legal here.
+🔴 **Splitting it moves the refusal count off 140 and `RefusalCountTests` will say so** (**G3**).
+
+---
+
+## Tasks
+
+**Ordered by what the next task needs, and ⚠ the order is NOT `0040`'s.** See **G5**.
+
+### 6. **The `[[business]]` kind table.** *(first — everything needs a kind)*
+
+`0040` task 6 owns the content. What decomposition adds:
+
+- **A fifth namespace is cheaper than it sounds** (**G4**). `RulesetNames` holds **id→name only**
+  (`RulesetNames.cs:86-103`); the name→id direction lives in the loader's private dictionaries and is
+  discarded when `Read()` returns. So the edit is five fields, one internal constructor, one accessor
+  and **one** construction site (`RulesetLoader.cs:228`) — and the `byte` `Invert` overload already
+  exists. **No test asserts *four*.**
+- **The pattern to mirror is exact**: declare at `RulesetLoader.cs:276-288`, parse at `ReadKinds`
+  (`:988-1183`), hash the names into `KindKeys` (`:250`), store as `Saved<byte>("kind")`, resolve
+  through `Ruleset.Declares`/`Kind`/`BinsOf`/`RulesOf`.
+- 🔴 **A saved `kind` byte on `BusinessTable` widens the saved row**, so it folds into the State Hash
+  and `FactorioTests.Every_saved_column_reaches_the_file_and_no_other_one_does` must see it corrupted
+  in a fixture. `business` is reachable only through `GoldenFixtures.Build()`.
+- 🔴 **Owed on the day: `adr/0048`.** See **G3**.
+
+### 9. **A Rule can read a Business's balance.** *(second — it needs only the kind, and a fixture)*
+
+⚠ **Moved ahead of 7 and 8** because it is the one entry in group B that is **exercisable by fixture**,
+exactly as milestone 25's group A was — `GoldenFixtures.cs:531-532` already puts two Businesses in one
+Building. ***It does not need a Business the city created; it needs a Business.***
+
+- 🔴 **The real content is a THIRD SUBJECT on the Rule Instance, and the build already says so**
+  (**G10**). `RuleInstanceTable.cs:91-95`: *"A Business gets its own column when a Business runs a Rule,
+  which is milestone 27."* `World.FindLocalBin` (`World.cs:3098-3111`) branches on
+  `RuleInstances.Household[instance].IsNone` — **a binary**. ⚠ **This is milestone 25 task 2's shape a
+  second time**, and that task is the precedent for how to do it.
+- **The readout half is small** (**G11**): `ReadoutScope` gains a third member, `ScopeOf` stops being a
+  ternary, `Read`/`ReadHousehold` gain a third entry point, and `World.BalanceOf(Handle<Business>)`
+  **already exists** and gets its first caller.
+- ⚠ **`Readouts.cs:105-116` predicted this and chose the shape in advance** — *"two entry points rather
+  than one switch … a single method taking an `(entity kind, slot)` pair would be two switches wearing
+  one signature."* ***Follow it rather than collapsing it.***
+
+### 8. **What creates a Business, and what capitalises one.** *(third — ⚠ **an OBLIGATION and not a block**)*
+
+- ⚠ **Smaller than `0040` reads, because the exit shipped at milestone 25** (**G9**). The pool, the
+  give-up clock, `Retire` and `Depart(Handle<Business>)` all exist. **What is owed is a source and a
+  band.**
+- 🔴 **`UnpremisedTable`'s two absences are this task's checklist, written by milestone 25**
+  (**G12**). `Gate` is absent *"because a Business has no arrival door … what capitalises a Business is
+  unanswered"* (`:29-35`); `Considered` is absent because *"nothing looks at premises on a Business's
+  behalf"* and it *"arrives with the placement pass that gives it something to count"* (`:36-43`).
+  ***A table declaration named this task's contents before this document existed.***
+- ⚠ **`adr/0069` is preserved rather than strained**: construction houses **nobody**, and a pool plus a
+  placement pass is what not auto-tenanting looks like. A Zone Rule that auto-tenants a shop is that
+  rule broken on the commercial side.
+- 🔴 **The issuance map is wrong by one before this task makes it wrong by two** (**G8**).
+
+### 7. **Jobs and shift hours move to the employer.** *(last — 🔴 and it CANNOT be first)*
+
+🔴 **This is the re-ordering** (**G5**). Today `jobs = 8` sits on the **dwelling** kind in all thirteen
+shipped Rulesets, and `rulesets/minimal.toml:204-211` says why in its own words: *"IT IS ON THE DWELLING
+RATHER THAN ON A WORKPLACE KIND … Living above the shop is the smallest arrangement in which the
+assignment pass has somewhere to send anybody."* ***That is a stand-in for a workplace kind that does
+not exist.*** Move `jobs` to the employer before anything creates an employer and `World.HasJob` returns
+`false` everywhere: **employment goes to zero, every commute stops, and the traffic, parking and commute
+suites go with it.**
+
+- **33 sites assume a Workplace is a Building** — storage, Ruleset, World mutators, engines, invariants,
+  evidence and content. The enumeration is the survey's; the load-bearing ones are
+  `CitizenTable.Workplace` (`HandleColumn<Building>`, `CitizenTable.cs:64-65`), the worker list
+  (`World.cs:2046-2047`) and `CommuteRoster`.
+- 🔴 **Hash-bearing by construction, and not because of a column** (**G6**). The shift-start draw is
+  keyed on **the Building's monotonic id** (`CommuteRoster.cs:186`); its own comment at `:77-79` says
+  *"Drawn on the Building, which is what makes hours a property of the job."* Change the subject and a
+  `purpose_tag` coordinate changes, so ***every Citizen in the city re-rolls their shift start.***
+  **Every golden artefact re-records.**
+- ⚠ **The search half is separable, because it is measured inert** (**G7**). `EmploymentEngine.cs:52-61`
+  records the Commute-Budget box holding **100.0%** of the world's Buildings up to ~160,000 Citizens.
+  ***So the employer can move without the search's behaviour moving*** — and equally, no shipped world
+  tests the box at all.
+- ⚠ **Thirteen Ruleset files, not twelve.** Two of them (`bordered.toml`, `crowded.toml`) declare a
+  second building kind, `port`, which declares no `jobs` and no band.
+- 🔴 **Owed on the day: `WorldInvariants.cs:1014`** (**G7a**).
+
+### Closing
+
+10. **Something to look at, and the long run.** ⚠ **Read `0040` F43 before scoping this.** Milestone 25
+    went to show a tenancy ending and found **the thing to look at did not exist in any shipped world**.
+    ***The same question is owed here on the day, not at the end***: which world contains a Business the
+    city created, and does any shipped file produce one? **No shipped Ruleset declares a `[[business]]`,
+    because the section does not exist.**
+
+---
+
+## What this milestone must not do
+
+- **Must not make `Scope.Pool` resolve.** That is milestone **26**, and it is blocked on this one.
+  `RuleEngine.cs:875` throws deliberately and the loader accepts the name on purpose.
+- **Must not auto-tenant.** `adr/0069`, on the commercial side.
+- **Must not settle decision 1 by argument where a measurement would do**
+  ([`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)),
+  and must not write the capitalisation band without a named ratifier
+  ([`adr/0052`](../docs/adr/0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md)).
+- **Must not cite hash movement as a reason to defer, narrow or split.**
+  [`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md).
+  **Task 7 moves every commute in every golden artefact**; what is owed is attribution in the commit
+  subject.
+- **Must not run task 7 before task 8.** **G5**, and it is the only ordering constraint in this document
+  that fails loudly rather than subtly.
+
+---
+
+## Definition of done
+
+`CLAUDE.md`'s cumulative list, refined for this milestone:
+
+- **`dotnet test` — the whole suite, unfiltered — green on the reference machine.** The commit gate
+  stays the assertion tier ([`adr/0121`](../docs/adr/0121-the-commit-gate-is-the-assertion-tier-and-a-long-test-runs-post-submit-on-a-machine-that-is-not-yours.md)).
+- **The invariants pass**, including `DerivedRebuildAuditTests` — task 6 adds columns and its hard count
+  `Assert.Equal(41, all.Length)` moves.
+- **The long-run test passes.** ⚠ **Name the collection before the run rather than after it** — 25's
+  closing task got this wrong and had to be re-aimed (`0040` **F44**).
+- **There is something to look at** — and ⚠ **check that it exists before the closing task**, not
+  during it.
+- **The risk is named and retired**: the economic actor **exists in the build** — the city creates one,
+  funds one, employs through one, and a Rule can read its balance.
+
+---
+
+## What decomposition found
+
+**G1 — 🔴 the risk cell states three numbers and all three have drifted.** `06:95` and `0003:250` say
+the Business *"has three columns and no kind"* (**six** since milestone 25 tasks 1 and 5), that `jobs`
+sits on the dwelling kind in *"all twelve shipped Rulesets"* (**thirteen** since `evicted.toml` landed
+2026-08-23), and that `CreateBusiness` has *"twelve in `tests/`"* (**17**, across 7 files). ⚠ **The
+risk itself is untouched** — no kind, no source, no band. ***A risk restated in counts is a risk that
+goes stale without becoming wrong***, which is `plans/0012` **Cause 1** on a cell nobody thought of as
+status.
+
+**G2 — the `sweeps` citation is right about the symbol and wrong about the address.** `0040` task 6 and
+`0040` **F9** both cite `RulesetLoader.cs:2026`; it is `src/Borough.Formats/RulesetLoader.cs:2170-2192`,
+in **Formats** rather than Core. [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+exactly: *where such a sentence is wrong it is wrong about the trigger.*
+
+**G3 — 🔴 task 6 trips the corpus's ONLY document-to-code check.** `RefusalCountTests` reads
+`RulesetLoader.cs`, counts `Refuse(` call sites, and asserts the number of record in
+[`adr/0048`](../docs/adr/0048-the-ruleset-is-validated-where-it-is-parsed-and-only-integers-and-strings-cross-into-the-core.md):78
+— **140** today. ⚠ **Every other mechanical check in `tests/Borough.Tests/Corpus/` is
+document-to-document**, so this is the one that notices code. A `[[business]]` section adds refusals;
+the ADR's *enumeration* is owed the new ones too, and the test's own failure message says so.
+
+**G4 — `RulesetNames` is id→name only, and that makes a fifth namespace cheap.** `RulesetNames.cs:52-55`
+holds four `string[]`; every accessor goes id→name (`:86-103`). The **name→id** direction is the
+loader's private `Dictionary` set, used during parsing and discarded at `Read()`. So the fifth map is
+five fields, one internal constructor, one accessor and one construction site — and the `byte` `Invert`
+overload already exists. ⚠ **Nothing asserts *four*.**
+
+**G5 — 🔴 THE SPECIFICATION'S TASK ORDER IS WRONG, AND RUNNING IT EMPTIES THE CITY OF JOBS. ✅ MEASURED 2026-08-24, NOT ARGUED.**
+
+> **The experiment.** `rulesets/minimal.toml` patched to `jobs = 0` with its Shift band removed — the
+> pairing is a two-way loader refusal, so the band has to go with the posts — the assertion tier run,
+> the file reverted. ⚠ **This is a PROXY for task 7 and not task 7**: the task moves `jobs` to an
+> employer, and while nothing creates one the effect on `World.HasJob` is identical. ***What it
+> measures is the blast radius of a city with no posts, which is the city task 7 ships if it goes
+> first.***
+>
+> **53 failures of 2,094**, in three buckets. **4** are `GoldenHashTests` and are a **confound** — a
+> Ruleset content hash moved because a golden baseline artefact was edited, which is a file
+> fingerprint and not the city. **2** are the two tests that perform *their own* `("jobs = 8",
+> "jobs = 0")` edit and whose `Assert.Contains` anchor had already gone. ***The remaining ~47 are the
+> city.***
+>
+> 🔴 **`DerivedRebuildAuditTests.Every_derived_column_is_exercised_by_some_world` is among them, and
+> it was not predicted.** With no posts, `BuildingTable.WorkerHead`/`WorkerTail` and
+> `CitizenTable.WorkerNext` are populated by **no world at all**. ⚠ **That is the one test `CLAUDE.md`
+> names as the only thing that asks whether a `Derived` column is actually rebuilt** — so a task 7 run
+> out of order does not merely break commuting, ***it hollows out the audit whose job is to notice
+> hollowing-out.***
+
+ `jobs = 8`
+sits on the **dwelling** kind in all thirteen shipped Rulesets. `rulesets/minimal.toml:204-211` states
+that this is a **stand-in**: *"Living above the shop is the smallest arrangement in which the assignment
+pass has somewhere to send anybody."* Move `jobs` to an employer that nothing creates and `World.HasJob`
+(`World.cs:3815`) returns `false` for every Building: employment is zero, `CommuteRoster` rosters
+nobody, and every Trip-, traffic- and parking-dependent suite fails. ***The dependency the cut at
+milestone 25 recorded — jobs cannot move to the employer without something that creates employers — was
+stated and then not applied to the order the tasks were written in.*** ⚠ **The correct order is
+6 → 9 → 8 → 7**, and its cost is that the milestone stalls at its **second** task on `0002` §D2 rather
+than its third.
+
+**G6 — 🔴 task 7 is hash-bearing through a `purpose_tag` coordinate and not through a column.** The
+shift-start draw is keyed on the **Building's** monotonic id (`CommuteRoster.cs:186`), with the comment
+at `:77-79` saying that is *what makes hours a property of the job*. Re-subject it and every Citizen
+re-rolls their shift start, so ***the change is not confined to the Citizens who change employer.***
+Every golden artefact re-records.
+
+**G7 — ⚠ the job-search box is measured INERT, which makes the search separable from the employer.**
+`EmploymentEngine.cs:52-61` records the Commute-Budget box holding **100.0%** of the world's Buildings
+up to ~160,000 Citizens; `Radius` and `Home` are `internal` so `JobSearchBoxTests` reads the production
+derivation. ***So moving the employer need not move the search*** — and no shipped world exercises the
+box at all.
+
+**G7a — 🔴 a doc comment is wrong about the city, and no corpus check can see it.**
+`WorldInvariants.cs:1014` reads *"no shipped Ruleset declares a job — so the exemption carries almost
+every row."* **All thirteen declare `jobs = 8`.** So `Invariant.CitizenIsInExactlyOneWorkplace` is
+described as near-vacuous and is not, and the sentence is wrong about the **trigger**
+([`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)).
+⚠ **Every mechanical check in `tests/Borough.Tests/Corpus/` is document-to-document**, so a claim living
+only in a doc comment is invisible to all of them — which is `0040`'s own **F-class** finding about
+`BusinessTable`'s comment arriving a second time. **Routed to [`0012`](0012-corpus-audit.md) on the day**
+([`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md)).
+
+**G8 — 🔴 the map of money's doors is wrong by one, and task 8 adds a third.** `SyntheticCity.cs:257`
+says its `Endow` is **"THE ONLY PRODUCTION ISSUANCE OF MONEY IN THE BUILD"**, and the same comment names
+the reason it was true — *"`adr/0024` makes the Outside Connection money's only source and that is
+milestone 11."* **Milestone 11 shipped**, and `World.cs:1242` endows an arriving Household from its
+Hinterland band. ***So there are two production issuances, the comment says one, and task 8 proposes a
+third.*** ⚠ **The comment is not merely stale — it names its own expiry and the expiry passed.**
+**Routed to `0012`.**
+
+**G9 — task 8 is smaller than `0040` reads, because milestone 25 shipped its exit.**
+`Depart(Handle<Business>)` (`World.cs:1524-1554`) already mirrors the Household's: refuse a premised
+Business, subtract the balance from `MoneySupply.Issued`, leave the pool, destroy the row.
+`UnpremisedTable`, the give-up clock and `PlacementEngine.Retire` are all live. ***What is owed is a
+source and a band, not a subsystem*** — and the band is the blocker.
+
+**G10 — 🔴 task 9's real content is a third subject on the Rule Instance, and the build named it.**
+`RuleInstanceTable.cs:91-95`: *"A Business gets its own column when a Business runs a Rule, which is
+milestone 27."* `World.FindLocalBin` (`World.cs:3098-3111`) branches on `Household.IsNone` — a binary.
+⚠ **This is milestone 25 task 2's shape repeated**, so that task is the precedent rather than a
+comparison. ***The readout was the visible half and the subject is the work.***
+
+**G11 — task 9's readout half is genuinely small, and the file chose its shape in advance.**
+`ReadoutScope` is a two-member enum, `Readout` has three members of which two are declared, `ScopeOf` is
+a ternary (`Readouts.cs:152`), and `World.BalanceOf(Handle<Business>)` already exists with no caller.
+⚠ **`Readouts.cs:105-116` argues for a third *entry point* rather than a wider switch**, and predicted
+this exact arrival. ***Follow the prediction rather than collapsing it***, because the collapse it warns
+against — an `(entity kind, slot)` pair — would let a Building slot be read as a Household.
+
+**G12 — milestone 25 wrote task 8's checklist into a table declaration.** `UnpremisedTable` has **two**
+columns against `UnplacedTable`'s four, and both absences are argued forward by name: `Gate` *"because a
+Business has no arrival door"* (`:29-35`), `Considered` because it *"arrives with the placement pass
+that gives it something to count"* (`:36-43`). ⚠ **A column deliberately not declared, with the reason
+and the milestone written beside it, is the cheapest specification in this corpus** — and it is also
+invisible to every corpus check, which is **G7a**'s class again.
+
+---
+
+**G13 — 🔴 THIS DOCUMENT CALLED TASK 8 *BLOCKED* AND `adr/0052` REFUSES THAT READING IN ITS OPENING
+PARAGRAPH.** The record says: *"This does not require ratifying a number before choosing it… **The rule
+governs the record, not the timing.**"* And
+[`0037`](0037-goods-between-buildings-the-district-pool.md):249 had **already made this exact
+correction** for an identical situation — *"3 is an obligation, not a fork."* ⚠ **The wording was
+inherited from [`0040`](0040-the-business-is-the-actor-and-the-building-is-premises.md) task 8 and
+carried forward without being checked against the ADR it cites**, which is
+[`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+pointed at a decision record rather than at code.
+
+🔴 **It is the same shape as G5 and it was committed by the document that reported G5.** G5's finding is
+that a correct sentence sat in `plans/0003`'s gate column while the task order two lines away ignored it.
+Here a correct sentence sits in `adr/0052`'s **first paragraph** while a plan citing that ADR by name
+called the number a blocker. ⚠ **Citing a record is not applying it** — which is
+`adr/0052`'s **own** stated failure mode, at its line 39. ***So the ADR predicted the way it would be
+misread, and this document then misread it that way.***
+
+**No mechanical check reaches this either**, and the two sightings now differ in a way that matters:
+G5's correct sentence lived in a *plan*, and this one lives in an *ADR's opening claim*. A check that
+asked whether a plan's use of a decision agrees with that decision's own summary is conceivable and is
+**not proposed** — it needs the corpus to know which sentence of an ADR is its claim, and nothing does.

@@ -52,10 +52,12 @@ public sealed class PlacementEngine
     private int _tickConsidered;
     private int _tickPlaced;
     private int _tickDeparted;
+    private int _tickRetired;
 
     private RuleFlow _consideredFlow;
     private RuleFlow _placedFlow;
     private RuleFlow _departedFlow;
+    private RuleFlow _retiredFlow;
 
     /// <param name="world">The tables this drains, and the Ruleset it drains under. Not copied.</param>
     /// <param name="key">The world seed, as the draws' first coordinate.</param>
@@ -87,11 +89,12 @@ public sealed class PlacementEngine
     /// </remarks>
     public PlacementActivity Drain()
     {
-        var activity = new PlacementActivity(_consideredFlow, _placedFlow, _departedFlow);
+        var activity = new PlacementActivity(_consideredFlow, _placedFlow, _departedFlow, _retiredFlow);
 
         _consideredFlow = default;
         _placedFlow = default;
         _departedFlow = default;
+        _retiredFlow = default;
 
         return activity;
     }
@@ -114,6 +117,11 @@ public sealed class PlacementEngine
 
         if (pool == 0)
         {
+            // ⚠ NOT a return. The two pools are independent collections that happen to share a
+            // trigger, and returning here would make the unpremised sink conditional on there being
+            // unhoused HOUSEHOLDS -- so a city that housed everybody would stop retiring shops, and
+            // adr/0006's bound would hold only while the other pool was non-empty.
+            Retire(tick);
             CloseTick();
             return;
         }
@@ -160,7 +168,115 @@ public sealed class PlacementEngine
             }
         }
 
+        Retire(tick);
         CloseTick();
+    }
+
+    /// <summary>
+    /// Sends unpremised Businesses past the give-up bound out of the city.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The unpremised pool's whole mechanism today, and it is a SINK with no source beside it</b>
+    /// (<see href="../../docs/adr/0142-an-unpremised-business-emigrates-so-the-sink-is-the-one-households-already-use.md">adr/0142</see>,
+    /// milestone 25 task 5). The Household half of this pass tries to house somebody and only then
+    /// asks whether they have given up; this half has nothing to try, because ***nothing tenants a
+    /// Business*** — <c>World.CreateBusiness</c> has no production caller and the placement pass that
+    /// would is milestone <b>27</b>'s. So the bound is asked directly, and it is the only exit.
+    /// </para>
+    /// <para>
+    /// <b>It rides the SAME trigger, the SAME sample derivation and the SAME bound, and every one of
+    /// those is a decision not to introduce a number.</b> A second cadence, a second sample rule or a
+    /// second duration would each be hash-bearing and owed a ratifier
+    /// (<c>adr/0052</c>) — and no world contains a Business to ratify one against, which is
+    /// <see href="../../docs/adr/0144-a-tenant-that-loses-its-premises-keeps-only-its-money-and-waits-a-households-wait.md">adr/0144</see>'s
+    /// second half arriving as code. ***The shared bound is a declared stand-in, not a claim that the
+    /// two patiences are equal.***
+    /// </para>
+    /// <para>
+    /// <b>Sampled rather than swept, which is what keeps it inside <c>adr/0006</c>.</b> The per-member
+    /// probability of being drawn is <c>interval ÷ revisit_ticks</c> — constant, independent of the
+    /// pool's size, because <see cref="PlacementRuleset.SampleFor"/> scales the sample with the pool —
+    /// so the drain rate is proportional to the stock and the pool's <em>size</em> is bounded. ⚠ <b>An
+    /// individual Business's wait is not bounded</b>, which is <see cref="GivesUp"/>'s own remark and
+    /// the same two-claims distinction: only the first is what <c>adr/0006</c> asks. Sweeping the whole
+    /// pool would make the sink <c>O(pool)</c> per trigger, which is <c>02 §10</c>'s frequency sort
+    /// answering the question.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The bound is read from <c>[placement]</c>, so a Ruleset with no gate in it retires
+    /// nobody.</b> That is <c>adr/0130</c>'s <em>absent means nobody ever gives up</em> reaching a
+    /// second collection — coherent here for the same reason: with nothing creating a Business the
+    /// pool has no inflow, and a pool with no inflow needs no sink.
+    /// </para>
+    /// </remarks>
+    private void Retire(Ticks tick)
+    {
+        int pool = _world.UnpremisedPool.Count;
+
+        if (pool == 0)
+        {
+            return;
+        }
+
+        PlacementRuleset placement = _world.Rules.Placement;
+        Span<int> into = Scratch(placement.SampleFor(pool));
+
+        for (int draw = 0; draw < into.Length; draw++)
+        {
+            ulong entity = Randomness.Mix((ulong)(uint)draw << 32);
+            ulong value = Randomness.Draw(_key, entity, tick, PurposeTag.UnpremisedDraw);
+
+            into[draw] = (int)(value % (ulong)(uint)pool);
+        }
+
+        for (int i = 0; i < into.Length; i++)
+        {
+            // Bounded against the CURRENT count for DrawPool's stated reason: the positions were all
+            // drawn against the pool as it stood at the top, and Depart shrinks it by swapping the
+            // last member into the vacated slot. A position past the end names nobody, and one that
+            // now names somebody else is still a draw over the pool.
+            int position = into[i];
+
+            if (position >= _world.UnpremisedPool.Count)
+            {
+                continue;
+            }
+
+            if (!GivesUpOnPremises(position, tick))
+            {
+                continue;
+            }
+
+            _world.Depart(_world.UnpremisedPool.At(position));
+            _tickRetired++;
+        }
+    }
+
+    /// <summary>
+    /// Whether the unpremised pool member at <paramref name="position"/> has waited out the bound.
+    /// </summary>
+    /// <remarks>
+    /// <b><see cref="GivesUp"/> with a different table, and the shared <c>[placement]</c> duration is
+    /// <c>adr/0144</c>'s stand-in.</b> It is not folded into one method taking a span, because the two
+    /// <c>Since</c> columns belong to two tables and a shared accessor would be a polymorphic read for
+    /// the sake of four lines — <c>adr/0143</c>'s trade at a much smaller scale, and refused the same
+    /// way.
+    /// </remarks>
+    private bool GivesUpOnPremises(int position, Ticks tick)
+    {
+        PlacementRuleset placement = _world.Rules.Placement;
+
+        if (!placement.GivesUp)
+        {
+            return false;
+        }
+
+        // Widened before subtracting, for GivesUp's reason: Since is an int column and Tick.Raw is a
+        // ulong.
+        long waited = (long)tick.Raw - _world.UnpremisedPool.Since[position];
+
+        return waited >= placement.GivesUpAfterTicks;
     }
 
     /// <summary>
@@ -411,10 +527,12 @@ public sealed class PlacementEngine
         _consideredFlow = _consideredFlow.Fold(_tickConsidered);
         _placedFlow = _placedFlow.Fold(_tickPlaced);
         _departedFlow = _departedFlow.Fold(_tickDeparted);
+        _retiredFlow = _retiredFlow.Fold(_tickRetired);
 
         _tickConsidered = 0;
         _tickPlaced = 0;
         _tickDeparted = 0;
+        _tickRetired = 0;
     }
 }
 
@@ -427,8 +545,20 @@ public sealed class PlacementEngine
 /// and be in crisis; only the flow distinguishes them."* Reporting the Pool without this reports the
 /// stock and calls it the diagnosis.
 /// </remarks>
+/// <para>
+/// ⚠ <b><see cref="Retired"/> is the fourth and it counts a DIFFERENT POOL.</b> The first three are
+/// the Unplaced Pool's — Households — and this one is the unpremised pool's Businesses
+/// (<c>adr/0142</c>, milestone 25 task 5). ***They share a pass and they are not summable***: a reader
+/// adding Departed to Retired would be adding families to shops. It is here rather than in an activity
+/// record of its own because the pass is one pass and splitting the record would imply a second
+/// trigger.
+/// </para>
 /// <param name="Considered">Pool members looked at.</param>
 /// <param name="Placed">Of those, the ones that found a dwelling.</param>
 /// <param name="Departed">Of those, the ones that gave up and left (<c>adr/0130</c>).</param>
+/// <param name="Retired">
+/// Unpremised <b>Businesses</b> that gave up and emigrated. ⚠ <b>Not a subset of
+/// <paramref name="Considered"/></b>, which counts Households.
+/// </param>
 public readonly record struct PlacementActivity(
-    RuleFlow Considered, RuleFlow Placed, RuleFlow Departed);
+    RuleFlow Considered, RuleFlow Placed, RuleFlow Departed, RuleFlow Retired);

@@ -106,7 +106,7 @@ public static class SyntheticCity
 
         RefuseIfPopulated(world);
 
-        // The ground, before anything stands on it. plans/0041 decision 3, adr/0157. Nothing in
+        // The ground, before anything stands on it. plans/0042 decision 3, adr/0157. Nothing in
         // LayLand consults it -- roads do not avoid water (adr/0021) and buildable grade does not
         // ship (adr/0156) -- so this is first because it is the ground rather than because anything
         // below reads it. ⚠ It computes a height field and keeps none of it (adr/0156).

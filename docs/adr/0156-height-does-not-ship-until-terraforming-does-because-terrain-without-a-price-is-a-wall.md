@@ -111,7 +111,7 @@ consumed once, and discarded regenerates nothing.**
 
 ## Consequences
 
-- **Milestone 24 stores no height.** `plans/0041` task 2 builds the terrain type column; **task 6** (Water
+- **Milestone 24 stores no height.** `plans/0042` task 2 builds the terrain type column; **task 6** (Water
   Bodies) takes the **downstream ordering as generator output**, per `CONTEXT.md` → Water Body's *"an
   outflow rate to the next body downstream"*, which is an edge rather than a computation; **task 9**
   (Hazard Regions) stores **floodplain depth sparsely**, where the floodplain is.

@@ -20,9 +20,12 @@ namespace Borough.Tests.Entities;
 /// </para>
 /// <para>
 /// <b>The load-bearing pair is demolition.</b> A Household evicted from a demolished Building goes to
-/// the Unplaced Pool with its money; a Business has no pool, so the row survives holding a severed
-/// premises handle. Either way no money leaves the world, and
-/// <see cref="Invariant.MoneyIsConserved"/> is what says so.
+/// the Unplaced Pool with its money; a Business goes to the <b>unpremised pool</b> with its money.
+/// Either way no money leaves the world, and <see cref="Invariant.MoneyIsConserved"/> is what says so.
+/// ⚠ <b>This said *a Business has no pool, so the row survives holding a severed premises handle*
+/// until milestone 25 task 5</b> (<c>adr/0142</c>). The severed handle is still true and it is no
+/// longer the whole answer — ***the row now has somewhere to be, and a bound on how long it may be
+/// there.*** <c>UnpremisedPoolTests</c> owns the pool and the sink; this class keeps the money.
 /// </para>
 /// </remarks>
 public sealed class BusinessTests
@@ -181,16 +184,17 @@ public sealed class BusinessTests
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>The worker branch's answer rather than the Household branch's, and the money is why.</b> A
-    /// Household is evicted to the Unplaced Pool because there is somewhere for it to go. There is no
-    /// pool for a Business, and freeing the row would take its balance out of the world through a
-    /// demolition — the hole <c>adr/0024</c> exists to close.
+    /// <b>The conservative half, and it is the half that did not change.</b> Freeing the row would
+    /// take a balance out of the world through a demolition — the hole <c>adr/0024</c> exists to
+    /// close — so the row survives with its money whatever else happens to it.
     /// </para>
     /// <para>
-    /// ⚠ <b>What becomes of a Business with no premises is undesigned</b> (<c>adr/0070</c>), and this
-    /// asserts the conservative half only: nothing is destroyed and nothing is left on a list. The
-    /// design question is filed in <c>plans/0002</c> §C beside the departing Household's balance,
-    /// which is the same question with a different subject.
+    /// ⚠ <b>This remark said *what becomes of a Business with no premises is undesigned*
+    /// (<c>adr/0070</c>) until 2026-08-23</b>, and <c>adr/0142</c> answered it: the Business joins the
+    /// unpremised pool and emigrates if nothing tenants it. ***The assertions below are unchanged and
+    /// still pass***, which is the useful thing about having written the conservative half — the
+    /// answer arrived without contradicting what had been checked. <c>UnpremisedPoolTests</c> asserts
+    /// the pool membership; this test asserts what a demolition must never do.
     /// </para>
     /// </remarks>
     [Fact]

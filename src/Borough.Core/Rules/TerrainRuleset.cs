@@ -27,7 +27,7 @@ namespace Borough.Core.Rules;
 /// <para>
 /// ⚠ <b>The Sealing decay rate is NOT here yet, and that is <c>adr/0052</c> working rather than an
 /// omission.</b> It is the second value keyed by terrain type (<c>CONTEXT.md</c> → Terrain), but
-/// <c>plans/0041</c> decision 5 — what ratifies its cadence and rate — is <b>open</b>, and a
+/// <c>plans/0042</c> decision 5 — what ratifies its cadence and rate — is <b>open</b>, and a
 /// hash-bearing number is chosen with a named ratifier or not at all. It arrives with task 4,
 /// alongside the per-type replacement for <c>[layers] sealing_decay_tau</c>, a single global today.
 /// </para>

@@ -10,7 +10,7 @@
 **Milestone 24 splits.** Its **terrain half** — the generator, the baked terrain-suitability column, and
 the five land rows [`0124`](0124-terrain-suitability-is-baked-at-world-creation-and-the-layer-holes-that-need-it-move-to-milestone-24.md)
 moved onto it — has **no upstream at all** and is buildable now, scoped in
-[`plans/0041`](../../plans/0041-terrain-and-the-land-rows.md). Its **Shocks-and-Dial half** — Shocks,
+[`0042`](../../plans/0042-terrain-and-the-land-rows.md). Its **Shocks-and-Dial half** — Shocks,
 Disasters, the Intensity Dial, Modes and the lock policy — is **UNPLACED**, blocked on milestones **13**,
 **15** and **16**, because [`0131`](0131-the-gate-carries-people-and-the-money-they-hold-and-a-hinterland-field-lands-in-the-milestone-that-reads-it.md)
 authors there every Hinterland figure that a Shock moves and that the dial scales. `06`'s row 24 is
@@ -118,7 +118,7 @@ shape rule 3 exists to prevent.
   ⚠ **Nothing is renumbered** — [`PROCESS.md`](../../PROCESS.md) → *Numbering* freezes a shipped
   milestone's number and this splits an unshipped one in place.
 - **The terrain half is startable immediately and beside milestone 12**, which is what
-  [`plans/0041`](../../plans/0041-terrain-and-the-land-rows.md) records and why it was scoped out of
+  [`0042`](../../plans/0042-terrain-and-the-land-rows.md) records and why it was scoped out of
   sequence.
 - **`01 §5.4`'s *"introduces no new parameters"* keeps a caveat**: it is a statement about the design,
   and the figures it names arrive at 13, 15 and 16. ***The claim is what makes the dial safe, so it must
@@ -127,7 +127,7 @@ shape rule 3 exists to prevent.
   Good, 15's median wage and 16's depth and recovery are each now read by the dial as well as by the
   mechanism they were authored for.
 - **This ADR opens no [`0052`](0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md)
-  number**, and `plans/0041` records the ones the terrain half owes.
+  number**, and `plans/0042` records the ones the terrain half owes.
 
 ## What would trigger revisiting
 
@@ -138,7 +138,7 @@ shape rule 3 exists to prevent.
   buildable now and is exactly what `01 §5.5` forbids; it needs that section reopened, not this ADR.
 - **The terrain half is scoped and found to be two milestones in its turn.**
   [`0124`](0124-terrain-suitability-is-baked-at-world-creation-and-the-layer-holes-that-need-it-move-to-milestone-24.md)
-  offered a *land systems on terrain* split that was considered and not taken; `plans/0041` carries ten
+  offered a *land systems on terrain* split that was considered and not taken; `plans/0042` carries ten
   tasks, and Water Bodies plus Woodland are the seam if it needs one.
 - **Shocks are found to be separable from the dial.** This ADR treats them as one half because they
   share a blocker, not because they share a mechanism — a Shock moves a figure and the dial scales one.

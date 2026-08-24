@@ -29,7 +29,7 @@ public readonly struct TerrainCell;
 /// <c>minimal.toml</c> took the land value target pass from about <b>2.5 ms</b> to about <b>114 ms</b>
 /// on the one Tick in 256 it fires — ⚠ <b>a figure taken on a machine that was not quiet and which no
 /// document may quote</b> (<c>adr/0106</c>); what it is good for is the ratio and the sign, which is
-/// the one thing a spoiled reading still settles. <c>plans/0041</c> <b>F7</b> found the same wire from
+/// the one thing a spoiled reading still settles. <c>plans/0042</c> <b>F7</b> found the same wire from
 /// the other side, and <b>F7's own 88 seconds is not this cost and must not be quoted as one.</b>
 /// </para>
 /// <para>

@@ -471,12 +471,12 @@ public sealed class RuleEngine
 
         foreach (Term term in _world.Rules.Inputs(rule))
         {
-            Touch(Bin(_world, building, term.Bin, rule), -term.Amount);
+            Touch(Bin(_world, instance, term.Bin, rule), -term.Amount);
         }
 
         foreach (Term term in _world.Rules.Outputs(rule))
         {
-            Touch(Bin(_world, building, term.Bin, rule), term.Amount);
+            Touch(Bin(_world, instance, term.Bin, rule), term.Amount);
         }
 
         long applications = ceiling;
@@ -684,7 +684,7 @@ public sealed class RuleEngine
 
         foreach (Term term in world.Rules.Inputs(rule))
         {
-            if (Bin(world, building, term.Bin, rule) == binSlot)
+            if (Bin(world, instance, term.Bin, rule) == binSlot)
             {
                 net -= term.Amount;
             }
@@ -692,7 +692,7 @@ public sealed class RuleEngine
 
         foreach (Term term in world.Rules.Outputs(rule))
         {
-            if (Bin(world, building, term.Bin, rule) == binSlot)
+            if (Bin(world, instance, term.Bin, rule) == binSlot)
             {
                 net += term.Amount;
             }
@@ -711,14 +711,14 @@ public sealed class RuleEngine
     /// </summary>
     private static int BinAt(
         World world,
-        int building,
+        int instance,
         RuleId rule,
         ReadOnlySpan<Term> inputs,
         ReadOnlySpan<Term> outputs,
         int position)
         => position < inputs.Length
-            ? Bin(world, building, inputs[position].Bin, rule)
-            : Bin(world, building, outputs[position - inputs.Length].Bin, rule);
+            ? Bin(world, instance, inputs[position].Bin, rule)
+            : Bin(world, instance, outputs[position - inputs.Length].Bin, rule);
 
     /// <summary>
     /// Adds to <paramref name="claims"/>, per Bin slot, what every armed Rule Instance will draw when
@@ -761,7 +761,6 @@ public sealed class RuleEngine
             }
 
             RuleId rule = instances.Rule[instance];
-            int building = world.Buildings.Rows.Resolve(instances.Building[instance]);
 
             ReadOnlySpan<Term> inputs = world.Rules.Inputs(rule);
             ReadOnlySpan<Term> outputs = world.Rules.Outputs(rule);
@@ -770,7 +769,7 @@ public sealed class RuleEngine
 
             for (int position = 0; position < terms; position++)
             {
-                int bin = BinAt(world, building, rule, inputs, outputs, position);
+                int bin = BinAt(world, instance, rule, inputs, outputs, position);
 
                 // Requirement nets every term naming this Bin, so a Bin that two terms name must be
                 // counted once. The rescan is over a Rule's own term list, which is a handful.
@@ -778,7 +777,7 @@ public sealed class RuleEngine
 
                 for (int earlier = 0; earlier < position; earlier++)
                 {
-                    if (BinAt(world, building, rule, inputs, outputs, earlier) == bin)
+                    if (BinAt(world, instance, rule, inputs, outputs, earlier) == bin)
                     {
                         counted = true;
                         break;
@@ -851,20 +850,24 @@ public sealed class RuleEngine
     /// for it.
     /// </para>
     /// </remarks>
-    private static int Bin(World world, int building, in BinRef reference, RuleId rule)
+    private static int Bin(World world, int instance, in BinRef reference, RuleId rule)
     {
         switch (reference.Scope)
         {
             case Scope.Local:
-                int slot = world.FindBin(building, reference.Resource);
+                // ⚠ THE SUBJECT AND NOT THE BUILDING (adr/0141). A local term is free because the Bin
+                // already belongs to whoever runs the Rule, and since a tenant runs its own Rules
+                // that is no longer always the premises. World.FindLocalBin is where the two cases
+                // are one lookup; the Rule's tenancy was settled at load, so nothing branches here.
+                int slot = world.FindLocalBin(instance, reference.Resource);
 
                 if (slot == Rows.NoSlot)
                 {
                     throw new InvalidOperationException(
-                        $"rule {rule.Raw} names local Resource {reference.Resource.Raw}, and Building "
-                        + $"kind {world.Buildings.Kind[building]} declares no Bin for it. The kind's "
-                        + "Bin set and the Rules attached to it are stated in one file and could be "
-                        + "checked against each other at load; no refusal does so yet.");
+                        $"rule {rule.Raw} names local Resource {reference.Resource.Raw}, and the "
+                        + "subject running it holds no Bin for it. The kind's Bin set and the Rules "
+                        + "attached to it are stated in one file and could be checked against each "
+                        + "other at load; no refusal does so yet.");
                 }
 
                 return slot;

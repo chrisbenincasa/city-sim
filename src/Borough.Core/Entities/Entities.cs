@@ -77,6 +77,21 @@ public readonly struct Lot;
 public readonly struct Unplaced;
 
 /// <summary>
+/// A membership of the unpremised pool: one Business currently looking for premises.
+/// </summary>
+/// <remarks>
+/// <b><see cref="Unplaced"/>'s sibling, and the remark there applies unchanged</b> — a row of this
+/// table is a <em>membership</em> rather than a thing in the world, its rows move between slots to
+/// keep the pool dense, and nothing ever holds a <c>Handle&lt;Unpremised&gt;</c>.
+/// ⚠ <b>It is a SEPARATE table rather than a discriminated column on the Unplaced Pool</b>, which is
+/// <see href="../../docs/adr/0143-a-bin-hangs-off-its-owner-and-the-polymorphic-column-stays-unbuilt.md">adr/0143</see>
+/// reaching a second relation: a polymorphic member handle would land its cost on
+/// <c>Column.Fold</c> and <c>SaveHash.TargetsOf</c>, which are the instrument that proves this
+/// simulation deterministic, to save one table that costs two columns.
+/// </remarks>
+public readonly struct Unpremised;
+
+/// <summary>
 /// The world's clock, of which there is exactly one.
 /// </summary>
 /// <remarks>

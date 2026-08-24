@@ -11,7 +11,7 @@ namespace Borough.Core.Space;
 /// <para>
 /// <c>adr/0157</c>, milestone 24 task 2. <b>A world-creation pass of its own</b>, called from
 /// <see cref="Entities.SyntheticCity.PopulateInto"/> between the already-populated refusal and
-/// <c>LayLand</c> (<c>plans/0041</c> decision 3) — terrain goes first because it is the ground, and
+/// <c>LayLand</c> (<c>plans/0042</c> decision 3) — terrain goes first because it is the ground, and
 /// <b>not because anything downstream reads it</b>: roads do not avoid water (<c>adr/0021</c>),
 /// Woodland is not an obstacle, and buildable grade does not ship (<c>adr/0156</c>).
 /// </para>

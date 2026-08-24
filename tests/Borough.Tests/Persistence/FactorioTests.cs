@@ -119,7 +119,7 @@ public sealed class FactorioTests(ITestOutputHelper output)
     /// ***A structural test over one fixture measures the fixture's content as much as the
     /// structure***, and the corollary this keeps re-proving is that <b>a table with no production
     /// writer needs a fixture named for it or its columns are carried by the format and checked by
-    /// nothing</b>. The union of the FIVE is 229 of 229, and <see cref="UnreachableColumns"/> pins that
+    /// nothing</b>. The union of the SIX is 249 of 249, and <see cref="UnreachableColumns"/> pins that
     /// there is no residue.
     /// </para>
     /// </remarks>
@@ -144,6 +144,13 @@ public sealed class FactorioTests(ITestOutputHelper output)
         // `district` and `district_cell` only where the Ruleset states [districts], which one shipped
         // file does. See WithDistricts.
         Scan(WithDistricts(512), reached, []);
+
+        // Milestone 25 task 5, and the SIXTH fixture for the fourth's reason a third time. The
+        // unpremised pool has a production writer -- DestroyBuilding -- but it can only fire on a
+        // Building that HAS a Business in it, and nothing creates one. So every world above leaves
+        // the table empty and all five of its saved columns unreachable, exactly as `business` was
+        // before GoldenFixtures.Build() was added for it.
+        Scan(WithUnpremised(), reached, []);
 
         List<string> unreachable = [.. every.Where(name => !reached.Contains(name))];
 
@@ -401,6 +408,31 @@ public sealed class FactorioTests(ITestOutputHelper output)
     /// </remarks>
     private static World WithDistricts(int ticks) =>
         Stepped(Shipped("twinned.toml"), GoldenFixtures.Population, ticks).World;
+
+    /// <summary>
+    /// A world with a Business in the unpremised pool, its premises demolished under it.
+    /// </summary>
+    /// <remarks>
+    /// <b>A sixth fixture, and this test's own corollary arriving for the third time</b>: ***a table
+    /// with no production writer needs a fixture named for it, or its columns are carried by the
+    /// format and checked by nothing.*** The writer here is <c>World.DestroyBuilding</c>, which is
+    /// real and reachable — but it can only put a row in this table if the Building had a Business in
+    /// it, and <c>World.CreateBusiness</c> has no <c>src/</c> caller until milestone <b>27 task 8</b>.
+    /// ⚠ <b>A writer gated on a row nothing creates is a writer no fixture reaches</b>, which is
+    /// <see cref="WithDistricts"/>'s *gated on a Ruleset key* one step along.
+    /// </remarks>
+    private static World WithUnpremised()
+    {
+        var world = new World(GoldenFixtures.Population, GoldenFixtures.Rules());
+
+        Handle<Lot> lot = world.Lots.Create(new Tiles(1), new Tiles(2), zone: 1);
+        Handle<Building> premises = world.Buildings.Create(world.Lots, lot, kind: 1);
+
+        world.CreateBusiness(premises);
+        world.DestroyBuilding(premises, Ticks.Zero);
+
+        return world;
+    }
 
     private static Ruleset Shipped(string file)
     {

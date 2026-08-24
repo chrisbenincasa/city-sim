@@ -1888,6 +1888,13 @@ second of each other**. World creation was then timed directly at **2.13–2.23 
 (no `[districts]`, so the derivation returns immediately) and **2.14–3.06 s** on `twinned.toml` (two
 Districts derived), three runs each: ***the watershed's cost is below this instrument's noise floor.***
 
+⚠ **A THIRD READING, 2026-08-24: 3 m 10 s over 2,094 tests**, taken while decomposing milestone 27.
+**The count has grown 1,690 → 1,974 → 2,094 and the duration has not come back down**, which is what
+makes this an entry about a stale figure rather than about one bad afternoon. ⚠ **It is an upper bound
+on the same terms as the other two** — chrome, slack and a media player were up — and it is recorded
+**because it agrees**, not because it improves on them. ***Three upper bounds that cluster still do not
+make a figure***, and the table under *Running the tests* still says 42s.
+
 ⚠ **What is owed is a reading, not an edit.** ***A test-cost capture is a parallelism measurement, so
 it takes a parallelism measurement's controls*** — the rule this document already carries from the
 2026-08-14 threading capture and the 1m52s/50s pair before it. Today's two readings were taken with
@@ -1909,9 +1916,24 @@ agreement is not a control: all three were taken on a machine nobody had quieted
 `adr/0106` asks for the machine and the thread count, not for a consensus. ***What repetition buys is
 confidence that 42s is wrong; it does not buy the number that replaces it.***
 
+⚠ **A fourth reading, 2026-08-23, milestone 25 task 1: 3 m 08 s over 2,064 tests** — taken with a
+second test host running against the same tree, so **the loosest controls of the four** and an upper
+bound like the rest. 🔴 **What it adds is not confirmation, it is an ATTRIBUTION**: between the third
+reading and this one the test count grew **1,974 → 2,064**, about 4.6%, and the duration grew
+**3 m 02 s → 3 m 08 s**, about 3.3%. ***Growth and duration moved together at this end of the range and
+did not between 1,690 and 1,974*** — where the count grew 17% and the duration roughly fourfold. **So
+whatever produced the fourfold jump is not the suite getting bigger**, and it is still unidentified.
+⚠ **This does not close the row and moves it no nearer closing**, for the reason above: four
+uncontrolled readings agreeing is four uncontrolled readings. ***It narrows what the missing capture
+has to explain.*** ⚠ **The COUNT is a different fact from the duration and it has now drifted twice**
+— `CLAUDE.md` says 1,690 — but it is deliberately **not** corrected here, because this row's own rule
+is *what is owed is a reading, not an edit*, and editing half a figure would leave a table whose count
+was taken on one day and whose duration was taken on another. ***A figure is replaced whole or not at
+all.***
+
 - [ ] Re-capture the assertion tier on the reference machine, quiet, Release, and correct
-      `CLAUDE.md`'s table. If it lands past five minutes, `adr/0121`'s band is the next question and
-      not a footnote.
+      `CLAUDE.md`'s table **as a pair — count and duration from the same run**. If it lands past five
+      minutes, `adr/0121`'s band is the next question and not a footnote.
 
 
 ### ~~`docs/02-simulation-model.md`~~ — **PAID**
@@ -3498,7 +3520,7 @@ is checking the argument and not the example.***
 ⚠ **And `adr/0124` enumerated the blockers and counted two of three** — `sealing_decay_tau = 0` and
 `Step` never calling `DecaySealing` — **both of which are downstream of the missing write path.** Fourth
 sighting of the enumeration defect, after `adr/0062`'s Cap admission ranks, `03 §4`'s demotion fields and
-`adr/0117`'s four grounds. Owned by [`0041`](0041-terrain-and-the-land-rows.md) **F3**, which is where
+`adr/0117`'s four grounds. Owned by [`0042`](0042-terrain-and-the-land-rows.md) **F3**, which is where
 the repair order is corrected; `adr/0124` needs the amendment.
 
 ### `06`'s inventory row said both that terraforming was placed and that it was not
@@ -3521,7 +3543,7 @@ available, because
 [`adr/0021`](../docs/adr/0021-the-map-is-bounded-procedural-and-terrain-never-enters-a-tick.md) makes it
 the difference between terrain as a **price** and terrain as a **wall** — and a scoping session reading
 this row would have taken terraforming as placed at 24 and shipped the height field on that basis.
-✅ **PAID 2026-08-22 by `plans/0041` decision 2**: the row is split in two, terraforming's is **UNPLACED**,
+✅ **PAID 2026-08-22 by `plans/0042` decision 2**: the row is split in two, terraforming's is **UNPLACED**,
 and it now says it owes a **verb** before it owes a milestone
 ([`adr/0156`](../docs/adr/0156-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md)).
 
@@ -3548,7 +3570,7 @@ unfamiliar direction: not *an absence read as a constraint*, but ***a constraint
 enforcer existed.*** A reader auditing terrain reads would have gone looking for the check and found
 nothing to run.
 
-✅ **PAID 2026-08-22 by `plans/0041` decision 3**, as an **amendment in place** rather than a new ADR —
+✅ **PAID 2026-08-22 by `plans/0042` decision 3**, as an **amendment in place** rather than a new ADR —
 the design content belongs to
 [`adr/0156`](../docs/adr/0156-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md),
 and a second home for one decision is **Cause 1** by construction. The rule is restated against **state**:
@@ -3563,7 +3585,7 @@ on 2026-08-22 *"detected by file mtimes rather than by anything the corpus does.
 
 ⚠ **2026-08-22, milestone 24's scoping: three worktrees were live at once** — `city-sim` on milestone 12,
 `city-sim-m18` on milestone 18, `city-sim-q8` on `main` — and the scoping session read `git worktree
-list` and the branch diffs **before** claiming `plans/0041`. The plan number was free; **the next ADR
+list` and the branch diffs **before** claiming `plans/0042`. The plan number was free; **the next ADR
 number was not safely claimable**, because the milestone-12 branch holds unmerged work with open
 decisions 3, 7 and 10 still to settle, any of which lands an ADR.
 
@@ -3629,7 +3651,7 @@ carried it: no document either of them could read would have produced it, since 
 *difference* between two branches.
 
 ✅ **Resolved by renumbering the milestone-24 branch**, 2026-08-23: `adr/0143`–`0149` → **`0150`–`0156`**,
-`plans/0040` → **`plans/0041`**, `0144`–`0149` left free. **One side moves, not both** — the branches
+`plans/0040` → **`plans/0042`**, `0144`–`0149` left free. **One side moves, not both** — the branches
 agreed which before either edited. The 32 corpus tests pass, which is what says the citations resolve.
 
 ⚠ **What the third entry got right stands and is now load-bearing**: the tree carries the fact and
@@ -3641,3 +3663,56 @@ entry's own sentence arriving with a second half. **This does not close the item
 ⚠ **The reservation in [`0036`](0036-the-coarse-day-wheel.md) did not prevent it and was not consulted**
 — that document reserves **0140–0149** for the coarse-day-wheel track, and both milestone 24 and
 milestone 25 took numbers from inside it. ***A reservation nobody reads is a comment.***
+
+## Filed 2026-08-24, by milestone 27's decomposition — two doc comments wrong about the city
+
+**Both were found by [`0041`](0041-the-business-is-a-thing-the-city-contains.md) while sizing tasks 7
+and 8, and both are the same shape.** ⚠ **Every mechanical check in `tests/Borough.Tests/Corpus/` is
+document-to-document, so a claim living only in a doc comment is invisible to all of them** — which is
+the property that let `BusinessTable`'s *"nothing funds one"* sit unread for eight milestones. ***The
+class is not new; the two sightings are.***
+
+### `WorldInvariants.cs:1014` says no shipped Ruleset declares a job, and all thirteen do
+
+**`0041` G7a.** The comment above `Invariant.CitizenIsInExactlyOneWorkplace` reads *"Unemployment is the
+common case rather than the exception here — no shipped Ruleset declares a job — so the exemption
+carries almost every row, and what it is actually checking is the other direction."*
+
+🔴 **Every one of the thirteen shipped Rulesets declares `jobs = 8` on its `dwelling` kind.** So the
+exemption carries a *minority* of rows and the invariant is doing the work the comment says it is not.
+It was true when written — the comment dates itself to **milestone 5b-bis task 2** — and `jobs` landed
+on the shipped files at **5b-bis task 4**, ***two tasks later in the same slice.***
+
+**This is [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+exactly**: the sentence is right about which symbol to read and wrong about the **trigger**. ⚠ **What it
+costs is not correctness but attention** — a reader deciding where to look for an employment defect is
+told this invariant is nearly vacuous, and it is not.
+
+**The repair is one sentence** and it is owed by milestone 27 task 7, which re-subjects the invariant
+anyway.
+
+### `SyntheticCity.cs:257` claims the only production issuance of money, and it names its own expiry
+
+**`0041` G8.** The comment reads **"THE ONLY PRODUCTION ISSUANCE OF MONEY IN THE BUILD"**, and the very
+next clause says why it was true: *"`adr/0024` makes the Outside Connection money's only source and that
+is milestone 11."*
+
+🔴 **Milestone 11 shipped.** `World.cs:1242` endows an arriving Household from its Hinterland's
+`emigrant_balance` band, through the same `World.Endow`. ***There are two production issuances, the
+comment says one, and milestone 27 task 8 proposes a third.***
+
+⚠ **This one is worse than stale and the difference is the point.** The comment does not merely age —
+***it states the condition under which it stops being true, and that condition is a milestone that has
+since closed.*** A sentence carrying its own expiry date is the cheapest possible correction and nobody
+made it, because closing a milestone does not walk the comments that named it.
+
+**The candidate check, and it is more tractable than Cause 7's**: ***a doc comment naming a future
+milestone as the thing that will falsify it is a citation, and a citation to a closed milestone is
+checkable.*** It needs no entity vocabulary — only a grep for a milestone number in `src/` and the
+Phase 2 ledger's status for that number. 🔴 **Not proposed as work here**; recorded because it is the
+first candidate in this document that a mechanical check could actually reach.
+
+⚠ **Both findings are routed rather than fixed**, on
+[`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md):
+they were found while sizing a milestone, they live in code that milestone does not own yet, and the
+task that will touch each is named above.

@@ -155,7 +155,8 @@ public sealed class World
         // the table grows — but it is a number nobody has justified, so plans/0002 carries it as
         // unratified until a real Ruleset supplies the shape. Bins is constructed above, with the
         // actors that hold handles into it.
-        RuleInstances = new RuleInstanceTable(PerThousand(citizens, 450), Buildings, Bins);
+        RuleInstances =
+            new RuleInstanceTable(PerThousand(citizens, 450), Buildings, Bins, Households);
         Clock = new ClockTable();
         Treasury = new TreasuryTable();
         MoneySupply = new MoneySupplyTable();
@@ -165,6 +166,11 @@ public sealed class World
         // (adr/0070), so one apiece is the capacity hint that assumes least -- and it is a hint, since
         // the table grows.
         Businesses = new BusinessTable(PerThousand(citizens, 150), Buildings, Bins);
+
+        // adr/0142's collection, and its capacity hint assumes even less than the Business table's:
+        // nothing creates a Business, so this pool is EMPTY in every world the simulation builds on
+        // its own and every row in it today was put there by a fixture. A hint, since it grows.
+        UnpremisedPool = new UnpremisedTable(8, Businesses);
         RulesetTrail = new RulesetTrailTable();
         CondemnationTrail = new CondemnationTrailTable(Lots.Rows);
 
@@ -255,6 +261,20 @@ public sealed class World
             // -- so this join is the only saved statement of the relation and a hash without it would
             // agree about two worlds whose Pools belonged to different Districts.
             DistrictPools.Rows,
+
+            // Appended, milestone 25 task 5. 🔴 IT WAS MISSING FOR THE LENGTH OF ONE BUILD AND EVERY
+            // TEST PASSED -- 2,074 of them -- because a table absent from this list is not hashed, and
+            // a fact nothing folds cannot disagree with anything. ⚠ The allocation-by-declaration
+            // rule closes the COLUMN-level coverage hole and leaves this one wide open: declaring
+            // `Since` as Rows.Saved guarantees it is folded IF this table is walked, and guarantees
+            // nothing at all about whether it is. ***A saved table outside this array is state the
+            // State Hash has agreed not to look at.***
+            //
+            // It carries the membership and the give-up clock, and both are load-bearing: a member is
+            // drawn by POSITION, so a reload that produced a different order would retire a different
+            // Business from the same save, and a Since that did not travel would restart every clock
+            // at the load.
+            UnpremisedPool.Rows,
 
             // TreasuryTable is deliberately NOT here, milestone 10 task 1. Both its columns are
             // Derived, and 5a's finding is that a wholly-derived table cannot join this list: Rows.Fold
@@ -533,6 +553,17 @@ public sealed class World
     public UnplacedTable UnplacedPool { get; }
 
     /// <summary>
+    /// The unpremised pool: the Businesses seeking premises.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>It ships with one exit and that exit is the SINK</b> — see <see cref="UnpremisedTable"/>.
+    /// Nothing tenants a Business because nothing creates one, so a member leaves only by giving up
+    /// and emigrating. ***That is <c>adr/0006</c>'s bound arriving with the collection***, which is
+    /// <c>adr/0142</c>'s own rule applied to itself.
+    /// </remarks>
+    public UnpremisedTable UnpremisedPool { get; }
+
+    /// <summary>
     /// What every Ruleset transition this world survived destroyed, capped and aggregated.
     /// </summary>
     /// <remarks>
@@ -765,6 +796,22 @@ public sealed class World
             }
         }
 
+        // The tenants, after every Building has its own (adr/0141). It is a second loop rather than a
+        // call inside the first because Fit is keyed on a Building and a tenancy is keyed on a
+        // Household -- an unhoused one has no premises to refit through and must be skipped, which
+        // FitOccupant answers by returning zero rather than by being called conditionally here.
+        //
+        // ⚠ IT HAS TO RUN AT ALL, and that is the half a Building-only refit would have missed: the
+        // migration frees every Rule Instance in the world, tenants' included, so a reload without
+        // this leaves every Household holding Bins and running nothing.
+        for (int slot = 0; slot < Households.Rows.SlotCount; slot++)
+        {
+            if (Households.Rows.IsLive(slot))
+            {
+                rearmed += FitOccupant(Households.Rows.At(slot));
+            }
+        }
+
         return new RulesetDegradation(derelicted, dropped, rearmed);
     }
 
@@ -835,7 +882,7 @@ public sealed class World
     /// of them — and the guard folds everything <b>twice a Tick</b>, so terrain became about
     /// <b>ninety per cent</b> of what a fold walks. MEASURED on a quiet machine: a Tick went
     /// <b>0.03 ms → 4.14 ms</b> with the guard on, and the assertion tier <b>3m11s → 4m19s</b>
-    /// (`plans/0041` F8, `plans/0013`).
+    /// (`plans/0042` F8, `plans/0013`).
     /// </para>
     /// <para>
     /// ⚠ <b>The guard is narrowed and NOT weakened, and the second half is what makes that true.</b>
@@ -901,7 +948,13 @@ public sealed class World
         // world whose Ruleset names money. Empty -- World.Endow is the only door money enters by.
         if (TryMoneyResource(out ResourceId money))
         {
-            Households.Balance[slot] = OpenBalance(BinOwnerKind.Household, money);
+            // adr/0143: the LIST is the saved truth and Balance is derived from it, so the append is
+            // the write that matters and the assignment is a derived column maintained at its write
+            // site -- the same shape as BuildingBins.InsertOrdered in CreateBin.
+            Handle<Bin> balance = OpenBalance(BinOwnerKind.Household, money);
+
+            AppendOwnerBin(Households.BinHead, Households.BinTail, slot, balance);
+            Households.Balance[slot] = balance;
         }
 
         Invariants.Require(
@@ -911,6 +964,11 @@ public sealed class World
             buildingSlot);
 
         Occupants.InsertOrdered(buildingSlot, slot);
+
+        // The tenancy starts here, so the tenant's Bins and Rules do (adr/0141). It runs after the
+        // occupant list is joined because FitOccupant reads the dwelling handle to find the kind
+        // whose ceilings it opens Bins at.
+        FitOccupant(handle);
 
         return handle;
     }
@@ -947,7 +1005,10 @@ public sealed class World
         // CreateHousehold's line, for its reason (adr/0114).
         if (TryMoneyResource(out ResourceId money))
         {
-            Businesses.Balance[slot] = OpenBalance(BinOwnerKind.Business, money);
+            Handle<Bin> balance = OpenBalance(BinOwnerKind.Business, money);
+
+            AppendOwnerBin(Businesses.BinHead, Businesses.BinTail, slot, balance);
+            Businesses.Balance[slot] = balance;
         }
 
         BuildingBusinesses.InsertOrdered(buildingSlot, slot);
@@ -1070,6 +1131,10 @@ public sealed class World
             Invariants.Report(Invariant.OnlyAHousedHouseholdIsUnplaced, slot);
             return;
         }
+
+        // Before the dwelling handle is cleared, because the tenant's Rule Instances are found
+        // through the premises' Rule list and its Bins were opened at that kind's ceilings.
+        UnfitOccupant(household);
 
         Occupants.Remove(buildingSlot, slot);
         Households.Dwelling[slot] = default;
@@ -1217,7 +1282,13 @@ public sealed class World
         // from the Hinterland at task 5, and World.Endow is still the only door money enters by.
         if (TryMoneyResource(out ResourceId money))
         {
-            Households.Balance[slot] = OpenBalance(BinOwnerKind.Household, money);
+            // adr/0143: the LIST is the saved truth and Balance is derived from it, so the append is
+            // the write that matters and the assignment is a derived column maintained at its write
+            // site -- the same shape as BuildingBins.InsertOrdered in CreateBin.
+            Handle<Bin> balance = OpenBalance(BinOwnerKind.Household, money);
+
+            AppendOwnerBin(Households.BinHead, Households.BinTail, slot, balance);
+            Households.Balance[slot] = balance;
         }
 
         // Money crosses here, which is MoneySupplyTable.Issued's second writer and the first thing in
@@ -1319,6 +1390,10 @@ public sealed class World
             buildingSlot);
 
         Occupants.InsertOrdered(buildingSlot, slot);
+
+        // adr/0141: housing a Household is the start of a tenancy, and a tenancy is what its own Bins
+        // and Rules hang off.
+        FitOccupant(household);
     }
 
     /// <summary>Adds a Citizen to a Household, linking it into the Household's member list.</summary>
@@ -1445,6 +1520,146 @@ public sealed class World
         DestroyHousehold(household);
     }
 
+    /// <summary>
+    /// Puts a Business that has lost its premises into the unpremised pool.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="Unplace(Handle{Household})"/>'s opposite number</b>, and deliberately the same
+    /// shape: it severs the premises handle, puts the actor in a pool with a clock on it, and touches
+    /// <b>nothing it owns</b>. ***A pooled tenant keeps what it owns and that needs no code***
+    /// (<c>adr/0142</c>) — the balance handle, the Bin list and the row itself are all untouched here.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The caller takes the Business off <c>BuildingBusinesses</c>, not this method.</b>
+    /// <see cref="DestroyBuilding"/> is draining that list as it goes and re-entering it here would
+    /// be a mutation of the list being walked — <c>plans/0040</c> <b>F32</b>'s shape, avoided by not
+    /// creating it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Its stock is NOT carried into the pool</b>
+    /// (<see href="../../docs/adr/0144-a-tenant-that-loses-its-premises-keeps-only-its-money-and-waits-a-households-wait.md">adr/0144</see>).
+    /// A Business owns exactly one Bin today — its balance — so there is nothing here to free and the
+    /// loop that would do it is not written: a Business's stock Bins are <b>unbuilt</b>, and writing
+    /// the sweep for them now would be a mechanism with no rows to walk. ***The rule is decided and
+    /// the code for it is milestone 27's***, which is the honest split rather than an omission.
+    /// </para>
+    /// </remarks>
+    public void Unpremise(Handle<Business> business, Ticks now)
+    {
+        int slot = Businesses.Rows.Resolve(business);
+
+        if (Businesses.IsUnpremised(slot))
+        {
+            // Already pooled. Reaching here twice would put one Business in the pool at two
+            // positions, and the second Leave would swap a live member into a freed slot.
+            Invariants.Report(Invariant.ABusinessIsPremisedOrItIsInThePool, slot);
+            return;
+        }
+
+        Businesses.Building[slot] = default;
+        UnpremisedPool.Join(Businesses, business, now);
+    }
+
+    /// <summary>
+    /// Sends an unpremised Business out of the city, taking its money with it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="Depart(Handle{Household})"/>'s mirror, and the mechanism is that method's
+    /// unchanged</b> (<c>adr/0142</c>): the balance is subtracted from <c>MoneySupply.Issued</c>
+    /// before the row is freed, so <c>Invariant.MoneyIsConserved</c> holds across the departure.
+    /// ***The money is neither destroyed nor confiscated; it is exported*** — through the same door
+    /// <see cref="Endow"/> brings an arriving Household's balance in by.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The supply write is here and not in <see cref="DestroyBusiness"/></b>, which is the split
+    /// <see cref="Depart(Handle{Household})"/> makes and states its reason for: destroying a row is a
+    /// table operation with several callers and ***only THIS one means somebody left the city.*** A
+    /// fixture bulldozing a Business has not moved money out of any economy.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It refuses a PREMISED Business</b>, which is
+    /// <c>Invariant.OnlyAnUnhousedHouseholdGivesUp</c>'s rule with a different subject. A premised
+    /// Business choosing to leave is the housed-departure channel — <b>unbuilt</b>, a comparison
+    /// rather than a threshold (<c>adr/0102</c>) — so reaching here with premises means somebody
+    /// wired the wrong channel to this door.
+    /// </para>
+    /// </remarks>
+    public void Depart(Handle<Business> business)
+    {
+        int slot = Businesses.Rows.Resolve(business);
+
+        if (Buildings.Rows.TryResolve(Businesses.Building[slot], out _))
+        {
+            Invariants.Report(Invariant.ABusinessIsPremisedOrItIsInThePool, slot);
+            return;
+        }
+
+        int position = Businesses.PoolPosition(slot);
+
+        if (position < 0 || position >= UnpremisedPool.Count)
+        {
+            Invariants.Report(Invariant.ABusinessIsPremisedOrItIsInThePool, slot);
+            return;
+        }
+
+        // Before DestroyBusiness, because that frees the Bin -- reading the level afterwards would
+        // read a freed row. Depart(Household)'s line and its reason.
+        if (Bins.Rows.TryResolve(Businesses.Balance[slot], out int balance))
+        {
+            MoneySupply.Issued[MoneySupplyTable.Slot] -= new Money(Bins.LevelAt(balance));
+        }
+
+        // The membership goes first, because DestroyBusiness frees the row the membership holds a
+        // handle to.
+        UnpremisedPool.Leave(Businesses, position);
+
+        DestroyBusiness(business);
+    }
+
+    /// <summary>
+    /// Frees a Business and every Bin it owned.
+    /// </summary>
+    /// <remarks>
+    /// <b>The table operation, with no economics in it</b> — see <see cref="Depart(Handle{Business})"/>
+    /// for why the money supply is written by the caller rather than here.
+    /// ⚠ <b>Every Bin it owned and not only its balance</b>, which is <c>adr/0143</c>'s saved owner
+    /// list being the only way to reach a tenant's Bins at all, and <c>DestroyHousehold</c>'s own
+    /// walk one actor across. The link is taken <b>before</b> the row is freed, because reading
+    /// <c>OwnerNext</c> out of a freed row reads a zeroed slot and truncates the walk at the first
+    /// entry.
+    /// </remarks>
+    public void DestroyBusiness(Handle<Business> business)
+    {
+        int slot = Businesses.Rows.Resolve(business);
+
+        if (Businesses.IsUnpremised(slot))
+        {
+            UnpremisedPool.Leave(Businesses, Businesses.PoolPosition(slot));
+        }
+
+        if (Buildings.Rows.TryResolve(Businesses.Building[slot], out int buildingSlot))
+        {
+            BuildingBusinesses.Remove(buildingSlot, slot);
+        }
+
+        Handle<Bin> owned = Businesses.BinHead[slot];
+
+        while (!owned.IsNone)
+        {
+            int binSlot = Bins.Rows.Resolve(owned);
+            Handle<Bin> next = Bins.OwnerNext[binSlot];
+
+            WakeAll(binSlot, Tick);
+            Bins.Rows.Free(owned);
+
+            owned = next;
+        }
+
+        Businesses.Rows.Free(business);
+    }
+
     /// <summary>Retires a Citizen, unlinking it from its Household first.</summary>
     public void DestroyCitizen(Handle<Citizen> citizen)
     {
@@ -1511,6 +1726,12 @@ public sealed class World
             member = Members.PeekFront(slot);
         }
 
+        // adr/0141: the tenancy ends before the Household does, through the one implementation that
+        // ends a tenancy. It frees this Household's own Rule Instances -- which are in the PREMISES'
+        // Rule list and would otherwise be left holding a handle to a freed row -- and its stock
+        // Bins, leaving the balance for the walk below to destroy along with the row.
+        UnfitOccupant(household);
+
         if (Buildings.Rows.TryResolve(Households.Dwelling[slot], out int buildingSlot))
         {
             Occupants.Remove(buildingSlot, slot);
@@ -1534,10 +1755,26 @@ public sealed class World
         // fixture bulldozing a row has not moved any money out of any economy. Folding the supply
         // write into this method would make every future caller silently claim an emigration.
         // Invariant.MoneyIsConserved still reports a caller that forgets, which is what it is for.
-        if (Bins.Rows.TryResolve(Households.Balance[slot], out int balance))
+        // adr/0143: EVERY Bin the Household owned, and not only its balance. As of adr/0141 a Bin
+        // belongs to the Occupant whose leaving would empty it, so a tenant's stock leaves with it for
+        // the same reason its money does -- and walking the saved list is the only way to reach those
+        // Bins, because a tenant-owned Bin names no owner. ⚠ The list is read forward and each link is
+        // taken BEFORE the row is freed; reading OwnerNext out of a freed row would be reading a
+        // zeroed slot and would silently truncate the walk at the first entry.
+        //
+        // The heads are not cleared here because Rows.Free zeroes the row, which is the same property
+        // IndexList's slot-plus-one encoding exists to rely on.
+        Handle<Bin> owned = Households.BinHead[slot];
+
+        while (!owned.IsNone)
         {
-            WakeAll(balance, Tick);
-            Bins.Rows.Free(Bins.Rows.At(balance));
+            int binSlot = Bins.Rows.Resolve(owned);
+            Handle<Bin> next = Bins.OwnerNext[binSlot];
+
+            WakeAll(binSlot, Tick);
+            Bins.Rows.Free(owned);
+
+            owned = next;
         }
 
         Households.Rows.Free(household);
@@ -1605,6 +1842,7 @@ public sealed class World
         Buildings.RuleTail.Span.Clear();
         Households.DwellingNext.Span.Clear();
         Households.PoolSlot.Span.Clear();
+        Businesses.PoolSlot.Span.Clear();
         Households.MemberHead.Span.Clear();
         Households.MemberTail.Span.Clear();
         Citizens.MemberNext.Span.Clear();
@@ -1665,6 +1903,16 @@ public sealed class World
                 && Households.Rows.TryResolve(UnplacedPool.Household[slot], out int householdSlot))
             {
                 Households.EnterPool(householdSlot, slot);
+            }
+        }
+
+        // The unpremised pool's reverse index, on the Unplaced Pool's own reasoning eight lines up.
+        for (int slot = 0; slot < UnpremisedPool.Rows.SlotCount; slot++)
+        {
+            if (UnpremisedPool.Rows.IsLive(slot)
+                && Businesses.Rows.TryResolve(UnpremisedPool.Business[slot], out int businessSlot))
+            {
+                Businesses.EnterPool(businessSlot, slot);
             }
         }
 
@@ -1761,13 +2009,20 @@ public sealed class World
 
                 case BinOwnerKind.Household:
                 case BinOwnerKind.Business:
-                    // Nothing to rebuild, and that is task 4c's shape rather than an omission. A
-                    // Building's Bins hang off a DERIVED list, so this walk is the only thing that can
-                    // put them back; an actor's balance is a single SAVED handle on the actor
-                    // (HouseholdTable.Balance), so the link came out of the file already made. What is
-                    // asymmetric is the cardinality and not the care: a Building holds many Bins
-                    // because its kind declares many Resources, and an actor holds one because money
-                    // is one Resource.
+                    // Nothing to rebuild HERE, and the reason is the District case's, not the one
+                    // this comment used to give. An Occupant's Bins hang off a SAVED list --
+                    // HouseholdTable.BinHead / BusinessTable.BinHead, threaded through
+                    // BinTable.OwnerNext -- so the link came out of the file already made. A
+                    // Building's Bins hang off a DERIVED list and this walk is the only thing that
+                    // can put them back. ⚠ What separates them is RECOVERABILITY and not care: a
+                    // derived list can only be derived when the element names its owner, and a
+                    // tenant-owned Bin names nobody (adr/0143).
+                    //
+                    // ⚠ THIS COMMENT SAID `an actor's balance is a single SAVED handle ... an actor
+                    // holds one because money is one Resource` UNTIL adr/0141. An Occupant now holds
+                    // a list, because a Bin belongs to the Occupant whose leaving would empty it and
+                    // flour leaves with the baker. The balance is one entry in that list and is
+                    // re-derived below rather than saved.
                     //
                     // The case is spelled out rather than folded into the default, because falling
                     // through to a throw that says `names no owner kind` would be a true statement
@@ -1780,6 +2035,30 @@ public sealed class World
                         $"bin {slot} is live and names no owner kind. Every Bin is created through "
                         + "BinTable.Create, which writes one; a zero here is a row that was allocated "
                         + "and never initialised, or a save whose owner_kind column did not load.");
+            }
+        }
+
+        // The actors' balances, which are DERIVED as of adr/0143 and were saved before it. An Occupant
+        // owns a list of Bins now, and a second saved handle to one of its entries would be two saved
+        // facts that can disagree -- so the handle is re-found here, exactly as a Building's Bin list
+        // is re-threaded above. ⚠ It is a walk of each actor's OWN list rather than a scan of the Bin
+        // table, and that list is short by construction: one Bin per Resource the owner keeps.
+        if (TryMoneyResource(out ResourceId balanceResource))
+        {
+            for (int slot = 0; slot < Households.Rows.SlotCount; slot++)
+            {
+                if (Households.Rows.IsLive(slot))
+                {
+                    Households.Balance[slot] = FindOwnerBin(Households.BinHead, slot, balanceResource);
+                }
+            }
+
+            for (int slot = 0; slot < Businesses.Rows.SlotCount; slot++)
+            {
+                if (Businesses.Rows.IsLive(slot))
+                {
+                    Businesses.Balance[slot] = FindOwnerBin(Businesses.BinHead, slot, balanceResource);
+                }
             }
         }
 
@@ -2095,6 +2374,15 @@ public sealed class World
         // walk is over an empty list.
         foreach (BinDeclaration bin in Rules.BinsOf(kind))
         {
+            // The premises' Bins only. A tenant's are opened by FitOccupant when the tenancy starts,
+            // because they hold what leaves with the tenant (adr/0141) -- and a Building with room
+            // for three families would otherwise open one larder for all of them, which is the shared
+            // kitchen minimal.toml's own header disclaims.
+            if (bin.Tenancy != BinTenancy.Premises)
+            {
+                continue;
+            }
+
             if (FindBin(buildingSlot, bin.Resource) == Rows.NoSlot)
             {
                 CreateBin(building, bin.Resource);
@@ -2117,11 +2405,188 @@ public sealed class World
 
         foreach (RuleId rule in Rules.RulesOf(kind))
         {
-            CreateRuleInstance(building, rule, now, ArmingStagger(building, rule, now, key));
+            if (Rules.Rule(rule).Tenancy != BinTenancy.Premises)
+            {
+                continue;
+            }
+
+            CreateRuleInstance(
+                building, rule, now, ArmingStagger(Buildings.Rows.IdAt(buildingSlot), rule, now, key));
             armed++;
         }
 
         return armed;
+    }
+
+    /// <summary>
+    /// Opens a Household's own Bins and arms its own Rules, at the start of a tenancy.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="Fit"/>'s other half</b> (<c>adr/0141</c>). The premises declare every Bin on the
+    /// Lot and the tenant holds the level in the ones that would empty if it left, so the *set* comes
+    /// from the Building's kind here exactly as it does there — what differs is the owner the Bin
+    /// hangs off and the subject the Rule Instance names.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A tenant's Bins and Rules live exactly as long as the tenancy, and that is forced rather
+    /// than chosen.</b> A ceiling is a function of <c>(building kind, Resource)</c> and an unhoused
+    /// Household has no kind to read one from, so a Bin that outlived its tenancy would be a Bin
+    /// <see cref="RebuildCapacities"/> cannot give a ceiling to. ⚠ <b>What that costs is the tenant's
+    /// stock, destroyed on eviction</b> — filed as a finding, and it is <em>not</em> the money, which
+    /// is unbounded, has no premises in its ceiling and stays with the Household under
+    /// <c>adr/0054</c>. ⚠ <b>It is also NOT the answer for a Business</b>, which under
+    /// <c>adr/0142</c> goes on existing unpremised holding what it had; that is open decision 1 of
+    /// <c>plans/0040</c> and this method does not settle it.
+    /// </para>
+    /// <para>
+    /// <b>Asked rather than assumed, exactly as <see cref="Fit"/> asks</b>, so that a Ruleset swap
+    /// meets a Household that already holds the Bins that survived the migration.
+    /// </para>
+    /// </remarks>
+    /// <returns>How many Rule Instances were armed.</returns>
+    private int FitOccupant(Handle<Household> household)
+    {
+        int slot = Households.Rows.Resolve(household);
+        Handle<Building> dwelling = Households.Dwelling[slot];
+
+        if (!Buildings.Rows.TryResolve(dwelling, out int buildingSlot))
+        {
+            return 0;
+        }
+
+        byte kind = Buildings.Kind[buildingSlot];
+
+        if (!Rules.Declares(kind))
+        {
+            return 0;
+        }
+
+        foreach (BinDeclaration bin in Rules.BinsOf(kind))
+        {
+            if (bin.Tenancy != BinTenancy.Occupant)
+            {
+                continue;
+            }
+
+            if (FindOwnerBin(Households.BinHead, slot, bin.Resource).IsNone)
+            {
+                CreateOccupantBin(household, buildingSlot, bin.Resource);
+            }
+        }
+
+        int armed = 0;
+
+        foreach (RuleId rule in Rules.RulesOf(kind))
+        {
+            if (Rules.Rule(rule).Tenancy != BinTenancy.Occupant)
+            {
+                continue;
+            }
+
+            // The TENANT's monotonic id into the stagger and not the Building's, which is the half of
+            // adr/0141 that is a correctness bug rather than a tidy-up: three Households in one
+            // dwelling all running `consume` would mix the same Building id with the same RuleId and
+            // land on one Wheel bucket, together, for ever.
+            CreateRuleInstance(
+                dwelling,
+                rule,
+                Tick,
+                ArmingStagger(Households.Rows.IdAt(slot), rule, Tick, Key),
+                household);
+
+            armed++;
+        }
+
+        return armed;
+    }
+
+    /// <summary>
+    /// Closes a Household's own Bins and frees its own Rule Instances, at the end of a tenancy.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The balance survives and everything else does not</b> (<c>adr/0054</c>, <c>adr/0024</c>):
+    /// money is unbounded, so its ceiling names no premises and there is nothing about a tenancy for
+    /// it to depend on. ⚠ <b>Destroying it would be money leaving the world through an eviction</b>,
+    /// which is the hole <c>Invariant.MoneyIsConserved</c> exists to report and which it would report
+    /// a very long way from here.
+    /// </para>
+    /// <para>
+    /// <b>The Rules go before the Bins</b>, for the reason <see cref="DestroyBuilding"/> states in the
+    /// same order: a Rule Instance asleep on a Bin has to come off that wait list before the Bin is
+    /// freed, or the wake walks a freed row.
+    /// </para>
+    /// </remarks>
+    private void UnfitOccupant(Handle<Household> household)
+    {
+        int slot = Households.Rows.Resolve(household);
+
+        if (Buildings.Rows.TryResolve(Households.Dwelling[slot], out int buildingSlot))
+        {
+            // Rescanned from the front after every removal rather than walked once with the link
+            // held. ⚠ RuleInstance.RuleNext IS ENCODED -- IndexList stores slot-plus-one so that a
+            // zeroed column reads as `no list` rather than as slot 0 -- so reading it raw to hold a
+            // successor across a Free would walk one row past every element. The list is a Building's
+            // Rules, which is single digits, so the rescan is cheaper than a second decode API.
+            IndexList rules = BuildingRules;
+            bool removed = true;
+
+            while (removed)
+            {
+                removed = false;
+
+                foreach (int instance in rules.Walk(buildingSlot))
+                {
+                    if (RuleInstances.Household[instance] != household)
+                    {
+                        continue;
+                    }
+
+                    rules.Remove(buildingSlot, instance);
+                    Unlink(instance);
+                    RuleInstances.Rows.Free(RuleInstances.Rows.At(instance));
+                    removed = true;
+                    break;
+                }
+            }
+        }
+
+        Handle<Bin> at = Households.BinHead[slot];
+        Handle<Bin> keptHead = default;
+        Handle<Bin> keptTail = default;
+
+        while (!at.IsNone)
+        {
+            int binSlot = Bins.Rows.Resolve(at);
+            Handle<Bin> next = Bins.OwnerNext[binSlot];
+
+            if (Rules.IsConserved(Bins.Resource[binSlot]))
+            {
+                Bins.OwnerNext[binSlot] = default;
+
+                if (keptTail.IsNone)
+                {
+                    keptHead = at;
+                }
+                else
+                {
+                    Bins.OwnerNext[Bins.Rows.Resolve(keptTail)] = at;
+                }
+
+                keptTail = at;
+            }
+            else
+            {
+                WakeAll(binSlot, Tick);
+                Bins.Rows.Free(at);
+            }
+
+            at = next;
+        }
+
+        Households.BinHead[slot] = keptHead;
+        Households.BinTail[slot] = keptTail;
     }
 
     /// <summary>
@@ -2139,17 +2604,24 @@ public sealed class World
     /// diagnosis and the one worth surfacing at world creation rather than a rate later.
     /// </para>
     /// </remarks>
-    private uint ArmingStagger(Handle<Building> building, RuleId rule, Ticks now, WorldKey key)
+    private uint ArmingStagger(ulong subject, RuleId rule, Ticks now, WorldKey key)
     {
         uint rate = Rules.Rule(rule).Rate;
 
-        // The Rule as well as the Building, so that two Rules on one Building do not share an offset
+        // The Rule as well as the subject, so that two Rules on one subject do not share an offset
         // and arrive together every time — which is the same bucket spike, one Building wide. The
-        // Building's contribution is its monotonic never-reused id and not its slot, for the reason
+        // subject's contribution is its monotonic never-reused id and not its slot, for the reason
         // the State Hash folds the same thing: a recycled slot would make a demolished Building's
         // replacement inherit its schedule.
-        ulong id = Buildings.Rows.IdAt(Buildings.Rows.Resolve(building));
-        ulong entity = Randomness.Mix(id ^ ((ulong)rule.Raw << 32));
+        //
+        // ⚠ THE SUBJECT IS THE TENANT FOR A TENANT'S RULE AND THE BUILDING FOR THE PREMISES', which
+        // is adr/0141's stagger clause and a correctness bug rather than a quality one: three
+        // Households in one dwelling all running `consume` would otherwise mix the same Building id
+        // with the same RuleId, and land in one Wheel bucket together for the life of the world. The
+        // two id spaces are different tables' and may collide across them -- which is harmless,
+        // because a collision only matters between two rows that share a RuleId AND a bucket, and a
+        // Rule belongs to one tenancy side by construction.
+        ulong entity = Randomness.Mix(subject ^ ((ulong)rule.Raw << 32));
         ulong draw = Randomness.Draw(key, entity, now, PurposeTag.RuleArmingStagger);
 
         return 1u + (uint)(draw % rate);
@@ -2623,19 +3095,31 @@ public sealed class World
             return;
         }
 
+        // adr/0143: the test is the LIST rather than the derived Balance handle. A reload rebuilds
+        // Balance from the list, so an actor that already holds a money Bin is one whose list contains
+        // one -- and asking the derived column instead would open a second Bin for an actor that has
+        // one whenever this ran before RebuildDerived did.
         for (int slot = 0; slot < Households.Rows.SlotCount; slot++)
         {
-            if (Households.Rows.IsLive(slot) && Households.Balance[slot].IsNone)
+            if (Households.Rows.IsLive(slot)
+                && FindOwnerBin(Households.BinHead, slot, money).IsNone)
             {
-                Households.Balance[slot] = OpenBalance(BinOwnerKind.Household, money);
+                Handle<Bin> balance = OpenBalance(BinOwnerKind.Household, money);
+
+                AppendOwnerBin(Households.BinHead, Households.BinTail, slot, balance);
+                Households.Balance[slot] = balance;
             }
         }
 
         for (int slot = 0; slot < Businesses.Rows.SlotCount; slot++)
         {
-            if (Businesses.Rows.IsLive(slot) && Businesses.Balance[slot].IsNone)
+            if (Businesses.Rows.IsLive(slot)
+                && FindOwnerBin(Businesses.BinHead, slot, money).IsNone)
             {
-                Businesses.Balance[slot] = OpenBalance(BinOwnerKind.Business, money);
+                Handle<Bin> balance = OpenBalance(BinOwnerKind.Business, money);
+
+                AppendOwnerBin(Businesses.BinHead, Businesses.BinTail, slot, balance);
+                Businesses.Balance[slot] = balance;
             }
         }
     }
@@ -2661,6 +3145,118 @@ public sealed class World
     /// </remarks>
     private Handle<Bin> OpenBalance(BinOwnerKind kind, ResourceId money) =>
         Bins.Create(kind, money, long.MaxValue);
+
+    /// <summary>
+    /// Opens a Bin a Household holds, at the ceiling <b>its premises' kind</b> declares.
+    /// </summary>
+    /// <remarks>
+    /// <b>Two owners in one call, and that is <c>adr/0141</c> rather than an awkward signature.</b>
+    /// The Household holds the level and the Building declares the ceiling, so the creation site
+    /// needs both — <em>a shop holds what fits in the shop, and what is in it is the shopkeeper's.</em>
+    /// ⚠ <see cref="CreateBin"/> reads its kind from the owner because there the two are the same
+    /// thing; here they are not, which is the whole of what this method adds.
+    /// </remarks>
+    private Handle<Bin> CreateOccupantBin(
+        Handle<Household> owner, int premisesSlot, ResourceId resource)
+    {
+        int slot = Households.Rows.Resolve(owner);
+
+        Handle<Bin> handle = Bins.Create(
+            BinOwnerKind.Household,
+            resource,
+            DeclaredCapacity(Buildings.Kind[premisesSlot], resource));
+
+        AppendOwnerBin(Households.BinHead, Households.BinTail, slot, handle);
+
+        return handle;
+    }
+
+    /// <summary>
+    /// The Bin a Rule Instance's <c>local</c> term addresses: the tenant's if it has one, the
+    /// premises' otherwise.
+    /// </summary>
+    /// <remarks>
+    /// <b>A scope answers <em>whose is it</em> and not <em>where do I look</em></b> (<c>adr/0050</c>),
+    /// and this is that sentence acquiring a second possible answer. Before <c>adr/0141</c> the
+    /// subject of every Rule was its Building, so <see cref="FindBin"/> was the whole of
+    /// <c>local</c>; now the subject is whatever <c>RuleInstanceTable.Household</c> names.
+    /// </remarks>
+    public int FindLocalBin(int instance, ResourceId resource)
+    {
+        Handle<Household> tenant = RuleInstances.Household[instance];
+
+        if (tenant.IsNone)
+        {
+            return FindBin(Buildings.Rows.Resolve(RuleInstances.Building[instance]), resource);
+        }
+
+        Handle<Bin> held = FindOwnerBin(
+            Households.BinHead, Households.Rows.Resolve(tenant), resource);
+
+        return held.IsNone ? Rows.NoSlot : Bins.Rows.Resolve(held);
+    }
+
+    /// <summary>
+    /// Appends a Bin to an Occupant's list of its own Bins (<c>adr/0143</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>At the tail, for <c>adr/0033</c>'s reason</b>: the order Bins were opened in is the order a
+    /// walk hands them back, and a push-front list would hand back the reverse — a different city
+    /// rather than a different implementation.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The links are handles, so the empty list is the unset handle rather than a sentinel.</b>
+    /// <see cref="Tables.IndexList"/> encodes slot-plus-one precisely because a zeroed <c>int</c> would
+    /// read as slot 0; a zeroed <c>Handle</c> already reads as <em>nothing</em>, which is the property
+    /// that makes the saved form safe to fold.
+    /// </para>
+    /// </remarks>
+    private void AppendOwnerBin(
+        HandleColumn<Bin> head, HandleColumn<Bin> tail, int ownerSlot, Handle<Bin> bin)
+    {
+        Handle<Bin> last = tail[ownerSlot];
+
+        if (last.IsNone)
+        {
+            head[ownerSlot] = bin;
+        }
+        else
+        {
+            Bins.OwnerNext[Bins.Rows.Resolve(last)] = bin;
+        }
+
+        tail[ownerSlot] = bin;
+    }
+
+    /// <summary>
+    /// The Bin an Occupant holds for one Resource, or the unset handle if it holds none.
+    /// </summary>
+    /// <remarks>
+    /// <b>A walk of one owner's list and not a scan of the Bin table.</b> The list is short by
+    /// construction — one Bin per Resource that Occupant keeps — which is the property that let
+    /// <c>adr/0143</c> refuse a join table: a join would have needed the dense index
+    /// <c>DistrictPoolTable</c> was allowed to defer, because <em>that</em> path is cold and this one
+    /// is a Rule term resolved per evaluation.
+    /// </remarks>
+    private Handle<Bin> FindOwnerBin(HandleColumn<Bin> head, int ownerSlot, ResourceId resource)
+    {
+        Handle<Bin> at = head[ownerSlot];
+
+        while (!at.IsNone)
+        {
+            int slot = Bins.Rows.Resolve(at);
+
+            if (Bins.Resource[slot].Raw == resource.Raw)
+            {
+                return at;
+            }
+
+            at = Bins.OwnerNext[slot];
+        }
+
+        return default;
+    }
 
     /// <summary>
     /// Writes every live Bin's ceiling from the Ruleset in force (<c>adr/0064</c>).
@@ -2739,11 +3335,22 @@ public sealed class World
                 continue;
             }
 
+            // A tenant's Bin, left to the owner walk below. ⚠ THIS IS THE HALF adr/0143 PREDICTED:
+            // its ceiling comes from the PREMISES (adr/0141), and a Bin cannot name its owner -- which
+            // is exactly what that record gave up -- so the only way to reach a Household from a Bin
+            // is not to start from the Bin. `RebuildCapacities walks owners rather than Bins`, in its
+            // own words, and here it does both: the cases a Bin can answer alone stay in this loop.
+            if (Bins.OwnerKind[slot] == BinOwnerKind.Household)
+            {
+                continue;
+            }
+
             // Anything else owned by something that is not a Building has no ceiling to derive: a
-            // ceiling is a function of (Building kind, Resource), and there is no second source. It
-            // cannot happen today -- the only non-Building Bins anything creates are money and the
-            // Pool -- so it throws rather than defaulting, because the alternative is a zero ceiling
-            // that reads as a Bin nothing can ever put anything into.
+            // ceiling is a function of (Building kind, Resource), and there is no second source. A
+            // Business reaches here and is not handled, which is open decision 1 of plans/0040 and
+            // not an oversight -- nothing creates a Business's stock Bin yet, so it throws rather
+            // than defaulting, because the alternative is a zero ceiling that reads as a Bin nothing
+            // can ever put anything into.
             if (Bins.OwnerKind[slot] != BinOwnerKind.Building)
             {
                 throw new NotSupportedException(
@@ -2758,6 +3365,44 @@ public sealed class World
                 : (byte)0;
 
             Bins.SetCapacity(slot, DeclaredCapacity(kind, resource));
+        }
+
+        // The tenants' Bins, from the owner rather than from the Bin (adr/0143). A Household's Bins
+        // hang off the Household and its ceiling hangs off the Building it lives in, so this walk is
+        // the only place both are in scope at once.
+        //
+        // ⚠ AN UNHOUSED HOUSEHOLD HOLDS NO BIN BUT ITS BALANCE, by construction rather than by luck:
+        // UnfitOccupant closes the rest when the tenancy ends, precisely because there would be no
+        // kind here to read a ceiling from. A conserved Bin skips because its ceiling is money's and
+        // the loop above has already written it.
+        for (int slot = 0; slot < Households.Rows.SlotCount; slot++)
+        {
+            if (!Households.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            // A derelict dwelling keeps the ceilings it had, which is the same answer this method
+            // gives a derelict Building's own Bins two loops up: DeclaredCapacity of an undeclared
+            // kind is a statement about a file rather than about the city.
+            byte kind = Buildings.Rows.TryResolve(Households.Dwelling[slot], out int buildingSlot)
+                ? Buildings.Kind[buildingSlot]
+                : (byte)0;
+
+            Handle<Bin> at = Households.BinHead[slot];
+
+            while (!at.IsNone)
+            {
+                int binSlot = Bins.Rows.Resolve(at);
+                ResourceId held = Bins.Resource[binSlot];
+
+                if (held.Raw <= Rules.ResourceCount && !Rules.IsConserved(held))
+                {
+                    Bins.SetCapacity(binSlot, DeclaredCapacity(kind, held));
+                }
+
+                at = Bins.OwnerNext[binSlot];
+            }
         }
 
         // The Car Parks, on the Bins' rule and with the difference stated at CarParkTable.SpaceAt: a
@@ -3546,11 +4191,15 @@ public sealed class World
 
     /// <summary>Gives a Building one of the Rules its kind runs, armed to fire in <paramref name="delay"/>.</summary>
     public Handle<RuleInstance> CreateRuleInstance(
-        Handle<Building> building, RuleId rule, Ticks now, uint delay)
+        Handle<Building> building,
+        RuleId rule,
+        Ticks now,
+        uint delay,
+        Handle<Household> tenant = default)
     {
         int buildingSlot = Buildings.Rows.Resolve(building);
 
-        Handle<RuleInstance> handle = RuleInstances.Create(building, rule);
+        Handle<RuleInstance> handle = RuleInstances.Create(building, rule, tenant);
         int slot = RuleInstances.Rows.Resolve(handle);
 
         BuildingRules.InsertOrdered(buildingSlot, slot);
@@ -3716,20 +4365,23 @@ public sealed class World
         // here. So the row survives with its money, holding a severed premises handle that says `the
         // premises stopped existing`.
         //
-        // ⚠ WHAT BECOMES OF A BUSINESS WITH NO PREMISES IS UNDESIGNED (adr/0070), and it is the
-        // departing Household's question with a different subject -- both are filed in plans/0002 §C.
-        // Nothing reaches it today: no pass creates a Business, so this loop is empty in every world
-        // the simulation builds on its own. Left as a leak that cannot be reached rather than closed
-        // by inventing a destination for money.
+        // adr/0142, milestone 25 task 5: the orphaned Businesses go into the unpremised pool, where a
+        // give-up bound sends them out of the city with their money. ⚠ THIS BLOCK SAID THE
+        // DESTINATION WAS UNDESIGNED until 2026-08-23, and it was right on its own terms -- it
+        // declined to invent one rather than leaking money to close the loop, and named the leak it
+        // was leaving. What changed is that adr/0142 supplied a destination that already existed.
         //
-        // Drained rather than Clear()ed, for the reason the worker branch above states: the rows stay
-        // live and are not re-linked, and IndexList.Clear drops the two heads without touching any
-        // element's next link. A Business left holding a stale BuildingNext is in no list and points
-        // at its old sibling, which RebuildDerived would never produce -- so Clear here would break
-        // the (derived AND rebuilt) agreement in exactly the direction no hash can see.
+        // Still drained rather than Clear()ed, for the reason the worker branch above states, and now
+        // for a second: Unpremise reads Businesses.Building before severing it, so the rows must come
+        // off this list one at a time rather than the two heads being dropped underneath them.
+        // IndexList.Clear leaves every element's next link intact, and a Business in no list pointing
+        // at its old sibling is a (derived AND rebuilt) disagreement no hash can see.
         IndexList premises = BuildingBusinesses;
-        while (premises.PopFront(slot) != Rows.NoSlot)
+        int tenant = premises.PopFront(slot);
+        while (tenant != Rows.NoSlot)
         {
+            Unpremise(Businesses.Rows.At(tenant), tick);
+            tenant = premises.PopFront(slot);
         }
 
         // The Rules next, so that any of them asleep on this Building's own Bins are off those wait

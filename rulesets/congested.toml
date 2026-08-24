@@ -163,13 +163,29 @@ family = "money"
 # A dwelling holding a Bin its Occupants draw from is CONTEXT -> Building's own sentence, and it is
 # the one shape available while `local` is the only scope with a Bin behind it.
 #
+# `owner = "occupant"` IS adr/0141'S LINE, AND THE TEST IS WHETHER THE BIN EMPTIES WHEN THE TENANT
+# LEAVES: the larder goes with the family, the roof does not. So `sundries` is one Bin PER HOUSEHOLD
+# and `repairs` is one per Building. THE PREMISES STILL DECLARE THE CEILING -- 48 is what fits in a
+# dwelling of this kind, whoever is living in it -- and the tenant holds the level.
+#
+# THE RULES FOLLOW THEIR BINS, which is derived and not authored: `restock` and `consume` below both
+# name `sundries` and are therefore each family's own, where `upkeep` names `repairs` and stays the
+# landlord's. A [[rule]] has no `owner` key, because the terms already say it.
+#
+# WHAT THAT CHANGES ABOUT THE CITY, STATED RATHER THAN LEFT TO BE FOUND: the draw is unchanged -- one
+# firing per Household instead of one firing applied `occupancy` times -- but the SUPPLY is not. Three
+# families in one dwelling now hold three larders of 48 and run three greedy `restock`s, where before
+# they shared one. This file holds more sundries than it did. That is adr/0141 being right rather than
+# this file being tuned: three Households do not share a kitchen, and the shared one was a shortcut
+# the first line of this file already disclaimed.
+#
 # `condemn_after` is in MISSED FIRINGS, not Ticks (adr/0053): a Rule fires every `rate` Ticks when
 # healthy, so four missed firings of `upkeep` is 64 Ticks of continuous starvation. Authoring it in
 # Ticks would mean that halving every rate in this file silently doubled every dwelling's lifespan.
 [[building]]
 name = "dwelling"
 bins = [
-    { resource = "sundries", capacity = 48 },
+    { resource = "sundries", capacity = 48, owner = "occupant" },
     { resource = "repairs",  capacity = 4 },
 ]
 condemn_after = 4
@@ -247,14 +263,18 @@ apply   = { min = 1, max = 4 }
 inputs  = []
 outputs = [ { scope = "local", resource = "sundries", amount = 4 } ]
 
-# Derived, because a dwelling's draw is stated by how many Households live in it rather than bounded
-# by what is in the Bin. `occupancy` is the one declared Readout (slice 7 task 7), and this is the
-# first thing outside a test to read it.
+# ONE FIRING PER HOUSEHOLD, BECAUSE THE BIN IT DRAWS FROM IS THE HOUSEHOLD'S (adr/0141). This read
+# `apply = { derived = "occupancy" }` until milestone 25 -- one Rule on the Building, applied once per
+# family, against one shared larder. Now there is one Rule Instance per family against its own Bin, so
+# the count the Readout used to supply is the number of Rule Instances instead.
+#
+# `occupancy` WAS THE ONE DECLARED READOUT IN THE PROJECT AND THIS WAS ITS ONLY CALLER. It is still
+# declared and still resolves; nothing reads it. adr/0141 named that cost on the day and took it.
 [[rule]]
 name    = "consume"
 kind    = "dwelling"
 rate    = 32
-apply   = { derived = "occupancy" }
+apply   = { min = 1, max = 1 }
 inputs  = [ { scope = "local", resource = "sundries", amount = 4 } ]
 outputs = []
 

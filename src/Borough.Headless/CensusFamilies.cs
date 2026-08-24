@@ -69,6 +69,8 @@ internal static class CensusFamilies
         (ZoneCounter.Created, Aggregate.Peak, "created peak"),
         (ZoneCounter.Demolished, Aggregate.Sum, "demolished"),
         (ZoneCounter.Demolished, Aggregate.Peak, "demolished peak"),
+        (ZoneCounter.Ended, Aggregate.Sum, "tenancies ended"),
+        (ZoneCounter.Ended, Aggregate.Peak, "tenancies ended peak"),
     ];
 
     /// <summary>
@@ -86,6 +88,7 @@ internal static class CensusFamilies
         (PlacementCounter.Placed, Aggregate.Sum, "placed"),
         (PlacementCounter.Placed, Aggregate.Peak, "placed peak"),
         (PlacementCounter.Departed, Aggregate.Sum, "departed"),
+        (PlacementCounter.Retired, Aggregate.Sum, "shops emigrated"),
     ];
 
     /// <summary>

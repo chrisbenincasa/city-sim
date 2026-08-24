@@ -7191,8 +7191,14 @@ a parallel session working milestone 5c. Desktop media applications, the obvious
 
 **What a re-capture must control**, and all four, not the first three:
 
-- **Nothing else running in this tree.** No `dotnet build`, no `dotnet test`, no parallel session. This
-  is the one that actually moved the number, and it is the one no existing instruction mentions.
+- **Nothing else running on this machine.** No `dotnet build`, no `dotnet test`, no parallel session,
+  **and nothing belonging to another project**. This is the one that actually moved the number, and it
+  is the one no existing instruction mentions. ⚠ **It read *in this tree* until 2026-08-24, and that
+  wording would have passed a machine carrying a 603% compiler from an unrelated repository** — which
+  is the interference this bullet exists to exclude, arriving through the door the bullet left open.
+  ***Cores are a property of the machine and not of the repository***, so the control has to name the
+  machine. Same shape as [`0003`](../plans/0003-build-plan.md)'s hash-moving queue item 18, where a
+  worktree isolated the tree and `/tmp` was still shared: **the shared state was never only the tree.**
 - **No desktop co-tenants** — the media players and browsers.
 - **Root, for the canonical `performance` capture.** Every reading above is `powersave`, so a 4-core
   pass may additionally be clocking down relative to a 1-core one, which would depress the speedup for
@@ -7235,8 +7241,10 @@ set at all.
   the measured region**, which is a change to `Timing.Measure` rather than to the script.
 - ⚠ **L6's 4-thread rung, on a quiet machine.** 2 threads is settled at **1.84–1.93×**; 4 is bimodal
   between **~2.5×** and **~3.9×** and is not readable from the eight captures taken. The re-capture
-  must control **four** things and the first is new: **nothing else running in this repository** — the
-  contended captures coincided with another session's `dotnet test` at ~1018% CPU — then no desktop
+  must control **four** things and the first is new: **nothing else running on this machine** — the
+  contended captures coincided with another session's `dotnet test` at ~1018% CPU, and ⚠ **the control
+  names the machine rather than the tree as of 2026-08-24**, because a co-tenant from an unrelated
+  repository contends for the same cores — then no desktop
   co-tenants, then root for `performance`, then three captures inside one quiet window reported as a
   range. Until then the Cap's supply-side multiple is *"at least 1.84× and plausibly near 4×"*, and
   **the 4× must not be quoted bare**.

@@ -1,4 +1,5 @@
 using Borough.Core.Rules;
+using Borough.Core.Tables;
 
 namespace Borough.Tests;
 
@@ -41,6 +42,42 @@ internal static class TestRulesets
         outputs: [],
         emissions: [],
         bins: [],
+        kindRules: [],
+        zoneRules: []);
+
+    /// <summary>
+    /// One kind holding <b>two Bins the premises keep</b>, and nothing else.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>It exists because <c>adr/0141</c> took the shipped city's only two-Bin Building away.</b>
+    /// Every shipped dwelling declares <c>sundries</c> and <c>repairs</c>, and milestone 25 moved
+    /// <c>sundries</c> to the tenant — so a Building now holds <b>one</b> Bin in every world the
+    /// simulation builds on its own, and <c>bin.bin_next</c> — the link in a Building's own Bin list —
+    /// stopped being written anywhere. ⚠ <b><c>DerivedRebuildAuditTests</c> caught it on the first
+    /// run</b>, which is exactly what that test is for: the column is still derived, still rebuilt and
+    /// still correct, and nothing was left to prove it.
+    /// </para>
+    /// <para>
+    /// <b>A fixture rather than a second Bin on a shipped kind.</b> What a shipped Ruleset declares is
+    /// <em>content</em>, and adding a Bin to one so that a test has something to walk would be tuning
+    /// the city to suit the instrument. ⚠ <b>Both Bins are the premises'</b> — the default, spelled by
+    /// absence — because the column under test is the <em>Building's</em> list and a tenant's Bins hang
+    /// off a different one.
+    /// </para>
+    /// </remarks>
+    internal static readonly Ruleset Stocked = new(
+        resources: [ResourceFamily.Money, ResourceFamily.Good, ResourceFamily.Good],
+        rules: [],
+        kinds: [new KindDefinition(BinFirst: 0, BinCount: 2, RuleFirst: 0, RuleCount: 0)],
+        inputs: [],
+        outputs: [],
+        emissions: [],
+        bins:
+        [
+            new BinDeclaration(new ResourceId(2), BinCapacity.Of(48)),
+            new BinDeclaration(new ResourceId(3), BinCapacity.Of(4)),
+        ],
         kindRules: [],
         zoneRules: []);
 }

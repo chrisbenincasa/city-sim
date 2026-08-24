@@ -104,7 +104,7 @@ public readonly record struct FertilityWeights(int Pollution)
     /// <para>
     /// ⚠ <b>The specimen is a mock-up and is being leaned on anyway, which is stated rather than
     /// hidden.</b> What earns it the weight it is carrying is that its <em>other</em> half was checked
-    /// and held: <c>plans/0041</c> <b>F7</b> measured mean Sealing at <b>6.3%</b> and a peak Cell at
+    /// and held: <c>plans/0042</c> <b>F7</b> measured mean Sealing at <b>6.3%</b> and a peak Cell at
     /// <b>11.4%</b> against the specimen's <em>ground sealed 12%</em>. ***A mock-up whose one testable
     /// number came back right is better evidence than an invented ratio***, and it is still not a
     /// measurement of this one.
@@ -213,7 +213,7 @@ public sealed class MapLayers
     /// relation to its cause. ***Two steps that must not come apart belong behind one door.***
     /// </para>
     /// <para>
-    /// <c>plans/0041</c> decision 3 places the call in
+    /// <c>plans/0042</c> decision 3 places the call in
     /// <see cref="Entities.SyntheticCity.PopulateInto"/>, between the already-populated refusal and
     /// <c>LayLand</c>.
     /// </para>

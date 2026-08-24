@@ -1,10 +1,10 @@
-# 0041 — Terrain and the land rows: `06` milestone 24's first half
+# 0042 — Terrain and the land rows: `06` milestone 24's first half
 
 > Vocabulary in [`CONTEXT.md`](../CONTEXT.md). The milestone and its named risk are
 > [`06`](../docs/06-roadmap.md)'s. What is done is [`0003`](0003-build-plan.md)'s. This document owns
 > this slice's decisions, its tasks and its findings, and nothing else.
 
-**Numbering**: this document is `0041`; ADRs from this milestone take **0150 onward**. ⚠ **It was
+**Numbering**: this document is `0042`; ADRs from this milestone take **0150 onward**. ⚠ **It was
 `0040` taking `0143`–`0149` until 2026-08-23, and it collided** — the milestone-25 branch committed a
 different `plans/0040` and a different `adr/0143` to `main` while this branch held those numbers, so
 this branch renumbered and **`0144`–`0149` are free**. ***A number is claimed against every live
