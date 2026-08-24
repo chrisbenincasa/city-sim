@@ -217,7 +217,15 @@ name that no entry constrained, and the column it specified is the one thing thi
 Ruleset, and `MapLayers.Step` never calling `DecaySealing`. **Both are true. Both are downstream of a
 third, which no document names.**
 
-🔴 **`MapLayers.Seal(Cells, Cells, int)` — `Space/MapLayers.cs:393` — has NO caller in `src/`.**
+> ✅ **DISCHARGED 2026-08-23 by task 3** (`1c9ebec`). `World.CreateBuilding` now Seals the kind's
+> footprint at `Entities/World.cs:2362` — the single door every Building comes through, the populator's
+> and the Zone Rule's alike. **Sealing is non-zero on a generated city**, and the two blockers
+> `adr/0124` did enumerate are what remain. ⚠ **The paragraph below is kept as written** because it is
+> the record of what the survey found, and its finding — that an enumeration counts the members that
+> exist when it is written — is the reason precondition 2 exists.
+
+🔴 **`MapLayers.Seal(Cells, Cells, int)` — `Space/MapLayers.cs:393` — had NO caller in `src/` when this
+was surveyed on 2026-08-22.**
 Verified: every call site is a test (`LayerFieldsTests.cs:132,135,140,153,171,395`,
 `LayerQueryTests.cs:71`, `LayerLongRunTests.cs:220`, `FactorioTests.cs:359`). `LayerCellTable.Sealing`
 (`:56`) is a `Saved<int>` column — **saved, folded into the State Hash, and identically zero on every
@@ -523,12 +531,19 @@ no readout. ***That is true of FARMLAND recovering. It is not true of GROUND rec
 Ruleset key controls the second.***
 
 `CONTEXT.md` → Sealing already states the design intent, **in units and in an ordering**: *"rock may
-never recover, floodplain may recover over hundreds of Days."* Sealing is a `Saved` column, demolition
-exists, and `rulesets/evicted.toml` cycles Buildings **by construction**. So the quantity is computable
+never recover, floodplain may recover over hundreds of Days."* Sealing is a `Saved` column, and since
+task 3 every Building seals its footprint through `World.CreateBuilding`. So the quantity is computable
 today with **nothing unbuilt anywhere in the path**.
 
-✅ **Named ratifier: a long run on `rulesets/evicted.toml`, on the reference machine. Quantity: Days
-from a Cell's last demolition to its Sealing reaching zero, per terrain type.** ⚠ **Refuting in both
+✅ **Named ratifier: a long run on `rulesets/varied.toml`, on the reference machine. Quantity: Days
+from a Cell's last demolition to its Sealing reaching zero, per terrain type.**
+
+⚠ **It named `rulesets/evicted.toml` for four hours on the day it was settled, and that was wrong
+twice.** That file states **no `[[terrain]]`**, so a rate keyed by terrain type has nothing to key on;
+and it **condemns nothing** — its whole subject is the failure moving from the premises to the tenant,
+at *929 tenancies ended against 0 condemned*. ***A tenancy ending is not a Building being demolished.***
+The world was picked from its reputation for cycling rather than from reading what cycles in it, which
+is the same error as this decision's original blocker one level along. ⚠ **Refuting in both
 directions** — every type recovering in the same time means the key is not keyed on anything, and rock
 recovering at all means it is too fast. **Two `plans/0002` §D2 rows opened; task 4 moves them to §D1 on
 the day it writes the numbers.** ✅ **Task 4 is UNBLOCKED.**
