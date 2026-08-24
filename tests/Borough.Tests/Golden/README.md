@@ -415,6 +415,19 @@ State Hash***, which is the distinction `adr/0100` and the repository map both s
 and this is the cleanest example of it the directory has: a scheduled mechanism landed, and the
 committed city is bit-identical.
 
+**Milestone 24 task 8b moved every State Hash sample and NOT ONE Ruleset content hash, which is the
+exact complement of the entry above it.** `WoodlandCellTable` gained a second saved column,
+`potential` — what the seed laid, which regrowth climbs back toward — so the composition changed and
+every number in all three artefacts moved from the first sample on. **No shipped Ruleset was edited
+except `rulesets/varied.toml`**, which is not a fixture here, so `session.borough`,
+`driving-session.borough` and the four literals in two files needed no touch at all.
+
+⚠ **The two entries together are the cleanest statement of the distinction this directory keeps.** Task
+4 changed twelve Rulesets and no city; task 8b changed one column and every city. ***A file fingerprint
+and a State Hash answer different questions, and a re-baseline that moves one and not the other is the
+normal case rather than the surprising one.*** The version byte in `World.HashSeed` is unmoved in both:
+a table gained a column, which is a world with more state in it, not a change to the fold.
+
 ## The driving session
 
 **Milestone 7 task 8 added a second session, and the reason it is a second rather than a wider first is
