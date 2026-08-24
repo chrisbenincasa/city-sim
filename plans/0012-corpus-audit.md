@@ -1535,6 +1535,27 @@ violation before the heading was corrected.
 
 ## Fixed in the sitting that found them
 
+**⚠ Cause 4 — `RulesetShape.cs:217` names milestone 27 task 7 for three things and one of them is
+milestone 15's.** The comment reads *"`adr/0141` gives the trade `jobs`, shift hours and the wage, and
+all three arrive with milestone 27 task 7."* **Two of three do.** [`06:99`](../docs/06-roadmap.md)
+places wages at **milestone 15** — *"attended services, wages and Skill Tiers"* — citing
+[`adr/0026`](../docs/adr/0026-wages-are-posted-locally-and-never-cleared.md) by name, and
+`Readouts.cs:69` says the same thing independently: *"income is a **flow** that arrives with wages in
+milestone 15."* Found 2026-08-24 while settling
+[`plans/0041`](0041-the-business-is-a-thing-the-city-contains.md) decision 2.
+
+⚠ **This is Cause 4's exact shape — wrong about the TRIGGER and right about everything else.** The
+comment is correct that `adr/0141` gives the trade all three; it is wrong about **when**, which is the
+half [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+says a description of the build is always wrong about. ***Left in place rather than corrected here***,
+because the line is a doc comment inside a symbol milestone 27 task 7 is about to rewrite, and the
+repair belongs in that change. **Recorded so the task inherits it rather than rediscovers it.**
+
+🔴 **A doc comment naming a milestone is a date in disguise**, which is `adr/0093`'s *name a symbol,
+never a time* being broken by a document that otherwise obeys it — and the reason it survived is that
+**no corpus check reads doc comments at all**.
+
+
 **⚠ Cause 5 with no number in it — `adr/0145` argued from a table column that does not exist.** The
 ADR's `UNIQUE INDIVIDUALS` paragraph reads *"a Business founded by a named Household has a founder the
 player can inspect — the money came from somewhere the player can point at."* `BusinessTable` declares

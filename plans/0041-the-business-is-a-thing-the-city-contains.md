@@ -26,6 +26,25 @@ second was that it is *exercisable by fixture* — and ***that is the reason [`0
 hand-built fixtures is a mechanism with no world in it. **Task 8 is next** — it is unblocked, it creates
 the actor the milestone's risk names, and it is what gives task 9 a subject that exists.
 
+✅ **TASK 8'S FOUNDING HALF SHIPPED 2026-08-24 — 114 Businesses founded in a shipped world.** The
+milestone's named risk is retired on its main axis: the economic actor exists in a city rather than in
+a fixture.
+
+🔴 **THE ORDER MOVED A THIRD TIME, 2026-08-24, AND TASK 7 IS NOW THE CRITICAL PATH.** Two things did it
+on the same day and they are unrelated:
+
+1. ✅ **Decision 2 is SETTLED and was never actually open** (**G30**) — `jobs` and shift hours go on the
+   business **kind**, per [`adr/0141`](../docs/adr/0141-a-tenant-owns-what-leaves-with-it-and-the-premises-own-the-capacity.md)'s
+   *Declares* row, which this document never cited. ⚠ **And the task SHRANK**: the wage is milestone
+   15's, so only two of the three things `0141` names move here.
+2. 🔴 **[`adr/0146`](../docs/adr/0146-founding-costs-a-citizen-and-the-households-money-so-the-founder-is-the-first-worker.md)
+   makes task 7 a PREREQUISITE of task 8's founder half.** Founding now costs a **Citizen** as well as
+   the Household's money, the founder is recorded by the **employment link** rather than a column, and
+   ***an unpremised Business has no Building for a `Workplace` handle to address.***
+
+**Remaining: 7, then task 8's Citizen half, then 9.** ⚠ **Task 7 still empties the city of jobs while it
+lands** and that argument is untouched — which is why task 8's founding pass had to go first, and did.
+
 ⚠ **The census below was taken on 2026-08-24 and it corrects the risk statement in three numbers**
 (**G1**). ***The risk stands; the figures stating it have drifted*** — which is the second time in two
 days that a milestone's own risk cell has been the thing that was stale.
@@ -127,19 +146,61 @@ not because it is new.* ⚠ **The quantity is still owed and a category is not a
 `adr/0142`'s argument against sharing is **deferred to this milestone**, and task 8 is the first day a
 Business exists in numbers anybody can have an opinion about.
 
-### 2. 🔴 NEW — does `jobs` move to the business kind, or to the Business row? — **found by decomposition**
+### 2. ~~🔴 NEW — does `jobs` move to the business kind, or to the Business row?~~ — ✅ **SETTLED 2026-08-24 BY AN ADR THIS DECISION NEVER CITED**
 
-**Task 7 says *jobs and shift hours move to the employer* and does not say which.** The build makes it
-a real fork, because the two land in different places:
+✅ **`jobs` and shift hours go on the business KIND. The wage is not milestone 27's at all.**
+🔴 **This decision was framed against the wrong ADR and therefore looked open when it was not**
+(**G30**). It asked what `adr/0026` means by *employer* and concluded *"the ADR uses the word without
+ever saying whether it means the kind or the row."* **That is true of `0026` and irrelevant**, because
+[`adr/0141`](../docs/adr/0141-a-tenant-owns-what-leaves-with-it-and-the-premises-own-the-capacity.md)
+answers it directly, in a table whose row is literally headed **Declares**:
 
-- **On the business kind** — `KindDefinition.Jobs` in a second kind namespace. Mirrors the building
-  kind exactly, costs no new column, and keeps a fill rate authored.
-- **On the Business row** — a saved column. Lets two bakeries of one kind employ different numbers,
-  which is what `adr/0026`'s *a fill rate is a property of an employer* could be read to require.
+| | `[[building]]` — premises | `[[business]]` — the trade |
+|---|---|---|
+| **Declares** | `footprint`, `parking`, `occupants`, `condemn_after` | `jobs`, shift hours, the wage |
 
-⚠ **This is not `adr/0043`-measurable** — no number refutes either. It is forced by what `adr/0026`
-means by *employer*, and ***the ADR uses the word without ever saying whether it means the kind or the
-row.*** **Blocks task 7 and nothing else.**
+***Both columns of that table are KIND namespaces***, so *declares* can only mean the kind. ⚠ **And
+the build already reads it that way** — `RulesetShape.cs:217`: *"`adr/0141` gives the trade `jobs`,
+shift hours and the wage."* **The fork was in this document and in nothing else.**
+
+**The *on the row* horn rests on a misreading, and naming it is worth more than the answer.** It argued
+that a row column *"lets two bakeries of one kind employ different numbers, which is what `adr/0026`'s
+fill rate could be read to require."* 🔴 ***A fill rate is not `jobs`.*** It is `filled ÷ jobs`, and
+**`filled` is per-Business by construction** — it is a count of who actually took the work. So
+`adr/0026`'s *each Business adjusts by its own fill rate* is satisfied **with `jobs` on the kind**: the
+kind supplies the denominator and the row supplies the numerator. ⚠ **The horn needed the row to carry
+`jobs` and the row only ever needed to carry `filled`.**
+
+**The precedent is exact and already shipped.** `[[building]] occupants` is declared by the **kind**
+while occupancy is counted **per Building**, and
+[`adr/0068`](../docs/adr/0068-a-buildings-occupancy-is-declared-by-its-kind-and-an-over-capacity-building-evicts.md)
+is the same shape under a different name. ***A capacity is declared and a filling is counted.***
+
+### 🔴 But `adr/0141` and `adr/0026` disagree about the WAGE, and neither says so
+
+⚠ **`0141` puts *the wage* in the Declares row with `jobs`. `0026`'s whole mechanism is that the wage
+MOVES** — *"each Business posts a wage and adjusts it by its own fill rate — raise it when vacancies
+persist, let it fall when applicants queue."* **A kind declaration is Ruleset data**: identical across
+every Business of that kind, hot-reloadable, and `adr/0015`-refused on reload where it is
+world-creation. ***A number that adjusts per-Business cannot be one.***
+
+**The reading that makes both true**: the trade declares the **posted anchor**, and the **current wage
+is a Business row column**. ⚠ **That is a reading and not a decision** — it is offered here so the
+tension is on the record, and ***it is not this milestone's to settle***.
+
+✅ **Because the wage is NOT milestone 27's.** [`06:99`](../docs/06-roadmap.md) places wages at
+**milestone 15**, *"attended services, wages and Skill Tiers"*, citing `adr/0026` by name; `Readouts.cs:69`
+says the same in its own doc comment — *"income is a **flow** that arrives with wages in milestone 15"* —
+and [`adr/0146`](../docs/adr/0146-founding-costs-a-citizen-and-the-households-money-so-the-founder-is-the-first-worker.md)
+turns on it. ⚠ **`adr/0140` is what makes this coherent**: a milestone number is an identity and the
+roadmap's order is the sequence, so **15 comes after 27** and there is no contradiction in the ordering.
+
+🔴 **There is one in a doc comment, though.** `RulesetShape.cs:217` says `jobs`, shift hours and the wage
+*"all three arrive with milestone **27 task 7**"*. **Two of the three do.** Filed to `plans/0012` as
+**Cause 4** — a description of the code wrong about the trigger.
+
+***So task 7 is smaller than this document had it***: two of three things move, and the third was never
+in scope.
 
 ### 3. ⚠ NEW — what does the `sweeps` refusal say once half of it is answerable?
 
@@ -287,6 +348,16 @@ not exist.*** Move `jobs` to the employer before anything creates an employer an
 `false` everywhere: **employment goes to zero, every commute stops, and the traffic, parking and commute
 suites go with it.**
 
+- ✅ **Decision 2 is SETTLED and the answer is the KIND** — `adr/0141`'s Declares row, see above
+  (**G30**). ⚠ **And only TWO of its three things move**: `jobs` and shift hours. **The wage is
+  milestone 15's** (`06:99`), so a `[[business]] wage` key is out of scope here and
+  `RulesetShape.cs:217` is wrong to say otherwise.
+- 🔴 **This task is now a PREREQUISITE of task 8's founder half**, not the last thing in the milestone
+  ([`adr/0146`](../docs/adr/0146-founding-costs-a-citizen-and-the-households-money-so-the-founder-is-the-first-worker.md)):
+  the founder is recorded by the employment link, an unpremised Business has no Building, and a
+  `Workplace` handle addressing `BuildingTable` cannot point at one. ⚠ **The ordering argument below
+  still stands** — moving `jobs` before an employer exists still empties the city — ***so the two
+  constraints bite in opposite directions and task 8's founding pass had to land first.*** It did.
 - **33 sites assume a Workplace is a Building** — storage, Ruleset, World mutators, engines, invariants,
   evidence and content. The enumeration is the survey's; the load-bearing ones are
   `CitizenTable.Workplace` (`HandleColumn<Building>`, `CitizenTable.cs:64-65`), the worker list
@@ -540,6 +611,27 @@ milestone 7***: that was a `Derived` column nothing rebuilt, this is a `Saved` c
 and **no test asks the second question**. `adr/0146` gives the column its first meaning, which is
 **defining** it rather than extending it. 🔴 **The general defect is unowned** — there is no audit that
 names saved columns with no simulation writer, and this one was found by grepping for something else.
+
+**G30 — an open decision was framed against an ADR that is silent and never cited the one that
+answers.** Decision 2 asked whether `jobs` moves to the business **kind** or the Business **row**, and
+concluded it was *"forced by what `adr/0026` means by employer"* — an ADR that never says.
+[`adr/0141`](../docs/adr/0141-a-tenant-owns-what-leaves-with-it-and-the-premises-own-the-capacity.md)
+does say, in a table row headed **Declares**, whose two columns are the two **kind** namespaces; and
+`RulesetShape.cs:217` was already reading it that way in a doc comment when decomposition ran. ***The
+decision was open in this document and settled everywhere else.***
+
+⚠ **The tell is that it named the ADR it could not get an answer from.** A question typed *arguable*
+and pinned to one silent source looks blocked with no further work, because **the next step it implies
+is a sitting rather than a search**. ***Typing a question does not discharge the duty to look for its
+answer***, and the cheapest check — grep the term across `docs/adr/` — was never run.
+
+🔴 **It cost the milestone an ordering.** Decision 2 was recorded as the one open decision blocking task
+7, which is part of why task 7 went last; and `adr/0146` has since made task 7 a **prerequisite** of
+task 8's founder half. ***A phantom block on the task that turned out to be the critical path.***
+
+⚠ **And settling it SHRANK the task.** `0141`'s Declares row names three things and **the wage is not
+milestone 27's** — `06:99` places wages at milestone 15 and `Readouts.cs:69` agrees. Only `jobs` and
+shift hours move at task 7.
 
 ## What decomposition found
 
