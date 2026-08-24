@@ -411,6 +411,24 @@ noise_range_metres            = 300
 noise_intensity_percent       = 400
 desirability_pollution_percent = 100
 desirability_noise_percent     = 100
+#
+# Fertility's ONE weight, and this is the only shipped file that states it -- because it is the only
+# one that prices its ground, and in the other twelve MapLayers.Fertility throws before any weight is
+# reached. It is not refused there, on the same footing as desirability_pollution_percent: eight of
+# the nine older files have no Rule that emits at all and state that weight anyway. A weight is
+# allowed to describe a term the world does not currently exercise.
+#
+# 4 percent, and it is ANCHORED rather than derived. adr/0022's Evidence specimen -- "41% -- ground
+# sealed 12%, pollution from Eastfield Industrial 47%" -- is the only sentence in the corpus that says
+# what a plume ought to cost a farm, and 4% against a plume measured at about 12 kernel units under a
+# strong source lands near that half. UNRATIFIED, plans/0002 section D1, and 🔴 chosen against NO
+# consumer: nothing reads Fertility, because no milestone in docs/06 builds a farm.
+#
+# ⚠ There is no fertility_sealing_percent and the absence is the decision (adr/0155). A Cell at 1024
+# sealed Tiles has every Tile built on and therefore no farmland, which PINS that coefficient at
+# base x Sealing / 1024. Offering it as a key would invite a file to state that a fully paved Cell
+# still farms.
+fertility_pollution_percent    = 4
 # terrain type; there is no terrain in Phase 1, so there is no key, so there is no rate to look up.
 # Zero is the conservative reading — Sealing only accumulates — and the bound is structural, because a
 # Cell cannot have more Tiles built on it than it has Tiles.

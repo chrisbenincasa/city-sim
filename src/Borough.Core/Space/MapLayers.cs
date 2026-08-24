@@ -1,6 +1,7 @@
 using Borough.Core.Arithmetic;
 using Borough.Core.Determinism;
 using Borough.Core.Quantities;
+using Borough.Core.Rules;
 using Borough.Core.Tables;
 
 namespace Borough.Core.Space;
@@ -65,6 +66,63 @@ public readonly record struct DesirabilityWeights(int Pollution, int Noise, Line
         Fixed.One,
         Fixed.One,
         new LineSource(Tiles.FromMetres(300), Fixed.FromInt(4)));
+}
+
+/// <summary>
+/// The weights <see cref="MapLayers.Fertility"/> composes with. <b>One, and that is the decision.</b>
+/// </summary>
+/// <param name="Pollution">Q16.16 <c>w_p</c>. Subtracts.</param>
+/// <remarks>
+/// <para>
+/// <c>adr/0155</c>, milestone 24 task 5. 🔴 <b>There is no Sealing weight here and its absence is the
+/// decision.</b> <c>w_s</c> is <b>derived</b> from an endpoint — <c>CONTEXT.md</c> → Sealing makes a
+/// Cell at <see cref="CellGrid.TilesInCell"/> one whose every Tile is built on, so it has no farmland
+/// — which pins the term at <c>base × Sealing / 1024</c>. ***A coefficient with an endpoint is not a
+/// tuning knob, and offering it as one invites a Ruleset to state that a fully paved Cell still
+/// farms.***
+/// </para>
+/// <para>
+/// <b>A record of one field rather than a bare <c>int</c> parameter</b>, on
+/// <see cref="DesirabilityWeights"/>'s shape: it is where <c>w₄</c>'s sibling goes when a term is
+/// added, and it keeps the two compositions reading alike.
+/// </para>
+/// </remarks>
+public readonly record struct FertilityWeights(int Pollution)
+{
+    /// <summary>
+    /// The shipped starting point. 🔴 <b>Unratified, and it owes a <c>plans/0002</c> §D1 row.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>4%, and it is anchored rather than derived.</b> Pollution reaches about <b>12</b> in kernel
+    /// units under a strong source (measured — see <see cref="DesirabilityWeights.Default"/>), and
+    /// <c>adr/0022</c>'s Evidence specimen is the one place in the corpus that says what a plume
+    /// should <em>cost</em> a farm: <em>"41% — ground sealed 12%, pollution from Eastfield Industrial
+    /// 47%"</em>. At <c>w_p = 0.04</c> a Cell under that source loses <b>0.48</b>, which is that
+    /// sentence within rounding.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The specimen is a mock-up and is being leaned on anyway, which is stated rather than
+    /// hidden.</b> What earns it the weight it is carrying is that its <em>other</em> half was checked
+    /// and held: <c>plans/0041</c> <b>F7</b> measured mean Sealing at <b>6.3%</b> and a peak Cell at
+    /// <b>11.4%</b> against the specimen's <em>ground sealed 12%</em>. ***A mock-up whose one testable
+    /// number came back right is better evidence than an invented ratio***, and it is still not a
+    /// measurement of this one.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Percent is a coarse unit here and the ratifier may reopen it, not just the value.</b> At
+    /// the peak magnitude one step is <b>0.12</b> of the whole fertility scale, so nothing between
+    /// 0.36 and 0.48 is expressible. It stays a percent because <c>adr/0048</c> refuses a decimal on
+    /// the path in and every other authored fraction in this corpus is one.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>Nothing consumes Fertility, so nothing can refute this yet</b> — no milestone in
+    /// <c>06</c> builds a farm. The named ratifier is milestone 24's long run on a world with varied
+    /// terrain and an emitting source, and the refuting reading is stated in both directions in
+    /// <c>plans/0002</c> §D1.
+    /// </para>
+    /// </remarks>
+    public static FertilityWeights Default { get; } = new(IntegerMath.RoundDiv(Fixed.FromInt(4), 100));
 }
 
 /// <summary>
@@ -633,34 +691,74 @@ public sealed class MapLayers
     }
 
     /// <summary>
-    /// <c>fertility(cell) = base fertility − w_s·Sealing − w_p·pollution</c>. <b>A named hole.</b>
+    /// <c>fertility(cell) = base − base·Sealing/1024 − w_p·pollution</c>, Q16.16, <b>composed here
+    /// and never stored.</b>
     /// </summary>
     /// <remarks>
-    /// <b>It throws rather than returning zero, and the throw is the deliverable.</b> Base Fertility
-    /// is <b>Ruleset data keyed by terrain type</b> (<c>adr/0154</c>), and the terrain type column
-    /// needs the world generator, which does not exist; Sealing arrives in task 6. ⚠ <b>The first term
-    /// was called <em>terrain suitability</em> until 2026-08-22, and the old name invented a per-Cell
-    /// field</b> that <c>02 §2.3</c> forbids in one sentence — <em>the generator places Woodland and
-    /// nothing else</em>. ⚠ <b>The three terms are in three units</b> — a fraction, a Tile count of
-    /// 0–1024, and a stock measuring about 12 — so unweighted the Sealing term outweighs pollution by
-    /// roughly <b>85:1 by representation</b>. <b>It is weighted the way <see cref="Desirability"/> is</b>
-    /// (<c>adr/0155</c>), so <b>this method gains a weights parameter when it is built</b>. Base
-    /// Fertility is a fraction with <c>1.0</c> fully fertile, so the result is a <b>proportion</b>.
-    /// 🔴 <b><c>w_s</c> is DERIVED and has no Ruleset key</b>: a Cell at Sealing
-    /// <see cref="CellGrid.TilesInCell"/> has every Tile built on and therefore no farmland, so the term
-    /// is <c>base × Sealing / 1024</c>. <b>It may go negative and must not clamp</b> — Sealing decays, so
-    /// the ordering between exhausted Cells is what a recovery reads — and it <b>saturates rather than
-    /// throwing</b> once built, on <c>LineSourceQueries.Saturate</c>'s reasoning. A
-    /// placeholder returning zero is a value that will be read, believed, and tuned around — and by the
-    /// time the generator lands, something will depend on farms yielding nothing. A hole that fails
-    /// loudly is a hole. <c>02 §2.3</c>, <c>plans/0009</c> task 7.
+    /// <para>
+    /// <c>adr/0155</c>, milestone 24 task 5. <b>A proportion</b>: <see cref="Fixed.One"/> is fully
+    /// fertile, so the result reads as a percentage and each subtracted term is already the
+    /// percentage that term cost — which is what makes <c>adr/0022</c>'s Evidence specimen,
+    /// <em>"41% — ground sealed 12%, pollution from Eastfield Industrial 47%"</em>, fall out with no
+    /// conversion and no denominator anybody has to name. ***The scale was decided by the readout
+    /// rather than by the storage.***
+    /// </para>
+    /// <para>
+    /// <b>Weighted, because unweighted it was never an implementation.</b> The three terms are in
+    /// three units — a Ruleset fraction, a Tile count of 0–1024, and a stock measuring about 12 in
+    /// kernel units — so a bare subtraction lets Sealing outweigh pollution by roughly <b>85:1</b> on
+    /// the strength of the representation alone.
+    /// </para>
+    /// <para>
+    /// <b>Pollution is a count and the weight is a ratio, so the product is already Q16.16 and the
+    /// count is never lifted into it</b> — <see cref="Desirability"/>'s rule, and its overflow lesson
+    /// with it: lifting first throws at a magnitude <see cref="Invariant"/>'s
+    /// <c>LayerMagnitudeIsBounded</c> calls legal.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>The Sealing term has no weight and reads its coefficient off an endpoint.</b> A Cell at
+    /// <see cref="CellGrid.TilesInCell"/> has every Tile built on and therefore no farmland, which
+    /// pins the term at exactly Base Fertility when the Cell is full. See <see cref="FertilityWeights"/>.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It goes negative and does NOT clamp.</b> Sealing decays, so <c>base − 1.4·base</c> and
+    /// <c>base − 3·base</c> are two Cells at very different distances from farming again, and a clamp
+    /// makes them one number. ⚠ <b>The decomposition is not the reason</b> — Evidence reads the terms
+    /// — ***it is the ordering between exhausted Cells***, which is what <c>adr/0022</c>'s cyclical
+    /// land-use arc runs on. A consumer wanting <em>is there a farm here</em> takes <c>≤ 0</c> and
+    /// loses nothing.
+    /// </para>
+    /// <para>
+    /// <b>It saturates rather than throwing</b>, on <c>LineSourceQueries.Saturate</c>'s reasoning that
+    /// a read-only query must not throw on a world somebody is allowed to build. ⚠ <b>It still throws
+    /// when the RULESET prices no ground, and that is a different thing.</b> Saturation is about a
+    /// value; <see cref="Rules.TerrainRuleset.BaseFertility"/>'s refusal is about a <em>declaration</em>
+    /// that is absent — it fires on every Cell alike and immediately, which is the shape a
+    /// configuration error should have rather than a number somebody reads and believes.
+    /// </para>
     /// </remarks>
-    /// <exception cref="NotSupportedException">Always, until the generator and Sealing exist.</exception>
-    public int Fertility(Cells east, Cells north) =>
-        throw new NotSupportedException(
-            $"fertility at Cell ({east.Raw}, {north.Raw}) composes from base fertility, which is "
-            + "Ruleset data keyed by a terrain type the world generator does not yet place "
-            + "(02 §2.3, adr/0154). Composed at the point of use and never stored.");
+    /// <param name="terrain">The <c>[[terrain]]</c> table this world's Ruleset states.</param>
+    /// <param name="weights">Q16.16 <c>w_p</c>. See <see cref="FertilityWeights"/>.</param>
+    /// <param name="east">The Cell, east.</param>
+    /// <param name="north">The Cell, north.</param>
+    /// <exception cref="InvalidOperationException">The Ruleset states no <c>[[terrain]]</c>.</exception>
+    public int Fertility(
+        TerrainRuleset terrain, FertilityWeights weights, Cells east, Cells north)
+    {
+        int ceiling = terrain.BaseFertility(_terrain.At(east, north));
+
+        // base x Sealing / 1024, and the divisor is CellGrid.TilesInCell rather than a number of its
+        // own -- the endpoint IS the coefficient. Rounded rather than shifted because the term is a
+        // proportion of the ceiling and a truncation biases every Cell the same way.
+        long sealed_ = IntegerMath.RoundDiv(
+            (long)ceiling * Sealing(east, north), CellGrid.TilesInCell);
+
+        long polluted = (long)weights.Pollution * Pollution(east, north);
+
+        long total = ceiling - sealed_ - polluted;
+
+        return total < int.MinValue ? int.MinValue : total > int.MaxValue ? int.MaxValue : (int)total;
+    }
 
     /// <summary>
     /// <c>− w₂·pollution − w₃·noise</c>. <b>Two of four terms, and the two that are missing are not

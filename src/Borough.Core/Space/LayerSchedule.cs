@@ -346,16 +346,42 @@ public readonly struct LayerRuleset
     /// <param name="desirability">The weights and noise parameters the composition reads.</param>
     public LayerRuleset(
         LayerSchedule schedule, LayerRates rates, LayerConstants constants, DesirabilityWeights desirability)
+        : this(schedule, rates, constants, desirability, FertilityWeights.Default)
+    {
+    }
+
+    /// <inheritdoc cref="LayerRuleset(LayerSchedule, LayerRates)"/>
+    /// <param name="schedule">When each Layer is recomputed.</param>
+    /// <param name="rates">How fast each Layer moves when it is.</param>
+    /// <param name="constants">What is baked into the world rather than tuned.</param>
+    /// <param name="desirability">The weights and noise parameters that composition reads.</param>
+    /// <param name="fertility">The one weight <see cref="MapLayers.Fertility"/> composes with.</param>
+    public LayerRuleset(
+        LayerSchedule schedule,
+        LayerRates rates,
+        LayerConstants constants,
+        DesirabilityWeights desirability,
+        FertilityWeights fertility)
     {
         Schedule = schedule;
         Rates = rates;
         Constants = constants;
         Desirability = desirability;
+        Fertility = fertility;
     }
 
     /// <summary>What <see cref="MapLayers.Desirability"/> composes with. <b>Tuning</b>, and all of it
     /// unratified.</summary>
     public DesirabilityWeights Desirability { get; }
+
+    /// <summary>
+    /// What <see cref="MapLayers.Fertility"/> composes with. <b>Tuning</b>, and unratified.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>One weight and not two</b> — the Sealing coefficient is derived from an endpoint and has
+    /// no key at all (<c>adr/0155</c>). See <see cref="FertilityWeights"/>.
+    /// </remarks>
+    public FertilityWeights Fertility { get; }
 
     /// <summary>The stated defaults of <c>02 §2.4</c>.</summary>
     public static LayerRuleset Default { get; } =

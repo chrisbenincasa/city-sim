@@ -309,14 +309,14 @@ public class LayerFieldsTests
     /// returning zero is a value that will be read, believed, and tuned around; a hole that fails
     /// loudly is a hole.
     /// <para>
-    /// ⚠ <b>This test used to name five holes and now names two, and the three that left did so for
-    /// three different reasons.</b> Noise and near-road pollution were built by milestone 9 task 1;
+    /// ⚠ <b>This test used to name five holes and now names one, and the four that left did so for
+    /// four different reasons.</b> Noise and near-road pollution were built by milestone 9 task 1;
     /// <see cref="MapLayers.Desirability"/> composes as of task 2 — <b>partially</b>, and the shortfall
-    /// is policed by <c>DesirabilityShortfallTests</c> rather than by a hole. What is left is terrain
-    /// suitability, which needs the world generator at milestone 24 (<c>adr/0124</c>), and amenity,
-    /// which needs a <b>kind</b> on a Business at milestone 15 — <em>not</em> the Road Graph, which
-    /// shipped in 5a and which this test's own remark named as the blocker for three fields it was not
-    /// the blocker for.
+    /// is policed by <c>DesirabilityShortfallTests</c> rather than by a hole. <b>Fertility composes as
+    /// of milestone 24 task 5</b> (<c>adr/0155</c>), which is the hole this test was written around
+    /// closing. What is left is amenity, which needs a <b>kind</b> on a Business at milestone 15 —
+    /// <em>not</em> the Road Graph, which shipped in 5a and which this test's own remark named as the
+    /// blocker for three fields it was not the blocker for.
     /// <para>
     /// ⚠ <b>A partial composition is exactly what this discipline does NOT cover</b>, and that is worth
     /// saying in the file that owns it. A hole that throws is safe because nothing can read it;
@@ -328,11 +328,6 @@ public class LayerFieldsTests
     [Fact]
     public void Every_composite_and_every_line_source_refuses_rather_than_answering()
     {
-        MapLayers layers = new(LayerRuleset.Default);
-        Cells east = new(1);
-        Cells north = new(1);
-
-        Assert.Throws<NotSupportedException>(() => layers.Fertility(east, north));
         Assert.Throws<NotSupportedException>(() => LineSourceQueries.Amenity(new Tiles(4), new Tiles(4)));
     }
 

@@ -2764,10 +2764,27 @@ public static class RulesetLoader
             int noiseWeight = Number("desirability_noise_percent", 100, minimum: 0,
                 "w₃, as a percent. It subtracts; 0 removes the term rather than defaulting it.");
 
+            // Fertility's one weight, and it is in [layers] rather than [[terrain]] because
+            // [[terrain]] is an array of tables keyed BY TYPE and this is not per-type -- it weighs
+            // the pollution term for every Cell alike. Its sibling w₂ is two lines up, which is the
+            // other half of the argument: two Layer compositions, two weights, one table.
+            //
+            // ⚠ There is deliberately NO fertility_sealing_percent. adr/0155: a Cell at
+            // CellGrid.TilesInCell has every Tile built on and therefore no farmland, which PINS that
+            // coefficient -- and offering it as a key invites a Ruleset to state that a fully paved
+            // Cell still farms.
+            int fertilityWeight = Number("fertility_pollution_percent", 4, minimum: 0,
+                "w_p, as a percent of fully fertile per unit of pollution. It subtracts; 0 removes "
+                + "the term rather than defaulting it. 4 is anchored on adr/0022's Evidence specimen "
+                + "against a measured plume of about 12 kernel units, and is UNRATIFIED.");
+
             desirability = new DesirabilityWeights(
                 IntegerMath.RoundDiv(Fixed.FromInt(pollutionWeight), 100),
                 IntegerMath.RoundDiv(Fixed.FromInt(noiseWeight), 100),
                 new LineSource(Tiles.FromMetres(noiseRange), IntegerMath.RoundDiv(Fixed.FromInt(noiseIntensity), 100)));
+
+            var fertility = new FertilityWeights(
+                IntegerMath.RoundDiv(Fixed.FromInt(fertilityWeight), 100));
 
             // The one refusal that is a property of the two numbers together rather than of either.
             // A decay shorter than the period it runs at rounds to zero updates, and zero means
@@ -2789,7 +2806,8 @@ public static class RulesetLoader
                     new LayerCadence(landValuePeriod, landValueOffset)),
                 LayerRates.From(landValueTau, sealingTau, decayTicks, pollutionPeriod),
                 stated,
-                desirability);
+                desirability,
+                fertility);
         }
 
         /// <summary>One Layer's period and offset, with the offset checked against the period.</summary>

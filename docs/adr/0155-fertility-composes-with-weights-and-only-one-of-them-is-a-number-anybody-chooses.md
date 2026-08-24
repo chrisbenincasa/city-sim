@@ -102,6 +102,13 @@ takes the same answer.
 - **`MapLayers.Fertility` gains a weights parameter**, as `Desirability` has one. The Ruleset carries
   `[terrain] base_fertility_percent` keyed by type and one pollution weight; **it carries no Sealing
   weight.**
+  - ⚠ **AMENDED 2026-08-23 by the build, and both spellings moved.** Base Fertility is
+    **`[[terrain]] base_fertility_percent`** — an *array of tables*, one per type, all five required
+    ([`0157`](0157-terrain-is-five-types-and-base-fertility-varies-across-them-because-a-category-exclusion-is-not-an-overlay.md)).
+    The pollution weight is **`[layers] fertility_pollution_percent`**, beside its sibling
+    `desirability_pollution_percent`, because it weights a *Layer* and is one number for the world
+    rather than one per ground type. ***The decision is unchanged; only where each number is written
+    down moved.***
 - **One `plans/0002` §D1 row is opened, not two** — the pollution weight. **Named ratifier: milestone
   24's own long run on a world with varied terrain**, and the refuting reading is stated in both
   directions — a farm beside heavy industry that yields unchanged means it is too low, and a farm that
@@ -111,7 +118,9 @@ takes the same answer.
   Expressing it as a percentage does not make varying it free of
   [`0022`](0022-land-is-a-stock-the-city-spends.md)'s amendment.
 - **`CONTEXT.md` → Fertility and `02 §2.3` keep the three-term shape and gain the weights**, so the
-  formula in the corpus stops being an expression that cannot be evaluated.
+  formula in the corpus stops being an expression that cannot be evaluated. ✅ **Discharged
+  2026-08-23**, and both now also name the symbol rather than the milestone
+  ([`0093`](0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)).
 - **The `01 §6` / `04` yield readout is reachable at milestone 24** rather than owing a scale decision
   later.
 

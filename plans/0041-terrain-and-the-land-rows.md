@@ -15,8 +15,7 @@ fourth recurrence and the first that actually collided.
 
 ## Status
 
-🔵 **SCOPED 2026-08-22, out of sequence, and SPLIT in the scoping.** **Tasks 1, 2 and 3 are DONE.**
-**Task 5 is now available and task 4 still waits on decision 5.** Task 3 was
+🔵 **SCOPED 2026-08-22, out of sequence, and SPLIT in the scoping.** **Tasks 1, 2, 3 and 5 are DONE.** **Task 4 still waits on decision 5.** Task 3 was
 CODE-COMPLETE and BLOCKED for one day — see F7; it was built ahead of task 2 because the Sealing write path needs
 no terrain, and running it turned up a whole-map cost that
 [`0002`](0002-open-questions.md) §C now owns. **Task 2 landed 2026-08-23** (`a23b46f`, re-baselined in `79efc64`) — **see F8**, whose finding is that the column's home was a third option neither candidate named. **Decisions 1, 1b, 2, 3, 4 and 7 are settled**
@@ -539,7 +538,7 @@ failure case.
 | **2** | ✅ **DONE 2026-08-23** (`a23b46f`, re-baselined `79efc64`) — see **F8**. **The terrain generator and the per-Cell terrain TYPE column** — `(saved AND hashed)`, from the `WorldKey`, with a `[terrain]` Ruleset table keying **Base Fertility** and the **Sealing decay rate** off the type, plus **a shipped Ruleset with varied terrain**. ⚠ **The column holds the type and nothing is baked** (`adr/0154`). ⚠ **The world is part of this task and not a follow-up** | 1, decision 3 |
 | **3** | ✅ **DONE 2026-08-23** (`1c9ebec`), built 2026-08-22 and blocked on a cost for one day — see F7. **The Sealing write path** — construction Seals, **at the point of laying and never reconstructed from a Segment's endpoints** ([`adr/0150`](../docs/adr/0150-sealing-authors-no-width-and-a-road-seals-where-it-is-laid-not-where-its-endpoints-are.md)). Touches the four `RoadGenerator.Layout` writers, `SyntheticCity.Subdivide` and `ZoneRuleEngine.Create`. ⚠ **Authors no number and opens no §D row.** Precondition 2's third blocker, and upstream of the two `adr/0124` names. 🔴 Moves every State Hash | 2 |
 | **4** | **Sealing's decay** — a cadence in `LayerSchedule.For`, a rate keyed by terrain type, `DecaySealing` scheduled in `MapLayers.Step`. Two §D1 rows with named ratifiers | 3, decision 5 |
-| **5** | 🟢 **AVAILABLE** since task 2 landed. **Fertility** — the `throw` in `MapLayers.Fertility` becomes a composition at the point of use | 2, 3 |
+| **5** | ✅ **DONE 2026-08-23.** **Fertility** — the `throw` in `MapLayers.Fertility` is a composition at the point of use, `base − base·Sealing/1024 − w_p·pollution`, with `long` intermediates and saturation at the `int` bounds. Sets **one** §D1 row: `[layers] fertility_pollution_percent` = **4**, stated in `rulesets/varied.toml` only. ⚠ **It moves no State Hash and needs no re-baseline** — nothing is stored, nothing is scheduled, and no shipped file that a fixture loads was edited. 🔴 **It also has no consumer**, so the whole task is a producer nobody reads; see the note below | 2, 3 |
 | **6** | **Water Bodies** — the water graph, and a fifth `BinOwnerKind`. ⚠ **The downstream ordering is generator OUTPUT, not a height computation** (`adr/0156`): `CONTEXT.md` → Water Body states *an outflow rate to the next body downstream*, which is an **edge** | 2 |
 | **7** | **Desirability's shoreline term** — `w₅`, and the caveat test `adr/0123` requires | 6 |
 | **8** | **Woodland and replanting** — regrowth on unsealed, unoccupied land | 2, 3 |
@@ -810,6 +809,39 @@ generating the terrain and recording the fingerprint are now **one call**, `MapL
 ***two steps that must not come apart belong behind one door***, since a caller doing the first and
 forgetting the second leaves a world that reports as corrupt at the end of a run for no reason
 connected to the cause.
+
+### F9 — task 5 found nothing, and the reason it found nothing is the finding
+
+**Fertility was built on 2026-08-23 and the build raised no question the scoping had not already
+answered.** `adr/0155` had decided the shape, the weighting, the derivation of `w_s`, the no-clamp and
+the saturation before a line of it existed; the task was transcription. ***That is what a decision
+session is supposed to buy, and it is worth recording on the one occasion it plainly did.***
+
+🔴 **What the build did surface is that the producer has no consumer, and it is sharper at the
+keyboard than it was on paper.** Every test in `FertilityTests` reads `MapLayers.Fertility` directly,
+because there is nothing else to read it through — no farm Rule, no panel, no Layer. So **every
+assertion in the file is arithmetic**, and not one of them can fail because the *city* is wrong.
+Under [`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) that is
+*unbuilt* rather than a defect, and the answer is the first farm and not a compensating knob here.
+
+⚠ **`w_p` = 4 is ANCHORED on a mock-up, and the anchor is a specimen in `adr/0022` rather than a
+measurement.** It is the only sentence in the corpus that says what a plume ought to cost a farm.
+[`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)
+is satisfied because nothing is being *claimed* as settled — the §D1 row names milestone 24's long run
+as the ratifier and states the refuting reading in both directions.
+
+⚠ **A second, smaller thing the unit itself raised.** A whole percent is coarse at this scale: one
+step is `0.01 × 12 = 0.12` of a ceiling of `1.0` under a strong plume, so the weight has roughly eight
+usable settings before it sterilises unsealed ground. ***The ratifier may reopen the unit rather than
+the value***, and §D1 now says so — which is a thing `adr/0052`'s "named ratifier" habit does not ask
+for and probably should.
+
+⚠ **One test-writing trap, recorded because the next person meets it too.** The first Cell of a given
+terrain type on a generated map is usually a Cell the city is standing on — `SyntheticCity` lays roads
+and Buildings before any test sees the world, and both Seal. A test that read *the first `rock` Cell*
+and expected the Ruleset's number back failed for a reason with nothing to do with Fertility.
+`FertilityTests.UntouchedCellOf` is the fixture helper that has to exist, and its second half is the
+load-bearing one.
 
 ### F4 — the milestone's central term was named in six documents and defined in none, and the missing definition was load-bearing
 
