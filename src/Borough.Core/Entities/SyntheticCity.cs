@@ -127,7 +127,12 @@ public static class SyntheticCity
         // (adr/0021), and neither exists. It goes here so that the day something does read the
         // water, the water is already there.
         WaterGenerator.LayInto(
-            world.Water, world.WaterCells, world.WaterInCells, world.Rules.Water, key);
+            world.Water,
+            world.WaterCells,
+            world.WaterInCells,
+            world.Catchment,
+            world.Rules.Water,
+            key);
 
         LayLand(world, key);
         PeopleInto(world, key, now);

@@ -738,7 +738,7 @@ task 6b's to answer**, and it is *arguable* rather than measurable.
 | **4** | ✅ **DONE 2026-08-24** — see **F12**. **Sealing's decay** — `LayerSchedule.Sealing` at **period `TICKS_PER_DAY`, offset 48**, `DecaySealing` scheduled in `MapLayers.Step`, and the rate keyed by terrain type as a `sealing_decay_tau` on each `[[terrain]]` table. 🔴 **The `[layers]` key is REFUSED rather than ignored**, naming where it went. 🔴 **It found a real defect**: integer exponential decay **stalls**, so the step is floored at one Tile and the tail is linear. **Moved ONE `plans/0002` §D2 row to §D1** — the other is task 8b's and stays. ⚠ **Moves no State Hash on any shipped world**, because `minimal.toml` and its ten siblings state no `[[terrain]]` and `varied.toml` is not a fixture; what moves is **`minimal.toml`'s Ruleset content fingerprint**, from a comment edit | 3 |
 | **5** | ✅ **DONE 2026-08-23** (`6f9187c`). **Fertility** — the `throw` in `MapLayers.Fertility` is a composition at the point of use, `base − base·Sealing/1024 − w_p·pollution`, with `long` intermediates and saturation at the `int` bounds. Sets **one** §D1 row: `[layers] fertility_pollution_percent` = **4**, stated in `rulesets/varied.toml` only. ⚠ **It moves no State Hash and needs no re-baseline** — nothing is stored, nothing is scheduled, and no shipped file that a fixture loads was edited. 🔴 **It also has no consumer**, so the whole task is a producer nobody reads; see the note below | 2, 3 |
 | **6a** | ✅ **DONE 2026-08-24** — see **F11**. **The water graph** — a sparse `WaterCellTable` of wet Cells with a dense `WaterResidency` beside it, and a `WaterBodyTable` whose one column is a `downstream` handle into itself. Laid by `WaterGenerator` from the **same height field terrain reads** (`adr/0156`, so **no new `PurposeTag`**), bounded by `[water] sea_level_percent` on a new shipped `rulesets/coastal.toml` ([`adr/0159`](../docs/adr/0159-a-sea-level-is-authored-ruleset-data-and-a-world-without-water-is-a-world-and-not-a-hole.md)). **Opens ONE §D1 row.** 🔴 Moves every State Hash. ⚠ **It has no consumer** — nothing reads a Water Body — so it is **F9** a third time and is taken anyway | 2, decision 11 |
-| **6b** | **A Water Body's Bin** — the capacity, the outflow rate and a **sixth** `BinOwnerKind`. ✅ **UNBLOCKED 2026-08-24 by decision 12** — the family question was a correction and not a design sitting: Waste is a **Good**, Sewage is a **Utility**, the split was already in `CONTEXT.md` → Resource, and two copies of one sentence named the wrong half. **No `ResourceFamily` change.** ⚠ **It still owes one *arguable* answer**: whether a Water Body's Bin holds exactly one Utility-family Resource, or whether `02:256`'s *"dumping"* puts a **Good** in it. ⚠ **It must take the two water tables back out of `_writableTables`**, because a Bin's level is a write. ⚠ **This row said *a fifth* `BinOwnerKind` and was correct on the day it was written** — milestone 27 landed `Business = 3` on `main`. ***A merge made a plan row stale without touching the plan.*** | 6a, decision 12 |
+| **6b** | **A Water Body's Bin.** ⏳ **The CATCHMENT half landed 2026-08-24 — see F14**: a dense `CatchmentCellTable`, one saved handle per Cell, written by `WaterGenerator.Catchments` as **Priority-Flood over a bucket queue**, because `WaterResidency` answers *which body is this Cell part of* and every Building stands on dry ground. 🔴 **The reason first given for it was wrong** — task 7 needs proximity, not catchment; what needs the catchment is the Bin's **runoff** inflow. 🔴 **Steepest descent on the raw height field reached 3–8% of a map**; filled, 45–76%. **Authors no number.** 🔴 Moves every State Hash. ⚠ **STILL OWED: the Bin itself** — the capacity, the outflow rate, a **sixth** `BinOwnerKind`, and taking the water tables back out of `_writableTables` because a Bin's level is a write. ⚠ **And one *arguable* answer**: whether the Bin holds exactly one Utility-family Resource, or whether `02:256`'s *"dumping"* puts a **Good** in it | 6a, decision 12 |
 | **7** | **Desirability's shoreline term** — `w₅`, and the caveat test `adr/0123` requires. ⚠ **It depends on 6b and NOT on 6a**, and this row said *6* until 2026-08-24: `adr/0034`, `CONTEXT.md` → Water Body and `02:256` all make the term's intensity **the Bin's level**, so a shoreline term built on the graph alone would be present and permanently zero — the working-mechanism-that-says-something-false failure `adr/0123` exists to prevent | 6b |
 | **8a** | ✅ **DONE 2026-08-24** — see **F10**. **Woodland is placed and cleared** — a `Saved<int>("woodland")` Tile count on a dense `WoodlandCellTable` of its own, placed by the generator, and **bounded by `TilesInCell − Sealing`** so that sealing clears forest with no verb and no event ([`adr/0158`](../docs/adr/0158-woodland-is-a-tile-count-per-cell-bounded-by-sealing-because-the-ground-has-one-budget-and-not-two.md)). ⚠ **Authors no number and opens no §D row**, exactly as `TerrainGenerator` authors none. 🔴 Moves every State Hash. ⚠ **It has no consumer** — the Timber chain is unplaced — so it is **F9** a second time and is taken anyway | 2, 3, decision 8 |
 | **8b** | ✅ **DONE 2026-08-24** — see **F13**. **Woodland's regrowth** — `LayerSchedule.Woodland` at **period `TICKS_PER_DAY`, offset 80**, `RegrowWoodland` in `MapLayers.Step`, and `[layers] woodland_regrowth_days = 512` in `varied.toml`. 🔴 **This is `adr/0022`'s *"regrowth speed is the load-bearing constant"*, and it had never had an owner** — no ADR, no §D row, no ratifier and no Ruleset key. ⚠ **It needed a COLUMN the scoping did not anticipate**: `WoodlandCellTable.Potential`, because regrowth needs a ceiling and both ceilings that need no column are wrong. **Moved the §D2 row to §D1.** 🔴 Moves every State Hash | 8a |
@@ -1349,3 +1349,75 @@ numbers are unratified, so a long run reading one against the other has **two un
 measuring each other**. ***The bound supplies a readout and not a ratifier***, so task 10 reads each
 against its own stated duration.
 
+
+
+---
+
+### F14 — the catchment was built for the wrong reason, and steepest descent on this terrain does not flow
+
+**Task 6b's scoping found a hole before it found the Bin.** `WaterResidency.Of` answers *which body is
+this Cell part of*, which is a fact about **wet** Cells. Buildings stand on dry ground. There was no
+dry-Cell-to-body mapping anywhere in the build, so a Water Body's Bin as scoped would have had no
+address a Building could reach. **The catchment pass is what closes that**, and it authors no number.
+
+🔴 **The reason given for building it was wrong, and the record should say so.** The argument put to
+the designer was that task 7's shoreline term needed the catchment. It does not. `CONTEXT.md` → Water
+Body: *"A Water Body's effect on land is a **shoreline line source** whose intensity is the Bin's
+level"* — a line source is a **proximity** query, the same shape as Noise and near-road pollution, and
+`WaterResidency` plus a radius answers it. What the catchment is actually for is the **other** half of
+the same entry: the Bin's inflow is *"dumping, runoff"*, and ***runoff is the catchment***. The work
+stands; the justification offered for it did not, and it was corrected the same day.
+
+⚠ **Which also sizes what filling the depressions buys, and it is less than it looks.** The mechanic
+`CONTEXT.md` calls *"the one asymmetric spatial relationship in the design"* — foul a river, export the
+consequence downstream onto somebody else — runs on **`WaterBodyTable.Downstream`**, built at task 6a,
+plus proximity for dumping. Neither is the catchment. ***The catchment routes diffuse runoff and
+nothing else***, so its fidelity is the quiet half of the mechanism.
+
+🔴 **The first implementation was a memoised steepest-descent walk, it was correct, and it does not
+flow.** Every Cell walked downhill to the first wet Cell and took that body; a path stack made it
+`O(N)` rather than `O(N × path)`. Measured on `coastal.toml` across five keys, **3–8% of the map
+reached a body at all**. The cause is not the walk: `ValueNoise.Octaves` is **8** at a 512-Cell map, so
+the finest octave has a **two-Cell wavelength** and the height field is pitted at exactly the scale the
+walk steps in. ~**11,000 dry local minima**, averaging ~**22 Cells** of catchment each, swallowed
+everything. ⚠ **Nothing had ever walked this field before** — terrain reads it per Cell and the water
+generator reads it per body — so a property nobody had reason to doubt had never been exercised.
+
+**The fix is Priority-Flood, and it REPLACED the walk rather than being stacked on it.** Filling every
+depression to its spill level and then walking is two passes and the second one fails, because a filled
+basin is **flat** and a flat has no steepest descent. Priority-Flood pops Cells in nondecreasing spill
+height, so ***the Cell a neighbour is first reached FROM is the neighbour it would spill toward*** — the
+fill order **is** the drainage, and there is no walk at all. Two kinds of seed: a wet Cell carries its
+own body, a dry Cell on the map's edge carries `default` and its runoff leaves the world, which is
+`CONTEXT.md` → Water Body's Hinterland terminus reached by the same mechanism a body reaching the edge
+is.
+
+⚠ **A bucket queue and not a heap, because a height is a bounded integer.** `ValueNoise.Ceiling` of
+them, so the ordering is an array index rather than a comparison, and the cursor never moves backward
+because a Cell is pushed at `max(its own height, the height it was reached at)`. The buckets are
+**intrusive index lists**, head-per-bucket and next-per-Cell, which is the one collection shape
+`CLAUDE.md` allows in `Borough.Core`. No `Math.*`, no comparator, no allocation per Cell.
+
+| | steepest descent | Priority-Flood |
+|---|---|---|
+| dry Cells reaching a body, 5 keys | **3–8%** of the map | **45–76%** |
+| the rest | drained into ~11,000 dry pits | **leave the map**, which is the designed terminus |
+| cost, once per world | 7.2–8.6 ms | **10.1–11.8 ms** |
+
+⚠ **NOT a Tick cost, and it does not belong in [`plans/0013`](0013-tick-budget.md).** The pass runs
+once, at world creation, beside the noise field it reads. What it prices is how long a new world takes
+to exist, which is a different budget with no ceiling written down anywhere.
+
+⚠ **A Cell on a filled flat is not a pit, and the instrument's column saying so is not a defect
+count.** Filling a depression makes it level, so 26,000–41,000 Cells have no *strictly* lower
+neighbour — each has an **equal** one that drains where it does, which is the invariant
+`CatchmentTests.No_dry_Cell_is_a_pit` states over the **filled** field. On the raw heights that test
+fails at ~11,000 Cells, which is what makes it the regression guard against the first implementation
+coming back.
+
+⚠ **One test was written, run, refuted and deleted rather than patched.** *A dry Cell beside water
+drains into it* is **false**, and the fill is right to make it false: a Cell's runoff goes down its
+lowest spill path, and a path to the map's edge can be lower than the lake next door. It failed at Cell
+**(98,0)**, on the map's northern edge — a seed of the fill, draining off the world by construction.
+The class remarks carry why it is absent, on `adr/0093`: the deletion is a finding and a silent absence
+would not be.

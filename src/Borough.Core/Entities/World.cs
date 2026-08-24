@@ -197,6 +197,12 @@ public sealed class World
         WaterCells = new Space.WaterCellTable(
             IntegerMath.FloorDiv(Space.CellGrid.WorldCellCount, 16), Water);
 
+        // Which Water Body each Cell's runoff reaches, and it takes no hint at all because it is
+        // DENSE -- one row per Cell of the map, allocated in its own constructor. The question is
+        // asked about dry ground, so sparsity would be storing a residency index to say "no" about
+        // the Cells that are the whole point. milestone 24 task 6b, adr/0159.
+        Catchment = new Space.CatchmentCellTable(Water);
+
         // The three Movement tables, and their capacity is deliberately NOT a function of population.
         //
         // plans/0021 -> "Decisions this slice must close" 3 is explicit about why: adr/0008 says the
@@ -329,6 +335,11 @@ public sealed class World
             // at world creation, and never again. Appending stays the one edit to this list that
             // moves no row relative to another.
             Water.Rows, WaterCells.Rows,
+
+            // And the catchment with them, milestone 24 task 6b. Saved on the water tables' own
+            // grounds -- it is a function of the WorldKey and a save does not carry the WorldKey
+            // back into the generator -- so a load restores it rather than recomputing it.
+            Catchment.Rows,
         ];
 
         // The same list minus the tables no Tick phase can write, for the Decide guard alone. See
@@ -342,7 +353,8 @@ public sealed class World
             .. _tables.Where(table =>
                 !ReferenceEquals(table, Layers.Terrain.Rows)
                 && !ReferenceEquals(table, Water.Rows)
-                && !ReferenceEquals(table, WaterCells.Rows)),
+                && !ReferenceEquals(table, WaterCells.Rows)
+                && !ReferenceEquals(table, Catchment.Rows)),
         ];
 
         WorldInvariants.RegisterAll(Invariants);
@@ -509,6 +521,17 @@ public sealed class World
 
     /// <summary>The Cell-to-water index. Derived, and rebuilt from the saved coordinates.</summary>
     public Space.WaterResidency WaterInCells { get; } = new();
+
+    /// <summary>
+    /// Which Water Body each Cell drains into — <b>every Cell, wet and dry.</b>
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b><see cref="WaterInCells"/> answers a different question and cannot answer this one.</b> It
+    /// says which body a Cell <em>is part of</em>, which is a fact about wet Cells; Buildings stand on
+    /// dry ground, so a Bin addressed through it would be a Bin nothing could ever reach. This table
+    /// is what gives a dry Cell a body to name. <c>milestone 24 task 6b</c>.
+    /// </remarks>
+    public Space.CatchmentCellTable Catchment { get; }
 
     /// <summary>Which Car Parks sit on which Segment — the Parking Shed query's supply index.</summary>
     /// <remarks>

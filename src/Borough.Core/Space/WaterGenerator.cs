@@ -55,12 +55,14 @@ public static class WaterGenerator
         WaterBodyTable bodies,
         WaterCellTable cells,
         WaterResidency residency,
+        CatchmentCellTable catchment,
         WaterRuleset water,
         WorldKey key)
     {
         ArgumentNullException.ThrowIfNull(bodies);
         ArgumentNullException.ThrowIfNull(cells);
         ArgumentNullException.ThrowIfNull(residency);
+        ArgumentNullException.ThrowIfNull(catchment);
 
         // A world whose Ruleset states no [water] is an inland world, and laying nothing is the whole
         // of what that means. adr/0159.
@@ -88,6 +90,131 @@ public static class WaterGenerator
 
         Populate(cells, residency, label, handles);
         Drain(bodies, height, label, reaches, handles);
+        _ = Catchments(catchment, height, label, handles);
+    }
+
+    /// <summary>
+    /// Which Water Body each Cell's runoff reaches — <b>Priority-Flood, and the fill order IS the
+    /// drainage.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>A plain steepest-descent walk was written first and it does not flow.</b>
+    /// <see cref="ValueNoise.Octaves"/> is 8 at a 512-Cell map, so the finest octave has a two-Cell
+    /// wavelength and the field is pitted at the scale the walk steps in. Measured: ~11,000 dry local
+    /// minima swallowing ~22 Cells each, and <b>3–8% of the map reached a body</b>. The walk was
+    /// correct; the terrain does not drain. ⚠ <b>Nothing had ever walked this field before</b>, which
+    /// is why a property nobody doubted turned out to be false — <c>plans/0042</c> <b>F14</b>.
+    /// </para>
+    /// <para>
+    /// <b>Priority-Flood fills every depression to its spill level, and it does not need a second
+    /// pass to do the routing.</b> Cells come out in nondecreasing spill height, so the Cell a
+    /// neighbour is first reached FROM is the neighbour it would spill toward — its catchment is that
+    /// Cell's catchment. ⚠ <b>That is why there is no descent walk here at all</b>: filling and
+    /// routing in two passes would leave a filled basin flat, and a flat has no steepest descent.
+    /// </para>
+    /// <para>
+    /// <b>The frontier is a bucket queue and not a heap</b>, because a height is a bounded integer —
+    /// <see cref="ValueNoise.Ceiling"/> of them — so the ordering is an array index rather than a
+    /// comparison. The cursor never moves backward: a Cell is pushed at
+    /// <c>max(its own height, the height it was reached at)</c>, which is never below the cursor. The
+    /// buckets are intrusive index lists, head-per-bucket and next-per-Cell, which is the one
+    /// collection shape <c>CLAUDE.md</c> allows.
+    /// </para>
+    /// <para>
+    /// <b>Two kinds of seed, and they are the two ways water stops being this pass's problem.</b> A
+    /// wet Cell has arrived, and carries its own body. A dry Cell on the map's edge leaves the world,
+    /// and carries <c>default</c> — <c>CONTEXT.md</c> → Water Body's Hinterland terminus, reached by
+    /// the same mechanism a body reaching the edge is.
+    /// </para>
+    /// <para>
+    /// <b>Index order for the seeds and <see cref="Step"/>'s E, N, W, S order for the expansion are
+    /// hash-bearing</b>, for the reason every other tie-break in this file is: two Cells that spill at
+    /// one height are separated by the order they are met in and by nothing else.
+    /// </para>
+    /// <para>
+    /// ⚠ <b><c>internal</c> and returning the filled field rather than <c>private</c> and returning
+    /// nothing</b>, so that it can be timed on its own and so that the no-pits invariant can be
+    /// asserted against the heights it actually used. <c>CatchmentTests</c> and
+    /// <c>CatchmentCostTests</c> are the only callers of either.
+    /// </para>
+    /// </remarks>
+    /// <returns>
+    /// The spill-filled height of every Cell, never below its own height. <b>Not stored</b> — it is
+    /// this pass's working field, and the answer it produces is the table.
+    /// </returns>
+    internal static int[] Catchments(
+        CatchmentCellTable catchment, int[] height, int[] label, Handle<WaterBody>[] handles)
+    {
+        var filled = new int[CellGrid.WorldCellCount];
+        var seen = new bool[CellGrid.WorldCellCount];
+
+        // The bucket queue. `head` is one index list per attainable height and `next` is the link on
+        // the Cell, both plus one so that a zeroed array reads as empty.
+        var head = new int[ValueNoise.Ceiling + 1];
+        var next = new int[CellGrid.WorldCellCount];
+
+        for (int cell = 0; cell < CellGrid.WorldCellCount; cell++)
+        {
+            int east = EastOf(cell);
+            int north = NorthOf(cell);
+
+            bool edge = east == 0
+                || north == 0
+                || east == CellGrid.WorldCells - 1
+                || north == CellGrid.WorldCells - 1;
+
+            if (label[cell] == 0 && !edge)
+            {
+                continue;
+            }
+
+            seen[cell] = true;
+            filled[cell] = height[cell];
+
+            if (label[cell] != 0)
+            {
+                catchment.Body[cell] = handles[label[cell] - 1];
+            }
+
+            next[cell] = head[height[cell]];
+            head[height[cell]] = cell + 1;
+        }
+
+        for (int level = 0; level <= ValueNoise.Ceiling; level++)
+        {
+            while (head[level] != 0)
+            {
+                int at = head[level] - 1;
+                head[level] = next[at];
+
+                int east = EastOf(at);
+                int north = NorthOf(at);
+
+                for (int step = 0; step < Neighbours; step++)
+                {
+                    int to = Step(east, north, step);
+
+                    if (to < 0 || seen[to])
+                    {
+                        continue;
+                    }
+
+                    // The spill level: a Cell below the rim it was reached over is under water as far
+                    // as drainage is concerned, and takes the rim's height.
+                    int spill = height[to] > level ? height[to] : level;
+
+                    seen[to] = true;
+                    filled[to] = spill;
+                    catchment.Body[to] = catchment.Body[at];
+
+                    next[to] = head[spill];
+                    head[spill] = to + 1;
+                }
+            }
+        }
+
+        return filled;
     }
 
     /// <summary>
