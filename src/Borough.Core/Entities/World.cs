@@ -175,7 +175,8 @@ public sealed class World
         // unratified until a real Ruleset supplies the shape. Bins is constructed above, with the
         // actors that hold handles into it.
         RuleInstances =
-            new RuleInstanceTable(PerThousand(citizens, 450), Buildings, Bins, Households);
+            new RuleInstanceTable(
+                PerThousand(citizens, 450), Buildings, Bins, Households, Businesses);
         Clock = new ClockTable();
         Treasury = new TreasuryTable();
         MoneySupply = new MoneySupplyTable();
@@ -947,13 +948,24 @@ public sealed class World
         // The trade, on the second kind namespace (adr/0141). A Business whose [[business]] the new
         // file does not name keeps its row, its premises and its balance and loses only the word --
         // so this is NOT counted in `derelicted`, which is a Building's word for a Building's loss.
-        // A derelict Building keeps Bins and Rules its kind no longer declares; a Business kind
-        // declares nothing yet, so there is nothing else to lose.
+        //
+        // ⚠ AND THEN IT REFITS, which the Household loop above has always done and this one did not.
+        // The comment here read "a Business kind declares nothing yet, so there is nothing else to
+        // lose" -- true until adr/0166, and false the moment a Business runs Rules: the migration
+        // frees every Rule Instance in the world, a trader's included, so a reload without the
+        // second half leaves every shop holding stock and running nothing. It is FitOccupant's own
+        // "it has to run at all" arriving at the other Occupant.
+        //
+        // The kind first and the refit second, in one loop rather than two, because unlike the
+        // Household case the two are keyed on the same row -- and the refit reads the kind through
+        // the PREMISES rather than through Businesses.Kind, so the order is a tidiness rather than a
+        // dependency.
         for (int slot = 0; slot < Businesses.Rows.SlotCount; slot++)
         {
             if (Businesses.Rows.IsLive(slot))
             {
                 Businesses.Kind[slot] = migration.BusinessKind(Businesses.Kind[slot]);
+                rearmed += FitBusiness(Businesses.Rows.At(slot));
             }
         }
 
@@ -1851,6 +1863,12 @@ public sealed class World
             BuildingBusinesses.Remove(buildingSlot, slot);
         }
 
+        // Its Rules and its Bins go with the premises, and its BALANCE does not (adr/0166,
+        // adr/0144). ⚠ BEFORE the handle is severed, because UnfitBusiness reads it to find the
+        // Building whose Rule list holds this trader's Instances -- and a Rule Instance left behind
+        // is the StaleHandleException milestone 27 task 9 died of, arriving from the other side.
+        UnfitBusiness(business);
+
         Businesses.Building[slot] = default;
 
         // ⚠ AND OFF THE COMMUTE ROSTER, every worker of this employer. Both departure buckets are
@@ -1912,6 +1930,11 @@ public sealed class World
 
         Businesses.Building[slot] = premises;
         BuildingBusinesses.InsertOrdered(buildingSlot, slot);
+
+        // Its Bins and its Rules, which live exactly as long as this tenancy (adr/0166). After the
+        // handle is written, because FitBusiness reads it to find the kind that declares the
+        // ceilings -- the same ordering Place makes for a Household and for the same reason.
+        FitBusiness(business);
 
         // ⚠ AND BACK ONTO THE ROSTER, which is Unpremise's mirror and is the only place in the build
         // where a Workplace GAINS a location. Every prior transition ran one way -- a demolition took
@@ -2845,6 +2868,7 @@ public sealed class World
         // Asked rather than assumed, for the Bins' reason and the Car Park's: a refit meets a
         // Building that already holds the trade it came with, and a second one would double the
         // city's employment on every reload.
+        int armed = 0;
         byte trade = Rules.Kind(kind).Business;
 
         if (trade != 0 && !HoldsOwnTrade(buildingSlot))
@@ -2856,9 +2880,13 @@ public sealed class World
             Handle<Business> came = CreateBusiness(building, trade);
 
             Businesses.Origin[Businesses.Rows.Resolve(came)] = building;
-        }
 
-        int armed = 0;
+            // And it takes up its tenancy in the same breath, because it was created already
+            // premised (adr/0166). Every OTHER Business reaches FitBusiness through Premise; this
+            // one never goes through that door, so a shop instantiated with its Building would
+            // otherwise stand there holding nothing and running nothing.
+            armed += FitBusiness(came);
+        }
 
         foreach (RuleId rule in Rules.RulesOf(kind))
         {
@@ -3077,6 +3105,185 @@ public sealed class World
 
         Households.BinHead[slot] = keptHead;
         Households.BinTail[slot] = keptTail;
+    }
+
+    /// <summary>
+    /// Opens a Business's own Bins and arms its own Rules, at the start of its tenancy.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="FitOccupant"/>'s twin for the other Occupant</b> (<c>adr/0166</c>), and the twin
+    /// is close enough to be suspicious, so here is what differs and why. The *set* of Bins comes from
+    /// the premises' kind in both, because a ceiling is a function of
+    /// <c>(building kind, Resource)</c> and neither tenant has a kind of its own. What differs is the
+    /// owner the Bin hangs off, the subject the Rule Instance names, and ***where the premises handle
+    /// is read from*** — a Household's is <c>Households.Dwelling</c> and a Business's is
+    /// <c>Businesses.Building</c>.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A money declaration opens nothing here, and that is the one asymmetry with
+    /// <see cref="Fit"/>.</b> A balance is <see cref="OpenBalance"/>'s, unbounded and with no premises
+    /// in its ceiling, and it is opened when the Business is *created* rather than when it takes
+    /// premises — because <c>adr/0144</c> keeps it through unpremising. So a
+    /// <see cref="Rules.BinTenancy.Business"/> declaration naming a conserved Resource is a **tenancy
+    /// claim and not an allocation**: it exists so <c>RulesetLoader.ApplyTenancies</c> can derive the
+    /// owner of a Rule addressing money, which is <c>adr/0166</c>'s decline half and the case a
+    /// two-valued tenancy silently gave to the landlord (<c>plans/0044</c> open decision 4).
+    /// </para>
+    /// <para>
+    /// <b>Asked rather than assumed, exactly as <see cref="Fit"/> and <see cref="FitOccupant"/> ask</b>,
+    /// so a Ruleset swap meets a Business that already holds the Bins that survived the migration.
+    /// </para>
+    /// </remarks>
+    /// <returns>How many Rule Instances were armed.</returns>
+    private int FitBusiness(Handle<Business> business)
+    {
+        int slot = Businesses.Rows.Resolve(business);
+        Handle<Building> premises = Businesses.Building[slot];
+
+        if (!Buildings.Rows.TryResolve(premises, out int buildingSlot))
+        {
+            return 0;
+        }
+
+        byte kind = Buildings.Kind[buildingSlot];
+
+        if (!Rules.Declares(kind))
+        {
+            return 0;
+        }
+
+        foreach (BinDeclaration bin in Rules.BinsOf(kind))
+        {
+            if (bin.Tenancy != BinTenancy.Business || Rules.IsConserved(bin.Resource))
+            {
+                continue;
+            }
+
+            if (FindOwnerBin(Businesses.BinHead, slot, bin.Resource).IsNone)
+            {
+                CreateTraderBin(business, buildingSlot, bin.Resource);
+            }
+        }
+
+        int armed = 0;
+
+        foreach (RuleId rule in Rules.RulesOf(kind))
+        {
+            if (Rules.Rule(rule).Tenancy != BinTenancy.Business)
+            {
+                continue;
+            }
+
+            // The TRADER's monotonic id into the stagger and not the Building's, which is
+            // FitOccupant's correctness bug with a different subject: two Businesses in one
+            // Building -- the kind's own trade under adr/0148 and one a Household founded -- would
+            // otherwise mix the same Building id with the same RuleId and land on one Wheel bucket,
+            // together, for ever.
+            CreateRuleInstance(
+                premises,
+                rule,
+                Tick,
+                ArmingStagger(Businesses.Rows.IdAt(slot), rule, Tick, Key),
+                default,
+                business);
+
+            armed++;
+        }
+
+        return armed;
+    }
+
+    /// <summary>
+    /// Closes a Business's own Bins and frees its own Rule Instances, at the end of its tenancy.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="UnfitOccupant"/>'s twin, and the balance survives here for the same reason it
+    /// survives there</b> (<c>adr/0144</c>, <c>adr/0024</c>): money is unbounded, its ceiling names no
+    /// premises, and destroying it would be money leaving the world through a demolition — the hole
+    /// <c>Invariant.MoneyIsConserved</c> exists to report and would report a very long way from here.
+    /// ***An unpremised Business goes on existing holding only its money***, which is <c>adr/0142</c>.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>What it costs is the shop's STOCK, destroyed when it loses its premises</b> — the same
+    /// finding <see cref="FitOccupant"/> files for a tenant's larder, arriving at a seller whose
+    /// inventory is the thing <c>adr/0139</c> put there. It is filed rather than fixed: a Bin that
+    /// outlived its tenancy would be a Bin <see cref="RebuildCapacities"/> cannot give a ceiling to.
+    /// </para>
+    /// <para>
+    /// <b>The Rules go before the Bins</b>, for <see cref="UnfitOccupant"/>'s reason: a Rule Instance
+    /// asleep on a Bin has to come off that wait list before the Bin is freed, or the wake walks a
+    /// freed row.
+    /// </para>
+    /// </remarks>
+    private void UnfitBusiness(Handle<Business> business)
+    {
+        int slot = Businesses.Rows.Resolve(business);
+
+        if (Buildings.Rows.TryResolve(Businesses.Building[slot], out int buildingSlot))
+        {
+            // Rescanned from the front after every removal, which is UnfitOccupant's note and its
+            // reason: RuleInstance.RuleNext is slot-plus-one encoded, so holding a successor across
+            // a Free would walk one row past every element.
+            IndexList rules = BuildingRules;
+            bool removed = true;
+
+            while (removed)
+            {
+                removed = false;
+
+                foreach (int instance in rules.Walk(buildingSlot))
+                {
+                    if (RuleInstances.Business[instance] != business)
+                    {
+                        continue;
+                    }
+
+                    rules.Remove(buildingSlot, instance);
+                    Unlink(instance);
+                    RuleInstances.Rows.Free(RuleInstances.Rows.At(instance));
+                    removed = true;
+                    break;
+                }
+            }
+        }
+
+        Handle<Bin> at = Businesses.BinHead[slot];
+        Handle<Bin> keptHead = default;
+        Handle<Bin> keptTail = default;
+
+        while (!at.IsNone)
+        {
+            int binSlot = Bins.Rows.Resolve(at);
+            Handle<Bin> next = Bins.OwnerNext[binSlot];
+
+            if (Rules.IsConserved(Bins.Resource[binSlot]))
+            {
+                Bins.OwnerNext[binSlot] = default;
+
+                if (keptTail.IsNone)
+                {
+                    keptHead = at;
+                }
+                else
+                {
+                    Bins.OwnerNext[Bins.Rows.Resolve(keptTail)] = at;
+                }
+
+                keptTail = at;
+            }
+            else
+            {
+                WakeAll(binSlot, Tick);
+                Bins.Rows.Free(at);
+            }
+
+            at = next;
+        }
+
+        Businesses.BinHead[slot] = keptHead;
+        Businesses.BinTail[slot] = keptTail;
     }
 
     /// <summary>
@@ -3915,28 +4122,85 @@ public sealed class World
     }
 
     /// <summary>
-    /// The Bin a Rule Instance's <c>local</c> term addresses: the tenant's if it has one, the
+    /// Opens a Bin a Business holds, at the ceiling <b>its premises' kind</b> declares.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="CreateOccupantBin(Handle{Household}, int, ResourceId)"/>'s twin, and the ceiling
+    /// comes from the same place for the same reason.</b> <c>adr/0141</c> splits <em>who declares the
+    /// ceiling</em> from <em>who holds the level</em>, and a shop's stock is the ADR's own worked
+    /// example — ***a shop holds what fits in the shop, and what is in it is the shopkeeper's.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>This is <c>adr/0139</c>'s seller acquiring somewhere to keep stock</b>, which is what
+    /// <c>World.Unpremise</c>'s remark called <em>unbuilt</em>: *"a Business's stock Bins are unbuilt,
+    /// and writing the sweep for them now would be a mechanism with no rows to walk."* ***There are
+    /// rows to walk now.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is never called for money.</b> A balance is <c>World.OpenBalance</c>'s, at
+    /// <c>long.MaxValue</c> and with no premises in its ceiling — so the fit walks skip a conserved
+    /// Resource, and a money declaration in <c>[[building]] bins</c> states a tenancy and allocates
+    /// nothing (<see cref="Rules.BinTenancy.Business"/>).
+    /// </para>
+    /// </remarks>
+    private Handle<Bin> CreateTraderBin(
+        Handle<Business> owner, int premisesSlot, ResourceId resource)
+    {
+        int slot = Businesses.Rows.Resolve(owner);
+
+        Handle<Bin> handle = Bins.Create(
+            BinOwnerKind.Business,
+            resource,
+            DeclaredCapacity(Buildings.Kind[premisesSlot], resource));
+
+        AppendOwnerBin(Businesses.BinHead, Businesses.BinTail, slot, handle);
+
+        return handle;
+    }
+
+    /// <summary>
+    /// The Bin a Rule Instance's <c>local</c> term addresses: the Occupant's if it has one, the
     /// premises' otherwise.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>A scope answers <em>whose is it</em> and not <em>where do I look</em></b> (<c>adr/0050</c>),
-    /// and this is that sentence acquiring a second possible answer. Before <c>adr/0141</c> the
+    /// and this is that sentence acquiring a third possible answer. Before <c>adr/0141</c> the
     /// subject of every Rule was its Building, so <see cref="FindBin"/> was the whole of
-    /// <c>local</c>; now the subject is whatever <c>RuleInstanceTable.Household</c> names.
+    /// <c>local</c>; then the subject became whatever <c>RuleInstanceTable.Household</c> named; and
+    /// <c>adr/0166</c> adds <c>RuleInstanceTable.Business</c> beside it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The two Occupant handles are mutually exclusive and the order below is therefore not a
+    /// precedence</b>, which matters because it reads like one. The loader refuses a Rule whose
+    /// <c>local</c> terms address two owners (<c>adr/0141</c>), so at most one of them is ever set;
+    /// ***if both were set this would silently prefer the Household***, and the thing that stops that
+    /// is upstream rather than here. <c>plans/0041</c> **G10** called this the binary becoming a
+    /// ternary, and this remark is the reason it is safe as one.
+    /// </para>
     /// </remarks>
     public int FindLocalBin(int instance, ResourceId resource)
     {
         Handle<Household> tenant = RuleInstances.Household[instance];
 
-        if (tenant.IsNone)
+        if (!tenant.IsNone)
         {
-            return FindBin(Buildings.Rows.Resolve(RuleInstances.Building[instance]), resource);
+            return Held(FindOwnerBin(
+                Households.BinHead, Households.Rows.Resolve(tenant), resource));
         }
 
-        Handle<Bin> held = FindOwnerBin(
-            Households.BinHead, Households.Rows.Resolve(tenant), resource);
+        Handle<Business> trader = RuleInstances.Business[instance];
 
-        return held.IsNone ? Rows.NoSlot : Bins.Rows.Resolve(held);
+        if (!trader.IsNone)
+        {
+            return Held(FindOwnerBin(
+                Businesses.BinHead, Businesses.Rows.Resolve(trader), resource));
+        }
+
+        return FindBin(Buildings.Rows.Resolve(RuleInstances.Building[instance]), resource);
+
+        int Held(Handle<Bin> bin) => bin.IsNone ? Rows.NoSlot : Bins.Rows.Resolve(bin);
     }
 
     /// <summary>
@@ -4101,12 +4365,19 @@ public sealed class World
                 continue;
             }
 
+            // ✅ AND A BUSINESS'S, for the identical reason and by the identical route. This case
+            // THREW until milestone 26 task 1, with a comment naming it open decision 1 of
+            // plans/0040 -- "nothing creates a Business's stock Bin yet, so it throws rather than
+            // defaulting". adr/0139 put the seller's inventory on the Business and adr/0166 gave it
+            // a tenancy to hang off, so the ceiling now comes from the premises' kind exactly as a
+            // Household's does, and the owner walk below is where both are in scope at once.
+            if (Bins.OwnerKind[slot] == BinOwnerKind.Business)
+            {
+                continue;
+            }
+
             // Anything else owned by something that is not a Building has no ceiling to derive: a
-            // ceiling is a function of (Building kind, Resource), and there is no second source. A
-            // Business reaches here and is not handled, which is open decision 1 of plans/0040 and
-            // not an oversight -- nothing creates a Business's stock Bin yet, so it throws rather
-            // than defaulting, because the alternative is a zero ceiling that reads as a Bin nothing
-            // can ever put anything into.
+            // ceiling is a function of (Building kind, Resource), and there is no second source.
             if (Bins.OwnerKind[slot] != BinOwnerKind.Building)
             {
                 throw new NotSupportedException(
@@ -4146,6 +4417,42 @@ public sealed class World
                 : (byte)0;
 
             Handle<Bin> at = Households.BinHead[slot];
+
+            while (!at.IsNone)
+            {
+                int binSlot = Bins.Rows.Resolve(at);
+                ResourceId held = Bins.Resource[binSlot];
+
+                if (held.Raw <= Rules.ResourceCount && !Rules.IsConserved(held))
+                {
+                    Bins.SetCapacity(binSlot, DeclaredCapacity(kind, held));
+                }
+
+                at = Bins.OwnerNext[binSlot];
+            }
+        }
+
+        // The traders' Bins, on the Households' rule and by the same walk (adr/0141, adr/0166). A
+        // Business's Bins hang off the Business and their ceilings hang off the Building it tenants,
+        // so this is the only place both are in scope at once.
+        //
+        // ⚠ AN UNPREMISED BUSINESS HOLDS NO BIN BUT ITS BALANCE, by construction rather than by
+        // luck: UnfitBusiness closes the rest when the tenancy ends, precisely because there would be
+        // no kind here to read a ceiling from. ***That is what makes adr/0142's unpremised steady
+        // state safe*** -- a Business between premises is a row, a balance and nothing that needs a
+        // ceiling.
+        for (int slot = 0; slot < Businesses.Rows.SlotCount; slot++)
+        {
+            if (!Businesses.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            byte kind = Buildings.Rows.TryResolve(Businesses.Building[slot], out int buildingSlot)
+                ? Buildings.Kind[buildingSlot]
+                : (byte)0;
+
+            Handle<Bin> at = Businesses.BinHead[slot];
 
             while (!at.IsNone)
             {
@@ -5105,16 +5412,23 @@ public sealed class World
     }
 
     /// <summary>Gives a Building one of the Rules its kind runs, armed to fire in <paramref name="delay"/>.</summary>
+    /// <remarks>
+    /// ⚠ <b><paramref name="tenant"/> and <paramref name="trader"/> are mutually exclusive</b>, and
+    /// nothing here enforces it because the loader already has: a Rule whose <c>local</c> terms
+    /// address two owners is refused at load (<c>adr/0141</c>), so no <c>RuleDefinition.Tenancy</c>
+    /// can ask for both. ***The discriminant is sound upstream, which is why there is no tag column.***
+    /// </remarks>
     public Handle<RuleInstance> CreateRuleInstance(
         Handle<Building> building,
         RuleId rule,
         Ticks now,
         uint delay,
-        Handle<Household> tenant = default)
+        Handle<Household> tenant = default,
+        Handle<Business> trader = default)
     {
         int buildingSlot = Buildings.Rows.Resolve(building);
 
-        Handle<RuleInstance> handle = RuleInstances.Create(building, rule, tenant);
+        Handle<RuleInstance> handle = RuleInstances.Create(building, rule, tenant, trader);
         int slot = RuleInstances.Rows.Resolve(handle);
 
         BuildingRules.InsertOrdered(buildingSlot, slot);

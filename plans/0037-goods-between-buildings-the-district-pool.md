@@ -718,6 +718,8 @@ own, as its own entry required.** The invariant narrowed to the head of the wait
 own argument, and it moves no hash. Task 7 on **decision 10**, which decomposition itself found.
 ⚠ **Decisions 7 and 10 are small and neither wants a sitting.**
 
+> 🔴 ⚠ **TASKS 7–10 ARE MILESTONE 26's AND THEIR ORDER IS NOW [`0044`](0044-the-purchase-and-the-provider-that-answers-it.md)'s, AS OF 2026-08-25.** The four entries below survive as the **specification** and are superseded as a **sequence**: `0044` **P1** finds that the purchase cannot resolve until a seller exists that can hold stock, which is [`adr/0166`](../docs/adr/0166-a-business-runs-rules-and-its-rules-live-as-long-as-its-tenancy.md), so ***task 8's precondition stands in front of task 7 rather than beside it.*** **Read these entries for what each piece is and `0044` for what order they go in.**
+
 ⚠ **Read the ordering claim before trusting the order.** Tasks 1 to 4 build **a boundary**, and tasks 5
 to 8 build **a market inside it**. ***The market half is the milestone's named risk and the boundary half
 is its precondition***, so an eye on schedule should be on tasks 1–4 finishing rather than on 5–8

@@ -39,17 +39,24 @@ public sealed class RuleInstanceTable
     /// <param name="buildings">The table this one's <see cref="Building"/> handles address.</param>
     /// <param name="bins">The table this one's <see cref="WaitingOn"/> handles address.</param>
     /// <param name="households">The table this one's <see cref="Household"/> handles address.</param>
+    /// <param name="businesses">The table this one's <see cref="Business"/> handles address.</param>
     public RuleInstanceTable(
-        int capacity, BuildingTable buildings, BinTable bins, HouseholdTable households)
+        int capacity,
+        BuildingTable buildings,
+        BinTable bins,
+        HouseholdTable households,
+        BusinessTable businesses)
     {
         ArgumentNullException.ThrowIfNull(buildings);
         ArgumentNullException.ThrowIfNull(bins);
         ArgumentNullException.ThrowIfNull(households);
+        ArgumentNullException.ThrowIfNull(businesses);
 
         _rows = new Rows<RuleInstance>("rule_instance", capacity, Buffering.OneCopy);
 
         Building = _rows.SavedHandle("building", buildings.Rows);
         Household = _rows.SavedHandle("household", households.Rows);
+        Business = _rows.SavedHandle("business", businesses.Rows);
         Rule = _rows.Saved<RuleId>("rule");
         NextTick = _rows.Saved<Ticks>("next_tick", Touch.PerTick);
         WaitingOn = _rows.SavedHandle("waiting_on", bins.Rows, Touch.PerTick);
@@ -89,9 +96,10 @@ public sealed class RuleInstanceTable
     /// <c>CONTEXT.md</c> → Occupant's own shape.</b> An Occupant is *"a concept spanning two lists
     /// rather than a type"*, and the Building already carries two homogeneous lists rather than one
     /// polymorphic one so that every handle stays typed and lint 7 is satisfied without a
-    /// discriminated union. ⚠ <b>A Business gets its own column when a Business runs a Rule</b>,
-    /// which is milestone 27 — spelling the second one now would be a column no fixture can
-    /// populate, which <c>DerivedRebuildAuditTests</c> exists to catch on the other disposition.
+    /// discriminated union. ✅ <b>The Business got its own column at milestone 26</b> — see
+    /// <see cref="Business"/>. **This paragraph said *"which is milestone 27"* and milestone 27
+    /// closed without it** (<c>plans/0041</c> **G39**), which is `adr/0093`'s failure mode in a doc
+    /// comment: ***a citation to a closed milestone is a promise nothing kept.***
     /// </para>
     /// <para>
     /// <b>A tenant's Rule Instance lives exactly as long as the tenancy.</b> It is created when the
@@ -101,6 +109,41 @@ public sealed class RuleInstanceTable
     /// </para>
     /// </remarks>
     public HandleColumn<Household> Household { get; }
+
+    /// <summary>
+    /// The Business running this Rule, or the unset handle when a Household or the premises run it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The third subject</b> (<c>adr/0166</c>), and it is a <em>second</em> Occupant rather than a
+    /// second kind of premises: a Business takes one of the kind's <c>occupants</c> slots exactly as
+    /// a Household does (<c>adr/0147</c>). <see cref="Rules.RuleDefinition.Tenancy"/> decides which
+    /// of the three at load, from the Rule's own <c>local</c> terms.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Two unset handles is the premises' Rule; exactly one set is that Occupant's; both set is
+    /// unreachable.</b> The loader refuses a Rule whose local terms address two owners, so the
+    /// discriminant stays sound without a tag column — which is what keeps
+    /// <c>CONTEXT.md</c> → Occupant's *"a concept spanning two lists rather than a type"* true of
+    /// three lists as well.
+    /// </para>
+    /// <para>
+    /// <b>Typed to <see cref="Entities.Business"/> for the reason <see cref="Household"/> is typed to
+    /// a Household</b>: every handle stays typed, and lint 7 is satisfied without a discriminated
+    /// union.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>This is the column milestone 27 task 9 built and reverted with a
+    /// <c>StaleHandleException</c></b>, and what makes it safe now is not this table. <c>adr/0142</c>
+    /// makes <em>unpremised</em> a legitimate steady state with <c>Businesses.Building</c> severable,
+    /// so a Rule Instance naming premises unconditionally could outlive them. Milestone 25's tenancy
+    /// rule removes it: ***a Business's Rule Instances and Bins are created when it takes premises and
+    /// destroyed when it loses them***, so the row cannot outlive the premises it names.
+    /// <b>Task 9 built the column before the tenancy rule existed to copy</b> (<c>plans/0041</c>
+    /// **G39**).
+    /// </para>
+    /// </remarks>
+    public HandleColumn<Business> Business { get; }
 
     /// <summary>Which Bin Rule of the Ruleset. Resolved by the loader, never a string here.</summary>
     public Column<RuleId> Rule { get; }
@@ -189,13 +232,17 @@ public sealed class RuleInstanceTable
     /// a family who moved out.
     /// </param>
     internal Handle<RuleInstance> Create(
-        Handle<Building> building, RuleId rule, Handle<Household> tenant = default)
+        Handle<Building> building,
+        RuleId rule,
+        Handle<Household> tenant = default,
+        Handle<Business> trader = default)
     {
         Handle<RuleInstance> handle = _rows.Allocate();
         int slot = _rows.Resolve(handle);
 
         Building[slot] = building;
         Household[slot] = tenant;
+        Business[slot] = trader;
         Rule[slot] = rule;
         Blocked[slot] = Blocking.Nothing;
         WaitingOn[slot] = default;

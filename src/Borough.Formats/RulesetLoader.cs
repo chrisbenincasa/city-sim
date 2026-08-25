@@ -2501,13 +2501,17 @@ public static class RulesetLoader
             {
                 case "premises": tenancy = BinTenancy.Premises; return true;
                 case "occupant": tenancy = BinTenancy.Occupant; return true;
+                case "business": tenancy = BinTenancy.Business; return true;
 
                 default:
                     Refuse(LineOf(inline), kind,
-                        $"'{name}' is not a Bin owner. The owners are premises and occupant, and the "
-                        + "test is whether the Bin empties when the tenant leaves: flour goes with "
-                        + "the baker, the roof does not. The premises declare the capacity either "
-                        + "way.");
+                        $"'{name}' is not a Bin owner. The owners are premises, occupant and "
+                        + "business, and the test is whether the Bin empties when the tenant "
+                        + "leaves: flour goes with the baker, the roof does not. Occupant is the "
+                        + "HOUSEHOLD tenanting the premises and business is the TRADE tenanting "
+                        + "them, and they are separate because one kind holds both -- a dwelling "
+                        + "that comes with a shop houses a family and a Business in the same "
+                        + "Building. The premises declare the capacity in all three cases.");
                     return false;
             }
         }

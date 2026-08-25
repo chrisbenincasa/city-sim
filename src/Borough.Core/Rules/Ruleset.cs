@@ -322,6 +322,34 @@ public enum BinTenancy : byte
 
     /// <summary>The Occupant's. <b>It leaves with them</b>, which is the whole definition.</summary>
     Occupant = 1,
+
+    /// <summary>
+    /// The Business tenanting the premises'. <b>A second Occupant and not a second kind of
+    /// premises</b> (<c>adr/0147</c>, <c>adr/0166</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="Occupant"/> could not simply be widened to cover it, and
+    /// <c>rulesets/minimal.toml</c> is why.</b> That file's <c>dwelling</c> kind declares an occupant
+    /// Bin, two occupant Rules <em>and</em> <c>business = "shop"</c>, so under <c>adr/0148</c> one
+    /// kind holds a Household occupant and a Business occupant in the same Building, taking two of
+    /// the same four <c>occupants</c> slots. ***A two-valued tenancy would have given every
+    /// instantiated shop a larder and a <c>consume</c>***, on every shipped world, silently.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A money Resource may be declared with this owner and no <c>capacity</c>, and such a
+    /// declaration opens no Bin</b> — <c>World.OpenBalance</c> still does, at <c>long.MaxValue</c>.
+    /// It exists so the tenancy derivation has something to look up for a term addressing money,
+    /// which is <c>adr/0166</c>'s whole decline half: a money Bin is never declared, so
+    /// <c>RulesetLoader.ApplyTenancies</c> found no declaration and fell through to
+    /// <see cref="Premises"/> — ***deriving the bankruptcy Rule to the landlord***, silently rather
+    /// than by refusal. <b>The alternative was an <c>owner</c> key on a <c>[[rule]]</c>, which
+    /// <c>adr/0141</c> refuses by name and <c>rulesets/taxed.toml</c>'s header quotes.</b> ***The
+    /// oddity of a declaration that allocates nothing is the price of leaving that ADR alone***, and
+    /// it is <c>plans/0044</c> open decision 4, settled rather than stumbled into.
+    /// </para>
+    /// </remarks>
+    Business = 2,
 }
 
 /// <summary>
@@ -359,8 +387,9 @@ public readonly record struct RuleDefinition(
     public bool IsTerminal => !Reports.IsNone;
 
     /// <summary>
-    /// Whose Rule this is: the premises', or the Occupant's. <b>Derived from the Rule's own
-    /// <see cref="Scope.Local"/> terms, never authored</b> (<c>adr/0141</c>).
+    /// Whose Rule this is: the premises', the Household Occupant's, or the Business Occupant's.
+    /// <b>Derived from the Rule's own <see cref="Scope.Local"/> terms, never authored</b>
+    /// (<c>adr/0141</c>).
     /// </summary>
     /// <remarks>
     /// <para>
