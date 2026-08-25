@@ -113,12 +113,21 @@ public sealed class PolicyLoadTests
     /// ⚠ <b>A population <c>02 §4.2</c> declares and this build does not sweep is refused by name.</b>
     /// </summary>
     /// <remarks>
+    /// <para>
     /// The unusual half: the enum has the member, so accepting it would produce a Policy that
     /// triggers, reaches nobody and reports nothing — the silent non-event <c>02 §4.1</c> bans. A
     /// named hole beats a case that falls through, which is <c>Scope.Pool</c>'s precedent.
+    /// </para>
+    /// <para>
+    /// ⚠ <b><c>business</c> was a second <c>[InlineData]</c> here until milestone 27 task 9</b>, and
+    /// what removed it is <c>adr/0149</c> rather than a change of mind about named holes. The refusal
+    /// said <em>a Business has a balance and no pass that moves it</em>; the pass exists, so the hole
+    /// is filled and the case is <see cref="A_policy_sweeping_businesses_is_accepted"/>. ***That is
+    /// what a named hole is for*** — the sentence that refused it is the specification of what closes
+    /// it, which a fall-through would not have carried.
+    /// </para>
     /// </remarks>
     [Theory]
-    [InlineData("business")]
     [InlineData("building")]
     public void A_population_the_build_declares_and_does_not_sweep_is_refused(string subject)
     {
@@ -128,6 +137,26 @@ public sealed class PolicyLoadTests
             StringComparison.Ordinal));
 
         Assert.Contains("does not sweep", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// <c>adr/0149</c>: a Policy may sweep Businesses, and a <c>balance</c> read against one loads.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>The Readout is the half worth asserting, not the <c>sweeps</c> word.</b> A subject that
+    /// parsed and a Readout the loader still scoped to Households would accept
+    /// <c>sweeps = "business"</c> and then refuse every useful thing to do with it — so this asserts
+    /// the <em>pair</em>, which is what <c>Readouts.IsReadableAgainst</c> replaced an equality to
+    /// allow.
+    /// </remarks>
+    [Fact]
+    public void A_policy_sweeping_businesses_is_accepted()
+    {
+        Ruleset ruleset = Accepted(Currency + Levy.Replace(
+            "sweeps = \"household\"", "sweeps = \"business\"", StringComparison.Ordinal));
+
+        Assert.Equal(PolicySubject.Business, ruleset.Policies[0].Subject);
+        Assert.True(ruleset.Policies[0].Apply.IsDerived);
     }
 
     [Fact]
@@ -195,13 +224,22 @@ public sealed class PolicyLoadTests
     }
 
     /// <summary>
-    /// ⚠ <b>A Readout of the wrong scope is refused, in both directions.</b>
+    /// ⚠ <b>A Readout the subject cannot be read against is refused, in both directions.</b>
     /// </summary>
     /// <remarks>
+    /// <para>
     /// The check is new in kind: every Readout before <c>balance</c> hung off a Building, so a Bin
     /// Rule could name any declared one and the question never arose. Both of these name a real
     /// Readout with no row here to read it from, and the interpreter throws on either — so the loader
     /// says it with a file and a line, which is <c>adr/0048</c>'s division of labour.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Both asserted the phrase <em>"X-scoped Readout"</em> until milestone 27 task 9</b>, and
+    /// <c>adr/0149</c> took the phrase away with the thing it named: <c>balance</c> is readable
+    /// against a Household <em>and</em> a Business, so it has no one scope to be spelled with. The
+    /// refusal now names <b>the entity the Rule is attached to</b> and lists what the Readout is
+    /// readable against, which is the same fact stated from the side that has one answer.
+    /// </para>
     /// </remarks>
     [Fact]
     public void A_policy_naming_a_building_scoped_readout_is_refused()
@@ -209,7 +247,8 @@ public sealed class PolicyLoadTests
         RulesetRefusal refusal = Refused(Currency + Levy.Replace(
             "derived = \"balance\"", "derived = \"occupancy\"", StringComparison.Ordinal));
 
-        Assert.Contains("Building-scoped Readout", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("not readable against a Household", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("Readable against: Building", refusal.Reason, StringComparison.Ordinal);
     }
 
     /// <inheritdoc cref="A_policy_naming_a_building_scoped_readout_is_refused"/>
@@ -227,7 +266,8 @@ public sealed class PolicyLoadTests
             outputs = [ { scope = "local", resource = "sundries", amount = 1 } ]
             """);
 
-        Assert.Contains("Household-scoped Readout", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("not readable against a Building", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("Readable against: Household, Business", refusal.Reason, StringComparison.Ordinal);
     }
 
     // ---- the opening balance band -------------------------------------------------------------

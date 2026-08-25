@@ -732,13 +732,22 @@ public enum PolicySubject : byte
     /// </summary>
     None = 0,
 
-    /// <summary>Every live Household. The only one built (<c>plans/0033</c> task 5).</summary>
+    /// <summary>Every live Household. The first one built (<c>plans/0033</c> task 5).</summary>
     Household = 1,
 
     /// <summary>
-    /// Every live Business. <b>Declared and not yet swept</b> — a Business has a balance and nothing
-    /// that moves it.
+    /// Every live Business. Built by <c>adr/0149</c>, milestone 27 task 9.
     /// </summary>
+    /// <remarks>
+    /// ⚠ <b>It is the same loop over a different table, and that is the finding rather than the
+    /// implementation.</b> A Business's balance is a Bin exactly as a Household's is
+    /// (<c>adr/0114</c>), so what a Policy needs from its subject is <em>a slot count, a liveness
+    /// test and a balance Bin</em> — three lines — and the reason this was not built at task 5 is
+    /// that there were no Businesses. ***The candidate that looked closer, a Bin Rule armed on a
+    /// trade, is a much larger mechanism***: <c>RuleEngine.Fire</c> resolves a Building from the
+    /// Rule Instance, so a Business-subject Bin Rule needs the Bin engine's Building-centricity
+    /// unpicked and not merely a branch. <c>adr/0149</c> records that attempt and its withdrawal.
+    /// </remarks>
     Business = 2,
 
     /// <summary>

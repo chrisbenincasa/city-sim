@@ -3616,3 +3616,35 @@ first candidate in this document that a mechanical check could actually reach.
 [`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md):
 they were found while sizing a milestone, they live in code that milestone does not own yet, and the
 task that will touch each is named above.
+
+### `RuleInstanceTable.cs:92` promises a `Business` column at milestone 27, and milestone 27 did not add one
+
+**Found 2026-08-24 by milestone 27 task 9**
+([`0041`](0041-the-business-is-a-thing-the-city-contains.md)). The comment reads ***"A Business gets its
+own column when a Business runs a Rule, which is milestone 27"***, and
+[`plans/0041`](0041-the-business-is-a-thing-the-city-contains.md) **G10** built the task's plan on it —
+*"task 9's real content is a third subject on the Rule Instance, and the build already says so."*
+
+🔴 **The column was implemented and withdrawn the same day.** A `[[rule]] trade = "<name>"` armed on a
+Business loaded and then crashed on the Tick it fired: `RuleEngine.Fire` resolves a Building from the
+instance, not only `Band` does, and the Building-centricity runs through evidence, `on_fail`, the wake
+targets and every local Bin lookup.
+[`adr/0149`](../docs/adr/0149-a-business-is-a-population-a-policy-sweeps-and-a-readout-names-every-entity-it-reads-against.md)
+records the attempt and takes the other route: a Business is a **population a Policy sweeps**, which
+needs no Rule Instance at all.
+
+**This is [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+in its ordinary form and Cause 4's shape** — the sentence is right about which symbol to read and wrong
+about the **trigger**, and ⚠ **the trigger it is wrong about is a MILESTONE NUMBER**, which is the
+candidate check the entry above this one proposes. *A doc comment naming a future milestone as the thing
+that will falsify it is a citation*, and this is one that came due and was not paid.
+
+- [ ] **The repair is the milestone number and not the sentence.** A Business will get its own column
+      when a Business runs a **Bin Rule**, and that needs `RuleEngine`'s Building resolve unpicked
+      first — milestone **26**, where a Business earns. ⚠ **Do not delete the sentence**: it is the only
+      place in the build that names the column's condition, and it was right about everything except
+      when.
+
+⚠ **What it cost is worth recording, because it is what Cause 4 is for.** The comment did not mislead a
+reader about behaviour; it sized a task. Task 9 was planned as *a column plus a fork* and is a **loop
+plus a membership test**, and the half-day between those two estimates was spent building the wrong one.

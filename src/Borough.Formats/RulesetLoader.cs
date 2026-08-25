@@ -708,6 +708,30 @@ public static class RulesetLoader
                 + "carry-over of a warehouse. Remove the key; the hole is named rather than hidden.");
         }
 
+        /// <summary>Spells the entities a Readout is readable against, for a refusal message.</summary>
+        /// <remarks>
+        /// ⚠ <b>It lives here rather than beside <see cref="Readouts.IsReadableAgainst"/> because
+        /// <c>adr/0002</c> puts it here.</b> It was written in <c>Borough.Core</c> first, as a
+        /// <c>string</c> property next to the predicate, and <c>BoundaryTests</c> refused it: the shell
+        /// owns every string a human reads, and a refusal message is read by a human. What crosses the
+        /// boundary is <see cref="Readouts.Scopes"/> and the predicate; the sentence is built where the
+        /// sentence is read.
+        /// </remarks>
+        private static string ScopesOf(ReadoutId id)
+        {
+            List<string> scopes = [];
+
+            foreach (ReadoutScope scope in Readouts.Scopes)
+            {
+                if (Readouts.IsReadableAgainst(id, scope))
+                {
+                    scopes.Add(scope.ToString());
+                }
+            }
+
+            return scopes.Count == 0 ? "nothing" : string.Join(", ", scopes);
+        }
+
         /// <summary>
         /// An <c>apply</c> count, checked against the scope of the entity the Rule is attached to.
         /// </summary>
@@ -768,14 +792,14 @@ public static class RulesetLoader
                     return ApplyCount.Band(1, 1);
                 }
 
-                if (Readouts.ScopeOf(id) != scope)
+                if (!Readouts.IsReadableAgainst(id, scope))
                 {
                     Refuse(LineOf(derived), rule,
-                        $"'{readout}' is a {Readouts.ScopeOf(id)}-scoped Readout and this Rule is "
-                        + $"attached to a {scope}. The entity a Readout hangs off is part of its "
-                        + "declaration (02 section 4.1), so this names a real quantity with no row "
-                        + "here to read it from -- a Bin Rule runs on a Building and a Policy sweeps "
-                        + "a population.");
+                        $"'{readout}' is not readable against a {scope}, and this Rule is attached to "
+                        + $"one. The entities a Readout hangs off are part of its declaration (02 "
+                        + "section 4.1), so this names a real quantity with no row here to read it "
+                        + "from -- a Bin Rule runs on a Building and a Policy sweeps a population. "
+                        + $"Readable against: {ScopesOf(id)}.");
 
                     return ApplyCount.Band(1, 1);
                 }
@@ -2317,17 +2341,32 @@ public static class RulesetLoader
             return [.. definitions];
         }
 
-        /// <summary>Which Readout scope a Policy over <paramref name="subject"/> may name.</summary>
+        /// <summary>Which Readout scope a Policy over <paramref name="subject"/> reads against.</summary>
         private static ReadoutScope ScopeFor(PolicySubject subject) =>
-            subject == PolicySubject.Building ? ReadoutScope.Building : ReadoutScope.Household;
+            subject switch
+            {
+                PolicySubject.Business => ReadoutScope.Business,
+                PolicySubject.Building => ReadoutScope.Building,
+                _ => ReadoutScope.Household,
+            };
 
         /// <summary>The <c>sweeps</c> key — refusals 60 and 61.</summary>
         /// <remarks>
+        /// <para>
         /// <b>Refusal 61 refuses a population the engine has, and that is the unusual half.</b>
-        /// <c>business</c> and <c>building</c> are declared in <see cref="PolicySubject"/> because
-        /// <c>02 §4.2</c> names three, and a Ruleset may not author them because nothing sweeps them.
-        /// Accepting one would produce a Policy that triggers, reaches nobody and reports nothing —
-        /// the silent non-event <c>02 §4.1</c> bans — where a refusal names the milestone.
+        /// <c>building</c> is declared in <see cref="PolicySubject"/> because <c>02 §4.2</c> names
+        /// three, and a Ruleset may not author it because nothing sweeps it. Accepting one would
+        /// produce a Policy that triggers, reaches nobody and reports nothing — the silent non-event
+        /// <c>02 §4.1</c> bans — where a refusal names the milestone.
+        /// </para>
+        /// <para>
+        /// ⚠ <b><c>business</c> was refused here too until milestone 27 task 9, and the refusal's own
+        /// sentence is what the task built</b>: <em>a Business has a balance and no pass that moves
+        /// it</em>. <c>adr/0149</c> supplied the pass. ***The Building half is untouched and is not the
+        /// same kind of absence*** — a Business population is every live row, and a Building
+        /// population is whichever rows a predicate picks, so what is missing there is a mechanism
+        /// rather than a loop.
+        /// </para>
         /// </remarks>
         private PolicySubject ReadSubject(TableSyntaxBase table, string? name)
         {
@@ -2342,20 +2381,23 @@ public static class RulesetLoader
                     return PolicySubject.Household;
 
                 case "business":
+                    return PolicySubject.Business;
+
                 case "building":
                     Refuse(LineOf((SyntaxNodeBase?)Find(table, "sweeps") ?? table), name,
-                        $"sweeps = \"{subject}\" names a population 02 section 4.2 declares and this "
-                        + "build does not sweep. A Business has a balance and no pass that moves it; "
-                        + "a Building population needs the predicate that selects it, and neither "
-                        + "exists. The only population is \"household\".");
+                        "sweeps = \"building\" names a population 02 section 4.2 declares and this "
+                        + "build does not sweep. A Building population is whichever standing "
+                        + "Buildings a predicate selects, and there is no predicate -- so this is a "
+                        + "missing mechanism rather than a missing loop. The populations that sweep "
+                        + "are \"household\" and \"business\".");
 
                     return PolicySubject.Household;
 
                 default:
                     Refuse(LineOf((SyntaxNodeBase?)Find(table, "sweeps") ?? table), name,
                         $"sweeps = \"{subject}\" is not a population. 02 section 4.2 names three -- "
-                        + "\"household\", \"business\", \"building\" -- of which \"household\" is the "
-                        + "one this build sweeps.");
+                        + "\"household\", \"business\", \"building\" -- of which the first two are "
+                        + "the ones this build sweeps.");
 
                     return PolicySubject.Household;
             }

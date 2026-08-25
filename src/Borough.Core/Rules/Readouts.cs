@@ -100,19 +100,38 @@ public enum ReadoutScope : byte
 
     /// <summary>Read against a Household row.</summary>
     Household = 1,
+
+    /// <summary>
+    /// Read against a Business row. <c>adr/0149</c>, milestone 27 task 9.
+    /// </summary>
+    /// <remarks>
+    /// <b>The member that made a Readout's scope a SET rather than a value.</b> A Business has a
+    /// balance and so does a Household, so <c>Readout.Balance</c> stopped having one answer — see
+    /// <see cref="Readouts.IsReadableAgainst"/>, which replaced an equality with a membership test and
+    /// kept the check's exact purpose: ***does this entity have the scalar this Rule names.***
+    /// </remarks>
+    Business = 2,
 }
 
 /// <summary>
 /// Reads a declared <see cref="Readout"/>, and enumerates the declared set.
 /// </summary>
 /// <remarks>
-/// <b>The entity a Readout hangs off is part of its declaration</b> — <see cref="ScopeOf"/> — and the
-/// two scopes have <b>two entry points</b> rather than one switch, which is what this class predicted
-/// it would need before there was a second scope to need it. <see cref="Read"/> takes a Building row
-/// and <see cref="ReadHousehold"/> a Household row; a single method taking an <c>(entity kind, slot)</c>
+/// <b>The entities a Readout hangs off are part of its declaration</b> —
+/// <see cref="IsReadableAgainst"/> — and each scope has <b>its own entry point</b> rather than one
+/// switch, which is what this class predicted it would need before there was a second scope to need
+/// it. <see cref="Read"/> takes a Building row, <see cref="ReadHousehold"/> a Household row and
+/// <see cref="ReadBusiness"/> a Business row; a single method taking an <c>(entity kind, slot)</c>
 /// pair would be two switches wearing one signature and would let a Building slot be read as a
 /// Household. The scalars <c>CONTEXT</c> still names and this build still lacks — gross income, time
 /// unemployed, experience — are Household-scoped and arrive with the mechanisms that produce them.
+/// <para>
+/// ⚠ <b>ENTITIES rather than entity, as of <c>adr/0149</c>.</b> <see cref="Readout.Balance"/> is a
+/// scalar of <em>anything that holds money</em>, which is a Household and a Business, and the
+/// declaration could not say so while a Readout had one scope. ***That is a widening of what a
+/// Ruleset may write***: a Readout carelessly added to two sets is a Rule reading a quantity that
+/// means a different thing on each, which no test can catch and the single value made unreachable.
+/// </para>
 /// </remarks>
 public static class Readouts
 {
@@ -141,16 +160,75 @@ public static class Readouts
         return false;
     }
 
-    /// <summary>Which entity <paramref name="id"/> is read against.</summary>
+    /// <summary>Whether <paramref name="id"/> can be read against <paramref name="scope"/>.</summary>
     /// <remarks>
-    /// <b>An undeclared id is <see cref="ReadoutScope.Building"/> rather than a throw</b>, and the
-    /// asymmetry with <see cref="Read"/> is deliberate: this is asked by the loader, which is deciding
-    /// whether to <em>refuse</em>, and a validator that throws on the input it exists to reject turns
-    /// a refusal with a file and a line into a crash. The unreadable id is refused a line later, by
-    /// the check that already exists for it.
+    /// <para>
+    /// <b>A membership test rather than an equality</b> (<c>adr/0149</c>), and it keeps the check's
+    /// exact purpose: what the loader refuses is <em>a Rule naming a real quantity with no row here
+    /// to read it from</em>, which is a question about whether this entity has the scalar. A single
+    /// scope could not answer it once <see cref="Readout.Balance"/> belonged to two entities.
+    /// </para>
+    /// <para>
+    /// <b>An undeclared id is readable against nothing rather than a throw</b>, and the asymmetry with
+    /// <see cref="Read"/> is deliberate: this is asked by the loader, which is deciding whether to
+    /// <em>refuse</em>, and a validator that throws on the input it exists to reject turns a refusal
+    /// with a file and a line into a crash. The unresolvable NAME is refused earlier still, by
+    /// <c>ReadoutNames</c>.
+    /// </para>
     /// </remarks>
-    public static ReadoutScope ScopeOf(ReadoutId id) =>
-        (Readout)id.Raw == Readout.Balance ? ReadoutScope.Household : ReadoutScope.Building;
+    public static bool IsReadableAgainst(ReadoutId id, ReadoutScope scope) =>
+        (Readout)id.Raw switch
+        {
+            // Anything that holds money. adr/0114 made a balance a Bin and adr/0149 made the Readout
+            // over it name both owners.
+            Readout.Balance => scope is ReadoutScope.Household or ReadoutScope.Business,
+            Readout.Occupancy => scope is ReadoutScope.Building,
+            _ => false,
+        };
+
+    /// <summary>Every scope, so a caller can ask <see cref="IsReadableAgainst"/> about each.</summary>
+    /// <remarks>
+    /// ⚠ <b>The SET rather than a sentence describing it, and that is <c>adr/0002</c> rather than a
+    /// preference.</b> This wanted to be a <c>string</c> naming the entities a Readout is readable
+    /// against, for the loader's refusal message — and <c>BoundaryTests</c> refused it: the shell owns
+    /// every string a human reads. ***What crosses the boundary is the enumeration and the
+    /// predicate***, and the sentence is built where the sentence is read.
+    /// </remarks>
+    public static ReadOnlySpan<ReadoutScope> Scopes => AllScopes;
+
+    private static readonly ReadoutScope[] AllScopes =
+        [ReadoutScope.Building, ReadoutScope.Household, ReadoutScope.Business];
+
+    /// <summary>Reads a Business-scoped Readout.</summary>
+    /// <remarks>
+    /// <b><see cref="ReadHousehold"/>'s third sibling</b> (<c>adr/0149</c>), and it is a separate
+    /// method for that one's reason exactly: the rows are different tables and letting one slot be
+    /// read as the other is the failure the entry points exist to make unspellable. ⚠ <b>It is the
+    /// first caller of <c>World.BalanceOf(Handle&lt;Business&gt;)</c></b>, which milestone 25 wrote
+    /// and nothing had used.
+    /// </remarks>
+    /// <param name="world">The tables to read.</param>
+    /// <param name="business">The Business row the Policy is sweeping.</param>
+    /// <param name="id">A declared Business-scoped Readout.</param>
+    public static long ReadBusiness(World world, int business, ReadoutId id)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+
+        switch ((Readout)id.Raw)
+        {
+            case Readout.Balance:
+                return world.BalanceOf(world.Businesses.Rows.At(business)).Raw;
+
+            case Readout.Occupancy:
+            case Readout.None:
+            default:
+                throw new InvalidOperationException(
+                    $"readout id {id.Raw} is not readable against a Business. The entities a Readout "
+                    + "can be read against are part of its declaration (Readouts.IsReadableAgainst) "
+                    + "and the loader refuses a Rule that names one of the wrong shape, so reaching "
+                    + "here means a Ruleset was built in code rather than loaded.");
+        }
+    }
 
     /// <summary>Reads a Household-scoped Readout.</summary>
     /// <remarks>

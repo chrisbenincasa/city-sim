@@ -298,23 +298,48 @@ rather than convenience.** `CreateBuilding`'s kind is required because a Buildin
 without one; a Business kind declares nothing until task 7, so requiring it would make **seventeen test
 call sites** name a value nothing reads.
 
-### 9. **A Rule can read a Business's balance.** *(second — it needs only the kind, and a fixture)*
+### 9. **A Rule can read a Business's balance.** *(✅ CLOSED 2026-08-24)*
 
-⚠ **Moved ahead of 7 and 8** because it is the one entry in group B that is **exercisable by fixture**,
-exactly as milestone 25's group A was — `GoldenFixtures.cs:531-532` already puts two Businesses in one
-Building. ***It does not need a Business the city created; it needs a Business.***
+✅ **SHIPPED 2026-08-24, into
+[`adr/0149`](../docs/adr/0149-a-business-is-a-population-a-policy-sweeps-and-a-readout-names-every-entity-it-reads-against.md)
+— and it is not the task this section described.** 🔴 **The plan pointed at a Rule Instance column and
+the answer was a Policy**; **G39** below is that finding and it is `adr/0093`'s ordinary shape.
 
-- 🔴 **The real content is a THIRD SUBJECT on the Rule Instance, and the build already says so**
-  (**G10**). `RuleInstanceTable.cs:91-95`: *"A Business gets its own column when a Business runs a Rule,
-  which is milestone 27."* `World.FindLocalBin` (`World.cs:3098-3111`) branches on
-  `RuleInstances.Household[instance].IsNone` — **a binary**. ⚠ **This is milestone 25 task 2's shape a
-  second time**, and that task is the precedent for how to do it.
-- **The readout half is small** (**G11**): `ReadoutScope` gains a third member, `ScopeOf` stops being a
-  ternary, `Read`/`ReadHousehold` gain a third entry point, and `World.BalanceOf(Handle<Business>)`
-  **already exists** and gets its first caller.
-- ⚠ **`Readouts.cs:105-116` predicted this and chose the shape in advance** — *"two entry points rather
-  than one switch … a single method taking an `(entity kind, slot)` pair would be two switches wearing
-  one signature."* ***Follow it rather than collapsing it.***
+- ✅ **`sweeps = "business"` is accepted, and the refusal it replaced was the specification.** The loader
+  had refused it with *"A Business has a balance and no pass that moves it"* — ***task 9's sentence,
+  written by the build in advance.*** `PolicyEngine.SweepHouseholds` became `SweepMembers` and takes its
+  slot count, liveness test and balance Bin from the subject; nothing else in it moved.
+- ✅ **The Readout half landed as `G11` predicted and one step wider.** `ReadoutScope` gained
+  `Business`, `Readouts.ReadBusiness` is `World.BalanceOf(Handle<Business>)`'s first caller — and
+  `ScopeOf` did not stop being a ternary, it **stopped existing**: `balance` belongs to a Household *and*
+  a Business, so a Readout declares the **set** it can be read against and the loader's equality became
+  `IsReadableAgainst`.
+- ✅ **`Readouts.cs`'s own rule was followed rather than collapsed** — three entry points, not one switch
+  over an `(entity kind, slot)` pair.
+- ✅ **[`rulesets/levied.toml`](../rulesets/levied.toml) ships**, the sixteenth file: `founded.toml` plus
+  five lines, so the diff *is* the demonstration. `BusinessLevyTests` runs it against `founded.toml` as
+  the control at one seed. 🔴 **Its numbers ratify nothing** — a shop here has no revenue — and both its
+  `[founding]` numbers and the levy's `percent` are now in `plans/0002` **§D1**, ⚠ **including the pair
+  task 8 owed and did not file.**
+- ⚠ **`adr/0048`'s count does not move.** One `Refuse(` call site served `business` and `building`
+  together; it now serves `building` alone. **`sweeps = "building"` is untouched and is a different kind
+  of absence** — a Business population is every live row, a Building population is whichever rows a
+  predicate selects, and the predicate does not exist.
+
+**What this task no longer contains, and it is worth the space.** The section below is the original
+plan, kept because `G39` is about it:
+
+> - 🔴 **The real content is a THIRD SUBJECT on the Rule Instance, and the build already says so**
+>   (**G10**). `RuleInstanceTable.cs:91-95`: *"A Business gets its own column when a Business runs a
+>   Rule, which is milestone 27."* `World.FindLocalBin` (`World.cs:3098-3111`) branches on
+>   `RuleInstances.Household[instance].IsNone` — **a binary**. ⚠ **This is milestone 25 task 2's shape a
+>   second time**, and that task is the precedent for how to do it.
+> - **The readout half is small** (**G11**): `ReadoutScope` gains a third member, `ScopeOf` stops being a
+>   ternary, `Read`/`ReadHousehold` gain a third entry point, and `World.BalanceOf(Handle<Business>)`
+>   **already exists** and gets its first caller.
+> - ⚠ **`Readouts.cs:105-116` predicted this and chose the shape in advance** — *"two entry points rather
+>   than one switch … a single method taking an `(entity kind, slot)` pair would be two switches wearing
+>   one signature."* ***Follow it rather than collapsing it.***
 
 ### 8. **What creates a Business, and what capitalises one.** *(✅ CLOSED 2026-08-24)*
 
@@ -1080,3 +1105,57 @@ misread, and this document then misread it that way.***
 G5's correct sentence lived in a *plan*, and this one lives in an *ADR's opening claim*. A check that
 asked whether a plan's use of a decision agrees with that decision's own summary is conceivable and is
 **not proposed** — it needs the corpus to know which sentence of an ADR is its claim, and nothing does.
+
+**G39 — 🔴 A DOC COMMENT NAMING A FUTURE MILESTONE SIZED A TASK, AND THE SIZE WAS WRONG BY A
+SUBSYSTEM.** `RuleInstanceTable.cs:92` says ***"A Business gets its own column when a Business runs a
+Rule, which is milestone 27"***, and **G10** built task 9's plan on it: *"the real content is a third
+subject on the Rule Instance, and the build already says so."* The column was implemented — `[[rule]]
+trade = "<name>"`, `BusinessTable.RuleHead`/`RuleTail`, `World.ArmTrade`, `RuleEngine.Band` dispatching
+on the instance — and it **loaded and then crashed on the Tick it fired**:
+
+```
+StaleHandleException: handle {index 0, generation 0} into table 'building' is stale.
+   at Borough.Core.Rules.RuleEngine.Fire(RuleVerdict verdict, Ticks tick)
+```
+
+⚠ **`RuleEngine` resolves a Building from the instance at `Fire`, not only at `Band`** — and through
+evidence, `on_fail`, the wake targets and every local Bin lookup. **The column was the visible tenth of
+a subsystem.** Reverted; `adr/0149` takes the route the loader's own refusal named, and task 9 is a loop
+over a second table plus a membership test.
+
+**This is [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+working rather than failing, and the distinction is worth being exact about.** The comment is right about
+**where to look**; what is in there was never its claim to make. ***G10 read a location as an estimate***,
+which is the one use of a description that ADR forbids outright.
+
+⚠ **What makes this sighting different from `plans/0012` Cause 4's four is that nothing was decided
+wrongly** — no ADR rests on it, no number moved, no world behaves differently. **What it cost was
+sizing**, and sizing is invisible to every check in this corpus. Filed to
+[`0012`](0012-corpus-audit.md), where the entry directly above it proposes the check that would have
+caught it: *a doc comment naming a future milestone is a citation, and a citation to a closed milestone
+is checkable.* 🔴 **This one was a citation to an OPEN milestone that was simply wrong about what that
+milestone would do**, which that check does not reach either.
+
+**G40 — a Readout's scope was a value because there had only ever been one entity, and the widening is
+the thing to watch.** `ScopeOf` returned one `ReadoutScope`; `balance` was declared `Household`-scoped
+while `World.BalanceOf(Handle<Business>)` had sat in the build unused since milestone 25. ⚠ **A single
+scope made over-permission unreachable** — a Readout could be wrong about *which* entity, never about
+*how many* — and `IsReadableAgainst` gives that up to say something true. ***A Readout carelessly added
+to two sets is a Rule reading a quantity that means a different thing on each***, and no test in this
+corpus can catch it. Recorded in `adr/0149`'s revisit triggers rather than guarded, because the guard
+would be a claim about what a scalar *means*, which nothing in the build represents.
+
+**G41 — the shipped file could not assert the property the shipped file demonstrates.** `PolicyCounter`
+is **one set of counters for the whole engine**, so a run of `levied.toml` reports every Policy's
+`considered` and `applied` together — and its two Household Policies outweigh the trade levy about ten to
+one. ⚠ **A counter that cannot be attributed to a Policy cannot assert a property of one**, so
+`BusinessLevyTests` builds its fixture by cutting `founded.toml` at its first `[[policy]]` **table** and
+appending the levy alone. 🔴 **The first cut was on the string `[[policy]]` and landed in the file's own
+header**, four hundred lines above the tables — *"a [households] table and two `[[policy]]` tables"* —
+producing a world with no Buildings in it. ***A fixture built by text surgery cuts on syntax, never on a
+word the prose also uses.***
+
+⚠ **The attribution gap is not filed as a defect and should not be.** Per-Policy counters would be a
+Census surface nothing has asked for; what exists is enough to instrument the engine, and the test that
+needed attribution got it by building a world with one Policy in it. **Recorded so the next person to
+want a per-Policy figure knows it is absent by circumstance rather than by decision.**

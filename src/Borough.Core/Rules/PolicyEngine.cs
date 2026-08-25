@@ -230,13 +230,13 @@ public sealed class PolicyEngine
 
             _tickTriggers++;
 
-            SweepHouseholds(policy, definition, tick);
+            SweepMembers(policy, definition, tick);
         }
 
         CloseTick();
     }
 
-    /// <summary>One Policy's sweep over every live Household, from a drawn start.</summary>
+    /// <summary>One Policy's sweep over every live member of its subject, from a drawn start.</summary>
     /// <remarks>
     /// <para>
     /// <b>Over slots rather than over live rows</b>, skipping the dead, which is
@@ -254,18 +254,18 @@ public sealed class PolicyEngine
     /// taxed.
     /// </para>
     /// </remarks>
-    private void SweepHouseholds(int policy, in PolicyDefinition definition, Ticks tick)
+    private void SweepMembers(int policy, in PolicyDefinition definition, Ticks tick)
     {
-        if (definition.Subject != PolicySubject.Household)
+        int slots = definition.Subject switch
         {
-            throw new NotSupportedException(
-                $"Policy {policy} sweeps {definition.Subject}, and only Household is built. 02 "
-                + "section 4.2 names three populations; a Business has a balance and no pass that "
-                + "moves it, and a Building population needs the predicate that selects it. The "
-                + "loader refuses both by name, so this Ruleset was built in code.");
-        }
-
-        int slots = _world.Households.Rows.SlotCount;
+            PolicySubject.Household => _world.Households.Rows.SlotCount,
+            PolicySubject.Business => _world.Businesses.Rows.SlotCount,
+            _ => throw new NotSupportedException(
+                $"Policy {policy} sweeps {definition.Subject}, and only Household and Business are "
+                + "built. 02 section 4.2 names three populations; a Building population needs the "
+                + "predicate that selects it, and that predicate does not exist. The loader refuses "
+                + "it by name, so this Ruleset was built in code."),
+        };
 
         if (slots == 0)
         {
@@ -294,7 +294,7 @@ public sealed class PolicyEngine
                 slot -= slots;
             }
 
-            if (!_world.Households.Rows.IsLive(slot))
+            if (!IsLive(definition.Subject, slot))
             {
                 continue;
             }
@@ -312,6 +312,26 @@ public sealed class PolicyEngine
         }
     }
 
+    /// <summary>Whether <paramref name="slot"/> holds a live member of <paramref name="subject"/>.</summary>
+    private bool IsLive(PolicySubject subject, int slot) =>
+        subject == PolicySubject.Business
+            ? _world.Businesses.Rows.IsLive(slot)
+            : _world.Households.Rows.IsLive(slot);
+
+    /// <summary>The Bin row holding one member's money.</summary>
+    /// <remarks>
+    /// ⚠ <b><c>Resolve</c> and not <c>TryResolve</c>, on both branches, and the asymmetry with
+    /// <see cref="World.BalanceOf(Handle{Household})"/> is deliberate.</b> That one answers a reader
+    /// who may be asking about a world with no money in it and returns zero; this one is reached only
+    /// from a Policy, and a Policy names a Resource whose treasury Bin was found a few lines up — so a
+    /// member with no balance Bin here is a world where money is declared and somebody was built
+    /// without one, which is a defect rather than a poor Household.
+    /// </remarks>
+    private int BalanceBinOf(PolicySubject subject, int member) =>
+        subject == PolicySubject.Business
+            ? _world.Bins.Rows.Resolve(_world.Businesses.Balance[member])
+            : _world.Bins.Rows.Resolve(_world.Households.Balance[member]);
+
     /// <summary>Moves one member's share, or says why it did not.</summary>
     /// <param name="payerDry">
     /// Whether the failure was the <em>source</em> Bin being short rather than the member owing
@@ -319,11 +339,11 @@ public sealed class PolicyEngine
     /// </param>
     /// <returns>Whether money moved.</returns>
     private bool Move(
-        in PolicyDefinition definition, int household, int treasury, Ticks tick, out bool payerDry)
+        in PolicyDefinition definition, int member, int treasury, Ticks tick, out bool payerDry)
     {
         payerDry = false;
 
-        long applications = Applications(definition, household);
+        long applications = Applications(definition, member);
 
         if (applications == 0)
         {
@@ -332,7 +352,7 @@ public sealed class PolicyEngine
 
         long amount = applications * definition.Amount;
 
-        int balance = _world.Bins.Rows.Resolve(_world.Households.Balance[household]);
+        int balance = BalanceBinOf(definition.Subject, member);
         int source = definition.From == Scope.Global ? treasury : balance;
         int destination = definition.To == Scope.Global ? treasury : balance;
 
@@ -389,14 +409,16 @@ public sealed class PolicyEngine
     /// observed at the moment it happens.
     /// </para>
     /// </remarks>
-    private long Applications(in PolicyDefinition definition, int household)
+    private long Applications(in PolicyDefinition definition, int member)
     {
         if (!definition.Apply.IsDerived)
         {
             return definition.Apply.Min;
         }
 
-        long readout = Readouts.ReadHousehold(_world, household, definition.Apply.Derived);
+        long readout = definition.Subject == PolicySubject.Business
+            ? Readouts.ReadBusiness(_world, member, definition.Apply.Derived)
+            : Readouts.ReadHousehold(_world, member, definition.Apply.Derived);
         long applications = IntegerMath.FloorDiv(readout * definition.Apply.Percent, 100);
 
         if (applications == 0 && readout > 0 && definition.Apply.Percent > 0)
