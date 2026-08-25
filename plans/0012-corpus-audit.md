@@ -2042,7 +2042,7 @@ over `rulesets/*.toml`. `tests/Borough.Tests/Corpus/` is document-to-document by
 cannot see it today. **Not written here, because whether the corpus tests may read the Rulesets is a
 decision and not a chore.**
 
-### `CLAUDE.md`'s assertion tier is **42s at 1,690 tests** and three readings since say **3m02s–3m42s at 1,974–2,002**
+### `CLAUDE.md`'s assertion tier is **42s at 1,690 tests** and five readings since say **3m02s–8m29s at 1,974–2,311** — 🔴 **and there have been TWO jumps, the second on 2026-08-25**
 
 ⚠ **A third reading, 2026-08-22, by milestone 24's scoping: 3 m 42 s over 2,002 tests, on `main`.**
 🔴 ***It is an upper bound and not a figure, because its first control was not held*** — two other
@@ -2110,9 +2110,69 @@ is *what is owed is a reading, not an edit*, and editing half a figure would lea
 was taken on one day and whose duration was taken on another. ***A figure is replaced whole or not at
 all.***
 
+🔴 **A FIFTH READING, 2026-08-25, milestone 26 task 1: 7 m 50 s over 2,311 tests** — and it is the
+first one that does not agree with the others. Three consecutive runs the same day gave **6 m 40 s,
+7 m 28 s and 8 m 29 s**; the `time`-measured wall on the instrumented run was **485 s**. ⚠ **Same loose
+controls as readings three and four** — chrome, slack, a media player and a second session up, though
+the only other test host on the tree was an *idle* VS Code one at 0% CPU — ***so it is an upper bound
+like the rest.*** **The count grew 2,094 → 2,311, about 10%, and the duration grew 3 m 10 s → 7 m 50 s,
+about 150%.** So there has been a **SECOND** jump, and this row's *"whatever produced the fourfold jump
+is not the suite getting bigger"* now has a second instance of the same shape.
+
+✅ **AND THIS READING CARRIES THE ATTRIBUTION THE OTHER FOUR COULD NOT, because it was taken with
+per-test timings rather than as a total.** `--logger trx`, aggregated by class. The sum of per-test
+durations is **3,063 s across 2,311 tests** against 485 s of wall, so the harness is getting about
+**6.3× parallelism** — and the total is dominated by a handful of classes:
+
+| Class | Per-test seconds | Tests | First committed |
+|---|---|---|---|
+| `FoundingTests` | 352.7 | 5 | 2026-08-24 |
+| `PolicyTests` | 219.5 | 6 | — |
+| `LandValueSteadyStateTests` | 211.4 | 2 | 2026-08-20 |
+| `SaveLongRunTests` | 208.9 | 2 | 2026-08-18 |
+| `MoneyCensusTests` | 201.5 | 9 | 2026-08-19 |
+| `CarOwnershipTests` | 159.7 | 8 | 2026-08-14 |
+| `BusinessLevyTests` | 136.4 | 2 | 2026-08-24 |
+| `GoldenHashTests` | 124.9 | 13 | — |
+
+🔴 **THE HYPOTHESIS THIS SUPPORTS, STATED AS ONE: the suite did not get slower because it got bigger,
+it got slower because a small number of LONG-RUN STEADY-STATE TESTS landed in two clusters, and the two
+clusters are the two jumps.** `SaveLongRunTests` (2026-08-18), `MoneyCensusTests` (2026-08-19) and
+`LandValueSteadyStateTests` (2026-08-20) total **622 s** of per-test duration and all landed between the
+1,690 reading and the 1,974 one — ***the window of the unexplained fourfold jump.*** `FoundingTests` and
+`BusinessLevyTests` total **489 s** and both landed **2026-08-24**, after the fourth reading was taken
+and before this one — ***the window of the second jump.*** ⚠ **It is a hypothesis and not a finding**
+([`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)):
+what would settle it is checking the four earlier readings out and re-timing them per class, which this
+sitting did not do. **What it does establish is where to look**, and no previous reading established
+that at all.
+
+⚠ **These are correctly tiered and that is the uncomfortable part.** The axis is *what would you do on
+the day it failed* — and a steady-state acceptance run going red means **something broke**, not that a
+constant moved. ***So none of them is a mis-tagged instrument, and the tier cannot be made fast by
+re-labelling.*** The question `adr/0121`'s band actually raises is whether an assertion that runs
+100,000 Ticks belongs in the lane you run *while working*, and that is a design question rather than a
+correction.
+
+🔴 **`TierBudgetTests` IS CLOSER TO FIRING THAN ANYBODY HAS NOTICED.** `TierBudget.PerTest` is **4
+minutes**, and the slowest single assertion is
+`LandValueSteadyStateTests.The_field_oscillates_within_a_bound_and_does_not_trend` at **211.4 s** —
+**within 12% of the budget**, on an upper-bound reading. ***The guard that was built so a slow test
+goes red rather than quietly becoming the critical path is about to do exactly that***, and when it
+does, `CLAUDE.md`'s own warning applies: it is *not a licence to raise the budget.*
+
+⚠ **This still does not close the row, on its own stated terms.** Five uncontrolled readings are five
+uncontrolled readings, and `adr/0106` asks for a machine and a thread count rather than a consensus.
+***What changed is that the missing capture now has something to explain rather than only a number to
+replace.***
+
 - [ ] Re-capture the assertion tier on the reference machine, quiet, Release, and correct
-      `CLAUDE.md`'s table **as a pair — count and duration from the same run**. If it lands past five
-      minutes, `adr/0121`'s band is the next question and not a footnote.
+      `CLAUDE.md`'s table **as a pair — count and duration from the same run**. 🔴 **It has now landed
+      past five minutes on three consecutive readings, so `adr/0121`'s band is the next question and
+      it is no longer a footnote.**
+- [ ] Re-time the four earlier readings **per class** to settle whether the two jumps are the two
+      long-run clusters. ***It is the cheapest thing that would turn this row's hypothesis into a
+      finding***, and it needs no new instrument — only `--logger trx` at four earlier commits.
 
 
 ### ~~`docs/02-simulation-model.md`~~ — **PAID**
