@@ -251,11 +251,11 @@ candidates    = 3
 # homes a family is shown and NOT how long they wait.
 gives_up_after_days = 120
 
+[layers]
 noise_range_metres            = 300
 noise_intensity_percent       = 400
 desirability_pollution_percent = 100
 desirability_noise_percent     = 100
-[layers]
 pollution_period      = 64
 pollution_offset      = 0
 land_value_period     = 256

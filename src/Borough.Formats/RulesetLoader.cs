@@ -113,6 +113,21 @@ public static class RulesetLoader
     {
         private readonly List<RulesetRefusal> _refusals = [];
 
+        /// <summary>
+        /// Which keys each table or inline table was <em>asked</em> for, by reference to the holder.
+        /// </summary>
+        /// <remarks>
+        /// <b><c>plans/0041</c> G31's fix, in the shape the finding did not propose.</b> G31 says
+        /// closing it means "every table declaring its permitted key set" — twenty-two hand-authored
+        /// name lists. ***A hand-authored name list in this file is a thing that drifts***: the
+        /// unknown-<em>section</em> list did exactly that, naming eighteen tables on one branch and
+        /// nineteen on another and <c>[water]</c> on neither (<c>adr/0048</c>, the merge bullet).
+        /// Recording what <see cref="Find"/> was asked for derives the same set from the reader, so
+        /// there is nothing to keep in step and nothing to forget.
+        /// </remarks>
+        private readonly Dictionary<SyntaxNode, HashSet<string>> _consulted =
+            new(ReferenceEqualityComparer.Instance);
+
         private readonly Dictionary<string, ushort> _resources = new(StringComparer.Ordinal);
 
         // Parallel to _resources by declaration order, which is what makes ResourceId.Raw - 1 index
@@ -223,6 +238,15 @@ public static class RulesetLoader
 
             if (_refusals.Count == 0)
             {
+                // After every reader has run and before anything else is checked, because the
+                // permitted set IS what the readers asked for -- there is nothing to compare against
+                // until they have all been. Gated on a clean slate for the usual reason: a key on a
+                // section that was itself refused would report the same mistake twice.
+                RefuseUnknownKeys(document);
+            }
+
+            if (_refusals.Count == 0)
+            {
                 // Cycles first, and it is not a nicety: three of the checks below walk a chain to
                 // its end, and a chain with a cycle in it is a walk that does not terminate.
                 RefuseCycles(rules);
@@ -330,8 +354,11 @@ public static class RulesetLoader
                         // row naming its trade and keeping that name across a reload -- so no table
                         // was retained and ReadBusinessKinds would have walked over nothing. It now
                         // reads TWO of adr/0141's three: `jobs` and the Shift band. The wage is
-                        // adr/0026 at milestone 15 (06:99), so stating one here is refused as an
-                        // unknown key.
+                        // adr/0026 at milestone 15 (06:99), so stating one here is refused BY NAME,
+                        // with a message saying where the wage went. ⚠ This comment said "refused as
+                        // an unknown key" while NO UNKNOWN-KEY CHECK EXISTED (plans/0041 G31, closed
+                        // 2026-08-25) -- it described the outcome it wanted rather than the build,
+                        // which is adr/0093's failure being wrong about the TRIGGER.
                         _businessKindTables.Add(table);
                         Register(_businessKinds, table, "business", (byte)(_businessKinds.Count + 1));
                         break;
@@ -1495,11 +1522,14 @@ public static class RulesetLoader
                 // = 100` loads clean and does nothing for ever -- the refusal class plans/0014 task 3
                 // established, and the one this loader is least willing to ship.
                 //
-                // ⚠ It is a NAMED refusal rather than an unknown-key check because THERE IS NO
-                // UNKNOWN-KEY CHECK IN THIS LOADER AT ALL. Every table reads the keys it wants by
-                // name and ignores the rest, so a typo anywhere in any Ruleset is silent. That is a
-                // real gap and it is filed rather than fixed here (plans/0041 G31): closing it
-                // touches every table and is not this task's.
+                // ⚠ It STAYS a named refusal now that RefuseUnknownKeys exists, and the reason is
+                // the message rather than the coverage. The unknown-key check would catch `wage` for
+                // free -- it is a key no reader asks for -- and would say "not a key of [[business]]",
+                // which is TRUE AND USELESS to somebody who read adr/0141 and wrote what it told
+                // them to. ***A key a designer has positive reason to write deserves the sentence
+                // saying where it went***, and a general check cannot know that. The gap this
+                // comment used to describe (plans/0041 G31) closed 2026-08-25; what did not change
+                // is that nine keys are worth naming individually.
                 if (Find(table, "wage") is not null)
                 {
                     Refuse(LineOf((SyntaxNodeBase?)Find(table, "wage") ?? table), name,
@@ -1915,6 +1945,237 @@ public static class RulesetLoader
         // ---- the refusals ---------------------------------------------------------------
 
         /// <summary>
+        /// Refusals 171 and 172 — a key nothing reads is refused, and so is a key above the first
+        /// section header.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b><c>plans/0041</c> G31.</b> A misspelled key was silently ignored: the loader asked for
+        /// the name it wanted, did not find it, and used the default. ***A typo and an omission were
+        /// the same file to this parser***, which is the one class of authoring mistake a Ruleset
+        /// could make without being told.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>The permitted set is derived, not declared, and that is the whole design.</b> G31's
+        /// own proposed fix was "every table declaring its permitted key set" — twenty-two lists
+        /// hand-written beside twenty-two readers, kept in step by nothing. This build instead
+        /// records what <see cref="Find"/> was <em>asked</em> for and treats that as the permission.
+        /// Adding a key to a reader adds it to the permitted set in the same edit; there is no second
+        /// place to forget.
+        /// </para>
+        /// <para>
+        /// 🔴 <b>The union is per section shape and not per table, because a reader may ask
+        /// conditionally.</b> <c>[[building]]</c> is asked for <c>business</c> only when the file has
+        /// businesses in it, so a document whose single Building never triggered that read would
+        /// otherwise refuse a key the loader plainly supports. Unioning across every table of one
+        /// shape means a key permitted anywhere in a section is permitted throughout it — which is
+        /// looser than a hand-authored list and is the direction to be loose in.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>It runs only when nothing else has refused</b>, under <c>Read</c>'s existing staging.
+        /// A key on a section that is itself unknown would otherwise report twice, and
+        /// <c>adr/0048</c>'s rule is that one mistake reads as one sentence.
+        /// </para>
+        /// </remarks>
+        private void RefuseUnknownKeys(DocumentSyntax document)
+        {
+            var permitted = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+            GatherPermitted(document, string.Empty, permitted);
+
+            // A key above the first section header belongs to no table, so no reader has ever been
+            // in a position to ask for it. It is not merely unread -- it is unreachable.
+            foreach (KeyValueSyntax bare in document.KeyValues)
+            {
+                Refuse(LineOf(bare), null,
+                    $"'{NameOf(bare.Key)}' sits above the first section header, where a Ruleset has "
+                    + "no keys at all. Every key belongs to a section -- move it under the one that "
+                    + "reads it.");
+            }
+
+            RefuseUnknownKeysIn(document, string.Empty, permitted);
+        }
+
+        /// <summary>Unions what every holder of one section shape was asked for.</summary>
+        private void GatherPermitted(
+            SyntaxNode node, string context, Dictionary<string, HashSet<string>> into)
+        {
+            string here = ContextOf(node, context);
+
+            if (_consulted.TryGetValue(node, out HashSet<string>? asked))
+            {
+                if (!into.TryGetValue(here, out HashSet<string>? union))
+                {
+                    union = new HashSet<string>(StringComparer.Ordinal);
+                    into[here] = union;
+                }
+
+                union.UnionWith(asked);
+            }
+
+            for (int i = 0; i < node.ChildrenCount; i++)
+            {
+                if (node.GetChild(i) is SyntaxNode child)
+                {
+                    GatherPermitted(child, here, into);
+                }
+            }
+        }
+
+        private void RefuseUnknownKeysIn(
+            SyntaxNode node, string context, Dictionary<string, HashSet<string>> permitted)
+        {
+            string here = ContextOf(node, context);
+
+            if (node is TableSyntaxBase or InlineTableSyntax)
+            {
+                permitted.TryGetValue(here, out HashSet<string>? union);
+
+                foreach (KeyValueSyntax pair in KeyValuesOf(node))
+                {
+                    string key = NameOf(pair.Key);
+
+                    if (union?.Contains(key) == true)
+                    {
+                        continue;
+                    }
+
+                    Refuse(LineOf(pair), null,
+                        $"'{key}' is not a key of {here}, so nothing would read it. "
+                        + Suggestion(key, union)
+                        + $" The keys of {here} are {Listed(union)}.");
+                }
+            }
+
+            for (int i = 0; i < node.ChildrenCount; i++)
+            {
+                if (node.GetChild(i) is SyntaxNode child)
+                {
+                    RefuseUnknownKeysIn(child, here, permitted);
+                }
+            }
+        }
+
+        /// <summary>Names a holder the way the file writes it, so a refusal can be searched for.</summary>
+        private static string ContextOf(SyntaxNode node, string outer) => node switch
+        {
+            TableArraySyntax table => $"[[{NameOf(table.Name)}]]",
+            TableSyntax table => $"[{NameOf(table.Name)}]",
+            InlineTableSyntax => outer,
+            KeyValueSyntax pair => outer.Length == 0
+                ? NameOf(pair.Key)
+                : $"{outer} {NameOf(pair.Key)}",
+            _ => outer,
+        };
+
+        private static IEnumerable<KeyValueSyntax> KeyValuesOf(SyntaxNode node)
+        {
+            switch (node)
+            {
+                case TableSyntaxBase table:
+                    foreach (KeyValueSyntax item in table.Items)
+                    {
+                        yield return item;
+                    }
+
+                    break;
+
+                case InlineTableSyntax inline:
+                    foreach (InlineTableItemSyntax item in inline.Items)
+                    {
+                        if (item.KeyValue is { } pair)
+                        {
+                            yield return pair;
+                        }
+                    }
+
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Names the near miss when there is exactly one, and says nothing when there is not.
+        /// </summary>
+        /// <remarks>
+        /// <b>A typo is the case this refusal exists for</b>, so the message earns its length by
+        /// naming the key that was probably meant. The distance is a plain edit distance bounded at
+        /// two, and ⚠ <b>a tie offers nothing</b> — two equally-near keys is a guess rather than a
+        /// suggestion, and the full list below it is the better answer.
+        /// </remarks>
+        private static string Suggestion(string key, HashSet<string>? union)
+        {
+            if (union is null)
+            {
+                return string.Empty;
+            }
+
+            string? nearest = null;
+            int best = 3;
+            bool tied = false;
+
+            foreach (string candidate in Ordered(union))
+            {
+                int distance = Distance(key, candidate);
+
+                if (distance < best)
+                {
+                    best = distance;
+                    nearest = candidate;
+                    tied = false;
+                }
+                else if (distance == best)
+                {
+                    tied = true;
+                }
+            }
+
+            return nearest is null || tied ? string.Empty : $"Did you mean '{nearest}'?";
+        }
+
+        /// <summary>Edit distance, bounded — it is spelling advice and never a hot path.</summary>
+        private static int Distance(string left, string right)
+        {
+            int[] previous = new int[right.Length + 1];
+            int[] current = new int[right.Length + 1];
+
+            for (int column = 0; column <= right.Length; column++)
+            {
+                previous[column] = column;
+            }
+
+            for (int row = 1; row <= left.Length; row++)
+            {
+                current[0] = row;
+
+                for (int column = 1; column <= right.Length; column++)
+                {
+                    int substitution = previous[column - 1]
+                        + (left[row - 1] == right[column - 1] ? 0 : 1);
+                    int deletion = previous[column] + 1;
+                    int insertion = current[column - 1] + 1;
+                    current[column] = substitution < deletion
+                        ? (substitution < insertion ? substitution : insertion)
+                        : (deletion < insertion ? deletion : insertion);
+                }
+
+                (previous, current) = (current, previous);
+            }
+
+            return previous[right.Length];
+        }
+
+        private static string Listed(HashSet<string>? union) =>
+            union is null || union.Count == 0
+                ? "not yet known -- nothing in this build reads that section"
+                : string.Join(", ", Ordered(union));
+
+        private static string[] Ordered(HashSet<string> union)
+        {
+            string[] keys = [.. union];
+            Array.Sort(keys, StringComparer.Ordinal);
+            return keys;
+        }
+
+        /// <summary>
         /// Refusal 3 — an unquoted decimal is refused by name, never coerced.
         /// </summary>
         /// <remarks>
@@ -1928,8 +2189,8 @@ public static class RulesetLoader
             {
                 Refuse(LineOf(number), null,
                     $"{number.Token?.Text ?? "a decimal"} is an unquoted decimal. Write it as a "
-                    + "quoted string -- decline_rate = \"0.15\" -- so that no floating-point value "
-                    + "ever exists on the path into the simulation. adr/0048.");
+                    + "quoted string -- \"0.15\" -- so that no floating-point value ever exists on "
+                    + "the path into the simulation. adr/0048.");
                 return;
             }
 
@@ -5426,8 +5687,39 @@ public static class RulesetLoader
 
         // ---- syntax helpers -------------------------------------------------------------------
 
-        private static KeyValueSyntax? Find(SyntaxNode holder, string key)
+        /// <summary>
+        /// The key a reader asked a table for, or <c>null</c>. <b>Every key read in this file comes
+        /// through here</b>, which is what <see cref="RefuseUnknownKeys"/> is built on.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// ⚠ <b>It records the consult whether or not the key is present, and that is the point.</b>
+        /// A reader asking for an optional key it does not find has still told us the key is
+        /// <em>permitted here</em> — so the permitted set is the set of things asked for, and it is
+        /// derived from the code that does the reading rather than authored beside it.
+        /// </para>
+        /// <para>
+        /// 🔴 <b>It stopped being <c>static</c> for that recording and for nothing else.</b>
+        /// </para>
+        /// </remarks>
+        private KeyValueSyntax? Find(SyntaxNode holder, string key)
         {
+            // A holder is null when the section is absent altogether, and a reader still asks: it
+            // wants the key so that it can fall back to the default. There is no table to permit
+            // anything on, so there is nothing to record.
+            if (holder is null)
+            {
+                return null;
+            }
+
+            if (!_consulted.TryGetValue(holder, out HashSet<string>? asked))
+            {
+                asked = new HashSet<string>(StringComparer.Ordinal);
+                _consulted[holder] = asked;
+            }
+
+            asked.Add(key);
+
             switch (holder)
             {
                 case TableSyntaxBase table:

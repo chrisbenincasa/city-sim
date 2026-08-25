@@ -1609,3 +1609,38 @@ term leaves that stretch around mid-range. **The comment was corrected to the me
 the number raised to the comment**, and the weaker property is now stated in three places rather than
 glossed in none. ***A justification written before its measurement is a prediction, and this corpus has
 a rule about those.***
+
+
+### F19 — a key this milestone wrote was never in the table it appeared to be in, and eighteen files had the same defect underneath it
+
+**`varied.toml`'s `fertility_pollution_percent` was written ABOVE the `[layers]` header**, inside
+`[placement]`, during task 4. The loader never read it. It authored **4**, the loader's default is
+**4**, so the fertility field this milestone built behaved exactly as intended and ***nothing that ran
+could tell the difference.***
+
+⚠ **It is not an isolated slip and that is the finding.** `plans/0041` **G31**'s unknown-key check —
+built the day after this milestone closed — found the same shape in **all eighteen shipped Rulesets**
+for four *other* `[layers]` keys, stranded since milestone 9 task 3. ***A file format that accepts a
+key into the wrong table without a word will collect these for as long as it is written by hand.***
+Nineteen keys were re-homed; three Ruleset content fingerprints moved; **not one State Hash did**.
+
+🔴 **The measurement that matters is the one nobody could have taken.** Every stranded key authored
+its own default, so no run, no golden trace and no long balance run was ever in a position to notice.
+The cost was never a wrong city — it is that ***a designer retuning one of these in a shipped file
+would have had no effect and no message***, which is precisely what
+[`adr/0015`](../docs/adr/0015-all-tuning-data-is-hot-reloadable.md)
+exists to promise. **What closed it is a check, not a correction**: re-homing nineteen keys fixes
+today's files, and `RefuseUnknownKeys` is what stops the twentieth.
+
+⚠ **The fix was verified two ways, and the first one is the one that would have caught this in 2026.**
+Setting `noise_intensity_percent = 0` in `fouled.toml` — below the loader's own stated minimum of 1 —
+is now **refused at load**; before the re-homing it loaded clean and silently used 400. ***A bound that
+never fires is not a bound.*** Second, changing it 400 → 150 **moves the State Hash** at 4,000 Citizens
+over 2,048 Ticks, at both samples.
+
+🔴 ⚠ **AND IT DOES NOT MOVE AT 500 CITIZENS OVER 512 TICKS, WHICH IS WHY A SMOKE RUN WOULD HAVE
+CLEARED IT.** The noise term is a line source over Segment *volume*, so a world with no traffic in it
+yet has noise zero everywhere and the weight has nothing to scale. ***The first run I took to prove
+the key was live showed no movement and proved nothing***, and reading that as "still not read" would
+have been wrong in the other direction. **Quote the population and the Tick count with any claim that
+this term did or did not move.**

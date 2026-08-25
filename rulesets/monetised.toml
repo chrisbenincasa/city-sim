@@ -487,16 +487,16 @@ candidates    = 3
 # quantity that would refute a weight comes from a consumer of land value, and there is no consumer
 # in src/ at all (adr/0125). Each owes TWO plans/0002 section D1 entries -- a reachable floor and an
 # owed real ratifier -- and the floor REFUTES and never confirms.
-noise_range_metres            = 300
-noise_intensity_percent       = 400
-desirability_pollution_percent = 100
-desirability_noise_percent     = 100
 # it by TERRAIN TYPE — rock may never recover, floodplain may recover over hundreds of Days — so it
 # is a `sealing_decay_tau` key on each [[terrain]] table and there is no global one. A file that
 # states no [[terrain]] heals NOWHERE, which is exactly what this file said by writing 0 here.
 # Milestone 24 task 4; the key is refused in [layers] rather than ignored, with a message naming
 # where it went.
 [layers]
+noise_range_metres            = 300
+noise_intensity_percent       = 400
+desirability_pollution_percent = 100
+desirability_noise_percent     = 100
 pollution_period      = 64
 pollution_offset      = 0
 land_value_period     = 256

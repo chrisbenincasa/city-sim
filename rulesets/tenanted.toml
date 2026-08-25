@@ -519,14 +519,14 @@ candidates    = 3
 # quantity that would refute a weight comes from a consumer of land value, and there is no consumer
 # in src/ at all (adr/0125). Each owes TWO plans/0002 section D1 entries -- a reachable floor and an
 # owed real ratifier -- and the floor REFUTES and never confirms.
-noise_range_metres            = 300
-noise_intensity_percent       = 400
-desirability_pollution_percent = 100
-desirability_noise_percent     = 100
 # terrain type; there is no terrain in Phase 1, so there is no key, so there is no rate to look up.
 # Zero is the conservative reading — Sealing only accumulates — and the bound is structural, because a
 # Cell cannot have more Tiles built on it than it has Tiles.
 [layers]
+noise_range_metres            = 300
+noise_intensity_percent       = 400
+desirability_pollution_percent = 100
+desirability_noise_percent     = 100
 pollution_period      = 64
 pollution_offset      = 0
 land_value_period     = 256
