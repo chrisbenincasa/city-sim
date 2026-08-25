@@ -880,6 +880,28 @@ starting.
    comment for eight milestones because every mechanical check is document-to-document.
    ⚠ **Task 10's world obligation lands here too**, as this list already says: check for *a Building that
    genuinely runs out of money* at **this** task rather than at task 10.
+   🔴 ⚠ **A FOURTH BLOCKER, FOUND 2026-08-25, AND IT IS A MECHANISM RATHER THAN CONTENT.**
+   `ZoneRuleEngine.Create` — `ZoneRuleEngine.cs:254` — returns early when
+   `_world.UnplacedPool.Count == 0`, for **every Zone Rule of every kind**, and the Unplaced Pool is
+   **Households waiting for housing**. So the second `[[zone_rule]]` this task owes would raise
+   workplaces ***only while families are homeless***: the demand signal for a shop would be demand
+   for **homes**. ⚠ **The guard's doc comment is honest about why and the reason does not
+   generalise** — it cites `CONTEXT.md` → Frontage's *no Household in the Unplaced Pool that would
+   accept it*, which is a reason a **dwelling** Lot is vacant; it reads as a general guard only
+   because the corpus has **one Building kind**, so the dwelling case and the every-kind case have
+   never been distinguishable. **`rulesets/crowded.toml`'s header already states the consequence and
+   stops one line short of the cause.** Classified **unbuilt** under
+   [`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md), so the answer is
+   **not** to have this task's zone rule compensate — build a demand signal, or decide deliberately
+   that the Provider's share is **authored** rather than demanded, which is a **fourth content
+   decision** and must be named as one. ⚠ **Third sighting of the invisible-blocker shape and the
+   worst of the three**: the other two sat in a task entry and a Ruleset header, which are at least
+   documents; ***this one sits in a doc comment and a guard clause, and every mechanical check in
+   this corpus is document-to-document.***
+   ⚠ **So this task and task 10's world are ONE ARTEFACT, not two gates** — a Provider that cannot
+   afford its inputs **is** the Building that runs out of money, and is plausibly also the second
+   decline Rule. ***The question to put to the designer is single: what does the Provider Ruleset
+   contain?***
 9. **Something to look at** — a runner mode showing a Pool with stock, a price that moves, and **a
    Building that could not afford it**. ⚠ **The third clause is the one that would be dropped**, and it
    is the only one that shows the market having a consequence.
