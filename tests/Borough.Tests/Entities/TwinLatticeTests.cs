@@ -103,7 +103,7 @@ public sealed class TwinLatticeTests
 
     /// <summary>
     /// ⚠ <b><c>twinned.toml</c> is the only shipped Ruleset with MORE THAN ONE lattice, and
-    /// <c>coastal.toml</c> is the only other one that authors any.</b>
+    /// <c>coastal.toml</c> and <c>varied.toml</c> are the only others that author any.</b>
     /// </summary>
     /// <remarks>
     /// <para>
@@ -121,6 +121,15 @@ public sealed class TwinLatticeTests
     /// mechanism reads zero on it (<c>plans/0042</c> <b>F17</b>).
     /// </para>
     /// <para>
+    /// 🔴 <b>NARROWED AGAIN 2026-08-25, by the same failure one task along</b> (<c>plans/0042</c>
+    /// <b>F20</b>). <c>varied.toml</c> now states an origin because the corner is <b>uniformly
+    /// ordinary ground</b>, so a file shipping five <c>[[terrain]]</c> tables had a city standing on
+    /// exactly one of them and four of its five <c>sealing_decay_tau</c> values were unreachable by
+    /// any run of it. ⚠ <b>Twice now the default origin has hidden a mechanism</b> — water leaving
+    /// the map at an edge, and ground that never varies at a corner. ***A default origin is a siting
+    /// decision nobody made***, and a third sighting should retire the default rather than the test.
+    /// </para>
+    /// <para>
     /// ⚠ <b>The claim is narrowed to what is still load-bearing, not deleted.</b> What
     /// <c>twinned.toml</c> is for is being the only world with more than one <em>centre</em>, and that
     /// is what this now asserts. The exemption is by name and carries its reason, so a third file
@@ -128,7 +137,7 @@ public sealed class TwinLatticeTests
     /// </para>
     /// </remarks>
     [Fact]
-    public void Only_twinned_authors_two_lattices_and_only_coastal_authors_another()
+    public void Only_twinned_authors_two_lattices_and_two_others_author_one()
     {
         string directory = Path.Combine(AppContext.BaseDirectory, "Rulesets");
 
@@ -155,12 +164,27 @@ public sealed class TwinLatticeTests
                 continue;
             }
 
+            if (file == "varied.toml")
+            {
+                Assert.True(
+                    authored == 1,
+                    $"varied.toml authors {authored} lattices and the exemption is for exactly one. "
+                    + "It states an origin at all because the default (0, 0) is uniformly ordinary "
+                    + "ground, so a file whose whole subject is ground that varies had a city on one "
+                    + "of its five terrain types — see its own [[lattice]] header and plans/0042 "
+                    + "F20.");
+
+                continue;
+            }
+
             Assert.True(
                 authored == 0,
-                $"{file} authors a [[lattice]]. Every world but twinned.toml and coastal.toml is one "
-                + "lattice at the origin corner, and authoring one moves that file's State Hash. If "
-                + "this is deliberate, say why in the file's header and add it to the exemptions "
-                + "above rather than widening the test.");
+                $"{file} authors a [[lattice]]. Every world but twinned.toml, coastal.toml and "
+                + "varied.toml is one lattice at the origin corner, and authoring one moves that "
+                + "file's State Hash. If this is deliberate, say why in the file's header and add it "
+                + "to the exemptions above rather than widening the test. ⚠ Three exemptions now "
+                + "exist and all three are the default origin hiding a mechanism; a fourth is an "
+                + "argument for changing the default, not for a fourth exemption.");
         }
     }
 

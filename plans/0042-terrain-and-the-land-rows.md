@@ -543,8 +543,24 @@ never recover, floodplain may recover over hundreds of Days."* Sealing is a `Sav
 task 3 every Building seals its footprint through `World.CreateBuilding`. So the quantity is computable
 today with **nothing unbuilt anywhere in the path**.
 
-✅ **Named ratifier: a long run on `rulesets/varied.toml`, on the reference machine. Quantity: Days
-from a Cell's last demolition to its Sealing reaching zero, per terrain type.**
+~~✅ **Named ratifier: a long run on `rulesets/varied.toml`, on the reference machine. Quantity: Days
+from a Cell's last demolition to its Sealing reaching zero, per terrain type.**~~
+
+🔴 **RE-POSED 2026-08-25 — the ratifier above was REFUTED BY THE RUN BUILT TO TAKE IT, and the
+replacement had been sitting in the same `plans/0002` row's value column for a day.** See **F20**.
+
+✅ **Named ratifier: `SealingRecoveryMeasurementTests`, on the reference machine. Quantity: Days to
+bare ground, per terrain type, from a Cell sealed to all 1,024 Tiles with nothing rebuilding on it.**
+
+⚠ **The in-city quantity is confounded and no world fixes it.** Ground heals only where the city
+***stops building***; placement is blind to terrain; and this generator's patches are tens of Cells
+across, which is *larger than a city*. So a city spanning two types necessarily concentrates on one
+and lets go of the other, and ***which Cells are abandoned is decided by the city's shape while the
+terrain under them is incidental.*** **Measured**: the shipped corner world and a world with the
+lattice moved onto mixed ground **both recover exactly 133 Cells over 512 Days at 20,000 Citizens** —
+the same deterministic city slid sideways. At the moved origin all 133 are `thin_soil`, the **slowest**
+of the two taus present, and `ordinary` recovers **none**. ***A result that comes out backwards from
+the isolated table is the instrument telling you it is measuring something else.***
 
 ⚠ **It named `rulesets/evicted.toml` for four hours on the day it was settled, and that was wrong
 twice.** That file states **no `[[terrain]]`**, so a rate keyed by terrain type has nothing to key on;
@@ -748,7 +764,7 @@ copy that also stores status.
 | # | Task | Depends on |
 |---|---|---|
 | **1** | ✅ **DONE 2026-08-22** — `CONTEXT.md` gains **Terrain** and **Base Fertility**, the rename lands in `02 §2.3`, `04 §1` and `MapLayers`, `adr/0022` and `adr/0124` are amended rather than rewritten, and `06`'s row 24 is rewritten for the split ([`adr/0154`](../docs/adr/0154-milestone-24-is-two-milestones-because-a-dial-cannot-scale-a-figure-nothing-authors.md), [`adr/0155`](../docs/adr/0155-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)) | decisions 1, 2 |
-| **2** | ✅ **DONE 2026-08-23** (`a23b46f`, re-baselined `79efc64`) — see **F8**. **The terrain generator and the per-Cell terrain TYPE column** — `(saved AND hashed)`, from the `WorldKey`, with a `[terrain]` Ruleset table keying **Base Fertility** and the **Sealing decay rate** off the type, plus **a shipped Ruleset with varied terrain**. ⚠ **The column holds the type and nothing is baked** (`adr/0155`). ⚠ **The world is part of this task and not a follow-up** | 1, decision 3 |
+| **2** | ✅ **DONE 2026-08-23** (`a23b46f`, re-baselined `79efc64`) — see **F8** and **F20**, which gave it a `[[lattice]]` on 2026-08-25 because its city stood on one of its five terrain types. **The terrain generator and the per-Cell terrain TYPE column** — `(saved AND hashed)`, from the `WorldKey`, with a `[terrain]` Ruleset table keying **Base Fertility** and the **Sealing decay rate** off the type, plus **a shipped Ruleset with varied terrain**. ⚠ **The column holds the type and nothing is baked** (`adr/0155`). ⚠ **The world is part of this task and not a follow-up** | 1, decision 3 |
 | **3** | ✅ **DONE 2026-08-23** (`1c9ebec`), built 2026-08-22 and blocked on a cost for one day — see F7. **The Sealing write path** — construction Seals, **at the point of laying and never reconstructed from a Segment's endpoints** ([`adr/0150`](../docs/adr/0151-sealing-authors-no-width-and-a-road-seals-where-it-is-laid-not-where-its-endpoints-are.md)). Touches the four `RoadGenerator.Layout` writers, `SyntheticCity.Subdivide` and `ZoneRuleEngine.Create`. ⚠ **Authors no number and opens no §D row.** Precondition 2's third blocker, and upstream of the two `adr/0124` names. 🔴 Moves every State Hash | 2 |
 | **4** | ✅ **DONE 2026-08-24** — see **F12**. **Sealing's decay** — `LayerSchedule.Sealing` at **period `TICKS_PER_DAY`, offset 48**, `DecaySealing` scheduled in `MapLayers.Step`, and the rate keyed by terrain type as a `sealing_decay_tau` on each `[[terrain]]` table. 🔴 **The `[layers]` key is REFUSED rather than ignored**, naming where it went. 🔴 **It found a real defect**: integer exponential decay **stalls**, so the step is floored at one Tile and the tail is linear. **Moved ONE `plans/0002` §D2 row to §D1** — the other is task 8b's and stays. ⚠ **Moves no State Hash on any shipped world**, because `minimal.toml` and its ten siblings state no `[[terrain]]` and `varied.toml` is not a fixture; what moves is **`minimal.toml`'s Ruleset content fingerprint**, from a comment edit | 3 |
 | **5** | ✅ **DONE 2026-08-23** (`6f9187c`). **Fertility** — the `throw` in `MapLayers.Fertility` is a composition at the point of use, `base − base·Sealing/1024 − w_p·pollution`, with `long` intermediates and saturation at the `int` bounds. Sets **one** §D1 row: `[layers] fertility_pollution_percent` = **4**, stated in `rulesets/varied.toml` only. ⚠ **It moves no State Hash and needs no re-baseline** — nothing is stored, nothing is scheduled, and no shipped file that a fixture loads was edited. 🔴 **It also has no consumer**, so the whole task is a producer nobody reads; see the note below | 2, 3 |
@@ -1652,3 +1668,60 @@ yet has noise zero everywhere and the weight has nothing to scale. ***The first 
 the key was live showed no movement and proved nothing***, and reading that as "still not read" would
 have been wrong in the other direction. **Quote the population and the Tick count with any claim that
 this term did or did not move.**
+
+### F20 — the ratifier was refuted by the run built to take it, and the replacement was already in the row
+
+**Decision 5 named the wrong quantity, and it named it for the second time in the same decision.**
+
+Its ratifier was *a long run on `rulesets/varied.toml`; Days from a Cell's last demolition to its
+Sealing reaching zero, per terrain type*. Taking it required a world whose city stands on more than
+one type, because the shipped file's city stands on exactly one — **measured at the corner, 20,000
+Citizens: `ordinary` 528 sealed Cells and every other type zero.** That much was true and is fixed
+below. What the fix uncovered is that the quantity would not have worked anyway.
+
+**Ground heals only where the city stops building on it.** Placement is blind to terrain — nothing in
+the build steers a Zone Rule toward or away from any type — and `TerrainGenerator`'s patches are tens
+of Cells across, which this file's own header already said: *"the terrain comes in patches and not in
+speckle."* ⚠ **A patch is larger than a city.** So a city spanning two types necessarily concentrates
+on one and lets go of the other, and *which* it lets go of is a fact about the road graph and the Lot
+grid rather than about the ground.
+
+🔴 **The measurement that settles it is an equality nobody was looking for.** Two worlds, 512 Days,
+20,000 Citizens, same seed:
+
+| world | types under the city | Cells recovered |
+|---|---|---|
+| lattice at (0, 0) — as shipped | `ordinary` only | **133** |
+| lattice at (4864, 10240) | `ordinary` + `thin_soil` | **133** |
+
+***The same city slid sideways abandons the same 133 Cells.*** The terrain label on them is decided by
+where it was put. And at the moved origin all 133 are `thin_soil` — **tau 160, the slower of the two
+present** — while `ordinary` at tau 96 recovers **none**, which is backwards from
+`SealingRecoveryMeasurementTests`' own ordering. ***A result that comes out backwards from the isolated
+table is the instrument telling you it is measuring something else.***
+
+⚠ **The clean instrument was already cited in the same `plans/0002` row, in its value column, and had
+been since task 4 wrote it.** `SealingRecoveryMeasurementTests` seals one Cell to all 1,024 Tiles and
+watches it empty with nothing rebuilding: no city, no confound, and it already produces the ordered
+per-type table the design asks for. **A rate is ratified by measuring the rate.**
+
+🔴 ⚠ **And this decision's own text says it had just made this mistake.** Its settling note reads: *"a
+ratifier looked for one level downstream of the key it ratifies waits for a mechanism it does not
+need"* — the search had gone to Fertility, and was pulled back to Sealing. It then went downstream
+again, from *the rate* to *the city that experiences the rate*, and the second trip was not noticed
+because the destination was plausible. ***Naming a failure mode in a document does not inoculate the
+next paragraph of it.***
+
+**What was still worth doing, on its own merits and not as a ratifier fix.** `varied.toml` ships five
+`[[terrain]]` tables and had a city standing on one, so four of its five taus were unreachable by any
+run of it — a file demonstrating its own data being inert. It now states a `[[lattice]]` at
+**(4864, 10240)**, found by measurement over eighteen candidates with the terrain dump's variety
+survey: `ordinary` **314** Cells and `thin_soil` **214**, the two most abundant types, taus differing
+1.67×. ⚠ **No site on this map puts a city on three types** — the patches see to that — so two is the
+ceiling and this is at it. 🔴 **It moves every State Hash on this file**, which is not a fixture, so
+nothing golden moves ([`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)).
+
+⚠ **This is [`rulesets/coastal.toml`](../rulesets/coastal.toml)'s failure a second time**, and F17 is
+one finding away: there a corner city's runoff drained off the map and every Bin read zero. Both are a
+mechanism built, correct, and sited where its own output is invisible. ***A default origin is a siting
+decision nobody made***, and two milestone-24 tasks in a row have been caught by it.

@@ -89,6 +89,41 @@
 # `minimal.toml` in exactly one way: the State Hash, because the terrain column is (saved AND hashed)
 # and the loaded Ruleset differs.
 #
+# ⚠ IT STATES A `[[lattice]]`, AND UNTIL 2026-08-25 IT DID NOT. That omission put the city at (0, 0)
+# -- the map's north-west corner -- and on this generator's output that corner is UNIFORMLY ORDINARY
+# GROUND. So a file whose entire subject is ground that varies had a city standing on exactly one of
+# its five types, and four of the five `sealing_decay_tau` values were unreachable by any run of it.
+# MEASURED at the corner, 20,000 Citizens: ordinary 528 sealed Cells, every other type ZERO.
+#
+# ⚠ THIS IS `rulesets/coastal.toml`'s FAILURE A SECOND TIME AND THE REPAIR IS THE SAME. There, a
+# corner city's runoff drained off the map and every Bin read zero until the origin moved. Here, a
+# corner city stands on one terrain type and four keys read nothing. In both cases the mechanism was
+# built, correct, and sited where its own output is invisible. ***A default origin is a siting
+# decision that nobody made.***
+#
+# THE ORIGIN BELOW WAS FOUND BY MEASUREMENT AND NOT PICKED. Eighteen candidates were tried with the
+# headless terrain dump's variety survey, which counts distinct types per city-sized block. At
+# (4864, 10240), 20,000 Citizens seal:
+#
+#     ordinary    314 Cells   tau  96
+#     thin_soil   214 Cells   tau 160
+#
+# -- the two most abundant types, in a real split rather than a token one, with taus differing 1.67x.
+#
+# 🔴 ⚠ AND IT DOES NOT RATIFY THE TAUS. This is the caveat to read before reading anything into a
+# per-type Sealing figure from this file. Ground only heals where the city STOPS BUILDING, placement
+# is blind to terrain, and terrain patches are larger than a city -- so which Cells are abandoned is
+# decided by the city's shape and the terrain under them is incidental. MEASURED: the corner world
+# and this one both recover EXACTLY 133 Cells over 512 Days, because it is the same deterministic
+# city slid sideways. At this origin those 133 all happen to be thin_soil, which is the SLOWEST
+# healer of the two -- backwards from the isolated measurement, and the tell that the quantity is
+# confounded. What ratifies `sealing_decay_tau` is SealingRecoveryMeasurementTests, one Cell with
+# nothing rebuilding on it; the table further down carries its numbers. plans/0042 decision 5 owns
+# the re-posing.
+#
+# ⚠ WHAT MOVING IT COSTS: every State Hash on this file, because the city is somewhere else. It is
+# not a fixture, so nothing golden moves (adr/0100 -- and hash movement is not a reason to defer).
+#
 # It is deleted rather than grown when a farm exists and these five are ratified or replaced.
 
 [[resource]]
@@ -944,6 +979,20 @@ arrive_early_max_minutes = 15
 # than derived: marsh drains slower than floodplain, ordinary slower again, thin soil slowest of the
 # four because there is least soil to come back. ⚠ THE ORDER IS AN ARGUMENT AND THE SPACING IS NOT.
 # Nothing says thin soil should be six times floodplain rather than three.
+
+# Where the city stands, and it is here rather than at the default (0, 0) because the corner is one
+# terrain type and this file is about ground that is not. Found with the terrain dump's variety
+# survey over eighteen candidates; the header carries the measurement and the caveat that it does
+# NOT ratify the taus below. A `[[lattice]]` authors an ORIGIN and nothing else -- the extent and the
+# population are derived from the world's Lots (SyntheticCity.PavedTiles), as rulesets/twinned.toml
+# says at length.
+#
+# ⚠ NO SITE ON THIS MAP PUTS A CITY ON THREE TYPES. The generator's patches are tens of Cells across
+# -- see the header's "patches and not speckle" -- so a city-sized footprint spans two of them at
+# best, wherever it is put. Two is the ceiling and this is at it.
+[[lattice]]
+origin_east_tiles  = 4864
+origin_north_tiles = 10240
 
 [[terrain]]
 name = "ordinary"
