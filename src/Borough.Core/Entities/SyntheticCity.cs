@@ -131,8 +131,13 @@ public static class SyntheticCity
             world.WaterCells,
             world.WaterInCells,
             world.Catchment,
+            world.Flood,
             world.Rules.Water,
             key);
+
+        // The Bins, once the bodies exist -- FitDistrictPools' rule, and the constructor cannot do it
+        // because a world under construction has no Water Bodies. milestone 24 task 6b, adr/0160.
+        world.FitWaterBins();
 
         LayLand(world, key);
         PeopleInto(world, key, now);

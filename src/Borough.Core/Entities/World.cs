@@ -60,6 +60,13 @@ public sealed class World
     private readonly Rows[] _tables;
     private readonly Rows[] _writableTables;
 
+    // The Day's water outflow, one entry per Water Body slot. A scratch buffer rather than a column:
+    // it holds a single pass's intermediate and is meaningless between Ticks, so a column would put
+    // it in the State Hash and in every save. Grown on demand and never shrunk, which is bounded by
+    // the body count -- 14 to 64 on a measured world -- rather than by anything that accumulates.
+    // milestone 24 task 6b.
+    private long[] _waterOutflow = [];
+
     /// <param name="citizens">Initial Citizen capacity. Every other table is sized from it.</param>
     /// <remarks>
     /// <b>Sizing is a derivation, not a constant.</b> Every row count S4 task 2 derived is linear in
@@ -193,7 +200,7 @@ public sealed class World
         // crowded one does. The body count starts at 8 for DistrictTable's reason -- a small table
         // that grows -- and the Cell hint is a sixteenth of the map, which is a hint and not a claim
         // about how much of a world is water. adr/0159 says why no key states that share.
-        Water = new Space.WaterBodyTable(8);
+        Water = new Space.WaterBodyTable(8, Bins);
         WaterCells = new Space.WaterCellTable(
             IntegerMath.FloorDiv(Space.CellGrid.WorldCellCount, 16), Water);
 
@@ -202,6 +209,13 @@ public sealed class World
         // asked about dry ground, so sparsity would be storing a residency index to say "no" about
         // the Cells that are the whole point. milestone 24 task 6b, adr/0159.
         Catchment = new Space.CatchmentCellTable(Water);
+
+        // The Hazard Region, sized from the MAP for the water tables' own reason. A floodplain is a
+        // band above the waterline, so a sixty-fourth of the map is a hint and not a claim about how
+        // much of a world floods -- adr/0156's own revisit trigger is that this turns out not to be
+        // sparse. milestone 24 task 9.
+        Flood = new Space.FloodCellTable(
+            IntegerMath.FloorDiv(Space.CellGrid.WorldCellCount, 64));
 
         // The three Movement tables, and their capacity is deliberately NOT a function of population.
         //
@@ -340,6 +354,10 @@ public sealed class World
             // grounds -- it is a function of the WorldKey and a save does not carry the WorldKey
             // back into the generator -- so a load restores it rather than recomputing it.
             Catchment.Rows,
+
+            // And the Hazard Region, milestone 24 task 9. Generated once, never written in a Tick
+            // (CONTEXT.md -> Hazard Region), and saved because a load does not re-run the generator.
+            Flood.Rows,
         ];
 
         // The same list minus the tables no Tick phase can write, for the Decide guard alone. See
@@ -354,7 +372,8 @@ public sealed class World
                 !ReferenceEquals(table, Layers.Terrain.Rows)
                 && !ReferenceEquals(table, Water.Rows)
                 && !ReferenceEquals(table, WaterCells.Rows)
-                && !ReferenceEquals(table, Catchment.Rows)),
+                && !ReferenceEquals(table, Catchment.Rows)
+                && !ReferenceEquals(table, Flood.Rows)),
         ];
 
         WorldInvariants.RegisterAll(Invariants);
@@ -523,6 +542,29 @@ public sealed class World
     public Space.WaterResidency WaterInCells { get; } = new();
 
     /// <summary>
+    /// Desirability's <c>w₅</c> source, or <b>null on a world whose water has no Bin.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Built per read rather than held</b>, because <c>[water] capacity_per_cell</c> is the
+    /// denominator under every fill fraction and it is <em>hot-reloadable</em> (<c>adr/0015</c>). A
+    /// cached instance would keep answering against the capacity that was in force when the world was
+    /// made, which is the quietest kind of reload bug. The object holds four references and no state,
+    /// so making one costs nothing worth caching.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Null is the world with no water and it is not the same as a clean coastline.</b> Null drops
+    /// <c>w₅</c> out of the composition; a Ruleset with water and an empty Bin keeps the term and gets
+    /// zero from it. <c>adr/0123</c> turns on exactly that distinction.
+    /// </para>
+    /// </remarks>
+    public Space.Shoreline? Shore =>
+        Rules.Water.HasBin
+            ? new Space.Shoreline(
+                WaterCells, WaterInCells, Water, Bins, Rules.Water.CapacityPerCell)
+            : null;
+
+    /// <summary>
     /// Which Water Body each Cell drains into — <b>every Cell, wet and dry.</b>
     /// </summary>
     /// <remarks>
@@ -532,6 +574,18 @@ public sealed class World
     /// is what gives a dry Cell a body to name. <c>milestone 24 task 6b</c>.
     /// </remarks>
     public Space.CatchmentCellTable Catchment { get; }
+
+    /// <summary>
+    /// The Hazard Region — <b>how deep a flood stands on each Cell it reaches.</b>
+    /// </summary>
+    /// <remarks>
+    /// <c>CONTEXT.md</c> → Hazard Region: ground where a Disaster can occur, derived from terrain at
+    /// world generation and <b>never read during a Tick</b>, so <c>adr/0021</c> holds. ⚠ <b>Nothing
+    /// fires on it and that is by design, not by omission</b> — <c>plans/0042</c> puts Disasters
+    /// behind milestone 15's fire-service reachability, and *deriving where something could happen is
+    /// the terrain milestone's; scheduling it is the milestone that has something to schedule.*
+    /// </remarks>
+    public Space.FloodCellTable Flood { get; }
 
     /// <summary>Which Car Parks sit on which Segment — the Parking Shed query's supply index.</summary>
     /// <remarks>
@@ -748,6 +802,11 @@ public sealed class World
         // anything, and NOT in RebuildDerived either -- fitting CREATES saved rows, and a rebuild that
         // creates saved state is a load that moves the State Hash it just checked.
         FitDistrictPools();
+
+        // And the Water Bodies, for the same reason again: a file that starts stating a water Bin has
+        // to reach the bodies the generator already laid, and nothing else fits them -- the generator
+        // runs once, at world creation, and never again (adr/0021). milestone 24 task 6b.
+        FitWaterBins();
 
         // And the actors, for the same reason on the same trigger: a file that adds money has to reach
         // every Household standing, not only the ones built after the swap. O(actors) rather than
@@ -2074,6 +2133,12 @@ public sealed class World
                     // derived when the element names its owner, and a Pool Bin's row does not.
                     break;
 
+                case BinOwnerKind.WaterBody:
+                    // Nothing to rebuild HERE, and it is the District case exactly: a Water Body's
+                    // Bin is named by WaterBodyTable.Bin, which is saved, so the link came out of the
+                    // file already made. milestone 24 task 6b.
+                    break;
+
                 case BinOwnerKind.Household:
                 case BinOwnerKind.Business:
                     // Nothing to rebuild HERE, and the reason is the District case's, not the one
@@ -2895,6 +2960,259 @@ public sealed class World
     }
 
     /// <summary>
+    /// Gives every live Water Body the one Bin it holds, if the Ruleset states one.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>adr/0160</c>, <c>CONTEXT.md</c> → Water Body, milestone 24 task 6b. <b>Exactly one Bin and
+    /// exactly one Resource</b>, whose family is <c>Utility</c>: a Water Body moves its contents along
+    /// an edge of the water graph, and a Good doing that would move with no Vehicle.
+    /// </para>
+    /// <para>
+    /// <b>Capacity is the body's size times <c>[water] capacity_per_cell</c></b>, which is what makes
+    /// <c>CONTEXT.md</c>'s debt-versus-rent a <em>gradient</em> rather than two categories — a small
+    /// body accumulates permanently, a large one tracks throughput. ⚠ <b>It is set here AND rederived
+    /// in <see cref="RebuildCapacities"/></b>, because <c>bin.capacity</c> is a derived column and a
+    /// load must reproduce it.
+    /// </para>
+    /// <para>
+    /// <b>It adds and never removes</b>, on <see cref="FitDistrictPools"/>'s rule: a Ruleset that
+    /// stops stating a water Bin must not destroy the level standing in one.
+    /// </para>
+    /// </remarks>
+
+    /// <summary>
+    /// Sheds what the paved city drains into the water below it. <b>Once a Day, before the outflow.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>CONTEXT.md</c> → Water Body gives a Bin two inflows, <em>"dumping, runoff"</em>. <b>This is
+    /// runoff, and it is the half whose input already existed</b>: the catchment (<c>plans/0042</c>
+    /// <b>F14</b>) says which body a dry Cell drains to, and Sealing says how much of that Cell is
+    /// paved. ⚠ <b>Dumping is NOT built</b> — it needs a <see cref="Rules.Scope"/> that reaches a Water
+    /// Body, and a Bin can <em>fail</em> where a Map Layer cell cannot, which is a design question and
+    /// not a copy of <see cref="Rules.Scope.Map"/>.
+    /// </para>
+    /// <para>
+    /// <b>Sealing is the driver, and that is the hydrology as well as the game.</b> Impervious surface
+    /// is what makes runoff run rather than soak, so ***the more of a catchment a player paves, the
+    /// more it fouls the body it drains into*** — and because the catchment crosses no ownership
+    /// boundary and the water graph runs downhill, the consequence lands **downstream of whoever
+    /// caused it**. That is the asymmetry <c>CONTEXT.md</c> calls the only one in the design, reached
+    /// without a single new verb.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Shedding does not deplete anything, and Sealing is not consumed by it.</b> Runoff is not a
+    /// transfer of a stock — pavement does not run out — so nothing here decrements a Cell. ***The
+    /// quantity that IS bounded is the receiving Bin***, which is why capacity exists and why the
+    /// deposit is capped rather than asserted.
+    /// </para>
+    /// <para>
+    /// <b>It walks the SEALED Cells and not the map.</b> <see cref="Space.LayerCellTable"/> is sparse
+    /// and holds a row only where something happened, so this is proportional to the built city rather
+    /// than to <see cref="Space.CellGrid.WorldCellCount"/> — the one whole-map sweep this milestone
+    /// did not have to take.
+    /// </para>
+    /// <para>
+    /// <b>Index order is hash-bearing</b>, because two Cells shedding into a body that is nearly full
+    /// are separated by which one is met first.
+    /// </para>
+    /// </remarks>
+    internal void RunoffIntoWater(Ticks now)
+    {
+        if (!Rules.Water.HasBin || Rules.Water.RunoffPerSealedCellPerDay <= 0)
+        {
+            return;
+        }
+
+        Rows<Space.LayerCell> cells = Layers.Cells.Rows;
+
+        for (int slot = 0; slot < cells.SlotCount; slot++)
+        {
+            if (!cells.IsLive(slot))
+            {
+                continue;
+            }
+
+            int sealed_ = Layers.Cells.Sealing[slot];
+
+            if (sealed_ <= 0)
+            {
+                continue;
+            }
+
+            Handle<Space.WaterBody> body =
+                Catchment.At(Layers.Cells.East[slot], Layers.Cells.North[slot]);
+
+            if (!Water.Rows.TryResolve(body, out int into)
+                || !Bins.Rows.TryResolve(Water.Bin[into], out int bin))
+            {
+                continue;
+            }
+
+            // Scaled by how much of the Cell is paved, so the authored number is a FULLY sealed Cell's
+            // shedding and a Cell half built on sheds half of it. FloorDiv rather than a raw divide --
+            // BOR0203 -- and it floors to zero below a thirty-second of a Cell, which is a Cell with
+            // almost nothing on it and is the right answer.
+            long amount = IntegerMath.FloorDiv(
+                (long)sealed_ * Rules.Water.RunoffPerSealedCellPerDay, Space.CellGrid.TilesInCell);
+
+            long space = Bins.SpaceAt(bin);
+            amount = amount < space ? amount : space;
+
+            if (amount > 0)
+            {
+                Deposit(Bins.Rows.At(bin), amount, now);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Moves every Water Body's contents one step down the water graph. <b>Once a Day.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>CONTEXT.md</c> → Water Body, <c>adr/0160</c>, milestone 24 task 6b. <b>A body sheds
+    /// <c>exits × [water] outflow_per_exit_per_day</c></b>, and the three behaviours that entry
+    /// describes fall out with no taxonomy: <em>a pond has no outflow and fills</em> (zero exits), a
+    /// body touching the map's edge sheds along its whole boundary, and a landlocked lake spills
+    /// through the single rim Cell it overtops.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>TWO PHASES, and the second one is why.</b> Withdrawing and depositing in one walk lets
+    /// water cross two graph edges in a single Day whenever the chain happens to run in ascending slot
+    /// order — ***a body's drainage speed would depend on the order the generator happened to find
+    /// it***, which is a determinism-preserving bug rather than a determinism bug and therefore the
+    /// worse kind. Every body's outflow is measured against the level it started the Day with.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A full downstream backs the water up, and that is the model rather than a guard.</b> The
+    /// amount is capped by the receiving Bin's headroom, so what cannot leave stays where it is —
+    /// which is what makes <c>CONTEXT.md</c>'s <em>"nothing is an infinite sink"</em> true of a
+    /// <em>chain</em> and not only of one body.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>Nothing puts anything in, so every level is zero and this pass moves nothing on every
+    /// shipped world.</b> No <c>Scope</c> reaches a Water Body — <c>adr/0160</c> names that as
+    /// <c>adr/0070</c>'s *unbuilt* — so the mechanism is exercised by tests and by no Ruleset.
+    /// </para>
+    /// </remarks>
+    internal void DrainWaterBodies(Ticks now)
+    {
+        if (!Rules.Water.HasBin)
+        {
+            return;
+        }
+
+        int slots = Water.Rows.SlotCount;
+
+        if (_waterOutflow.Length < slots)
+        {
+            _waterOutflow = new long[slots];
+        }
+
+        for (int body = 0; body < slots; body++)
+        {
+            _waterOutflow[body] = 0;
+
+            if (!Water.Rows.IsLive(body)
+                || Water.Exits[body] == 0
+                || !Bins.Rows.TryResolve(Water.Bin[body], out int bin))
+            {
+                continue;
+            }
+
+            long rate = (long)Water.Exits[body] * Rules.Water.OutflowPerExitPerDay;
+            long level = Bins.LevelAt(bin);
+            long leaving = level < rate ? level : rate;
+
+            // Capped by where it is going, so a full body downstream backs the water up rather than
+            // destroying it. A body draining off the map has no receiver and no cap.
+            if (Water.Rows.TryResolve(Water.Downstream[body], out int into)
+                && Bins.Rows.TryResolve(Water.Bin[into], out int receiving))
+            {
+                long space = Bins.SpaceAt(receiving);
+                leaving = leaving < space ? leaving : space;
+            }
+
+            _waterOutflow[body] = leaving < 0 ? 0 : leaving;
+        }
+
+        for (int body = 0; body < slots; body++)
+        {
+            long leaving = _waterOutflow[body];
+
+            if (leaving == 0 || !Bins.Rows.TryResolve(Water.Bin[body], out int bin))
+            {
+                continue;
+            }
+
+            Withdraw(Bins.Rows.At(bin), leaving, now);
+
+            if (Water.Rows.TryResolve(Water.Downstream[body], out int into)
+                && Bins.Rows.TryResolve(Water.Bin[into], out int receiving))
+            {
+                Deposit(Bins.Rows.At(receiving), leaving, now);
+            }
+        }
+    }
+
+    internal void FitWaterBins()
+    {
+        if (!Rules.Water.HasBin)
+        {
+            return;
+        }
+
+        for (int slot = 0; slot < Water.Rows.SlotCount; slot++)
+        {
+            if (!Water.Rows.IsLive(slot) || !Water.Bin[slot].IsNone)
+            {
+                continue;
+            }
+
+            Water.Bin[slot] = Bins.Create(
+                BinOwnerKind.WaterBody,
+                Rules.Water.Carries,
+                WaterCapacity(Water.CellCount[slot]));
+        }
+    }
+
+    /// <summary>
+    /// What a Water Body of this many Cells holds. <b>Saturating rather than wrapping.</b>
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>The product is taken in <c>long</c> because it overflows <c>int</c> on a real world.</b>
+    /// The largest body measured on <c>coastal.toml</c> is <b>33,435</b> Cells, so any
+    /// <c>capacity_per_cell</c> above about 64,000 would wrap — and the loader's ceiling on that key is
+    /// well above it, deliberately, because a capacity is a quantity of a Resource and the Resource's
+    /// units are the Ruleset's own.
+    /// </remarks>
+    private long WaterCapacity(int cells) => (long)cells * Rules.Water.CapacityPerCell;
+
+    /// <summary>The ceiling on a Bin known to be a Water Body's, found from the body that owns it.</summary>
+    /// <remarks>
+    /// ⚠ <b>It searches the bodies rather than reading the Bin, because a Bin cannot name a Water
+    /// Body</b> — <see cref="BinTable.Owner"/> is bound to the Building table, which is
+    /// <see cref="BinOwnerKind.District"/>'s constraint arriving at a seventh owner. The table is 14
+    /// to 64 rows on a measured world, so the walk is not worth an index.
+    /// </remarks>
+    private long WaterCapacityOf(int binSlot)
+    {
+        for (int body = 0; body < Water.Rows.SlotCount; body++)
+        {
+            if (Water.Rows.IsLive(body)
+                && Bins.Rows.TryResolve(Water.Bin[body], out int owned)
+                && owned == binSlot)
+            {
+                return WaterCapacity(Water.CellCount[body]);
+            }
+        }
+
+        return 0;
+    }
+
+    /// <summary>
     /// Gives every live District one Pool Bin per <see cref="ResourceFamily.Good"/> the Ruleset in
     /// force declares.
     /// </summary>
@@ -3399,6 +3717,19 @@ public sealed class World
             if (Bins.OwnerKind[slot] == BinOwnerKind.District)
             {
                 Bins.SetCapacity(slot, long.MaxValue);
+                continue;
+            }
+
+            // A Water Body's Bin, whose ceiling IS derivable without a Building kind -- the one
+            // owner other than a Building for which that is true. It is the body's own size times
+            // [water] capacity_per_cell, and CONTEXT.md -> Water Body is explicit that size is what
+            // makes pollution behave as a debt in a small body and a rent in a large one. ⚠ Rederived
+            // here rather than only at FitWaterBins because bin.capacity is a DERIVED column and a
+            // load must reproduce it; both sides read the same two saved numbers. milestone 24 task
+            // 6b.
+            if (Bins.OwnerKind[slot] == BinOwnerKind.WaterBody)
+            {
+                Bins.SetCapacity(slot, WaterCapacityOf(slot));
                 continue;
             }
 

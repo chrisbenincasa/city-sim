@@ -27,14 +27,19 @@ public readonly record struct LayerReading(Cells East, Cells North, int Value);
 /// <param name="Pollution">Q16.16 <c>w₂</c>. Subtracts.</param>
 /// <param name="Noise">Q16.16 <c>w₃</c>. Subtracts.</param>
 /// <param name="NoiseSource">The range and intensity the noise query carries.</param>
+/// <param name="Shoreline">Q16.16 <c>w₅</c>. Subtracts. See <see cref="Space.Shoreline"/>.</param>
+/// <param name="ShorelineSource">The range and intensity the shoreline query carries.</param>
 /// <remarks>
-/// ⚠ <b>Two weights and not five</b> — <c>w₁</c> was deleted (<c>adr/0122</c>) and <c>w₄</c> amenity and
-/// <c>w₅</c> shoreline have no term to weigh (<c>adr/0123</c>). ⚠ <b>Both are unratified and each owes
-/// TWO entries in <c>plans/0002</c> §D1</b>, a reachable floor and an owed real ratifier, because
-/// nothing in the city reads land value and the quantity that would refute a scale is a consumer's
-/// (<c>adr/0125</c>).
+/// ⚠ <b>Three weights and not four</b> — <c>w₁</c> was deleted (<c>adr/0122</c>) and <c>w₄</c> amenity
+/// still has no term to weigh (<c>adr/0123</c>, milestone 15). <b><c>w₅</c> shoreline arrived at
+/// milestone 24</b>, once runoff gave a Water Body's Bin something to hold; before that it would have
+/// been the present-and-permanently-zero term <c>adr/0123</c> refused. ⚠ <b>All three are unratified
+/// and each owes TWO entries in <c>plans/0002</c> §D1</b>, a reachable floor and an owed real
+/// ratifier, because nothing in the city reads land value and the quantity that would refute a scale
+/// is a consumer's (<c>adr/0125</c>).
 /// </remarks>
-public readonly record struct DesirabilityWeights(int Pollution, int Noise, LineSource NoiseSource)
+public readonly record struct DesirabilityWeights(
+    int Pollution, int Noise, LineSource NoiseSource, int Shoreline, ShorelineSource ShorelineSource)
 {
     /// <summary>
     /// The shipped starting point. <b>Every number here is unratified and each owes two <c>§D1</c>
@@ -61,11 +66,44 @@ public readonly record struct DesirabilityWeights(int Pollution, int Noise, Line
     /// ⚠ <b>Nothing distinguishes them beyond that, and nothing can</b>: the quantity that would refute
     /// a weight is produced by a consumer of land value, and there is no consumer (<c>adr/0125</c>).
     /// </para>
+    /// <para>
+    /// <b>Shoreline range 400 m, and it is borrowed from amenity rather than from noise.</b>
+    /// <c>02 §2.4</c> states no shoreline band at all, so one had to be chosen; 400 m is the
+    /// walkable-catchment distance, taken because <c>CONTEXT.md</c> → Water Body ties this term to
+    /// the same event — a fouled beach <em>"degrades adjacent land value <b>and</b> removes a walkable
+    /// Amenity destination"</em> — so the reach of the harm and the reach of the lost destination are
+    /// one neighbourhood. ⚠ <b>Not copied from the 300 m noise band</b>, which is a road's band and has
+    /// nothing to do with water.
+    /// </para>
+    /// <para>
+    /// <b>Shoreline intensity 6.0, and the measurement is what fixed it.</b>
+    /// <c>ShorelineMeasurementTests</c>, three keys on <c>coastal.toml</c> with every body completely
+    /// fouled: the mean level over 64 shore samples is <b>2.09</b> one Tile inland and <b>0.33</b> at
+    /// the far end of the range. That puts the near shore in the same order of magnitude as noise
+    /// beside a capacity Street (about <b>3</b>) and an order below a strong plume (about <b>12</b>),
+    /// which is the *leaves every term visible* criterion the two weights above are set on.
+    /// ⚠ <b>It crosses <see cref="Transcendental.Log1P"/>'s unity — and therefore leaves the
+    /// logarithmic stretch — around the middle of the range</b>, so the outer half superposes linearly.
+    /// That is a weaker property than the noise 4.0 has and it is stated rather than glossed: the tail
+    /// is where the term is smallest, so the arithmetic error is small in the units that are read.
+    /// ⚠ <b>Its multiplicand is a FILL FRACTION, bounded in <c>[0, 1]</c></b>, where noise's is an
+    /// unbounded flow — so the two intensity numbers are not comparable and the larger one here does
+    /// not mean water shouts louder than roads.
+    /// </para>
+    /// <para>
+    /// <b>Weight 1.0, neutral for the reason above and for one more.</b> The shoreline term is the
+    /// only one of the three whose input a <em>player</em> moves within a run: pollution and noise
+    /// follow the city being built, and fouling follows how much of a catchment was paved. 🔴 That
+    /// makes it the term most likely to be the first one anybody wants retuned, and the first that a
+    /// consumer of land value could actually refute.
+    /// </para>
     /// </remarks>
     public static DesirabilityWeights Default { get; } = new(
         Fixed.One,
         Fixed.One,
-        new LineSource(Tiles.FromMetres(300), Fixed.FromInt(4)));
+        new LineSource(Tiles.FromMetres(300), Fixed.FromInt(4)),
+        Fixed.One,
+        new ShorelineSource(Tiles.FromMetres(400), Fixed.FromInt(6)));
 }
 
 /// <summary>
@@ -375,7 +413,8 @@ public sealed class MapLayers
     /// terrain type, so the pass cannot look one up without it; a Ruleset stating no
     /// <c>[[terrain]]</c> heals nowhere, which is <see cref="TerrainRuleset.None"/>.
     /// </param>
-    public void Step(Ticks tick, RoadGraph graph, TerrainRuleset terrain)
+    public void Step(
+        Ticks tick, RoadGraph graph, TerrainRuleset terrain, Shoreline? shoreline = null)
     {
         ArgumentNullException.ThrowIfNull(graph);
 
@@ -395,7 +434,7 @@ public sealed class MapLayers
             // steps toward the desirability that holds on THIS Tick rather than the one that held a
             // cadence ago. The order is hash-bearing and the alternative is a whole cadence of lag
             // added to a lag that is already the point of the column.
-            SetLandValueTargets(graph);
+            SetLandValueTargets(graph, shoreline);
             DriftLandValue();
         }
 
@@ -1025,12 +1064,18 @@ public sealed class MapLayers
     /// An optional presence map letting the noise query skip a Tile no traffic reaches.
     /// <b>Null means do the full scan</b>, so nothing that omits it changes its answer.
     /// </param>
+    /// <param name="shoreline">
+    /// The water in reach, or <b>null for a world with no water</b> — which drops <c>w₅</c> out of the
+    /// composition entirely rather than adding a zero to it (<c>adr/0123</c>). Every Ruleset that
+    /// omits <c>[water]</c>, and every one whose water has no Bin, passes null here.
+    /// </param>
     public int Desirability(
         RoadGraph graph,
         DesirabilityWeights weights,
         Tiles east,
         Tiles north,
-        TrafficPresence? near = null)
+        TrafficPresence? near = null,
+        Shoreline? shoreline = null)
     {
         ArgumentNullException.ThrowIfNull(graph);
 
@@ -1049,14 +1094,25 @@ public sealed class MapLayers
             * LineSourceQueries.Noise(graph, weights.NoiseSource, east, north, near))
             >> Fixed.FractionalBits;
 
-        // Both terms subtract, and there is no term that adds. See the remark above: this is a
-        // disamenity field until milestone 15, and its maximum is clean, quiet, empty ground.
+        // ABSENT AND NOT ZERO on a world with no water: a null shoreline never reaches the arithmetic,
+        // so the term is missing from the formula rather than contributing nothing to it. On a world
+        // WITH water the term is present and is zero until something fouls a body, and that zero is a
+        // fact about the world rather than about the build -- which is the distinction adr/0123 turns
+        // on and the reason this term could not ship before runoff did.
+        long fouling = shoreline is null
+            ? 0
+            : ((long)weights.Shoreline
+                * shoreline.Fouling(weights.ShorelineSource, east, north)) >> Fixed.FractionalBits;
+
+        // Every term subtracts, and there is still no term that adds. See the remark above: this is a
+        // disamenity field until milestone 15, and its maximum is clean, quiet, empty ground beside
+        // clean water.
         //
         // Saturated rather than checked, on LineSourceQueries.Saturate's reasoning: a read-only query
         // must not throw on a world somebody is allowed to build. The thing that catches a world gone
         // mad is Invariant.LayerMagnitudeIsBounded at end of run, and it is a better instrument for it
         // than an exception raised wherever somebody happened to read a Cell.
-        long total = -pollution - noise;
+        long total = -pollution - noise - fouling;
 
         return total < int.MinValue ? int.MinValue : total > int.MaxValue ? int.MaxValue : (int)total;
     }
@@ -1102,12 +1158,14 @@ public sealed class MapLayers
     /// reduction belongs to a field whose sources do not superpose, and <c>02 §2.5</c> question 3
     /// already answered <em>superposes</em> for both terms.
     /// </remarks>
+    /// <param name="shoreline">As <see cref="Desirability"/>: null is a world with no water.</param>
     public int CellDesirability(
         RoadGraph graph,
         DesirabilityWeights weights,
         Cells east,
         Cells north,
-        TrafficPresence? near = null)
+        TrafficPresence? near = null,
+        Shoreline? shoreline = null)
     {
         int stride = IntegerMath.FloorDiv(CellGrid.TilesPerCell, DesirabilitySamplesPerAxis);
         Tiles originEast = CellGrid.ToTiles(east) + new Tiles(IntegerMath.FloorDiv(stride, 2));
@@ -1124,7 +1182,8 @@ public sealed class MapLayers
                     weights,
                     originEast + new Tiles(across * stride),
                     originNorth + new Tiles(up * stride),
-                    near);
+                    near,
+                    shoreline);
             }
         }
 
@@ -1152,7 +1211,9 @@ public sealed class MapLayers
     /// no conversion, and inventing one here would be a number nobody asked for.
     /// </para>
     /// </remarks>
-    public void SetLandValueTargets(RoadGraph graph)
+    /// <param name="graph">The Road Graph the noise term reads.</param>
+    /// <param name="shoreline">As <see cref="Desirability"/>: null is a world with no water.</param>
+    public void SetLandValueTargets(RoadGraph graph, Shoreline? shoreline = null)
     {
         ArgumentNullException.ThrowIfNull(graph);
 
@@ -1170,8 +1231,8 @@ public sealed class MapLayers
                 continue;
             }
 
-            _cells.LandValueTarget[slot] =
-                CellDesirability(graph, weights, _cells.East[slot], _cells.North[slot], _traffic);
+            _cells.LandValueTarget[slot] = CellDesirability(
+                graph, weights, _cells.East[slot], _cells.North[slot], _traffic, shoreline);
         }
     }
 

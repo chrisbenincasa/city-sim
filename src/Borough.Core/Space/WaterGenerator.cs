@@ -56,6 +56,7 @@ public static class WaterGenerator
         WaterCellTable cells,
         WaterResidency residency,
         CatchmentCellTable catchment,
+        FloodCellTable flood,
         WaterRuleset water,
         WorldKey key)
     {
@@ -63,6 +64,7 @@ public static class WaterGenerator
         ArgumentNullException.ThrowIfNull(cells);
         ArgumentNullException.ThrowIfNull(residency);
         ArgumentNullException.ThrowIfNull(catchment);
+        ArgumentNullException.ThrowIfNull(flood);
 
         // A world whose Ruleset states no [water] is an inland world, and laying nothing is the whole
         // of what that means. adr/0159.
@@ -88,9 +90,76 @@ public static class WaterGenerator
             handles[body] = bodies.Create();
         }
 
-        Populate(cells, residency, label, handles);
+        Populate(bodies, cells, residency, label, handles);
         Drain(bodies, height, label, reaches, handles);
+
+        // A landlocked body that spills over its rim has exactly ONE exit -- the spill point -- where
+        // a body touching the map's edge has one per boundary Cell. An endorheic body keeps the zero
+        // Populate left it, which is what makes "a pond has no outflow and fills" true by
+        // construction rather than by a rule. adr/0160, milestone 24 task 6b.
+        for (int body = 0; body < bodies.Rows.SlotCount; body++)
+        {
+            if (bodies.Rows.IsLive(body)
+                && bodies.Exits[body] == 0
+                && !bodies.Downstream[body].IsNone)
+            {
+                bodies.Exits[body] = 1;
+            }
+        }
         _ = Catchments(catchment, height, label, handles);
+        Floodplain(flood, height, label, water);
+    }
+
+    /// <summary>
+    /// The Hazard Region — <b>every dry Cell a flood reaches, and how deep it stands there.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>CONTEXT.md</c> → Hazard Region, <c>01 §5.2</c>, <c>adr/0156</c>, milestone 24 task 9.
+    /// <b>A flood level stated exactly as the sea level is</b> — a percent of the height range
+    /// <em>this world realised</em> — so a Cell floods when its ground is below that level, and its
+    /// depth is the difference. ⚠ <b>ONE authored number and no second mechanism</b>: the alternative
+    /// on offer was a per-body rise, which needs a per-body surface, and this generator does not have
+    /// one — every body is a connected component below a single sea level, so a per-body rise would be
+    /// the same number wearing a plural.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A WET Cell gets no row, and that is not the same as a depth of zero.</b> Ground already
+    /// under water is not ground a flood puts at risk; the Hazard Region is what a player can build on
+    /// and lose. <b>The rows are therefore a band above the waterline</b>, which is <c>01 §5.2</c>'s
+    /// *cheap riverside land* and is what keeps the table sparse.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It reads the raw height and NOT the spill-filled field <see cref="Catchments"/> builds.</b>
+    /// A filled basin is where water would stand if its own rim held it, which is a different claim
+    /// about a different mechanism; a flood is the sea rising, and it arrives at ground below a level
+    /// whether or not that ground sits in a hollow. ***Two depths that would look alike in an overlay
+    /// and mean unrelated things.***
+    /// </para>
+    /// <para>
+    /// <b>Index order is hash-bearing</b>, for every other pass in this file's reason: the rows are
+    /// allocated in the order the Cells are met.
+    /// </para>
+    /// </remarks>
+    private static void Floodplain(
+        FloodCellTable flood, int[] height, int[] label, WaterRuleset water)
+    {
+        if (!water.HasFloodplain)
+        {
+            return;
+        }
+
+        int level = SeaLevel(height, water.FloodLevelPercent);
+
+        for (int cell = 0; cell < CellGrid.WorldCellCount; cell++)
+        {
+            if (label[cell] != 0 || height[cell] >= level)
+            {
+                continue;
+            }
+
+            flood.Create(new Cells(EastOf(cell)), new Cells(NorthOf(cell)), level - height[cell]);
+        }
     }
 
     /// <summary>
@@ -301,7 +370,11 @@ public static class WaterGenerator
 
     /// <summary>Makes a row for every wet Cell and indexes it.</summary>
     private static void Populate(
-        WaterCellTable cells, WaterResidency residency, int[] label, Handle<WaterBody>[] handles)
+        WaterBodyTable bodies,
+        WaterCellTable cells,
+        WaterResidency residency,
+        int[] label,
+        Handle<WaterBody>[] handles)
     {
         for (int at = 0; at < CellGrid.WorldCellCount; at++)
         {
@@ -315,6 +388,20 @@ public static class WaterGenerator
 
             Handle<WaterCell> row = cells.Create(east, north, handles[label[at] - 1]);
             residency.Add(east, north, cells.Rows.Resolve(row));
+
+            // Size and edge contact, counted here because this is the one walk that already visits
+            // every wet Cell knowing which body it belongs to. milestone 24 task 6b: size becomes the
+            // Bin's capacity and edge contact becomes its outflow.
+            int body = bodies.Rows.Resolve(handles[label[at] - 1]);
+            bodies.CellCount[body]++;
+
+            if (east.Raw == 0
+                || north.Raw == 0
+                || east.Raw == CellGrid.WorldCells - 1
+                || north.Raw == CellGrid.WorldCells - 1)
+            {
+                bodies.Exits[body]++;
+            }
         }
     }
 

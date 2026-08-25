@@ -222,7 +222,9 @@ public sealed class WaterTests
     [Fact]
     public void A_body_cannot_drain_into_itself()
     {
-        WaterBodyTable bodies = new(4);
+        // A generated world's own table, because WaterBodyTable now holds a handle into the Bin
+        // table and building one standalone means building the Building and Lot tables under it.
+        WaterBodyTable bodies = Generated(Key).Water;
         Handle<WaterBody> body = bodies.Create();
 
         Assert.Throws<ArgumentException>(() => bodies.DrainsInto(body, body));

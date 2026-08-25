@@ -1,3 +1,5 @@
+using Borough.Core.Tables;
+
 namespace Borough.Core.Rules;
 
 /// <summary>
@@ -25,7 +27,14 @@ namespace Borough.Core.Rules;
 /// mechanism nobody has built cannot be ratified, and saying so is the row's whole content.***
 /// </para>
 /// </remarks>
-public readonly record struct WaterRuleset(bool Stated, int SeaLevelPercent)
+public readonly record struct WaterRuleset(
+    bool Stated,
+    int SeaLevelPercent,
+    int FloodLevelPercent,
+    ResourceId Carries,
+    int CapacityPerCell,
+    int OutflowPerExitPerDay,
+    int RunoffPerSealedCellPerDay)
 {
     /// <summary>A Ruleset whose world has no water.</summary>
     /// <remarks>
@@ -35,11 +44,17 @@ public readonly record struct WaterRuleset(bool Stated, int SeaLevelPercent)
     /// </remarks>
     public static WaterRuleset None => default;
 
-    /// <summary>A Ruleset that states where the sea stands.</summary>
+    /// <summary>A Ruleset that states where the sea stands, and optionally how high it rises.</summary>
+    /// <param name="seaLevelPercent">Where the sea stands. Between 1 and 99.</param>
+    /// <param name="floodLevelPercent">
+    /// How high a flood reaches, on the same scale. <b>Zero means no floodplain</b>, which is a steep
+    /// coast and a legitimate world.
+    /// </param>
     /// <exception cref="ArgumentOutOfRangeException">
-    /// <paramref name="seaLevelPercent"/> is not between 1 and 99.
+    /// <paramref name="seaLevelPercent"/> is not between 1 and 99, or
+    /// <paramref name="floodLevelPercent"/> is neither zero nor above the sea and below 100.
     /// </exception>
-    public static WaterRuleset From(int seaLevelPercent)
+    public static WaterRuleset From(int seaLevelPercent, int floodLevelPercent = 0)
     {
         // Refused at BOTH ends, and neither is a range check for its own sake. 0 would put the sea at
         // the lowest Cell on the map, which is a world with no water -- a second spelling of the
@@ -56,7 +71,23 @@ public readonly record struct WaterRuleset(bool Stated, int SeaLevelPercent)
                 + "adr/0159.");
         }
 
-        return new WaterRuleset(true, seaLevelPercent);
+        // Refused at both ends for the sea level's own reasons, one rung along. AT OR BELOW the sea
+        // is ground that is already under water, so the floodplain it describes is empty -- a key
+        // that reads as a decision and does nothing, which is adr/0123's failure written into a
+        // loader. 100 would put the flood at the highest Cell on the map, which is not a floodplain
+        // but a drowning.
+        if (floodLevelPercent != 0 && (floodLevelPercent <= seaLevelPercent || floodLevelPercent > 99))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(floodLevelPercent),
+                floodLevelPercent,
+                $"[water] flood_level_percent is how high a flood reaches on the same scale as "
+                + $"sea_level_percent, so it must be above it ({seaLevelPercent}) and below 100. "
+                + "Omit it for a world with no floodplain -- a steep coast is a world. adr/0156.");
+        }
+
+        return new WaterRuleset(
+            true, seaLevelPercent, floodLevelPercent, default, 0, 0, 0);
     }
 
     /// <summary>
@@ -77,4 +108,58 @@ public readonly record struct WaterRuleset(bool Stated, int SeaLevelPercent)
     /// </para>
     /// </remarks>
     public int SeaLevelPercent { get; } = SeaLevelPercent;
+
+    /// <summary>Whether this world has ground a flood can reach.</summary>
+    /// <remarks>
+    /// ⚠ <b>Absent rather than zero, on <c>adr/0123</c>.</b> A world with no floodplain has no rows in
+    /// <see cref="Space.FloodCellTable"/> at all, rather than rows whose depth is zero — the same
+    /// distinction <see cref="Stated"/> makes one level up.
+    /// </remarks>
+    public bool HasFloodplain => Stated && FloodLevelPercent > 0;
+
+    /// <summary>The same Ruleset with a Bin on every Water Body.</summary>
+    /// <param name="carries">
+    /// The one Resource a Water Body holds. <b>Must be <c>Utility</c> family</b> — <c>adr/0160</c>.
+    /// </param>
+    /// <param name="capacityPerCell">How much one wet Cell of a body holds. Positive.</param>
+    /// <param name="outflowPerExitPerDay">How much leaves per exit per Day. Positive.</param>
+    /// <param name="runoffPerSealedCellPerDay">
+    /// What a <b>fully sealed</b> Cell sheds into the body it drains to, per Day. Positive, and scaled
+    /// down by how much of the Cell is actually sealed.
+    /// </param>
+    /// <exception cref="ArgumentOutOfRangeException">Either quantity is not positive.</exception>
+    /// <exception cref="ArgumentException"><paramref name="carries"/> names nothing.</exception>
+    public WaterRuleset WithBin(
+        ResourceId carries, int capacityPerCell, int outflowPerExitPerDay, int runoffPerSealedCellPerDay)
+    {
+        if (carries.Raw == 0)
+        {
+            throw new ArgumentException(
+                "a Water Body's Bin needs a Resource to hold. adr/0160.", nameof(carries));
+        }
+
+        // Both positive rather than non-negative, and for one reason each. A capacity of 0 is a body
+        // that can hold nothing, which is an infinite sink wearing the opposite spelling -- CONTEXT.md
+        // -> Water Body's "nothing is an infinite sink" is the whole point of there being a capacity.
+        // An outflow of 0 is a world where NO body drains, which is what omitting the keys says.
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacityPerCell);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(outflowPerExitPerDay);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(runoffPerSealedCellPerDay);
+
+        return this with
+        {
+            Carries = carries,
+            CapacityPerCell = capacityPerCell,
+            OutflowPerExitPerDay = outflowPerExitPerDay,
+            RunoffPerSealedCellPerDay = runoffPerSealedCellPerDay,
+        };
+    }
+
+    /// <summary>Whether every Water Body in this world owns a Bin.</summary>
+    /// <remarks>
+    /// ⚠ <b>Absent rather than zero, on <c>adr/0123</c>.</b> A world whose <c>[water]</c> states no
+    /// Bin has bodies with no level at all, rather than bodies whose level is permanently zero — the
+    /// same distinction <see cref="Stated"/> and <see cref="HasFloodplain"/> make.
+    /// </remarks>
+    public bool HasBin => Stated && Carries.Raw != 0;
 }

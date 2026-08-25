@@ -46,11 +46,17 @@ public sealed class WaterBodyTable
     private readonly Rows<WaterBody> _rows;
 
     /// <param name="capacity">Initial row count. One row per Water Body.</param>
-    public WaterBodyTable(int capacity)
+    /// <param name="bins">The table <see cref="Bin"/> handles are resolved against.</param>
+    public WaterBodyTable(int capacity, Rules.BinTable bins)
     {
+        ArgumentNullException.ThrowIfNull(bins);
+
         _rows = new Rows<WaterBody>("water_body", capacity, Buffering.OneCopy);
 
         Downstream = _rows.SavedHandle("downstream", _rows);
+        CellCount = _rows.Saved<int>("cell_count");
+        Exits = _rows.Saved<int>("exits");
+        Bin = _rows.SavedHandle("bin", bins.Rows);
 
         _rows.Seal();
     }
@@ -77,6 +83,61 @@ public sealed class WaterBodyTable
     /// </para>
     /// </remarks>
     public HandleColumn<WaterBody> Downstream { get; }
+
+    /// <summary>How many Cells this body covers. <b>Its size, and therefore its capacity.</b></summary>
+    /// <remarks>
+    /// <para>
+    /// <c>CONTEXT.md</c> → Water Body: <b>capacity decides whether pollution behaves as a debt or a
+    /// rent</b> — a small body accumulates permanently, a large one tracks throughput and recovers —
+    /// <em>"a gradient rather than two categories, which is the point."</em> Size is what produces
+    /// that gradient with no taxonomy of water types, so the Bin's capacity is this count times
+    /// <c>[water] capacity_per_cell</c>. <c>milestone 24 task 6b</c>.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Saved, though it is countable from <see cref="WaterCellTable"/>'s rows.</b> That would
+    /// normally make it derived — but <c>adr/0021</c> makes water <b>immutable</b>, so this is
+    /// generator output about a world that cannot change, on exactly the grounds the rest of the water
+    /// graph is saved: a load does not re-run the generator, and there is nothing for a stale copy to
+    /// drift against.
+    /// </para>
+    /// </remarks>
+    public Column<int> CellCount { get; }
+
+    /// <summary>
+    /// How many places this body's water leaves through — <b>0 for an endorheic body.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The outflow rate is this count times <c>[water] outflow_per_exit_per_day</c></b>, and the
+    /// three cases <c>CONTEXT.md</c> → Water Body describes fall out of it with no taxonomy:
+    /// <em>a pond has no outflow and fills</em> — 0 exits; a landlocked lake spilling over its rim has
+    /// **one**; and the sea touches the map's edge along many Cells, so it drains a lot in absolute
+    /// terms and <em>slowly relative to itself</em>, because its capacity grows with its area while
+    /// its exits grow with its perimeter.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>It is also what disambiguates <see cref="Downstream"/>, whose <c>default</c> means two
+    /// different things.</b> That column's own remark says an unset handle is <em>off the map</em> —
+    /// true of a body touching the boundary, and <b>equally true of an endorheic one that drains
+    /// nowhere at all</b>. Measured on <c>coastal.toml</c>, endorheic bodies are **9 to 38 of 14 to
+    /// 64**, so the case the sentence omits is the majority one. ***With this column the two are
+    /// distinguishable: zero exits is endorheic, and non-zero with no downstream leaves the world.***
+    /// </para>
+    /// </remarks>
+    public Column<int> Exits { get; }
+
+    /// <summary>
+    /// This body's Bin — <b>the one Utility-family Resource it holds</b>, or unset.
+    /// </summary>
+    /// <remarks>
+    /// <c>adr/0160</c>: exactly one Resource, and its family is <c>Utility</c>, because a Water Body
+    /// moves its contents along an edge of the water graph and a Good doing that would move with no
+    /// Vehicle. ⚠ <b>Unset when the Ruleset's <c>[water]</c> states no Bin</b>, which is water with no
+    /// level rather than a level that is permanently zero (<c>adr/0123</c>). The handle lives here
+    /// rather than on the Bin for <see cref="Rules.BinOwnerKind.District"/>'s reason: the Bin's owner
+    /// column is bound to the Building table.
+    /// </remarks>
+    public HandleColumn<Rules.Bin> Bin { get; }
 
     /// <summary>Opens a Water Body that drains off the map.</summary>
     /// <remarks>

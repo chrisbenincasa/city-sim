@@ -2954,7 +2954,7 @@ public static class RulesetLoader
                     + "every shipped Ruleset said by writing 0 here.");
             }
 
-            // The desirability composition's four numbers. All authored as PERCENTS or METRES rather
+            // The desirability composition's numbers. All authored as PERCENTS or METRES rather
             // than as Q16.16, because 02 §2.5 question 2 says author in domain units and because the
             // corpus already spells a fraction that way -- [traffic] alpha and car_ownership_percent.
             // Every one of them is unratified and each owes two plans/0002 §D1 entries (adr/0125).
@@ -2970,6 +2970,22 @@ public static class RulesetLoader
                 "w₂, as a percent. It subtracts; 0 removes the term rather than defaulting it.");
             int noiseWeight = Number("desirability_noise_percent", 100, minimum: 0,
                 "w₃, as a percent. It subtracts; 0 removes the term rather than defaulting it.");
+
+            // The shoreline source's three numbers, milestone 24 task 7. ⚠ THE RANGE IS NOT NOISE'S:
+            // 02 §2.4 states no shoreline band at all, and 400 m is amenity's walkable one, taken
+            // because CONTEXT.md -> Water Body ties this term to the same event -- a fouled beach both
+            // degrades land value and removes a walkable destination.
+            int shorelineRange = Number(
+                "shoreline_range_metres", desirability.ShorelineSource.Range.Raw * Tiles.Metres,
+                minimum: 1,
+                "How far from the water's edge a fouled body reaches. A source with no reach is not a "
+                + "source; a world with no water is spelled by omitting [water], not by writing 0.");
+            int shorelineIntensity = Number("shoreline_intensity_percent", 600, minimum: 1,
+                "It is what a COMPLETELY fouled body radiates at one Tile from its edge, as a percent. "
+                + "⚠ Its multiplicand is a FILL FRACTION in [0, 1] and noise's is an unbounded flow, so "
+                + "the two intensities are not comparable and this being the larger means nothing.");
+            int shorelineWeight = Number("desirability_shoreline_percent", 100, minimum: 0,
+                "w₅, as a percent. It subtracts; 0 removes the term rather than defaulting it.");
 
             // Fertility's one weight, and it is in [layers] rather than [[terrain]] because
             // [[terrain]] is an array of tables keyed BY TYPE and this is not per-type -- it weighs
@@ -2988,7 +3004,11 @@ public static class RulesetLoader
             desirability = new DesirabilityWeights(
                 IntegerMath.RoundDiv(Fixed.FromInt(pollutionWeight), 100),
                 IntegerMath.RoundDiv(Fixed.FromInt(noiseWeight), 100),
-                new LineSource(Tiles.FromMetres(noiseRange), IntegerMath.RoundDiv(Fixed.FromInt(noiseIntensity), 100)));
+                new LineSource(Tiles.FromMetres(noiseRange), IntegerMath.RoundDiv(Fixed.FromInt(noiseIntensity), 100)),
+                IntegerMath.RoundDiv(Fixed.FromInt(shorelineWeight), 100),
+                new ShorelineSource(
+                    Tiles.FromMetres(shorelineRange),
+                    IntegerMath.RoundDiv(Fixed.FromInt(shorelineIntensity), 100)));
 
             var fertility = new FertilityWeights(
                 IntegerMath.RoundDiv(Fixed.FromInt(fertilityWeight), 100));
@@ -3989,7 +4009,132 @@ public static class RulesetLoader
                 return WaterRuleset.None;
             }
 
-            return WaterRuleset.From((int)percent);
+            // Absent means no floodplain, which is a steep coast and a world. adr/0123: the absence
+            // is the spelling, so nothing here defaults it to a number that would read as a decision.
+            if (!TryInteger(_waterTable, "flood_level_percent", out long flood, required: false))
+            {
+                return WaterRuleset.From((int)percent);
+            }
+
+            // AT OR BELOW the sea is ground already under water, so the Hazard Region it describes is
+            // empty -- a key that reads as a decision and derives nothing, which is adr/0123's failure
+            // arriving in a loader. 100 puts the flood at the map's highest Cell, which is a drowning
+            // rather than a floodplain. adr/0156.
+            if (flood <= percent || flood > 99)
+            {
+                Refuse(LineOfWater("flood_level_percent"), null,
+                    $"flood_level_percent is {flood} and sea_level_percent is {percent}. It is how "
+                    + "high a flood reaches on the same scale, so it must be above the sea and below "
+                    + "100. Omit it for a world with no floodplain -- a steep coast is a world, and a "
+                    + "flood at or below the sea would describe ground that is already under it.");
+
+                return WaterRuleset.None;
+            }
+
+            return WithBin(WaterRuleset.From((int)percent, (int)flood));
+        }
+
+        /// <summary>Reads <c>[water]</c>'s three Bin keys, or answers that the bodies hold nothing.</summary>
+        /// <remarks>
+        /// <b>Three keys that stand or fall together.</b> A Bin needs a Resource to hold, a capacity
+        /// and an outflow; any one alone describes half a mechanism, so stating one and not the others
+        /// is refused rather than defaulted. Absent altogether is water with no level, which is every
+        /// shipped file but <c>coastal.toml</c> and is what <c>adr/0123</c> calls the honest spelling.
+        /// </remarks>
+        private WaterRuleset WithBin(WaterRuleset water)
+        {
+            SyntaxNodeBase? carries = Find(_waterTable!, "carries");
+            bool hasCapacity = Find(_waterTable!, "capacity_per_cell") is not null;
+            bool hasOutflow = Find(_waterTable!, "outflow_per_exit_per_day") is not null;
+            bool hasRunoff = Find(_waterTable!, "runoff_per_sealed_cell_per_day") is not null;
+
+            if (carries is null && !hasCapacity && !hasOutflow && !hasRunoff)
+            {
+                return water;
+            }
+
+            if (carries is null || !hasCapacity || !hasOutflow || !hasRunoff)
+            {
+                Refuse(LineOfWater("carries"), null,
+                    "[water] states some of carries, capacity_per_cell, outflow_per_exit_per_day "
+                    + "and runoff_per_sealed_cell_per_day but not all four. A Water Body's Bin needs "
+                    + "a Resource to hold, a capacity, a way out and a way in; any one of them alone "
+                    + "describes part of a mechanism. Omit all four for water with no level. "
+                    + "adr/0160.");
+
+                return WaterRuleset.None;
+            }
+
+            if (!TryString(_waterTable!, "carries", out string? name, required: true)
+                || !TryInteger(_waterTable!, "capacity_per_cell", out long capacity, required: true)
+                || !TryInteger(
+                       _waterTable!, "outflow_per_exit_per_day", out long outflow, required: true)
+                || !TryInteger(
+                       _waterTable!, "runoff_per_sealed_cell_per_day", out long runoff, required: true))
+            {
+                return WaterRuleset.None;
+            }
+
+            if (!_resources.TryGetValue(name!, out ushort id))
+            {
+                Refuse(LineOfWater("carries"), null,
+                    $"[water] carries = \"{name}\" and no [[resource]] declares that name. A Water "
+                    + "Body holds a Resource the Ruleset declared, not a name it invented.");
+
+                return WaterRuleset.None;
+            }
+
+            var resource = new ResourceId(id);
+
+            // adr/0160, and it is the whole of that decision expressed as a check. A Water Body moves
+            // its contents along an edge of the water graph, with no Vehicle -- and adr/0031 defines a
+            // Good as a Resource whose movement between Districts REQUIRES one. So a Good here would
+            // be a counterexample to the definition of Good sitting inside a loaded world.
+            if (_families[id - 1] != ResourceFamily.Utility)
+            {
+                Refuse(LineOfWater("carries"), null,
+                    $"[water] carries = \"{name}\", whose family is "
+                    + $"{_families[id - 1].ToString().ToLowerInvariant()}. A Water Body's Bin holds "
+                    + "a utility-family Resource: it moves its contents along an edge of the water "
+                    + "graph with no Vehicle, and a good is by definition a Resource whose movement "
+                    + "between Districts requires one. adr/0160, adr/0031.");
+
+                return WaterRuleset.None;
+            }
+
+            if (capacity is < 1 or > int.MaxValue)
+            {
+                Refuse(LineOfWater("capacity_per_cell"), null,
+                    $"capacity_per_cell is {capacity}. It is how much one wet Cell of a body holds, "
+                    + "so it must be at least 1 -- a body that holds nothing is an infinite sink "
+                    + "wearing the opposite spelling, and CONTEXT.md -> Water Body's \"nothing is an "
+                    + "infinite sink\" is the reason a capacity exists at all.");
+
+                return WaterRuleset.None;
+            }
+
+            if (outflow is < 1 or > int.MaxValue)
+            {
+                Refuse(LineOfWater("outflow_per_exit_per_day"), null,
+                    $"outflow_per_exit_per_day is {outflow}. It is how much leaves through one exit "
+                    + "in a Day, so it must be at least 1. Zero would mean no body anywhere drains, "
+                    + "which is what omitting these three keys already says.");
+
+                return WaterRuleset.None;
+            }
+
+            if (runoff is < 1 or > int.MaxValue)
+            {
+                Refuse(LineOfWater("runoff_per_sealed_cell_per_day"), null,
+                    $"runoff_per_sealed_cell_per_day is {runoff}. It is what a FULLY sealed Cell "
+                    + "sheds into the body it drains to in a Day, so it must be at least 1. Zero "
+                    + "would leave every Bin at zero for ever, which is a level nothing can move and "
+                    + "therefore a shoreline term that is present and permanently zero -- adr/0123.");
+
+                return WaterRuleset.None;
+            }
+
+            return water.WithBin(resource, (int)capacity, (int)outflow, (int)runoff);
         }
 
         /// <summary>The line a <c>[water]</c> key is on, or the table's.</summary>

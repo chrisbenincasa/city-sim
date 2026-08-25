@@ -869,7 +869,7 @@ public sealed class Simulation
     {
         _phase = TickPhase.Layers;
 
-        _world.Layers.Step(tick, _world.Roads, _world.Rules.Terrain);
+        _world.Layers.Step(tick, _world.Roads, _world.Rules.Terrain, _world.Shore);
     }
 
     /// <summary>Phase 6 — Zone Rules sample Lots; Buildings with accumulated failure decline.</summary>
@@ -942,6 +942,20 @@ public sealed class Simulation
         if (_world.Rules.Market.RepricesOn(tick))
         {
             _world.RepriceDistrictPools();
+        }
+
+        // The water graph's own Day boundary, milestone 24 task 6b. A modulo over Ticks.PerDay for
+        // the reprice's stated reason -- one countdown needs no wheel -- and at offset 0 rather than
+        // sharing the reprice's, because the two read nothing of each other and a shared offset would
+        // imply they did. ⚠ It moves NOTHING on every shipped world: no Scope reaches a Water Body, so
+        // every level is zero (adr/0160).
+        if (tick.Raw % (ulong)Ticks.PerDay == 0)
+        {
+            // IN, THEN OUT, and the order is hash-bearing rather than tidy. Draining first would let a
+            // body shed the level it held yesterday and then take today's runoff on top, so a city
+            // that paved a catchment would see the effect a Day late for ever. adr/0160, F17.
+            _world.RunoffIntoWater(tick);
+            _world.DrainWaterBodies(tick);
         }
     }
 

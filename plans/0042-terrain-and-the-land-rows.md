@@ -724,6 +724,13 @@ Body's Bin and moving downstream would be a Good moving with no Vehicle, contrad
 `adr/0031` uses to define it. **Whether a Water Body's Bin holds exactly one Utility-family Resource is
 task 6b's to answer**, and it is *arguable* rather than measurable.
 
+✅ **ANSWERED 2026-08-24 by [`adr/0160`](../docs/adr/0160-a-water-bodys-bin-holds-one-utility-resource-because-a-good-moving-downstream-would-move-with-no-vehicle.md): one Utility-family Resource, and dumping is a transformation.**
+The objection in the paragraph above turned out to be decisive rather than merely worth stating — a Good
+moving downstream with no Vehicle is *a counterexample to the definition of Good sitting inside the
+build*, and a taxonomy with one exception in it is not a taxonomy. ⚠ **`CONTEXT.md` → Water Body already
+said so and the task 6b row above was the stale copy**, which is `plans/0012` **Cause 1** and again the
+copy that also stores status.
+
 ---
 
 ## Tasks
@@ -738,11 +745,11 @@ task 6b's to answer**, and it is *arguable* rather than measurable.
 | **4** | ✅ **DONE 2026-08-24** — see **F12**. **Sealing's decay** — `LayerSchedule.Sealing` at **period `TICKS_PER_DAY`, offset 48**, `DecaySealing` scheduled in `MapLayers.Step`, and the rate keyed by terrain type as a `sealing_decay_tau` on each `[[terrain]]` table. 🔴 **The `[layers]` key is REFUSED rather than ignored**, naming where it went. 🔴 **It found a real defect**: integer exponential decay **stalls**, so the step is floored at one Tile and the tail is linear. **Moved ONE `plans/0002` §D2 row to §D1** — the other is task 8b's and stays. ⚠ **Moves no State Hash on any shipped world**, because `minimal.toml` and its ten siblings state no `[[terrain]]` and `varied.toml` is not a fixture; what moves is **`minimal.toml`'s Ruleset content fingerprint**, from a comment edit | 3 |
 | **5** | ✅ **DONE 2026-08-23** (`6f9187c`). **Fertility** — the `throw` in `MapLayers.Fertility` is a composition at the point of use, `base − base·Sealing/1024 − w_p·pollution`, with `long` intermediates and saturation at the `int` bounds. Sets **one** §D1 row: `[layers] fertility_pollution_percent` = **4**, stated in `rulesets/varied.toml` only. ⚠ **It moves no State Hash and needs no re-baseline** — nothing is stored, nothing is scheduled, and no shipped file that a fixture loads was edited. 🔴 **It also has no consumer**, so the whole task is a producer nobody reads; see the note below | 2, 3 |
 | **6a** | ✅ **DONE 2026-08-24** — see **F11**. **The water graph** — a sparse `WaterCellTable` of wet Cells with a dense `WaterResidency` beside it, and a `WaterBodyTable` whose one column is a `downstream` handle into itself. Laid by `WaterGenerator` from the **same height field terrain reads** (`adr/0156`, so **no new `PurposeTag`**), bounded by `[water] sea_level_percent` on a new shipped `rulesets/coastal.toml` ([`adr/0159`](../docs/adr/0159-a-sea-level-is-authored-ruleset-data-and-a-world-without-water-is-a-world-and-not-a-hole.md)). **Opens ONE §D1 row.** 🔴 Moves every State Hash. ⚠ **It has no consumer** — nothing reads a Water Body — so it is **F9** a third time and is taken anyway | 2, decision 11 |
-| **6b** | **A Water Body's Bin.** ⏳ **The CATCHMENT half landed 2026-08-24 — see F14**: a dense `CatchmentCellTable`, one saved handle per Cell, written by `WaterGenerator.Catchments` as **Priority-Flood over a bucket queue**, because `WaterResidency` answers *which body is this Cell part of* and every Building stands on dry ground. 🔴 **The reason first given for it was wrong** — task 7 needs proximity, not catchment; what needs the catchment is the Bin's **runoff** inflow. 🔴 **Steepest descent on the raw height field reached 3–8% of a map**; filled, 45–76%. **Authors no number.** 🔴 Moves every State Hash. ⚠ **STILL OWED: the Bin itself** — the capacity, the outflow rate, a **sixth** `BinOwnerKind`, and taking the water tables back out of `_writableTables` because a Bin's level is a write. ⚠ **And one *arguable* answer**: whether the Bin holds exactly one Utility-family Resource, or whether `02:256`'s *"dumping"* puts a **Good** in it | 6a, decision 12 |
-| **7** | **Desirability's shoreline term** — `w₅`, and the caveat test `adr/0123` requires. ⚠ **It depends on 6b and NOT on 6a**, and this row said *6* until 2026-08-24: `adr/0034`, `CONTEXT.md` → Water Body and `02:256` all make the term's intensity **the Bin's level**, so a shoreline term built on the graph alone would be present and permanently zero — the working-mechanism-that-says-something-false failure `adr/0123` exists to prevent | 6b |
+| **6b** | ✅ **DONE 2026-08-24** — see **F14** and **F16**. **A Water Body's Bin.** The **catchment** half is a dense `CatchmentCellTable` written by `WaterGenerator.Catchments` as **Priority-Flood over a bucket queue**, because `WaterResidency` answers *which body is this Cell part of* and every Building stands on dry ground; steepest descent on the raw field reached 3–8% of a map and filled reaches 45–76%. The **Bin** half is one Bin per body holding one **Utility**-family Resource ([`adr/0160`](../docs/adr/0160-a-water-bodys-bin-holds-one-utility-resource-because-a-good-moving-downstream-would-move-with-no-vehicle.md)), with **both parameters DERIVED from the body** — capacity from its size, outflow from its **exits** — so one pair of Ruleset numbers gives a pond, a spilling lake and a sea with no taxonomy. **Opens TWO §D1 rows.** 🔴 **The reason first given for the catchment was wrong**: task 7 needs proximity, and what needs the catchment is the Bin's **runoff** inflow. 🔴 **`BinOwnerKind.WaterBody` is the SEVENTH member and this row said the sixth** — stale twice, against `Business` and then `District`. 🔴 **NOTHING PUTS ANYTHING IN**, so every level is zero on every shipped world and **task 7 is NOT unblocked** | 6a, decision 12 |
+| **7** | ✅ **DONE 2026-08-24** — see **F17** and **F18**. **Desirability's shoreline term.** `− w₅·shoreline` composes, so `02 §2.4` is **three of four terms** and amenity alone is left. The source is the body's **perimeter**, its intensity is the Bin's **fill fraction** ([`adr/0161`](../docs/adr/0161-the-shoreline-terms-intensity-is-a-fill-fraction-because-a-teaspoon-in-the-sea-is-not-a-teaspoon-in-a-pond.md)) rather than its level, and a world with no water passes `null` so the term is **absent and not zero**. **Opens THREE §D1 rows**, all owing `adr/0125`'s unreachable ratifier. 🔴 **What unblocked it was RUNOFF and not the Bin** — this row said *6b* and F16 corrected it to *an inflow*; the inflow was built in the same sitting. 🔴 **The `adr/0123` caveat test STAYS**: closing one of its two holes is not closing the caveat, and its remarks now say so | 6b + runoff |
 | **8a** | ✅ **DONE 2026-08-24** — see **F10**. **Woodland is placed and cleared** — a `Saved<int>("woodland")` Tile count on a dense `WoodlandCellTable` of its own, placed by the generator, and **bounded by `TilesInCell − Sealing`** so that sealing clears forest with no verb and no event ([`adr/0158`](../docs/adr/0158-woodland-is-a-tile-count-per-cell-bounded-by-sealing-because-the-ground-has-one-budget-and-not-two.md)). ⚠ **Authors no number and opens no §D row**, exactly as `TerrainGenerator` authors none. 🔴 Moves every State Hash. ⚠ **It has no consumer** — the Timber chain is unplaced — so it is **F9** a second time and is taken anyway | 2, 3, decision 8 |
 | **8b** | ✅ **DONE 2026-08-24** — see **F13**. **Woodland's regrowth** — `LayerSchedule.Woodland` at **period `TICKS_PER_DAY`, offset 80**, `RegrowWoodland` in `MapLayers.Step`, and `[layers] woodland_regrowth_days = 512` in `varied.toml`. 🔴 **This is `adr/0022`'s *"regrowth speed is the load-bearing constant"*, and it had never had an owner** — no ADR, no §D row, no ratifier and no Ruleset key. ⚠ **It needed a COLUMN the scoping did not anticipate**: `WoodlandCellTable.Potential`, because regrowth needs a ceiling and both ceilings that need no column are wrong. **Moved the §D2 row to §D1.** 🔴 Moves every State Hash | 8a |
-| **9** | **Hazard Regions** — derived at generation, never read in a Tick. ⚠ **Floodplain depth is stored SPARSELY, where the floodplain is** (`adr/0156`), because `01 §5.2` spreads Flood *by depth* and a whole-map height field is what this milestone does not build | 2 |
+| **9** | ✅ **DONE 2026-08-24** — see **F15**. **Hazard Regions** — a sparse `FloodCellTable` of east, north and **depth**, laid by `WaterGenerator.Floodplain` from the same height field water reads, bounded by a new `[water] flood_level_percent` on `rulesets/coastal.toml`. **A dry Cell below the flood level is Hazard Region and its depth is the difference**; a wet Cell gets no row, so the rows are a band above the waterline. **Opens ONE §D1 row** and owes a **second ratifier** for the depth's uncalibrated units. ⚠ **Measured at 3–9% of the map across five keys**, which is what keeps `adr/0156`'s sparse choice true — that ADR names *turns out not to be sparse* as its own revisit trigger. 🔴 Moves every State Hash. ⚠ **It has no consumer** — Disasters are behind milestone 15 — so it is **F9** a fourth time and is taken on the milestone's stated grounds | 2 |
 | **10** | **The long run** — 100k+ Ticks, no collection and no magnitude trending at steady state | all |
 
 ---
@@ -1421,3 +1428,184 @@ lowest spill path, and a path to the map's edge can be lower than the lake next 
 **(98,0)**, on the map's northern edge — a seed of the fill, draining off the world by construction.
 The class remarks carry why it is absent, on `adr/0093`: the deletion is a finding and a silent absence
 would not be.
+
+
+---
+
+### F15 — the Hazard Region had no derivation anywhere, and the depth it stores has no unit
+
+**Task 9 was scoped as *derived at generation* and nothing in the corpus said derived from what.**
+`CONTEXT.md` → Hazard Region gives the purpose — *ground where a Disaster can occur* — and `01 §5.2`
+gives the consumer's shape — Flood *spreads by depth*. `adr/0156` decided the **storage**: floodplain
+depth, sparse, where the floodplain is. ⚠ **None of the three states a rule**, so the task had to
+choose one, and choosing one authored a hash-bearing number.
+
+**The rule chosen is the smallest one that reuses what exists.** A dry Cell is Hazard Region when its
+ground is below a **flood level**, stated exactly as the sea level is — a percent of the height range
+*this world realised* — and its depth is the level minus the ground. ⚠ **The alternative on offer was
+a per-body rise, and this generator cannot express one**: every body is a connected component below a
+**single** sea level, so there is no per-body water surface to rise from and a per-body key would be
+the same number wearing a plural. ***A second mechanism that reduces to the first is not a choice.***
+
+⚠ **It reads the RAW height and not the spill-filled field F14 built, and the two would look alike in
+an overlay.** A filled basin is where water stands if its own rim holds it; a flood is the sea rising.
+Both produce a per-Cell depth, both are plausible as *floodplain*, and they mean unrelated things —
+so the pass says in as many words which one it reads.
+
+🔴 **The depth has no unit, and this is the finding worth carrying forward.** It is in height-field
+units, which nothing calibrates: mean **897–1,296**, deepest **1,939–2,678** across five keys. A depth
+is therefore comparable against another depth and against **nothing else**. `01 §5.2` spreads Flood
+*by depth*, which is a comparison, so the consumer that is coming is served — but ***anything that
+would put a depth in front of a player is not***, and whatever first reads one settles what it means.
+**The §D1 row says a second ratifier is owed and that the flood level may move for reasons the first
+ratifier cannot anticipate.**
+
+⚠ **The measurement is not decoration here, because `adr/0156` names it as that ADR's own revisit
+trigger.** *If a shipped world's floodplain covers enough of the map, the sparse store stops being
+cheaper than a dense one and the storage question reopens on cost rather than on principle.* Measured
+on `coastal.toml` at `flood_level_percent = 30`:
+
+| seed | wet | Hazard Region | share of map | deepest | mean depth |
+|---|---|---|---|---|---|
+| 1 | 5,569 | 8,138 | 3% | 2,340 | 1,088 |
+| 24,006 | 40,739 | 24,514 | 9% | 2,641 | 1,296 |
+| 770,413 | 7,881 | 9,183 | 3% | 2,678 | 1,295 |
+| 8,675,309 | 24,131 | 24,970 | 9% | 1,939 | 897 |
+| 18,446,744,073,709,551,615 | 6,672 | 11,780 | 4% | 2,489 | 1,120 |
+
+**3–9%, so the sparse choice holds and `adr/0156` does not reopen.** ⚠ **A LEVEL and not a coverage**,
+on `sea_level_percent`'s own reasoning — a quoted share names the worlds it was measured on.
+
+⚠ **No residency index ships beside the table, unlike every other sparse Cell table.** The index
+answers *what is at this Cell* in `O(1)` and the only caller that would ask is the **overlay**, which
+is unbuilt (`adr/0070`). ***The task that builds the overlay adds the index***; adding it now would be
+a fourth copy of `CellResidency` serving nobody. **Recorded in the table's own doc-comment**, so the
+absence is a decision rather than a gap somebody has to re-derive.
+
+⚠ **This is `F9` a fourth time** — a generator output with no consumer, after `6a`, `8a` and the
+catchment. It is taken on the milestone's stated grounds: *deriving where something could happen is
+the terrain milestone's; scheduling it is the milestone that has something to schedule.*
+
+
+---
+
+### F16 — the Bin's two parameters turned out to be derivable, and the thing task 7 was waiting for was never the Bin
+
+**`CONTEXT.md` → Water Body reads as though a Water Body carries two authored numbers** — *"two
+parameters: a capacity, and an outflow rate"* — and it says in the next breath that *those two numbers
+produce every behaviour with no taxonomy of water types*: a pond fills, a river exports, a sea absorbs
+and still fills. ⚠ **A generator makes bodies and a Ruleset cannot name one**, so a per-body number is
+unauthorable, and the task was to find what the two numbers are *functions of*.
+
+**Both are geometry, and the three behaviours fall straight out.**
+
+| | derived from | pond | spilling lake | sea |
+|---|---|---|---|---|
+| **capacity** | the body's **size** in Cells | small | small | **33,435 Cells** measured |
+| **outflow** | the body's **exits** | **0** | **1** — the rim Cell it overtops | one per boundary Cell |
+| result | | never drains, pollution is a **debt** | ~1,000 Days at 100 Cells | ~330 Days, a **rent** |
+
+***An endorheic body has no exit, so "a pond has no outflow and fills" is true by construction rather
+than by a rule*** — which is the shape `CONTEXT.md` asks for, and it needed no water-type taxonomy and
+no per-body key. Two authored numbers, both in `[water]`, both in `plans/0002` §D1.
+
+🔴 **`Exits` also fixes a sentence that was wrong.** `WaterBodyTable.Downstream`'s own remark says an
+unset handle means *off the map* — true of a body touching the boundary, and **equally true of an
+endorheic body that drains nowhere at all**. Measured, endorheic bodies are **9 to 38 of 14 to 64**, so
+***the case the sentence omits is the majority one***. With an exit count the two are distinguishable:
+zero exits is endorheic, non-zero with no downstream leaves the world.
+
+⚠ **The drain runs in TWO PHASES and the second phase is the finding.** Withdrawing and depositing in
+one walk lets water cross two graph edges in a single Day whenever a chain happens to run in ascending
+slot order — ***a body's drainage speed would depend on the order the generator found it***. That is
+deterministic, reproducible, and wrong, which makes it worse than a determinism bug rather than better.
+Every body's outflow is now measured against the level it started the Day with.
+
+⚠ **A full body downstream backs the water up rather than destroying it**, which is what makes
+`CONTEXT.md`'s *nothing is an infinite sink* true of a **chain** and not only of one body. Asserted by
+a conservation test that would have caught the two-phase pass double-counting.
+
+### 🔴 And the part that matters more than any of the above: **task 7 is still blocked**
+
+**The Bin exists and every level is zero, on every shipped world, for ever.** No `Scope` reaches a Water
+Body, so nothing can put anything in one — `adr/0160` names that as `adr/0070`'s *unbuilt* rather than
+leaving it implied. A shoreline term built on this reads a structurally-zero level, which is
+**precisely the `adr/0123` failure task 7's row was written to avoid**, arriving one layer further in.
+
+***Task 7 was never waiting on the Bin. It was waiting on an inflow, and nobody had separated the
+two.*** The task 7 row is corrected rather than deleted, because the correction is the finding: a
+dependency stated as *6b* was really a dependency on a mechanism that has no task at all.
+
+⚠ **`CONTEXT.md` names two inflows and neither is built.** *Dumping* needs a Rule that can address a
+Water Body, which is a `Scope`. *Runoff* needs the catchment — built at **F14** — plus something that
+sheds. **The catchment is the half that is ready.**
+
+⚠ **A note for whoever re-baselines next: this task moved NO State Hash on the golden worlds**, and the
+reason is worth keeping. `WaterBodyTable` gained three saved columns and the Bin table gained rows —
+but `minimal.toml` and `congested.toml` state no `[water]`, so the table has **zero rows** on both
+fixtures and a column with no rows folds nothing. ***Adding a column moves a hash only where the table
+has rows***, which is the same lesson as milestone 9 task 3's four `[layers]` keys, arriving from the
+other direction.
+
+### F17 — the runoff was right on the first try and shed nothing on five worlds, because the city stands where water leaves the map
+
+**Runoff is the inflow that makes milestone 24's water observable**, and its first test —
+*a paved city puts something in the water* — failed. It then failed on four more seeds, which is what
+said the cause was not the seed. The diagnostic printed three numbers and the third was the answer:
+`sealedCells=120`, `map drains-to-body 48–89%`, **`withBody=0`**. Half to nine-tenths of the map drains
+into a Water Body; **not one of the city's own Cells did.**
+
+**The city box was `E[0..10] N[0..10]` of 512.** A Ruleset that states no `[[lattice]]` gets
+`OneAtTheOrigin`, at (0, 0) — so its city sits in the map's **north-west corner**. `CLAUDE.md` already
+calls that "the corner city", in `bordered.toml`'s note, for an entirely different reason: a far gate
+being beyond the Commute Budget. **It turns out to bite a second mechanism nobody had connected to it.**
+The catchment seeds every dry map-edge Cell as *drains off the world*, which is correct — off the map is
+not modelled, and a boundary Cell's water leaves. A city in the corner is a city **on the drain**.
+
+**Nothing was wrong with the runoff.** Moving `coastal.toml`'s lattice origin to (8192, 8192) — the
+map's middle — turned all five seeds green in one edit, and that is what attributes the failure to the
+siting rather than to the code. The fix is a `[[lattice]]` block on a demonstration file, with a header
+saying why, and it is **hash-bearing world-creation data**
+([`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md):
+that is attribution to write down, never a reason to defer).
+
+⚠ **The general shape, which outlives this milestone: a default that is harmless in ten worlds is not a
+harmless default.** The (0, 0) origin cost nothing while nothing in the simulation cared where the map's
+edge was. `adr/0159`'s water graph made the edge mean something, and the same default became a world in
+which a whole mechanism is invisible. ***A demonstration Ruleset has to site its city where the thing it
+demonstrates can happen***, and that is now a property `coastal.toml` states explicitly rather than one
+it inherited.
+
+⚠ **This is the second time this milestone that paper reasoning lost to an instrument**, after F14's
+catchment coverage. Both times the mechanism was fine and the *world it ran on* was the thing I had
+wrong, and both times a sweep over several seeds is what separated the two.
+
+### F18 — two documents named the shoreline's quantity and neither named its units, and the units were the whole decision
+
+**`adr/0034` and `CONTEXT.md` → Water Body both say the shoreline source's intensity is *"the Bin's
+level"*.** Task 7 read that sentence, built exactly it, and it was wrong — not because the sentence is
+wrong, but because ***it names a quantity and never says in what units***, and until task 6b there was
+nothing to divide by so the omission cost nothing.
+
+`adr/0160` derived a capacity — **a body's size in Cells times `[water] capacity_per_cell`** — and the
+two readings came apart by four orders of magnitude. The measured sea on `coastal.toml` is **33,435
+Cells** against a pond's tens. Under the absolute reading the same tonnage tipped into either produces
+the same level and therefore the same shoreline intensity: ***a teaspoon in the sea fouls its whole
+coastline exactly as hard as it fouls a pond.*** [`adr/0161`](../docs/adr/0161-the-shoreline-terms-intensity-is-a-fill-fraction-because-a-teaspoon-in-the-sea-is-not-a-teaspoon-in-a-pond.md)
+takes the fraction, and both documents are **annotated rather than rewritten**, because the sentence
+they carry is what made the question findable at all.
+
+⚠ **The decisive argument is not about water.** `w₅` is one number a designer sets and expects to mean
+one thing. Against an absolute level its range *is* the body's capacity, so a weight tuned on a lake is
+wrong on a sea by the ratio of their sizes and every Ruleset would need a per-body weight — the
+taxonomy of water types `adr/0160` spent its whole argument avoiding, coming back in through the
+coefficient. ***A coefficient whose units vary per row is not a coefficient.***
+
+⚠ **And a smaller one, about writing a comment before running the instrument.** The doc comment on
+`DesirabilityWeights.Default` was drafted claiming 6.0 keeps a fully fouled body in `Log1P`'s
+logarithmic stretch *across the whole range* — the criterion the noise 4.0 genuinely meets.
+`ShorelineMeasurementTests` then measured **2.09** at the shore falling to **0.33** at the range, so the
+term leaves that stretch around mid-range. **The comment was corrected to the measurement rather than
+the number raised to the comment**, and the weaker property is now stated in three places rather than
+glossed in none. ***A justification written before its measurement is a prediction, and this corpus has
+a rule about those.***

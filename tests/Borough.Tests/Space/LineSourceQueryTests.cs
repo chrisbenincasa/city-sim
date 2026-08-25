@@ -282,7 +282,7 @@ public sealed class LineSourceQueryTests
         layers.EmitPollution(new Cells(0), new Cells(0), 400);
         layers.Step(Ticks.Zero, graph, TerrainRuleset.None);
 
-        DesirabilityWeights weights = new(Fixed.One, Fixed.One, Noise);
+        DesirabilityWeights weights = DesirabilityWeights.Default with { NoiseSource = Noise };
 
         for (int tile = 0; tile <= 96; tile += 8)
         {
@@ -299,7 +299,7 @@ public sealed class LineSourceQueryTests
         RoadGraph graph = RoadFixtures.Chain(4);
         MapLayers layers = new(LayerRuleset.Default);
 
-        DesirabilityWeights weights = new(Fixed.One, Fixed.One, Noise);
+        DesirabilityWeights weights = DesirabilityWeights.Default with { NoiseSource = Noise };
 
         Assert.Equal(0, layers.Desirability(graph, weights, new Tiles(16), new Tiles(8)));
     }
@@ -315,7 +315,7 @@ public sealed class LineSourceQueryTests
         RoadGraph graph = RoadFixtures.Chain(4);
         MapLayers layers = new(LayerRuleset.Default);
 
-        DesirabilityWeights weights = new(Fixed.One, Fixed.One, Noise);
+        DesirabilityWeights weights = DesirabilityWeights.Default with { NoiseSource = Noise };
 
         Tiles east = new(16);
         Tiles north = new(6);
