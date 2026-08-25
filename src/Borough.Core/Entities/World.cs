@@ -2629,9 +2629,15 @@ public sealed class World
         // city's employment on every reload.
         byte trade = Rules.Kind(kind).Business;
 
-        if (trade != 0 && !HoldsTrade(buildingSlot, trade))
+        if (trade != 0 && !HoldsOwnTrade(buildingSlot))
         {
-            CreateBusiness(building, trade);
+            // The origin is written here rather than inside CreateBusiness, because this is the one
+            // caller that has premises to claim. A founded Business is created unpremised and a
+            // fixture's is created with no origin at all, and both of those are ordinary Businesses
+            // that no demolition may raze.
+            Handle<Business> came = CreateBusiness(building, trade);
+
+            Businesses.Origin[Businesses.Rows.Resolve(came)] = building;
         }
 
         int armed = 0;
@@ -2651,22 +2657,31 @@ public sealed class World
         return armed;
     }
 
-    /// <summary>Whether a Building already holds a Business of this trade.</summary>
+    /// <summary>Whether a Building already holds the Business it instantiated itself.</summary>
     /// <remarks>
+    /// <para>
     /// <b><see cref="Fit"/>'s idempotence for <c>adr/0148</c>'s declared trade</b>, and it asks the
-    /// same question the Bin walk and the Car Park check ask. ⚠ <b>It asks about the TRADE and not
-    /// about the count</b>: a Building may hold a second Business of the same trade that walked in
-    /// through <c>adr/0147</c>'s placement pass, and the one this refuses to duplicate is the one the
-    /// kind declares. That is a deliberate over-refusal — a refit will not re-add a shop to a Building
-    /// whose declared shop already left and was replaced by an identical one — and the alternative is
-    /// a saved column recording which Business a kind put there, which is the flag
-    /// <c>adr/0148</c> refuses.
+    /// same question the Bin walk and the Car Park check ask. It is <see cref="DestroyBuilding"/>'s
+    /// predicate exactly, run in the other direction: ***the pairing that keeps the shop count bounded
+    /// has to identify the same row at both ends, or it is not a pairing.***
+    /// </para>
+    /// <para>
+    /// 🔴 <b>It asked about the TRADE until milestone 27 task 10 and that was the defect.</b> A
+    /// Building may hold a second Business of the same trade — one a Household founded, since
+    /// <c>[founding]</c> draws uniformly over every declared trade — and matching on kind made the two
+    /// interchangeable at both ends: a refit declined to instantiate because a *founded* shop was
+    /// standing there, and a demolition razed the founded one in the instantiated one's place. **The
+    /// old comment here named the alternative and called it a flag <c>adr/0148</c> refuses.** It is
+    /// not a flag; it is <see cref="BusinessTable.Origin"/>, a handle naming one Building, and a
+    /// handle that stops meaning anything the moment the Business leaves is the opposite of a flag.
+    /// </para>
     /// </remarks>
-    private bool HoldsTrade(int buildingSlot, byte trade)
+    private bool HoldsOwnTrade(int buildingSlot)
     {
         foreach (int business in BuildingBusinesses.Walk(buildingSlot))
         {
-            if (Businesses.Kind[business] == trade)
+            if (Buildings.Rows.TryResolve(Businesses.Origin[business], out int origin)
+                && origin == buildingSlot)
             {
                 return true;
             }
@@ -4800,17 +4815,20 @@ public sealed class World
         // ⚠ adr/0148: the trade this KIND came with dies with the premises, and every other tenant
         // is pooled. Fit creates one of the declared trade at construction, so this destroys one --
         // the pairing that keeps the shop count bounded, and the reason Raze exists. See Raze.
-        byte declared = Rules.Declares(Buildings.Kind[slot]) ? Rules.Kind(Buildings.Kind[slot]).Business : (byte)0;
-
-        if (declared != 0)
+        //
+        // 🔴 ON THE ORIGIN AND NOT ON THE KIND, since milestone 27 task 10. A kind is not an identity:
+        // [founding] draws uniformly over every declared trade, so a Household may found a shop of
+        // the very trade a dwelling declares, and matching on kind razed whichever came first in the
+        // list. Two defects from that one line -- the founded shop's capital left the city through
+        // Raze's money-supply write, and the instantiated shop outlived its premises into the
+        // unpremised pool, where nothing ever collected it. Measured on rulesets/levied.toml at
+        // 24,576 Ticks: 52 stranded; on minimal.toml and taxed.toml, which found nothing, zero.
+        foreach (int came in BuildingBusinesses.Walk(slot))
         {
-            foreach (int came in BuildingBusinesses.Walk(slot))
+            if (Buildings.Rows.TryResolve(Businesses.Origin[came], out int origin) && origin == slot)
             {
-                if (Businesses.Kind[came] == declared)
-                {
-                    Raze(Businesses.Rows.At(came));
-                    break;
-                }
+                Raze(Businesses.Rows.At(came));
+                break;
             }
         }
 

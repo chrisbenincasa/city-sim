@@ -487,6 +487,17 @@ is the sentence that makes somebody defer a Ruleset edit — which `adr/0100` fo
 `The_golden_ruleset_is_the_one_the_session_names` covers all three files and fails with the number to
 paste in.
 
+**Milestone 27 task 10 re-recorded ALL THREE, and the contrast with task 6 four paragraphs down is the
+note.** `BusinessTable` gained a saved `origin` handle — the premises that instantiated a Business
+(`adr/0148`, amended) — and **both session traces moved as well as `world-hash.txt`**, where task 6's
+saved `kind` byte moved only the world fixture. ***The difference is not the column, it is who writes
+it***: `kind` is written by `CreateBusiness`, which no session reaches, and `origin` is written by
+`World.Fit`, which every session that raises a Building runs. **A saved column moves the traces exactly
+when a session's own verbs write it**, which is a better rule than counting columns.
+
+⚠ **Neither Ruleset content hash moved**, because no baseline Ruleset was edited. `rulesets/founded.toml`
+and `rulesets/levied.toml` were both rewritten in the same commit and neither is a baseline artefact.
+
 **Milestone 27 task 6 re-recorded ONE artefact, and which one is the whole note.** `BusinessTable`
 gained a saved `kind` byte — the trade, on `adr/0141`'s second kind namespace — so `world-hash.txt`
 moved. ⚠ **Neither session trace moved and neither Ruleset content hash moved**, and the reason is

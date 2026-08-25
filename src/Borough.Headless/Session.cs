@@ -850,6 +850,20 @@ internal static class Session
         return ArrivalDump.Run(options, writer);
     }
 
+    /// <summary>Runs the business dump, to a file or to the console.</summary>
+    internal static int DumpBusiness(Options options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (options.OutPath is null)
+        {
+            return BusinessDump.Run(options, Console.Out);
+        }
+
+        using var writer = new StreamWriter(options.OutPath);
+        return BusinessDump.Run(options, writer);
+    }
+
     /// <summary>Runs the land value dump, to a file or to the console.</summary>
     internal static int DumpLandValue(Options options)
     {

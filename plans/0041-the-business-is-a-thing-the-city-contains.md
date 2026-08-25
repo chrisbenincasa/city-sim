@@ -462,11 +462,31 @@ suites go with it.**
 
 ### Closing
 
-10. **Something to look at, and the long run.** ⚠ **Read `0040` F43 before scoping this.** Milestone 25
-    went to show a tenancy ending and found **the thing to look at did not exist in any shipped world**.
-    ***The same question is owed here on the day, not at the end***: which world contains a Business the
-    city created, and does any shipped file produce one? **No shipped Ruleset declares a `[[business]]`,
-    because the section does not exist.**
+10. **Something to look at, and the long run.** *(✅ CLOSED 2026-08-24)*
+
+    ✅ **`F43`'s question was asked first and the answer is the opposite of milestone 25's.** *Which
+    world contains a Business the city created?* **All sixteen** — `adr/0148` made construction
+    instantiate a kind's declared trade — and `rulesets/levied.toml` is the only one holding all four
+    quarters of the risk at once. ⚠ **There is no longer a shipped world without an economic actor in
+    it**, which `BusinessDumpTests` had to hand-build a Ruleset to test the refusal against.
+    - ✅ **`--business` ships**, the twelfth runner mode: five panels, one per claim in the risk, plus
+      a stock-over-time table. 🔴 **Two of the five flows are DERIVED rather than counted** —
+      nothing counts a Business instantiated by `World.Fit` or razed by `World.DestroyBuilding`, so
+      the panel prints the Zone Rule's `created` and `demolished` beside them and says the equality
+      is an inference. **G42.**
+    - 🔴 **THE LONG RUN FOUND A DEFECT AND IT IS THE TASK'S WHOLE VALUE** (**G43**). `adr/0148`
+      identified *the trade this kind came with* **by kind**, and `[founding]` draws uniformly over
+      every declared trade — so a founded shop and the instantiated one were interchangeable in a
+      Building's list. **Two defects, pointing opposite ways**: the founded shop's capital left the
+      city through `Raze` (23,983 of 354,562 per 20,480 Ticks) and the instantiated one outlived its
+      premises into the pool (52 stranded, immortal). `BusinessTable.Origin` is the repair;
+      `adr/0148` carries the amendment; every golden re-recorded.
+    - ✅ **The three collections are NAMED IN THE TEST rather than found by it** (`0040` **F44**):
+      the `business` table, the `unpremised` pool, and every Business's Bins.
+      `BusinessLongRunTests` asserts all three on slot high-water marks, which is **F45**'s shape.
+    - 🔴 **What bounds this city is the SOURCE EXHAUSTING and not a sink firing** (**G44**), so the
+      test asserts a **deceleration** rather than a ceiling. ***That bound reopens the day anything
+      refills household money*** — milestone 11's gate, milestone 26's revenue.
 
 ---
 
@@ -1159,3 +1179,70 @@ word the prose also uses.***
 Census surface nothing has asked for; what exists is enough to instrument the engine, and the test that
 needed attribution got it by building a world with one Policy in it. **Recorded so the next person to
 want a per-Policy figure knows it is absent by circumstance rather than by decision.**
+
+**G42 — the two largest flows in the Business table are counted by nothing, and the dump has to
+infer them.** `PlacementActivity` counts `Founded`, `Premised` and `Retired`; **instantiation and
+razing are not placement events and no engine owns them**, so `World.Fit` and `World.DestroyBuilding`
+create and destroy Businesses silently. On every shipped file the dwelling kind declares a trade, so
+`ZoneCounter.Created`/`Demolished` *are* those counts — ⚠ **derived and not measured, and the equality
+breaks on the first shipped kind that declares no trade.** `--business` prints the two rows adjacent
+and says so in the panel rather than in a comment. **Not filed as a defect**: a counter nobody has
+asked a question of is a column, and the inference is sound in every world that exists.
+
+⚠ **A second, smaller gap in the same place**: `PlacementCounter` has no `Founded` or `Premised`
+member, so those two flows exist only in the activity and **survive into no census series**. The dump
+keeps the running total by hand — and the first draft did not, handed the whole `Simulation` to
+`Census.Observe` (which drains every engine), and printed **0 founded** in a world visibly full of
+founded shops. ***A flow that reads zero looks exactly like a mechanism that did not run.***
+
+**G43 — 🔴 A KIND IS NOT AN IDENTITY, AND THE LONG RUN IS THE ONLY THING THAT COULD HAVE FOUND IT.**
+`adr/0148` made demolition destroy *the trade this kind came with* and gave it the **kind** to identify
+it by. `[founding]` draws uniformly over **every** declared trade, so a Household founding a `shop` put
+a second Business of the dwelling's own trade into the same list, and demolition razed whichever came
+first.
+
+| | Before | After |
+|---|---|---|
+| Pooled Businesses holding nothing, `levied.toml`, 24,576 Ticks | **52** | **0** |
+| Same, `founded.toml` | **60** | **0** |
+| Same, `minimal.toml` and `taxed.toml` (nothing founds) | 0 | 0 |
+| Money supply, `levied.toml`, 20,480 Ticks | 354,562 → **330,579** | 354,562 → **354,562** |
+| `business` slots, `levied.toml`, 131,072 Ticks | 652 | **536** |
+
+***Two defects from one line, pointing opposite ways.*** The founded Business's capital left the city
+through `Raze`'s money-supply write; the instantiated Business outlived its premises into the
+unpremised pool, where nothing ever collected it — because the give-up bound does not fire in this
+world either. **The repair is `BusinessTable.Origin`**, a severable `Handle<Building>` naming the
+premises that instantiated it, read by `DestroyBuilding` and by `Fit`'s idempotence guard, which had
+the same bug on the creation side.
+
+⚠ **`adr/0148` argued explicitly against the thing that fixes it**, and the sentence is worth quoting
+because it is *nearly* right: *"a stored `came with the premises` bit would separate two Businesses
+identical in every column, and the only case it decides differently is one where both answers are the
+same."* ***The refused thing was a property of the Business and what was needed was a property of the
+edge.*** A bit travels with the Business into whatever premises it is later placed in and gets it razed
+there; a handle naming one Building stops meaning anything the moment it leaves. **The old
+`HoldsTrade` doc-comment named the alternative, called it "the flag `adr/0148` refuses", and described
+its own behaviour as "a deliberate over-refusal"** — so the cost was seen, priced and accepted, and the
+measurement is what showed the price was wrong.
+
+🔴 **What delayed finding it was a HEADER.** `founded.toml` opened with a long paragraph predicting
+that its money supply would drain out through the Hinterland *on purpose*. The supply was draining;
+the paragraph explained it; nothing looked further. ***Naming an expected symptom is how you stop
+noticing the unexpected one that looks identical*** — and both of that header's claims were wrong, since
+`adr/0147` had already shipped the placement half it said was outstanding. **No mechanical check
+reaches this**, and the class is `plans/0012` **Cause 4** with the description in a Ruleset comment
+rather than in code.
+
+**G44 — the shop count is bounded by the SOURCE EXHAUSTING and no sink has ever fired.** Over 131,072
+Ticks at 2,000 Citizens: **7,165 premisings, 0 give-ups.** `gives_up_after_days` is 30 Days and
+placement re-premises a pooled Business long before that, so `adr/0142`'s bound — which `adr/0148`
+correctly refused to rely on as *the* sink — has still never been reached in any shipped world. What
+actually bounds the count is that founding is a **means test that runs out of means**: each founding
+moves money out of a Household and employs a Citizen, so each one makes the next less likely.
+
+⚠ **So `BusinessLongRunTests` asserts a DECELERATION rather than a ceiling**, because the count is
+still rising at the end of the run and asserting a plateau would be asserting something the data does
+not show. 🔴 ***A bound that rests on a source drying up reopens the day anything refills it***, which
+is milestone **11**'s gate endowment and milestone **26**'s revenue. **Recorded rather than fixed**: a
+sink that fires is not missing, it is *unreached*, and `adr/0070` says the difference matters.

@@ -29,22 +29,28 @@
 #
 #   INSTANTIATED (adr/0148)   every dwelling declares `business = "shop"`, so construction creates
 #                             one with the premises. It is capitalised by NOBODY and its balance Bin
-#                             opens at ZERO.
+#                             opens at ZERO, and it comes down with the premises.
 #   FOUNDED (adr/0145)        a Household spent `founding_band` = 400 to open it. These are the only
-#                             ones holding money.
+#                             ones holding money, and the only ones that reach the unpremised pool.
 #
 # The levy is `derived = "balance"`, so a shop holding zero owes zero applications and the sweep
 # passes over it -- which is PolicyEngine's own line about a Household with nothing, arriving on the
 # other population. MEASURED at 2,000 Citizens over 6,144 Ticks: 302 live Businesses, of which 177
-# hold money and 125 hold nothing. ⚠ SO `considered` EXCEEDS `applied` BY ABOUT 40% AND THAT IS THE
-# FILE BEHAVING CORRECTLY. A reader who takes the gap for a defect has read `considered` as
-# `eligible`.
+# hold money and 125 hold nothing. ⚠ SO `considered` EXCEEDS `applied` AND THAT IS THE FILE BEHAVING
+# CORRECTLY. A reader who takes the gap for a defect has read `considered` as `eligible`.
 #
 # ⚠ THE SPLIT MOVES WITH THE RUN AND IS NOT A PROPERTY OF THIS FILE. Founded shops accumulate while
 # instantiated ones come and go with their premises -- minimal.toml condemns every dwelling it raises
-# -- so the founded share climbs for as long as nothing has reached `gives_up_after_days`. The figure
-# above names its world and its Tick count for that reason. BusinessLevyTests asserts the SHAPE (some
-# are passed over) and never the ratio.
+# -- so the founded share climbs while founding lasts. The figure above names its world and its Tick
+# count for that reason. BusinessLevyTests asserts the SHAPE (some are passed over) and never the
+# ratio.
+#
+# ⚠ WHAT BOUNDS THE SHOP COUNT HERE IS THE SOURCE EXHAUSTING AND NOT A SINK FIRING, and it is worth
+# knowing before reading the stock as healthy. The give-up bound NEVER fires -- placement re-premises
+# a pooled shop long before 30 Days elapse; measured 7,165 premisings and 0 give-ups over 131,072
+# Ticks -- so what stops the count climbing is that founding is a MEANS TEST that runs out of means.
+# ***THAT BOUND REOPENS THE DAY ANYTHING REFILLS HOUSEHOLD MONEY***, which is milestone 11's gate and
+# milestone 26's revenue. `--business` is the picture and BusinessLongRunTests is the assertion.
 #
 # ***DO NOT QUOTE A COLLECTION FIGURE OUT OF A RUN OF THIS FILE AS ANYTHING ABOUT TAXING TRADE.*** A
 # shop here has no revenue -- nothing trades, because Scope.Pool throws -- so its balance is its
@@ -94,28 +100,52 @@
 #   gives_up_after_days on [placement]  THE SINK, and it is REQUIRED here rather than optional
 #
 # ⚠ THE SINK IS NOT DECORATION AND THE LOADER REFUSES THE FILE WITHOUT IT. [founding] is an inflow
-# into the unpremised pool, and NOTHING TENANTS A BUSINESS YET -- the placement half is milestone 27's
-# remaining work. So without a give-up bound every shop founded would sit in that pool for ever and
-# the pool would grow with elapsed time, which adr/0006 forbids. adr/0130 made this argument for the
-# Unplaced Pool and a gate; it is the same sentence about the other pool.
+# into the unpremised pool, and without a give-up bound a shop nothing tenanted would sit in that pool
+# for ever, which adr/0006 forbids. adr/0130 made this argument for the Unplaced Pool and a gate; it is
+# the same sentence about the other pool.
+#
+# ⚠ AND IT HAS NEVER FIRED. This paragraph said "NOTHING TENANTS A BUSINESS YET -- the placement half
+# is milestone 27's remaining work", and adr/0147 shipped that half inside the same milestone. Over
+# 131,072 Ticks: 7,165 premisings and ZERO give-ups, because placement finds a pooled shop premises
+# long before 30 Days elapse. ***THE LOADER STILL REQUIRES THE BOUND AND SHOULD***: what makes a sink
+# mandatory is that the pool has an inflow, not that anything has reached the bound yet -- a world
+# where placement cannot keep up is a world this file could produce tomorrow.
 #
 # ===========================================================================================
-# 🔴 WHAT A RUN OF THIS FILE ACTUALLY SHOWS, AND IT IS A LEAK.
+# 🔴 WHAT A RUN OF THIS FILE ACTUALLY SHOWS. ⚠ CORRECTED 2026-08-24 BY MILESTONE 27 TASK 10 --
+# THIS HEADER DESCRIBED A LEAK, THE LEAK WAS REAL, AND IT WAS A DEFECT RATHER THAN THIS FILE.
 #
-# Nothing tenants a Business. So every shop founded here waits out gives_up_after_days and DEPARTS,
-# and World.Depart subtracts its balance from MoneySupply.Issued (adr/0142). Founding is a transfer
-# and conserves; departing is an export and does not. So the steady state of this file is:
+# What it said: nothing tenants a Business, so every shop founded here waits out gives_up_after_days
+# and DEPARTS, exporting its balance through the Hinterland -- household money in, shop, out of the
+# city. It named that the steady state and said the header would need rewriting the day the placement
+# half shipped. BOTH HALVES OF THAT TURNED OUT WRONG, in opposite directions:
 #
-#     household money --(founding_band)--> shop --(gives up)--> OUT OF THE CITY
+#   1. THE PLACEMENT HALF HAD ALREADY SHIPPED. adr/0147, in this same milestone, tenants a pooled
+#      Business on the same pass that houses a Household. Measured over 131,072 Ticks at 2,000
+#      Citizens: 7,165 premisings and ***ZERO give-ups***. Placement re-premises a pooled shop long
+#      before 30 Days elapse, so the sink this header called the steady state HAS NEVER ONCE FIRED.
 #
-# ***THIS FILE DRAINS ITS OWN HOUSEHOLDS' MONEY OUT THROUGH THE HINTERLAND, ON PURPOSE.*** It is not a
-# defect and it is not a balanced city: it is what one half of a two-half mechanism looks like while
-# the other half is unbuilt (adr/0070). adr/0145's amendment predicted it in prose before the pass was
-# written; this file is where it can be watched. THE DAY THE PLACEMENT HALF SHIPS, the leak stops
-# being the steady state and this header needs rewriting.
+#   2. THE DRAIN IT DESCRIBED WAS HAPPENING ANYWAY, FOR ANOTHER REASON, AND WAS A BUG. adr/0148 had
+#      demolition raze "the trade this kind came with" and identify it BY KIND -- and [founding] draws
+#      uniformly over every declared trade, so a founded `shop` sat in a dwelling beside the
+#      instantiated `shop` and got razed in its place, exporting its 400 through Raze's money-supply
+#      write. 23,983 of 354,562 left the city per 20,480 Ticks. adr/0148 is amended and the supply is
+#      now FLAT over the same window.
+#
+# ⚠ THE LESSON IS WORTH MORE THAN THE CORRECTION: A HEADER THAT PREDICTS A LEAK WILL BE BELIEVED BY
+# THE NEXT PERSON WHO MEASURES ONE. This file's own prose is why the drain went unexamined for a day --
+# somebody looked at a contracting money supply, found a paragraph saying the contraction was on
+# purpose, and stopped. ***Naming an expected symptom is how you stop noticing the unexpected one that
+# looks identical.***
+#
+# SO WHAT A RUN ACTUALLY SHOWS is a city that founds shops until it runs out of Households that can
+# afford one, tenants nearly all of them, and conserves its money. The bound on the shop count is the
+# SOURCE EXHAUSTING rather than any sink firing -- every founding moves money out of a Household and
+# employs a Citizen, so each one makes the next less likely. ⚠ THAT BOUND REOPENS THE DAY ANYTHING
+# REFILLS HOUSEHOLD MONEY, which is milestone 11's gate and milestone 26's revenue.
 #
 # ⚠ SO DO NOT QUOTE A MONEY FIGURE OUT OF A RUN OF THIS FILE as anything about the economy. The only
-# thing it measures is how fast an unbuilt mechanism's absence costs.
+# thing it measures is a means test running out of means.
 #
 # ===========================================================================================
 # THE TWO NUMBERS ARE STOPWATCH SETTINGS AND NEITHER IS A DESIGN CLAIM.
