@@ -89,7 +89,7 @@ internal static class TerrainDump
             + $"{world.Roads.Segments.Rows.LiveCount} Segments — the ground under a built city.");
 
         WriteTerrain(output, layers, terrain, options.Csv);
-        WriteSealingByType(output, layers, terrain);
+        WriteSealingByType(output, layers, terrain, "at Tick 0");
 
         output.WriteLine();
         output.WriteLine("## Before — the populator's city, nothing decayed and nothing regrown");
@@ -105,6 +105,11 @@ internal static class TerrainDump
             $"## After — {options.Ticks} Ticks ({options.Ticks / Ticks.PerDay} Days) of decay and "
             + "regrowth");
         WriteFields(output, layers, terrain, weights, options.Csv);
+        WriteSealingByType(
+            output,
+            layers,
+            terrain,
+            $"after {options.Ticks / Ticks.PerDay} Days");
 
         return 0;
     }
@@ -190,10 +195,11 @@ internal static class TerrainDump
     /// means the key is not keyed on anything</em>.
     /// </remarks>
     private static void WriteSealingByType(
-        TextWriter output, MapLayers layers, TerrainRuleset terrain)
+        TextWriter output, MapLayers layers, TerrainRuleset terrain, string when)
     {
         Span<int> cells = stackalloc int[Marks.Length];
         Span<int> sealedCells = stackalloc int[Marks.Length];
+        Span<int> recovered = stackalloc int[Marks.Length];
         Span<long> totals = stackalloc long[Marks.Length];
         Span<int> peaks = stackalloc int[Marks.Length];
 
@@ -205,13 +211,17 @@ internal static class TerrainDump
             }
 
             int sealing = layers.Cells.Sealing[slot];
+            int index = Index(layers.Terrain.At(layers.Cells.East[slot], layers.Cells.North[slot]));
 
+            // A Layer Cell row exists because something touched this Cell, so a live row reading
+            // zero is ground that WAS sealed and has come back -- which is the only direct evidence
+            // that decision 5's quantity is reachable at all. A Cell that was never built on has no
+            // row and is not counted here.
             if (sealing <= 0)
             {
+                recovered[index]++;
                 continue;
             }
-
-            int index = Index(layers.Terrain.At(layers.Cells.East[slot], layers.Cells.North[slot]));
 
             sealedCells[index]++;
             totals[index] += sealing;
@@ -235,8 +245,10 @@ internal static class TerrainDump
 
         output.WriteLine();
         output.WriteLine(
-            $"## Sealing by terrain type — the whole map, {CellGrid.WorldCellCount} Cells");
-        output.WriteLine("  type          map Cells   sealed   total sealing   peak   tau");
+            $"## Sealing by terrain type, {when} — the whole map, "
+            + $"{CellGrid.WorldCellCount} Cells");
+        output.WriteLine(
+            "  type          map Cells   sealed  recovered   total sealing   peak   tau");
 
         for (int i = 0; i < Marks.Length; i++)
         {
@@ -246,8 +258,8 @@ internal static class TerrainDump
 
             output.WriteLine(string.Create(
                 CultureInfo.InvariantCulture,
-                $"  {Marks[i].Name,-11} {cells[i],11} {sealedCells[i],8} {totals[i],15} "
-                + $"{peaks[i],6} {tau,5}"));
+                $"  {Marks[i].Name,-11} {cells[i],11} {sealedCells[i],8} {recovered[i],10} "
+                + $"{totals[i],15} {peaks[i],6} {tau,5}"));
         }
     }
 
