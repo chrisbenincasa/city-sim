@@ -692,6 +692,30 @@ Adapted from UrbanSim's architecture, which has been the operational design of a
 > *mechanism*, because an unbuilt step in a specified loop does not look like a gap. It looks like a
 > constraint. → [`plans/0012`](../plans/0012-corpus-audit.md).
 
+> ✅ **STEP 3 HAS A DESIGN AS OF 2026-08-25, AND IT IS STILL UNBUILT** —
+> [`adr/0163`](adr/0163-demand-for-a-shop-is-elapsed-unserved-need-in-reach-and-building-claims-it.md),
+> session W. ***Commercial seeks unserved needs in reach*** is given a meaning the build can hold: a
+> Household whose Rule draws from `Scope.Pool` and finds no reachable seller **starves**, and starvation
+> is already a named row with a reason, a place and a clock. **So the demand a developer reads is
+> `tick - StarvedSince` summed over reachable Households for a Good the trade sells** — elapsed rather
+> than instantaneous, because a flag blinks under sampling and a clock does not — **and raising the
+> Building CLAIMS that need**, on step 2e's own rule that *capacity is real*, so two Lots sampled in one
+> pass cannot answer the same demand twice.
+>
+> ⚠ **It is tier 1 of four, and the ADR names the other three so they are not folklore**: tier 0 is
+> what ships today, tier 2 is the tenant's own choice of premises (step 3's hard filter, waiting on a
+> price for premises) and tier 3 is **step 5's pro-forma as written above**, waiting on a land price
+> surface and a bid contest. 🔴 **Tier 1 cannot ship before `Scope.Pool` does**, so the Provider and the
+> purchase land together at milestone 26.
+>
+> ⚠ **And what step 5 ships today is the degenerate form of what this section describes.** The create
+> predicate is `UnplacedPool.Count != 0` — a Lot reading a city-wide count as a boolean — which
+> `ZoneRuleEngine.Create`'s own doc comment records as a **stand-in** for the acceptance test its
+> summary line claims. ***Nobody decided a presence test was correct***; it was the honest amount to
+> claim while rent, a commute tolerance and a bid contest did not exist. **The dwelling half is left on
+> tier 0 deliberately and the ADR says so** — the same argument applies to housing word for word, and
+> the only reason it is not taken is that no milestone is pushing on it.
+
 **The unplaced pool with per-Household refusal reasons is our replacement for the RCI meter, and it is a strictly better interface primitive.** "412 Households want to move in; 380 can't find anything under §900; 32 can't reach a job inside their Commute Budget" is a diagnosis. A bar chart is not. `LEGIBLE CAUSE`
 
 Note that this loop does not guarantee everyone gets housed, does not solve an assignment problem, and does not globally optimise. It processes agents, consumes units, and leaves a residual. **The residual is the demand signal** — and it is a list of specific frustrated Households with specific reasons, which the commercial and development logic can read directly.

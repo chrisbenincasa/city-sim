@@ -3981,3 +3981,56 @@ misdirects the next `adr/0006` audit.**
 ⚠ **Not fixed in the sitting that found it, and that is deliberate**: `plans/0043` is a brief and edits
 no code, and these are doc comments on the mechanism session W is about to make decisions against.
 **They go with milestone 26's first code task**, whoever takes it.
+
+### 🔴 `CLAUDE.md`'s demand-scalar rule dropped the word that made it narrow, and a session read it as a ban
+
+**Found 2026-08-25, in session W** ([`0043`](0043-session-w-the-provider-kinds-content.md) **W13**).
+**Cause 5 on a RULE rather than on a number**, which is a new surface for it.
+
+| Where | What it says |
+|---|---|
+| `CLAUDE.md` → *Things to be careful about* | *"**Don't add a demand scalar.** There is no RCI meter. The Unplaced Pool *is* the demand signal"* |
+| [`docs/01-player-experience.md`](../docs/01-player-experience.md), the RCI discussion | *"`CLAUDE.md`'s rule is do not **add** a demand scalar — **this one is not added, it is counted**"* … *"An RCI meter is a **synthesised scalar with no constituents**. Nothing in SC4 **is** the RCI value; it is a formula's output drawn as a bar, and **it cannot be interrogated when it is wrong**"* |
+
+**The compressed form is not wrong; it is unqualified.** What `01` refuses is a *synthesised* scalar
+with no constituents, and the qualifier is what makes the rule narrow enough to be obeyed. ⚠ **The
+clause that carried the qualifier stayed where it was, doing nothing** — ***which is Cause 5's exact
+sentence, arriving on a design rule instead of on a figure.***
+
+🔴 **What it cost, and it is why this is filed rather than shrugged at.** Session W's brief offered the
+user four ways to raise a shop and labelled the fourth ***"NOT a demand slider — the design refuses
+those"***, then recommended the impoverished option on the grounds that it was safe. **The user refused
+that reading** — *rejecting the demand SLIDER does not mean we cannot model DEMAND at all* — and was
+right on the corpus's own text. ⚠ **The session then spent an exchange establishing whether demand could
+be modelled at all, while [`02 §5`](../docs/02-simulation-model.md) had specified the mechanism in its
+own step 3 the whole time.** ***A rule quoted without its qualifier does not merely mislead; it
+forecloses.***
+
+**The repair is the two-half one, and both halves are owed.** **Reading**: quote `01`'s sentence rather
+than `CLAUDE.md`'s compression. **Writing**: `CLAUDE.md`'s bullet should carry the qualifier — *a
+synthesised scalar with no constituents* — because a rule stated as four words is a rule that will be
+read as four words. ⚠ **Not edited in the sitting that found it**: `CLAUDE.md` is the file whose whole
+discipline is that it stores no second copy, and adding a clause there is a judgement about that file
+rather than a correction to it.
+
+### ⚠ `ZoneRuleEngine.Create`'s summary line states an acceptance test the code does not perform
+
+**Found the same day and in the same survey.** Cause 4 — a description wrong about the trigger.
+
+The doc comment's `<summary>` reads ***"The create predicate: vacant AND permitted AND somebody in the
+Pool would take it"***, and calls it ***"Three terms"***. The code is
+`(Lots.Zone[lot] & definition.Admits) == 0 || _world.UnplacedPool.Count == 0` — **a zone-bit test and a
+non-empty test**, with vacancy decided by the caller. ***There is no acceptance test and no per-record
+question of any kind.***
+
+⚠ **The same comment admits it three paragraphs later** — *"The Pool is read as non-empty and drained
+blind. **There is no acceptance test**, because acceptance needs rent, a commute and a tolerance"* —
+**so the document contradicts itself between its summary and its remarks**, and ***the summary is the
+half that shows up in tooling.*** A reader sizing work off it would believe acceptance was built.
+
+🔴 **This one has a fix and it is not a comment edit**:
+[`adr/0163`](../docs/adr/0163-demand-for-a-shop-is-elapsed-unserved-need-in-reach-and-building-claims-it.md)
+builds the acceptance test the summary describes, for trades, at milestone 26. **The summary becomes
+true of the trade rule and stays false of the housing rule**, which is tier 0 by that ADR's own
+consequences — so ***the correction is to say which rule it is describing***, and that is owed with 26's
+first code task rather than now.

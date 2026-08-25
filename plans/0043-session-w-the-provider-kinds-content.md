@@ -20,7 +20,20 @@ milestone **26** — the purchase, where `Scope.Pool` stops throwing.
 
 ## Status
 
-🔴 **NOT RUN.** Written 2026-08-25 against the tree at `7e67c46`.
+~~🔴 **NOT RUN.**~~ 🟡 **RAN 2026-08-25 WITH THE USER IN THE ROOM, AND SETTLED ONE OF FOUR.** Written
+against the tree at `7e67c46`.
+
+✅ **W-Q1 IS SETTLED** —
+[`adr/0163`](../docs/adr/0163-demand-for-a-shop-is-elapsed-unserved-need-in-reach-and-building-claims-it.md),
+*demand for a shop is elapsed unserved need in reach, and building claims it.* **Open: W-Q2, W-Q3, W-Q4**
+— and ⚠ **W-Q2 shrank to almost nothing as a consequence** (**W12**), while ***W-Q3 is now the
+expensive one.***
+
+🔴 **THIS BRIEF'S OWN RECOMMENDATION ON W-Q1 WAS REFUSED, AND THE REFUSAL IS THE DECISION** (**W13**).
+The session opened by offering the existing presence test as the principled line, on the grounds that an
+impoverished signal cannot smuggle a synthesised one in. ***The user refused it in one sentence —
+consolidating to a boolean removes the richness of the data and signal — and was right***, and the
+corpus turned out to agree with the user against the brief in two places the brief had not read.
 
 🔴 **The session's own agenda SHRANK before it opened, and by a verified finding rather than an
 argument.** §A and [`0003`](0003-build-plan.md) both state milestone 26's gate as **two** things: the
@@ -269,3 +282,65 @@ EXIT IS THE SINK … nothing tenants a Business … `World.CreateBusiness` has n
 describing it did not*** — and it is the shape
 [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
 predicts: **both are wrong about the trigger and right about where to look.**
+
+
+---
+
+## What the sitting concluded — 2026-08-25
+
+**One question of four, and it moved the other three.**
+
+**W12 — ✅ W-Q2 IS NEARLY DISCHARGED BY W-Q1'S ANSWER, and it was not obvious in advance.** A trade
+raised on *unserved need in reach* is a trade whose premises **sell to reachable customers or do not
+sell at all**. A shop with none earns nothing, fails its own Rule, and **failing a Rule is already what
+condemns a Building** — `condemn_after` on the kind, pressure from continuous starvation (**W7**).
+⚠ **It is not automatic and the sitting must still author one thing**: the trade needs a Rule it *can*
+fail. ***A kind with no failable Rule is immortal by construction***, so the decline question is now
+*what does a shop consume such that failing to get it should kill it* — one Ruleset decision rather than
+a mechanism.
+
+**W13 — 🔴 THE BRIEF MISREAD THE DEMAND-SCALAR RULE, AND SO HAS EVERY COMPRESSION OF IT.**
+`CLAUDE.md` → *Things to be careful about* carries *"Don't add a demand scalar. There is no RCI meter.
+The Unplaced Pool **is** the demand signal"*, and this brief read that as ***do not model demand***.
+[`01 §`](../docs/01-player-experience.md) says the opposite in terms: ***"`CLAUDE.md`'s rule is do not
+**add** a demand scalar — this one is not added, it is **counted**"***, and names what is actually
+refused — ***"a synthesised scalar with no constituents … it cannot be interrogated when it is
+wrong."*** ⚠ **So the test is CONSTITUENTS and not arithmetic**, and a magnitude assembled from named
+rows each carrying a reason is not an RCI meter however large it gets.
+🔴 **This is [`0012`](0012-corpus-audit.md) Cause 5's shape on a RULE rather than on a number** — the
+compressed form in `CLAUDE.md` dropped the word *added*, and ***the clause that made the rule narrow
+stayed where it was, doing nothing.*** **Owed to `0012`.**
+
+**W14 — ✅ `02 §5` ALREADY SPECIFIED THE MECHANISM, SO THIS WAS *UNBUILT* RATHER THAN *UNDESIGNED*.**
+The six-step UrbanSim loop's **step 3** is ***"Business placement: same shape; commercial seeks unserved
+needs in reach"***, and the section closes on this sitting's whole thesis: ***"The residual is the demand
+signal — and it is a list of specific frustrated Households with specific reasons, which the commercial
+and development logic can read directly."*** ⚠ **`02 §5` marks steps 1, 3, 4 and 6 unbuilt on its own
+face**, so [`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md)'s
+classification was available for the asking. ***The session spent its first exchange deciding whether
+demand could be modelled at all, and the design document had specified how eight months earlier.***
+
+**W15 — 🔴 THE SIGNAL COSTS NOTHING BECAUSE MILESTONE 26 CREATES IT.** `rulesets/minimal.toml`'s
+`restock` is **`inputs = []`** — four sundries a firing, drawn from nothing. ***That absence is the
+shop.*** When `Scope.Pool` resolves and `restock` draws from a market, a Household with no reachable
+seller **fails and starves**, and starvation is already a `Blocking` reason, a wait list and a
+`StarvedSince` clock. **No new record, no new column, no new mechanism** — the demand signal is a query
+over rows the purchase creates anyway.
+
+**W16 — ⚠ TWO FAILURE MODES WERE FOUND IN THE ANSWER AND BOTH ARE FIXED IN THE ADR.** The **blink**:
+starvation clears totally on one successful firing (`RuleEngine.cs:550`), so an intermittently starving
+Household is invisible to whichever sample catches it fed — fixed by reading `tick - StarvedSince`, a
+magnitude, on a column that already exists and arithmetic `ZoneRuleEngine.Worst` already performs. ⚠
+***The user named this one*** — *it is only a snapshot in time.* The **overshoot**: several Lots sampled
+in one pass all read the same starving Households and all build, so ***one hungry street gets five
+shops, and how many is a property of the cadence rather than of the city*** — fixed by making the claim
+subtractive on `02 §5` step 2e's rule, with a build-rate throttle **refused** because it bounds the work
+without correcting the reading.
+
+### Still open
+
+| | What | Changed by the sitting? |
+|---|---|---|
+| **W-Q2** | What declines a Provider | ✅ **Shrank to one authoring decision** — *what does a shop consume such that failing kills it* (**W12**) |
+| **W-Q3** | The land-use split | 🔴 **Now the expensive one.** No mechanism under it at all (**W8**) — one zone bit painted, no repaint path, and a Ruleset naming an unpainted bit loads clean and builds nothing |
+| **W-Q4** | Which Ruleset carries the Provider | Unchanged, and ⚠ **it is now also a §D2 ratifier**: `adr/0163`'s two numbers name *milestone 26's own demonstration Ruleset* as the world, which is this question |
