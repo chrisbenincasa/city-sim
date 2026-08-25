@@ -89,6 +89,7 @@ internal static class TerrainDump
             + $"{world.Roads.Segments.Rows.LiveCount} Segments — the ground under a built city.");
 
         WriteTerrain(output, layers, terrain, options.Csv);
+        WriteVariety(output, layers);
         WriteSealingByType(output, layers, terrain, "at Tick 0");
 
         output.WriteLine();
@@ -180,6 +181,86 @@ internal static class TerrainDump
             output.WriteLine(
                 $"  {Marks[i].Mark}  {Marks[i].Name,-11} {counts[i],6} Cells — {worth}");
         }
+    }
+
+    /// <summary>How many Cells on a side one square of the variety survey covers.</summary>
+    /// <remarks>
+    /// <b>Chosen to be about a city.</b> A city of 20,000 Citizens touches roughly 528 Cells, so a
+    /// 32×32 block is the same order — which is what makes a square's reading mean <em>how many kinds
+    /// of ground a city sited here would stand on</em> rather than an abstract measure of mixing.
+    /// </remarks>
+    private const int SurveyBlock = 32;
+
+    /// <summary>
+    /// Writes how many distinct terrain types each block of the map holds. <b>A siting tool.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>It exists because a city stands where its lattice puts it and nothing steers it toward
+    /// interesting ground.</b> Terrain is generated from the <c>WorldKey</c> and placement is blind to
+    /// it, so whether a world exercises a rate keyed by terrain type is decided entirely by where the
+    /// origin lands. A Ruleset stating no <c>[[lattice]]</c> gets one at (0, 0) — the corner — and on
+    /// this map that corner is uniformly ordinary ground. ⚠ <b>This is the same failure
+    /// <c>rulesets/coastal.toml</c> hit</b>, where a corner city's runoff drained off the map and
+    /// every measurement read zero until the origin moved.
+    /// </remarks>
+    private static void WriteVariety(TextWriter output, MapLayers layers)
+    {
+        int blocks = CellGrid.WorldCells / SurveyBlock;
+
+        output.WriteLine();
+        output.WriteLine(
+            $"## Where the ground varies — {blocks}x{blocks} blocks of {SurveyBlock}x{SurveyBlock} "
+            + "Cells, each digit the count of distinct terrain types in that block");
+
+        int best = 0;
+        int bestEast = 0;
+        int bestNorth = 0;
+        StringBuilder line = new(blocks);
+
+        for (int row = 0; row < blocks; row++)
+        {
+            line.Clear();
+
+            for (int column = 0; column < blocks; column++)
+            {
+                int present = 0;
+
+                for (int y = 0; y < SurveyBlock; y++)
+                {
+                    for (int x = 0; x < SurveyBlock; x++)
+                    {
+                        Cells east = new((column * SurveyBlock) + x);
+                        Cells north = new((row * SurveyBlock) + y);
+
+                        present |= 1 << Index(layers.Terrain.At(east, north));
+                    }
+                }
+
+                int kinds = System.Numerics.BitOperations.PopCount((uint)present);
+
+                line.Append((char)('0' + kinds));
+
+                if (kinds > best)
+                {
+                    best = kinds;
+                    bestEast = column;
+                    bestNorth = row;
+                }
+            }
+
+            output.WriteLine(line.ToString());
+        }
+
+        // The centre of the best block, in Tiles, because that is the unit [[lattice]] authors its
+        // origin in and a reader converting Cells to Tiles by hand is a reader making an error.
+        int centreEast = ((bestEast * SurveyBlock) + (SurveyBlock / 2)) * CellGrid.TilesPerCell;
+        int centreNorth = ((bestNorth * SurveyBlock) + (SurveyBlock / 2)) * CellGrid.TilesPerCell;
+
+        output.WriteLine();
+        output.WriteLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"  most varied block: ({bestEast}, {bestNorth}) with {best} types. Its centre is "
+            + $"origin_east_tiles = {centreEast}, origin_north_tiles = {centreNorth}."));
     }
 
     /// <summary>
