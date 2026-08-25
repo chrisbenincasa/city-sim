@@ -12,18 +12,16 @@ tasks 1–6 actually retire — ***that a District is an administrative label ra
 with a market in it*** — because `Scope.Pool` still throws and **a milestone must name a risk it
 actually retires**. **Its original risk and its tasks 7–10 moved to milestone 26.**
 
-✅ **MILESTONE 24 SHIPPED ITS LAST TASK 2026-08-25, and the unfiltered suite is all that is left of
-it.** Task 10 discharged [`adr/0006`](../docs/adr/0006-no-collection-grows-with-elapsed-time.md) over
-2,097,152 Ticks at full census coverage and measured **Sealing reaching a steady state at 163,495
-Tiles**. 🔴 **It also refuted decision 5's own named ratifier** ([`0042`](0042-terrain-and-the-land-rows.md)
-**F20**) — *Days from a Cell's last demolition to Sealing reaching zero, per terrain type* is
-confounded, because ground heals only where the city **stops building** and placement is blind to
-terrain. ***Two worlds, one all-ordinary and one on mixed ground, recover the same 133 Cells: the same
-deterministic city slid sideways.*** The replacement instrument had been cited in the same `plans/0002`
-row's value column since the day the numbers were written. ⚠ **And `varied.toml` now states a
-`[[lattice]]`**, because a file shipping five terrain types had a city standing on one of them — the
-**third** shipped Ruleset to need an origin purely to escape the default corner, all three the same
-failure. **A fourth is an argument for changing the default.**
+✅ **MILESTONE 24 CLOSED 2026-08-25** — all ten tasks, all twelve decisions, and the definition of
+done's unfiltered suite green. [`0042`](0042-terrain-and-the-land-rows.md) owns the record and
+[`0003`](0003-build-plan.md) the ledger row; this paragraph keeps no copy. 🔴 **Its last task refuted
+decision 5's own named ratifier** ([`0042`](0042-terrain-and-the-land-rows.md) **F20**) — ground heals
+only where the city **stops building**, and placement is blind to terrain, so ***two worlds, one
+all-ordinary and one on mixed ground, recover the same 133 Cells: the same deterministic city slid
+sideways.*** ⚠ **And `varied.toml` now states a `[[lattice]]`**, the **third** shipped Ruleset to need
+an origin purely to escape the default corner, all three the same failure. **A fourth is an argument
+for changing the default.** 🔴 **Dumping stays UNBUILT and wants the designer in the room** — it needs
+a `Scope` that reaches a Water Body, and a Bin can *fail* where a Map Layer cell cannot.
 
 ~~🟢 **The live code row is milestone 25 — the Business is the actor and the Building is premises**,
 scoped by session V ([`0039`](0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md)),
@@ -287,11 +285,10 @@ compiler at 603%. [`0012`](0012-corpus-audit.md) holds all three sightings;
 
 | | Track | Task | Plan | Why this one |
 |---|---|---|---|---|
-| **1** | code | 🔴 **Milestone 26 — the purchase, `Scope.Pool` stops throwing.** Milestone **27 closed 2026-08-24**, all five tasks, so 26's largest gate is discharged. ⚠ **THREE GATES REMAIN AND THEY ARE NOT 27's** — the Provider kind's three content decisions ([`0002`](0002-open-questions.md) §A) and a world where a Building genuinely runs out of money; [`0003`](0003-build-plan.md)'s row enumerates them and this cell keeps no copy. **Its tasks are [`0037`](0037-goods-between-buildings-the-district-pool.md)'s 7–10**, kept there as written | [`0037`](0037-goods-between-buildings-the-district-pool.md) tasks 7–10 | **27 made the actor EXIST and 26 is what it was for**: a purchase needs a payer that can hold, earn and spend, and until `Scope.Pool` resolves a Business has one Bin with nothing to put in it — which is why every number `levied.toml` and `founded.toml` produce ratifies nothing |
-| **2** | code | 🟢 **Milestone 24 — all ten tasks shipped 2026-08-25, and the unfiltered suite is the only thing between it and closing.** 🔴 **Task 10 refuted decision 5's own named ratifier and re-posed it, and gave `varied.toml` a `[[lattice]]` because its city stood on one of its five terrain types** ([`0042`](0042-terrain-and-the-land-rows.md) **F20**). 🔴 **Dumping stays UNBUILT and wants the designer in the room** — it needs a `Scope` that reaches a Water Body, and a Bin can *fail* where a Map Layer cell cannot. | [`0042`](0042-terrain-and-the-land-rows.md) | The only other ungated code row with **nothing upstream of it** |
-| **3** | spike | ⚠ **Do NOT delete `spikes/S2.Routing/`.** The 5a gate is discharged, but another session is doing research inside it, so it is live work. 51 tracked C# files, 29,719 lines | [`0010`](0010-s2-routing.md) → *R7* | ⚠ ***A deletion held twice for unrelated reasons is the row that gets struck when the wrong one clears*** |
-| **4** | spike | **S5 owes two captures** — the 4-thread Lane kernel rung, which is bimodal, and the canonical `performance` re-capture. 2 threads is settled at 1.84–1.93× | [`0019`](0019-s5-lane-kernel.md) | ⚠ **Quote the supply-side multiple as *at least 1.84× and plausibly near 4×*, never as 4× bare** |
-| **5** | tidy | ⏸ **HELD — do not delete `spikes/S4.Kernels/` yet.** S4 task 11, open since the spike closed | [`0004`](0004-s4-kernel-benchmark.md) | ⚠ **Held 2026-08-22 on a stated condition, where it previously read *gated on nothing*.** It goes when we are certain we will not revisit what it holds, and nobody is certain yet. ***A deletion that might be revisited is a bet rather than tidying***, and this row was ranked as housekeeping. **The condition is the trigger — do not promote this row because the suite is green** |
+| **1** | code | 🔴 **Milestone 26 — the purchase, `Scope.Pool` stops throwing.** Milestone **27 closed 2026-08-24**, all five tasks, so 26's largest gate is discharged. ⚠ **TWO GATES REMAIN AND THEY ARE NOT 27's**, corrected here 2026-08-25 from a count left stale when 27 discharged while [`0003`](0003-build-plan.md)'s row already said TWO — the Provider kind's content decisions ([`0002`](0002-open-questions.md) §A) and a world where a Building genuinely runs out of money, which are **ONE ARTEFACT**, since a Provider that cannot afford its inputs *is* the bankrupt Building; §A now carries a **fourth** blocker under them that is a guard clause rather than content. **Its tasks are [`0037`](0037-goods-between-buildings-the-district-pool.md)'s 7–10**, kept there as written | [`0037`](0037-goods-between-buildings-the-district-pool.md) tasks 7–10 | **27 made the actor EXIST and 26 is what it was for**: a purchase needs a payer that can hold, earn and spend, and until `Scope.Pool` resolves a Business has one Bin with nothing to put in it — which is why every number `levied.toml` and `founded.toml` produce ratifies nothing |
+| **2** | spike | ⚠ **Do NOT delete `spikes/S2.Routing/`.** The 5a gate is discharged, but another session is doing research inside it, so it is live work. 51 tracked C# files, 29,719 lines | [`0010`](0010-s2-routing.md) → *R7* | ⚠ ***A deletion held twice for unrelated reasons is the row that gets struck when the wrong one clears*** |
+| **3** | spike | **S5 owes two captures** — the 4-thread Lane kernel rung, which is bimodal, and the canonical `performance` re-capture. 2 threads is settled at 1.84–1.93× | [`0019`](0019-s5-lane-kernel.md) | ⚠ **Quote the supply-side multiple as *at least 1.84× and plausibly near 4×*, never as 4× bare** |
+| **4** | tidy | ⏸ **HELD — do not delete `spikes/S4.Kernels/` yet.** S4 task 11, open since the spike closed | [`0004`](0004-s4-kernel-benchmark.md) | ⚠ **Held 2026-08-22 on a stated condition, where it previously read *gated on nothing*.** It goes when we are certain we will not revisit what it holds, and nobody is certain yet. ***A deletion that might be revisited is a bet rather than tidying***, and this row was ranked as housekeeping. **The condition is the trigger — do not promote this row because the suite is green** |
 
 **Closed rows are in [`0000a`](0000a-board-archive.md)**, one line each with the document that owns the
 record. **The argument track has no promoted row.**

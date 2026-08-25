@@ -31,6 +31,7 @@ sentence, which is `plans/0012` **Cause 5** by construction. Follow the link.
 
 | Was | What it was | Closed | Owner |
 |---|---|---|---|
+| 2 | Milestone **24** — Terrain and the land rows, *terrain half only*: all ten tasks and all twelve decisions | 2026-08-25 | [`0042`](0042-terrain-and-the-land-rows.md), [`0003`](0003-build-plan.md) → *Phase 2 ledger* |
 | 1 | Slice 10 task 11 — `revisit_ticks`, a Zone Rule's sample derived from a duration | 2026-08-10 | [`0014`](0014-zone-rules-and-the-sweep-family.md), [`adr/0059`](../docs/adr/0059-a-zone-rules-sample-is-a-revisit-period-so-the-ruleset-states-a-duration.md) |
 | 1b | Hash-moving queue item 3 — a Bin's capacity derives from the Ruleset in force, and a Bin holds a `long` | 2026-08-10 | [`0018`](0018-session-n-the-bin-the-pool-and-the-economy.md), [`0003`](0003-build-plan.md) → *The hash-moving queue* |
 | 1c | Queue items 4 and 5 — declared occupancy, and placement as a mechanism of its own | 2026-08-11 | [`0018`](0018-session-n-the-bin-the-pool-and-the-economy.md), [`0003`](0003-build-plan.md) |
