@@ -1,0 +1,616 @@
+<title>The Economy — Money, the Gate and the Market</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+:root {
+  --bg:        #E7EAE7;
+  --surface:   #FAFBFA;
+  --surface-2: #F0F2EF;
+  --ink:       #171C1E;
+  --ink-soft:  #3D4749;
+  --muted:     #64716F;
+  --rule:      #C6CDC7;
+  --rule-soft: #DCE1DC;
+  --authored:  #7E5D10;
+  --authored-bg: #F2EAD6;
+  --emergent:  #2E7F8C;
+  --emergent-bg: #DCEBEC;
+  --refused:   #8A3B36;
+  --refused-bg: #F3E2E0;
+  --measure: 68ch;
+  --wide: 1120px;
+  --sans: Archivo, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --serif: "Source Serif 4", Georgia, "Iowan Old Style", "Palatino Linotype", "Times New Roman", serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:        #10161A;
+    --surface:   #182025;
+    --surface-2: #1E272C;
+    --ink:       #DDE4E5;
+    --ink-soft:  #B6C1C2;
+    --muted:     #85938F;
+    --rule:      #2E3A3F;
+    --rule-soft: #232D32;
+    --authored:  #D8A73F;
+    --authored-bg: #2A2314;
+    --emergent:  #62B6C1;
+    --emergent-bg: #14282C;
+    --refused:   #D9756C;
+    --refused-bg: #2C1917;
+  }
+}
+:root[data-theme="dark"] {
+  --bg:        #10161A;
+  --surface:   #182025;
+  --surface-2: #1E272C;
+  --ink:       #DDE4E5;
+  --ink-soft:  #B6C1C2;
+  --muted:     #85938F;
+  --rule:      #2E3A3F;
+  --rule-soft: #232D32;
+  --authored:  #D8A73F;
+  --authored-bg: #2A2314;
+  --emergent:  #62B6C1;
+  --emergent-bg: #14282C;
+  --refused:   #D9756C;
+  --refused-bg: #2C1917;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.62;
+  margin: 0;
+  padding: 0 24px 110px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.page { max-width: var(--wide); margin: 0 auto; }
+.col  { max-width: var(--measure); }
+
+h1, h2, h3, .eyebrow, .lbl, th, .chip, .num, .actno, figcaption, .cap {
+  font-family: var(--sans);
+}
+code, pre, .mono { font-family: var(--mono); }
+
+/* ---- masthead ---- */
+.masthead { padding: 68px 0 36px; border-bottom: 2px solid var(--ink); margin-bottom: 34px; }
+.eyebrow {
+  font-size: 11px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--muted); margin: 0 0 18px;
+}
+h1 {
+  font-size: clamp(36px, 5.8vw, 62px); font-weight: 700; letter-spacing: -0.028em;
+  line-height: 1.03; margin: 0 0 20px; text-wrap: balance; max-width: 17ch;
+}
+.standfirst { font-size: 20px; line-height: 1.5; color: var(--ink-soft); max-width: 62ch; margin: 0; }
+
+/* ---- caveat ---- */
+.caveat {
+  border: 1px solid var(--rule); border-left: 3px solid var(--refused);
+  background: var(--surface); padding: 18px 22px; margin: 0 0 40px;
+  font-size: 15px; line-height: 1.55;
+}
+.caveat p { margin: 0 0 10px; }
+.caveat p:last-child { margin-bottom: 0; }
+.caveat .lbl {
+  display: block; font-size: 11px; font-weight: 600; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
+}
+
+/* ---- stat strip ---- */
+.stats { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 0 0 56px; }
+@media (min-width: 660px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 980px) { .stats { grid-template-columns: repeat(4, 1fr); } }
+.stat { background: var(--surface); padding: 20px 18px; }
+.stat .num {
+  display: block; font-size: 36px; font-weight: 700; letter-spacing: -0.03em;
+  line-height: 1; font-variant-numeric: tabular-nums; color: var(--ink);
+}
+.stat .cap { display: block; font-size: 12.5px; line-height: 1.4; color: var(--muted); margin-top: 9px; }
+
+/* ---- acts ---- */
+section { margin: 0 0 72px; }
+.acthead { display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid var(--rule); padding-bottom: 10px; margin-bottom: 22px; }
+.actno {
+  font-size: 12px; font-weight: 700; letter-spacing: .14em; color: var(--emergent);
+  font-variant-numeric: tabular-nums;
+}
+h2 {
+  font-size: 12px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase;
+  color: var(--muted); margin: 0;
+}
+.h2sub {
+  font-family: var(--sans); font-size: clamp(23px, 3.1vw, 31px); font-weight: 600;
+  letter-spacing: -0.02em; line-height: 1.18; margin: 0 0 22px; text-wrap: balance; max-width: 28ch;
+}
+h3 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; margin: 32px 0 10px; font-family: var(--sans); }
+p { margin: 0 0 18px; }
+strong { font-weight: 600; }
+em { font-style: italic; }
+a { color: var(--emergent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:focus-visible { outline: 2px solid var(--emergent); outline-offset: 3px; }
+
+/* ---- risk quarters ---- */
+.quarters { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 0 0 28px; }
+@media (min-width: 700px) { .quarters { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1000px) { .quarters { grid-template-columns: repeat(4, 1fr); } }
+.quarter { background: var(--surface); padding: 20px 20px; }
+.quarter .qv { display: block; font-family: var(--sans); font-size: 13px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--emergent); margin-bottom: 10px; }
+.quarter .qt { font-family: var(--sans); font-size: 16px; font-weight: 600; line-height: 1.3; margin: 0 0 8px; }
+.quarter p { font-size: 14px; line-height: 1.5; color: var(--ink-soft); margin: 0; }
+
+/* ---- order timeline ---- */
+.orders { border: 1px solid var(--rule); background: var(--surface); margin: 28px 0; }
+.orderrow { display: grid; grid-template-columns: 84px 1fr; border-bottom: 1px solid var(--rule-soft); }
+.orderrow:last-child { border-bottom: 0; }
+.orderrow.final { background: var(--emergent-bg); }
+.ordertag {
+  font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--muted);
+  padding: 18px 0 18px 16px; letter-spacing: .04em;
+}
+.orderrow.final .ordertag { color: var(--emergent); }
+.orderbody { padding: 18px 20px 18px 4px; }
+.orderseq {
+  font-family: var(--mono); font-size: 15px; font-weight: 600; letter-spacing: .06em;
+  margin: 0 0 7px; color: var(--ink);
+}
+.orderseq .strike { text-decoration: line-through; opacity: .5; }
+.orderwhy { font-size: 14.5px; line-height: 1.5; color: var(--ink-soft); margin: 0; }
+
+/* ---- findings ---- */
+.finds { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 26px 0; }
+@media (min-width: 780px) { .finds { grid-template-columns: 1fr 1fr; } }
+.find { background: var(--surface); padding: 20px 22px; }
+.find .fid {
+  font-family: var(--mono); font-size: 11.5px; font-weight: 600; letter-spacing: .05em;
+  color: var(--authored); display: block; margin-bottom: 8px;
+}
+.find.bad .fid { color: var(--refused); }
+.find .ftitle { font-family: var(--sans); font-size: 15.5px; font-weight: 600; line-height: 1.35; margin: 0 0 8px; }
+.find p { font-size: 14.5px; line-height: 1.52; margin: 0; color: var(--ink-soft); }
+
+/* ---- chips ---- */
+.chip {
+  display: inline-block; font-size: 10.5px; font-weight: 600; letter-spacing: .09em;
+  text-transform: uppercase; padding: 3px 8px; border-radius: 2px; white-space: nowrap;
+}
+.chip-a { background: var(--authored-bg); color: var(--authored); }
+.chip-e { background: var(--emergent-bg); color: var(--emergent); }
+.chip-x { background: var(--refused-bg); color: var(--refused); }
+.chip-n { background: var(--surface-2); color: var(--muted); border: 1px solid var(--rule); }
+
+/* ---- figures ---- */
+figure { margin: 32px 0; }
+figure svg { display: block; width: 100%; max-width: 100%; height: auto; color: var(--ink); }
+.figwrap { background: var(--surface); border: 1px solid var(--rule); padding: 24px 20px 16px; overflow-x: auto; }
+figcaption { font-size: 13.5px; line-height: 1.5; color: var(--muted); margin-top: 16px; max-width: 82ch; }
+figcaption b { color: var(--ink-soft); font-weight: 600; }
+.figwrap svg .s-bad  { stroke: var(--refused); }
+.figwrap svg .s-good { stroke: var(--emergent); }
+.figwrap svg .s-warn { stroke: var(--authored); }
+.figwrap svg .t-bad  { fill: var(--refused); }
+.figwrap svg .t-good { fill: var(--emergent); }
+.figwrap svg .t-warn { fill: var(--authored); }
+
+/* ---- tables ---- */
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); background: var(--surface); margin: 26px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th {
+  text-align: left; font-size: 11px; font-weight: 600; letter-spacing: .11em; text-transform: uppercase;
+  color: var(--muted); padding: 13px 16px; border-bottom: 1px solid var(--rule); white-space: nowrap;
+}
+td { padding: 13px 16px; border-bottom: 1px solid var(--rule-soft); vertical-align: top; line-height: 1.45; }
+tr:last-child td { border-bottom: 0; }
+td.mono { font-family: var(--mono); font-size: 13px; }
+.tabnum { font-variant-numeric: tabular-nums; }
+td.good { color: var(--emergent); font-weight: 600; }
+td.bad  { color: var(--refused); font-weight: 600; }
+
+/* ---- callout ---- */
+.note {
+  border-left: 3px solid var(--authored); background: var(--surface); padding: 18px 22px;
+  margin: 26px 0; font-size: 16px;
+}
+.note.teal { border-left-color: var(--emergent); }
+.note.red  { border-left-color: var(--refused); }
+.note p:last-child { margin-bottom: 0; }
+.note .lbl {
+  display: block; font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 7px;
+}
+
+code { font-size: .87em; background: var(--surface-2); padding: 1px 5px; border: 1px solid var(--rule-soft); }
+
+ul.tight { margin: 0 0 18px; padding-left: 22px; }
+ul.tight li { margin-bottom: 11px; }
+
+/* ---- open items ---- */
+.opens { border: 1px solid var(--rule); background: var(--surface); margin: 26px 0; }
+.open { display: grid; grid-template-columns: auto 1fr; gap: 16px; padding: 18px 22px; border-bottom: 1px solid var(--rule-soft); align-items: start; }
+.open:last-child { border-bottom: 0; }
+.open .otag { font-family: var(--mono); font-size: 11.5px; font-weight: 600; color: var(--muted); padding-top: 3px; white-space: nowrap; }
+.open .otitle { font-family: var(--sans); font-size: 15.5px; font-weight: 600; line-height: 1.35; margin: 0 0 6px; }
+.open p { font-size: 14.5px; line-height: 1.5; margin: 0; color: var(--ink-soft); }
+
+hr.end { border: 0; border-top: 2px solid var(--ink); margin: 56px 0 0; }
+.colophon { font-family: var(--sans); font-size: 13px; line-height: 1.6; color: var(--muted); padding-top: 18px; max-width: 80ch; }
+
+/* ---- task rail ---- */
+.rail { border: 1px solid var(--rule); background: var(--surface); margin: 28px 0; }
+.railrow { display: grid; grid-template-columns: 52px 1fr; gap: 0; border-bottom: 1px solid var(--rule-soft); }
+.railrow:last-child { border-bottom: 0; }
+.railno {
+  font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--muted);
+  padding: 16px 0 16px 16px; font-variant-numeric: tabular-nums;
+}
+.railbody { padding: 16px 18px 16px 6px; }
+.railtitle { font-family: var(--sans); font-size: 15.5px; font-weight: 600; line-height: 1.35; margin: 0 0 5px; }
+.railnote { font-size: 14.5px; line-height: 1.5; color: var(--ink-soft); margin: 0; }
+.railrow.merged { background: var(--surface-2); }
+.railrow.merged .railtitle { color: var(--muted); font-weight: 500; }
+.railmeta { font-family: var(--mono); font-size: 11.5px; color: var(--muted); margin-top: 7px; display: block; }
+
+/* ---- risk pair ---- */
+.riskpair { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 0 0 28px; }
+@media (min-width: 820px) { .riskpair { grid-template-columns: 1fr 1fr; } }
+.riskcell { background: var(--surface); padding: 22px 24px; }
+.riskcell .lbl {
+  display: block; font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 10px;
+}
+.riskcell .claim { font-size: 18px; line-height: 1.45; margin: 0 0 12px; }
+.riskcell .foot { font-size: 14px; line-height: 1.5; color: var(--ink-soft); margin: 0; }
+.riskcell.moved .claim { color: var(--muted); }
+
+/* ---- milestone strip: which rows this page covers ---- */
+.covers { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 0 0 40px; }
+@media (min-width: 700px) { .covers { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1000px) { .covers { grid-template-columns: repeat(6, 1fr); } }
+.cover { background: var(--surface); padding: 16px 16px; }
+.cover .cno {
+  display: block; font-family: var(--mono); font-size: 19px; font-weight: 600;
+  color: var(--emergent); letter-spacing: -0.01em; margin-bottom: 6px;
+}
+.cover .cnm { font-family: var(--sans); font-size: 13px; line-height: 1.35; color: var(--ink-soft); }
+</style>
+
+<div class="page">
+<header class="masthead">
+  <p class="eyebrow">Borough · milestone note · 10, 11, 12 · Aug 2026</p>
+  <h1>The economy — money, the gate, and a market that cannot trade yet</h1>
+  <p class="standfirst">Three milestones that gave the city a conserved balance sheet, a door for people and money to arrive through, and a District with a price in it. Two of the three retired their risk in full. The third was capped, and its risk was rewritten to match what it actually did.</p>
+</header>
+
+<div class="caveat">
+  <span class="lbl">What this page is, and what owns the facts on it</span>
+  <p>A summary of three closed roadmap rows, assembled from <code>plans/0033</code>, <code>plans/0035</code>, <code>plans/0037</code>, <code>plans/0018</code> and <code>plans/0038</code>. <strong>Every fact here is owned somewhere else</strong>; where this page disagrees with those documents, they win.</p>
+  <p>Figures carry the clause naming what they measure (<code>plans/0012</code> <strong>Cause 5</strong>). ⚠ <strong>Several numbers below come from <code>rulesets/twinned.toml</code>, whose own header disclaims them in capitals</strong> — <em>"all four prices are unratified guesses and nothing in this corpus has ever priced anything."</em> They are quoted as the shape of a mechanism, never as a property of an economy.</p>
+</div>
+
+<div class="covers">
+  <div class="cover"><span class="cno">10</span><span class="cnm">Conserved Money and the treasury</span></div>
+  <div class="cover"><span class="cno">11</span><span class="cnm">Hinterlands and arrival through the gate</span></div>
+  <div class="cover"><span class="cno">12</span><span class="cnm">Goods between Buildings — the District Pool <em>(capped at task 6)</em></span></div>
+</div>
+
+<div class="stats">
+  <div class="stat">
+    <span class="num">19</span>
+    <span class="cap">ADRs across the three — <code>0113</code>–<code>0118</code>, <code>0128</code>–<code>0131</code>, <code>0132</code>–<code>0140</code></span>
+  </div>
+  <div class="stat">
+    <span class="num">174127</span>
+    <span class="cap">the money sum at <strong>all 48 readings</strong> of a 100,000-Tick run on <code>taxed.toml</code> — one value, not a band</span>
+  </div>
+  <div class="stat">
+    <span class="num">3</span>
+    <span class="cap">mechanisms found <strong>parked on an unchecked assumption</strong> in one day, and unplaced</span>
+  </div>
+  <div class="stat">
+    <span class="num">1</span>
+    <span class="cap">milestone <strong>capped</strong>, its risk rewritten and its remainder inherited by milestone 26</span>
+  </div>
+</div>
+
+<!-- ============================================ ACT 1 -->
+<section>
+  <div class="acthead">
+    <span class="actno">ACT 1</span>
+    <h2>The risks they retired</h2>
+  </div>
+  <p class="h2sub">Two retired whole, one retired half, one rewritten to match what shipped</p>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Row</th><th>The risk as stated</th><th>Outcome</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="mono"><strong>10</strong></td>
+          <td>That the economy is <strong>not conserved</strong> and the city has no balance sheet. ⚠ The plan sharpened it: <em>"the risk is not that money is missing — it is that money arrives <strong>unconserved</strong> and nothing notices."</em></td>
+          <td><span class="chip chip-e">retired</span> The promised invariant did not exist — <strong>an obligation specified in three documents and built in none.</strong></td>
+        </tr>
+        <tr>
+          <td class="mono"><strong>11</strong></td>
+          <td>That nothing says <strong>where Households come from</strong>, and that <strong>no price in the design has an anchor</strong>.</td>
+          <td><span class="chip chip-a">half</span> The <em>anchor</em> half retired by authoring the Hinterland. The other half did not: <strong><em>a door is not an answer to where from</em></strong> — the choice model that decides to arrive is milestone 16's.</td>
+        </tr>
+        <tr>
+          <td class="mono"><strong>12</strong></td>
+          <td><em>Rewritten:</em> that a <strong>District is an administrative label</strong> rather than a derived thing with a market in it.</td>
+          <td><span class="chip chip-e">retired</span> Two centres joined by a corridor, a watershed that derives them from a density field, and a market row per Good.</td>
+        </tr>
+        <tr>
+          <td class="mono"><strong>12</strong></td>
+          <td><em>As it stood:</em> that the Rule engine <strong>ships a scope it refuses</strong> — <code>Scope.Pool</code> throws by name, so the simulation model's own worked example is unloadable.</td>
+          <td><span class="chip chip-x">→ 26</span> <strong>Still throwing.</strong> A milestone must name a risk it actually retires, so the row was rewritten rather than allowed to claim something false.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note red">
+    <span class="lbl">Why the cap counts as the scheme working</span>
+    <p><em>"Capping a milestone re-opens the question of what it was for"</em> — and this was the first time that had been asked of a <strong>partially-shipped</strong> row. What stopped task 7 was not the throw: <strong>a purchase needs a payer and there was not one.</strong> Money lives on a Business, a Rule Instance named a Building, and a Building holds a <em>list</em> of Businesses. ⚠ That blocker had been predicted <strong>eight milestones early</strong>, in a table's own doc comment — where no mechanical check could ever see it, because every corpus check is document-to-document.</p>
+  </div>
+</section>
+
+<!-- ============================================ ACT 2 -->
+<section>
+  <div class="acthead">
+    <span class="actno">ACT 2</span>
+    <h2>What planning found</h2>
+  </div>
+  <p class="h2sub">A dependency graph that was blind by construction, and a question seven decisions had not asked</p>
+
+  <div class="finds">
+    <div class="find bad">
+      <span class="fid">10 · F1 and F6</span>
+      <p class="ftitle">The roadmap's dependency graph was systematically blind to <em>bounding</em> conditions</p>
+      <p><em>"A dependency graph derived from what a mechanism needs in order to <strong>exist</strong> can miss what it needs in order to <strong>function</strong>"</em> — and the tell is that every edge in it reads <em>needs X, which shipped</em>. Every missing edge turned out to be an <strong>anchor</strong> edge. The repair forced a re-ordering that admits exactly one arrangement: <strong>9 land value, 10 money, 11 the Hinterland, 12 the District Pool, 13 the price surface, 14 the Provider List.</strong></p>
+    </div>
+    <div class="find bad">
+      <span class="fid">12 · decision 10</span>
+      <p class="ftitle">Ordering the work found a question seven prior decisions had not</p>
+      <p>The Pool was counterparty on <strong>both sides</strong> of a trade, and the two sides happen at different Ticks — so <em>where is the money in between?</em> Nothing in the plan, and nothing in the three ADRs the milestone was built on, asked it. ⚠ It was sized as a head-of-task-7 question and that sizing was <strong>measured false by trying it, the same day</strong>: it did not block one task, it reopened the ADR the milestone rested on.</p>
+    </div>
+    <div class="find">
+      <span class="fid">12 · the survey</span>
+      <p class="ftitle">A milestone whose risk is a single <code>throw</code> reads as a milestone with a single obstacle</p>
+      <p>The survey found <strong>three preconditions no document listed as blockers</strong>, two of them structural — there was no District table and no District id at all. <em>"A scope that resolves through an entity is blocked on that entity existing, and the <code>throw</code> says nothing about it."</em> <strong>The largest single piece of unscoped work in the milestone appeared in no inventory, no blocker list and no risk statement.</strong></p>
+    </div>
+    <div class="find bad">
+      <span class="fid">12 · the sitting</span>
+      <p class="ftitle">Three mechanisms were parked on an assumption their authors never checked</p>
+      <p>Upkeep, freight, and the volume comparison — each parked at milestone 12 <strong>by a different document, against one blocker its author happened to be holding.</strong> All three were unplaced in one day, by asking what the milestone actually ships.</p>
+    </div>
+  </div>
+
+  <div class="note">
+    <span class="lbl">And the decision that closed by dissolving</span>
+    <p>Decision 10 escalated to a sitting of its own and closed the same day — <strong>void as posed</strong>. <em>"It was never a question about money. A District owns nothing… <strong>the Pool was never a party to the trade — the seller is.</strong> The question was the shape of a missing counterparty."</em> Stock stays in the selling Building's own Bin; the District's row is the price, the wake target and the reachable sellers. ⚠ The prior ADR was <strong>amended, not superseded</strong>: it had decided <em>reach</em>, and custody was a reading nobody had argued for.</p>
+  </div>
+</section>
+
+<!-- ============================================ ACT 3 -->
+<section>
+  <div class="acthead">
+    <span class="actno">ACT 3</span>
+    <h2>What shipped</h2>
+  </div>
+  <p class="h2sub">A closed circuit, then two doors cut into it, then a market with nothing to trade</p>
+
+  <figure>
+    <div class="figwrap">
+      <svg viewBox="0 0 900 500" role="img" aria-label="Two panels. Panel A, milestone 10: inside a boundary marked the city, three unbounded money Bins — a Household balance, a Business balance and the Treasury — with a levy arrow from Household to Treasury and a rebate arrow back that runs dry partway through each sweep. A separate scalar box, the money supply issued, sits outside the ring, and the endow door writes both the Bin and the scalar in one call. A dotted lasso over the three Bins equals the scalar. Panel B, milestone 11: the same boundary now has a gate building standing on the map edge; arrivals enter carrying a balance drawn from that edge's Hinterland band and land in the Unplaced Pool, placement sends a move-in Trip to a dwelling, and the give-up bound departs an unhoused Household back out through the gate with its money. Both new arrows also write the scalar.">
+        <defs>
+          <marker id="are" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+          </marker>
+        </defs>
+        <g fill="none" stroke="currentColor" stroke-width="1.4">
+
+          <text x="20" y="24" font-family="Archivo, system-ui, sans-serif" font-size="12" font-weight="600" letter-spacing="1.6" fill="currentColor" stroke="none">A · MILESTONE 10 — A CLOSED CIRCUIT</text>
+          <line x1="20" y1="34" x2="880" y2="34" stroke-width="1" opacity=".28"/>
+
+          <rect x="120" y="56" width="420" height="170" rx="2" stroke-dasharray="4 4" opacity=".5"/>
+          <text x="132" y="74" font-family="'IBM Plex Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".6">the city</text>
+
+          <rect x="150" y="92" width="140" height="46" rx="2"/>
+          <text x="220" y="111" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="currentColor" stroke="none">Household balance</text>
+          <text x="220" y="127" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".62">a Bin · unbounded</text>
+
+          <rect x="150" y="160" width="140" height="46" rx="2"/>
+          <text x="220" y="179" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="currentColor" stroke="none">Business balance</text>
+          <text x="220" y="195" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".62">a Bin · unbounded</text>
+
+          <rect x="390" y="126" width="130" height="46" rx="2"/>
+          <text x="455" y="145" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="currentColor" stroke="none">Treasury</text>
+          <text x="455" y="161" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".62">a Bin · unbounded</text>
+
+          <path d="M 290 105 L 340 105 L 340 138 L 383 138" marker-end="url(#are)"/>
+          <text x="333" y="98" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".75">levy 10%</text>
+
+          <path d="M 383 160 L 340 160 L 340 128 L 297 128" marker-end="url(#are)" class="s-warn"/>
+          <text x="333" y="182" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" class="t-warn" stroke="none">rebate — runs dry</text>
+
+          <rect x="640" y="112" width="180" height="52" rx="2" stroke-dasharray="3 3"/>
+          <text x="730" y="133" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="currentColor" stroke="none">MoneySupply.Issued</text>
+          <text x="730" y="150" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".62">a scalar, not a Bin</text>
+
+          <path d="M 300 214 L 610 214 L 610 164 L 640 150" stroke-dasharray="2 3" opacity=".75"/>
+          <text x="450" y="230" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10.5" class="t-good" stroke="none">sum of the three Bins  =  the scalar, at every reading</text>
+
+          <rect x="24" y="92" width="86" height="46" rx="2" class="s-good"/>
+          <text x="67" y="112" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="12.5" font-weight="600" class="t-good" stroke="none">Endow</text>
+          <text x="67" y="128" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" class="t-good" stroke="none">one call</text>
+          <line x1="110" y1="115" x2="143" y2="115" marker-end="url(#are)" class="s-good"/>
+          <path d="M 67 138 L 67 250 L 730 250 L 730 172" marker-end="url(#are)" stroke-dasharray="2 3" class="s-good"/>
+          <text x="400" y="266" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10.5" class="t-good" stroke="none">the same call writes the Bin and the scalar — which is why doors can be cut later</text>
+
+          <text x="20" y="316" font-family="Archivo, system-ui, sans-serif" font-size="12" font-weight="600" letter-spacing="1.6" fill="currentColor" stroke="none">B · MILESTONE 11 — TWO DOORS CUT INTO IT</text>
+          <line x1="20" y1="326" x2="880" y2="326" stroke-width="1" opacity=".28"/>
+
+          <line x1="150" y1="346" x2="150" y2="486" stroke-width="2" opacity=".55"/>
+          <text x="112" y="366" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".6">map</text>
+          <text x="112" y="379" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".6">edge</text>
+
+          <rect x="160" y="380" width="120" height="52" rx="2" class="s-warn"/>
+          <text x="220" y="400" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="12.5" font-weight="600" class="t-warn" stroke="none">gate</text>
+          <text x="220" y="416" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" class="t-warn" stroke="none">arrivals_per_day</text>
+
+          <rect x="350" y="380" width="140" height="52" rx="2"/>
+          <text x="420" y="400" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="currentColor" stroke="none">Unplaced Pool</text>
+          <text x="420" y="416" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".62">row carries its gate</text>
+
+          <rect x="560" y="356" width="150" height="46" rx="2" class="s-good"/>
+          <text x="635" y="375" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="12.5" font-weight="600" class="t-good" stroke="none">a dwelling</text>
+          <text x="635" y="391" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" class="t-good" stroke="none">move-in Trip</text>
+
+          <rect x="560" y="424" width="150" height="46" rx="2" class="s-bad"/>
+          <text x="635" y="443" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="12.5" font-weight="600" class="t-bad" stroke="none">departs</text>
+          <text x="635" y="459" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" class="t-bad" stroke="none">no Trip — no Address</text>
+
+          <line x1="60" y1="406" x2="153" y2="406" marker-end="url(#are)"/>
+          <text x="105" y="398" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".7">people</text>
+          <text x="105" y="440" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".7">+ a balance from</text>
+          <text x="105" y="452" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".7">this edge's band</text>
+
+          <line x1="280" y1="406" x2="343" y2="406" marker-end="url(#are)"/>
+          <path d="M 490 396 L 525 396 L 525 379 L 553 379" marker-end="url(#are)" class="s-good"/>
+          <path d="M 490 416 L 525 416 L 525 447 L 553 447" marker-end="url(#are)" class="s-bad"/>
+          <text x="522" y="486" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" class="t-bad" stroke="none">gives_up_after_days</text>
+
+          <path d="M 710 447 L 790 447 L 790 300 L 730 300 L 730 172" stroke-dasharray="2 3" opacity=".7"/>
+          <path d="M 220 380 L 220 300 L 730 300" stroke-dasharray="2 3" opacity=".7"/>
+          <text x="470" y="294" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".8">both doors write the scalar too — so the equality held with no flow term added</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>Figure 1 — the invariant, and why doors did not weaken it.</b> A balance stopped being a column and became a <strong>Bin</strong>, so one walk over three Bins can be compared against one scalar. The structural point is that <em>every arrow crossing the boundary writes the scalar in the same call that moves the Bin</em> — which is the whole reason milestone 11 could cut two doors into a conserved system without adding a reconciliation term. ⚠ The rebate's <em>runs dry</em> mark is <code>taxed.toml</code>'s circuit, not a design claim: that file's own header says it is a demonstration and not a city.</figcaption>
+  </figure>
+
+  <h3>Milestone 10 — and the counterfactual is the interesting half</h3>
+  <div class="col">
+    <p>The acceptance run is <strong>one 100,000-Tick run of <code>rulesets/taxed.toml</code></strong>, read every 2,048 Ticks — the Policy interval. <strong>The money sum is <code>174127</code> at every one of the 48 readings.</strong> Not a band, not a tolerance, not a drift bound: one value, forty-eight times.</p>
+    <p>Then the same file, the same length, with the rebate's draw pinned to a constant. Its flat 100 comes out of a treasury holding one Day's levy, so it funds <strong>172 of 360 Households and then stops</strong> — leaving 172 at the ceiling and the other <strong>188 holding exactly zero, for ever</strong>. And <strong>every conservation reading is identical to the healthy run's.</strong></p>
+  </div>
+
+  <div class="note teal">
+    <span class="lbl">The headline is not about conservation</span>
+    <p><strong><em>A conserved economy tells you nothing about who holds it.</em></strong> That is the argument for the money supply and the treasury being <strong>two</strong> reported figures rather than one — and it is why the long run asserts a distribution alongside the sum.</p>
+  </div>
+
+  <h3>Milestone 11 — the generator could not reach its own map edge</h3>
+  <div class="col">
+    <p>A gate stands on a map edge. Before any code was written, the generator was measured against that requirement on <code>minimal.toml</code> at 1,000 Citizens: <strong>160 paved Tiles out of 16,384, 124 Lots — six on the west edge, fifteen on the south, none on a corner, 103 inland.</strong> Reaching the map's full extent would have taken on the order of <strong>2.6 million Lots</strong>.</p>
+    <p><em>An edge a generator cannot reach is a market nothing can arrive from.</em> The repair paves the lattice to the boundary, taking that world from <strong>36 nodes and 61 Segments to 263,169 and 535,817, laid in 150 ms</strong>.</p>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Gate, on <code>bordered.toml</code> at 1,000 Citizens</th><th class="tabnum">Car, gate to nearest dwelling</th><th>Against a ceiling of 49 clock minutes</th></tr></thead>
+      <tbody>
+        <tr><td>West and south</td><td class="tabnum good">0 min</td><td>A dwelling sits beside them.</td></tr>
+        <tr><td>East</td><td class="tabnum bad">62 min</td><td>Routable, and still beyond the budget.</td></tr>
+        <tr><td>North</td><td class="tabnum bad">73 min</td><td>Same. ⚠ With no arterials at all: 78 and 80.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <span class="lbl">Which is the design working rather than failing</span>
+    <p><strong><em>A far gate is made usable by a dwelling beside it, not by a faster road.</em></strong> A pure-arterial run of that distance is 43 minutes, and no route of that shape is pure. The map is sized by how many commutes fit across it, so a gate past the budget is the sizing rule doing its job.</p>
+  </div>
+
+  <h3>Milestone 12 — and the market is inert on every world that exists</h3>
+  <div class="col">
+    <p>Six tasks shipped: a world with two centres joined by a Street corridor, a Building-density field, a watershed that derives Districts from it, re-evaluation with hysteresis, a Pool Bin per Good, and a price bounded by the cheapest import across every declared Hinterland.</p>
+    <p>And then the milestone's own summary of it: <strong>the price is built, correct and inert on every world that exists — for the third time.</strong> Nothing writes a consumption bucket while <code>Scope.Pool</code> throws, so every rate is zero, every recompute reads <em>no trades</em>, and <strong>every price sits at its ceiling from Tick 0 to the end of the run.</strong></p>
+  </div>
+</section>
+
+<!-- ============================================ ACT 4 -->
+<section>
+  <div class="acthead">
+    <span class="actno">ACT 4</span>
+    <h2>What is still open</h2>
+  </div>
+  <p class="h2sub">A ledger of unratified numbers, two defects only a long run could find, and one document that disagrees with another</p>
+
+  <div class="col">
+    <p>The project distinguishes an <strong>unset</strong> number — a gap, which blocks work and cannot corrupt it — from one that is <strong>in use and unratified</strong>, which is the actual debt. The ledger's own motto: <em>an unratified number is more dangerous than an open question.</em></p>
+  </div>
+
+  <div class="opens">
+    <div class="open">
+      <span class="otag">§D1</span>
+      <div>
+        <p class="otitle">Every <code>[districts]</code> and <code>[market]</code> key is in use and unratified, and the world that would ratify them cannot</p>
+        <p>The density field in the only world with Districts in it is <strong>flat</strong>, so the two concentrations never touch at a saddle, no boundary is ever contested, and the prominence threshold is never consulted — the same assertion at 1, 50 and 100 gives two Districts every time. <strong>The hysteresis band has to be exercised by a hand-built fixture.</strong> The named ratifier is milestone 15's agglomeration.</p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">→ 26</span>
+      <div>
+        <p class="otitle">Tasks 7–10 kept as written, because they are the specification milestone 26 inherits</p>
+        <p>The purchase itself; the Provider kind and its market Ruleset; something to look at; and the long acceptance run. ⚠ Two of those carry blockers that were <strong>named inside a task entry and therefore invisible to the ledger that owns what is next</strong> — the Provider kind's three content decisions, and the fact that <strong>no shipped Ruleset produces a world where a Building genuinely runs out of money.</strong></p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">11 · F31</span>
+      <div>
+        <p class="otitle">A duration bound produces a size bound only after a settling time of its own order</p>
+        <p>The Pool's ceiling is <code>inflow × gives_up_after_days</code>. On the two-Day file it settled at <strong>1,458 by Day 4</strong>, as predicted. On the 120-Day file it reached <strong>11,653 at Day 244 and was still climbing ~50 a Day</strong> — while the bound worked exactly as designed: mean wait 30 Days, longest 122, four members over the bound out of 11,646. <strong>The value did not move; the row's refutation condition was corrected in place.</strong></p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">11 · F30</span>
+      <div>
+        <p class="otitle">A defect eleven milestones old, reachable only once something else shipped</p>
+        <p>A parking release had one caller, and it was not the one that frees the row. Found by the acceptance run at Tick <strong>65,664</strong>, reading <strong>234 occupied spaces against 233 holders</strong>. Why nothing caught it sooner: until the give-up bound landed, the function that would have exposed it <strong>had no production caller at all.</strong></p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">11 · F26</span>
+      <div>
+        <p class="otitle">A cost figure was filed, then withdrawn the same day — and the withdrawal is the lesson</p>
+        <p><em>A gated world costs 38.7 ms a Tick</em> was wrong: 38.4 ms of it was a <strong>debug guard that folds the whole world twice a Tick</strong>. With the guard off, that world runs at <strong>0.51 ms a Tick against <code>minimal.toml</code>'s 0.16</strong>. ⚠ <strong>The withdrawn figure was the only one in the tick-budget file not taken with the guard off, and it was filed beside figures that were, without saying so</strong> — Cause 5 occurring inside the document that exists to catch it.</p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">12 · F38</span>
+      <div>
+        <p class="otitle">The only shipped world with Districts in it had never been run for two Days</p>
+        <p>It ran clean at 2,048 Ticks and panicked by 4,096. The cause was the <em>check</em>, not the code — a derived extent describes the city as of the last evaluation, so a Cell demolished at Tick 1,152 keeps its membership until Tick 2,048, and <strong>the end-of-run check was asserting that the cadence had never run.</strong> ⚠ The finding behind the finding is that <strong>nothing in the suite runs that file.</strong></p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">⚠ docs</span>
+      <div>
+        <p class="otitle">Two documents disagree about what blocks milestone 26</p>
+        <p>The milestone 12 plan's cap banner says 26 is <em>blocked on milestone 25</em>. The roadmap row says <strong>blocked on 25 <em>and</em> 27</strong>, and notes it has now been wrong in both directions. The plan was not updated when 25 was capped. <strong>The gate board is the authority on gate status</strong>, and the roadmap row says so itself — but the stale copy is still sitting in the plan.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="note red">
+    <span class="lbl">And one thing stated so nobody discovers it later</span>
+    <p><strong>Import is priced but not embodied.</strong> Between milestone 12 and freight, <em>a distant gate costs nothing at all</em> — there is no haulage term, so every gate is equidistant and a city simply buys at the cheapest. ⚠ <strong>Do not read a milestone-12-era city as evidence that gate placement is free.</strong></p>
+  </div>
+</section>
+
+<hr class="end">
+<p class="colophon">
+  Borough · the economy · milestones 10 (2026-08-19), 11 (2026-08-21) and 12 (capped at task 6, 2026-08-22) · sources: <code>plans/0033</code>, <code>plans/0035</code>, <code>plans/0037</code>, <code>plans/0018</code>, <code>plans/0038</code>, <code>plans/0002</code> §D, <code>docs/06</code>, <code>adr/0113</code>–<code>0118</code>, <code>0128</code>–<code>0131</code>, <code>0132</code>–<code>0140</code>. Read the plans rather than this page for anything you intend to rely on.
+</p>
+
+</div>

@@ -1,0 +1,624 @@
+<title>Instruments — Evidence, Parking, The Save</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+:root {
+  --bg:        #E7EAE7;
+  --surface:   #FAFBFA;
+  --surface-2: #F0F2EF;
+  --ink:       #171C1E;
+  --ink-soft:  #3D4749;
+  --muted:     #64716F;
+  --rule:      #C6CDC7;
+  --rule-soft: #DCE1DC;
+  --authored:  #7E5D10;
+  --authored-bg: #F2EAD6;
+  --emergent:  #2E7F8C;
+  --emergent-bg: #DCEBEC;
+  --refused:   #8A3B36;
+  --refused-bg: #F3E2E0;
+  --measure: 68ch;
+  --wide: 1120px;
+  --sans: Archivo, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --serif: "Source Serif 4", Georgia, "Iowan Old Style", "Palatino Linotype", "Times New Roman", serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:        #10161A;
+    --surface:   #182025;
+    --surface-2: #1E272C;
+    --ink:       #DDE4E5;
+    --ink-soft:  #B6C1C2;
+    --muted:     #85938F;
+    --rule:      #2E3A3F;
+    --rule-soft: #232D32;
+    --authored:  #D8A73F;
+    --authored-bg: #2A2314;
+    --emergent:  #62B6C1;
+    --emergent-bg: #14282C;
+    --refused:   #D9756C;
+    --refused-bg: #2C1917;
+  }
+}
+:root[data-theme="dark"] {
+  --bg:        #10161A;
+  --surface:   #182025;
+  --surface-2: #1E272C;
+  --ink:       #DDE4E5;
+  --ink-soft:  #B6C1C2;
+  --muted:     #85938F;
+  --rule:      #2E3A3F;
+  --rule-soft: #232D32;
+  --authored:  #D8A73F;
+  --authored-bg: #2A2314;
+  --emergent:  #62B6C1;
+  --emergent-bg: #14282C;
+  --refused:   #D9756C;
+  --refused-bg: #2C1917;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.62;
+  margin: 0;
+  padding: 0 24px 110px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.page { max-width: var(--wide); margin: 0 auto; }
+.col  { max-width: var(--measure); }
+
+h1, h2, h3, .eyebrow, .lbl, th, .chip, .num, .actno, figcaption, .cap {
+  font-family: var(--sans);
+}
+code, pre, .mono { font-family: var(--mono); }
+
+/* ---- masthead ---- */
+.masthead { padding: 68px 0 36px; border-bottom: 2px solid var(--ink); margin-bottom: 34px; }
+.eyebrow {
+  font-size: 11px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--muted); margin: 0 0 18px;
+}
+h1 {
+  font-size: clamp(36px, 5.8vw, 62px); font-weight: 700; letter-spacing: -0.028em;
+  line-height: 1.03; margin: 0 0 20px; text-wrap: balance; max-width: 17ch;
+}
+.standfirst { font-size: 20px; line-height: 1.5; color: var(--ink-soft); max-width: 62ch; margin: 0; }
+
+/* ---- caveat ---- */
+.caveat {
+  border: 1px solid var(--rule); border-left: 3px solid var(--refused);
+  background: var(--surface); padding: 18px 22px; margin: 0 0 40px;
+  font-size: 15px; line-height: 1.55;
+}
+.caveat p { margin: 0 0 10px; }
+.caveat p:last-child { margin-bottom: 0; }
+.caveat .lbl {
+  display: block; font-size: 11px; font-weight: 600; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
+}
+
+/* ---- stat strip ---- */
+.stats { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 0 0 56px; }
+@media (min-width: 660px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 980px) { .stats { grid-template-columns: repeat(4, 1fr); } }
+.stat { background: var(--surface); padding: 20px 18px; }
+.stat .num {
+  display: block; font-size: 36px; font-weight: 700; letter-spacing: -0.03em;
+  line-height: 1; font-variant-numeric: tabular-nums; color: var(--ink);
+}
+.stat .cap { display: block; font-size: 12.5px; line-height: 1.4; color: var(--muted); margin-top: 9px; }
+
+/* ---- acts ---- */
+section { margin: 0 0 72px; }
+.acthead { display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid var(--rule); padding-bottom: 10px; margin-bottom: 22px; }
+.actno {
+  font-size: 12px; font-weight: 700; letter-spacing: .14em; color: var(--emergent);
+  font-variant-numeric: tabular-nums;
+}
+h2 {
+  font-size: 12px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase;
+  color: var(--muted); margin: 0;
+}
+.h2sub {
+  font-family: var(--sans); font-size: clamp(23px, 3.1vw, 31px); font-weight: 600;
+  letter-spacing: -0.02em; line-height: 1.18; margin: 0 0 22px; text-wrap: balance; max-width: 28ch;
+}
+h3 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; margin: 32px 0 10px; font-family: var(--sans); }
+p { margin: 0 0 18px; }
+strong { font-weight: 600; }
+em { font-style: italic; }
+a { color: var(--emergent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:focus-visible { outline: 2px solid var(--emergent); outline-offset: 3px; }
+
+/* ---- risk quarters ---- */
+.quarters { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 0 0 28px; }
+@media (min-width: 700px) { .quarters { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1000px) { .quarters { grid-template-columns: repeat(4, 1fr); } }
+.quarter { background: var(--surface); padding: 20px 20px; }
+.quarter .qv { display: block; font-family: var(--sans); font-size: 13px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--emergent); margin-bottom: 10px; }
+.quarter .qt { font-family: var(--sans); font-size: 16px; font-weight: 600; line-height: 1.3; margin: 0 0 8px; }
+.quarter p { font-size: 14px; line-height: 1.5; color: var(--ink-soft); margin: 0; }
+
+/* ---- order timeline ---- */
+.orders { border: 1px solid var(--rule); background: var(--surface); margin: 28px 0; }
+.orderrow { display: grid; grid-template-columns: 84px 1fr; border-bottom: 1px solid var(--rule-soft); }
+.orderrow:last-child { border-bottom: 0; }
+.orderrow.final { background: var(--emergent-bg); }
+.ordertag {
+  font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--muted);
+  padding: 18px 0 18px 16px; letter-spacing: .04em;
+}
+.orderrow.final .ordertag { color: var(--emergent); }
+.orderbody { padding: 18px 20px 18px 4px; }
+.orderseq {
+  font-family: var(--mono); font-size: 15px; font-weight: 600; letter-spacing: .06em;
+  margin: 0 0 7px; color: var(--ink);
+}
+.orderseq .strike { text-decoration: line-through; opacity: .5; }
+.orderwhy { font-size: 14.5px; line-height: 1.5; color: var(--ink-soft); margin: 0; }
+
+/* ---- findings ---- */
+.finds { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 26px 0; }
+@media (min-width: 780px) { .finds { grid-template-columns: 1fr 1fr; } }
+.find { background: var(--surface); padding: 20px 22px; }
+.find .fid {
+  font-family: var(--mono); font-size: 11.5px; font-weight: 600; letter-spacing: .05em;
+  color: var(--authored); display: block; margin-bottom: 8px;
+}
+.find.bad .fid { color: var(--refused); }
+.find .ftitle { font-family: var(--sans); font-size: 15.5px; font-weight: 600; line-height: 1.35; margin: 0 0 8px; }
+.find p { font-size: 14.5px; line-height: 1.52; margin: 0; color: var(--ink-soft); }
+
+/* ---- chips ---- */
+.chip {
+  display: inline-block; font-size: 10.5px; font-weight: 600; letter-spacing: .09em;
+  text-transform: uppercase; padding: 3px 8px; border-radius: 2px; white-space: nowrap;
+}
+.chip-a { background: var(--authored-bg); color: var(--authored); }
+.chip-e { background: var(--emergent-bg); color: var(--emergent); }
+.chip-x { background: var(--refused-bg); color: var(--refused); }
+.chip-n { background: var(--surface-2); color: var(--muted); border: 1px solid var(--rule); }
+
+/* ---- figures ---- */
+figure { margin: 32px 0; }
+figure svg { display: block; width: 100%; max-width: 100%; height: auto; color: var(--ink); }
+.figwrap { background: var(--surface); border: 1px solid var(--rule); padding: 24px 20px 16px; overflow-x: auto; }
+figcaption { font-size: 13.5px; line-height: 1.5; color: var(--muted); margin-top: 16px; max-width: 82ch; }
+figcaption b { color: var(--ink-soft); font-weight: 600; }
+.figwrap svg .s-bad  { stroke: var(--refused); }
+.figwrap svg .s-good { stroke: var(--emergent); }
+.figwrap svg .s-warn { stroke: var(--authored); }
+.figwrap svg .t-bad  { fill: var(--refused); }
+.figwrap svg .t-good { fill: var(--emergent); }
+.figwrap svg .t-warn { fill: var(--authored); }
+
+/* ---- tables ---- */
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); background: var(--surface); margin: 26px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th {
+  text-align: left; font-size: 11px; font-weight: 600; letter-spacing: .11em; text-transform: uppercase;
+  color: var(--muted); padding: 13px 16px; border-bottom: 1px solid var(--rule); white-space: nowrap;
+}
+td { padding: 13px 16px; border-bottom: 1px solid var(--rule-soft); vertical-align: top; line-height: 1.45; }
+tr:last-child td { border-bottom: 0; }
+td.mono { font-family: var(--mono); font-size: 13px; }
+.tabnum { font-variant-numeric: tabular-nums; }
+td.good { color: var(--emergent); font-weight: 600; }
+td.bad  { color: var(--refused); font-weight: 600; }
+
+/* ---- callout ---- */
+.note {
+  border-left: 3px solid var(--authored); background: var(--surface); padding: 18px 22px;
+  margin: 26px 0; font-size: 16px;
+}
+.note.teal { border-left-color: var(--emergent); }
+.note.red  { border-left-color: var(--refused); }
+.note p:last-child { margin-bottom: 0; }
+.note .lbl {
+  display: block; font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 7px;
+}
+
+code { font-size: .87em; background: var(--surface-2); padding: 1px 5px; border: 1px solid var(--rule-soft); }
+
+ul.tight { margin: 0 0 18px; padding-left: 22px; }
+ul.tight li { margin-bottom: 11px; }
+
+/* ---- open items ---- */
+.opens { border: 1px solid var(--rule); background: var(--surface); margin: 26px 0; }
+.open { display: grid; grid-template-columns: auto 1fr; gap: 16px; padding: 18px 22px; border-bottom: 1px solid var(--rule-soft); align-items: start; }
+.open:last-child { border-bottom: 0; }
+.open .otag { font-family: var(--mono); font-size: 11.5px; font-weight: 600; color: var(--muted); padding-top: 3px; white-space: nowrap; }
+.open .otitle { font-family: var(--sans); font-size: 15.5px; font-weight: 600; line-height: 1.35; margin: 0 0 6px; }
+.open p { font-size: 14.5px; line-height: 1.5; margin: 0; color: var(--ink-soft); }
+
+hr.end { border: 0; border-top: 2px solid var(--ink); margin: 56px 0 0; }
+.colophon { font-family: var(--sans); font-size: 13px; line-height: 1.6; color: var(--muted); padding-top: 18px; max-width: 80ch; }
+
+/* ---- task rail ---- */
+.rail { border: 1px solid var(--rule); background: var(--surface); margin: 28px 0; }
+.railrow { display: grid; grid-template-columns: 52px 1fr; gap: 0; border-bottom: 1px solid var(--rule-soft); }
+.railrow:last-child { border-bottom: 0; }
+.railno {
+  font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--muted);
+  padding: 16px 0 16px 16px; font-variant-numeric: tabular-nums;
+}
+.railbody { padding: 16px 18px 16px 6px; }
+.railtitle { font-family: var(--sans); font-size: 15.5px; font-weight: 600; line-height: 1.35; margin: 0 0 5px; }
+.railnote { font-size: 14.5px; line-height: 1.5; color: var(--ink-soft); margin: 0; }
+.railrow.merged { background: var(--surface-2); }
+.railrow.merged .railtitle { color: var(--muted); font-weight: 500; }
+.railmeta { font-family: var(--mono); font-size: 11.5px; color: var(--muted); margin-top: 7px; display: block; }
+
+/* ---- risk pair ---- */
+.riskpair { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 0 0 28px; }
+@media (min-width: 820px) { .riskpair { grid-template-columns: 1fr 1fr; } }
+.riskcell { background: var(--surface); padding: 22px 24px; }
+.riskcell .lbl {
+  display: block; font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 10px;
+}
+.riskcell .claim { font-size: 18px; line-height: 1.45; margin: 0 0 12px; }
+.riskcell .foot { font-size: 14px; line-height: 1.5; color: var(--ink-soft); margin: 0; }
+.riskcell.moved .claim { color: var(--muted); }
+
+/* ---- milestone strip: which rows this page covers ---- */
+.covers { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 0 0 40px; }
+@media (min-width: 700px) { .covers { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1000px) { .covers { grid-template-columns: repeat(6, 1fr); } }
+.cover { background: var(--surface); padding: 16px 16px; }
+.cover .cno {
+  display: block; font-family: var(--mono); font-size: 19px; font-weight: 600;
+  color: var(--emergent); letter-spacing: -0.01em; margin-bottom: 6px;
+}
+.cover .cnm { font-family: var(--sans); font-size: 13px; line-height: 1.35; color: var(--ink-soft); }
+</style>
+
+<div class="page">
+<header class="masthead">
+  <p class="eyebrow">Borough · milestone note · 6, 7, 8, 9 · Aug 2026</p>
+  <h1>Instruments — Evidence, parking, the save, and a field nothing set</h1>
+  <p class="standfirst">Four milestones that built the things which let somebody find out what the simulation did: a trail that survives the Building it describes, a parking model that diagnoses rather than averages, a save that computes its own State Hash, and the land value target six other decisions were already reading. They are also where the corpus kept catching itself believing its own descriptions.</p>
+</header>
+
+<div class="caveat">
+  <span class="lbl">What this page is, and the one hazard it is written against</span>
+  <p>Assembled from <code>plans/0028</code>, <code>0030</code>, <code>0031</code>, <code>0032</code> and <code>0034</code>. <strong>Every fact here is owned somewhere else</strong>; where this page disagrees, those documents win.</p>
+  <p>Figures carry the clause naming what they measure. ⚠ <strong>Several sources omit their own conditions</strong> — a Citizen count, a machine class, a build configuration. Those are marked rather than given borrowed ones from a neighbouring number, which is the failure mode this corpus files under <strong>Cause 5</strong>.</p>
+</div>
+
+<div class="covers">
+  <div class="cover"><span class="cno">6</span><span class="cnm">Evidence — the accumulators</span></div>
+  <div class="cover"><span class="cno">7</span><span class="cnm">Parking</span></div>
+  <div class="cover"><span class="cno">8</span><span class="cnm">Save / load <em>(risk rewritten)</em></span></div>
+  <div class="cover"><span class="cno">9</span><span class="cnm">The land value target <em>(scope rewritten mid-flight)</em></span></div>
+</div>
+
+<div class="stats">
+  <div class="stat">
+    <span class="num">131.33 MiB</span>
+    <span class="cap">the saved set at a million Citizens — <strong>declared width × allocated capacity, not a resident-memory reading</strong></span>
+  </div>
+  <div class="stat">
+    <span class="num">83.0%</span>
+    <span class="cap">where parking occupancy <strong>saturates and stops climbing</strong>, however far capacity is cut</span>
+  </div>
+  <div class="stat">
+    <span class="num">34m 22s</span>
+    <span class="cap">of a 36m 22s full suite spent in <strong>one test</strong> — which prices an allocator rather than asking whether the city is correct</span>
+  </div>
+  <div class="stat">
+    <span class="num">0</span>
+    <span class="cap">shipped worlds in which the land value producer had anything to walk — <strong>built, correct and unobservable</strong></span>
+  </div>
+</div>
+
+<!-- ============================================ ACT 1 -->
+<section>
+  <div class="acthead">
+    <span class="actno">ACT 1</span>
+    <h2>The risks they retired</h2>
+  </div>
+  <p class="h2sub">One argued from cost of delay rather than dependency, one rewritten before it started, one rewritten while it ran</p>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Row</th><th>The risk</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="mono"><strong>6</strong></td>
+          <td>That Evidence is <strong>retrofitted</strong> — priced <em>"cheap if designed in and expensive if retrofitted"</em>, with fifteen milestones below it that would each have to be reopened to emit into it.</td>
+          <td>⚠ <em>"Its position is argued from <strong>cost of delay</strong> rather than from a dependency, which is unique in this table."</em> Every other row fails loudly; this one <strong>fails silently and later</strong>. Fifteen reopenings against one.</td>
+        </tr>
+        <tr>
+          <td class="mono"><strong>7</strong></td>
+          <td>That parking is abstracted into an average, losing the specific diagnosis — and that <strong>occupancy leaks</strong>, which is a permanent capacity loss.</td>
+          <td>A <strong>third risk recorded rather than retired</strong>: until this milestone driving carried no access cost at all, <em>"so every balance struck before here is optimistic about cars, and this milestone makes every car Trip worse rather than better."</em></td>
+        </tr>
+        <tr>
+          <td class="mono"><strong>8</strong></td>
+          <td><del>Unsaved state</del> → <strong>rewritten:</strong> that <strong>a derived column does not rebuild to the value it had.</strong></td>
+          <td>The per-field declaration plus a build error make <em>state omitted from the file</em> unrepresentable. ⚠ Amended again mid-scoping: <em><strong>"'the milestone got smaller' is true of the format and false of the build."</strong></em> There was no restore path at all.</td>
+        </tr>
+        <tr>
+          <td class="mono"><strong>9</strong></td>
+          <td>That <strong>six decisions read a field nothing sets</strong> — a compulsory-purchase price, a contagion damper, initial prices, a gentrification damper, a recovery path, and a hash-bearing cadence offset.</td>
+          <td>⚠ <strong>Scope rewritten mid-milestone.</strong> The Fertility half needs terrain, terrain has one source — the world generator at milestone 24 — so those rows moved there. And the plan qualifies the headline: <em>"the count should not be quoted as six live ones."</em></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <span class="lbl">The through-line across all four</span>
+    <p>The corpus's rule is that <strong>a description of the build tells you where to look and never what you found.</strong> These four milestones are where that kept costing something: <strong>a build diagnostic that told every developer a serialiser existed when it never had; a green negative test that pinned a wrong conclusion three documents then cited; doc comments wrong by 9× and 12× with nothing able to catch them; and four sentences saying a Tick was a quarter of its real length</strong>, one of them printed to the operator.</p>
+  </div>
+</section>
+
+<!-- ============================================ ACT 2 -->
+<section>
+  <div class="acthead">
+    <span class="actno">ACT 2</span>
+    <h2>What planning found</h2>
+  </div>
+  <p class="h2sub">Two ADRs each putting a thing on an object that cannot hold it, a term that was never a weight, and a repair that would have been the defect</p>
+
+  <div class="finds">
+    <div class="find bad">
+      <span class="fid">7</span>
+      <p class="ftitle">The thing that holds a parking space did not exist, and two ADRs each put it somewhere impossible</p>
+      <p>One said a <strong>Trip</strong> remembers where it parked; the other said the <strong>Traveller</strong> carries it — and called the agreement <em>corroboration</em>. Both are freed at the end of the journey, and the canonical case is <em>"a household's car sits at home overnight."</em> The live consequence: that ADR's conservation sum <strong>reads <code>0 = high</code> every night.</strong> <em>"It was writable only because the state did not exist — which is that ADR's own argument working against it."</em></p>
+    </div>
+    <div class="find bad">
+      <span class="fid">7</span>
+      <p class="ftitle">The brief's own recommended repair would have been the defect the invariant exists to catch</p>
+      <p>It recommended hanging the space on the <strong>Household</strong>. But every member of a car-owning Household drives, <em>"so a Household of three workers parks three cars, and one column would overwrite two of them"</em> — <strong>which is the permanent capacity loss this milestone's risk is about.</strong> It went on the Citizen.</p>
+    </div>
+    <div class="find bad">
+      <span class="fid">9</span>
+      <p class="ftitle">A term in the desirability formula was never a weight, and no document had ever said so</p>
+      <p>The formula has land value as one of five weighted terms, and the same section says land value <em>moves slowly toward the current desirability</em>. Substituting one into the other: <strong>that term is a <em>gain</em> on the other four, divergent at 1 or above.</strong> <em>"A term that appears on both sides of a lag is a gain, and calling it a weight hides which way the loop runs."</em> ⚠ It was findable at any point since the Layer shipped — <strong>both halves have been in adjacent paragraphs the whole time.</strong> <em>"A formula nobody evaluates is not checked by being read."</em></p>
+    </div>
+    <div class="find">
+      <span class="fid">8</span>
+      <p class="ftitle">The risk had a cheaper instrument all along, and got scheduled behind the test it was named for</p>
+      <p>Two existing calls measure it <em>"directly, immediately, and with no save format."</em> <strong><em>"A risk named after the test that would catch it gets scheduled behind that test."</em></strong> Existing coverage at the time: <strong>2 of 28 derived columns.</strong></p>
+    </div>
+    <div class="find bad">
+      <span class="fid">7</span>
+      <p class="ftitle">A milestone renumber left seven traps in the source that no check in this corpus can see</p>
+      <p>Eight code comments named the same milestone number; seven meant parking and one meant save/load. <em>"They are the same string."</em> <strong><em>"A milestone number is neither a symbol nor a time, and it is the one citation form that goes stale without anybody editing the thing it cites."</em></strong> The eventual audit found <strong>73 sites naming a milestone, 14 of them stale — and only one of the fourteen wanted a new number.</strong></p>
+    </div>
+    <div class="find">
+      <span class="fid">6</span>
+      <p class="ftitle">The accumulator went inside the world, reversing the session's own earlier recommendation</p>
+      <p>Two findings killed the split. An unhashed buffer written in the movement phase is the banned parallel-accumulate — <strong>and the thread-count lint cannot see it, because it compares State Hashes.</strong> <em>"The buffer would scramble and every test would stay green."</em> And for the canonical case <strong>there is no entity to hang a count on: a departed Household is gone.</strong></p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ ACT 3 -->
+<section>
+  <div class="acthead">
+    <span class="actno">ACT 3</span>
+    <h2>What shipped</h2>
+  </div>
+  <p class="h2sub">And the sharpest of it is a mechanism that was written down as impossible, by a test that was about something else</p>
+
+  <figure>
+    <div class="figwrap">
+      <svg viewBox="0 0 900 520" role="img" aria-label="On the left, the live world as a stack of table blocks in declaration order. Inside the citizen block a handle column holds index and generation pairs, which contain no monotonic id — that is why folding a save was written down as impossible. Over in the household block, id and generation are declared as saved columns, so they are in the file too. At the end of the commit phase, one statement after the tick is incremented, a byte copy of every saved column is taken into a contiguous snapshot buffer of 131.33 megabytes at a million Citizens. A vertical seam divides blocking work on the left from movable work on the right. The hash function takes two inputs: from the live world it reads schema only — table order, column widths, and which table each handle column targets, all fixed at seal time; from the snapshot body it reads the column's own bytes plus a slice pointing at the other table's id bytes inside the same buffer. Both the live fold and the save fold feed one implementation and produce equal results. The result goes into a nine-field sixty-byte header placed in front of the body. On load the file is restored, derived columns rebuilt, the hash recomputed and compared, and a mismatch refused.">
+        <defs>
+          <marker id="ari" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+          </marker>
+        </defs>
+        <g fill="none" stroke="currentColor" stroke-width="1.4">
+
+          <text x="20" y="22" font-family="Archivo, system-ui, sans-serif" font-size="12" font-weight="600" letter-spacing="1.6" fill="currentColor" stroke="none">THE LIVE WORLD — TABLES IN DECLARATION ORDER</text>
+
+          <rect x="20" y="38" width="230" height="66" rx="2"/>
+          <text x="32" y="56" font-family="'IBM Plex Mono', monospace" font-size="10.5" font-weight="600" fill="currentColor" stroke="none">citizen</text>
+          <rect x="32" y="64" width="102" height="30" rx="1" class="s-bad"/>
+          <text x="83" y="77" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9" class="t-bad" stroke="none">.home (handle)</text>
+          <text x="83" y="89" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="8.5" class="t-bad" stroke="none">{index, generation}</text>
+          <text x="146" y="82" font-family="'IBM Plex Mono', monospace" font-size="9" class="t-bad" stroke="none">no id in</text>
+          <text x="146" y="93" font-family="'IBM Plex Mono', monospace" font-size="9" class="t-bad" stroke="none">these bytes</text>
+
+          <rect x="20" y="112" width="230" height="66" rx="2"/>
+          <text x="32" y="130" font-family="'IBM Plex Mono', monospace" font-size="10.5" font-weight="600" fill="currentColor" stroke="none">household</text>
+          <rect x="32" y="138" width="96" height="30" rx="1" class="s-good"/>
+          <text x="80" y="151" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9" class="t-good" stroke="none">.id  SAVED</text>
+          <text x="80" y="163" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9" class="t-good" stroke="none">.generation SAVED</text>
+          <text x="138" y="151" font-family="'IBM Plex Mono', monospace" font-size="9" class="t-good" stroke="none">— so the id IS</text>
+          <text x="138" y="163" font-family="'IBM Plex Mono', monospace" font-size="9" class="t-good" stroke="none">in the file</text>
+
+          <rect x="20" y="186" width="230" height="30" rx="2" opacity=".45"/>
+          <text x="32" y="205" font-family="'IBM Plex Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".7">building · bin · rule_instance · …</text>
+
+          <text x="20" y="244" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".72">phase 7 · Commit — the copy is taken AFTER the</text>
+          <text x="20" y="258" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".72">Tick increments, because the Tick is saved state</text>
+          <path d="M 250 130 L 300 130 L 300 210 L 340 210" marker-end="url(#ari)" stroke-width="2"/>
+          <text x="272" y="124" font-family="'IBM Plex Mono', monospace" font-size="9.5" fill="currentColor" stroke="none">byte copy</text>
+
+          <rect x="348" y="150" width="150" height="128" rx="2" stroke-width="2"/>
+          <text x="423" y="172" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="currentColor" stroke="none">the snapshot</text>
+          <text x="423" y="188" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" fill="currentColor" stroke="none" opacity=".65">one contiguous buffer</text>
+          <line x1="356" y1="198" x2="490" y2="198" stroke-width="1" opacity=".3"/>
+          <text x="362" y="214" font-family="'IBM Plex Mono', monospace" font-size="9" class="t-bad" stroke="none">citizen block</text>
+          <text x="362" y="232" font-family="'IBM Plex Mono', monospace" font-size="9" class="t-good" stroke="none">household block ← id here</text>
+          <text x="362" y="250" font-family="'IBM Plex Mono', monospace" font-size="9" fill="currentColor" stroke="none" opacity=".6">building block …</text>
+          <text x="423" y="270" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" fill="currentColor" stroke="none" opacity=".8">131.33 MiB at 1M</text>
+
+          <path d="M 400 138 L 400 100 L 130 100" marker-end="url(#ari)" class="s-good" stroke-dasharray="3 3"/>
+          <text x="230" y="94" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" class="t-good" stroke="none">a handle folds the target's id — and it is in the SAME copy</text>
+
+          <line x1="524" y1="30" x2="524" y2="330" stroke-width="1.5" stroke-dasharray="6 5" opacity=".6"/>
+          <text x="516" y="46" text-anchor="end" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".8">BLOCKING — in the Tick</text>
+          <text x="532" y="46" font-family="'IBM Plex Mono', monospace" font-size="10" class="t-good" stroke="none">MOVABLE — a thread</text>
+
+          <rect x="556" y="150" width="180" height="86" rx="2" class="s-good" stroke-width="2"/>
+          <text x="646" y="172" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="12.5" font-weight="600" class="t-good" stroke="none">one fold</text>
+          <text x="646" y="189" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" class="t-good" stroke="none">two sources, one impl</text>
+          <text x="646" y="209" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" fill="currentColor" stroke="none" opacity=".72">live path  ═  save path</text>
+          <text x="646" y="226" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" fill="currentColor" stroke="none" opacity=".72">bit for bit</text>
+
+          <path d="M 498 200 L 550 195" marker-end="url(#ari)" class="s-good"/>
+          <text x="524" y="256" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9" class="t-good" stroke="none">bytes</text>
+
+          <path d="M 250 60 L 660 60 L 660 144" marker-end="url(#ari)" stroke-dasharray="2 4" opacity=".7"/>
+          <text x="470" y="54" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" fill="currentColor" stroke="none" opacity=".8">SCHEMA ONLY — table order, widths, handle targets. A schema read is not a state read.</text>
+
+          <rect x="760" y="150" width="120" height="86" rx="2"/>
+          <text x="820" y="172" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="12" font-weight="600" fill="currentColor" stroke="none">header</text>
+          <text x="820" y="189" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" fill="currentColor" stroke="none" opacity=".7">9 fields · 60 B</text>
+          <text x="820" y="209" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" class="t-good" stroke="none">state hash</text>
+          <text x="820" y="226" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9" fill="currentColor" stroke="none" opacity=".6">zero is NOT a sentinel</text>
+          <path d="M 736 193 L 754 193" marker-end="url(#ari)" class="s-good"/>
+
+          <line x1="20" y1="352" x2="880" y2="352" stroke-width="1" opacity=".25"/>
+          <text x="20" y="378" font-family="Archivo, system-ui, sans-serif" font-size="12" font-weight="600" letter-spacing="1.6" fill="currentColor" stroke="none">AND ON EVERY LOAD, NOT ONLY IN THE SUITE</text>
+
+          <g>
+            <rect x="20" y="396" width="118" height="42" rx="2"/><text x="79" y="422" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none">read the file</text>
+            <path d="M 138 417 L 164 417" marker-end="url(#ari)"/>
+            <rect x="172" y="396" width="118" height="42" rx="2"/><text x="231" y="422" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none">restore, slot-exact</text>
+            <path d="M 290 417 L 316 417" marker-end="url(#ari)"/>
+            <rect x="324" y="396" width="118" height="42" rx="2"/><text x="383" y="422" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none">rebuild derived</text>
+            <path d="M 442 417 L 468 417" marker-end="url(#ari)"/>
+            <rect x="476" y="396" width="118" height="42" rx="2"/><text x="535" y="422" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none">recompute</text>
+            <path d="M 594 417 L 620 417" marker-end="url(#ari)"/>
+            <rect x="628" y="396" width="104" height="42" rx="2" class="s-good"/><text x="680" y="422" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" class="t-good" stroke="none">compare</text>
+            <path d="M 732 417 L 758 417" marker-end="url(#ari)" class="s-bad"/>
+            <rect x="766" y="396" width="114" height="42" rx="2" class="s-bad" stroke-width="2"/><text x="823" y="422" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" class="t-bad" stroke="none">REFUSE</text>
+          </g>
+
+          <text x="20" y="466" font-family="'IBM Plex Mono', monospace" font-size="10.5" class="t-good" stroke="none">The load-side fold reads the LIVE world — 32.47 ms at a million, which is free, because a load is not inside a Tick loop.</text>
+          <text x="20" y="484" font-family="'IBM Plex Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".8">So save/reload equivalence stopped being a property of seven cases in a suite and became a property of every load.</text>
+          <text x="20" y="506" font-family="'IBM Plex Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".8">What it catches that nothing else could: the restore walk already refuses a flipped id byte. It cannot see a flipped byte in a Household's money.</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>Figure 1 — the save file is the hash's input, written down.</b> This was recorded as <em>not buildable</em>: a handle's bytes hold an index and a generation, and the fold needs a monotonic id. <strong>The id is saved state, so it is in the file too — in another table's block of the same copy.</strong> The two costly alternatives were folding the live world on the simulation thread, which would have taken the blocking half from ~10 ms to ~42 ms at a million, and taking a typed copy at 170.49 MiB against the byte copy's 131.33. <em>"An argument that a cost is affordable is not a reason to pay it when it can be moved."</em></figcaption>
+  </figure>
+
+  <div class="note red">
+    <span class="lbl">And the sharpest finding is about how the wrong claim was pinned</span>
+    <p>The <em>impossible</em> conclusion was held in place by a <strong>test</strong> — one asserting that a fold over the bytes is not the State Hash. It is still green, <strong>and it was always about something else</strong>: it folds the buffer flat, byte after byte, <em>"which is a thing nobody would ever want."</em> <strong>Three documents cited it and none of them opened it.</strong> <em>"A negative test is the most quotable kind of all, because it reads as a closed door."</em></p>
+  </div>
+
+  <h3>Parking — a sweep that ratified one dial, refuted another and amended a third</h3>
+  <div class="col">
+    <p>A ninth Ruleset was authored first: the shipped world with per-kind parking cut and every Household given a car. Then seven rungs, four whole Days, 4,000 Citizens, probing every Building door.</p>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Spaces per kind</th><th class="tabnum">occupancy</th><th class="tabnum">walk p50</th><th class="tabnum">p90</th><th class="tabnum">max</th><th>⚠ a walk across the whole shed is <strong>4.8 clock minutes</strong></th></tr></thead>
+      <tbody>
+        <tr><td class="mono">8 — shipped</td><td class="tabnum">40.8%</td><td class="tabnum">0.0</td><td class="tabnum">0.6</td><td class="tabnum">0.9</td><td>no doors exhausted</td></tr>
+        <tr><td class="mono">5</td><td class="tabnum">74.3%</td><td class="tabnum">0.6</td><td class="tabnum">1.2</td><td class="tabnum">2.2</td><td>spaces held <strong>peak here</strong></td></tr>
+        <tr><td class="mono">3</td><td class="tabnum">81.5%</td><td class="tabnum">0.8</td><td class="tabnum">1.8</td><td class="tabnum">3.1</td><td>1 door of 247</td></tr>
+        <tr><td class="mono">1</td><td class="tabnum good">83.0%</td><td class="tabnum">0.9</td><td class="tabnum">1.9</td><td class="tabnum">3.1</td><td>3 doors of 247</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="col">
+    <p><strong>The gradient holds.</strong> There is no jump: every column is monotone across every rung, which is the parking decision's central claim measured rather than argued.</p>
+    <p><strong>One dial is refuted.</strong> The shed's cap keeps 24 Car Parks, and <em>the room-past-the-cap column equals the exhausted column at every rung</em> — it is too small, in exactly the direction the ledger predicted. <strong>No successor value was set.</strong> <em>"A dial refuted while it is hash-neutral is a debt with a due date, not a defect."</em></p>
+  </div>
+
+  <div class="note teal">
+    <span class="lbl">And the radius's ratifying clause had to be amended, because the world defeated the instrument</span>
+    <p><strong>Occupancy saturates at 83.0% and will not climb.</strong> Spaces held <em>peak</em> at five per kind and <em>fall</em> as capacity shrinks further — because a Trip that cannot park is refused, and <strong>a refused Trip is a car that needs no space.</strong> <em><strong>"A shed cannot be filled by shrinking it."</strong></em> ⚠ A ratifier defeated by the very thing it was written to observe — <strong>and no world fixes this one.</strong></p>
+  </div>
+
+  <h3>Land value — built, correct, and unobservable</h3>
+  <div class="col">
+    <p>The producer shipped and <strong>no baseline moved, where the plan predicted every one would.</strong> The reason is worse than the prediction: <strong>the only thing in the whole build that creates a Cell row is a pollution emission, and no shipped Ruleset emitted any</strong> — all eight said so in their own headers. So the producer walked an empty table in every world that existed.</p>
+    <p><em>"The milestone's mechanism is built and unobservable, and it is unobservable for want of Ruleset content rather than for want of code."</em> ⚠ Which also made that milestone's own weight floor unreachable — <strong>the same failure arriving one level down, four hours after it was written.</strong> <em>"The checklist still does not ask whether the named state can occur, and knowing that it does not ask was not enough to make me ask."</em></p>
+  </div>
+
+  <div class="note">
+    <span class="lbl">The fix was a tenth Ruleset — and its simplification then broke the reading</span>
+    <p>A file was authored with <strong>one Rule that emits pollution</strong>, so the difference between it and its parent is the field and nothing else. ⚠ Its emitting kind is <code>dwelling</code>, which contradicts what the other files say — because <strong>a Zone Rule builds only while people are unhoused, so the only demand signal the build has is demand for homes. Industrial demand is unbuilt.</strong> And that simplification is exactly what made the ratifier's third reading unreadable: pollution and noise are <strong>rank-concordant at 86–100% on every readable Day</strong>, because in that world <strong>they have the same source.</strong></p>
+  </div>
+</section>
+
+<!-- ============================================ ACT 4 -->
+<section>
+  <div class="acthead">
+    <span class="actno">ACT 4</span>
+    <h2>What is still open</h2>
+  </div>
+  <p class="h2sub">A refuted dial with no successor, a field bounded above by zero, and a decision sitting on the user's desk</p>
+
+  <div class="opens">
+    <div class="open">
+      <span class="otag">§D1</span>
+      <div>
+        <p class="otitle">Two desirability weights carry a <em>floor</em> and a <em>debt</em>, and the reachable one is standing in for the unreachable one</p>
+        <p>The real ratifier needs a consumer nobody has built — the price surface. So each weight got a reachable floor that <em>refutes and never confirms</em>, plus a debt row that stays open. ⚠ <em><strong>"A reachable check standing in the place of an unreachable one is how a number comes to look settled."</strong></em> And the floor then <strong>refuted one of its own readings</strong> on the first long run.</p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">9</span>
+      <div>
+        <p class="otitle">The field is bounded above by zero — it is a disamenity field</p>
+        <p>Amenity is absent until milestone 15 and shoreline until 24, so desirability ships with <strong>its only positive term missing.</strong> That is the opposite of the failure the named-hole discipline was built for: <em>"a hole that throws is safe because nothing can read it; desirability now returns plausible numbers, and no assertion can tell that apart from a finished field."</em> A corpus test refuses any document to state the composition without naming the absence — <strong>and it must be deleted the day amenity arrives.</strong></p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">7</span>
+      <div>
+        <p class="otitle">Why the departure walk is long, and whether it should be bounded</p>
+        <p>On the congested world: <strong>0 of 3,330 arrival walks exceed the ceiling and 57 of 3,330 departure walks do, the longest at 16.6 minutes</strong> — against a whole-shed walk of 4.8 minutes. <em>"A walk more than three times the shed's own diameter is not a shed walk."</em> ⚠ The obvious explanation was refuted in one command: the same city reports <strong>2,364 completed Trips, 0 no-route, 0 beyond budget, 0 stranded.</strong> Two questions, and only the second is arguable.</p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">8</span>
+      <div>
+        <p class="otitle">The project's name — a decision that fired in silence and is the user's to make</p>
+        <p>The trigger fired when the save header wrote its magic number, and nobody said so. Both directions are one line and one re-record <strong>while the format is unreleased</strong>. ⚠ And the long acceptance run did <em>not</em> close the window: it writes and reads saves inside one process against one build, so <strong>the first save carried across a build has still not happened.</strong></p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">6</span>
+      <div>
+        <p class="otitle">The Evidence window's size is a guess, and its sizing argument cannot be satisfied by any constant</p>
+        <p>256 entries. One of the two refuting readings is retired — the window fills inside the first Day on the smallest population shipped. <strong>The other is unreachable: there is no episode.</strong> Every shipped Ruleset inherits a Rule drawing on a Resource nothing produces, so decline never stops. ⚠ And the scaling objection nobody had raised: at 4,000 Citizens 256 entries is just over one Day of condemnations; <strong>scaled to a million it is under five Ticks.</strong></p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">8</span>
+      <div>
+        <p class="otitle">A save is sized by the city's high-water mark, not by its population — so its size is an instrument in its own right</p>
+        <p>Over 49 Days the Lots stood flat and the Buildings oscillated with no trend, <strong>and the file still grew 1.0% and then stopped.</strong> ⚠ The copy rate is carried as a <strong>rate and not a duration</strong> on purpose — <em>"0.08 ms over 604 KB says nothing about 131.33 MiB and would be quoted as though it did."</em> Projected it is ~18 ms against the ADR's ~10, <strong>with the error direction unknown and both signs present.</strong> The copy at a million Citizens is owed.</p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">⚠ tests</span>
+      <div>
+        <p class="otitle">The suite's cost did not drift — it moved in one commit, on one day</p>
+        <p><strong>36m 22s, of which 34m 22s is a single test</strong> that prices an allocator. The lesson recorded beside it: <em>"a suite's cost is not a slope, and looking for one is what hides the commit that moved it."</em> ⚠ The split into <em>assertion</em> and <em>instrument</em> tiers took <strong>all seventeen instruments, ten of which had never been observed being slow</strong> — <em>"a list of the slow things you noticed is not a list of the slow things."</em></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="end">
+<p class="colophon">
+  Borough · instruments · milestones 6 (2026-08-17), 7 (08-19), 8 (08-18), 9 (08-20) · sources: <code>plans/0024</code>, <code>0028</code>, <code>0030</code>, <code>0031</code>, <code>0032</code>, <code>0034</code>, <code>docs/06</code>, <code>plans/0002</code> §C/§D, <code>plans/0013</code>, and ADRs <code>0110</code>–<code>0112</code>, <code>0119</code>–<code>0121</code>, <code>0122</code>–<code>0127</code>. Read the plans rather than this page for anything you intend to rely on.
+</p>
+
+</div>

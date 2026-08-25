@@ -1,0 +1,627 @@
+<title>Milestone 27 · The Business Arrives</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+:root {
+  --bg:        #E7EAE7;
+  --surface:   #FAFBFA;
+  --surface-2: #F0F2EF;
+  --ink:       #171C1E;
+  --ink-soft:  #3D4749;
+  --muted:     #64716F;
+  --rule:      #C6CDC7;
+  --rule-soft: #DCE1DC;
+  --authored:  #7E5D10;
+  --authored-bg: #F2EAD6;
+  --emergent:  #2E7F8C;
+  --emergent-bg: #DCEBEC;
+  --refused:   #8A3B36;
+  --refused-bg: #F3E2E0;
+  --measure: 68ch;
+  --wide: 1120px;
+  --sans: Archivo, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --serif: "Source Serif 4", Georgia, "Iowan Old Style", "Palatino Linotype", "Times New Roman", serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:        #10161A;
+    --surface:   #182025;
+    --surface-2: #1E272C;
+    --ink:       #DDE4E5;
+    --ink-soft:  #B6C1C2;
+    --muted:     #85938F;
+    --rule:      #2E3A3F;
+    --rule-soft: #232D32;
+    --authored:  #D8A73F;
+    --authored-bg: #2A2314;
+    --emergent:  #62B6C1;
+    --emergent-bg: #14282C;
+    --refused:   #D9756C;
+    --refused-bg: #2C1917;
+  }
+}
+:root[data-theme="dark"] {
+  --bg:        #10161A;
+  --surface:   #182025;
+  --surface-2: #1E272C;
+  --ink:       #DDE4E5;
+  --ink-soft:  #B6C1C2;
+  --muted:     #85938F;
+  --rule:      #2E3A3F;
+  --rule-soft: #232D32;
+  --authored:  #D8A73F;
+  --authored-bg: #2A2314;
+  --emergent:  #62B6C1;
+  --emergent-bg: #14282C;
+  --refused:   #D9756C;
+  --refused-bg: #2C1917;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.62;
+  margin: 0;
+  padding: 0 24px 110px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.page { max-width: var(--wide); margin: 0 auto; }
+.col  { max-width: var(--measure); }
+
+h1, h2, h3, .eyebrow, .lbl, th, .chip, .num, .actno, figcaption, .cap {
+  font-family: var(--sans);
+}
+code, pre, .mono { font-family: var(--mono); }
+
+/* ---- masthead ---- */
+.masthead { padding: 68px 0 36px; border-bottom: 2px solid var(--ink); margin-bottom: 34px; }
+.eyebrow {
+  font-size: 11px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--muted); margin: 0 0 18px;
+}
+h1 {
+  font-size: clamp(36px, 5.8vw, 62px); font-weight: 700; letter-spacing: -0.028em;
+  line-height: 1.03; margin: 0 0 20px; text-wrap: balance; max-width: 17ch;
+}
+.standfirst { font-size: 20px; line-height: 1.5; color: var(--ink-soft); max-width: 62ch; margin: 0; }
+
+/* ---- caveat ---- */
+.caveat {
+  border: 1px solid var(--rule); border-left: 3px solid var(--refused);
+  background: var(--surface); padding: 18px 22px; margin: 0 0 40px;
+  font-size: 15px; line-height: 1.55;
+}
+.caveat p { margin: 0 0 10px; }
+.caveat p:last-child { margin-bottom: 0; }
+.caveat .lbl {
+  display: block; font-size: 11px; font-weight: 600; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
+}
+
+/* ---- stat strip ---- */
+.stats { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 0 0 56px; }
+@media (min-width: 660px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 980px) { .stats { grid-template-columns: repeat(4, 1fr); } }
+.stat { background: var(--surface); padding: 20px 18px; }
+.stat .num {
+  display: block; font-size: 36px; font-weight: 700; letter-spacing: -0.03em;
+  line-height: 1; font-variant-numeric: tabular-nums; color: var(--ink);
+}
+.stat .cap { display: block; font-size: 12.5px; line-height: 1.4; color: var(--muted); margin-top: 9px; }
+
+/* ---- acts ---- */
+section { margin: 0 0 72px; }
+.acthead { display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid var(--rule); padding-bottom: 10px; margin-bottom: 22px; }
+.actno {
+  font-size: 12px; font-weight: 700; letter-spacing: .14em; color: var(--emergent);
+  font-variant-numeric: tabular-nums;
+}
+h2 {
+  font-size: 12px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase;
+  color: var(--muted); margin: 0;
+}
+.h2sub {
+  font-family: var(--sans); font-size: clamp(23px, 3.1vw, 31px); font-weight: 600;
+  letter-spacing: -0.02em; line-height: 1.18; margin: 0 0 22px; text-wrap: balance; max-width: 28ch;
+}
+h3 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; margin: 32px 0 10px; font-family: var(--sans); }
+p { margin: 0 0 18px; }
+strong { font-weight: 600; }
+em { font-style: italic; }
+a { color: var(--emergent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:focus-visible { outline: 2px solid var(--emergent); outline-offset: 3px; }
+
+/* ---- risk quarters ---- */
+.quarters { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 0 0 28px; }
+@media (min-width: 700px) { .quarters { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1000px) { .quarters { grid-template-columns: repeat(4, 1fr); } }
+.quarter { background: var(--surface); padding: 20px 20px; }
+.quarter .qv { display: block; font-family: var(--sans); font-size: 13px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--emergent); margin-bottom: 10px; }
+.quarter .qt { font-family: var(--sans); font-size: 16px; font-weight: 600; line-height: 1.3; margin: 0 0 8px; }
+.quarter p { font-size: 14px; line-height: 1.5; color: var(--ink-soft); margin: 0; }
+
+/* ---- order timeline ---- */
+.orders { border: 1px solid var(--rule); background: var(--surface); margin: 28px 0; }
+.orderrow { display: grid; grid-template-columns: 84px 1fr; border-bottom: 1px solid var(--rule-soft); }
+.orderrow:last-child { border-bottom: 0; }
+.orderrow.final { background: var(--emergent-bg); }
+.ordertag {
+  font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--muted);
+  padding: 18px 0 18px 16px; letter-spacing: .04em;
+}
+.orderrow.final .ordertag { color: var(--emergent); }
+.orderbody { padding: 18px 20px 18px 4px; }
+.orderseq {
+  font-family: var(--mono); font-size: 15px; font-weight: 600; letter-spacing: .06em;
+  margin: 0 0 7px; color: var(--ink);
+}
+.orderseq .strike { text-decoration: line-through; opacity: .5; }
+.orderwhy { font-size: 14.5px; line-height: 1.5; color: var(--ink-soft); margin: 0; }
+
+/* ---- findings ---- */
+.finds { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 26px 0; }
+@media (min-width: 780px) { .finds { grid-template-columns: 1fr 1fr; } }
+.find { background: var(--surface); padding: 20px 22px; }
+.find .fid {
+  font-family: var(--mono); font-size: 11.5px; font-weight: 600; letter-spacing: .05em;
+  color: var(--authored); display: block; margin-bottom: 8px;
+}
+.find.bad .fid { color: var(--refused); }
+.find .ftitle { font-family: var(--sans); font-size: 15.5px; font-weight: 600; line-height: 1.35; margin: 0 0 8px; }
+.find p { font-size: 14.5px; line-height: 1.52; margin: 0; color: var(--ink-soft); }
+
+/* ---- chips ---- */
+.chip {
+  display: inline-block; font-size: 10.5px; font-weight: 600; letter-spacing: .09em;
+  text-transform: uppercase; padding: 3px 8px; border-radius: 2px; white-space: nowrap;
+}
+.chip-a { background: var(--authored-bg); color: var(--authored); }
+.chip-e { background: var(--emergent-bg); color: var(--emergent); }
+.chip-x { background: var(--refused-bg); color: var(--refused); }
+.chip-n { background: var(--surface-2); color: var(--muted); border: 1px solid var(--rule); }
+
+/* ---- figures ---- */
+figure { margin: 32px 0; }
+figure svg { display: block; width: 100%; max-width: 100%; height: auto; color: var(--ink); }
+.figwrap { background: var(--surface); border: 1px solid var(--rule); padding: 24px 20px 16px; overflow-x: auto; }
+figcaption { font-size: 13.5px; line-height: 1.5; color: var(--muted); margin-top: 16px; max-width: 82ch; }
+figcaption b { color: var(--ink-soft); font-weight: 600; }
+.figwrap svg .s-bad  { stroke: var(--refused); }
+.figwrap svg .s-good { stroke: var(--emergent); }
+.figwrap svg .s-warn { stroke: var(--authored); }
+.figwrap svg .t-bad  { fill: var(--refused); }
+.figwrap svg .t-good { fill: var(--emergent); }
+.figwrap svg .t-warn { fill: var(--authored); }
+
+/* ---- tables ---- */
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); background: var(--surface); margin: 26px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th {
+  text-align: left; font-size: 11px; font-weight: 600; letter-spacing: .11em; text-transform: uppercase;
+  color: var(--muted); padding: 13px 16px; border-bottom: 1px solid var(--rule); white-space: nowrap;
+}
+td { padding: 13px 16px; border-bottom: 1px solid var(--rule-soft); vertical-align: top; line-height: 1.45; }
+tr:last-child td { border-bottom: 0; }
+td.mono { font-family: var(--mono); font-size: 13px; }
+.tabnum { font-variant-numeric: tabular-nums; }
+td.good { color: var(--emergent); font-weight: 600; }
+td.bad  { color: var(--refused); font-weight: 600; }
+
+/* ---- callout ---- */
+.note {
+  border-left: 3px solid var(--authored); background: var(--surface); padding: 18px 22px;
+  margin: 26px 0; font-size: 16px;
+}
+.note.teal { border-left-color: var(--emergent); }
+.note.red  { border-left-color: var(--refused); }
+.note p:last-child { margin-bottom: 0; }
+.note .lbl {
+  display: block; font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 7px;
+}
+
+code { font-size: .87em; background: var(--surface-2); padding: 1px 5px; border: 1px solid var(--rule-soft); }
+
+ul.tight { margin: 0 0 18px; padding-left: 22px; }
+ul.tight li { margin-bottom: 11px; }
+
+/* ---- open items ---- */
+.opens { border: 1px solid var(--rule); background: var(--surface); margin: 26px 0; }
+.open { display: grid; grid-template-columns: auto 1fr; gap: 16px; padding: 18px 22px; border-bottom: 1px solid var(--rule-soft); align-items: start; }
+.open:last-child { border-bottom: 0; }
+.open .otag { font-family: var(--mono); font-size: 11.5px; font-weight: 600; color: var(--muted); padding-top: 3px; white-space: nowrap; }
+.open .otitle { font-family: var(--sans); font-size: 15.5px; font-weight: 600; line-height: 1.35; margin: 0 0 6px; }
+.open p { font-size: 14.5px; line-height: 1.5; margin: 0; color: var(--ink-soft); }
+
+hr.end { border: 0; border-top: 2px solid var(--ink); margin: 56px 0 0; }
+.colophon { font-family: var(--sans); font-size: 13px; line-height: 1.6; color: var(--muted); padding-top: 18px; max-width: 80ch; }
+</style>
+
+<div class="page">
+
+<header class="masthead">
+  <p class="eyebrow">Borough · milestone note · closed 24–25 Aug 2026</p>
+  <h1>Milestone 27 — the Business arrives</h1>
+  <p class="standfirst">Milestone 25 made the payer nameable. This one makes one exist. The city now creates a Business two ways, funds it out of a founder's balance, employs through it, and lets a Rule read its books — and the task order had to move four times to get there.</p>
+</header>
+
+<div class="caveat">
+  <span class="lbl">What this page is, and what owns the facts on it</span>
+  <p>A summary of one closed milestone, assembled from <code>plans/0041</code>, <code>plans/0040</code> and <code>docs/06</code>. <strong>Every fact here is owned somewhere else</strong> — <code>plans/0040</code> owns what the tasks <em>are</em>, <code>plans/0041</code> owns what order they went in and what decomposition found, and the ADRs own the decisions. Where this page disagrees with any of them, they win.</p>
+  <p>Figures are quoted with the clause that says what they measure (<code>plans/0012</code> <strong>Cause 5</strong>). ⚠ Several numbers below come from demonstration Rulesets whose own headers say <strong>they ratify nothing</strong> — a shop in them has no revenue, because <code>Scope.Pool</code> still throws. Read the header before quoting a number out of one.</p>
+</div>
+
+<div class="stats">
+  <div class="stat">
+    <span class="num">4×</span>
+    <span class="cap">the task order moved — and <strong>reordering was the decomposition's whole result</strong></span>
+  </div>
+  <div class="stat">
+    <span class="num">44</span>
+    <span class="cap">numbered findings, <code>G1</code>–<code>G44</code>, across decomposition, two surveys and the long run</span>
+  </div>
+  <div class="stat">
+    <span class="num">6</span>
+    <span class="cap">ADRs written, <code>0145</code>–<code>0150</code> — three of them settled with the user in the room</span>
+  </div>
+  <div class="stat">
+    <span class="num">16</span>
+    <span class="cap">shipped Rulesets at close, from thirteen — and <strong>every one now holds a Business the city created</strong></span>
+  </div>
+</div>
+
+<!-- ============================================ ACT 1 -->
+<section>
+  <div class="acthead">
+    <span class="actno">ACT 1</span>
+    <h2>The risk it retired</h2>
+  </div>
+  <p class="h2sub">That the Business is a table and not an actor the city can create</p>
+
+  <div class="col">
+    <p>This is <strong>milestone 25's original risk</strong>, inherited unretired when that milestone was capped at group A. It came in four quarters, and the milestone is closed because all four are answered.</p>
+  </div>
+
+  <div class="quarters">
+    <div class="quarter">
+      <span class="qv">Creates</span>
+      <p class="qt">Two channels, both shipped</p>
+      <p>A premises kind may declare its trade and construction <strong>instantiates</strong> it (<code>adr/0148</code>); a Household <strong>founds</strong> one on its own means (<code>adr/0145</code>). Both land unpremised, so nothing auto-tenants.</p>
+    </div>
+    <div class="quarter">
+      <span class="qv">Funds</span>
+      <p class="qt">Out of the founder's balance</p>
+      <p>Founding is a <strong>transfer, not an issuance</strong> — it moves money out of a Household and conserves the supply. A Household founds on its own <em>means</em> and never on the city's <em>need</em>, because a trigger reading a shortage is the RCI meter whatever it is called.</p>
+    </div>
+    <div class="quarter">
+      <span class="qv">Employs</span>
+      <p class="qt"><code>jobs</code> moved to the trade</p>
+      <p>The Workplace stops being a Building. A Citizen still stores nothing about their day — and the property that defends gets <em>stronger</em>: changing employer now changes their day with no write, which was literally untrue before.</p>
+    </div>
+    <div class="quarter">
+      <span class="qv">Reads</span>
+      <p class="qt">A Policy sweeps a population</p>
+      <p><code>sweeps = "business"</code> is accepted, and a Readout now declares the <strong>set</strong> of entities it can be read against rather than a single scope (<code>adr/0149</code>).</p>
+    </div>
+  </div>
+
+  <div class="note red">
+    <span class="lbl">G1 — the risk cell stated three numbers and all three had drifted</span>
+    <p>It said the Business had <em>three columns</em> (six, since milestone 25's tasks 1 and 5), that <code>jobs</code> sat on the dwelling kind in <em>all twelve</em> shipped Rulesets (thirteen, since <code>evicted.toml</code> landed the day before), and that <code>CreateBusiness</code> had <em>twelve</em> test call sites (seventeen, across seven files). <strong>The risk itself was untouched.</strong> <em>A risk restated in counts is a risk that goes stale without becoming wrong</em> — and it was the second time in two days that a milestone's own risk cell was the thing that was out of date.</p>
+  </div>
+</section>
+
+<!-- ============================================ ACT 2 -->
+<section>
+  <div class="acthead">
+    <span class="actno">ACT 2</span>
+    <h2>What planning found</h2>
+  </div>
+  <p class="h2sub">The order moved four times, and each move was a different kind of mistake</p>
+
+  <div class="col">
+    <p>This milestone inherited its <em>specification</em> from <code>plans/0040</code> and wrote only its <em>order</em>. That turned out to be the hard part. <strong>Decomposition changed the order, and that is the document's result</strong> — then the order moved three more times, twice by correction.</p>
+  </div>
+
+  <div class="orders">
+    <div class="orderrow">
+      <span class="ordertag">AS SPECIFIED</span>
+      <div class="orderbody">
+        <p class="orderseq"><span class="strike">6 → 7 → 8 → 9</span></p>
+        <p class="orderwhy">The order the tasks were written in when milestone 25 was capped. Nobody had asked what each one needs.</p>
+      </div>
+    </div>
+    <div class="orderrow">
+      <span class="ordertag">MOVE 1 · G5</span>
+      <div class="orderbody">
+        <p class="orderseq"><span class="strike">6 → 9 → 8 → 7</span></p>
+        <p class="orderwhy"><strong>Run it as specified and task 7 empties the city of jobs.</strong> <code>jobs = 8</code> sits on the <em>dwelling</em> kind in every shipped Ruleset as an admitted stand-in; move it to an employer nothing creates and employment goes to zero. ⚠ <strong>Measured rather than argued</strong> — <code>minimal.toml</code> patched to <code>jobs = 0</code> as a proxy gave <strong>53 failures of 2,094</strong>, of which four were a confound and two were self-editing tests. <em>The remaining ~47 are the city.</em></p>
+      </div>
+    </div>
+    <div class="orderrow">
+      <span class="ordertag">MOVE 2 · G21</span>
+      <div class="orderbody">
+        <p class="orderseq"><span class="strike">6 → 8 → 7 / 9</span></p>
+        <p class="orderwhy">Task 9 was opened and put back down. Its stated reason for going second was that it is <em>exercisable by fixture</em> — <strong>which is the reasoning <code>plans/0040</code> <code>F43</code> had refuted the day before</strong>: a mechanism exercised only by hand-built fixtures is a mechanism with no world in it. Task 9's case was <em>stronger</em> than F43's, not weaker: it would have been reachable by no Ruleset at all.</p>
+      </div>
+    </div>
+    <div class="orderrow">
+      <span class="ordertag">MOVE 3 · G30</span>
+      <div class="orderbody">
+        <p class="orderseq"><span class="strike">6 → 8 → 7 → 9</span></p>
+        <p class="orderwhy">Two unrelated things on one day. <strong>The one open decision blocking task 7 had been settled all along</strong> by an ADR the decision never cited — and <code>adr/0146</code> made task 7 a <em>prerequisite</em> of task 8's founder half, because the founder is recorded by the employment link and an unpremised Business has no Building to point at.</p>
+      </div>
+    </div>
+    <div class="orderrow final">
+      <span class="ordertag">MOVE 4 · G32</span>
+      <div class="orderbody">
+        <p class="orderseq">6 → 8ᵃ → <em>placement</em> → 7 → 8ᵇ → 9 → 10</p>
+        <p class="orderwhy"><strong>Task 7 still could not go next, and the reason is arithmetic rather than judgement: nothing tenants a Business.</strong> Founding fills a <em>pool</em>; employment needs <em>premises</em>, and nothing carried a Business from the first to the second. ⚠ <code>PlacementEngine</code>'s own source comment said this milestone owed the pass — <strong>and none of its four tasks named it</strong>. The pass shipped as <code>adr/0147</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <span class="lbl">G30 — the shape of a phantom blocker, which is worth more than the answer</span>
+    <p>An open decision asked whether <code>jobs</code> moves to the business <em>kind</em> or the Business <em>row</em>, and concluded it was forced by what <code>adr/0026</code> means by <em>employer</em> — an ADR that never says. <strong><code>adr/0141</code> does say</strong>, in a table row headed <em>Declares</em> whose two columns are both kind namespaces, and the build was already reading it that way in a doc comment.</p>
+    <p><strong>The tell is that the decision named the ADR it could not get an answer from.</strong> A question typed <em>arguable</em> and pinned to one silent source looks blocked with no further work, because the next step it implies is a sitting rather than a search. <em>Typing a question does not discharge the duty to look for its answer</em> — and the cheapest check, grepping the term across <code>docs/adr/</code>, was never run. It cost the milestone an ordering.</p>
+  </div>
+
+  <h3>And one about how a blocker is read</h3>
+  <div class="finds">
+    <div class="find bad">
+      <span class="fid">G13</span>
+      <p class="ftitle">The capitalisation band was called a block, and the ADR refuses that reading in its opening paragraph</p>
+      <p><code>adr/0052</code> opens: <em>"This does not require ratifying a number before choosing it… <strong>The rule governs the record, not the timing.</strong>"</em> What task 8 owed was a ratifier <em>named on the day the band was written</em>, not a settled number. <strong>Citing a record is not applying it</strong> — which is that ADR's own stated failure mode, at its line 39. So the ADR predicted the way it would be misread, and a plan citing it by name then misread it that way.</p>
+    </div>
+    <div class="find bad">
+      <span class="fid">G24</span>
+      <p class="ftitle">The source question was never a number, and the ledger had it typed as one for a day</p>
+      <p>A prior sitting concluded the question was not <em>what creates a Business</em> but <em>what capitalises one</em> — <em>"and that is a number."</em> Opening task 8 found there is no first line of code in that reading: <strong>a band with nothing to draw it is not a source.</strong> ⚠ <em>A question that changes type has not necessarily been answered; it may only have been narrowed</em> — and settling it properly <strong>tripled the ledger row</strong>, into a founding band, an arrival band and a founding rate.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ ACT 3 -->
+<section>
+  <div class="acthead">
+    <span class="actno">ACT 3</span>
+    <h2>What shipped</h2>
+  </div>
+  <p class="h2sub">A shop is created, capitalised, placed, staffed, taxed — and can leave</p>
+
+  <figure>
+    <div class="figwrap">
+      <svg viewBox="0 0 900 430" role="img" aria-label="Lifecycle diagram of a Business. Two creation channels feed an unpremised pool: construction instantiating the trade a premises kind declares, and a Household founding one by spending part of its balance and committing a Citizen. The placement pass takes a Business from the pool into premises, where it competes with families for one occupancy ceiling and can employ. Demolition returns an instantiated shop to destruction and a founded one to the pool. The give-up bound leads to departure, which subtracts the balance from the money supply.">
+        <defs>
+          <marker id="ar27" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+          </marker>
+        </defs>
+        <g fill="none" stroke="currentColor" stroke-width="1.4">
+
+          <text x="20" y="24" font-family="Archivo, system-ui, sans-serif" font-size="12" font-weight="600" letter-spacing="1.6" fill="currentColor" stroke="none">SOURCES</text>
+          <line x1="20" y1="34" x2="250" y2="34" stroke-width="1" opacity=".28"/>
+
+          <text x="330" y="24" font-family="Archivo, system-ui, sans-serif" font-size="12" font-weight="600" letter-spacing="1.6" fill="currentColor" stroke="none">THE POOL AND THE PASS</text>
+          <line x1="330" y1="34" x2="640" y2="34" stroke-width="1" opacity=".28"/>
+
+          <text x="700" y="24" font-family="Archivo, system-ui, sans-serif" font-size="12" font-weight="600" letter-spacing="1.6" fill="currentColor" stroke="none">SINKS</text>
+          <line x1="700" y1="34" x2="880" y2="34" stroke-width="1" opacity=".28"/>
+
+          <!-- sources -->
+          <rect x="24" y="70" width="200" height="66" rx="2"/>
+          <text x="124" y="93" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="13" font-weight="600" fill="currentColor" stroke="none">instantiated with premises</text>
+          <text x="124" y="111" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".62">a [[building]] kind</text>
+          <text x="124" y="126" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".62">names one trade</text>
+
+          <rect x="24" y="176" width="200" height="80" rx="2"/>
+          <text x="124" y="199" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="13" font-weight="600" fill="currentColor" stroke="none">founded by a Household</text>
+          <text x="124" y="217" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".62">spends part of its balance</text>
+          <text x="124" y="232" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".62">commits a Citizen</text>
+          <text x="124" y="247" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".62">a means test, not a need test</text>
+
+          <!-- pool -->
+          <rect x="330" y="120" width="180" height="66" rx="2" class="s-warn"/>
+          <text x="420" y="143" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="13" font-weight="600" class="t-warn" stroke="none">unpremised pool</text>
+          <text x="420" y="161" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10.5" class="t-warn" stroke="none">holds only its till</text>
+          <text x="420" y="176" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10.5" class="t-warn" stroke="none">give-up clock running</text>
+
+          <path d="M 224 103 L 275 103 L 275 140 L 323 140" marker-end="url(#ar27)"/>
+          <path d="M 224 216 L 275 216 L 275 168 L 323 168" marker-end="url(#ar27)"/>
+
+          <!-- placement -->
+          <rect x="330" y="252" width="180" height="66" rx="2"/>
+          <text x="420" y="275" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="13" font-weight="600" fill="currentColor" stroke="none">placement pass</text>
+          <text x="420" y="293" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".62">samples Lots for a tenant</text>
+          <text x="420" y="308" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".62">nothing auto-tenants</text>
+
+          <line x1="420" y1="186" x2="420" y2="245" marker-end="url(#ar27)"/>
+          <text x="432" y="220" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".7">drawn</text>
+
+          <!-- premised -->
+          <rect x="580" y="252" width="180" height="80" rx="2" class="s-good"/>
+          <text x="670" y="275" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="13" font-weight="600" class="t-good" stroke="none">PREMISED</text>
+          <text x="670" y="293" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10.5" class="t-good" stroke="none">one ceiling, both tenants</text>
+          <text x="670" y="308" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10.5" class="t-good" stroke="none">has a location — can employ</text>
+          <text x="670" y="323" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10.5" class="t-good" stroke="none">a Policy can sweep it</text>
+
+          <line x1="510" y1="285" x2="573" y2="285" marker-end="url(#ar27)"/>
+          <text x="541" y="277" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".7">takes a room</text>
+
+          <!-- sinks -->
+          <rect x="700" y="70" width="180" height="60" rx="2" class="s-bad"/>
+          <text x="790" y="93" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="13" font-weight="600" class="t-bad" stroke="none">destroyed with premises</text>
+          <text x="790" y="111" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10.5" class="t-bad" stroke="none">only if it came with them</text>
+
+          <rect x="700" y="152" width="180" height="60" rx="2" class="s-bad"/>
+          <text x="790" y="175" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="13" font-weight="600" class="t-bad" stroke="none">departs the city</text>
+          <text x="790" y="193" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10.5" class="t-bad" stroke="none">balance leaves the supply</text>
+
+          <path d="M 510 138 L 600 138 L 600 100 L 693 100" marker-end="url(#ar27)"/>
+          <text x="600" y="92" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".7">razed</text>
+
+          <line x1="510" y1="168" x2="693" y2="180" marker-end="url(#ar27)"/>
+          <text x="600" y="163" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".7">gives up</text>
+
+          <!-- back to pool -->
+          <path d="M 670 332 L 670 380 L 300 380 L 300 152 L 323 152" marker-end="url(#ar27)" stroke-dasharray="5 4"/>
+          <text x="485" y="396" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".78">a founded shop whose premises are condemned goes back and looks again</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>Figure 1 — the full lifecycle, and the one edge that had to be repaired.</b> The two sources are not interchangeable, and finding that out was the long run's whole value. <strong>Demolition must destroy the trade the premises <em>came with</em></strong> — identifying it by <em>kind</em> razed whichever shop came first in the list, so a founded shop was destroyed in an instantiated one's place. The repair is a handle naming the Building that instantiated it: <em>the refused thing was a property of the Business, and what was needed was a property of the edge.</em></figcaption>
+  </figure>
+
+  <h3>The task rail, in the order it actually landed</h3>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th>Task</th><th>What landed</th><th>Measured</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="mono"><strong>6</strong><br><span class="chip chip-e">shipped</span></td>
+          <td><strong>The <code>[[business]]</code> kind table.</strong> A fifth name namespace, a saved <code>kind</code> byte, and <code>tenanted.toml</code> — the fourteenth shipped file. ⚠ <strong>There is no <code>BusinessKindDefinition</code> and that is the decision</strong>: a trade carries a name and nothing else until task 7.</td>
+          <td><code>tenanted.toml</code> and <code>minimal.toml</code> produce the <strong>identical State Hash</strong>, sample for sample, over 200 Ticks at 10,000 Citizens. <em>Two trades declared and neither instantiated leaves the simulation bit-identical</em> — a tripwire meant to go red the day task 8 lands.</td>
+        </tr>
+        <tr>
+          <td class="mono"><strong>8ᵃ</strong><br><span class="chip chip-e">shipped</span></td>
+          <td><strong>Founding — the first shipped file in which the simulation creates a Business.</strong> <code>founded.toml</code> is <code>taxed.toml</code> plus a trade and a channel, and it is <code>taxed.toml</code> rather than <code>minimal.toml</code> <em>because founding is a means test</em>: on <code>minimal.toml</code> every Household holds exactly zero, so the channel would be present, correct and invisible.</td>
+          <td><strong>114 founded</strong> over 4,096 Ticks at 2,000 Citizens. Bound patched to one Day as a check: <strong>170 founded, 138 retired, the pool settling at 32</strong> — bounded because the drain rate is proportional to the stock.</td>
+        </tr>
+        <tr>
+          <td class="mono"><strong>—</strong><br><span class="chip chip-a">unplanned</span></td>
+          <td><strong>The placement pass</strong> (<code>adr/0147</code>), which no task owned. One occupancy ceiling counts <strong>both kinds of tenant</strong>, so a shop takes a family's room — a design change with an eviction consequence, taken with the user in the room. Three new randomness tags and <strong>no new Ruleset number</strong>.</td>
+          <td>On <code>founded.toml</code>, 4,096 Ticks at 2,000 Citizens: <strong>founded 113, premised 69, standing 38, pooled 75.</strong> ⚠ The flow and the standing count differ <em>by design</em> — 31 shops took premises, lost them to condemnation, and went back to the pool to look again.</td>
+        </tr>
+        <tr>
+          <td class="mono"><strong>7</strong><br><span class="chip chip-e">shipped</span></td>
+          <td><strong>Jobs and shift hours move to the employer</strong>, in two halves — and the second was not in the plan. The handle move <strong>emptied every shipped city</strong>, so <code>adr/0148</code> had to let a premises kind declare its trade. <code>[[building]] jobs</code> and the Shift band are now <em>refused</em>.</td>
+          <td><strong>66 assertions failing on one sentence</strong> — <em>nobody is employed anywhere</em>. All fifteen shipped Rulesets changed; every golden artefact re-recorded, because the shift-start draw is keyed on the workplace's id and <strong>every Citizen in the city re-rolls their shift start</strong>.</td>
+        </tr>
+        <tr>
+          <td class="mono"><strong>8ᵇ</strong><br><span class="chip chip-e">shipped</span></td>
+          <td><strong>The founder is a Citizen, and the job is the only record of it</strong> (<code>adr/0146</code>). No <code>founder</code> column — declaring one would make two tables mutually dependent at construction, and <em>choosing the workplace makes the founder fall out for free</em>. ⚠ The <strong>income</strong> half is milestone 15's and is deliberately not proxied.</td>
+          <td>On <code>founded.toml</code>: <strong>148 founded-trade Businesses, 148 of them staffed.</strong></td>
+        </tr>
+        <tr>
+          <td class="mono"><strong>9</strong><br><span class="chip chip-e">shipped</span></td>
+          <td><strong>A Business is a population a Policy sweeps</strong> (<code>adr/0149</code>) — <em>and it is not the task the plan described</em>. The loader's own refusal was the specification: <em>"a Business has a balance and no pass that moves it."</em> <code>levied.toml</code> ships as the sixteenth file, <code>founded.toml</code> plus five lines, <strong>so the diff is the demonstration</strong>.</td>
+          <td>On <code>levied.toml</code>, 2,000 Citizens over 6,144 Ticks: <strong>302 live Businesses, of which 125 hold nothing</strong> — because every dwelling's instantiated shop opens at zero and only a <em>founded</em> shop holds money. ⚠ That split moves with the run, so the test asserts the shape and never the ratio.</td>
+        </tr>
+        <tr>
+          <td class="mono"><strong>10</strong><br><span class="chip chip-e">shipped</span></td>
+          <td><strong>Something to look at, and the long run.</strong> <code>--business</code> ships as the twelfth runner mode: five panels, one per quarter of the risk. ⚠ Two of five flows are <strong>derived rather than counted</strong>, and the panel says so on the panel rather than in a comment.</td>
+          <td>See below — <strong>the long run found a defect, and that is the task's whole value.</strong></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>G43 — a kind is not an identity, and only the long run could have found it</h3>
+  <div class="col">
+    <p>Demolition destroyed <em>the trade this kind came with</em> and identified it <strong>by kind</strong>. But founding draws uniformly over every declared trade — so a Household founding a shop put a second Business of the dwelling's own trade into the same list, and demolition razed whichever came first. <strong>Two defects from one line, pointing opposite ways.</strong></p>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th>What was measured</th><th class="tabnum">Before</th><th class="tabnum">After</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Pooled Businesses holding nothing — <code>levied.toml</code>, 24,576 Ticks</td><td class="tabnum bad">52</td><td class="tabnum good">0</td></tr>
+        <tr><td>Same, <code>founded.toml</code></td><td class="tabnum bad">60</td><td class="tabnum good">0</td></tr>
+        <tr><td>Same, <code>minimal.toml</code> and <code>taxed.toml</code> — nothing founds</td><td class="tabnum">0</td><td class="tabnum">0</td></tr>
+        <tr><td>Money supply — <code>levied.toml</code>, 20,480 Ticks</td><td class="tabnum bad">354,562 → 330,579</td><td class="tabnum good">354,562 → 354,562</td></tr>
+        <tr><td><code>business</code> slots — <code>levied.toml</code>, 131,072 Ticks</td><td class="tabnum">652</td><td class="tabnum good">536</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note red">
+    <span class="lbl">What delayed finding it was a header</span>
+    <p><code>founded.toml</code> opened with a long paragraph predicting that its money supply would drain out through the Hinterland <em>on purpose</em>. The supply was draining; the paragraph explained it; nothing looked further. <strong><em>Naming an expected symptom is how you stop noticing the unexpected one that looks identical.</em></strong> Both of that header's claims were wrong, and it has been rewritten to say so at length.</p>
+  </div>
+</section>
+
+<!-- ============================================ ACT 4 -->
+<section>
+  <div class="acthead">
+    <span class="actno">ACT 4</span>
+    <h2>What is still open</h2>
+  </div>
+  <p class="h2sub">One gap nobody owns, one silent failure class, and a bound that will reopen</p>
+
+  <div class="opens">
+    <div class="open">
+      <span class="otag">G22</span>
+      <div>
+        <p class="otitle">Nothing can give a Business a Rule, and no task in the milestone owned it</p>
+        <p>Run the arming pass for a Business and <strong>a bakery inherits the Rules of the families living upstairs</strong> — which is <code>adr/0141</code>'s own argument inverted. A Business's Bins and Rules must come from its <code>[[business]]</code> kind, and task 6 deliberately gave that kind nothing but a name. ⚠ The tenancy enum is <code>Premises | Occupant</code> and <strong>cannot express which tenant</strong>. Unassigned by tasks 6, 7, 8 and 9 alike.</p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">G31</span>
+      <div>
+        <p class="otitle">There is no unknown-key check in the loader, so every typo in every Ruleset is silent</p>
+        <p>Every table reads the keys it wants by name and <strong>nothing ever enumerates a table's actual keys</strong>. <code>occupent = 3</code>, <code>revisit_tics = 1024</code>: all load clean, all do nothing, none says a word. ⚠ It is the exact failure class this loader has 150-odd refusals to prevent, arriving underneath all of them. <strong>Not fixed — the reason is scope.</strong> One named refusal shipped for the single key a designer will actually type, and <em>that is not a substitute for the check and must not be recorded as one</em>.</p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">G44</span>
+      <div>
+        <p class="otitle">The shop count is bounded by the source exhausting, and no sink has ever fired</p>
+        <p><strong>7,165 premisings and 0 give-ups</strong> over 131,072 Ticks at 2,000 Citizens — placement re-premises a pooled Business long before the bound expires. What bounds the count is that founding is <em>a means test that runs out of means</em>: each one moves money out of a Household, so each makes the next less likely. ⚠ The long-run test therefore asserts a <strong>deceleration rather than a ceiling</strong>. <em>A bound resting on a source drying up reopens the day anything refills it</em> — milestone 11's gate, milestone 26's revenue.</p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">G40</span>
+      <div>
+        <p class="otitle">A Readout can now be wrong about how many entities it means</p>
+        <p>A single scope made over-permission unreachable — a Readout could be wrong about <em>which</em> entity, never about <em>how many</em>. Declaring a readable <em>set</em> gives that up to say something true. <strong>A Readout carelessly added to two sets is a Rule reading a quantity that means a different thing on each, and no test in this corpus can catch it.</strong> Recorded in the ADR's revisit triggers rather than guarded, because the guard would be a claim about what a scalar <em>means</em>.</p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">G29</span>
+      <div>
+        <p class="otitle">No audit names a saved column with no simulation writer</p>
+        <p><code>CitizenTable.Employment</code> was saved — therefore hashed — with nothing in <code>src/</code> writing or reading it, so <strong>the golden baseline was folding a fixture's arithmetic</strong>. <code>adr/0146</code> gave the column its first meaning, which is <em>defining</em> it rather than extending it. ⚠ <strong>The general defect is unowned</strong>: this is the mirror of a derived-but-never-rebuilt column, and no test asks the second question. Found by grepping for something else.</p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">wage</span>
+      <div>
+        <p class="otitle">Two ADRs disagree about the wage and neither says so</p>
+        <p><code>adr/0141</code> puts <em>the wage</em> in the trade's <em>Declares</em> row; <code>adr/0026</code>'s whole mechanism is that the wage <strong>moves</strong>, each Business adjusting its own by its own fill rate. A kind declaration is Ruleset data — identical across every Business of that kind — so <em>a number that adjusts per-Business cannot be one</em>. The reading that makes both true: the trade declares the posted <strong>anchor</strong> and the current wage is a row column. ⚠ <strong>That is a reading, not a decision, and it is milestone 15's to settle.</strong></p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">§D1</span>
+      <div>
+        <p class="otitle">Every number these worlds produce ratifies nothing</p>
+        <p>A shop has <strong>no revenue</strong> — <code>Scope.Pool</code> still throws — so a levy on one is a levy on capital. <code>founded.toml</code>'s two founding numbers and the levy's percentage are all in the unratified ledger. <strong>Do not quote a money figure out of a run of either file as anything about the economy.</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="note teal">
+    <span class="lbl">Where it leaves the project</span>
+    <p>The economic actor <strong>exists in a city rather than in a fixture</strong>, and there is no longer a shipped world without one in it — which is the opposite answer to the one milestone 25's closing task got, one milestone later. <strong>Next is milestone 26, the purchase</strong>: <code>Scope.Pool</code> stops throwing, and a Rule can finally spend money between two actors that both exist.</p>
+  </div>
+</section>
+
+<hr class="end">
+<p class="colophon">
+  Borough · milestone 27 · decomposed 2026-08-24, closed 2026-08-25 · sources: <code>plans/0041</code> (the order, the surveys and the findings), <code>plans/0040</code> (the task specifications), <code>plans/0003</code>, <code>docs/06</code>, <code>adr/0145</code>–<code>adr/0150</code>. Read the plans rather than this page for anything you intend to rely on.
+</p>
+
+</div>
