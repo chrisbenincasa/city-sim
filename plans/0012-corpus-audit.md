@@ -4034,3 +4034,49 @@ builds the acceptance test the summary describes, for trades, at milestone 26. *
 true of the trade rule and stays false of the housing rule**, which is tier 0 by that ADR's own
 consequences — so ***the correction is to say which rule it is describing***, and that is owed with 26's
 first code task rather than now.
+
+### 🔴 The Ruleset keys have never been asked *would a designer ever set this*, and the answer is not always yes
+
+**Raised by the user on 2026-08-25, in session W, unprompted and against the session's own
+proposal** — *"it seems like some keys we're defining for rulesets will only ever be applicable in the
+demonstration / test rulesets… I am all but certain we've defined ones that are only ever useful for
+demonstrations."* **The test is now
+[`adr/0164`](../docs/adr/0164-a-ruleset-key-is-designer-facing-or-it-belongs-in-the-instrument.md)**;
+***the sweep is this row and it has not been run.***
+
+⚠ **It is a NEW Cause rather than an instance of one, and the shape is worth naming.** Every Cause in
+this ledger so far is *a document says something wrongly*. This one is **a document offers a control
+nobody would use** — the corpus is not incorrect anywhere, and a designer opening a Ruleset is still
+misled, because ***every key in a file asserts that somebody should have an opinion about it.***
+
+**What the sweep must do, and it is not a grep.** For each key in `rulesets/` and each key
+`RulesetLoader` accepts, ask **would a designer ever set this** — *would*, in the course of making a
+city behave differently, not *could*. `adr/0164` names three ways the answer is **no**: the real
+mechanism is a **player verb** (`[roads] arterial_count = 0` is the worked example, and it is already
+correct); the consumer is an **instrument** (`SyntheticCity`, which calls itself *"an instrument, not a
+mechanism"*); or the value is **derived** and stating it is not choosing it.
+
+🔴 **Only the first two are defects, and the third must not be swept up with them.** A derived value
+written down so a designer can *find* it is serving the designer — `rulesets/minimal.toml`'s
+`revisit_ticks = 2048` says ***"stating it is not choosing it"*** in its own comment, and that sentence
+is the disclaimer the test asks for. ***So the remedy for a borderline case is the disclaiming comment
+and not a deletion***, and a sweep that deletes keys will do more damage than the thing it is fixing.
+
+⚠ **What a hit costs, stated so the sweep is not treated as tidying.** A key that fails the test has
+usually acquired a [`0002`](0002-open-questions.md) **§D** row and a ratifier under
+[`adr/0052`](../docs/adr/0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md) —
+***machinery for deciding whether a number describes the city correctly, pointed at a number that
+describes no city at all.*** §D is the ledger `adr/0043` cites as evidence for what has been examined,
+so scaffolding in it degrades the one record that is supposed to say what is settled.
+
+**Session W's own near-miss is the worked example and it is the reason to believe there are others.**
+The session proposed a `[lots]` key for the commercial share of a generated world and **got as far as
+choosing its ratifier** before the question was asked — by the user, not by the session. The answer was
+**no**, and for the strongest reason available: no designer touches `SyntheticCity` at all.
+⚠ ***A session that had just written an ADR about not authoring content by hand was one exchange from
+authoring a key nobody would ever set.***
+
+**Not run here**, because a sweep is work rather than a decision, and because `adr/0164` was written the
+same afternoon and nothing has been checked against it yet. **It wants a session or a milestone task of
+its own**, and the first thing it should produce is a count: how many keys, how many hits, and how many
+of the hits are the third row rather than the first two.

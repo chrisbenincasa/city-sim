@@ -708,6 +708,15 @@ Adapted from UrbanSim's architecture, which has been the operational design of a
 > surface and a bid contest. 🔴 **Tier 1 cannot ship before `Scope.Pool` does**, so the Provider and the
 > purchase land together at milestone 26.
 >
+> ⚠ **WHICH LAND A TRADE MAY BE RAISED ON IS SETTLED SEPARATELY AND IS NOT A RULESET QUESTION** —
+> [`adr/0165`](adr/0165-a-zone-permits-building-kinds-so-the-split-is-exclusive-and-the-instrument-paints-it.md).
+> The split is **exclusive**, as `CONTEXT.md` → Zone already says a permission set is, and
+> `SyntheticCity` paints it by deterministic index arithmetic because it is **an instrument rather than
+> a mechanism**. 🔴 **Universal mixed use was proposed and is a NAMED EXPLOIT** — `adr/0011`'s
+> *mixed-use tolerance | universal mixed use becomes strictly optimal* — whose closing mechanism is
+> **unbuilt**. ✅ **Exclusive zoning costs nothing that matters, because a Zone permits *Building kinds*
+> and a Business is an Occupant**: *living above the shop* never was a zoning question.
+
 > ⚠ **And what step 5 ships today is the degenerate form of what this section describes.** The create
 > predicate is `UnplacedPool.Count != 0` — a Lot reading a city-wide count as a boolean — which
 > `ZoneRuleEngine.Create`'s own doc comment records as a **stand-in** for the acceptance test its
@@ -922,6 +931,8 @@ A Building accumulates **failure pressure** from:
 Past a threshold, it **loses occupancy and quality**. Past a further threshold, it is **abandoned — emptied, and left standing on its Lot.**
 
 ⚠ **This line said *"its Lot returns to vacant"* and contradicted the paragraph twelve lines below it, which is the reading that stands** ([`adr/0091`](adr/0091-clearing-land-is-bought-rather-than-taken-and-demolish-is-the-sixth-verb.md)). A condition cannot be *"retained on the Building"* by a Building whose Lot has gone back to vacant, and the build implemented the wrong half — `World.DestroyBuilding` frees everything. Three things depend on the shell standing: contagion needs a **carrier**, since bare ground has no dereliction term in the desirability composition; `01 §6`'s sustained-detection duration is *derived from* how long contagion takes to reach neighbours, so with no contagion it is somebody's guess again; and `01 §6` and §5.2 above both treat clearance of abandoned stock as a lever separate from rezoning, which needs something to clear. The **sink** that keeps standing abandoned stock inside [`adr/0006`](adr/0006-no-collection-grows-with-elapsed-time.md) is the one an occupied Lot already has — redevelopment when land value falls far enough to pencil (§5.5), plus the player's `Demolish` and the `Govern` clearance programme. It is bounded by the Lot count, never by elapsed time.
+
+> ⚠ **AMENDED AGAIN 2026-08-25 by [`adr/0166`](adr/0166-a-business-runs-rules-and-its-rules-live-as-long-as-its-tenancy.md): there is a THIRD subject, and a shop nobody buys from does not decline at all.** 🔴 **Only input starvation is pressure, and that is deliberate** — `RuleEngine.Stop` clears the clock for every blocking reason but `Blocking.Supply`, because a full Bin ***"is what a well-supplied Building with nobody to sell to looks like"***, and this section names input starvation as the source. ⚠ **So a trade cannot be made to churn by failing to SELL**; it must go short of something it **consumes**, which is money, which is **bankruptcy** rather than starvation ([`adr/0137`](adr/0137-the-wait-list-knows-which-bin-and-evidence-does-not-so-bankruptcy-needs-one-field.md)). 🔴 **Which nothing can express today**: a Rule Instance's subject is *premises or Household* and there is no Business, so `adr/0166` widens it — **a Business's Rule Instances and Bins live exactly as long as its tenancy**, which is the rule milestone 25 already wrote for the other Occupant kind. ⚠ **DECIDED AND NOT SCHEDULED**, and it is the work milestone 27 task 9 built and reverted **for sizing rather than on any argument**.
 
 **An abandoned Building is not a *derelict* one and the two share no machinery.** `CONTEXT.md` → Derelict is what a **Ruleset edit** does to a Building whose kind is no longer declared ([`adr/0057`](adr/0057-dereliction-is-a-design-time-state-and-it-is-derived-rather-than-recorded.md)); abandonment is what the **city** does to one, and only the second has a cause worth reporting.
 

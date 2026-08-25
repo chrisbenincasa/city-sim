@@ -23,6 +23,10 @@ milestone **26** — the purchase, where `Scope.Pool` stops throwing.
 ~~🔴 **NOT RUN.**~~ 🟡 **RAN 2026-08-25 WITH THE USER IN THE ROOM, AND SETTLED ONE OF FOUR.** Written
 against the tree at `7e67c46`.
 
+✅ **W-Q1, W-Q2 AND W-Q3 ARE SETTLED; W-Q4 IS THE ONE LEFT.** Four ADRs, `adr/0163`–`adr/0166`.
+🔴 **THE SITTING REVERSED THIS BRIEF THREE TIMES AND THE USER DROVE EVERY REVERSAL** (**W13**,
+**W17**, **W18**). ***That is the result worth carrying forward, more than any single decision.***
+
 ✅ **W-Q1 IS SETTLED** —
 [`adr/0163`](../docs/adr/0163-demand-for-a-shop-is-elapsed-unserved-need-in-reach-and-building-claims-it.md),
 *demand for a shop is elapsed unserved need in reach, and building claims it.* **Open: W-Q2, W-Q3, W-Q4**
@@ -344,3 +348,76 @@ without correcting the reading.
 | **W-Q2** | What declines a Provider | ✅ **Shrank to one authoring decision** — *what does a shop consume such that failing kills it* (**W12**) |
 | **W-Q3** | The land-use split | 🔴 **Now the expensive one.** No mechanism under it at all (**W8**) — one zone bit painted, no repaint path, and a Ruleset naming an unpainted bit loads clean and builds nothing |
 | **W-Q4** | Which Ruleset carries the Provider | Unchanged, and ⚠ **it is now also a §D2 ratifier**: `adr/0163`'s two numbers name *milestone 26's own demonstration Ruleset* as the world, which is this question |
+
+
+---
+
+## What the sitting concluded on W-Q2 and W-Q3 — the same day
+
+**W17 — 🔴 THE SESSION WAS WRONG TWICE ABOUT W-Q2, IN THE SAME DIRECTION, AND WROTE THE ERROR INTO AN
+ADR BEFORE CATCHING IT.** It asserted that a Provider's decline came nearly free — *a shop with no
+customers sells nothing, fails its own Rule, and condemnation does the rest.* **Both halves are false.**
+
+1. **A shop nobody buys from is IMMORTAL.** Its output Bin fills, so it stops on `Blocking.Space`, and
+   `RuleEngine.Stop` **clears** the pressure clock for every blocking reason but `Blocking.Supply`.
+   ⚠ **Deliberately**: `RuleInstanceTable.StarvedSince` says a full Bin ***"is what a well-supplied
+   Building with nobody to sell to looks like"***, and `02 §5.9` names **input starvation** as the
+   source. `Blocking.Space`'s own definition names the case — ***"a bakery whose shelf of bread nobody
+   has bought."***
+2. **The obvious repair cannot be armed.** A money-consuming Rule would go short on `Supply` and work —
+   but `RuleInstanceTable`'s subjects are *premises* and `Handle<Household>`, ***and there is no
+   Business.***
+
+⚠ **The error's shape is the thing to keep**: reasoning about a mechanism from **what it plainly ought
+to do** rather than from what it does — [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+with no document to blame, because no document said it. `adr/0163`'s Consequences carry the correction
+in place rather than a deletion.
+
+**W18 — ✅ W-Q2 IS `adr/0166`, AND THE USER'S QUESTION IS WHAT FOUND IT.** Offered a three-way fork —
+give a Business Rules, a balance-empty departure bound, or defer decline — the session ranked the
+**bound** first for shipping inside 26. ***The user rejected it on the diagnostic*** — *not appearing in
+evidence seems like a deal-breaker* — and asked why the first option had been dropped, *"that just seems
+like the much more natural option."*
+
+🔴 **Reading the record showed it had never been rejected at all.** `0041` **G39**: the column was built,
+crashed, and was reverted because *"nothing was decided wrongly … **what it cost was sizing**"* — so
+under [`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) it is **unbuilt**
+and only *refused* would have been evidence. ✅ **And the obstacle that crashed it — a Rule Instance
+naming premises an unpremised Business may not have — is answered by milestone 25's own tenancy rule
+unchanged**: a Business's Rules live exactly as long as its tenancy, as a Household's already do.
+⚠ ***Task 9 could not have known that; it built the column before the tenancy rule existed to copy.***
+
+**W19 — 🔴 W-Q3's FIRST ANSWER WAS A NAMED EXPLOIT AND THE SECOND WAS A KEY NOBODY WOULD SET.**
+The session proposed **universal mixed use** — permit both uses everywhere, one literal — and the user
+questioned whether it belonged in the game at all. **It is `adr/0011`'s *"mixed-use tolerance |
+universal mixed use becomes strictly optimal"***, one of five exploits `plans/0002` records as closed,
+***and the tolerance that closes it is unbuilt.*** The session then proposed authoring the split as a
+`[lots]` Ruleset key **and got as far as choosing its ratifier** before the user asked *when would a
+designer want to use this key* — the question that became
+[`adr/0164`](../docs/adr/0164-a-ruleset-key-is-designer-facing-or-it-belongs-in-the-instrument.md).
+✅ **The answer is `adr/0165`**, and it **removes** a number rather than adding one.
+
+⚠ **The finding that dissolved the mixed-use argument is worth its own line**: a Zone permits
+**Building kinds**, and a Business is an **Occupant** — so *living above the shop* is invisible to
+zoning and always was. ***Exclusive zoning costs nothing that makes a street feel alive.***
+
+**W20 — ⚠ `SyntheticCity` HAD WRITTEN DOWN BOTH MISTAKES BEFORE THEY WERE MADE TO IT.** *"This is an
+instrument, not a mechanism"* answers *would a designer set this*; *"It draws no randomness,
+deliberately … a fixture is exactly the kind of code somebody reaches for a convenient random"* refuses
+the `purpose_tag` the session was about to add. ***The class documents its own randomlessness as a
+safety property, and the proposal was to remove it.***
+
+### Where the sitting leaves milestone 26
+
+| | Was | Now |
+|---|---|---|
+| **W-Q1** what raises a Provider | open | ✅ [`adr/0163`](../docs/adr/0163-demand-for-a-shop-is-elapsed-unserved-need-in-reach-and-building-claims-it.md) |
+| **W-Q2** what declines one | open | ✅ [`adr/0166`](../docs/adr/0166-a-business-runs-rules-and-its-rules-live-as-long-as-its-tenancy.md) — 🔴 **decided and NOT scheduled; it is milestone-sized** |
+| **W-Q3** the land-use split | open, "the expensive one" | ✅ [`adr/0165`](../docs/adr/0165-a-zone-permits-building-kinds-so-the-split-is-exclusive-and-the-instrument-paints-it.md) — **cheapest of the three, and it authors nothing** |
+| **W-Q4** which Ruleset | open | 🔴 **STILL OPEN**, and it is now the ratifier for `adr/0163`'s two numbers |
+
+🔴 **The sitting did NOT make milestone 26 smaller.** `adr/0166` is a subsystem widening 26 now depends
+on for its decline half and its bankrupt world. ⚠ **What it did was replace two unknowns with one
+scheduled thing** — and the brief's opening risk, *that this session concludes* build it *and 26 gets
+bigger*, **fired.** ***It was named in advance and it happened anyway, which is the correct outcome for
+a risk rather than a failure of one.***

@@ -245,4 +245,12 @@ The full list is in `CLAUDE.md` and `plans/0003 §Definition of done`. In short:
   each term and citation inline as it is used, and debrief at the end of a chunk of work. *The corpus's
   register is a property of the corpus and not of the project*, and carrying it into a chat reply makes
   a status report unreadable.
+- **Before a number becomes a Ruleset key, ask *would a designer ever set this?*** If no, it belongs
+  in whatever fixture generates test worlds, as ordinary code
+  ([`adr/0164`](docs/adr/0164-a-ruleset-key-is-designer-facing-or-it-belongs-in-the-instrument.md)).
+  ⚠ **This is the converse of `CLAUDE.md`'s *no tuning number is a `const`*, and the corpus had only
+  ever applied that rule in one direction** — the qualifier *the designer would want to change it* is
+  load-bearing. A key nobody would set is not made correct by living in a file; it is made misleading,
+  because every key in a Ruleset invites somebody to tune it and drags a `plans/0002` §D ratifier
+  obligation behind it. ⚠ **It is a question asked in review and deliberately not a mechanical check.**
 - Documents cross-reference by section: `02 §4.1`, `05 §9`.

@@ -128,11 +128,21 @@ work without correcting the reading.
   ratifier names a machine, **a world** and **a quantity**, and the world is milestone 26's own
   demonstration Ruleset, which does not exist yet. ***§D2 rather than §D1 because they are unset rather
   than in use.***
-- ✅ **W-Q2, the decline Rule, becomes nearly free and stops being a separate invention.** A shop with no
-  customers in reach sells nothing, earns nothing and fails its own Rule — and failing a Rule is already
-  what condemns a Building (`condemn_after` on the kind, pressure from continuous starvation). ⚠ **It
-  does not become automatic**: the trade still needs a Rule it *can* fail, which is content and is
-  session W's to author.
+- 🔴 ~~✅ **W-Q2, the decline Rule, becomes nearly free and stops being a separate invention.** A shop
+  with no customers in reach sells nothing, earns nothing and fails its own Rule — and failing a Rule is
+  already what condemns a Building.~~ **THIS WAS WRONG AND WAS CORRECTED THE SAME DAY, IN THE SAME
+  SITTING** ([`adr/0166`](0166-a-business-runs-rules-and-its-rules-live-as-long-as-its-tenancy.md)).
+  ***A shop nobody buys from is IMMORTAL.*** Its output Bin fills, so it stops on `Blocking.Space`, and
+  `RuleEngine.Stop` **clears** the failure-pressure clock for every blocking reason that is not
+  `Blocking.Supply` — deliberately, because `RuleInstanceTable.StarvedSince` records that a full Bin
+  ***"is what a well-supplied Building with nobody to sell to looks like"*** and `02 §5.9` names **input
+  starvation** as the source. ⚠ **A trade cannot be made to churn by failing to SELL; it must go short
+  of something it CONSUMES**, which is money, which is bankruptcy — and **nothing can hang a Rule on a
+  Business today**, so `adr/0166` is the prerequisite. ***The error is left visible rather than deleted
+  because it was made twice in one sitting, in the same direction: reasoning about a mechanism from what
+  it plainly ought to do rather than from what it does*** — which is
+  [`adr/0093`](0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md) with no
+  document to blame.
 - ⚠ **The reach query is the dependency and its cost is *measurable* and UNMEASURED.** It runs per
   sampled Lot per trigger, over the walk search whose cost is `≈ 37 ns × distance²`
   ([`plans/0002`](../../plans/0002-open-questions.md)). **A row is owed in
