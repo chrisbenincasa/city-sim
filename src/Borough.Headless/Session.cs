@@ -734,6 +734,20 @@ internal static class Session
         return ZoneDump.Run(options, writer);
     }
 
+    /// <summary>Milestone 24's artefact: the ground a city stands on, before and after a run.</summary>
+    internal static int DumpTerrain(Options options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (options.OutPath is null)
+        {
+            return TerrainDump.Run(options, Console.Out);
+        }
+
+        using var writer = new StreamWriter(options.OutPath);
+        return TerrainDump.Run(options, writer);
+    }
+
     /// <summary>Slice 5a's artefact: the Road Graph, and its components per mode.</summary>
     internal static int DumpRoads(Options options)
     {

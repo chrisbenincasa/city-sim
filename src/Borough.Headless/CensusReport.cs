@@ -142,6 +142,18 @@ internal static class CensusReport
             WriteRow(writer, "money moved", label, series);
         }
 
+        // A fourth kind of row, and a level like the money block above it. It is what answers the
+        // *no magnitude trending upward* half of every milestone's definition of done -- adr/0003's
+        // extension of adr/0006 to quantities -- which the table rows above cannot, because a row
+        // count is not a magnitude.
+        foreach ((LayerCounter counter, string label) in CensusFamilies.LayerCounters)
+        {
+            Series series = census.Series(Metric.Of(counter), window);
+            truncated |= !series.Complete;
+
+            WriteRow(writer, "layers", label, series);
+        }
+
         foreach ((TripCounter counter, Aggregate aggregate, string label) in CensusFamilies.TripCounters)
         {
             Series series = census.Series(Metric.Of(counter, aggregate), window);

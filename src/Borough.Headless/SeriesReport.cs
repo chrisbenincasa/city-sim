@@ -128,6 +128,17 @@ internal static class SeriesReport
             "trip cost — a flow, accumulated between samples",
             [.. CensusFamilies.TripCosts.Select(
                 row => (row.Name, Metric.Of(row.Bucket, Aggregate.Sum)))]);
+
+        // Last, and the only block a reader checks for a SHAPE rather than for a size: a magnitude
+        // that climbs for the whole run is adr/0006's one-way ratchet, and two endpoints cannot tell
+        // that from one that settled early. This is the block that made *Sealing reaches a steady
+        // state* answerable at all.
+        Block(
+            writer,
+            census,
+            window,
+            "layers — a level, summed over the map and read at the sample",
+            [.. CensusFamilies.LayerCounters.Select(row => (row.Name, Metric.Of(row.Counter)))]);
     }
 
     /// <summary>

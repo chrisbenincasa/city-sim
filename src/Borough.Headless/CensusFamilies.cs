@@ -175,6 +175,23 @@ internal static class CensusFamilies
         (MoneyCounter.Elsewhere, "elsewhere"),
     ];
 
+    /// <summary>
+    /// The Map Layer magnitudes, summed over the map. <b>Levels, so none takes an Aggregate.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>Sealing and woodland are printed together because they are one budget seen from either
+    /// end</b> — woodland is bounded by <c>TilesInCell - Sealing</c> (<c>adr/0159</c>), so a reader
+    /// given one of them cannot tell a forest that stopped growing from one that was built over.
+    /// ⚠ <b>Fertility is not a row here and its absence is a decision</b>: the world stores no
+    /// Fertility, so a census of the world has nothing to read. See <c>MetricSource.Layers</c>.
+    /// </remarks>
+    public static readonly (LayerCounter Counter, string Name)[] LayerCounters =
+    [
+        (LayerCounter.Sealing, "sealing"),
+        (LayerCounter.Woodland, "woodland"),
+        (LayerCounter.Pollution, "pollution"),
+    ];
+
     /// <summary>What the Policy sweeps moved, by direction relative to the treasury.</summary>
     public static readonly (MoneyFlowCounter Counter, Aggregate Aggregate, string Name)[]
         MoneyFlowCounters =

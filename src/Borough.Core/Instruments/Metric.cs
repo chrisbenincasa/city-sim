@@ -573,6 +573,51 @@ public enum MoneyFlowCounter : byte
     FromTreasury,
 }
 
+/// <summary>
+/// One Map Layer magnitude, summed over the whole map. <b>Levels, so none takes an
+/// <see cref="Aggregate"/>.</b>
+/// </summary>
+/// <remarks>
+/// <b>Stored quantities only.</b> Each member is a column the world actually holds, so the sum is a
+/// read rather than a recomputation. Fertility is composed at the point of use and is therefore not
+/// here — see <see cref="MetricSource.Layers"/>, which argues the omission.
+/// </remarks>
+public enum LayerCounter : byte
+{
+    /// <summary>
+    /// Every Tile in the world ever built on — <c>LayerCellTable.Sealing</c>, summed.
+    /// </summary>
+    /// <remarks>
+    /// <b>The half of <c>adr/0022</c>'s arc that only goes one way on its own.</b> Building raises it
+    /// and only the decay pass lowers it, so a run whose Sealing climbs without bound is the
+    /// one-way ratchet <c>adr/0006</c> is about, and a run whose Sealing settles is the milestone's
+    /// <em>reaches a steady state</em> clause being met. ⚠ <b>Read on the sparse Layer Cell table</b>,
+    /// so this costs a walk of the Cells that have a row rather than a walk of the map.
+    /// </remarks>
+    Sealing,
+
+    /// <summary>
+    /// Every Tile of standing forest — <c>WoodlandCellTable.Tiles</c>, summed.
+    /// </summary>
+    /// <remarks>
+    /// <b>Read against <see cref="Sealing"/>, which is the whole point of the pair</b>
+    /// (<c>adr/0022</c>'s load-bearing constant, <c>adr/0159</c>). Woodland is bounded by
+    /// <c>TilesInCell − Sealing</c>, so the two are one budget seen from either end and neither is
+    /// interpretable alone. ⚠ <b>Read on a dense table</b>, so this is the one member whose sum walks
+    /// the map — at the sampling cadence and never inside <c>step()</c>.
+    /// </remarks>
+    Woodland,
+
+    /// <summary>
+    /// Industrial pollution standing in the world — <c>LayerCellTable.Pollution</c>, summed.
+    /// </summary>
+    /// <remarks>
+    /// A magnitude with a decay under it, so it is the member most likely to be flat and the cheapest
+    /// check that the family is reading anything at all. Sparse, like <see cref="Sealing"/>.
+    /// </remarks>
+    Pollution,
+}
+
 /// <summary>Which family of thing a <see cref="Metric"/> names.</summary>
 /// <remarks>
 /// <b>Two families rather than one, because a level and a flow are not the same kind of number.</b>
@@ -665,6 +710,26 @@ public enum MetricSource : byte
     /// family counts events and this one measures amounts.
     /// </remarks>
     MoneyFlow,
+
+    /// <summary>One Map Layer magnitude: a level, read at an instant and not aggregated.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>An eleventh family, and <see cref="Money"/>'s shape rather than <see cref="Table"/>'s.</b>
+    /// A table counter is a row count; this is a quantity spread over the map, and the two answer
+    /// different halves of the same obligation — <c>adr/0006</c> forbids a collection that grows with
+    /// elapsed time and <c>adr/0003</c> extends that to <em>magnitudes</em>. Every milestone's
+    /// definition of done asks for <em>no collection and no magnitude trending upward at steady
+    /// state</em>, and until this family existed the census answered the first half only.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Fertility is deliberately not a member, and its absence is the decision.</b> Fertility is
+    /// composed at the point of use from Sealing, pollution and Ruleset data — the world stores no
+    /// Fertility anywhere — so a census <em>of the world</em> has nothing to read. Its trend is
+    /// carried by the two members it composes from, and admitting it would drag a
+    /// <c>TerrainRuleset</c> into an instrument that takes a <c>World</c>. <c>adr/0155</c>.
+    /// </para>
+    /// </remarks>
+    Layers,
 }
 
 /// <summary>
@@ -751,6 +816,13 @@ public readonly record struct Metric
     public MoneyCounter MoneyCounter => Source is MetricSource.Money
         ? (MoneyCounter)_counter
         : throw new InvalidOperationException($"a {Source} metric does not name a money aggregate.");
+
+    /// <summary>The Map Layer magnitude this names.</summary>
+    /// <exception cref="InvalidOperationException">This metric is not a Map Layer level.</exception>
+    public LayerCounter LayerCounter => Source is MetricSource.Layers
+        ? (LayerCounter)_counter
+        : throw new InvalidOperationException(
+            $"a {Source} metric does not name a Map Layer magnitude.");
 
     /// <summary>The money movement this names.</summary>
     /// <exception cref="InvalidOperationException">This metric is not a money flow.</exception>
@@ -840,4 +912,10 @@ public readonly record struct Metric
     /// <returns>The metric.</returns>
     public static Metric Of(MoneyFlowCounter counter, Aggregate aggregate) =>
         new(MetricSource.MoneyFlow, 0, (byte)counter, (byte)aggregate);
+
+    /// <summary>Names one Map Layer magnitude. A level, so it takes no <see cref="Aggregate"/>.</summary>
+    /// <param name="counter">Which magnitude.</param>
+    /// <returns>The metric.</returns>
+    public static Metric Of(LayerCounter counter) =>
+        new(MetricSource.Layers, 0, (byte)counter, 0);
 }

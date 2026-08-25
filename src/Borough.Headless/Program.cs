@@ -51,6 +51,9 @@ internal static class Program
                 case Mode.Zones:
                     return Session.DumpZones(options);
 
+                case Mode.Terrain:
+                    return Session.DumpTerrain(options);
+
                 case Mode.Roads:
                     return Session.DumpRoads(options);
 

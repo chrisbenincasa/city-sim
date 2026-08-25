@@ -172,6 +172,24 @@ internal enum Mode
     /// declares two and builds neither. See <c>BusinessDump</c>.
     /// </remarks>
     Business,
+
+    /// <summary>
+    /// The ground a city stands on: terrain type, Fertility, Sealing and Woodland. Milestone 24's.
+    /// </summary>
+    /// <remarks>
+    /// <b>A mode of its own rather than four names on <see cref="Layer"/></b>, and the reason is that
+    /// <see cref="Layer"/>'s world has no city in it. That dump hand-emits pollution into a bare
+    /// <c>World</c> to demonstrate a kernel and never runs <c>SyntheticCity</c>, so Sealing and
+    /// Woodland are structurally zero there whatever it is asked for. ⚠ <b>Two of the four fields
+    /// here are not <see cref="Borough.Core.Space.Layer"/> members at all</b>: terrain type is a
+    /// category rather than a magnitude, and Fertility is composed at the point of use from Ruleset
+    /// data, so neither can be read by <c>MapLayers.Value</c>. ⚠ <b>It does NOT refuse a Ruleset
+    /// stating no <c>[[terrain]]</c></b> — <see cref="Evidence"/>'s polarity: every world has ground
+    /// (<c>adr/0021</c>), so the type map is real on any file, and a file declining to price that
+    /// ground is a legible absence naming the key that would fix it. <c>rulesets/varied.toml</c> is
+    /// the file written for this picture. See <c>TerrainDump</c>.
+    /// </remarks>
+    Terrain,
 }
 
 /// <summary>
@@ -404,6 +422,7 @@ internal sealed class Options
         bool csv = false;
         bool decideGuard = true;
         bool zones = false;
+        bool terrain = false;
         bool roads = false;
         bool trips = false;
         bool commute = false;
@@ -452,6 +471,12 @@ internal sealed class Options
                 // with --layer's refusal below for a reason the operator did not cause.
                 case "--zones":
                     zones = true;
+                    continue;
+
+                // --zones' reasoning exactly: the mode implies a run, so setting `session` would
+                // collide with --layer's refusal for a reason the operator did not cause.
+                case "--terrain":
+                    terrain = true;
                     continue;
 
                 // Not a session flag either, and for a stronger reason than --zones': a Road dump does
@@ -639,8 +664,12 @@ internal sealed class Options
                     if (!LayerDump.TryParse(value, out Layer named))
                     {
                         complaint = $"--layer {value} is not a Map Layer. "
-                                  + "The Layers are pollution, land-value and sealing. Noise is not "
-                                  + "one: it is a line source and a point-of-use query (adr/0034).";
+                                  + "The Layers are pollution, land-value, sealing and woodland. "
+                                  + "Noise is not one: it is a line source and a point-of-use query "
+                                  + "(adr/0034). ⚠ Sealing and woodland are ZERO on this mode's "
+                                  + "world, which hand-emits pollution into a bare World and never "
+                                  + "runs SyntheticCity -- use --terrain for the ground a city "
+                                  + "actually stands on.";
                         return false;
                     }
 
@@ -802,6 +831,35 @@ internal sealed class Options
             complaint = "--arrivals and --log disagree: this mode issues its own arrive commands, so "
                       + "a recorded session would be replayed and then driven on top of. If you want "
                       + "a scripted arrival, write the verb into the log and use --log alone.";
+            return false;
+        }
+
+        if (terrain && (business || arrivals || landValue || parking || evidence || traffic
+                        || commute || zones || roads || trips || dump is not null))
+        {
+            complaint = "--terrain asks for another picture, and each picture builds its own world. "
+                      + "Ask for one. ⚠ --layer is the near miss: it takes a Layer name and prints a "
+                      + "Cell grid, so it looks like the same question asked another way. It is not "
+                      + "-- its world never runs SyntheticCity, so Sealing and Woodland are zero "
+                      + "there whatever it is asked for.";
+            return false;
+        }
+
+        if (terrain && rulesets.Count == 0)
+        {
+            complaint = "--terrain needs --ruleset PATH. Sealing is ground a city has been built on, "
+                      + "so a world with no Ruleset lays no Buildings and seals nothing, and the "
+                      + "picture would be four empty grids. ⚠ It does NOT need a file stating "
+                      + "[[terrain]] -- every world has ground (adr/0021) and a file may decline to "
+                      + "price it, which prints as a named absence rather than a zero. "
+                      + "rulesets/varied.toml is the file this mode was written for.";
+            return false;
+        }
+
+        if (terrain && log is not null)
+        {
+            complaint = "--terrain and --log disagree: a terrain dump runs its own populated session, "
+                      + "and a log replays somebody else's.";
             return false;
         }
 
@@ -1132,7 +1190,8 @@ internal sealed class Options
 
         options = new Options
         {
-            Mode = business ? Mode.Business
+            Mode = terrain ? Mode.Terrain
+                 : business ? Mode.Business
                  : arrivals ? Mode.Arrivals
                  : money ? Mode.Money
                  : landValue ? Mode.LandValue
@@ -1221,7 +1280,15 @@ internal sealed class Options
                                 --ruleset, and refuses --log
           --layer NAME          dump a Map Layer's Cell grid before and after a source
                                 change, with the halo that was recomputed. NAME is
-                                pollution, land-value or sealing
+                                pollution, land-value, sealing or woodland. Its world is
+                                a kernel demonstration and is NEVER built into a city, so
+                                sealing and woodland read zero here -- use --terrain
+          --terrain             dump the ground a city stands on -- terrain type, then
+                                fertility, sealing and woodland before and after --ticks
+                                Ticks of decay and regrowth. Needs --ruleset, because a
+                                city has to be laid before it seals anything. A file
+                                stating no [[terrain]] is allowed and prints a named
+                                absence for fertility; rulesets/varied.toml states it
           --zones               dump the Lot grid by permission and occupancy, before and
                                 after --ticks Ticks of sweeping, with what the sweep did.
                                 Needs --ruleset, because a sweep is a Ruleset's behaviour

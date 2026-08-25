@@ -30,7 +30,11 @@ namespace Borough.Headless;
 internal static class LayerDump
 {
     /// <summary>The demonstration window, in Cells. Chosen to fit a terminal, not the map.</summary>
-    private static readonly CellRect Window =
+    /// <remarks>
+    /// <b>Shared with <see cref="TerrainDump"/></b>, so that two dumps of the same map crop to the
+    /// same ground and can be read against each other line for line.
+    /// </remarks>
+    internal static readonly CellRect Window =
         new(new Cells(0), new Cells(0), new Cells(56), new Cells(24));
 
     /// <summary>
@@ -41,7 +45,7 @@ internal static class LayerDump
     /// resolves. It is a <em>display</em> quantisation and nothing reads it back; the CSV form beside
     /// it is what anybody comparing numbers should use.
     /// </remarks>
-    private const string Ramp = " .:-=+*#%";
+    internal const string Ramp = " .:-=+*#%";
 
     /// <summary>Runs the demonstration and writes it to <paramref name="output"/>.</summary>
     internal static void Run(TextWriter output, Layer layer, bool csv)
@@ -134,7 +138,7 @@ internal static class LayerDump
     }
 
     /// <summary>Maps a value onto the ramp. Zero is always blank, so the plume's edge is visible.</summary>
-    private static char Step(int value, int peak)
+    internal static char Step(int value, int peak)
     {
         if (value <= 0 || peak <= 0)
         {
@@ -154,6 +158,7 @@ internal static class LayerDump
         Layer.IndustrialPollution => "industrial pollution",
         Layer.LandValue => "land value",
         Layer.Sealing => "sealing",
+        Layer.Woodland => "woodland",
         _ => throw new ArgumentOutOfRangeException(nameof(layer)),
     };
 
@@ -172,6 +177,10 @@ internal static class LayerDump
 
             case "sealing":
                 layer = Layer.Sealing;
+                return true;
+
+            case "woodland":
+                layer = Layer.Woodland;
                 return true;
 
             default:

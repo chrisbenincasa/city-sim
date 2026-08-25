@@ -3,6 +3,7 @@ using Borough.Core.Input;
 using Borough.Core.Invariants;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
+using Borough.Core.Space;
 using Borough.Formats;
 using Borough.Headless;
 
@@ -590,6 +591,76 @@ public sealed class RunnerTests
         Assert.False(Options.TryParse(["--zones"], out _, out string? complaint));
 
         Assert.Contains("--zones needs --ruleset", complaint, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Sealing is ground a city has been built on, so a world with no Ruleset seals nothing.
+    /// </summary>
+    [Fact]
+    public void A_terrain_dump_needs_a_ruleset()
+    {
+        Assert.False(Options.TryParse(["--terrain"], out _, out string? complaint));
+
+        Assert.Contains("--terrain needs --ruleset", complaint, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// ⚠ <b>The near miss the refusal is written for.</b> <c>--layer</c> also takes a Layer name and
+    /// also prints a Cell grid, so it reads as the same question asked another way. Its world is a
+    /// kernel demonstration that never runs <c>SyntheticCity</c>.
+    /// </summary>
+    [Fact]
+    public void A_terrain_dump_and_a_layer_dump_disagree()
+    {
+        Assert.False(Options.TryParse(
+            ["--terrain", "--ruleset", "varied.toml", "--layer", "sealing"],
+            out _,
+            out string? complaint));
+
+        Assert.Contains("Ask for one", complaint, StringComparison.Ordinal);
+    }
+
+    /// <summary>A terrain dump runs its own populated session, as a Zone dump does.</summary>
+    [Fact]
+    public void A_terrain_dump_and_a_log_disagree()
+    {
+        Assert.False(Options.TryParse(
+            ["--terrain", "--ruleset", "varied.toml", "--log", "s.borough"],
+            out _,
+            out string? complaint));
+
+        Assert.Contains("runs its own populated session", complaint, StringComparison.Ordinal);
+    }
+
+    /// <summary>A file stating no <c>[[terrain]]</c> is ALLOWED, and prints a named absence.</summary>
+    /// <remarks>
+    /// <c>Evidence</c>'s polarity rather than <c>Zones</c>': every world has ground
+    /// (<c>adr/0021</c>), so the type map is real on any file, and a Ruleset declining to price that
+    /// ground is a legible absence rather than an uninterpretable blank.
+    /// </remarks>
+    [Fact]
+    public void A_terrain_dump_accepts_a_ruleset_that_prices_no_ground()
+    {
+        Assert.True(Options.TryParse(
+            ["--terrain", "--ruleset", "minimal.toml"],
+            out Options? options,
+            out _));
+
+        Assert.Equal(Mode.Terrain, options!.Mode);
+    }
+
+    /// <summary>
+    /// 🔴 <b>The gap this milestone found in the tooling.</b> <c>Layer.Woodland</c> shipped with task
+    /// 8b and <c>MapLayers.Value</c> served it from the first day, but the shell could not ask for it:
+    /// <c>TryParse</c> had no case and <c>Name</c> threw. ***A field with no consumer is invisible
+    /// whether the hole is in the city or in the tooling.***
+    /// </summary>
+    [Fact]
+    public void A_layer_dump_can_be_asked_for_woodland()
+    {
+        Assert.True(LayerDump.TryParse("woodland", out Layer layer));
+        Assert.Equal(Layer.Woodland, layer);
+        Assert.Equal("woodland", LayerDump.Name(Layer.Woodland));
     }
 
     /// <summary>Two pictures of two different things, each building its own world.</summary>

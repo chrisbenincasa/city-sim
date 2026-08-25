@@ -2,6 +2,7 @@ using Borough.Core.Entities;
 using Borough.Core.Movement;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
+using Borough.Core.Space;
 using Borough.Core.Tables;
 
 namespace Borough.Core.Instruments;
@@ -117,6 +118,10 @@ public sealed class Census
 
     private const int MoneyFlowMetrics = MoneyFlowCounters * AggregatesPerRuleCounter;
 
+    // Levels, on MoneyCounters' reasoning exactly: a magnitude read at an instant is the same
+    // number at any cadence, so none of the three takes an Aggregate.
+    private const int LayerCounters = 3;
+
     /// <summary>
     /// Readings held before the oldest is overwritten.
     /// </summary>
@@ -155,6 +160,9 @@ public sealed class Census
 
     private readonly int _moneyFlowBase;
 
+    /// <summary>Where the Map Layer magnitudes begin, which is where the money movements end.</summary>
+    private readonly int _layerBase;
+
     private readonly int _metrics;
     private readonly int _capacity;
     private readonly ulong[] _ticks;
@@ -192,7 +200,8 @@ public sealed class Census
         _policyBase = _tripCostBase + TripCostMetrics;
         _moneyBase = _policyBase + PolicyMetrics;
         _moneyFlowBase = _moneyBase + MoneyCounters;
-        _metrics = _moneyFlowBase + MoneyFlowMetrics;
+        _layerBase = _moneyFlowBase + MoneyFlowMetrics;
+        _metrics = _layerBase + LayerCounters;
         _capacity = capacity;
         _ticks = new ulong[capacity];
         _values = new long[capacity * _metrics];
@@ -370,6 +379,35 @@ public sealed class Census
             Write(_values, at + _tripCostBase, bucket, trips.Costs[(TripCostBucket)bucket]);
         }
 
+        // The Map Layer magnitudes, on the money ledger's terms: cold by construction, taken on
+        // --hash-every and never inside step(). Two of the three are sparse walks over the Cells that
+        // have a row; Woodland's is dense and is the only one that touches the whole map.
+        MapLayers layers = world.Layers;
+        long sealing = 0;
+        long pollution = 0;
+
+        for (int slot = 0; slot < layers.Cells.Rows.SlotCount; slot++)
+        {
+            if (!layers.Cells.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            sealing += layers.Cells.Sealing[slot];
+            pollution += layers.Cells.Pollution[slot];
+        }
+
+        long woodland = 0;
+
+        for (int cell = 0; cell < CellGrid.WorldCellCount; cell++)
+        {
+            woodland += layers.Woodland.Tiles[cell];
+        }
+
+        _values[at + _layerBase + (int)LayerCounter.Sealing] = sealing;
+        _values[at + _layerBase + (int)LayerCounter.Woodland] = woodland;
+        _values[at + _layerBase + (int)LayerCounter.Pollution] = pollution;
+
         _ticks[_next] = tick.Raw;
         _next = (_next + 1) % _capacity;
         _taken++;
@@ -485,6 +523,18 @@ public sealed class Census
             }
 
             return _moneyBase + (int)metric.MoneyCounter;
+        }
+
+        if (metric.Source is MetricSource.Layers)
+        {
+            if (metric.LayerCounter is not (LayerCounter.Sealing or LayerCounter.Woodland
+                or LayerCounter.Pollution))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(metric), metric.LayerCounter, "not a Map Layer magnitude this census reads.");
+            }
+
+            return _layerBase + (int)metric.LayerCounter;
         }
 
         if (metric.Aggregate is not (Aggregate.Sum or Aggregate.Peak))
