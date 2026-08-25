@@ -3949,3 +3949,35 @@ that will falsify it is a citation*, and this is one that came due and was not p
 ⚠ **What it cost is worth recording, because it is what Cause 4 is for.** The comment did not mislead a
 reader about behaviour; it sized a task. Task 9 was planned as *a column plus a fork* and is a **loop
 plus a membership test**, and the half-day between those two estimates was spent building the wrong one.
+
+### 🔴 Two doc comments say *nothing tenants a Business* four hundred lines above the method that does
+
+**Found 2026-08-25, surveying the Zone Rule for
+[`0043`](0043-session-w-the-provider-kinds-content.md) — session W's brief — and not while looking for a
+defect.** Cause 4, and the **third sighting of one shape in two days**.
+
+| Where | What it says | What is true |
+|---|---|---|
+| `src/Borough.Core/Entities/UnpremisedTable.cs:19-25` | *"IT SHIPS WITH ONE EXIT AND THAT EXIT IS THE SINK … nothing tenants a Business … `World.CreateBusiness` has no `src/` caller"* | `PlacementEngine.Tenant` (`:563-630`) premises pool members into any standing Building with room, calling `World.Premise` at `:626`. `CreateBusiness` has **two** production callers — `World.cs:1335` (the gate) and `World.cs:2856` (`Fit`) |
+| `src/Borough.Core/Rules/PlacementEngine.cs:645-650`, in `Retire`'s remarks | *"nothing tenants a Business"* | ⚠ **The method that tenants one is in the same file, four hundred lines above it** |
+
+**Both were true when written and both were falsified by milestone 27** — task 7's placement pass
+([`adr/0147`](../docs/adr/0147-a-business-takes-premises-by-placement-and-one-ceiling-counts-both-kinds-of-tenant.md))
+and task 8's founding channel. ***The mechanism moved and the sentences describing it did not.***
+
+⚠ **It is the shape [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+predicts exactly**: both are **right about where to look and wrong about the trigger**. And it is
+[`0041`](0041-the-business-is-a-thing-the-city-contains.md) **G1** a third time — a milestone's own risk
+cell, then `plans/0003`'s copy of it, now two doc comments — ***every one of them a sentence about a
+mechanism that outlived the mechanism.***
+
+🔴 **What makes this one worse than a stale comment: `UnpremisedTable`'s says the pool has ONE EXIT AND
+IT IS THE SINK**, and a reader sizing `adr/0006` off it would conclude the pool drains only by
+emigration. It does not — **milestone 27 task 10 measured 7,165 premisings against ZERO give-ups over
+131,072 Ticks** (`0041` **G44**), so ***in every world that exists the exit the comment denies is the
+only one that has ever fired.*** **A comment that is wrong about which sink runs is a comment that
+misdirects the next `adr/0006` audit.**
+
+⚠ **Not fixed in the sitting that found it, and that is deliberate**: `plans/0043` is a brief and edits
+no code, and these are doc comments on the mechanism session W is about to make decisions against.
+**They go with milestone 26's first code task**, whoever takes it.
