@@ -586,17 +586,20 @@ public sealed class ParkingArrivalStreamTests
     /// </summary>
     private static Ruleset WithASecondEmployingKind()
     {
-        // Anchored on the second kind's own Shift band, the one line unique to it -- `jobs = 8` is on
-        // the dwelling too, and the raw string's indentation is stripped on emission, so anchoring on
-        // layout is anchoring on something that is not there.
-        const string band = "shift_start_earliest_hour = 3";
+        // Anchored on the line that ties the premises to its trade, because `parking` is a
+        // [[building]] key and only a premises block can carry `business = `. The anchor was the
+        // second kind's Shift band until milestone 27 task 7 moved the employer onto the trade,
+        // at which point the band was still present, still unique, and in the other block -- so
+        // `parking = 8` went into [[business]] and the loader refused the file. A textual anchor
+        // must name something the block it belongs to cannot lose.
+        const string premises = "business = \"workshop_trade\"";
 
         string toml = Movement.CommuteLongRunTests.SecondKindToml(3, 6);
 
-        Assert.Contains(band, toml, StringComparison.Ordinal);
+        Assert.Contains(premises, toml, StringComparison.Ordinal);
 
         return Load(
-            toml.Replace(band, "parking = 8\n" + band, StringComparison.Ordinal)
+            toml.Replace(premises, "parking = 8\n" + premises, StringComparison.Ordinal)
             + "\n\n[households]\ncar_ownership_percent = 100\n");
     }
 
