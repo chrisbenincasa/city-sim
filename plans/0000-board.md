@@ -18,7 +18,7 @@ has a **Household found** one, spending a **Citizen** as well as its money, with
 which **emptied every shipped city** until the content half landed — 66 assertions on one sentence,
 *nobody is employed anywhere*. A **Policy now sweeps Businesses**
 ([`adr/0149`](../docs/adr/0149-a-business-is-a-population-a-policy-sweeps-and-a-readout-names-every-entity-it-reads-against.md)),
-and **`levied.toml` and `founded.toml` are the fifteenth and sixteenth shipped files.**
+and **`levied.toml` and `founded.toml` shipped with it** — ⚠ **count the files at `rulesets/` rather than here; milestone 24's merge landed two more the day after.**
 ⚠ **Task 9 is NOT the task its plan described**: the Rule-Instance column `RuleInstanceTable`'s own comment
 predicted was **built, crashed on the Tick it fired, and was reverted** — ***`adr/0093` working rather than
 failing***, because the comment was right about where to look and was never a claim about what the work was.
