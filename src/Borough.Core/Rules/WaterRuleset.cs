@@ -7,7 +7,7 @@ namespace Borough.Core.Rules;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <c>adr/0159</c>, milestone 24 task 6a. <b>One key, because a generator only needs to be told how
+/// <c>adr/0160</c>, milestone 24 task 6a. <b>One key, because a generator only needs to be told how
 /// high the water is.</b> Everything else about a Water Body is derived: its extent is the ground
 /// below this level, its identity is a connected component of that extent, and its outflow is where
 /// it spills. ⚠ <b>There is no water-coverage key and that absence is the decision</b> — a share of
@@ -68,7 +68,7 @@ public readonly record struct WaterRuleset(
                 "[water] sea_level_percent is a fraction of the height range this world realised, and "
                 + "must be between 1 and 99. Zero would mean a world with no water, which is what "
                 + "omitting [water] already says; 100 would mean a world that is entirely water. "
-                + "adr/0159.");
+                + "adr/0160.");
         }
 
         // Refused at both ends for the sea level's own reasons, one rung along. AT OR BELOW the sea
@@ -83,7 +83,7 @@ public readonly record struct WaterRuleset(
                 floodLevelPercent,
                 $"[water] flood_level_percent is how high a flood reaches on the same scale as "
                 + $"sea_level_percent, so it must be above it ({seaLevelPercent}) and below 100. "
-                + "Omit it for a world with no floodplain -- a steep coast is a world. adr/0156.");
+                + "Omit it for a world with no floodplain -- a steep coast is a world. adr/0157.");
         }
 
         return new WaterRuleset(
@@ -119,7 +119,7 @@ public readonly record struct WaterRuleset(
 
     /// <summary>The same Ruleset with a Bin on every Water Body.</summary>
     /// <param name="carries">
-    /// The one Resource a Water Body holds. <b>Must be <c>Utility</c> family</b> — <c>adr/0160</c>.
+    /// The one Resource a Water Body holds. <b>Must be <c>Utility</c> family</b> — <c>adr/0161</c>.
     /// </param>
     /// <param name="capacityPerCell">How much one wet Cell of a body holds. Positive.</param>
     /// <param name="outflowPerExitPerDay">How much leaves per exit per Day. Positive.</param>
@@ -135,7 +135,7 @@ public readonly record struct WaterRuleset(
         if (carries.Raw == 0)
         {
             throw new ArgumentException(
-                "a Water Body's Bin needs a Resource to hold. adr/0160.", nameof(carries));
+                "a Water Body's Bin needs a Resource to hold. adr/0161.", nameof(carries));
         }
 
         // Both positive rather than non-negative, and for one reason each. A capacity of 0 is a body

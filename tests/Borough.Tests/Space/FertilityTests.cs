@@ -14,9 +14,9 @@ namespace Borough.Tests.Space;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <c>adr/0155</c>. <b>The hole at <c>MapLayers.Fertility</c> closes here</b>, and what it closes into
+/// <c>adr/0156</c>. <b>The hole at <c>MapLayers.Fertility</c> closes here</b>, and what it closes into
 /// is a composition at the point of use — there is no fertility column, no fertility Layer and nothing
-/// baked (<c>adr/0154</c>, <c>02 §2.4</c>).
+/// baked (<c>adr/0155</c>, <c>02 §2.4</c>).
 /// </para>
 /// <para>
 /// ⚠ <b>Two properties are asserted that a reader would expect to be bugs, and both are decisions.</b>
@@ -130,7 +130,7 @@ public sealed class FertilityTests
 
     /// <summary>Terrain is what makes two untouched Cells differ, and nothing else can.</summary>
     /// <remarks>
-    /// 🔴 <b>The whole point of <c>adr/0157</c>, checked at the consumer rather than at the column.</b>
+    /// 🔴 <b>The whole point of <c>adr/0158</c>, checked at the consumer rather than at the column.</b>
     /// Before terrain varied, every Cell in a city farmed identically until the player touched it, and
     /// <c>adr/0022</c>'s <em>agriculture and housing repel each other</em> dynamic had nothing to push
     /// against on Tick 0.

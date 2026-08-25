@@ -16,14 +16,14 @@ namespace Borough.Tests.Space;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <c>CONTEXT.md</c> → Hazard Region, <c>01 §5.2</c>, <c>adr/0156</c>. The claims under test are the
+/// <c>CONTEXT.md</c> → Hazard Region, <c>01 §5.2</c>, <c>adr/0157</c>. The claims under test are the
 /// derivation's: <b>a flood reaches dry ground below the flood level and nothing else</b>; <b>the
 /// depth is the level minus the ground, so it is always positive</b>; <b>a world that omits the key
 /// has no rows rather than rows of depth zero</b>; and <b>one key gives one Hazard Region for
 /// ever</b>.
 /// </para>
 /// <para>
-/// ⚠ <b>Nothing here asserts a share, and <c>adr/0156</c> is why that matters more than usual.</b>
+/// ⚠ <b>Nothing here asserts a share, and <c>adr/0157</c> is why that matters more than usual.</b>
 /// That ADR's own revisit trigger is *floodplain depth turns out not to be sparse* — so how much of a
 /// map floods is a figure the storage decision rests on, and it lives in
 /// <see cref="FloodplainMeasurementTests"/> where re-running it re-derives a constant. Pinning it here
@@ -127,7 +127,7 @@ public sealed class FloodplainTests
     /// </summary>
     /// <remarks>
     /// ⚠ <b>It recomputes the level rather than reading one off the world, because the world stores
-    /// no height</b> (<c>adr/0156</c>). The level is a percent of the range THIS world realised, so
+    /// no height</b> (<c>adr/0157</c>). The level is a percent of the range THIS world realised, so
     /// the test has to take the same two passes over the same field the generator did — which is also
     /// what makes it a check of the rule rather than of the code.
     /// </remarks>

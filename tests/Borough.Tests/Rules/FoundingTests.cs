@@ -83,6 +83,108 @@ public sealed class FoundingTests(Xunit.Abstractions.ITestOutputHelper output)
         Assert.Equal(0, controlActivity.Founded.Sum);
     }
 
+
+    /// <summary>
+    /// 🔴 <b>A founded Business is not razed in the instantiated one's place, and a kind is not an
+    /// identity.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Milestone 27 task 10's regression, and the long run is what found it.</b>
+    /// <c>[founding]</c> draws uniformly over <em>every</em> declared trade, so a Household may found
+    /// a shop of the very trade a dwelling declares — and <c>DestroyBuilding</c> identified <em>the
+    /// trade this kind came with</em> by matching on <see cref="BusinessTable.Kind"/>, which made the
+    /// two interchangeable. Whichever came first in the list was razed.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The assertion is about BALANCES because the balance is the only thing that separates the
+    /// two.</b> An instantiated Business is capitalised by nobody and opens at <b>zero</b>; a founded
+    /// one is given <c>founding_band</c> out of its founder's Household and never spends it in this
+    /// file. So ***a Business in the unpremised pool holding nothing is an instantiated one that
+    /// outlived its premises***, which <c>adr/0148</c> says cannot happen — and 60 of them were
+    /// standing here before <see cref="BusinessTable.Origin"/> landed.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The third assertion is the one that keeps this from passing vacuously.</b> A world where
+    /// founding never happened to pick the dwelling's trade would satisfy the claim without ever
+    /// exercising the collision, so the pool has to be shown holding a Business of that trade.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_founded_business_of_the_declared_trade_is_not_razed_with_the_premises()
+    {
+        (World world, Simulation running) = City("founded.toml", 0xF0DDU, 2_000);
+
+        Money issued = world.MoneySupply.Issued[MoneySupplyTable.Slot];
+
+        for (int tick = 0; tick < 24_576; tick++)
+        {
+            running.Step(TickInput.Empty);
+        }
+
+        byte declared = 0;
+
+        for (byte kind = 1; kind <= world.Rules.KindCount; kind++)
+        {
+            if (world.Rules.Kind(kind).Business != 0)
+            {
+                declared = world.Rules.Kind(kind).Business;
+                break;
+            }
+        }
+
+        Assert.True(declared != 0, "no kind in founded.toml declares a trade, so nothing instantiates.");
+
+        int pooled = 0;
+        int broke = 0;
+        int pooledOfTheDeclaredTrade = 0;
+
+        for (int slot = 0; slot < world.Businesses.Rows.SlotCount; slot++)
+        {
+            if (!world.Businesses.Rows.IsLive(slot) || !world.Businesses.IsUnpremised(slot))
+            {
+                continue;
+            }
+
+            pooled++;
+
+            if (world.Businesses.Kind[slot] == declared)
+            {
+                pooledOfTheDeclaredTrade++;
+            }
+
+            if (world.BalanceOf(world.Businesses.Rows.At(slot)).Raw == 0)
+            {
+                broke++;
+            }
+        }
+
+        _out.WriteLine(
+            $"pooled={pooled} of the declared trade={pooledOfTheDeclaredTrade} holding nothing={broke} "
+            + $"issued {issued.Raw} -> {world.MoneySupply.Issued[MoneySupplyTable.Slot].Raw}");
+
+        Assert.True(pooled > 0, "nothing is in the unpremised pool, so there is nothing to check.");
+
+        Assert.True(
+            pooledOfTheDeclaredTrade > 0,
+            "nothing in the pool carries the trade the dwelling kind declares, so the collision this "
+            + "test exists for was never reached and the assertion below would pass vacuously.");
+
+        Assert.True(
+            broke == 0,
+            $"{broke} of {pooled} Businesses in the unpremised pool hold nothing. Only adr/0148's "
+            + "INSTANTIATED trade opens at a zero balance, and adr/0148 says it comes down with its "
+            + "premises -- so a pooled Business holding nothing is one that outlived them, and the "
+            + "founded Business of the same trade was razed in its place.");
+
+        // The other end of the same defect, and it is the one that leaves the city. Raze writes the
+        // razed Business's balance out of MoneySupply.Issued (adr/0142), so razing a FOUNDED shop
+        // exports its capital. Nothing gave up in this window -- the give-up bound is 30 Days and
+        // placement re-premises a pooled Business long before that -- so a supply that moved at all
+        // moved through a demolition.
+        Assert.Equal(issued, world.MoneySupply.Issued[MoneySupplyTable.Slot]);
+    }
+
     /// <summary>
     /// The founding channel has a sink, and a run long enough to reach it drains the pool.
     /// </summary>

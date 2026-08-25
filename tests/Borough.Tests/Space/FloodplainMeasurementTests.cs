@@ -14,7 +14,7 @@ namespace Borough.Tests.Space;
 /// </summary>
 /// <remarks>
 /// <para>
-/// 🔴 <b>This is the figure <c>adr/0156</c>'s storage decision rests on, and that ADR names it as its
+/// 🔴 <b>This is the figure <c>adr/0157</c>'s storage decision rests on, and that ADR names it as its
 /// own revisit trigger</b>: *floodplain depth turns out not to be sparse — if a shipped world's
 /// floodplain covers enough of the map, the sparse store stops being cheaper than a dense one and the
 /// storage question reopens on cost rather than on principle.* So this instrument is not decoration;
@@ -103,7 +103,7 @@ public sealed class FloodplainMeasurementTests(ITestOutputHelper output)
             "A LEVEL, NOT A COVERAGE. The share above is what these keys realised at this flood "
             + "level; another key at the same level differs. Quote the sentence, not the digits.");
         output.WriteLine(
-            "adr/0156 REOPENS if this stops being sparse -- the sparse store has to stay cheaper "
+            "adr/0157 REOPENS if this stops being sparse -- the sparse store has to stay cheaper "
             + "than a dense column of 262,144 ints for its storage choice to hold.");
     }
 }

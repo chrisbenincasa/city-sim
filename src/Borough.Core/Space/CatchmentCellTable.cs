@@ -38,7 +38,7 @@ public readonly struct CatchmentCell;
 /// minimum with no wet Cell downhill of it sheds its water into ground that goes nowhere — the dry
 /// counterpart of the endorheic basin <see cref="WaterBodyTable.Downstream"/> already spells the same
 /// way. ⚠ <b>It also covers every Cell on a world with no <c>[water]</c> at all</b>, which is an
-/// inland city and a legitimate world (<c>adr/0159</c>).
+/// inland city and a legitimate world (<c>adr/0160</c>).
 /// </para>
 /// </remarks>
 [Table]

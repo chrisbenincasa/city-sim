@@ -15,7 +15,7 @@ namespace Borough.Tests.Space;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <c>adr/0160</c>, <c>CONTEXT.md</c> → Water Body. The claims: <b>one Bin per body holding one
+/// <c>adr/0161</c>, <c>CONTEXT.md</c> → Water Body. The claims: <b>one Bin per body holding one
 /// <c>Utility</c>-family Resource</b>; <b>capacity is the body's size</b>, which is what makes
 /// pollution a debt in a small body and a rent in a large one; <b>outflow is the body's exits</b>, so
 /// a pond fills and a sea flushes with no taxonomy of water types; and <b>a full body downstream backs
@@ -23,7 +23,7 @@ namespace Borough.Tests.Space;
 /// </para>
 /// <para>
 /// 🔴 <b>Nothing in the build puts anything in a Water Body's Bin, so every test here deposits by
-/// hand.</b> No <c>Scope</c> reaches a Water Body — <c>adr/0160</c> names that as <c>adr/0070</c>'s
+/// hand.</b> No <c>Scope</c> reaches a Water Body — <c>adr/0161</c> names that as <c>adr/0070</c>'s
 /// *unbuilt* — which means the outflow mechanism is exercised only from this file, and on every
 /// shipped world it moves nothing because every level is zero. ⚠ <b>That is stated rather than hidden
 /// behind a passing suite</b>: a green run here is not evidence that any city's water does anything.
@@ -110,7 +110,7 @@ public sealed class WaterBinTests
     }
 
     /// <summary>
-    /// ⚠ <b>The Resource is <c>Utility</c> family, and that is <c>adr/0160</c> rather than a
+    /// ⚠ <b>The Resource is <c>Utility</c> family, and that is <c>adr/0161</c> rather than a
     /// convention.</b> A Good moving downstream would move with no Vehicle.
     /// </summary>
     [Fact]

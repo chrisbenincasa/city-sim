@@ -17,7 +17,7 @@ namespace Borough.Tests.Formats;
 /// ⚠ <b>The all-five refusal is the one worth reading first.</b> Every other table in the loader is
 /// optional key by key; this one is optional only as a <em>set</em>, and
 /// <see cref="A_file_that_prices_only_some_of_the_ground_is_refused"/> is where the argument for that
-/// is enforced rather than asserted. <c>adr/0157</c>.
+/// is enforced rather than asserted. <c>adr/0158</c>.
 /// </para>
 /// <para>
 /// <b>The key carries its denomination in its name</b> — <c>base_fertility_percent</c> rather than
@@ -154,7 +154,7 @@ public sealed class TerrainRulesetLoadTests
     /// <summary>The five Base Fertilities reach the core, as Q16.16.</summary>
     /// <remarks>
     /// <b>Authored as a percent and stored as a fraction</b> — <c>adr/0048</c> refuses an unquoted
-    /// decimal on the path in, and <c>adr/0155</c> makes <see cref="Fixed.One"/> mean fully fertile so
+    /// decimal on the path in, and <c>adr/0156</c> makes <see cref="Fixed.One"/> mean fully fertile so
     /// that Fertility composes as a proportion.
     /// </remarks>
     [Theory]
@@ -227,7 +227,7 @@ public sealed class TerrainRulesetLoadTests
     /// <remarks>
     /// <b>A <c>[[terrain]]</c> name selects a member of a closed set rather than declaring one</b>,
     /// which is what separates it from every other <c>name</c> the loader reads. A file cannot add a
-    /// sixth type; <c>adr/0157</c> makes appending one a code change and a re-baseline.
+    /// sixth type; <c>adr/0158</c> makes appending one a code change and a re-baseline.
     /// </remarks>
     [Fact]
     public void A_name_that_is_not_a_terrain_type_is_refused()
@@ -270,7 +270,7 @@ public sealed class TerrainRulesetLoadTests
 
     /// <summary>A Base Fertility past the top of the scale is refused rather than clamped.</summary>
     /// <remarks>
-    /// <c>adr/0155</c> makes <c>1.0</c> fully fertile, so <b>100 is the scale's own top rather than a
+    /// <c>adr/0156</c> makes <c>1.0</c> fully fertile, so <b>100 is the scale's own top rather than a
     /// tuning choice</b>. A file above it is not a very good field; it is a file whose author believes
     /// the units are something else, and clamping would hide exactly that.
     /// </remarks>
@@ -284,7 +284,7 @@ public sealed class TerrainRulesetLoadTests
             Excepting("thin_soil", Table("thin_soil", $"base_fertility_percent = {percent}\nsealing_decay_tau = 8")));
 
         Assert.Contains($"base_fertility_percent is {percent}", refusal.Reason, StringComparison.Ordinal);
-        Assert.Contains("adr/0155", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("adr/0156", refusal.Reason, StringComparison.Ordinal);
     }
 
     /// <summary>

@@ -78,6 +78,9 @@ internal static class Program
                 case Mode.Arrivals:
                     return Session.DumpArrivals(options);
 
+                case Mode.Business:
+                    return Session.DumpBusiness(options);
+
                 case Mode.Report:
                 default:
                     return Report.Print(options);

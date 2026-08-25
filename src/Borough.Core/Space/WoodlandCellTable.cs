@@ -13,7 +13,7 @@ public readonly struct WoodlandCell;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <c>adr/0158</c>, milestone 24 task 8a. <see cref="WoodlandGenerator.LayInto"/> fills it at world
+/// <c>adr/0159</c>, milestone 24 task 8a. <see cref="WoodlandGenerator.LayInto"/> fills it at world
 /// creation and <see cref="MapLayers.Seal"/> takes from it as ground is built on. ✅ <b>Milestone 24
 /// task 8b puts it back</b> — <see cref="MapLayers.RegrowWoodland"/>, on a cadence, toward
 /// <see cref="Potential"/>. This paragraph said <em>nothing puts Woodland back yet</em>, and the rate

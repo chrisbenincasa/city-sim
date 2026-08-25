@@ -133,7 +133,7 @@ public sealed class WoodlandRegrowthTests
 
     /// <summary>Sealing bounds it, because the ground has one budget and not two.</summary>
     /// <remarks>
-    /// <c>adr/0158</c>: <c>Woodland + Sealing ≤ TilesInCell</c> is what the two counts <em>mean</em>.
+    /// <c>adr/0159</c>: <c>Woodland + Sealing ≤ TilesInCell</c> is what the two counts <em>mean</em>.
     /// <b>This is the only writer that raises Woodland</b>, so it is the only one that could break the
     /// bound from that side — <see cref="MapLayers.Seal"/> guards the other.
     /// </remarks>

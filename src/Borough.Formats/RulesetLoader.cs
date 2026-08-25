@@ -3382,7 +3382,7 @@ public static class RulesetLoader
             // Absent means NEVER, and a stated zero is refused because it means the opposite. This is
             // a DURATION rather than a time constant, so 0 Days reads as "instantly" -- the one value
             // a designer must not be able to reach by writing a number that looks like an absence.
-            // adr/0159's rule about a second spelling of an existing state, arriving where the two
+            // adr/0160's rule about a second spelling of an existing state, arriving where the two
             // spellings would mean different things. The ceiling is the Cell: past TilesInCell the
             // derived step rounds to nothing and the floor takes over, so the authored duration would
             // silently not be the duration. Milestone 24 task 8b, adr/0022.
@@ -3464,7 +3464,7 @@ public static class RulesetLoader
             // the pollution term for every Cell alike. Its sibling w₂ is two lines up, which is the
             // other half of the argument: two Layer compositions, two weights, one table.
             //
-            // ⚠ There is deliberately NO fertility_sealing_percent. adr/0155: a Cell at
+            // ⚠ There is deliberately NO fertility_sealing_percent. adr/0156: a Cell at
             // CellGrid.TilesInCell has every Tile built on and therefore no farmland, which PINS that
             // coefficient -- and offering it as a key invites a Ruleset to state that a fully paved
             // Cell still farms.
@@ -4469,7 +4469,7 @@ public static class RulesetLoader
             // Refused at BOTH ends, and neither is a range check for its own sake. Zero puts the sea
             // at the lowest Cell on the map, which is a world with no water -- a second spelling of
             // the absent table, and a designer who wrote it would mean something the generator cannot
-            // hear. A hundred puts every Cell under it, which is not a city. adr/0159.
+            // hear. A hundred puts every Cell under it, which is not a city. adr/0160.
             if (percent is < 1 or > 99)
             {
                 Refuse(LineOfWater("sea_level_percent"), null,
@@ -4491,7 +4491,7 @@ public static class RulesetLoader
             // AT OR BELOW the sea is ground already under water, so the Hazard Region it describes is
             // empty -- a key that reads as a decision and derives nothing, which is adr/0123's failure
             // arriving in a loader. 100 puts the flood at the map's highest Cell, which is a drowning
-            // rather than a floodplain. adr/0156.
+            // rather than a floodplain. adr/0157.
             if (flood <= percent || flood > 99)
             {
                 Refuse(LineOfWater("flood_level_percent"), null,
@@ -4532,7 +4532,7 @@ public static class RulesetLoader
                     + "and runoff_per_sealed_cell_per_day but not all four. A Water Body's Bin needs "
                     + "a Resource to hold, a capacity, a way out and a way in; any one of them alone "
                     + "describes part of a mechanism. Omit all four for water with no level. "
-                    + "adr/0160.");
+                    + "adr/0161.");
 
                 return WaterRuleset.None;
             }
@@ -4558,7 +4558,7 @@ public static class RulesetLoader
 
             var resource = new ResourceId(id);
 
-            // adr/0160, and it is the whole of that decision expressed as a check. A Water Body moves
+            // adr/0161, and it is the whole of that decision expressed as a check. A Water Body moves
             // its contents along an edge of the water graph, with no Vehicle -- and adr/0031 defines a
             // Good as a Resource whose movement between Districts REQUIRES one. So a Good here would
             // be a counterexample to the definition of Good sitting inside a loaded world.
@@ -4569,7 +4569,7 @@ public static class RulesetLoader
                     + $"{_families[id - 1].ToString().ToLowerInvariant()}. A Water Body's Bin holds "
                     + "a utility-family Resource: it moves its contents along an edge of the water "
                     + "graph with no Vehicle, and a good is by definition a Resource whose movement "
-                    + "between Districts requires one. adr/0160, adr/0031.");
+                    + "between Districts requires one. adr/0161, adr/0031.");
 
                 return WaterRuleset.None;
             }
@@ -4624,7 +4624,7 @@ public static class RulesetLoader
         /// </summary>
         /// <remarks>
         /// <para>
-        /// <c>adr/0157</c>, milestone 24 task 2. <b>Optional as a set and all-or-nothing within it</b>
+        /// <c>adr/0158</c>, milestone 24 task 2. <b>Optional as a set and all-or-nothing within it</b>
         /// — a file states five <c>[[terrain]]</c> tables or none. Absence is
         /// <see cref="TerrainRuleset.None"/>, a Ruleset declining to price its ground, and never a
         /// world without terrain in it: <b>the type column is written from the <c>WorldKey</c>
@@ -4687,7 +4687,7 @@ public static class RulesetLoader
                     continue;
                 }
 
-                // Refused above 100 and not clamped. adr/0155 makes 1.0 mean FULLY fertile, so the
+                // Refused above 100 and not clamped. adr/0156 makes 1.0 mean FULLY fertile, so the
                 // top of the scale is the scale's own rather than a chosen bound -- and Fertility
                 // composes as a proportion against it. A file above the top is not a very good field;
                 // it is a file whose author believes the units are something else.
@@ -4698,7 +4698,7 @@ public static class RulesetLoader
                         $"base_fertility_percent is {percent} for '{name}'. It is the ceiling this "
                         + "ground's Fertility starts at, as a percentage of fully fertile, so the "
                         + "scale runs 0 to 100 and 100 is its top rather than a tuning choice "
-                        + "(adr/0155).");
+                        + "(adr/0156).");
 
                     continue;
                 }
@@ -4749,7 +4749,7 @@ public static class RulesetLoader
                     + "needs both base_fertility_percent and sealing_decay_tau. A file that prices "
                     + "its ground prices all of it: the generator places every terrain type from the "
                     + "WorldKey whatever this file says, so an unstated one is ground the world "
-                    + "contains and this file values at nothing (adr/0157), or ground whose recovery "
+                    + "contains and this file values at nothing (adr/0158), or ground whose recovery "
                     + "rate nothing states (adr/0044).");
             }
 
@@ -4775,7 +4775,7 @@ public static class RulesetLoader
         /// <remarks>
         /// <b>The set is closed and a file cannot extend it</b>, which is what separates this from
         /// every other <c>name</c> the loader reads: a <c>[[resource]]</c> name declares a Resource,
-        /// and this one selects ground the generator already places. <c>adr/0157</c>.
+        /// and this one selects ground the generator already places. <c>adr/0158</c>.
         /// </remarks>
         private bool TryTerrainKind(TableSyntaxBase table, string name, out TerrainKind kind)
         {
@@ -4792,7 +4792,7 @@ public static class RulesetLoader
                         $"'{name}' is not a terrain type. The types are 'ordinary', 'rock', "
                         + "'floodplain', 'marsh' and 'thin_soil', and a Ruleset selects among them "
                         + "rather than declaring one -- the generator places the five it knows "
-                        + "(adr/0157).");
+                        + "(adr/0158).");
 
                     kind = default;
                     return false;

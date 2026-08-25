@@ -8,7 +8,7 @@ namespace Borough.Core.Space;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <c>adr/0158</c>, milestone 24 task 8a. <b>A world-creation pass of its own</b>, run beside
+/// <c>adr/0159</c>, milestone 24 task 8a. <b>A world-creation pass of its own</b>, run beside
 /// <see cref="TerrainGenerator.LayInto"/> and — like it — <b>not because anything downstream reads
 /// it</b>. <c>adr/0090</c> closes the generator's remit around <em>terrain, Woodland, hazard regions
 /// and the Outside Connections</em>, and this is the second of those four.

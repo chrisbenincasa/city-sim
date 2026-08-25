@@ -166,7 +166,7 @@ public sealed class FactorioTests(ITestOutputHelper output)
         Scan(WithUnpremised(), reached, []);
 
         // The seventh: the water graph is laid only on a Ruleset that states [water], and coastal.toml
-        // is the only shipped file that does. Milestone 24 task 6a, adr/0159.
+        // is the only shipped file that does. Milestone 24 task 6a, adr/0160.
         Scan(WithWater(512), reached, []);
 
         List<string> unreachable = [.. every.Where(name => !reached.Contains(name))];
@@ -432,7 +432,7 @@ public sealed class FactorioTests(ITestOutputHelper output)
     /// with no production writer needs a fixture named for it.*** Here the writer is real and runs on
     /// every world — <c>WaterGenerator.LayInto</c>, from <c>SyntheticCity.PopulateInto</c> — but it
     /// lays nothing at all unless the Ruleset states <c>[water]</c>, and <c>coastal.toml</c> is the
-    /// only shipped file that does (<c>adr/0159</c>). ⚠ <b>Gated on a Ruleset key</b>, which is
+    /// only shipped file that does (<c>adr/0160</c>). ⚠ <b>Gated on a Ruleset key</b>, which is
     /// <see cref="WithDistricts"/>'s shape exactly rather than a new one.
     /// </remarks>
     private static World WithWater(int ticks) =>

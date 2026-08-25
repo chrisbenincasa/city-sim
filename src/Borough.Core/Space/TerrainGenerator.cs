@@ -9,14 +9,14 @@ namespace Borough.Core.Space;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <c>adr/0157</c>, milestone 24 task 2. <b>A world-creation pass of its own</b>, called from
+/// <c>adr/0158</c>, milestone 24 task 2. <b>A world-creation pass of its own</b>, called from
 /// <see cref="Entities.SyntheticCity.PopulateInto"/> between the already-populated refusal and
 /// <c>LayLand</c> (<c>plans/0042</c> decision 3) — terrain goes first because it is the ground, and
 /// <b>not because anything downstream reads it</b>: roads do not avoid water (<c>adr/0021</c>),
-/// Woodland is not an obstacle, and buildable grade does not ship (<c>adr/0156</c>).
+/// Woodland is not an obstacle, and buildable grade does not ship (<c>adr/0157</c>).
 /// </para>
 /// <para>
-/// ⚠ <b>Height is computed here and stored nowhere</b> (<c>adr/0156</c>, and <c>adr/0021</c> as
+/// ⚠ <b>Height is computed here and stored nowhere</b> (<c>adr/0157</c>, and <c>adr/0021</c> as
 /// amended: <em>terrain height is not state</em>). It lives in a local array for the length of this
 /// call and dies with it. What survives is one <see cref="TerrainKind"/> per Cell.
 /// </para>

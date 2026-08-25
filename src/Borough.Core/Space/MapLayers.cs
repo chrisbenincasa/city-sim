@@ -112,7 +112,7 @@ public readonly record struct DesirabilityWeights(
 /// <param name="Pollution">Q16.16 <c>w_p</c>. Subtracts.</param>
 /// <remarks>
 /// <para>
-/// <c>adr/0155</c>, milestone 24 task 5. 🔴 <b>There is no Sealing weight here and its absence is the
+/// <c>adr/0156</c>, milestone 24 task 5. 🔴 <b>There is no Sealing weight here and its absence is the
 /// decision.</b> <c>w_s</c> is <b>derived</b> from an endpoint — <c>CONTEXT.md</c> → Sealing makes a
 /// Cell at <see cref="CellGrid.TilesInCell"/> one whose every Tile is built on, so it has no farmland
 /// — which pins the term at <c>base × Sealing / 1024</c>. ***A coefficient with an endpoint is not a
@@ -622,7 +622,7 @@ public sealed class MapLayers
         _cells.Sealing[slot] = now;
 
         // Building over forest clears it (CONTEXT.md -> Zone), and this is where that happens: not a
-        // verb, not an event, and nothing announces it. adr/0158 -- a Cell's Tiles are ONE budget, so
+        // verb, not an event, and nothing announces it. adr/0159 -- a Cell's Tiles are ONE budget, so
         // Sealing rising IS Woodland falling once the two would overlap. The Timber is forfeited
         // rather than harvested, which is the cost the design chose over a refusal.
         //
@@ -713,7 +713,7 @@ public sealed class MapLayers
     }
 
     /// <summary>
-    /// Puts back one pass of forest everywhere there is room for it. <c>adr/0022</c>, <c>adr/0158</c>.
+    /// Puts back one pass of forest everywhere there is room for it. <c>adr/0022</c>, <c>adr/0159</c>.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -727,7 +727,7 @@ public sealed class MapLayers
     /// <b>The ceiling is <see cref="WoodlandCellTable.Potential"/> and the room is Sealing, and a Cell
     /// gets the smaller.</b> Growing toward the bare Cell would turn every unbuilt Cell into full
     /// forest given time and erase the seed's character, which is the property <c>adr/0022</c> put
-    /// Woodland in for. Ignoring Sealing would break <c>adr/0158</c>'s <c>Woodland + Sealing ≤
+    /// Woodland in for. Ignoring Sealing would break <c>adr/0159</c>'s <c>Woodland + Sealing ≤
     /// TilesInCell</c> — ***the one budget the ground has*** — from the only writer that raises
     /// Woodland.
     /// </para>
@@ -932,7 +932,7 @@ public sealed class MapLayers
 
         // The load path, and the easiest of the three to forget: a load RESTORES the terrain rows and
         // never runs the generator, so without this a loaded world reports as having been written to
-        // on the Tick it was loaded. adr/0157, milestone 24 task 2.
+        // on the Tick it was loaded. adr/0158, milestone 24 task 2.
         _terrainLaidFold = _terrain.Fingerprint();
     }
 
@@ -942,7 +942,7 @@ public sealed class MapLayers
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <c>adr/0155</c>, milestone 24 task 5. <b>A proportion</b>: <see cref="Fixed.One"/> is fully
+    /// <c>adr/0156</c>, milestone 24 task 5. <b>A proportion</b>: <see cref="Fixed.One"/> is fully
     /// fertile, so the result reads as a percentage and each subtracted term is already the
     /// percentage that term cost — which is what makes <c>adr/0022</c>'s Evidence specimen,
     /// <em>"41% — ground sealed 12%, pollution from Eastfield Industrial 47%"</em>, fall out with no

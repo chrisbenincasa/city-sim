@@ -8,12 +8,12 @@ namespace Borough.Core.Rules;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <c>adr/0157</c>. <b>One Base Fertility per <see cref="TerrainKind"/></b>. Base Fertility is
-/// <b>Ruleset data keyed by terrain type and never stored per Cell</b> (<c>adr/0154</c>) — the Cell
+/// <c>adr/0158</c>. <b>One Base Fertility per <see cref="TerrainKind"/></b>. Base Fertility is
+/// <b>Ruleset data keyed by terrain type and never stored per Cell</b> (<c>adr/0155</c>) — the Cell
 /// stores the <em>type</em>, and this is the table it keys into.
 /// </para>
 /// <para>
-/// <b>Q16.16, with <see cref="Fixed.One"/> meaning fully fertile</b> (<c>adr/0155</c>), so Fertility
+/// <b>Q16.16, with <see cref="Fixed.One"/> meaning fully fertile</b> (<c>adr/0156</c>), so Fertility
 /// composes as a <b>proportion</b> and <c>adr/0022</c>'s <em>"41% — ground sealed 12%"</em> panel
 /// falls out with no conversion. <b>Authored as an integer percent</b>, because <c>adr/0048</c>
 /// refuses an unquoted decimal anywhere on the path into the simulation.
@@ -106,8 +106,8 @@ public readonly record struct TerrainRuleset(
             throw new InvalidOperationException(
                 "this Ruleset states no [[terrain]], so it has no Base Fertility to look up. A "
                 + "generated world still has terrain -- the type column is written from the WorldKey "
-                + "either way -- but what that ground is WORTH is Ruleset data (adr/0154), and this "
-                + "file declines to say. adr/0157.");
+                + "either way -- but what that ground is WORTH is Ruleset data (adr/0155), and this "
+                + "file declines to say. adr/0158.");
         }
 
         return kind switch

@@ -205,7 +205,7 @@ Phase 2 ledger **first**. [`0000a`](0000a-board-archive.md) holds the recovery p
 inside it. Godot will be the display layer and has not been started.
 
 **Where it is.** **Phase 2, between milestones.** Phase 1 is closed; **12 closed at task 6, 25 closed
-at group A**, and the live row is **27**.
+at group A, 27 closed 2026-08-24**, and the live row is **26**.
 ⚠ **Which milestones have shipped and which queue items stand open are [`0003`](0003-build-plan.md)'s,
 enumerated there and never here.** This sentence carried its own copy of both until 2026-08-23 and both
 had drifted: it named **12** as the live row two closures later, and it named queue items **8** and
@@ -271,7 +271,7 @@ compiler at 603%. [`0012`](0012-corpus-audit.md) holds all three sightings;
 
 | | Track | Task | Plan | Why this one |
 |---|---|---|---|---|
-| **1** | code | 🔴 **Milestone 27 — the Business is a thing the city contains, and tasks 6, 7, 8 and 9 have ALL shipped**, plus an unplanned **placement pass** ([`adr/0147`](../docs/adr/0147-a-business-takes-premises-by-placement-and-one-ceiling-counts-both-kinds-of-tenant.md)) that `0041` **G32** found because no task named it. ⚠ **This cell said *leaving 9, then 8, then 7* until 2026-08-24** — it was carrying `0041` **G5**'s ordering, which **G21** superseded the same day and the tasks then outran it by three. **Only task 10 is left**, the closing one, and it is ungated. | [`0041`](0041-the-business-is-a-thing-the-city-contains.md) | **It carries milestone 25's ORIGINAL risk** — *that the economic actor does not exist in the build* — and **26 is blocked on it**: 25 made the payer **nameable**, and 27 is what makes one **exist** |
+| **1** | code | 🔴 **Milestone 26 — the purchase, `Scope.Pool` stops throwing.** Milestone **27 closed 2026-08-24**, all five tasks, so 26's largest gate is discharged. ⚠ **THREE GATES REMAIN AND THEY ARE NOT 27's** — the Provider kind's three content decisions ([`0002`](0002-open-questions.md) §A) and a world where a Building genuinely runs out of money; [`0003`](0003-build-plan.md)'s row enumerates them and this cell keeps no copy. **Its tasks are [`0037`](0037-goods-between-buildings-the-district-pool.md)'s 7–10**, kept there as written | [`0037`](0037-goods-between-buildings-the-district-pool.md) tasks 7–10 | **27 made the actor EXIST and 26 is what it was for**: a purchase needs a payer that can hold, earn and spend, and until `Scope.Pool` resolves a Business has one Bin with nothing to put in it — which is why every number `levied.toml` and `founded.toml` produce ratifies nothing |
 | **2** | code | **Milestone 24 — terrain and the land rows: every task DONE, all twelve decisions settled.** Runoff and the shoreline term both landed 2026-08-24, so `02 §2.4` composes three of four terms and only amenity is left (**F17**, **F18**). 🔴 **Dumping stays UNBUILT and wants the designer in the room** — it needs a `Scope` that reaches a Water Body, and a Bin can *fail* where a Map Layer cell cannot. | [`0042`](0042-terrain-and-the-land-rows.md) | The only other ungated code row with **nothing upstream of it** |
 | **3** | spike | ⚠ **Do NOT delete `spikes/S2.Routing/`.** The 5a gate is discharged, but another session is doing research inside it, so it is live work. 51 tracked C# files, 29,719 lines | [`0010`](0010-s2-routing.md) → *R7* | ⚠ ***A deletion held twice for unrelated reasons is the row that gets struck when the wrong one clears*** |
 | **4** | spike | **S5 owes two captures** — the 4-thread Lane kernel rung, which is bimodal, and the canonical `performance` re-capture. 2 threads is settled at 1.84–1.93× | [`0019`](0019-s5-lane-kernel.md) | ⚠ **Quote the supply-side multiple as *at least 1.84× and plausibly near 4×*, never as 4× bare** |
@@ -341,7 +341,7 @@ blocked on it.* Take from the three below when something is waiting and leave th
 |---|---|---|---|
 | **G** | `adr/0016` — the lane is the entity | Carries the order-of-magnitude claim the whole microscopic tier rests on. ⚠ **Partly discharged by S5** | milestone **21** |
 | **R** | `05 §6`'s threading policy | The obligation `06` could not give a milestone | lint 4 |
-| **L** | **A presentation design** | **It does not exist.** Every other phase is backed by a design document; rendering has none | **Phase 3** |
+| **L** | **A presentation design** | **It does not exist**, and every other phase is backed by a design document while rendering has none. ⚠ **One piece came out of it early on 2026-08-24** — [`adr/0150`](../docs/adr/0150-appearance-is-derived-in-the-shell-and-a-kind-is-not-a-mesh.md) settles that appearance is composed in the **shell**, never enters the `World`, and that a `[[building]]` kind is **not** a mesh id. **L's scope is unchanged**, and the geometry fork and the appearance input set are filed to [`0002`](0002-open-questions.md) §B and §C. | **Phase 3** |
 
 ### Not arguable, and the audit still owed
 

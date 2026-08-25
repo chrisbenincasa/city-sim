@@ -12,7 +12,7 @@ public readonly struct WaterBody;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <c>adr/0034</c>, <c>adr/0156</c>, milestone 24 task 6a. <see cref="WaterGenerator.LayInto"/> fills
+/// <c>adr/0034</c>, <c>adr/0157</c>, milestone 24 task 6a. <see cref="WaterGenerator.LayInto"/> fills
 /// it at world creation and <b>nothing writes it afterwards</b>: <c>adr/0021</c> makes water generated
 /// once and immutable, so the graph and its flow directions are generator output and are never read
 /// inside a Tick.
@@ -130,7 +130,7 @@ public sealed class WaterBodyTable
     /// This body's Bin — <b>the one Utility-family Resource it holds</b>, or unset.
     /// </summary>
     /// <remarks>
-    /// <c>adr/0160</c>: exactly one Resource, and its family is <c>Utility</c>, because a Water Body
+    /// <c>adr/0161</c>: exactly one Resource, and its family is <c>Utility</c>, because a Water Body
     /// moves its contents along an edge of the water graph and a Good doing that would move with no
     /// Vehicle. ⚠ <b>Unset when the Ruleset's <c>[water]</c> states no Bin</b>, which is water with no
     /// level rather than a level that is permanently zero (<c>adr/0123</c>). The handle lives here

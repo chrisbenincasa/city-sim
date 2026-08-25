@@ -9,7 +9,7 @@ kept and its scope is narrowed** — what it protects is that ***the interesting
 makes***, and Sealing plus pollution still supply that, unchanged and unbounded, against a ceiling the
 generator sets.
 
-⚠ **The set is five and the enumeration is the decision** — [`0154`](0154-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)
+⚠ **The set is five and the enumeration is the decision** — [`0155`](0155-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)
 made Base Fertility *"Ruleset data keyed by terrain type"* and presumed *"a small enumeration"* without
 naming one member. **Nothing in the corpus enumerated terrain**, which decomposition found on the day
 task 2 tried to write the column.
@@ -61,7 +61,7 @@ ratifier, not a settled balance** — five `plans/0002` §D1 rows, each naming t
 the quantity, and **the trigger to reopen every one of them is the first milestone that builds a farm.**
 
 ⚠ **It does not put Fertility on the map.** Base Fertility is Ruleset data keyed by the stored type;
-there is still **no fertility column, no fertility layer and no baked field**, which is `0154` and is the
+there is still **no fertility column, no fertility layer and no baked field**, which is `0155` and is the
 part of `0022` that was never under pressure.
 
 ⚠ **`rock` is `0.2` and not `0`.** Zero would make the exclusion total and `0022`'s *scarcity is a
@@ -72,7 +72,7 @@ refusing to farm**, and the difference is the one that ADR spent a section on.
 
 - **`0022` is amended, not superseded.** Its refusal stands for a *generated fertility field* and is
   narrowed for a *Ruleset value keyed by a stored type*. The banner goes on that document.
-- **`0154` is amended**: its *"a small enumeration"* becomes the five named here, and its own revisit
+- **`0155` is amended**: its *"a small enumeration"* becomes the five named here, and its own revisit
   trigger — *"terrain type turns out to need more than a small enumeration"* — is what would reopen it.
 - **`CONTEXT.md` → Base Fertility loses *"in the shipped Rulesets it is uniform"***, which stops being
   true the day the varied-terrain Ruleset ships.
@@ -94,7 +94,7 @@ refusing to farm**, and the difference is the one that ADR spent a section on.
 - **A player reads a terrain overlay to site farms and reports it as following instructions.** Then
   `0022`'s refusal was right at this scale too, and the repair is to collapse the five values toward the
   exclusion-only shape — `rock` low, the rest equal — which this decision considered and did not take.
-- **Terrain type needs more than five members**, at which point `0154`'s own storage trigger fires and
+- **Terrain type needs more than five members**, at which point `0155`'s own storage trigger fires and
   the per-Cell type may be the wrong representation.
 - **Terraforming ships.** A player who can change terrain type can change Base Fertility, and a ceiling
   the player edits is a different decision from one the generator deals.

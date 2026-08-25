@@ -161,7 +161,7 @@ public static class LineSourceQueries
     /// their own row.
     /// <para>
     /// ⚠ <b>ITS BLOCKER HAS BEEN NAMED WRONGLY TWICE, AND THE SECOND CORRECTION MAKES IT SMALLER</b>
-    /// (<c>adr/0151</c>, 2026-08-23). This comment and the message below both said what was missing was
+    /// (<c>adr/0152</c>, 2026-08-23). This comment and the message below both said what was missing was
     /// a <b>kind on a Business</b> — one column plus a catchment query. <b>A column on
     /// <c>BusinessTable</c> could never have enumerated a park</b>, and <c>adr/0032</c> had already made
     /// a park an Amenity entry before that sentence was written. The key is the
@@ -173,7 +173,7 @@ public static class LineSourceQueries
     /// scope</em> rule names "an Amenity set" as belonging to something that moves — that is the
     /// <b>Provider List</b>, a different object sharing the word. The count this method returns is a
     /// standing property of a Tile, which is why it may be asked for without a Citizen in sight
-    /// (<c>adr/0151</c>).
+    /// (<c>adr/0152</c>).
     /// </para>
     /// </remarks>
     /// <exception cref="NotSupportedException">Always, until the catchment query exists.</exception>
@@ -183,7 +183,7 @@ public static class LineSourceQueries
             + "time rather than a distance, so it is neither a Layer nor a distance query. It is the "
             + "count of distinct [[building]] kinds reachable on foot, and every Building already "
             + "carries its kind: what is missing is ONLY the catchment query itself (milestone 15, "
-            + "adr/0151). This message previously said a kind column on BusinessTable was owed; it is "
+            + "adr/0152). This message previously said a kind column on BusinessTable was owed; it is "
             + "not, and it could never have counted a park.");
 
     /// <summary>

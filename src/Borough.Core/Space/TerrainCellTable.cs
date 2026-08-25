@@ -12,7 +12,7 @@ public readonly struct TerrainCell;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <c>adr/0157</c>, milestone 24 task 2. <see cref="TerrainGenerator.LayInto"/> fills it; nothing in a
+/// <c>adr/0158</c>, milestone 24 task 2. <see cref="TerrainGenerator.LayInto"/> fills it; nothing in a
 /// Tick writes it, because there is no terraforming.
 /// </para>
 /// <para>
@@ -46,7 +46,7 @@ public readonly struct TerrainCell;
 /// nobody will find here is the same one <see cref="LayerCellTable"/> declines to make.
 /// </para>
 /// <para>
-/// ⚠ <b>Terrain height is not here and is not anywhere</b> (<c>adr/0156</c>). The generator computes a
+/// ⚠ <b>Terrain height is not here and is not anywhere</b> (<c>adr/0157</c>). The generator computes a
 /// height, reads it while choosing these, and keeps only the choice.
 /// </para>
 /// </remarks>
@@ -83,7 +83,7 @@ public sealed class TerrainCellTable
     /// </summary>
     /// <remarks>
     /// <b>The type and not a value.</b> Base Fertility is Ruleset data keyed by this
-    /// (<c>adr/0154</c>, <see cref="Rules.TerrainRuleset.BaseFertility"/>), so a designer retunes what
+    /// (<c>adr/0155</c>, <see cref="Rules.TerrainRuleset.BaseFertility"/>), so a designer retunes what
     /// ground is worth without touching a save. Storing the number instead would freeze the Ruleset in
     /// force at world creation into every world ever made from it, which is <c>adr/0015</c>'s whole
     /// complaint about a <c>const</c>. Task 4's Sealing decay rate keys off this column for the same

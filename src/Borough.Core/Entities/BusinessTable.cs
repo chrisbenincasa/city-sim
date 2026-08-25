@@ -66,6 +66,24 @@ public sealed class BusinessTable
         // the State Hash for a reason that has nothing to do with the demolition.
         Building = _rows.SavedHandle("building", buildings.Rows, reference: Reference.Severable);
         Kind = _rows.Saved<byte>("kind");
+
+        // 🔴 adr/0148, AMENDED by milestone 27 task 10: which premises INSTANTIATED this Business,
+        // and the amendment is here because the ADR asked DestroyBuilding to identify "the trade this
+        // kind came with" and gave it only the kind to identify it by. A KIND IS NOT AN IDENTITY: a
+        // Household may found a Business of the very trade a dwelling declares, so on a file that
+        // does -- rulesets/founded.toml and rulesets/levied.toml, since founding draws uniformly over
+        // every declared trade -- the founded shop and the instantiated one are indistinguishable in
+        // the list, and demolition razed whichever came first. Measured at 24,576 Ticks: 52 stranded.
+        //
+        // Severable, on Building's own precedent above: these premises may come down while this
+        // Business is elsewhere, and `the premises that made me stopped existing` is a fact worth
+        // reading off a dangling handle rather than a state worth writing.
+        //
+        // ⚠ IT IS THE ORIGIN AND NOT A FLAG, which is the half that keeps adr/0148's "no founder, no
+        // capital and no flag" true. A bit saying `I was instantiated` would follow the Business into
+        // whatever premises it was later placed in and get it razed there; a handle naming ONE
+        // Building stops meaning anything the moment it leaves, which is exactly right.
+        Origin = _rows.SavedHandle("origin", buildings.Rows, reference: Reference.Severable);
         BinHead = _rows.SavedHandle("bin_head", bins.Rows);
         BinTail = _rows.SavedHandle("bin_tail", bins.Rows);
         Balance = _rows.DerivedHandle("balance", bins.Rows, reference: Reference.Required);
@@ -86,6 +104,34 @@ public sealed class BusinessTable
 
     /// <summary>The Building this Business occupies.</summary>
     public HandleColumn<Building> Building { get; }
+
+    /// <summary>
+    /// The premises that <b>instantiated</b> this Business, or none if nothing did.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>adr/0148</c>'s pairing, made identifiable</b> — <em>when those premises come down it goes
+    /// with them</em>. <c>World.Fit</c> writes it and <c>World.DestroyBuilding</c> is the only reader:
+    /// it razes the Business in its list whose origin is <em>itself</em>, and pools every other tenant.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>It exists because a kind is not an identity, and milestone 27 task 10's long run is what
+    /// found that out.</b> Demolition matched on <see cref="Kind"/>, which is correct in any world
+    /// where the only Business of a trade in a Building is the one construction made — and
+    /// <c>[founding]</c> draws uniformly over <em>every</em> declared trade, so a founded shop can sit
+    /// in a dwelling beside the instantiated shop and be razed in its place. ***Two defects from one
+    /// line***: the founded Business's capital left the city through <c>Raze</c>'s money-supply write,
+    /// and the instantiated one outlived its premises into the unpremised pool, where nothing ever
+    /// collected it. **Measured on <c>rulesets/levied.toml</c> at 24,576 Ticks: 52 stranded shops
+    /// holding nothing; on <c>minimal.toml</c> and <c>taxed.toml</c>, which found nothing, zero.**
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Saved rather than derived, because nothing else in the world records it.</b> A demolition
+    /// is the only reader and a construction the only writer, so there is no second copy to rebuild
+    /// from — which is what makes this hash-bearing rather than free.
+    /// </para>
+    /// </remarks>
+    public HandleColumn<Building> Origin { get; }
 
     /// <summary>Which Business kind — the trade. Resolved through the Ruleset.</summary>
     /// <remarks>

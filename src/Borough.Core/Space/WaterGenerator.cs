@@ -11,20 +11,20 @@ namespace Borough.Core.Space;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <c>adr/0034</c>, <c>adr/0156</c>, <c>adr/0159</c>, milestone 24 task 6a. <b>A world-creation pass
+/// <c>adr/0034</c>, <c>adr/0157</c>, <c>adr/0160</c>, milestone 24 task 6a. <b>A world-creation pass
 /// of its own</b>, called after <see cref="TerrainGenerator"/> and before <c>LayLand</c>.
 /// </para>
 /// <para>
 /// ⚠ <b>It reads the SAME height field <see cref="TerrainGenerator"/> reads, on the same
 /// <see cref="PurposeTag"/>, and that is deliberate rather than the correlation the tag rule
-/// forbids.</b> <c>adr/0156</c> says the generator uses height <em>"to decide where water sits, which
+/// forbids.</b> <c>adr/0157</c> says the generator uses height <em>"to decide where water sits, which
 /// ground floods, and what terrain type a Cell is"</em> — one field, three readings. Drawing water
 /// from a second tag would put the sea somewhere unrelated to the low ground of the terrain it sits
 /// in, which is not independence but nonsense. ***A distinct tag is owed to a distinct DECISION, and
 /// where the ground is low is one decision.***
 /// </para>
 /// <para>
-/// <b>Height is read here and stored nowhere</b> — <c>adr/0156</c>, and <c>adr/0021</c> as amended.
+/// <b>Height is read here and stored nowhere</b> — <c>adr/0157</c>, and <c>adr/0021</c> as amended.
 /// What survives is which Cells are wet, which body each belongs to, and which body each body spills
 /// into.
 /// </para>
@@ -67,7 +67,7 @@ public static class WaterGenerator
         ArgumentNullException.ThrowIfNull(flood);
 
         // A world whose Ruleset states no [water] is an inland world, and laying nothing is the whole
-        // of what that means. adr/0159.
+        // of what that means. adr/0160.
         if (!water.Stated)
         {
             return;
@@ -96,7 +96,7 @@ public static class WaterGenerator
         // A landlocked body that spills over its rim has exactly ONE exit -- the spill point -- where
         // a body touching the map's edge has one per boundary Cell. An endorheic body keeps the zero
         // Populate left it, which is what makes "a pond has no outflow and fills" true by
-        // construction rather than by a rule. adr/0160, milestone 24 task 6b.
+        // construction rather than by a rule. adr/0161, milestone 24 task 6b.
         for (int body = 0; body < bodies.Rows.SlotCount; body++)
         {
             if (bodies.Rows.IsLive(body)
@@ -115,7 +115,7 @@ public static class WaterGenerator
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <c>CONTEXT.md</c> → Hazard Region, <c>01 §5.2</c>, <c>adr/0156</c>, milestone 24 task 9.
+    /// <c>CONTEXT.md</c> → Hazard Region, <c>01 §5.2</c>, <c>adr/0157</c>, milestone 24 task 9.
     /// <b>A flood level stated exactly as the sea level is</b> — a percent of the height range
     /// <em>this world realised</em> — so a Cell floods when its ground is below that level, and its
     /// depth is the difference. ⚠ <b>ONE authored number and no second mechanism</b>: the alternative

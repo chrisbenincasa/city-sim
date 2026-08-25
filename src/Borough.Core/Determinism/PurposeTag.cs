@@ -414,7 +414,7 @@ public enum PurposeTag : ulong
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <c>adr/0157</c>. Keyed on <see cref="Space.CellGrid.Index"/> at
+    /// <c>adr/0158</c>. Keyed on <see cref="Space.CellGrid.Index"/> at
     /// <see cref="Ticks.Zero"/> — a <em>what sort of ground is this</em> draw rather than a
     /// <em>what happens now</em> one, the shape <see cref="CarOwnership"/> and
     /// <see cref="OpeningBalance"/> already use. Terrain is generated once and never changes
@@ -422,7 +422,7 @@ public enum PurposeTag : ulong
     /// </para>
     /// <para>
     /// ✅ <b>Woodland got its own tag and did not borrow this one</b> — <see cref="Woodland"/>,
-    /// <c>adr/0158</c>, milestone 24 task 8a. Woodland sits <em>on</em> terrain, so a shared tag would
+    /// <c>adr/0159</c>, milestone 24 task 8a. Woodland sits <em>on</em> terrain, so a shared tag would
     /// make every wooded Cell the same terrain type as every other wooded Cell — the forest and the
     /// rock as one draw wearing two names, which is a correlation nothing in the city could refute.
     /// ***This paragraph read <em>will need</em> and <em>unbuilt</em> until the tag was added***, which
@@ -444,7 +444,7 @@ public enum PurposeTag : ulong
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <c>adr/0158</c>, milestone 24 task 8a. Keyed on <see cref="Space.CellGrid.Index"/> at
+    /// <c>adr/0159</c>, milestone 24 task 8a. Keyed on <see cref="Space.CellGrid.Index"/> at
     /// <see cref="Ticks.Zero"/>, the same <em>what sort of ground is this</em> shape
     /// <see cref="TerrainType"/> uses.
     /// </para>

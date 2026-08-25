@@ -13,7 +13,7 @@ namespace Borough.Tests.Space;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <c>adr/0158</c>. Two claims are under test and they pull in opposite directions. The pass is a
+/// <c>adr/0159</c>. Two claims are under test and they pull in opposite directions. The pass is a
 /// <b>pure function of the <see cref="WorldKey"/></b>, so one key gives one forest for ever. And
 /// <b>how much forest a world has must vary between keys</b>, because <c>adr/0022</c> rests a design
 /// decision on it — <em>"a heavily forested seed is a Materials-rich, farmland-poor start"</em> — and
@@ -210,7 +210,7 @@ public sealed class WoodlandTests
     /// <b>The one budget, on a city that was actually built.</b>
     /// </summary>
     /// <remarks>
-    /// <c>adr/0158</c>'s whole claim is that <c>Woodland + Sealing ≤ TilesInCell</c> is what the two
+    /// <c>adr/0159</c>'s whole claim is that <c>Woodland + Sealing ≤ TilesInCell</c> is what the two
     /// counts mean rather than a rule imposed on them. This is that sentence run over every Cell a
     /// generated city touched.
     /// </remarks>

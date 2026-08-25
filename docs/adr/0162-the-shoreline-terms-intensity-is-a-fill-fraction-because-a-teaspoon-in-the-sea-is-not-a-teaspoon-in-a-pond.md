@@ -22,7 +22,7 @@ property of the two readings themselves, and that property is arithmetic rather 
 whose intensity is the Bin's level."*
 
 Both name **which quantity**. Neither says **in what units**, and until milestone 24 task 6b it did
-not matter, because a Water Body had no capacity to divide by. [`0160`](0160-a-water-bodys-bin-holds-one-utility-resource-because-a-good-moving-downstream-would-move-with-no-vehicle.md)
+not matter, because a Water Body had no capacity to divide by. [`0161`](0161-a-water-bodys-bin-holds-one-utility-resource-because-a-good-moving-downstream-would-move-with-no-vehicle.md)
 derived one — **a body's capacity is its size in Cells times `[water] capacity_per_cell`** — and the
 moment it existed, the two readings came apart.
 
@@ -50,7 +50,7 @@ number is authorable. ***A coefficient whose units vary per row is not a coeffic
 ## What this rules out
 
 - **A per-body or per-world shoreline weight.** It is what the absolute reading forces and it is the
-  taxonomy of water types [`0160`](0160-a-water-bodys-bin-holds-one-utility-resource-because-a-good-moving-downstream-would-move-with-no-vehicle.md)
+  taxonomy of water types [`0161`](0161-a-water-bodys-bin-holds-one-utility-resource-because-a-good-moving-downstream-would-move-with-no-vehicle.md)
   spent its argument avoiding.
 - **Reading a shoreline intensity off a Bin level in any other consumer without dividing.** The Bin
   level is a stock and is the right thing for drainage, which moves tonnage between bodies. It is the

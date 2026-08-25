@@ -501,7 +501,7 @@ public readonly struct LayerRuleset
     /// </summary>
     /// <remarks>
     /// ⚠ <b>One weight and not two</b> — the Sealing coefficient is derived from an endpoint and has
-    /// no key at all (<c>adr/0155</c>). See <see cref="FertilityWeights"/>.
+    /// no key at all (<c>adr/0156</c>). See <see cref="FertilityWeights"/>.
     /// </remarks>
     public FertilityWeights Fertility { get; }
 

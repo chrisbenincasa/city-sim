@@ -14,7 +14,7 @@ namespace Borough.Tests.Space;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <c>adr/0157</c>. <b>The pass is a pure function of the <see cref="WorldKey"/></b>, and the three
+/// <c>adr/0158</c>. <b>The pass is a pure function of the <see cref="WorldKey"/></b>, and the three
 /// properties below are what that means operationally: the same key gives the same map, a different
 /// key gives a different one, and the Ruleset changes neither.
 /// </para>

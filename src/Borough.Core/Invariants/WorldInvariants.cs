@@ -49,7 +49,7 @@ public static class WorldInvariants
         invariants.Register(InvariantTier.EndOfRun, LayerMagnitudesAreBounded);
 
         // Registered here rather than being optional, because it is what pays for the Decide guard
-        // skipping the terrain table. adr/0157, milestone 24 task 2. See World.TablesAPhaseCanWrite.
+        // skipping the terrain table. adr/0158, milestone 24 task 2. See World.TablesAPhaseCanWrite.
         invariants.Register(InvariantTier.EndOfRun, TerrainIsUnchangedSinceItWasLaid);
         invariants.Register(InvariantTier.EndOfRun, RuleInstancesAreQueuedExactlyOnce);
         invariants.Register(InvariantTier.EndOfRun, NoBuildingRunsRulesItsKindDoesNotDeclare);
@@ -836,7 +836,7 @@ public static class WorldInvariants
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <c>adr/0157</c>. 🔴 <b>The check that lets the Decide guard skip the terrain table</b> — see
+    /// <c>adr/0158</c>. 🔴 <b>The check that lets the Decide guard skip the terrain table</b> — see
     /// <see cref="World.TablesAPhaseCanWrite"/> for what that bought and why it needed paying for.
     /// </para>
     /// <para>

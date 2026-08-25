@@ -5,7 +5,7 @@ namespace Borough.Core.Space;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <c>adr/0157</c>. Five types, and the set was named nowhere until 2026-08-23: <c>adr/0154</c> keyed
+/// <c>adr/0158</c>. Five types, and the set was named nowhere until 2026-08-23: <c>adr/0155</c> keyed
 /// <b>two</b> Ruleset values off a terrain type while presuming only <em>"a small enumeration"</em>,
 /// and <c>CONTEXT.md</c> and <c>adr/0022</c> name <see cref="Rock"/> and <see cref="Floodplain"/> only
 /// as examples inside sentences about recovery. <b>A key was specified before the thing it keys on.</b>
@@ -13,7 +13,7 @@ namespace Borough.Core.Space;
 /// <para>
 /// <b>The two values keyed by this are Base Fertility and the Sealing decay rate</b>, both
 /// <c>[terrain]</c> Ruleset data and neither stored per Cell — <c>adr/0022</c>'s rule that storing a
-/// rate would freeze it into every save, and <c>adr/0154</c>'s that Base Fertility is not a field.
+/// rate would freeze it into every save, and <c>adr/0155</c>'s that Base Fertility is not a field.
 /// </para>
 /// <para>
 /// ⚠ <b>The ordinals are hash-bearing.</b> The column is <c>(saved AND hashed)</c>, so <b>appending a
@@ -21,7 +21,7 @@ namespace Borough.Core.Space;
 /// the column is one per Cell and there are <see cref="CellGrid.WorldCellCount"/> of them.
 /// </para>
 /// <para>
-/// ⚠ <b>Terrain height is not here and is not anywhere</b> (<c>adr/0156</c>): the generator computes
+/// ⚠ <b>Terrain height is not here and is not anywhere</b> (<c>adr/0157</c>): the generator computes
 /// height, reads it while placing these, and keeps only the outputs. There is no height column at any
 /// resolution.
 /// </para>
@@ -31,7 +31,7 @@ public enum TerrainKind : byte
     /// <summary>Ordinary ground. <b>The default, and most of the map.</b></summary>
     /// <remarks>
     /// Base Fertility <c>1.0</c> — fully fertile, which is the scale's own top rather than a chosen
-    /// number (<c>adr/0155</c>: a fraction with <c>1.0</c> meaning fully fertile).
+    /// number (<c>adr/0156</c>: a fraction with <c>1.0</c> meaning fully fertile).
     /// </remarks>
     Ordinary = 0,
 

@@ -13,7 +13,7 @@ namespace Borough.Tests.Space;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <c>adr/0034</c>, <c>adr/0156</c>, <c>adr/0159</c>. The claims under test are the graph's, not the
+/// <c>adr/0034</c>, <c>adr/0157</c>, <c>adr/0160</c>. The claims under test are the graph's, not the
 /// coastline's: <b>one key and one sea level give one map for ever</b>; <b>the water graph is
 /// acyclic and every chain terminates off the map</b>; and <b>a Ruleset with no <c>[water]</c> has no
 /// water at all</b>.

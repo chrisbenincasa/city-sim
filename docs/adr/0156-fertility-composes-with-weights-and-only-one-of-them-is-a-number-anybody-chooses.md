@@ -23,7 +23,7 @@ Fertility as an unweighted subtraction of three quantities:
 
 | Term | What it is | Range |
 |---|---|---|
-| Base Fertility | Ruleset data keyed by terrain type ([`0154`](0154-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)) | undefined until this ADR |
+| Base Fertility | Ruleset data keyed by terrain type ([`0155`](0155-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)) | undefined until this ADR |
 | Sealing | a **count of Tiles** | 0–1024 per Cell |
 | pollution | a **stock in kernel units** | *"about 12 … under a strong source"*, measured, `DesirabilityWeights.Default` |
 
@@ -104,7 +104,7 @@ takes the same answer.
   weight.**
   - ⚠ **AMENDED 2026-08-23 by the build, and both spellings moved.** Base Fertility is
     **`[[terrain]] base_fertility_percent`** — an *array of tables*, one per type, all five required
-    ([`0157`](0157-terrain-is-five-types-and-base-fertility-varies-across-them-because-a-category-exclusion-is-not-an-overlay.md)).
+    ([`0158`](0158-terrain-is-five-types-and-base-fertility-varies-across-them-because-a-category-exclusion-is-not-an-overlay.md)).
     The pollution weight is **`[layers] fertility_pollution_percent`**, beside its sibling
     `desirability_pollution_percent`, because it weights a *Layer* and is one number for the world
     rather than one per ground type. ***The decision is unchanged; only where each number is written
@@ -114,7 +114,7 @@ takes the same answer.
   directions — a farm beside heavy industry that yields unchanged means it is too low, and a farm that
   dies from a neighbour's plume alone means it is too high.
 - ⚠ **Base Fertility's own value stays keyed by terrain type and uniform in the shipped Ruleset**
-  ([`0154`](0154-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)).
+  ([`0155`](0155-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)).
   Expressing it as a percentage does not make varying it free of
   [`0022`](0022-land-is-a-stock-the-city-spends.md)'s amendment.
 - **`CONTEXT.md` → Fertility and `02 §2.3` keep the three-term shape and gain the weights**, so the

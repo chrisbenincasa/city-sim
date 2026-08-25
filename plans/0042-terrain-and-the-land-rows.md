@@ -4,7 +4,15 @@
 > [`06`](../docs/06-roadmap.md)'s. What is done is [`0003`](0003-build-plan.md)'s. This document owns
 > this slice's decisions, its tasks and its findings, and nothing else.
 
-**Numbering**: this document is `0042`; ADRs from this milestone take **0150 onward**. ⚠ **It was
+**Numbering**: this document is `0042`; ADRs from this milestone take **0151 onward**. 🔴 ⚠ **IT
+COLLIDED A SECOND TIME, at the merge of 2026-08-25, and this time against the agreement below** —
+`main` allocated `adr/0150` to *appearance is derived in the shell* on 2026-08-24 while this branch
+held `0150`–`0161`, so **this branch moved again: `0150`–`0161` → `0151`–`0162`.** ⚠ **The two files
+had different names, so git merged both without a conflict** and every `adr/0150` citation in the
+corpus silently acquired two referents — the failure mode `34d0386` named and the reason it is worth
+naming twice. ***This branch moved rather than `main` because `main`'s `0150` was published and
+cited, and moving it would re-use a number for different work***, which `PROCESS.md` → *Numbering*
+forbids outright. ⚠ **It was
 `0040` taking `0143`–`0149` until 2026-08-23, and it collided** — the milestone-25 branch committed a
 different `plans/0040` and a different `adr/0143` to `main` while this branch held those numbers, so
 this branch renumbered and **`0144`–`0149` are free**. ***A number is claimed against every live
@@ -19,11 +27,11 @@ fourth recurrence and the first that actually collided.
 CODE-COMPLETE and BLOCKED for one day — see F7; it was built ahead of task 2 because the Sealing write path needs
 no terrain, and running it turned up a whole-map cost that
 [`0002`](0002-open-questions.md) §C now owns. **Task 2 landed 2026-08-23** (`a23b46f`, re-baselined in `79efc64`) — **see F8**, whose finding is that the column's home was a third option neither candidate named. **Decisions 1, 1b, 2, 3, 4 and 7 were settled first**
-([`adr/0153`](../docs/adr/0153-milestone-24-is-two-milestones-because-a-dial-cannot-scale-a-figure-nothing-authors.md)–[`adr/0150`](../docs/adr/0150-sealing-authors-no-width-and-a-road-seals-where-it-is-laid-not-where-its-endpoints-are.md));
+([`adr/0154`](../docs/adr/0154-milestone-24-is-two-milestones-because-a-dial-cannot-scale-a-figure-nothing-authors.md)–[`adr/0150`](../docs/adr/0151-sealing-authors-no-width-and-a-road-seals-where-it-is-laid-not-where-its-endpoints-are.md));
 ~~**5, 6 and 10 are open**~~ — **all three closed 2026-08-24**. ⚠ **Task 8 was SPLIT 2026-08-24 into 8a and 8b** on the line task 3 and task 4
 are already split on — the write path without the rate — after the survey found the task's own subject
 had **no disposition anywhere in the corpus** and its rate had **no owner**
-([`adr/0158`](../docs/adr/0158-woodland-is-a-tile-count-per-cell-bounded-by-sealing-because-the-ground-has-one-budget-and-not-two.md),
+([`adr/0159`](../docs/adr/0159-woodland-is-a-tile-count-per-cell-bounded-by-sealing-because-the-ground-has-one-budget-and-not-two.md),
 decisions 8, 9 and 10). ***It was written as a one-line task with no decision behind it and no
 Definition-of-done clause; it owed three decisions and a §D1 row.***
 
@@ -43,7 +51,7 @@ where the split was first available."* **It is two milestones.** This document i
 second half is recorded in **F2** below and is **blocked on 13, 15 and 16**.
 
 ✅ **The split is settled and recorded in
-[`adr/0153`](../docs/adr/0153-milestone-24-is-two-milestones-because-a-dial-cannot-scale-a-figure-nothing-authors.md),
+[`adr/0154`](../docs/adr/0154-milestone-24-is-two-milestones-because-a-dial-cannot-scale-a-figure-nothing-authors.md),
 2026-08-22.** `06`'s row 24 and both inventory rows are rewritten; the Shocks-and-Dial half is
 **UNPLACED**. ⚠ **The trigger fired on the half `adr/0124` did not expect** — that ADR offered a *land
 systems on terrain* seam, and the seam turned out to be the **dial**.
@@ -59,11 +67,11 @@ compiler's `CA1069`; the duplicate `plans/0041` was caught by **somebody looking
 ***A duplicate enum member is a duplicate declaration; a duplicate document number is two filenames
 that agree with themselves.***
 
-**The split, agreed with the milestone 27 session on 2026-08-24 and held on both sides:**
+**The split, agreed with the milestone 27 session on 2026-08-24** — ⚠ **and NOT held: `main` took `0150` the same day, which is what forced the second renumber above.** The ADR row below is the range after that move:
 
 | Ordinal | This branch | Milestone 27 |
 |---|---|---|
-| ADR | `0150`–`0158` | `0145`–`0149` |
+| ADR | `0151`–`0162` | `0145`–`0149` |
 | `PurposeTag` | 23 `TerrainType`, 24 `Woodland` | 25 onward |
 | `Invariant` | 55 | 56 onward |
 | `plans` | `0042` | `0041` |
@@ -204,7 +212,7 @@ range, no sign convention.
 and it is not paperwork: Fertility is a subtraction, so a suitability without a stated range makes
 `terrain suitability − Sealing − pollution` an expression whose sign nobody can predict.
 
-✅ **RESOLVED 2026-08-22 by decision 1 and [`adr/0154`](../docs/adr/0154-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md).**
+✅ **RESOLVED 2026-08-22 by decision 1 and [`adr/0155`](../docs/adr/0155-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md).**
 The term is renamed **Base Fertility**, `CONTEXT.md` gains it and **Terrain**, and the undefined
 quantity turned out to be **Ruleset data rather than a field**. 🔴 ***The missing definition was not a
 documentation gap — it was load-bearing***: `adr/0124` specified a per-Cell column by reasoning from a
@@ -280,7 +288,7 @@ creation" in this build is *an event in the log*, not a moment before the clock 
 **read** inside a Tick phase, something has gone wrong"*, and the bake **writes** one. But the rule's
 value is that it can be checked mechanically, and a check phrased as *no terrain read in any phase*
 would go red on the generator itself. ✅ **Decision 3 restated it against STATE** — *terrain height is
-not state* — and `adr/0156` is what makes that checkable, by storing no height at all. ⚠ **There is no
+not state* — and `adr/0157` is what makes that checkable, by storing no height at all. ⚠ **There is no
 bake left to place**, and the mechanical check is **owed with terraforming** rather than now.
 
 ---
@@ -293,7 +301,7 @@ Each carries its type.
 
 ### 1. ✅ SETTLED 2026-08-22 — what *is* terrain suitability? **It is Base Fertility, and it is not a field**
 
-✅ **[`adr/0154`](../docs/adr/0154-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md),
+✅ **[`adr/0155`](../docs/adr/0155-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md),
 with the user in the room.** `terrain suitability` is renamed **Base Fertility** and is **Ruleset data
 keyed by terrain type**. The stored per-Cell column is **terrain type**, `(saved AND hashed)`, and
 **two** Ruleset values are keyed by it — Base Fertility and the Sealing decay rate.
@@ -327,7 +335,7 @@ reversible.***
 
 ### 1b. ✅ SETTLED 2026-08-22 — **weights, following Desirability — and one of the two is derived**
 
-✅ **[`adr/0155`](../docs/adr/0155-fertility-composes-with-weights-and-only-one-of-them-is-a-number-anybody-chooses.md),
+✅ **[`adr/0156`](../docs/adr/0156-fertility-composes-with-weights-and-only-one-of-them-is-a-number-anybody-chooses.md),
 with the user in the room.** `fertility = base fertility − w_s·Sealing − w_p·pollution`, Q16.16, weighted
 the way `MapLayers.Desirability` already is. **Base Fertility is a fraction with `1.0` meaning fully
 fertile**, so Fertility is a proportion by construction.
@@ -376,7 +384,7 @@ covers is [`0012`](0012-corpus-audit.md)'s granularity defect.
 
 ### 2. ✅ SETTLED 2026-08-22 — **height is generated and stored nowhere**
 
-✅ **[`adr/0156`](../docs/adr/0156-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md),
+✅ **[`adr/0157`](../docs/adr/0157-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md),
 with the user in the room.** The generator **computes and reads** height while it works; it stores only
 the **outputs** — terrain type, the water graph with its downstream edges, and floodplain depth **where
 the floodplain is**. **No height column, at Tile or Cell resolution.** `adr/0021`'s *the world is not
@@ -435,12 +443,12 @@ is a world-creation pass"*). The order becomes `RefuseIfPopulated` → **terrain
 ✅ **Nothing in `LayLand` needs to consult it, which is why the placement is nearly free.** Roads do not
 avoid water — `adr/0021`: *"A Street or Arterial may span unbuildable water; the Road Graph does not know
 the difference"* — Woodland is *"not a clearing verb and not an obstacle"* (`CONTEXT.md`), and **buildable
-grade does not ship** (`adr/0156`). Terrain goes first because it is the ground, not because anything
+grade does not ship** (`adr/0157`). Terrain goes first because it is the ground, not because anything
 downstream reads it.
 
 ✅ **The rule is restated against STATE rather than against time**, and
 [`adr/0021`](../docs/adr/0021-the-map-is-bounded-procedural-and-terrain-never-enters-a-tick.md) is amended
-in place rather than a fourth ADR being written — the design content is `adr/0156`'s, and **a second home
+in place rather than a fourth ADR being written — the design content is `adr/0157`'s, and **a second home
 for one decision is [`0012`](0012-corpus-audit.md)'s Cause 1**:
 
 > **Terrain height is not state.** It lives as a local inside the generator's call and dies with it. The
@@ -472,7 +480,7 @@ name a symbol rather than a phase, per
 
 ### 4. ✅ SETTLED 2026-08-22 — **it ships here, it authors no number, and a road seals where it is laid**
 
-✅ **[`adr/0150`](../docs/adr/0150-sealing-authors-no-width-and-a-road-seals-where-it-is-laid-not-where-its-endpoints-are.md),
+✅ **[`adr/0150`](../docs/adr/0151-sealing-authors-no-width-and-a-road-seals-where-it-is-laid-not-where-its-endpoints-are.md),
 with the user in the room.** A Building seals **1** Tile, which is `CONTEXT.md` → Sealing's own sentence
 rather than a new figure; a road seals **one Tile per Tile of its run**, width 1, which is 4 m
 (`Tiles.Metres`). 🔴 **No `[roads]` width key, no per-kind width, and therefore ZERO
@@ -567,7 +575,7 @@ absent `SaveHeader` field as a decision and not as an omission**, which is the f
 written against.
 
 ⚠ **Precondition 3's wording is stale and the argument is not.** It says *"a baked suitability column"*,
-and there is no baked artefact since [`adr/0154`](../docs/adr/0154-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)
+and there is no baked artefact since [`adr/0155`](../docs/adr/0155-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)
 half-superseded `adr/0124` — the Cell stores a **type** and Base Fertility is a Ruleset lookup. ***The
 column changed and the reasoning about the save did not***, because the argument never rested on what
 the column held, only on nothing regenerating from it.
@@ -575,11 +583,11 @@ the column held, only on nothing regenerating from it.
 ### 7. ✅ SETTLED 2026-08-23 — **what terrain types ship, and does Base Fertility vary across them?**
 
 🔴 **NEW, and decomposition found it: the milestone's central column had no members.**
-✅ [`adr/0157`](../docs/adr/0157-terrain-is-five-types-and-base-fertility-varies-across-them-because-a-category-exclusion-is-not-an-overlay.md),
+✅ [`adr/0158`](../docs/adr/0158-terrain-is-five-types-and-base-fertility-varies-across-them-because-a-category-exclusion-is-not-an-overlay.md),
 with the user in the room. **Five types — `ordinary`, `rock`, `floodplain`, `marsh`, `thin_soil`** — and
 **Base Fertility varies**: `1.0`, `0.2`, `1.0`, `0.5`, `0.6`.
 
-🔴 **Nothing in the corpus enumerated terrain.** `adr/0154` made Base Fertility *"Ruleset data keyed by
+🔴 **Nothing in the corpus enumerated terrain.** `adr/0155` made Base Fertility *"Ruleset data keyed by
 terrain type"* and presumed *"a small enumeration"* without naming a member; `CONTEXT.md` and `adr/0022`
 name `rock` and `floodplain` only as examples inside sentences about **recovery**. ***A key was specified
 before the thing it keys on***, and task 2 found it on the day it tried to write the column — **the same
@@ -588,7 +596,7 @@ six documents was defined in none.
 
 🔴 **It amends [`adr/0022`](../docs/adr/0022-land-is-a-stock-the-city-spends.md) and the amendment was
 predicted by name.** That ADR's 2026-08-22 amendment said *"varying it amends this document rather than
-tuning within it, and comes back here and to `0154` rather than to a Ruleset review"*. **It came back
+tuning within it, and comes back here and to `0155` rather than to a Ruleset review"*. **It came back
 here.** ⚠ **The refusal is narrowed, not overturned**: `0022` argues against a generated fertility
 **field** — *"fertile valleys here, poor ground there"*, read off an overlay — and **there is still no
 field**, no column and nothing baked. What exists is a Ruleset number looked up by the stored type.
@@ -611,7 +619,7 @@ failure case.
 ### 8. ✅ SETTLED 2026-08-24 — **what IS Woodland? It is a Tile count per Cell, and Sealing is its ceiling**
 
 🔴 **NEW, and the survey found it: the task's own subject had no disposition anywhere in the corpus.**
-✅ [`adr/0158`](../docs/adr/0158-woodland-is-a-tile-count-per-cell-bounded-by-sealing-because-the-ground-has-one-budget-and-not-two.md),
+✅ [`adr/0159`](../docs/adr/0159-woodland-is-a-tile-count-per-cell-bounded-by-sealing-because-the-ground-has-one-budget-and-not-two.md),
 with the user in the room. **A `(saved AND hashed)` count of wooded Tiles per Cell**, on a dense
 **`WoodlandCellTable`** of its own — Sealing's semantics in `TerrainCellTable`'s shape — and **bounded
 by `TilesInCell − Sealing`**.
@@ -690,7 +698,7 @@ a map [`adr/0089`](../docs/adr/0089-the-map-is-sized-by-how-many-commutes-fit-ac
 65.5 km a side, a city on a coast is the reference case the design was written for.
 
 **So `[water] sea_level_percent` is stated, one key, optional, refused at both ends**
-([`adr/0159`](../docs/adr/0159-a-sea-level-is-authored-ruleset-data-and-a-world-without-water-is-a-world-and-not-a-hole.md)).
+([`adr/0160`](../docs/adr/0160-a-sea-level-is-authored-ruleset-data-and-a-world-without-water-is-a-world-and-not-a-hole.md)).
 ⚠ **There is no coverage key and that absence is the decision** — a share is an outcome, and authoring it
 would make the generator solve for a number instead of laying a world. **One §D1 row.**
 
@@ -724,7 +732,7 @@ Body's Bin and moving downstream would be a Good moving with no Vehicle, contrad
 `adr/0031` uses to define it. **Whether a Water Body's Bin holds exactly one Utility-family Resource is
 task 6b's to answer**, and it is *arguable* rather than measurable.
 
-✅ **ANSWERED 2026-08-24 by [`adr/0160`](../docs/adr/0160-a-water-bodys-bin-holds-one-utility-resource-because-a-good-moving-downstream-would-move-with-no-vehicle.md): one Utility-family Resource, and dumping is a transformation.**
+✅ **ANSWERED 2026-08-24 by [`adr/0161`](../docs/adr/0161-a-water-bodys-bin-holds-one-utility-resource-because-a-good-moving-downstream-would-move-with-no-vehicle.md): one Utility-family Resource, and dumping is a transformation.**
 The objection in the paragraph above turned out to be decisive rather than merely worth stating — a Good
 moving downstream with no Vehicle is *a counterexample to the definition of Good sitting inside the
 build*, and a taxonomy with one exception in it is not a taxonomy. ⚠ **`CONTEXT.md` → Water Body already
@@ -739,17 +747,17 @@ copy that also stores status.
 
 | # | Task | Depends on |
 |---|---|---|
-| **1** | ✅ **DONE 2026-08-22** — `CONTEXT.md` gains **Terrain** and **Base Fertility**, the rename lands in `02 §2.3`, `04 §1` and `MapLayers`, `adr/0022` and `adr/0124` are amended rather than rewritten, and `06`'s row 24 is rewritten for the split ([`adr/0153`](../docs/adr/0153-milestone-24-is-two-milestones-because-a-dial-cannot-scale-a-figure-nothing-authors.md), [`adr/0154`](../docs/adr/0154-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)) | decisions 1, 2 |
-| **2** | ✅ **DONE 2026-08-23** (`a23b46f`, re-baselined `79efc64`) — see **F8**. **The terrain generator and the per-Cell terrain TYPE column** — `(saved AND hashed)`, from the `WorldKey`, with a `[terrain]` Ruleset table keying **Base Fertility** and the **Sealing decay rate** off the type, plus **a shipped Ruleset with varied terrain**. ⚠ **The column holds the type and nothing is baked** (`adr/0154`). ⚠ **The world is part of this task and not a follow-up** | 1, decision 3 |
-| **3** | ✅ **DONE 2026-08-23** (`1c9ebec`), built 2026-08-22 and blocked on a cost for one day — see F7. **The Sealing write path** — construction Seals, **at the point of laying and never reconstructed from a Segment's endpoints** ([`adr/0150`](../docs/adr/0150-sealing-authors-no-width-and-a-road-seals-where-it-is-laid-not-where-its-endpoints-are.md)). Touches the four `RoadGenerator.Layout` writers, `SyntheticCity.Subdivide` and `ZoneRuleEngine.Create`. ⚠ **Authors no number and opens no §D row.** Precondition 2's third blocker, and upstream of the two `adr/0124` names. 🔴 Moves every State Hash | 2 |
+| **1** | ✅ **DONE 2026-08-22** — `CONTEXT.md` gains **Terrain** and **Base Fertility**, the rename lands in `02 §2.3`, `04 §1` and `MapLayers`, `adr/0022` and `adr/0124` are amended rather than rewritten, and `06`'s row 24 is rewritten for the split ([`adr/0154`](../docs/adr/0154-milestone-24-is-two-milestones-because-a-dial-cannot-scale-a-figure-nothing-authors.md), [`adr/0155`](../docs/adr/0155-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)) | decisions 1, 2 |
+| **2** | ✅ **DONE 2026-08-23** (`a23b46f`, re-baselined `79efc64`) — see **F8**. **The terrain generator and the per-Cell terrain TYPE column** — `(saved AND hashed)`, from the `WorldKey`, with a `[terrain]` Ruleset table keying **Base Fertility** and the **Sealing decay rate** off the type, plus **a shipped Ruleset with varied terrain**. ⚠ **The column holds the type and nothing is baked** (`adr/0155`). ⚠ **The world is part of this task and not a follow-up** | 1, decision 3 |
+| **3** | ✅ **DONE 2026-08-23** (`1c9ebec`), built 2026-08-22 and blocked on a cost for one day — see F7. **The Sealing write path** — construction Seals, **at the point of laying and never reconstructed from a Segment's endpoints** ([`adr/0150`](../docs/adr/0151-sealing-authors-no-width-and-a-road-seals-where-it-is-laid-not-where-its-endpoints-are.md)). Touches the four `RoadGenerator.Layout` writers, `SyntheticCity.Subdivide` and `ZoneRuleEngine.Create`. ⚠ **Authors no number and opens no §D row.** Precondition 2's third blocker, and upstream of the two `adr/0124` names. 🔴 Moves every State Hash | 2 |
 | **4** | ✅ **DONE 2026-08-24** — see **F12**. **Sealing's decay** — `LayerSchedule.Sealing` at **period `TICKS_PER_DAY`, offset 48**, `DecaySealing` scheduled in `MapLayers.Step`, and the rate keyed by terrain type as a `sealing_decay_tau` on each `[[terrain]]` table. 🔴 **The `[layers]` key is REFUSED rather than ignored**, naming where it went. 🔴 **It found a real defect**: integer exponential decay **stalls**, so the step is floored at one Tile and the tail is linear. **Moved ONE `plans/0002` §D2 row to §D1** — the other is task 8b's and stays. ⚠ **Moves no State Hash on any shipped world**, because `minimal.toml` and its ten siblings state no `[[terrain]]` and `varied.toml` is not a fixture; what moves is **`minimal.toml`'s Ruleset content fingerprint**, from a comment edit | 3 |
 | **5** | ✅ **DONE 2026-08-23** (`6f9187c`). **Fertility** — the `throw` in `MapLayers.Fertility` is a composition at the point of use, `base − base·Sealing/1024 − w_p·pollution`, with `long` intermediates and saturation at the `int` bounds. Sets **one** §D1 row: `[layers] fertility_pollution_percent` = **4**, stated in `rulesets/varied.toml` only. ⚠ **It moves no State Hash and needs no re-baseline** — nothing is stored, nothing is scheduled, and no shipped file that a fixture loads was edited. 🔴 **It also has no consumer**, so the whole task is a producer nobody reads; see the note below | 2, 3 |
-| **6a** | ✅ **DONE 2026-08-24** — see **F11**. **The water graph** — a sparse `WaterCellTable` of wet Cells with a dense `WaterResidency` beside it, and a `WaterBodyTable` whose one column is a `downstream` handle into itself. Laid by `WaterGenerator` from the **same height field terrain reads** (`adr/0156`, so **no new `PurposeTag`**), bounded by `[water] sea_level_percent` on a new shipped `rulesets/coastal.toml` ([`adr/0159`](../docs/adr/0159-a-sea-level-is-authored-ruleset-data-and-a-world-without-water-is-a-world-and-not-a-hole.md)). **Opens ONE §D1 row.** 🔴 Moves every State Hash. ⚠ **It has no consumer** — nothing reads a Water Body — so it is **F9** a third time and is taken anyway | 2, decision 11 |
-| **6b** | ✅ **DONE 2026-08-24** — see **F14** and **F16**. **A Water Body's Bin.** The **catchment** half is a dense `CatchmentCellTable` written by `WaterGenerator.Catchments` as **Priority-Flood over a bucket queue**, because `WaterResidency` answers *which body is this Cell part of* and every Building stands on dry ground; steepest descent on the raw field reached 3–8% of a map and filled reaches 45–76%. The **Bin** half is one Bin per body holding one **Utility**-family Resource ([`adr/0160`](../docs/adr/0160-a-water-bodys-bin-holds-one-utility-resource-because-a-good-moving-downstream-would-move-with-no-vehicle.md)), with **both parameters DERIVED from the body** — capacity from its size, outflow from its **exits** — so one pair of Ruleset numbers gives a pond, a spilling lake and a sea with no taxonomy. **Opens TWO §D1 rows.** 🔴 **The reason first given for the catchment was wrong**: task 7 needs proximity, and what needs the catchment is the Bin's **runoff** inflow. 🔴 **`BinOwnerKind.WaterBody` is the SEVENTH member and this row said the sixth** — stale twice, against `Business` and then `District`. 🔴 **NOTHING PUTS ANYTHING IN**, so every level is zero on every shipped world and **task 7 is NOT unblocked** | 6a, decision 12 |
-| **7** | ✅ **DONE 2026-08-24** — see **F17** and **F18**. **Desirability's shoreline term.** `− w₅·shoreline` composes, so `02 §2.4` is **three of four terms** and amenity alone is left. The source is the body's **perimeter**, its intensity is the Bin's **fill fraction** ([`adr/0161`](../docs/adr/0161-the-shoreline-terms-intensity-is-a-fill-fraction-because-a-teaspoon-in-the-sea-is-not-a-teaspoon-in-a-pond.md)) rather than its level, and a world with no water passes `null` so the term is **absent and not zero**. **Opens THREE §D1 rows**, all owing `adr/0125`'s unreachable ratifier. 🔴 **What unblocked it was RUNOFF and not the Bin** — this row said *6b* and F16 corrected it to *an inflow*; the inflow was built in the same sitting. 🔴 **The `adr/0123` caveat test STAYS**: closing one of its two holes is not closing the caveat, and its remarks now say so | 6b + runoff |
-| **8a** | ✅ **DONE 2026-08-24** — see **F10**. **Woodland is placed and cleared** — a `Saved<int>("woodland")` Tile count on a dense `WoodlandCellTable` of its own, placed by the generator, and **bounded by `TilesInCell − Sealing`** so that sealing clears forest with no verb and no event ([`adr/0158`](../docs/adr/0158-woodland-is-a-tile-count-per-cell-bounded-by-sealing-because-the-ground-has-one-budget-and-not-two.md)). ⚠ **Authors no number and opens no §D row**, exactly as `TerrainGenerator` authors none. 🔴 Moves every State Hash. ⚠ **It has no consumer** — the Timber chain is unplaced — so it is **F9** a second time and is taken anyway | 2, 3, decision 8 |
+| **6a** | ✅ **DONE 2026-08-24** — see **F11**. **The water graph** — a sparse `WaterCellTable` of wet Cells with a dense `WaterResidency` beside it, and a `WaterBodyTable` whose one column is a `downstream` handle into itself. Laid by `WaterGenerator` from the **same height field terrain reads** (`adr/0157`, so **no new `PurposeTag`**), bounded by `[water] sea_level_percent` on a new shipped `rulesets/coastal.toml` ([`adr/0160`](../docs/adr/0160-a-sea-level-is-authored-ruleset-data-and-a-world-without-water-is-a-world-and-not-a-hole.md)). **Opens ONE §D1 row.** 🔴 Moves every State Hash. ⚠ **It has no consumer** — nothing reads a Water Body — so it is **F9** a third time and is taken anyway | 2, decision 11 |
+| **6b** | ✅ **DONE 2026-08-24** — see **F14** and **F16**. **A Water Body's Bin.** The **catchment** half is a dense `CatchmentCellTable` written by `WaterGenerator.Catchments` as **Priority-Flood over a bucket queue**, because `WaterResidency` answers *which body is this Cell part of* and every Building stands on dry ground; steepest descent on the raw field reached 3–8% of a map and filled reaches 45–76%. The **Bin** half is one Bin per body holding one **Utility**-family Resource ([`adr/0161`](../docs/adr/0161-a-water-bodys-bin-holds-one-utility-resource-because-a-good-moving-downstream-would-move-with-no-vehicle.md)), with **both parameters DERIVED from the body** — capacity from its size, outflow from its **exits** — so one pair of Ruleset numbers gives a pond, a spilling lake and a sea with no taxonomy. **Opens TWO §D1 rows.** 🔴 **The reason first given for the catchment was wrong**: task 7 needs proximity, and what needs the catchment is the Bin's **runoff** inflow. 🔴 **`BinOwnerKind.WaterBody` is the SEVENTH member and this row said the sixth** — stale twice, against `Business` and then `District`. 🔴 **NOTHING PUTS ANYTHING IN**, so every level is zero on every shipped world and **task 7 is NOT unblocked** | 6a, decision 12 |
+| **7** | ✅ **DONE 2026-08-24** — see **F17** and **F18**. **Desirability's shoreline term.** `− w₅·shoreline` composes, so `02 §2.4` is **three of four terms** and amenity alone is left. The source is the body's **perimeter**, its intensity is the Bin's **fill fraction** ([`adr/0162`](../docs/adr/0162-the-shoreline-terms-intensity-is-a-fill-fraction-because-a-teaspoon-in-the-sea-is-not-a-teaspoon-in-a-pond.md)) rather than its level, and a world with no water passes `null` so the term is **absent and not zero**. **Opens THREE §D1 rows**, all owing `adr/0125`'s unreachable ratifier. 🔴 **What unblocked it was RUNOFF and not the Bin** — this row said *6b* and F16 corrected it to *an inflow*; the inflow was built in the same sitting. 🔴 **The `adr/0123` caveat test STAYS**: closing one of its two holes is not closing the caveat, and its remarks now say so | 6b + runoff |
+| **8a** | ✅ **DONE 2026-08-24** — see **F10**. **Woodland is placed and cleared** — a `Saved<int>("woodland")` Tile count on a dense `WoodlandCellTable` of its own, placed by the generator, and **bounded by `TilesInCell − Sealing`** so that sealing clears forest with no verb and no event ([`adr/0159`](../docs/adr/0159-woodland-is-a-tile-count-per-cell-bounded-by-sealing-because-the-ground-has-one-budget-and-not-two.md)). ⚠ **Authors no number and opens no §D row**, exactly as `TerrainGenerator` authors none. 🔴 Moves every State Hash. ⚠ **It has no consumer** — the Timber chain is unplaced — so it is **F9** a second time and is taken anyway | 2, 3, decision 8 |
 | **8b** | ✅ **DONE 2026-08-24** — see **F13**. **Woodland's regrowth** — `LayerSchedule.Woodland` at **period `TICKS_PER_DAY`, offset 80**, `RegrowWoodland` in `MapLayers.Step`, and `[layers] woodland_regrowth_days = 512` in `varied.toml`. 🔴 **This is `adr/0022`'s *"regrowth speed is the load-bearing constant"*, and it had never had an owner** — no ADR, no §D row, no ratifier and no Ruleset key. ⚠ **It needed a COLUMN the scoping did not anticipate**: `WoodlandCellTable.Potential`, because regrowth needs a ceiling and both ceilings that need no column are wrong. **Moved the §D2 row to §D1.** 🔴 Moves every State Hash | 8a |
-| **9** | ✅ **DONE 2026-08-24** — see **F15**. **Hazard Regions** — a sparse `FloodCellTable` of east, north and **depth**, laid by `WaterGenerator.Floodplain` from the same height field water reads, bounded by a new `[water] flood_level_percent` on `rulesets/coastal.toml`. **A dry Cell below the flood level is Hazard Region and its depth is the difference**; a wet Cell gets no row, so the rows are a band above the waterline. **Opens ONE §D1 row** and owes a **second ratifier** for the depth's uncalibrated units. ⚠ **Measured at 3–9% of the map across five keys**, which is what keeps `adr/0156`'s sparse choice true — that ADR names *turns out not to be sparse* as its own revisit trigger. 🔴 Moves every State Hash. ⚠ **It has no consumer** — Disasters are behind milestone 15 — so it is **F9** a fourth time and is taken on the milestone's stated grounds | 2 |
+| **9** | ✅ **DONE 2026-08-24** — see **F15**. **Hazard Regions** — a sparse `FloodCellTable` of east, north and **depth**, laid by `WaterGenerator.Floodplain` from the same height field water reads, bounded by a new `[water] flood_level_percent` on `rulesets/coastal.toml`. **A dry Cell below the flood level is Hazard Region and its depth is the difference**; a wet Cell gets no row, so the rows are a band above the waterline. **Opens ONE §D1 row** and owes a **second ratifier** for the depth's uncalibrated units. ⚠ **Measured at 3–9% of the map across five keys**, which is what keeps `adr/0157`'s sparse choice true — that ADR names *turns out not to be sparse* as its own revisit trigger. 🔴 Moves every State Hash. ⚠ **It has no consumer** — Disasters are behind milestone 15 — so it is **F9** a fourth time and is taken on the milestone's stated grounds | 2 |
 | **10** | **The long run** — 100k+ Ticks, no collection and no magnitude trending at steady state | all |
 
 ---
@@ -863,7 +871,7 @@ in a Cell that does not exist, which threw on `bordered.toml` and `crowded.toml`
 | **peak Cell** | **117 Tiles = 11.4%** |
 | roads' share | **93%** (99% on `severance.toml`) |
 
-🔴 **Two claims in [`adr/0150`](../docs/adr/0150-sealing-authors-no-width-and-a-road-seals-where-it-is-laid-not-where-its-endpoints-are.md)
+🔴 **Two claims in [`adr/0150`](../docs/adr/0151-sealing-authors-no-width-and-a-road-seals-where-it-is-laid-not-where-its-endpoints-are.md)
 were refuted by running it, and the ADR now carries a correction banner.** `adr/0022`'s *"ground sealed
 12%"* — dismissed there as a mockup — **is right within rounding**. And *"roads are ~86%"* was 93%.
 ⚠ **The stance that Sealing is a road statistic is an artefact of `footprint_tiles = 1`**, which came
@@ -900,7 +908,7 @@ made dense*. Neither survived contact.**
 than a preference.** The pass runs between `RefuseIfPopulated` and `LayLand`, and **at that moment the
 Cell table has zero rows** — `LayLand`'s Seal calls are what create them. *Write the type only where a
 row already exists* therefore writes **nothing at all**, and collapses to *there is no column*, which
-`adr/0157` decided against. ***A placement and a storage shape were settled on different days and only
+`adr/0158` decided against. ***A placement and a storage shape were settled on different days and only
 one of them could hold.***
 
 ⚠ **And the dense candidate costs four Layer passes the whole map in every world.** MEASURED:
@@ -941,7 +949,7 @@ naming because neither was predicted:
 - **`Ruleset.WithLayers` is a hand-spelled `with`** and silently drops a new property.
   `RulesetWithLayersTests` exists for exactly this and fired.
 - 🔴 **`PopulateCommandTests` asserted *the city is a function of its size and not of the seed*, and
-  `adr/0157` makes that false ON PURPOSE.** The assertion moved from the State Hash down to the tables
+  `adr/0158` makes that false ON PURPOSE.** The assertion moved from the State Hash down to the tables
   under it, and is **stronger** for it: the old form said *nothing differs* and could only ever be
   relaxed to *something differs*, where the new one **names the single table that may**, so a second
   table starting to draw fails it — which the hash comparison could no longer do at all.
@@ -1023,7 +1031,7 @@ connected to the cause.
 ### F9 — task 5 found nothing, and the reason it found nothing is the finding
 
 **Fertility was built on 2026-08-23 and the build raised no question the scoping had not already
-answered.** `adr/0155` had decided the shape, the weighting, the derivation of `w_s`, the no-clamp and
+answered.** `adr/0156` had decided the shape, the weighting, the derivation of `w_s`, the no-clamp and
 the saturation before a line of it existed; the task was transcription. ***That is what a decision
 session is supposed to buy, and it is worth recording on the one occasion it plainly did.***
 
@@ -1133,7 +1141,7 @@ those are that the guard's cost rose by about a fifth and nothing else moved. **
 
 `terrain suitability` had no `CONTEXT.md` entry, no unit, no range and no sign, and there was no entry for
 **Terrain** either. ✅ **Settled the same day by decision 1 and
-[`adr/0154`](../docs/adr/0154-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)**:
+[`adr/0155`](../docs/adr/0155-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)**:
 the term is renamed **Base Fertility**, it means *the yield of untouched ground* — **Fertility's ceiling**
 — it is **suitable for farming and nothing else**, and it is **Ruleset data keyed by terrain type** rather
 than a field.
@@ -1188,7 +1196,7 @@ enough to split a task around it.
 
 **The graph half needed a number, and the recommendation was to avoid it.** The offer was *basins
 only* — priority-flood the height field, no threshold, no §D row, no ratifier. **It was refused because
-that world has no sea, no bay and no coast**, all three of which `CONTEXT.md` names. `adr/0159` is the
+that world has no sea, no bay and no coast**, all three of which `CONTEXT.md` names. `adr/0160` is the
 record; §D1 carries the row.
 
 🔴 **Two defects in the drainage walk were found by MEASURING and neither would have been found by
@@ -1212,7 +1220,7 @@ which is a volume, which is a Bin. ***The coarseness and the blocked task are th
 the designed terminus with the coarseness — so the first reading looked like a clean result. Splitting
 the counter is what exposed both defects. ***A measurement that sums two causes reports neither.***
 
-**And the ordinals cost a message rather than a merge.** 6a needed `adr/0159`, one past the block
+**And the ordinals cost a message rather than a merge.** 6a needed `adr/0160`, one past the block
 reserved on 2026-08-24; the milestone 27 session was told before it was taken and agreed. The same
 protocol had already found that `PlanIdentityTests` cannot see two documents claiming one number —
 that check now exists on `main`, written by that session from this branch's sighting.
@@ -1269,13 +1277,13 @@ Days, never the tau**, and carry the table rather than a ratio.
 
 ⚠ **A stated absence is not the same as a tested one.** `sealing_decay_tau = 0` was *deliberate* and
 every Ruleset header explained it — and a deliberate zero exercises the same amount of code as a
-forgotten one. `adr/0152` even leaned on this key as its **precedent** for an admissible zero rate,
+forgotten one. `adr/0153` even leaned on this key as its **precedent** for an admissible zero rate,
 citing a mechanism nobody had run. ***A precedent taken from an untested path carries the path's
 silence with it.***
 
 ⚠ **The key had to MOVE, and a moved key is refused where it used to be.** `02 §2.4` keys the rate by
 terrain type, so a single `[layers]` global was always a placeholder for a lookup; the reconciliation
-was filed as task 4's by `adr/0157` and is discharged here. A file still writing the old key is
+was filed as task 4's by `adr/0158` and is discharged here. A file still writing the old key is
 **refused with a message naming `[[terrain]]`**, rather than having its stated rate silently ignored —
 which is `adr/0123`'s *present and permanently zero* failure arriving through a stale key instead of a
 stale term.
@@ -1351,7 +1359,7 @@ doc-comment, `varied.toml`'s header, `CONTEXT.md` and the §D1 row, and asserted
 ⚠ **The two halves of milestone 24 are one loop and neither task closes it.** Task 4 lets Sealing fall;
 8b lets Woodland rise into the room it leaves. A paved Cell takes its ground back over **197–468 Days**
 and its trees back over **512** — roughly 700 end to end, about eighteen hours of play at 1× — and that
-compound is the ratchet `adr/0022` is protecting. ⚠ **`adr/0158`'s stated trap is now live**: both
+compound is the ratchet `adr/0022` is protecting. ⚠ **`adr/0159`'s stated trap is now live**: both
 numbers are unratified, so a long run reading one against the other has **two unratified numbers
 measuring each other**. ***The bound supplies a readout and not a ratifier***, so task 10 reads each
 against its own stated duration.
@@ -1436,7 +1444,7 @@ would not be.
 
 **Task 9 was scoped as *derived at generation* and nothing in the corpus said derived from what.**
 `CONTEXT.md` → Hazard Region gives the purpose — *ground where a Disaster can occur* — and `01 §5.2`
-gives the consumer's shape — Flood *spreads by depth*. `adr/0156` decided the **storage**: floodplain
+gives the consumer's shape — Flood *spreads by depth*. `adr/0157` decided the **storage**: floodplain
 depth, sparse, where the floodplain is. ⚠ **None of the three states a rule**, so the task had to
 choose one, and choosing one authored a hash-bearing number.
 
@@ -1460,7 +1468,7 @@ would put a depth in front of a player is not***, and whatever first reads one s
 **The §D1 row says a second ratifier is owed and that the flood level may move for reasons the first
 ratifier cannot anticipate.**
 
-⚠ **The measurement is not decoration here, because `adr/0156` names it as that ADR's own revisit
+⚠ **The measurement is not decoration here, because `adr/0157` names it as that ADR's own revisit
 trigger.** *If a shipped world's floodplain covers enough of the map, the sparse store stops being
 cheaper than a dense one and the storage question reopens on cost rather than on principle.* Measured
 on `coastal.toml` at `flood_level_percent = 30`:
@@ -1473,7 +1481,7 @@ on `coastal.toml` at `flood_level_percent = 30`:
 | 8,675,309 | 24,131 | 24,970 | 9% | 1,939 | 897 |
 | 18,446,744,073,709,551,615 | 6,672 | 11,780 | 4% | 2,489 | 1,120 |
 
-**3–9%, so the sparse choice holds and `adr/0156` does not reopen.** ⚠ **A LEVEL and not a coverage**,
+**3–9%, so the sparse choice holds and `adr/0157` does not reopen.** ⚠ **A LEVEL and not a coverage**,
 on `sea_level_percent`'s own reasoning — a quoted share names the worlds it was measured on.
 
 ⚠ **No residency index ships beside the table, unlike every other sparse Cell table.** The index
@@ -1528,7 +1536,7 @@ a conservation test that would have caught the two-phase pass double-counting.
 ### 🔴 And the part that matters more than any of the above: **task 7 is still blocked**
 
 **The Bin exists and every level is zero, on every shipped world, for ever.** No `Scope` reaches a Water
-Body, so nothing can put anything in one — `adr/0160` names that as `adr/0070`'s *unbuilt* rather than
+Body, so nothing can put anything in one — `adr/0161` names that as `adr/0070`'s *unbuilt* rather than
 leaving it implied. A shoreline term built on this reads a structurally-zero level, which is
 **precisely the `adr/0123` failure task 7's row was written to avoid**, arriving one layer further in.
 
@@ -1571,7 +1579,7 @@ that is attribution to write down, never a reason to defer).
 
 ⚠ **The general shape, which outlives this milestone: a default that is harmless in ten worlds is not a
 harmless default.** The (0, 0) origin cost nothing while nothing in the simulation cared where the map's
-edge was. `adr/0159`'s water graph made the edge mean something, and the same default became a world in
+edge was. `adr/0160`'s water graph made the edge mean something, and the same default became a world in
 which a whole mechanism is invisible. ***A demonstration Ruleset has to site its city where the thing it
 demonstrates can happen***, and that is now a property `coastal.toml` states explicitly rather than one
 it inherited.
@@ -1587,18 +1595,18 @@ level"*.** Task 7 read that sentence, built exactly it, and it was wrong — not
 wrong, but because ***it names a quantity and never says in what units***, and until task 6b there was
 nothing to divide by so the omission cost nothing.
 
-`adr/0160` derived a capacity — **a body's size in Cells times `[water] capacity_per_cell`** — and the
+`adr/0161` derived a capacity — **a body's size in Cells times `[water] capacity_per_cell`** — and the
 two readings came apart by four orders of magnitude. The measured sea on `coastal.toml` is **33,435
 Cells** against a pond's tens. Under the absolute reading the same tonnage tipped into either produces
 the same level and therefore the same shoreline intensity: ***a teaspoon in the sea fouls its whole
-coastline exactly as hard as it fouls a pond.*** [`adr/0161`](../docs/adr/0161-the-shoreline-terms-intensity-is-a-fill-fraction-because-a-teaspoon-in-the-sea-is-not-a-teaspoon-in-a-pond.md)
+coastline exactly as hard as it fouls a pond.*** [`adr/0162`](../docs/adr/0162-the-shoreline-terms-intensity-is-a-fill-fraction-because-a-teaspoon-in-the-sea-is-not-a-teaspoon-in-a-pond.md)
 takes the fraction, and both documents are **annotated rather than rewritten**, because the sentence
 they carry is what made the question findable at all.
 
 ⚠ **The decisive argument is not about water.** `w₅` is one number a designer sets and expects to mean
 one thing. Against an absolute level its range *is* the body's capacity, so a weight tuned on a lake is
 wrong on a sea by the ratio of their sizes and every Ruleset would need a per-body weight — the
-taxonomy of water types `adr/0160` spent its whole argument avoiding, coming back in through the
+taxonomy of water types `adr/0161` spent its whole argument avoiding, coming back in through the
 coefficient. ***A coefficient whose units vary per row is not a coefficient.***
 
 ⚠ **And a smaller one, about writing a comment before running the instrument.** The doc comment on

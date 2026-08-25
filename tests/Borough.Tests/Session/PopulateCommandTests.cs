@@ -103,7 +103,7 @@ public sealed class PopulateCommandTests
     /// </para>
     /// <para>
     /// ⚠ <b>It said <em>and not of the seed</em>, full stop, until milestone 24 task 2, and the
-    /// exception is a decision rather than a regression.</b> <c>adr/0157</c> makes the terrain type
+    /// exception is a decision rather than a regression.</b> <c>adr/0158</c> makes the terrain type
     /// column a function of the <c>WorldKey</c> and <c>adr/0021</c> makes the map procedural, so a
     /// city whose ground did <em>not</em> move with its seed would be the defect. What the seed must
     /// still not reach is everything else — the Lots, the Buildings, the Households, the Citizens.
@@ -115,7 +115,7 @@ public sealed class PopulateCommandTests
     /// to draw fails it, which the hash comparison could no longer do at all.
     /// </para>
     /// <para>
-    /// ✅ <b>And a second table did start to draw, one milestone task later.</b> <c>adr/0158</c> makes
+    /// ✅ <b>And a second table did start to draw, one milestone task later.</b> <c>adr/0159</c> makes
     /// Woodland a <c>WorldKey</c>-derived column too, and this test failed on the day it landed —
     /// ***the paragraph above was written as a prediction and paid out as one***. The exception list is
     /// now two tables and each is asserted to move <em>separately</em>: they are drawn on different
@@ -150,7 +150,7 @@ public sealed class PopulateCommandTests
         foreach (Rows table in world.Tables)
         {
             // The two tables the WorldKey is ALLOWED to reach, and the list is the assertion. Terrain
-            // joined at milestone 24 task 2 (adr/0157), Woodland at task 8a (adr/0158) -- and this
+            // joined at milestone 24 task 2 (adr/0158), Woodland at task 8a (adr/0159) -- and this
             // method's own doc-comment predicted the second arrival before it happened: "a second
             // table starting to draw fails it". It did, and the failure was the test working.
             if (ReferenceEquals(table, world.Layers.Terrain.Rows)

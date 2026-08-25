@@ -4,7 +4,10 @@
 Rule raises a Building of that kind, construction **instantiates** a Business of that trade, already
 premised, occupying one of the kind's `occupants` slots. It is an ordinary Business from that instant:
 no founder, no capital and no flag. **When those premises come down it goes with them**, because a
-source needs the sink that inverts it and not a timeout. And `[[building]] jobs` and its Shift band are
+source needs the sink that inverts it and not a timeout. ⚠ **Which Business that is, is recorded on the
+Business as `Origin`, a handle naming the premises** — *amended 2026-08-24 by milestone 27 task 10,
+because this ADR shipped identifying it by its TRADE and a kind is not an identity. See the banner
+below.* And `[[building]] jobs` and its Shift band are
 **removed and refused at load** —
 [`adr/0141`](0141-a-tenant-owns-what-leaves-with-it-and-the-premises-own-the-capacity.md) gave those to
 the trade, and a key nothing reads is worse than a key that is gone.**
@@ -82,6 +85,31 @@ sink***, and `adr/0006`'s rule is about the pairing rather than about the eventu
 instantiates one, demolition destroys one. With the pairing in place the same run holds
 Businesses **equal to Buildings** at every reading, an empty unpremised pool, and an Unplaced Pool that
 is flat instead of climbing.
+
+> 🔴 **AMENDED 2026-08-24 by milestone 27 task 10, and the paragraph below is the sentence that was
+> wrong.** ***A kind is not an identity.*** `[founding]` draws uniformly over **every** declared trade,
+> so a Household may found a shop of the very trade a dwelling declares — and on the two shipped files
+> that found anything, `founded.toml` and `levied.toml`, the founded shop and the instantiated one sat
+> in the same Building's list, indistinguishable, and **demolition razed whichever came first.**
+>
+> **Two defects from that one line, and they point in opposite directions.** The founded Business's
+> capital left the city through `Raze`'s money-supply write — measured at **23,983 of 354,562 per
+> 20,480 Ticks**, and `founded.toml`'s header had been reading that drain as its own designed leak.
+> And the instantiated Business **outlived its premises** into the unpremised pool, where nothing ever
+> collected it: 52 stranded on `levied.toml` at 24,576 Ticks, against **zero** on `minimal.toml` and
+> `taxed.toml`, which found nothing. ⚠ **Both are this section's own `adr/0006` argument reopened by
+> the mechanism the next ADR added**, which is why the long run found it and no test did.
+>
+> **The repair is `BusinessTable.Origin`** — a severable `Handle<Building>` naming the premises that
+> instantiated this Business — and `Fit` and `DestroyBuilding` now agree on the same row at both ends.
+> ⚠ **It is not the flag this paragraph refused, and the difference is not a quibble**: a bit saying
+> *I was instantiated* travels with the Business into whatever premises it is later placed in and gets
+> it razed there, where a handle naming **one** Building stops meaning anything the moment it leaves.
+> ***The refused thing was a property of the Business; what was needed was a property of the edge.***
+>
+> **Saved and hashed**, so every golden artefact re-recorded — and both session traces moved this time
+> where task 6's column moved only `world-hash.txt`, because `Fit` writes it in a session that raises
+> Buildings. `adr/0100`: that cost nothing and is not a reason to have deferred it.
 
 ⚠ **It is still not a second class, because the choice is made by TRADE and not by a column.**
 Demolition destroys at most one Business of the kind's declared trade and pools every other tenant

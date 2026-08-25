@@ -3,7 +3,7 @@
 #
 # Milestone 24 task 2 of plans/0042-terrain-and-the-land-rows.md. Its whole job is to be a world in
 # which Base Fertility VARIES, because until it existed nothing could read a difference between two
-# Cells that terrain caused. adr/0157 ships five terrain types -- `ordinary`, `rock`, `floodplain`,
+# Cells that terrain caused. adr/0158 ships five terrain types -- `ordinary`, `rock`, `floodplain`,
 # `marsh`, `thin_soil` -- and makes Base Fertility Ruleset data keyed by the type a Cell stores. This
 # file is the key's other half.
 #
@@ -40,7 +40,7 @@
 # apart: what a farm reads is THE RATIO BETWEEN TWO CELLS, never one Cell's number. ⚠ THE TRIGGER IS
 # EXPECTED TO FIRE, and that is not a failure case.
 #
-# WHAT THE NUMBERS SAY, AND THE ONE ARGUMENT THAT IS NOT ARBITRARY. adr/0155 makes 1.0 mean FULLY
+# WHAT THE NUMBERS SAY, AND THE ONE ARGUMENT THAT IS NOT ARBITRARY. adr/0156 makes 1.0 mean FULLY
 # fertile, so 100 is the top of the scale rather than a tuning choice, and Fertility composes as a
 # PROPORTION of it. `ordinary` and `floodplain` are both at the top: adr/0022's own pairing has
 # alluvial floodplain as the ground that RECOVERS fastest, and recovery is a rate that task 4 keys
@@ -51,11 +51,11 @@
 #
 # ⚠ AND THE HALF THAT IS NOT FREE, RECORDED RATHER THAN DODGED. Five ranked values ARE an overlay a
 # player can read and follow, which is the exact thing adr/0022 refused when it rejected "fertile
-# valleys here, poor ground there". Calling it realism does not stop it being a lookup. adr/0157
+# valleys here, poor ground there". Calling it realism does not stop it being a lookup. adr/0158
 # takes it anyway and states why: Sealing runs 0-1024 against a ceiling of 1.0, so what the player
 # does to a Cell moves its Fertility across the whole range these five values sit inside. ***The
 # generator sets where you start; play sets where you end.*** If a player ever reports siting farms
-# off a terrain overlay as FOLLOWING INSTRUCTIONS, adr/0157 names the repair: collapse these toward
+# off a terrain overlay as FOLLOWING INSTRUCTIONS, adr/0158 names the repair: collapse these toward
 # the exclusion-only shape -- `rock` low, the rest equal.
 #
 # ⚠ IT AUTHORS NO SHARE, NO THRESHOLD AND NO FEATURE SIZE, AND THAT ABSENCE IS DELIBERATE. How much
@@ -457,7 +457,7 @@ candidates    = 3
 # strong source lands near that half. UNRATIFIED, plans/0002 section D1, and 🔴 chosen against NO
 # consumer: nothing reads Fertility, because no milestone in docs/06 builds a farm.
 #
-# ⚠ There is no fertility_sealing_percent and the absence is the decision (adr/0155). A Cell at 1024
+# ⚠ There is no fertility_sealing_percent and the absence is the decision (adr/0156). A Cell at 1024
 # sealed Tiles has every Tile built on and therefore no farmland, which PINS that coefficient at
 # base x Sealing / 1024. Offering it as a key would invite a file to state that a fully paved Cell
 # still farms.
@@ -519,7 +519,7 @@ land_value_tau        = 8
 # ⚠ OMITTING THE KEY MEANS FOREST NEVER RETURNS, which is what all fifteen shipped files said by
 # saying nothing, and it stays a legitimate world rather than a misconfiguration. A STATED ZERO IS
 # REFUSED, because a duration of zero Days means INSTANTLY and not never -- the two spellings would
-# mean opposite things, which is why this key refuses the value adr/0159's sea level refuses for the
+# mean opposite things, which is why this key refuses the value adr/0160's sea level refuses for the
 # opposite reason. The ceiling is 1,024, a Cell's Tile count: past it the derived step rounds to
 # nothing, a floor of one Tile takes over, and the authored duration would silently not be the
 # duration.
@@ -891,7 +891,7 @@ shift_hours_max = 10
 arrive_early_max_minutes = 15
 
 # ---------------------------------------------------------------------------------------------------
-# THE ONE THING THIS FILE ADDS. Five tables, one per adr/0157 terrain type, each pricing the ground
+# THE ONE THING THIS FILE ADDS. Five tables, one per adr/0158 terrain type, each pricing the ground
 # before anything is built on it. `base_fertility_percent` is a percentage of FULLY fertile, authored
 # as a whole number because adr/0048 refuses an unquoted decimal anywhere on the path into the
 # simulation, and converted to Q16.16 at load.

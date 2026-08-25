@@ -22,7 +22,7 @@ public readonly struct FloodCell;
 /// <b>Sparse, and <see cref="Space.WaterCellTable"/>'s reasoning exactly</b> — high ground is in no
 /// floodplain by definition, so a dense column would invent an answer for 262,144 Cells to store one
 /// for a few thousand. ⚠ <b><see cref="Depth"/> is the whole reason this is a table and not a flag on
-/// terrain</b>: <c>01 §5.2</c> spreads Flood *by depth*, and <c>adr/0156</c> stores that depth here
+/// terrain</b>: <c>01 §5.2</c> spreads Flood *by depth*, and <c>adr/0157</c> stores that depth here
 /// precisely so that no height column has to ship.
 /// </para>
 /// <para>
@@ -71,7 +71,7 @@ public sealed class FloodCellTable
     /// </summary>
     /// <remarks>
     /// ⚠ <b>A DEPTH and not an elevation, and the difference is what makes it storable.</b> An
-    /// elevation would be a height column wearing another name, which <c>adr/0156</c> refuses; a depth
+    /// elevation would be a height column wearing another name, which <c>adr/0157</c> refuses; a depth
     /// is the flood level minus the ground and it is meaningless off the floodplain, which is why the
     /// rows stop where they do. <b>Always positive</b> — a Cell at or above the flood level has no
     /// row.

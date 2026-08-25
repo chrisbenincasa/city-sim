@@ -92,7 +92,7 @@ public enum BinOwnerKind : byte
     /// </para>
     /// <para>
     /// ⚠ <b>Its Resource is <c>Utility</c>-family and there is exactly one</b>
-    /// (<c>adr/0160</c>): a Water Body moves its contents along an edge of the water graph, which is a
+    /// (<c>adr/0161</c>): a Water Body moves its contents along an edge of the water graph, which is a
     /// Utility's movement, and a Good doing that would move with no Vehicle. <c>milestone 24 task
     /// 6b</c>.
     /// </para>

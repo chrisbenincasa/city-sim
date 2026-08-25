@@ -8,7 +8,7 @@ namespace Borough.Tests.Formats;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <c>adr/0159</c> and <c>adr/0156</c>. <b>Two nested optionals, and the whole file is about what an
+/// <c>adr/0160</c> and <c>adr/0157</c>. <b>Two nested optionals, and the whole file is about what an
 /// absence says.</b> No <c>[water]</c> is an inland world; <c>[water]</c> without
 /// <c>flood_level_percent</c> is a steep coast. ⚠ <b>Neither is a defaulted number</b> — the absence
 /// is the spelling, which is <c>adr/0123</c>'s rule about a mechanism that is present and
@@ -87,7 +87,7 @@ public sealed class WaterRulesetLoadTests
     /// </summary>
     /// <remarks>
     /// 0 is a second spelling of omitting the table — a designer who wrote it would mean something the
-    /// generator cannot hear; 100 puts every Cell under water, which is not a city. <c>adr/0159</c>.
+    /// generator cannot hear; 100 puts every Cell under water, which is not a city. <c>adr/0160</c>.
     /// </remarks>
     [Theory]
     [InlineData(0)]

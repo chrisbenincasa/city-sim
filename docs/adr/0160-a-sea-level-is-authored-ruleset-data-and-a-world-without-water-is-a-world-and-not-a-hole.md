@@ -60,14 +60,14 @@ and a document quoting one names the file, the level and the key — `plans/0012
 ### Against the realised range, so that every key has a coast
 
 The level is a percent of the range the key produced, not of the range the noise could produce. This is
-[`0157`](0157-terrain-is-five-types-and-base-fertility-varies-across-them-because-a-category-exclusion-is-not-an-overlay.md)'s
+[`0158`](0158-terrain-is-five-types-and-base-fertility-varies-across-them-because-a-category-exclusion-is-not-an-overlay.md)'s
 self-normalising reading and it is taken for that ADR's reason: the octave sum is bell-shaped, so a
 level fixed against the theoretical ceiling would drown one key and leave the next dry. `WaterTests`
 asserts the property this buys — **every key has a coast** — rather than the amount it produces.
 
 ### One height field, three readings, and one `PurposeTag`
 
-[`0156`](0156-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md)
+[`0157`](0157-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md)
 says the generator uses height *"to decide where water sits, which ground floods, and what terrain type
 a Cell is."* So `WaterGenerator` reads the **same** field `TerrainGenerator` reads, on the same
 `PurposeTag.TerrainType`, and **no new tag is allocated**.
@@ -75,7 +75,7 @@ a Cell is."* So `WaterGenerator` reads the **same** field `TerrainGenerator` rea
 ⚠ **That is not the tag reuse `CLAUDE.md` forbids.** A tag is owed to a distinct *decision*, and
 *where the ground is low* is one decision. Drawing water from a second tag would put the sea somewhere
 unrelated to the low ground of the terrain it sits in — not independence, but nonsense. **Height is read
-and stored nowhere**, as `0156` requires.
+and stored nowhere**, as `0157` requires.
 
 ### The graph is real, and the thing that keeps it acyclic had to be found by testing
 

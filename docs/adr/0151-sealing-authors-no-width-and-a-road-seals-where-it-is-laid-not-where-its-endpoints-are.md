@@ -132,7 +132,7 @@ deliverable**, and writing the helper before a consumer exists is
   the two [`0124`](0124-terrain-suitability-is-baked-at-world-creation-and-the-layer-holes-that-need-it-move-to-milestone-24.md)
   did enumerate — `sealing_decay_tau = 0` everywhere, and `MapLayers.Step` never calling `DecaySealing` —
   become reachable for the first time.
-- **[`0155`](0155-fertility-composes-with-weights-and-only-one-of-them-is-a-number-anybody-chooses.md)'s
+- **[`0156`](0156-fertility-composes-with-weights-and-only-one-of-them-is-a-number-anybody-chooses.md)'s
   `base × Sealing / 1024` gets a non-zero numerator**, so its derived `w_s` starts doing something.
 - ⚠ **Width 1 is uniform across every road kind**: an Arterial, a Street and a foot path each seal 4 m of
   width. That is coarse and it is named here rather than left to be discovered — the revisit trigger below

@@ -11,7 +11,7 @@ namespace Borough.Core.Space;
 /// <remarks>
 /// <para>
 /// <b>Extracted from <see cref="TerrainGenerator"/> when Woodland became its second caller</b>
-/// (<c>adr/0158</c>, milestone 24 task 8a). It was a private local of that class while it had one
+/// (<c>adr/0159</c>, milestone 24 task 8a). It was a private local of that class while it had one
 /// consumer, which was correct then; two consumers wanting the identical sixty lines is where the
 /// duplication stops paying. ⚠ <b>The extraction moved no State Hash</b> — the arithmetic is
 /// unchanged and the purpose tag it was hard-coding is now the parameter.

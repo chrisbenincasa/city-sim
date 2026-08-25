@@ -1967,7 +1967,7 @@ in [`06`](../docs/06-roadmap.md) → *Retired numbering*, third block, which is 
 ### `adr/0123` says Amenity needs a `kind` column on `BusinessTable`, and a park is not a Business
 
 **Found 2026-08-23, in the sitting that produced
-[`adr/0151`](../docs/adr/0151-amenity-counts-building-kinds-and-the-count-belongs-to-the-place-while-the-set-belongs-to-the-household.md).**
+[`adr/0152`](../docs/adr/0152-amenity-counts-building-kinds-and-the-count-belongs-to-the-place-while-the-set-belongs-to-the-household.md).**
 Three places say it, and one of them is an exception message a future reader will trust absolutely:
 
 | Where | What it says |
@@ -1980,7 +1980,7 @@ Three places say it, and one of them is an exception message a future reader wil
 column on `BusinessTable` cannot enumerate a **park**, and
 [`adr/0032`](../docs/adr/0032-services-are-delivered-by-trips-not-by-coverage.md) had already made a
 park an Amenity entry — *"widen Business to destination and a park is an Amenity entry"* — before
-`0123` was written. Nor could it enumerate a school, a clinic or a beach. Under `adr/0151` the key is
+`0123` was written. Nor could it enumerate a school, a clinic or a beach. Under `adr/0152` the key is
 the **`[[building]] kind`**, which every Building already carries, so ***no column is owed at all***
 and what milestone 15 owes is the catchment query and nothing else.
 
@@ -3724,7 +3724,7 @@ the difference between terrain as a **price** and terrain as a **wall** — and 
 this row would have taken terraforming as placed at 24 and shipped the height field on that basis.
 ✅ **PAID 2026-08-22 by `plans/0042` decision 2**: the row is split in two, terraforming's is **UNPLACED**,
 and it now says it owes a **verb** before it owes a milestone
-([`adr/0156`](../docs/adr/0156-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md)).
+([`adr/0157`](../docs/adr/0157-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md)).
 
 ### `adr/0021` called a rule **checkable** for four years, and nothing could have checked it
 
@@ -3751,7 +3751,7 @@ nothing to run.
 
 ✅ **PAID 2026-08-22 by `plans/0042` decision 3**, as an **amendment in place** rather than a new ADR —
 the design content belongs to
-[`adr/0156`](../docs/adr/0156-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md),
+[`adr/0157`](../docs/adr/0157-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md),
 and a second home for one decision is **Cause 1** by construction. The rule is restated against **state**:
 ***terrain height is not state***, which is checkable by inspection because no height column exists.
 ⚠ **The mechanical check becomes owed the day terraforming lands**, since *seed + edits* stores heights on
@@ -3802,7 +3802,7 @@ that fits inside one working tree, and blind to exactly the class that does not:
 
 | | Where the fact lives | Can a corpus test see it? |
 |---|---|---|
-| **§F2's ADR count** — *"149 written, numbered to `0157`"* | document-to-**filesystem**, inside **one** checkout | ✅ **Yes, and one does** — `CoverageMapTests.cs:170` asserts both the count and the high-water mark against `docs/adr` on disk, and its message says *"this is the fourth time"* |
+| **§F2's ADR count** — *"149 written, numbered to `0158`"* | document-to-**filesystem**, inside **one** checkout | ✅ **Yes, and one does** — `CoverageMapTests.cs:170` asserts both the count and the high-water mark against `docs/adr` on disk, and its message says *"this is the fourth time"* |
 | **Two branches naming one `adr/0143`** | only in the **difference between two** checkouts | 🔴 **No, and not by oversight** — ***in each tree separately, nothing is wrong*** |
 
 ***Same ledger, opposite outcomes, and the whole of the difference is whether the fact fits inside a
@@ -3838,6 +3838,28 @@ nothing makes a session look. ⚠ **What this recurrence adds is that reading th
 — milestone 24 read it correctly on the day and was overtaken afterwards. ***A number claimed against a
 set that is still growing stays unsafe for as long as the branch is unmerged***, which is the original
 entry's own sentence arriving with a second half. **This does not close the item.**
+
+🔴 ⚠ **FIFTH RECURRENCE, 2026-08-25, and it is the FIRST that an agreement had already covered.**
+`plans/0042` records a split *agreed with the milestone 27 session on 2026-08-24* — this branch
+`0150`–`0158`, milestone 27 `0145`–`0149` — and `main` then committed `adr/0150` *appearance is
+derived in the shell* on the same day. **This branch moved again: `0150`–`0161` → `0151`–`0162`**,
+61 files of citations, `main`'s `0150` untouched.
+
+⚠ **The direction was not the agreement's to decide, and that is the finding.** The agreement said
+this branch owned `0150`; the repair still moved this branch, because by the time anybody looked
+`main`'s `0150` was **published and cited from three documents**, and moving it would have re-used a
+number for different work — which `PROCESS.md` → *Numbering* forbids outright. ***So an allocation
+agreement is only binding until one side publishes; after that the published side wins whatever was
+agreed.*** That is not a reason to stop agreeing splits — it is the reason a split must be **claimed
+in the tree** rather than in a conversation, because only the tree is visible to the branch that
+breaks it.
+
+⚠ **Two of the six merge-conflict files were rewritten three times by one pass** over `git ls-files`,
+because ***an unmerged path is listed once per stage***, and a script that walks that list touches a
+conflicted file three times and every other file once. **The renumber was +3 on exactly the files a
+human was already reading closely** and +1 everywhere else. Caught by a dangling-link sweep, not by
+review. ***A file list taken during a merge is not a file list***, and `git ls-files` is the specific
+trap: it is the obvious way to enumerate the corpus and it is wrong for as long as a conflict stands.
 
 ⚠ **The reservation in [`0036`](0036-the-coarse-day-wheel.md) did not prevent it and was not consulted**
 — that document reserves **0140–0149** for the coarse-day-wheel track, and both milestone 24 and

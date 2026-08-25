@@ -1,6 +1,6 @@
 # Milestone 24 is two milestones, because a dial cannot scale a figure nothing authors
 
-> ⚠ **Corrected the same day by [`0154`](0154-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md).**
+> ⚠ **Corrected the same day by [`0155`](0155-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md).**
 > *"the baked terrain-suitability column"* below was this document quoting
 > [`0124`](0124-terrain-suitability-is-baked-at-world-creation-and-the-layer-holes-that-need-it-move-to-milestone-24.md)'s
 > artefact, which is now superseded: the column holds **terrain type**, and **Base Fertility** is Ruleset

@@ -159,6 +159,19 @@ internal enum Mode
     /// files</b>. See <c>ArrivalDump</c>.
     /// </remarks>
     Arrivals,
+
+    /// <summary>
+    /// The economic actor: how many there are, where they got them, what they hold, who works in
+    /// them, and what read one. Milestone 27's.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Five panels, because the milestone's risk has four halves and one of them needs its own
+    /// caveat.</b> <c>plans/0041</c>: *the city creates one, funds one, employs through one, and a Rule
+    /// can read its balance.* It refuses a Ruleset in which no Business can be created — ***which is
+    /// a different test from whether a trade is declared***, since <c>rulesets/tenanted.toml</c>
+    /// declares two and builds neither. See <c>BusinessDump</c>.
+    /// </remarks>
+    Business,
 }
 
 /// <summary>
@@ -400,6 +413,7 @@ internal sealed class Options
         bool parking = false;
         bool landValue = false;
         bool arrivals = false;
+        bool business = false;
         Layer? dump = null;
 
         for (int i = 0; i < arguments.Length; i++)
@@ -505,6 +519,14 @@ internal sealed class Options
                 // asked. This mode drives the gates itself.
                 case "--arrivals":
                     arrivals = true;
+                    session = true;
+                    continue;
+
+                // A session flag for --money's reason rather than --arrivals': a Business is created
+                // by the city on its own and nothing outside has to ask. What it needs is elapsed
+                // time, because construction, founding and placement are all paced.
+                case "--business":
+                    business = true;
                     session = true;
                     continue;
 
@@ -780,6 +802,25 @@ internal sealed class Options
             complaint = "--arrivals and --log disagree: this mode issues its own arrive commands, so "
                       + "a recorded session would be replayed and then driven on top of. If you want "
                       + "a scripted arrival, write the verb into the log and use --log alone.";
+            return false;
+        }
+
+        if (business && (arrivals || landValue || parking || evidence || traffic || commute || zones
+                         || roads || trips || dump is not null))
+        {
+            complaint = "--business asks for another picture, and each picture builds its own world. "
+                      + "Ask for one.";
+            return false;
+        }
+
+        if (business && rulesets.Count == 0)
+        {
+            complaint = "--business needs --ruleset PATH. Nothing creates a Business unless a kind "
+                      + "declares a trade or the file states a [founding] channel, so a world with "
+                      + "no Ruleset has no economic actor and every panel would be blank. "
+                      + "rulesets/levied.toml is the file this mode was written for -- it is the "
+                      + "only shipped world in which a Business is created, funded, staffed and "
+                      + "read by a Rule.";
             return false;
         }
 
@@ -1091,7 +1132,8 @@ internal sealed class Options
 
         options = new Options
         {
-            Mode = arrivals ? Mode.Arrivals
+            Mode = business ? Mode.Business
+                 : arrivals ? Mode.Arrivals
                  : money ? Mode.Money
                  : landValue ? Mode.LandValue
                  : parking ? Mode.Parking
@@ -1238,6 +1280,13 @@ internal sealed class Options
                                 so it knocks on every gate once a Day, asking for more
                                 than the door can take, and what is admitted is the
                                 file's ceiling rather than a rate chosen by the runner
+          --business            dump the economic actor: how many Businesses there are and
+                                where, what created them, what they hold, who works in
+                                them, and what read one. Needs --ruleset in which a
+                                Business can be CREATED -- a kind declaring a trade, or a
+                                [founding] channel -- which is a different test from one
+                                that merely declares a [[business]]. rulesets/levied.toml
+                                is the only shipped world with all four quarters in it
           --csv                 dump the Layer, the Lot grid or the Segments as CSV rather
                                 than as an ASCII field
 

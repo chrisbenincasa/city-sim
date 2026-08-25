@@ -31,7 +31,7 @@ split is what decides the milestone:
 ⚠ **AMENDED 2026-08-24 by milestone 24 task 7, and the amendment is this table's own reasoning
 arriving.** Shoreline's row said *zero in every world that exists* — that was a fact about the build,
 because nothing had made a Water Body, and it stopped being true the moment
-[`0159`](0159-a-sea-level-is-authored-ruleset-data-and-a-world-without-water-is-a-world-and-not-a-hole.md)
+[`0160`](0160-a-sea-level-is-authored-ruleset-data-and-a-world-without-water-is-a-world-and-not-a-hole.md)
 generated water and runoff filled a Bin. **`w₅` now composes.** ⚠ **What it composes is a term that is
 still absent on most worlds** — a Ruleset omitting `[water]`, or stating it with no Bin, drops `w₅`
 rather than adding a zero, which is this table's distinction applied one level down at the *Ruleset*

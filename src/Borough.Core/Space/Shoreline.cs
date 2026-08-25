@@ -35,7 +35,7 @@ public readonly record struct ShorelineSource(Tiles Range, int IntensityPerFill)
 /// DOCUMENTS.</b> <c>adr/0034</c> and <c>CONTEXT.md</c> → Water Body both say the intensity is
 /// <em>"the Bin's level"</em>. They name the quantity and never its units, and taking the level
 /// <em>absolutely</em> is wrong in a way that only shows up once capacity is derived from body size
-/// (<c>adr/0160</c>): the measured sea here is <b>33,435 Cells</b> against a pond's tens, so the same
+/// (<c>adr/0161</c>): the measured sea here is <b>33,435 Cells</b> against a pond's tens, so the same
 /// tonnage tipped into either produces the same absolute level and ***a teaspoon in the sea would
 /// foul its whole coastline as hard as it fouls a pond.*** The fraction is the concentration, it is
 /// bounded in <c>[0, 1]</c> so a weight means the same thing on every body, and it is the same

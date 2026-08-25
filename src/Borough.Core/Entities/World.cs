@@ -205,7 +205,7 @@ public sealed class World
         // a property of the ground, and an empty world on a wet key has every wet Cell that a
         // crowded one does. The body count starts at 8 for DistrictTable's reason -- a small table
         // that grows -- and the Cell hint is a sixteenth of the map, which is a hint and not a claim
-        // about how much of a world is water. adr/0159 says why no key states that share.
+        // about how much of a world is water. adr/0160 says why no key states that share.
         Water = new Space.WaterBodyTable(8, Bins);
         WaterCells = new Space.WaterCellTable(
             IntegerMath.FloorDiv(Space.CellGrid.WorldCellCount, 16), Water);
@@ -213,12 +213,12 @@ public sealed class World
         // Which Water Body each Cell's runoff reaches, and it takes no hint at all because it is
         // DENSE -- one row per Cell of the map, allocated in its own constructor. The question is
         // asked about dry ground, so sparsity would be storing a residency index to say "no" about
-        // the Cells that are the whole point. milestone 24 task 6b, adr/0159.
+        // the Cells that are the whole point. milestone 24 task 6b, adr/0160.
         Catchment = new Space.CatchmentCellTable(Water);
 
         // The Hazard Region, sized from the MAP for the water tables' own reason. A floodplain is a
         // band above the waterline, so a sixty-fourth of the map is a hint and not a claim about how
-        // much of a world floods -- adr/0156's own revisit trigger is that this turns out not to be
+        // much of a world floods -- adr/0157's own revisit trigger is that this turns out not to be
         // sparse. milestone 24 task 9.
         Flood = new Space.FloodCellTable(
             IntegerMath.FloorDiv(Space.CellGrid.WorldCellCount, 64));
@@ -328,7 +328,7 @@ public sealed class World
             // bumped -- this is new state, so the baselines move because the world moved.
             CarParks.Rows,
 
-            // Appended for the same reason, milestone 24 task 2. adr/0157: the terrain type column is
+            // Appended for the same reason, milestone 24 task 2. adr/0158: the terrain type column is
             // (saved AND hashed), and it is the ONE table here whose rows are all allocated in its
             // constructor and never freed -- so its contribution to Rows.Fold's allocator scalars is
             // a constant, and what moves the hash is the column. The TreasuryTable note above says a
@@ -338,7 +338,7 @@ public sealed class World
             // another.
             Layers.Terrain.Rows,
 
-            // Appended for the same reason, milestone 24 task 8a. adr/0158: the Woodland Tile count is
+            // Appended for the same reason, milestone 24 task 8a. adr/0159: the Woodland Tile count is
             // (saved AND hashed), dense like terrain, and state no snapshot can re-derive -- the
             // generator gives the world its forest and the running city spends it, so neither the
             // WorldKey alone nor the Tick history alone reproduces the column.
@@ -349,7 +349,7 @@ public sealed class World
             // be the silent hole that document warns about rather than the narrowing it describes.
             Layers.Woodland.Rows,
 
-            // Appended for the same reason, milestone 24 task 6a. adr/0034 and adr/0159: the water
+            // Appended for the same reason, milestone 24 task 6a. adr/0034 and adr/0160: the water
             // graph is (saved AND hashed) because a save does not carry the WorldKey back into the
             // generator, and adr/0021 makes water immutable -- so these two tables are written once,
             // at world creation, and never again. Appending stays the one edit to this list that
@@ -537,7 +537,7 @@ public sealed class World
     /// Here rather than on <c>MapLayers</c> — unlike terrain and Woodland, which are quantities of the
     /// ground — because a Water Body is a thing the city <em>contains</em> and will own a Bin at task
     /// 6b, which is <see cref="Districts"/>'s shape and not a Layer's. <c>adr/0034</c>,
-    /// <c>adr/0159</c>.
+    /// <c>adr/0160</c>.
     /// </remarks>
     public Space.WaterBodyTable Water { get; }
 
@@ -2847,9 +2847,15 @@ public sealed class World
         // city's employment on every reload.
         byte trade = Rules.Kind(kind).Business;
 
-        if (trade != 0 && !HoldsTrade(buildingSlot, trade))
+        if (trade != 0 && !HoldsOwnTrade(buildingSlot))
         {
-            CreateBusiness(building, trade);
+            // The origin is written here rather than inside CreateBusiness, because this is the one
+            // caller that has premises to claim. A founded Business is created unpremised and a
+            // fixture's is created with no origin at all, and both of those are ordinary Businesses
+            // that no demolition may raze.
+            Handle<Business> came = CreateBusiness(building, trade);
+
+            Businesses.Origin[Businesses.Rows.Resolve(came)] = building;
         }
 
         int armed = 0;
@@ -2869,22 +2875,31 @@ public sealed class World
         return armed;
     }
 
-    /// <summary>Whether a Building already holds a Business of this trade.</summary>
+    /// <summary>Whether a Building already holds the Business it instantiated itself.</summary>
     /// <remarks>
+    /// <para>
     /// <b><see cref="Fit"/>'s idempotence for <c>adr/0148</c>'s declared trade</b>, and it asks the
-    /// same question the Bin walk and the Car Park check ask. ⚠ <b>It asks about the TRADE and not
-    /// about the count</b>: a Building may hold a second Business of the same trade that walked in
-    /// through <c>adr/0147</c>'s placement pass, and the one this refuses to duplicate is the one the
-    /// kind declares. That is a deliberate over-refusal — a refit will not re-add a shop to a Building
-    /// whose declared shop already left and was replaced by an identical one — and the alternative is
-    /// a saved column recording which Business a kind put there, which is the flag
-    /// <c>adr/0148</c> refuses.
+    /// same question the Bin walk and the Car Park check ask. It is <see cref="DestroyBuilding"/>'s
+    /// predicate exactly, run in the other direction: ***the pairing that keeps the shop count bounded
+    /// has to identify the same row at both ends, or it is not a pairing.***
+    /// </para>
+    /// <para>
+    /// 🔴 <b>It asked about the TRADE until milestone 27 task 10 and that was the defect.</b> A
+    /// Building may hold a second Business of the same trade — one a Household founded, since
+    /// <c>[founding]</c> draws uniformly over every declared trade — and matching on kind made the two
+    /// interchangeable at both ends: a refit declined to instantiate because a *founded* shop was
+    /// standing there, and a demolition razed the founded one in the instantiated one's place. **The
+    /// old comment here named the alternative and called it a flag <c>adr/0148</c> refuses.** It is
+    /// not a flag; it is <see cref="BusinessTable.Origin"/>, a handle naming one Building, and a
+    /// handle that stops meaning anything the moment the Business leaves is the opposite of a flag.
+    /// </para>
     /// </remarks>
-    private bool HoldsTrade(int buildingSlot, byte trade)
+    private bool HoldsOwnTrade(int buildingSlot)
     {
         foreach (int business in BuildingBusinesses.Walk(buildingSlot))
         {
-            if (Businesses.Kind[business] == trade)
+            if (Buildings.Rows.TryResolve(Businesses.Origin[business], out int origin)
+                && origin == buildingSlot)
             {
                 return true;
             }
@@ -3307,7 +3322,7 @@ public sealed class World
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <c>adr/0160</c>, <c>CONTEXT.md</c> → Water Body, milestone 24 task 6b. <b>Exactly one Bin and
+    /// <c>adr/0161</c>, <c>CONTEXT.md</c> → Water Body, milestone 24 task 6b. <b>Exactly one Bin and
     /// exactly one Resource</b>, whose family is <c>Utility</c>: a Water Body moves its contents along
     /// an edge of the water graph, and a Good doing that would move with no Vehicle.
     /// </para>
@@ -3415,7 +3430,7 @@ public sealed class World
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <c>CONTEXT.md</c> → Water Body, <c>adr/0160</c>, milestone 24 task 6b. <b>A body sheds
+    /// <c>CONTEXT.md</c> → Water Body, <c>adr/0161</c>, milestone 24 task 6b. <b>A body sheds
     /// <c>exits × [water] outflow_per_exit_per_day</c></b>, and the three behaviours that entry
     /// describes fall out with no taxonomy: <em>a pond has no outflow and fills</em> (zero exits), a
     /// body touching the map's edge sheds along its whole boundary, and a landlocked lake spills
@@ -3436,7 +3451,7 @@ public sealed class World
     /// </para>
     /// <para>
     /// 🔴 <b>Nothing puts anything in, so every level is zero and this pass moves nothing on every
-    /// shipped world.</b> No <c>Scope</c> reaches a Water Body — <c>adr/0160</c> names that as
+    /// shipped world.</b> No <c>Scope</c> reaches a Water Body — <c>adr/0161</c> names that as
     /// <c>adr/0070</c>'s *unbuilt* — so the mechanism is exercised by tests and by no Ruleset.
     /// </para>
     /// </remarks>
@@ -5284,17 +5299,20 @@ public sealed class World
         // ⚠ adr/0148: the trade this KIND came with dies with the premises, and every other tenant
         // is pooled. Fit creates one of the declared trade at construction, so this destroys one --
         // the pairing that keeps the shop count bounded, and the reason Raze exists. See Raze.
-        byte declared = Rules.Declares(Buildings.Kind[slot]) ? Rules.Kind(Buildings.Kind[slot]).Business : (byte)0;
-
-        if (declared != 0)
+        //
+        // 🔴 ON THE ORIGIN AND NOT ON THE KIND, since milestone 27 task 10. A kind is not an identity:
+        // [founding] draws uniformly over every declared trade, so a Household may found a shop of
+        // the very trade a dwelling declares, and matching on kind razed whichever came first in the
+        // list. Two defects from that one line -- the founded shop's capital left the city through
+        // Raze's money-supply write, and the instantiated shop outlived its premises into the
+        // unpremised pool, where nothing ever collected it. Measured on rulesets/levied.toml at
+        // 24,576 Ticks: 52 stranded; on minimal.toml and taxed.toml, which found nothing, zero.
+        foreach (int came in BuildingBusinesses.Walk(slot))
         {
-            foreach (int came in BuildingBusinesses.Walk(slot))
+            if (Buildings.Rows.TryResolve(Businesses.Origin[came], out int origin) && origin == slot)
             {
-                if (Businesses.Kind[came] == declared)
-                {
-                    Raze(Businesses.Rows.At(came));
-                    break;
-                }
+                Raze(Businesses.Rows.At(came));
+                break;
             }
         }
 

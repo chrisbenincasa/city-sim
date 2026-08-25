@@ -2398,7 +2398,7 @@ public sealed class Ruleset
     /// <remarks>
     /// ⚠ <b>Absence means the world genuinely has no water in it</b>, which is the opposite polarity
     /// to <see cref="Terrain"/> and the same as <see cref="Parking"/>'s. Every world has ground; not
-    /// every world has a coast. <c>adr/0159</c>.
+    /// every world has a coast. <c>adr/0160</c>.
     /// </remarks>
     public WaterRuleset Water { get; init; } = WaterRuleset.None;
 

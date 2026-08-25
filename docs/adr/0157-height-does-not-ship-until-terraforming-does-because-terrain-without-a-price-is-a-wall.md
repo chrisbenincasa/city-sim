@@ -3,7 +3,7 @@
 **Milestone 24 generates height and stores none of it.** The generator uses height while it works — to
 decide where water sits, which ground floods, and what terrain type a Cell is — and stores only its
 **outputs**: the terrain type column
-([`0154`](0154-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)),
+([`0155`](0155-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)),
 the water graph with its downstream edges, and floodplain depth **where the floodplain is**. There is no
 height column, at Tile or at Cell resolution.
 

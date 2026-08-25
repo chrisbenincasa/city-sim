@@ -2,9 +2,9 @@
 # which the map contains water at all.
 #
 # Milestone 24 task 6a of plans/0042-terrain-and-the-land-rows.md. adr/0034 makes a Water Body a Bin
-# with a capacity and an outflow rate to the next body downstream; adr/0156 makes the water graph and
+# with a capacity and an outflow rate to the next body downstream; adr/0157 makes the water graph and
 # its flow directions generator OUTPUT, computed from a height field that is then thrown away; and
-# adr/0159 makes the sea level the one thing a Ruleset says about water.
+# adr/0160 makes the sea level the one thing a Ruleset says about water.
 #
 # WHAT IT ADDS TO minimal.toml, AND IT IS ONE TABLE. `[water]`, with one key. Everything else below is
 # minimal.toml unchanged, and its reasoning lives there rather than being copied here -- a copied
@@ -71,7 +71,7 @@ family = "good"
 # THE FIRST family = "utility" RESOURCE IN ANY SHIPPED RULESET, and it is here because a Water Body's
 # Bin has to hold something.
 #
-# WHY UTILITY AND NOT GOOD. adr/0160. adr/0031's family axis is one question -- does inter-District
+# WHY UTILITY AND NOT GOOD. adr/0161. adr/0031's family axis is one question -- does inter-District
 # movement require a Vehicle? -- and a Water Body moves its contents along an edge of the WATER graph,
 # downstream, with no Vehicle, no Trip and no Segment. A `good` here would be a counterexample to the
 # definition of good sitting inside a loaded world, which is why the loader refuses one by name.
@@ -823,7 +823,7 @@ shift_hours_max = 10
 # everybody cutting it fine -- and is the control this can be run against.
 arrive_early_max_minutes = 15
 
-# WHERE THE SEA STANDS. adr/0159. The one key a Ruleset states about water; everything else -- which
+# WHERE THE SEA STANDS. adr/0160. The one key a Ruleset states about water; everything else -- which
 # Cells are wet, how many bodies there are, which way each drains -- is derived by WaterGenerator from
 # the WorldKey. There is deliberately no water-coverage key: a share of the map is an OUTCOME, and
 # authoring it would make the generator solve for a number instead of laying a world.
@@ -841,7 +841,7 @@ sea_level_percent = 25
 # that decides how much land is risky, and there is nothing yet that fires on it -- Disasters are
 # behind milestone 15 -- so no run can currently tell you whether 30 is generous or stingy. What it
 # is anchored on is the shape of the thing: a five-point band above a sea at 25 is riverside land,
-# which is what 01 §5.2 asks for, and it is what keeps the table sparse enough for adr/0156's choice
+# which is what 01 §5.2 asks for, and it is what keeps the table sparse enough for adr/0157's choice
 # to store it sparsely to stay true.
 #
 # ⚠ OMITTING THIS KEY IS A WORLD AND NOT A GAP. A steep coast has no floodplain, and the absence is

@@ -152,12 +152,12 @@ enumeration"* without naming a member.** ⚠ **Nothing else in the corpus enumer
 document states the set. ***A key was specified before the thing it keys on***, and milestone 24 task 2
 found it on the day it tried to write the column.
 
-✅ **The set is five** ([`0157`](0157-terrain-is-five-types-and-base-fertility-varies-across-them-because-a-category-exclusion-is-not-an-overlay.md),
+✅ **The set is five** ([`0158`](0158-terrain-is-five-types-and-base-fertility-varies-across-them-because-a-category-exclusion-is-not-an-overlay.md),
 with the user in the room): **`ordinary`, `rock`, `floodplain`, `marsh`, `thin_soil`**, stored one per
 Cell as `(saved AND hashed)`. **The ordinals are hash-bearing** — appending a sixth is free, renumbering
 the five is a re-baseline.
 
-🔴 **And Base Fertility varies across them**, which this ADR left open and `0022` forbade. `0157` amends
+🔴 **And Base Fertility varies across them**, which this ADR left open and `0022` forbade. `0158` amends
 `0022` rather than reading around it. ⚠ **This ADR's *storage* half is untouched and is what makes the
 variation cheap**: varying a Ruleset value keyed by a stored type is one column and no field, which is
 the whole of the decision above.
