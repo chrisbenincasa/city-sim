@@ -82,7 +82,55 @@ them to condemnation and went back to the pool to look again*** — which is
 [`adr/0144`](../docs/adr/0144-a-tenant-that-loses-its-premises-keeps-only-its-money-and-waits-a-households-wait.md)
 running for the first time on a Business the simulation created.
 
-**Remaining: 7, then task 8's Citizen half, then 9.**
+~~**Remaining: 7, then task 8's Citizen half, then 9.**~~
+
+✅ **TASK 9 SHIPPED 2026-08-24, AND IT IS NOT THE TASK THIS DOCUMENT DESCRIBED** (**G39**).
+[`adr/0149`](../docs/adr/0149-a-business-is-a-population-a-policy-sweeps-and-a-readout-names-every-entity-it-reads-against.md).
+🔴 **G10** read `RuleInstanceTable`'s *"a Business gets its own column when a Business runs a Rule, which is
+milestone 27"* as an estimate of the work. **That column was built — `[[rule]] trade =`,
+`BusinessTable.RuleHead`/`RuleTail`, `World.ArmTrade` — and it loaded and crashed on the Tick it fired**,
+because `RuleEngine.Fire` resolves a Building from the instance and so do evidence, `on_fail`, the wake
+targets and every local Bin lookup. **Reverted.** ⚠ ***[`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+working rather than failing***: the comment was right about **where to look** and was never a claim about
+what the work was. What shipped instead is the sentence **the loader's own refusal already carried** — *a
+Business has a balance and no pass that moves it* — so a **Policy sweeps every live Business**
+(`SweepHouseholds` became `SweepMembers`), and a **Readout declares the SET of entities it reads against**
+(`Readouts.ScopeOf` did not stop being a ternary, it stopped existing). **The family is argued on behaviour
+rather than cost, because `adr/0033` requires it.** [`rulesets/levied.toml`](../rulesets/levied.toml) is the
+**sixteenth** shipped file — `founded.toml` plus five lines, so ***the diff is the demonstration***.
+⚠ **Its levy passes over a large part of what it sweeps and that is correct**: 302 live Businesses at 2,000
+Citizens over 6,144 Ticks, **125 holding nothing**, because `adr/0148`'s instantiated shops open at zero and
+only a founded shop holds money — so `BusinessLevyTests` asserts the **shape** and never the ratio.
+
+✅ **TASK 10 SHIPPED 2026-08-24 AND CLOSED THE MILESTONE, AND ITS LONG RUN FOUND A DEFECT THE SUITE COULD
+NOT** (**G43**). `--business` is the **twelfth** headless mode. 🔴 **`DestroyBuilding` identified *the trade
+this kind came with* BY KIND**, and `[founding]` draws uniformly over every declared trade — ***so a
+Household-founded `shop` and the `adr/0148` instantiated `shop` were interchangeable in a Building's list,
+and razing took whichever came first.*** **Two defects pointing opposite ways**: the founded shop's capital
+left the city through `Raze` — **money supply 354,562 → 330,579 across 20,480 Ticks** — and the
+instantiated one outlived its premises into the pool — **52 stranded zero-balance shops on `levied.toml`,
+60 on `founded.toml`, 0 on `minimal.toml` and `taxed.toml`, which found nothing.** **The repair is a saved
+`BusinessTable.Origin`**, a `Reference.Severable` `Handle<Building>`, so **identity rather than kind**
+answers *did this Business arrive with these premises* at both sites. **After the fix the supply is flat and
+the stranded count is 0.** 🔴 **State Hash `0x50D5A8A9D175C2D9` → `0xC8749A05CB543ABA`, from the new saved
+column alone; both session traces re-recorded; nobody is carrying a save
+([`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)).**
+`adr/0148` is **amended rather than superseded** — its claim that kind is enough held only while every
+declared trade was unique per Building.
+
+🔴 **WHAT DELAYED FINDING IT WAS A HEADER** — `founded.toml` opened by predicting its own money drain, so
+the drain was explained and nobody looked. ***Naming an expected symptom is how the unexpected one that
+looks identical goes unexamined.*** The header is corrected and says so at length.
+
+🔴 **THE SHOP COUNT IS BOUNDED BY THE SOURCE EXHAUSTING AND NO SINK HAS EVER FIRED** (**G44**) — **7,165
+premisings against ZERO give-ups over 131,072 Ticks**, because `adr/0147`'s placement re-premises a pooled
+shop long before the bound. ***So the bound reopens the day anything refills household money***, which is
+milestone 11's gate and milestone **26**'s revenue — ⚠ **and it is also why milestone 26's *world where a
+Building genuinely runs out of money* is still unwritten**, checked here rather than assumed.
+
+✅ **MILESTONE 27 IS CLOSED, all five tasks (6, 9, 8, 7, 10), 2026-08-24.** **Gate: `dotnet test -c Release`
+unfiltered, 2,156 passed, 0 failed.** ***Milestone 25 made the payer nameable; this one made one exist.***
+**Next is milestone 26 — the purchase — and 27 was its largest gate, not its only one.**
 
 ⚠ **The census below was taken on 2026-08-24 and it corrects the risk statement in three numbers**
 (**G1**). ***The risk stands; the figures stating it have drifted*** — which is the second time in two

@@ -1,0 +1,613 @@
+<title>The City in Space</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+:root {
+  --bg:        #E7EAE7;
+  --surface:   #FAFBFA;
+  --surface-2: #F0F2EF;
+  --ink:       #171C1E;
+  --ink-soft:  #3D4749;
+  --muted:     #64716F;
+  --rule:      #C6CDC7;
+  --rule-soft: #DCE1DC;
+  --authored:  #7E5D10;
+  --authored-bg: #F2EAD6;
+  --emergent:  #2E7F8C;
+  --emergent-bg: #DCEBEC;
+  --refused:   #8A3B36;
+  --refused-bg: #F3E2E0;
+  --measure: 68ch;
+  --wide: 1120px;
+  --sans: Archivo, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --serif: "Source Serif 4", Georgia, "Iowan Old Style", "Palatino Linotype", "Times New Roman", serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:        #10161A;
+    --surface:   #182025;
+    --surface-2: #1E272C;
+    --ink:       #DDE4E5;
+    --ink-soft:  #B6C1C2;
+    --muted:     #85938F;
+    --rule:      #2E3A3F;
+    --rule-soft: #232D32;
+    --authored:  #D8A73F;
+    --authored-bg: #2A2314;
+    --emergent:  #62B6C1;
+    --emergent-bg: #14282C;
+    --refused:   #D9756C;
+    --refused-bg: #2C1917;
+  }
+}
+:root[data-theme="dark"] {
+  --bg:        #10161A;
+  --surface:   #182025;
+  --surface-2: #1E272C;
+  --ink:       #DDE4E5;
+  --ink-soft:  #B6C1C2;
+  --muted:     #85938F;
+  --rule:      #2E3A3F;
+  --rule-soft: #232D32;
+  --authored:  #D8A73F;
+  --authored-bg: #2A2314;
+  --emergent:  #62B6C1;
+  --emergent-bg: #14282C;
+  --refused:   #D9756C;
+  --refused-bg: #2C1917;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.62;
+  margin: 0;
+  padding: 0 24px 110px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.page { max-width: var(--wide); margin: 0 auto; }
+.col  { max-width: var(--measure); }
+
+h1, h2, h3, .eyebrow, .lbl, th, .chip, .num, .actno, figcaption, .cap {
+  font-family: var(--sans);
+}
+code, pre, .mono { font-family: var(--mono); }
+
+/* ---- masthead ---- */
+.masthead { padding: 68px 0 36px; border-bottom: 2px solid var(--ink); margin-bottom: 34px; }
+.eyebrow {
+  font-size: 11px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--muted); margin: 0 0 18px;
+}
+h1 {
+  font-size: clamp(36px, 5.8vw, 62px); font-weight: 700; letter-spacing: -0.028em;
+  line-height: 1.03; margin: 0 0 20px; text-wrap: balance; max-width: 17ch;
+}
+.standfirst { font-size: 20px; line-height: 1.5; color: var(--ink-soft); max-width: 62ch; margin: 0; }
+
+/* ---- caveat ---- */
+.caveat {
+  border: 1px solid var(--rule); border-left: 3px solid var(--refused);
+  background: var(--surface); padding: 18px 22px; margin: 0 0 40px;
+  font-size: 15px; line-height: 1.55;
+}
+.caveat p { margin: 0 0 10px; }
+.caveat p:last-child { margin-bottom: 0; }
+.caveat .lbl {
+  display: block; font-size: 11px; font-weight: 600; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
+}
+
+/* ---- stat strip ---- */
+.stats { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 0 0 56px; }
+@media (min-width: 660px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 980px) { .stats { grid-template-columns: repeat(4, 1fr); } }
+.stat { background: var(--surface); padding: 20px 18px; }
+.stat .num {
+  display: block; font-size: 36px; font-weight: 700; letter-spacing: -0.03em;
+  line-height: 1; font-variant-numeric: tabular-nums; color: var(--ink);
+}
+.stat .cap { display: block; font-size: 12.5px; line-height: 1.4; color: var(--muted); margin-top: 9px; }
+
+/* ---- acts ---- */
+section { margin: 0 0 72px; }
+.acthead { display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid var(--rule); padding-bottom: 10px; margin-bottom: 22px; }
+.actno {
+  font-size: 12px; font-weight: 700; letter-spacing: .14em; color: var(--emergent);
+  font-variant-numeric: tabular-nums;
+}
+h2 {
+  font-size: 12px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase;
+  color: var(--muted); margin: 0;
+}
+.h2sub {
+  font-family: var(--sans); font-size: clamp(23px, 3.1vw, 31px); font-weight: 600;
+  letter-spacing: -0.02em; line-height: 1.18; margin: 0 0 22px; text-wrap: balance; max-width: 28ch;
+}
+h3 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; margin: 32px 0 10px; font-family: var(--sans); }
+p { margin: 0 0 18px; }
+strong { font-weight: 600; }
+em { font-style: italic; }
+a { color: var(--emergent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:focus-visible { outline: 2px solid var(--emergent); outline-offset: 3px; }
+
+/* ---- risk quarters ---- */
+.quarters { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 0 0 28px; }
+@media (min-width: 700px) { .quarters { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1000px) { .quarters { grid-template-columns: repeat(4, 1fr); } }
+.quarter { background: var(--surface); padding: 20px 20px; }
+.quarter .qv { display: block; font-family: var(--sans); font-size: 13px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--emergent); margin-bottom: 10px; }
+.quarter .qt { font-family: var(--sans); font-size: 16px; font-weight: 600; line-height: 1.3; margin: 0 0 8px; }
+.quarter p { font-size: 14px; line-height: 1.5; color: var(--ink-soft); margin: 0; }
+
+/* ---- order timeline ---- */
+.orders { border: 1px solid var(--rule); background: var(--surface); margin: 28px 0; }
+.orderrow { display: grid; grid-template-columns: 84px 1fr; border-bottom: 1px solid var(--rule-soft); }
+.orderrow:last-child { border-bottom: 0; }
+.orderrow.final { background: var(--emergent-bg); }
+.ordertag {
+  font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--muted);
+  padding: 18px 0 18px 16px; letter-spacing: .04em;
+}
+.orderrow.final .ordertag { color: var(--emergent); }
+.orderbody { padding: 18px 20px 18px 4px; }
+.orderseq {
+  font-family: var(--mono); font-size: 15px; font-weight: 600; letter-spacing: .06em;
+  margin: 0 0 7px; color: var(--ink);
+}
+.orderseq .strike { text-decoration: line-through; opacity: .5; }
+.orderwhy { font-size: 14.5px; line-height: 1.5; color: var(--ink-soft); margin: 0; }
+
+/* ---- findings ---- */
+.finds { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 26px 0; }
+@media (min-width: 780px) { .finds { grid-template-columns: 1fr 1fr; } }
+.find { background: var(--surface); padding: 20px 22px; }
+.find .fid {
+  font-family: var(--mono); font-size: 11.5px; font-weight: 600; letter-spacing: .05em;
+  color: var(--authored); display: block; margin-bottom: 8px;
+}
+.find.bad .fid { color: var(--refused); }
+.find .ftitle { font-family: var(--sans); font-size: 15.5px; font-weight: 600; line-height: 1.35; margin: 0 0 8px; }
+.find p { font-size: 14.5px; line-height: 1.52; margin: 0; color: var(--ink-soft); }
+
+/* ---- chips ---- */
+.chip {
+  display: inline-block; font-size: 10.5px; font-weight: 600; letter-spacing: .09em;
+  text-transform: uppercase; padding: 3px 8px; border-radius: 2px; white-space: nowrap;
+}
+.chip-a { background: var(--authored-bg); color: var(--authored); }
+.chip-e { background: var(--emergent-bg); color: var(--emergent); }
+.chip-x { background: var(--refused-bg); color: var(--refused); }
+.chip-n { background: var(--surface-2); color: var(--muted); border: 1px solid var(--rule); }
+
+/* ---- figures ---- */
+figure { margin: 32px 0; }
+figure svg { display: block; width: 100%; max-width: 100%; height: auto; color: var(--ink); }
+.figwrap { background: var(--surface); border: 1px solid var(--rule); padding: 24px 20px 16px; overflow-x: auto; }
+figcaption { font-size: 13.5px; line-height: 1.5; color: var(--muted); margin-top: 16px; max-width: 82ch; }
+figcaption b { color: var(--ink-soft); font-weight: 600; }
+.figwrap svg .s-bad  { stroke: var(--refused); }
+.figwrap svg .s-good { stroke: var(--emergent); }
+.figwrap svg .s-warn { stroke: var(--authored); }
+.figwrap svg .t-bad  { fill: var(--refused); }
+.figwrap svg .t-good { fill: var(--emergent); }
+.figwrap svg .t-warn { fill: var(--authored); }
+
+/* ---- tables ---- */
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); background: var(--surface); margin: 26px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th {
+  text-align: left; font-size: 11px; font-weight: 600; letter-spacing: .11em; text-transform: uppercase;
+  color: var(--muted); padding: 13px 16px; border-bottom: 1px solid var(--rule); white-space: nowrap;
+}
+td { padding: 13px 16px; border-bottom: 1px solid var(--rule-soft); vertical-align: top; line-height: 1.45; }
+tr:last-child td { border-bottom: 0; }
+td.mono { font-family: var(--mono); font-size: 13px; }
+.tabnum { font-variant-numeric: tabular-nums; }
+td.good { color: var(--emergent); font-weight: 600; }
+td.bad  { color: var(--refused); font-weight: 600; }
+
+/* ---- callout ---- */
+.note {
+  border-left: 3px solid var(--authored); background: var(--surface); padding: 18px 22px;
+  margin: 26px 0; font-size: 16px;
+}
+.note.teal { border-left-color: var(--emergent); }
+.note.red  { border-left-color: var(--refused); }
+.note p:last-child { margin-bottom: 0; }
+.note .lbl {
+  display: block; font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 7px;
+}
+
+code { font-size: .87em; background: var(--surface-2); padding: 1px 5px; border: 1px solid var(--rule-soft); }
+
+ul.tight { margin: 0 0 18px; padding-left: 22px; }
+ul.tight li { margin-bottom: 11px; }
+
+/* ---- open items ---- */
+.opens { border: 1px solid var(--rule); background: var(--surface); margin: 26px 0; }
+.open { display: grid; grid-template-columns: auto 1fr; gap: 16px; padding: 18px 22px; border-bottom: 1px solid var(--rule-soft); align-items: start; }
+.open:last-child { border-bottom: 0; }
+.open .otag { font-family: var(--mono); font-size: 11.5px; font-weight: 600; color: var(--muted); padding-top: 3px; white-space: nowrap; }
+.open .otitle { font-family: var(--sans); font-size: 15.5px; font-weight: 600; line-height: 1.35; margin: 0 0 6px; }
+.open p { font-size: 14.5px; line-height: 1.5; margin: 0; color: var(--ink-soft); }
+
+hr.end { border: 0; border-top: 2px solid var(--ink); margin: 56px 0 0; }
+.colophon { font-family: var(--sans); font-size: 13px; line-height: 1.6; color: var(--muted); padding-top: 18px; max-width: 80ch; }
+
+/* ---- task rail ---- */
+.rail { border: 1px solid var(--rule); background: var(--surface); margin: 28px 0; }
+.railrow { display: grid; grid-template-columns: 52px 1fr; gap: 0; border-bottom: 1px solid var(--rule-soft); }
+.railrow:last-child { border-bottom: 0; }
+.railno {
+  font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--muted);
+  padding: 16px 0 16px 16px; font-variant-numeric: tabular-nums;
+}
+.railbody { padding: 16px 18px 16px 6px; }
+.railtitle { font-family: var(--sans); font-size: 15.5px; font-weight: 600; line-height: 1.35; margin: 0 0 5px; }
+.railnote { font-size: 14.5px; line-height: 1.5; color: var(--ink-soft); margin: 0; }
+.railrow.merged { background: var(--surface-2); }
+.railrow.merged .railtitle { color: var(--muted); font-weight: 500; }
+.railmeta { font-family: var(--mono); font-size: 11.5px; color: var(--muted); margin-top: 7px; display: block; }
+
+/* ---- risk pair ---- */
+.riskpair { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 0 0 28px; }
+@media (min-width: 820px) { .riskpair { grid-template-columns: 1fr 1fr; } }
+.riskcell { background: var(--surface); padding: 22px 24px; }
+.riskcell .lbl {
+  display: block; font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 10px;
+}
+.riskcell .claim { font-size: 18px; line-height: 1.45; margin: 0 0 12px; }
+.riskcell .foot { font-size: 14px; line-height: 1.5; color: var(--ink-soft); margin: 0; }
+.riskcell.moved .claim { color: var(--muted); }
+
+/* ---- milestone strip: which rows this page covers ---- */
+.covers { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 0 0 40px; }
+@media (min-width: 700px) { .covers { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1000px) { .covers { grid-template-columns: repeat(6, 1fr); } }
+.cover { background: var(--surface); padding: 16px 16px; }
+.cover .cno {
+  display: block; font-family: var(--mono); font-size: 19px; font-weight: 600;
+  color: var(--emergent); letter-spacing: -0.01em; margin-bottom: 6px;
+}
+.cover .cnm { font-family: var(--sans); font-size: 13px; line-height: 1.35; color: var(--ink-soft); }
+</style>
+
+<div class="page">
+<header class="masthead">
+  <p class="eyebrow">Borough · milestone note · 5a, 5a-bis, 5b, 5b-bis, 5c · Aug 2026</p>
+  <h1>The city in space — roads, Lots, Trips and the first commute</h1>
+  <p class="standfirst">Five milestones over six days that gave the city a Road Graph, Lots derived rather than painted, a Trip model that decomposes into Legs, a job to walk to and a car to drive there in. One of them carried the roadmap's only risk marked <em>irreversible</em> — and it was retired by a structure rather than by the mechanism it was scoped around.</p>
+</header>
+
+<div class="caveat">
+  <span class="lbl">What this page is, and two caveats that govern every number on it</span>
+  <p>Assembled from <code>plans/0020</code>–<code>plans/0026</code>, plus the two spikes underneath them. <strong>Every fact here is owned somewhere else</strong>; where this page disagrees, those documents win.</p>
+  <p>⚠ <strong>Two clocks run through this group.</strong> Milestones 5b and 5b-bis were written when a Tick was 10.55 s of in-world time; <code>adr/0094</code> made it <strong>42.19 s</strong> on 2026-08-13. Every in-world duration quoted from those two is on the old clock — and a formatter defect made them additionally <strong>short by up to one whole Tick</strong> until it was found.</p>
+  <p>⚠ <strong>Most in-repo figures here name a population, a Tick count and a Ruleset — and no machine class, thread count or build configuration.</strong> Only the spike figures name a machine. The corpus rule is that a wall-clock budget names a machine or it is not a budget; these are marked where it matters.</p>
+</div>
+
+<div class="covers">
+  <div class="cover"><span class="cno">5a</span><span class="cnm">Road Graph and Streets</span></div>
+  <div class="cover"><span class="cno">5a-bis</span><span class="cnm">The Lot subdivider and the road editor</span></div>
+  <div class="cover"><span class="cno">5b</span><span class="cnm">Trips, Legs and the pedestrian layer <em>(capped)</em></span></div>
+  <div class="cover"><span class="cno">5b-bis</span><span class="cnm">Jobs and the first Trip generator</span></div>
+  <div class="cover"><span class="cno">5c</span><span class="cnm">The travel-time matrix and driving</span></div>
+</div>
+
+<div class="stats">
+  <div class="stat">
+    <span class="num">12</span>
+    <span class="cap">ADRs produced, and <strong>six more amended in place</strong> rather than superseded</span>
+  </div>
+  <div class="stat">
+    <span class="num">446×</span>
+    <span class="cap">the span of walk-search cost across its distance rungs — at a <strong>flat 35–40 ns a settled node</strong></span>
+  </div>
+  <div class="stat">
+    <span class="num">4,561</span>
+    <span class="cap">of 10,000 Citizens hold a job, against <strong>9,608 posts declared</strong> — the Commute Budget binding hard</span>
+  </div>
+  <div class="stat">
+    <span class="num">6</span>
+    <span class="cap">hash-bearing numbers still <strong>unset</strong>, every one of them behind a model nobody has designed</span>
+  </div>
+</div>
+
+<!-- ============================================ ACT 1 -->
+<section>
+  <div class="acthead">
+    <span class="actno">ACT 1</span>
+    <h2>The risks they retired</h2>
+  </div>
+  <p class="h2sub">One was irreversible, one had no roadmap row at all, and one produced an amendment to the rule about ratifiers</p>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Row</th><th>The risk</th><th>Outcome</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="mono"><strong>5a</strong></td>
+          <td>That geometry leaks into the simulation and the routing graph stops being uniform.</td>
+          <td><span class="chip chip-e">retired</span> Nodes, Segments and Arcs as typed tables; mode masks on the Arc.</td>
+        </tr>
+        <tr>
+          <td class="mono"><strong>5a-bis</strong></td>
+          <td>That a design document's precondition is a hypothesis about the build. <strong><em>"Every Building is on the Road Graph by construction was true because there</em> was <em>no Road Graph."</em></strong></td>
+          <td><span class="chip chip-a">⚠</span> <strong>It had no roadmap row at all when it was built</strong> — the row was filed as a correction owed. It exists now.</td>
+        </tr>
+        <tr>
+          <td class="mono"><strong>5b</strong></td>
+          <td><strong>The irreversible one.</strong> <em>"A single-Leg Trip model propagates into Lot valuation, cost functions and every balance constant, and is what Citybound could never undo."</em></td>
+          <td><span class="chip chip-e">retired</span> <span class="chip chip-x">capped</span> Retired by <strong>structure</strong>: <em>"a single-Leg model is not expressible in that structure."</em> What remained was measurement, <em>"which is not what makes a milestone irreversible"</em> — it moved to a new milestone created that day.</td>
+        </tr>
+        <tr>
+          <td class="mono"><strong>5b-bis</strong></td>
+          <td>That every number 5b was to produce is taken against <strong>a fabricated origin-destination draw</strong> and lands in the ledgers as measured fact.</td>
+          <td><span class="chip chip-e">retired</span> A real commute generator, and the numbers re-taken against it.</td>
+        </tr>
+        <tr>
+          <td class="mono"><strong>5c</strong></td>
+          <td>That routing intent leaks into the world — the GlassBox failure.</td>
+          <td><span class="chip chip-e">retired</span> …but its acceptance run was <strong>the named ratifier for four hash-bearing numbers and could not fire.</strong> See Act 4.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============================================ ACT 2 -->
+<section>
+  <div class="acthead">
+    <span class="actno">ACT 2</span>
+    <h2>What planning found</h2>
+  </div>
+  <p class="h2sub">A conclusion withdrawn on the day it shipped, three recommendations refused, and a precondition nobody had finished counting</p>
+
+  <div class="finds">
+    <div class="find bad">
+      <span class="fid">5a</span>
+      <p class="ftitle">The slice's own headline conclusion was withdrawn by amendment on the day it shipped</p>
+      <p>It first claimed the shipped road geometry <em>"sits well inside the regime where the dial works"</em>. The amendment: <strong><em>"that is false, and the shipped Ruleset severs nothing at all."</em></strong> The cause is stated as a rule — <em>"two observations differing in two variables support no claim about either"</em> — and the re-derivation found the real mechanism: <strong>the dial states a ratio, and what reconnects a city is an absolute count.</strong> Severance appears at 16 crossings and not at 35, on both axes.</p>
+    </div>
+    <div class="find bad">
+      <span class="fid">5a</span>
+      <p class="ftitle">The diagnostic announced Severance over a city that has none, for the whole slice</p>
+      <p>Its verdict compared foot components against car components, and the shipped world reads <strong>66 against 8</strong> because a motorway lays its own junction nodes — <strong>65 of the 66 are motorway junctions.</strong> The test found this on day one and filtered it out with a predicate, <strong>and the predicate never left the test file.</strong> <em>"A predicate discovered in a test and left there is a correction with a blast radius of one call site."</em></p>
+    </div>
+    <div class="find">
+      <span class="fid">5a-bis</span>
+      <p class="ftitle">Three of the brief's five recommendations were wrong, and one of them was wrong from correct quotations</p>
+      <p>The recommendation of <em>one grid-snapped Street Tile per command</em> rests on two accurate quotations — but the generator puts nodes only at grid intersections a block apart, so one Segment spans a whole block face and <strong>there is no such thing as a Street Tile in the graph the previous milestone built.</strong> The sitting's own finding: <em>a brief is evidence about what its author could see, not a specification.</em></p>
+    </div>
+    <div class="find">
+      <span class="fid">5a-bis</span>
+      <p class="ftitle">A second recommendation dissolved because the derivation was already written down</p>
+      <p>The brief predicted <em>"two or more hash-bearing world-creation numbers"</em>. It is <strong>one</strong>, and it was already in the vocabulary document: <em>five Buildings share a Segment</em>. Measured: the graph gives <strong>33,024 Street Segments against that document's ~30,000, by construction rather than by arrangement</strong> — so the Lot count is 165,120, against an independently-chosen 225,000 at a million. <strong>Two figures that never met, agreeing within a quarter.</strong> Depth was <em>deleted</em> rather than chosen.</p>
+    </div>
+    <div class="find bad">
+      <span class="fid">5b</span>
+      <p class="ftitle">The two ADRs governing the pedestrian layer asked for a structure a third rejects by name</p>
+      <p>One said the road network needs sidewalk edges alongside street edges <strong>and</strong> crossing edges at junctions; every other document says the opposite. Resolved by <strong>splitting rather than substituting</strong>: the sidewalk half refused, the crossing half standing literally as foot-only Segments. <em>"An <code>and</code> in a consequence is two consequences, and it should be written as two."</em></p>
+    </div>
+    <div class="find bad">
+      <span class="fid">5c</span>
+      <p class="ftitle">A precondition stated in the singular is a precondition nobody has finished counting</p>
+      <p><em>"5b task 4's generator had no destination set, 5b's volume had no path, and now the path has no vehicle."</em> Then a fourth arrived mid-milestone: <strong>the vehicles with no driver.</strong> Mode choice is classified <em>undesigned</em> rather than unbuilt — <strong><em>"an inventory of unplaced mechanisms structurally cannot list a mechanism nobody designed."</em></strong></p>
+    </div>
+  </div>
+
+  <div class="note red">
+    <span class="lbl">And one finding that reaches past this whole group</span>
+    <p><strong>A generated city cannot congest itself.</strong> The paved extent scales with the square root of population, so the network grows with the traffic — <strong><em>"the same number sizes both the demand and the supply."</em></strong> That is why 5c's acceptance run, the named ratifier for four hash-bearing numbers, <strong>ran and could not fire.</strong> It has since been sighted six times across the project under different names.</p>
+  </div>
+</section>
+
+<!-- ============================================ ACT 3 -->
+<section>
+  <div class="acthead">
+    <span class="actno">ACT 3</span>
+    <h2>What shipped</h2>
+  </div>
+  <p class="h2sub">A Trip that decomposes, a Leg that stores a cost and not a path, and the arrow that had to wait a milestone</p>
+
+  <figure>
+    <div class="figwrap">
+      <svg viewBox="0 0 900 500" role="img" aria-label="A Trip row holds a purpose, an origin and destination Address, a head index into a chain of Legs, a Fate and the index of the failing Leg. The Legs are chained by a next index; a car commute is three of them — walk, drive, walk — and the two flanking walks are zero-length by construction because a Building's pedestrian and vehicle Access Points are the same point today. A Traveller row is a cursor: it points at whichever Leg is current and slides along the chain. Each Leg stores a travel time and never a path, which is drawn as a dashed red gap where an arrow to a next Segment would be — that gap is why Segment volume was saved, hashed and written by nothing for a whole milestone. Milestone 5c closes it with a RouteHop table hanging off the drive Leg, an intrusive per-Leg list of Segments each with a direction bit, whose enter and leave calls move the volume. Four Trip Fates exit at the end of the chain, two of them greyed because no run has ever produced them.">
+        <defs>
+          <marker id="ars" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+          </marker>
+        </defs>
+        <g fill="none" stroke="currentColor" stroke-width="1.4">
+
+          <rect x="20" y="40" width="188" height="106" rx="2"/>
+          <text x="34" y="62" font-family="Archivo, system-ui, sans-serif" font-size="13.5" font-weight="600" fill="currentColor" stroke="none">Trip</text>
+          <line x1="20" y1="70" x2="208" y2="70" stroke-width="1" opacity=".3"/>
+          <text x="34" y="87" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".78">purpose · origin · destination</text>
+          <text x="34" y="104" font-family="'IBM Plex Mono', monospace" font-size="10" class="t-good" stroke="none">leg_head ────────────▸</text>
+          <text x="34" y="121" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".78">fate</text>
+          <text x="34" y="138" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".78">index of the failing Leg</text>
+
+          <path d="M 208 100 L 240 100" marker-end="url(#ars)" class="s-good"/>
+
+          <rect x="248" y="62" width="152" height="76" rx="2" stroke-dasharray="3 3"/>
+          <text x="324" y="82" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="currentColor" stroke="none">Leg — walk</text>
+          <text x="324" y="99" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" class="t-warn" stroke="none">ZERO LENGTH today</text>
+          <text x="324" y="115" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" fill="currentColor" stroke="none" opacity=".62">both Access Points</text>
+          <text x="324" y="128" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" fill="currentColor" stroke="none" opacity=".62">are the same point</text>
+
+          <path d="M 400 100 L 428 100" marker-end="url(#ars)"/>
+
+          <rect x="436" y="62" width="152" height="76" rx="2" stroke-width="2"/>
+          <text x="512" y="82" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="currentColor" stroke="none">Leg — drive</text>
+          <text x="512" y="99" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" fill="currentColor" stroke="none" opacity=".78">mode · from · to</text>
+          <text x="512" y="116" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" class="t-good" stroke="none">travel_time — a COST</text>
+          <text x="512" y="130" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" class="t-bad" stroke="none">and never a path</text>
+
+          <path d="M 588 100 L 616 100" marker-end="url(#ars)"/>
+
+          <rect x="624" y="62" width="152" height="76" rx="2" stroke-dasharray="3 3"/>
+          <text x="700" y="82" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="currentColor" stroke="none">Leg — walk</text>
+          <text x="700" y="99" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" class="t-warn" stroke="none">ZERO LENGTH today</text>
+          <text x="700" y="118" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" fill="currentColor" stroke="none" opacity=".62">→ next = −1</text>
+
+          <text x="20" y="172" font-family="'IBM Plex Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".72">every Leg is created EAGERLY, at Trip creation — the chain is an index list, never a collection object</text>
+
+          <rect x="248" y="196" width="180" height="60" rx="2" class="s-good"/>
+          <text x="338" y="217" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="13" font-weight="600" class="t-good" stroke="none">Traveller</text>
+          <text x="338" y="234" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" class="t-good" stroke="none">which Leg · arrival Tick</text>
+          <text x="338" y="249" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" fill="currentColor" stroke="none" opacity=".62">a cursor, not an owner</text>
+          <path d="M 400 200 L 470 145" marker-end="url(#ars)" stroke-dasharray="4 3" class="s-good"/>
+          <text x="452" y="192" font-family="'IBM Plex Mono', monospace" font-size="9.5" class="t-good" stroke="none">slides each Tick</text>
+
+          <path d="M 776 100 L 812 100 L 812 132" marker-end="url(#ars)"/>
+          <rect x="716" y="150" width="172" height="106" rx="2"/>
+          <text x="802" y="170" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="currentColor" stroke="none">Fate — closed at four</text>
+          <text x="730" y="192" font-family="'IBM Plex Mono', monospace" font-size="10" class="t-good" stroke="none">✓ Completed</text>
+          <text x="730" y="209" font-family="'IBM Plex Mono', monospace" font-size="10" class="t-warn" stroke="none">✓ ExceededBudget</text>
+          <text x="730" y="226" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".38">· NoRouteFound</text>
+          <text x="730" y="243" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".38">· Stranded</text>
+          <text x="716" y="272" font-family="'IBM Plex Mono', monospace" font-size="9.5" fill="currentColor" stroke="none" opacity=".55">the grey two are produced</text>
+          <text x="716" y="285" font-family="'IBM Plex Mono', monospace" font-size="9.5" fill="currentColor" stroke="none" opacity=".55">by NO run, committed or not</text>
+
+          <line x1="20" y1="312" x2="880" y2="312" stroke-width="1" opacity=".25"/>
+          <text x="20" y="336" font-family="Archivo, system-ui, sans-serif" font-size="12" font-weight="600" letter-spacing="1.6" class="t-bad" stroke="none">THE ARROW THAT DID NOT EXIST, AND WHAT CLOSED IT</text>
+
+          <rect x="20" y="356" width="180" height="56" rx="2" stroke-dasharray="5 4" class="s-bad" stroke-width="2"/>
+          <text x="110" y="378" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="12" font-weight="600" class="t-bad" stroke="none">Leg → next Segment</text>
+          <text x="110" y="396" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" class="t-bad" stroke="none">DOES NOT EXIST</text>
+
+          <text x="220" y="372" font-family="'IBM Plex Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".8">volume attribution needs a next Segment every Tick.</text>
+          <text x="220" y="388" font-family="'IBM Plex Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".8">A Leg gives a cost and no path — so segment volume sat</text>
+          <text x="220" y="404" font-family="'IBM Plex Mono', monospace" font-size="10.5" class="t-bad" stroke="none">saved, hashed, and written by NOTHING for a whole milestone.</text>
+
+          <rect x="20" y="430" width="180" height="54" rx="2" class="s-good"/>
+          <text x="110" y="452" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="12" font-weight="600" class="t-good" stroke="none">RouteHopTable</text>
+          <text x="110" y="470" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" class="t-good" stroke="none">per-Leg list + direction bit</text>
+          <path d="M 200 457 L 236 457" marker-end="url(#ars)" class="s-good"/>
+          <text x="248" y="447" font-family="'IBM Plex Mono', monospace" font-size="10.5" class="t-good" stroke="none">Enter → volume +1, price the dwell from that volume AT THAT INSTANT</text>
+          <text x="248" y="463" font-family="'IBM Plex Mono', monospace" font-size="10.5" class="t-good" stroke="none">Leave → volume −1.  Congestion is a LOOP and not a formula:</text>
+          <text x="248" y="479" font-family="'IBM Plex Mono', monospace" font-size="10.5" class="t-good" stroke="none">a slower Vehicle dwells longer, and longer dwell IS higher volume.</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>Figure 1 — a Leg is a plan and a Traveller is a cursor.</b> The structure is what retired the <em>irreversible</em> risk, because a single-Leg model cannot be written in it. The dashed red box is the milestone's honest limit: <strong>adding a vehicular Leg would not have made volume work</strong> — what it waited on was a path source. ⚠ The two flanking walks are zero-length because a Building's pedestrian and vehicle Access Points are the same point today; separating them is a later milestone's one-endpoint swap.</figcaption>
+  </figure>
+
+  <h3>The walk search, and the unit that turned out to be durable</h3>
+  <div class="col">
+    <p>Measured on the shipped lattice — <strong>16,700 nodes and 32,890 Segments, which <em>is</em> the million-Citizen city's graph and not a scaled-down stand-in.</strong> Cost runs from 16.8 ns for a walk across the street to 38.4 µs at 4.1 km: a span of <strong>446×</strong>, at <strong>a flat 35–40 ns per settled node</strong> throughout, allocating nothing at any rung.</p>
+    <p>So the durable unit is the <strong>settled node</strong>, and the search costs roughly <code>37 ns × distance²</code>. ⚠ Which is also the warning: <strong>464 routes at 512 m is 1.0% of a Tick at 4×, and at 4.1 km one route on its own is 114%.</strong></p>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Pedestrian detour against the grid ideal — a census of Building pairs, not a sample of Trips</th><th class="tabnum">p50</th><th class="tabnum">p90</th><th class="tabnum">p99</th><th class="tabnum">worst</th></tr></thead>
+      <tbody>
+        <tr><td>The shipped city</td><td class="tabnum">100%</td><td class="tabnum">140%</td><td class="tabnum">663%</td><td class="tabnum bad">4,466%</td></tr>
+        <tr><td>The Severance demonstration file</td><td class="tabnum">100%</td><td class="tabnum">306%</td><td class="tabnum">913%</td><td class="tabnum">2,991%</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note teal">
+    <span class="lbl">The shape of the answer is the finding</span>
+    <p><strong><em>Severance is a tail, not a median.</em></strong> On the demonstration file the medians barely move — but <strong>135,767 Building pairs had no pedestrian route at all, against 64,233 that did</strong>, and not one of the longest band's 1,170 pairs had a route. ⚠ Those minute figures are on the old clock <em>and</em> were later found short by up to one Tick.</p>
+  </div>
+
+  <h3>Driving, priced on entry — and a repair that changed every congestion figure</h3>
+  <div class="col">
+    <p>A drive is priced Segment by Segment as it is met. Between the demonstration and the acceptance run, a defect was found in the advance loop: it handled each Traveller <strong>once per call</strong>, so a drive crossed one Segment a Tick whatever its free-flow cost — <strong>a journey quoted at 2.10 Ticks took 11.66.</strong></p>
+    <p>The capacity sweep's congestion bills went from <strong>×1.0088 to ×1.1925</strong> at one rung and from <strong>×1.8949 to ×7.0869</strong> at the next. ⚠ The repair <strong>moved no State Hash at all</strong>, for a reason worth keeping: <em>"no committed baseline in this project contains a single drive."</em></p>
+  </div>
+
+  <div class="note red">
+    <span class="lbl">The largest finding of the last milestone, in one sentence</span>
+    <p>The priced and free-flow runs <strong>agree to the Citizen on who is employed and on every rung count, at every rung — while their occupancies differ by half.</strong> That is the routing decision working exactly as decided, and it is also the corpus sweep's <em>the traffic model has no feedback term</em> arriving with a number attached. <strong>Congestion is a cost paid and never a cost avoided.</strong></p>
+  </div>
+
+  <h3>The route cache, and a policy chosen against the textbook</h3>
+  <div class="col">
+    <p>Serving a cached route costs <strong>0.525 µs against 12.349 µs to search — 23.5×</strong>. ⚠ <em>"That figure is a property of the coverage and not of the cache."</em> At 16,000 Citizens with 4,808 distinct pairs and a 4,096-entry store, the hit rates are: ceiling 85.19%, <strong>LRU 36.68%</strong>, MRU 72.42%, random 58.30%.</p>
+    <p><strong>LRU is the worst real policy here, and the reason is structural:</strong> a commute is a once-per-Day cyclic scan, so over a working set larger than the store, <strong>LRU evicts exactly the entry needed next.</strong> The default is MRU.</p>
+  </div>
+</section>
+
+<!-- ============================================ ACT 4 -->
+<section>
+  <div class="acthead">
+    <span class="actno">ACT 4</span>
+    <h2>What is still open</h2>
+  </div>
+  <p class="h2sub">Six unset numbers, all behind one undesigned model — and a ratifier that ran, could not fire, and amended the rule about ratifiers</p>
+
+  <div class="opens">
+    <div class="open">
+      <span class="otag">§D2</span>
+      <div>
+        <p class="otitle">Six hash-bearing numbers are unset, and every one waits on the same missing model</p>
+        <p>The Microscopic Cap, the Temperament base and spread, the Rejoin crossing budget, the number of Habit Route variants, the Aggravation threshold, and the Habit staleness bound. All six sit behind <strong>the driver model, which the roadmap parks deliberately unnumbered.</strong> ⚠ And the consequence is live: the build prices congestion on entry and routes on free flow, which is <em>exactly the configuration the routing ADR refuses by name</em> — so there is no feedback term, and all six numbers plus the budget ledger's largest row are denominated in the mechanism that would supply one.</p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">5c</span>
+      <div>
+        <p class="otitle">A named ratifier ran, could not fire, and produced an amendment to the rule that named it</p>
+        <p>The acceptance run was the ratifier for four hash-bearing numbers. Load came out at <strong>0.0018 / 0.0048 / 0.0110 Vehicles per Segment per Tick at 4,000 / 16,000 / 64,000 Citizens, growing as roughly <code>P^0.66</code></strong> — extrapolating to ~0.07 at a million against a Segment holding 1.02 on the congested file. <strong>The result is an amendment: a named ratifier names a machine <em>and a world</em></strong> — and then a third clause, <em>and a quantity</em>, because one number's two refuting readings both fired and refuted the wrong thing.</p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">5b-bis</span>
+      <div>
+        <p class="otitle">Five ratifiers ran, none of the stated refuting numbers occurred, and none was ticked</p>
+        <p><em>"Whether that promotes any of them from unratified is a designer's decision and this milestone declined to take it."</em> ⚠ And one of the five is stated in a form the run showed <strong>cannot be measured</strong> — its row <em>"needs amending rather than ticking."</em> That number was <strong>retired outright two days later</strong>, when a later ADR found it was a restatement of a quantity already measured.</p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">5b-bis</span>
+      <div>
+        <p class="otitle">The Commute Budget binds hard, and more than half the city's declared posts are unreachable</p>
+        <p>At 10,000 Citizens over 100,000 Ticks: <strong>4,561 hold a job against 9,608 posts declared</strong>, and <em>jobs beyond budget</em> is never zero. ⚠ The cause is not scarcity — <strong>there is no land use in this city at all.</strong> Every Building has the same eight posts and the same three occupants, so <strong>222 blocks of 228 come out within a quarter of parity.</strong></p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">5b-bis</span>
+      <div>
+        <p class="otitle">A distribution censored by a number is not evidence about that number</p>
+        <p>A commute exists only because the assignment pass already accepted the job at the other end of it, inside the Budget. So at a one-minute Budget every commute the fixture makes is under a minute — <strong>the distribution collapses into its shortest band rather than growing a tail.</strong> This is why the Budget's own ratification cannot come from the mechanism it gates.</p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">5b-bis</span>
+      <div>
+        <p class="otitle">The job-search box is derived from the Budget at walking speed, and a driver gets a pedestrian's catchment</p>
+        <p>Inert today — the box holds 100.0% of Buildings up to about 160,000 Citizens — <strong>and silently clipping the moment a city outgrows it.</strong></p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">⚠ instr</span>
+      <div>
+        <p class="otitle">A defect that only shows on a value you happen to know is a defect that hides in every value you do not</p>
+        <p>The Trip dump's minute formatter dropped the sub-Tick fraction before converting, <strong>so every figure that instrument had ever printed was short by up to one Tick.</strong> It surfaced only because the dump prints the Commute Budget in its own header and the shipped 20 came out as 19.9. On the band that a crossing-cost ratifier is read off, the error is <strong>7%</strong>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="end">
+<p class="colophon">
+  Borough · the city in space · milestones 5a and 5a-bis (2026-08-11), 5b (08-12), 5b-bis (08-13), 5c (08-16) · sources: <code>plans/0010</code>, <code>0017</code>, <code>0019</code>–<code>0026</code>, <code>docs/06</code>, <code>plans/0002</code> §D, <code>plans/0013</code>, and ADRs <code>0071</code>, <code>0072</code>, <code>0074</code>–<code>0081</code>, <code>0098</code>, <code>0099</code>. Read the plans rather than this page for anything you intend to rely on.
+</p>
+
+</div>

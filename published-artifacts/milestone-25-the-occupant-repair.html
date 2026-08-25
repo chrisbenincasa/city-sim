@@ -1,0 +1,661 @@
+<title>Milestone 25 · The Occupant Repair</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+:root {
+  --bg:        #E7EAE7;
+  --surface:   #FAFBFA;
+  --surface-2: #F0F2EF;
+  --ink:       #171C1E;
+  --ink-soft:  #3D4749;
+  --muted:     #64716F;
+  --rule:      #C6CDC7;
+  --rule-soft: #DCE1DC;
+  --authored:  #7E5D10;
+  --authored-bg: #F2EAD6;
+  --emergent:  #2E7F8C;
+  --emergent-bg: #DCEBEC;
+  --refused:   #8A3B36;
+  --refused-bg: #F3E2E0;
+  --measure: 68ch;
+  --wide: 1120px;
+  --sans: Archivo, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --serif: "Source Serif 4", Georgia, "Iowan Old Style", "Palatino Linotype", "Times New Roman", serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:        #10161A;
+    --surface:   #182025;
+    --surface-2: #1E272C;
+    --ink:       #DDE4E5;
+    --ink-soft:  #B6C1C2;
+    --muted:     #85938F;
+    --rule:      #2E3A3F;
+    --rule-soft: #232D32;
+    --authored:  #D8A73F;
+    --authored-bg: #2A2314;
+    --emergent:  #62B6C1;
+    --emergent-bg: #14282C;
+    --refused:   #D9756C;
+    --refused-bg: #2C1917;
+  }
+}
+:root[data-theme="dark"] {
+  --bg:        #10161A;
+  --surface:   #182025;
+  --surface-2: #1E272C;
+  --ink:       #DDE4E5;
+  --ink-soft:  #B6C1C2;
+  --muted:     #85938F;
+  --rule:      #2E3A3F;
+  --rule-soft: #232D32;
+  --authored:  #D8A73F;
+  --authored-bg: #2A2314;
+  --emergent:  #62B6C1;
+  --emergent-bg: #14282C;
+  --refused:   #D9756C;
+  --refused-bg: #2C1917;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.62;
+  margin: 0;
+  padding: 0 24px 110px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.page { max-width: var(--wide); margin: 0 auto; }
+.col  { max-width: var(--measure); }
+
+h1, h2, h3, .eyebrow, .lbl, th, .chip, .num, .actno, figcaption, .cap {
+  font-family: var(--sans);
+}
+code, pre, .mono { font-family: var(--mono); }
+
+/* ---- masthead ---- */
+.masthead { padding: 68px 0 36px; border-bottom: 2px solid var(--ink); margin-bottom: 34px; }
+.eyebrow {
+  font-size: 11px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--muted); margin: 0 0 18px;
+}
+h1 {
+  font-size: clamp(36px, 5.8vw, 62px); font-weight: 700; letter-spacing: -0.028em;
+  line-height: 1.03; margin: 0 0 20px; text-wrap: balance; max-width: 17ch;
+}
+.standfirst { font-size: 20px; line-height: 1.5; color: var(--ink-soft); max-width: 62ch; margin: 0; }
+
+/* ---- caveat ---- */
+.caveat {
+  border: 1px solid var(--rule); border-left: 3px solid var(--refused);
+  background: var(--surface); padding: 18px 22px; margin: 0 0 40px;
+  font-size: 15px; line-height: 1.55;
+}
+.caveat p { margin: 0 0 10px; }
+.caveat p:last-child { margin-bottom: 0; }
+.caveat .lbl {
+  display: block; font-size: 11px; font-weight: 600; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
+}
+
+/* ---- stat strip ---- */
+.stats { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 0 0 56px; }
+@media (min-width: 660px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 980px) { .stats { grid-template-columns: repeat(4, 1fr); } }
+.stat { background: var(--surface); padding: 20px 18px; }
+.stat .num {
+  display: block; font-size: 36px; font-weight: 700; letter-spacing: -0.03em;
+  line-height: 1; font-variant-numeric: tabular-nums; color: var(--ink);
+}
+.stat .cap { display: block; font-size: 12.5px; line-height: 1.4; color: var(--muted); margin-top: 9px; }
+
+/* ---- acts ---- */
+section { margin: 0 0 72px; }
+.acthead { display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid var(--rule); padding-bottom: 10px; margin-bottom: 22px; }
+.actno {
+  font-size: 12px; font-weight: 700; letter-spacing: .14em; color: var(--emergent);
+  font-variant-numeric: tabular-nums;
+}
+h2 {
+  font-size: 12px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase;
+  color: var(--muted); margin: 0;
+}
+.h2sub {
+  font-family: var(--sans); font-size: clamp(23px, 3.1vw, 31px); font-weight: 600;
+  letter-spacing: -0.02em; line-height: 1.18; margin: 0 0 22px; text-wrap: balance; max-width: 28ch;
+}
+h3 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; margin: 32px 0 10px; font-family: var(--sans); }
+p { margin: 0 0 18px; }
+strong { font-weight: 600; }
+em { font-style: italic; }
+a { color: var(--emergent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:focus-visible { outline: 2px solid var(--emergent); outline-offset: 3px; }
+
+/* ---- risk pair ---- */
+.riskpair { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 0 0 28px; }
+@media (min-width: 820px) { .riskpair { grid-template-columns: 1fr 1fr; } }
+.riskcell { background: var(--surface); padding: 22px 24px; }
+.riskcell .lbl {
+  display: block; font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 10px;
+}
+.riskcell .claim { font-size: 18px; line-height: 1.45; margin: 0 0 12px; }
+.riskcell .foot { font-size: 14px; line-height: 1.5; color: var(--ink-soft); margin: 0; }
+.riskcell.moved .claim { color: var(--muted); }
+
+/* ---- task rail ---- */
+.rail { border: 1px solid var(--rule); background: var(--surface); margin: 28px 0; }
+.railrow { display: grid; grid-template-columns: 46px 1fr; gap: 0; border-bottom: 1px solid var(--rule-soft); }
+.railrow:last-child { border-bottom: 0; }
+.railno {
+  font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--muted);
+  padding: 16px 0 16px 16px; font-variant-numeric: tabular-nums;
+}
+.railbody { padding: 16px 18px 16px 6px; }
+.railtitle { font-family: var(--sans); font-size: 15.5px; font-weight: 600; line-height: 1.35; margin: 0 0 5px; }
+.railnote { font-size: 14.5px; line-height: 1.5; color: var(--ink-soft); margin: 0; }
+.railrow.merged { background: var(--surface-2); }
+.railrow.merged .railtitle { color: var(--muted); font-weight: 500; }
+.railmeta { font-family: var(--mono); font-size: 11.5px; color: var(--muted); margin-top: 7px; display: block; }
+
+/* ---- findings ---- */
+.finds { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 26px 0; }
+@media (min-width: 780px) { .finds { grid-template-columns: 1fr 1fr; } }
+.find { background: var(--surface); padding: 20px 22px; }
+.find .fid {
+  font-family: var(--mono); font-size: 11.5px; font-weight: 600; letter-spacing: .05em;
+  color: var(--authored); display: block; margin-bottom: 8px;
+}
+.find.bad .fid { color: var(--refused); }
+.find .ftitle { font-family: var(--sans); font-size: 15.5px; font-weight: 600; line-height: 1.35; margin: 0 0 8px; }
+.find p { font-size: 14.5px; line-height: 1.52; margin: 0; color: var(--ink-soft); }
+
+/* ---- chips ---- */
+.chip {
+  display: inline-block; font-size: 10.5px; font-weight: 600; letter-spacing: .09em;
+  text-transform: uppercase; padding: 3px 8px; border-radius: 2px; white-space: nowrap;
+}
+.chip-a { background: var(--authored-bg); color: var(--authored); }
+.chip-e { background: var(--emergent-bg); color: var(--emergent); }
+.chip-x { background: var(--refused-bg); color: var(--refused); }
+.chip-n { background: var(--surface-2); color: var(--muted); border: 1px solid var(--rule); }
+
+/* ---- figures ---- */
+figure { margin: 32px 0; }
+figure svg { display: block; width: 100%; max-width: 100%; height: auto; color: var(--ink); }
+.figwrap { background: var(--surface); border: 1px solid var(--rule); padding: 24px 20px 16px; overflow-x: auto; }
+figcaption { font-size: 13.5px; line-height: 1.5; color: var(--muted); margin-top: 16px; max-width: 82ch; }
+figcaption b { color: var(--ink-soft); font-weight: 600; }
+.figwrap svg .s-bad  { stroke: var(--refused); }
+.figwrap svg .s-good { stroke: var(--emergent); }
+.figwrap svg .s-warn { stroke: var(--authored); }
+.figwrap svg .t-bad  { fill: var(--refused); }
+.figwrap svg .t-good { fill: var(--emergent); }
+.figwrap svg .t-warn { fill: var(--authored); }
+
+/* ---- tables ---- */
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); background: var(--surface); margin: 26px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th {
+  text-align: left; font-size: 11px; font-weight: 600; letter-spacing: .11em; text-transform: uppercase;
+  color: var(--muted); padding: 13px 16px; border-bottom: 1px solid var(--rule); white-space: nowrap;
+}
+td { padding: 13px 16px; border-bottom: 1px solid var(--rule-soft); vertical-align: top; line-height: 1.45; }
+tr:last-child td { border-bottom: 0; }
+td.mono { font-family: var(--mono); font-size: 13px; }
+.tabnum { font-variant-numeric: tabular-nums; }
+
+/* ---- callout ---- */
+.note {
+  border-left: 3px solid var(--authored); background: var(--surface); padding: 18px 22px;
+  margin: 26px 0; font-size: 16px;
+}
+.note.teal { border-left-color: var(--emergent); }
+.note.red  { border-left-color: var(--refused); }
+.note p:last-child { margin-bottom: 0; }
+.note .lbl {
+  display: block; font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 7px;
+}
+
+code { font-size: .87em; background: var(--surface-2); padding: 1px 5px; border: 1px solid var(--rule-soft); }
+
+ul.tight { margin: 0 0 18px; padding-left: 22px; }
+ul.tight li { margin-bottom: 11px; }
+
+/* ---- open items ---- */
+.opens { border: 1px solid var(--rule); background: var(--surface); margin: 26px 0; }
+.open { display: grid; grid-template-columns: auto 1fr; gap: 16px; padding: 18px 22px; border-bottom: 1px solid var(--rule-soft); align-items: start; }
+.open:last-child { border-bottom: 0; }
+.open .otag { font-family: var(--mono); font-size: 11.5px; font-weight: 600; color: var(--muted); padding-top: 3px; white-space: nowrap; }
+.open .otitle { font-family: var(--sans); font-size: 15.5px; font-weight: 600; line-height: 1.35; margin: 0 0 6px; }
+.open p { font-size: 14.5px; line-height: 1.5; margin: 0; color: var(--ink-soft); }
+
+hr.end { border: 0; border-top: 2px solid var(--ink); margin: 56px 0 0; }
+.colophon { font-family: var(--sans); font-size: 13px; line-height: 1.6; color: var(--muted); padding-top: 18px; max-width: 80ch; }
+</style>
+
+<div class="page">
+
+<header class="masthead">
+  <p class="eyebrow">Borough · milestone note · closed 23 Aug 2026</p>
+  <h1>Milestone 25 — the Occupant repair</h1>
+  <p class="standfirst">A bakery holds its own flour, its own bread, its own till and its own oven. The building holds a street address and some floors. Making the build agree with that sentence took one day, five tasks and forty-five findings.</p>
+</header>
+
+<div class="caveat">
+  <span class="lbl">What this page is, and what owns the facts on it</span>
+  <p>A summary of one closed milestone, assembled from <code>plans/0040</code>, <code>plans/0003</code> and <code>docs/06</code>. <strong>Every fact here is owned somewhere else</strong> — <code>plans/0040</code> owns the findings, the ADRs own the decisions, <code>plans/0003</code> owns what is done. Where this page disagrees with any of them, they win.</p>
+  <p>Figures are quoted with the clause that says what they measure rather than the digits alone (<code>plans/0012</code> <strong>Cause 5</strong>). ⚠ Like every published artifact, this page is <strong>invisible to the mechanical checks in <code>tests/Borough.Tests/Corpus/</code></strong>, which are document-to-document over <code>*.md</code> — so nothing will tell you when it goes stale.</p>
+</div>
+
+<div class="stats">
+  <div class="stat">
+    <span class="num">5</span>
+    <span class="cap">tasks shipped, of ten decomposed — the milestone was <strong>capped at group A</strong> the day it was decomposed</span>
+  </div>
+  <div class="stat">
+    <span class="num">45</span>
+    <span class="cap">numbered findings, <code>F1</code>–<code>F45</code> — ten from decomposition, the rest from building it</span>
+  </div>
+  <div class="stat">
+    <span class="num">2</span>
+    <span class="cap">ADRs written during the milestone (<code>0143</code>, <code>0144</code>), on top of session V's two</span>
+  </div>
+  <div class="stat">
+    <span class="num">2,092</span>
+    <span class="cap">assertion-tier tests green at close, from 2,064 at task 1</span>
+  </div>
+</div>
+
+<!-- ============================================ ACT 1 -->
+<section>
+  <div class="acthead">
+    <span class="actno">ACT 1</span>
+    <h2>The risk it retired</h2>
+  </div>
+  <p class="h2sub">A Rule Instance named premises, so no money term could resolve to a payer</p>
+
+  <div class="col">
+    <p>Milestone 25 arrived carrying one risk and left having retired a different one. That is not drift — the milestone was <strong>capped at group A</strong> on the day it was decomposed, and the project's rule is that <em>a milestone must name a risk it actually retires</em>, so the cell was rewritten to match what group A does.</p>
+  </div>
+
+  <div class="riskpair">
+    <div class="riskcell">
+      <span class="lbl">The risk as rewritten — retired</span>
+      <p class="claim">That a <strong>Rule Instance names premises rather than an actor</strong>, so no money term can resolve to a payer.</p>
+      <p class="foot">A Bin's owner stops being a <code>HandleColumn&lt;Building&gt;</code>; a Rule Instance starts naming an Occupant. A <code>local</code> money term now has an actor to resolve to, and a tenant's Bins leave with the tenant.</p>
+    </div>
+    <div class="riskcell moved">
+      <span class="lbl">The risk as it stood — moved to milestone 27</span>
+      <p class="claim">That the <strong>economic actor does not exist in the build</strong>, so no Rule can spend money.</p>
+      <p class="foot">Untouched by this milestone. <code>World.CreateBusiness</code> had <strong>zero <code>src/</code> callers</strong> throughout, and nothing funded one. Group A makes the payer <em>nameable</em>; it does not make one <em>exist</em>.</p>
+    </div>
+  </div>
+
+  <div class="note">
+    <span class="lbl">Why it was small on its main axis</span>
+    <p>This was a <strong>correction, not a design change</strong>, and that is what sized it. <code>adr/0113</code> decided it; <code>adr/0114</code> wrote the target shape down in as many words — <em>"<code>World.FindBin</code> takes an owner rather than a Building slot"</em> — and the build never arrived. <strong>A revisit trigger that has already fired is a decision waiting to be finished.</strong></p>
+  </div>
+</section>
+
+<!-- ============================================ ACT 2 -->
+<section>
+  <div class="acthead">
+    <span class="actno">ACT 2</span>
+    <h2>What planning found</h2>
+  </div>
+  <p class="h2sub">Decomposition made the milestone smaller in one place and found a hole two ADRs had left</p>
+
+  <div class="col">
+    <p>Session V (<code>plans/0039</code>) scoped the work and closed into two ADRs. Decomposition then surveyed the tree against them — and the survey <strong>corrected session V in two places, confirmed it in four, and found one thing neither ADR answered</strong>. That last one is why a plan document exists at all rather than a task list written straight from the records.</p>
+  </div>
+
+  <div class="finds">
+    <div class="find">
+      <span class="fid">F1 · made it smaller</span>
+      <p class="ftitle">The Rule half is cheaper than it was costed</p>
+      <p>Session V named six sites reaching a Rule Instance. Every one goes through the <em>derived</em> <code>BuildingRules</code> list, not the saved <code>Building</code> handle — which has five readers and <strong>zero test readers</strong>. The blast radius is the list; the column is nearly free.</p>
+    </div>
+    <div class="find bad">
+      <span class="fid">F3 · found a hole</span>
+      <p class="ftitle">The capacity path has a severable hop and neither ADR answers it</p>
+      <p><code>adr/0141</code> keys capacity on the building kind; <code>adr/0142</code> makes <em>unpremised</em> a legitimate steady state. So an unpremised Business owns Bins whose capacity is declared by premises it does not have — and the existing code silently resolves that to <strong>capacity 0 while the Bin holds stock</strong>.</p>
+    </div>
+    <div class="find">
+      <span class="fid">F8 · sized it</span>
+      <p class="ftitle">The columns are cheap and the test surface is the milestone</p>
+      <p><code>BinTable.Owner</code> and <code>RuleInstanceTable.Building</code> are <strong>six sites each</strong>. <code>CreateBin</code> and <code>FindBin</code> are four sites in <code>src/</code> and <strong>44 in <code>tests/</code></strong>. The repair is small and the churn is where the assertions are.</p>
+    </div>
+    <div class="find bad">
+      <span class="fid">F19 · before a line was written</span>
+      <p class="ftitle">Three tasks were one task, and an ADR had already said so</p>
+      <p>Reading <code>minimal.toml</code> against <code>World.Fit</code> showed tasks 2, 3 and half of 4 could not be separated — because a Rule's inputs and outputs are <code>BinRef</code>s. <strong><code>adr/0141</code> refused that exact split in its <em>Rejected</em> section</strong>; the decomposition split what the record governing it had declined to split.</p>
+    </div>
+  </div>
+
+  <h3>Four decisions settled, one sent onward</h3>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th>Decision</th><th>Outcome</th><th>Where it landed</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>1 ·</strong> What does an evicted tenant keep?</td>
+          <td>Stock is lost; the tenant searches holding only its till. <em>One rule for both kinds of tenant.</em></td>
+          <td class="mono">adr/0144</td>
+        </tr>
+        <tr>
+          <td><strong>2 ·</strong> Where does a Bin hang?</td>
+          <td>Off its <strong>owner</strong> — a saved list on each tenant table. The polymorphic column <code>adr/0114</code> gestured at is <strong>not built</strong>.</td>
+          <td class="mono">adr/0143</td>
+        </tr>
+        <tr>
+          <td><strong>3 ·</strong> How long does a shop search?</td>
+          <td>As long as a family does — it shares <code>[placement] gives_up_after_days</code> <strong>as a declared stand-in</strong>, so no second number is owed a ratifier.</td>
+          <td class="mono">adr/0144</td>
+        </tr>
+        <tr>
+          <td><strong>5 ·</strong> Where does the milestone stop?</td>
+          <td>At task 5. Group A needs nothing that does not exist; <strong>every entry in group B needs something that does.</strong></td>
+          <td class="mono">the cap</td>
+        </tr>
+        <tr>
+          <td><strong>4 ·</strong> What capitalises a Business?</td>
+          <td><span class="chip chip-x">travelled</span> A hash-bearing number owed a named ratifier. Blocks nothing here because nothing here creates a Business.</td>
+          <td class="mono">→ milestone 27</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note red">
+    <span class="lbl">The cap, and why it counts as the scheme working</span>
+    <p>This was the <strong>second milestone capped in two days</strong> — and the difference between them is the whole point. <strong>Milestone 12 was capped by running out of road; 25 was capped by decomposition, before a line of code was written.</strong> Tasks 6–9 became milestone 27, keeping their numbers, because renumbering to close a gap buys tidiness and costs every citation.</p>
+  </div>
+</section>
+
+<!-- ============================================ ACT 3 -->
+<section>
+  <div class="acthead">
+    <span class="actno">ACT 3</span>
+    <h2>What shipped</h2>
+  </div>
+  <p class="h2sub">Five tasks in one day, and the mechanism moved from the walls to the tenant</p>
+
+  <figure>
+    <div class="figwrap">
+      <svg viewBox="0 0 900 400" role="img" aria-label="Before and after diagram. Before: one Building owns a single Bin list and a single Rule Instance list, and three Households living in it own nothing; condemnation takes the worst pressure across the whole list and demolishes the Building. After: the Building keeps only the premises Bins and Rules, each Household owns its own Bin list and Rule Instances, and condemnation walks the same list filtered by subject, so a failing tenant loses its lease while the premises stand.">
+        <defs>
+          <marker id="ar25" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+          </marker>
+        </defs>
+        <g fill="none" stroke="currentColor" stroke-width="1.4">
+
+          <text x="20" y="24" font-family="Archivo, system-ui, sans-serif" font-size="12" font-weight="600" letter-spacing="1.6" fill="currentColor" stroke="none">BEFORE — A BIN HANGS OFF THE BUILDING</text>
+          <line x1="20" y1="34" x2="880" y2="34" stroke-width="1" opacity=".28"/>
+
+          <rect x="30" y="62" width="150" height="86" rx="2"/>
+          <text x="105" y="88" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="13" font-weight="600" fill="currentColor" stroke="none">Building</text>
+          <text x="105" y="107" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".62">bin_head → all Bins</text>
+          <text x="105" y="122" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".62">rule list → all Rules</text>
+          <text x="105" y="139" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".62">occupants = 3</text>
+
+          <rect x="250" y="62" width="130" height="40" rx="2" opacity=".45"/>
+          <text x="315" y="86" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="12.5" fill="currentColor" stroke="none" opacity=".55">Household ×3</text>
+          <text x="315" y="120" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".55">owns nothing</text>
+
+          <line x1="180" y1="82" x2="243" y2="82" marker-end="url(#ar25)"/>
+          <text x="211" y="74" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".7">lists</text>
+
+          <rect x="470" y="62" width="180" height="60" rx="2"/>
+          <text x="560" y="85" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="13" font-weight="600" fill="currentColor" stroke="none">worst pressure</text>
+          <text x="560" y="103" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".62">across the whole list</text>
+
+          <line x1="180" y1="128" x2="463" y2="100" marker-end="url(#ar25)" opacity=".55"/>
+
+          <rect x="710" y="62" width="170" height="60" rx="2" class="s-bad"/>
+          <text x="795" y="85" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="13" font-weight="600" class="t-bad" stroke="none">DEMOLISH</text>
+          <text x="795" y="103" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10.5" class="t-bad" stroke="none">all three rehoused</text>
+
+          <line x1="650" y1="92" x2="703" y2="92" marker-end="url(#ar25)"/>
+
+          <text x="450" y="168" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="11" fill="currentColor" stroke="none" opacity=".8">one starving Household condemns the Building its two neighbours live in</text>
+
+          <text x="20" y="222" font-family="Archivo, system-ui, sans-serif" font-size="12" font-weight="600" letter-spacing="1.6" fill="currentColor" stroke="none">AFTER — A BIN HANGS OFF ITS OWNER</text>
+          <line x1="20" y1="232" x2="880" y2="232" stroke-width="1" opacity=".28"/>
+
+          <rect x="30" y="258" width="150" height="60" rx="2"/>
+          <text x="105" y="281" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="13" font-weight="600" fill="currentColor" stroke="none">Building</text>
+          <text x="105" y="299" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".62">premises Bins only</text>
+
+          <rect x="250" y="248" width="130" height="38" rx="2"/>
+          <text x="315" y="266" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="currentColor" stroke="none">Household 1</text>
+          <text x="315" y="279" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".62">bin_head · rules</text>
+
+          <rect x="250" y="292" width="130" height="38" rx="2"/>
+          <text x="315" y="310" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="currentColor" stroke="none">Household 2</text>
+          <text x="315" y="323" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".62">bin_head · rules</text>
+
+          <rect x="250" y="336" width="130" height="38" rx="2" class="s-bad"/>
+          <text x="315" y="354" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="12.5" font-weight="600" class="t-bad" stroke="none">Household 3</text>
+          <text x="315" y="367" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" class="t-bad" stroke="none">starving</text>
+
+          <line x1="180" y1="278" x2="243" y2="268" marker-end="url(#ar25)"/>
+          <line x1="180" y1="288" x2="243" y2="308" marker-end="url(#ar25)"/>
+          <line x1="180" y1="298" x2="243" y2="350" marker-end="url(#ar25)"/>
+          <text x="205" y="332" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".7">tenancy</text>
+
+          <rect x="470" y="288" width="180" height="60" rx="2"/>
+          <text x="560" y="311" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="13" font-weight="600" fill="currentColor" stroke="none">Worst(building, tenant)</text>
+          <text x="560" y="329" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".62">one walk, filtered by subject</text>
+
+          <line x1="380" y1="355" x2="463" y2="330" marker-end="url(#ar25)"/>
+
+          <rect x="710" y="258" width="170" height="46" rx="2"/>
+          <text x="795" y="278" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="currentColor" stroke="none">premises stand</text>
+          <text x="795" y="294" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".62">judged first</text>
+
+          <rect x="710" y="318" width="170" height="46" rx="2" class="s-good"/>
+          <text x="795" y="338" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="12.5" font-weight="600" class="t-good" stroke="none">TENANCY ENDS</text>
+          <text x="795" y="354" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="10.5" class="t-good" stroke="none">tenant 3 only</text>
+
+          <path d="M 650 305 L 680 305 L 680 281 L 703 281" marker-end="url(#ar25)"/>
+          <path d="M 650 331 L 680 331 L 680 341 L 703 341" marker-end="url(#ar25)"/>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>Figure 1 — the move, and the defect it removed.</b> The verdicts must be <em>mutually exclusive</em>, so one function returns the worst instance belonging to a named subject and the premises are asked first — a condemned Building never also ends a tenancy. ⚠ The <em>before</em> panel is not the pre-milestone build: it is the build <strong>task 2 shipped</strong>, live for the length of one commit. Task 4 is what removed it, and no test failed in between because nothing in the suite had two tenants failing differently.</figcaption>
+  </figure>
+
+  <h3>The task rail — ten decomposed, five shipped, three merged into one</h3>
+  <div class="rail">
+    <div class="railrow">
+      <div class="railno">1</div>
+      <div class="railbody">
+        <p class="railtitle">A Bin hangs off its owner <span class="chip chip-e">shipped</span></p>
+        <p class="railnote">Each tenant table gains a saved <code>BinHead</code>/<code>BinTail</code>; <code>BinTable</code> gains a saved <code>OwnerNext</code>. <strong><code>F12</code>: <code>Balance</code> had to become <em>derived</em> and nothing had said so</strong> — a saved list makes every saved handle into it redundant, and two saved facts about one Bin can disagree.</p>
+        <span class="railmeta">State Hash moved · 4 golden artefacts re-recorded · version byte deliberately not bumped · 2,064 green</span>
+      </div>
+    </div>
+    <div class="railrow">
+      <div class="railno">2</div>
+      <div class="railbody">
+        <p class="railtitle">A Household owns Bins, its Rules follow them, and the stagger mixes the tenant <span class="chip chip-e">shipped</span></p>
+        <p class="railnote">A Ruleset says <code>owner = "occupant"</code>; a Rule's side is <strong>derived from its own <code>local</code> terms</strong> and a mixed one is refused at load. <strong><code>F25</code>: the shipped city now holds three times the stock</strong> — the draw is unchanged and the supply is not, because three families no longer share one larder. That is <code>adr/0141</code> being right rather than the file being tuned, and every one of the twelve edited Rulesets says so in its own header.</p>
+        <span class="railmeta">refusal sites 138 → 140 · Rule Instances per dwelling 3 → 7 · hash moved, 4 golden re-recorded · 2,072 green</span>
+      </div>
+    </div>
+    <div class="railrow merged">
+      <div class="railno">3</div>
+      <div class="railbody">
+        <p class="railtitle">Rules follow their Bins — folded into task 2</p>
+        <p class="railnote">There was never a moment at which the Bins had moved and the Rules had not. The number is left standing rather than closed up: renumbering buys tidiness and costs every citation.</p>
+      </div>
+    </div>
+    <div class="railrow">
+      <div class="railno">4</div>
+      <div class="railbody">
+        <p class="railtitle">Condemnation ends a tenancy and leaves the premises standing <span class="chip chip-e">shipped</span></p>
+        <p class="railnote">One walk, filtered on the subject asked for. A failing tenant is evicted through <code>World.Unplace</code> while the Building stands, counted separately from a demolition. <strong>The evidence panel gained a <code>Tenant</code> field</strong> — and closing that hole uncovered a second one in the same panel, where Rules named Bins it did not display.</p>
+        <span class="railmeta">no golden artefact moved — a tenancy ending is reachable only past condemn_after, which no golden session reaches · 2,075 green</span>
+      </div>
+    </div>
+    <div class="railrow">
+      <div class="railno">5</div>
+      <div class="railbody">
+        <p class="railtitle">The unpremised pool and the emigration sink <span class="chip chip-e">shipped</span></p>
+        <p class="railnote"><code>UnpremisedTable</code>, a <em>separate</em> table with two columns and two argued absences. A Business that loses its premises waits under the give-up bound, then <strong>departs and takes its money out of the city</strong>. ⚠ The pool ships with <strong>one exit and it is the sink</strong> — nothing tenants a Business, so the placement half is milestone 27's.</p>
+        <span class="railmeta">hash moved, 3 golden baselines re-recorded · 2,091 green</span>
+      </div>
+    </div>
+    <div class="railrow">
+      <div class="railno">10</div>
+      <div class="railbody">
+        <p class="railtitle">Something to look at, and the long run <span class="chip chip-e">shipped</span></p>
+        <p class="railnote"><strong>And the thing to look at did not exist.</strong> See below — this is the closing task's whole value.</p>
+        <span class="railmeta">2,092 green · the whole suite, unfiltered, was run</span>
+      </div>
+    </div>
+  </div>
+
+  <h3>Two latent defects, and one of them was already on <code>main</code></h3>
+  <div class="finds">
+    <div class="find bad">
+      <span class="fid">F36</span>
+      <p class="ftitle">A saved table outside <code>World._tables</code> is not hashed</p>
+      <p><code>UnpremisedTable</code> shipped with two saved columns and was not in the array the State Hash walks. <strong>2,074 tests passed without noticing.</strong> The corpus's own guarantee — <em>declaring a field is what allocates it, so the hash cannot have a coverage hole</em> — is true <em>per column</em>, and says nothing about whether the table is walked. Found because a hash <em>did not</em> move when it should have.</p>
+    </div>
+    <div class="find bad">
+      <span class="fid">F38</span>
+      <p class="ftitle">The census reserves room per family with a hand-kept constant, and it was wrong twice</p>
+      <p>A counter written past its family's region lands in the next family and reads back as that family's data. <code>ZoneCounters</code> was wrong <strong>since task 4</strong>, committed and pushed — so <em>tenancies ended</em> and <em>placement considered</em> printed the identical four numbers. ⚠ Instrument output only; no State Hash moved.</p>
+    </div>
+  </div>
+
+  <div class="note">
+    <span class="lbl">F39 — naming the shape was worth more than either fix</span>
+    <p>Both are <strong>a declaration and a hand-maintained number that must agree, with nothing checking that they do</strong> — <code>[Table]</code> against <code>_tables</code>, and a counter enum against its slot count. In both, the declaration is the source of truth and the number is a copy. <em>A copy of a fact is the copy that drifts.</em> Two tests now close the two instances; <strong>the class is not closed</strong> — nothing enumerates the remaining hand-kept counts in this codebase.</p>
+  </div>
+
+  <h3>The closing task found the milestone's own mechanism was invisible</h3>
+  <div class="col">
+    <p><strong><code>F43</code>.</strong> Task 4 made a failing tenant end its tenancy and leave the premises standing. Task 10 went to show it, and there was nothing to point at. On all twelve shipped Ruleset files the premises' <code>upkeep</code> starves while the tenants' <code>restock</code> keeps their larders full — so <strong>the premises fail and the tenants never do</strong>.</p>
+    <p>Every test of the mechanism built its Ruleset by hand, which is why nothing noticed. <em>A mechanism exercised only by hand-built fixtures is a mechanism with no world in it</em> — and the difference is invisible from inside the suite.</p>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th>Shipped Ruleset</th><th class="tabnum">Tenancies ended</th><th class="tabnum">Buildings condemned</th><th>What it shows</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="mono">minimal.toml</td>
+          <td class="tabnum">0</td>
+          <td class="tabnum"><strong>2,610</strong></td>
+          <td>The premises fail and the tenants never do. <em>Measured at 4,000 Citizens over 20,480 Ticks — ten in-world Days.</em></td>
+        </tr>
+        <tr>
+          <td class="mono">evicted.toml <span class="chip chip-e">new</span></td>
+          <td class="tabnum"><strong>929</strong></td>
+          <td class="tabnum">0</td>
+          <td>The same city with the failure moved from the premises to the tenant — which is why it is a <strong>two-Rule deletion</strong> and not a new world.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note red">
+    <span class="lbl">F44 — the long run's stated obligation was the wrong collection</span>
+    <p>The plan said the long run's new obligation was the <em>unpremised pool</em>. It cannot be: nothing creates a Business, so that pool is empty in every world and the no-unbounded-growth rule has nothing to ask of it. <strong>The collection milestone 25 actually introduced is the tenant's Rule Instances and Bins</strong>, whose lifetime task 2 tied to the tenancy — a per-tenancy allocation cycle this project did not previously have. The plan named the visible new table and missed the one that was a change in <em>lifetime</em> rather than a new type.</p>
+    <p><strong>F45 — and it holds.</strong> Over <strong>131,072 Ticks at 4,000 Citizens</strong> with roughly 1,900 tenancies ending per sample window, the <code>bin</code> and <code>rule_instance</code> <em>slot</em> counts are <strong>flat at 3,362 and 1,440</strong>. A flat high-water mark under continuous churn is rows being recycled — which is the claim the rule actually makes, and something a live count alone could not have shown.</p>
+  </div>
+</section>
+
+<!-- ============================================ ACT 4 -->
+<section>
+  <div class="acthead">
+    <span class="actno">ACT 4</span>
+    <h2>What is still open</h2>
+  </div>
+  <p class="h2sub">Six things the milestone filed rather than fixed, and one it handed forward</p>
+
+  <div class="col">
+    <p>The project's rule is that a finding about code a task does not own gets <strong>routed on the day, before being worked around</strong>. These are what milestone 25 routed.</p>
+  </div>
+
+  <div class="opens">
+    <div class="open">
+      <span class="otag">F35</span>
+      <div>
+        <p class="otitle">Nothing records <em>why</em> a tenancy ended</p>
+        <p>The condemnation trail names a <strong>Lot</strong>, so an entry there would be a demolition record for a Building still standing. The channel that carries <em>why is this Household unhoused</em> belongs to <code>adr/0130</code> and ships with the gate. Filed rather than improvised — a second trail keyed on the Household would be the wrong thing to have to delete.</p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">F20</span>
+      <div>
+        <p class="otitle">The two halves of <code>adr/0141</code> cannot both be whole</p>
+        <p>That ADR puts a tenant's Bins on the <code>[[business]]</code> table, and <strong>a Household has no kind table and never will</strong> — so the marker went on the <code>[[building]]</code> bin entry, where the ceiling is declared. Milestone 27 has to say which table names a <em>Business's</em> Bins. Filed as a correction owed, because nothing in group A can test the answer.</p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">F26</span>
+      <div>
+        <p class="otitle"><code>MigrateBins</code> does not reach a tenant's Bins</p>
+        <p>It rotates one <em>Building's</em> list. A Resource leaving the Ruleset leaves a Household holding a Bin naming an id the incoming file does not declare — inert rather than crashing, because the rebuild guards the read. <strong>Unbuilt, not refused.</strong></p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">F32</span>
+      <div>
+        <p class="otitle">A walk that mutates its own list bit twice in one milestone</p>
+        <p>Once in task 2, once in task 4, both caught by <em>reading</em> rather than by a test. It is now a recognisable shape in this codebase. A <code>WalkRemovable</code> helper is <strong>unbuilt, not refused</strong>.</p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">F39</span>
+      <div>
+        <p class="otitle">The declaration-versus-hand-kept-count class is not closed</p>
+        <p>Two instances found, two tests written. <strong>Nothing enumerates the remaining hand-kept counts</strong>, so the third one will be found the same way the first two were.</p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">F6</span>
+      <div>
+        <p class="otitle"><code>derived = "occupancy"</code> has lost its only caller</p>
+        <p>The one declared Readout in the project, left declared with nothing reading it — because <code>consume</code> stopped being one Rule applied <code>occupancy</code> times and became one Rule per Household.</p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">→ 27</span>
+      <div>
+        <p class="otitle">What capitalises a Business</p>
+        <p>A hash-bearing number owed a named ratifier — a machine, a world <em>and</em> a quantity. It travelled with tasks 6–9 to milestone 27. ⚠ <strong>Milestone 26 gained a blocker rather than losing one</strong>: it was blocked on 25 and is now blocked on 25 <em>and</em> 27, which is the honest reading of what was always true.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="note teal">
+    <span class="lbl">Where it left the project</span>
+    <p>The payer is <strong>nameable</strong>. A <code>local</code> money term has an actor to resolve to, a tenant's Bins leave with the tenant, and a starving family loses its lease instead of pulling the building down on its neighbours. <strong>Nothing yet creates the actor</strong> — that is milestone 27, and it is the risk this one was capped short of.</p>
+  </div>
+</section>
+
+<hr class="end">
+<p class="colophon">
+  Borough · milestone 25 · decomposed and closed 2026-08-23 · sources: <code>plans/0040</code> (the findings, in full), <code>plans/0003</code> (the slice ledger), <code>docs/06</code> (the risk), <code>adr/0141</code>–<code>adr/0144</code>. Read the plan rather than this page for anything you intend to rely on.
+</p>
+
+</div>

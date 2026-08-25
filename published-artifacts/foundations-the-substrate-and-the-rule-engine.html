@@ -1,0 +1,624 @@
+<title>Foundations — Substrate, Tables, Rules, Wheel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+:root {
+  --bg:        #E7EAE7;
+  --surface:   #FAFBFA;
+  --surface-2: #F0F2EF;
+  --ink:       #171C1E;
+  --ink-soft:  #3D4749;
+  --muted:     #64716F;
+  --rule:      #C6CDC7;
+  --rule-soft: #DCE1DC;
+  --authored:  #7E5D10;
+  --authored-bg: #F2EAD6;
+  --emergent:  #2E7F8C;
+  --emergent-bg: #DCEBEC;
+  --refused:   #8A3B36;
+  --refused-bg: #F3E2E0;
+  --measure: 68ch;
+  --wide: 1120px;
+  --sans: Archivo, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --serif: "Source Serif 4", Georgia, "Iowan Old Style", "Palatino Linotype", "Times New Roman", serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:        #10161A;
+    --surface:   #182025;
+    --surface-2: #1E272C;
+    --ink:       #DDE4E5;
+    --ink-soft:  #B6C1C2;
+    --muted:     #85938F;
+    --rule:      #2E3A3F;
+    --rule-soft: #232D32;
+    --authored:  #D8A73F;
+    --authored-bg: #2A2314;
+    --emergent:  #62B6C1;
+    --emergent-bg: #14282C;
+    --refused:   #D9756C;
+    --refused-bg: #2C1917;
+  }
+}
+:root[data-theme="dark"] {
+  --bg:        #10161A;
+  --surface:   #182025;
+  --surface-2: #1E272C;
+  --ink:       #DDE4E5;
+  --ink-soft:  #B6C1C2;
+  --muted:     #85938F;
+  --rule:      #2E3A3F;
+  --rule-soft: #232D32;
+  --authored:  #D8A73F;
+  --authored-bg: #2A2314;
+  --emergent:  #62B6C1;
+  --emergent-bg: #14282C;
+  --refused:   #D9756C;
+  --refused-bg: #2C1917;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.62;
+  margin: 0;
+  padding: 0 24px 110px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.page { max-width: var(--wide); margin: 0 auto; }
+.col  { max-width: var(--measure); }
+
+h1, h2, h3, .eyebrow, .lbl, th, .chip, .num, .actno, figcaption, .cap {
+  font-family: var(--sans);
+}
+code, pre, .mono { font-family: var(--mono); }
+
+/* ---- masthead ---- */
+.masthead { padding: 68px 0 36px; border-bottom: 2px solid var(--ink); margin-bottom: 34px; }
+.eyebrow {
+  font-size: 11px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--muted); margin: 0 0 18px;
+}
+h1 {
+  font-size: clamp(36px, 5.8vw, 62px); font-weight: 700; letter-spacing: -0.028em;
+  line-height: 1.03; margin: 0 0 20px; text-wrap: balance; max-width: 17ch;
+}
+.standfirst { font-size: 20px; line-height: 1.5; color: var(--ink-soft); max-width: 62ch; margin: 0; }
+
+/* ---- caveat ---- */
+.caveat {
+  border: 1px solid var(--rule); border-left: 3px solid var(--refused);
+  background: var(--surface); padding: 18px 22px; margin: 0 0 40px;
+  font-size: 15px; line-height: 1.55;
+}
+.caveat p { margin: 0 0 10px; }
+.caveat p:last-child { margin-bottom: 0; }
+.caveat .lbl {
+  display: block; font-size: 11px; font-weight: 600; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
+}
+
+/* ---- stat strip ---- */
+.stats { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 0 0 56px; }
+@media (min-width: 660px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 980px) { .stats { grid-template-columns: repeat(4, 1fr); } }
+.stat { background: var(--surface); padding: 20px 18px; }
+.stat .num {
+  display: block; font-size: 36px; font-weight: 700; letter-spacing: -0.03em;
+  line-height: 1; font-variant-numeric: tabular-nums; color: var(--ink);
+}
+.stat .cap { display: block; font-size: 12.5px; line-height: 1.4; color: var(--muted); margin-top: 9px; }
+
+/* ---- acts ---- */
+section { margin: 0 0 72px; }
+.acthead { display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid var(--rule); padding-bottom: 10px; margin-bottom: 22px; }
+.actno {
+  font-size: 12px; font-weight: 700; letter-spacing: .14em; color: var(--emergent);
+  font-variant-numeric: tabular-nums;
+}
+h2 {
+  font-size: 12px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase;
+  color: var(--muted); margin: 0;
+}
+.h2sub {
+  font-family: var(--sans); font-size: clamp(23px, 3.1vw, 31px); font-weight: 600;
+  letter-spacing: -0.02em; line-height: 1.18; margin: 0 0 22px; text-wrap: balance; max-width: 28ch;
+}
+h3 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; margin: 32px 0 10px; font-family: var(--sans); }
+p { margin: 0 0 18px; }
+strong { font-weight: 600; }
+em { font-style: italic; }
+a { color: var(--emergent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:focus-visible { outline: 2px solid var(--emergent); outline-offset: 3px; }
+
+/* ---- risk quarters ---- */
+.quarters { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 0 0 28px; }
+@media (min-width: 700px) { .quarters { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1000px) { .quarters { grid-template-columns: repeat(4, 1fr); } }
+.quarter { background: var(--surface); padding: 20px 20px; }
+.quarter .qv { display: block; font-family: var(--sans); font-size: 13px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--emergent); margin-bottom: 10px; }
+.quarter .qt { font-family: var(--sans); font-size: 16px; font-weight: 600; line-height: 1.3; margin: 0 0 8px; }
+.quarter p { font-size: 14px; line-height: 1.5; color: var(--ink-soft); margin: 0; }
+
+/* ---- order timeline ---- */
+.orders { border: 1px solid var(--rule); background: var(--surface); margin: 28px 0; }
+.orderrow { display: grid; grid-template-columns: 84px 1fr; border-bottom: 1px solid var(--rule-soft); }
+.orderrow:last-child { border-bottom: 0; }
+.orderrow.final { background: var(--emergent-bg); }
+.ordertag {
+  font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--muted);
+  padding: 18px 0 18px 16px; letter-spacing: .04em;
+}
+.orderrow.final .ordertag { color: var(--emergent); }
+.orderbody { padding: 18px 20px 18px 4px; }
+.orderseq {
+  font-family: var(--mono); font-size: 15px; font-weight: 600; letter-spacing: .06em;
+  margin: 0 0 7px; color: var(--ink);
+}
+.orderseq .strike { text-decoration: line-through; opacity: .5; }
+.orderwhy { font-size: 14.5px; line-height: 1.5; color: var(--ink-soft); margin: 0; }
+
+/* ---- findings ---- */
+.finds { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 26px 0; }
+@media (min-width: 780px) { .finds { grid-template-columns: 1fr 1fr; } }
+.find { background: var(--surface); padding: 20px 22px; }
+.find .fid {
+  font-family: var(--mono); font-size: 11.5px; font-weight: 600; letter-spacing: .05em;
+  color: var(--authored); display: block; margin-bottom: 8px;
+}
+.find.bad .fid { color: var(--refused); }
+.find .ftitle { font-family: var(--sans); font-size: 15.5px; font-weight: 600; line-height: 1.35; margin: 0 0 8px; }
+.find p { font-size: 14.5px; line-height: 1.52; margin: 0; color: var(--ink-soft); }
+
+/* ---- chips ---- */
+.chip {
+  display: inline-block; font-size: 10.5px; font-weight: 600; letter-spacing: .09em;
+  text-transform: uppercase; padding: 3px 8px; border-radius: 2px; white-space: nowrap;
+}
+.chip-a { background: var(--authored-bg); color: var(--authored); }
+.chip-e { background: var(--emergent-bg); color: var(--emergent); }
+.chip-x { background: var(--refused-bg); color: var(--refused); }
+.chip-n { background: var(--surface-2); color: var(--muted); border: 1px solid var(--rule); }
+
+/* ---- figures ---- */
+figure { margin: 32px 0; }
+figure svg { display: block; width: 100%; max-width: 100%; height: auto; color: var(--ink); }
+.figwrap { background: var(--surface); border: 1px solid var(--rule); padding: 24px 20px 16px; overflow-x: auto; }
+figcaption { font-size: 13.5px; line-height: 1.5; color: var(--muted); margin-top: 16px; max-width: 82ch; }
+figcaption b { color: var(--ink-soft); font-weight: 600; }
+.figwrap svg .s-bad  { stroke: var(--refused); }
+.figwrap svg .s-good { stroke: var(--emergent); }
+.figwrap svg .s-warn { stroke: var(--authored); }
+.figwrap svg .t-bad  { fill: var(--refused); }
+.figwrap svg .t-good { fill: var(--emergent); }
+.figwrap svg .t-warn { fill: var(--authored); }
+
+/* ---- tables ---- */
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); background: var(--surface); margin: 26px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th {
+  text-align: left; font-size: 11px; font-weight: 600; letter-spacing: .11em; text-transform: uppercase;
+  color: var(--muted); padding: 13px 16px; border-bottom: 1px solid var(--rule); white-space: nowrap;
+}
+td { padding: 13px 16px; border-bottom: 1px solid var(--rule-soft); vertical-align: top; line-height: 1.45; }
+tr:last-child td { border-bottom: 0; }
+td.mono { font-family: var(--mono); font-size: 13px; }
+.tabnum { font-variant-numeric: tabular-nums; }
+td.good { color: var(--emergent); font-weight: 600; }
+td.bad  { color: var(--refused); font-weight: 600; }
+
+/* ---- callout ---- */
+.note {
+  border-left: 3px solid var(--authored); background: var(--surface); padding: 18px 22px;
+  margin: 26px 0; font-size: 16px;
+}
+.note.teal { border-left-color: var(--emergent); }
+.note.red  { border-left-color: var(--refused); }
+.note p:last-child { margin-bottom: 0; }
+.note .lbl {
+  display: block; font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 7px;
+}
+
+code { font-size: .87em; background: var(--surface-2); padding: 1px 5px; border: 1px solid var(--rule-soft); }
+
+ul.tight { margin: 0 0 18px; padding-left: 22px; }
+ul.tight li { margin-bottom: 11px; }
+
+/* ---- open items ---- */
+.opens { border: 1px solid var(--rule); background: var(--surface); margin: 26px 0; }
+.open { display: grid; grid-template-columns: auto 1fr; gap: 16px; padding: 18px 22px; border-bottom: 1px solid var(--rule-soft); align-items: start; }
+.open:last-child { border-bottom: 0; }
+.open .otag { font-family: var(--mono); font-size: 11.5px; font-weight: 600; color: var(--muted); padding-top: 3px; white-space: nowrap; }
+.open .otitle { font-family: var(--sans); font-size: 15.5px; font-weight: 600; line-height: 1.35; margin: 0 0 6px; }
+.open p { font-size: 14.5px; line-height: 1.5; margin: 0; color: var(--ink-soft); }
+
+hr.end { border: 0; border-top: 2px solid var(--ink); margin: 56px 0 0; }
+.colophon { font-family: var(--sans); font-size: 13px; line-height: 1.6; color: var(--muted); padding-top: 18px; max-width: 80ch; }
+
+/* ---- task rail ---- */
+.rail { border: 1px solid var(--rule); background: var(--surface); margin: 28px 0; }
+.railrow { display: grid; grid-template-columns: 52px 1fr; gap: 0; border-bottom: 1px solid var(--rule-soft); }
+.railrow:last-child { border-bottom: 0; }
+.railno {
+  font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--muted);
+  padding: 16px 0 16px 16px; font-variant-numeric: tabular-nums;
+}
+.railbody { padding: 16px 18px 16px 6px; }
+.railtitle { font-family: var(--sans); font-size: 15.5px; font-weight: 600; line-height: 1.35; margin: 0 0 5px; }
+.railnote { font-size: 14.5px; line-height: 1.5; color: var(--ink-soft); margin: 0; }
+.railrow.merged { background: var(--surface-2); }
+.railrow.merged .railtitle { color: var(--muted); font-weight: 500; }
+.railmeta { font-family: var(--mono); font-size: 11.5px; color: var(--muted); margin-top: 7px; display: block; }
+
+/* ---- risk pair ---- */
+.riskpair { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 0 0 28px; }
+@media (min-width: 820px) { .riskpair { grid-template-columns: 1fr 1fr; } }
+.riskcell { background: var(--surface); padding: 22px 24px; }
+.riskcell .lbl {
+  display: block; font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 10px;
+}
+.riskcell .claim { font-size: 18px; line-height: 1.45; margin: 0 0 12px; }
+.riskcell .foot { font-size: 14px; line-height: 1.5; color: var(--ink-soft); margin: 0; }
+.riskcell.moved .claim { color: var(--muted); }
+
+/* ---- milestone strip: which rows this page covers ---- */
+.covers { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 0 0 40px; }
+@media (min-width: 700px) { .covers { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1000px) { .covers { grid-template-columns: repeat(6, 1fr); } }
+.cover { background: var(--surface); padding: 16px 16px; }
+.cover .cno {
+  display: block; font-family: var(--mono); font-size: 19px; font-weight: 600;
+  color: var(--emergent); letter-spacing: -0.01em; margin-bottom: 6px;
+}
+.cover .cnm { font-family: var(--sans); font-size: 13px; line-height: 1.35; color: var(--ink-soft); }
+</style>
+
+<div class="page">
+<header class="masthead">
+  <p class="eyebrow">Borough · milestone note · 1, 2, 3a, 3b, 3c, 4 · Aug 2026</p>
+  <h1>Foundations — the substrate, the tables, the Rule engine and the Wheel</h1>
+  <p class="standfirst">Six roadmap rows and two slices that carry no milestone number at all. They built determinism, the typed tables the State Hash is generated from, the Rule engine, hot reload, the Map Layers, the Zone Rules and the Event Wheel. And they found the same defect shape four separate times: <strong>a green test suite agreeing with the code instead of with the claim.</strong></p>
+</header>
+
+<div class="caveat">
+  <span class="lbl">What this page is, and what owns the facts on it</span>
+  <p>Assembled from <code>plans/0004</code> through <code>plans/0016</code> — one document per slice. <strong>Every fact here is owned somewhere else</strong>; where this page disagrees with those documents, they win.</p>
+  <p>⚠ <strong>Two of these plans were written on a different clock.</strong> <code>adr/0094</code> moved <code>TICKS_PER_DAY</code> from 8192 to <strong>2048</strong> on 2026-08-13, which moved <code>WHEEL_SIZE</code> and the pollution decay constant with it. Where a figure below is on the old clock it says so.</p>
+</div>
+
+<div class="covers">
+  <div class="cover"><span class="cno">1</span><span class="cnm">Tick and the determinism harness</span></div>
+  <div class="cover"><span class="cno">2</span><span class="cnm">Typed tables and handles</span></div>
+  <div class="cover"><span class="cno">3a</span><span class="cnm">The Rule engine, Bins and Rules</span></div>
+  <div class="cover"><span class="cno">3b</span><span class="cnm">Hot reload — the Citybound risk</span></div>
+  <div class="cover"><span class="cno">3c</span><span class="cnm">Map Layers and Zone Rules <em>(two slices, four apart)</em></span></div>
+  <div class="cover"><span class="cno">4</span><span class="cnm">The Event Wheel <em>(capped twice)</em></span></div>
+</div>
+
+<div class="stats">
+  <div class="stat">
+    <span class="num">241 → 776</span>
+    <span class="cap">the test count across the six, from the first stated total to the last</span>
+  </div>
+  <div class="stat">
+    <span class="num">4×</span>
+    <span class="cap">the Rule engine's cost in a real city over its cost in the laboratory — <strong>the tripwire moved 3.3×</strong></span>
+  </div>
+  <div class="stat">
+    <span class="num">0.70 s</span>
+    <span class="cap">to reload a tuning change and see the city differ, against Citybound's recorded <strong>60–120 s warm rebuild</strong></span>
+  </div>
+  <div class="stat">
+    <span class="num">4</span>
+    <span class="cap">separate sightings of one shape — <strong>a green suite agreeing with the code rather than with the claim</strong></span>
+  </div>
+</div>
+
+<!-- ============================================ ACT 1 -->
+<section>
+  <div class="acthead">
+    <span class="actno">ACT 1</span>
+    <h2>The risks they retired</h2>
+  </div>
+  <p class="h2sub">And three of the six are stated differently by the roadmap than by the plan that executed them</p>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Row</th><th>What the roadmap says</th><th>What the plan says, where it differs</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="mono"><strong>1</strong></td>
+          <td>Determinism, <em>"which is close to impossible to retrofit. Every later debugging tool is downstream of this one."</em></td>
+          <td>Adds one the roadmap does not list: <strong>the phase ordering itself.</strong> <em>"Ordering is not an implementation detail — it is the determinism contract."</em></td>
+        </tr>
+        <tr>
+          <td class="mono"><strong>2</strong></td>
+          <td>That an ECS or a naïve object graph gets baked in, and that a full-world double buffer quietly cancels the Event Wheel.</td>
+          <td>⚠ A <strong>third and subtler</strong> risk, and it is the one the slice's load-bearing task exists for: <strong>that the State Hash has a coverage hole.</strong> <em>"The oracle certifies a divergence it cannot see."</em></td>
+        </tr>
+        <tr>
+          <td class="mono"><strong>3a</strong></td>
+          <td>That the economy is not conserved and failures are silently partial.</td>
+          <td>Different risk entirely: <em>"that the Rule engine is a design nobody has tried to write down as code, and that the simulation model's two execution models are one model with an exception bolted on."</em></td>
+        </tr>
+        <tr>
+          <td class="mono"><strong>3b</strong></td>
+          <td><strong>The Citybound failure.</strong> <em>"A simulation that is slow to tune is a simulation nobody tunes, and it then becomes unbalanceable."</em></td>
+          <td>Adds: reload is <em>specified</em> in four documents, <em>anticipated</em> in six places in the tree, and <strong>exercised nowhere</strong> — <em>"so nobody has ever found out whether any of them agree. Planning found that they do not."</em></td>
+        </tr>
+        <tr>
+          <td class="mono"><strong>3c</strong></td>
+          <td>That growth cost scales with Zone size rather than staying constant.</td>
+          <td>⚠ That risk belongs <strong>entirely to the second half</strong>. The Layers half retires two the roadmap does not name — the per-Cell field, and that <strong>layer arithmetic is order-dependent</strong>: <em>"a bug that looks like an art decision and would be found late or never."</em></td>
+        </tr>
+        <tr>
+          <td class="mono"><strong>4</strong></td>
+          <td>That cost scales with number of Citizens rather than number of Citizens <em>with something happening now</em>.</td>
+          <td>⚠ <strong>Narrower, and the plan says the wide version is not true.</strong> <em>"The Wheel is the single largest performance lever in the design and every guarantee it makes is checked by one function that runs at the end of a run."</em></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <span class="lbl">The build order is not the milestone order, and there is a reason</span>
+    <p>Milestone <strong>2 was built before milestone 1</strong>: <em>"the hash is generated from the field declaration, so the hash is a property of the table layer. Building milestone 1 first would mean building the hash twice."</em> Milestone <strong>3c is two slices separated by four others.</strong> And two slices underneath all of it — the arithmetic substrate and the analysers — carry <strong>no milestone number at all</strong>.</p>
+  </div>
+</section>
+
+<!-- ============================================ ACT 2 -->
+<section>
+  <div class="acthead">
+    <span class="actno">ACT 2</span>
+    <h2>What planning found</h2>
+  </div>
+  <p class="h2sub">One shape, four times: the tests were green because they agreed with the code</p>
+
+  <div class="finds">
+    <div class="find bad">
+      <span class="fid">the substrate</span>
+      <p class="ftitle">Rerolling the world seed produced the same world, shifted by one entity</p>
+      <p>The normative random draw opened with two externally chosen coordinates <strong>added together</strong>, so only their sum reached the hash: <code>draw(seed=1000, entity=1)</code> equalled <code>draw(seed=1001, entity=0)</code> <strong>bit for bit, at every Tick and for every purpose.</strong> Writing the first known-answer vectors is what exposed it. ⚠ <strong>It cost nothing</strong> — no Input Log, no State Hash baseline and no save existed yet, <em>"which is the entire argument for the instruction that this be the first thing built."</em></p>
+    </div>
+    <div class="find bad">
+      <span class="fid">3a · finding 27</span>
+      <p class="ftitle">The corpus had a worked example that nothing ever executed</p>
+      <p>Whoever transcribed the simulation model's bakery into the loader's test fixture <strong>silently dropped the money line</strong>. So the document's own worked example destroyed one money per baking, in contradiction of a settled ADR, <strong>for six slices</strong> — and the test suite agreed with the code instead of with the document.</p>
+    </div>
+    <div class="find bad">
+      <span class="fid">3a · finding 34</span>
+      <p class="ftitle">A task in the plan was invalidated by a decision in the same plan, thirty lines below it</p>
+      <p>Task 10 asked for a production chain over two or three Goods; a decision further down the same file had settled the scope it needed as <strong>a named hole that throws.</strong> Neither noticed for seven tasks. <em>"<strong>The task list is the one part of a plan nobody re-reads after the plan is being executed</strong> — which is precisely when its assumptions are being invalidated one at a time by the section beneath it."</em></p>
+    </div>
+    <div class="find">
+      <span class="fid">3b · item 1</span>
+      <p class="ftitle">A board item turned out to be a correction rather than a decision</p>
+      <p>It was already answered in three places. What was actually wrong was <strong>a sentence in the simulation model that argues against itself</strong> — it states a transition carries both content hashes and then, in the same breath, says a replay needs content rather than <em>"the news that they changed"</em>, and a hash <strong>is</strong> the news that they changed. ⚠ The <strong>third instance in the same section of the same document.</strong></p>
+    </div>
+    <div class="find bad">
+      <span class="fid">3b · item 5</span>
+      <p class="ftitle">A refusal cannot be tested while the thing it refuses lives in the binary</p>
+      <p>The pollution kernel radius was a <code>const</code> and was supposed to be Ruleset data. That blocked the slice, not merely annoyed it: <em>"a designer cannot change it in a file, so a reload cannot detect that they did. <strong>The refusal and the defect have to be fixed in the same task or the refusal is untestable theatre.</strong>"</em></p>
+    </div>
+    <div class="find bad">
+      <span class="fid">3c · the naming</span>
+      <p class="ftitle">The slice was named for growth, and only decline was honestly expressible</p>
+      <p>Of the seven links in the growth chain: <strong>no Unplaced Pool, no price surface, no land value, no construction cost, no private capital, no bid-price contest.</strong> The response was not to skip creation — <em>"a slice that only frees rows cannot discharge the obligation it inherited"</em> — but to say what the work actually buys: <strong>churn.</strong> Rows created and freed on a cadence is <em>"the only thing that tests row recycling, handle generations, stale-handle detection and teardown under repetition. <strong>None of that has ever run.</strong>"</em></p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ ACT 3 -->
+<section>
+  <div class="acthead">
+    <span class="actno">ACT 3</span>
+    <h2>What shipped</h2>
+  </div>
+  <p class="h2sub">Eight Tick phases, a subscription model instead of a poll, and a hot reload two orders of magnitude inside its own precedent</p>
+
+  <figure>
+    <div class="figwrap">
+      <svg viewBox="0 0 900 470" role="img" aria-label="Two panels. Panel A, the rejected design: a Tick loop with one arrow sweeping down a column of eight Buildings, seven of them stamped no work, labelled cost scales with number of Citizens. Panel B, as built: on the left a strip of Event Wheel buckets, one per Tick, with this Tick marked and two Rule Instance chips chained inside it by an intrusive next link. In the centre a Building holding two Bins, each with a wait list hanging off it. Each Rule Instance chip has a single outgoing link stub which points either at a wheel bucket or at a Bin wait list and never at both — a fork whose two branches are mutually exclusive. On success the Rule re-arms onto the wheel at now plus rate; on failure it subscribes to the Bin's wait list, and the mutator that later writes the Bin is what wakes it, not a timer.">
+        <defs>
+          <marker id="arf" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+          </marker>
+        </defs>
+        <g fill="none" stroke="currentColor" stroke-width="1.4">
+
+          <text x="20" y="22" font-family="Archivo, system-ui, sans-serif" font-size="12" font-weight="600" letter-spacing="1.6" class="t-bad" stroke="none">A · REJECTED — POLL THE BUILDING LIST</text>
+          <line x1="20" y1="32" x2="300" y2="32" stroke-width="1" opacity=".28"/>
+
+          <rect x="24" y="52" width="88" height="34" rx="2"/>
+          <text x="68" y="74" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="12" font-weight="600" fill="currentColor" stroke="none">Tick loop</text>
+          <path d="M 68 86 L 68 250" marker-end="url(#arf)" class="s-bad" stroke-width="2"/>
+
+          <g opacity=".42">
+            <rect x="150" y="52" width="120" height="22" rx="2"/><text x="210" y="67" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" fill="currentColor" stroke="none">work? no</text>
+            <rect x="150" y="80" width="120" height="22" rx="2"/><text x="210" y="95" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" fill="currentColor" stroke="none">work? no</text>
+            <rect x="150" y="136" width="120" height="22" rx="2"/><text x="210" y="151" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" fill="currentColor" stroke="none">work? no</text>
+            <rect x="150" y="164" width="120" height="22" rx="2"/><text x="210" y="179" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" fill="currentColor" stroke="none">work? no</text>
+            <rect x="150" y="192" width="120" height="22" rx="2"/><text x="210" y="207" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" fill="currentColor" stroke="none">work? no</text>
+            <rect x="150" y="220" width="120" height="22" rx="2"/><text x="210" y="235" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" fill="currentColor" stroke="none">work? no</text>
+          </g>
+          <rect x="150" y="108" width="120" height="22" rx="2" class="s-warn"/>
+          <text x="210" y="123" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" class="t-warn" stroke="none">work? YES</text>
+          <line x1="112" y1="63" x2="145" y2="63" marker-end="url(#arf)" opacity=".42"/>
+          <line x1="112" y1="119" x2="145" y2="119" marker-end="url(#arf)" opacity=".42"/>
+          <line x1="112" y1="203" x2="145" y2="203" marker-end="url(#arf)" opacity=".42"/>
+
+          <text x="160" y="272" font-family="'IBM Plex Mono', monospace" font-size="10.5" class="t-bad" stroke="none" text-anchor="middle">cost scales with the population</text>
+          <text x="160" y="288" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" text-anchor="middle" opacity=".7">not with what is happening</text>
+
+          <line x1="330" y1="40" x2="330" y2="440" stroke-width="1" opacity=".2"/>
+
+          <text x="360" y="22" font-family="Archivo, system-ui, sans-serif" font-size="12" font-weight="600" letter-spacing="1.6" class="t-good" stroke="none">B · AS BUILT — SUBSCRIPTION</text>
+          <line x1="360" y1="32" x2="880" y2="32" stroke-width="1" opacity=".28"/>
+
+          <text x="360" y="58" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".65">the Event Wheel — one bucket per Tick, WHEEL_SIZE = 2048</text>
+          <g opacity=".55">
+            <rect x="360" y="68" width="34" height="30" rx="1"/>
+            <rect x="398" y="68" width="34" height="30" rx="1"/>
+            <rect x="474" y="68" width="34" height="30" rx="1"/>
+            <rect x="512" y="68" width="34" height="30" rx="1"/>
+            <rect x="550" y="68" width="34" height="30" rx="1"/>
+          </g>
+          <rect x="436" y="68" width="34" height="30" rx="1" stroke-width="2" class="s-good"/>
+          <path d="M 453 54 L 453 64" marker-end="url(#arf)" class="s-good"/>
+          <text x="453" y="49" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" class="t-good" stroke="none">now</text>
+          <text x="600" y="88" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".6">… 2048</text>
+
+          <rect x="392" y="126" width="58" height="24" rx="2"/>
+          <text x="421" y="142" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" fill="currentColor" stroke="none">rule ▸</text>
+          <rect x="470" y="126" width="58" height="24" rx="2"/>
+          <text x="499" y="142" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" fill="currentColor" stroke="none">rule ▸</text>
+          <line x1="450" y1="138" x2="466" y2="138" marker-end="url(#arf)"/>
+          <path d="M 453 98 L 453 122" marker-end="url(#arf)" class="s-good"/>
+          <text x="545" y="142" font-family="'IBM Plex Mono', monospace" font-size="9.5" fill="currentColor" stroke="none" opacity=".6">→ −1</text>
+          <text x="360" y="170" font-family="'IBM Plex Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".65">chained by an index on the row — never a collection object</text>
+
+          <rect x="640" y="196" width="220" height="132" rx="2" stroke-dasharray="4 4" opacity=".55"/>
+          <text x="654" y="216" font-family="Archivo, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="currentColor" stroke="none">one Building</text>
+
+          <rect x="656" y="230" width="188" height="38" rx="2"/>
+          <text x="750" y="246" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="12" font-weight="600" fill="currentColor" stroke="none">Bin — level / capacity</text>
+          <text x="750" y="261" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" fill="currentColor" stroke="none" opacity=".62">wait list ▸ ▸ (arrival order, saved)</text>
+
+          <rect x="656" y="278" width="188" height="38" rx="2"/>
+          <text x="750" y="294" text-anchor="middle" font-family="Archivo, system-ui, sans-serif" font-size="12" font-weight="600" fill="currentColor" stroke="none">Bin — level / capacity</text>
+          <text x="750" y="309" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9.5" fill="currentColor" stroke="none" opacity=".62">no public level column</text>
+
+          <path d="M 528 138 L 590 138 L 590 240 L 650 240" marker-end="url(#arf)" opacity=".8"/>
+          <text x="592" y="132" font-family="'IBM Plex Mono', monospace" font-size="9.5" fill="currentColor" stroke="none" opacity=".75">evaluate — read only</text>
+
+          <path d="M 660 348 L 560 348 L 560 108 L 545 100" marker-end="url(#arf)" class="s-good"/>
+          <text x="640" y="364" font-family="'IBM Plex Mono', monospace" font-size="10" class="t-good" stroke="none">✓ fires → re-arm at now + rate</text>
+
+          <path d="M 700 384 L 700 400 L 880 400 L 880 250 L 850 250" marker-end="url(#arf)" class="s-warn"/>
+          <text x="640" y="392" font-family="'IBM Plex Mono', monospace" font-size="10" class="t-warn" stroke="none">✗ starves → subscribe to the Bin</text>
+
+          <path d="M 750 268 L 750 278" stroke-dasharray="2 2" opacity=".5"/>
+          <path d="M 640 300 L 600 300 L 600 420" stroke-dasharray="3 3" class="s-good"/>
+          <text x="360" y="424" font-family="'IBM Plex Mono', monospace" font-size="10.5" class="t-good" stroke="none">the mutator that writes the Bin drains its wait list in the same call —</text>
+          <text x="360" y="440" font-family="'IBM Plex Mono', monospace" font-size="10.5" class="t-good" stroke="none">so what wakes a starving Rule is a deposit, and never a timer</text>
+
+          <text x="360" y="196" font-family="'IBM Plex Mono', monospace" font-size="10" class="t-bad" stroke="none">a Rule Instance has ONE link slot,</text>
+          <text x="360" y="211" font-family="'IBM Plex Mono', monospace" font-size="10" class="t-bad" stroke="none">so being on the wheel and being on a</text>
+          <text x="360" y="226" font-family="'IBM Plex Mono', monospace" font-size="10" class="t-bad" stroke="none">wait list are mutually exclusive —</text>
+          <text x="360" y="241" font-family="'IBM Plex Mono', monospace" font-size="10" class="t-bad" stroke="none"><tspan font-weight="600">unrepresentable rather than checked</tspan></text>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>Figure 1 — nothing ever walks the Building list looking for work.</b> The load-bearing detail is the <strong>single link slot</strong>: a Rule Instance is either armed on the Wheel or subscribed to a Bin, and sharing one index between the two states makes the third state unrepresentable rather than merely forbidden. ⚠ It is not quite total — between collection in phase 1 and apply in phase 3 a due row sits on <strong>no queue at all</strong>, which the milestone-4 slice found and the governing ADR states unqualified. That amendment was the slice's real content.</figcaption>
+  </figure>
+
+  <h3>Milestone 3a — the Rule engine, and the number that was right by cancellation</h3>
+  <div class="col">
+    <p>The laboratory benchmark timed one phase over a Tick on which every Building is due, on the reference machine under <code>powersave</code>: <strong>82.84 ns per evaluation, flat to 1.8% across two orders of magnitude</strong>, allocating zero at every rung. That licensed a tripwire: <em>Bin Rule evaluation fits the Tick budget while fewer than ~188,000 evaluations occur per Tick.</em></p>
+    <p>Then the same cost was measured in a real city — 1M Citizens on <code>minimal.toml</code>, per-Tick slope across two run lengths so startup and JIT fall out — and it came in at <strong>~329 ns per evaluation. Four times worse.</strong></p>
+  </div>
+
+  <div class="note red">
+    <span class="lbl">What that did to the budget ledger is worse than making a row bigger</span>
+    <p>That row read <em>10.42 ms per Tick, multiplicand <strong>guessed</strong></em>. The truth is <strong>6.4 ms at a measured 11,586 due Rules.</strong> The multiplicand was ~5× too high and the unit cost ~2.8× too low, <strong>so the product landed within 40% of the answer by cancellation</strong> — <em>"and a row that is right by cancellation is worse than one that is wrong."</em> The tripwire moved <strong>3.3×</strong>, and the simulation model's own bakery example does not fit at 4× under the new number.</p>
+  </div>
+
+  <h3>Milestone 3b — the Citybound risk, measured</h3>
+  <div class="col">
+    <p>Edit one rate in a copy of the Ruleset from 8 to 2, reload it into a running session at Tick 200 of 400, and the city differs: the hash trace diverges from the reload on, the Unplaced Pool goes from 9 to 101, and demolitions go from 3 to 11. <strong>0.70 s against a pre-built runner</strong> — three runs at 0.71, 0.71, 0.69 — <strong>and 2.8–3.5 s through <code>dotnet run</code></strong>, which re-checks five projects on the way past.</p>
+    <p>Citybound's recorded number, which is the evidence the reload decision was written on, is a <strong>60–120 second warm rebuild</strong>. ⚠ <em>"The margin is two orders of magnitude, and the honest caveat is that this city is 1,000 Citizens and 400 Ticks."</em></p>
+  </div>
+
+  <div class="note">
+    <span class="lbl">And the test could not have been run the way the plan asked for</span>
+    <p>A recorded log names a Ruleset by <strong>content hash</strong>, so the first edit to the file makes the log name something that no longer exists — <strong>and editing the file <em>is</em> the loop being measured.</strong> <em>"A recorded session is therefore exactly the wrong instrument for this claim, however carefully it is written. <strong>Nobody had noticed this</strong>, and the plan's own task description asked for the runner to accept several Rulesets as though that were sufficient."</em></p>
+  </div>
+
+  <h3>Milestone 3c — the tripwire held, and it is what hid the real defect</h3>
+  <div class="col">
+    <p>The Zone Rule sweep measured <strong>1.56× across a 1,000× Zone, against a bound of 2×</strong> — with both guards holding: the linear control moved 989×, and the denominator drifted 2.3% across the whole sweep. The verdict was that the model's claim is <em>"false in the letter and true in the substance"</em>: sampling is constant-cost, and what grows is the memory hierarchy. <strong>Zone size is not the variable; working-set size is, and it is bounded by the map.</strong></p>
+  </div>
+
+  <div class="note red">
+    <span class="lbl">Then a later measurement found the shipped number was scale-dependent</span>
+    <p>The sample was an <strong>absolute count of Lots per cycle</strong>, so what the city feels is inversely proportional to its own size: <strong>a Lot is visited once per 0.12 Day at 1,000 Citizens and once per 117 Days at 1,000,000.</strong> At target scale the shipped Ruleset built <strong>nothing</strong> in 2,000 Ticks. And the tripwire is what hid it — <em>"<strong>a test that confirms the stated claim while the unstated one fails is worse than no test.</strong>"</em> The repair replaced the count with a <strong>duration</strong>, from which the count derives.</p>
+  </div>
+</section>
+
+<!-- ============================================ ACT 4 -->
+<section>
+  <div class="acthead">
+    <span class="actno">ACT 4</span>
+    <h2>What is still open</h2>
+  </div>
+  <p class="h2sub">One invariant with no machinery, one wheel tier with no milestone, and a correction the ledger has not paid</p>
+
+  <div class="opens">
+    <div class="open">
+      <span class="otag">lint 4</span>
+      <div>
+        <p class="otitle">Thread-count equivalence still needs machinery that does not exist</p>
+        <p>Classified as <strong>not writable yet</strong>, and the reasoning is the point: <em>"a test asserting equivalence across no parallelism passes vacuously and then keeps passing after the parallelism arrives."</em> Everything runs serially, and two documents disagree about which phases <em>may</em> be parallel versus which <em>are</em> — <strong>a contradiction the slice named and left standing.</strong></p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">4</span>
+      <div>
+        <p class="otitle">The coarse Day wheel has no milestone at all</p>
+        <p>Milestone 4 built the fine Tick wheel and the second tier was scoped out. <strong>Every Day countdown in the design</strong> — Life Stages, Need decay, the housed re-evaluation — <strong>presumes a tier that nothing states is being built.</strong> ⚠ And a caveat left behind with it: the due-Rule counter is per-table, so <em>a second wheel would need a second counter rather than inheriting this one, and nobody has noticed that yet.</em></p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">⚠ docs</span>
+      <div>
+        <p class="otitle">The slice ledger still carries a headline that was withdrawn</p>
+        <p>It says the city settles <em>five-sixths homeless</em>. That headline was withdrawn: the figure is fixed by knobs the fixture chose on purpose — a Rule drawing on a Resource nothing produces — <em>"and carries no information; it would have read much the same at any occupancy."</em> <strong>The number that <em>was</em> evidence is the second one:</strong> nearly half the declared places that existed stood empty while 300 people were pooled. That is a <strong>missing door</strong>, not a balance of rates, and building it took vacancy to 10%.</p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">⚠ docs</span>
+      <div>
+        <p class="otitle">Two documents describe milestone 4 as finishing what an earlier slice half-built</p>
+        <p>The plan's own first finding contradicts it: <strong>the fine wheel was not half-built, it was built</strong> — both halves of the invariant registered and tested. <em>"The deliverable the gating session named was delivered before the session ran."</em> The correction is filed and <strong>not paid</strong>.</p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">3a</span>
+      <div>
+        <p class="otitle">The in-situ cost figure replaced one unrepresentative number with another, and says so</p>
+        <p>It was measured on a Ruleset whose own header says it models no city — <strong>2 Rule Instances per Building against a guessed 450 per 1,000 Citizens</strong>, which is 3.75. ⚠ <em>"So this <strong>does not ratify the 450</strong>."</em></p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">the substrate</span>
+      <div>
+        <p class="otitle">The randomness independence property is asserted and not tested</p>
+        <p>Both implementations of the draw were written by one author in one sitting, so they corroborate each other and nothing else. <em>"Closing the real property needs a reader who has not seen this code."</em></p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="otag">2</span>
+      <div>
+        <p class="otitle">Declaring a column derived allocates it — it does not make anything rebuild it</p>
+        <p>The allocation-by-declaration trick closes the <em>hash</em>'s coverage hole and leaves the <em>rebuild</em>'s wide open: a column can be declared derived while the structure deriving it lives outside the world entirely, in which case a load restores the rows and the index is simply never built. <strong>Nothing fails, because a column nobody reads yet is a column nobody reads yet.</strong> ⚠ Found four milestones later, by the only test that asks.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="end">
+<p class="colophon">
+  Borough · foundations · milestones 1, 2, 3a, 3b, 3c and 4, built Aug 2026 · sources: <code>plans/0004</code>–<code>plans/0016</code>, <code>docs/06</code>, <code>plans/0002</code> §D, <code>docs/spike-results.md</code>, and ADRs <code>0038</code>, <code>0039</code>, <code>0044</code>, <code>0049</code>–<code>0051</code>, <code>0053</code>–<code>0059</code>, <code>0063</code>. Read the plans rather than this page for anything you intend to rely on.
+</p>
+
+</div>

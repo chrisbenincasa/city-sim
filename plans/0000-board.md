@@ -7,6 +7,38 @@ place that orders the three tracks against each other.
 
 ## What is next
 
+✅ **MILESTONE 27 CLOSED 2026-08-24 — ALL FIVE TASKS, AND THE BUSINESS IS NOW A THING THE CITY CONTAINS**
+([`0041`](0041-the-business-is-a-thing-the-city-contains.md)). The city creates one **two ways** —
+[`adr/0148`](../docs/adr/0148-a-premises-kind-may-declare-its-trade-and-instantiating-one-is-not-housing-anybody.md)
+instantiates a premises kind's declared trade with the Building, and
+[`adr/0145`](../docs/adr/0145-a-business-is-founded-by-a-household-or-arrives-through-a-gate-and-both-land-in-the-pool.md)/[`adr/0146`](../docs/adr/0146-founding-costs-a-citizen-and-the-households-money-so-the-founder-is-the-first-worker.md)
+has a **Household found** one, spending a **Citizen** as well as its money, with the founder recorded by
+***the job it does and by nothing else.*** `jobs` and the Shift band moved to the **trade**
+([`adr/0141`](../docs/adr/0141-a-tenant-owns-what-leaves-with-it-and-the-premises-own-the-capacity.md)),
+which **emptied every shipped city** until the content half landed — 66 assertions on one sentence,
+*nobody is employed anywhere*. A **Policy now sweeps Businesses**
+([`adr/0149`](../docs/adr/0149-a-business-is-a-population-a-policy-sweeps-and-a-readout-names-every-entity-it-reads-against.md)),
+and **`levied.toml` and `founded.toml` are the fifteenth and sixteenth shipped files.**
+⚠ **Task 9 is NOT the task its plan described**: the Rule-Instance column `RuleInstanceTable`'s own comment
+predicted was **built, crashed on the Tick it fired, and was reverted** — ***`adr/0093` working rather than
+failing***, because the comment was right about where to look and was never a claim about what the work was.
+🔴 **Task 10's long run found a defect the suite could not** — a razing that identified a Building's own
+trade **by kind** stranded shops and leaked their capital, **52 stranded and 23,983 of 354,562 gone per
+20,480 Ticks** — repaired by a saved `BusinessTable.Origin`, so **identity and not kind** answers *did this
+Business arrive with these premises.* ⚠ **What delayed finding it was a HEADER that predicted its own
+symptom**, so the drain was explained and nobody looked.
+
+🟢 **THE LIVE CODE ROW IS NOW MILESTONE 26 — the purchase, where `Scope.Pool` stops throwing**, its tasks
+kept at [`0037`](0037-goods-between-buildings-the-district-pool.md) 7–10.
+🔴 **27 WAS ITS LARGEST GATE AND NOT ITS ONLY ONE — TWO REMAIN AND THEY ARE BOTH CONTENT**: the **Provider
+kind's three decisions** (a second `[[zone_rule]]`, a second decline Rule, a land-use split) and **a world
+where a Building genuinely runs out of money**. ⚠ ***[`0002`](0002-open-questions.md) §A says outright that
+nobody owns either***, which is why they are in §A rather than in a ledger.
+⚠ **The bankrupt world was CHECKED at task 10 rather than assumed, and the answer was no**: **7,165
+premisings against ZERO give-ups** over 131,072 Ticks, so ***nothing in the build drains a Business's money
+and the world is still unwritten.*** **The gate is an argument sitting, and the standing rule is satisfied
+by a milestone being blocked on it rather than by its being available.**
+
 ✅ **MILESTONE 12 IS CAPPED AT TASK 6 AND CLOSES THERE, 2026-08-22.** Its risk is rewritten to what
 tasks 1–6 actually retire — ***that a District is an administrative label rather than a derived thing
 with a market in it*** — because `Scope.Pool` still throws and **a milestone must name a risk it
@@ -25,57 +57,23 @@ a `Scope` that reaches a Water Body, and a Bin can *fail* where a Map Layer cell
 
 ~~🟢 **The live code row is milestone 25 — the Business is the actor and the Building is premises**,
 scoped by session V ([`0039`](0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md)),
-**then 27, then 26, the purchase**.~~ ✅ **25 CLOSED 2026-08-23 and 27 CLOSED 2026-08-24**, so **the
-live code row is 26, the purchase** — gated on the Provider kind's three content decisions and on a
-world where a Building genuinely runs out of money, neither of which 27 touched. ✅ **DECOMPOSED
-2026-08-23 — ten tasks in two groups,
-[`0040`](0040-the-business-is-the-actor-and-the-building-is-premises.md).**
+**then 27, then 26, the purchase**.~~ ✅ **25 CLOSED 2026-08-23 AND 27 CLOSED 2026-08-24; the run of three
+is spent and 26 is what it was for** — see the head of this section. ✅ **DECOMPOSED 2026-08-23 — ten tasks
+in two groups, [`0040`](0040-the-business-is-the-actor-and-the-building-is-premises.md).**
 
-> ✅ **MILESTONE 25 CLOSED 2026-08-23 — GROUP A TASKS 1, 2, 4, 5 AND THE CLOSING TASK, IN ONE DAY.** ① a Bin hangs off its **owner**
-> ([`adr/0143`](../docs/adr/0143-a-bin-hangs-off-its-owner-and-the-polymorphic-column-stays-unbuilt.md)),
-> and the polymorphic column `adr/0114` gestured at is **not built**. ② a Household owns Bins, its Rules
-> follow them, and the arming stagger mixes the **tenant** — ⚠ **which is ONE task and `adr/0141` had
-> already said so in its *Rejected* section** (`0040` **F19**): the decomposition split what the record
-> governing it had declined to split. **A Ruleset says `owner = "occupant"`; a Rule's side is DERIVED
-> from its own `local` terms and a mixed one is refused at load.** 🔴 **The shipped city now holds three
-> times the stock** — the draw is unchanged, the supply is not — and every one of the **twelve** edited
-> Rulesets says so in its own header. 🔴 **The State Hash moved; four golden artefacts re-recorded; the
-> version byte NOT bumped**, because the fold did not change. ⚠ **`derived = "occupancy"`, the one
-> declared Readout in the project, has lost its only caller.** ④ **condemnation ends a TENANCY and
-> leaves the premises standing** — one walk, filtered on the subject, premises judged first, and a
-> failing tenant evicted through `World.Unplace` while the Building stands. 🔴 **It removes a defect
-> TASK 2 SHIPPED** (`0040` **F30**): pressure was taken across the Building's whole Rule list, so once a
-> tenant had Rules of its own, ***one starving Household condemned the Building its two neighbours were
-> living in*** — live for the length of one commit, and no test failed because nothing in the suite had
-> two tenants failing differently. ⚠ **No golden artefact moved**, since a tenancy ending is reachable
-> only past `condemn_after` and no golden session gets there. **`RuleEvidence` and `BinEvidence` gained
-> `Tenant`**, which closes **F28** and uncovered a second hole in the same panel: the bin table showed
-> Rules drawing from Bins it did not display. 🔴 **Nothing records *why* a tenancy ended** (**F35**) —
-> the condemnation trail is a **Lot's**, so an entry there would be a demolition record for a Building
-> still standing; that channel is `adr/0130`'s and ships with task 5.
-> ⑤ **the unpremised pool and the emigration sink** — a Business that loses its premises waits under a
-> give-up bound and then leaves the city with its money. **Open decisions 1 and 3 were settled first,
-> into [`adr/0144`](../docs/adr/0144-a-tenant-that-loses-its-premises-keeps-only-its-money-and-waits-a-households-wait.md)**:
-> a tenant carries across the gap precisely what does not depend on premises for its bounds, and a
-> shop's patience is a family's as a declared stand-in. ⚠ **The pool ships with ONE exit and it is the
-> sink** — nothing tenants a Business, so the placement half is milestone 27's. 🔴 **The State Hash
-> moved; three golden baselines re-recorded.** 🔴 **TWO LATENT DEFECTS FOUND, ONE ALREADY ON `main`**
-> (`0040` **F36**, **F38**): a **saved table outside `World._tables` is not hashed** — 2,074 tests
-> passed with one — and the census's **hand-maintained per-family slot count** was wrong for
-> `ZoneCounters` since task 4, so *tenancies ended* and *placement considered* printed the identical
-> four numbers. ⚠ **Same shape both times**: a declaration and a hand-kept count with nothing checking
-> they agree (**F39**). Both closed by tests; ***the class is not closed.***
-> ⑩ **something to look at, and the long run** — 🔴 **and the thing to look at DID NOT EXIST**
-> (`0040` **F43**): on all twelve shipped files the premises fail and the tenants never do, so
-> `minimal.toml` reads **2,610 condemned against 0 tenancies ended** and task 4's mechanism was
-> invisible in every world the build could generate. ⚠ **Every test of it built its Ruleset by hand**,
-> which is why nothing noticed. **`rulesets/evicted.toml`** is the thirteenth file — two Rules deleted,
-> because the failure only had to move from the premises to the tenant — and reads **929 tenancies
-> ended against 0 condemned**. 🔴 **The long run's stated obligation was the wrong collection**
-> (**F44**): the unpremised pool is empty in every world, and the one milestone 25 introduced is the
-> **tenant's Rule Instances and Bins**. **131,072 Ticks: both allocators' slot counts FLAT** under
-> ~1,900 tenancies ending per window (**F45**).
-> **Milestone 25 is closed. Next is 27 — the Business is a thing the city contains.**
+> ✅ **MILESTONE 25 CLOSED 2026-08-23 — GROUP A, IN ONE DAY**, and ✅ **ARCHIVED 2026-08-25.** A Bin
+> hangs off its **owner**; a Household owns Bins and its Rules follow them; **condemnation ends a
+> TENANCY and leaves the premises standing**; and an unpremised tenant waits under a give-up bound and
+> then emigrates.
+> ⚠ **Its forty-line closure narrative lived HERE and nowhere else in this file's job description**, so
+> it is cut to this pointer rather than kept — ***the board is a view and a closure record is a
+> ledger's.*** **Findings `F19`, `F28`, `F30`, `F35`, `F36`, `F38`, `F39`, `F43`, `F44` and `F45` are
+> all in [`0040`](0040-the-business-is-the-actor-and-the-building-is-premises.md)**, which is where they
+> were written and where the caveats around them still are; the row's own entry is
+> [`0003`](0003-build-plan.md)'s. 🔴 **Two of them are worth knowing you have not read**: **F30**, one
+> starving Household condemning the Building its neighbours lived in, and **F36**/**F38**, a saved table
+> outside `World._tables` going unhashed while 2,074 tests passed. ***Follow the link rather than
+> quoting this summary*** ([`0012`](0012-corpus-audit.md) **Cause 5**).
 🔴 **CAPPED AT GROUP A THE SAME DAY, with the user in the room — 25 is tasks 1–5 plus the closing
 task, and ITS RISK IS REWRITTEN** to ***that a Rule Instance names premises rather than an actor, so no
 money term can resolve to a payer.*** ⚠ **Group A makes the actor NAMEABLE; it does not make one
