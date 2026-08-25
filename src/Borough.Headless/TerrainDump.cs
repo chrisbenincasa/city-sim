@@ -89,6 +89,7 @@ internal static class TerrainDump
             + $"{world.Roads.Segments.Rows.LiveCount} Segments — the ground under a built city.");
 
         WriteTerrain(output, layers, terrain, options.Csv);
+        WriteSealingByType(output, layers, terrain);
 
         output.WriteLine();
         output.WriteLine("## Before — the populator's city, nothing decayed and nothing regrown");
@@ -173,6 +174,80 @@ internal static class TerrainDump
 
             output.WriteLine(
                 $"  {Marks[i].Mark}  {Marks[i].Name,-11} {counts[i],6} Cells — {worth}");
+        }
+    }
+
+    /// <summary>
+    /// Writes Sealing broken down by terrain type, over the <b>whole map</b> and not the window.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is the shape of decision 5's ratifier and not the ratifier itself.</b> That quantity is
+    /// <em>Days from a Cell's last demolition to its Sealing reaching zero, per terrain type</em>, and
+    /// it needs per-Cell event tracking over a long run. What this answers is the question that comes
+    /// first and is far cheaper: ⚠ <b>does the city stand on more than one kind of ground at all?</b>
+    /// A rate keyed by terrain type cannot be ratified by a world that only ever seals one type, and
+    /// the decision refutes in exactly that direction — <em>every type recovering in the same time
+    /// means the key is not keyed on anything</em>.
+    /// </remarks>
+    private static void WriteSealingByType(
+        TextWriter output, MapLayers layers, TerrainRuleset terrain)
+    {
+        Span<int> cells = stackalloc int[Marks.Length];
+        Span<int> sealedCells = stackalloc int[Marks.Length];
+        Span<long> totals = stackalloc long[Marks.Length];
+        Span<int> peaks = stackalloc int[Marks.Length];
+
+        for (int slot = 0; slot < layers.Cells.Rows.SlotCount; slot++)
+        {
+            if (!layers.Cells.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            int sealing = layers.Cells.Sealing[slot];
+
+            if (sealing <= 0)
+            {
+                continue;
+            }
+
+            int index = Index(layers.Terrain.At(layers.Cells.East[slot], layers.Cells.North[slot]));
+
+            sealedCells[index]++;
+            totals[index] += sealing;
+
+            if (sealing > peaks[index])
+            {
+                peaks[index] = sealing;
+            }
+        }
+
+        // The whole map, because the window above is 1,344 Cells of 262,144 and a distribution read
+        // off 0.5% of the ground is not the map's distribution.
+        for (int cell = 0; cell < CellGrid.WorldCellCount; cell++)
+        {
+            // The inverse of CellGrid.Index, which is north * WorldCells + east.
+            Cells east = new(cell % CellGrid.WorldCells);
+            Cells north = new(cell / CellGrid.WorldCells);
+
+            cells[Index(layers.Terrain.At(east, north))]++;
+        }
+
+        output.WriteLine();
+        output.WriteLine(
+            $"## Sealing by terrain type — the whole map, {CellGrid.WorldCellCount} Cells");
+        output.WriteLine("  type          map Cells   sealed   total sealing   peak   tau");
+
+        for (int i = 0; i < Marks.Length; i++)
+        {
+            string tau = terrain.Stated
+                ? terrain.SealingDecayTau(Marks[i].Kind).ToString(CultureInfo.InvariantCulture)
+                : "--";
+
+            output.WriteLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"  {Marks[i].Name,-11} {cells[i],11} {sealedCells[i],8} {totals[i],15} "
+                + $"{peaks[i],6} {tau,5}"));
         }
     }
 
