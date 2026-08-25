@@ -4,6 +4,7 @@ using Borough.Core.Entities;
 using Borough.Core.Input;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
+using Borough.Core.Tables;
 using Borough.Formats;
 
 namespace Borough.Tests.Session;
@@ -90,21 +91,86 @@ public sealed class PopulateCommandTests
     }
 
     /// <summary>
-    /// Populating draws no randomness, so the world seed cannot reach it.
+    /// Populating draws no randomness <b>except to lay the ground</b>, so the world seed reaches the
+    /// terrain and nothing else.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>Stated as a test because the failure is silent and one-directional.</b> Somebody adding
     /// variety to the fixture with a convenient <c>draw()</c> would correlate it with whatever
     /// simulation decision shares the <c>purpose_tag</c>, and nothing else in the suite would notice.
     /// This fails the moment the fixture starts drawing.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It said <em>and not of the seed</em>, full stop, until milestone 24 task 2, and the
+    /// exception is a decision rather than a regression.</b> <c>adr/0158</c> makes the terrain type
+    /// column a function of the <c>WorldKey</c> and <c>adr/0021</c> makes the map procedural, so a
+    /// city whose ground did <em>not</em> move with its seed would be the defect. What the seed must
+    /// still not reach is everything else — the Lots, the Buildings, the Households, the Citizens.
+    /// </para>
+    /// <para>
+    /// <b>So the assertion moved from the State Hash to the tables under it</b>, and it is stronger
+    /// for it: the old form said <em>nothing differs</em> and could only ever be relaxed to
+    /// <em>something differs</em>, where this one names the tables that may. A second table starting
+    /// to draw fails it, which the hash comparison could no longer do at all.
+    /// </para>
+    /// <para>
+    /// ✅ <b>And a second table did start to draw, one milestone task later.</b> <c>adr/0159</c> makes
+    /// Woodland a <c>WorldKey</c>-derived column too, and this test failed on the day it landed —
+    /// ***the paragraph above was written as a prediction and paid out as one***. The exception list is
+    /// now two tables and each is asserted to move <em>separately</em>: they are drawn on different
+    /// <c>purpose_tag</c>s, so folding them together would pass whenever either one moved, which is the
+    /// exact correlation <c>PurposeTag.Woodland</c> exists to refuse.
+    /// </para>
     /// </remarks>
     [Fact]
-    public void The_city_is_a_function_of_its_size_and_not_of_the_seed()
+    public void The_city_is_a_function_of_its_size_and_the_seed_reaches_only_the_ground()
     {
-        ulong[] first = Replay.Run(Log(Seed), new Ticks(4), hashEvery: 4);
-        ulong[] second = Replay.Run(Log(Seed ^ 0xFFFF_FFFF_FFFF_FFFFUL), new Ticks(4), hashEvery: 4);
+        World first = Run(Log(Seed)).World;
+        World second = Run(Log(Seed ^ 0xFFFF_FFFF_FFFF_FFFFUL)).World;
 
-        Assert.Equal(first, second);
+        Assert.Equal(
+            ExceptGround(first), ExceptGround(second));
+
+        Assert.NotEqual(
+            Fold(first.Layers.Terrain.Rows), Fold(second.Layers.Terrain.Rows));
+
+        // Asserted separately rather than folded together with terrain, because the two are drawn on
+        // DIFFERENT purpose tags and a single comparison would pass if either one moved. That is the
+        // correlation PurposeTag.Woodland exists to refuse, and this is where it is checkable.
+        Assert.NotEqual(
+            Fold(first.Layers.Woodland.Rows), Fold(second.Layers.Woodland.Rows));
+    }
+
+    /// <summary>Every table's fold but the terrain one, in composition order.</summary>
+    private static ulong[] ExceptGround(World world)
+    {
+        var folds = new List<ulong>();
+
+        foreach (Rows table in world.Tables)
+        {
+            // The two tables the WorldKey is ALLOWED to reach, and the list is the assertion. Terrain
+            // joined at milestone 24 task 2 (adr/0158), Woodland at task 8a (adr/0159) -- and this
+            // method's own doc-comment predicted the second arrival before it happened: "a second
+            // table starting to draw fails it". It did, and the failure was the test working.
+            if (ReferenceEquals(table, world.Layers.Terrain.Rows)
+                || ReferenceEquals(table, world.Layers.Woodland.Rows))
+            {
+                continue;
+            }
+
+            folds.Add(Fold(table));
+        }
+
+        return [.. folds];
+    }
+
+    private static ulong Fold(Rows table)
+    {
+        ulong hash = 0;
+        table.Fold(ref hash);
+
+        return hash;
     }
 
     /// <summary>

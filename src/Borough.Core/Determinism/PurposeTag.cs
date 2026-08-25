@@ -410,6 +410,58 @@ public enum PurposeTag : ulong
     UnpremisedDraw = 22,
 
     /// <summary>
+    /// Which of the five terrain types a Cell is, drawn once at world creation.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>adr/0158</c>. Keyed on <see cref="Space.CellGrid.Index"/> at
+    /// <see cref="Ticks.Zero"/> — a <em>what sort of ground is this</em> draw rather than a
+    /// <em>what happens now</em> one, the shape <see cref="CarOwnership"/> and
+    /// <see cref="OpeningBalance"/> already use. Terrain is generated once and never changes
+    /// (<c>adr/0021</c>), so the Tick coordinate carries nothing and says so.
+    /// </para>
+    /// <para>
+    /// ✅ <b>Woodland got its own tag and did not borrow this one</b> — <see cref="Woodland"/>,
+    /// <c>adr/0159</c>, milestone 24 task 8a. Woodland sits <em>on</em> terrain, so a shared tag would
+    /// make every wooded Cell the same terrain type as every other wooded Cell — the forest and the
+    /// rock as one draw wearing two names, which is a correlation nothing in the city could refute.
+    /// ***This paragraph read <em>will need</em> and <em>unbuilt</em> until the tag was added***, which
+    /// is this file's own rule working: the tag arrives with the mechanism that draws it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>This ordinal was 22 until the merge with <c>main</c> on 2026-08-24, and it moved because
+    /// milestone 25 had independently taken 22 for <see cref="UnpremisedDraw"/>.</b> A tag is an
+    /// argument to <c>Randomness.Draw</c>, so <b>an ordinal IS the decision's identity</b> and moving
+    /// one changes every draw made under it — here, the terrain map of every world. ***The branch
+    /// yielded rather than the trunk***, which is the rule <c>34d0386</c> applied to ADR numbers on
+    /// this same branch. Both baselines were re-recorded in the merge.
+    /// </para>
+    /// </remarks>
+    TerrainType = 23,
+
+    /// <summary>
+    /// How much of a Cell is wooded, drawn once at world creation.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>adr/0159</c>, milestone 24 task 8a. Keyed on <see cref="Space.CellGrid.Index"/> at
+    /// <see cref="Ticks.Zero"/>, the same <em>what sort of ground is this</em> shape
+    /// <see cref="TerrainType"/> uses.
+    /// </para>
+    /// <para>
+    /// <b>Its own tag rather than <see cref="TerrainType"/>'s, which this file predicted it would
+    /// need.</b> Woodland sits <em>on</em> terrain, so a shared tag would make every wooded Cell the
+    /// same terrain type as every other wooded Cell — the forest and the rock as one draw wearing two
+    /// names, which is a correlation nothing in the city could refute. ⚠ <b>The two fields are drawn
+    /// by the same machinery and calibrated oppositely, and that is deliberate</b>: terrain
+    /// self-normalises against the range the key realised, because <em>all five types exist</em> must
+    /// not be a property of the seed; Woodland does not, because <c>adr/0022</c> requires that
+    /// <em>a heavily forested seed</em> is a thing that can happen.
+    /// </para>
+    /// </remarks>
+    Woodland = 24,
+
+    /// <summary>
     /// Which housed Household is asked whether it founds a Business this pass.
     /// </summary>
     /// <remarks>

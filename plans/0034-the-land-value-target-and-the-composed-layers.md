@@ -540,6 +540,17 @@ invalidating whenever any input changed, and would drift.
 > a key nothing reads cannot change the city. ***Saying "moves N committed hashes" of a fingerprint change
 > is Cause 5 with the units dropped.*** Corrected in `CLAUDE.md` and in
 > [`tests/Borough.Tests/Golden/README.md`](../tests/Borough.Tests/Golden/README.md).
+> 
+> 🔴 ⚠ **AMENDED 2026-08-25 — F15's conclusion held, and the reason given for it was not the reason.**
+> *A key nothing reads cannot change the city* is true, and it was offered here as a statement about
+> the **layer producer** being unbuilt. It was not: those four keys were written **above** the
+> `[layers]` header, inside `[placement]`, and they stayed there in all eighteen shipped Rulesets
+> until `plans/0041` **G31**'s unknown-key check found them. ***They were unread because they were in
+> the wrong table, not because their consumer was late.*** Re-homing all of them still moved no State
+> Hash — every file authored exactly the loader's default — so ***the number in this finding is
+> right, twice over, and the sentence under it was wrong.*** That is
+> [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+> working as advertised: where a description of the build is wrong, it is wrong about the **trigger**.
 >
 > ⚠ **And I nearly deferred this task into task 4 so the baselines would be regenerated once**, which
 > [`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)

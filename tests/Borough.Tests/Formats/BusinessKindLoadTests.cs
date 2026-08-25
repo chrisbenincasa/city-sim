@@ -25,7 +25,15 @@ namespace Borough.Tests.Formats;
 /// ~~A Business kind declares nothing but its name~~ — it now declares <c>jobs</c> and a Shift band
 /// (<see cref="BusinessKindDefinition"/>), which is two of <c>adr/0141</c>'s three. <b>The wage is the
 /// third and is NOT here</b>: it is <c>adr/0026</c> at milestone 15, so a file stating one is refused
-/// as an unknown key like any typo.
+/// <b>by name</b>, with a message saying where the wage went.
+/// </para>
+/// <para>
+/// ⚠ <b>This paragraph said "refused as an unknown key like any typo", and there was no unknown-key
+/// check in the loader when it was written</b> — <c>plans/0041</c> G31, closed 2026-08-25. It was
+/// wrong twice over: the check did not exist, and now that it does, <c>wage</c> still does not go
+/// through it. ***A key a designer has positive reason to write earns the sentence saying where it
+/// went***, and "not a key of <c>[[business]]</c>" is true and useless to somebody who read
+/// <c>adr/0141</c> and wrote what it told them to.
 /// </para>
 /// <para>
 /// ⚠ <b>Nothing in the simulation reads <c>jobs</c> off a trade yet</b>, because a Workplace is

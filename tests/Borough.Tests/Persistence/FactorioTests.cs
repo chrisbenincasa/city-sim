@@ -113,7 +113,7 @@ public sealed class FactorioTests(ITestOutputHelper output)
     /// and — worse — makes it look as though the rebuild is being checked when it is not.
     /// </para>
     /// <para>
-    /// ⚠ <b>SIX worlds, because a corruption test can only speak about a table that has rows in it,
+    /// ⚠ <b>SEVEN worlds, because a corruption test can only speak about a table that has rows in it,
     /// and one fixture covered 170 of the 187 columns there were then.</b> ⚠ <b>Both figures are
     /// dated and neither is the total</b> — the run prints the current one. The golden fixture
     /// leaves <c>route_hop</c> empty
@@ -124,7 +124,7 @@ public sealed class FactorioTests(ITestOutputHelper output)
     /// ***A structural test over one fixture measures the fixture's content as much as the
     /// structure***, and the corollary this keeps re-proving is that <b>a table with no production
     /// writer needs a fixture named for it or its columns are carried by the format and checked by
-    /// nothing</b>. The union of the SIX is 251 of 251, and <see cref="UnreachableColumns"/> pins that
+    /// nothing</b>. The union of the SEVEN is every column of every table, and <see cref="UnreachableColumns"/> pins that
     /// there is no residue.
     /// </para>
     /// </remarks>
@@ -164,6 +164,10 @@ public sealed class FactorioTests(ITestOutputHelper output)
         // was copied from the paragraph above on the day it was written; UnpremisedTable has only
         // ever had two.
         Scan(WithUnpremised(), reached, []);
+
+        // The seventh: the water graph is laid only on a Ruleset that states [water], and coastal.toml
+        // is the only shipped file that does. Milestone 24 task 6a, adr/0160.
+        Scan(WithWater(512), reached, []);
 
         List<string> unreachable = [.. every.Where(name => !reached.Contains(name))];
 
@@ -421,6 +425,18 @@ public sealed class FactorioTests(ITestOutputHelper output)
     /// </remarks>
     private static World WithDistricts(int ticks) =>
         Stepped(Shipped("twinned.toml"), GoldenFixtures.Population, ticks).World;
+
+    /// <summary>A world with a sea in it, so the water graph has rows to corrupt.</summary>
+    /// <remarks>
+    /// <b>A seventh fixture, and this test's corollary arriving for the fourth time</b>: ***a table
+    /// with no production writer needs a fixture named for it.*** Here the writer is real and runs on
+    /// every world — <c>WaterGenerator.LayInto</c>, from <c>SyntheticCity.PopulateInto</c> — but it
+    /// lays nothing at all unless the Ruleset states <c>[water]</c>, and <c>coastal.toml</c> is the
+    /// only shipped file that does (<c>adr/0160</c>). ⚠ <b>Gated on a Ruleset key</b>, which is
+    /// <see cref="WithDistricts"/>'s shape exactly rather than a new one.
+    /// </remarks>
+    private static World WithWater(int ticks) =>
+        Stepped(Shipped("coastal.toml"), GoldenFixtures.Population, ticks).World;
 
     /// <summary>
     /// A world with a Business in the unpremised pool, its premises demolished under it.

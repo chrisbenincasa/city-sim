@@ -60,7 +60,7 @@ public class LayerQueryTests
 
     /// <summary>Every Layer answers, including the ones that are not convolutions.</summary>
     [Fact]
-    public void It_reads_all_three_Layers()
+    public void It_reads_every_Layer()
     {
         MapLayers layers = new(LayerRuleset.Default);
         Cells east = new(8);
@@ -69,6 +69,7 @@ public class LayerQueryTests
         layers.EmitPollution(east, north, 2_000);
         layers.RediffusePollution();
         layers.Seal(east, north, 64);
+        layers.Woodland.Lay(east, north, 300);
         layers.SetLandValueTarget(east, north, 500);
         layers.DriftLandValue();
 

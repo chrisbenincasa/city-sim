@@ -1,5 +1,33 @@
 # Terrain suitability is baked at world creation, and the Layer holes that need it move to milestone 24
 
+> 🔴 **Half superseded by [`0155`](0155-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md), 2026-08-22 — the placement stands and the artefact does not.**
+>
+> **What stands, entirely:** Fertility, Sealing's decay, Woodland, replanting and Water Bodies belong at
+> milestone **24**; they are *placed rather than deferred*; 15 was never available for Water Bodies; and
+> Sealing's decay is blocked in more than one place. That is this document's decision and none of it moved.
+>
+> **What is superseded:** the named artefact — *"terrain suitability **baked at world creation into a
+> stored per-Cell column**"*. The quantity is renamed **Base Fertility** and is **Ruleset data keyed by
+> terrain type**, never stored and never baked. The per-Cell column this document correctly sensed was
+> missing holds **terrain type**, which `CONTEXT.md` → Sealing had already required for the decay rate.
+>
+> ⚠ **The error came from the name.** Read *terrain* in *terrain suitability* and a terrain-derived
+> per-Cell field is the natural inference — while `02 §2.3` says *"the generator places Woodland and
+> nothing else. Fertility is not on the map"*, and this document's own citation, `adr/0022`, argues
+> against exactly that field at length. **`CONTEXT.md` had no entry for the term to have been checked
+> against**, and now has one. ***A badly named term is a design defect waiting for somebody to reason
+> from the name.***
+>
+> ⚠ **And the disposition was the one `adr/0022` forbids for the value beside it**: its consequence list
+> says decay rates are *"Ruleset data keyed by terrain type, **never stored per Tile**"*, because storing
+> tuning as state freezes it into every save. Two values are keyed by one column and only one of them had
+> been thought about as tuning.
+>
+> **The filename keeps the old term**, because a filename is its claim and this one was made in good
+> faith. **This document's third revisit trigger — *a Tick-time consumer of terrain that a stored column
+> cannot serve* — is answered in the negative** by `0155`: a stored type plus a Ruleset lookup serves
+> every consumer that exists.
+
 **Fertility, Sealing's decay, Woodland, replanting and Water Bodies leave milestone 9 for milestone
 24.** None of them is deferred for cost; each needs terrain, and terrain has one source. **And the
 milestone that builds terrain owes a specific artefact this corpus had not named: terrain suitability

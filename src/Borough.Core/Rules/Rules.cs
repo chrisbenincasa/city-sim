@@ -79,6 +79,32 @@ public enum BinOwnerKind : byte
     /// 5.
     /// </remarks>
     District = 5,
+
+    /// <summary>
+    /// A Water Body. <b>Owned</b>, and the owner is named by
+    /// <see cref="Space.WaterBodyTable"/> rather than by <see cref="BinTable.Owner"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="District"/>'s reason exactly: <see cref="BinTable.Owner"/> is a handle bound to the
+    /// Building table, so it cannot hold a Water Body, and widening it would put a discriminated union
+    /// in a column every Bin in the city pays for. The body holds the handle instead.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Its Resource is <c>Utility</c>-family and there is exactly one</b>
+    /// (<c>adr/0161</c>): a Water Body moves its contents along an edge of the water graph, which is a
+    /// Utility's movement, and a Good doing that would move with no Vehicle. <c>milestone 24 task
+    /// 6b</c>.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>This is the SEVENTH member and <c>plans/0042</c>'s task 6b row calls it the sixth.</b> That
+    /// row said *a fifth* until milestone 27 landed <see cref="Business"/> on <c>main</c>, was
+    /// corrected to *a sixth*, and went stale a second time against <see cref="District"/>.
+    /// ***A count of an enum, stored in prose, in a document that also stores status*** —
+    /// <c>plans/0012</c> <b>Cause 1</b>, twice on one row.
+    /// </para>
+    /// </remarks>
+    WaterBody = 6,
 }
 
 /// <summary>

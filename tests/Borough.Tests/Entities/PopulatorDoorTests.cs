@@ -207,12 +207,17 @@ public sealed class PopulatorDoorTests
     /// The smallest Ruleset that gives kind 1 an occupancy and a Lot subdivider, and declares no
     /// generator lattice.
     /// </summary>
+    /// <remarks>
+    /// ⚠ <b>It stated <c>kind = 1</c> until 2026-08-25 and that key was never read</b> — a kind's id
+    /// is its <em>declaration order</em>, so this table is kind 1 by being first and the line only
+    /// ever restated what position already decided. `plans/0041` G31's unknown-key check is what
+    /// found it; before that a fixture could assert a number the loader never saw.
+    /// </remarks>
     private static Ruleset Rules()
     {
         RulesetLoadResult result = RulesetLoader.Parse(
             """
             [[building]]
-            kind = 1
             name = "dwelling"
             occupants = 3
 

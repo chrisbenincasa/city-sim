@@ -113,6 +113,21 @@ public static class RulesetLoader
     {
         private readonly List<RulesetRefusal> _refusals = [];
 
+        /// <summary>
+        /// Which keys each table or inline table was <em>asked</em> for, by reference to the holder.
+        /// </summary>
+        /// <remarks>
+        /// <b><c>plans/0041</c> G31's fix, in the shape the finding did not propose.</b> G31 says
+        /// closing it means "every table declaring its permitted key set" — twenty-two hand-authored
+        /// name lists. ***A hand-authored name list in this file is a thing that drifts***: the
+        /// unknown-<em>section</em> list did exactly that, naming eighteen tables on one branch and
+        /// nineteen on another and <c>[water]</c> on neither (<c>adr/0048</c>, the merge bullet).
+        /// Recording what <see cref="Find"/> was asked for derives the same set from the reader, so
+        /// there is nothing to keep in step and nothing to forget.
+        /// </remarks>
+        private readonly Dictionary<SyntaxNode, HashSet<string>> _consulted =
+            new(ReferenceEqualityComparer.Instance);
+
         private readonly Dictionary<string, ushort> _resources = new(StringComparer.Ordinal);
 
         // Parallel to _resources by declaration order, which is what makes ResourceId.Raw - 1 index
@@ -141,6 +156,7 @@ public static class RulesetLoader
         private readonly List<TableSyntaxBase> _policyTables = [];
         private readonly List<TableSyntaxBase> _hinterlandTables = [];
         private readonly List<TableSyntaxBase> _latticeTables = [];
+        private readonly List<TableSyntaxBase> _terrainTables = [];
 
         private TableSyntaxBase? _layersTable;
         private TableSyntaxBase? _placementTable;
@@ -153,6 +169,8 @@ public static class RulesetLoader
         private TableSyntaxBase? _householdsTable;
         private TableSyntaxBase? _trafficTable;
         private TableSyntaxBase? _parkingTable;
+
+        private TableSyntaxBase? _waterTable;
         private TableSyntaxBase? _districtsTable;
 
         private TableSyntaxBase? _marketTable;
@@ -204,6 +222,8 @@ public static class RulesetLoader
             HouseholdRuleset households = ReadHouseholds();
             TrafficRuleset traffic = ReadTraffic();
             ParkingRuleset parking = ReadParking();
+            TerrainRuleset terrain = ReadTerrain();
+            WaterRuleset water = ReadWater();
             DistrictRuleset districts = ReadDistricts();
             MarketRuleset market = ReadMarket();
 
@@ -215,6 +235,15 @@ public static class RulesetLoader
             // Pool to price, and adr/0050's anchor is the only thing bounding what that price
             // reaches. Neither table can see the defect alone.
             RefuseUnpricedGoods(districts, hinterlands, hinterlandPrices);
+
+            if (_refusals.Count == 0)
+            {
+                // After every reader has run and before anything else is checked, because the
+                // permitted set IS what the readers asked for -- there is nothing to compare against
+                // until they have all been. Gated on a clean slate for the usual reason: a key on a
+                // section that was itself refused would report the same mistake twice.
+                RefuseUnknownKeys(document);
+            }
 
             if (_refusals.Count == 0)
             {
@@ -263,6 +292,8 @@ public static class RulesetLoader
                     Hinterlands = hinterlands,
                     HinterlandPrices = hinterlandPrices,
                     Parking = parking,
+                    Terrain = terrain,
+                    Water = water,
                     Districts = districts,
                     Market = market,
                     Founding = founding,
@@ -323,8 +354,11 @@ public static class RulesetLoader
                         // row naming its trade and keeping that name across a reload -- so no table
                         // was retained and ReadBusinessKinds would have walked over nothing. It now
                         // reads TWO of adr/0141's three: `jobs` and the Shift band. The wage is
-                        // adr/0026 at milestone 15 (06:99), so stating one here is refused as an
-                        // unknown key.
+                        // adr/0026 at milestone 15 (06:99), so stating one here is refused BY NAME,
+                        // with a message saying where the wage went. ⚠ This comment said "refused as
+                        // an unknown key" while NO UNKNOWN-KEY CHECK EXISTED (plans/0041 G31, closed
+                        // 2026-08-25) -- it described the outcome it wanted rather than the build,
+                        // which is adr/0093's failure being wrong about the TRIGGER.
                         _businessKindTables.Add(table);
                         Register(_businessKinds, table, "business", (byte)(_businessKinds.Count + 1));
                         break;
@@ -477,6 +511,15 @@ public static class RulesetLoader
                         _latticeTables.Add(table);
                         break;
 
+                    case "terrain":
+                        // Not registered into a name table, on [[lattice]]'s reasoning: nothing in a
+                        // Ruleset refers to a terrain type by name. The name here selects a member of
+                        // a CLOSED enum rather than declaring one -- TerrainKind ships five and a
+                        // file cannot add a sixth -- so an unknown name and a duplicate name are both
+                        // refused in ReadTerrain, where the set to check against is in scope.
+                        _terrainTables.Add(table);
+                        break;
+
                     case "parking":
                         // Singular and optional, on [traffic]' reasoning exactly.
                         if (_parkingTable is not null)
@@ -488,6 +531,22 @@ public static class RulesetLoader
                         }
 
                         _parkingTable = table;
+                        break;
+
+                    case "water":
+                        // Singular and optional, on [parking]'s reasoning exactly. There is one sea
+                        // level, so two tables stating it is ambiguous rather than additive -- and a
+                        // world with two seas at different heights is not a thing adr/0034's two
+                        // numbers can describe.
+                        if (_waterTable is not null)
+                        {
+                            Refuse(LineOf(table), null,
+                                "a second [water] is declared. There is one sea level, so two tables "
+                                + "of numbers for it is ambiguous rather than additive.");
+                            break;
+                        }
+
+                        _waterTable = table;
                         break;
 
                     case "districts":
@@ -543,11 +602,11 @@ public static class RulesetLoader
                         Refuse(LineOf(table), null,
                             $"'{section}' is not a Ruleset section. The sections are "
                             + "[[resource]], [[building]], [[business]], [[rule]], [[zone_rule]], "
-                            + "[[policy]], [[hinterland]], [[lattice]], [layers], [placement], "
-                            + "[roads], [lots], [trips], [jobs], [households], [traffic], [parking], "
-                            + "[districts], [market] and [founding]. A trade is declared with "
-                            + "[[business]] and the founding channel is configured with "
-                            + "[founding]; they are different tables.");
+                            + "[[policy]], [[hinterland]], [[lattice]], [[terrain]], [layers], "
+                            + "[placement], [roads], [lots], [trips], [jobs], [households], "
+                            + "[traffic], [parking], [water], [districts], [market] and "
+                            + "[founding]. A trade is declared with [[business]] and the founding "
+                            + "channel is configured with [founding]; they are different tables.");
                         break;
                 }
             }
@@ -1170,6 +1229,41 @@ public static class RulesetLoader
                     }
                 }
 
+                // CONTEXT.md -> Building's footprint, which the vocabulary has always specified and
+                // nothing in the build carried: "a Building has a footprint (the set of Tiles it
+                // covers)" and "interacts with Map Layers through that footprint". Sealing is such a
+                // Layer. A Lot stores a position and no extent and adr/0078 refused it a depth, so
+                // this cannot be derived and is declared on the kind like occupancy and employment.
+                //
+                // ONE WHEN ABSENT rather than zero, and that is the opposite default to the three
+                // keys around it. Absent `occupants` means a kind that houses nobody, which is a
+                // real building; absent `footprint_tiles` would mean a building covering no ground,
+                // which is not a thing. One is CONTEXT.md -> Sealing's own illustration of the unit
+                // -- "one house seals 1/1024 of its Cell" -- so a file that does not state this gets
+                // the figure the corpus already carried and no world moves that did not have to.
+                //
+                // Zero is refused for that reason and not merely negatives: a kind seals its ground
+                // or it is not a Building. The read site clamps to one as a backstop, because a
+                // KindDefinition built in a test does not come through this door.
+                int footprintTiles = 1;
+
+                if (TryInteger(table, "footprint_tiles", out long covers, required: false, name))
+                {
+                    if (covers < 1)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "footprint_tiles") ?? table), name,
+                            $"footprint_tiles is {covers}. It counts the Tiles a Building of this "
+                            + "kind covers and therefore Seals, so it is at least one; omit it for "
+                            + "the single Tile CONTEXT.md gives a house.");
+                    }
+                    else
+                    {
+                        footprintTiles = covers > CellGrid.TilesInCell
+                            ? CellGrid.TilesInCell
+                            : (int)covers;
+                    }
+                }
+
                 // adr/0141 gave `jobs` and the Shift band to the TRADE, and adr/0148 removed them
                 // from here rather than leaving them parsed and unread. A key nothing reads is this
                 // corpus's own named failure mode, so all three are refused by name -- and the
@@ -1277,6 +1371,7 @@ public static class RulesetLoader
                 {
                     CondemnAfter = condemnAfter,
                     Occupants = occupants,
+                    FootprintTiles = footprintTiles,
                     Business = business,
                     Parking = parking,
                     ArrivalsPerDay = arrivalsPerDay,
@@ -1427,11 +1522,14 @@ public static class RulesetLoader
                 // = 100` loads clean and does nothing for ever -- the refusal class plans/0014 task 3
                 // established, and the one this loader is least willing to ship.
                 //
-                // ⚠ It is a NAMED refusal rather than an unknown-key check because THERE IS NO
-                // UNKNOWN-KEY CHECK IN THIS LOADER AT ALL. Every table reads the keys it wants by
-                // name and ignores the rest, so a typo anywhere in any Ruleset is silent. That is a
-                // real gap and it is filed rather than fixed here (plans/0041 G31): closing it
-                // touches every table and is not this task's.
+                // ⚠ It STAYS a named refusal now that RefuseUnknownKeys exists, and the reason is
+                // the message rather than the coverage. The unknown-key check would catch `wage` for
+                // free -- it is a key no reader asks for -- and would say "not a key of [[business]]",
+                // which is TRUE AND USELESS to somebody who read adr/0141 and wrote what it told
+                // them to. ***A key a designer has positive reason to write deserves the sentence
+                // saying where it went***, and a general check cannot know that. The gap this
+                // comment used to describe (plans/0041 G31) closed 2026-08-25; what did not change
+                // is that nine keys are worth naming individually.
                 if (Find(table, "wage") is not null)
                 {
                     Refuse(LineOf((SyntaxNodeBase?)Find(table, "wage") ?? table), name,
@@ -1847,6 +1945,237 @@ public static class RulesetLoader
         // ---- the refusals ---------------------------------------------------------------
 
         /// <summary>
+        /// Refusals 171 and 172 — a key nothing reads is refused, and so is a key above the first
+        /// section header.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b><c>plans/0041</c> G31.</b> A misspelled key was silently ignored: the loader asked for
+        /// the name it wanted, did not find it, and used the default. ***A typo and an omission were
+        /// the same file to this parser***, which is the one class of authoring mistake a Ruleset
+        /// could make without being told.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>The permitted set is derived, not declared, and that is the whole design.</b> G31's
+        /// own proposed fix was "every table declaring its permitted key set" — twenty-two lists
+        /// hand-written beside twenty-two readers, kept in step by nothing. This build instead
+        /// records what <see cref="Find"/> was <em>asked</em> for and treats that as the permission.
+        /// Adding a key to a reader adds it to the permitted set in the same edit; there is no second
+        /// place to forget.
+        /// </para>
+        /// <para>
+        /// 🔴 <b>The union is per section shape and not per table, because a reader may ask
+        /// conditionally.</b> <c>[[building]]</c> is asked for <c>business</c> only when the file has
+        /// businesses in it, so a document whose single Building never triggered that read would
+        /// otherwise refuse a key the loader plainly supports. Unioning across every table of one
+        /// shape means a key permitted anywhere in a section is permitted throughout it — which is
+        /// looser than a hand-authored list and is the direction to be loose in.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>It runs only when nothing else has refused</b>, under <c>Read</c>'s existing staging.
+        /// A key on a section that is itself unknown would otherwise report twice, and
+        /// <c>adr/0048</c>'s rule is that one mistake reads as one sentence.
+        /// </para>
+        /// </remarks>
+        private void RefuseUnknownKeys(DocumentSyntax document)
+        {
+            var permitted = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+            GatherPermitted(document, string.Empty, permitted);
+
+            // A key above the first section header belongs to no table, so no reader has ever been
+            // in a position to ask for it. It is not merely unread -- it is unreachable.
+            foreach (KeyValueSyntax bare in document.KeyValues)
+            {
+                Refuse(LineOf(bare), null,
+                    $"'{NameOf(bare.Key)}' sits above the first section header, where a Ruleset has "
+                    + "no keys at all. Every key belongs to a section -- move it under the one that "
+                    + "reads it.");
+            }
+
+            RefuseUnknownKeysIn(document, string.Empty, permitted);
+        }
+
+        /// <summary>Unions what every holder of one section shape was asked for.</summary>
+        private void GatherPermitted(
+            SyntaxNode node, string context, Dictionary<string, HashSet<string>> into)
+        {
+            string here = ContextOf(node, context);
+
+            if (_consulted.TryGetValue(node, out HashSet<string>? asked))
+            {
+                if (!into.TryGetValue(here, out HashSet<string>? union))
+                {
+                    union = new HashSet<string>(StringComparer.Ordinal);
+                    into[here] = union;
+                }
+
+                union.UnionWith(asked);
+            }
+
+            for (int i = 0; i < node.ChildrenCount; i++)
+            {
+                if (node.GetChild(i) is SyntaxNode child)
+                {
+                    GatherPermitted(child, here, into);
+                }
+            }
+        }
+
+        private void RefuseUnknownKeysIn(
+            SyntaxNode node, string context, Dictionary<string, HashSet<string>> permitted)
+        {
+            string here = ContextOf(node, context);
+
+            if (node is TableSyntaxBase or InlineTableSyntax)
+            {
+                permitted.TryGetValue(here, out HashSet<string>? union);
+
+                foreach (KeyValueSyntax pair in KeyValuesOf(node))
+                {
+                    string key = NameOf(pair.Key);
+
+                    if (union?.Contains(key) == true)
+                    {
+                        continue;
+                    }
+
+                    Refuse(LineOf(pair), null,
+                        $"'{key}' is not a key of {here}, so nothing would read it. "
+                        + Suggestion(key, union)
+                        + $" The keys of {here} are {Listed(union)}.");
+                }
+            }
+
+            for (int i = 0; i < node.ChildrenCount; i++)
+            {
+                if (node.GetChild(i) is SyntaxNode child)
+                {
+                    RefuseUnknownKeysIn(child, here, permitted);
+                }
+            }
+        }
+
+        /// <summary>Names a holder the way the file writes it, so a refusal can be searched for.</summary>
+        private static string ContextOf(SyntaxNode node, string outer) => node switch
+        {
+            TableArraySyntax table => $"[[{NameOf(table.Name)}]]",
+            TableSyntax table => $"[{NameOf(table.Name)}]",
+            InlineTableSyntax => outer,
+            KeyValueSyntax pair => outer.Length == 0
+                ? NameOf(pair.Key)
+                : $"{outer} {NameOf(pair.Key)}",
+            _ => outer,
+        };
+
+        private static IEnumerable<KeyValueSyntax> KeyValuesOf(SyntaxNode node)
+        {
+            switch (node)
+            {
+                case TableSyntaxBase table:
+                    foreach (KeyValueSyntax item in table.Items)
+                    {
+                        yield return item;
+                    }
+
+                    break;
+
+                case InlineTableSyntax inline:
+                    foreach (InlineTableItemSyntax item in inline.Items)
+                    {
+                        if (item.KeyValue is { } pair)
+                        {
+                            yield return pair;
+                        }
+                    }
+
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Names the near miss when there is exactly one, and says nothing when there is not.
+        /// </summary>
+        /// <remarks>
+        /// <b>A typo is the case this refusal exists for</b>, so the message earns its length by
+        /// naming the key that was probably meant. The distance is a plain edit distance bounded at
+        /// two, and ⚠ <b>a tie offers nothing</b> — two equally-near keys is a guess rather than a
+        /// suggestion, and the full list below it is the better answer.
+        /// </remarks>
+        private static string Suggestion(string key, HashSet<string>? union)
+        {
+            if (union is null)
+            {
+                return string.Empty;
+            }
+
+            string? nearest = null;
+            int best = 3;
+            bool tied = false;
+
+            foreach (string candidate in Ordered(union))
+            {
+                int distance = Distance(key, candidate);
+
+                if (distance < best)
+                {
+                    best = distance;
+                    nearest = candidate;
+                    tied = false;
+                }
+                else if (distance == best)
+                {
+                    tied = true;
+                }
+            }
+
+            return nearest is null || tied ? string.Empty : $"Did you mean '{nearest}'?";
+        }
+
+        /// <summary>Edit distance, bounded — it is spelling advice and never a hot path.</summary>
+        private static int Distance(string left, string right)
+        {
+            int[] previous = new int[right.Length + 1];
+            int[] current = new int[right.Length + 1];
+
+            for (int column = 0; column <= right.Length; column++)
+            {
+                previous[column] = column;
+            }
+
+            for (int row = 1; row <= left.Length; row++)
+            {
+                current[0] = row;
+
+                for (int column = 1; column <= right.Length; column++)
+                {
+                    int substitution = previous[column - 1]
+                        + (left[row - 1] == right[column - 1] ? 0 : 1);
+                    int deletion = previous[column] + 1;
+                    int insertion = current[column - 1] + 1;
+                    current[column] = substitution < deletion
+                        ? (substitution < insertion ? substitution : insertion)
+                        : (deletion < insertion ? deletion : insertion);
+                }
+
+                (previous, current) = (current, previous);
+            }
+
+            return previous[right.Length];
+        }
+
+        private static string Listed(HashSet<string>? union) =>
+            union is null || union.Count == 0
+                ? "not yet known -- nothing in this build reads that section"
+                : string.Join(", ", Ordered(union));
+
+        private static string[] Ordered(HashSet<string> union)
+        {
+            string[] keys = [.. union];
+            Array.Sort(keys, StringComparer.Ordinal);
+            return keys;
+        }
+
+        /// <summary>
         /// Refusal 3 — an unquoted decimal is refused by name, never coerced.
         /// </summary>
         /// <remarks>
@@ -1860,8 +2189,8 @@ public static class RulesetLoader
             {
                 Refuse(LineOf(number), null,
                     $"{number.Token?.Text ?? "a decimal"} is an unquoted decimal. Write it as a "
-                    + "quoted string -- decline_rate = \"0.15\" -- so that no floating-point value "
-                    + "ever exists on the path into the simulation. adr/0048.");
+                    + "quoted string -- \"0.15\" -- so that no floating-point value ever exists on "
+                    + "the path into the simulation. adr/0048.");
                 return;
             }
 
@@ -3047,6 +3376,35 @@ public static class RulesetLoader
             int pollutionPeriod = Cadence("pollution", schedule.IndustrialPollution,
                 out int pollutionOffset);
             int landValuePeriod = Cadence("land_value", schedule.LandValue, out int landValueOffset);
+            int sealingPeriod = Cadence("sealing_decay", schedule.Sealing, out int sealingOffset);
+            int woodlandPeriod = Cadence("woodland_regrowth", schedule.Woodland, out int woodlandOffset);
+
+            // Absent means NEVER, and a stated zero is refused because it means the opposite. This is
+            // a DURATION rather than a time constant, so 0 Days reads as "instantly" -- the one value
+            // a designer must not be able to reach by writing a number that looks like an absence.
+            // adr/0160's rule about a second spelling of an existing state, arriving where the two
+            // spellings would mean different things. The ceiling is the Cell: past TilesInCell the
+            // derived step rounds to nothing and the floor takes over, so the authored duration would
+            // silently not be the duration. Milestone 24 task 8b, adr/0022.
+            int regrowthDays = Number("woodland_regrowth_days", rates.WoodlandRegrowthDays,
+                minimum: 1,
+                "It is how many Days a Cell cleared of all its forest takes to grow back to what the "
+                + $"seed laid, so it runs 1 to {CellGrid.TilesInCell}. Omit the key for a world where "
+                + "forest never returns, which is what every Ruleset said by saying nothing. Zero is "
+                + "refused because it would mean INSTANTLY rather than never.");
+
+            if (regrowthDays > CellGrid.TilesInCell)
+            {
+                Refuse(LineOf("woodland_regrowth_days"), null,
+                    $"woodland_regrowth_days is {regrowthDays}, and the ceiling is "
+                    + $"{CellGrid.TilesInCell} -- a Cell's Tile count. One pass puts back "
+                    + "TilesInCell / days Tiles, so past the Cell that is less than one Tile and the "
+                    + "floor of one takes over: the ground would recover in TilesInCell Days whatever "
+                    + "this said. A duration the mechanism cannot express is worse than one it "
+                    + "refuses (adr/0022).");
+
+                regrowthDays = rates.WoodlandRegrowthDays;
+            }
 
             int metres = Number("kernel_metres", constants.IndustrialPollutionMetres, minimum: 1,
                 "A kernel with no reach is not a diffused field.");
@@ -3055,11 +3413,20 @@ public static class RulesetLoader
             int landValueTau = Number("land_value_tau", rates.LandValueTau, minimum: 1,
                 "A time constant divides, so 0 is not one; land value with no momentum is a period "
                 + "of 1 rather than a tau of 0.");
-            int sealingTau = Number("sealing_decay_tau", rates.SealingDecayTau, minimum: 0,
-                "It counts scheduled updates, and 0 means Sealing never decays — Phase 1's value, "
-                + "because there is no terrain to key a rate off yet.");
+            // The key MOVED and is refused where it used to be, rather than ignored. A file carrying
+            // it means something by it, and silently reading nothing would leave a designer's stated
+            // rate doing nothing with no way to tell. Milestone 24 task 4, adr/0044.
+            if (Find(_layersTable!, "sealing_decay_tau") is not null)
+            {
+                Refuse(LineOf("sealing_decay_tau"), null,
+                    "sealing_decay_tau has moved out of [layers]. It is keyed BY TERRAIN TYPE "
+                    + "(02 section 2.4: rock may never recover, floodplain may recover over hundreds "
+                    + "of Days), so it is now a key on each [[terrain]] table and there is no global "
+                    + "one. A file with no [[terrain]] has ground that never recovers, which is what "
+                    + "every shipped Ruleset said by writing 0 here.");
+            }
 
-            // The desirability composition's four numbers. All authored as PERCENTS or METRES rather
+            // The desirability composition's numbers. All authored as PERCENTS or METRES rather
             // than as Q16.16, because 02 §2.5 question 2 says author in domain units and because the
             // corpus already spells a fraction that way -- [traffic] alpha and car_ownership_percent.
             // Every one of them is unratified and each owes two plans/0002 §D1 entries (adr/0125).
@@ -3076,10 +3443,47 @@ public static class RulesetLoader
             int noiseWeight = Number("desirability_noise_percent", 100, minimum: 0,
                 "w₃, as a percent. It subtracts; 0 removes the term rather than defaulting it.");
 
+            // The shoreline source's three numbers, milestone 24 task 7. ⚠ THE RANGE IS NOT NOISE'S:
+            // 02 §2.4 states no shoreline band at all, and 400 m is amenity's walkable one, taken
+            // because CONTEXT.md -> Water Body ties this term to the same event -- a fouled beach both
+            // degrades land value and removes a walkable destination.
+            int shorelineRange = Number(
+                "shoreline_range_metres", desirability.ShorelineSource.Range.Raw * Tiles.Metres,
+                minimum: 1,
+                "How far from the water's edge a fouled body reaches. A source with no reach is not a "
+                + "source; a world with no water is spelled by omitting [water], not by writing 0.");
+            int shorelineIntensity = Number("shoreline_intensity_percent", 600, minimum: 1,
+                "It is what a COMPLETELY fouled body radiates at one Tile from its edge, as a percent. "
+                + "⚠ Its multiplicand is a FILL FRACTION in [0, 1] and noise's is an unbounded flow, so "
+                + "the two intensities are not comparable and this being the larger means nothing.");
+            int shorelineWeight = Number("desirability_shoreline_percent", 100, minimum: 0,
+                "w₅, as a percent. It subtracts; 0 removes the term rather than defaulting it.");
+
+            // Fertility's one weight, and it is in [layers] rather than [[terrain]] because
+            // [[terrain]] is an array of tables keyed BY TYPE and this is not per-type -- it weighs
+            // the pollution term for every Cell alike. Its sibling w₂ is two lines up, which is the
+            // other half of the argument: two Layer compositions, two weights, one table.
+            //
+            // ⚠ There is deliberately NO fertility_sealing_percent. adr/0156: a Cell at
+            // CellGrid.TilesInCell has every Tile built on and therefore no farmland, which PINS that
+            // coefficient -- and offering it as a key invites a Ruleset to state that a fully paved
+            // Cell still farms.
+            int fertilityWeight = Number("fertility_pollution_percent", 4, minimum: 0,
+                "w_p, as a percent of fully fertile per unit of pollution. It subtracts; 0 removes "
+                + "the term rather than defaulting it. 4 is anchored on adr/0022's Evidence specimen "
+                + "against a measured plume of about 12 kernel units, and is UNRATIFIED.");
+
             desirability = new DesirabilityWeights(
                 IntegerMath.RoundDiv(Fixed.FromInt(pollutionWeight), 100),
                 IntegerMath.RoundDiv(Fixed.FromInt(noiseWeight), 100),
-                new LineSource(Tiles.FromMetres(noiseRange), IntegerMath.RoundDiv(Fixed.FromInt(noiseIntensity), 100)));
+                new LineSource(Tiles.FromMetres(noiseRange), IntegerMath.RoundDiv(Fixed.FromInt(noiseIntensity), 100)),
+                IntegerMath.RoundDiv(Fixed.FromInt(shorelineWeight), 100),
+                new ShorelineSource(
+                    Tiles.FromMetres(shorelineRange),
+                    IntegerMath.RoundDiv(Fixed.FromInt(shorelineIntensity), 100)));
+
+            var fertility = new FertilityWeights(
+                IntegerMath.RoundDiv(Fixed.FromInt(fertilityWeight), 100));
 
             // The one refusal that is a property of the two numbers together rather than of either.
             // A decay shorter than the period it runs at rounds to zero updates, and zero means
@@ -3098,10 +3502,13 @@ public static class RulesetLoader
             return new LayerRuleset(
                 new LayerSchedule(
                     new LayerCadence(pollutionPeriod, pollutionOffset),
-                    new LayerCadence(landValuePeriod, landValueOffset)),
-                LayerRates.From(landValueTau, sealingTau, decayTicks, pollutionPeriod),
+                    new LayerCadence(landValuePeriod, landValueOffset),
+                    new LayerCadence(sealingPeriod, sealingOffset),
+                    new LayerCadence(woodlandPeriod, woodlandOffset)),
+                LayerRates.From(landValueTau, decayTicks, pollutionPeriod, regrowthDays),
                 stated,
-                desirability);
+                desirability,
+                fertility);
         }
 
         /// <summary>One Layer's period and offset, with the offset checked against the period.</summary>
@@ -4046,9 +4453,362 @@ public static class RulesetLoader
             return new ParkingRuleset((int)metres, (int)keeps);
         }
 
+        /// <summary>Reads <c>[water]</c>, or answers that the world has none.</summary>
+        private WaterRuleset ReadWater()
+        {
+            if (_waterTable is null)
+            {
+                return WaterRuleset.None;
+            }
+
+            if (!TryInteger(_waterTable, "sea_level_percent", out long percent, required: true))
+            {
+                return WaterRuleset.None;
+            }
+
+            // Refused at BOTH ends, and neither is a range check for its own sake. Zero puts the sea
+            // at the lowest Cell on the map, which is a world with no water -- a second spelling of
+            // the absent table, and a designer who wrote it would mean something the generator cannot
+            // hear. A hundred puts every Cell under it, which is not a city. adr/0160.
+            if (percent is < 1 or > 99)
+            {
+                Refuse(LineOfWater("sea_level_percent"), null,
+                    $"sea_level_percent is {percent}. It is how high the sea stands as a fraction of "
+                    + "the height range this world realised, so it must be between 1 and 99. Delete "
+                    + "the [water] table for an inland world with no coast at all; 100 would put the "
+                    + "whole map under water.");
+
+                return WaterRuleset.None;
+            }
+
+            // Absent means no floodplain, which is a steep coast and a world. adr/0123: the absence
+            // is the spelling, so nothing here defaults it to a number that would read as a decision.
+            if (!TryInteger(_waterTable, "flood_level_percent", out long flood, required: false))
+            {
+                return WaterRuleset.From((int)percent);
+            }
+
+            // AT OR BELOW the sea is ground already under water, so the Hazard Region it describes is
+            // empty -- a key that reads as a decision and derives nothing, which is adr/0123's failure
+            // arriving in a loader. 100 puts the flood at the map's highest Cell, which is a drowning
+            // rather than a floodplain. adr/0157.
+            if (flood <= percent || flood > 99)
+            {
+                Refuse(LineOfWater("flood_level_percent"), null,
+                    $"flood_level_percent is {flood} and sea_level_percent is {percent}. It is how "
+                    + "high a flood reaches on the same scale, so it must be above the sea and below "
+                    + "100. Omit it for a world with no floodplain -- a steep coast is a world, and a "
+                    + "flood at or below the sea would describe ground that is already under it.");
+
+                return WaterRuleset.None;
+            }
+
+            return WithBin(WaterRuleset.From((int)percent, (int)flood));
+        }
+
+        /// <summary>Reads <c>[water]</c>'s three Bin keys, or answers that the bodies hold nothing.</summary>
+        /// <remarks>
+        /// <b>Three keys that stand or fall together.</b> A Bin needs a Resource to hold, a capacity
+        /// and an outflow; any one alone describes half a mechanism, so stating one and not the others
+        /// is refused rather than defaulted. Absent altogether is water with no level, which is every
+        /// shipped file but <c>coastal.toml</c> and is what <c>adr/0123</c> calls the honest spelling.
+        /// </remarks>
+        private WaterRuleset WithBin(WaterRuleset water)
+        {
+            SyntaxNodeBase? carries = Find(_waterTable!, "carries");
+            bool hasCapacity = Find(_waterTable!, "capacity_per_cell") is not null;
+            bool hasOutflow = Find(_waterTable!, "outflow_per_exit_per_day") is not null;
+            bool hasRunoff = Find(_waterTable!, "runoff_per_sealed_cell_per_day") is not null;
+
+            if (carries is null && !hasCapacity && !hasOutflow && !hasRunoff)
+            {
+                return water;
+            }
+
+            if (carries is null || !hasCapacity || !hasOutflow || !hasRunoff)
+            {
+                Refuse(LineOfWater("carries"), null,
+                    "[water] states some of carries, capacity_per_cell, outflow_per_exit_per_day "
+                    + "and runoff_per_sealed_cell_per_day but not all four. A Water Body's Bin needs "
+                    + "a Resource to hold, a capacity, a way out and a way in; any one of them alone "
+                    + "describes part of a mechanism. Omit all four for water with no level. "
+                    + "adr/0161.");
+
+                return WaterRuleset.None;
+            }
+
+            if (!TryString(_waterTable!, "carries", out string? name, required: true)
+                || !TryInteger(_waterTable!, "capacity_per_cell", out long capacity, required: true)
+                || !TryInteger(
+                       _waterTable!, "outflow_per_exit_per_day", out long outflow, required: true)
+                || !TryInteger(
+                       _waterTable!, "runoff_per_sealed_cell_per_day", out long runoff, required: true))
+            {
+                return WaterRuleset.None;
+            }
+
+            if (!_resources.TryGetValue(name!, out ushort id))
+            {
+                Refuse(LineOfWater("carries"), null,
+                    $"[water] carries = \"{name}\" and no [[resource]] declares that name. A Water "
+                    + "Body holds a Resource the Ruleset declared, not a name it invented.");
+
+                return WaterRuleset.None;
+            }
+
+            var resource = new ResourceId(id);
+
+            // adr/0161, and it is the whole of that decision expressed as a check. A Water Body moves
+            // its contents along an edge of the water graph, with no Vehicle -- and adr/0031 defines a
+            // Good as a Resource whose movement between Districts REQUIRES one. So a Good here would
+            // be a counterexample to the definition of Good sitting inside a loaded world.
+            if (_families[id - 1] != ResourceFamily.Utility)
+            {
+                Refuse(LineOfWater("carries"), null,
+                    $"[water] carries = \"{name}\", whose family is "
+                    + $"{_families[id - 1].ToString().ToLowerInvariant()}. A Water Body's Bin holds "
+                    + "a utility-family Resource: it moves its contents along an edge of the water "
+                    + "graph with no Vehicle, and a good is by definition a Resource whose movement "
+                    + "between Districts requires one. adr/0161, adr/0031.");
+
+                return WaterRuleset.None;
+            }
+
+            if (capacity is < 1 or > int.MaxValue)
+            {
+                Refuse(LineOfWater("capacity_per_cell"), null,
+                    $"capacity_per_cell is {capacity}. It is how much one wet Cell of a body holds, "
+                    + "so it must be at least 1 -- a body that holds nothing is an infinite sink "
+                    + "wearing the opposite spelling, and CONTEXT.md -> Water Body's \"nothing is an "
+                    + "infinite sink\" is the reason a capacity exists at all.");
+
+                return WaterRuleset.None;
+            }
+
+            if (outflow is < 1 or > int.MaxValue)
+            {
+                Refuse(LineOfWater("outflow_per_exit_per_day"), null,
+                    $"outflow_per_exit_per_day is {outflow}. It is how much leaves through one exit "
+                    + "in a Day, so it must be at least 1. Zero would mean no body anywhere drains, "
+                    + "which is what omitting these three keys already says.");
+
+                return WaterRuleset.None;
+            }
+
+            if (runoff is < 1 or > int.MaxValue)
+            {
+                Refuse(LineOfWater("runoff_per_sealed_cell_per_day"), null,
+                    $"runoff_per_sealed_cell_per_day is {runoff}. It is what a FULLY sealed Cell "
+                    + "sheds into the body it drains to in a Day, so it must be at least 1. Zero "
+                    + "would leave every Bin at zero for ever, which is a level nothing can move and "
+                    + "therefore a shoreline term that is present and permanently zero -- adr/0123.");
+
+                return WaterRuleset.None;
+            }
+
+            return water.WithBin(resource, (int)capacity, (int)outflow, (int)runoff);
+        }
+
+        /// <summary>The line a <c>[water]</c> key is on, or the table's.</summary>
+        private int LineOfWater(string key) =>
+            LineOf((SyntaxNodeBase?)Find(_waterTable!, key) ?? _waterTable!);
+
         /// <summary>The line a <c>[parking]</c> key is on, or the table's.</summary>
         private int LineOfParking(string key) =>
             LineOf((SyntaxNodeBase?)Find(_parkingTable!, key) ?? _parkingTable!);
+
+        // ---- terrain ----------------------------------------------------------------------------
+
+        /// <summary>
+        /// The <c>[[terrain]]</c> tables: what each sort of ground is worth before anything is built.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>adr/0158</c>, milestone 24 task 2. <b>Optional as a set and all-or-nothing within it</b>
+        /// — a file states five <c>[[terrain]]</c> tables or none. Absence is
+        /// <see cref="TerrainRuleset.None"/>, a Ruleset declining to price its ground, and never a
+        /// world without terrain in it: <b>the type column is written from the <c>WorldKey</c>
+        /// either way</b> (<c>adr/0021</c>).
+        /// </para>
+        /// <para>
+        /// <b>Plural and array-of-tables rather than one <c>[terrain]</c> with five keys</b>, on
+        /// <c>[[hinterland]]</c>'s shape: the row is per member of a set, so the file names the member
+        /// it is pricing. It also makes the all-five check a count rather than five key lookups, and
+        /// gives a missing type a line number of its own to be reported against.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>A missing type is refused rather than defaulted, and <see cref="TerrainRuleset.Kinds"/>
+        /// carries the argument</b>: the generator places all five whatever the file says, so an
+        /// unstated type would be ground the world contains and the file prices at zero — a silent
+        /// sterile band rather than an error.
+        /// </para>
+        /// </remarks>
+        private TerrainRuleset ReadTerrain()
+        {
+            if (_terrainTables.Count == 0)
+            {
+                return TerrainRuleset.None;
+            }
+
+            // Sentinel rather than zero, because zero is a Base Fertility a file may legitimately
+            // state: adr/0022's scale runs from barren to fully fertile and the bottom of it means
+            // something. A stated-ness flag per type would be the same fact in a second array.
+            const int Unstated = -1;
+
+            var fertilities = new int[TerrainRuleset.Kinds];
+            Array.Fill(fertilities, Unstated);
+
+            // The same sentinel and the same reason: zero is rock's real answer -- never recovers --
+            // so no value in range can double as unset. Milestone 24 task 4, adr/0044.
+            var decays = new int[TerrainRuleset.Kinds];
+            Array.Fill(decays, Unstated);
+
+            foreach (TableSyntaxBase table in _terrainTables)
+            {
+                if (!TryString(table, "name", out string? name, required: true)
+                    || !TryTerrainKind(table, name!, out TerrainKind kind))
+                {
+                    continue;
+                }
+
+                if (fertilities[(int)kind] != Unstated)
+                {
+                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "name") ?? table), null,
+                        $"a second [[terrain]] is declared for '{name}'. A terrain type has one Base "
+                        + "Fertility, shared by every Cell of that ground, so two tables for one type "
+                        + "is ambiguous rather than additive -- there is no rule saying which of them "
+                        + "a Cell reads.");
+
+                    continue;
+                }
+
+                if (!TryInteger(table, "base_fertility_percent", out long percent, required: true))
+                {
+                    continue;
+                }
+
+                // Refused above 100 and not clamped. adr/0156 makes 1.0 mean FULLY fertile, so the
+                // top of the scale is the scale's own rather than a chosen bound -- and Fertility
+                // composes as a proportion against it. A file above the top is not a very good field;
+                // it is a file whose author believes the units are something else.
+                if (percent is < 0 or > 100)
+                {
+                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "base_fertility_percent") ?? table),
+                        null,
+                        $"base_fertility_percent is {percent} for '{name}'. It is the ceiling this "
+                        + "ground's Fertility starts at, as a percentage of fully fertile, so the "
+                        + "scale runs 0 to 100 and 100 is its top rather than a tuning choice "
+                        + "(adr/0156).");
+
+                    continue;
+                }
+
+                fertilities[(int)kind] = IntegerMath.RoundDiv(Fixed.FromInt((int)percent), 100);
+
+                if (!TryInteger(table, "sealing_decay_tau", out long tau, required: true))
+                {
+                    continue;
+                }
+
+                // Refused below zero and above what the operator can express. Zero MEANS never and is
+                // rock's answer. The ceiling is not arbitrary: the decay step is value/tau, so a tau
+                // past twice a Cell's Tile count rounds that step to nothing on a FULL Cell and the
+                // ground never moves at all -- a rate so slow it is silently the same as zero, which
+                // is the one value a designer must not be able to write by accident.
+                if (tau is < 0 or > (CellGrid.TilesInCell * 2))
+                {
+                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "sealing_decay_tau") ?? table), null,
+                        $"sealing_decay_tau is {tau} for '{name}'. It is how many scheduled updates "
+                        + "this ground takes to shed its Sealing, so it runs 0 to "
+                        + $"{CellGrid.TilesInCell * 2}. Zero means NEVER, which is a real answer and "
+                        + "is rock's. A value above the top would be slower than the operator can "
+                        + "represent and would read as never without saying so.");
+
+                    continue;
+                }
+
+                decays[(int)kind] = (int)tau;
+            }
+
+            // Reported per missing type rather than as one "some are missing", because the file's
+            // author has to find each one anyway and a count names none of them. Against the table
+            // the file DID state, since a set with a hole in it has no line of its own.
+            bool complete = true;
+
+            for (int kind = 0; kind < fertilities.Length; kind++)
+            {
+                if (fertilities[kind] != Unstated && decays[kind] != Unstated)
+                {
+                    continue;
+                }
+
+                complete = false;
+
+                Refuse(LineOf(_terrainTables[0]), null,
+                    $"no [[terrain]] fully states '{SpellingOfTerrain((TerrainKind)kind)}' -- it "
+                    + "needs both base_fertility_percent and sealing_decay_tau. A file that prices "
+                    + "its ground prices all of it: the generator places every terrain type from the "
+                    + "WorldKey whatever this file says, so an unstated one is ground the world "
+                    + "contains and this file values at nothing (adr/0158), or ground whose recovery "
+                    + "rate nothing states (adr/0044).");
+            }
+
+            if (!complete || _refusals.Count > 0)
+            {
+                return TerrainRuleset.None;
+            }
+
+            return TerrainRuleset.From(
+                fertilities[(int)TerrainKind.Ordinary],
+                fertilities[(int)TerrainKind.Rock],
+                fertilities[(int)TerrainKind.Floodplain],
+                fertilities[(int)TerrainKind.Marsh],
+                fertilities[(int)TerrainKind.ThinSoil],
+                decays[(int)TerrainKind.Ordinary],
+                decays[(int)TerrainKind.Rock],
+                decays[(int)TerrainKind.Floodplain],
+                decays[(int)TerrainKind.Marsh],
+                decays[(int)TerrainKind.ThinSoil]);
+        }
+
+        /// <summary>Resolves a <c>[[terrain]]</c> <c>name</c> to its <see cref="TerrainKind"/>.</summary>
+        /// <remarks>
+        /// <b>The set is closed and a file cannot extend it</b>, which is what separates this from
+        /// every other <c>name</c> the loader reads: a <c>[[resource]]</c> name declares a Resource,
+        /// and this one selects ground the generator already places. <c>adr/0158</c>.
+        /// </remarks>
+        private bool TryTerrainKind(TableSyntaxBase table, string name, out TerrainKind kind)
+        {
+            switch (name)
+            {
+                case "ordinary": kind = TerrainKind.Ordinary; return true;
+                case "rock": kind = TerrainKind.Rock; return true;
+                case "floodplain": kind = TerrainKind.Floodplain; return true;
+                case "marsh": kind = TerrainKind.Marsh; return true;
+                case "thin_soil": kind = TerrainKind.ThinSoil; return true;
+
+                default:
+                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "name") ?? table), null,
+                        $"'{name}' is not a terrain type. The types are 'ordinary', 'rock', "
+                        + "'floodplain', 'marsh' and 'thin_soil', and a Ruleset selects among them "
+                        + "rather than declaring one -- the generator places the five it knows "
+                        + "(adr/0158).");
+
+                    kind = default;
+                    return false;
+            }
+        }
+
+        /// <summary>How a <see cref="TerrainKind"/> is spelled in a Ruleset.</summary>
+        private static string SpellingOfTerrain(TerrainKind kind) => kind switch
+        {
+            TerrainKind.Ordinary => "ordinary",
+            TerrainKind.Rock => "rock",
+            TerrainKind.Floodplain => "floodplain",
+            TerrainKind.Marsh => "marsh",
+            TerrainKind.ThinSoil => "thin_soil",
+            _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+        };
 
         private DistrictRuleset ReadDistricts()
         {
@@ -4927,8 +5687,39 @@ public static class RulesetLoader
 
         // ---- syntax helpers -------------------------------------------------------------------
 
-        private static KeyValueSyntax? Find(SyntaxNode holder, string key)
+        /// <summary>
+        /// The key a reader asked a table for, or <c>null</c>. <b>Every key read in this file comes
+        /// through here</b>, which is what <see cref="RefuseUnknownKeys"/> is built on.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// ⚠ <b>It records the consult whether or not the key is present, and that is the point.</b>
+        /// A reader asking for an optional key it does not find has still told us the key is
+        /// <em>permitted here</em> — so the permitted set is the set of things asked for, and it is
+        /// derived from the code that does the reading rather than authored beside it.
+        /// </para>
+        /// <para>
+        /// 🔴 <b>It stopped being <c>static</c> for that recording and for nothing else.</b>
+        /// </para>
+        /// </remarks>
+        private KeyValueSyntax? Find(SyntaxNode holder, string key)
         {
+            // A holder is null when the section is absent altogether, and a reader still asks: it
+            // wants the key so that it can fall back to the default. There is no table to permit
+            // anything on, so there is nothing to record.
+            if (holder is null)
+            {
+                return null;
+            }
+
+            if (!_consulted.TryGetValue(holder, out HashSet<string>? asked))
+            {
+                asked = new HashSet<string>(StringComparer.Ordinal);
+                _consulted[holder] = asked;
+            }
+
+            asked.Add(key);
+
             switch (holder)
             {
                 case TableSyntaxBase table:

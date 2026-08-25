@@ -102,17 +102,33 @@ public sealed class TwinLatticeTests
     }
 
     /// <summary>
-    /// ⚠ <b>Every other shipped Ruleset authors none, so no committed State Hash moves by this key
-    /// arriving.</b>
+    /// ⚠ <b><c>twinned.toml</c> is the only shipped Ruleset with MORE THAN ONE lattice, and
+    /// <c>coastal.toml</c> is the only other one that authors any.</b>
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>The check that makes <c>[[lattice]]</c>'s absence a behaviour rather than a claim.</b> An
     /// empty array is one lattice at the origin corner — <c>SyntheticCity.Lattices</c> — which is what
-    /// the generator did unconditionally before this key existed. If a second file ever authors one,
-    /// its golden baseline moves and this test is where that is noticed.
+    /// the generator did unconditionally before this key existed.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>NARROWED 2026-08-24 by milestone 24 task 7, and it was this test that noticed.</b> It
+    /// asserted every file but <c>twinned.toml</c> authors <em>none</em>, and its own remark said
+    /// <em>"if a second file ever authors one, its golden baseline moves and this test is where that
+    /// is noticed."</em> One did. <c>coastal.toml</c> now states an origin at the map's middle, because
+    /// the origin corner is on the map's <b>edge</b> and <b>a map edge is where water leaves the
+    /// world</b> — so a corner city's runoff drains off the map and milestone 24's whole water
+    /// mechanism reads zero on it (<c>plans/0042</c> <b>F17</b>).
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The claim is narrowed to what is still load-bearing, not deleted.</b> What
+    /// <c>twinned.toml</c> is for is being the only world with more than one <em>centre</em>, and that
+    /// is what this now asserts. The exemption is by name and carries its reason, so a third file
+    /// growing a lattice by accident still goes red here.
+    /// </para>
     /// </remarks>
     [Fact]
-    public void No_other_shipped_ruleset_authors_a_lattice()
+    public void Only_twinned_authors_two_lattices_and_only_coastal_authors_another()
     {
         string directory = Path.Combine(AppContext.BaseDirectory, "Rulesets");
 
@@ -125,10 +141,26 @@ public sealed class TwinLatticeTests
                 continue;
             }
 
+            int authored = Shipped(file).Lattices.Length;
+
+            if (file == "coastal.toml")
+            {
+                Assert.True(
+                    authored == 1,
+                    $"coastal.toml authors {authored} lattices and the exemption is for exactly one. "
+                    + "It states an origin at all only because the default (0, 0) puts the city on "
+                    + "the map's edge, where water leaves the world and runoff reads zero — see its "
+                    + "own [[lattice]] header and plans/0042 F17.");
+
+                continue;
+            }
+
             Assert.True(
-                Shipped(file).Lattices.Length == 0,
-                $"{file} authors a [[lattice]]. Every world but twinned.toml is one lattice at the "
-                + "origin corner, and a second one there moves that file's State Hash.");
+                authored == 0,
+                $"{file} authors a [[lattice]]. Every world but twinned.toml and coastal.toml is one "
+                + "lattice at the origin corner, and authoring one moves that file's State Hash. If "
+                + "this is deliberate, say why in the file's header and add it to the exemptions "
+                + "above rather than widening the test.");
         }
     }
 

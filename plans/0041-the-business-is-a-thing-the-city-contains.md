@@ -843,8 +843,9 @@ the disagreement is invisible, because the list is derived and therefore folds i
 🔴 **This one would be invisible in the same way**: an unrostered worker makes no Trip, and no
 invariant counts Trips that should have happened.
 
-**G31 — 🔴 THERE IS NO UNKNOWN-KEY CHECK IN `RulesetLoader`, SO EVERY TYPO IN EVERY RULESET IS
-SILENT.** Found 2026-08-24 by task 7 writing a test that asserted one exists. ***It does not.*** Every
+**G31 — 🔴 ~~THERE IS NO UNKNOWN-KEY CHECK IN `RulesetLoader`, SO EVERY TYPO IN EVERY RULESET IS
+SILENT.~~ CLOSED 2026-08-25, and it was not empty when it opened — it had EIGHTEEN FILES IN IT.**
+Found 2026-08-24 by task 7 writing a test that asserted one exists. ***It does not.*** Every
 table reads the keys it wants by name — `TryInteger(table, "jobs", …)` — and **nothing ever enumerates
 a table's actual keys**, so a key the loader does not look for is not merely unread, it is
 **unnoticed**. `occupent = 3`, `revisit_tics = 1024`, a `[[building]]` key spelled for a
@@ -862,9 +863,48 @@ unknown-key check in `BusinessKindDefinition`'s doc comment, in `ReadBusinessKin
 the test written to *demonstrate* it is what refuted it. ***Writing the test is what made the claim
 falsifiable; writing it three times in prose did not.***
 
-⚠ **Not fixed here, and the reason is scope rather than cost.** Closing it means every table
+⚠ **Not fixed here, and the reason is scope rather than cost.** ~~Closing it means every table
 declaring its permitted key set, which touches every reader in the file and would move the refusal
-count by a lot. **What task 7 shipped instead is one named refusal for `wage`**, because
+count by a lot.~~ 🔴 **BOTH HALVES OF THAT ESTIMATE WERE WRONG, and the shape was the reason.** It
+cost **two** refusal sites rather than "a lot" (170 → 172) and touched **no** reader, because the
+permitted set was not authored at all: `Find` is the one method every key read in this file funnels
+through, so ***recording what it is ASKED for derives the permission from the code that does the
+reading***. ⚠ **The proposed fix was worse than not obviously cheaper — it was the wrong shape.**
+Twenty-two hand-authored name lists is twenty-two things to forget, and `adr/0048` records the
+unknown-*section* list doing exactly that at the merge the day before this was written: eighteen
+tables named on one branch, nineteen on the other, `[water]` on neither.
+
+🔴 **WHAT IT FOUND ON ITS FIRST RUN IS WHY THIS ENTRY MATTERS MORE THAN ITS FIX.** Four `[layers]`
+keys — `noise_range_metres`, `noise_intensity_percent`, `desirability_pollution_percent`,
+`desirability_noise_percent` — sat **above** the `[layers]` header in **all eighteen shipped
+Rulesets**, stranded inside `[placement]` (or `[founding]` in `founded.toml` and `levied.toml`),
+***from milestone 9 task 3 until the day this check ran***. ⚠ **Every one of them authored exactly
+the loader's default**, which is the whole reason sixteen months of green tests never saw it: the
+city was right, the numbers were right, and the file said nothing to the simulation. Re-homing all
+nineteen keys moved three Ruleset **content fingerprints** and ***not one State Hash***.
+
+⚠ **The cost was never a wrong city and stating it as one would miss it.** It is that a designer
+opening `minimal.toml` and retuning `noise_intensity_percent` — a key whose comment block runs to
+twelve lines and carries the one derivation on the page — would have had **no effect and no
+message**. `adr/0015` promises hot-reloadable tuning; ***a key that is not in the table it appears to
+be in is not tuning, it is decoration.*** ⚠ **A nineteenth, `fertility_pollution_percent` in
+`varied.toml`, was written during milestone 24 and had the same defect** — so this was a shape the
+format admitted rather than one old slip, and it was still being made this month.
+
+⚠ **One refusal MESSAGE was teaching the mistake.** The unquoted-decimal refusal advised writing
+`decline_rate = "0.15"`, and `decline_rate` is not a key of `[[building]]` — so an author following
+the advice in front of them wrote a line that did nothing, and the test asserting that advice worked
+(`A_quoted_decimal_is_not_refused`) passed for the same reason the eighteen files did. ***A test can
+only see what the build can see.*** The example no longer names a key, and the test now asserts the
+refusal it gets is the key's and not the decimal's.
+
+⚠ **A FIFTH dead key turned up in a TEST FIXTURE, and it is the most telling of them.**
+`PopulatorDoorTests.Rules()` authored `kind = 1` on a `[[building]]`. A kind's id is its
+**declaration order** — the loader assigns it and reads no such key — so the line restated what
+position had already decided and would have gone on being right by accident for ever. ***A fixture
+that states a number the loader never sees is a test asserting its own assumption***, and the only
+thing that could ever have found it is the check that enumerates what a table actually contains.
+**Deleted rather than corrected**, because there was nothing to correct. **What task 7 shipped instead is one named refusal for `wage`**, because
 [`adr/0141`](../docs/adr/0141-a-tenant-owns-what-leaves-with-it-and-the-premises-own-the-capacity.md)
 gives a designer positive reason to write that key and the general gap would swallow it. ***A named
 refusal for the one key somebody will actually type is not a substitute for the check and must not be

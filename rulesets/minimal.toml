@@ -447,13 +447,21 @@ candidates    = 3
 # radius, so a live world's Layer cannot adopt a different one without being recomputed from sources
 # it no longer holds. It is also UNRATIFIED — the 1–10 km band is 10× wide (plans/0002 §D1).
 #
-# `sealing_decay_tau = 0` MEANS NEVER, AND IT IS A STATED ABSENCE. 02 §2.4 keys Sealing's decay by
+# SEALING'S DECAY RATE IS NOT HERE, AND `sealing_decay_tau` IS REFUSED IF YOU WRITE IT. 02 §2.4 keys
+# it BY TERRAIN TYPE -- rock may never recover where floodplain recovers over hundreds of Days -- so
+# it is a key on each [[terrain]] table and there is no global one. A FILE WITH NO [[terrain]] HAS
+# GROUND THAT NEVER RECOVERS, which is what every shipped Ruleset said by writing 0 here.
 
-# THE DESIRABILITY COMPOSITION -- FOUR NUMBERS, EVERY ONE UNRATIFIED. adr/0122 deleted `w1`, because
+# THE DESIRABILITY COMPOSITION -- SEVEN NUMBERS, EVERY ONE UNRATIFIED. adr/0122 deleted `w1`, because
 # land value drifting toward a target whose first term is land value made it a GAIN of 1/(1 - w1) on
-# the others rather than a fifth weight. adr/0123 leaves amenity and shoreline OUT of the formula
-# rather than defaulting them to zero, so what composes is `- w2*pollution - w3*noise` and the field
-# is BOUNDED ABOVE BY ZERO until milestone 15: the best land in the city is clean, quiet and empty.
+# the others rather than a fifth weight. `w5` SHORELINE ARRIVED AT MILESTONE 24 TASK 7, once runoff
+# gave a Water Body's Bin an inflow -- before that it would have been the present-and-permanently-zero
+# term adr/0123 refused -- so what composes is `- w2*pollution - w3*noise - w5*shoreline`.
+#
+# ON A FILE WITH NO [water] THE SHORELINE TERM IS ABSENT AND NOT ZERO, which is the same distinction
+# one level down: no water means no term rather than a term contributing nothing. adr/0123 still
+# leaves AMENITY out, and amenity is the only POSITIVE term, so the field is BOUNDED ABOVE BY ZERO
+# until milestone 15: the best land in the city is clean, quiet and empty beside clean water.
 #
 # `noise_range_metres` is the cutoff. 02 section 2.4 says 50-300 m; that band is SIX TIMES WIDE and
 # is the same defect plans/0012 records against the industrial kernel's 1-10 km. 300 is its outer
@@ -472,14 +480,16 @@ candidates    = 3
 # quantity that would refute a weight comes from a consumer of land value, and there is no consumer
 # in src/ at all (adr/0125). Each owes TWO plans/0002 section D1 entries -- a reachable floor and an
 # owed real ratifier -- and the floor REFUTES and never confirms.
+# it by TERRAIN TYPE — rock may never recover, floodplain may recover over hundreds of Days — so it
+# is a `sealing_decay_tau` key on each [[terrain]] table and there is no global one. A file that
+# states no [[terrain]] heals NOWHERE, which is exactly what this file said by writing 0 here.
+# Milestone 24 task 4; the key is refused in [layers] rather than ignored, with a message naming
+# where it went.
+[layers]
 noise_range_metres            = 300
 noise_intensity_percent       = 400
 desirability_pollution_percent = 100
 desirability_noise_percent     = 100
-# terrain type; there is no terrain in Phase 1, so there is no key, so there is no rate to look up.
-# Zero is the conservative reading — Sealing only accumulates — and the bound is structural, because a
-# Cell cannot have more Tiles built on it than it has Tiles.
-[layers]
 pollution_period      = 64
 pollution_offset      = 0
 land_value_period     = 256
@@ -487,7 +497,6 @@ land_value_offset     = 16
 kernel_metres         = 1024
 pollution_decay_ticks = 2048
 land_value_tau        = 8
-sealing_decay_tau     = 0
 
 # The road network. plans/0020 (milestone 5a), and the first section here that describes the
 # *ground* rather than what happens on it. adr/0014: Streets snap to the grid, Arterials are

@@ -98,6 +98,9 @@ the durable half of the document.
 | **Pollution diffusion**, one Cell dirty | **31.6 µs** | — | `MapLayerBenchmarks` |
 | **Pollution diffusion**, whole map | **1.01 ms** | — | as above |
 | One **State Hash** at 1M | **32.47 ms** | — | [S0a](../docs/spike-results.md) |
+| **The terrain table's fold**, whole map | **1.89 ms** | — | `TerrainFoldCostTests`, milestone 24 task 2 |
+| **A whole-world fold** on `minimal.toml` at 1,000 Citizens, **with terrain** | **2.08 ms** | — | as above |
+| ⚠️ **One Tick with `VerifyDecideWritesNothing` ON** — the default — on `minimal.toml` at 1,000 Citizens | **0.37 ms against 0.06 ms with it off** — ⚠️ **was 4.14 ms against 0.03 ms, 138×, for one afternoon** | — | as above. ⚠️ **This is a GUARD's cost and not the city's**, and it must never be quoted as a Tick cost. 🔴 **The 138× was terrain: the guard folded `TerrainCellTable`'s 262,144 rows TWICE A TICK**, and it now folds `World.TablesAPhaseCanWrite` instead — a table no phase writes is not evidence about what Decide wrote. What replaced it is `WorldInvariants.TerrainIsUnchangedSinceItWasLaid`, at the end-of-run tier, which is `02 §10`'s frequency sorting applied to a check on a thing that cannot change |
 | **One routing worst Tick** at 16 Trip starts | **~9.4–10.5 ms** (published as 10.37) | — | [S2 R5](../docs/spike-results.md), five pinned captures |
 | ⚠️ **One Parking Shed query** at the shipped 400 m radius | ⚠️ **6.40 µs — PROVISIONAL, do not quote** | — | `ParkingArrivalStreamTests`, milestone 7 task 4. **Taken on a machine running a second `Borough.Tests` host**, so it is an upper bound of unknown tightness rather than a reading. Re-take when the repository is quiet |
 | ⚠️ **Parking Shed, the worst Tick** at **64,000** Citizens | ⚠️ **1.58–1.63 ms — PROVISIONAL, do not quote** | ⚠️ **unknown, and the population is the point** — this is 64k against a budget denominated at 1M, so it may not be quoted as a share of a Tick until the same capture runs at the budget's own population | `ParkingArrivalStreamTests`, milestone 7 task 4. **Same contamination as the row above**, and it is derived from that row's µs figure, so the two are one reading and not two |
@@ -334,6 +337,137 @@ which `plans/0002` §D1 records as UNRATIFIED** — so the multiplicand here is 
 nobody has settled. ***A cost derived from an unratified quantity is a cost that moves when the
 designer answers a different question.***
 
+### 🔴 ⚠️ The land value target pass costs 88 seconds a Tick on a fully paved world, and it is the noise query underneath it
+
+**Measured 2026-08-22, `rulesets/bordered.toml`, 4,000 Citizens, release, per-Tick timings over 64
+Ticks. ⚠️ NOT ON A QUIET MACHINE — a second session was running — so every figure here is an UPPER
+BOUND**, which is the one thing a spoiled measurement is still good for.
+**`tests/Borough.Tests/Space/SealingCostTests.cs` is the instrument and it prints all of it.**
+
+🔴 **Land value's target pass is not a per-Tick cost at all — it is one Tick in 256 costing more than a
+minute.** `MapLayers.Schedule` puts it at every 256 Ticks, offset 16, so in a 64-Tick window exactly one
+Tick pays it:
+
+| Tick | Per Tick, `bordered.toml` |
+|---|---|
+| any other Tick | **50–90 ms** |
+| **Tick 16** — `SetLandValueTargets` | 🔴 **88,085 ms** |
+
+⚠️ **It is NOT the Decide guard.** The row above this one is the reflex answer and it is wrong here:
+`--no-decide-guard` on this world changes the total by **1.0×**. The guard folds a big world; this
+folds nothing.
+
+**The chain, and every link was measured rather than reasoned:**
+
+| Term | Figure |
+|---|---|
+| `LayerCellTable` live rows after world creation | **262,144** — the whole 512×512 map |
+| desirability samples per Cell (`DesirabilitySamplesPerAxis` 2×2) | **4** |
+| `LineSourceQueries.Noise` calls in one pass | **1,048,576** |
+| off-lattice Segments, scanned **twice** per call | **12,581** |
+| off-lattice visits in one pass | 🔴 **26,384,269,312** |
+
+🔴 **The cause is `LineSourceQueries.Level` scanning every off-lattice Segment in the world, and its own
+doc comment says the scan is deliberate.** `StreetGrid.OffLatticeCount`'s remark rests it on
+[`adr/0014`](../docs/adr/0014-grid-streets-with-freeform-arterials.md)'s *grid plus sparse
+Arterials*: ***"It is a linear scan on purpose … adr/0014's layout is what makes the set small."***
+
+⚠️ **The premise was true when it was written and a later feature falsified it silently.** The
+off-lattice set was the Arterials, and `arterial_count` is **16**. A **foot path is off-lattice too**,
+and `[roads] foot_paths_per_thousand_blocks = 40` is a rate **per block** — so the set grew with the map.
+Of the 12,581, about **10,500 are foot paths**. ***A premise cited as an implementation strategy is a
+premise that has to be re-checked whenever anything joins the set it describes***, and nothing re-checked
+it — the enumeration defect this corpus keeps finding, arriving in a *performance* argument rather than
+in a list.
+
+✅ **FIXED 2026-08-22 — the off-lattice set is now bucketed by block and the window walks it.**
+`StreetGrid` files each off-lattice Segment under the block of its **midpoint** and records
+`OffLatticeReachBlocks`; `Level` widens its existing window by that reach and walks the buckets.
+
+| | Tick 16 |
+|---|---|
+| before | **88,085 ms** |
+| bucketed by endpoint | **10,233 ms** |
+| bucketed by **midpoint** (shipped) | **6,578 ms** |
+
+***13.4× and the answer does not move.*** ⚠️ **It is hash-preserving and the argument is not "it looked
+the same"**: `Contribution` returns zero beyond `source.Range`, so a Segment outside the window
+contributes zero as the background AND zero through `Above`, which compares it against that same zero.
+The identity of `local` therefore only matters while it is *in* range, and in range it is in the window.
+`LineSourceQueryTests` and `DesirabilityTests` pass unchanged — 20 assertions.
+
+🔴 **What is NOT fixed, and it is the bigger half.** **6,578 ms is still 421× the 15.6 ms budget**, and
+no per-query optimisation closes that: the pass is **1,048,576 queries** and the budget would allow about
+**15 ns each**. ***The defect that remains is the pass, not the query.*** `SetLandValueTargets` walks
+**every live Cell row every 256 Ticks**, and `02 §10`'s own rule — *`O(1)` at the write site per Tick,
+`O(n)` **staggered**, whole-world at end of run* — says a whole-world sweep is the one shape it should
+not have. Staggering it to `1/256` of the Cells per Tick gives **4,096 queries a Tick ≈ 25 ms**, which is
+the right order and still needs the query faster.
+
+⚠️ **Staggering moves the State Hash and is therefore a design change under `05 §4`, not an
+optimisation** — which is why it is filed here and in [`0002`](0002-open-questions.md) rather than
+done. [`adr/0044`](../docs/adr/0044-the-map-layer-diffusion-cadence-is-the-designers-number-not-the-profilers.md)
+makes the cadence **the designer's number**, and *when* a Cell retargets is that number.
+
+#### ✅ AMENDED 2026-08-23 — **the pass is 80 ms and no stagger was needed, because the remaining defect was the query after all**
+
+⚠️ ***The paragraph above is superseded and is kept because its reasoning was wrong in a way worth
+keeping.*** It concluded *the defect that remains is the pass, not the query* from one division —
+6,578 ms over 1,048,576 queries — and that division assumes every query has to do the work it did.
+It did not.
+
+**What the query was doing.** `LineSourceQueries.Level` runs two passes. Pass two prices each Segment
+through `Contribution`, which returns zero in two array reads when the Segment carries no Vehicles.
+**Pass one does not**: it finds the nearest Street by resolving two node handles and projecting a
+point for *every* Segment in the window, and only afterwards asks about volume. ***So the expensive
+half of a traffic query is the half that never looks at traffic.***
+
+**And where nothing within range carries Vehicles the whole query is provably zero** — `background` is
+zero, every `Above` compares its own zero against that zero and adds nothing, and `Log1P(0)` is zero.
+The answer cannot depend on *which* silent Segment was nearest, so pass one need not run at all.
+`TrafficPresence` stamps the blocks within range of a Vehicle-carrying Segment in **one linear scan of
+the Segment table**, and `Level` consults it before pass one.
+
+| `SetLandValueTargets`, `rulesets/bordered.toml`, 4,000 Citizens, 262,144 Cell rows | |
+|---|---|
+| before | **7,353 ms** |
+| `TrafficPresence.Rebuild` | 4 ms |
+| after | ✅ **80 ms** |
+
+***85×, and hash-preserving on the same argument as the bucketing above*** — a skipped query returns
+the zero it would have computed. The presence map is **keyed on the range it was built for and refuses
+to answer for any other**, so noise and near-road pollution cannot share one by accident; a refusal
+falls back to the full scan, which is slow and right.
+
+🔴 ⚠️ **THE FIGURE ABOVE IS THE COST OF COMPUTING A FIELD THAT IS ZERO, AND THAT IS NOT A CAVEAT ON
+THE SPEED-UP — IT IS ONE ON THE WORLD.** `rulesets/bordered.toml` at 4,000 Citizens peaks at **five
+Vehicles in motion in a whole Day**, so almost every Cell takes the early-out. **Why that world is
+empty is an open question** and is filed at [`0002`](0002-open-questions.md) §B — `congested.toml` at
+16,000 Citizens peaks at **937**. ***Until that is answered, no row in this file measured on
+`bordered.toml` is a measurement of a city with traffic in it***, and this one least of all: it is the
+row whose cost the traffic decides.
+
+**What this does to the stagger.** It does not answer it; it unblocks the work that was waiting on it.
+The whole-world sweep is still the shape `02 §10` names as wrong, and a Cell still retargets on the
+designer's cadence rather than a profiler's. What has gone is the *urgency* — 80 ms on one Tick in 256
+does not make the assertion tier unusable, so **the stagger can be decided on its merits rather than
+under a performance gun**, which is the condition
+[`adr/0044`](../docs/adr/0044-the-map-layer-diffusion-cadence-is-the-designers-number-not-the-profilers.md)
+wanted for it in the first place.
+
+⚠️ **`adr/0044` contradicts itself about who owns a stagger and this was noticed here rather than
+settled.** Its Consequences bullet 1 says *"Two multipliers remain available to a profiler —
+coarseness … and the stagger's phase"*; bullet 3 says *"The staggered offsets are hash-bearing too …
+a design change a designer may make."* A per-Cell stagger moves only phase and never a period, so the
+two bullets sort it opposite ways. **Filed, not resolved** — it is an ADR amendment and not a budget row.
+
+
+⚠️ **This was latent, and Sealing did not cause it.** The pass is `O(live Cell rows)` and a row existed
+only where something emitted pollution — one shipped Ruleset in ten. ***The Cell table's sparsity was
+load-bearing and stated nowhere***, so eight worlds ran this loop over zero rows and it was free. Giving
+Sealing a write path made the table dense and the latent cost arrived all at once. **Map-wide pollution
+would have tripped exactly the same wire.**
+
 ### ⚠️ The walk search is not a unit cost, and the row that treated it as one hid the stronger lever
 
 **Measured 2026-08-11 on the shipped 32-Tile lattice — 16,700 nodes, 32,890 Segments, which *is* the
@@ -484,6 +618,8 @@ which is why that column sits next to it rather than in a footnote.
 | ⚠️ **Walk search** (pedestrian Legs) | 4 Move | **0.04 → 17.8 ms** — unit **measured**, a **curve in trip distance**, not a number. ⚠ **The ×4 above is not applied here and may be owed** | 464 routes — **guessed**, *and the distance distribution is a second guess nobody had named* | **0.3–114%** |
 | ⚠️ **Map Layer diffusion**, on the Tick it lands | 5 Layers | 0.03–1.01 ms ⚠ **STALE — measured at a 128-Cell map; the map is 512** | dirty region — **measured range** | 0.2–6.5% ⚠ |
 | ⚠️ **Land value producer** (`MapLayers.SetLandValueTargets`) | 5 Layers | **UNMEASURED.** Four `Desirability` calls a resident Cell, on one Tick in 256 — each one Cell-Layer read plus one line-source query over a 300 m window ([`adr/0126`](../docs/adr/0126-a-cell-samples-desirability-at-its-quadrant-centres-and-a-line-sources-area-mean-does-not-converge.md)) | ⚠️ **resident Cells — OBSERVED in one world and ZERO in the other eight.** *(Was: guessed at zero, because nothing in the build creates a Cell row but a pollution emission and no shipped Ruleset emitted any. **[`rulesets/fouled.toml`](../rulesets/fouled.toml) does**, from milestone 9 task 7.)* **163 Cell rows at 1,000 Citizens** over 100,000 Ticks, and **about 262 at 4,000**. ⚠ **That is a count and not a price** — the per-call cost is still **UNMEASURED**, and a count taken on the one world that emits says nothing about the world a real Ruleset would build. ***A row whose multiplicand is zero because the world is empty is not a cheap row, it is an unpriced one***, and it is now unpriced with a number beside it | — |
+| **Woodland regrowth** (`MapLayers.RegrowWoodland`), on the Tick it lands | 5 Layers | **1.357 ms** — unit **measured**, whole map, `varied.toml` at 4,000 Citizens, reference machine, Release, single-threaded | **262,144 Cells — measured and FIXED**, because it is the map | **8.7% of ONE Tick, 0.004% amortised** |
+| **Sealing decay** (`MapLayers.DecaySealing`), on the Tick it lands | 5 Layers | **UNMEASURED, and this row exists to say so.** It walks the *sparse* Layer rows rather than the map, so it is bounded by the built city rather than by the world — but milestone 24 task 4 shipped it without a number and `plans/0042` **F7** is this milestone getting burned by exactly that once already | live Layer rows — **unmeasured** | — |
 | **Zone Rules**, worst aligned Tick | 6 Growth | **0.012 ms** | 16 Rules triggering together — **guessed**; unit **measured** | **0.08%** |
 | ⚠️ **District re-evaluation and the Pool reprice** | 6 Growth | **UNMEASURED, and this row exists to say so.** Two cadenced whole-table passes landed at milestone 12 and neither was priced: `DistrictWatershed.Evaluate` on `[districts] revisit_ticks`, a watershed over **every built Cell** of the world, and `World.RepriceDistrictPools` on a `Ticks.PerDay` boundary, one pass over one row per Good per District. ⚠ **They are not the same size** — the reprice is a handful of rows and the watershed scales with the built city — so ***one row for both is a placeholder and not an estimate*** | `CellGrid.WorldCellCount` for the first, Districts × Goods for the second — **neither measured, and only the second is small by construction** | — |
 | **Event Wheel, general** | 1 Wake | **unbuilt** — slice 9 | — | — |

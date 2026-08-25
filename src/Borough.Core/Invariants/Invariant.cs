@@ -1046,4 +1046,51 @@ public enum Invariant
     /// </para>
     /// </remarks>
     ADistrictPoolIsOneLiveBinPerGood = 52,
+
+    /// <summary>
+    /// Nothing has written the terrain table since the ground was laid.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>adr/0158</c>, milestone 24 task 2. <b>Terrain is written once, at world creation, and never
+    /// again</b> — there is no terraforming, so no Tick phase writes
+    /// <c>Space.TerrainCellTable</c> at all.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>This is what pays for the Decide guard skipping that table.</b>
+    /// <c>Simulation.VerifyDecideWritesNothing</c> folds
+    /// <c>Entities.World.TablesAPhaseCanWrite</c> rather than the whole composition, because folding
+    /// 262,144 terrain rows twice a Tick made a Tick 138× itself. ⚠ <b>Skipping a table on trust is
+    /// the silent hole this project keeps finding</b>, so the trust is replaced by a check rather
+    /// than assumed.
+    /// </para>
+    /// <para>
+    /// <b>It is BROADER than what the guard was saying.</b> The guard could only report that
+    /// <em>Decide</em> did not move terrain between two folds; this compares the table against its
+    /// fingerprint at the moment it was laid, so it reports that <b>no phase at all</b> moved it.
+    /// ⚠ <b>It deliberately does NOT ask whether the terrain matches the world key.</b> The first
+    /// version did, and reported sixty-three healthy worlds as corrupt: a world built through the
+    /// cold API is never populated and a loaded world is restored rather than generated, so neither
+    /// has terrain the generator just laid. ***A check derived from the seed cannot be run against
+    /// worlds that never met the seed.*** A load restoring the wrong terrain is <c>adr/0112</c>'s
+    /// job, and it is done.
+    /// </para>
+    /// <para>
+    /// <b>End-of-run and not per-Tick, which is <c>02 §10</c>'s own sorting.</b> A check on a thing
+    /// that cannot change belongs at the lowest frequency there is; running it twice a Tick was the
+    /// defect, not the diligence.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It stops being true the day terraforming ships</b>, at which point terrain leaves
+    /// <c>TablesAPhaseCanWrite</c>'s exclusion and this check is replaced rather than relaxed.
+    /// </para>
+    /// </remarks>
+    /// <remarks>
+    /// ⚠ <b>This ordinal was 54 until the merge with <c>main</c> on 2026-08-24</b>, where milestone 25
+    /// had independently taken 54 for <see cref="ABusinessIsPremisedOrItIsInThePool"/>. The two enum
+    /// members sat on different lines, so <b>git merged them without a conflict and <c>CA1069</c> is
+    /// what caught it</b> — the analyser doing the job the merge could not. ***The branch yielded
+    /// rather than the trunk***, as it did for the ADR numbers and for <c>PurposeTag</c>.
+    /// </remarks>
+    TerrainIsUnchangedSinceItWasLaid = 55,
 }

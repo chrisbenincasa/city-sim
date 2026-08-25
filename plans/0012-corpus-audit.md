@@ -1939,7 +1939,117 @@ pointer to one.***
       terms above, so the next reader meets it at the symbol rather than in a plan.
 
 
-### `CLAUDE.md`'s assertion tier is **42s at 1,690 tests** and two readings today say **3m02s at 1,974**
+### `PROCESS.md` → *Numbering* has no row for an ADR, and two branches proved it needs one
+
+**Found 2026-08-23, renumbering `0139`–`0142` and `plans/0038` after they collided with `main`.** The
+numbering table covers Phase, Milestone, Sub-milestone, Slice, Task, Session, Spike, Round and Plan
+document. **It does not cover an ADR at all**, which is the most-cited unit in this corpus.
+
+**The omission is not the missing row — it is that nothing says who owns the next number.** Two
+branches each took `0139` while neither could see the other, and the same happened at `plans/0038`
+even though the plan-document axis *is* in the table. So the row would not have prevented it.
+***Assigning from next-free is a shared mutable counter, and nothing in the corpus serialises writes
+to it.***
+
+⚠ **The mechanical checks cannot find this, and that is not a defect in them.** `CitationTests` and
+`LinkResolutionTests` resolve links **inside one working tree**, where each branch's numbering is
+internally perfect and every link opens. The collision exists only in the *union of two branches*,
+which no test ever sees — the *space across working trees* surface milestone 10's collection already
+recorded, arriving on the **document** axis rather than the code one.
+
+**What is owed is a decision and not an edit**, which is why this is filed rather than paid. Adding
+the ADR row is trivial; *how a number is claimed* — reserved on the branch, renumbered on merge, or
+keyed on something that cannot collide — is a real choice with real costs, and it should be taken
+once rather than improvised at the next merge. **The mapping for this instance is already recorded**
+in [`06`](../docs/06-roadmap.md) → *Retired numbering*, third block, which is what
+[`PROCESS.md`](../PROCESS.md) requires of any renumber.
+
+### `adr/0123` says Amenity needs a `kind` column on `BusinessTable`, and a park is not a Business
+
+**Found 2026-08-23, in the sitting that produced
+[`adr/0152`](../docs/adr/0152-amenity-counts-building-kinds-and-the-count-belongs-to-the-place-while-the-set-belongs-to-the-household.md).**
+Three places say it, and one of them is an exception message a future reader will trust absolutely:
+
+| Where | What it says |
+|---|---|
+| [`adr/0123`](../docs/adr/0123-desirability-ships-without-its-only-positive-term-and-a-caveat-that-must-travel-gets-a-test.md) | "`BusinessTable` holds exactly three columns … and **no kind**" |
+| `LineSourceQueries.cs` — doc comment | "what is missing is that a Business has no type to be distinct in. **One column and a catchment query**, both milestone 15's" |
+| `LineSourceQueries.cs` — the `NotSupportedException` | "what does not is **a kind on a Business**, so there are no distinct types to count" |
+
+**It is wrong in the expensive direction: it makes milestone 15 look bigger than it is.** A `kind`
+column on `BusinessTable` cannot enumerate a **park**, and
+[`adr/0032`](../docs/adr/0032-services-are-delivered-by-trips-not-by-coverage.md) had already made a
+park an Amenity entry — *"widen Business to destination and a park is an Amenity entry"* — before
+`0123` was written. Nor could it enumerate a school, a clinic or a beach. Under `adr/0152` the key is
+the **`[[building]] kind`**, which every Building already carries, so ***no column is owed at all***
+and what milestone 15 owes is the catchment query and nothing else.
+
+⚠ **This is Cause 4 with a new surface, and the surface is the interesting part.**
+[`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)'s
+rule is that a description of the build tells you *which symbol to read* and never *what is in it*,
+and that where such a sentence is wrong it is wrong about the **trigger**. Here the sentence is wrong
+about **what would discharge it** — it names the work a hole needs, and it names too much. ***A
+description of a blocker is a description of the build, and it decays the same way***: `0123` was
+right about `BusinessTable` on the day it was written and was already stale against `adr/0032`, which
+predates it.
+
+🔴 **And the third row is the one that matters, because an exception message is not a document.** None
+of `tests/Borough.Tests/Corpus/` can see it — the checks are document-to-document by construction — so
+the sentence most likely to be believed by somebody picking up milestone 15 cold is the one sentence
+nothing in this repository is watching. It is the same blind spot this ledger already records against
+doc-comments, arriving in a string literal.
+
+**The repair is three edits and a widening**: correct `adr/0123` with a correction block rather than a
+rewrite, correct both sentences in `LineSourceQueries.cs`, and note that `CONTEXT.md` → Amenity has
+now been amended to carry `adr/0032`'s widening, which is the root the other three grew from.
+
+### `CLAUDE.md` says `[households]` and `[traffic]` are `congested.toml`'s alone, and six files state one
+
+**Found 2026-08-23, while measuring the land value pass for milestone 24 task 3.** Two cells say it.
+The Constants table's *Household car ownership* row reads **100% — `rulesets/congested.toml` only**,
+and the repository map's `rulesets/` cell calls `congested.toml` *"the only file that states
+`[traffic]` and `[households]`, because a generated city cannot congest itself"*.
+
+**Counted rather than quoted** (`CLAUDE.md`'s own rule for this cell):
+
+| Table | Files that state it |
+|---|---|
+| `[households]` | **six** — `bordered`, `congested`, `crowded`, `fouled`, `scarce`, `taxed` |
+| `[traffic]` | **two** — `congested`, `fouled` |
+
+⚠ **The volume-delay row is wrong the same way and separately**: it carries
+*`rulesets/congested.toml` only* against a `[traffic]` that `fouled.toml` also states.
+
+**What it cost, which is why this is filed rather than fixed in passing.** The sentence is not merely
+out of date — it is *load-bearing for a reading of a measurement*. `CLAUDE.md` states, correctly and
+in the same row, that **absent means nobody drives**. So a reader who finds no Vehicle in motion on
+`bordered.toml` and remembers *cars are congested.toml only* has a ready-made explanation that is
+false, and it terminates the enquiry. That happened on the day this was filed, and what it nearly
+buried is [`0002`](0002-open-questions.md) §B's **five Vehicles against 937** — a live question about
+whether the commute generator or the Commute Budget is the cause.
+
+***A staleness claim of the form "X only" decays every time somebody adds a file, and nothing warns
+them.*** That is the shape rather than the instance: the count is maintained in one document and the
+exclusivity is asserted in another, so the second goes wrong silently the moment the first grows.
+`CLAUDE.md` already carries the antidote for exactly this in the same cell — ⚠ ***count them rather
+than quoting a total*** — and the antidote is stated about the *number of Rulesets* while the
+*membership of a table* two lines away is asserted flat.
+
+**The repair is two halves and only the first is an edit.** Correct both cells; and note that a
+mechanical check is available here in a way it is not for most of this ledger, because both sides of
+the claim are in the repository — the assertion is in `CLAUDE.md` and the ground truth is a `grep`
+over `rulesets/*.toml`. `tests/Borough.Tests/Corpus/` is document-to-document by construction and so
+cannot see it today. **Not written here, because whether the corpus tests may read the Rulesets is a
+decision and not a chore.**
+
+### `CLAUDE.md`'s assertion tier is **42s at 1,690 tests** and three readings since say **3m02s–3m42s at 1,974–2,002**
+
+⚠ **A third reading, 2026-08-22, by milestone 24's scoping: 3 m 42 s over 2,002 tests, on `main`.**
+🔴 ***It is an upper bound and not a figure, because its first control was not held*** — two other
+worktrees were live on the same six cores, and this document's own rule is that a test-cost capture is a
+parallelism measurement. **It is recorded because a spoiled reading still bounds**, and it bounds in the
+same direction as the two below: the count is still climbing and the duration with it. **What it adds is
+that the drift is not a one-day artefact.** The edit still waits on a reading taken on a quiet machine.
 
 **NEW 2026-08-22, found while gating milestone 12 task 3, and filed rather than fixed because a
 replacement figure is a *capture* and this sitting was not set up to take one.**
@@ -3563,6 +3673,197 @@ not have. **Routed to session V** ([`0039`](0039-session-v-the-business-is-the-a
 as evidence rather than as a task.
 
 ---
+
+## Filed 2026-08-22, by milestone 24's scoping — two defects, an unenforceable rule, and one recurrence of the naming hazard
+
+### `deferred.md` says Sealing's terrain-keyed recovery **already does** something it structurally cannot
+
+[`docs/deferred.md`](../docs/deferred.md):52, arguing for *absorption varies by ground*:
+
+> *"a tree-planting programme raises what the ground absorbs and shows up slowly, over the whole area,
+> **exactly as `Sealing`'s terrain-keyed recovery already does**."*
+
+**It does nothing, and it cannot.** `MapLayers.DecaySealing` (`Space/MapLayers.cs:416`) has no caller in
+`src/`; `LayerSchedule.For` answers `Never` for `Layer.Sealing`; and — the part no document had —
+🔴 **`MapLayers.Seal` (`Space/MapLayers.cs:393`) has no `src` caller either**, so
+`LayerCellTable.Sealing` is a **saved, hashed column that is identically zero on every world this build
+can generate**. A recovery over a field nothing writes is not slow; it is absent.
+
+⚠ **This is Cause 4 with the polarity reversed and it is worth separating.** Cause 4 is *a decision taken
+from a description of the code, where the description is wrong about the **trigger***. Here the
+description is wrong about **whether the mechanism runs at all** — and it is load-bearing, because the
+sentence's job is to establish that a **precedent exists** for the mechanism being argued for. ***A
+citation offered as precedent is the one kind of description that is never checked, because the reader
+is checking the argument and not the example.***
+
+⚠ **And `adr/0124` enumerated the blockers and counted two of three** — `sealing_decay_tau = 0` and
+`Step` never calling `DecaySealing` — **both of which are downstream of the missing write path.** Fourth
+sighting of the enumeration defect, after `adr/0062`'s Cap admission ranks, `03 §4`'s demotion fields and
+`adr/0117`'s four grounds. Owned by [`0042`](0042-terrain-and-the-land-rows.md) **F3**, which is where
+the repair order is corrected; `adr/0124` needs the amendment.
+
+### `06`'s inventory row said both that terraforming was placed and that it was not
+
+[`06`](../docs/06-roadmap.md):330, in one cell: *"✅ **Placed: 24.** a milestone. **The version numbers
+are paid** … **Terraforming still owes a milestone**"*.
+
+**The row carried three mechanisms** — terraforming, procedural generation guarantees, and the three save
+header version numbers — and **one status column**. The version numbers were struck as paid; *Placed: 24*
+was presumably about the generation guarantees; and terraforming's real status is the last clause, four
+sentences after a green tick.
+
+⚠ ***A row that carries three mechanisms carries one status***, which is this document's **granularity**
+defect — a status coarser than the claims it covers — arriving in an inventory table rather than in a
+`plans/0002` §D row. It is the same shape as the three free-flow speeds sharing one ratifier because they
+shared a row.
+
+🔴 **It was load-bearing rather than untidy.** Milestone 24's decision 2 turns on whether terraforming is
+available, because
+[`adr/0021`](../docs/adr/0021-the-map-is-bounded-procedural-and-terrain-never-enters-a-tick.md) makes it
+the difference between terrain as a **price** and terrain as a **wall** — and a scoping session reading
+this row would have taken terraforming as placed at 24 and shipped the height field on that basis.
+✅ **PAID 2026-08-22 by `plans/0042` decision 2**: the row is split in two, terraforming's is **UNPLACED**,
+and it now says it owes a **verb** before it owes a milestone
+([`adr/0157`](../docs/adr/0157-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md)).
+
+### `adr/0021` called a rule **checkable** for four years, and nothing could have checked it
+
+[`adr/0021`](../docs/adr/0021-the-map-is-bounded-procedural-and-terrain-never-enters-a-tick.md):31:
+
+> *"**The checkable rule: if a terrain value is read inside a Tick phase, something has gone wrong.**"*
+
+**Two things are wrong with it, and the second is the interesting one.**
+
+🔴 **It would have gone red on the thing that satisfies it.** World creation in this build is an event in
+the Input Log — `SyntheticCity.PopulateInto` is dispatched from `Simulation.cs:391` on
+`CommandKind.Populate`, **inside Phase 0** — so the generator reads height *inside a Tick phase* on the
+Tick that makes the world (`0041` **F6**).
+
+🔴 **And nothing enforces phase discipline at all.** `TickPhase` is referenced by its own file and by
+`Simulation.cs`, and by nothing else in the repository. There is no analyser, no test and no fixture that
+knows which phase a call sits in — the same standing as `05 §4`'s **lint 4**.
+
+⚠ **So the word *checkable* was doing the work of a mechanism that was never built**, which is
+[`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) arriving from an
+unfamiliar direction: not *an absence read as a constraint*, but ***a constraint asserted as though its
+enforcer existed.*** A reader auditing terrain reads would have gone looking for the check and found
+nothing to run.
+
+✅ **PAID 2026-08-22 by `plans/0042` decision 3**, as an **amendment in place** rather than a new ADR —
+the design content belongs to
+[`adr/0157`](../docs/adr/0157-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md),
+and a second home for one decision is **Cause 1** by construction. The rule is restated against **state**:
+***terrain height is not state***, which is checkable by inspection because no height column exists.
+⚠ **The mechanical check becomes owed the day terraforming lands**, since *seed + edits* stores heights on
+edited Chunks — recorded in the amendment so that milestone finds the obligation.
+
+### The naming hazard recurred a **third** time, and this time it was detected before the collision
+
+Recorded above: two sessions collided on `plans/0030`; the `0112`/`0113` ADR collision; and a recurrence
+on 2026-08-22 *"detected by file mtimes rather than by anything the corpus does."*
+
+⚠ **2026-08-22, milestone 24's scoping: three worktrees were live at once** — `city-sim` on milestone 12,
+`city-sim-m18` on milestone 18, `city-sim-q8` on `main` — and the scoping session read `git worktree
+list` and the branch diffs **before** claiming `plans/0042`. The plan number was free; **the next ADR
+number was not safely claimable**, because the milestone-12 branch holds unmerged work with open
+decisions 3, 7 and 10 still to settle, any of which lands an ADR.
+
+***So the entry above is right that a rule cannot make the scheme safe, and wrong by implication that
+nothing shows the collision*** — `git worktree list` plus a branch diff shows it, and it is what a
+session should read before claiming any number. **That is a habit and not machinery**, it is not
+mechanically checkable, and it does not close this item. What it does establish is that **the tree
+already carries the fact**; what is missing is anything that makes a session look.
+
+### The naming hazard recurred a **fourth** time, and this time it collided
+
+⚠ **2026-08-23.** The entry above records the third recurrence as *"detected before the collision"* and
+credits `git worktree list` plus a branch diff with showing it. 🔴 **That reading was right about the
+mechanism and wrong about the outcome: the collision happened anyway.** The milestone-24 scoping session
+read the tree on 2026-08-22, found `plans/0040` free, claimed it, and took `adr/0143`–`0149`. The
+milestone-25 session then committed **a different `plans/0040`** and **a different `adr/0143`** directly
+to `main`. Both names existed, on different branches, naming different documents.
+
+🔴 **Git cannot see it and will not say so, and the reason is sharper than *the filenames differ*.**
+***`git merge` treats the number as part of a FILENAME; a citation treats it as an IDENTITY.*** The two
+documents differ as names — the number is a prefix and the claim is the rest — so a merge takes both,
+cleanly, and every `adr/0143` citation in the corpus silently acquires two referents. **The tool that
+would catch the collision is looking at a different object from the one the corpus is.** That is why it
+merges clean, and it is why no amount of care with `git` finds it: ***the check is not weak, it is
+pointed elsewhere.***
+
+⚠ **This is the diagnosis rather than the symptom, and it says where a mechanical check would have to
+stand**: on the corpus's object, not on git's — something that reads the *set of numbers in use across
+every live branch* and asks whether one names two claims. **Nothing in `tests/Borough.Tests/Corpus/`
+can do it.**
+
+🔴 **And the reason is sharper than *the tests are aimed elsewhere*, which is how this entry first put
+it and is too broad.** ***The tests' object is a CHECKOUT.*** They are aimed correctly at every fact
+that fits inside one working tree, and blind to exactly the class that does not:
+
+| | Where the fact lives | Can a corpus test see it? |
+|---|---|---|
+| **§F2's ADR count** — *"149 written, numbered to `0158`"* | document-to-**filesystem**, inside **one** checkout | ✅ **Yes, and one does** — `CoverageMapTests.cs:170` asserts both the count and the high-water mark against `docs/adr` on disk, and its message says *"this is the fourth time"* |
+| **Two branches naming one `adr/0143`** | only in the **difference between two** checkouts | 🔴 **No, and not by oversight** — ***in each tree separately, nothing is wrong*** |
+
+***Same ledger, opposite outcomes, and the whole of the difference is whether the fact fits inside a
+single working tree.*** ⚠ **So the count line is the useful contrast rather than a second example**:
+it drifted four times, somebody built a check for it, and the check works — which is what the
+collision cannot have, standing in either tree.
+
+⚠ **The count line also shows the honest way to keep a quoted total.** It is in tension with
+`CLAUDE.md`'s *count them rather than quoting a total*, and the tension is **deliberate**: somebody
+decided a reader skimming §F2 needs to know how far the map reaches, then **paid for the convenience
+with a test**. ***A guarded total is a different thing from a total nobody guards***, and only the
+second is this document's Cause 1.
+
+***A collision that resolves as a clean merge is worse than a conflict, because a conflict stops
+somebody.***
+
+⚠ **None of the above is this session's and it is credited rather than absorbed** — the milestone-25
+session offered the filename-versus-identity mechanism on 2026-08-23 in reply to the note telling it
+which numbers had been freed, then **corrected this entry twice more**: it found `CoverageMapTests`
+after this document had asserted *nothing downstream complains* — ***a claim about the build made
+without reading it***, which is [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+committed inside the ledger that exists to catch it — and it narrowed its own *aimed elsewhere* to the
+one-tree/two-tree line above. **The correction arrived because the two sessions talked**, which is the only channel that
+carried it: no document either of them could read would have produced it, since the fact lives in the
+*difference* between two branches.
+
+✅ **Resolved by renumbering the milestone-24 branch**, 2026-08-23: `adr/0143`–`0149` → **`0150`–`0156`**,
+`plans/0040` → **`plans/0042`**, `0144`–`0149` left free. **One side moves, not both** — the branches
+agreed which before either edited. The 32 corpus tests pass, which is what says the citations resolve.
+
+⚠ **What the third entry got right stands and is now load-bearing**: the tree carries the fact and
+nothing makes a session look. ⚠ **What this recurrence adds is that reading the tree ONCE is not enough**
+— milestone 24 read it correctly on the day and was overtaken afterwards. ***A number claimed against a
+set that is still growing stays unsafe for as long as the branch is unmerged***, which is the original
+entry's own sentence arriving with a second half. **This does not close the item.**
+
+🔴 ⚠ **FIFTH RECURRENCE, 2026-08-25, and it is the FIRST that an agreement had already covered.**
+`plans/0042` records a split *agreed with the milestone 27 session on 2026-08-24* — this branch
+`0150`–`0158`, milestone 27 `0145`–`0149` — and `main` then committed `adr/0150` *appearance is
+derived in the shell* on the same day. **This branch moved again: `0150`–`0161` → `0151`–`0162`**,
+61 files of citations, `main`'s `0150` untouched.
+
+⚠ **The direction was not the agreement's to decide, and that is the finding.** The agreement said
+this branch owned `0150`; the repair still moved this branch, because by the time anybody looked
+`main`'s `0150` was **published and cited from three documents**, and moving it would have re-used a
+number for different work — which `PROCESS.md` → *Numbering* forbids outright. ***So an allocation
+agreement is only binding until one side publishes; after that the published side wins whatever was
+agreed.*** That is not a reason to stop agreeing splits — it is the reason a split must be **claimed
+in the tree** rather than in a conversation, because only the tree is visible to the branch that
+breaks it.
+
+⚠ **Two of the six merge-conflict files were rewritten three times by one pass** over `git ls-files`,
+because ***an unmerged path is listed once per stage***, and a script that walks that list touches a
+conflicted file three times and every other file once. **The renumber was +3 on exactly the files a
+human was already reading closely** and +1 everywhere else. Caught by a dangling-link sweep, not by
+review. ***A file list taken during a merge is not a file list***, and `git ls-files` is the specific
+trap: it is the obvious way to enumerate the corpus and it is wrong for as long as a conflict stands.
+
+⚠ **The reservation in [`0036`](0036-the-coarse-day-wheel.md) did not prevent it and was not consulted**
+— that document reserves **0140–0149** for the coarse-day-wheel track, and both milestone 24 and
+milestone 25 took numbers from inside it. ***A reservation nobody reads is a comment.***
 
 ## Filed 2026-08-24, by milestone 27's decomposition — two doc comments wrong about the city
 

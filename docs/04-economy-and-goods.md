@@ -67,7 +67,7 @@ That third one is the most interesting and it is the reason Materials shares a c
 
 Both extraction steps draw on ground that the player's own growth consumes — see [`adr/0022`](adr/0022-land-is-a-stock-the-city-spends.md).
 
-**Produce comes from Fertility**, which every Cell starts with and which development degrades: `terrain suitability − Sealing − pollution`. Farms are therefore pushed outward as the city grows, and far enough out they fall out of the city's commute shed and become their own Settlement.
+**Produce comes from Fertility**, which every Cell starts with and which development degrades: `base fertility − Sealing − pollution` ([`adr/0155`](adr/0155-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md), ~~`terrain suitability`~~). Farms are therefore pushed outward as the city grows, and far enough out they fall out of the city's commute shed and become their own Settlement.
 
 **Timber comes from Woodland**, the one thing the generator actually places. Clearing it is a one-time harvest that leaves fertile ground behind, and it regrows slowly on unsealed, unoccupied land — so the logging frontier migrates outward on its own, through ordinary Building decline rather than a system built for it.
 

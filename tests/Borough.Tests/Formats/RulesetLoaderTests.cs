@@ -364,11 +364,28 @@ public sealed class RulesetLoaderTests
         Assert.Contains("unquoted decimal", refusal.Reason, StringComparison.Ordinal);
     }
 
-    /// <summary>The quoted form is what a designer writes instead, and it parses as a string.</summary>
+    /// <summary>
+    /// A quoted decimal is not refused <em>as a decimal</em>, and the only thing wrong with the line
+    /// is the key it sits on.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This test used to assert the file LOADED, and the reason it could is the defect
+    /// <c>plans/0041</c> G31 names.</b> <c>decline_rate</c> is not a key of <c>[[building]]</c> and
+    /// never was — nothing reads it, so the loader passed over it in silence and the file was clean.
+    /// ⚠ <b>The refusal message for an unquoted decimal ADVERTISED that key</b>, so a designer
+    /// following the advice in front of them wrote a line that did nothing. Both are fixed here.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>Exactly one refusal is the assertion, and which one it is carries the point.</b> The
+    /// lexical pass runs over the whole document before anything is interpreted, so if a quoted
+    /// decimal were being coerced this would come back with two.
+    /// </para>
+    /// </remarks>
     [Fact]
-    public void A_quoted_decimal_is_not_refused()
+    public void A_quoted_decimal_is_refused_for_its_key_and_never_for_being_a_decimal()
     {
-        RulesetLoadResult result = RulesetLoader.Parse("""
+        RulesetRefusal refusal = Refused("""
             [[resource]]
             name = "flour"
             family = "good"
@@ -377,6 +394,177 @@ public sealed class RulesetLoaderTests
             name = "bakery"
             decline_rate = "0.15"
             bins = [ { resource = "flour", capacity = 60 } ]
+            """);
+
+        Assert.Contains("'decline_rate' is not a key of [[building]]", refusal.Reason, StringComparison.Ordinal);
+        Assert.DoesNotContain("decimal", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A quoted decimal on a key that IS read loads, which is the original claim, and the quoted form
+    /// is what a designer writes instead of a bare decimal.
+    /// </summary>
+    [Fact]
+    public void A_quoted_decimal_is_not_refused()
+    {
+        RulesetLoadResult result = RulesetLoader.Parse("""
+            [[resource]]
+            name = "0.15"
+            family = "good"
+
+            [[building]]
+            name = "bakery"
+            bins = [ { resource = "0.15", capacity = 60 } ]
+            """, "test.toml");
+
+        Assert.True(result.Ok, result.Describe());
+    }
+
+
+    // ---- the unknown-key refusals ---------------------------------------------------------------
+
+    /// <summary>
+    /// A key nothing reads is refused, which is <c>plans/0041</c> G31 and the one class of authoring
+    /// mistake this loader could not see.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>It found four keys in all eighteen shipped Rulesets on the day it landed</b>, stranded
+    /// above the <c>[layers]</c> header since milestone 9 task 3. ⚠ <b>Every one authored exactly the
+    /// loader's default</b>, so no run, no golden trace and no balance run was ever in a position to
+    /// notice — ***the city was right and the file was saying nothing to it***.
+    /// </para>
+    /// <para>
+    /// <b>The permitted set is DERIVED and not declared.</b> <c>Find</c> records every key it is
+    /// asked for; what nothing asked for is refused. So this test does not need updating when a
+    /// reader gains a key, which is the property a hand-authored list would not have had.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_key_no_reader_asks_for_is_refused()
+    {
+        RulesetRefusal refusal = Refused("""
+            [[resource]]
+            name = "flour"
+            family = "good"
+
+            [[building]]
+            name = "bakery"
+            occupent = 3
+            bins = [ { resource = "flour", capacity = 60 } ]
+            """);
+
+        Assert.Contains("'occupent' is not a key of [[building]]", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>The near miss is named, because a typo is the case this refusal exists for.</summary>
+    /// <remarks>
+    /// ⚠ <b>The fixture is a <c>[[building]]</c> and not a <c>[placement]</c> on purpose.</b> A typo in
+    /// <c>[placement]</c> trips that table's missing-key pair FIRST — <c>interval</c> without
+    /// <c>revisit_ticks</c> — and reports the better message of the two. ***The first draft of this
+    /// test asserted against a refusal the loader was right not to give.***
+    /// </remarks>
+    [Fact]
+    public void A_typo_one_letter_from_a_real_key_is_named_in_the_refusal()
+    {
+        RulesetRefusal refusal = Refused("""
+            [[resource]]
+            name = "flour"
+            family = "good"
+
+            [[building]]
+            name = "bakery"
+            occupent = 3
+            bins = [ { resource = "flour", capacity = 60 } ]
+            """);
+
+        Assert.Contains("Did you mean 'occupants'?", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A key above the first section header belongs to no table, so no reader could have asked for it.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>This is a SECOND refusal site and not the same one</b>: the key is not merely unread, it
+    /// is unreachable, and "not a key of [x]" would have to name a table that does not exist.
+    /// </remarks>
+    [Fact]
+    public void A_key_above_the_first_section_header_is_refused()
+    {
+        RulesetRefusal refusal = Refused("""
+            interval = 32
+
+            [[resource]]
+            name = "flour"
+            family = "good"
+
+            [[building]]
+            name = "bakery"
+            bins = [ { resource = "flour", capacity = 60 } ]
+            """);
+
+        Assert.Contains("sits above the first section header", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The stranding that was live in all eighteen shipped Rulesets, written as a fixture.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>This is the exact shape of the defect and it reads as harmless.</b> A <c>[layers]</c> key
+    /// written one line too early is inside <c>[placement]</c>, and the file loads, runs and produces
+    /// the right city — because the value it states is the value the loader defaults to. ***What the
+    /// designer loses is not correctness, it is the ability to change anything.***
+    /// </remarks>
+    [Fact]
+    public void A_layers_key_written_above_the_layers_header_is_refused()
+    {
+        RulesetRefusal refusal = Refused("""
+            [[resource]]
+            name = "flour"
+            family = "good"
+
+            [[building]]
+            name = "bakery"
+            bins = [ { resource = "flour", capacity = 60 } ]
+
+            [placement]
+            interval = 32
+            revisit_ticks = 1024
+            candidates = 3
+            noise_intensity_percent = 400
+
+            [layers]
+            pollution_period = 64
+            """);
+
+        Assert.Contains("'noise_intensity_percent' is not a key of [placement]", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// ⚠ <b>The permitted set is unioned across every table of one section shape</b>, because a reader
+    /// may ask conditionally — so a key one <c>[[building]]</c> uses is permitted on all of them.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is looser than a hand-authored list and is the direction to be loose in.</b> A false
+    /// refusal costs a designer a working file; a missed key costs them a silent number. The second is
+    /// the defect this whole check exists for.
+    /// </remarks>
+    [Fact]
+    public void A_key_one_table_of_a_shape_uses_is_permitted_on_all_of_them()
+    {
+        RulesetLoadResult result = RulesetLoader.Parse("""
+            [[resource]]
+            name = "flour"
+            family = "good"
+
+            [[building]]
+            name = "bakery"
+            occupants = 3
+            bins = [ { resource = "flour", capacity = 60 } ]
+
+            [[building]]
+            name = "shed"
+            bins = [ { resource = "flour", capacity = 10 } ]
             """, "test.toml");
 
         Assert.True(result.Ok, result.Describe());

@@ -47,6 +47,10 @@ public static class WorldInvariants
         // its anchor, and the second diagnosis is the one that names the bug.
         invariants.Register(InvariantTier.EndOfRun, MoneyIsConserved);
         invariants.Register(InvariantTier.EndOfRun, LayerMagnitudesAreBounded);
+
+        // Registered here rather than being optional, because it is what pays for the Decide guard
+        // skipping the terrain table. adr/0158, milestone 24 task 2. See World.TablesAPhaseCanWrite.
+        invariants.Register(InvariantTier.EndOfRun, TerrainIsUnchangedSinceItWasLaid);
         invariants.Register(InvariantTier.EndOfRun, RuleInstancesAreQueuedExactlyOnce);
         invariants.Register(InvariantTier.EndOfRun, NoBuildingRunsRulesItsKindDoesNotDeclare);
         invariants.Register(InvariantTier.EndOfRun, LotsAndBuildingsAgreeWhoIsWhere);
@@ -824,6 +828,45 @@ public static class WorldInvariants
                 Invariant.OutsideConnectionStandsOnOneEdge,
                 slot,
                 lotSlot);
+        }
+    }
+
+    /// <summary>
+    /// Nothing has written the terrain table since the ground was laid.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>adr/0158</c>. 🔴 <b>The check that lets the Decide guard skip the terrain table</b> — see
+    /// <see cref="World.TablesAPhaseCanWrite"/> for what that bought and why it needed paying for.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It asks *has it changed* and NOT *does it match the world key*, and the first version
+    /// asked the second.</b> That version reported **sixty-three** healthy worlds as corrupt, because
+    /// two ordinary paths produce terrain the generator did not just lay: a world built through the
+    /// cold API is never populated, so its ground has never been laid at all; and a loaded world was
+    /// **restored** rather than generated. ***A check derived from the seed cannot be run against
+    /// worlds that never met the seed.***
+    /// </para>
+    /// <para>
+    /// <b>What guards a load against restoring the wrong terrain is <c>adr/0112</c></b> — a save
+    /// carries the State Hash of the world it holds, folded from the copy, and every load recomputes
+    /// and refuses a mismatch. That job is done, and this check does not duplicate it.
+    /// </para>
+    /// <para>
+    /// <b>End-of-run, which is <c>02 §10</c>'s frequency sorting.</b> A check on a thing that cannot
+    /// change belongs at the lowest frequency there is; running it twice a Tick was the defect rather
+    /// than the diligence.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It stops being the right check the day terraforming ships</b>, at which point terrain
+    /// leaves the guard's exclusion and this is replaced rather than relaxed.
+    /// </para>
+    /// </remarks>
+    internal static void TerrainIsUnchangedSinceItWasLaid(World world, InvariantRegistry report)
+    {
+        if (!world.Layers.TerrainIsUnchangedSinceLaid())
+        {
+            report.Report(Invariant.TerrainIsUnchangedSinceItWasLaid, 0);
         }
     }
 

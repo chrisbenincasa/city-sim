@@ -1,5 +1,6 @@
 using Borough.Core.Arithmetic;
 using Borough.Core.Quantities;
+using Borough.Core.Rules;
 using Borough.Core.Space;
 using Borough.Core.Tables;
 
@@ -279,9 +280,9 @@ public sealed class LineSourceQueryTests
 
         graph.Segments.VolumeForward[0] = 80;
         layers.EmitPollution(new Cells(0), new Cells(0), 400);
-        layers.Step(Ticks.Zero, graph);
+        layers.Step(Ticks.Zero, graph, TerrainRuleset.None);
 
-        DesirabilityWeights weights = new(Fixed.One, Fixed.One, Noise);
+        DesirabilityWeights weights = DesirabilityWeights.Default with { NoiseSource = Noise };
 
         for (int tile = 0; tile <= 96; tile += 8)
         {
@@ -298,7 +299,7 @@ public sealed class LineSourceQueryTests
         RoadGraph graph = RoadFixtures.Chain(4);
         MapLayers layers = new(LayerRuleset.Default);
 
-        DesirabilityWeights weights = new(Fixed.One, Fixed.One, Noise);
+        DesirabilityWeights weights = DesirabilityWeights.Default with { NoiseSource = Noise };
 
         Assert.Equal(0, layers.Desirability(graph, weights, new Tiles(16), new Tiles(8)));
     }
@@ -314,7 +315,7 @@ public sealed class LineSourceQueryTests
         RoadGraph graph = RoadFixtures.Chain(4);
         MapLayers layers = new(LayerRuleset.Default);
 
-        DesirabilityWeights weights = new(Fixed.One, Fixed.One, Noise);
+        DesirabilityWeights weights = DesirabilityWeights.Default with { NoiseSource = Noise };
 
         Tiles east = new(16);
         Tiles north = new(6);
@@ -330,7 +331,7 @@ public sealed class LineSourceQueryTests
         // Emitting fills the SOURCE column; the field a query reads is the convolution of it, so the
         // cadence has to run before pollution exists anywhere. Tick 0 is due for it.
         layers.EmitPollution(CellGrid.ToCells(east), CellGrid.ToCells(north), 400);
-        layers.Step(Ticks.Zero, graph);
+        layers.Step(Ticks.Zero, graph, TerrainRuleset.None);
 
         int fouled = layers.Desirability(graph, weights, east, north);
 

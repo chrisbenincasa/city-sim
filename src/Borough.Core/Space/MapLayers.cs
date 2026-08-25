@@ -1,5 +1,7 @@
 using Borough.Core.Arithmetic;
+using Borough.Core.Determinism;
 using Borough.Core.Quantities;
+using Borough.Core.Rules;
 using Borough.Core.Tables;
 
 namespace Borough.Core.Space;
@@ -25,14 +27,19 @@ public readonly record struct LayerReading(Cells East, Cells North, int Value);
 /// <param name="Pollution">Q16.16 <c>w₂</c>. Subtracts.</param>
 /// <param name="Noise">Q16.16 <c>w₃</c>. Subtracts.</param>
 /// <param name="NoiseSource">The range and intensity the noise query carries.</param>
+/// <param name="Shoreline">Q16.16 <c>w₅</c>. Subtracts. See <see cref="Space.Shoreline"/>.</param>
+/// <param name="ShorelineSource">The range and intensity the shoreline query carries.</param>
 /// <remarks>
-/// ⚠ <b>Two weights and not five</b> — <c>w₁</c> was deleted (<c>adr/0122</c>) and <c>w₄</c> amenity and
-/// <c>w₅</c> shoreline have no term to weigh (<c>adr/0123</c>). ⚠ <b>Both are unratified and each owes
-/// TWO entries in <c>plans/0002</c> §D1</b>, a reachable floor and an owed real ratifier, because
-/// nothing in the city reads land value and the quantity that would refute a scale is a consumer's
-/// (<c>adr/0125</c>).
+/// ⚠ <b>Three weights and not four</b> — <c>w₁</c> was deleted (<c>adr/0122</c>) and <c>w₄</c> amenity
+/// still has no term to weigh (<c>adr/0123</c>, milestone 15). <b><c>w₅</c> shoreline arrived at
+/// milestone 24</b>, once runoff gave a Water Body's Bin something to hold; before that it would have
+/// been the present-and-permanently-zero term <c>adr/0123</c> refused. ⚠ <b>All three are unratified
+/// and each owes TWO entries in <c>plans/0002</c> §D1</b>, a reachable floor and an owed real
+/// ratifier, because nothing in the city reads land value and the quantity that would refute a scale
+/// is a consumer's (<c>adr/0125</c>).
 /// </remarks>
-public readonly record struct DesirabilityWeights(int Pollution, int Noise, LineSource NoiseSource)
+public readonly record struct DesirabilityWeights(
+    int Pollution, int Noise, LineSource NoiseSource, int Shoreline, ShorelineSource ShorelineSource)
 {
     /// <summary>
     /// The shipped starting point. <b>Every number here is unratified and each owes two <c>§D1</c>
@@ -59,11 +66,101 @@ public readonly record struct DesirabilityWeights(int Pollution, int Noise, Line
     /// ⚠ <b>Nothing distinguishes them beyond that, and nothing can</b>: the quantity that would refute
     /// a weight is produced by a consumer of land value, and there is no consumer (<c>adr/0125</c>).
     /// </para>
+    /// <para>
+    /// <b>Shoreline range 400 m, and it is borrowed from amenity rather than from noise.</b>
+    /// <c>02 §2.4</c> states no shoreline band at all, so one had to be chosen; 400 m is the
+    /// walkable-catchment distance, taken because <c>CONTEXT.md</c> → Water Body ties this term to
+    /// the same event — a fouled beach <em>"degrades adjacent land value <b>and</b> removes a walkable
+    /// Amenity destination"</em> — so the reach of the harm and the reach of the lost destination are
+    /// one neighbourhood. ⚠ <b>Not copied from the 300 m noise band</b>, which is a road's band and has
+    /// nothing to do with water.
+    /// </para>
+    /// <para>
+    /// <b>Shoreline intensity 6.0, and the measurement is what fixed it.</b>
+    /// <c>ShorelineMeasurementTests</c>, three keys on <c>coastal.toml</c> with every body completely
+    /// fouled: the mean level over 64 shore samples is <b>2.09</b> one Tile inland and <b>0.33</b> at
+    /// the far end of the range. That puts the near shore in the same order of magnitude as noise
+    /// beside a capacity Street (about <b>3</b>) and an order below a strong plume (about <b>12</b>),
+    /// which is the *leaves every term visible* criterion the two weights above are set on.
+    /// ⚠ <b>It crosses <see cref="Transcendental.Log1P"/>'s unity — and therefore leaves the
+    /// logarithmic stretch — around the middle of the range</b>, so the outer half superposes linearly.
+    /// That is a weaker property than the noise 4.0 has and it is stated rather than glossed: the tail
+    /// is where the term is smallest, so the arithmetic error is small in the units that are read.
+    /// ⚠ <b>Its multiplicand is a FILL FRACTION, bounded in <c>[0, 1]</c></b>, where noise's is an
+    /// unbounded flow — so the two intensity numbers are not comparable and the larger one here does
+    /// not mean water shouts louder than roads.
+    /// </para>
+    /// <para>
+    /// <b>Weight 1.0, neutral for the reason above and for one more.</b> The shoreline term is the
+    /// only one of the three whose input a <em>player</em> moves within a run: pollution and noise
+    /// follow the city being built, and fouling follows how much of a catchment was paved. 🔴 That
+    /// makes it the term most likely to be the first one anybody wants retuned, and the first that a
+    /// consumer of land value could actually refute.
+    /// </para>
     /// </remarks>
     public static DesirabilityWeights Default { get; } = new(
         Fixed.One,
         Fixed.One,
-        new LineSource(Tiles.FromMetres(300), Fixed.FromInt(4)));
+        new LineSource(Tiles.FromMetres(300), Fixed.FromInt(4)),
+        Fixed.One,
+        new ShorelineSource(Tiles.FromMetres(400), Fixed.FromInt(6)));
+}
+
+/// <summary>
+/// The weights <see cref="MapLayers.Fertility"/> composes with. <b>One, and that is the decision.</b>
+/// </summary>
+/// <param name="Pollution">Q16.16 <c>w_p</c>. Subtracts.</param>
+/// <remarks>
+/// <para>
+/// <c>adr/0156</c>, milestone 24 task 5. 🔴 <b>There is no Sealing weight here and its absence is the
+/// decision.</b> <c>w_s</c> is <b>derived</b> from an endpoint — <c>CONTEXT.md</c> → Sealing makes a
+/// Cell at <see cref="CellGrid.TilesInCell"/> one whose every Tile is built on, so it has no farmland
+/// — which pins the term at <c>base × Sealing / 1024</c>. ***A coefficient with an endpoint is not a
+/// tuning knob, and offering it as one invites a Ruleset to state that a fully paved Cell still
+/// farms.***
+/// </para>
+/// <para>
+/// <b>A record of one field rather than a bare <c>int</c> parameter</b>, on
+/// <see cref="DesirabilityWeights"/>'s shape: it is where <c>w₄</c>'s sibling goes when a term is
+/// added, and it keeps the two compositions reading alike.
+/// </para>
+/// </remarks>
+public readonly record struct FertilityWeights(int Pollution)
+{
+    /// <summary>
+    /// The shipped starting point. 🔴 <b>Unratified, and it owes a <c>plans/0002</c> §D1 row.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>4%, and it is anchored rather than derived.</b> Pollution reaches about <b>12</b> in kernel
+    /// units under a strong source (measured — see <see cref="DesirabilityWeights.Default"/>), and
+    /// <c>adr/0022</c>'s Evidence specimen is the one place in the corpus that says what a plume
+    /// should <em>cost</em> a farm: <em>"41% — ground sealed 12%, pollution from Eastfield Industrial
+    /// 47%"</em>. At <c>w_p = 0.04</c> a Cell under that source loses <b>0.48</b>, which is that
+    /// sentence within rounding.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The specimen is a mock-up and is being leaned on anyway, which is stated rather than
+    /// hidden.</b> What earns it the weight it is carrying is that its <em>other</em> half was checked
+    /// and held: <c>plans/0042</c> <b>F7</b> measured mean Sealing at <b>6.3%</b> and a peak Cell at
+    /// <b>11.4%</b> against the specimen's <em>ground sealed 12%</em>. ***A mock-up whose one testable
+    /// number came back right is better evidence than an invented ratio***, and it is still not a
+    /// measurement of this one.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Percent is a coarse unit here and the ratifier may reopen it, not just the value.</b> At
+    /// the peak magnitude one step is <b>0.12</b> of the whole fertility scale, so nothing between
+    /// 0.36 and 0.48 is expressible. It stays a percent because <c>adr/0048</c> refuses a decimal on
+    /// the path in and every other authored fraction in this corpus is one.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>Nothing consumes Fertility, so nothing can refute this yet</b> — no milestone in
+    /// <c>06</c> builds a farm. The named ratifier is milestone 24's long run on a world with varied
+    /// terrain and an emitting source, and the refuting reading is stated in both directions in
+    /// <c>plans/0002</c> §D1.
+    /// </para>
+    /// </remarks>
+    public static FertilityWeights Default { get; } = new(IntegerMath.RoundDiv(Fixed.FromInt(4), 100));
 }
 
 /// <summary>
@@ -98,7 +195,15 @@ public sealed class MapLayers
     private const int InitialCapacity = 1_024;
 
     private readonly LayerCellTable _cells;
+    private readonly TerrainCellTable _terrain;
+    private readonly WoodlandCellTable _woodland;
+
+    /// <summary>What the terrain table folded to when the ground was laid. See <see cref="LayTerrain"/>.</summary>
+    private ulong _terrainLaidFold;
     private readonly CellResidency _residency = new();
+
+    /// <summary>Scratch for the land value pass. Rebuilt each pass; never saved, never hashed.</summary>
+    private readonly TrafficPresence _traffic = new();
 
     private LayerRuleset _ruleset;
     private CellRect _pollutionDirty = CellRect.Empty;
@@ -107,6 +212,13 @@ public sealed class MapLayers
     public MapLayers(LayerRuleset ruleset)
     {
         _cells = new LayerCellTable(InitialCapacity);
+        _terrain = new TerrainCellTable();
+        _woodland = new WoodlandCellTable();
+
+        // An unpopulated world's ground is all Ordinary, and that is what its ground IS rather than a
+        // placeholder -- so the baseline is taken here and a world that is never populated still has
+        // a fingerprint to be checked against.
+        _terrainLaidFold = _terrain.Fingerprint();
         _ruleset = ruleset;
         PollutionKernel = LayerKernels.IndustrialPollution(ruleset.Constants);
     }
@@ -116,6 +228,88 @@ public sealed class MapLayers
 
     /// <summary>Which slot holds which Cell.</summary>
     public CellResidency Residency => _residency;
+
+    /// <summary>
+    /// What sort of ground every Cell is. <b>Dense, and it has no residency index.</b>
+    /// </summary>
+    /// <remarks>
+    /// Here rather than on the <c>World</c> because <see cref="Fertility"/> is the term that reads it
+    /// and Fertility composes here. ⚠ <b>It is not a Map Layer</b> — nothing diffuses it, nothing
+    /// schedules it and <see cref="Step"/> never touches it. It shares this class for the reason
+    /// <see cref="LayerCellTable.Sealing"/> does: this is where per-Cell ground lives.
+    /// </remarks>
+    public TerrainCellTable Terrain => _terrain;
+
+    /// <summary>
+    /// Lays the ground from the world key, and records it as the state nothing may change.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>One call rather than two, and that is the point.</b> Generating the terrain and recording
+    /// its fingerprint must happen together — a caller that did the first and forgot the second would
+    /// leave a world that reports as corrupt at the end of its run, which is a failure with no
+    /// relation to its cause. ***Two steps that must not come apart belong behind one door.***
+    /// </para>
+    /// <para>
+    /// <c>plans/0042</c> decision 3 places the call in
+    /// <see cref="Entities.SyntheticCity.PopulateInto"/>, between the already-populated refusal and
+    /// <c>LayLand</c>.
+    /// </para>
+    /// </remarks>
+    public void LayTerrain(WorldKey key)
+    {
+        TerrainGenerator.LayInto(_terrain, key);
+
+        _terrainLaidFold = _terrain.Fingerprint();
+    }
+
+    /// <summary>
+    /// Whether anything has written the terrain table since the ground was laid.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>This is what pays for the Decide guard skipping that table</b> — see
+    /// <see cref="Entities.World.TablesAPhaseCanWrite"/>. ⚠ <b>It asks *has it changed*, not *does it
+    /// match the world key*</b>: an unpopulated world has never been laid, and a loaded world was
+    /// restored rather than generated, so a key comparison reports both as corrupt. A load restoring
+    /// the wrong terrain is <c>adr/0112</c>'s job and is already done.
+    /// </remarks>
+    public bool TerrainIsUnchangedSinceLaid() => _terrain.Fingerprint() == _terrainLaidFold;
+
+    /// <summary>
+    /// How many of every Cell's Tiles are wooded. <b>Dense, and it has no residency index.</b>
+    /// </summary>
+    /// <remarks>
+    /// Here for <see cref="Terrain"/>'s reason — this is where per-Cell ground lives — and in a table
+    /// of its own for <see cref="WoodlandCellTable"/>'s. ⚠ <b>It is not a Map Layer</b>: nothing
+    /// diffuses it, nothing schedules it, and <see cref="Step"/> never touches it.
+    /// </remarks>
+    public WoodlandCellTable Woodland => _woodland;
+
+    /// <summary>Plants the world's forest from the world key.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A second door beside <see cref="LayTerrain"/> rather than the same one, and the reason is
+    /// that the two tables have opposite mutability contracts.</b> Terrain is laid once and a
+    /// fingerprint is taken so that <see cref="TerrainIsUnchangedSinceLaid"/> can pay for the Decide
+    /// guard skipping it. <b>Woodland is written by the running city</b> — every
+    /// <see cref="Seal"/> may take some — so a fingerprint over it would be a check that fails as
+    /// soon as anybody builds. ***Putting them behind one door would mean one of the two contracts
+    /// had to be weakened to fit.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It must run before <c>LayLand</c> and it authors no number.</b> Every Cell is unsealed
+    /// when this writes, so the Sealing ceiling is trivially satisfied and the pass does not consult
+    /// it; run after the roads, it would plant forest on top of them.
+    /// </para>
+    /// </remarks>
+    public void LayWoodland(WorldKey key) => WoodlandGenerator.LayInto(_woodland, key);
+
+    /// <summary>How many of one Cell's Tiles are wooded. <b>0 to <see cref="CellGrid.TilesInCell"/>.</b></summary>
+    /// <remarks>
+    /// Named for the count rather than for the thing, because <see cref="Woodland"/> is the table and
+    /// one of the two had to say which it was.
+    /// </remarks>
+    public int WoodedTiles(Cells east, Cells north) => _woodland.At(east, north);
 
     /// <summary>The cadence and rates this world reads its Layers with.</summary>
     public LayerRuleset Ruleset => _ruleset;
@@ -199,11 +393,28 @@ public sealed class MapLayers
 
     /// <summary>Phase 5: recompute whichever Layers this Tick's cadence is due for.</summary>
     /// <remarks>
-    /// <b>Sealing is not here, and its absence is the schedule being honest.</b> It changes on build,
-    /// so <see cref="LayerSchedule.For"/> answers <see cref="LayerCadence.Never"/> for it rather than
-    /// carrying a period nobody reads.
+    /// <para>
+    /// ✅ <b>Sealing is here as of milestone 24 task 4, and it was not before.</b> This paragraph used
+    /// to say its absence was the schedule being honest — it changes on build, so it had no cadence.
+    /// It has one now, because <em>recovery</em> is not the same event as sealing: ground unbuilt on
+    /// heals whether or not anything is built anywhere, so the pass that heals it has to be on a clock
+    /// rather than at a write site. <c>02 §2.4</c>, <c>adr/0044</c>.
+    /// </para>
+    /// <para>
+    /// <b>Its cadence is a Day and the other two are not, which is deliberate.</b> The rate is stated
+    /// in Days by the design (<c>CONTEXT.md</c> → Sealing), so the pass ticks in Days and the tau is a
+    /// count of Days with nothing to convert. See <see cref="LayerSchedule.Sealing"/>.
+    /// </para>
     /// </remarks>
-    public void Step(Ticks tick, RoadGraph graph)
+    /// <param name="tick">The Tick being stepped.</param>
+    /// <param name="graph">The Road Graph land value's noise term reads.</param>
+    /// <param name="terrain">
+    /// The <c>[[terrain]]</c> table this world's Ruleset states. Sealing's recovery rate is keyed by
+    /// terrain type, so the pass cannot look one up without it; a Ruleset stating no
+    /// <c>[[terrain]]</c> heals nowhere, which is <see cref="TerrainRuleset.None"/>.
+    /// </param>
+    public void Step(
+        Ticks tick, RoadGraph graph, TerrainRuleset terrain, Shoreline? shoreline = null)
     {
         ArgumentNullException.ThrowIfNull(graph);
 
@@ -223,8 +434,18 @@ public sealed class MapLayers
             // steps toward the desirability that holds on THIS Tick rather than the one that held a
             // cadence ago. The order is hash-bearing and the alternative is a whole cadence of lag
             // added to a lag that is already the point of the column.
-            SetLandValueTargets(graph);
+            SetLandValueTargets(graph, shoreline);
             DriftLandValue();
+        }
+
+        if (Schedule.IsDue(Layer.Sealing, tick))
+        {
+            DecaySealing(terrain);
+        }
+
+        if (Schedule.IsDue(Layer.Woodland, tick))
+        {
+            RegrowWoodland();
         }
     }
 
@@ -396,40 +617,182 @@ public sealed class MapLayers
 
         int slot = _residency.Ensure(_cells, east, north);
         long sealed_ = (long)_cells.Sealing[slot] + tiles;
+        int now = sealed_ > CellGrid.TilesInCell ? CellGrid.TilesInCell : (int)sealed_;
 
-        _cells.Sealing[slot] = sealed_ > CellGrid.TilesInCell ? CellGrid.TilesInCell : (int)sealed_;
+        _cells.Sealing[slot] = now;
+
+        // Building over forest clears it (CONTEXT.md -> Zone), and this is where that happens: not a
+        // verb, not an event, and nothing announces it. adr/0159 -- a Cell's Tiles are ONE budget, so
+        // Sealing rising IS Woodland falling once the two would overlap. The Timber is forfeited
+        // rather than harvested, which is the cost the design chose over a refusal.
+        //
+        // Clamped rather than decremented by `tiles`. Sealing saturates at the Cell, so a Seal that
+        // overran would otherwise take more Woodland than there were Tiles to take -- and the two
+        // counts are only comparable at all because they share a denominator.
+        int room = CellGrid.TilesInCell - now;
+
+        if (_woodland.At(east, north) > room)
+        {
+            _woodland.Set(east, north, room);
+        }
     }
 
     /// <summary>How many Tiles in a Cell have been built on. Zero where nothing is resident.</summary>
     public int Sealing(Cells east, Cells north) => Read(_cells.Sealing, east, north);
 
     /// <summary>
-    /// Decays Sealing by one step. <b>Not scheduled, because its rate has no key yet.</b>
+    /// Heals one scheduled step of Sealing everywhere, at the rate that Cell's terrain type states.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <c>02 §2.4</c>: Sealing decays at a Ruleset rate <b>keyed by terrain type</b> — rock may never
-    /// recover, floodplain may recover over hundreds of Days. There is no terrain in Phase 1, so there
-    /// is no key to look a rate up by, so <see cref="LayerRates.Default"/> sets the time constant to
-    /// zero and this does nothing. The operator exists so that the slice which adds terrain finds the
-    /// mechanism rather than inventing it beside the storage.
+    /// recover, floodplain may recover over hundreds of Days. ✅ <b>Milestone 24 task 4 supplied the
+    /// key.</b> Until then this read one global time constant pinned at zero, because there was no
+    /// terrain to key a rate by; the tau now comes from
+    /// <see cref="TerrainRuleset.SealingDecayTau"/>, one per type, looked up per Cell.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>The step is floored at one Tile while the value is positive, and that floor is a fix
+    /// rather than a rounding preference.</b> <c>value -= RoundDiv(value, tau)</c> is exponential
+    /// decay in integers and it <em>stalls</em>: the decrement rounds to zero once
+    /// <c>value &lt; tau ÷ 2</c>, so ground settles at a permanent residue of about half the tau and
+    /// never reaches bare. Worse, a tau above <c>2 × </c><see cref="CellGrid.TilesInCell"/> subtracts
+    /// nothing on the <em>first</em> update, so a fully-sealed Cell never moves at all. Measured
+    /// before the fix: tau 8 stalled at 3, tau 64 at 31, tau 600 at 299, and tau 2400 never moved.
+    /// ***Nothing caught it because this method had no caller and every shipped file stated a tau of
+    /// zero*** — the shape <c>adr/0043</c> is about, a claim nobody had a machine for.
+    /// </para>
+    /// <para>
+    /// <b>The floor makes the tail linear rather than exponential and that is accepted, not
+    /// overlooked.</b> What the design states is an endpoint in Days — <em>"floodplain may recover
+    /// over hundreds of Days"</em> — and an exponential that never arrives cannot deliver an endpoint
+    /// at all. A curve that is exponential where the quantity is large and one Tile a Day where it is
+    /// small reaches bare ground in <c>tau × ln(TilesInCell) + tau ÷ 2</c> updates, which is a number
+    /// somebody can check against the sentence.
+    /// </para>
+    /// <para>
+    /// <b>Zero means never, and it is reached by a type stating it rather than by a default.</b> Rock
+    /// states 0 (<c>CONTEXT.md</c>: <em>rock may never recover</em>), and a Ruleset with no
+    /// <c>[[terrain]]</c> at all heals nowhere — which is what every world before this one did, so no
+    /// standing city changes shape because this method gained a caller.
+    /// </para>
     /// </remarks>
-    public void DecaySealing()
+    /// <param name="terrain">The <c>[[terrain]]</c> table this world's Ruleset states.</param>
+    public void DecaySealing(TerrainRuleset terrain)
     {
-        int tau = _ruleset.Rates.SealingDecayTau;
-
-        if (tau <= 0)
+        if (!terrain.Stated)
         {
             return;
         }
 
         for (int slot = 0; slot < _cells.Rows.SlotCount; slot++)
         {
-            if (_cells.Rows.IsLive(slot))
+            if (!_cells.Rows.IsLive(slot))
             {
-                int value = _cells.Sealing[slot];
-                _cells.Sealing[slot] = value - IntegerMath.RoundDiv(value, tau);
+                continue;
             }
+
+            int value = _cells.Sealing[slot];
+
+            if (value <= 0)
+            {
+                continue;
+            }
+
+            int tau = terrain.SealingDecayTau(_terrain.At(_cells.East[slot], _cells.North[slot]));
+
+            if (tau <= 0)
+            {
+                continue;
+            }
+
+            int step = IntegerMath.RoundDiv(value, tau);
+
+            _cells.Sealing[slot] = value - (step < 1 ? 1 : step);
         }
+    }
+
+    /// <summary>
+    /// Puts back one pass of forest everywhere there is room for it. <c>adr/0022</c>, <c>adr/0159</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>This is the constant <c>adr/0022</c> calls load-bearing by name</b> — <em>"the first
+    /// response is more reboot levers, not faster regrowth; regrowth speed is the load-bearing
+    /// constant and loosening it deletes the arc"</em> — <b>and until milestone 24 task 8b it had no
+    /// owner at all</b>: no ADR, no <c>plans/0002</c> row, no ratifier and no Ruleset key, carried for
+    /// the life of the project by that one sentence.
+    /// </para>
+    /// <para>
+    /// <b>The ceiling is <see cref="WoodlandCellTable.Potential"/> and the room is Sealing, and a Cell
+    /// gets the smaller.</b> Growing toward the bare Cell would turn every unbuilt Cell into full
+    /// forest given time and erase the seed's character, which is the property <c>adr/0022</c> put
+    /// Woodland in for. Ignoring Sealing would break <c>adr/0159</c>'s <c>Woodland + Sealing ≤
+    /// TilesInCell</c> — ***the one budget the ground has*** — from the only writer that raises
+    /// Woodland.
+    /// </para>
+    /// <para>
+    /// <b>A dense whole-map walk, and that is named rather than hidden.</b> <c>02 §10</c> calls a
+    /// whole-world sweep the wrong shape and <c>plans/0042</c> <b>F7</b> is this milestone getting
+    /// burned by one already. It is taken here because ***forest grows where the city is not***, so
+    /// the sparse residency index is precisely the wrong set: the Cells with Layer rows are the Cells
+    /// something happened to. The cost is measured rather than asserted and belongs to
+    /// <c>plans/0013</c>.
+    /// </para>
+    /// <para>
+    /// <b>Zero means never and is reached by the Ruleset saying nothing.</b> Every world before this
+    /// one had a ratchet with no release, which is <c>adr/0006</c>'s concern wearing the other sign —
+    /// and it is still reachable, because a file that states no regrowth is a legitimate world and not
+    /// a misconfiguration.
+    /// </para>
+    /// </remarks>
+    public void RegrowWoodland()
+    {
+        int step = _ruleset.Rates.WoodlandTilesPerPass;
+
+        if (step <= 0)
+        {
+            return;
+        }
+
+        for (int cell = 0; cell < CellGrid.WorldCellCount; cell++)
+        {
+            int standing = _woodland.Tiles[cell];
+            int ceiling = _woodland.Potential[cell];
+
+            if (standing >= ceiling)
+            {
+                continue;
+            }
+
+            // The room Sealing leaves. Read through the residency index rather than through the
+            // Cell query, because that query re-derives the slot from a coordinate this loop already
+            // holds -- and it is read at all only for Cells with forest still owed, which on a
+            // generated map is a small fraction of the walk.
+            int room = CellGrid.TilesInCell - SealingAt(cell);
+
+            if (ceiling > room)
+            {
+                ceiling = room;
+            }
+
+            if (standing >= ceiling)
+            {
+                continue;
+            }
+
+            int grown = standing + step;
+
+            _woodland.Tiles[cell] = grown > ceiling ? ceiling : grown;
+        }
+    }
+
+    /// <summary>Sealing at a Cell index, or zero where no Layer row exists.</summary>
+    private int SealingAt(int cell)
+    {
+        int slot = _residency.SlotAt(cell);
+
+        return slot < 0 ? 0 : _cells.Sealing[slot];
     }
 
     /// <summary>
@@ -558,27 +921,90 @@ public sealed class MapLayers
         Layer.IndustrialPollution => Pollution(east, north),
         Layer.LandValue => LandValue(east, north),
         Layer.Sealing => Sealing(east, north),
+        Layer.Woodland => _woodland.At(east, north),
         _ => throw new ArgumentOutOfRangeException(nameof(layer)),
     };
 
     /// <summary>Rebuilds the residency index from the Cell rows. What a load calls.</summary>
-    public void RebuildDerived() => _residency.Rebuild(_cells);
+    public void RebuildDerived()
+    {
+        _residency.Rebuild(_cells);
+
+        // The load path, and the easiest of the three to forget: a load RESTORES the terrain rows and
+        // never runs the generator, so without this a loaded world reports as having been written to
+        // on the Tick it was loaded. adr/0158, milestone 24 task 2.
+        _terrainLaidFold = _terrain.Fingerprint();
+    }
 
     /// <summary>
-    /// <c>fertility(cell) = terrain suitability − Sealing − pollution</c>. <b>A named hole.</b>
+    /// <c>fertility(cell) = base − base·Sealing/1024 − w_p·pollution</c>, Q16.16, <b>composed here
+    /// and never stored.</b>
     /// </summary>
     /// <remarks>
-    /// <b>It throws rather than returning zero, and the throw is the deliverable.</b> Terrain
-    /// suitability needs the world generator, which does not exist; Sealing arrives in task 6. A
-    /// placeholder returning zero is a value that will be read, believed, and tuned around — and by the
-    /// time the generator lands, something will depend on farms yielding nothing. A hole that fails
-    /// loudly is a hole. <c>02 §2.3</c>, <c>plans/0009</c> task 7.
+    /// <para>
+    /// <c>adr/0156</c>, milestone 24 task 5. <b>A proportion</b>: <see cref="Fixed.One"/> is fully
+    /// fertile, so the result reads as a percentage and each subtracted term is already the
+    /// percentage that term cost — which is what makes <c>adr/0022</c>'s Evidence specimen,
+    /// <em>"41% — ground sealed 12%, pollution from Eastfield Industrial 47%"</em>, fall out with no
+    /// conversion and no denominator anybody has to name. ***The scale was decided by the readout
+    /// rather than by the storage.***
+    /// </para>
+    /// <para>
+    /// <b>Weighted, because unweighted it was never an implementation.</b> The three terms are in
+    /// three units — a Ruleset fraction, a Tile count of 0–1024, and a stock measuring about 12 in
+    /// kernel units — so a bare subtraction lets Sealing outweigh pollution by roughly <b>85:1</b> on
+    /// the strength of the representation alone.
+    /// </para>
+    /// <para>
+    /// <b>Pollution is a count and the weight is a ratio, so the product is already Q16.16 and the
+    /// count is never lifted into it</b> — <see cref="Desirability"/>'s rule, and its overflow lesson
+    /// with it: lifting first throws at a magnitude <see cref="Invariant"/>'s
+    /// <c>LayerMagnitudeIsBounded</c> calls legal.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>The Sealing term has no weight and reads its coefficient off an endpoint.</b> A Cell at
+    /// <see cref="CellGrid.TilesInCell"/> has every Tile built on and therefore no farmland, which
+    /// pins the term at exactly Base Fertility when the Cell is full. See <see cref="FertilityWeights"/>.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It goes negative and does NOT clamp.</b> Sealing decays, so <c>base − 1.4·base</c> and
+    /// <c>base − 3·base</c> are two Cells at very different distances from farming again, and a clamp
+    /// makes them one number. ⚠ <b>The decomposition is not the reason</b> — Evidence reads the terms
+    /// — ***it is the ordering between exhausted Cells***, which is what <c>adr/0022</c>'s cyclical
+    /// land-use arc runs on. A consumer wanting <em>is there a farm here</em> takes <c>≤ 0</c> and
+    /// loses nothing.
+    /// </para>
+    /// <para>
+    /// <b>It saturates rather than throwing</b>, on <c>LineSourceQueries.Saturate</c>'s reasoning that
+    /// a read-only query must not throw on a world somebody is allowed to build. ⚠ <b>It still throws
+    /// when the RULESET prices no ground, and that is a different thing.</b> Saturation is about a
+    /// value; <see cref="Rules.TerrainRuleset.BaseFertility"/>'s refusal is about a <em>declaration</em>
+    /// that is absent — it fires on every Cell alike and immediately, which is the shape a
+    /// configuration error should have rather than a number somebody reads and believes.
+    /// </para>
     /// </remarks>
-    /// <exception cref="NotSupportedException">Always, until the generator and Sealing exist.</exception>
-    public int Fertility(Cells east, Cells north) =>
-        throw new NotSupportedException(
-            $"fertility at Cell ({east.Raw}, {north.Raw}) composes from terrain suitability, which "
-            + "needs the world generator (02 §2.3). Composed at the point of use and never stored.");
+    /// <param name="terrain">The <c>[[terrain]]</c> table this world's Ruleset states.</param>
+    /// <param name="weights">Q16.16 <c>w_p</c>. See <see cref="FertilityWeights"/>.</param>
+    /// <param name="east">The Cell, east.</param>
+    /// <param name="north">The Cell, north.</param>
+    /// <exception cref="InvalidOperationException">The Ruleset states no <c>[[terrain]]</c>.</exception>
+    public int Fertility(
+        TerrainRuleset terrain, FertilityWeights weights, Cells east, Cells north)
+    {
+        int ceiling = terrain.BaseFertility(_terrain.At(east, north));
+
+        // base x Sealing / 1024, and the divisor is CellGrid.TilesInCell rather than a number of its
+        // own -- the endpoint IS the coefficient. Rounded rather than shifted because the term is a
+        // proportion of the ceiling and a truncation biases every Cell the same way.
+        long sealed_ = IntegerMath.RoundDiv(
+            (long)ceiling * Sealing(east, north), CellGrid.TilesInCell);
+
+        long polluted = (long)weights.Pollution * Pollution(east, north);
+
+        long total = ceiling - sealed_ - polluted;
+
+        return total < int.MinValue ? int.MinValue : total > int.MaxValue ? int.MaxValue : (int)total;
+    }
 
     /// <summary>
     /// <c>− w₂·pollution − w₃·noise</c>. <b>Two of four terms, and the two that are missing are not
@@ -634,7 +1060,22 @@ public sealed class MapLayers
     /// belongs where the value is stored rather than where it is computed.
     /// </para>
     /// </remarks>
-    public int Desirability(RoadGraph graph, DesirabilityWeights weights, Tiles east, Tiles north)
+    /// <param name="near">
+    /// An optional presence map letting the noise query skip a Tile no traffic reaches.
+    /// <b>Null means do the full scan</b>, so nothing that omits it changes its answer.
+    /// </param>
+    /// <param name="shoreline">
+    /// The water in reach, or <b>null for a world with no water</b> — which drops <c>w₅</c> out of the
+    /// composition entirely rather than adding a zero to it (<c>adr/0123</c>). Every Ruleset that
+    /// omits <c>[water]</c>, and every one whose water has no Bin, passes null here.
+    /// </param>
+    public int Desirability(
+        RoadGraph graph,
+        DesirabilityWeights weights,
+        Tiles east,
+        Tiles north,
+        TrafficPresence? near = null,
+        Shoreline? shoreline = null)
     {
         ArgumentNullException.ThrowIfNull(graph);
 
@@ -650,16 +1091,28 @@ public sealed class MapLayers
         // and not a wider type, and it is right, because the defect here was the conversion.
         long pollution = (long)weights.Pollution * Pollution(cellEast, cellNorth);
         long noise = ((long)weights.Noise
-            * LineSourceQueries.Noise(graph, weights.NoiseSource, east, north)) >> Fixed.FractionalBits;
+            * LineSourceQueries.Noise(graph, weights.NoiseSource, east, north, near))
+            >> Fixed.FractionalBits;
 
-        // Both terms subtract, and there is no term that adds. See the remark above: this is a
-        // disamenity field until milestone 15, and its maximum is clean, quiet, empty ground.
+        // ABSENT AND NOT ZERO on a world with no water: a null shoreline never reaches the arithmetic,
+        // so the term is missing from the formula rather than contributing nothing to it. On a world
+        // WITH water the term is present and is zero until something fouls a body, and that zero is a
+        // fact about the world rather than about the build -- which is the distinction adr/0123 turns
+        // on and the reason this term could not ship before runoff did.
+        long fouling = shoreline is null
+            ? 0
+            : ((long)weights.Shoreline
+                * shoreline.Fouling(weights.ShorelineSource, east, north)) >> Fixed.FractionalBits;
+
+        // Every term subtracts, and there is still no term that adds. See the remark above: this is a
+        // disamenity field until milestone 15, and its maximum is clean, quiet, empty ground beside
+        // clean water.
         //
         // Saturated rather than checked, on LineSourceQueries.Saturate's reasoning: a read-only query
         // must not throw on a world somebody is allowed to build. The thing that catches a world gone
         // mad is Invariant.LayerMagnitudeIsBounded at end of run, and it is a better instrument for it
         // than an exception raised wherever somebody happened to read a Cell.
-        long total = -pollution - noise;
+        long total = -pollution - noise - fouling;
 
         return total < int.MinValue ? int.MinValue : total > int.MaxValue ? int.MaxValue : (int)total;
     }
@@ -705,8 +1158,14 @@ public sealed class MapLayers
     /// reduction belongs to a field whose sources do not superpose, and <c>02 §2.5</c> question 3
     /// already answered <em>superposes</em> for both terms.
     /// </remarks>
+    /// <param name="shoreline">As <see cref="Desirability"/>: null is a world with no water.</param>
     public int CellDesirability(
-        RoadGraph graph, DesirabilityWeights weights, Cells east, Cells north)
+        RoadGraph graph,
+        DesirabilityWeights weights,
+        Cells east,
+        Cells north,
+        TrafficPresence? near = null,
+        Shoreline? shoreline = null)
     {
         int stride = IntegerMath.FloorDiv(CellGrid.TilesPerCell, DesirabilitySamplesPerAxis);
         Tiles originEast = CellGrid.ToTiles(east) + new Tiles(IntegerMath.FloorDiv(stride, 2));
@@ -722,7 +1181,9 @@ public sealed class MapLayers
                     graph,
                     weights,
                     originEast + new Tiles(across * stride),
-                    originNorth + new Tiles(up * stride));
+                    originNorth + new Tiles(up * stride),
+                    near,
+                    shoreline);
             }
         }
 
@@ -750,11 +1211,18 @@ public sealed class MapLayers
     /// no conversion, and inventing one here would be a number nobody asked for.
     /// </para>
     /// </remarks>
-    public void SetLandValueTargets(RoadGraph graph)
+    /// <param name="graph">The Road Graph the noise term reads.</param>
+    /// <param name="shoreline">As <see cref="Desirability"/>: null is a world with no water.</param>
+    public void SetLandValueTargets(RoadGraph graph, Shoreline? shoreline = null)
     {
         ArgumentNullException.ThrowIfNull(graph);
 
         DesirabilityWeights weights = _ruleset.Desirability;
+
+        // ONE LINEAR SCAN OF THE SEGMENT TABLE, against a pass that queries it four times per Cell.
+        // Rebuilt here rather than cached across Ticks: it is scratch, so no load has to rebuild it
+        // and no derived column can go quietly unpopulated. See TrafficPresence.
+        _traffic.Rebuild(graph, weights.NoiseSource.Range);
 
         for (int slot = 0; slot < _cells.Rows.SlotCount; slot++)
         {
@@ -763,8 +1231,8 @@ public sealed class MapLayers
                 continue;
             }
 
-            _cells.LandValueTarget[slot] =
-                CellDesirability(graph, weights, _cells.East[slot], _cells.North[slot]);
+            _cells.LandValueTarget[slot] = CellDesirability(
+                graph, weights, _cells.East[slot], _cells.North[slot], _traffic, shoreline);
         }
     }
 

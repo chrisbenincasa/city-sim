@@ -10,8 +10,10 @@ namespace Borough.Tests.Corpus;
 /// <remarks>
 /// <para>
 /// <b>Scheduled by <c>adr/0123</c> and written by the task that made the claim true.</b> Milestone 9
-/// composes two of desirability's four terms and leaves amenity out; the field is therefore
-/// <b>bounded above by zero</b> and its maximum is clean, quiet, empty ground. That shortfall is a
+/// composed two of desirability's four terms; milestone 24 task 7 added <c>w₅</c> shoreline and made
+/// it <b>three</b>. ⚠ <b>The one still missing is the one this test is about</b> — amenity is the
+/// composition's only <em>positive</em> term, so the field stays <b>bounded above by zero</b> and its
+/// maximum is still clean, quiet, empty ground beside clean water. That shortfall is a
 /// <b>caveat</b>, and a caveat is the thing this corpus knows does not travel — <c>plans/0012</c>
 /// <b>Cause 5</b> is the standing record of clauses staying behind while the claim moves on.
 /// </para>
@@ -28,7 +30,9 @@ namespace Borough.Tests.Corpus;
 /// <para>
 /// ⚠ <b>DELETE THIS TEST AT MILESTONE 15.</b> Amenity arrives with a kind on a Business, the field
 /// stops being bounded above by zero, and a check policing an absence outlives its subject the day the
-/// absence ends. It is not a permanent rule about how desirability must be described.
+/// absence ends. It is not a permanent rule about how desirability must be described. ⚠ <b>Milestone
+/// 24 task 7 was the first chance to delete it by mistake</b> — shoreline landing closed one of the
+/// two holes <c>adr/0123</c> records, and closing one of two is not closing the caveat.
 /// </para>
 /// <para>
 /// ⚠ <b>The reach is deliberately loose and saying so is part of the check.</b> It asks only that the
@@ -70,8 +74,9 @@ public sealed class DesirabilityShortfallTests
             offenders.Count == 0,
             "these documents claim desirability is composed and never name amenity: "
             + string.Join("; ", offenders)
-            + ". Milestone 9 composes TWO of four terms and amenity — the only positive one — is absent, "
-            + "so the field is bounded above by zero and its maximum is empty ground (adr/0123). A "
+            + ". The composition is THREE of four terms since milestone 24 task 7 added shoreline, and "
+            + "amenity — the only positive one — is still absent, so the field is bounded above by "
+            + "zero and its maximum is empty ground (adr/0123). A "
             + "reader taking the claim at face value concludes the field is finished. Name amenity's "
             + "absence beside the claim, or do not make the claim. This check is deleted at milestone "
             + "15, when amenity arrives and the absence ends.");

@@ -25,8 +25,21 @@ split is what decides the milestone:
 |---|---|---|---|
 | **pollution** | ✅ ships, diffuses | — | composes |
 | **noise** | 🟡 unbuilt, **buildable** | **yes, where nobody drives** | composes |
-| **shoreline** | 🔴 unbuilt | **yes, in every world that exists** | absent |
+| **shoreline** | ~~🔴 unbuilt~~ ✅ **built, milestone 24 task 7** | **it was yes; it is now a property of the world** | ~~absent~~ **composes** |
 | **amenity** | 🔴 unbuilt | **no — and it is the only positive term** | absent |
+
+⚠ **AMENDED 2026-08-24 by milestone 24 task 7, and the amendment is this table's own reasoning
+arriving.** Shoreline's row said *zero in every world that exists* — that was a fact about the build,
+because nothing had made a Water Body, and it stopped being true the moment
+[`0160`](0160-a-sea-level-is-authored-ruleset-data-and-a-world-without-water-is-a-world-and-not-a-hole.md)
+generated water and runoff filled a Bin. **`w₅` now composes.** ⚠ **What it composes is a term that is
+still absent on most worlds** — a Ruleset omitting `[water]`, or stating it with no Bin, drops `w₅`
+rather than adding a zero, which is this table's distinction applied one level down at the *Ruleset*
+rather than at the *build*. 🔴 **The decision itself is unchanged and the caveat test stays**, because
+the decision was never about shoreline: **amenity is the only positive term** and it is still missing,
+so desirability is still bounded above by zero. ***Closing one of two holes is not closing the
+caveat***, and the test's remarks now say so, because milestone 24 was the first occasion on which
+somebody could have deleted it by mistake.
 
 ***Absent in the world and absent in the build are not the same absence.*** A term that is zero because
 the thing it measures is not happening is a **correct** reading, and composing it is not the placeholder

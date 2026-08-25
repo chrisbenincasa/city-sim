@@ -36,14 +36,32 @@ public class LayerScheduleTests
         Assert.Equal(256, LayerSchedule.Default.LandValue.Period);
     }
 
-    /// <summary>Sealing has no cadence, because it changes on build rather than on a clock.</summary>
+    /// <summary>
+    /// Sealing is due once a Day, and it was due <b>never</b> until milestone 24 task 4.
+    /// </summary>
+    /// <remarks>
+    /// This test asserted the opposite for two milestones, on the reasoning that Sealing changes on
+    /// build rather than on a clock. That is true of it <em>rising</em> and false of it
+    /// <em>recovering</em>: ground heals whether or not anything is built anywhere, so the pass that
+    /// heals it needs a clock. <c>CONTEXT.md</c> → Sealing states the intent in <b>Days</b>, so the
+    /// period is a Day and the tau is a count of Days with nothing to convert.
+    /// </remarks>
     [Fact]
-    public void Sealing_is_never_due()
+    public void Sealing_is_due_once_a_Day()
     {
-        for (ulong tick = 0; tick < 1_024; tick++)
+        int due = 0;
+
+        for (ulong tick = 0; tick < Borough.Core.Quantities.Ticks.PerDay; tick++)
         {
-            Assert.False(LayerSchedule.Default.IsDue(Layer.Sealing, new Ticks(tick)));
+            if (LayerSchedule.Default.IsDue(Layer.Sealing, new Ticks(tick)))
+            {
+                due++;
+                Assert.Equal(48UL, tick);
+            }
         }
+
+        Assert.Equal(1, due);
+        Assert.Equal(Borough.Core.Quantities.Ticks.PerDay, LayerSchedule.Default.Sealing.Period);
     }
 
     /// <summary>
@@ -63,7 +81,8 @@ public class LayerScheduleTests
             Ticks at = new(tick);
 
             int due = (LayerSchedule.Default.IsDue(Layer.IndustrialPollution, at) ? 1 : 0)
-                + (LayerSchedule.Default.IsDue(Layer.LandValue, at) ? 1 : 0);
+                + (LayerSchedule.Default.IsDue(Layer.LandValue, at) ? 1 : 0)
+                + (LayerSchedule.Default.IsDue(Layer.Sealing, at) ? 1 : 0);
 
             Assert.True(due <= 1, $"Tick {tick} is due for {due} Layers.");
         }
@@ -100,8 +119,8 @@ public class LayerScheduleTests
     [Fact]
     public void Two_diffusion_cadences_produce_two_hash_traces()
     {
-        ulong[] slow = Trace(new LayerSchedule(new LayerCadence(64, 0), new LayerCadence(256, 16)));
-        ulong[] fast = Trace(new LayerSchedule(new LayerCadence(32, 0), new LayerCadence(256, 16)));
+        ulong[] slow = Trace(new LayerSchedule(new LayerCadence(64, 0), new LayerCadence(256, 16), LayerSchedule.Default.Sealing, LayerSchedule.Default.Woodland));
+        ulong[] fast = Trace(new LayerSchedule(new LayerCadence(32, 0), new LayerCadence(256, 16), LayerSchedule.Default.Sealing, LayerSchedule.Default.Woodland));
 
         Assert.NotEqual(slow, fast);
     }
@@ -127,8 +146,8 @@ public class LayerScheduleTests
     [Fact]
     public void The_settled_field_is_the_same_at_either_cadence()
     {
-        World slow = Build(new LayerSchedule(new LayerCadence(64, 0), new LayerCadence(256, 16)));
-        World fast = Build(new LayerSchedule(new LayerCadence(32, 0), new LayerCadence(256, 16)));
+        World slow = Build(new LayerSchedule(new LayerCadence(64, 0), new LayerCadence(256, 16), LayerSchedule.Default.Sealing, LayerSchedule.Default.Woodland));
+        World fast = Build(new LayerSchedule(new LayerCadence(32, 0), new LayerCadence(256, 16), LayerSchedule.Default.Sealing, LayerSchedule.Default.Woodland));
 
         foreach (World world in (World[])[slow, fast])
         {

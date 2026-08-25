@@ -449,6 +449,37 @@ public readonly record struct KindDefinition(
     /// </remarks>
     public int Occupants { get; init; }
     /// <summary>
+    /// How many Tiles a Building of this kind covers, and therefore how many it Seals. One when the
+    /// Ruleset does not say.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="Occupants"/>'s rule a fourth time</b> — an authored number keyed on the kind,
+    /// read at a write site, pointed at by no live state — so it is a property of the Ruleset in
+    /// force and not of the Building. ⚠ <b>Unlike the other three, it is not retroactive:</b> Sealing
+    /// is <c>CONTEXT.md</c> → Sealing's <em>"count of Tiles in a Cell <b>ever</b> built on"</em>, so
+    /// lowering this reaches only what is built afterwards. A Building that has already covered
+    /// ground has already covered it.
+    /// </para>
+    /// <para>
+    /// <b>It exists because <c>CONTEXT.md</c> → Building says a Building <em>"has a footprint (the
+    /// set of Tiles it covers)"</em> and <em>"interacts with Map Layers through that footprint"</em>,
+    /// and nothing in the build carried one.</b> A Lot stores a position and no extent, and
+    /// <c>adr/0078</c> refused it a depth on purpose — so the footprint cannot be derived from
+    /// geometry and has to be declared, exactly as occupancy and employment are.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>The value is UNRATIFIED and one Tile is 16 m², which is smaller than any real
+    /// building.</b> It is the figure <c>CONTEXT.md</c> → Sealing illustrates the unit with — <em>"one
+    /// house seals 1/1024 of its Cell"</em> — carried forward so that this key changes no world that
+    /// did not state it. ⚠ <b>Read it against <c>[[building]] occupants</c> before quoting it</b>: a
+    /// kind holding three Households in one Tile is the absence of a considered number rather than a
+    /// considered number, and <c>plans/0002</c> §D1 holds what would settle it.
+    /// </para>
+    /// </remarks>
+    public int FootprintTiles { get; init; }
+
+    /// <summary>
     /// The Business kind a Building of this kind comes with, or <c>0</c> for none.
     /// </summary>
     /// <remarks>
@@ -2348,6 +2379,30 @@ public sealed class Ruleset
     public ParkingRuleset Parking { get; init; } = ParkingRuleset.None;
 
     /// <summary>
+    /// <b>What each sort of ground is worth before anything is built on it</b> — the
+    /// <c>[[terrain]]</c> tables (milestone 24 task 2).
+    /// </summary>
+    /// <remarks>
+    /// <see cref="TerrainRuleset.None"/> when the file states no <c>[[terrain]]</c>. ⚠ <b>That is a
+    /// Ruleset declining to price its ground and never a world without terrain in it</b> — the
+    /// polarity is unlike <see cref="Parking"/>'s, and deliberately: every world has ground
+    /// (<c>adr/0021</c>), so the per-Cell type column is written from the <c>WorldKey</c> whatever
+    /// this says. What absence removes is the <em>lookup</em>, and
+    /// <see cref="TerrainRuleset.BaseFertility"/> throws rather than returning zero for it.
+    /// </remarks>
+    public TerrainRuleset Terrain { get; init; } = TerrainRuleset.None;
+
+    /// <summary>
+    /// Where the sea stands — <c>[water]</c>, or <see cref="WaterRuleset.None"/> when unstated.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Absence means the world genuinely has no water in it</b>, which is the opposite polarity
+    /// to <see cref="Terrain"/> and the same as <see cref="Parking"/>'s. Every world has ground; not
+    /// every world has a coast. <c>adr/0160</c>.
+    /// </remarks>
+    public WaterRuleset Water { get; init; } = WaterRuleset.None;
+
+    /// <summary>
     /// <b>What a Segment costs to drive when other people are on it</b> — the <c>[traffic]</c> table
     /// (5c task 6).
     /// </summary>
@@ -2681,6 +2736,8 @@ public sealed class Ruleset
             Households = Households,
             Traffic = Traffic,
             Parking = Parking,
+            Terrain = Terrain,
+            Water = Water,
             Policies = Policies,
             Hinterlands = Hinterlands,
             HinterlandPrices = HinterlandPrices,

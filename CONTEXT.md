@@ -89,7 +89,11 @@ Agriculture is not a special case needing its own verb; it is Extraction, and it
 **Nobody paints nuisance.** Dirty industry is not a band the player selects; it is where Materials come from, and Materials gate all construction — so **pollution is the price of growth and importing is the price of clean air**, with no configuration avoiding both. The player's levers are where the inputs are, what they regulate, and what bill they accept.
 
 **Amenity**
-The count of distinct Business types reachable **on foot**, entering the residential choice utility with diminishing returns. One of the three agglomeration forces, and the one that rewards mixed use.
+The count of distinct **`[[building]]` kinds** reachable **on foot** from a place, under `log(1 + x)` diminishing returns. One of the three agglomeration forces, and the one that rewards mixed use.
+
+⚠ **It said *Business types* until 2026-08-23 and that was stale by an ADR** (`adr/0032`, `adr/0152`). `adr/0032` widened it from *Business* to **destination** so that a park could be an entry, and this entry was never amended to carry it — which is why three documents disagreed about whether a park counted and why `adr/0123` recorded the blocker as *a `kind` column on `BusinessTable`*, a column that could never have enumerated one. **The key is the kind's name in the Ruleset**, so a shop, a school, a clinic and a park all count, one each; ***which* destinations exist is Ruleset content and not architecture.** Nothing is weighted by size, stock or quality.
+
+⚠ **The count is the PLACE's and the set is the HOUSEHOLD's, and the word names both** (`adr/0152`). *How much variety stands within a walk of this address* is a standing property of the address with no mover in it, and is what land value reads. *Which bakery this Household actually uses* is the **Provider List** — sticky, chosen by something that moves, and the thing *Terms we deliberately do not use* → **no proximity scope** governs. ***That rule forbids a Building's Rule from selecting among nearby options; it does not forbid a place from having a property***, and reading it as though it did is what made Amenity look like it needed a mover before land value could read it.
 
 **Walkable** is the load-bearing word. It is what `adr/0008` promised and had not yet collected — *"a corner shop is viable because people can physically reach it on foot"* — and it is what makes a centre of offices, shops, and homes outperform a centre of offices alone without any rule saying so.
 
@@ -178,25 +182,92 @@ A Layer is a **convolution of a source field with a bounded kernel, never an ite
 
 What it depends on is **bimodally distributed traffic volume** — a uniform background plus a bounded set that stands out, with nothing in between — which is a property of `adr/0014`'s grid-plus-sparse-Arterials layout rather than of its labels. A transit line on a **Reserved** right-of-way is the design's one manufacturer of the middle case, putting Arterial-scale volume onto a grid Street; enumerating by loudness catches it where enumerating Arterials would not. Near-road air pollution is the same query with different weights.
 
+**Terrain**
+The ground the generator makes from the world seed: **height**, **water**, **Woodland**, and a **terrain
+type** per Cell. Terrain is generated once and, apart from terraforming, never changes; water is
+immutable outright. ⚠ **It enters at construction time and is never read inside a Tick phase** — the
+checkable rule in `docs/adr/0021-the-map-is-bounded-procedural-and-terrain-never-enters-a-tick.md`, whose
+boundary is *temporal, not categorical*: a Tick may read a **stored terrain type column** and look a
+value up in the Ruleset, because that is a column and a table rather than a terrain query.
+
+**Terrain type is the only part of terrain the simulation stores per Cell**, and **two** Ruleset values
+are keyed by it — **Base Fertility**, and the **Sealing** decay rate.
+
+**The types are five**: `ordinary`, `rock`, `floodplain`, `marsh`, `thin_soil`
+(`docs/adr/0158-terrain-is-five-types-and-base-fertility-varies-across-them-because-a-category-exclusion-is-not-an-overlay.md`).
+⚠ **The set was named nowhere until 2026-08-23** — `adr/0155` keyed two Ruleset values off a terrain type
+while presuming only *"a small enumeration"*, and `rock` and `floodplain` appeared as examples inside
+sentences about recovery rather than as members. ***A key was specified before the thing it keys on.***
+⚠ **The ordinals are hash-bearing**: appending a sixth type is free, renumbering the five is a
+re-baseline.
+
+🔴 **Height is generated and stored nowhere**
+(`docs/adr/0157-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md`).
+The generator computes and reads it while laying water, floodplain and terrain type, and keeps only those
+**outputs**; there is no height column at any resolution, so nothing can read one and no save carries one.
+⚠ **The reason is not memory.** Every job `adr/0021` gives height is either excluded by that ADR, absent
+from the formula that would use it, or blocked behind an unbuilt construction cost — **except maximum
+buildable grade, which is a refusal**. ***Without terraforming, terrain is a wall; with it, terrain is a
+price***, and terraforming is neither a verb in `01 §2` nor placed in `06`. Height ships with it.
+
+**Base Fertility**
+The agricultural capacity of ground nobody has touched — **Fertility's ceiling**, and the first term of
+its composition. **Ruleset data keyed by terrain type, never stored per Cell and never baked into a
+save** (`docs/adr/0155-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md`),
+which is the disposition `adr/0022` already required of the Sealing decay rate beside it.
+
+⚠ **It was called *terrain suitability* until 2026-08-22, and the old name invented an artefact.** Read
+the word *terrain* and a terrain-derived per-Cell field is the natural inference; `adr/0124` drew it and
+specified a baked per-Cell column, which `02 §2.3` contradicts in one sentence — *the generator places
+Woodland and nothing else*. ***A term named after a category is read as covering the category***, and this
+one covers one formula and has exactly one consumer.
+
+⚠ **It VARIES by terrain type, and doing so amended `adr/0022` deliberately**
+(`docs/adr/0158-terrain-is-five-types-and-base-fertility-varies-across-them-because-a-category-exclusion-is-not-an-overlay.md`,
+2026-08-23) — `ordinary` 1.0, `rock` 0.2, `floodplain` 1.0, `marsh` 0.5, `thin_soil` 0.6. **It was uniform
+in every shipped Ruleset until that day**, which is the sentence this one replaces.
+
+⚠ **What `adr/0022` refuses is a generated fertility FIELD** — *fertile valleys here, poor ground there*,
+read off an overlay — and **there is still no such field**: no column, no layer, nothing baked. What
+exists is a Ruleset number looked up by the stored type. ⚠ **The narrowing is not free and the ADR says
+so**: five ranked values are a lookup. It is taken because ***the lookup is not the interesting fact*** —
+Sealing runs 0–1024 against a ceiling of 1.0, so play moves a Cell across the whole range the five values
+sit inside. **The generator sets where you start; play sets where you end.** ⚠ **`rock` is 0.2 and not
+0**, on `adr/0022`'s own *scarcity is a gradient, never a wall*.
+
+🔴 **All five numbers were chosen against NO consumer** — `MapLayers.Fertility` throws and no milestone
+builds a farm — so they are a stated starting point with a named ratifier and not a settled balance.
+`plans/0002` §D1 holds five rows and **the first farm reopens every one of them**.
+
 **Sealing**
 The record of development on the ground: the count of Tiles in a Cell ever built on. One house seals 1/1024 of its Cell. Sealing decays at a rate drawn from the Ruleset **keyed by terrain type** — rock may never recover, floodplain may recover over hundreds of Days. The rate is never stored per Tile; storing it would freeze it into every save.
+
+⚠ **The rate is a `sealing_decay_tau` on each `[[terrain]]` table and it counts DAYS**, because Sealing's decay runs on a cadence of one Day — which is what makes the sentence above checkable without a conversion. ⚠ ***A TAU IS NOT A RECOVERY TIME, and the two are not even in a fixed ratio.*** The decay is exponential with a floor of one Tile, so a fully-sealed Cell empties in roughly `tau · ln(2 · TilesInCell ÷ tau) + tau ÷ 2` Days — a *tau-dependent* multiple, between about **2.9×** and **4.1×** across the shipped set. **Measured** on `rulesets/varied.toml`'s values: floodplain **197** Days, marsh **244**, ordinary **329**, thin soil **468**, rock **never**. ***Quote the Days, never the tau***, and read `SealingRecoveryMeasurementTests` rather than any multiplier — the first draft of this sentence carried a flat 7.4×, derived on paper, and the machine refuted it the day it ran.
 
 **Roads Seal, and so does every other built Tile.** The road network is therefore visible to Fertility, so a paved city genuinely has less farmland — which is correct and was previously missing, since Sealing had only ever been discussed through Buildings. The **verge beside an Arterial is never built on**, so it stays unsealed and Woodland regrows on it; a highway sterilises land for *development* without sealing it against *recovery*.
 
 **Fertility**
-Agricultural capacity. **Composed at the point of use, never stored:** `terrain suitability − Sealing − pollution`. All land begins fertile and development degrades it, so fertility is a fact the player *makes* rather than one the generator deals. Farms in turn emit into pollution, so agriculture and housing repel each other without any rule saying so. See `docs/adr/0022-land-is-a-stock-the-city-spends.md`.
+Agricultural capacity. **Composed at the point of use, never stored:** `base fertility − w_s·Sealing − w_p·pollution`, weighted the way desirability is (`docs/adr/0156-fertility-composes-with-weights-and-only-one-of-them-is-a-number-anybody-chooses.md`). **Base Fertility is a fraction with `1.0` fully fertile**, so Fertility is a **proportion**, which is what makes a farm panel's *"41% — ground sealed 12%, pollution 47%"* fall out of the arithmetic. 🔴 **`w_s` is derived and has no Ruleset key**: a Cell at Sealing 1024 has every Tile built on and therefore no farmland, so the term is `base × Sealing / 1024`. **Only the pollution weight is chosen.** ⚠ **The weights are not decoration** — unweighted, a Tile count of 0–1024 outweighs a pollution stock of about 12 by roughly 85:1, which is an artefact of the units and not a claim about cities. **Fertility may go negative and does not clamp**, because Sealing decays and two exhausted Cells are at different distances from farming again. ⚠ **It is BUILT** — `MapLayers.Fertility`, which throws only for a Ruleset that prices no ground, and **saturates rather than throwing** on a value; the chosen weight is `[layers] fertility_pollution_percent`, **4**, and it is anchored on the panel specimen rather than measured (`plans/0002` §D1). All land begins fertile and development degrades it, so fertility is a fact the player *makes* rather than one the generator deals. Farms in turn emit into pollution, so agriculture and housing repel each other without any rule saying so. See `docs/adr/0022-land-is-a-stock-the-city-spends.md`.
 
 **Woodland**
 The one generated resource. Forest Tiles are not farmable while wooded; clearing yields Timber as a one-time harvest and leaves fertile ground behind. Woodland regrows slowly on unsealed, unoccupied land, so land use is cyclical and the extraction frontier migrates outward on its own through ordinary Building decline. **It is not a clearing verb and not an obstacle** — see Zone, *the ground carries resources*: building over forest clears it and forfeits the harvest, which is a cost and never a refusal.
 
+**It is a count of wooded Tiles held per Cell, and Sealing is its ceiling** (`docs/adr/0159-woodland-is-a-tile-count-per-cell-bounded-by-sealing-because-the-ground-has-one-budget-and-not-two.md`). A Cell holds 1024 Tiles; Sealing counts those ever built on and Woodland counts those wooded, and the two sets cannot overlap — so `Woodland + Sealing ≤ 1024` is what the counts *mean* rather than a rule imposed on them. **That is what makes sealing clear forest with no verb and no event**, which is what `adr/0091`'s closed verb set requires. ⚠ **The disposition is per Cell while the wording above is per Tile, and the Cell wins** — every consumer reads it per Cell, as it does Sealing, Fertility, pollution, land value and terrain type; a bit per Tile would be 33 MB of saved and hashed state at the map's real size. **It is not terrain** — terrain is generated once and never changes (`adr/0021`), and Woodland is cleared and regrows — **and it is not a Resource**, because it is held in no Bin. **Replanting is *undesigned* rather than unbuilt** (`adr/0070`): `adr/0022` specifies it as a Rule and a land designation, and no land designation exists in the build or in the design.
+
+⚠ **Forest grows back toward what the SEED laid, not toward the bare Cell**, so the map keeps the character its `WorldKey` gave it — a heavily forested seed stays one. The Ruleset states a **duration**, `[layers] woodland_regrowth_days`, and the per-pass Tile count derives from it; **omitting the key means forest never returns**, which is what every shipped file but `rulesets/varied.toml` says. ⚠ ***The duration is a FULL Cell's and not every Cell's*** — the step is absolute, so a Cell the seed left a quarter wooded comes back in a quarter of the stated Days. **Sealing's decay and this are the two halves of one loop**: ground unseals, forest takes it back, and the compound is the ratchet `adr/0022` protects.
+
 **Water Body**
-A pond, lake, river, bay or stretch of coast. Generated once and immutable (`adr/0021`), so the water network and its flow directions are generator output and are never read inside a Tick. Every Water Body is a **Bin holding the Waste family** (`adr/0031`) with two parameters: a **capacity**, and an **outflow rate** to the next body downstream — terminating in a Hinterland off the map edge.
+A pond, lake, river, bay or stretch of coast. Generated once and immutable (`adr/0021`), so the water network and its flow directions are generator output and are never read inside a Tick. Every Water Body is a **Bin holding a Utility-family Resource** (`adr/0031`, corrected 2026-08-24 — ⚠ **it said *the Waste family*, and there is no such family**: `adr/0031` leaves three, Waste is a member of **Good** and **Sewage** a member of **Utility**, and what a Water Body does with its contents is move them along a graph edge, which is a Utility's movement and not a Good's) with two parameters: a **capacity**, and an **outflow rate** to the next body downstream — terminating in a Hinterland off the map edge.
 
 Those two numbers produce every behaviour with no taxonomy of water types. A pond has no outflow and fills. A river's outflow exceeds any plausible inflow, so it stays clean and **exports the consequence downstream onto somebody else** — the one asymmetric spatial relationship in the design, since every other consequence is suffered equally by its cause and its neighbours. The represented sea is large and slow-draining, so it absorbs a great deal and *still fills* if inflow outruns outflow.
 
 **Nothing is an infinite sink.** The map holds only a section of the ocean, and a section is bounded — so dumping is never free, it is only cheaper. What capacity actually decides is whether pollution behaves as a **debt** (a small body: accumulates, permanent, and the amenity is gone) or a **rent** (a large one: tracks current throughput and recovers when you stop). That is a gradient rather than two categories, which is the point.
 
-**A Water Body's effect on land is a shoreline line source** whose intensity is the Bin's level — so a fouled beach degrades adjacent land value and removes a walkable Amenity destination. This is also why *area* needs no source geometry of its own: an area's influence on land is its perimeter, and a coastline and a pond are one geometry at two lengths.
+**Where the water is, is generated from one Ruleset key and everything else is derived** (`adr/0160`, milestone 24 task 6a). `[water] sea_level_percent` states how high the sea stands, as a percent of the height range *that world realised*; which Cells are wet, how many bodies there are and which one each drains into all fall out of the field. **A Ruleset that omits `[water]` has no water at all**, which is an inland city and a legitimate world. ⚠ **It is a level and not a coverage** — at one level, five keys give between 2% and 15% of the map wet, so a quoted water share names the world it was measured on. ⚠ **A landlocked body drains over its lowest rim and the graph is kept acyclic by spill elevation**; a body that reaches the map's edge drains off it, which is the Hinterland terminus above. ✅ **The Bin is built** (milestone 24 task 6b, [`adr/0161`](docs/adr/0161-a-water-bodys-bin-holds-one-utility-resource-because-a-good-moving-downstream-would-move-with-no-vehicle.md)), and **both of its parameters are DERIVED from the body rather than authored per body** — which is what lets one pair of Ruleset numbers produce every behaviour above. **Capacity is the body's size in Cells** times `[water] capacity_per_cell`, so debt-versus-rent is a gradient in the geometry. **Outflow is the body's *exits*** times `[water] outflow_per_exit_per_day`, where an exit is a Cell on the map's boundary, or the single rim Cell a landlocked body spills over, or — for an endorheic body — **none**, which is *a pond has no outflow and fills* true by construction rather than by a rule. ⚠ **A full body downstream backs the water up rather than destroying it**, so *nothing is an infinite sink* holds of a chain and not only of one body. ⚠ **Draining runs once a Day in two phases**, every body's outflow measured against the level it started the Day with, because a single walk would let water cross two edges in a Day whenever the chain ran in ascending slot order. ✅ **RUNOFF PUTS SOMETHING IN** (milestone 24). **A paved Cell sheds into the body its catchment names**, scaled by its Sealing and rated by `[water] runoff_per_sealed_cell_per_day` — so the more of a catchment the player paves the more it fouls the water, and because the graph runs downhill the consequence lands **downstream of whoever caused it**. ⚠ **Dumping is the OTHER inflow and it is still unbuilt** — it needs a Scope that reaches a Water Body, and a Bin can *fail* where a Map Layer cell cannot — so runoff currently carries the whole mechanism, which is the opposite of the balance this paragraph describes. ⚠ **A demonstration world has to site its city where a catchment names a body**: a Ruleset stating no `[[lattice]]` puts its city in the map's corner, and **a map edge is where water leaves the world**, so `coastal.toml` states an origin and the other files do not.
+
+**Which Cells' runoff reaches which body is a *catchment*, and it is generated once beside the water itself** (milestone 24 task 6b). ⚠ **It is a different question from which body a Cell *is part of*, and residency cannot answer it** — residency is a fact about wet Cells and every Building stands on dry ground, so the catchment is what gives dry land a body to name. It is what the Bin's **runoff** inflow is addressed through; **dumping** and the shoreline term below are proximity and do not use it. ⚠ **Found by steepest descent on the SPILL-FILLED height field and not on the raw one**: the field is pitted at a two-Cell scale, so a plain downhill walk lands in one of ~11,000 dry holes and **3–8% of a map reaches a body**; filled, **45–76%** does and the rest drains off the map edge. ⚠ **A share names the worlds it was measured on** — five keys on `coastal.toml` — for `[water] sea_level_percent`'s own reason.
+
+**A Water Body's effect on land is a shoreline line source** whose intensity is the Bin's level — so a fouled beach degrades adjacent land value and removes a walkable Amenity destination. ✅ **Built at milestone 24 task 7** as desirability's `− w₅·shoreline`, the last of `02 §2.4`'s four terms to arrive and the third of four now composed; it could not ship before runoff, because a term reading a structurally-empty Bin is what [`adr/0123`](docs/adr/0123-desirability-ships-without-its-only-positive-term-and-a-caveat-that-must-travel-gets-a-test.md) refused. ⚠ **"The Bin's level" names the quantity and not its units, and the units are a FILL FRACTION** ([`adr/0162`](docs/adr/0162-the-shoreline-terms-intensity-is-a-fill-fraction-because-a-teaspoon-in-the-sea-is-not-a-teaspoon-in-a-pond.md)) — level over the body's own capacity, so the same tonnage fouls a pond far worse than the 33,435-Cell sea, and one `w₅` means the same thing on every body. Read absolutely, this sentence would make *a teaspoon in the sea* as bad as *a teaspoon in a pond*. ⚠ **It reads proximity and never the catchment**: wiring the catchment in would make land *upstream* of a fouled lake suffer for it. This is also why *area* needs no source geometry of its own: an area's influence on land is its perimeter, and a coastline and a pond are one geometry at two lengths.
 
 ---
 
@@ -1073,6 +1144,8 @@ A Disaster tests **redundancy**, which is the only thing that can: two cities di
 
 **Hazard Region**
 Ground where a Disaster can occur, derived from terrain at world generation and shown as an ordinary overlay from the first Tick. Never read during a Tick, so `adr/0021` holds. Its purpose is to make risky land a **decision with a posted price** rather than an ambush.
+
+**The one that ships is the floodplain** (milestone 24 task 9, `adr/0157`). A dry Cell is Hazard Region when its ground sits below `[water] flood_level_percent` — a level stated on the same scale as `sea_level_percent`, a percent of the height range *that world realised* — and what is stored is the **depth**, the level minus the ground. ⚠ **A depth and not an elevation, and that is what makes it storable at all**: an elevation would be the height column `adr/0157` refuses, wearing another name. ⚠ **A wet Cell gets no row** — ground already under water is not ground a player can build on and lose — so the rows are a band above the waterline, which is `01 §5.2`'s *cheap riverside land* and is what keeps the table sparse: **3–9% of the map across five keys** on `rulesets/coastal.toml`, the only shipped file that states the key. ⚠ **A world omitting it has NO ROWS rather than rows of depth zero**, because a steep coast is a world and not a gap. 🔴 **The depth's units are the height field's and nothing calibrates them**, so a depth is comparable against another depth and against nothing else; `01 §5.2` spreads Flood *by depth*, which is a comparison, and that is the whole of what the unit currently supports. 🔴 **Nothing fires on it.** Disasters wait on milestone 15, and that is the split working rather than a hole — *deriving where something could happen is the terrain milestone's; scheduling it is the milestone that has something to schedule.*
 
 ---
 

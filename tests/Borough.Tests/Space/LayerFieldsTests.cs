@@ -1,8 +1,10 @@
 using Borough.Core;
+using Borough.Core.Arithmetic;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Invariants;
 using Borough.Core.Quantities;
+using Borough.Core.Rules;
 using Borough.Core.Space;
 
 namespace Borough.Tests.Space;
@@ -142,37 +144,128 @@ public class LayerFieldsTests
         Assert.Equal(1_024, CellGrid.TilesInCell);
     }
 
-    /// <summary>Sealing does not decay in Phase 1, because its rate has no terrain type to key on.</summary>
+    /// <summary>
+    /// A Ruleset stating no <c>[[terrain]]</c> heals nowhere, which is every world before milestone 24.
+    /// </summary>
     [Fact]
-    public void Sealing_does_not_decay_at_the_default_rate()
+    public void Sealing_does_not_decay_where_the_Ruleset_states_no_terrain()
     {
         MapLayers layers = new(LayerRuleset.Default);
         Cells east = new(3);
         Cells north = new(4);
 
         layers.Seal(east, north, 500);
-        layers.DecaySealing();
+        layers.DecaySealing(TerrainRuleset.None);
 
-        Assert.Equal(0, LayerRates.Default.SealingDecayTau);
+        Assert.False(TerrainRuleset.None.Stated);
         Assert.Equal(500, layers.Sealing(east, north));
     }
 
-    /// <summary>And it does decay once a rate exists, which is what the operator is for.</summary>
+    /// <summary>And it decays at the rate its own terrain type states. <c>02 §2.4</c>.</summary>
     [Fact]
-    public void Sealing_decays_once_a_rate_is_supplied()
+    public void Sealing_decays_at_its_terrain_types_rate()
     {
-        MapLayers layers = new(new LayerRuleset(
-            LayerSchedule.Default,
-            new LayerRates(LandValueTau: 8, SealingDecayTau: 4, PollutionTau: 128)));
-
+        MapLayers layers = new(LayerRuleset.Default);
         Cells east = new(3);
         Cells north = new(4);
 
         layers.Seal(east, north, 1_000);
-        layers.DecaySealing();
+        layers.DecaySealing(Tau(ordinary: 4));
 
+        Assert.Equal(TerrainKind.Ordinary, layers.Terrain.At(east, north));
         Assert.Equal(750, layers.Sealing(east, north));
     }
+
+    /// <summary>A type stating zero never recovers, which is what <c>rock</c> is for.</summary>
+    [Fact]
+    public void Sealing_does_not_decay_where_its_terrain_type_states_zero()
+    {
+        MapLayers layers = new(LayerRuleset.Default);
+        Cells east = new(3);
+        Cells north = new(4);
+
+        layers.Seal(east, north, 500);
+        layers.DecaySealing(Tau(ordinary: 0));
+
+        Assert.Equal(500, layers.Sealing(east, north));
+    }
+
+    /// <summary>
+    /// 🔴 The regression: exponential decay in integers <b>stalls</b>, and the floor is what stops it.
+    /// </summary>
+    /// <remarks>
+    /// <c>value -= RoundDiv(value, tau)</c> rounds its decrement to zero once the value falls under
+    /// <c>tau ÷ 2</c>, so ground would settle at a permanent residue and never reach bare. Measured
+    /// before the fix: tau 8 stalled at 3. <c>CONTEXT.md</c> → Sealing states an endpoint —
+    /// <em>"floodplain may recover over hundreds of Days"</em> — and a curve that never arrives cannot
+    /// deliver one.
+    /// </remarks>
+    [Fact]
+    public void Sealing_reaches_bare_ground_rather_than_stalling_above_it()
+    {
+        MapLayers layers = new(LayerRuleset.Default);
+        Cells east = new(3);
+        Cells north = new(4);
+        TerrainRuleset terrain = Tau(ordinary: 8);
+
+        layers.Seal(east, north, CellGrid.TilesInCell);
+
+        for (int update = 0; update < 1_000; update++)
+        {
+            layers.DecaySealing(terrain);
+        }
+
+        Assert.Equal(0, layers.Sealing(east, north));
+    }
+
+    /// <summary>
+    /// 🔴 And a tau above twice the Cell moved <b>nothing at all</b>, which is the same defect at the
+    /// other end.
+    /// </summary>
+    /// <remarks>
+    /// <c>RoundDiv(1024, 2400)</c> is zero, so a fully-sealed Cell never took a first step. The floor
+    /// makes the whole band <c>1..2 × TilesInCell</c> — which is what the loader admits — do something.
+    /// </remarks>
+    [Fact]
+    public void Sealing_moves_even_where_the_tau_exceeds_the_Cell()
+    {
+        MapLayers layers = new(LayerRuleset.Default);
+        Cells east = new(3);
+        Cells north = new(4);
+
+        layers.Seal(east, north, CellGrid.TilesInCell);
+        layers.DecaySealing(Tau(ordinary: CellGrid.TilesInCell * 2));
+
+        Assert.Equal(CellGrid.TilesInCell - 1, layers.Sealing(east, north));
+    }
+
+    /// <summary>Sealing's own cadence, which it did not have before milestone 24 task 4.</summary>
+    [Fact]
+    public void Sealing_decays_on_its_cadence_and_not_on_another_Layers()
+    {
+        var world = new World(1_000, Ruleset.Empty);
+        Cells east = new(3);
+        Cells north = new(4);
+        LayerCadence cadence = world.Layers.Schedule.Sealing;
+
+        world.Layers.Seal(east, north, 1_000);
+        world.Layers.Step(new Ticks((ulong)cadence.Offset + 1), world.Roads, Tau(ordinary: 4));
+
+        Assert.Equal(1_000, world.Layers.Sealing(east, north));
+
+        world.Layers.Step(new Ticks((ulong)cadence.Offset), world.Roads, Tau(ordinary: 4));
+
+        Assert.Equal(750, world.Layers.Sealing(east, north));
+    }
+
+    /// <summary>A <c>[[terrain]]</c> table whose only interesting key is <c>ordinary</c>'s tau.</summary>
+    private static TerrainRuleset Tau(int ordinary) => TerrainRuleset.From(
+        Fixed.One, Fixed.One, Fixed.One, Fixed.One, Fixed.One,
+        ordinaryDecayTau: ordinary,
+        rockDecayTau: 0,
+        floodplainDecayTau: 0,
+        marshDecayTau: 0,
+        thinSoilDecayTau: 0);
 
     /// <summary>
     /// <c>adr/0051</c>: a Cell's pollution source is a stock the environment absorbs.
@@ -299,7 +392,7 @@ public class LayerFieldsTests
 
     private static MapLayers Layers(int pollutionTau) => new(new LayerRuleset(
         LayerSchedule.Default,
-        new LayerRates(LandValueTau: 8, SealingDecayTau: 0, PollutionTau: pollutionTau)));
+        new LayerRates(LandValueTau: 8, PollutionTau: pollutionTau, WoodlandRegrowthDays: 0)));
 
     /// <summary>
     /// The named holes fail loudly rather than returning zero.
@@ -309,14 +402,14 @@ public class LayerFieldsTests
     /// returning zero is a value that will be read, believed, and tuned around; a hole that fails
     /// loudly is a hole.
     /// <para>
-    /// ⚠ <b>This test used to name five holes and now names two, and the three that left did so for
-    /// three different reasons.</b> Noise and near-road pollution were built by milestone 9 task 1;
+    /// ⚠ <b>This test used to name five holes and now names one, and the four that left did so for
+    /// four different reasons.</b> Noise and near-road pollution were built by milestone 9 task 1;
     /// <see cref="MapLayers.Desirability"/> composes as of task 2 — <b>partially</b>, and the shortfall
-    /// is policed by <c>DesirabilityShortfallTests</c> rather than by a hole. What is left is terrain
-    /// suitability, which needs the world generator at milestone 24 (<c>adr/0124</c>), and amenity,
-    /// which needs a <b>kind</b> on a Business at milestone 15 — <em>not</em> the Road Graph, which
-    /// shipped in 5a and which this test's own remark named as the blocker for three fields it was not
-    /// the blocker for.
+    /// is policed by <c>DesirabilityShortfallTests</c> rather than by a hole. <b>Fertility composes as
+    /// of milestone 24 task 5</b> (<c>adr/0156</c>), which is the hole this test was written around
+    /// closing. What is left is amenity, which needs a <b>kind</b> on a Business at milestone 15 —
+    /// <em>not</em> the Road Graph, which shipped in 5a and which this test's own remark named as the
+    /// blocker for three fields it was not the blocker for.
     /// <para>
     /// ⚠ <b>A partial composition is exactly what this discipline does NOT cover</b>, and that is worth
     /// saying in the file that owns it. A hole that throws is safe because nothing can read it;
@@ -328,11 +421,6 @@ public class LayerFieldsTests
     [Fact]
     public void Every_composite_and_every_line_source_refuses_rather_than_answering()
     {
-        MapLayers layers = new(LayerRuleset.Default);
-        Cells east = new(1);
-        Cells north = new(1);
-
-        Assert.Throws<NotSupportedException>(() => layers.Fertility(east, north));
         Assert.Throws<NotSupportedException>(() => LineSourceQueries.Amenity(new Tiles(4), new Tiles(4)));
     }
 
@@ -340,14 +428,25 @@ public class LayerFieldsTests
     /// Noise is not in <see cref="Layer"/>, and this is the test that notices somebody adding it.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <c>02 §2.5</c>'s procedure exists because <em>"add a Map Layer" was the reflex answer four
     /// times running and was the right answer once</em>. This slice is where the reflex would fire.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It was <em>three</em> until milestone 24 task 8b and <see cref="Layer.Woodland"/> is the
+    /// fourth, which is this test doing its job rather than failing at it.</b> The two additions this
+    /// milestone made — Sealing and Woodland — are both <b>counts per Cell with no kernel and no
+    /// range</b>, and what puts them on this enum is neither a field nor a query: it is that each
+    /// happens <em>on a clock</em>, so each needs a cadence and the cadences must be staggered apart.
+    /// ***This enum is the stagger's membership list, and a Layer that is not a field is still a Layer
+    /// for that purpose.***
+    /// </para>
     /// </remarks>
     [Fact]
-    public void There_are_exactly_three_Map_Layers()
+    public void There_are_exactly_four_Map_Layers()
     {
         Assert.Equal(
-            [Layer.IndustrialPollution, Layer.LandValue, Layer.Sealing],
+            [Layer.IndustrialPollution, Layer.LandValue, Layer.Sealing, Layer.Woodland],
             Enum.GetValues<Layer>());
     }
 

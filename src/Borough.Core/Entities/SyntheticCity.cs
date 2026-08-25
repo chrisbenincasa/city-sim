@@ -105,6 +105,40 @@ public static class SyntheticCity
         ArgumentNullException.ThrowIfNull(world);
 
         RefuseIfPopulated(world);
+
+        // The ground, before anything stands on it. plans/0042 decision 3, adr/0158. Nothing in
+        // LayLand consults it -- roads do not avoid water (adr/0021) and buildable grade does not
+        // ship (adr/0157) -- so this is first because it is the ground rather than because anything
+        // below reads it. ⚠ It computes a height field and keeps none of it (adr/0157).
+        world.Layers.LayTerrain(key);
+
+        // The forest, on the ground and before the roads. adr/0159, milestone 24 task 8a. ⚠ THE
+        // ORDER AGAINST LayLand IS LOAD-BEARING and the order against LayTerrain is not: every Cell
+        // is unsealed at this instant, so the Sealing ceiling is trivially satisfied and this pass
+        // never consults it -- but run it after LayLand and it plants forest on top of the roads.
+        // MapLayers.Seal is what takes the forest back as the city arrives.
+        world.Layers.LayWoodland(key);
+
+        // The water, between the ground and the roads. adr/0034, adr/0160, milestone 24 task 6a. ⚠
+        // THE ORDER AGAINST LayLand IS NOT LOAD-BEARING TODAY AND WILL BE: roads do not avoid water
+        // (adr/0021), so a lattice laid after this pass runs straight across a lake and nothing
+        // refuses it. That is the build being honest about what it has not decided rather than a
+        // defect -- a bridge is "a buildability exception plus a rendering variant, not a system"
+        // (adr/0021), and neither exists. It goes here so that the day something does read the
+        // water, the water is already there.
+        WaterGenerator.LayInto(
+            world.Water,
+            world.WaterCells,
+            world.WaterInCells,
+            world.Catchment,
+            world.Flood,
+            world.Rules.Water,
+            key);
+
+        // The Bins, once the bodies exist -- FitDistrictPools' rule, and the constructor cannot do it
+        // because a world under construction has no Water Bodies. milestone 24 task 6b, adr/0161.
+        world.FitWaterBins();
+
         LayLand(world, key);
         PeopleInto(world, key, now);
 
@@ -389,7 +423,7 @@ public static class SyntheticCity
 
         int extentTiles = boundary ? CellGrid.WorldTiles : PavedTiles(world);
 
-        RoadGenerator.LayInto(world.Roads, key, lattices, extentTiles);
+        RoadGenerator.LayInto(world.Roads, key, lattices, extentTiles, world.Layers);
 
         int wanted = WantedBuildings(world);
 

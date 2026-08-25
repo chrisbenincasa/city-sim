@@ -145,6 +145,38 @@ public static class CellGrid
     public static Cells ToCells(Tiles tiles) =>
         new(IntegerMath.ShiftRight(tiles.Raw, TilesPerCellShift));
 
+    /// <summary>The Cell a Tile coordinate falls in, clamped onto the map.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>For a boundary coordinate, which is a fencepost rather than a position.</b> A map of N
+    /// Tiles has N+1 grid lines, so the far edge of the world is Tile <see cref="WorldTiles"/> — one
+    /// past the last Tile, and in a Cell that does not exist. A Road Node may legitimately stand
+    /// there and a Lot on a map edge may sit against it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Use this only where the caller means <em>the ground under this</em> and a boundary
+    /// coordinate is expected.</b> <see cref="ToCells(Tiles)"/> stays the default and stays strict,
+    /// because silently folding an off-map Cell onto the edge is how a bug in a coordinate becomes a
+    /// plausible-looking field.
+    /// </para>
+    /// </remarks>
+    public static Cells ToCellsClamped(Tiles tiles)
+    {
+        int cell = ToCells(tiles).Raw;
+
+        if (cell < 0)
+        {
+            cell = 0;
+        }
+
+        if (cell >= WorldCells)
+        {
+            cell = WorldCells - 1;
+        }
+
+        return new Cells(cell);
+    }
+
     /// <summary>The Tile at a Cell's low corner.</summary>
     public static Tiles ToTiles(Cells cells) =>
         new(IntegerMath.ShiftLeft(cells.Raw, TilesPerCellShift));

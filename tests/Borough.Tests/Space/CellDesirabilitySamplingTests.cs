@@ -1,5 +1,6 @@
 using Borough.Core.Arithmetic;
 using Borough.Core.Quantities;
+using Borough.Core.Rules;
 using Borough.Core.Space;
 using Borough.Core.Tables;
 
@@ -102,7 +103,7 @@ public sealed class CellDesirabilitySamplingTests
 
         layers.EmitPollution(new Cells(1), new Cells(1), 4000);
         layers.EmitPollution(new Cells(4), new Cells(3), 1500);
-        layers.Step(Ticks.Zero, graph);
+        layers.Step(Ticks.Zero, graph, TerrainRuleset.None);
 
         return (graph, layers);
     }
@@ -273,7 +274,7 @@ public sealed class CellDesirabilitySamplingTests
 
         Assert.True(layers.Schedule.IsDue(Layer.LandValue, due));
 
-        layers.Step(due, graph);
+        layers.Step(due, graph, TerrainRuleset.None);
 
         int moved = layers.LandValue(east, north);
 
