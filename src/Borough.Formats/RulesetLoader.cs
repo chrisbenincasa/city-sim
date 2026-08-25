@@ -209,7 +209,7 @@ public static class RulesetLoader
 
             // After ReadPlacement, because the founding pass rides its trigger and the refusal for a
             // file stating [founding] with no [placement] is a property of the pair.
-            FoundingRuleset founding = ReadFounding(placement);
+            FoundingRuleset founding = ReadFounding(placement, businessKinds);
 
             // After both, because it is a property of the pair: a file with Districts in it has a
             // Pool to price, and adr/0050's anchor is the only thing bounding what that price
@@ -4220,7 +4220,8 @@ public static class RulesetLoader
         /// would be the RCI meter this design refuses.
         /// </para>
         /// </remarks>
-        private FoundingRuleset ReadFounding(PlacementRuleset placement)
+        private FoundingRuleset ReadFounding(
+            PlacementRuleset placement, BusinessKindDefinition[] businessKinds)
         {
             if (_foundingTable is null)
             {
@@ -4280,6 +4281,33 @@ public static class RulesetLoader
                     + "ever leaves that pool and it grows without bound, which adr/0006 forbids. "
                     + "State how long a Business keeps looking for premises, in Days, or remove "
                     + "[founding].");
+
+                return FoundingRuleset.None;
+            }
+
+            // 🔴 A JOB TO DO. adr/0146: the founder becomes the Business's first worker, which is the
+            // whole of the labour cost milestone 27 ships -- so a trade declaring no `jobs` is a shop
+            // its own founder cannot work at. The pass draws UNIFORMLY over the declared trades, so
+            // this is every trade rather than at least one: a jobless trade in the draw would found a
+            // shop whose founder is over the ceiling from the instant they are hired, and
+            // EvictOverflow would sack them on the next sweep. ⚠ It is conditional on [founding]
+            // exactly as gives_up_after_days is conditional on a gate -- a trade nobody founds may
+            // employ nobody, and several shipped files have one.
+            for (int i = 0; i < businessKinds.Length; i++)
+            {
+                if (businessKinds[i].Jobs > 0)
+                {
+                    continue;
+                }
+
+                TryString(_businessKindTables[i], "name", out string? trade, required: false);
+
+                Refuse(LineOf(_businessKindTables[i]), trade,
+                    "this Ruleset states [founding] and this [[business]] declares no jobs. A "
+                    + "founder becomes their Business's first worker (adr/0146), so a trade nobody "
+                    + "can work at is one nobody can found -- and the trade is drawn uniformly, so "
+                    + "every declared one has to be foundable. State jobs and a Shift band on it, or "
+                    + "remove [founding].");
 
                 return FoundingRuleset.None;
             }

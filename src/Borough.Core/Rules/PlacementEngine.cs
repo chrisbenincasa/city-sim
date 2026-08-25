@@ -676,7 +676,11 @@ public sealed class PlacementEngine
             return;
         }
 
-        int slots = _world.Households.Rows.SlotCount;
+        // ⚠ CITIZENS AND NOT HOUSEHOLDS as of adr/0146, and the subject is the decision rather than
+        // an implementation detail: founding costs a person's labour, and a Household is not a thing
+        // that can be occupied. The money still comes from the Household -- a Citizen has no Bin --
+        // so the pass draws a person and spends their family's balance.
+        int slots = _world.Citizens.Rows.SlotCount;
 
         if (slots == 0)
         {
@@ -708,41 +712,53 @@ public sealed class PlacementEngine
         {
             int slot = into[i];
 
-            if (!_world.Households.Rows.IsLive(slot))
+            if (!_world.Citizens.Rows.IsLive(slot))
             {
                 continue;
             }
 
-            Handle<Household> household = _world.Households.Rows.At(slot);
+            // UNEMPLOYED, and this is the predicate that makes founding a CHOICE rather than a second
+            // unrelated mechanism (adr/0146). The employment pass and this one draw from the same
+            // people, and whichever reaches a Citizen first takes them -- neither knows the other
+            // exists, which is adr/0017: nobody compares the two and nobody optimises.
+            if (_world.Businesses.Rows.IsValid(_world.Citizens.Workplace[slot]))
+            {
+                continue;
+            }
+
+            int householdSlot = _world.Households.Rows.Resolve(_world.Citizens.HouseholdOf[slot]);
+            Handle<Household> household = _world.Households.Rows.At(householdSlot);
 
             // Housed only. An unhoused Household is in the Unplaced Pool looking for somewhere to
             // live, and founding a shop out of that queue would put one Household in two searches at
             // once -- adr/0145's amendment states the restriction and this is it.
-            if (!_world.Buildings.Rows.IsValid(_world.Households.Dwelling[slot]))
+            if (!_world.Buildings.Rows.IsValid(_world.Households.Dwelling[householdSlot]))
             {
                 continue;
             }
 
             // THE MEANS TEST, and the whole of the trigger. No shop count, no vacancy, no demand.
+            // It reads the HOUSEHOLD's balance because a Citizen owns nothing -- CONTEXT.md puts the
+            // money on the Household, and adr/0146 declined to move it for this.
             if (_world.BalanceOf(household).Raw < founding.FoundingBand.Raw)
             {
                 continue;
             }
 
             // Uniform over the declared trades, on its own tag -- see PurposeTag.FoundingTrade. Drawn
-            // on the HOUSEHOLD's monotonic id rather than the sample index, because this is a decision
-            // about a known Household rather than a choice of position: two draws of the same slot in
+            // on the CITIZEN's monotonic id rather than the sample index, because this is a decision
+            // about a known founder rather than a choice of position: two draws of the same slot in
             // one pass must not open two different trades for one reason and the same trade for
-            // another.
+            // another. (It was the Household's id until adr/0146 moved the subject.)
             ulong pick = Randomness.Draw(
                 _key,
-                Randomness.Mix(_world.Households.Rows.IdAt(slot)),
+                Randomness.Mix(_world.Citizens.Rows.IdAt(slot)),
                 tick,
                 PurposeTag.FoundingTrade);
 
             var kind = (byte)((pick % (ulong)(uint)trades) + 1);
 
-            _world.Found(household, kind, founding.FoundingBand, tick);
+            _world.Found(_world.Citizens.Rows.At(slot), kind, founding.FoundingBand, tick);
             _tickFounded++;
         }
     }

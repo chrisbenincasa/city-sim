@@ -552,11 +552,31 @@ gives_up_after_days = 30
 
 # ADDITION 1 OF 3 -- THE TRADES. adr/0141's own example, and the same two tenanted.toml names. Two
 # rather than one because a single trade could not show that the choice is drawn at all.
+#
+# BOTH EMPLOY SOMEBODY AND THE LOADER REFUSES THIS FILE OTHERWISE. adr/0146: a founder becomes their
+# Business's first worker, which is the whole of the labour cost milestone 27 ships -- so a trade
+# nobody can work at is a trade nobody can found. The trade is drawn UNIFORMLY, so it is every
+# declared one rather than at least one.
+#
+# THE NUMBERS ARE THE DWELLING'S OWN AND ARE NOT A SECOND CLAIM. Eight is what `shop` above declares,
+# derived from the row ratios; the band 6-10 is the same ordinary spread of opening times. A founded
+# shop that employed a DIFFERENT number from the shop a dwelling comes with would be asserting
+# something about scale that nothing in this file measures.
+#
+# ⚠ THREE IS DELIBERATE ON `barber` and it is the one number here that is not a copy: a trade the city
+# founds and a trade the city is built out of do not have to be the same size, and a file in which
+# every trade employs eight could not show that the ceiling is read per trade at all.
 [[business]]
-name = "bakery"
+name                      = "bakery"
+jobs                      = 8
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
 
 [[business]]
-name = "barber"
+name                      = "barber"
+jobs                      = 3
+shift_start_earliest_hour = 9
+shift_start_latest_hour   = 9
 
 # ADDITION 2 OF 3 -- THE CHANNEL. adr/0145 and its amendment. There is no demand key here and that
 # absence IS the decision: a Household founds on its own MEANS and never on the city's NEED, so

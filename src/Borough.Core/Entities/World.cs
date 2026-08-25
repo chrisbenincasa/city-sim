@@ -1083,7 +1083,8 @@ public sealed class World
             : Money.Zero;
 
     /// <summary>
-    /// A Household founds a Business, spending part of its balance to capitalise it.
+    /// A Citizen founds a Business, spending part of their Household's balance to capitalise it, and
+    /// becomes its first worker.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -1107,17 +1108,22 @@ public sealed class World
     /// written at the site as well as in the record.
     /// </para>
     /// </remarks>
-    /// <param name="founder">The Household putting up the capital. Must be able to afford the band.</param>
+    /// <param name="founder">
+    /// The Citizen founding it. Their Household puts up the capital and must be able to afford it,
+    /// and they must be unemployed — <see cref="Employ"/> would otherwise move them off the list they
+    /// are on, which is a resignation nobody asked for.
+    /// </param>
     /// <param name="kind">Which trade, indexed into <c>[[business]]</c>.</param>
-    /// <param name="band">What the founder spends. Never negative.</param>
+    /// <param name="band">What the founder's Household spends. Never negative.</param>
     /// <param name="now">The Tick the spell in the pool begins.</param>
-    /// <returns>The Business, already in the unpremised pool.</returns>
+    /// <returns>The Business, already in the unpremised pool, with its founder on its worker list.</returns>
     public Handle<Business> Found(
-        Handle<Household> founder, byte kind, Money band, Ticks now)
+        Handle<Citizen> founder, byte kind, Money band, Ticks now)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(band.Raw, nameof(band));
 
-        int founderSlot = Households.Rows.Resolve(founder);
+        int citizenSlot = Citizens.Rows.Resolve(founder);
+        int founderSlot = Households.Rows.Resolve(Citizens.HouseholdOf[citizenSlot]);
         Handle<Bin> from = Households.Balance[founderSlot];
 
         if (from.IsNone)
@@ -1157,6 +1163,25 @@ public sealed class World
 
         // No gate: see UnpremisedTable.Gate. A founder came from inside the city.
         UnpremisedPool.Join(Businesses, business, default, now);
+
+        // ⚠ THE LABOUR COST, and it is the whole of what adr/0146 ships. The founder becomes the
+        // Business's first worker, so the employment pass will not hire them and the city is one
+        // worker down -- a cost with no wage attached is still a cost, because a Citizen is a scarce
+        // thing. THE INCOME HALF IS adr/0026 AT MILESTONE 15 and must not be proxied here: "the
+        // founder's job pays nothing until the Business earns" is that ADR running on a Business with
+        // an empty Bin, and a 27-shaped stand-in would be a second, worse answer somebody has to find
+        // and delete on the day 15 lands.
+        //
+        // ⚠ AND IT IS WHY NO `founder` COLUMN EXISTS. The link is the job, which is a column that
+        // already had to be there -- declaring a severable handle from BusinessTable to CitizenTable
+        // would make the two tables mutually dependent at construction, and they are built in one
+        // ordered pass.
+        //
+        // Ticks.Zero for the planned commute, and it is a fact rather than a placeholder: the
+        // employer is unpremised, so there is no journey to plan. CommuteRoster.Add reads the
+        // premises through the Business and declines to bucket a worker whose employer has none --
+        // which is Unpremise's "the jobs SURVIVE, the journey does not" reached from the other end.
+        Employ(founder, business, Ticks.Zero);
 
         return business;
     }

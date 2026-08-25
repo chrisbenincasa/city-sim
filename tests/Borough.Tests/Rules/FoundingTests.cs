@@ -151,6 +151,69 @@ public sealed class FoundingTests(Xunit.Abstractions.ITestOutputHelper output)
     }
 
     /// <summary>
+    /// Every founded Business has its founder on its worker list, and the founder had no job before.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>adr/0146</c>'s labour cost, which is the half of it milestone 27 can ship.</b> The
+    /// founder is <em>occupied</em>, so the employment pass will not hire them and the city is one
+    /// worker down. ***A cost with no wage attached is still a cost, because a Citizen is a scarce
+    /// thing.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The income half is NOT tested here and must not be added.</b> <c>adr/0026</c> — wages
+    /// posted locally, each Business adjusting by its own fill rate — is milestone <b>15</b>, and the
+    /// founder forgoing a wage is that ADR running on a Business with an empty Bin. A 27-shaped proxy
+    /// would be a second, worse answer somebody has to find and delete on the day 15 lands.
+    /// </para>
+    /// <para>
+    /// <b>The founder is identified by the JOB and by nothing else</b>, which is why this test walks
+    /// the worker list rather than reading a column: there is no <c>founder</c> column, and declaring
+    /// one would make <c>BusinessTable</c> and <c>CitizenTable</c> mutually dependent at construction.
+    /// ⚠ <b>So what is asserted is that every founded Business is STAFFED</b> — that the link exists —
+    /// rather than that a particular Citizen is on it, because after the assignment pass has run a
+    /// second worker is an ordinary outcome and the founder is no longer distinguishable.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void Every_founded_business_carries_its_founder_as_a_worker()
+    {
+        (World world, Simulation running) = City("founded.toml", 0xF0DDU, 2_000);
+
+        for (int tick = 0; tick < 8_192; tick++)
+        {
+            running.Step(TickInput.Empty);
+        }
+
+        // The trades this file FOUNDS are `bakery` and `barber`; `shop` is what the dwelling kind
+        // comes with (adr/0148), and those are instantiated by construction with nobody in them until
+        // the assignment pass arrives. Kind 1 is `shop`, declared first.
+        int founded = 0;
+        int staffed = 0;
+
+        for (int slot = 0; slot < world.Businesses.Rows.SlotCount; slot++)
+        {
+            if (!world.Businesses.Rows.IsLive(slot) || world.Businesses.Kind[slot] == 1)
+            {
+                continue;
+            }
+
+            founded++;
+
+            if (world.Workers.Length(slot) > 0)
+            {
+                staffed++;
+            }
+        }
+
+        _out.WriteLine($"founders: founded-trade businesses={founded} staffed={staffed}");
+
+        Assert.True(founded > 0, "nothing was founded, so the labour cost is untested.");
+
+        Assert.Equal(founded, staffed);
+    }
+
+    /// <summary>
     /// A founded Business finds premises, and the room it takes is room a Household cannot have.
     /// </summary>
     /// <remarks>

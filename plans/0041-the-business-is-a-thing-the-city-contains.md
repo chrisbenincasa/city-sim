@@ -30,6 +30,17 @@ the actor the milestone's risk names, and it is what gives task 9 a subject that
 milestone's named risk is retired on its main axis: the economic actor exists in a city rather than in
 a fixture.
 
+✅ **TASK 8 CLOSES 2026-08-24 — THE FOUNDER IS A CITIZEN AND THE JOB IS THE RECORD.**
+[`adr/0146`](../docs/adr/0146-founding-costs-a-citizen-and-the-households-money-so-the-founder-is-the-first-worker.md)'s
+half that 27 can ship: `World.Found` takes a `Handle<Citizen>`, the pass draws **unemployed, housed
+Citizens whose Household affords the band**, and the founder is `Employ`ed into the new Business.
+**Measured on `founded.toml`: 148 founded-trade Businesses, 148 of them staffed.** ⚠ **The income half
+is `adr/0026` at milestone 15 and is deliberately NOT proxied.** 🔴 **One new refusal** (`adr/0048`:
+152 → 153): a `[[business]]` with no `jobs` in a file stating `[founding]`, because a trade nobody can
+work at is a trade nobody can found — and `founded.toml`'s two trades gained `jobs` and a Shift band.
+⚠ **No golden artefact moved**, and that is a fact rather than luck: no golden Ruleset states
+`[founding]`. Tier green at **2,126**.
+
 ✅ **TASK 7 SHIPPED 2026-08-24, IN TWO HALVES, AND THE SECOND WAS NOT IN THIS PLAN.** The handle move
 landed and **emptied every shipped city** — 66 assertions failing on one sentence, *nobody is employed
 anywhere* — because employment now needs a Business and the only thing that creates one is
@@ -305,7 +316,28 @@ Building. ***It does not need a Business the city created; it needs a Business.*
   than one switch … a single method taking an `(entity kind, slot)` pair would be two switches wearing
   one signature."* ***Follow it rather than collapsing it.***
 
-### 8. **What creates a Business, and what capitalises one.** *(FOUNDING CHANNEL SHIPPED 2026-08-24)*
+### 8. **What creates a Business, and what capitalises one.** *(✅ CLOSED 2026-08-24)*
+
+✅ **THE FOUNDER HALF SHIPPED 2026-08-24, and it needed task 7 first.** `adr/0146` said so at the time —
+*"the founder is recorded by the employment link, an unpremised Business has no Building, and a
+`Workplace` handle addressing `BuildingTable` cannot point at one"* — so this is the ordering working
+rather than the plan drifting.
+
+- ✅ **The subject moved from Household to Citizen.** `World.Found(Handle<Citizen>, …)` resolves the
+  Household for the money, because **a Citizen owns nothing** — `CONTEXT.md` puts the balance on the
+  Household and `adr/0146` declined to move it for this.
+- ✅ **The trigger is three predicates over columns that already existed**: `Workplace` does not
+  resolve, the Household's `Dwelling` does, and the balance covers the band. ⚠ **The first is what
+  makes founding a CHOICE**: the employment pass and this one draw from the same people and neither
+  knows the other exists (`adr/0017`).
+- ✅ **No `founder` column, and the job is the record** — `adr/0146`'s own argument, which is that
+  declaring a severable `BusinessTable` → `CitizenTable` handle makes the two tables mutually
+  dependent at construction and they are built in one ordered pass.
+- 🔴 **`PurposeTag.FoundingTrade` is now drawn on the CITIZEN's monotonic id**, not the Household's.
+  Same tag, different subject: the decision is unchanged and the old subject is gone entirely.
+- 🔴 **The refusal was found by asking what happens to a founder of a jobless trade**: they are over
+  the ceiling from the instant they are hired and `EvictOverflow` sacks them on the next sweep. **It is
+  every declared trade rather than at least one**, because the draw is uniform.
 
 ✅ **THE FOUNDING HALF IS BUILT AND MEASURED. `rulesets/founded.toml` is the FIRST SHIPPED FILE IN
 WHICH THE SIMULATION CREATES A BUSINESS** — **114 founded** over 4,096 Ticks at 2,000 Citizens.
