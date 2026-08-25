@@ -448,7 +448,6 @@ public readonly record struct KindDefinition(
     /// </para>
     /// </remarks>
     public int Occupants { get; init; }
-
     /// <summary>
     /// How many Tiles a Building of this kind covers, and therefore how many it Seals. One when the
     /// Ruleset does not say.
@@ -481,33 +480,32 @@ public readonly record struct KindDefinition(
     public int FootprintTiles { get; init; }
 
     /// <summary>
-    /// How many Citizens a Building of this kind employs. Zero means it employs nobody.
+    /// The Business kind a Building of this kind comes with, or <c>0</c> for none.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b><see cref="Occupants"/>'s rule a second time, and it transplants for the reason that one
-    /// did rather than by analogy</b> (<c>adr/0068</c>, milestone 5b-bis task 2). It is an authored
-    /// number keyed on the kind, read at a write site, and pointed at by no live state — so it is a
-    /// property of the Ruleset in force, and lowering it reaches every Building already standing.
-    /// The overflow is <b>dismissed</b> rather than left to drain: <c>adr/0064</c>'s <em>leave it to
-    /// drain</em> turns on a Bin having a consumer, and a job has a holder and no consumer exactly as
-    /// occupancy does — nothing would ever spend a Building's surplus employment down.
+    /// <b><c>adr/0148</c>: a premises kind may declare its trade, and construction instantiates it.</b>
+    /// A Zone Rule raising a Building of this kind creates a <see cref="Entities.Business"/> of this
+    /// trade, already premised, taking one of <see cref="Occupants"/>' slots. ***It is drawn from no
+    /// pool***, which is why this does not reach
+    /// <c>adr/0069</c>'s <em>construction houses nobody</em>: nothing is taken out of the Unplaced Pool
+    /// and nothing out of the unpremised one, so no demand signal is drained.
     /// </para>
     /// <para>
-    /// <b>Zero rather than absent, and most kinds mean it.</b> A dwelling employs nobody, which is
-    /// every kind in every shipped Ruleset at the time this was written, and it wants no ceremony. A
-    /// kind the Ruleset does not declare at all is a different thing again — see
-    /// <see cref="Entities.World.TryDeclaredJobs"/> — because dereliction must not sack a District.
+    /// <b>It is IDENTITY rather than tuning, and <see cref="RulesetShape"/> compares it</b> — alone
+    /// among this type's members. Repointing a kind at a different trade on reload would leave every
+    /// standing Building of it holding a shop of the wrong trade, which is the Bins-and-Rules case
+    /// exactly (<c>02 §4.3</c>), so a reload that moves it is refused rather than migrated.
     /// </para>
     /// <para>
-    /// <b>It counts Citizens and never Households</b>, which is the one place this is not a copy of
-    /// <see cref="Occupants"/>. <c>CONTEXT.md</c> → Household holds the Provider List and the money;
-    /// employment is on the <see cref="Entities.Citizen"/>, with <c>Experience</c> and
-    /// <c>SkillTier</c> beside it, and a Household with two adults working different sides of the
-    /// city is the case a per-Household count could not express.
+    /// ⚠ <b>The Business it makes carries no flag.</b> A kind-declared trade and a founded one differ
+    /// in how they arrive and in nothing afterwards — condemn its premises and it lands in the
+    /// unpremised pool with <c>adr/0144</c>'s empty balance like any other. <b>It has no founder</b>,
+    /// because <c>adr/0146</c> governs founding and nobody founded this.
     /// </para>
     /// </remarks>
-    public int Jobs { get; init; }
+    public byte Business { get; init; }
+
 
     /// <summary>
     /// How many Vehicles a Building of this kind can park. Zero means it provides no parking.
@@ -518,7 +516,7 @@ public readonly record struct KindDefinition(
     /// milestone 7 task 1), and it transplants for the reason the others did rather than by analogy:
     /// an authored number keyed on the kind, read at a write site, pointed at by no live state — so
     /// it is a property of the Ruleset in force, and lowering it reaches every Building already
-    /// standing. The overflow is <b>dismissed</b> rather than left to drain, on <see cref="Jobs"/>'
+    /// standing. The overflow is <b>dismissed</b> rather than left to drain, on <see cref="Occupants"/>'
     /// side of <c>adr/0064</c>'s line: a Bin is left to drain because it has a consumer, and a parked
     /// car has a <em>holder</em> and no consumer exactly as a job does, so nothing would ever spend a
     /// Building's surplus parking down.
@@ -584,53 +582,79 @@ public readonly record struct KindDefinition(
     /// </para>
     /// </remarks>
     public int ArrivalsPerDay { get; init; }
+}
 
+/// <summary>
+/// What a <c>[[business]]</c> trade declares: how many Citizens it employs, and the band its Shifts
+/// start in.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>The second kind namespace grows a definition</b> (<c>adr/0141</c>, milestone 27 task 7). Task 6
+/// shipped <c>[[business]]</c> as names only, because a trade that declares nothing but its name buys
+/// <em>identity</em> — a Business row can name its trade and keep that name across a reload — and a
+/// read pass with no keys to read would be a walk over nothing. This is what it reads once there are
+/// keys.
+/// </para>
+/// <para>
+/// ⚠ <b>Two of <c>adr/0141</c>'s three, and the third is not this milestone's.</b> That ADR's
+/// <em>Declares</em> row gives the trade <c>jobs</c>, shift hours <em>and the wage</em>. The wage
+/// arrives with <c>adr/0026</c> at milestone 15 — <c>docs/06</c> places it there and
+/// <see cref="Readouts"/> says the same — so there is no wage key here and a Ruleset stating one is
+/// refused as unknown. <b>A doc comment in <c>RulesetShape</c> claimed all three arrived together and
+/// was wrong about one</b> (<c>plans/0012</c>, Cause 4).
+/// </para>
+/// <para>
+/// <b>Every member is <em>tuning</em>, which is why no shape check compares them.</b>
+/// <see cref="RulesetShape"/> compares a Building kind's identity, its Bins and its Rules and
+/// <b>does not compare a Building kind's occupancy or parking</b> — a ceiling is read at a write site and
+/// pointed at by no live state, so lowering it reaches every Building already standing and dismisses
+/// the overflow (<c>adr/0068</c>, <c>adr/0064</c>). ***The same is true here member for member***, so
+/// a reload that retunes a trade needs no migration and produces no
+/// <see cref="RulesetChange"/>. ⚠ <b>Hash-bearing all the same</b>: retuning moves the standing city.
+/// </para>
+/// <para>
+/// ⚠ <b>This is where employment lives now, and the Building kind states none of it.</b> A Workplace
+/// is a <see cref="Entities.Business"/> handle as of milestone 27 task 7, and
+/// <c>[[building]] jobs</c> with its Shift band is <b>refused at load</b> rather than ignored
+/// (<c>adr/0148</c>). ***A Building employs nobody; the trade tenanting it does.***
+/// </para>
+/// </remarks>
+public readonly record struct BusinessKindDefinition
+{
     /// <summary>
-    /// The earliest in-world hour a job of this kind starts at. See <see cref="ShiftStartLatestHour"/>.
+    /// How many Citizens a Business of this trade employs. Zero means it employs nobody.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// <b>A band rather than an hour, and each Building draws inside it</b> (<c>adr/0101</c>). A kind
-    /// authoring a single start hour would give every Building of that kind the same one, and the
-    /// corpus has exactly one Building kind — so the whole city would leave at one moment and the
-    /// result would be a <em>sharper</em> peak than the uniform window this replaces, not a shape. The
-    /// band is the thing a designer has a reason for (<em>bakeries open early, offices at nine</em>)
-    /// and the Building's own hour is drawn from it against the Building's monotonic id, which is
-    /// <c>adr/0059</c> once more: state the reason, derive the instance.
-    /// </para>
-    /// <para>
-    /// <b>Hours rather than Ticks, because that is what a designer means.</b> The conversion is
-    /// <see cref="Quantities.Ticks.AtHour"/> and it rounds — an hour is 85.33 Ticks and does not
-    /// divide the Day.
-    /// </para>
+    /// <b>Counts Citizens and never Households</b>, for the reason employment always had: a job has
+    /// one holder, that holder is a
+    /// <see cref="Entities.Citizen"/>, and a Household with two adults working different sides of the
+    /// city is what a per-Household count could not express. ⚠ <b>Optional, and refused negative</b> —
+    /// a negative reads as <em>sack everybody</em>, which is not a sentence anybody meant to write.
+    /// </remarks>
+    public int Jobs { get; init; }
+
+    /// <summary>
+    /// The earliest in-world hour a job of this trade starts at. Paired with
+    /// <see cref="ShiftStartLatestHour"/> and with <see cref="Jobs"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b><c>adr/0101</c>'s Shift band, on the trade rather than the premises</b>, which is that ADR's
+    /// own word arriving where it pointed: a Shift start hour belongs to the <em>Workplace</em>, and a
+    /// Workplace is where you are employed. ⚠ <b>Paired with <see cref="Jobs"/> in both directions</b>
+    /// — a workplace with no hours and an hour with no workplace are each half a mechanism — and the
+    /// defaulted <c>0</c> is refused rather than defaulted because <b>midnight is a real answer</b>
+    /// and would be a placeholder that could not announce itself.
     /// </remarks>
     public int ShiftStartEarliestHour { get; init; }
 
     /// <summary>
-    /// The latest in-world hour a job of this kind starts at, inclusive.
+    /// The latest in-world hour a job of this trade starts at. Equal bounds mean a trade whose Shifts
+    /// all start together.
     /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <b>There is no <em>undeclared</em> value here and there does not need to be, because the loader
-    /// closes the case at the door.</b> A kind with <see cref="Jobs"/> above zero is refused unless it
-    /// states both bounds, and a kind stating either bound is refused unless it employs somebody — so
-    /// the pair is meaningful at every site that reads it and the defaulted <c>0, 0</c> is
-    /// <em>unreachable</em> rather than ambiguous.
-    /// </para>
-    /// <para>
-    /// That matters because <b>midnight is a legitimate answer</b>, so a zero meaning <em>unset</em>
-    /// would be a placeholder sitting inside the range of legitimate answers — the trap session F
-    /// named and <c>adr/0098</c> dodged by omitting a whole table. A key cannot be omitted alone the
-    /// way a table can, so <b>a refusal is the cheaper form of the same discipline</b>.
-    /// </para>
-    /// <para>
-    /// <b>Equal bounds are permitted and mean a kind whose shifts all start together.</b> That is a
-    /// coherent workplace rather than a degenerate one, so it is not refused; what is refused is a
-    /// band running backwards.
-    /// </para>
-    /// </remarks>
     public int ShiftStartLatestHour { get; init; }
 }
+
 
 /// <summary>
 /// One Zone Rule: a time trigger, a sample of Lots, and the kind it builds on those that qualify.
@@ -739,13 +763,22 @@ public enum PolicySubject : byte
     /// </summary>
     None = 0,
 
-    /// <summary>Every live Household. The only one built (<c>plans/0033</c> task 5).</summary>
+    /// <summary>Every live Household. The first one built (<c>plans/0033</c> task 5).</summary>
     Household = 1,
 
     /// <summary>
-    /// Every live Business. <b>Declared and not yet swept</b> — a Business has a balance and nothing
-    /// that moves it.
+    /// Every live Business. Built by <c>adr/0149</c>, milestone 27 task 9.
     /// </summary>
+    /// <remarks>
+    /// ⚠ <b>It is the same loop over a different table, and that is the finding rather than the
+    /// implementation.</b> A Business's balance is a Bin exactly as a Household's is
+    /// (<c>adr/0114</c>), so what a Policy needs from its subject is <em>a slot count, a liveness
+    /// test and a balance Bin</em> — three lines — and the reason this was not built at task 5 is
+    /// that there were no Businesses. ***The candidate that looked closer, a Bin Rule armed on a
+    /// trade, is a much larger mechanism***: <c>RuleEngine.Fire</c> resolves a Building from the
+    /// Rule Instance, so a Business-subject Bin Rule needs the Bin engine's Building-centricity
+    /// unpicked and not merely a branch. <c>adr/0149</c> records that attempt and its withdrawal.
+    /// </remarks>
     Business = 2,
 
     /// <summary>
@@ -1022,6 +1055,78 @@ public readonly record struct PlacementRuleset(
         }
 
         return (int)IntegerMath.CeilDiv((long)pool * Interval, RevisitTicks);
+    }
+}
+
+/// <summary>
+/// The <c>[founding]</c> table: what it costs a Household to found a Business, and how often every
+/// Household reconsiders founding one.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b><c>adr/0145</c>'s founding channel, and the whole table is two numbers because the trigger is
+/// deliberately thin.</b> A Household founds on its own <em>means</em> and never on the city's
+/// <em>need</em> — so there is no threshold on shop count, no vacancy term and no demand key, and the
+/// absence of those keys is the decision rather than an omission. ***A key that read a shortage would
+/// be the RCI meter this design refuses, whatever it was called.***
+/// </para>
+/// <para>
+/// ⚠ <b><see cref="ReconsiderTicks"/> is a DURATION and the sample is derived from it</b>
+/// (<c>adr/0059</c>): the file states how long it takes every Household to consider founding once, and
+/// the engine divides. Authoring a count instead would make the quantity the city actually feels — the
+/// fraction of it starting a business per cycle — depend on how big the city is.
+/// </para>
+/// <para>
+/// <b>There is no arrival band here and that is not an oversight.</b> <c>adr/0145</c>'s other channel
+/// is a Business arriving through a gate, and what an immigrant carries belongs to the
+/// <see cref="HinterlandDefinition"/> it comes from, exactly as a Household's does. ***Two channels,
+/// two homes, because the numbers answer to different worlds.***
+/// </para>
+/// </remarks>
+public readonly record struct FoundingRuleset(Money FoundingBand, int ReconsiderTicks)
+{
+    /// <summary>A Ruleset in which no Household ever founds a Business.</summary>
+    public static FoundingRuleset None => default;
+
+    /// <summary>Whether the founding channel runs at all.</summary>
+    /// <remarks>
+    /// <b>Keyed on the period rather than on the band</b>, because a band of zero is a coherent world
+    /// — a shop founded with no capital, which then cannot pay for anything and gives up — whereas a
+    /// period of zero is not a cadence at all. ⚠ <b>The loader refuses a zero period</b>, so this
+    /// reads <c>false</c> only for a file that states no <c>[founding]</c> table.
+    /// </remarks>
+    public bool Runs => ReconsiderTicks != 0;
+
+    /// <summary>
+    /// How many Households to look at this pass, given how many there are.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="PlacementRuleset.SampleFor"/>'s derivation with a different population</b>, and
+    /// the same <c>adr/0059</c> argument underneath it. ⚠ <b>The draw is with REPLACEMENT</b>, so this
+    /// is a rate and not coverage: about <c>1/e</c> of Households go unlooked-at in any period, and a
+    /// reader wanting *every Household considered once* will not get it from this number.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It divides by the period and multiplies by the trigger interval</b>, which is
+    /// <c>[placement]</c>'s — the founding pass runs on placement's trigger rather than owning one.
+    /// A second cadence would be a second thing to tune for no stated benefit, and the loader refuses
+    /// a <c>[founding]</c> table in a file with no <c>[placement]</c>.
+    /// </para>
+    /// </remarks>
+    /// <param name="households">How many Households the sample is drawn from.</param>
+    /// <param name="interval">The <c>[placement]</c> trigger interval, in Ticks.</param>
+    public int SampleFor(int households, uint interval)
+    {
+        if (ReconsiderTicks < 1)
+        {
+            throw new InvalidOperationException(
+                $"[founding] has a reconsider period of {ReconsiderTicks}. It is how long every "
+                + "Household takes to consider founding once, so it divides; the loader refuses "
+                + "anything below the placement interval, and this Ruleset was not built by it.");
+        }
+
+        return (int)IntegerMath.CeilDiv((long)households * interval, ReconsiderTicks);
     }
 }
 
@@ -2431,6 +2536,18 @@ public sealed class Ruleset
     public MarketRuleset Market { get; init; } = MarketRuleset.None;
 
     /// <summary>
+    /// The <c>[founding]</c> table, or <see cref="FoundingRuleset.None"/> when the file states none —
+    /// which is a city in which no Household ever founds a shop.
+    /// </summary>
+    /// <remarks>
+    /// <b>Absent is the ten shipped files and it is a real city rather than a broken one</b>
+    /// (<c>adr/0145</c>): the founding channel is one of two ways a Business enters, so a file with no
+    /// <c>[founding]</c> table still gets shops if it declares a gate. ⚠ <b>A file with NEITHER gets
+    /// no Businesses at all</b>, which is every world that existed before milestone 27 task 8.
+    /// </remarks>
+    public FoundingRuleset Founding { get; init; } = FoundingRuleset.None;
+
+    /// <summary>
     /// What the Hinterland at <paramref name="hinterland"/> charges for <paramref name="resource"/>.
     /// </summary>
     /// <remarks>
@@ -2524,6 +2641,54 @@ public sealed class Ruleset
     /// <summary>What the Building kind with this id is, as a key comparable across Rulesets.</summary>
     public ulong KindKey(byte kind) => KindKeys.Length == 0 ? kind : KindKeys[kind - 1];
 
+    /// <inheritdoc cref="ResourceKeys"/>
+    /// <remarks>
+    /// <inheritdoc cref="ResourceKeys" path="/remarks"/>
+    /// <para>
+    /// ⚠ <b>A separate key family from <see cref="KindKeys"/>, and it has to be.</b> The two kind
+    /// namespaces are independent (<c>adr/0141</c>), so a file may name a <c>[[building]]</c> and a
+    /// <c>[[business]]</c> the same word. Hashing them into one family would make a bakery <em>the
+    /// premises</em> on reload.
+    /// </para>
+    /// </remarks>
+    public ulong[] BusinessKindKeys { get; init; } = [];
+
+    /// <summary>What the Business kind with this id is, as a key comparable across Rulesets.</summary>
+    public ulong BusinessKindKey(byte kind) =>
+        BusinessKindKeys.Length == 0 ? kind : BusinessKindKeys[kind - 1];
+
+    /// <summary>What each Business kind declares, indexed by <c>kind - 1</c>.</summary>
+    /// <remarks>
+    /// <b>An <c>init</c> property rather than a constructor argument, on
+    /// <see cref="BusinessKindKeys"/>' precedent and for its reason.</b> The nine positional arrays
+    /// are the structure a Ruleset is built from; the second kind namespace arrived after them and
+    /// grows the same way it did. ⚠ <b>Empty is the ordinary case</b> — twelve of the fourteen shipped
+    /// files declare no trade at all — and an empty array here means exactly what
+    /// <see cref="BusinessKindCount"/> zero means.
+    /// </remarks>
+    public BusinessKindDefinition[] BusinessKinds { get; init; } = [];
+
+    /// <summary>What the Business kind with this id declares.</summary>
+    /// <remarks>
+    /// ⚠ <b>Throws where <see cref="BusinessKindKey"/> defaults, and the difference is deliberate.</b>
+    /// A key is asked for by migration code walking two Rulesets that may disagree about how many
+    /// kinds exist, so it answers for an id it does not hold. <b>A definition is asked for by a caller
+    /// that has already resolved a live Business's kind column</b>, where an out-of-range id is a
+    /// corrupt row rather than a question — <see cref="Kind"/>'s shape exactly.
+    /// </remarks>
+    public BusinessKindDefinition BusinessKind(byte kind)
+    {
+        if (kind == 0 || kind > BusinessKinds.Length)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(kind),
+                kind,
+                $"no Business kind carries id {kind}; this Ruleset declares {BusinessKinds.Length}.");
+        }
+
+        return BusinessKinds[kind - 1];
+    }
+
     /// <summary>This Ruleset with different Map Layer data, and everything else shared.</summary>
     /// <remarks>
     /// <para>
@@ -2577,8 +2742,12 @@ public sealed class Ruleset
             Hinterlands = Hinterlands,
             HinterlandPrices = HinterlandPrices,
             Market = Market,
+            Founding = Founding,
             ResourceKeys = ResourceKeys,
             KindKeys = KindKeys,
+            BusinessKindCount = BusinessKindCount,
+            BusinessKindKeys = BusinessKindKeys,
+            BusinessKinds = BusinessKinds,
         };
 
     /// <summary>How many Resources are declared. Ids run <c>1..ResourceCount</c>.</summary>
@@ -2604,6 +2773,30 @@ public sealed class Ruleset
 
     /// <summary>How many Building kinds are declared. Ids run <c>1..KindCount</c>.</summary>
     public int KindCount => _kinds.Length;
+
+    /// <summary>How many Business kinds are declared. Ids run <c>1..BusinessKindCount</c>.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A count rather than a definition array, because a Business kind declares nothing yet.</b>
+    /// <c>adr/0141</c> gives it <c>jobs</c>, shift hours and the wage — and all three belong to
+    /// milestone 27's <em>task 7</em>, where the Workplace stops being a Building. Until one of them
+    /// lands there is no field to put in a <c>BusinessKindDefinition</c>, and inventing the type empty
+    /// would be a shape with nothing in it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>What the kind buys before it declares anything is IDENTITY.</b> A Business row can name its
+    /// trade, the name survives a reload through <see cref="BusinessKindKeys"/>, and
+    /// <c>World.CreateBusiness</c> has a kind to create <em>from</em> — which is what milestone 27's
+    /// task 8 needs and what its risk says is missing.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is an init property rather than a constructor parameter</b>, on
+    /// <see cref="KindKeys"/>'s precedent: the constructor's nine positional parameters are named by
+    /// every hand-built Ruleset in the test suite, and a tenth would edit all of them to say
+    /// <em>nothing here</em>.
+    /// </para>
+    /// </remarks>
+    public int BusinessKindCount { get; init; }
 
     /// <summary>
     /// Every Zone Rule, in declaration order — which is the order a trigger evaluates them in.
@@ -2654,6 +2847,15 @@ public sealed class Ruleset
     /// </para>
     /// </remarks>
     public bool Declares(byte kind) => kind != 0 && kind <= _kinds.Length;
+
+    /// <summary>Whether this Ruleset declares a Business kind with this id.</summary>
+    /// <remarks>
+    /// <b>The Business half of <see cref="Declares"/>, and derelict means the same thing here.</b> A
+    /// Business whose trade a reloaded Ruleset no longer names keeps its row and its balance — the
+    /// money is conserved either way (<c>adr/0024</c>) — and reads as a trade nobody declared, exactly
+    /// as <c>02 §4.3</c> has a Building do.
+    /// </remarks>
+    public bool DeclaresBusiness(byte kind) => kind != 0 && kind <= BusinessKindCount;
 
     /// <summary>One Building kind, or a throw.</summary>
     /// <exception cref="ArgumentOutOfRangeException">No kind carries that id.</exception>

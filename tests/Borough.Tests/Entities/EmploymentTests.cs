@@ -39,6 +39,14 @@ public sealed class EmploymentTests
 
     private const byte Workplace = 1;
 
+    /// <summary>The trade the workplace houses, in the SECOND kind namespace (<c>adr/0141</c>).</summary>
+    /// <remarks>
+    /// <b>1 for the same reason <see cref="Workplace"/> is</b> — first declaration of its kind — and
+    /// the two are uncorrelated on purpose: a Building kind and a Business kind may share a byte and
+    /// a name and mean nothing to each other.
+    /// </remarks>
+    private const byte Trade = 1;
+
     private static readonly WorldKey Key = WorldKey.FromSeed(0x8000_0002UL);
 
     /// <summary>A workplace, with the ceiling left as a token for <see cref="Employing"/>.</summary>
@@ -49,10 +57,13 @@ public sealed class EmploymentTests
 
         [[building]]
         name = "workplace"
-        jobs = POSTS
         bins = [
             { resource = "sundries", capacity = 12 },
         ]
+
+        [[business]]
+        name = "workplace"
+        jobs = POSTS
 
         [[rule]]
         name    = "restock"
@@ -78,7 +89,10 @@ public sealed class EmploymentTests
             : jobs.ToString(CultureInfo.InvariantCulture),
         StringComparison.Ordinal);
 
-    /// <summary>The same file with no <c>[[building]]</c> at all: every Building is derelict.</summary>
+    /// <summary>
+    /// The same file with no <c>[[building]]</c> and no <c>[[business]]</c> at all: every Building
+    /// and every trade is derelict.
+    /// </summary>
     private const string NoKinds = """
         [[resource]]
         name = "sundries"
@@ -92,6 +106,39 @@ public sealed class EmploymentTests
         Assert.True(result.Ok, result.Describe());
 
         return result.Ruleset!;
+    }
+
+    /// <summary>
+    /// The same city, with the trade declared BY THE KIND rather than tenanting it (<c>adr/0148</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>The two fixtures are the two fates of an employer whose premises come down</b>, and they
+    /// are the whole of why the demolition tests below come in a pair. A trade a kind DECLARES is
+    /// created by <c>World.Fit</c> at construction and destroyed with the Building; one that merely
+    /// tenants the premises is unpremised into the pool and keeps its staff. ⚠ <b>Nothing here calls
+    /// <c>CreateBusiness</c></b> — doing so would put a second, tenanting shop in the same Building
+    /// and test both fates at once.
+    /// </remarks>
+    private static World CityThatCameWithItsTrade(int workers, int jobs, WorldKey? key = null)
+    {
+        string toml = Employing(jobs).Replace(
+            "name = \"workplace\"\nbins = [",
+            "name = \"workplace\"\noccupants = 2\nbusiness = \"workplace\"\nbins = [",
+            StringComparison.Ordinal);
+
+        var world = new World(1_000, Load(toml));
+
+        Handle<Lot> lot = world.Lots.Create(new Tiles(0), new Tiles(0), zone: 1);
+        Handle<Building> building = world.CreateBuilding(lot, Workplace, Ticks.Zero, key ?? Key);
+        Handle<Household> household = world.CreateHousehold(building, lifeStage: 0);
+        Handle<Business> employer = world.Businesses.Rows.At(0);
+
+        for (int i = 0; i < workers; i++)
+        {
+            world.Employ(world.CreateCitizen(household, Ticks.Zero), employer, Ticks.Zero);
+        }
+
+        return world;
     }
 
     /// <summary>
@@ -111,9 +158,14 @@ public sealed class EmploymentTests
         Handle<Building> building = world.CreateBuilding(lot, Workplace, Ticks.Zero, key ?? Key);
         Handle<Household> household = world.CreateHousehold(building, lifeStage: 0);
 
+        // ONE Business for all of them, because since adr/0141 the ceiling and the worker list
+        // belong to the trade and this fixture is about one employer's list. A Business per worker
+        // would put every list at length one and make every assertion below vacuous.
+        Handle<Business> employer = world.CreateBusiness(building, Trade);
+
         for (int i = 0; i < workers; i++)
         {
-            world.Employ(world.CreateCitizen(household, Ticks.Zero), building, Ticks.Zero);
+            world.Employ(world.CreateCitizen(household, Ticks.Zero), employer, Ticks.Zero);
         }
 
         return world;
@@ -143,10 +195,11 @@ public sealed class EmploymentTests
         Handle<Lot> lot = world.Lots.Create(new Tiles(0), new Tiles(0), zone: 1);
         Handle<Building> building = world.CreateBuilding(lot, Workplace, Ticks.Zero, Key);
         Handle<Household> household = world.CreateHousehold(building, lifeStage: 0);
+        Handle<Business> employer = world.CreateBusiness(building, Trade);
 
         for (int i = 0; i < workers; i++)
         {
-            world.Employ(world.CreateCitizen(household, Ticks.Zero), building, Ticks.Zero);
+            world.Employ(world.CreateCitizen(household, Ticks.Zero), employer, Ticks.Zero);
         }
 
         return world;
@@ -156,12 +209,16 @@ public sealed class EmploymentTests
     private static int TheBuilding(World world) => world.Buildings.Rows.Resolve(
         world.Buildings.Rows.At(0));
 
-    /// <summary>Which Citizens work in <paramref name="buildingSlot"/>, by monotonic id, in list order.</summary>
-    private static ulong[] Staff(World world, int buildingSlot)
+    /// <summary>The only Business in a <see cref="City"/> fixture — the employer.</summary>
+    private static int TheBusiness(World world) => world.Businesses.Rows.Resolve(
+        world.Businesses.Rows.At(0));
+
+    /// <summary>Which Citizens work for <paramref name="businessSlot"/>, by monotonic id, in list order.</summary>
+    private static ulong[] Staff(World world, int businessSlot)
     {
         var staff = new List<ulong>();
 
-        foreach (int citizen in world.Workers.Walk(buildingSlot))
+        foreach (int citizen in world.Workers.Walk(businessSlot))
         {
             staff.Add(world.Citizens.Rows.IdAt(citizen));
         }
@@ -173,7 +230,7 @@ public sealed class EmploymentTests
     private static ulong[] Employed(World world) =>
         [.. Enumerable.Range(0, world.Citizens.Rows.SlotCount)
             .Where(world.Citizens.Rows.IsLive)
-            .Where(slot => world.Buildings.Rows.TryResolve(world.Citizens.Workplace[slot], out _))
+            .Where(slot => world.Businesses.Rows.TryResolve(world.Citizens.Workplace[slot], out _))
             .Select(world.Citizens.Rows.IdAt)];
 
     // ---- the ceiling reaches Buildings already standing ------------------------------------------
@@ -197,7 +254,7 @@ public sealed class EmploymentTests
         world.Adopt(Load(Employing(1)), HashB, new Ticks(64), Key);
 
         Assert.Single(Employed(world));
-        Assert.Single(Staff(world, TheBuilding(world)));
+        Assert.Single(Staff(world, TheBusiness(world)));
     }
 
     /// <summary>
@@ -225,7 +282,7 @@ public sealed class EmploymentTests
             }
         }
 
-        Assert.Empty(Staff(world, TheBuilding(world)));
+        Assert.Empty(Staff(world, TheBusiness(world)));
     }
 
     /// <summary>Raising the ceiling dismisses nobody.</summary>
@@ -258,7 +315,7 @@ public sealed class EmploymentTests
         world.Adopt(Load(NoKinds), HashB, new Ticks(64), Key);
 
         Assert.Equal(3, Employed(world).Length);
-        Assert.Equal(3, Staff(world, TheBuilding(world)).Length);
+        Assert.Equal(3, Staff(world, TheBusiness(world)).Length);
     }
 
     /// <summary>A derelict Building takes nobody new either.</summary>
@@ -267,11 +324,11 @@ public sealed class EmploymentTests
     {
         World world = City(workers: 0, jobs: 4);
 
-        Assert.True(world.HasJob(TheBuilding(world)));
+        Assert.True(world.HasJob(TheBusiness(world)));
 
         world.Adopt(Load(NoKinds), HashB, new Ticks(64), Key);
 
-        Assert.False(world.HasJob(TheBuilding(world)));
+        Assert.False(world.HasJob(TheBusiness(world)));
     }
 
     // ---- the predicate ---------------------------------------------------------------------------
@@ -288,13 +345,13 @@ public sealed class EmploymentTests
     public void A_full_building_has_no_job_and_a_dismissal_opens_one()
     {
         World world = City(workers: 2, jobs: 2);
-        int building = TheBuilding(world);
+        int employer = TheBusiness(world);
 
-        Assert.False(world.HasJob(building));
+        Assert.False(world.HasJob(employer));
 
         world.Dismiss(world.Citizens.Rows.At(0));
 
-        Assert.True(world.HasJob(building));
+        Assert.True(world.HasJob(employer));
     }
 
     // ---- the worker list -------------------------------------------------------------------------
@@ -313,28 +370,42 @@ public sealed class EmploymentTests
         World world = City(workers: 1, jobs: 4);
 
         Handle<Lot> second = world.Lots.Create(new Tiles(64), new Tiles(0), zone: 1);
-        Handle<Building> elsewhere = world.CreateBuilding(second, Workplace, Ticks.Zero, Key);
+        Handle<Building> premises = world.CreateBuilding(second, Workplace, Ticks.Zero, Key);
+
+        // A second employer, and it needs its own premises rather than only its own row: two
+        // Businesses sharing a Building would test the list and say nothing about the move.
+        Handle<Business> elsewhere = world.CreateBusiness(premises, Trade);
 
         world.Employ(world.Citizens.Rows.At(0), elsewhere, Ticks.Zero);
 
-        Assert.Empty(Staff(world, TheBuilding(world)));
-        Assert.Single(Staff(world, world.Buildings.Rows.Resolve(elsewhere)));
+        Assert.Empty(Staff(world, TheBusiness(world)));
+        Assert.Single(Staff(world, world.Businesses.Rows.Resolve(elsewhere)));
     }
 
     /// <summary>
-    /// <b>Demolishing a workplace unlists its staff and leaves their handles severed.</b>
+    /// <b>Demolishing the premises a trade CAME WITH unlists its staff and leaves their handles
+    /// severed.</b>
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>The handle is deliberately not cleared, and the reason is the State Hash.</b> Clearing it
     /// would make demolition write a saved column for a reason that has nothing to do with the
     /// demolition. The handle is <see cref="Reference.Severable"/> precisely so a dangling one can
     /// mean <em>the job stopped existing</em>, and unlisting alone is what makes the write path
     /// agree with the rebuild, whose <c>TryResolve</c> drops exactly these Citizens.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>This asserted the fate of EVERY employer until <c>adr/0148</c>, and it now asserts one of
+    /// two.</b> A Business the Ruleset's kind declares is created by construction and destroyed by
+    /// demolition — the pairing that keeps the shop count bounded. One that merely tenants the
+    /// premises is not; see the test below, which is the other half and used to be this one's
+    /// contradiction.
+    /// </para>
     /// </remarks>
     [Fact]
-    public void Demolition_unlists_the_workers_and_severs_their_handles()
+    public void Demolishing_the_premises_a_trade_came_with_ends_its_jobs()
     {
-        World world = City(workers: 3, jobs: 3);
+        World world = CityThatCameWithItsTrade(workers: 3, jobs: 3);
         Handle<Building> building = world.Buildings.Rows.At(0);
 
         world.DestroyBuilding(building, new Ticks(64));
@@ -348,6 +419,31 @@ public sealed class EmploymentTests
                 Assert.NotEqual(default, world.Citizens.Workplace[slot]);
             }
         }
+    }
+
+    /// <summary>
+    /// <b>Demolishing premises a trade merely TENANTED keeps the job and ends only the journey.</b>
+    /// </summary>
+    /// <remarks>
+    /// <c>World.Unpremise</c> states it in its own words — <i>"the jobs SURVIVE. This is not a
+    /// dismissal — the staff keep their employer and lose only the journey, which is what an employer
+    /// between premises means"</i> (<c>adr/0144</c>). ⚠ <b>The commute DOES come off the roster</b>,
+    /// because both departure buckets are computed from the employer's premises (<c>adr/0101</c>) and
+    /// an unpremised employer has none.
+    /// </remarks>
+    [Fact]
+    public void Demolishing_premises_a_trade_tenanted_keeps_the_job()
+    {
+        World world = City(workers: 3, jobs: 3);
+        int employer = TheBusiness(world);
+
+        world.DestroyBuilding(world.Buildings.Rows.At(0), new Ticks(64));
+
+        Assert.True(
+            world.Businesses.IsUnpremised(employer),
+            "the employer was not pooled, so adr/0144's wait did not start.");
+
+        Assert.Equal(3, Staff(world, employer).Length);
     }
 
     /// <summary>
@@ -365,7 +461,7 @@ public sealed class EmploymentTests
 
         world.DestroyCitizen(world.Citizens.Rows.At(1));
 
-        Assert.Equal(2, Staff(world, TheBuilding(world)).Length);
+        Assert.Equal(2, Staff(world, TheBusiness(world)).Length);
     }
 
     /// <summary>
@@ -402,6 +498,7 @@ public sealed class EmploymentTests
     {
         World world = Rostering(workers: 2, jobs: 8);
         Handle<Building> building = world.Buildings.Rows.At(0);
+        Handle<Business> employer = world.Businesses.Rows.At(0);
         Handle<Household> household = world.Households.Rows.At(0);
 
         // Vacuity, and it is load-bearing: the roster holds only Citizens whose Workplace yields two
@@ -418,10 +515,10 @@ public sealed class EmploymentTests
         // more is what walks them back into the buckets the destroyed pair was left in.
         Handle<Household> second = world.CreateHousehold(building, lifeStage: 0);
 
-        world.Employ(world.CreateCitizen(second, Ticks.Zero), building, Ticks.Zero);
-        world.Employ(world.CreateCitizen(second, Ticks.Zero), building, Ticks.Zero);
+        world.Employ(world.CreateCitizen(second, Ticks.Zero), employer, Ticks.Zero);
+        world.Employ(world.CreateCitizen(second, Ticks.Zero), employer, Ticks.Zero);
 
-        Assert.Equal(2, Staff(world, TheBuilding(world)).Length);
+        Assert.Equal(2, Staff(world, TheBusiness(world)).Length);
     }
 
     /// <summary>
@@ -496,13 +593,13 @@ public sealed class EmploymentTests
     public void A_rebuild_reproduces_the_worker_list_across_a_recycled_slot()
     {
         World world = City(workers: 2, jobs: 8);
-        Handle<Building> building = world.Buildings.Rows.At(0);
+        Handle<Business> employer = world.Businesses.Rows.At(0);
         Handle<Household> household = world.Households.Rows.At(0);
 
         world.DestroyCitizen(world.Citizens.Rows.At(0));
-        world.Employ(world.CreateCitizen(household, Ticks.Zero), building, Ticks.Zero);
+        world.Employ(world.CreateCitizen(household, Ticks.Zero), employer, Ticks.Zero);
 
-        int slot = world.Buildings.Rows.Resolve(building);
+        int slot = world.Businesses.Rows.Resolve(employer);
         ulong[] maintained = Staff(world, slot);
 
         world.RebuildDerived();
@@ -522,12 +619,12 @@ public sealed class EmploymentTests
     [Fact]
     public void A_rebuild_drops_a_worker_whose_employer_is_gone()
     {
-        World world = City(workers: 3, jobs: 3);
+        World world = CityThatCameWithItsTrade(workers: 3, jobs: 3);
 
         world.DestroyBuilding(world.Buildings.Rows.At(0), new Ticks(64));
         world.RebuildDerived();
 
-        for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
+        for (int slot = 0; slot < world.Businesses.Rows.SlotCount; slot++)
         {
             Assert.Empty(Staff(world, slot));
         }

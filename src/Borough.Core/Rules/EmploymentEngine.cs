@@ -216,7 +216,7 @@ public sealed class EmploymentEngine
 
             _tickConsidered++;
 
-            if (_world.Buildings.Rows.IsValid(_world.Citizens.Workplace[slot]))
+            if (_world.Businesses.Rows.IsValid(_world.Citizens.Workplace[slot]))
             {
                 continue;
             }
@@ -323,7 +323,7 @@ public sealed class EmploymentEngine
         ulong id = _world.Citizens.Rows.IdAt(slot);
 
         CommuteRung best = CommuteRung.Fast;
-        int bestBuilding = Rows.NoSlot;
+        int bestEmployer = Rows.NoSlot;
         // What the winning walk cost, kept so that Employ can write it onto the Citizen as their
         // planned commute (adr/0101). The search already paid for it; storing it is what lets the
         // departure be `Shift start - this` instead of a number somebody had to choose.
@@ -349,7 +349,29 @@ public sealed class EmploymentEngine
             int building = _world.BuildingsInCells.NthIn(
                 box, _world.Buildings, (int)(value % (ulong)(uint)here));
 
-            if (building == Rows.NoSlot || !_world.HasJob(building))
+            if (building == Rows.NoSlot)
+            {
+                continue;
+            }
+
+            // ⚠ THE EMPLOYER IS A BUSINESS AND THE BOX IS STILL OVER BUILDINGS, which is the whole
+            // shape of milestone 27 task 7's search half. A Business has no location of its own -- it
+            // borrows its premises' -- so the geometry is unchanged and only the thing that holds the
+            // vacancy moved. The FIRST trade with room takes the worker rather than the best of them:
+            // adr/0017, satisfice and never optimise, and a Building holds at most `occupants`
+            // tenants so the walk is bounded by a Ruleset constant.
+            int employer = Rows.NoSlot;
+
+            foreach (int tenant in _world.BuildingBusinesses.Walk(building))
+            {
+                if (_world.HasJob(tenant))
+                {
+                    employer = tenant;
+                    break;
+                }
+            }
+
+            if (employer == Rows.NoSlot)
             {
                 continue;
             }
@@ -373,7 +395,7 @@ public sealed class EmploymentEngine
             {
                 found = true;
                 best = rung;
-                bestBuilding = building;
+                bestEmployer = employer;
                 bestCost = cost;
             }
 
@@ -405,7 +427,7 @@ public sealed class EmploymentEngine
         // path into employment. adr/0097: it resets on employment and on nothing else.
         _world.Employ(
             _world.Citizens.Rows.At(slot),
-            _world.Buildings.Rows.At(bestBuilding),
+            _world.Businesses.Rows.At(bestEmployer),
             bestCost.ToTicksFloor());
         _tickRungs[(int)best]++;
 

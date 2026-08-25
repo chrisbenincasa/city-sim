@@ -39,10 +39,15 @@ public sealed class CitizenTable
     /// <param name="households">The table this one's household handles address.</param>
     /// <param name="buildings">The table this one's workplace handles address.</param>
     public CitizenTable(
-        int capacity, HouseholdTable households, BuildingTable buildings, Parking.CarParkTable carParks)
+        int capacity,
+        HouseholdTable households,
+        BuildingTable buildings,
+        BusinessTable businesses,
+        Parking.CarParkTable carParks)
     {
         ArgumentNullException.ThrowIfNull(households);
         ArgumentNullException.ThrowIfNull(buildings);
+        ArgumentNullException.ThrowIfNull(businesses);
         ArgumentNullException.ThrowIfNull(carParks);
 
         _rows = new Rows<Citizen>("citizen", capacity, Buffering.OneCopy);
@@ -62,7 +67,7 @@ public sealed class CitizenTable
         // milestone 5b-bis task 2; it does not make the handle unseverable, because it is derived
         // *from* the handle and a demolition still leaves the Citizen pointing at a freed row.
         Workplace = _rows.SavedHandle(
-            "workplace", buildings.Rows, reference: Reference.Severable);
+            "workplace", businesses.Rows, reference: Reference.Severable);
         Experience = _rows.Saved<long>("experience");
         SkillTier = _rows.Saved<byte>("skill_tier");
         Employment = _rows.Saved<byte>("employment");
@@ -203,7 +208,7 @@ public sealed class CitizenTable
     public HandleColumn<Household> HouseholdOf { get; }
 
     /// <summary>Where this Citizen works, or the unset handle, <c>default</c>.</summary>
-    public HandleColumn<Building> Workplace { get; }
+    public HandleColumn<Business> Workplace { get; }
 
     /// <summary>Accumulated on-the-job experience. An i64 accumulator, per <c>05 §3</c>'s widths.</summary>
     public Column<long> Experience { get; }
@@ -424,7 +429,7 @@ public sealed class CitizenTable
     public Column<int> MemberNext { get; }
 
     /// <summary>
-    /// Link in the Workplace's worker list — see <see cref="BuildingTable.WorkerHead"/>.
+    /// Link in the Workplace's worker list — see <see cref="BusinessTable.WorkerHead"/>.
     /// </summary>
     /// <remarks>
     /// <b><see cref="Disposition.Derived"/>, and the order is recoverable rather than merely the

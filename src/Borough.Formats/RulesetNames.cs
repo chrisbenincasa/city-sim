@@ -50,17 +50,20 @@ public sealed class RulesetNames
     private static readonly string[] Nothing = [];
 
     private readonly string[] _kinds;
+    private readonly string[] _businessKinds;
     private readonly string[] _conditions;
     private readonly string[] _resources;
     private readonly string[] _rules;
 
     internal RulesetNames(
         IReadOnlyDictionary<string, byte> kinds,
+        IReadOnlyDictionary<string, byte> businessKinds,
         IReadOnlyDictionary<string, ushort> conditions,
         IReadOnlyDictionary<string, ushort> resources,
         IReadOnlyDictionary<string, ushort> rules)
     {
         _kinds = Invert(kinds);
+        _businessKinds = Invert(businessKinds);
         _conditions = Invert(conditions);
         _resources = Invert(resources);
         _rules = Invert(rules);
@@ -69,6 +72,7 @@ public sealed class RulesetNames
     private RulesetNames()
     {
         _kinds = Nothing;
+        _businessKinds = Nothing;
         _conditions = Nothing;
         _resources = Nothing;
         _rules = Nothing;
@@ -84,6 +88,16 @@ public sealed class RulesetNames
 
     /// <summary>What the file called a Building kind, or null.</summary>
     public string? Kind(byte id) => At(_kinds, id);
+
+    /// <summary>What the file called a Business kind, or null.</summary>
+    /// <remarks>
+    /// <b>A second kind namespace, and the two do not share ids.</b> <c>adr/0141</c> gives the Ruleset
+    /// two kind tables because the premises and the trade are not correlated — the same shopfront hosts
+    /// a bakery and then a barber — so <em>bakery</em> must not be a property of the walls. A file may
+    /// therefore name a <c>[[building]]</c> and a <c>[[business]]</c> the same thing, and they are
+    /// different kinds.
+    /// </remarks>
+    public string? BusinessKind(byte id) => At(_businessKinds, id);
 
     /// <summary>What the file called a condition, or null.</summary>
     /// <remarks>

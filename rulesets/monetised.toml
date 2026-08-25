@@ -206,28 +206,18 @@ family = "money"
 # `condemn_after` is in MISSED FIRINGS, not Ticks (adr/0053): a Rule fires every `rate` Ticks when
 # healthy, so four missed firings of `upkeep` is 64 Ticks of continuous starvation. Authoring it in
 # Ticks would mean that halving every rate in this file silently doubled every dwelling's lifespan.
-[[building]]
-name = "dwelling"
-bins = [
-    { resource = "sundries", capacity = 48, owner = "occupant" },
-    { resource = "repairs",  capacity = 4 },
-]
-condemn_after = 4
-
-# adr/0068. HOW MANY HOUSEHOLDS THIS HOLDS, and it is read by two things that used to disagree about
-# it: Borough.Core.Entities.SyntheticCity builds ceil(households / this) Buildings and fills each,
-# and the placement pass admits up to this many. Before it existed the populator put 3 in every
-# Building and a Zone Rule put 1, so each demolish-and-rebuild cycle netted +2 into the Unplaced Pool
-# and a 100,000-Tick run settled five-sixths homeless -- an equilibrium produced by a quantity this
-# file could not state. THREE keeps that populator's figure, which is S4 task 2's row ratio (360
-# Households against ~120 Buildings per 1,000 Citizens), so this line changes no world it did not
-# have to. It is UNRATIFIED and the ratifier is named in plans/0002 SS D1: the first long run in which
-# placement and eviction both run.
+# ---------------------------------------------------------------------------------------------------
+# THE TRADE. adr/0141 gave `jobs`, the Shift band and the wage to the BUSINESS rather than to the
+# premises; adr/0148 removed the first two from [[building]] rather than leaving them parsed and
+# unread. THE WAGE IS NOT HERE: that is adr/0026 at milestone 15, and a `wage` key is refused until
+# there is something to pay it out of.
 #
-# It is a property of the RULESET rather than of the Building, so lowering it here reaches every
-# dwelling already standing and evicts the overflow into the Pool -- where an over-full Bin is left to
-# drain, because a Bin has a consumer and occupancy has none.
-occupants = 3
+# THE COMMENTS BELOW ARE THE ONES THAT STOOD ON [[building]], moved verbatim with their numbers. Read
+# them as a property of the TRADE now -- "a Building of this kind" has become "a Business of this
+# trade", and the derivations are untouched because the arithmetic did not move.
+# ---------------------------------------------------------------------------------------------------
+[[business]]
+name = "shop"
 
 # 5b-bis task 4, and the ratifier plans/0002 §D1 named for this key: the first Ruleset that grants
 # employment. HOW MANY CITIZENS THIS BUILDING EMPLOYS -- Citizens, never Households, because a job
@@ -268,6 +258,55 @@ jobs = 8
 # outside, and a kind that authored 22-23 here would get a night shift with no other edit.
 shift_start_earliest_hour = 6
 shift_start_latest_hour   = 10
+
+[[building]]
+name = "dwelling"
+bins = [
+    { resource = "sundries", capacity = 48, owner = "occupant" },
+    { resource = "repairs",  capacity = 4 },
+]
+condemn_after = 4
+
+# adr/0068. HOW MANY HOUSEHOLDS THIS HOLDS, and it is read by two things that used to disagree about
+# it: Borough.Core.Entities.SyntheticCity builds ceil(households / this) Buildings and fills each,
+# and the placement pass admits up to this many. Before it existed the populator put 3 in every
+# Building and a Zone Rule put 1, so each demolish-and-rebuild cycle netted +2 into the Unplaced Pool
+# and a 100,000-Tick run settled five-sixths homeless -- an equilibrium produced by a quantity this
+# file could not state. THREE keeps that populator's figure, which is S4 task 2's row ratio (360
+# Households against ~120 Buildings per 1,000 Citizens), so this line changes no world it did not
+# have to. It is UNRATIFIED and the ratifier is named in plans/0002 SS D1: the first long run in which
+# placement and eviction both run.
+#
+# It is a property of the RULESET rather than of the Building, so lowering it here reaches every
+# dwelling already standing and evicts the overflow into the Pool -- where an over-full Bin is left to
+# drain, because a Bin has a consumer and occupancy has none.
+# adr/0148 MOVED THIS FROM 3 TO 4, AND WHAT IT MEANS DID NOT MOVE. One ceiling counts both kinds
+# of tenant (adr/0147), and this kind now comes with a shop -- so four slots minus one trade is
+# the three Households this file has always housed, and `jobs` below still derives from three.
+occupants = 4
+# THE TRADE A DWELLING OF THIS KIND COMES WITH. adr/0148, and it is this file's oldest comment finally
+# being written down as a row rather than as an apology. `jobs = 8` used to sit here, under a paragraph
+# explaining that it was on the dwelling BECAUSE NO WORKPLACE KIND EXISTED -- "living above the shop is
+# the smallest arrangement in which the assignment pass has somewhere to send anybody." The shop was
+# always in this kind. It had no name, no row and no balance, so nothing could point at it.
+#
+# NOW IT HAS ONE. Raising a Building of this kind instantiates a Business of this trade, already
+# premised, holding one of the `occupants` slots above. THE CITY IS THE SAME CITY -- the same Citizens
+# take the same jobs at the same hours -- and what changed is that a Citizen's employer is a thing you
+# can open a panel on.
+#
+# IT IS DRAWN FROM NO POOL, which is the whole of why this is not adr/0069's "construction houses
+# nobody". That rule protects a DEMAND SIGNAL: creation must not drain the Pool that authorised it, or
+# the Pool stops being the residual. Nothing here is taken out of the Unplaced Pool and nothing out of
+# the unpremised one. The trade is MADE, at the same instant and by the same call as this kind's Bins
+# and its Rule Instances, and construction has always instantiated what a kind declares.
+#
+# IT CARRIES NO FOUNDER AND NO CAPITAL, and that is not a second class of Business. adr/0146 governs
+# FOUNDING -- a Citizen's labour and a Household's money -- and nobody founded this. Condemn its
+# premises and it lands in the unpremised pool with adr/0144's empty balance exactly as a founded shop
+# does, waits a Household's wait, and either finds premises again or emigrates.
+business = "shop"
+
 
 # Greedy, and with no inputs. An extraction step with its Layer read elided — 04 §1's Produce comes
 # from Fertility, which is one of slice 6's named holes — standing in for the delivery that becomes a
@@ -416,12 +455,20 @@ candidates    = 3
 # it no longer holds. It is also UNRATIFIED — the 1–10 km band is 10× wide (plans/0002 §D1).
 #
 # SEALING'S DECAY RATE IS NOT HERE, AND `sealing_decay_tau` IS REFUSED IF YOU WRITE IT. 02 §2.4 keys
+# it BY TERRAIN TYPE -- rock may never recover where floodplain recovers over hundreds of Days -- so
+# it is a key on each [[terrain]] table and there is no global one. A FILE WITH NO [[terrain]] HAS
+# GROUND THAT NEVER RECOVERS, which is what every shipped Ruleset said by writing 0 here.
 
-# THE DESIRABILITY COMPOSITION -- FOUR NUMBERS, EVERY ONE UNRATIFIED. adr/0122 deleted `w1`, because
+# THE DESIRABILITY COMPOSITION -- SEVEN NUMBERS, EVERY ONE UNRATIFIED. adr/0122 deleted `w1`, because
 # land value drifting toward a target whose first term is land value made it a GAIN of 1/(1 - w1) on
-# the others rather than a fifth weight. adr/0123 leaves amenity and shoreline OUT of the formula
-# rather than defaulting them to zero, so what composes is `- w2*pollution - w3*noise` and the field
-# is BOUNDED ABOVE BY ZERO until milestone 15: the best land in the city is clean, quiet and empty.
+# the others rather than a fifth weight. `w5` SHORELINE ARRIVED AT MILESTONE 24 TASK 7, once runoff
+# gave a Water Body's Bin an inflow -- before that it would have been the present-and-permanently-zero
+# term adr/0123 refused -- so what composes is `- w2*pollution - w3*noise - w5*shoreline`.
+#
+# ON A FILE WITH NO [water] THE SHORELINE TERM IS ABSENT AND NOT ZERO, which is the same distinction
+# one level down: no water means no term rather than a term contributing nothing. adr/0123 still
+# leaves AMENITY out, and amenity is the only POSITIVE term, so the field is BOUNDED ABOVE BY ZERO
+# until milestone 15: the best land in the city is clean, quiet and empty beside clean water.
 #
 # `noise_range_metres` is the cutoff. 02 section 2.4 says 50-300 m; that band is SIX TIMES WIDE and
 # is the same defect plans/0012 records against the industrial kernel's 1-10 km. 300 is its outer

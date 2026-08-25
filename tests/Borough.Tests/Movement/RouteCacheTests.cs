@@ -727,8 +727,12 @@ public sealed class RouteCacheTests(ITestOutputHelper output)
 
         for (int citizen = 0; citizen < world.Citizens.Rows.SlotCount; citizen++)
         {
+            // Two hops to the workplace since adr/0141: the Workplace is a Business and a Business
+            // borrows its premises' location, so an unpremised employer has no node to route to.
             if (!world.Citizens.Rows.IsLive(citizen)
-                || !world.Buildings.Rows.TryResolve(world.Citizens.Workplace[citizen], out int workplace)
+                || !world.Businesses.Rows.TryResolve(world.Citizens.Workplace[citizen], out int employer)
+                || !world.Buildings.Rows.TryResolve(
+                    world.Businesses.Building[employer], out int workplace)
                 || !world.Households.Rows.TryResolve(world.Citizens.HouseholdOf[citizen], out int household)
                 || !world.Buildings.Rows.TryResolve(world.Households.Dwelling[household], out int home))
             {

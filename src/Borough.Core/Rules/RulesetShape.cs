@@ -54,6 +54,38 @@ public enum RulesetChange
     /// <summary>A kind's Rules changed: a different Rule, or a different number of them.</summary>
     KindRules,
 
+    /// <summary>
+    /// A Building kind's declared trade changed, so every Building of it holds the wrong shop.
+    /// </summary>
+    /// <remarks>
+    /// <b><c>adr/0148</c>'s <c>[[building]] business</c> key.</b> Construction instantiates the trade
+    /// a kind declares, so a live <c>BusinessTable</c> row points back at this — which is this file's
+    /// stated test for structure against tuning, met. ⚠ <b>Adding a trade where a kind had none is
+    /// this change too</b>, and refuses for the same reason in reverse: the standing Buildings would
+    /// never get the shop, and only the ones raised after the swap would employ anybody.
+    /// </remarks>
+    KindTrade,
+
+    /// <summary>A Business kind was added or removed.</summary>
+    /// <remarks>
+    /// <b>A second kind namespace, and it earns its own member for this file's stated test</b> — what
+    /// does live state point at. <c>BusinessTable.Kind</c> is a saved column holding a
+    /// <c>[[business]]</c> id, so the trade is exactly as exposed to a renumbering as the premises
+    /// are. ⚠ <b>It is NOT folded into <see cref="KindCount"/></b>: the two namespaces are independent
+    /// (<c>adr/0141</c>), so one file may add a trade and delete a premises kind and net to zero.
+    /// </remarks>
+    BusinessKindCount,
+
+    /// <summary>
+    /// A Business kind id names a different declaration than it did. The file was reordered.
+    /// </summary>
+    /// <remarks>
+    /// <inheritdoc cref="ResourceIdentity" path="/remarks"/>
+    /// The trade's version: every bakery becomes whatever <c>[[business]]</c> now sits at that id,
+    /// keeping its premises and its balance, and nothing records that the shop changed trade.
+    /// </remarks>
+    BusinessKindIdentity,
+
     /// <summary>A Rule was added or removed.</summary>
     RuleCount,
 
@@ -187,6 +219,30 @@ public static class RulesetShape
             }
         }
 
+        if (current.BusinessKindCount != replacement.BusinessKindCount)
+        {
+            return RulesetChange.BusinessKindCount;
+        }
+
+        // Identity only, and it STAYS identity only now that BusinessKindDefinition exists
+        // (milestone 27 task 7). Every member of it -- `jobs` and the two Shift bounds -- is tuning:
+        // read at a write site, pointed at by no live state, so a reload retunes the standing city
+        // and needs no migration (adr/0068, adr/0064). ⚠ The Building kind's `business` key is the
+        // opposite and CompareKind does compare it (adr/0148), which is the same test coming out the
+        // other way: a live Business row points at that one.
+        //
+        // What a trade would have to gain before this grows a check is STRUCTURE: Bins or Rules,
+        // which are adr/0141's other two rows and belong to no task in this milestone. The wage is
+        // not it either -- that is adr/0026 at milestone 15, and this comment claimed all three of
+        // adr/0141's Declares row arrived at task 7 when two of them do (plans/0012, Cause 4).
+        for (int i = 1; i <= current.BusinessKindCount; i++)
+        {
+            if (current.BusinessKindKey((byte)i) != replacement.BusinessKindKey((byte)i))
+            {
+                return RulesetChange.BusinessKindIdentity;
+            }
+        }
+
         if (current.ZoneRules.Length != replacement.ZoneRules.Length)
         {
             return RulesetChange.ZoneRuleCount;
@@ -263,6 +319,17 @@ public static class RulesetShape
         if (current.KindKey(kind) != replacement.KindKey(kind))
         {
             return RulesetChange.KindIdentity;
+        }
+
+        // adr/0148, and it is the ONE member of KindDefinition this file compares. The rest are
+        // tuning -- read at a write site, pointed at by no live state -- but a declared trade IS
+        // pointed at: every Building of this kind holds a Business row created from it, so
+        // repointing the kind would leave the standing city full of shops of a trade the kind no
+        // longer names, with nothing recording that they were ever right. That is the Bins case
+        // exactly (02 §4.3), so it is structure and it refuses.
+        if (current.Kind(kind).Business != replacement.Kind(kind).Business)
+        {
+            return RulesetChange.KindTrade;
         }
 
         ReadOnlySpan<BinDeclaration> wasBins = current.BinsOf(kind);

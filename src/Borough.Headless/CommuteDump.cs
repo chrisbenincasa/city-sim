@@ -192,7 +192,10 @@ internal static class CommuteDump
                 residents[(hr * width) + hc]++;
             }
 
-            if (world.Buildings.Rows.TryResolve(citizens.Workplace[slot], out int workplace)
+            // Two hops: a Workplace is a Business and a Business borrows its premises' location.
+            if (world.Businesses.Rows.TryResolve(citizens.Workplace[slot], out int employer)
+                && world.Buildings.Rows.TryResolve(
+                    world.Businesses.Building[employer], out int workplace)
                 && Block(world, workplace, block, out int wc, out int wr))
             {
                 workers[(wr * width) + wc]++;
@@ -303,7 +306,9 @@ internal static class CommuteDump
         for (int slot = 0; slot < citizens.Rows.SlotCount; slot++)
         {
             if (!citizens.Rows.IsLive(slot)
-                || !world.Buildings.Rows.TryResolve(citizens.Workplace[slot], out int workplace))
+                || !world.Businesses.Rows.TryResolve(citizens.Workplace[slot], out int employer)
+                || !world.Buildings.Rows.TryResolve(
+                    world.Businesses.Building[employer], out int workplace))
             {
                 continue;
             }
@@ -318,8 +323,9 @@ internal static class CommuteDump
 
         output.WriteLine(
             $"{employed} of {citizens.Rows.LiveCount} Citizens hold a job, of whom {atHome} work in "
-            + "the Building they live in — [[building]] jobs is declared on the dwelling kind, so "
-            + "living above the shop is a legitimate arrangement and a commute of no length.");
+            + "the Building they live in — the dwelling kind declares a trade and construction "
+            + "instantiates it, so living above the shop is a legitimate arrangement and a commute "
+            + "of no length.");
 
         long made = 0;
 
@@ -416,11 +422,14 @@ internal static class CommuteDump
     {
         long total = 0;
 
-        for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
+        // Businesses rather than Buildings as of milestone 27 task 7: a trade declares the jobs and
+        // premises declare none. A world with no Business in it therefore reports ZERO, which is the
+        // honest number rather than a broken one -- there is nobody to work for.
+        for (int slot = 0; slot < world.Businesses.Rows.SlotCount; slot++)
         {
-            if (world.Buildings.Rows.IsLive(slot))
+            if (world.Businesses.Rows.IsLive(slot))
             {
-                total += world.Rules.Kind(world.Buildings.Kind[slot]).Jobs;
+                total += world.Rules.BusinessKind(world.Businesses.Kind[slot]).Jobs;
             }
         }
 

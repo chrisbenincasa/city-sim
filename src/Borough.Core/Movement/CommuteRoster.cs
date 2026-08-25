@@ -70,7 +70,7 @@ public sealed class CommuteRoster
         new(_homeHead.AsSpan(), _homeTail.AsSpan(), citizens.CommuteReturnNext);
 
     /// <summary>
-    /// The Tick of the Day the jobs in <paramref name="buildingId"/> start at.
+    /// The Tick of the Day the jobs in <paramref name="employerId"/> start at.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -85,9 +85,9 @@ public sealed class CommuteRoster
     /// </para>
     /// </remarks>
     /// <param name="key">The world seed, as the draw's first coordinate.</param>
-    /// <param name="buildingId">The Building's monotonic, never-reused id.</param>
-    /// <param name="kind">The Building's kind, as the Ruleset in force declares it.</param>
-    public static int ShiftStartOf(WorldKey key, ulong buildingId, KindDefinition kind)
+    /// <param name="employerId">The employing Business's monotonic, never-reused id.</param>
+    /// <param name="kind">The trade, as the Ruleset in force declares it.</param>
+    public static int ShiftStartOf(WorldKey key, ulong employerId, BusinessKindDefinition kind)
     {
         int span = kind.ShiftStartLatestHour - kind.ShiftStartEarliestHour + 1;
 
@@ -110,10 +110,10 @@ public sealed class CommuteRoster
         // Second coordinate mixed with the golden ratio, on EmploymentEngine's candidate-loop
         // precedent: one decision drawing twice, not two decisions sharing a stream.
         ulong first = Randomness.Draw(
-            key, Randomness.Mix(buildingId), Ticks.Zero, PurposeTag.ShiftStart);
+            key, Randomness.Mix(employerId), Ticks.Zero, PurposeTag.ShiftStart);
 
         ulong second = Randomness.Draw(
-            key, Randomness.Mix(buildingId ^ 0x9E37_79B9_7F4A_7C15UL), Ticks.Zero,
+            key, Randomness.Mix(employerId ^ 0x9E37_79B9_7F4A_7C15UL), Ticks.Zero,
             PurposeTag.ShiftStart);
 
         int hours = (int)(first % (ulong)(uint)span) + (int)(second % (ulong)(uint)span);
@@ -148,6 +148,7 @@ public sealed class CommuteRoster
     public static bool TryPhasesOf(
         CitizenTable citizens,
         BuildingTable buildings,
+        BusinessTable businesses,
         Ruleset rules,
         WorldKey key,
         int citizen,
@@ -162,19 +163,30 @@ public sealed class CommuteRoster
         homeward = 0;
 
         if (!rules.Jobs.Runs
-            || !buildings.Rows.TryResolve(citizens.Workplace[citizen], out int workplace))
+            || !businesses.Rows.TryResolve(citizens.Workplace[citizen], out int workplace))
         {
             return false;
         }
 
-        byte kind = buildings.Kind[workplace];
-
-        if (!rules.Declares(kind))
+        // ⚠ THE SECOND HOP, and it is where an unpremised employer stops. A Business carries its own
+        // jobs and shift hours now, but a COMMUTE needs somewhere to go -- so a Citizen employed by a
+        // Business with no premises is employed, counted, and rosters no Trip. adr/0146 makes that a
+        // real case rather than a corner: a founder is their own Business's first worker, and a
+        // founded Business is unpremised until placement tenants it (adr/0147). The reverse
+        // transition is new -- a workplace that GAINS a location -- and World.Premise re-rosters.
+        if (!buildings.Rows.TryResolve(businesses.Building[workplace], out int premises))
         {
             return false;
         }
 
-        KindDefinition definition = rules.Kind(kind);
+        byte kind = businesses.Kind[workplace];
+
+        if (!rules.DeclaresBusiness(kind))
+        {
+            return false;
+        }
+
+        BusinessKindDefinition definition = rules.BusinessKind(kind);
 
         if (definition.Jobs <= 0)
         {
@@ -183,7 +195,11 @@ public sealed class CommuteRoster
 
         ulong id = citizens.Rows.IdAt(citizen);
 
-        long start = ShiftStartOf(key, buildings.Rows.IdAt(workplace), definition);
+        // 🔴 HASH-BEARING, and this is the line that moves the whole city. adr/0101 says the Shift
+        // start hour belongs to the WORKPLACE, and the Workplace stopped being a Building -- so the
+        // draw is keyed on the Business's monotonic id and every Citizen re-rolls. All four golden
+        // artefacts re-record. adr/0100: that costs nothing while nobody is carrying a save.
+        long start = ShiftStartOf(key, businesses.Rows.IdAt(workplace), definition);
         long planned = (long)citizens.PlannedCommute[citizen].Raw;
         long shift = (long)rules.Jobs.ShiftLengthOf(key, id).Raw;
         long early = (long)rules.Jobs.PunctualityOf(key, id).Raw;
@@ -200,7 +216,12 @@ public sealed class CommuteRoster
     /// order however it was filled, so a rebuilt roster is byte-identical to a maintained one rather
     /// than merely equivalent.
     /// </remarks>
-    public void Rebuild(CitizenTable citizens, BuildingTable buildings, Ruleset rules, WorldKey key)
+    public void Rebuild(
+        CitizenTable citizens,
+        BuildingTable buildings,
+        BusinessTable businesses,
+        Ruleset rules,
+        WorldKey key)
     {
         ArgumentNullException.ThrowIfNull(citizens);
 
@@ -218,7 +239,9 @@ public sealed class CommuteRoster
         for (int slot = 0; slot < citizens.Rows.SlotCount; slot++)
         {
             if (citizens.Rows.IsLive(slot)
-                && TryPhasesOf(citizens, buildings, rules, key, slot, out int outAt, out int homeAt))
+                && TryPhasesOf(
+                    citizens, buildings, businesses, rules, key, slot,
+                    out int outAt, out int homeAt))
             {
                 outbound.InsertOrdered(outAt, slot);
                 homeward.InsertOrdered(homeAt, slot);
@@ -235,11 +258,16 @@ public sealed class CommuteRoster
     /// list most of whose entries had nowhere to go.
     /// </remarks>
     public void Add(
-        CitizenTable citizens, BuildingTable buildings, Ruleset rules, WorldKey key, int citizen)
+        CitizenTable citizens,
+        BuildingTable buildings,
+        BusinessTable businesses,
+        Ruleset rules,
+        WorldKey key,
+        int citizen)
     {
         ArgumentNullException.ThrowIfNull(citizens);
 
-        if (TryPhasesOf(citizens, buildings, rules, key, citizen, out int outAt, out int homeAt))
+        if (TryPhasesOf(citizens, buildings, businesses, rules, key, citizen, out int outAt, out int homeAt))
         {
             Outbound(citizens).InsertOrdered(outAt, citizen);
             Homeward(citizens).InsertOrdered(homeAt, citizen);

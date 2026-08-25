@@ -56,13 +56,16 @@ public sealed class UnpremisedTable
 
     /// <param name="capacity">Initial slot count. The pool is empty in a healthy city.</param>
     /// <param name="businesses">The table this one's <see cref="Business"/> handles address.</param>
-    public UnpremisedTable(int capacity, BusinessTable businesses)
+    /// <param name="buildings">The table this one's <see cref="Gate"/> handles address.</param>
+    public UnpremisedTable(int capacity, BusinessTable businesses, BuildingTable buildings)
     {
         ArgumentNullException.ThrowIfNull(businesses);
+        ArgumentNullException.ThrowIfNull(buildings);
 
         _rows = new Rows<Unpremised>("unpremised", capacity, Buffering.OneCopy);
 
         Business = _rows.SavedHandle("business", businesses.Rows);
+        Gate = _rows.SavedHandle("gate", buildings.Rows);
         Since = _rows.Saved<int>("since");
 
         _rows.Seal();
@@ -73,6 +76,34 @@ public sealed class UnpremisedTable
 
     /// <summary>The Business seeking premises.</summary>
     public HandleColumn<Business> Business { get; }
+
+    /// <summary>The gate this Business arrived through, or <c>default</c> if it was founded here.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Declared 2026-08-24 by <c>adr/0145</c>, and this table's own argument is what retired its
+    /// absence.</b> It was left out because a Business had no arrival door, on the ground that ***a
+    /// column meaningless for every one of its rows is worse than one meaningless for half of them***.
+    /// <c>adr/0145</c> gives a Business <b>two</b> ways in — founded by a Household, or arriving
+    /// through a gate — so it is now meaningful for half, which is the standard this table already
+    /// holds <see cref="UnplacedTable.Gate"/> to. ***The absence was right when it was written and its
+    /// stated reason is what ends it.***
+    /// </para>
+    /// <para>
+    /// <b>A default handle is the founded case and is not a hole</b>, exactly as it is on the Unplaced
+    /// Pool: a founder is inside the city and came from no gate at all. ⚠ <b>It belongs to the SPELL
+    /// and not to the Business</b>, which is <see cref="Since"/>'s property and is stated there — so a
+    /// Business that arrived through a gate, was tenanted, and was later orphaned begins its second
+    /// spell reading <c>default</c>, because *this* spell started at no gate. ***The column answers
+    /// where this search began, never where this Business came from.***
+    /// </para>
+    /// <para>
+    /// <b>Nothing on <see cref="Entities.Business"/> records the channel</b>, and that is deliberate:
+    /// once it is in the pool a founded shop and an immigrant shop are the same kind of tenant looking
+    /// for the same premises, and <see cref="World.Place"/>'s commercial half will treat them
+    /// identically.
+    /// </para>
+    /// </remarks>
+    public HandleColumn<Building> Gate { get; }
 
     /// <summary>
     /// The Tick this spell in the pool began, which is what the give-up bound is measured from.
@@ -101,8 +132,10 @@ public sealed class UnpremisedTable
     /// <summary>Adds a Business to the pool, and returns where it landed.</summary>
     /// <param name="businesses">The Business table, so the membership and its reverse index are written together.</param>
     /// <param name="business">The Business joining.</param>
+    /// <param name="gate">The gate it arrived through, or <c>default</c> if a Household founded it.</param>
     /// <param name="now">The Tick the spell begins.</param>
-    public int Join(BusinessTable businesses, Handle<Business> business, Ticks now)
+    public int Join(
+        BusinessTable businesses, Handle<Business> business, Handle<Building> gate, Ticks now)
     {
         ArgumentNullException.ThrowIfNull(businesses);
 
@@ -110,6 +143,9 @@ public sealed class UnpremisedTable
         int position = _rows.Resolve(row);
 
         Business[position] = business;
+
+        // Default for a founded Business, which is the ordinary case rather than a hole -- see Gate.
+        Gate[position] = gate;
 
         // The spell's clock starts here and not at the Business's founding: a shop orphaned years
         // into a run has not been looking for years.

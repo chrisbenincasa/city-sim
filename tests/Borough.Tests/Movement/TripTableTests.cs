@@ -194,8 +194,9 @@ public sealed class TripTableTests
         BuildingTable buildings = new(4, lots);
         BinTable bins = new(4, buildings);
         HouseholdTable households = new(4, buildings, bins);
+        BusinessTable businesses = new(4, buildings, bins);
         CarParkTable carParks = new(4, buildings, graph.Segments);
-        CitizenTable citizens = new(4, households, buildings, carParks);
+        CitizenTable citizens = new(4, households, buildings, businesses, carParks);
         TravellerTable travellers = new(4, citizens, trips);
 
         Address door = At(0, 0, StreetSide.Left);

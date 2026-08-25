@@ -119,10 +119,23 @@ public static class RulesetLoader
         // it. A Dictionary would be the obvious home and 05 section 4 lint 3 bans walking one.
         private readonly List<ResourceFamily> _families = [];
         private readonly Dictionary<string, byte> _kinds = new(StringComparer.Ordinal);
+
+        // A SECOND kind namespace, not a widening of the first (adr/0141). The premises and the trade
+        // are uncorrelated, so a file may name a [[building]] and a [[business]] the same word and
+        // mean two different things -- which one map could not express.
+        private readonly Dictionary<string, byte> _businessKinds = new(StringComparer.Ordinal);
+        /// <summary>
+        /// The three <c>[[building]]</c> keys <c>adr/0148</c> moved to <c>[[business]]</c>, refused
+        /// by name here so an author is told where they went rather than that they are unknown.
+        /// </summary>
+        private static readonly string[] EmploymentKeysThatMoved =
+            ["jobs", "shift_start_earliest_hour", "shift_start_latest_hour"];
+
         private readonly Dictionary<string, ushort> _rules = new(StringComparer.Ordinal);
         private readonly Dictionary<string, ushort> _conditions = new(StringComparer.Ordinal);
 
         private readonly List<TableSyntaxBase> _kindTables = [];
+        private readonly List<TableSyntaxBase> _businessKindTables = [];
         private readonly List<TableSyntaxBase> _ruleTables = [];
         private readonly List<TableSyntaxBase> _zoneRuleTables = [];
         private readonly List<TableSyntaxBase> _policyTables = [];
@@ -132,6 +145,7 @@ public static class RulesetLoader
 
         private TableSyntaxBase? _layersTable;
         private TableSyntaxBase? _placementTable;
+        private TableSyntaxBase? _foundingTable;
 
         private TableSyntaxBase? _roadsTable;
         private TableSyntaxBase? _lotsTable;
@@ -176,6 +190,7 @@ public static class RulesetLoader
                 out MapEmission[] emissions);
             KindDefinition[] kinds = ReadKinds(rules, inputs, outputs, out BinDeclaration[] bins,
                 out RuleId[] kindRules);
+            BusinessKindDefinition[] businessKinds = ReadBusinessKinds();
             ZoneRuleDefinition[] zoneRules = ReadZoneRules();
             PolicyDefinition[] policies = ReadPolicies();
             HinterlandDefinition[] hinterlands = ReadHinterlands(out Money[] hinterlandPrices);
@@ -196,6 +211,10 @@ public static class RulesetLoader
             WaterRuleset water = ReadWater();
             DistrictRuleset districts = ReadDistricts();
             MarketRuleset market = ReadMarket();
+
+            // After ReadPlacement, because the founding pass rides its trigger and the refusal for a
+            // file stating [founding] with no [placement] is a property of the pair.
+            FoundingRuleset founding = ReadFounding(placement, businessKinds);
 
             // After both, because it is a property of the pair: a file with Districts in it has a
             // Pool to price, and adr/0050's anchor is the only thing bounding what that price
@@ -230,7 +249,7 @@ public static class RulesetLoader
             // Ruleset is Borough.Core and holds none -- so these four maps were built while parsing
             // and dropped, and the resolution path the architecture assumes had no implementation.
             // See RulesetNames.
-            var names = new RulesetNames(_kinds, _conditions, _resources, _rules);
+            var names = new RulesetNames(_kinds, _businessKinds, _conditions, _resources, _rules);
 
             return RulesetLoadResult.Accepted(new Ruleset(
                     [.. _families], rules, kinds, inputs, outputs, emissions, bins, kindRules,
@@ -253,8 +272,12 @@ public static class RulesetLoader
                     Water = water,
                     Districts = districts,
                     Market = market,
+                    Founding = founding,
                     ResourceKeys = Keys(_resources),
                     KindKeys = Keys(_kinds),
+                    BusinessKindCount = _businessKinds.Count,
+                    BusinessKindKeys = Keys(_businessKinds),
+                    BusinessKinds = businessKinds,
                 },
                 names);
         }
@@ -291,6 +314,26 @@ public static class RulesetLoader
 
                         _kindTables.Add(table);
                         Register(_kinds, table, "building", (byte)(_kinds.Count + 1));
+                        break;
+
+                    case "business":
+                        if (_businessKinds.Count >= byte.MaxValue)
+                        {
+                            Refuse(LineOf(table), null,
+                                $"more than {byte.MaxValue - 1} Business kinds are declared, and a "
+                                + "Business's kind column is one byte wide.");
+                            break;
+                        }
+
+                        // Kept for a second pass as of milestone 27 task 7. Until then a [[business]]
+                        // declared nothing but its name and what it bought was IDENTITY -- a Business
+                        // row naming its trade and keeping that name across a reload -- so no table
+                        // was retained and ReadBusinessKinds would have walked over nothing. It now
+                        // reads TWO of adr/0141's three: `jobs` and the Shift band. The wage is
+                        // adr/0026 at milestone 15 (06:99), so stating one here is refused as an
+                        // unknown key.
+                        _businessKindTables.Add(table);
+                        Register(_businessKinds, table, "business", (byte)(_businessKinds.Count + 1));
                         break;
 
                     case "rule":
@@ -495,6 +538,23 @@ public static class RulesetLoader
                         _districtsTable = table;
                         break;
 
+                    case "founding":
+                        // Singular and optional. ⚠ NAMED [founding] AND NOT [business] BECAUSE THE
+                        // SWITCH IS ON THE NAME ALONE: [[business]] already declares a trade, and a
+                        // singular [business] would land in that case and be read as a kind with no
+                        // name. The section is named for the MECHANISM rather than the entity, which
+                        // also reads better -- it configures a channel, not a shop.
+                        if (_foundingTable is not null)
+                        {
+                            Refuse(LineOf(table), null,
+                                "a second [founding] is declared. There is one founding channel, so "
+                                + "two tables of numbers for it is ambiguous rather than additive.");
+                            break;
+                        }
+
+                        _foundingTable = table;
+                        break;
+
                     case "market":
                         // Singular and optional, on [districts]' reasoning exactly. There is one
                         // damping, shared by every District and every Good: adr/0135 makes the price
@@ -514,10 +574,12 @@ public static class RulesetLoader
                     default:
                         Refuse(LineOf(table), null,
                             $"'{section}' is not a Ruleset section. The sections are "
-                            + "[[resource]], [[building]], [[rule]], [[zone_rule]], [[policy]], "
-                            + "[[hinterland]], [[lattice]], [[terrain]], [layers], [placement], "
-                            + "[roads], [lots], [trips], [jobs], [households], [traffic], "
-                            + "[parking], [districts] and [market].");
+                            + "[[resource]], [[building]], [[business]], [[rule]], [[zone_rule]], "
+                            + "[[policy]], [[hinterland]], [[lattice]], [[terrain]], [layers], "
+                            + "[placement], [roads], [lots], [trips], [jobs], [households], "
+                            + "[traffic], [parking], [water], [districts], [market] and "
+                            + "[founding]. A trade is declared with [[business]] and the founding "
+                            + "channel is configured with [founding]; they are different tables.");
                         break;
                 }
             }
@@ -678,6 +740,30 @@ public static class RulesetLoader
                 + "carry-over of a warehouse. Remove the key; the hole is named rather than hidden.");
         }
 
+        /// <summary>Spells the entities a Readout is readable against, for a refusal message.</summary>
+        /// <remarks>
+        /// ⚠ <b>It lives here rather than beside <see cref="Readouts.IsReadableAgainst"/> because
+        /// <c>adr/0002</c> puts it here.</b> It was written in <c>Borough.Core</c> first, as a
+        /// <c>string</c> property next to the predicate, and <c>BoundaryTests</c> refused it: the shell
+        /// owns every string a human reads, and a refusal message is read by a human. What crosses the
+        /// boundary is <see cref="Readouts.Scopes"/> and the predicate; the sentence is built where the
+        /// sentence is read.
+        /// </remarks>
+        private static string ScopesOf(ReadoutId id)
+        {
+            List<string> scopes = [];
+
+            foreach (ReadoutScope scope in Readouts.Scopes)
+            {
+                if (Readouts.IsReadableAgainst(id, scope))
+                {
+                    scopes.Add(scope.ToString());
+                }
+            }
+
+            return scopes.Count == 0 ? "nothing" : string.Join(", ", scopes);
+        }
+
         /// <summary>
         /// An <c>apply</c> count, checked against the scope of the entity the Rule is attached to.
         /// </summary>
@@ -738,14 +824,14 @@ public static class RulesetLoader
                     return ApplyCount.Band(1, 1);
                 }
 
-                if (Readouts.ScopeOf(id) != scope)
+                if (!Readouts.IsReadableAgainst(id, scope))
                 {
                     Refuse(LineOf(derived), rule,
-                        $"'{readout}' is a {Readouts.ScopeOf(id)}-scoped Readout and this Rule is "
-                        + $"attached to a {scope}. The entity a Readout hangs off is part of its "
-                        + "declaration (02 section 4.1), so this names a real quantity with no row "
-                        + "here to read it from -- a Bin Rule runs on a Building and a Policy sweeps "
-                        + "a population.");
+                        $"'{readout}' is not readable against a {scope}, and this Rule is attached to "
+                        + $"one. The entities a Readout hangs off are part of its declaration (02 "
+                        + "section 4.1), so this names a real quantity with no row here to read it "
+                        + "from -- a Bin Rule runs on a Building and a Policy sweeps a population. "
+                        + $"Readable against: {ScopesOf(id)}.");
 
                     return ApplyCount.Band(1, 1);
                 }
@@ -1151,22 +1237,21 @@ public static class RulesetLoader
                     }
                 }
 
-                // adr/0068's rule applied to employment (milestone 5b-bis task 2). Optional on
-                // occupants' reasoning and refused negative on the same: it reads as "sack
-                // everybody", which is a sentence somebody meant to write.
-                int jobs = 0;
-
-                if (TryInteger(table, "jobs", out long employs, required: false, name))
+                // adr/0141 gave `jobs` and the Shift band to the TRADE, and adr/0148 removed them
+                // from here rather than leaving them parsed and unread. A key nothing reads is this
+                // corpus's own named failure mode, so all three are refused by name -- and the
+                // message says where they went, because a bare "unknown key" would send an author
+                // looking for a typo.
+                foreach (string moved in EmploymentKeysThatMoved)
                 {
-                    if (employs < 0)
+                    if (Find(table, moved) is not null)
                     {
-                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "jobs") ?? table), name,
-                            $"jobs is {employs}. It counts Citizens a Building of this kind employs, "
-                            + "so it cannot be negative; omit it for a kind that employs nobody.");
-                    }
-                    else
-                    {
-                        jobs = employs > int.MaxValue ? int.MaxValue : (int)employs;
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, moved) ?? table), name,
+                            $"{moved} is stated on a [[building]] kind. Employment belongs to the "
+                            + "TRADE and not to the premises (adr/0141), so it moved to [[business]] "
+                            + "at milestone 27 -- state it there, and name the trade on this kind "
+                            + "with `business = \"<name>\"` so a Building of it comes with one "
+                            + "(adr/0148). A Building employs nobody.");
                     }
                 }
 
@@ -1225,11 +1310,34 @@ public static class RulesetLoader
                     }
                 }
 
-                // adr/0101's Shift band. Paired with `jobs` in both directions, because a workplace
-                // with no hours and an hour with no workplace are each half a mechanism -- and
-                // because the defaulted 0,0 would otherwise mean *midnight*, which is a legitimate
-                // answer and therefore a placeholder that could not announce itself.
-                (int shiftFrom, int shiftTo) = ReadShiftStartBand(table, name, jobs);
+                // adr/0148: the trade a Building of this kind comes with. Optional, because almost
+                // every kind that has ever shipped comes with none -- and resolved to an id HERE
+                // rather than deferred, because [[business]] registration runs in the table walk
+                // above and the name -> id direction is discarded when Read() returns.
+                byte business = 0;
+
+                if (TryString(table, "business", out string? trade, required: false, name)
+                    && trade is not null)
+                {
+                    if (!_businessKinds.TryGetValue(trade, out business))
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "business") ?? table), name,
+                            $"business is \"{trade}\", and no [[business]] declares that trade. A "
+                            + "kind naming a trade nothing declares would raise Buildings that come "
+                            + "with nothing, which loads clean and employs nobody.");
+                    }
+                    else if (occupants <= 0)
+                    {
+                        // A premises with no room for the shop it comes with is half a sentence.
+                        // adr/0147 counts one ceiling over both kinds of tenant, so a declared trade
+                        // needs a slot to sit in exactly as a Household does.
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "business") ?? table), name,
+                            $"business is \"{trade}\" and occupants is {occupants}. A Building of "
+                            + "this kind comes with a trade and has no room to hold it -- one "
+                            + "ceiling counts both kinds of tenant (adr/0147), so declare at least "
+                            + "one occupant, or drop the trade.");
+                    }
+                }
 
                 definitions[i] = new KindDefinition(
                     binFirst, allBins.Count - binFirst, ruleFirst, allRules.Count - ruleFirst)
@@ -1237,11 +1345,9 @@ public static class RulesetLoader
                     CondemnAfter = condemnAfter,
                     Occupants = occupants,
                     FootprintTiles = footprintTiles,
-                    Jobs = jobs,
+                    Business = business,
                     Parking = parking,
                     ArrivalsPerDay = arrivalsPerDay,
-                    ShiftStartEarliestHour = shiftFrom,
-                    ShiftStartLatestHour = shiftTo,
                 };
             }
 
@@ -1328,6 +1434,93 @@ public static class RulesetLoader
             }
 
             return ((int)from, (int)to);
+        }
+
+        /// <summary>
+        /// Reads what each <c>[[business]]</c> trade declares: <c>jobs</c> and the Shift band.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Two of <c>adr/0141</c>'s three.</b> That ADR gives the trade <c>jobs</c>, shift hours
+        /// and the wage; the wage is <c>adr/0026</c> at milestone 15 (<c>06:99</c>), so no value is
+        /// read for it and <b>the key is refused by name</b>. ⚠ <b>By name, because there is no
+        /// unknown-key check in this loader</b> — every table reads what it wants and ignores the
+        /// rest, so a stray key is silent everywhere (<c>plans/0041</c> <b>G31</b>). <c>wage</c> earns
+        /// a named refusal because <c>adr/0141</c> gives a designer positive reason to write it, and
+        /// a key that loads clean and does nothing is the class this loader refuses elsewhere.
+        /// </para>
+        /// <para>
+        /// <b><see cref="ReadShiftStartBand"/> is reused rather than mirrored</b>, and every one of
+        /// its refusals transfers word for word: the band is meaningless without <c>jobs</c>, both
+        /// bounds are required wherever <c>jobs</c> is above zero, and an hour outside the Day is out
+        /// of range. ***Nothing about those messages is specific to premises*** — they say
+        /// <em>this kind</em>, which a trade is. ⚠ <b>So the band contributes no new refusal site</b>;
+        /// this pass adds exactly <b>two</b>, the negative <c>jobs</c> and the wage.
+        /// </para>
+        /// </remarks>
+        private BusinessKindDefinition[] ReadBusinessKinds()
+        {
+            var definitions = new BusinessKindDefinition[_businessKindTables.Count];
+
+            for (int i = 0; i < _businessKindTables.Count; i++)
+            {
+                TableSyntaxBase table = _businessKindTables[i];
+                string? name = TryString(table, "name", out string? found, required: false)
+                    ? found
+                    : null;
+
+                // KindDefinition.Jobs' rule unchanged (adr/0068 by way of milestone 5b-bis task 2):
+                // optional, because a trade employing nobody is a coherent thing to declare, and
+                // refused negative because it reads as "sack everybody".
+                int jobs = 0;
+
+                if (TryInteger(table, "jobs", out long employs, required: false, name))
+                {
+                    if (employs < 0)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "jobs") ?? table), name,
+                            $"jobs is {employs}. It counts Citizens a Business of this trade "
+                            + "employs, so it cannot be negative; omit it for a trade that employs "
+                            + "nobody.");
+                    }
+                    else
+                    {
+                        jobs = employs > int.MaxValue ? int.MaxValue : (int)employs;
+                    }
+                }
+
+                // adr/0141's third Declares member, refused by NAME because it is the one key a
+                // designer has positive reason to write. That ADR tells them the trade declares the
+                // wage; the wage is adr/0026 and arrives at milestone 15 (06:99). Without this, `wage
+                // = 100` loads clean and does nothing for ever -- the refusal class plans/0014 task 3
+                // established, and the one this loader is least willing to ship.
+                //
+                // ⚠ It is a NAMED refusal rather than an unknown-key check because THERE IS NO
+                // UNKNOWN-KEY CHECK IN THIS LOADER AT ALL. Every table reads the keys it wants by
+                // name and ignores the rest, so a typo anywhere in any Ruleset is silent. That is a
+                // real gap and it is filed rather than fixed here (plans/0041 G31): closing it
+                // touches every table and is not this task's.
+                if (Find(table, "wage") is not null)
+                {
+                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "wage") ?? table), name,
+                        "this trade states a wage. adr/0141 does give the trade `jobs`, shift hours "
+                        + "AND the wage -- but a wage is not a declared number, it MOVES: adr/0026 "
+                        + "has each Business post one and adjust it by its own fill rate, which "
+                        + "arrives at milestone 15 and cannot be a key on a kind. Delete it; the "
+                        + "two keys that do work here are `jobs` and the Shift band.");
+                }
+
+                (int shiftFrom, int shiftTo) = ReadShiftStartBand(table, name, jobs);
+
+                definitions[i] = new BusinessKindDefinition
+                {
+                    Jobs = jobs,
+                    ShiftStartEarliestHour = shiftFrom,
+                    ShiftStartLatestHour = shiftTo,
+                };
+            }
+
+            return definitions;
         }
 
         // ---- zone rules -----------------------------------------------------------------------
@@ -2216,17 +2409,32 @@ public static class RulesetLoader
             return [.. definitions];
         }
 
-        /// <summary>Which Readout scope a Policy over <paramref name="subject"/> may name.</summary>
+        /// <summary>Which Readout scope a Policy over <paramref name="subject"/> reads against.</summary>
         private static ReadoutScope ScopeFor(PolicySubject subject) =>
-            subject == PolicySubject.Building ? ReadoutScope.Building : ReadoutScope.Household;
+            subject switch
+            {
+                PolicySubject.Business => ReadoutScope.Business,
+                PolicySubject.Building => ReadoutScope.Building,
+                _ => ReadoutScope.Household,
+            };
 
         /// <summary>The <c>sweeps</c> key — refusals 60 and 61.</summary>
         /// <remarks>
+        /// <para>
         /// <b>Refusal 61 refuses a population the engine has, and that is the unusual half.</b>
-        /// <c>business</c> and <c>building</c> are declared in <see cref="PolicySubject"/> because
-        /// <c>02 §4.2</c> names three, and a Ruleset may not author them because nothing sweeps them.
-        /// Accepting one would produce a Policy that triggers, reaches nobody and reports nothing —
-        /// the silent non-event <c>02 §4.1</c> bans — where a refusal names the milestone.
+        /// <c>building</c> is declared in <see cref="PolicySubject"/> because <c>02 §4.2</c> names
+        /// three, and a Ruleset may not author it because nothing sweeps it. Accepting one would
+        /// produce a Policy that triggers, reaches nobody and reports nothing — the silent non-event
+        /// <c>02 §4.1</c> bans — where a refusal names the milestone.
+        /// </para>
+        /// <para>
+        /// ⚠ <b><c>business</c> was refused here too until milestone 27 task 9, and the refusal's own
+        /// sentence is what the task built</b>: <em>a Business has a balance and no pass that moves
+        /// it</em>. <c>adr/0149</c> supplied the pass. ***The Building half is untouched and is not the
+        /// same kind of absence*** — a Business population is every live row, and a Building
+        /// population is whichever rows a predicate picks, so what is missing there is a mechanism
+        /// rather than a loop.
+        /// </para>
         /// </remarks>
         private PolicySubject ReadSubject(TableSyntaxBase table, string? name)
         {
@@ -2241,20 +2449,23 @@ public static class RulesetLoader
                     return PolicySubject.Household;
 
                 case "business":
+                    return PolicySubject.Business;
+
                 case "building":
                     Refuse(LineOf((SyntaxNodeBase?)Find(table, "sweeps") ?? table), name,
-                        $"sweeps = \"{subject}\" names a population 02 section 4.2 declares and this "
-                        + "build does not sweep. A Business has a balance and no pass that moves it; "
-                        + "a Building population needs the predicate that selects it, and neither "
-                        + "exists. The only population is \"household\".");
+                        "sweeps = \"building\" names a population 02 section 4.2 declares and this "
+                        + "build does not sweep. A Building population is whichever standing "
+                        + "Buildings a predicate selects, and there is no predicate -- so this is a "
+                        + "missing mechanism rather than a missing loop. The populations that sweep "
+                        + "are \"household\" and \"business\".");
 
                     return PolicySubject.Household;
 
                 default:
                     Refuse(LineOf((SyntaxNodeBase?)Find(table, "sweeps") ?? table), name,
                         $"sweeps = \"{subject}\" is not a population. 02 section 4.2 names three -- "
-                        + "\"household\", \"business\", \"building\" -- of which \"household\" is the "
-                        + "one this build sweeps.");
+                        + "\"household\", \"business\", \"building\" -- of which the first two are "
+                        + "the ones this build sweeps.");
 
                     return PolicySubject.Household;
             }
@@ -4526,6 +4737,175 @@ public static class RulesetLoader
         /// <summary>The line a <c>[market]</c> key is on, or the table's.</summary>
         private int LineOfMarket(string key) =>
             LineOf((SyntaxNodeBase?)Find(_marketTable!, key) ?? _marketTable!);
+
+        /// <summary>
+        /// The <c>[founding]</c> table — <c>adr/0145</c>'s founding channel.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Five refusals, and every one of them is a world that would run and mean nothing.</b> A
+        /// founding channel needs a trade to found, money to found it with, a trigger to run on and a
+        /// SINK to drain into; the table states none of those four and depends on all of them, so
+        /// each absence is checked against the file rather than left to fail quietly at Tick 0.
+        /// </para>
+        /// <para>
+        /// 🔴 <b>The sink one is the one that matters.</b> <c>[founding]</c> is an inflow into the
+        /// unpremised pool and nothing tenants a Business yet, so a file stating it without
+        /// <c>gives_up_after_days</c> grows a collection with elapsed time — <c>adr/0006</c> — and
+        /// <c>adr/0130</c>'s <em>whoever builds the gate owes the give-up rule</em> is the same
+        /// sentence about the other pool.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>There is no demand key and its absence is the decision</b> (<c>adr/0145</c>'s
+        /// amendment). A Household founds on its own means; a key that read shop count or vacancy
+        /// would be the RCI meter this design refuses.
+        /// </para>
+        /// </remarks>
+        private FoundingRuleset ReadFounding(
+            PlacementRuleset placement, BusinessKindDefinition[] businessKinds)
+        {
+            if (_foundingTable is null)
+            {
+                return FoundingRuleset.None;
+            }
+
+            // A trade to found. adr/0141 gives a Business its kind from [[business]], and a file that
+            // founds shops naming no trade would create rows whose kind is zero -- derelict from
+            // birth, which is a legal state for a RELOADED Business and an absurd one for a new one.
+            if (_businessKinds.Count == 0)
+            {
+                Refuse(LineOf(_foundingTable), null,
+                    "this Ruleset states [founding], so Households found Businesses, and it declares "
+                    + "no [[business]] at all -- so every shop founded would name no trade. Declare a "
+                    + "[[business]], or remove [founding].");
+
+                return FoundingRuleset.None;
+            }
+
+            // Money to found with. The band moves from the founder's Bin to the shop's, and a file
+            // with no money Resource has no Bin to move it out of -- so the channel would run, draw
+            // its sample, and found nothing, for ever, silently. 02 §4.1's silent non-event.
+            if (!DeclaresMoney())
+            {
+                Refuse(LineOf(_foundingTable), null,
+                    "this Ruleset states [founding] and declares no Resource with family = \"money\". "
+                    + "Founding moves a band from the founder's balance into the shop's, so with no "
+                    + "money in the file nothing can ever be founded and the channel is inert.");
+
+                return FoundingRuleset.None;
+            }
+
+            // A trigger to run on. The founding pass rides [placement]'s interval rather than owning
+            // a cadence of its own -- see FoundingRuleset.SampleFor -- so a file stating [founding]
+            // and no [placement] states a rate with nothing to multiply it by.
+            if (!placement.Runs)
+            {
+                Refuse(LineOf(_foundingTable), null,
+                    "this Ruleset states [founding] and no [placement] table. The founding pass runs "
+                    + "on placement's trigger rather than owning one, so without it nothing ever "
+                    + "considers founding. State [placement], or remove [founding].");
+
+                return FoundingRuleset.None;
+            }
+
+            // 🔴 A SINK. This is adr/0130's argument reaching a SECOND pool, and it is the refusal
+            // that matters most here: [founding] is an inflow into the unpremised pool, exactly as a
+            // gate kind is an inflow into the Unplaced Pool. Without gives_up_after_days nothing ever
+            // leaves -- nothing tenants a Business until milestone 27's placement half -- so the pool
+            // grows with elapsed time, which adr/0006 forbids outright. ⚠ The gate check above it
+            // says the same sentence about the other pool; neither can see this one.
+            if (!placement.GivesUp)
+            {
+                Refuse(LineOf(_foundingTable), null,
+                    "this Ruleset states [founding], so Households found Businesses into the "
+                    + "unpremised pool, and [placement] states no gives_up_after_days -- so nothing "
+                    + "ever leaves that pool and it grows without bound, which adr/0006 forbids. "
+                    + "State how long a Business keeps looking for premises, in Days, or remove "
+                    + "[founding].");
+
+                return FoundingRuleset.None;
+            }
+
+            // 🔴 A JOB TO DO. adr/0146: the founder becomes the Business's first worker, which is the
+            // whole of the labour cost milestone 27 ships -- so a trade declaring no `jobs` is a shop
+            // its own founder cannot work at. The pass draws UNIFORMLY over the declared trades, so
+            // this is every trade rather than at least one: a jobless trade in the draw would found a
+            // shop whose founder is over the ceiling from the instant they are hired, and
+            // EvictOverflow would sack them on the next sweep. ⚠ It is conditional on [founding]
+            // exactly as gives_up_after_days is conditional on a gate -- a trade nobody founds may
+            // employ nobody, and several shipped files have one.
+            for (int i = 0; i < businessKinds.Length; i++)
+            {
+                if (businessKinds[i].Jobs > 0)
+                {
+                    continue;
+                }
+
+                TryString(_businessKindTables[i], "name", out string? trade, required: false);
+
+                Refuse(LineOf(_businessKindTables[i]), trade,
+                    "this Ruleset states [founding] and this [[business]] declares no jobs. A "
+                    + "founder becomes their Business's first worker (adr/0146), so a trade nobody "
+                    + "can work at is one nobody can found -- and the trade is drawn uniformly, so "
+                    + "every declared one has to be foundable. State jobs and a Shift band on it, or "
+                    + "remove [founding].");
+
+                return FoundingRuleset.None;
+            }
+
+            // Both REQUIRED of a file that states the table, on [market]'s rule: a stated table states
+            // its keys, and a defaulted hash-bearing number is one no designer chose.
+            if (!TryInteger(_foundingTable, "founding_band", out long band, required: true)
+                || !TryInteger(_foundingTable, "reconsider_ticks", out long reconsider, required: true))
+            {
+                return FoundingRuleset.None;
+            }
+
+            // Zero is refused rather than read as `free`. A shop founded for nothing is one every
+            // Household can always afford, so the affordability filter -- the whole of adr/0145's
+            // `means and not need` -- stops discriminating and the channel becomes a pure rate.
+            if (band < 1)
+            {
+                Refuse(LineOfFounding("founding_band"), null,
+                    $"founding_band is {band}. It is what a Household spends to capitalise a shop, and "
+                    + "at zero every Household can always afford one -- so the means test that is the "
+                    + "whole of the trigger stops discriminating and founding becomes a bare rate.");
+
+                return FoundingRuleset.None;
+            }
+
+            // Below the interval it cannot divide into a sample, which is adr/0059's own bound
+            // arriving on a second duration. At or above it, the sample is at least one.
+            if (reconsider < placement.Interval)
+            {
+                Refuse(LineOfFounding("reconsider_ticks"), null,
+                    $"reconsider_ticks is {reconsider} and the [placement] interval is "
+                    + $"{placement.Interval}. It is how long every Household takes to consider "
+                    + "founding once, so it must be at least one trigger long -- below that it does "
+                    + "not divide into a sample. adr/0059 states the duration and derives the count.");
+
+                return FoundingRuleset.None;
+            }
+
+            return new FoundingRuleset(new Money(band), (int)reconsider);
+        }
+
+        /// <summary>Whether any declared Resource is money, which founding needs to move a band.</summary>
+        private bool DeclaresMoney()
+        {
+            foreach (ResourceFamily family in _families)
+            {
+                if (family == ResourceFamily.Money)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private int LineOfFounding(string key) =>
+            LineOf((SyntaxNodeBase?)Find(_foundingTable!, key) ?? _foundingTable!);
 
         /// <summary>
         /// <b>A file with Districts in it prices every Good at some Hinterland</b> (<c>adr/0050</c>,

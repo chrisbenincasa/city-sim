@@ -16,7 +16,73 @@ Occupant repair, which closed 2026-08-23.
 
 ## Status
 
-🔴 **NOT STARTED. Decomposed 2026-08-24 against the tree.**
+✅ **TASK 6 SHIPPED 2026-08-24.** ~~🔴 **NOT STARTED.**~~ Decomposed 2026-08-24 against the tree, and
+the first task landed the same day.
+
+🔴 **THE ORDER MOVED AGAIN ON 2026-08-24, WITH THE USER IN THE ROOM: 6 → 8 → 7/9.** ~~Remaining: 9,
+then 8, then 7.~~ **Task 9 was opened and put back down** (**G21**). Its stated reason for going
+second was that it is *exercisable by fixture* — and ***that is the reason [`0040`](0040-the-business-is-the-actor-and-the-building-is-premises.md)
+**F43** had already refuted, one day before this document was written***: a mechanism exercised only by
+hand-built fixtures is a mechanism with no world in it. **Task 8 is next** — it is unblocked, it creates
+the actor the milestone's risk names, and it is what gives task 9 a subject that exists.
+
+✅ **TASK 8'S FOUNDING HALF SHIPPED 2026-08-24 — 114 Businesses founded in a shipped world.** The
+milestone's named risk is retired on its main axis: the economic actor exists in a city rather than in
+a fixture.
+
+✅ **TASK 8 CLOSES 2026-08-24 — THE FOUNDER IS A CITIZEN AND THE JOB IS THE RECORD.**
+[`adr/0146`](../docs/adr/0146-founding-costs-a-citizen-and-the-households-money-so-the-founder-is-the-first-worker.md)'s
+half that 27 can ship: `World.Found` takes a `Handle<Citizen>`, the pass draws **unemployed, housed
+Citizens whose Household affords the band**, and the founder is `Employ`ed into the new Business.
+**Measured on `founded.toml`: 148 founded-trade Businesses, 148 of them staffed.** ⚠ **The income half
+is `adr/0026` at milestone 15 and is deliberately NOT proxied.** 🔴 **One new refusal** (`adr/0048`:
+152 → 153): a `[[business]]` with no `jobs` in a file stating `[founding]`, because a trade nobody can
+work at is a trade nobody can found — and `founded.toml`'s two trades gained `jobs` and a Shift band.
+⚠ **No golden artefact moved**, and that is a fact rather than luck: no golden Ruleset states
+`[founding]`. Tier green at **2,126**.
+
+✅ **TASK 7 SHIPPED 2026-08-24, IN TWO HALVES, AND THE SECOND WAS NOT IN THIS PLAN.** The handle move
+landed and **emptied every shipped city** — 66 assertions failing on one sentence, *nobody is employed
+anywhere* — because employment now needs a Business and the only thing that creates one is
+`[founding]`, which one shipped file states. ⚠ **This document predicted that failure word for word in
+task 7's own entry** and held that task 8 discharged it; task 8 put founding in the **build**, not in
+the **worlds** (**G35**). [`adr/0148`](../docs/adr/0148-a-premises-kind-may-declare-its-trade-and-instantiating-one-is-not-housing-anybody.md)
+is the content half: a `[[building]]` kind may name one trade and construction instantiates it. **All
+fifteen shipped Rulesets changed**, `[[building]] jobs` and the Shift band are now **refused**, and the
+assertion tier is green at **2,125** with **every golden artefact re-recorded**. Findings **G35**–**G38**.
+
+🔴 **THE ORDER MOVED A THIRD TIME, 2026-08-24, AND TASK 7 IS NOW THE CRITICAL PATH.** Two things did it
+on the same day and they are unrelated:
+
+1. ✅ **Decision 2 is SETTLED and was never actually open** (**G30**) — `jobs` and shift hours go on the
+   business **kind**, per [`adr/0141`](../docs/adr/0141-a-tenant-owns-what-leaves-with-it-and-the-premises-own-the-capacity.md)'s
+   *Declares* row, which this document never cited. ⚠ **And the task SHRANK**: the wage is milestone
+   15's, so only two of the three things `0141` names move here.
+2. 🔴 **[`adr/0146`](../docs/adr/0146-founding-costs-a-citizen-and-the-households-money-so-the-founder-is-the-first-worker.md)
+   makes task 7 a PREREQUISITE of task 8's founder half.** Founding now costs a **Citizen** as well as
+   the Household's money, the founder is recorded by the **employment link** rather than a column, and
+   ***an unpremised Business has no Building for a `Workplace` handle to address.***
+
+🔴 **THE ORDER MOVED A FOURTH TIME, 2026-08-24, AND THIS ONE IS A CORRECTION** (**G32**).
+~~Remaining: 7, then task 8's Citizen half, then 9.~~ **Task 7 cannot go next.** Nothing tenants a
+Business, so pointing a Workplace at one puts employment at **zero in every shipped world** — thirteen
+of fifteen Rulesets declare no trade, and `founded.toml`'s 114 are all unpremised until they leave.
+⚠ **`PlacementEngine.cs:190` says this milestone owes the pass and none of its four tasks names it.**
+
+✅ **THE PLACEMENT PASS SHIPPED 2026-08-24, and the decision it needed went to the user in the room**
+— [`adr/0147`](../docs/adr/0147-a-business-takes-premises-by-placement-and-one-ceiling-counts-both-kinds-of-tenant.md):
+**one ceiling over both kinds**, so a shop takes a family's room. `PlacementEngine.Tenant`,
+`World.Premise`, `World.Tenants`, three `purpose_tag`s (27, 28, 29) and **no new Ruleset number**.
+
+**MEASURED on `founded.toml`, 4,096 Ticks at 2,000 Citizens: founded 113, premised 69, standing 38,
+pooled 75.** ⚠ **The flow and the standing count differ BY DESIGN and it is the best thing the run
+showed**: `founded.toml` descends from `minimal.toml`, which condemns Buildings throughout, and
+`World.Destroy` unpremises every tenant of a Building it takes down. ***So 31 shops took premises, lost
+them to condemnation and went back to the pool to look again*** — which is
+[`adr/0144`](../docs/adr/0144-a-tenant-that-loses-its-premises-keeps-only-its-money-and-waits-a-households-wait.md)
+running for the first time on a Business the simulation created.
+
+**Remaining: 7, then task 8's Citizen half, then 9.**
 
 ⚠ **The census below was taken on 2026-08-24 and it corrects the risk statement in three numbers**
 (**G1**). ***The risk stands; the figures stating it have drifted*** — which is the second time in two
@@ -119,28 +185,78 @@ not because it is new.* ⚠ **The quantity is still owed and a category is not a
 `adr/0142`'s argument against sharing is **deferred to this milestone**, and task 8 is the first day a
 Business exists in numbers anybody can have an opinion about.
 
-### 2. 🔴 NEW — does `jobs` move to the business kind, or to the Business row? — **found by decomposition**
+### 2. ~~🔴 NEW — does `jobs` move to the business kind, or to the Business row?~~ — ✅ **SETTLED 2026-08-24 BY AN ADR THIS DECISION NEVER CITED**
 
-**Task 7 says *jobs and shift hours move to the employer* and does not say which.** The build makes it
-a real fork, because the two land in different places:
+✅ **`jobs` and shift hours go on the business KIND. The wage is not milestone 27's at all.**
+🔴 **This decision was framed against the wrong ADR and therefore looked open when it was not**
+(**G30**). It asked what `adr/0026` means by *employer* and concluded *"the ADR uses the word without
+ever saying whether it means the kind or the row."* **That is true of `0026` and irrelevant**, because
+[`adr/0141`](../docs/adr/0141-a-tenant-owns-what-leaves-with-it-and-the-premises-own-the-capacity.md)
+answers it directly, in a table whose row is literally headed **Declares**:
 
-- **On the business kind** — `KindDefinition.Jobs` in a second kind namespace. Mirrors the building
-  kind exactly, costs no new column, and keeps a fill rate authored.
-- **On the Business row** — a saved column. Lets two bakeries of one kind employ different numbers,
-  which is what `adr/0026`'s *a fill rate is a property of an employer* could be read to require.
+| | `[[building]]` — premises | `[[business]]` — the trade |
+|---|---|---|
+| **Declares** | `footprint`, `parking`, `occupants`, `condemn_after` | `jobs`, shift hours, the wage |
 
-⚠ **This is not `adr/0043`-measurable** — no number refutes either. It is forced by what `adr/0026`
-means by *employer*, and ***the ADR uses the word without ever saying whether it means the kind or the
-row.*** **Blocks task 7 and nothing else.**
+***Both columns of that table are KIND namespaces***, so *declares* can only mean the kind. ⚠ **And
+the build already reads it that way** — `RulesetShape.cs:217`: *"`adr/0141` gives the trade `jobs`,
+shift hours and the wage."* **The fork was in this document and in nothing else.**
+
+**The *on the row* horn rests on a misreading, and naming it is worth more than the answer.** It argued
+that a row column *"lets two bakeries of one kind employ different numbers, which is what `adr/0026`'s
+fill rate could be read to require."* 🔴 ***A fill rate is not `jobs`.*** It is `filled ÷ jobs`, and
+**`filled` is per-Business by construction** — it is a count of who actually took the work. So
+`adr/0026`'s *each Business adjusts by its own fill rate* is satisfied **with `jobs` on the kind**: the
+kind supplies the denominator and the row supplies the numerator. ⚠ **The horn needed the row to carry
+`jobs` and the row only ever needed to carry `filled`.**
+
+**The precedent is exact and already shipped.** `[[building]] occupants` is declared by the **kind**
+while occupancy is counted **per Building**, and
+[`adr/0068`](../docs/adr/0068-a-buildings-occupancy-is-declared-by-its-kind-and-an-over-capacity-building-evicts.md)
+is the same shape under a different name. ***A capacity is declared and a filling is counted.***
+
+### 🔴 But `adr/0141` and `adr/0026` disagree about the WAGE, and neither says so
+
+⚠ **`0141` puts *the wage* in the Declares row with `jobs`. `0026`'s whole mechanism is that the wage
+MOVES** — *"each Business posts a wage and adjusts it by its own fill rate — raise it when vacancies
+persist, let it fall when applicants queue."* **A kind declaration is Ruleset data**: identical across
+every Business of that kind, hot-reloadable, and `adr/0015`-refused on reload where it is
+world-creation. ***A number that adjusts per-Business cannot be one.***
+
+**The reading that makes both true**: the trade declares the **posted anchor**, and the **current wage
+is a Business row column**. ⚠ **That is a reading and not a decision** — it is offered here so the
+tension is on the record, and ***it is not this milestone's to settle***.
+
+✅ **Because the wage is NOT milestone 27's.** [`06:99`](../docs/06-roadmap.md) places wages at
+**milestone 15**, *"attended services, wages and Skill Tiers"*, citing `adr/0026` by name; `Readouts.cs:69`
+says the same in its own doc comment — *"income is a **flow** that arrives with wages in milestone 15"* —
+and [`adr/0146`](../docs/adr/0146-founding-costs-a-citizen-and-the-households-money-so-the-founder-is-the-first-worker.md)
+turns on it. ⚠ **`adr/0140` is what makes this coherent**: a milestone number is an identity and the
+roadmap's order is the sequence, so **15 comes after 27** and there is no contradiction in the ordering.
+
+🔴 **There is one in a doc comment, though.** `RulesetShape.cs:217` says `jobs`, shift hours and the wage
+*"all three arrive with milestone **27 task 7**"*. **Two of the three do.** Filed to `plans/0012` as
+**Cause 4** — a description of the code wrong about the trigger.
+
+***So task 7 is smaller than this document had it***: two of three things move, and the third was never
+in scope.
 
 ### 3. ⚠ NEW — what does the `sweeps` refusal say once half of it is answerable?
 
-`RulesetLoader.cs:2170-2192` refuses `"business"` and `"building"` from **one** case block whose
+`RulesetLoader.ReadSubject` refuses `"business"` and `"building"` from **one** case block whose
 message gives a **separate reason per subject**: *"A Business has a balance and no pass that moves it;
-a Building population needs the predicate that selects it, and neither exists."* ⚠ **Task 6 makes the
-first clause false and leaves the second standing.** `0040` **F9** found this; what it did not settle is
-whether the block splits, the message is rewritten, or `sweeps = "business"` becomes legal here.
-🔴 **Splitting it moves the refusal count off 140 and `RefusalCountTests` will say so** (**G3**).
+a Building population needs the predicate that selects it, and neither exists."*
+🔴 ~~**Task 6 makes the first clause false and leaves the second standing.**~~ **IT DOES NOT, AND THIS
+DECISION DOES NOT OPEN YET** — checked against the message on 2026-08-24, the day task 6 shipped
+(**G20**). The refusal's stated reason for `business` is ***"a Business has a balance and no pass that
+moves it"***, and **task 6 added no pass** — it added a *kind*. The clause is still true word for word,
+so the message needs no edit, the block needs no split, and **the refusal count stays where task 6 left
+it**. ⚠ **The prediction reasoned from a reason the message does not give**: decomposition assumed
+`sweeps = "business"` was refused for having *nothing to key on*, which is what the milestone's risk
+cell says about `Declares` and `BinsOf` — but this refusal never said that. **The trigger is a pass that
+moves a Business's balance, which is task 9 at the earliest.** `0040` **F9** found the block; what it
+did not settle is whether the block splits, the message is rewritten, or `sweeps = "business"` becomes
+legal here. 🔴 **Splitting it moves the refusal count and `RefusalCountTests` will say so** (**G3**).
 
 ---
 
@@ -165,25 +281,134 @@ whether the block splits, the message is rewritten, or `sweeps = "business"` bec
   in a fixture. `business` is reachable only through `GoldenFixtures.Build()`.
 - 🔴 **Owed on the day: `adr/0048`.** See **G3**.
 
-### 9. **A Rule can read a Business's balance.** *(second — it needs only the kind, and a fixture)*
+✅ **SHIPPED 2026-08-24.** A fifth namespace (`RulesetNames`), `[[business]]` parsed and registered
+(`RulesetLoader.cs`), `Ruleset.BusinessKindCount`/`BusinessKindKeys`/`BusinessKindKey`/`DeclaresBusiness`,
+a saved `BusinessTable.Kind`, `World.CreateBusiness(premises, kind = 0)`, the migration walk
+(`RulesetMigration.BusinessKind`), two `RulesetShape` members, and
+[`rulesets/tenanted.toml`](../rulesets/tenanted.toml) — the fourteenth shipped file — guarded by
+`BusinessKindLoadTests`. **The whole assertion tier is green at 2,108.** Findings **G14**–**G25** below.
 
-⚠ **Moved ahead of 7 and 8** because it is the one entry in group B that is **exercisable by fixture**,
-exactly as milestone 25's group A was — `GoldenFixtures.cs:531-532` already puts two Businesses in one
-Building. ***It does not need a Business the city created; it needs a Business.***
+⚠ **There is no `BusinessKindDefinition` type and that is the decision, not an omission.** A
+`[[business]]` carries a `name` and nothing else, because `adr/0141` gives the trade `jobs`, shift hours
+and the wage and ***all three arrive with task 7***. `RulesetShape` compares identity and has no
+`CompareBusinessKind`, for the same reason. **On the day task 7 lands, both grow.**
 
-- 🔴 **The real content is a THIRD SUBJECT on the Rule Instance, and the build already says so**
-  (**G10**). `RuleInstanceTable.cs:91-95`: *"A Business gets its own column when a Business runs a Rule,
-  which is milestone 27."* `World.FindLocalBin` (`World.cs:3098-3111`) branches on
-  `RuleInstances.Household[instance].IsNone` — **a binary**. ⚠ **This is milestone 25 task 2's shape a
-  second time**, and that task is the precedent for how to do it.
-- **The readout half is small** (**G11**): `ReadoutScope` gains a third member, `ScopeOf` stops being a
-  ternary, `Read`/`ReadHousehold` gain a third entry point, and `World.BalanceOf(Handle<Business>)`
-  **already exists** and gets its first caller.
-- ⚠ **`Readouts.cs:105-116` predicted this and chose the shape in advance** — *"two entry points rather
-  than one switch … a single method taking an `(entity kind, slot)` pair would be two switches wearing
-  one signature."* ***Follow it rather than collapsing it.***
+⚠ **The `kind` parameter on `World.CreateBusiness` is OPTIONAL and the argument is about consequence
+rather than convenience.** `CreateBuilding`'s kind is required because a Building cannot be fitted
+without one; a Business kind declares nothing until task 7, so requiring it would make **seventeen test
+call sites** name a value nothing reads.
 
-### 8. **What creates a Business, and what capitalises one.** *(third — ⚠ **an OBLIGATION and not a block**)*
+### 9. **A Rule can read a Business's balance.** *(✅ CLOSED 2026-08-24)*
+
+✅ **SHIPPED 2026-08-24, into
+[`adr/0149`](../docs/adr/0149-a-business-is-a-population-a-policy-sweeps-and-a-readout-names-every-entity-it-reads-against.md)
+— and it is not the task this section described.** 🔴 **The plan pointed at a Rule Instance column and
+the answer was a Policy**; **G39** below is that finding and it is `adr/0093`'s ordinary shape.
+
+- ✅ **`sweeps = "business"` is accepted, and the refusal it replaced was the specification.** The loader
+  had refused it with *"A Business has a balance and no pass that moves it"* — ***task 9's sentence,
+  written by the build in advance.*** `PolicyEngine.SweepHouseholds` became `SweepMembers` and takes its
+  slot count, liveness test and balance Bin from the subject; nothing else in it moved.
+- ✅ **The Readout half landed as `G11` predicted and one step wider.** `ReadoutScope` gained
+  `Business`, `Readouts.ReadBusiness` is `World.BalanceOf(Handle<Business>)`'s first caller — and
+  `ScopeOf` did not stop being a ternary, it **stopped existing**: `balance` belongs to a Household *and*
+  a Business, so a Readout declares the **set** it can be read against and the loader's equality became
+  `IsReadableAgainst`.
+- ✅ **`Readouts.cs`'s own rule was followed rather than collapsed** — three entry points, not one switch
+  over an `(entity kind, slot)` pair.
+- ✅ **[`rulesets/levied.toml`](../rulesets/levied.toml) ships**, the sixteenth file: `founded.toml` plus
+  five lines, so the diff *is* the demonstration. `BusinessLevyTests` runs it against `founded.toml` as
+  the control at one seed. 🔴 **Its numbers ratify nothing** — a shop here has no revenue — and both its
+  `[founding]` numbers and the levy's `percent` are now in `plans/0002` **§D1**, ⚠ **including the pair
+  task 8 owed and did not file.**
+- ⚠ **`adr/0048`'s count does not move.** One `Refuse(` call site served `business` and `building`
+  together; it now serves `building` alone. **`sweeps = "building"` is untouched and is a different kind
+  of absence** — a Business population is every live row, a Building population is whichever rows a
+  predicate selects, and the predicate does not exist.
+
+**What this task no longer contains, and it is worth the space.** The section below is the original
+plan, kept because `G39` is about it:
+
+> - 🔴 **The real content is a THIRD SUBJECT on the Rule Instance, and the build already says so**
+>   (**G10**). `RuleInstanceTable.cs:91-95`: *"A Business gets its own column when a Business runs a
+>   Rule, which is milestone 27."* `World.FindLocalBin` (`World.cs:3098-3111`) branches on
+>   `RuleInstances.Household[instance].IsNone` — **a binary**. ⚠ **This is milestone 25 task 2's shape a
+>   second time**, and that task is the precedent for how to do it.
+> - **The readout half is small** (**G11**): `ReadoutScope` gains a third member, `ScopeOf` stops being a
+>   ternary, `Read`/`ReadHousehold` gain a third entry point, and `World.BalanceOf(Handle<Business>)`
+>   **already exists** and gets its first caller.
+> - ⚠ **`Readouts.cs:105-116` predicted this and chose the shape in advance** — *"two entry points rather
+>   than one switch … a single method taking an `(entity kind, slot)` pair would be two switches wearing
+>   one signature."* ***Follow it rather than collapsing it.***
+
+### 8. **What creates a Business, and what capitalises one.** *(✅ CLOSED 2026-08-24)*
+
+✅ **THE FOUNDER HALF SHIPPED 2026-08-24, and it needed task 7 first.** `adr/0146` said so at the time —
+*"the founder is recorded by the employment link, an unpremised Business has no Building, and a
+`Workplace` handle addressing `BuildingTable` cannot point at one"* — so this is the ordering working
+rather than the plan drifting.
+
+- ✅ **The subject moved from Household to Citizen.** `World.Found(Handle<Citizen>, …)` resolves the
+  Household for the money, because **a Citizen owns nothing** — `CONTEXT.md` puts the balance on the
+  Household and `adr/0146` declined to move it for this.
+- ✅ **The trigger is three predicates over columns that already existed**: `Workplace` does not
+  resolve, the Household's `Dwelling` does, and the balance covers the band. ⚠ **The first is what
+  makes founding a CHOICE**: the employment pass and this one draw from the same people and neither
+  knows the other exists (`adr/0017`).
+- ✅ **No `founder` column, and the job is the record** — `adr/0146`'s own argument, which is that
+  declaring a severable `BusinessTable` → `CitizenTable` handle makes the two tables mutually
+  dependent at construction and they are built in one ordered pass.
+- 🔴 **`PurposeTag.FoundingTrade` is now drawn on the CITIZEN's monotonic id**, not the Household's.
+  Same tag, different subject: the decision is unchanged and the old subject is gone entirely.
+- 🔴 **The refusal was found by asking what happens to a founder of a jobless trade**: they are over
+  the ceiling from the instant they are hired and `EvictOverflow` sacks them on the next sweep. **It is
+  every declared trade rather than at least one**, because the draw is uniform.
+
+✅ **THE FOUNDING HALF IS BUILT AND MEASURED. `rulesets/founded.toml` is the FIRST SHIPPED FILE IN
+WHICH THE SIMULATION CREATES A BUSINESS** — **114 founded** over 4,096 Ticks at 2,000 Citizens.
+***That is milestone 27's named risk retired on its main axis***: the economic actor now exists in a
+world rather than in a fixture. `World.Found`, `FoundingRuleset`, `PlacementEngine.Found`,
+`UnpremisedTable.Gate`, `purpose_tag` 25 and 26, **seven new refusals** (`adr/0048`: 141 → 148), and
+the assertion tier green at **2,114**.
+
+- ✅ **`adr/0006` is satisfied and MEASURED rather than argued**: with the bound patched to one Day,
+  **170 founded, 138 retired, the pool settling at 32**. The size is bounded because the drain rate is
+  proportional to the stock — which is the claim `adr/0006` actually makes, and is not *the pool
+  empties*.
+- 🔴 **The seventh refusal is the one that matters and it was found by trying to write the Ruleset**
+  (**G25**): `[founding]` is an inflow into the unpremised pool and **nothing tenants a Business**, so
+  a file stating it without `gives_up_after_days` grows a collection with elapsed time. ⚠ **The base
+  file states no such key**, so the first draft of `founded.toml` was an `adr/0006` violation.
+- 🔴 **The arrival channel is NOT built.** `adr/0145` names two channels; this is one. `Gate` is
+  declared and every row reads `default` until it lands.
+- 🔴 **Nothing tenants a Business, so `founded.toml` LEAKS BY CONSTRUCTION** — its header says so at
+  length. Founding is a transfer; departing is an export.
+
+✅ **THE SOURCE IS SETTLED: [`adr/0145`](../docs/adr/0145-a-business-is-founded-by-a-household-or-arrives-through-a-gate-and-both-land-in-the-pool.md),
+2026-08-24, with the user in the room.** **Two channels** — a **Household founds** one, spending part
+of its balance; or one **arrives through a gate** carrying a band. Both create it **unpremised**, into
+the pool milestone 25 built, and neither tenants anything, so `adr/0069` is preserved. ⚠ **The founding
+channel is a TRANSFER and issues nothing**, so **G8**'s already-miscounted map of money's doors gains
+**one** rather than two.
+
+- 🔴 **THREE numbers are owed, not one** — a founding band, an arrival band and a founding **rate**.
+  `0002` §D2 holds one row and must become three. ⚠ **The rate has no precedent to copy.**
+- ✅ **The founding TRIGGER is settled by `adr/0145`'s own amendment, 2026-08-24**: ***a Household
+  founds on its own MEANS and never on the city's NEED.*** A pass on the placement interval draws a
+  bounded sample of **housed** Households; a drawn one founds if its balance covers the band, and the
+  band **moves** Bin to Bin. **Nothing consults how many shops exist** — a trigger that reads a
+  shortage is the RCI meter whatever it is called. The duration is authored and the sample derived
+  (`adr/0059`), the draw is with replacement (placement's shape, so `1/e` goes unlooked-at), and it
+  takes **`purpose_tag` 25**.
+- 🔴 **A CONSEQUENCE NEITHER ADR SHOWS ALONE, and it is the thing to watch in the balance run**
+  (**G24**): ***a founded Business that never finds premises EXPORTS its founder's money.*** Founding
+  is a transfer and conserves; `Depart` subtracts from `MoneySupply.Issued` when the give-up bound
+  expires. **So found-then-fail is a one-way leak of household wealth**, at a rate the founding
+  duration sets. Not obviously wrong — the entrepreneur emigrated with their capital — but ***the
+  founding duration is therefore not a free parameter.***
+- ✅ **`UnpremisedTable.Gate` should now be declared**, and the table's own sentence is what licenses
+  it: it was omitted because *"a column meaningless for every one of its rows is worse than one
+  meaningless for half of them"*, and with two channels it is meaningful for half.
 
 - ⚠ **Smaller than `0040` reads, because the exit shipped at milestone 25** (**G9**). The pool, the
   give-up clock, `Retire` and `Depart(Handle<Business>)` all exist. **What is owed is a source and a
@@ -208,6 +433,16 @@ not exist.*** Move `jobs` to the employer before anything creates an employer an
 `false` everywhere: **employment goes to zero, every commute stops, and the traffic, parking and commute
 suites go with it.**
 
+- ✅ **Decision 2 is SETTLED and the answer is the KIND** — `adr/0141`'s Declares row, see above
+  (**G30**). ⚠ **And only TWO of its three things move**: `jobs` and shift hours. **The wage is
+  milestone 15's** (`06:99`), so a `[[business]] wage` key is out of scope here and
+  `RulesetShape.cs:217` is wrong to say otherwise.
+- 🔴 **This task is now a PREREQUISITE of task 8's founder half**, not the last thing in the milestone
+  ([`adr/0146`](../docs/adr/0146-founding-costs-a-citizen-and-the-households-money-so-the-founder-is-the-first-worker.md)):
+  the founder is recorded by the employment link, an unpremised Business has no Building, and a
+  `Workplace` handle addressing `BuildingTable` cannot point at one. ⚠ **The ordering argument below
+  still stands** — moving `jobs` before an employer exists still empties the city — ***so the two
+  constraints bite in opposite directions and task 8's founding pass had to land first.*** It did.
 - **33 sites assume a Workplace is a Building** — storage, Ruleset, World mutators, engines, invariants,
   evidence and content. The enumeration is the survey's; the load-bearing ones are
   `CitizenTable.Workplace` (`HandleColumn<Building>`, `CitizenTable.cs:64-65`), the worker list
@@ -269,6 +504,466 @@ suites go with it.**
   funds one, employs through one, and a Rule can read its balance.
 
 ---
+
+## What task 6 found
+
+**G14 — 🔴 `FactorioTests` carried THREE wrong column counts and the corruption test could not see any
+of them.** Two comments said a table's saved columns numbered *five*: `business` has **four** (and had
+**three** before this task, so the number was never right), and `unpremised` has **two** — that one was
+copied from the paragraph above it on the day it was written. And the union total lived in **two
+places at two values**: the `UnreachableColumns` doc said *187* while the remarks eleven lines away
+said *249*. ⚠ **The test itself was green throughout and would have stayed green**, because it asserts
+on an *empty residue* and prints the totals; nothing compares a prose count to `SavedColumns`. ***A
+number in a comment beside the code it describes is exactly as exposed as one in a document***, and
+`tests/Borough.Tests/Corpus/` is document-to-document by construction, so no mechanical check reaches
+it. **Repaired by counting from `BusinessTable`'s constructor and by deleting the totals rather than
+correcting them** — the run prints `250 of 250`, so the document had no business holding a copy.
+
+**G15 — the golden re-record needed a FIXTURE change before the number was taken, and this is
+`Golden/README.md`'s own lesson arriving for the fourth time.** Both Businesses in
+`GoldenFixtures.Build()` carried kind `0`. A straight re-record would have moved the baseline on the
+day the column landed and then **stayed put for ever however the trades were shuffled** — covering the
+column's *existence* and never its *value*. They now carry kinds **1** and **2**, and the two hashes
+differ (`0xD92277A7748AC804` at kind 0 against the committed `0xD32D3335AA6D991E`), which is the proof
+the value is folded. ⚠ **Both trades are DERELICT** — `minimal.toml` declares no `[[business]]` — which
+is legal exactly as a derelict Building is, and is why `tenanted.toml` exists to cover the other half.
+
+**G16 — only ONE of the four golden artefacts moved, and which one is the finding.** `world-hash.txt`
+moved; **neither session trace did, and no Ruleset content hash did**. `GoldenFixtures.Build()` is the
+only golden world that holds a Business at all — the sessions run `populate` over `minimal.toml` and
+nothing creates one — so a column added to a table with no live rows folds nothing. ***A saved column
+can move one baseline and leave the others alone, and that is the baselines reaching different tables
+rather than a hash being missed.***
+
+**G17 — `RulesetWithLayersTests` caught the two new properties being dropped on the hot-reload copy,
+and it exists for that.** `Ruleset.WithLayers` is hand-spelled, so `BusinessKindCount` and
+`BusinessKindKeys` had to be added to it by hand; `Every_settable_property_is_carried_across` went red
+on the first run. ⚠ **They are `init` properties rather than constructor parameters, on `KindKeys`'
+precedent** — the constructor's nine positional parameters are named by every hand-built test Ruleset,
+and adding a tenth would edit all of them to say nothing.
+
+**G18 — `tenanted.toml` and `minimal.toml` produce the IDENTICAL city, and that equality is the task's
+demonstration.** 200 Ticks at 10,000 Citizens, State Hash sampled every 64: `0xE1C095A33C529A68`,
+`0xBD0CF73451B88C49`, `0x992AA56D04096835` on both files. ***Two trades declared and neither
+instantiated leaves the simulation bit-identical***, which is *a Business kind declares nothing until
+task 7* stated as a number instead of as a promise. **Guarded by `BusinessKindLoadTests.The_two_trades_change_nothing_about_the_city`**, which carries its own control — `evicted.toml` is traced alongside and asserted *different*, because two traces of four zeroes are equal and an equality that compares nothing passes. ⚠ **It is a tripwire and is meant to go red**: the day task 8 creates a Business the two files stop agreeing, and the response then is to **delete the test rather than loosen it** — an equality weakened to a tolerance asserts nothing.
+
+**G19 — a Ruleset cannot state its own content hash, and this header did for the length of one edit.**
+The fingerprint covers the comments (`CLAUDE.md`'s `congested.toml` cell says so about a *golden*
+file), so writing the value into the file it fingerprints invalidates it on the next keystroke — which
+is what happened: `0x3291B0CCD977EB3A` became `0xB690D3419F285764` because the sentence quoting it was
+added. ⚠ **No shipped Ruleset does this and none ever did** — the recorded fingerprints live in fixture
+constants and trace headers, *outside* the file — so this is a deviation caught the same hour rather
+than a corpus defect. **The repair is to name the runner that prints it, not to keep the digits
+current.**
+
+**G20 — decomposition's own open decision 3 rested on a false premise, and task 6 disproved it by
+landing.** The decision predicted task 6 would falsify half the `sweeps` refusal message. It did not:
+the message refuses `business` because ***"a Business has a balance and no pass that moves it"***, and
+task 6 added a **kind** rather than a **pass** — verified against `World`, where every write to
+`Businesses.Balance` is a creation, a lookup or a rebuild and none is a per-Tick pass. **Caught only
+because the message was read instead of the plan's description of it.** ⚠ **The prediction reasoned
+from a reason the message does not give**: decomposition assumed `sweeps = "business"` was refused for
+having *nothing to key on*, which is what the milestone's risk cell says about `Declares` and `BinsOf`
+— a true sentence about a different thing. ***This is [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+catching a description written by this milestone's own decomposition eight hours earlier***, which is
+the shortest gap between writing a wrong description and being misled by it that this corpus has
+recorded. **The refusal count stays put; decision 3 reopens at task 9.**
+
+⚠ **The same entry cited `RulesetLoader.cs:2170-2192` and `ReadSubject` now starts at 2188** — a line
+reference that drifted within one task, because task 6 added lines above it. Replaced with the
+**symbol**, which is `adr/0093`'s writing half — *name a symbol, never a time* — arriving on the same
+sentence that had just been caught by its reading half.
+
+**G21 — 🔴 THIS DOCUMENT'S TASK ORDER REPEATED THE MISTAKE MILESTONE 25 CLOSED ON, ONE DAY LATE.**
+Task 9 was ordered second on the stated ground that it is ***exercisable by fixture*** — *"it does not
+need a Business the city created; it needs a Business."* **`0040` F43, recorded 2026-08-23, is the
+refutation**: milestone 25 shipped a mechanism every test of which built its Ruleset by hand, nothing
+noticed it was invisible in every shipped world, and the closing task had to ship a **fourteenth
+Ruleset file** to make it observable. ***A mechanism exercised only by hand-built fixtures is a
+mechanism with no world in it.*** This document was written **2026-08-24** and used the refuted
+reasoning as an ordering criterion.
+
+⚠ **Task 9's case is STRONGER than F43's, not weaker.** F43's mechanism at least fired in a world once
+a Ruleset was written for it. Task 9's would be reachable by **no Ruleset at all**, for two independent
+reasons found on opening it (**G22**): nothing creates a Business, and nothing can give one a Rule.
+
+**Reordered to 6 → 8 → 7/9 with the user in the room, 2026-08-24.** Task 8 creates the actor, which is
+the risk `06` names, and it is what makes task 9's subject exist.
+
+**G22 — 🔴 NOTHING CAN GIVE A BUSINESS A RULE, AND NO TASK IN THIS MILESTONE OWNS THAT.**
+`World.ArmOccupant` takes a **Household**, reads the **Building's** kind, and hands every
+`BinTenancy.Occupant` Bin and Rule from `BinsOf(kind)`/`RulesOf(kind)` to that Household. ⚠ **Run the
+same function for a Business and a bakery inherits the Rules of the families living upstairs**, which
+is [`adr/0141`](../docs/adr/0141-a-tenant-owns-what-leaves-with-it-and-the-premises-own-the-capacity.md)'s
+own argument inverted — *the same shopfront hosts a bakery and then a barber* is the claim that the
+trade is **not** a property of the walls. ***So a Business's Bins and Rules must come from its
+`[[business]]` kind, and task 6 deliberately gave that kind nothing but a name.***
+
+🔴 **`BinTenancy` is `Premises | Occupant` and cannot express the distinction.** Both a Household and a
+Business are Occupants, so the enum that decides whose Bin it is cannot say *which tenant*. **Task 6's
+own `RulesetShape` note said the trade gets `jobs`, shift hours and the wage at task 7 and named no
+Bins and no Rules** — so the gap is real rather than deferred. **Unassigned by tasks 6, 7, 8 and 9
+alike; it is the first thing task 9 needs and it is nobody's.**
+
+**G23 — task 9's readout half has a fork `0040` and this document both missed.** `Readouts.ScopeOf`
+returns **exactly one** `ReadoutScope` per Readout id and the loader tests it with an **equality**
+(`RulesetLoader.ReadApply`). `Readout.Balance` is declared `Household`-scoped. ***A Business has a
+balance too, so one declared scalar now belongs to two entities and the declaration cannot say so.***
+⚠ **G11 called this half *genuinely small* and it is not** — it read the entry points, which are small,
+and not the scope declaration, which is a fork. **Left open; it is task 9's to settle and it is likely
+an ADR** (0145–0149 are reserved to this milestone).
+
+**G24 — the source question was never a number, and the ledger had it typed as one for a day.**
+[`0039`](0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md) **V31** concluded
+*"question 3 is not 'what creates a Business' — it is 'what CAPITALISES one', and that is a number."*
+**Opening task 8 found there is no first line of code in that reading**: a band with nothing to draw it
+is not a source. ⚠ ***A question that changes type has not necessarily been answered; it may only have
+been narrowed*** — and the narrowing was recorded as a closure, so `0002` §D2 carried a *number* row
+while the *shape* it depended on was owned by nobody. Settled by
+[`adr/0145`](../docs/adr/0145-a-business-is-founded-by-a-household-or-arrives-through-a-gate-and-both-land-in-the-pool.md)
+and its amendment, both 2026-08-24, with the user in the room.
+
+🔴 **Settling it TRIPLED the ledger row rather than discharging it.** One band became a founding band,
+an arrival band and a founding duration — because *what a founder spends* and *what an immigrant
+carries* are different quantities with different arguments, which the single-channel reading had hidden.
+***A row that looks like one number because nobody has decided the shape is a row that will grow when
+somebody does.***
+
+**G25 — the demonstration Ruleset found a refusal the ADR had not, and it found it by refusing to be
+written.** `founded.toml` is `taxed.toml` plus a trade and a channel — and `taxed.toml` states no
+`[placement] gives_up_after_days`, because it has no gate and therefore no inflow into the Unplaced
+Pool. ⚠ **`[founding]` is an inflow into the OTHER pool**, so the first draft founded Businesses into
+a collection with no sink, which is `adr/0006` outright. ***The defect was in the file rather than in
+the code, and it surfaced because the file had to be written at all*** — which is `plans/0040` **F43**
+paying for itself one milestone later: had task 8 shipped fixture-only, the mechanism would have been
+correct, tested, green, and unbounded in the first world anybody wrote for it.
+
+⚠ **`adr/0130` had already made this argument for the other pool and could not see this one.** *Whoever
+builds the gate owes the give-up rule* is now two checks over two collections, and neither is reachable
+from the other. ***A rule stated once about one collection does not generalise itself.***
+
+**G26 — 🔴 `adr/0145` ARGUED FROM A COLUMN THAT DOES NOT EXIST, AND THE CODE SHIPPED THE SAME DAY
+WITHOUT IT.** The ADR's `UNIQUE INDIVIDUALS` paragraph reads *"a Business founded by a named Household
+has a founder the player can inspect — the money came from somewhere the player can point at."*
+`BusinessTable` declares seven columns — `building`, `kind`, `bin_head`, `bin_tail`, `balance`,
+`building_next`, `pool_slot` — and **not one records a founder**. `World.Found` moves the band and the
+link is severed in the same statement. ⚠ **Nobody can point at anything.** ***The sentence was written
+about the build the argument implied rather than the build the task produced***, which is
+[`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+inverted — a description that is not where to look because there is nowhere to look. Filed to
+`plans/0012` **Cause 5**; repaired by
+[`adr/0146`](../docs/adr/0146-founding-costs-a-citizen-and-the-households-money-so-the-founder-is-the-first-worker.md),
+which makes the claim true through the **employment link** rather than the column.
+
+⚠ **It was not found by any corpus check and could not have been.** Every mechanical check in
+`tests/Borough.Tests/Corpus/` is document-to-document — `RefusalCountTests` is the sole exception and it
+counts one thing in one file. ***A prose claim about a table's contents is invisible to all of them***,
+so the only instrument that sees it is somebody reading the table.
+
+**G27 — the founder record and the workplace handle CANNOT BOTH be columns, and task 7 is what makes
+that true.** `World` builds `Citizens` at `World.cs:147` and `Businesses` at `:167`, so declaring
+`BusinessTable.Founder` as a handle into `citizens.Rows` works **today**, one line, on `Building`'s own
+Severable precedent. ⚠ **Task 7 repoints a workplace at a Business**, and then `CitizenTable` needs
+`Businesses` while `BusinessTable` needs `Citizens` — a **constructor cycle** in a single ordered pass.
+The corpus's standing answer is a handle one way and an intrusive list the other (`DwellingNext`,
+`WorkerNext`, `BuildingBusinesses`), so **exactly one may be the column**. ***Choosing the workplace
+makes the founder fall out for free and costs nothing***, which is why `adr/0146` declines the column.
+🔴 **Consequence for this document's task order: task 7 is now a PREREQUISITE of the founder record**,
+not parallel work — an unpremised Business has no Building, so a `Workplace` handle addressing
+`BuildingTable` cannot point at one.
+
+**G28 — the income half of the founding cost is `adr/0026` and is UNBUILT, so 27 must not approximate
+it.** The intent was *"the founder has a job that periodically has no income until the Business has
+income."* `Readouts.cs:69` states the position in its own doc comment: *"income is a **flow** that
+arrives with wages in milestone 15"*, `adr/0070`-classified **unbuilt**. ⚠ **And it is not merely
+unbuilt, it is DESIGNED** —
+[`adr/0026`](../docs/adr/0026-wages-are-posted-locally-and-never-cleared.md) *wages are posted locally
+and never cleared*, each Business adjusting its own wage by its own fill rate. ***So the described
+mechanism is `adr/0026` running on a Business with an empty Bin***, and `adr/0114` already built the
+Bin to be blamed and waited on. **Under `adr/0070` the answer is build wages at 15**, and a 27-shaped
+proxy would put a second, worse answer in front of an ADR that already exists. **27 ships the labour
+cost only**, which is real on its own: the founder is occupied and the employment pass will not hire
+them.
+
+**G29 — `CitizenTable.Employment` is SAVED, therefore HASHED, and nothing in `src/` writes or reads
+it.** Declared `_rows.Saved<byte>("employment")` at `CitizenTable.cs:68`. The only writer in the
+repository is `tests/Borough.Tests/Golden/GoldenFixtures.cs:510`, `(byte)(i % 3)` — an arbitrary value
+in a fixture, with no enum, no constant and no consumer anywhere. ⚠ **So the golden baseline covers a
+byte that means nothing**, and every State Hash containing it is folding a fixture's arithmetic.
+***This is the mirror image of the `car_park.segment_next` defect `DerivedRebuildAuditTests` caught at
+milestone 7***: that was a `Derived` column nothing rebuilt, this is a `Saved` column nothing writes,
+and **no test asks the second question**. `adr/0146` gives the column its first meaning, which is
+**defining** it rather than extending it. 🔴 **The general defect is unowned** — there is no audit that
+names saved columns with no simulation writer, and this one was found by grepping for something else.
+
+**G30 — an open decision was framed against an ADR that is silent and never cited the one that
+answers.** Decision 2 asked whether `jobs` moves to the business **kind** or the Business **row**, and
+concluded it was *"forced by what `adr/0026` means by employer"* — an ADR that never says.
+[`adr/0141`](../docs/adr/0141-a-tenant-owns-what-leaves-with-it-and-the-premises-own-the-capacity.md)
+does say, in a table row headed **Declares**, whose two columns are the two **kind** namespaces; and
+`RulesetShape.cs:217` was already reading it that way in a doc comment when decomposition ran. ***The
+decision was open in this document and settled everywhere else.***
+
+⚠ **The tell is that it named the ADR it could not get an answer from.** A question typed *arguable*
+and pinned to one silent source looks blocked with no further work, because **the next step it implies
+is a sitting rather than a search**. ***Typing a question does not discharge the duty to look for its
+answer***, and the cheapest check — grep the term across `docs/adr/` — was never run.
+
+🔴 **It cost the milestone an ordering.** Decision 2 was recorded as the one open decision blocking task
+7, which is part of why task 7 went last; and `adr/0146` has since made task 7 a **prerequisite** of
+task 8's founder half. ***A phantom block on the task that turned out to be the critical path.***
+
+⚠ **And settling it SHRANK the task.** `0141`'s Declares row names three things and **the wage is not
+milestone 27's** — `06:99` places wages at milestone 15 and `Readouts.cs:69` agrees. Only `jobs` and
+shift hours move at task 7.
+
+## Task 7's survey — taken 2026-08-24, and the task is SMALLER than this document had it
+
+⚠ **Counted against the tree, not quoted.** ***A count of call sites sizes the work and settles
+nothing*** — the same caveat the census above carries, and this survey exists because **G1** found all
+three of the risk cell's numbers stale.
+
+### The 85 is 64 doc comments
+
+`grep -r Workplace src/` returns **85 lines across 24 files**. **Twenty-one are not comments**, and
+**four of those are string literals** — two headings in `CommuteDump`, one refusal message in
+`RulesetLoader`, and the `Invariant.CitizenIsInExactlyOneWorkplace` enum member. ***So the code surface
+naming `Workplace` is seventeen lines.*** ⚠ **This does not contradict the *33 sites assume a Workplace
+is a Building* figure**, which counts sites that assume it **without naming it** — `jobs` on the
+building kind, the worker list, `HasJob`. **Both are true and they count different things.** ***What is
+wrong is reading 85 as the size of the change.***
+
+### The one door, and it is the reason this is tractable
+
+**`World.Employ` (`World.cs:3966-3995`) is the only write onto `CitizenTable.Workplace`**, and its own
+doc comment says so: *"The one door onto `CitizenTable.Workplace`, and that is what the reverse index
+costs."* `World.cs:4107` clears it on the way out. ***So the signature change is one mutator and one
+clear***, and every other site is a **read** that follows the handle.
+
+### What does not exist yet, and is therefore the first piece of work
+
+🔴 **There is no `BusinessKindDefinition`.** Task 6 shipped the second namespace as **names only** —
+`Ruleset.BusinessKindKeys`, `BusinessKindKey(byte)`, `BusinessKindCount`, `DeclaresBusiness(byte)`
+(`Ruleset.cs:2566-2735`). **There is no member holding `jobs` or shift hours.** `RulesetShape.cs:217`
+already anticipates it in a comment — *"there is no `BusinessKindDefinition`… on that day this grows a
+shape check"* — ⚠ **and that comment is wrong about the wage** (`plans/0012`, Cause 4). ***Building
+`BusinessKindDefinition` is step one and nothing else can start before it.***
+
+### The hash move is ONE line, and it is exactly where G6 said
+
+`CommuteRoster.cs:186` — `ShiftStartOf(key, buildings.Rows.IdAt(workplace), definition)`. **The shift
+start is drawn on the *Building's* monotonic id.** Point it at the Business's and ***every Citizen in
+the city re-rolls their shift start***, so the Day's shape changes everywhere at once. **All four
+golden artefacts re-record** — `world-hash.txt`, both session traces, and the driving trace. ⚠ **Under
+[`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)
+that costs nothing and must not be cited as a reason to defer, narrow or split**; what it buys is a
+commit whose subject explains it.
+
+### ✅ The spatial search does NOT change, and that was worth checking
+
+`EmploymentEngine.cs:352` samples **Buildings** — `BuildingsInCells.NthIn(box, …)` — and then asks
+`HasJob(building)`. ***The box is over Buildings because that is where locations live, and a Business
+has no location of its own.*** So the search becomes **sample a Building, then walk its Businesses**
+through `World.BuildingBusinesses`, which milestone 27 task 8 already uses. ⚠ **Only the employer's
+identity moves; the geometry is untouched** — which is **G7**'s *the search half is separable* holding
+up under inspection rather than being assumed.
+
+### What moves tables
+
+- **`BuildingTable.WorkerHead` / `WorkerTail`** (`BuildingTable.cs:34-35`, both `Derived`) → **`BusinessTable`**.
+  `CitizenTable.WorkerNext` stays where it is — it hangs off the Citizen and does not care what it
+  points into. `World.cs:1884-1889` clears all three; `World.cs:2167` composes the `IndexList`.
+- **`World.TryDeclaredJobs(byte kind, out int jobs)`** (`World.cs:3676`) reads `Rules.Kind(kind).Jobs`,
+  the **building** kind → reads the business kind. ⚠ **Its *derelict kind keeps its workers* rule is
+  load-bearing and must survive the move** — *"a designer deleting a paragraph must not sack a
+  District."*
+- **`World.HasJob(int buildingSlot)`** (`World.cs:3935`) → takes a Business slot.
+- **`Evidence.cs:57`** and **`CommuteDump.cs:423`** both read `Rules.Kind(kind).Jobs` for display.
+
+### 🔴 The survey's own finding — an unpremised Business employs nobody, and that is CORRECT
+
+**A Business with no premises has no location**, so the spatial search cannot find it and the commute
+roster cannot place a Trip to it. ⚠ **This lands directly on
+[`adr/0146`](../docs/adr/0146-founding-costs-a-citizen-and-the-households-money-so-the-founder-is-the-first-worker.md)**,
+which makes the founder the Business's first worker — **and the founder founds it UNPREMISED**.
+
+***The existing code already produces the right answer and it should be left to.*** `CommuteRoster`'s
+hours lookup returns `false` the moment the workplace handle does not resolve to a Building
+(`CommuteRoster.cs:164-165`); after the move it resolves Business → premises, and an unpremised
+Business fails the second hop the same way. **So a founder is employed, is counted as employed, and
+makes no commute until placement tenants their Business.** ⚠ ***That is a legible story rather than a
+hole*** — they have a business and nowhere to work yet — and it falls out of a guard that already
+exists.
+
+🔴 **It does need deciding rather than discovering, and the decision is task 7's**: whether `Employ`
+**accepts** an unpremised Business at all. **Accepting is what `adr/0146` requires**; refusing would
+make the founder unrecordable until placement and put the founder link back to needing a column.
+✅ **`CommuteRoster.Add` tolerates it cleanly — READ, not assumed** (`CommuteRoster.cs:237-248`). It
+guards the whole body on `TryPhasesOf`, so a `false` inserts into neither bucket and writes no
+`CommuteBucket`. And `Employ`'s **remove-rewrite-add** order means `Remove` has already zeroed the
+bucket (`:283`), ***so an unrosterable founder ends at zero rather than stale*** — which is the value
+`Remove` itself treats as *not rostered*. **No new guard is needed anywhere.**
+
+### 🔴 And the survey's second finding — NOTHING RE-ROSTERS A WORKER WHEN THEIR EMPLOYER IS PLACED
+
+⚠ **This one is a gap the change CREATES, and it exists in no form today.** A founder employed by an
+unpremised Business is correctly unrostered. **When placement later tenants that Business into a
+Building, the Citizen's workplace becomes reachable — and nothing calls `Commutes.Add` at that
+moment.** ***So the founder would stay unrostered for ever, employed by a Business that now has
+premises, and never make a commute.***
+
+**It cannot happen today**, because a Workplace is a Building and a Building never stops having a
+location. ***The severable handle only ever goes one way — a demolition takes a workplace away, and
+nothing has ever given one back.*** ⚠ **Pointing the handle at a Business makes the reverse
+transition real for the first time**, because a Business acquires premises. **Task 7 owes a
+re-roster at the placement site**, and `Employ`'s own doc comment names the failure shape it would
+otherwise produce: *"a Building whose worker list disagrees with the Citizens pointing at it — and
+the disagreement is invisible, because the list is derived and therefore folds into no hash."*
+🔴 **This one would be invisible in the same way**: an unrostered worker makes no Trip, and no
+invariant counts Trips that should have happened.
+
+**G31 — 🔴 THERE IS NO UNKNOWN-KEY CHECK IN `RulesetLoader`, SO EVERY TYPO IN EVERY RULESET IS
+SILENT.** Found 2026-08-24 by task 7 writing a test that asserted one exists. ***It does not.*** Every
+table reads the keys it wants by name — `TryInteger(table, "jobs", …)` — and **nothing ever enumerates
+a table's actual keys**, so a key the loader does not look for is not merely unread, it is
+**unnoticed**. `occupent = 3`, `revisit_tics = 1024`, a `[[building]]` key spelled for a
+`[[business]]`: all load clean, all do nothing, none says a word.
+
+⚠ **It is the exact failure class this loader has 150 refusals to prevent**, arriving underneath all
+of them. `adr/0048`'s standing rule is *refuse a file that would load and run and mean nothing*, and
+***a mistyped key is that file by construction*** — the designer wrote a number, the number has no
+effect, and the only symptom is a city that behaves as though they had not.
+
+🔴 **The claim was made three times before it was checked**, which is this session's own second
+instance of the thing `plans/0012`'s new survival section is about. Task 7's first draft asserted the
+unknown-key check in `BusinessKindDefinition`'s doc comment, in `ReadBusinessKinds`' remark and in
+`tenanted.toml`'s header — **all three written from the same assumption, none from the code** — and
+the test written to *demonstrate* it is what refuted it. ***Writing the test is what made the claim
+falsifiable; writing it three times in prose did not.***
+
+⚠ **Not fixed here, and the reason is scope rather than cost.** Closing it means every table
+declaring its permitted key set, which touches every reader in the file and would move the refusal
+count by a lot. **What task 7 shipped instead is one named refusal for `wage`**, because
+[`adr/0141`](../docs/adr/0141-a-tenant-owns-what-leaves-with-it-and-the-premises-own-the-capacity.md)
+gives a designer positive reason to write that key and the general gap would swallow it. ***A named
+refusal for the one key somebody will actually type is not a substitute for the check and must not be
+recorded as one.***
+
+**G32 — 🔴 NOTHING TENANTS A BUSINESS, THE BUILD SAYS THIS MILESTONE OWES IT, AND NONE OF ITS FOUR
+TASKS NAMES IT.** Found 2026-08-24 on opening the handle move. `PlacementEngine.cs:190` states the
+debt in its own words: *"nothing tenants a Business — `World.CreateBusiness` has no production caller
+and the placement pass that would is milestone **27**'s."* ⚠ **Tasks 6, 7, 8 and 9 are the kind table,
+jobs to the employer, what creates and capitalises one, and a Rule reading a balance.** ***A pass that
+puts a Business into premises is in none of them.***
+
+**The evidence, counted rather than argued.** `PlacementEngine` names Business eleven times and
+**never writes `Businesses.Building`** — the only writers anywhere are `World.cs:970`
+(`CreateBusiness`, taking premises from its caller, and every caller is a test) and `World.cs:1612`
+(clearing it on departure). `World.Place` is Household-shaped throughout: `Handle<Household>`,
+`Households.IsUnplaced`, and a `HasRoom` that counts Households.
+
+🔴 **So the handle move CANNOT go next, and the reason is arithmetic rather than judgement.** Point
+`CitizenTable.Workplace` at a Business and employment is the number of Citizens working at a
+**premised** Business. **Thirteen of the fifteen shipped Rulesets declare no `[[business]]` at all**;
+`tenanted.toml` names two trades and instantiates neither; `founded.toml` founds 114 and **every one
+of them is unpremised by construction**, waits out the give-up bound and leaves. ***So employment
+would be zero in every world that ships***, and the commute, traffic and parking suites go with it.
+
+⚠ **This document predicted the symptom and misattributed the cause, and that is the correction worth
+keeping.** The status block says task 7 *"empties the city of jobs"* and concluded task 8's founding
+pass had to land first — **which it did, and it was necessary and not sufficient.** ***Founding fills
+a POOL; employment needs PREMISES***, and nothing carries a Business from the first to the second.
+🔴 **Task 7's own survey repeated the error one step later**, closing with *task 8's founding pass had
+to go first, and did* — treating a discharged precondition as the only one. ⚠ **The tell was in the
+survey's own finding**: it recorded that *an unpremised Business employs nobody, and that is correct*
+without asking **how many Businesses are premised in any shipped world.** ***The answer is none, and
+it was one grep away from a paragraph that had already framed the question.***
+
+**What the pass needs is a decision this milestone has not taken.**
+[`adr/0141`](../docs/adr/0141-a-tenant-owns-what-leaves-with-it-and-the-premises-own-the-capacity.md)
+says `occupants` *"stops being how many Households and becomes how many tenants of any kind"* — so a
+Business placed into a dwelling **competes with families for the same capacity**, and
+[`adr/0068`](../docs/adr/0068-a-buildings-occupancy-is-declared-by-its-kind-and-an-over-capacity-building-evicts.md)'s
+*an over-capacity Building evicts* then reaches both. ⚠ **That is a design change with an eviction
+consequence and not a mechanical one**, which is why this is filed rather than built on sight.
+
+**G33 — `World.Unpremise` never removed the Business from its Building's list, and the defect was a
+save/reload divergence hiding behind an unreachable path.** Shipped at milestone 25 task 5, it set
+`Businesses.Building[slot] = default` and joined the pool — and **left the row threaded into the
+premises it had just left.** ⚠ **`BuildingBusinesses` is derived**, so a **rebuilt** world walks
+`Businesses.Building` and omits the ghost while a **maintained** one keeps it. ***That is a
+`(derived AND rebuilt)` disagreement, which folds into no hash and is therefore invisible to every
+determinism check the build has.***
+
+🔴 **It was unreachable rather than benign.** Nothing called `Unpremise` from `src/` except
+`World.Destroy`, which drains the list with `PopFront` **before** calling it — so the missing line
+never mattered. `adr/0147`'s pass is what made it reachable, and **`EvictOverflow` is what would have
+found it the hard way**: that loop drains until `Tenants(slot)` falls, and a ghost tenant is a count
+that never falls. ***A silent divergence would have surfaced as a hang.***
+
+⚠ **The fix is a `Remove` and not an assert, because one caller legitimately arrives with the row
+already gone.** `Destroy`'s `PopFront` drain means `Remove` walks, fails and returns `false` — a
+no-op bounded by `occupants`, which is a Ruleset constant. ***An assert would have been correct about
+the invariant and wrong about the caller.***
+
+**G35 — a mechanism can be in the BUILD and in no WORLD, and this plan's own mitigation was the first
+kind.** Task 7's entry states the risk exactly — *"move `jobs` to the employer before anything creates
+an employer and `World.HasJob` returns `false` everywhere: employment goes to zero, every commute stops,
+and the traffic, parking and commute suites go with it"* — and records it as discharged because task 8's
+founding pass *"had to land first. It did."* ⚠ **It landed in one file of fifteen.** The check that would
+have caught it is [`0040`](0040-the-business-is-the-actor-and-the-building-is-premises.md) **F43**'s own
+question, which this milestone already carries in task 10 and asked one task too late: ***which world
+contains one, and does any shipped file produce one?*** 🔴 **A prerequisite is discharged by the WORLDS
+the next task runs against, never by the code existing.** The symptom was 66 red assertions whose
+messages all said the same sentence, which is the cheapest possible diagnosis and was still a full
+triage after the fact.
+
+**G36 — 🔴 A SOURCE IS PAIRED WITH THE SINK THAT INVERTS IT, AND A TIMEOUT IS NOT ONE.** `adr/0148`'s
+first draft had a kind-declared shop land in the unpremised pool on demolition, like any other tenant —
+which reads as correct and is an `adr/0006` violation. Measured on `minimal.toml`, which condemns every
+dwelling it raises: **121 Businesses became 1,095 over 32,768 Ticks**, the unpremised pool carrying 907
+of them, and the Unplaced Pool climbing behind it because re-premised shops took housing slots in
+Buildings that already had their own. ⚠ **`gives_up_after_days` does not close it and that is the
+finding**: `founded.toml` declares one and reached **1,275** on the same run. ***A bound drains a stock
+at a rate; construction-creates-and-nothing-destroys is a source with no sink at all.*** With demolition
+made `Fit`'s inverse the same run holds Businesses **equal to Buildings** at every reading. 🔴 **The
+`adr/0006` obligation was satisfied by ARITHMETIC, not by a long run** — the long-run tests had been
+failing on it for two edit cycles and I read them as content drift.
+
+**G37 — 🔴 `SyntheticCity` SIZED THE CITY BY THE WRONG CEILING, AND THE TWO QUESTIONS HAD BEEN THE SAME
+QUESTION UNTIL THAT DAY.** `occupants` is one ceiling over both kinds of tenant (`adr/0147`), so the day
+a premises could come with a shop, *how many tenants fit* and *how many families fit* stopped having the
+same answer — and `WantedBuildings` divided the Household count by the tenant ceiling, building **a
+quarter too few homes** and queueing the difference for ever. ⚠ **Raising `occupants` 3 → 4 in the
+content is what made the bug reachable AND is what makes it invisible**: the number moved and its
+meaning moved with it, so a reader checking that housing was preserved would confirm it from the
+Ruleset and still be wrong about the generator. `World.TryDeclaredHousing` now carries the distinction
+and says in its own remarks which callers must ask it.
+
+**G38 — clearing a severable handle is not tidier than leaving it stale; it deletes the mechanism.**
+`DestroyBusiness` was first written to sever `Citizens.Workplace` to `default` along with draining the
+worker list. Two tests refuted it from opposite sides: `ColumnBytesTests` could no longer construct a
+stale severable handle **because nothing in the build produced one any more**, and `EvidenceTests` found
+its severable branch unreachable. ⚠ **The two writes look like one act and are not**: the intrusive list
+*must* be drained, because it is `(derived AND rebuilt)` and a recycled row with a live `WorkerHead`
+hands its successor somebody else's staff; the handle *must not* be cleared, because `Reference.Severable`
+exists to answer *my employer is gone* and `default` answers *I never had one*.
+
+**G34 — the first draw over a MIXED population is the first place the distinct-tag rule has teeth.**
+`CLAUDE.md`'s randomness rule — *every distinct use gets a distinct `purpose_tag`; reusing one
+correlates two decisions invisibly* — has been satisfied by construction until now, because **every
+prior draw ranged over one table** and one tag was one id space. `adr/0141` made a Building's
+occupancy hold tenants of any kind, and `World.Loser` draws on an entity's **monotonic id**. 🔴
+**Household ids and Business ids are independent sequences from different tables**, so Household 5 and
+Business 5 both exist and under one tag would draw the **identical value** — ***two tenants of one
+Building perfectly correlated in the decision about which of them loses their place.***
+
+⚠ **It generalises past eviction and cost three tags rather than one.** The same argument applies to
+*which pooled Business is tried* against *which pooled Business is asked whether it gave up* (both
+over the unpremised pool, both on the same Tick), and to *which Lot a shop looks at* against *which
+Lot a family looks at*. **27, 28 and 29.** ***A rule that has never bound is not a rule anybody has
+tested, and this one bound in three places the moment a second population appeared.***
 
 ## What decomposition found
 
@@ -410,3 +1105,57 @@ misread, and this document then misread it that way.***
 G5's correct sentence lived in a *plan*, and this one lives in an *ADR's opening claim*. A check that
 asked whether a plan's use of a decision agrees with that decision's own summary is conceivable and is
 **not proposed** — it needs the corpus to know which sentence of an ADR is its claim, and nothing does.
+
+**G39 — 🔴 A DOC COMMENT NAMING A FUTURE MILESTONE SIZED A TASK, AND THE SIZE WAS WRONG BY A
+SUBSYSTEM.** `RuleInstanceTable.cs:92` says ***"A Business gets its own column when a Business runs a
+Rule, which is milestone 27"***, and **G10** built task 9's plan on it: *"the real content is a third
+subject on the Rule Instance, and the build already says so."* The column was implemented — `[[rule]]
+trade = "<name>"`, `BusinessTable.RuleHead`/`RuleTail`, `World.ArmTrade`, `RuleEngine.Band` dispatching
+on the instance — and it **loaded and then crashed on the Tick it fired**:
+
+```
+StaleHandleException: handle {index 0, generation 0} into table 'building' is stale.
+   at Borough.Core.Rules.RuleEngine.Fire(RuleVerdict verdict, Ticks tick)
+```
+
+⚠ **`RuleEngine` resolves a Building from the instance at `Fire`, not only at `Band`** — and through
+evidence, `on_fail`, the wake targets and every local Bin lookup. **The column was the visible tenth of
+a subsystem.** Reverted; `adr/0149` takes the route the loader's own refusal named, and task 9 is a loop
+over a second table plus a membership test.
+
+**This is [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+working rather than failing, and the distinction is worth being exact about.** The comment is right about
+**where to look**; what is in there was never its claim to make. ***G10 read a location as an estimate***,
+which is the one use of a description that ADR forbids outright.
+
+⚠ **What makes this sighting different from `plans/0012` Cause 4's four is that nothing was decided
+wrongly** — no ADR rests on it, no number moved, no world behaves differently. **What it cost was
+sizing**, and sizing is invisible to every check in this corpus. Filed to
+[`0012`](0012-corpus-audit.md), where the entry directly above it proposes the check that would have
+caught it: *a doc comment naming a future milestone is a citation, and a citation to a closed milestone
+is checkable.* 🔴 **This one was a citation to an OPEN milestone that was simply wrong about what that
+milestone would do**, which that check does not reach either.
+
+**G40 — a Readout's scope was a value because there had only ever been one entity, and the widening is
+the thing to watch.** `ScopeOf` returned one `ReadoutScope`; `balance` was declared `Household`-scoped
+while `World.BalanceOf(Handle<Business>)` had sat in the build unused since milestone 25. ⚠ **A single
+scope made over-permission unreachable** — a Readout could be wrong about *which* entity, never about
+*how many* — and `IsReadableAgainst` gives that up to say something true. ***A Readout carelessly added
+to two sets is a Rule reading a quantity that means a different thing on each***, and no test in this
+corpus can catch it. Recorded in `adr/0149`'s revisit triggers rather than guarded, because the guard
+would be a claim about what a scalar *means*, which nothing in the build represents.
+
+**G41 — the shipped file could not assert the property the shipped file demonstrates.** `PolicyCounter`
+is **one set of counters for the whole engine**, so a run of `levied.toml` reports every Policy's
+`considered` and `applied` together — and its two Household Policies outweigh the trade levy about ten to
+one. ⚠ **A counter that cannot be attributed to a Policy cannot assert a property of one**, so
+`BusinessLevyTests` builds its fixture by cutting `founded.toml` at its first `[[policy]]` **table** and
+appending the levy alone. 🔴 **The first cut was on the string `[[policy]]` and landed in the file's own
+header**, four hundred lines above the tables — *"a [households] table and two `[[policy]]` tables"* —
+producing a world with no Buildings in it. ***A fixture built by text surgery cuts on syntax, never on a
+word the prose also uses.***
+
+⚠ **The attribution gap is not filed as a defect and should not be.** Per-Policy counters would be a
+Census surface nothing has asked for; what exists is enough to instrument the engine, and the test that
+needed attribution got it by building a world with one Policy in it. **Recorded so the next person to
+want a per-Policy figure knows it is absent by circumstance rather than by decision.**

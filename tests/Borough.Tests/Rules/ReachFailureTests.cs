@@ -121,7 +121,7 @@ public sealed class ReachFailureTests
         for (int slot = 0; slot < world.Citizens.Rows.SlotCount; slot++)
         {
             if (!world.Citizens.Rows.IsLive(slot)
-                || !world.Buildings.Rows.IsValid(world.Citizens.Workplace[slot]))
+                || !world.Businesses.Rows.IsValid(world.Citizens.Workplace[slot]))
             {
                 continue;
             }

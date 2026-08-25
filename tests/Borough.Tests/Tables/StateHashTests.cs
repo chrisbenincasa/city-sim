@@ -122,7 +122,12 @@ public class StateHashTests
     public void Repointing_a_handle_moves_the_hash()
     {
         World world = Build();
-        Handle<Building> other = world.Buildings.Create(world.Lots, default, kind: 2);
+
+        // A second EMPLOYER, which is a Business since adr/0141. Premised in the fixture's own
+        // Building rather than left unpremised, because an unpremised Business that is not in the
+        // Unplaced Pool fails Invariant.ABusinessIsPremisedOrItIsInThePool — and the world this test
+        // wants inconsistent is the Workplace column, not the pool.
+        Handle<Business> other = world.CreateBusiness(world.Buildings.Rows.At(0));
 
         ulong before = world.HashState();
         world.Citizens.Workplace[0] = other;
@@ -138,11 +143,15 @@ public class StateHashTests
     public void A_dangling_handle_moves_the_hash_without_throwing()
     {
         World world = Build();
-        Handle<Building> doomed = world.Buildings.Create(world.Lots, default, kind: 2);
+        Handle<Business> doomed = world.CreateBusiness(world.Buildings.Rows.At(0));
         world.Citizens.Workplace[0] = doomed;
 
         ulong before = world.HashState();
-        world.Buildings.Rows.Free(doomed);
+
+        // Freed through the allocator rather than through DestroyBusiness, because the world this
+        // test wants is a deliberately inconsistent one — the point is that the fold survives a
+        // handle whose target is gone.
+        world.Businesses.Rows.Free(doomed);
 
         Assert.NotEqual(before, world.HashState());
     }
@@ -193,6 +202,11 @@ public class StateHashTests
         Handle<Building> building = world.Buildings.Create(world.Lots, lot, kind: 3);
         Handle<Household> household = world.CreateHousehold(building, lifeStage: 2);
 
+        // The employer, since adr/0141 moved employment off the premises. One Business for all
+        // three Citizens: this fixture is about the hash, and three trades would say nothing the
+        // one says.
+        Handle<Business> employer = world.CreateBusiness(building);
+
         world.Endow(household, new Money(500));
 
         for (int i = 0; i < 3; i++)
@@ -203,7 +217,7 @@ public class StateHashTests
             // the column raw on purpose -- they are about what the hash does with a handle, and one
             // of them wants a deliberately inconsistent world -- but the fixture they start from
             // should not be one.
-            world.Employ(citizen, building, Ticks.Zero);
+            world.Employ(citizen, employer, Ticks.Zero);
         }
 
         return world;

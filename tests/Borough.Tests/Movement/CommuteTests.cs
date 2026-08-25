@@ -169,7 +169,7 @@ public sealed class CommuteTests
         for (int slot = 0; slot < world.Citizens.Rows.SlotCount; slot++)
         {
             bool employed = world.Citizens.Rows.IsLive(slot)
-                && world.Buildings.Rows.IsValid(world.Citizens.Workplace[slot]);
+                && world.Businesses.Rows.IsValid(world.Citizens.Workplace[slot]);
 
             Assert.Equal(employed, out_[slot]);
             Assert.Equal(employed, back[slot]);
@@ -304,8 +304,13 @@ public sealed class CommuteTests
 
         Assert.Equal(jobs.ShiftLengthOf(key, 4_242UL), jobs.ShiftLengthOf(key, 4_242UL));
 
-        KindDefinition kind = new(0, 0, 0, 0)
+        // The band is declared by the TRADE since adr/0141, so the draw is fed a
+        // BusinessKindDefinition. `jobs` is stated because a band without one is half a mechanism
+        // the loader refuses — nothing here reads it, but a fixture that could not be written in
+        // TOML is a fixture asserting about a kind that cannot exist.
+        BusinessKindDefinition kind = new()
         {
+            Jobs = 1,
             ShiftStartEarliestHour = 0,
             ShiftStartLatestHour = 23,
         };
@@ -414,8 +419,9 @@ public sealed class CommuteTests
         for (int slot = 0; slot < employers.Length; slot++)
         {
             employers[slot] = world.Citizens.Rows.IsLive(slot)
-                && world.Buildings.Rows.TryResolve(world.Citizens.Workplace[slot], out int workplace)
-                    ? world.Buildings.Rows.IdAt(workplace)
+                && world.Businesses.Rows.TryResolve(
+                    world.Citizens.Workplace[slot], out int workplace)
+                    ? world.Businesses.Rows.IdAt(workplace)
                     : 0;
         }
 
@@ -470,7 +476,7 @@ public sealed class CommuteTests
         for (int slot = 0; slot < world.Citizens.Rows.SlotCount; slot++)
         {
             if (world.Citizens.Rows.IsLive(slot)
-                && world.Buildings.Rows.IsValid(world.Citizens.Workplace[slot]))
+                && world.Businesses.Rows.IsValid(world.Citizens.Workplace[slot]))
             {
                 total++;
             }

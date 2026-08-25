@@ -490,7 +490,7 @@ public sealed class CommuteLongRunTests(ITestOutputHelper output)
         for (int slot = 0; slot < world.Citizens.Rows.SlotCount; slot++)
         {
             if (world.Citizens.Rows.IsLive(slot)
-                && world.Buildings.Rows.IsValid(world.Citizens.Workplace[slot]))
+                && world.Businesses.Rows.IsValid(world.Citizens.Workplace[slot]))
             {
                 total++;
             }
@@ -512,6 +512,12 @@ public sealed class CommuteLongRunTests(ITestOutputHelper output)
     internal static string SecondKindToml(int earliestHour, int latestHour) =>
         File.ReadAllText(GoldenFixtures.RulesetPath) + $$"""
 
+            [[business]]
+            name = "workshop_trade"
+            jobs = 8
+            shift_start_earliest_hour = {{earliestHour}}
+            shift_start_latest_hour   = {{latestHour}}
+
             [[building]]
             name = "workshop"
             bins = [
@@ -519,10 +525,8 @@ public sealed class CommuteLongRunTests(ITestOutputHelper output)
                 { resource = "repairs",  capacity = 4 },
             ]
             condemn_after = 4
-            occupants = 3
-            jobs = 8
-            shift_start_earliest_hour = {{earliestHour}}
-            shift_start_latest_hour   = {{latestHour}}
+            occupants = 4
+            business = "workshop_trade"
 
             [[rule]]
             name    = "restock_workshop"

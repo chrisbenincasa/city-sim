@@ -513,3 +513,31 @@ the city. A *semantic* edit to a key something reads does move them, and that is
 is the sentence that makes somebody defer a Ruleset edit — which `adr/0100` forbids by name.
 `The_golden_ruleset_is_the_one_the_session_names` covers all three files and fails with the number to
 paste in.
+
+**Milestone 27 task 6 re-recorded ONE artefact, and which one is the whole note.** `BusinessTable`
+gained a saved `kind` byte — the trade, on `adr/0141`'s second kind namespace — so `world-hash.txt`
+moved. ⚠ **Neither session trace moved and neither Ruleset content hash moved**, and the reason is
+worth keeping: `GoldenFixtures.Build()` is the **only golden world that contains a Business at all**.
+The sessions run `populate` over `minimal.toml`, nothing in the simulation creates a Business
+(`World.CreateBusiness` has no production caller until task 8), so both sessions hold an empty
+`business` table and a column added to a table with no live rows folds nothing. ***A saved column can
+therefore move one baseline and not the others, and that is the tables being reached differently
+rather than a hash being missed.***
+
+**The fixture was changed before the number was taken, and that is this file's own lesson applied.**
+A straight re-record would have given both Businesses `kind = 0`, which covers the column's
+*existence* and never a trade's *value* — the baseline would move on the day the column landed and
+stay put for ever afterwards however the trades were shuffled. That is *"a re-record can be complete
+and still leave a branch uncovered"* arriving for the fourth time. The two Businesses now carry
+**kinds 1 and 2**, on exactly the reasoning that made them two rather than one: a fixture holding the
+default leaves the machinery uncovered. The two hashes differ — `0xD92277A7748AC804` at kind 0 against
+the committed `0xD32D3335AA6D991E` — which is the proof the value is folded rather than only the
+column.
+
+⚠ **Both trades are DERELICT in this fixture and that is deliberate rather than sloppy.**
+`minimal.toml` declares no `[[business]]`, so ids 1 and 2 name nothing under the Ruleset this fixture
+loads. Dereliction is a legal state for a trade exactly as `02 §4.3` gives one to a Building, and it
+is the honest one here, because **nothing creates a Business from a declared kind until milestone 27
+task 8**. What this fixture does *not* cover — a trade with a name behind it — is covered by
+[`rulesets/tenanted.toml`](../../../rulesets/tenanted.toml) and `BusinessKindLoadTests`, which is
+where to look for it rather than here.

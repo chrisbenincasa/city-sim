@@ -192,7 +192,13 @@ public sealed class PlacementLongRunTests
                 continue;
             }
 
-            capacity += world.Rules.Kind(world.Buildings.Kind[slot]).Occupants;
+            // HOUSING capacity and not TENANT capacity (adr/0148). `occupants` is one ceiling over
+            // both kinds, so a Building holding a shop houses that many families fewer -- and this
+            // reading is compared against `housed`, which counts Households alone. Taking the live
+            // count rather than the kind's declaration is deliberate: a Building may hold a second
+            // shop that walked in through adr/0147's placement pass.
+            capacity += world.Rules.Kind(world.Buildings.Kind[slot]).Occupants
+                - world.BuildingBusinesses.Length(slot);
             housed += world.Occupants.Length(slot);
         }
 

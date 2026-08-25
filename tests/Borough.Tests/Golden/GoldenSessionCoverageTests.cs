@@ -196,9 +196,9 @@ public sealed class GoldenSessionCoverageTests
                 continue;
             }
 
-            Handle<Building> workplace = world.Citizens.Workplace[slot];
+            Handle<Business> workplace = world.Citizens.Workplace[slot];
 
-            if (world.Buildings.Rows.IsValid(workplace))
+            if (world.Businesses.Rows.IsValid(workplace))
             {
                 employed++;
             }

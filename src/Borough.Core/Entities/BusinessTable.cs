@@ -65,11 +65,18 @@ public sealed class BusinessTable
         // clearing it in DestroyBuilding -- is a write to a saved column, so a demolition would move
         // the State Hash for a reason that has nothing to do with the demolition.
         Building = _rows.SavedHandle("building", buildings.Rows, reference: Reference.Severable);
+        Kind = _rows.Saved<byte>("kind");
         BinHead = _rows.SavedHandle("bin_head", bins.Rows);
         BinTail = _rows.SavedHandle("bin_tail", bins.Rows);
         Balance = _rows.DerivedHandle("balance", bins.Rows, reference: Reference.Required);
         BuildingNext = _rows.Derived<int>("building_next");
         PoolSlot = _rows.Derived<int>("pool_slot");
+
+        // Moved here from BuildingTable by milestone 27 task 7 (adr/0141): a Citizen is employed by
+        // a TRADE and not by premises, so the list of who works somewhere hangs off the employer.
+        // Derived, because it is rebuilt from CitizenTable.Workplace and folds into no hash.
+        WorkerHead = _rows.Derived<int>("worker_head");
+        WorkerTail = _rows.Derived<int>("worker_tail");
 
         _rows.Seal();
     }
@@ -79,6 +86,30 @@ public sealed class BusinessTable
 
     /// <summary>The Building this Business occupies.</summary>
     public HandleColumn<Building> Building { get; }
+
+    /// <summary>Which Business kind — the trade. Resolved through the Ruleset.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The second kind namespace, and it is deliberately not the Building's.</b> <c>adr/0141</c>:
+    /// <em>the premises and the trade are not correlated, and nothing in a single kind table can
+    /// express that</em> — putting <em>bakery</em> on the walls would make a tenant leaving demolish
+    /// the shop in order to stop being one. So this id indexes <c>[[business]]</c> and never
+    /// <c>[[building]]</c>, and the two may legitimately carry the same name for different things.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A Business kind declares nothing yet, and the column is still worth its byte.</b> What it
+    /// buys is that a Business can NAME its trade and keep that name across a reload
+    /// (<see cref="Ruleset.BusinessKindKeys"/>). <c>jobs</c>, shift hours and the wage arrive at
+    /// milestone 27's task 7; until then this is identity and nothing else.
+    /// </para>
+    /// <para>
+    /// <b>Zero is legal and means the trade is derelict</b> — the kind is one a reloaded Ruleset no
+    /// longer declares, or the Business was made by a fixture that named none. The row and its balance
+    /// survive either way, because money is conserved regardless of who is holding it
+    /// (<c>adr/0024</c>).
+    /// </para>
+    /// </remarks>
+    public Column<byte> Kind { get; }
 
     /// <summary>
     /// This Business's money Bin — its balance (<c>adr/0114</c>).
@@ -152,6 +183,18 @@ public sealed class BusinessTable
     /// zero-filled column reads as <em>premised</em> rather than as <em>at position 0</em>.
     /// </remarks>
     public Column<int> PoolSlot { get; }
+
+    /// <summary>The first Citizen this Business employs. Zero means it employs nobody.</summary>
+    /// <remarks>
+    /// <b>The reverse index behind <see cref="CitizenTable.Workplace"/></b>, moved off the Building
+    /// when the Workplace stopped being one (<c>adr/0141</c>, milestone 27 task 7). ⚠ <b>An
+    /// unpremised Business can hold workers</b> — its founder is one (<c>adr/0146</c>) — and they
+    /// make no Trip, because a commute needs a location and this Business has none yet.
+    /// </remarks>
+    public Column<int> WorkerHead { get; }
+
+    /// <summary>The last Citizen this Business employs, so an append needs no walk.</summary>
+    public Column<int> WorkerTail { get; }
 
     /// <summary>Whether this Business is in the unpremised pool.</summary>
     public bool IsUnpremised(int slot) => PoolSlot[slot] != 0;

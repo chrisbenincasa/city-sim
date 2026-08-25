@@ -62,7 +62,7 @@ internal static class GoldenFixtures
     /// baseline covers. <c>The_golden_ruleset_is_the_one_the_session_names</c> is the test that says
     /// so, and it fails with the number to paste in.
     /// </remarks>
-    internal const ulong RulesetHash = 0x1E8F_4D21_FF99_7817UL;
+    internal const ulong RulesetHash = 0x9A70_1E7F_5D78_FFB6UL;
 
     /// <summary>The Ruleset the golden session runs under, beside the test assembly.</summary>
     internal static string RulesetPath =>
@@ -75,7 +75,7 @@ internal static class GoldenFixtures
     /// A literal for <see cref="RulesetHash"/>'s reason, and it is in <c>session.borough</c> too:
     /// a reload line carries both hashes, so editing either file is a re-baseline of both artefacts.
     /// </remarks>
-    internal const ulong TunedRulesetHash = 0x50F9_F6E2_29F8_3A62UL;
+    internal const ulong TunedRulesetHash = 0x942C_8698_AA24_2C3BUL;
 
     /// <summary>The Ruleset the golden session reloads into at <see cref="ReloadAt"/>.</summary>
     internal static string TunedRulesetPath =>
@@ -272,7 +272,7 @@ internal static class GoldenFixtures
     /// <c>The_golden_ruleset_is_the_one_the_session_names</c> covers all three files rather than two
     /// — which is 5a-bis's finding applied before it could bite a third time.
     /// </remarks>
-    internal const ulong DrivingRulesetHash = 0x3627_5A70_72D7_724EUL;
+    internal const ulong DrivingRulesetHash = 0x2569_244A_CF3A_6009UL;
 
     /// <summary>
     /// The Ruleset the driving session runs under: the one shipped file in which anybody owns a car.
@@ -480,6 +480,16 @@ internal static class GoldenFixtures
             }
         }
 
+        // The Businesses are created BEFORE the Citizens because since adr/0141 a Citizen is
+        // employed by a trade rather than by premises, so they have to exist to be employed into.
+        // Everything the block below them says about why there are two and why their kinds differ
+        // is unchanged; only their position in this method moved.
+        Handle<Business>[] employers =
+        [
+            world.CreateBusiness(buildings[2], kind: 1),
+            world.CreateBusiness(buildings[2], kind: 2),
+        ];
+
         var citizens = new Handle<Citizen>[20];
         for (int i = 0; i < citizens.Length; i++)
         {
@@ -501,9 +511,12 @@ internal static class GoldenFixtures
             // live row of every shape wants an employed Citizen among them.
             // Qualified because this class has an `int Ticks` const of its own, which shadows the
             // type. Zero is the honest planned commute for a fixture that models no journey.
+            // The stride is over the EMPLOYERS now rather than over the Buildings, because the
+            // worker list hangs off the Business. Both of them get staff, which is what keeps
+            // business.worker_head covered as a value and not merely as a column.
             world.Employ(
                 citizens[i],
-                buildings[(i * 3) % buildings.Length],
+                employers[(i * 3) % employers.Length],
                 Borough.Core.Quantities.Ticks.Zero);
             world.Citizens.Activity[slot] = (byte)(i % 7);
             world.Citizens.SkillTier[slot] = (byte)(i % 4);
@@ -528,8 +541,18 @@ internal static class GoldenFixtures
         // derived column no world populates. How many Businesses may share a Building is undesigned
         // (adr/0070) and this does not settle it -- the list is what keeps that question open, and a
         // fixture holding one element would leave the list's own machinery uncovered.
-        Handle<Business> business = world.CreateBusiness(buildings[2]);
-        world.CreateBusiness(buildings[2]);
+        // TWO DIFFERENT TRADES, and for this comment's own reason one paragraph up. A kind of zero
+        // would leave business.kind covered as a column and uncovered as a VALUE -- the baseline
+        // would move when the column was added and never again when a trade changed, which is the
+        // failure README.md keeps recording: a re-record that is complete and still reaches nothing.
+        // Two distinct non-zero ids make the hash sensitive to which trade is where.
+        //
+        // ⚠ BOTH ARE DERELICT HERE, deliberately. minimal.toml declares no [[business]], so these ids
+        // name nothing under the Ruleset this fixture loads -- which is a legal state (adr/0141's
+        // second namespace has the same dereliction 02 §4.3 gives a Building) and the honest one,
+        // because nothing creates a Business from a kind until milestone 27 task 8. The trade being
+        // NAMED is covered by rulesets/tenanted.toml and BusinessKindLoadTests instead.
+        Handle<Business> business = employers[0];
 
         // Two Bin writes summing to zero, which is the whole of what a transfer is since adr/0114 --
         // and both drain a wait list, which is the property the pair of column writes this replaced

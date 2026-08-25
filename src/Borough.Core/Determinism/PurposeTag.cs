@@ -460,4 +460,92 @@ public enum PurposeTag : ulong
     /// </para>
     /// </remarks>
     Woodland = 24,
+
+    /// <summary>
+    /// Which housed Household is asked whether it founds a Business this pass.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Milestone 27 task 8, and <c>adr/0145</c>'s amendment is what it draws for</b> — <em>a
+    /// Household founds on its own means, and never on the city's need.</em> The pass draws a bounded
+    /// sample of housed Households and each drawn one founds if its balance covers the band, so this
+    /// tag decides <b>who is asked</b> and the balance decides the answer.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Distinct from <see cref="PoolDraw"/> and <see cref="UnpremisedDraw"/> for the reason those
+    /// two are distinct from each other</b>, and it binds harder here: all three run on the same
+    /// <c>[placement]</c> trigger in one pass. Sharing a tag would make ***the families who start
+    /// shops correlate with the families who get housed***, which is a relationship no ADR argues for
+    /// and which nothing downstream could untangle.
+    /// </para>
+    /// <para>
+    /// <b>Drawn on the sample INDEX rather than on a Household id</b>, as <see cref="UnpremisedDraw"/>
+    /// is: the pass is choosing positions in a population, not asking a known Household a question.
+    /// The Household's own id enters where a per-Household decision is made, and there is none here —
+    /// whether it founds is read off its balance, not drawn.
+    /// </para>
+    /// </remarks>
+    FoundingDraw = 25,
+
+    /// <summary>
+    /// Which trade a founding Household opens.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Uniform over the declared <c>[[business]]</c> kinds, and uniform is a decision rather than a
+    /// default.</b> <c>adr/0145</c> settles who founds and says nothing about what they found, because
+    /// at task 8 a trade declares nothing but its name — there is no margin, no wage and no fill rate
+    /// to prefer one over another. ⚠ <b>With no information distinguishing the trades, anything other
+    /// than uniform would be a preference nobody argued for.</b> ***The day a trade carries numbers,
+    /// this becomes a choice and wants an ADR.***
+    /// </para>
+    /// <para>
+    /// <b>Its own tag rather than <see cref="FoundingDraw"/>'s</b>, for that tag's own reason: sharing
+    /// would tie <em>which family founds</em> to <em>what they open</em>, so the bakeries and the
+    /// barbers would be founded by systematically different Households.
+    /// </para>
+    /// </remarks>
+    FoundingTrade = 26,
+
+    /// <summary>
+    /// Which <em>Business</em> a lowered occupancy ceiling evicts from its premises.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="OverflowEviction"/>'s other half, and it is a separate tag because the two draws
+    /// range over DIFFERENT ID SPACES</b> (<c>adr/0147</c>). <c>World.Loser</c> draws on an entity's
+    /// monotonic id; Household ids and Business ids are independent sequences allocated by different
+    /// tables, so <b>Household 5 and Business 5 both exist</b> and under one tag would draw the
+    /// <em>identical value</em>. ⚠ ***Two tenants of one Building would be perfectly correlated in a
+    /// decision about which of them loses their place*** — which is the invisible correlation the
+    /// distinct-tag rule exists to prevent, arriving somewhere it never could before.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>This is the build's first draw over a MIXED population, and that is why the hazard is
+    /// new.</b> Every prior draw ranged over one table, so one tag was one id space and the rule had
+    /// nothing to bite on. <c>adr/0141</c> made a Building's occupancy list hold tenants of any kind;
+    /// this is the first place that costs something.
+    /// </para>
+    /// </remarks>
+    BusinessOverflowEviction = 27,
+
+    /// <summary>Which pooled Business the placement pass tries to give premises this occasion.</summary>
+    /// <remarks>
+    /// <b>Its own tag rather than <see cref="UnpremisedDraw"/>'s, and the two run on the SAME tick over
+    /// the SAME pool.</b> That tag draws who is asked <em>whether they have given up</em>; this one
+    /// draws who is <em>tried</em>. ⚠ ***Sharing would make the Business most likely to be offered
+    /// premises the same one most likely to be asked to leave***, which is a correlation between two
+    /// decisions about one actor and is invisible in every output either produces.
+    /// </remarks>
+    PremisesDraw = 28,
+
+    /// <summary>Which Lot a pooled Business looks at when it is tried.</summary>
+    /// <remarks>
+    /// <b><see cref="PlacementCandidate"/>'s other half</b>, separate for
+    /// <see cref="BusinessOverflowEviction"/>'s reason exactly: the draw is keyed on the seeker's
+    /// monotonic id, and Household ids and Business ids are independent sequences from different
+    /// tables. Under one tag <b>Household 5 and Business 5 would look at the identical Lots in the
+    /// identical order</b>, so a shop would trail a family around the city.
+    /// </remarks>
+    PremisesCandidate = 29,
 }

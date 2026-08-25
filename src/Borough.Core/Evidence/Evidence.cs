@@ -54,7 +54,19 @@ public static class Evidence
 
         bool declared = world.Rules.Declares(kind);
         int occupancy = declared ? world.Rules.Kind(kind).Occupants : 0;
-        int jobs = declared ? world.Rules.Kind(kind).Jobs : 0;
+
+        // ⚠ SUMMED OVER THE TENANTS, because premises declare no jobs any more (adr/0141). A
+        // Building's employment is whatever the trades inside it declare between them, so a Building
+        // with no tenant employs nobody -- which is the honest answer rather than a missing one.
+        int jobs = 0;
+
+        foreach (int tenant in world.BuildingBusinesses.Walk(slot))
+        {
+            if (world.Rules.DeclaresBusiness(world.Businesses.Kind[tenant]))
+            {
+                jobs += world.Rules.BusinessKind(world.Businesses.Kind[tenant]).Jobs;
+            }
+        }
 
         Handle<Household>[] occupants = new Handle<Household>[world.Occupants.Length(slot)];
         int at = 0;
@@ -64,12 +76,25 @@ public static class Evidence
             occupants[at++] = world.Households.Rows.At(household);
         }
 
-        Handle<Citizen>[] workers = new Handle<Citizen>[world.Workers.Length(slot)];
+        // 🔴 The tenants' worker lists, NOT the Building's -- `Workers` is indexed by Business slot
+        // since milestone 27 task 7, so walking it at a Building slot read out of bounds the moment
+        // the two tables differed in width. A Building's staff is the union of its tenants' staff.
+        int staff = 0;
+
+        foreach (int tenant in world.BuildingBusinesses.Walk(slot))
+        {
+            staff += world.Workers.Length(tenant);
+        }
+
+        Handle<Citizen>[] workers = new Handle<Citizen>[staff];
         at = 0;
 
-        foreach (int citizen in world.Workers.Walk(slot))
+        foreach (int tenant in world.BuildingBusinesses.Walk(slot))
         {
-            workers[at++] = world.Citizens.Rows.At(citizen);
+            foreach (int citizen in world.Workers.Walk(tenant))
+            {
+                workers[at++] = world.Citizens.Rows.At(citizen);
+            }
         }
 
         // The premises' Bins and then every tenant's, in occupant order. ⚠ THE SECOND HALF IS WHY
@@ -164,7 +189,7 @@ public static class Evidence
         // Severable, so an unresolvable workplace is the job having stopped existing rather than a
         // broken handle -- CitizenTable.Workplace says so at the declaration. Reported as unset,
         // which is what the simulation itself believes.
-        Handle<Building> workplace = world.Buildings.Rows.IsValid(world.Citizens.Workplace[slot])
+        Handle<Business> workplace = world.Businesses.Rows.IsValid(world.Citizens.Workplace[slot])
             ? world.Citizens.Workplace[slot]
             : default;
 

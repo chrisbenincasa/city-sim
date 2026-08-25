@@ -496,14 +496,14 @@ public sealed class EvidenceTests
                 continue;
             }
 
-            Handle<Building> held = world.Citizens.Workplace[slot];
+            Handle<Business> held = world.Citizens.Workplace[slot];
             CitizenEvidence evidence =
                 Core.Evidence.Evidence.OfCitizen(world, world.Citizens.Rows.At(slot));
 
             Assert.Equal(world.Citizens.ReachFailures[slot], evidence.ReachFailures);
             Assert.Equal(world.Citizens.HouseholdOf[slot], evidence.Household);
 
-            if (world.Buildings.Rows.IsValid(held))
+            if (world.Businesses.Rows.IsValid(held))
             {
                 Assert.Equal(held, evidence.Workplace);
                 employed++;

@@ -160,28 +160,20 @@ family = "money"
 # `condemn_after` is in MISSED FIRINGS, not Ticks (adr/0053): a Rule fires every `rate` Ticks when
 # healthy, so four missed firings of `upkeep` is 64 Ticks of continuous starvation. Authoring it in
 # Ticks would mean that halving every rate in this file silently doubled every dwelling's lifespan.
-[[building]]
-name = "dwelling"
-bins = [
-    { resource = "sundries", capacity = 48 },
-    { resource = "repairs",  capacity = 4 },
-]
-condemn_after = 4
-
-# adr/0068. HOW MANY HOUSEHOLDS THIS HOLDS, and it is read by two things that used to disagree about
-# it: Borough.Core.Entities.SyntheticCity builds ceil(households / this) Buildings and fills each,
-# and the placement pass admits up to this many. Before it existed the populator put 3 in every
-# Building and a Zone Rule put 1, so each demolish-and-rebuild cycle netted +2 into the Unplaced Pool
-# and a 100,000-Tick run settled five-sixths homeless -- an equilibrium produced by a quantity this
-# file could not state. THREE keeps that populator's figure, which is S4 task 2's row ratio (360
-# Households against ~120 Buildings per 1,000 Citizens), so this line changes no world it did not
-# have to. It is UNRATIFIED and the ratifier is named in plans/0002 SS D1: the first long run in which
-# placement and eviction both run.
+# ---------------------------------------------------------------------------------------------------
+# THE TRADE. adr/0141 gave `jobs` and the Shift band to the BUSINESS rather than to the premises;
+# adr/0148 removed them from [[building]] rather than leaving them parsed and unread.
 #
-# It is a property of the RULESET rather than of the Building, so lowering it here reaches every
-# dwelling already standing and evicts the overflow into the Pool -- where an over-full Bin is left to
-# drain, because a Bin has a consumer and occupancy has none.
-occupants = 3
+# THE COMMENTS BELOW ARE THE ONES THAT STOOD ON [[building]], moved verbatim with their numbers. Read
+# them as a property of the TRADE now -- "a Building of this kind" has become "a Business of this
+# trade", and the derivations are untouched because the arithmetic did not move.
+#
+# ADDED AT THE MERGE OF 2026-08-24, and it is a migration rather than content. This file was forked
+# from minimal.toml BEFORE adr/0148 landed on main, so main's migration never reached it and it was
+# the only shape of Ruleset the merged loader refuses. Nothing here is a new decision.
+# ---------------------------------------------------------------------------------------------------
+[[business]]
+name = "shop"
 
 # 5b-bis task 4, and the ratifier plans/0002 §D1 named for this key: the first Ruleset that grants
 # employment. HOW MANY CITIZENS THIS BUILDING EMPLOYS -- Citizens, never Households, because a job
@@ -204,6 +196,53 @@ occupants = 3
 # with no shortage and for a mechanism that had stopped, which is the reading PlacementCounter's
 # own remark exists to refuse.
 jobs = 8
+
+# WHEN THIS KIND'S JOBS START, as a band of in-world hours, from which each BUILDING draws its own one
+# against its own id. adr/0101, and the band rather than an hour is the load-bearing part: this corpus
+# has exactly ONE Building kind, so a single authored hour would send the entire city to work at the
+# same moment and produce a SHARPER spike than the uniform window this replaced -- not a shape.
+#
+# HOURS ARE A PROPERTY OF THE JOB AND NOT OF THE PERSON. A Citizen reads their hours off their
+# Workplace and stores nothing, so changing employer changes their day with no write and nothing to
+# invalidate. What the Citizen does carry is what the journey cost WHEN THEY TOOK THE JOB, and they
+# leave that much before this hour -- which is why somebody who lives further out leaves earlier, for
+# ever, and why the morning peak comes out broad without anybody authoring a spread.
+#
+# 6 TO 10 SPANS AN ORDINARY SPREAD OF OPENING TIMES and, with shift_hours_min/max below, puts the
+# returns between 12:00 and 20:00 -- two peaks, a thin middle, and a night in which nothing departs.
+# THE QUIET NIGHT IS NOT ENFORCED ANYWHERE: it is what a band with no mass in it looks like from
+# outside, and a kind that authored 22-23 here would get a night shift with no other edit.
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+[[building]]
+name = "dwelling"
+
+# THE TRADE A BUILDING OF THIS KIND COMES WITH (adr/0148). Construction instantiates it,
+# already premised, taking one of `occupants`' slots -- it is drawn from no pool, so
+# adr/0069's `construction houses nobody` is untouched.
+business = "shop"
+bins = [
+    { resource = "sundries", capacity = 48 },
+    { resource = "repairs",  capacity = 4 },
+]
+condemn_after = 4
+
+# adr/0068. HOW MANY HOUSEHOLDS THIS HOLDS, and it is read by two things that used to disagree about
+# it: Borough.Core.Entities.SyntheticCity builds ceil(households / this) Buildings and fills each,
+# and the placement pass admits up to this many. Before it existed the populator put 3 in every
+# Building and a Zone Rule put 1, so each demolish-and-rebuild cycle netted +2 into the Unplaced Pool
+# and a 100,000-Tick run settled five-sixths homeless -- an equilibrium produced by a quantity this
+# file could not state. THREE keeps that populator's figure, which is S4 task 2's row ratio (360
+# Households against ~120 Buildings per 1,000 Citizens), so this line changes no world it did not
+# have to. It is UNRATIFIED and the ratifier is named in plans/0002 SS D1: the first long run in which
+# placement and eviction both run.
+#
+# It is a property of the RULESET rather than of the Building, so lowering it here reaches every
+# dwelling already standing and evicts the overflow into the Pool -- where an over-full Bin is left to
+# drain, because a Bin has a consumer and occupancy has none.
+occupants = 3
+
 
 # HOW MANY VEHICLES A DWELLING OF THIS KIND CAN PARK. adr/0009's supply, adr/0120's Car Park, and
 # `occupants`' rule on a third axis (adr/0068): an authored number keyed on the kind, derived from the
@@ -229,23 +268,6 @@ jobs = 8
 # sized by the generator from one population. THE SAME NUMBER SIZES BOTH THE DEMAND AND THE SUPPLY.
 parking = 8
 
-# WHEN THIS KIND'S JOBS START, as a band of in-world hours, from which each BUILDING draws its own one
-# against its own id. adr/0101, and the band rather than an hour is the load-bearing part: this corpus
-# has exactly ONE Building kind, so a single authored hour would send the entire city to work at the
-# same moment and produce a SHARPER spike than the uniform window this replaced -- not a shape.
-#
-# HOURS ARE A PROPERTY OF THE JOB AND NOT OF THE PERSON. A Citizen reads their hours off their
-# Workplace and stores nothing, so changing employer changes their day with no write and nothing to
-# invalidate. What the Citizen does carry is what the journey cost WHEN THEY TOOK THE JOB, and they
-# leave that much before this hour -- which is why somebody who lives further out leaves earlier, for
-# ever, and why the morning peak comes out broad without anybody authoring a spread.
-#
-# 6 TO 10 SPANS AN ORDINARY SPREAD OF OPENING TIMES and, with shift_hours_min/max below, puts the
-# returns between 12:00 and 20:00 -- two peaks, a thin middle, and a night in which nothing departs.
-# THE QUIET NIGHT IS NOT ENFORCED ANYWHERE: it is what a band with no mass in it looks like from
-# outside, and a kind that authored 22-23 here would get a night shift with no other edit.
-shift_start_earliest_hour = 6
-shift_start_latest_hour   = 10
 
 # Greedy, and with no inputs. An extraction step with its Layer read elided — 04 §1's Produce comes
 # from Fertility, which is one of slice 6's named holes — standing in for the delivery that becomes a
@@ -390,12 +412,20 @@ candidates    = 3
 # it no longer holds. It is also UNRATIFIED — the 1–10 km band is 10× wide (plans/0002 §D1).
 #
 # SEALING'S DECAY RATE IS NOT HERE, AND `sealing_decay_tau` IS REFUSED IF YOU WRITE IT. 02 §2.4 keys
+# it BY TERRAIN TYPE -- rock may never recover where floodplain recovers over hundreds of Days -- so
+# it is a key on each [[terrain]] table and there is no global one. A FILE WITH NO [[terrain]] HAS
+# GROUND THAT NEVER RECOVERS, which is what every shipped Ruleset said by writing 0 here.
 
-# THE DESIRABILITY COMPOSITION -- FOUR NUMBERS, EVERY ONE UNRATIFIED. adr/0122 deleted `w1`, because
+# THE DESIRABILITY COMPOSITION -- SEVEN NUMBERS, EVERY ONE UNRATIFIED. adr/0122 deleted `w1`, because
 # land value drifting toward a target whose first term is land value made it a GAIN of 1/(1 - w1) on
-# the others rather than a fifth weight. adr/0123 leaves amenity and shoreline OUT of the formula
-# rather than defaulting them to zero, so what composes is `- w2*pollution - w3*noise` and the field
-# is BOUNDED ABOVE BY ZERO until milestone 15: the best land in the city is clean, quiet and empty.
+# the others rather than a fifth weight. `w5` SHORELINE ARRIVED AT MILESTONE 24 TASK 7, once runoff
+# gave a Water Body's Bin an inflow -- before that it would have been the present-and-permanently-zero
+# term adr/0123 refused -- so what composes is `- w2*pollution - w3*noise - w5*shoreline`.
+#
+# ON A FILE WITH NO [water] THE SHORELINE TERM IS ABSENT AND NOT ZERO, which is the same distinction
+# one level down: no water means no term rather than a term contributing nothing. adr/0123 still
+# leaves AMENITY out, and amenity is the only POSITIVE term, so the field is BOUNDED ABOVE BY ZERO
+# until milestone 15: the best land in the city is clean, quiet and empty beside clean water.
 #
 # `noise_range_metres` is the cutoff. 02 section 2.4 says 50-300 m; that band is SIX TIMES WIDE and
 # is the same defect plans/0012 records against the industrial kernel's 1-10 km. 300 is its outer

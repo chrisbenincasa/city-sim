@@ -65,6 +65,7 @@ of the order they were found in:
 | **4** | **the text was never true** — it describes a mechanism and was wrong on the day | **nothing** | open the mechanism; write names rather than times |
 | **5** | a **number** is quoted away from the sentence that qualifies it | **worse than nothing** — repetition makes a bare figure read as *more* settled | name the number after what it measures; quote the sentence, never the digits |
 | **6** | a **description** is filed under the wrong declaration — two `///` blocks, one member | **nothing**, and no check this corpus had could see it: the defect is in a **doc-comment** and every other check is document-to-document | a code-against-code test — `DocCommentAttachmentTests`. Found **40** sites in 31 files the day it was written |
+| **7** | **two documents claim ONE ordinal**, on branches that have not met | **nothing, and git makes it worse** — the filenames differ, so the duplicate merges with no conflict | ✅ a check that compares numbered files *to each other* — `PlanIdentityTests.No_two_numbered_documents_claim_one_ordinal`, 2026-08-24 |
 
 **Causes 4 and 5 are siblings and the difference is worth holding.** Both are about a decision taken from
 something that looked like established fact. Cause 4's source sentence is **wrong**; Cause 5's source
@@ -206,6 +207,45 @@ no registry, no ledger parsing, no judgement about what a document means. Resolv
 **exclude `.claude/worktrees/`**, which holds stale corpus copies that are somebody's in-flight work and
 not the corpus; and **check the anchor separately or not at all**, since a `#heading` fragment is a
 different and much weaker claim than a file existing.
+
+### 🔴 Why a defect SURVIVES is not why it was written, and this ledger had never separated the two
+
+**Every Cause below is a mechanism by which a defect gets WRITTEN.** Status copied to three places,
+an ADR's write that does not land, a number quoted away from its sentence — each names how a wrong
+sentence came to exist. ⚠ **None of them says why nobody caught it**, and the ledger has been
+accumulating that second thing inline, under whichever Cause happened to be next, for as long as it has
+existed. ***It is a different axis and it is not a Cause 8***, because a survival property is not a way
+of writing something — **it is a coat any Cause can wear.** Two are known:
+
+**1. Overdetermination — a statement wrong in TWO ways reads as a considered alternative.** Raised by
+the concurrent milestone 24 session, 2026-08-24, and it is the better half of what it found.
+`CONTEXT.md` → Water Body and [`adr/0034`](../docs/adr/0034-fields-are-sorted-by-source-geometry.md) §4
+both carried *"a Bin holding the **Waste family**"*. 🔴 **That sentence is wrong twice**:
+[`adr/0031`](../docs/adr/0031-one-resource-abstraction-and-depth-not-count.md) leaves **three** families
+— Good, Utility, Money — so there is no Waste family at all; **and** Waste is settled as a **Good** in
+that ADR's own words, *"Waste answers itself — it needs a Vehicle, so it is a Good"*, so the sentence
+also picks the wrong one of the two that could have been meant. ⚠ **Being wrong twice is what saved
+it.** A single wrong word reads as a slip and invites a check; ***a phrase that is confidently wrong in
+two dimensions at once reads as somebody's deliberate position***, and a reader's next move becomes
+*find the argument for this* rather than *check this*. **Three sessions looked straight at it.** The
+session that found it had built an entire `references.md` §10 survey before noticing `CONTEXT.md`
+already held the correct split two hundred lines away. ⚠ **The underlying Cause was plain Cause 1** —
+two copies, one edited, neither aware of the other. ***The concealment is the part that cost three
+sessions.***
+
+**2. No instrument — the claim's shape is outside what any check can see.** Filed twice on 2026-08-24
+from opposite directions. `adr/0145` argued from a `BusinessTable` column that does not exist, and
+`CitizenTable.Employment` is `Saved` — therefore **hashed** — with no writer or reader anywhere in
+`src/` ([`plans/0041`](0041-the-business-is-a-thing-the-city-contains.md) **G29**). ⚠ **Every corpus
+check is document-to-document**; `RefusalCountTests` is the sole document-to-code exception and it
+counts one construct in one file. ***So a prose claim about a table's contents and a saved column with
+no writer are the same hole seen from two sides***, and neither has an owner.
+
+⚠ **The practical use of this section is what it changes about a sweep.** Reading for defects means
+reading for *sentences that look wrong*. **Both survival properties defeat that** — the first by looking
+right, the second by being unreachable — so ***a sweep that only reads prose finds neither.*** The
+first is caught by checking a confident claim against its cited ADR **even when it reads as settled**;
+the second is caught only by reading the code the prose describes.
 
 ### Cause 1 — status is stored in three places that disagree
 
@@ -780,6 +820,71 @@ and were reviewed by hand; one was carried back verbatim (`BinTable.Create`'s *l
 moved to `IndexList.Length`. ***A block left stacked on its replacement is not evidence that its
 author meant to keep it.***
 
+### Cause 7 — two documents claim one ordinal
+
+**Added 2026-08-24, on a sighting from the milestone 24 session** (worktree `city-sim-q8`, branch
+`milestone-24-terrain-scoping`), which merged `main` into its branch and hit **four** ordinal
+collisions at once: ADRs, a `PurposeTag`, an `Invariant` and a **plan number**. ⚠ **This one was found
+by a person looking, and that is the entry.**
+
+**Two of the four merged CLEANLY, and they are the two the corpus was supposed to cover.** The
+`PurposeTag` collision conflicted loudly and the `Invariant` one did not — it was caught by the
+**compiler**, `CA1069`, because an enum with two members at one value does not build. That leaves the
+documents: **`plans/0041` existed twice, on two branches, under two different slugs**, and git merged
+it without a murmur ***because the filenames differed***. Nothing in the corpus noticed either.
+
+🔴 **`PlanIdentityTests` looks like the check for this and is not.** Its one assertion is that a
+numbered document's **heading** agrees with its **own filename** — read the test rather than the name
+([`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)).
+It loops per file and never compares two files to each other. So two `plans/0041-*.md` with different
+slugs each agree with themselves, pass all thirty-two corpus checks, and land. ***A filename is not a
+declaration, so nothing declares it twice.*** ⚠ **And the gap covers `docs/adr/` identically** — the
+same loop iterates `["plans", "docs/adr"]` in one array, so two `adr/0145-*.md` pass the same way.
+
+🔴 **THE ADR HALF IS THE WORSE ONE, and the reason is not obvious: an ADR is cited BY NUMBER, in
+prose.** A plan is usually reached by a link, so a duplicate leaves the link still opening *a* file.
+An ADR is written into sentences as bare text — *`adr/0006`* — and **measured 2026-08-24, that is the
+dominant form by 3.6 to 1: 6,592 bare-number citations across 162 files, against 1,839 that carry the
+slug.** ⚠ **The peer session estimated *nine documents* and the real figure is 162**; it was checked
+rather than taken, which is the only reason the row says the right thing. So duplicating an ADR number
+makes **thousands of existing sentences ambiguous** while ***every link in the corpus still resolves
+and every check stays green***. `LinkResolutionTests` opens the file it was handed; it has no opinion
+about whether the number in a sentence names one document.
+
+⚠ **The asymmetry is the whole finding, and it decides where the repair goes.** A `PurposeTag` or an
+`Invariant` is a **compiled symbol**, so a collision is a build error and the machinery already exists
+— on `main`, not in this corpus. An **ADR number or a plan number is a filename**, so a collision is
+two files sitting quietly beside each other. ***The corpus's numbering scheme is the one identity
+space in this project with no uniqueness check at all***, and it is the space `PROCESS.md` uses for
+every citation.
+
+⚠ **It is Cause 1 with the copies in different documents rather than the same one.** Cause 1's tell is
+*the copies disagree*; here there is nothing to disagree, because each document is internally
+consistent and the contradiction is only visible from outside both. **That is why it needs a new row
+rather than a sighting under an old one.**
+
+✅ **PAID THE SAME DAY** — `PlanIdentityTests.No_two_numbered_documents_claim_one_ordinal`, beside the
+test that could not see it. It groups `plans/*.md` and `docs/adr/*.md` by leading ordinal and fails on
+any group above one, naming every claimant. ⚠ **It is a corpus check and not a convention, because a
+convention is what both sessions were already following** when this happened. **Watched fire on a real
+collision before it was committed** — a second `plans/0041-*.md` under a different slug, which is the
+sighting reproduced — as this repository requires of any diagnostic. ⚠ **Keyed on directory as well as
+number**: `plans/0041` and `adr/0041` are different documents and always were. **`0000` and `0000a` are
+different ordinals**, so the suffix is part of the key and the board and its archive both pass.
+
+⚠ **It catches a collision at the MERGE and not at the moment it is created**, because a check running
+on one branch cannot see the other branch's file — and the moment of creation is when it is cheap to
+fix. ***The test is the backstop; the sessions telling each other is the fix.*** It is the same shape as
+`PlanIdentityTests` and belongs beside it. ⚠ **A check that runs on one branch cannot see the other
+branch's file**, so this catches a collision at the **merge** and not at the moment it is created —
+which is the moment it is cheap to fix, and is why the sessions also told each other. ***The test is
+the backstop; the message is the fix.***
+
+**No ordinal is owed by this session.** Milestone 27's four commits touch no ADR, no `PurposeTag` and
+no `Invariant`, checked rather than assumed; `plans/0041` is this session's and the other branch
+renumbered to `0042`. **Reserved forward for milestone 27's remaining tasks: ADRs 0145–0149,
+`PurposeTag` 25+, `Invariant` 56+** — below the other branch's 0150 and above its 24 and 55.
+
 ### Session K's collection — three, all paid in the sitting, and one is a new Cause
 
 **All three were found by sequencing rather than by auditing**, which is the useful part: a
@@ -955,6 +1060,31 @@ but a wrong fact positioned where it is load-bearing on a decision about its own
 **Repair is one sentence** — state the count as of a date, or state no count and name the disposition's
 rule instead. Prefer the second: it is the form that cannot rot. Unpaid because it is the same sweep as
 item 3, and both are one commit by whoever does either.
+
+✅ **A THIRD instance landed 2026-08-24 and is REPAIRED, and it carries a wrinkle the pair above does
+not.** `FactorioTests` held three column counts: two comments each said a table's saved columns numbered
+*five*, where `business` has **four** and `unpremised` has **two**; and the union total lived in **two
+places at two values**, *187* in the `UnreachableColumns` doc-comment against *249* in the remarks
+eleven lines below it. ⚠ **The `business` five was NEVER right** — that table had three saved columns
+when the comment was written — so this is not a count that rotted but a count that was **wrong on the
+day**, which the pair above has no example of. And the `unpremised` five was **copied from the
+paragraph above it** in the same commit that wrote it, which is **Cause 5** — a figure taken from a
+neighbouring sentence without its subject — arriving inside a single file.
+
+⚠ **The test was green throughout and could not have gone red.** It asserts an empty *residue* and
+prints the totals; nothing in it compares a prose count to `SavedColumns`, and nothing could, because
+the prose is a comment. ***This is the blind spot named at the head of this document arriving with an
+example*** — `tests/Borough.Tests/Corpus/` is document-to-document, so a number that lives only in a
+doc-comment is invisible to all thirty-two checks.
+
+**Repaired the way this entry's own second option prescribes, and it is worth recording that the second
+option was available here and not above.** The per-table counts are now stated with the column names
+beside them and a note saying they were counted from `BusinessTable`'s constructor; the **union totals
+were deleted rather than corrected**, because the test prints `250 of 250` on every run and a document
+holding a copy of a number the run emits is the drift with extra steps. ***Where a machine already
+states a figure, the repair is to delete the copy, not to update it.*** Found while shipping milestone
+27 task 6, filed and repaired the same day under [`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md);
+[`plans/0041`](0041-the-business-is-a-thing-the-city-contains.md) **G14** owns the full version.
 
 **5. ⚠ `Column.FoldBytes`'s remark claims a byte-order property the fold does not have.** It reads
 *"a State Hash whose value depends on the host's byte order is a hash that reports a divergence on a
@@ -1443,6 +1573,55 @@ violation before the heading was corrected.
 ---
 
 ## Fixed in the sitting that found them
+
+**⚠ Cause 4 — `RulesetShape.cs:217` names milestone 27 task 7 for three things and one of them is
+milestone 15's.** The comment reads *"`adr/0141` gives the trade `jobs`, shift hours and the wage, and
+all three arrive with milestone 27 task 7."* **Two of three do.** [`06:99`](../docs/06-roadmap.md)
+places wages at **milestone 15** — *"attended services, wages and Skill Tiers"* — citing
+[`adr/0026`](../docs/adr/0026-wages-are-posted-locally-and-never-cleared.md) by name, and
+`Readouts.cs:69` says the same thing independently: *"income is a **flow** that arrives with wages in
+milestone 15."* Found 2026-08-24 while settling
+[`plans/0041`](0041-the-business-is-a-thing-the-city-contains.md) decision 2.
+
+⚠ **This is Cause 4's exact shape — wrong about the TRIGGER and right about everything else.** The
+comment is correct that `adr/0141` gives the trade all three; it is wrong about **when**, which is the
+half [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+says a description of the build is always wrong about. ***Left in place rather than corrected here***,
+because the line is a doc comment inside a symbol milestone 27 task 7 is about to rewrite, and the
+repair belongs in that change. **Recorded so the task inherits it rather than rediscovers it.**
+
+🔴 **A doc comment naming a milestone is a date in disguise**, which is `adr/0093`'s *name a symbol,
+never a time* being broken by a document that otherwise obeys it — and the reason it survived is that
+**no corpus check reads doc comments at all**.
+
+
+**⚠ Cause 5 with no number in it — `adr/0145` argued from a table column that does not exist.** The
+ADR's `UNIQUE INDIVIDUALS` paragraph reads *"a Business founded by a named Household has a founder the
+player can inspect — the money came from somewhere the player can point at."* `BusinessTable` declares
+`building`, `kind`, `bin_head`, `bin_tail`, `balance`, `building_next` and `pool_slot`. **There is no
+founder.** `World.Found` moves the band and severs the link in the same statement. Written and
+contradicted by its own task's code **on the same day, 2026-08-24**; found the next sitting by reading
+the table. Banner and inline mark added to `0145`; repaired by
+[`adr/0146`](../docs/adr/0146-founding-costs-a-citizen-and-the-households-money-so-the-founder-is-the-first-worker.md),
+which makes the claim true through the employment link rather than the column.
+
+⚠ **It generalises Cause 5 past quantities, which is why it is filed here rather than as a Cause 8.**
+This ledger's Cause 5 is *a number quoted away from the sentence that qualifies it*, and every prior
+sighting carried digits. ***This one carries none — the thing detached from its support is a
+CAPABILITY*** — but the mechanism is identical: an argument reached for a fact of the right *shape*,
+found a sentence that supplied it, and never checked that the sentence rested on anything. **The
+writing-side repair is also identical**: name the claim after what the build does, not after what the
+argument needs. ***A pillar is as quotable as a percentage and detaches the same way.***
+
+🔴 **Nothing mechanical could have caught it, and the reason is structural.** Every check in
+`tests/Borough.Tests/Corpus/` is document-to-document; `RefusalCountTests` is the sole document-to-code
+exception and it counts `Refuse(` sites in one file. ***A prose claim about a table's contents is
+invisible to all thirty-two***, so the only instrument that sees it is a reader who opens the table.
+**This is the same blind spot** [`plans/0041`](0041-the-business-is-a-thing-the-city-contains.md) **G29**
+found from the other side — `CitizenTable.Employment` is `Saved`, therefore hashed, and nothing in
+`src/` writes or reads it. **A saved column with no writer and a prose claim with no column are the
+same hole seen from two directions**, and neither has an owner.
+
 
 **⚠ Cause 2, in the table whose whole job is to be the enumeration.** Milestone 12 task 4 registered
 `Invariant.ADistrictCellNamesALiveDistrictAndBuiltGround` in the end-of-run tier and **did not add it to
@@ -3716,3 +3895,35 @@ first candidate in this document that a mechanical check could actually reach.
 [`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md):
 they were found while sizing a milestone, they live in code that milestone does not own yet, and the
 task that will touch each is named above.
+
+### `RuleInstanceTable.cs:92` promises a `Business` column at milestone 27, and milestone 27 did not add one
+
+**Found 2026-08-24 by milestone 27 task 9**
+([`0041`](0041-the-business-is-a-thing-the-city-contains.md)). The comment reads ***"A Business gets its
+own column when a Business runs a Rule, which is milestone 27"***, and
+[`plans/0041`](0041-the-business-is-a-thing-the-city-contains.md) **G10** built the task's plan on it —
+*"task 9's real content is a third subject on the Rule Instance, and the build already says so."*
+
+🔴 **The column was implemented and withdrawn the same day.** A `[[rule]] trade = "<name>"` armed on a
+Business loaded and then crashed on the Tick it fired: `RuleEngine.Fire` resolves a Building from the
+instance, not only `Band` does, and the Building-centricity runs through evidence, `on_fail`, the wake
+targets and every local Bin lookup.
+[`adr/0149`](../docs/adr/0149-a-business-is-a-population-a-policy-sweeps-and-a-readout-names-every-entity-it-reads-against.md)
+records the attempt and takes the other route: a Business is a **population a Policy sweeps**, which
+needs no Rule Instance at all.
+
+**This is [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+in its ordinary form and Cause 4's shape** — the sentence is right about which symbol to read and wrong
+about the **trigger**, and ⚠ **the trigger it is wrong about is a MILESTONE NUMBER**, which is the
+candidate check the entry above this one proposes. *A doc comment naming a future milestone as the thing
+that will falsify it is a citation*, and this is one that came due and was not paid.
+
+- [ ] **The repair is the milestone number and not the sentence.** A Business will get its own column
+      when a Business runs a **Bin Rule**, and that needs `RuleEngine`'s Building resolve unpicked
+      first — milestone **26**, where a Business earns. ⚠ **Do not delete the sentence**: it is the only
+      place in the build that names the column's condition, and it was right about everything except
+      when.
+
+⚠ **What it cost is worth recording, because it is what Cause 4 is for.** The comment did not mislead a
+reader about behaviour; it sized a task. Task 9 was planned as *a column plus a fork* and is a **loop
+plus a membership test**, and the half-day between those two estimates was spent building the wrong one.
