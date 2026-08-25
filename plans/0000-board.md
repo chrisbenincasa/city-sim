@@ -340,7 +340,7 @@ blocked on it.* Take from the three below when something is waiting and leave th
 |---|---|---|---|
 | **G** | `adr/0016` — the lane is the entity | Carries the order-of-magnitude claim the whole microscopic tier rests on. ⚠ **Partly discharged by S5** | milestone **21** |
 | **R** | `05 §6`'s threading policy | The obligation `06` could not give a milestone | lint 4 |
-| **L** | **A presentation design** | **It does not exist.** Every other phase is backed by a design document; rendering has none | **Phase 3** |
+| **L** | **A presentation design** | **It does not exist**, and every other phase is backed by a design document while rendering has none. ⚠ **One piece came out of it early on 2026-08-24** — [`adr/0150`](../docs/adr/0150-appearance-is-derived-in-the-shell-and-a-kind-is-not-a-mesh.md) settles that appearance is composed in the **shell**, never enters the `World`, and that a `[[building]]` kind is **not** a mesh id. **L's scope is unchanged**, and the geometry fork and the appearance input set are filed to [`0002`](0002-open-questions.md) §B and §C. | **Phase 3** |
 
 ### Not arguable, and the audit still owed
 

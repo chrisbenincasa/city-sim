@@ -448,6 +448,8 @@ The render pipeline, in outline:
 | Interpolation | Positions interpolated between two sim states by `alpha`; the sim rate is free to be far below the frame rate |
 | Hot path escape hatch | `RenderingServer` driven directly, bypassing the scene tree, if node overhead ever shows up in a profile |
 
+**An archetype is a render-side grouping and never a `[[building]]` kind** ([`adr/0150`](adr/0150-appearance-is-derived-in-the-shell-and-a-kind-is-not-a-mesh.md)). A Building's appearance is composed **here, in the shell**, from the per-frame snapshot plus the Building's monotonic id, and it never enters the `World` — no column, no saved field, no contribution to the State Hash. ⚠ **The one-to-one reading of this table is the trap**: `BuildingTable.Kind` is a `byte`, so aliasing a mesh to a kind would size the city's visual vocabulary to a namespace chosen for the Rule engine's convenience, and would reintroduce from the storage layer the mutually-exclusive asset pools [`adr/0025`](adr/0025-density-is-a-cap-and-it-trades-land-for-materials.md) refused as *placing buildings by proxy*. ⚠ **The geometry pipeline is not decided** — instanced archetype meshes against procedural-per-Building geometry baked per Chunk is **measurable** and is filed in [`plans/0002`](../plans/0002-open-questions.md) §B, so no document may cite it as settled.
+
 Low-poly is a permanent commitment rather than a placeholder ([`00-vision.md`](00-vision.md)), and it is precisely what makes the instance counts affordable.
 
 ---

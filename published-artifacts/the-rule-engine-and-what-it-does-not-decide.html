@@ -1,0 +1,1141 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Local copy of a published Claude artifact.
+     Source of truth: https://claude.ai/code/artifact/eb4b4303-af4e-4d84-a280-75631b8d3192
+     Downloaded 2026-08-24. Self-contained: no external CSS, JS, fonts or images.
+     The host's frame-runtime script has been removed; its minimal reset is inlined below.
+     DIVERGENCE FROM THE PUBLISHED COPY, and it is deliberate: the artifact links Archivo,
+     Source Serif 4 and IBM Plex Mono from Google Fonts, which the published page may do and
+     this directory's files may not. The three roles are preserved and mapped onto system
+     stacks -- a sans for display, a serif for running text, a monospace for data and TOML --
+     so this file renders offline and fetches nothing. Type colour differs; nothing else does. -->
+<style>
+:root{color-scheme:light dark}
+body{margin:0;padding:0}
+img{max-width:100%}
+</style>
+<title>The Borough Rule Engine</title>
+</head>
+<body>
+
+<style>
+:root {
+  --bg:        #E7EAE7;
+  --surface:   #FAFBFA;
+  --surface-2: #F0F2EF;
+  --ink:       #171C1E;
+  --ink-soft:  #3D4749;
+  --muted:     #64716F;
+  --rule:      #C6CDC7;
+  --rule-soft: #DCE1DC;
+  --authored:  #7E5D10;
+  --authored-bg: #F2EAD6;
+  --emergent:  #2E7F8C;
+  --emergent-bg: #DCEBEC;
+  --refused:   #8A3B36;
+  --measure: 68ch;
+  --wide: 1080px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:        #10161A;
+    --surface:   #182025;
+    --surface-2: #1E272C;
+    --ink:       #DDE4E5;
+    --ink-soft:  #B6C1C2;
+    --muted:     #85938F;
+    --rule:      #2E3A3F;
+    --rule-soft: #232D32;
+    --authored:  #D8A73F;
+    --authored-bg: #2A2314;
+    --emergent:  #62B6C1;
+    --emergent-bg: #14282C;
+    --refused:   #D9756C;
+  }
+}
+:root[data-theme="dark"] {
+  --bg:        #10161A;
+  --surface:   #182025;
+  --surface-2: #1E272C;
+  --ink:       #DDE4E5;
+  --ink-soft:  #B6C1C2;
+  --muted:     #85938F;
+  --rule:      #2E3A3F;
+  --rule-soft: #232D32;
+  --authored:  #D8A73F;
+  --authored-bg: #2A2314;
+  --emergent:  #62B6C1;
+  --emergent-bg: #14282C;
+  --refused:   #D9756C;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: Georgia, "Iowan Old Style", "Palatino Linotype", "Times New Roman", serif;
+  font-size: 17px;
+  line-height: 1.62;
+  margin: 0;
+  padding: 0 24px 120px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.page { max-width: var(--wide); margin: 0 auto; }
+.col  { max-width: var(--measure); }
+
+h1, h2, h3, .eyebrow, .lbl, th, .chip, .num {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+code, pre, .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; }
+
+/* ---- masthead ---- */
+.masthead { padding: 72px 0 40px; border-bottom: 2px solid var(--ink); margin-bottom: 44px; }
+.eyebrow {
+  font-size: 11px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--muted); margin: 0 0 20px;
+}
+h1 {
+  font-size: clamp(38px, 6.2vw, 68px); font-weight: 700; letter-spacing: -0.028em;
+  line-height: 1.02; margin: 0 0 22px; text-wrap: balance; max-width: 16ch;
+}
+.standfirst { font-size: 20px; line-height: 1.5; color: var(--ink-soft); max-width: 60ch; margin: 0; }
+
+/* ---- sections ---- */
+section { margin: 0 0 76px; }
+h2 {
+  font-size: 13px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase;
+  color: var(--muted); margin: 0 0 8px; padding-bottom: 10px; border-bottom: 1px solid var(--rule);
+}
+h2 + .h2sub {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: clamp(24px, 3.2vw, 32px); font-weight: 600;
+  letter-spacing: -0.02em; line-height: 1.18; margin: 22px 0 22px; text-wrap: balance; max-width: 26ch;
+}
+h3 {
+  font-size: 17px; font-weight: 600; letter-spacing: -0.01em; margin: 34px 0 10px;
+}
+p { margin: 0 0 18px; }
+strong { font-weight: 600; }
+a { color: var(--emergent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--emergent); outline-offset: 3px; }
+
+/* ---- answer block ---- */
+.answer { display: grid; gap: 0; border: 1px solid var(--rule); background: var(--surface); margin-bottom: 76px; }
+.answer > div { padding: 22px 26px; border-bottom: 1px solid var(--rule-soft); display: grid; gap: 6px; }
+.answer > div:last-child { border-bottom: 0; }
+.answer .q {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 12px; font-weight: 600;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--muted);
+}
+.answer .a { font-size: 18px; line-height: 1.5; }
+@media (min-width: 800px) {
+  .answer { grid-template-columns: repeat(3, 1fr); }
+  .answer > div { border-bottom: 0; border-right: 1px solid var(--rule-soft); }
+  .answer > div:last-child { border-right: 0; }
+}
+
+/* ---- figures ---- */
+figure { margin: 34px 0; }
+figure svg { display: block; width: 100%; max-width: 100%; height: auto; color: var(--ink); }
+.figwrap { background: var(--surface); border: 1px solid var(--rule); padding: 26px 22px 18px; overflow-x: auto; }
+figcaption {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 13.5px; line-height: 1.5;
+  color: var(--muted); margin-top: 16px; max-width: 78ch;
+}
+figcaption b { color: var(--ink-soft); font-weight: 600; }
+
+/* ---- tables ---- */
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); background: var(--surface); margin: 28px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th {
+  text-align: left; font-size: 11px; font-weight: 600; letter-spacing: .11em; text-transform: uppercase;
+  color: var(--muted); padding: 13px 16px; border-bottom: 1px solid var(--rule); white-space: nowrap;
+}
+td { padding: 13px 16px; border-bottom: 1px solid var(--rule-soft); vertical-align: top; line-height: 1.45; }
+tr:last-child td { border-bottom: 0; }
+td.mono, th.mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 13px; }
+.tabnum { font-variant-numeric: tabular-nums; }
+
+/* ---- chips ---- */
+.chip {
+  display: inline-block; font-size: 10.5px; font-weight: 600; letter-spacing: .09em;
+  text-transform: uppercase; padding: 3px 8px; border-radius: 2px; white-space: nowrap;
+}
+.chip-a { background: var(--authored-bg); color: var(--authored); }
+.chip-e { background: var(--emergent-bg); color: var(--emergent); }
+.chip-x { background: transparent; color: var(--refused); border: 1px solid currentColor; }
+.chip-n { background: var(--surface-2); color: var(--muted); border: 1px solid var(--rule); }
+
+.legend { display: flex; flex-wrap: wrap; gap: 18px; margin: 20px 0 0; align-items: center; }
+.legend span { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 13px; color: var(--muted); }
+
+/* ---- callout ---- */
+.note {
+  border-left: 3px solid var(--authored); background: var(--surface); padding: 18px 22px;
+  margin: 26px 0; font-size: 16px;
+}
+.note.teal { border-left-color: var(--emergent); }
+.note.red  { border-left-color: var(--refused); }
+.note p:last-child { margin-bottom: 0; }
+.note .lbl {
+  display: block; font-size: 11px; font-weight: 600; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 7px;
+}
+
+/* ---- code ---- */
+pre {
+  background: var(--surface-2); border: 1px solid var(--rule); padding: 18px 20px;
+  overflow-x: auto; font-size: 13px; line-height: 1.6; margin: 22px 0;
+}
+code { font-size: .89em; background: var(--surface-2); padding: 1px 5px; border: 1px solid var(--rule-soft); }
+pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+
+/* ---- stat strip ---- */
+.stats { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 30px 0; }
+@media (min-width: 700px) { .stats { grid-template-columns: repeat(4, 1fr); } }
+.stat { background: var(--surface); padding: 20px 18px; }
+.stat .num {
+  display: block; font-size: 38px; font-weight: 700; letter-spacing: -0.03em;
+  line-height: 1; font-variant-numeric: tabular-nums; color: var(--ink);
+}
+.stat .cap { display: block; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 12.5px; line-height: 1.35; color: var(--muted); margin-top: 9px; }
+
+ul.tight { margin: 0 0 18px; padding-left: 22px; }
+ul.tight li { margin-bottom: 9px; }
+
+.snapshot { border: 1px solid var(--rule); border-left: 3px solid var(--refused); background: var(--surface); padding: 20px 24px; margin: 0 0 44px; font-size: 15.5px; line-height: 1.55; }
+.snapshot p { margin: 0 0 12px; }
+.snapshot p:last-child { margin-bottom: 0; }
+.snapshot .lbl { display: block; font-size: 11px; font-weight: 600; letter-spacing: .13em; text-transform: uppercase; color: var(--muted); margin-bottom: 9px; }
+hr.end { border: 0; border-top: 2px solid var(--ink); margin: 60px 0 0; }
+.colophon { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 13px; color: var(--muted); padding-top: 18px; }
+</style>
+
+<div class="page">
+
+<div class="snapshot">
+  <span class="lbl">A dated snapshot, and it owns nothing</span>
+  <p>Captured <strong>2026-08-24</strong> from <code>CONTEXT.md</code>, <code>docs/02 §1</code> and <code>§4</code>, <code>docs/05 §10</code>, <code>src/Borough.Core/Rules/</code> and all fifteen files in <code>rulesets/</code>. <strong>Every fact on this page is owned somewhere else</strong> — <code>CONTEXT.md</code> governs the vocabulary, <code>02 §4</code> owns the Rule engine, the ADRs own the decisions, <code>plans/0003</code> owns what is done and <code>plans/0002</code> owns what is still open. ⚠ <strong>Where this page disagrees with any of them, they win.</strong></p>
+  <p>It stores no status and no counts that another document owns, and it quotes every figure with the clause that says what it measures rather than the digits alone (<code>plans/0012</code> <strong>Cause 5</strong>). ⚠ <strong>It is invisible to every mechanical check in <code>tests/Borough.Tests/Corpus/</code></strong>, all of which glob <code>*.md</code> — so nothing will tell you when it has gone stale. Read it for orientation, then read the thing it points at.</p>
+</div>
+
+<header class="masthead">
+  <p class="eyebrow">Borough · engine note · 24 Aug 2026</p>
+  <h1>The rule engine, and what it does not decide</h1>
+  <p class="standfirst">A tour of the two Rule families, the authoring surface a designer actually gets, and an honest count of how much of the city is prescribed versus produced.</p>
+</header>
+
+<div class="answer">
+  <div>
+    <span class="q">How much does it control</span>
+    <span class="a">Less than it looks. The engine is a deliberately underpowered interpreter — no predicates on Bin Rules, no expression language, no authored prices.</span>
+  </div>
+  <div>
+    <span class="q">Where is the emergence</span>
+    <span class="a">Structurally protected but mostly <em>unbuilt</em>. The refusals are real and enforced; the mechanisms they clear room for are largely not shipped yet.</span>
+  </div>
+  <div>
+    <span class="q">Are the rulesets fixtures</span>
+    <span class="a">All fifteen of them. Every shipped file's own header says it models no city. There is no game ruleset in the repository.</span>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<section>
+  <h2>01 · The shape of it</h2>
+  <p class="h2sub">Two execution models, sorted by one question</p>
+  <div class="col">
+    <p>The whole engine turns on a single sorting test, stated in <code>docs/02 §4</code>: <strong>subscribe when waiting on a specific named thing; poll when sweeping a population.</strong> Everything else follows.</p>
+    <p>A <strong>Bin Rule</strong> is an atomic transformation over Bins — integer stores on a Building or its Occupant. It lives on the Event Wheel, fires on a <code>rate</code>, and when it fails it does not retry on a timer: it goes to sleep on the exact Bin that stopped it and waits for a mutator to wake it. A <strong>Sweep Rule</strong> fires on a plain interval, walks a whole population, tests real state with a predicate, and acts on whoever qualifies. It never sleeps and never subscribes.</p>
+    <p>Which family a mechanism belongs to is fixed at design time and is never a performance decision, because the two differ in <em>observable</em> behaviour — in how fast an arriving input propagates, in who wins a contested resource, and in the sentence Evidence prints when they fail.</p>
+  </div>
+
+  <figure>
+    <div class="figwrap">
+      <svg viewBox="0 0 900 470" role="img" aria-label="Two diagrams. Top: a Bin Rule cycles between the Event Wheel, an atomicity check, and either re-arming at plus rate or sleeping on the Bin that was short until a deposit wakes it. Bottom: a Sweep Rule fires on an interval, walks a population, tests a predicate over Readouts, acts on who qualifies, and returns to the next trigger without ever waiting.">
+        <defs>
+          <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+          </marker>
+        </defs>
+        <g fill="none" stroke="currentColor" stroke-width="1.4">
+
+          <!-- PANEL A label -->
+          <text x="20" y="26" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="600" letter-spacing="1.6" fill="currentColor" stroke="none">BIN RULE — SCHEDULED, AND IT SLEEPS</text>
+          <line x1="20" y1="36" x2="880" y2="36" stroke-width="1" opacity=".28"/>
+
+          <!-- boxes -->
+          <rect x="30" y="105" width="150" height="52" rx="2"/>
+          <text x="105" y="128" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="600" fill="currentColor" stroke="none">Event Wheel</text>
+          <text x="105" y="145" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".62">this Tick's bucket</text>
+
+          <rect x="250" y="105" width="150" height="52" rx="2"/>
+          <text x="325" y="128" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="600" fill="currentColor" stroke="none">Rule Instance</text>
+          <text x="325" y="145" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".62">one Rule, one owner</text>
+
+          <rect x="470" y="105" width="150" height="52" rx="2"/>
+          <text x="545" y="128" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="600" fill="currentColor" stroke="none">atomic check</text>
+          <text x="545" y="145" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".62">all of it, or none</text>
+
+          <rect x="700" y="74" width="180" height="46" rx="2"/>
+          <text x="790" y="94" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="600" fill="currentColor" stroke="none">fires</text>
+          <text x="790" y="110" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".62">applies n times</text>
+
+          <rect x="700" y="146" width="180" height="60" rx="2"/>
+          <text x="790" y="167" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="600" fill="currentColor" stroke="none">fails — sleeps on the Bin</text>
+          <text x="790" y="184" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".62">wait list: Supply | Space</text>
+          <text x="790" y="199" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".62">no timer, no polling</text>
+
+          <!-- arrows A -->
+          <line x1="180" y1="131" x2="243" y2="131" marker-end="url(#ar)"/>
+          <text x="211" y="122" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".7">wake</text>
+
+          <line x1="400" y1="131" x2="463" y2="131" marker-end="url(#ar)"/>
+          <text x="431" y="122" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".7">reads</text>
+
+          <path d="M 620 122 L 660 122 L 660 97 L 693 97" marker-end="url(#ar)"/>
+          <path d="M 620 140 L 660 140 L 660 176 L 693 176" marker-end="url(#ar)"/>
+
+          <!-- return: fires -> wheel -->
+          <path d="M 790 74 L 790 52 L 105 52 L 105 98" marker-end="url(#ar)" stroke-dasharray="0"/>
+          <text x="447" y="45" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".78">re-arms at + rate</text>
+
+          <!-- return: sleeps -> rule -->
+          <path d="M 790 206 L 790 236 L 325 236 L 325 164" marker-end="url(#ar)"/>
+          <text x="557" y="251" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".78">a deposit or a withdrawal wakes the head of the queue</text>
+
+          <!-- PANEL B -->
+          <text x="20" y="308" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="600" letter-spacing="1.6" fill="currentColor" stroke="none">SWEEP RULE — POLLED BY DESIGN, AND IT NEVER WAITS</text>
+          <line x1="20" y1="318" x2="880" y2="318" stroke-width="1" opacity=".28"/>
+
+          <rect x="30" y="360" width="170" height="52" rx="2"/>
+          <text x="115" y="381" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="600" fill="currentColor" stroke="none">time trigger</text>
+          <text x="115" y="398" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".62">tick % interval == 0</text>
+
+          <rect x="250" y="360" width="170" height="52" rx="2"/>
+          <text x="335" y="381" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="600" fill="currentColor" stroke="none">walk the population</text>
+          <text x="335" y="398" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".62">Lots · Households</text>
+
+          <rect x="470" y="360" width="170" height="52" rx="2"/>
+          <text x="555" y="381" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="600" fill="currentColor" stroke="none">predicate</text>
+          <text x="555" y="398" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".62">over Readouts only</text>
+
+          <rect x="690" y="360" width="190" height="52" rx="2"/>
+          <text x="785" y="381" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="600" fill="currentColor" stroke="none">act on who qualifies</text>
+          <text x="785" y="398" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".62">report where it stopped</text>
+
+          <line x1="200" y1="386" x2="243" y2="386" marker-end="url(#ar)"/>
+          <line x1="420" y1="386" x2="463" y2="386" marker-end="url(#ar)"/>
+          <line x1="640" y1="386" x2="683" y2="386" marker-end="url(#ar)"/>
+
+          <path d="M 785 412 L 785 440 L 115 440 L 115 419" marker-end="url(#ar)" stroke-dasharray="5 4"/>
+          <text x="450" y="456" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".78">next trigger — nothing is subscribed, nothing is asleep</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>Figure 1 — the two families.</b> The Bin Rule's loop is the design's cost story: a chain is walked once on entry into shortage, so a permanently starved district costs nothing per Tick. The Sweep Rule's straight line is the opposite bet — an entity cannot know whether it matches a predicate without being evaluated, so the wheel would buy nothing and cost a wheel entry apiece.</figcaption>
+  </figure>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th></th><th>Bin Rule</th><th>Sweep Rule</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Attached to</strong></td><td>one Building — or, since <code>adr/0141</code>, its Occupant</td><td>the city, or a District</td></tr>
+        <tr><td><strong>Acts on</strong></td><td>Bins, atomically</td><td>a population, testing real state</td></tr>
+        <tr><td><strong>Dispatch</strong></td><td>scheduled — <code>rate</code> re-arms it on the Event Wheel</td><td>time trigger, polled by design</td></tr>
+        <tr><td><strong>On failure</strong></td><td>subscribes to the Bin that was short</td><td>acts on whom it can, reports, retries</td></tr>
+        <tr><td><strong>Predicates</strong></td><td><span class="chip chip-x">refused</span> — nothing to subscribe to, and a silent non-event</td><td>the only place they exist</td></tr>
+        <tr><td><strong>Instances today</strong></td><td>production, consumption, upkeep on one Building</td><td>Zone Rules (sample) · Policies (sweep)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<section>
+  <h2>02 · The authoring surface</h2>
+  <p class="h2sub">Everything a designer is allowed to say, and it is a short list</p>
+  <div class="col">
+    <p>Here is the entire content of a Bin Rule as it appears in a shipped file. There is nothing hidden behind it — this is the whole grammar.</p>
+  </div>
+
+<pre><code>[[rule]]
+name    = "consume"
+kind    = "dwelling"
+rate    = 32                                               <span style="opacity:.6"># reschedule interval, in Ticks</span>
+apply   = { min = 1, max = 1 }                             <span style="opacity:.6"># greed band — or `derived`, never both</span>
+inputs  = [ { scope = "local", resource = "sundries", amount = 4 } ]
+outputs = []
+on_fail = "no_repairs"                                     <span style="opacity:.6"># optional: chain to another Rule</span></code></pre>
+
+  <div class="col">
+    <p>Four scopes exist, and the third column of that table is the load-bearing one. A scope does not answer <em>where do I look for this Bin</em> — it answers <strong>whose is it</strong>.</p>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th class="mono">scope</th><th>Meaning</th><th>Whose</th><th>Built?</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">local</td><td>Bins on the subject running the Rule — its Building, or its Occupant</td><td>mine, free</td><td><span class="chip chip-e">live</span></td></tr>
+        <tr><td class="mono">pool</td><td>the District Pool — a market, requiring road connectivity</td><td>somebody else's — <strong>a trade</strong></td><td><span class="chip chip-n">throws on reach</span></td></tr>
+        <tr><td class="mono">global</td><td>city-wide Bins — the treasury</td><td>the city's</td><td><span class="chip chip-e">live</span></td></tr>
+        <tr><td class="mono">map</td><td>Map Layer cells under the footprint, <strong>write-only</strong></td><td>nobody's</td><td><span class="chip chip-n">pollution only</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note teal">
+    <span class="lbl">The single most important refusal</span>
+    <p>A term crossing an ownership boundary is not a transformation, it is a <strong>trade</strong> — the Good moves one way and money moves the other at the prevailing price. <strong>There is no Ruleset syntax for that payment.</strong> The price is emergent, the quantity is already the term's <code>amount</code>, and the counterparty is implied by the scope. Nothing is left for a designer to write, which is what keeps <code>amount</code> a fixed integer permanently.</p>
+  </div>
+
+  <h3>The four things the engine will not let a designer do</h3>
+  <div class="col">
+    <p>These are enforced, not advisory. Each one is a place where a designer could have prescribed an outcome and is prevented from doing so.</p>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Refusal</th><th>What it would have bought</th><th>Why it is refused</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>No predicates on a Bin Rule</strong></td>
+          <td><code>"only produces if staffed"</code>, <code>"only in dense Buildings"</code></td>
+          <td>Nothing to subscribe to, and it would be the only way in the design for a Building to do nothing without saying why. Every such case dissolves into a physical input that has not been modelled — staffing becomes a <em>labour Bin</em> filled by arriving commutes, so a failed commute <em>causes</em> a legible production failure.</td>
+        </tr>
+        <tr>
+          <td><strong>No expression language</strong></td>
+          <td>arbitrary formulae over state</td>
+          <td><code>amount</code> is a fixed integer for ever. Proportionality comes from an <em>apply count</em> — a Rule runs 1..n times — and nothing else. "15% of gross income" is one unit of money applied <code>gross × 15 / 100</code> times. Integer, deterministic, no parser.</td>
+        </tr>
+        <tr>
+          <td><strong>Two declared Readouts</strong></td>
+          <td>Rules reading any scalar in the world</td>
+          <td>The readable set is <code>Occupancy</code> and <code>Balance</code>. A Readout is admitted only when a Rule reads it, and declaring one is a decision to let every future Rule <em>act</em> on it. Everything else is display-only — the inspectable surface is far larger than the actable one.</td>
+        </tr>
+        <tr>
+          <td><strong>No global scalars at all</strong></td>
+          <td>an RCI demand meter, tax tolerance, a difficulty modifier</td>
+          <td>All three are named in <code>CONTEXT.md</code>'s banned-terms list. There is no demand scalar — the Unplaced Pool <em>is</em> the demand signal. Tolerance is a Household comparing the city against a Hinterland with the same utility function everyone uses.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<section>
+  <h2>03 · Where it runs</h2>
+  <p class="h2sub">The Tick is the determinism contract, and each family has its slot</p>
+
+  <figure>
+    <div class="figwrap">
+      <svg viewBox="0 0 900 250" role="img" aria-label="The eight ordered Tick phases, from Input through Commit. A solid bracket spans phases 1 to 3 marking where Bin Rules run: wake, decide against the Past, then settle serially. A dashed bracket sits under phase 6 marking where Sweep Rules run: placement drains the Unplaced Pool first, then Zone Rules sample.">
+        <g fill="none" stroke="currentColor" stroke-width="1.4">
+          <g id="cells">
+            <rect x="14" y="40" width="102" height="66" rx="2"/>
+            <rect x="124" y="40" width="102" height="66" rx="2"/>
+            <rect x="234" y="40" width="102" height="66" rx="2"/>
+            <rect x="344" y="40" width="102" height="66" rx="2"/>
+            <rect x="454" y="40" width="102" height="66" rx="2"/>
+            <rect x="564" y="40" width="102" height="66" rx="2"/>
+            <rect x="674" y="40" width="102" height="66" rx="2"/>
+            <rect x="784" y="40" width="102" height="66" rx="2"/>
+          </g>
+          <g fill="currentColor" stroke="none" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif">
+            <text x="26" y="62" font-size="11" font-weight="600" opacity=".5">0</text>
+            <text x="136" y="62" font-size="11" font-weight="600" opacity=".5">1</text>
+            <text x="246" y="62" font-size="11" font-weight="600" opacity=".5">2</text>
+            <text x="356" y="62" font-size="11" font-weight="600" opacity=".5">3</text>
+            <text x="466" y="62" font-size="11" font-weight="600" opacity=".5">4</text>
+            <text x="576" y="62" font-size="11" font-weight="600" opacity=".5">5</text>
+            <text x="686" y="62" font-size="11" font-weight="600" opacity=".5">6</text>
+            <text x="796" y="62" font-size="11" font-weight="600" opacity=".5">7</text>
+
+            <text x="65"  y="86" font-size="14" font-weight="600" text-anchor="middle">Input</text>
+            <text x="175" y="86" font-size="14" font-weight="600" text-anchor="middle">Wake</text>
+            <text x="285" y="86" font-size="14" font-weight="600" text-anchor="middle">Decide</text>
+            <text x="395" y="86" font-size="14" font-weight="600" text-anchor="middle">Settle</text>
+            <text x="505" y="86" font-size="14" font-weight="600" text-anchor="middle">Move</text>
+            <text x="615" y="86" font-size="14" font-weight="600" text-anchor="middle">Layers</text>
+            <text x="725" y="86" font-size="14" font-weight="600" text-anchor="middle">Growth</text>
+            <text x="835" y="86" font-size="14" font-weight="600" text-anchor="middle">Commit</text>
+          </g>
+          <g fill="currentColor" stroke="none" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="9.5" opacity=".6">
+            <text x="65"  y="28" text-anchor="middle">serial</text>
+            <text x="175" y="28" text-anchor="middle">serial</text>
+            <text x="285" y="28" text-anchor="middle">parallel</text>
+            <text x="395" y="28" text-anchor="middle">serial</text>
+            <text x="505" y="28" text-anchor="middle">parallel</text>
+            <text x="615" y="28" text-anchor="middle">parallel</text>
+            <text x="725" y="28" text-anchor="middle">serial</text>
+            <text x="835" y="28" text-anchor="middle">serial</text>
+          </g>
+
+          <!-- bracket bin rules 1..3 -->
+          <path d="M 124 124 L 124 138 L 446 138 L 446 124"/>
+          <text x="285" y="158" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="600" fill="currentColor" stroke="none">Bin Rules</text>
+          <text x="285" y="176" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".68">drain the wheel · decide against the Past · settle in sorted order</text>
+          <text x="285" y="192" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".68">Decide writes nothing — that is what makes it parallelisable</text>
+
+          <!-- bracket sweep 6 -->
+          <path d="M 674 124 L 674 138 L 776 138 L 776 124" stroke-dasharray="5 4"/>
+          <text x="725" y="158" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="600" fill="currentColor" stroke="none">Sweep Rules</text>
+          <text x="725" y="176" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".68">placement first, then Zone Rules</text>
+          <text x="725" y="192" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".68">the order is the decision</text>
+
+          <line x1="14" y1="222" x2="886" y2="222" stroke-width="1" opacity=".25"/>
+          <text x="14" y="242" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".7">Policies sweep on their own interval · Map Layer diffusion is phase 5 · the State Hash is emitted in Commit</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>Figure 2 — the eight phases.</b> Two ordering decisions carry real weight. <b>Decide is read-only</b>, so two bakeries can both observe six flour and both intend to take it; Settle applies intents in a per-Tick counter-based shuffle, the first succeeds, the second fails <em>atomically</em> and takes its fallback. Nobody gets phantom flour and nobody holds a standing advantage. <b>Placement runs ahead of the Zone Rules</b> inside Growth, which is what makes a developer's create predicate a statement about vacancy rather than about population.</figcaption>
+  </figure>
+
+  <div class="col">
+    <p>The contention story is where prescription would be easiest and is most carefully avoided. When a Bin is short, its wait list drains <strong>from the head, by requirement, derived at the moment of the drain</strong> — a Bin holding six wakes exactly the one bakery that needs six, and a Rule that fires goes to the back of the queue. The result is that a district degrades as a gradient: under half supply every bakery bakes half as often, rather than half the bakeries running normally while the rest starve. Nobody wrote "degrade gracefully"; it falls out of queueing plus indivisible servings.</p>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<section>
+  <h2>04 · The ledger</h2>
+  <p class="h2sub">A narrow input surface pointed at a wide output surface</p>
+
+  <figure>
+    <div class="figwrap">
+      <svg viewBox="0 0 900 420" role="img" aria-label="A funnel diagram. On the left, five small boxes list what a Ruleset file states: resources, bin capacities, rule rates and amounts, zone rule intervals, and policy bands. These feed a single tall box in the middle representing the engine, labelled four scopes, two Readouts, no predicates and no expressions. From it, six boxes on the right list outcomes nobody authored: which bakery goes short, where the city grows, the price of a Good, the shape of the Day, severance, and whether a tenancy ends.">
+        <defs>
+          <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+          </marker>
+        </defs>
+        <g fill="none" stroke="currentColor" stroke-width="1.3">
+          <text x="20" y="24" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-weight="600" letter-spacing="1.5" fill="#A57D22" stroke="none">AUTHORED — WHAT THE FILE SAYS</text>
+          <text x="352" y="24" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-weight="600" letter-spacing="1.5" fill="currentColor" stroke="none" opacity=".55">THE INTERPRETER</text>
+          <text x="600" y="24" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-weight="600" letter-spacing="1.5" fill="#2E7F8C" stroke="none">EMERGENT — WHAT NOBODY WROTE</text>
+
+          <g stroke="#A57D22">
+            <rect x="20" y="48" width="205" height="46" rx="2"/>
+            <rect x="20" y="110" width="205" height="46" rx="2"/>
+            <rect x="20" y="172" width="205" height="46" rx="2"/>
+            <rect x="20" y="234" width="205" height="46" rx="2"/>
+            <rect x="20" y="296" width="205" height="46" rx="2"/>
+          </g>
+          <g fill="currentColor" stroke="none" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="11.5">
+            <text x="34" y="70">[[resource]]</text>
+            <text x="34" y="85" font-size="10" opacity=".6">a name and a family</text>
+            <text x="34" y="132">[[building]] bins</text>
+            <text x="34" y="147" font-size="10" opacity=".6">capacity, occupants, jobs</text>
+            <text x="34" y="194">[[rule]]</text>
+            <text x="34" y="209" font-size="10" opacity=".6">rate, amount, apply, on_fail</text>
+            <text x="34" y="256">[[zone_rule]]</text>
+            <text x="34" y="271" font-size="10" opacity=".6">interval, revisit period</text>
+            <text x="34" y="318">[[policy]]</text>
+            <text x="34" y="333" font-size="10" opacity=".6">interval, eligibility band</text>
+          </g>
+
+          <rect x="330" y="48" width="150" height="298" rx="2" stroke-width="1.6"/>
+          <g fill="currentColor" stroke="none" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif">
+            <text x="405" y="170" font-size="15" font-weight="600">the engine</text>
+          </g>
+          <g fill="currentColor" stroke="none" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10.5" opacity=".68">
+            <text x="405" y="196">4 scopes</text>
+            <text x="405" y="212">2 Readouts</text>
+            <text x="405" y="228">no predicates</text>
+            <text x="405" y="244">no expressions</text>
+            <text x="405" y="260">integer only</text>
+          </g>
+
+          <g stroke="#2E7F8C">
+            <rect x="600" y="42" width="282" height="40" rx="2"/>
+            <rect x="600" y="94" width="282" height="40" rx="2"/>
+            <rect x="600" y="146" width="282" height="40" rx="2"/>
+            <rect x="600" y="198" width="282" height="40" rx="2"/>
+            <rect x="600" y="250" width="282" height="40" rx="2"/>
+            <rect x="600" y="302" width="282" height="40" rx="2"/>
+          </g>
+          <g fill="currentColor" stroke="none" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5">
+            <text x="616" y="67">which bakery goes short, and by how much</text>
+            <text x="616" y="119">where the city grows, and where it declines</text>
+            <text x="616" y="171">the price of a Good in a District</text>
+            <text x="616" y="223">the shape of the Day, and the peak</text>
+            <text x="616" y="275">severance — a neighbourhood cut off on foot</text>
+            <text x="616" y="327">whether a tenancy ends, and why</text>
+          </g>
+
+          <g opacity=".75">
+            <line x1="225" y1="71"  x2="324" y2="140" marker-end="url(#ar2)"/>
+            <line x1="225" y1="133" x2="324" y2="165" marker-end="url(#ar2)"/>
+            <line x1="225" y1="195" x2="324" y2="190" marker-end="url(#ar2)"/>
+            <line x1="225" y1="257" x2="324" y2="215" marker-end="url(#ar2)"/>
+            <line x1="225" y1="319" x2="324" y2="240" marker-end="url(#ar2)"/>
+
+            <line x1="480" y1="150" x2="594" y2="62"  marker-end="url(#ar2)"/>
+            <line x1="480" y1="165" x2="594" y2="114" marker-end="url(#ar2)"/>
+            <line x1="480" y1="185" x2="594" y2="166" marker-end="url(#ar2)"/>
+            <line x1="480" y1="205" x2="594" y2="218" marker-end="url(#ar2)"/>
+            <line x1="480" y1="225" x2="594" y2="270" marker-end="url(#ar2)"/>
+            <line x1="480" y1="245" x2="594" y2="322" marker-end="url(#ar2)"/>
+          </g>
+
+          <text x="20" y="380" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".7">Every arrow crossing the middle box is a place a conventional city-builder would have put a designer-set number instead.</text>
+          <text x="20" y="400" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10.5" fill="#2E7F8C" stroke="none">Four of the six right-hand rows are not yet reachable in any shipped world. See §5.</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>Figure 3 — the funnel.</b> The engine is not expressive; that is the design. A designer writes rates, capacities, integer amounts and intervals, and the interesting quantities are computed downstream from them by mechanisms with no authored knob.</figcaption>
+  </figure>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Quantity</th><th>Status</th><th>Who decides it</th></tr></thead>
+      <tbody>
+        <tr><td>The price of a Good</td><td><span class="chip chip-e">emergent</span></td><td>A market. The only authored anchor is the Hinterland's import price, and the ceiling is the <em>minimum</em> across every declared gate — itself derived, not chosen.</td></tr>
+        <tr><td>How many Districts the city has</td><td><span class="chip chip-e">derived</span></td><td>A watershed over a Building-density field, clipped to a road component. Explicitly <em>not</em> the player's pen — that moved to a separate object, the Ward, which has no logistics consequence.</td></tr>
+        <tr><td>The shape of the Day</td><td><span class="chip chip-e">emergent</span></td><td>A Shift start hour belongs to the Workplace, not the Citizen. A Citizen stores no start hour at all; the morning peak is what falls out.</td></tr>
+        <tr><td>Travel time on a Segment</td><td><span class="chip chip-e">emergent</span></td><td>The Lane is the entity, not the car. Congestion is a loop — a slower Vehicle dwells longer, and longer dwell <em>is</em> higher volume.</td></tr>
+        <tr><td>Severance</td><td><span class="chip chip-e">emergent</span></td><td>Nobody deletes a pedestrian route. Arterials carry no pedestrian edges except at authored junctions, so the walk route genuinely does not exist.</td></tr>
+        <tr><td>Transit frequency</td><td><span class="chip chip-e">emergent</span></td><td>The player sets vehicle count; frequency is <code>vehicles ÷ round-trip time</code>. Buses caught in the congestion they were meant to relieve deliver fewer departures than were paid for, and bunching needs no rule.</td></tr>
+        <tr><td>Whether a Household leaves</td><td><span class="chip chip-e">emergent</span></td><td>It re-runs the ordinary choice model with the Hinterland as one more row and leaves if that scores better. There is no tolerance threshold anywhere.</td></tr>
+        <tr><td class="tabnum">Production ratios, rates, capacities</td><td><span class="chip chip-a">authored</span></td><td>The designer, in TOML, hot-reloadable. This is the intended surface.</td></tr>
+        <tr><td class="tabnum">Zone Rule sample size</td><td><span class="chip chip-a">half</span></td><td>The designer authors a <em>revisit period</em>; the engine derives the sample count. Authoring the count would make the felt quantity move whenever a cadence was retuned.</td></tr>
+        <tr><td>A Lot's width</td><td><span class="chip chip-n">derived</span></td><td>From the Segment's own building count. Depth does not exist, because a depth would be a hash-bearing number chosen for a consumer nobody has designed.</td></tr>
+      </tbody>
+    </table>
+    </div>
+  <div class="legend">
+    <span><span class="chip chip-a">authored</span> a designer writes it</span>
+    <span><span class="chip chip-e">emergent / derived</span> the simulation produces it</span>
+    <span><span class="chip chip-x">refused</span> deliberately not expressible</span>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<section>
+  <h2>05 · The honest read</h2>
+  <p class="h2sub">The guardrails are real. The emergence is mostly still promised.</p>
+
+  <div class="stats">
+    <div class="stat"><span class="num">5</span><span class="cap">distinct Rule names authored across all fifteen shipped files</span></div>
+    <div class="stat"><span class="num">2</span><span class="cap">Building kinds in the entire corpus — <code>dwelling</code> and <code>port</code></span></div>
+    <div class="stat"><span class="num">1</span><span class="cap"><code>on_fail</code> chain that actually exists, one link deep</span></div>
+    <div class="stat"><span class="num">0</span><span class="cap">of the five design Goods named by any Ruleset</span></div>
+  </div>
+
+  <div class="col">
+    <p>That strip is the finding. Your worry — that designers end up prescribing the city through the rule engine — is <strong>not the risk this project currently carries</strong>, and the reason is uncomfortable rather than reassuring: almost nothing has been authored yet, because almost nothing can be.</p>
+    <p>The <code>pool</code> scope throws when a Rule reaches it. Every one of the five design Goods (Produce, Food, Timber, Materials, Consumer Goods) is produced by one Building and consumed by another, which crosses an ownership boundary, which is <code>pool</code>. So the shipped files name <code>sundries</code> — deliberately a word for goods too unimportant to name — and a Ruleset that could run today and also name a real Good would be claiming a chain it cannot express.</p>
+  </div>
+
+  <div class="note red">
+    <span class="lbl">The real risk, restated</span>
+    <p>It is not over-prescription. It is that <strong>the refusals are load-bearing on mechanisms that do not exist yet</strong>. "There is no demand scalar because the Unplaced Pool is the demand signal" is only true while the Pool has pressure in it — and until <code>crowded.toml</code> was written, <em>no world this project could generate had a non-empty Pool at all</em>, because the city generator houses everybody. Eleven tests failed on their fixture before one failed on its assertion.</p>
+    <p>The same shape recurs: the land-value producer shipped correct and unobservable because no file emitted pollution. The District watershed was untestable because every generatable world had one centre. The Business existed in fixtures for four milestones before anything created one.</p>
+  </div>
+
+  <div class="col">
+    <p>The project has a name for this and a rule against leaning on it: an unbuilt mechanism is not a design constraint. <em>The simulation does not do X</em> almost always means nobody has built X, and the answer to <em>given X does not exist, should Y compensate?</em> is <strong>build X</strong>. That rule is what has kept compensating knobs out of the Ruleset so far. It is doing more work than the engine's own refusals are.</p>
+
+    <h3>What the cost picture says about future authoring</h3>
+    <p>There is a live constraint on how much a designer will ever be able to write. One Rule evaluation measures <strong>82.84 ns</strong> as a synthetic unit and <strong>552 ns</strong> in a real world — 2.8× higher, attributed to terms, scatter and population. Carried forward at the project's unratified assumption of 450 Rule Instances per 1,000 Citizens, a million-Citizen city spends roughly <strong>10.5 ms a Tick on the Rule engine alone, against a 15.6 ms budget</strong> on one core of a 2020 six-core desktop. Two-thirds of the frame, before roads, layers, or growth.</p>
+    <p>Read that as a design fact, not a performance one: the engine cannot afford an elaborate authored chain per Building, so the expressive poverty above is not only principled, it is priced.</p>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<section>
+  <h2>06 · The rulesets</h2>
+  <p class="h2sub">All fifteen are fixtures. There is no game ruleset in this repository.</p>
+
+  <div class="col">
+    <p>This answers your third question directly, and the answer is stronger than you probably expected. Every shipped file carries a header explaining what it exists to demonstrate and what it must not be read as, and most of them open with some version of the same sentence: <em>it models no city, and it is not the beginning of one.</em></p>
+    <p>Thirteen of the fifteen are <code>minimal.toml</code> with a single controlled change — usually one number, sometimes one table, once two deletions. That is deliberate: it makes each file an instrument rather than a second city, so a difference in behaviour is attributable to the one thing that moved.</p>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th class="mono">file</th><th>Diff from its parent</th><th>What it exists to force</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">minimal</td><td>—</td><td>The smallest content that makes Bins move. The baseline everything else is a diff against.</td></tr>
+        <tr><td class="mono">minimal-tuned</td><td>one number: <code>restock</code> output 1&nbsp;→&nbsp;2</td><td>A hot reload with a transition in it. The golden session reloads into it mid-run.</td></tr>
+        <tr><td class="mono">severance</td><td><code>[roads]</code> coarse enough to cut</td><td>The rung at which the Severance dial does anything.</td></tr>
+        <tr><td class="mono">congested</td><td>street capacity 3600&nbsp;→&nbsp;400</td><td>Roads that slow down. A generated city cannot congest itself at shipped capacities.</td></tr>
+        <tr><td class="mono">diagnosed</td><td>one <code>on_fail</code> chain</td><td>The <em>why</em> column of the condemnation trail. Measured as <code>None</code> on every other file, because no other file authors a chain.</td></tr>
+        <tr><td class="mono">monetised</td><td>one <code>[[resource]]</code>, family <code>money</code></td><td>The first authored currency. The machinery refusing a badly-authored one had never met a real one.</td></tr>
+        <tr><td class="mono">taxed</td><td><code>[households]</code> + two <code>[[policy]]</code></td><td>A Policy circuit that moves money. A tax over a city of paupers collects nothing.</td></tr>
+        <tr><td class="mono">scarce</td><td>parking 8&nbsp;→&nbsp;1</td><td>A shed that cannot be filled by shrinking it.</td></tr>
+        <tr><td class="mono">fouled</td><td>one Rule that emits pollution</td><td>The only file where land value is non-zero. Nothing else in the build creates a Cell row.</td></tr>
+        <tr><td class="mono">bordered</td><td>a <code>port</code> kind + four <code>[[hinterland]]</code></td><td>A door in the map edge. The only file paving the lattice to the boundary.</td></tr>
+        <tr><td class="mono">crowded</td><td>arrivals 12&nbsp;→&nbsp;96, give-up 120&nbsp;→&nbsp;2&nbsp;days</td><td>The only world where the Unplaced Pool is under pressure. Both numbers are stopwatch settings, explicitly not design claims.</td></tr>
+        <tr><td class="mono">twinned</td><td>two <code>[[lattice]]</code> tables</td><td>Two centres, so the District watershed is testable at all. One peak returns one basin however it is written.</td></tr>
+        <tr><td class="mono">evicted</td><td>two Rules deleted</td><td>The only file where a tenancy ends. Same city as <code>minimal</code>, with the failure moved from the premises to the tenant.</td></tr>
+        <tr><td class="mono">tenanted</td><td>two <code>[[business]]</code> blocks</td><td>The second kind namespace. Names two trades and instantiates neither — produces an identical State Hash to <code>minimal</code>.</td></tr>
+        <tr><td class="mono">founded</td><td><code>[founding]</code> + a means test</td><td>The first file in which the simulation creates a Business.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <span class="lbl">The discipline worth keeping</span>
+    <p>Each file's header states not only what it shows but <strong>what it must not be quoted as</strong>. <code>evicted.toml</code>: <em>a dwelling whose larder nothing fills is an absence of a mechanism rather than a hardship, so the numbers this file produces ratify nothing.</em> <code>crowded.toml</code>: <em>a demonstration that chose its own rate would be showing the demonstration.</em> This is the guardrail against a fixture's tuning leaking into the design as a settled number — and it is why the corpus insists you quote the sentence, never the digits.</p>
+  </div>
+
+  <div class="col">
+    <p>The open question this leaves is not about the engine. It is that <strong>nobody has yet written a Ruleset that tries to be a city</strong>, so the claim that a small authoring surface produces a rich one is, at this point, an argument rather than a demonstration. The first file that names real Goods and a real production chain is the one that tests it.</p>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<section>
+  <h2>07 · Kinds and the enumeration question</h2>
+  <p class="h2sub">A kind is a flat list with no inheritance — so the design spends its effort on not needing many</p>
+
+  <div class="col">
+    <p>There is no template, no base kind, no parameterisation. A <code>[[building]]</code> declares its name and seven optional numbers, and that is the entire vocabulary for saying what a Building <em>is</em>:</p>
+  </div>
+
+<pre><code>[[building]]
+name         = "dwelling"
+bins         = [ { resource = "sundries", capacity = 48, owner = "occupant" },
+                 { resource = "repairs",  capacity = 4 } ]
+occupants    = 4        <span style="opacity:.6"># how many Households it holds</span>
+jobs         = 8        <span style="opacity:.6"># how many Citizens it employs — a separate number</span>
+parking      = 8
+condemn_after = 4       <span style="opacity:.6"># consecutive Rule failures before it is condemned</span>
+business     = "shop"   <span style="opacity:.6"># which trade may tenant it</span></code></pre>
+
+  <div class="col">
+    <p>Three hard ceilings fall out of the storage layer, and they tell you the intended scale better than any prose does. A Building's kind is a <strong>byte</strong>, so the loader refuses a file declaring more than <strong>254</strong> Building kinds and more than <strong>254</strong> trades. A Lot's permission set is a <strong>16-bit</strong> field, so there are at most <strong>16 zones</strong> — ever.</p>
+    <p>And a Rule names <em>exactly one</em> kind. So does a Zone Rule. Two kinds that behave alike need two copies of every Rule block; there is no way to write <em>same as <code>dwelling</code>, but forty Occupants</em>.</p>
+  </div>
+
+  <div class="note">
+    <span class="lbl">So the answer to "is the designer expected to enumerate everything?"</span>
+    <p><strong>Yes — but the design works hard to make the list short</strong>, by refusing to let three axes that would normally multiply the catalogue become kind axes at all. The discipline is stated in <code>docs/deferred.md</code>: <em>adding a category is a design decision rather than a content addition.</em></p>
+  </div>
+
+  <h3>The factorisation that does the most work</h3>
+  <div class="col">
+    <p>A shopfront hosts a bakery, then a barber, and the building did not change. Under one kind table that sentence is inexpressible — <em>bakery</em> would be a property of the walls, so a tenant leaving would have to <strong>demolish the shop</strong> to stop being a bakery. Two namespaces turn a product into a sum.</p>
+  </div>
+
+  <figure>
+    <div class="figwrap">
+      <svg viewBox="0 0 900 330" role="img" aria-label="A comparison. On the left, one flat kind table forces a grid of nine combined declarations pairing three premises with three trades, growing as n times m. On the right, two separate tables declare three premises and three trades — six declarations — which the simulation pairs at runtime when a tenant moves in, growing as n plus m.">
+        <defs>
+          <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+          </marker>
+        </defs>
+        <g fill="none" stroke="currentColor" stroke-width="1.3">
+
+          <text x="20" y="22" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-weight="600" letter-spacing="1.5" fill="currentColor" stroke="none" opacity=".55">ONE KIND TABLE — REFUSED</text>
+          <text x="500" y="22" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-weight="600" letter-spacing="1.5" fill="#2E7F8C" stroke="none">TWO NAMESPACES — SHIPPED</text>
+
+          <!-- LEFT: 3x3 grid -->
+          <g opacity=".55">
+            <rect x="20" y="44" width="130" height="40" rx="2"/><rect x="158" y="44" width="130" height="40" rx="2"/><rect x="296" y="44" width="130" height="40" rx="2"/>
+            <rect x="20" y="92" width="130" height="40" rx="2"/><rect x="158" y="92" width="130" height="40" rx="2"/><rect x="296" y="92" width="130" height="40" rx="2"/>
+            <rect x="20" y="140" width="130" height="40" rx="2"/><rect x="158" y="140" width="130" height="40" rx="2"/><rect x="296" y="140" width="130" height="40" rx="2"/>
+          </g>
+          <g fill="currentColor" stroke="none" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="9.5" opacity=".8" text-anchor="middle">
+            <text x="85" y="62">bakery_shop</text><text x="223" y="62">barber_shop</text><text x="361" y="62">grocer_shop</text>
+            <text x="85" y="110">bakery_unit</text><text x="223" y="110">barber_unit</text><text x="361" y="110">grocer_unit</text>
+            <text x="85" y="158">bakery_arcade</text><text x="223" y="158">barber_arcade</text><text x="361" y="158">grocer_arcade</text>
+            <text x="85" y="76" opacity=".55">premises + trade</text><text x="223" y="76" opacity=".55">premises + trade</text><text x="361" y="76" opacity=".55">premises + trade</text>
+            <text x="85" y="124" opacity=".55">premises + trade</text><text x="223" y="124" opacity=".55">premises + trade</text><text x="361" y="124" opacity=".55">premises + trade</text>
+            <text x="85" y="172" opacity=".55">premises + trade</text><text x="223" y="172" opacity=".55">premises + trade</text><text x="361" y="172" opacity=".55">premises + trade</text>
+          </g>
+          <text x="20" y="208" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="14" font-weight="600" fill="currentColor" stroke="none">9 declarations — n × m</text>
+          <text x="20" y="232" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".72">a tenant leaving would have to demolish the shop</text>
+          <text x="20" y="248" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".72">to stop being a bakery — and one starving tenant</text>
+          <text x="20" y="264" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".72">would condemn the other's premises</text>
+
+          <line x1="462" y1="30" x2="462" y2="290" stroke-width="1" opacity=".25"/>
+
+          <!-- RIGHT: two columns -->
+          <g stroke="#2E7F8C">
+            <rect x="500" y="44" width="150" height="36" rx="2"/>
+            <rect x="500" y="88" width="150" height="36" rx="2"/>
+            <rect x="500" y="132" width="150" height="36" rx="2"/>
+            <rect x="730" y="44" width="150" height="36" rx="2"/>
+            <rect x="730" y="88" width="150" height="36" rx="2"/>
+            <rect x="730" y="132" width="150" height="36" rx="2"/>
+          </g>
+          <text x="500" y="38" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".7">[[building]] — the walls</text>
+          <text x="730" y="38" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".7">[[business]] — the trade</text>
+          <g fill="currentColor" stroke="none" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="11" text-anchor="middle">
+            <text x="575" y="67">shopfront</text><text x="575" y="111">unit</text><text x="575" y="155">arcade</text>
+            <text x="805" y="67">bakery</text><text x="805" y="111">barber</text><text x="805" y="155">grocer</text>
+          </g>
+          <g opacity=".5">
+            <line x1="650" y1="62" x2="724" y2="62" marker-end="url(#ar3)"/>
+            <line x1="650" y1="70" x2="724" y2="106" marker-end="url(#ar3)"/>
+            <line x1="650" y1="106" x2="724" y2="70" marker-end="url(#ar3)"/>
+            <line x1="650" y1="106" x2="724" y2="150" marker-end="url(#ar3)"/>
+            <line x1="650" y1="150" x2="724" y2="114" marker-end="url(#ar3)"/>
+          </g>
+          <text x="690" y="190" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10" fill="currentColor" stroke="none" opacity=".7">paired at runtime, by tenancy</text>
+
+          <text x="500" y="208" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="14" font-weight="600" fill="#2E7F8C" stroke="none">6 declarations — n + m</text>
+          <text x="500" y="232" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".72">the premises declare every Bin's capacity;</text>
+          <text x="500" y="248" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".72">the tenant holds its level, and takes it when it goes</text>
+          <text x="500" y="264" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".72">flour goes with the baker · the roof does not</text>
+
+          <line x1="20" y1="290" x2="880" y2="290" stroke-width="1" opacity=".25"/>
+          <text x="20" y="312" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="10.5" fill="currentColor" stroke="none" opacity=".7">The same move is available anywhere two things are uncorrelated. It has been made once, for premises against trade.</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>Figure 4 — the one factorisation that shipped.</b> Splitting the kind table was forced by the high street, not by the loader: the premises and the trade are not correlated, and nothing in a single table can express that. The side effect is a real bug fix — condemnation currently takes the longest failure pressure across a Building's whole Rule list, so under one table <b>one starving tenant condemns the other's shop</b>.</figcaption>
+  </figure>
+
+  <h3>Axes deliberately kept off the kind</h3>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Axis</th><th>What the genre does</th><th>What this design does instead</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Quality / wealth / level</strong></td>
+          <td>Cities: Skylines authors growable prefabs into mutually exclusive asset pools with a level 1–5 ladder. A high-density cell <em>cannot</em> spawn a house, ever.</td>
+          <td><span class="chip chip-x">refused</span> Called <em>placing buildings by proxy</em>. Quality is not a kind axis at all — it comes out of the choice model and the price system, which already produce it.</td>
+        </tr>
+        <tr>
+          <td><strong>Density</strong></td>
+          <td>A painted band that commands what appears.</td>
+          <td><span class="chip chip-a">a permission set</span> Density is <em>capacity, not quality</em> — a high-density slum and a high-density tower are the same band. A band expresses itself as which kinds a Lot permits, and 16 bits is the whole namespace.</td>
+        </tr>
+        <tr>
+          <td><strong>Occupancy and jobs</strong></td>
+          <td>Separate building types per size.</td>
+          <td><span class="chip chip-a">two numbers</span> <code>occupants</code> and <code>jobs</code> are keys on the kind. They are separate numbers on purpose — a workplace houses nobody and employs a hundred; a mixed-use Building does both.</td>
+        </tr>
+        <tr>
+          <td><strong>Infrastructure variants</strong></td>
+          <td>Road, rail and port as three subsystems.</td>
+          <td><span class="chip chip-e">one abstraction</span> Three kinds differing only in throughput ceiling, price, favoured Goods, and the mode mask their Arc carries. The variation is numbers, not mechanism.</td>
+        </tr>
+        <tr>
+          <td><strong>Appearance</strong></td>
+          <td>The asset library <em>is</em> the type system.</td>
+          <td><span class="chip chip-n">not in the Ruleset</span> Nothing in a <code>[[building]]</code> names a mesh. The simulation has no visual vocabulary, so how one kind maps to many looks is a renderer question nobody has had to answer yet.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>What still enumerates, honestly</h3>
+  <div class="col">
+    <p>Two costs survive the factorisation, and both are real.</p>
+    <ul class="tight">
+      <li><strong>Density bands are kinds.</strong> <em>Stack</em> — an apartment block — is defined as <em>a kind with a larger declared occupancy</em>. So low / medium / high residential is three <code>[[building]]</code> blocks, and because a Rule names exactly one kind, it is also three copies of every Rule those dwellings run. Nothing shares.</li>
+      <li><strong>Services have no variant axis at all.</strong> How many kinds of school, clinic, plant or station there should be — and, more importantly, what <em>distinguishes</em> them — has been raised and deferred every time it has come up.</li>
+    </ul>
+  </div>
+
+  <div class="note red">
+    <span class="lbl">Open, unowned, and quoted verbatim from the ledger</span>
+    <p><em>"On what axis do Service variants differ? … Capacity alone makes variants a ladder the player graduates up, which is exactly the error <code>adr/0025</code> refused for Density. The axis should be settled before any variant is authored, even though the catalogue itself is Ruleset content."</em></p>
+    <p>That is <code>plans/0002</code> item 28, sitting in the <em>no document covers it</em> bucket. It is the precise question you just asked, it has been open since session five, and no ADR owns it.</p>
+  </div>
+
+  <div class="col">
+    <p>So the current position is coherent but incomplete. The design has refused the enumeration <em>ladder</em> — no levels, no wealth tiers, no asset pools — and has factored out the one product it identified. What it has not done is name the axis on which two schools legitimately differ, and until it does, every additional kind is a hand-written block with its own duplicated Rules and a byte of a 254-wide namespace.</p>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<style>
+.codegrid { display: grid; gap: 14px; margin: 24px 0; }
+@media (min-width: 820px) { .codegrid.two { grid-template-columns: 1fr 1fr; } .codegrid.three { grid-template-columns: repeat(3, 1fr); } }
+.codecard { border: 1px solid var(--rule); background: var(--surface); display: flex; flex-direction: column; min-width: 0; }
+.codecard > .cardhead {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 11px; font-weight: 600; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--muted); padding: 11px 14px; border-bottom: 1px solid var(--rule-soft);
+  display: flex; justify-content: space-between; gap: 10px; align-items: baseline;
+}
+.codecard > .cardhead em { font-style: normal; text-transform: none; letter-spacing: 0; font-weight: 500; opacity: .8; }
+.codecard pre { margin: 0; border: 0; background: none; font-size: 12.5px; padding: 14px; flex: 1; }
+.codecard > .cardfoot {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 12.5px; line-height: 1.45; color: var(--ink-soft);
+  padding: 12px 14px; border-top: 1px solid var(--rule-soft); background: var(--surface-2);
+}
+.hl { background: var(--authored-bg); color: var(--authored); font-weight: 600; padding: 0 2px; }
+.hl-e { background: var(--emergent-bg); color: var(--emergent); font-weight: 600; padding: 0 2px; }
+.dim { opacity: .5; }
+.exhead {
+  display: flex; gap: 12px; align-items: baseline; margin: 46px 0 4px; padding-top: 26px;
+  border-top: 1px solid var(--rule);
+}
+.exhead .ix { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 13px; font-weight: 600; color: var(--authored); }
+.exhead h3 { margin: 0; font-size: 19px; }
+</style>
+
+<section>
+  <h2>08 · Worked examples</h2>
+  <p class="h2sub">The same entity, configured six different ways, and what each configuration costs</p>
+
+  <div class="col">
+    <p>Five of the six below are lifted from files in <code>rulesets/</code> and will load as written. The third is <strong>constructed</strong> — nothing in the repository authors density bands yet — and is marked where it appears, because a fixture's numbers must not be quoted as the design's.</p>
+  </div>
+
+  <!-- A -->
+  <div class="exhead"><span class="ix">A</span><h3>One <code>[[building]]</code>, at both ends of its range</h3></div>
+  <div class="col"><p>A kind declaration can be one key or eight. Both of these are real, and they are the same table.</p></div>
+
+  <div class="codegrid two">
+    <div class="codecard">
+      <div class="cardhead"><span>port</span><em>bordered.toml</em></div>
+<pre><code>[[building]]
+name = "port"
+<span class="hl">arrivals_per_day = 12</span></code></pre>
+      <div class="cardfoot">One key, and its <em>presence</em> is what declares the kind an Outside Connection. It houses nobody, employs nobody, holds no Bin and runs no Rule — a Household housed <em>in</em> the gate is not a Household that came <em>through</em> it.</div>
+    </div>
+    <div class="codecard">
+      <div class="cardhead"><span>dwelling</span><em>minimal.toml</em></div>
+<pre><code>[[building]]
+name = "dwelling"
+bins = [
+  { resource = "sundries", capacity = 48,
+    owner = "occupant" },
+  { resource = "repairs",  capacity = 4 },
+]
+condemn_after = 4
+occupants     = 4
+business      = "shop"
+parking       = 8</code></pre>
+      <div class="cardfoot">Two Bins on opposite sides of the tenancy line, a condemnation threshold, an occupancy ceiling, a permitted trade, and parking supply.</div>
+    </div>
+  </div>
+
+  <!-- B -->
+  <div class="exhead"><span class="ix">B</span><h3>The same Bin, owned two ways</h3></div>
+  <div class="col"><p>This is the one line in <code>minimal.toml</code> that decides whether a Rule belongs to the premises or to the tenant. Nobody put the test there deliberately — it was found later, and it became <code>adr/0141</code>.</p></div>
+
+  <div class="codegrid two">
+    <div class="codecard">
+      <div class="cardhead"><span>the larder</span><em>goes with the baker</em></div>
+<pre><code>{ resource = "sundries", capacity = 48,
+  <span class="hl">owner = "occupant"</span> }
+
+[[rule]]
+name  = "consume"
+kind  = "dwelling"
+rate  = 32
+inputs = [ { scope = "local",
+             resource = "sundries",
+             amount = 4 } ]</code></pre>
+      <div class="cardfoot">The premises declare the <strong>capacity</strong>; the tenant holds the <strong>level</strong>. <code>local</code> here means <em>the tenant's</em>. The Rule Instance and the Bin are both created when the Household moves in and freed when it moves out — an unhoused Household has no kind to read a ceiling from.</div>
+    </div>
+    <div class="codecard">
+      <div class="cardhead"><span>the roof</span><em>stays with the walls</em></div>
+<pre><code>{ resource = "repairs", capacity = 4 }
+<span class="dim">// owner defaults to premises</span>
+
+[[rule]]
+name  = "upkeep"
+kind  = "dwelling"
+rate  = 16
+inputs = [ { scope = "local",
+             resource = "repairs",
+             amount = 4 } ]</code></pre>
+      <div class="cardfoot">Fires once whatever the occupancy, and its failure is what <code>condemn_after</code> demolishes the <strong>premises</strong> on. Same table, same syntax, different actor — and a Rule that addressed both sides would be refused at load, because that would be a trade.</div>
+    </div>
+  </div>
+
+  <!-- C -->
+  <div class="exhead"><span class="ix">C</span><h3>Three density bands — the duplication, shown honestly</h3></div>
+  <div class="note">
+    <span class="lbl">Constructed, not shipped</span>
+    <p>No file in the repository authors density bands. This is what a designer would have to write today, and it is here to show the cost rather than to propose the numbers.</p>
+  </div>
+
+  <div class="codegrid three">
+    <div class="codecard">
+      <div class="cardhead"><span>terrace</span></div>
+<pre><code>[[building]]
+name = "terrace"
+bins = [ <span class="dim">…identical…</span> ]
+<span class="hl">occupants = 2</span>
+condemn_after = 4
+
+[[rule]]
+name = "restock_terrace"
+kind = "terrace"
+<span class="dim">…3 rule blocks…</span>
+
+[[zone_rule]]
+kind = "terrace"
+<span class="hl">zone = 0</span></code></pre>
+    </div>
+    <div class="codecard">
+      <div class="cardhead"><span>walkup</span></div>
+<pre><code>[[building]]
+name = "walkup"
+bins = [ <span class="dim">…identical…</span> ]
+<span class="hl">occupants = 12</span>
+condemn_after = 4
+
+[[rule]]
+name = "restock_walkup"
+kind = "walkup"
+<span class="dim">…3 rule blocks…</span>
+
+[[zone_rule]]
+kind = "walkup"
+<span class="hl">zone = 1</span></code></pre>
+    </div>
+    <div class="codecard">
+      <div class="cardhead"><span>tower</span></div>
+<pre><code>[[building]]
+name = "tower"
+bins = [ <span class="dim">…identical…</span> ]
+<span class="hl">occupants = 40</span>
+condemn_after = 4
+
+[[rule]]
+name = "restock_tower"
+kind = "tower"
+<span class="dim">…3 rule blocks…</span>
+
+[[zone_rule]]
+kind = "tower"
+<span class="hl">zone = 2</span></code></pre>
+    </div>
+  </div>
+
+  <div class="col">
+    <p><strong>One number varies and everything else is copied three times</strong> — three kind blocks, nine Rule blocks, three Zone Rules, three of the sixteen zone bits. A Rule names exactly one kind, so nothing can be shared. This is the enumeration cost the design has not yet paid down, and it is the concrete reason the open question in §07 matters.</p>
+    <p>Note what is <em>not</em> here, though: no quality tier, no wealth band, no level ladder. A high-density slum and a high-density tower are the same band — which is a genuine slum or tower produced by the price system, not two more kinds.</p>
+  </div>
+
+  <!-- D -->
+  <div class="exhead"><span class="ix">D</span><h3>One shopfront, three trades — the factorisation paying off</h3></div>
+  <div class="col"><p>Compare the shape of this against C. The premises declare capacity once; the trades are a separate namespace, and a tenancy pairs them at runtime.</p></div>
+
+  <div class="codegrid two">
+    <div class="codecard">
+      <div class="cardhead"><span>the premises</span><em>declared once</em></div>
+<pre><code>[[building]]
+name     = "shopfront"
+bins     = [ { resource = "sundries",
+               capacity = 48,
+               owner = "occupant" } ]
+occupants = 1
+<span class="hl">business = "bakery"</span>
+parking  = 4</code></pre>
+      <div class="cardfoot">The walls hold what fits in the shop. What is <em>in</em> it belongs to whoever is trading there this year.</div>
+    </div>
+    <div class="codecard">
+      <div class="cardhead"><span>the trades</span><em>tenanted.toml, verbatim</em></div>
+<pre><code>[[business]]
+name = "bakery"
+<span class="hl-e">jobs = 8</span>
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+[[business]]
+name = "barber"
+<span class="hl-e">jobs = 8</span>
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10</code></pre>
+      <div class="cardfoot">Ids live in their own namespace, so a trade and a premises kind may share a name and stay different declarations. Two trades rather than one, because one cannot demonstrate that ids are assigned in declaration order <em>within</em> a namespace.</div>
+    </div>
+  </div>
+
+  <div class="note teal">
+    <span class="lbl">What the split buys, in one sentence</span>
+    <p>The barber replaces the bakery and <strong>the building did not change</strong>. Under a single table, <em>bakery</em> would be a property of the walls, so a tenant leaving would have to demolish the shop to stop being a bakery — and condemnation, which takes the longest failure pressure across a Building's whole Rule list, would let <strong>one starving tenant condemn the other's shop</strong>.</p>
+  </div>
+
+  <!-- E -->
+  <div class="exhead"><span class="ix">E</span><h3>One Rule, three apply counts — same throughput, three different cities</h3></div>
+  <div class="col"><p>This is the configuration axis most likely to be mistaken for a tuning knob. It is not: the three produce different observable behaviour, and choosing between them is a modelling decision fixed at design time.</p></div>
+
+  <div class="codegrid three">
+    <div class="codecard">
+      <div class="cardhead"><span>greedy</span><em>works through its stock</em></div>
+<pre><code>[[rule]]
+name = "bake"
+rate = 32
+<span class="hl">apply = { min = 1, max = 4 }</span>
+inputs = [ { scope = "local",
+   resource = "flour", amount = 4 } ]</code></pre>
+      <div class="cardfoot">Applies as many times as the inputs allow, and <strong>fails if it cannot reach <code>min</code></strong>. Drains its Bin to the floor, so it crosses the supplied/short boundary more often — and chain-walking is paid on <em>entry</em> into shortage. A designer choosing greed is choosing a visible behaviour and paying for it.</div>
+    </div>
+    <div class="codecard">
+      <div class="cardhead"><span>fixed</span><em>owes a quantum</em></div>
+<pre><code>[[rule]]
+name = "upkeep"
+rate = 16
+<span class="hl">apply = { min = 1, max = 1 }</span>
+inputs = [ { scope = "local",
+   resource = "repairs", amount = 4 } ]</code></pre>
+      <div class="cardfoot">Performs a defined quantum or fails. Not a second mechanism — <code>min = max</code> is the degenerate band. Infrastructure upkeep draws cost ÷ effective life per Day and <strong>must never draw more because the treasury happens to be full</strong>.</div>
+    </div>
+    <div class="codecard">
+      <div class="cardhead"><span>derived</span><em>consults a Readout</em></div>
+<pre><code>[[rule]]
+name = "consume"
+rate = 32
+<span class="hl-e">apply = { derived = "occupancy",
+         percent = 100 }</span>
+inputs = [ { scope = "local",
+   resource = "sundries", amount = 4 } ]</code></pre>
+      <div class="cardfoot">Runs once per unit of the Readout. <strong>A derived count of zero is a <em>success</em></strong>, not a failure — an empty Building re-arms normally and explains itself. Declaring a band <em>and</em> a derived count on one Rule is refused: their failure semantics collide.</div>
+    </div>
+  </div>
+
+  <div class="col">
+    <p><strong>Greed handles what is <em>consumed</em>; a derived count handles what is <em>consulted</em>.</strong> Flour is spent, so stock decides <code>n</code>. Fertility is never consumed and greed cannot see it, which is why both specifications have to exist. The percentage form is also the whole reason there is no expression language — "15% of gross income" is one unit of money applied <code>gross × 15 / 100</code> times.</p>
+  </div>
+
+  <!-- F -->
+  <div class="exhead"><span class="ix">F</span><h3>One city, two failure modes — a two-Rule diff</h3></div>
+  <div class="col"><p>The strongest example in the repository of configuration changing what a city <em>is</em>. Same roads, same kind, same population. Two Rules deleted.</p></div>
+
+  <div class="codegrid two">
+    <div class="codecard">
+      <div class="cardhead"><span>minimal.toml</span><em>the premises fail</em></div>
+<pre><code>[[rule]] name = "restock"  <span class="dim">✓</span>
+[[rule]] name = "consume"  <span class="dim">✓</span>
+[[rule]] name = "upkeep"   <span class="dim">✓ starves</span>
+
+<span class="dim">→ tenants are fed
+→ the roof is never repaired</span></code></pre>
+      <div class="cardfoot"><strong>2,610 Buildings condemned · 0 tenancies ended</strong>, over ten Days at 1,000 Citizens. Nothing ever moves out; the walls come down around people who were fine.</div>
+    </div>
+    <div class="codecard">
+      <div class="cardhead"><span>evicted.toml</span><em>the tenant fails</em></div>
+<pre><code><span class="dim">[[rule]] name = "restock"</span>  <span class="hl">✗ deleted</span>
+[[rule]] name = "consume"  <span class="dim">✓ starves</span>
+<span class="dim">[[rule]] name = "upkeep"</span>   <span class="hl">✗ deleted</span>
+
+<span class="dim">→ the larder is filled by nothing
+→ the premises cannot fail at all</span></code></pre>
+      <div class="cardfoot"><strong>0 condemned · 929 tenancies ended</strong>, over 8,192 Ticks at 1,000 Citizens. It cycles on purpose: a tenancy ends, the Household enters the Unplaced Pool, placement rehouses it, it starves again.</div>
+    </div>
+  </div>
+
+  <div class="note red">
+    <span class="lbl">And the caveat that travels with it</span>
+    <p>The file's own header: <em>a dwelling whose larder nothing fills is an absence of a mechanism rather than a hardship, so the numbers this file produces ratify nothing.</em> The two runs are the same city with the failure moved from the premises to the tenant — which is the point, and is why it is a two-Rule diff rather than a new world.</p>
+  </div>
+
+  <div class="col">
+    <h3>What the six add up to</h3>
+    <p>Configuration in this engine varies along four axes and no others: <strong>which Bins a kind has and who owns them</strong>, <strong>how many Occupants and jobs it declares</strong>, <strong>how a Rule's apply count is specified</strong>, and <strong>which Rules exist at all</strong>. Everything a conventional city-builder would express as a building <em>type</em> — wealth, level, quality, desirability — is downstream of those four rather than declared beside them.</p>
+    <p>The cost of that austerity is example C. The payoff is examples D and F.</p>
+  </div>
+</section>
+
+<hr class="end">
+<p class="colophon">Sources read: <span class="mono">docs/02-simulation-model.md §1, §4, §5</span> · <span class="mono">src/Borough.Core/Rules/</span> · <span class="mono">CONTEXT.md</span> · all fifteen files in <span class="mono">rulesets/</span>. Figures quoted with the clause that says what they measure, per the corpus rule on caveats not travelling with digits.</p>
+
+</div>
+</body>
+</html>
