@@ -425,8 +425,8 @@ public sealed class ProvisionedRulesetTests
         Assert.NotEqual(default, levy);
         Assert.True(amount > 0);
 
-        long ended = 0;
         int declined = Rows.NoSlot;
+        ulong pressure = 0;
         int diagTick = -1;
 
         // Businesses seen, ON AN EARLIER SAMPLE, holding at least one levy's worth. THE WHOLE TEST
@@ -452,7 +452,6 @@ public sealed class ProvisionedRulesetTests
         for (int tick = 0; tick < 32_768 && declined == Rows.NoSlot; tick++)
         {
             simulation.Step(TickInput.Empty);
-            ended += simulation.Zoning.Drain().Ended.Sum;
 
             if (tick % 256 != 0)
             {
@@ -486,6 +485,7 @@ public sealed class ProvisionedRulesetTests
                 if (tills.TryGetValue(on, out int shop) && earned.Contains(shop))
                 {
                     declined = shop;
+                    pressure = (ulong)tick - world.RuleInstances.StarvedSince[i].Raw;
                 }
             }
 
@@ -512,7 +512,33 @@ public sealed class ProvisionedRulesetTests
             + "rates' amount against what a shop on this file actually earns before assuming the "
             + "mechanism is broken.");
 
-        Assert.True(ended > 0, "no tenancy ended, so nothing was actually turned out by going broke.");
+        // 🔴 THIS USED TO ASSERT `ended > 0` AND IT WAS TRUE FOR A REASON THAT HAD NOTHING TO DO WITH
+        // SHOPS. Zoning.Drain().Ended counts EVERY tenancy end, and on this file the ones it counted
+        // were DWELLINGS: the tenant-side clock was condemn_after 4 against `restock`'s rate of 8, so
+        // 32 Ticks, while no District -- and therefore no market to buy from -- exists until
+        // [districts] revisit_ticks = 2048. Every Household starved by construction and was turned out
+        // after 32 Ticks of it. ***The assertion's own failure message, "nothing was actually turned
+        // out by going broke", was TRUE ON THE DAY IT PASSED.***
+        //
+        // 🔴 AND NO RULESET VALUE COULD HAVE MADE IT MEAN WHAT IT SAID. ZoneRuleEngine.Condemn's
+        // tenancy loop walks World.Occupants -- the Households in a Building. A Business occupies
+        // through World.BuildingBusinesses, "the second Occupant list" (adr/0113), and NOTHING WALKS
+        // IT; `Worst` is typed Handle<Household>, so the gap is visible in a signature. A Business's
+        // Failure Pressure therefore never reaches any threshold: ***a shop can go broke and cannot be
+        // turned out.*** Found 2026-08-26 by the milestone-17 session, measured across four Ruleset
+        // variants with every threshold armed on both kinds.
+        //
+        // ⚠ THE REPAIR IS NOT TO WIDEN WHAT `ended` COUNTS -- that is what was already happening. What
+        // a broke shop's eviction should DO is undecided (Unplace sends a Household to the Unplaced
+        // Pool; whether a Business goes to UnpremisedTable or is destroyed decides whether its capital
+        // survives), and it is plans/0002 §A owned by milestone 26. Until then this asserts the
+        // pressure and not the eviction, because the eviction is unbuilt.
+        Assert.True(
+            pressure > 0,
+            "the broke shop's levy Rule carried no failure pressure, so it was short of money for an "
+            + "instant rather than persistently. StarvedSince is set by RuleEngine.Stop and cleared "
+            + "TOTALLY by Fire (adr/0053), so a clock still running at end of run is a shop that has "
+            + "not paid since it started failing.");
 
         // The counterparty, and the reason the Rule has two terms rather than one. adr/0024: money is
         // conserved, so a cost paid to nobody is a leak. CheckEndOfRun folds every balance against
