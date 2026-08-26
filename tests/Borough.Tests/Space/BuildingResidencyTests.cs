@@ -169,6 +169,8 @@ public sealed class BuildingResidencyTests
         // Warm the path first, or the measurement is of the JIT rather than of the query.
         _ = world.BuildingsInCells.In(box, world.Buildings, into);
 
+        long jitMethods = System.Runtime.JitInfo.GetCompiledMethodCount(currentThread: true);
+        long jitIl = System.Runtime.JitInfo.GetCompiledILBytes(currentThread: true);
         int gen0 = GC.CollectionCount(0);
         int gen1 = GC.CollectionCount(1);
         int gen2 = GC.CollectionCount(2);
@@ -182,7 +184,7 @@ public sealed class BuildingResidencyTests
         long after = GC.GetAllocatedBytesForCurrentThread();
 
         AllocationProbe.Check(
-            "BuildingResidencyTests.Answering_the_query_allocates_nothing", before, after, gen0, gen1, gen2);
+            "BuildingResidencyTests.Answering_the_query_allocates_nothing", before, after, gen0, gen1, gen2, jitMethods, jitIl);
     }
 
     /// <summary>

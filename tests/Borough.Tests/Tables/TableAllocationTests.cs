@@ -100,6 +100,8 @@ public class TableAllocationTests
         // Reach steady state first: every array is at its final size and the free list is warm.
         Churn(world, handles);
 
+        long jitMethods = System.Runtime.JitInfo.GetCompiledMethodCount(currentThread: true);
+        long jitIl = System.Runtime.JitInfo.GetCompiledILBytes(currentThread: true);
         int gen0 = GC.CollectionCount(0);
         int gen1 = GC.CollectionCount(1);
         int gen2 = GC.CollectionCount(2);
@@ -108,7 +110,7 @@ public class TableAllocationTests
         long after = GC.GetAllocatedBytesForCurrentThread();
 
         AllocationProbe.Check(
-            "TableAllocationTests.Allocate_free_and_reuse_allocate_no_managed_memory", before, after, gen0, gen1, gen2);
+            "TableAllocationTests.Allocate_free_and_reuse_allocate_no_managed_memory", before, after, gen0, gen1, gen2, jitMethods, jitIl);
     }
 
     [Fact]
@@ -123,6 +125,8 @@ public class TableAllocationTests
 
         world.HashState();
 
+        long jitMethods = System.Runtime.JitInfo.GetCompiledMethodCount(currentThread: true);
+        long jitIl = System.Runtime.JitInfo.GetCompiledILBytes(currentThread: true);
         int gen0 = GC.CollectionCount(0);
         int gen1 = GC.CollectionCount(1);
         int gen2 = GC.CollectionCount(2);
@@ -131,7 +135,7 @@ public class TableAllocationTests
         long after = GC.GetAllocatedBytesForCurrentThread();
 
         AllocationProbe.Check(
-            "TableAllocationTests.Hashing_the_world_allocates_no_managed_memory", before, after, gen0, gen1, gen2);
+            "TableAllocationTests.Hashing_the_world_allocates_no_managed_memory", before, after, gen0, gen1, gen2, jitMethods, jitIl);
     }
 
     [Fact]
@@ -147,6 +151,8 @@ public class TableAllocationTests
 
         int buildingSlot = world.Buildings.Rows.Resolve(building);
 
+        long jitMethods = System.Runtime.JitInfo.GetCompiledMethodCount(currentThread: true);
+        long jitIl = System.Runtime.JitInfo.GetCompiledILBytes(currentThread: true);
         int gen0 = GC.CollectionCount(0);
         int gen1 = GC.CollectionCount(1);
         int gen2 = GC.CollectionCount(2);
@@ -161,7 +167,7 @@ public class TableAllocationTests
         long after = GC.GetAllocatedBytesForCurrentThread();
 
         AllocationProbe.Check(
-            "TableAllocationTests.Walking_an_intrusive_list_allocates_no_managed_memory", before, after, gen0, gen1, gen2);
+            "TableAllocationTests.Walking_an_intrusive_list_allocates_no_managed_memory", before, after, gen0, gen1, gen2, jitMethods, jitIl);
         Assert.True(seen > 0);
     }
 
