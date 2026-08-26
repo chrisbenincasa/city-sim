@@ -5,6 +5,7 @@ using Borough.Core.Evidence;
 using Borough.Core.Input;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
+using Borough.Core.Tables;
 using Borough.Formats;
 
 namespace Borough.Tests.Rules;
@@ -353,5 +354,174 @@ public sealed class ProvisionedRulesetTests
             "no buyer ever slept on a MONEY Bin, so the purchase failed for want of funds without "
             + "subscribing to anything -- which is exactly the half adr/0137 said would be skipped. "
             + "Check that RuleEngine.Buy still Touches the purse rather than checking it separately.");
+    }
+    /// <summary>
+    /// <b>A shop goes broke, and going broke is not the same as going hungry</b> — milestone 26
+    /// task 7, and the world <c>plans/0037</c> task 10 has been waiting for.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>A shop nobody buys from is IMMORTAL, and that is what the <c>rates</c> Rule exists to
+    /// fix.</b> Unsold stock fills the seller's Bin, so its <c>stock</c> Rule stops on
+    /// <c>Blocking.Space</c> — and <c>RuleEngine.Stop</c> <b>clears</b> the failure-pressure clock for
+    /// every blocking reason but <c>Supply</c>, deliberately, because a full Bin is what a
+    /// well-supplied Building with nobody to sell to looks like. ***So a trade cannot be made to churn
+    /// by failing to SELL; it must go short of something it CONSUMES***, which is money
+    /// (<c>adr/0163</c> corrected the day it was written, and <c>adr/0166</c>).
+    /// </para>
+    /// <para>
+    /// <b>The counterparty is the treasury and that is <c>adr/0024</c> rather than a preference.</b>
+    /// Money is conserved, so a local money input with no matching output is refused by
+    /// <c>RulesetLoader</c>'s refusal 4 — <em>"a cost paid to nobody is a leak, not a cost"</em>, which
+    /// is the loader's own message rather than a sentence in that record. <c>adr/0169</c> holds why a
+    /// levy and not rent, and names cost of goods to a supplier as the successor.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The assertion is that the two failures are TOLD APART, not that bankruptcy is common.</b>
+    /// It is a tail event by construction: the levy is ~25% of a median shop's revenue, so the weakest
+    /// two of twenty fail and the rest trade on. A test that counted blocked Rules would pass with the
+    /// levy at any level, including one nothing could fail.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It must outlast <c>condemn_after</c> firings of a 1,024-Tick Rule</b>, so the horizon is
+    /// tens of thousands of Ticks rather than thousands: a shop has to be raised, stand in a District,
+    /// trade long enough to be poor rather than new, and then miss four levies.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_shop_that_cannot_pay_its_levy_goes_broke_and_the_treasury_is_paid()
+    {
+        Ruleset rules = Load();
+
+        var key = WorldKey.FromSeed(0x9A0FEDU);
+        var world = new World(2_000, rules, key);
+
+        SyntheticCity.PopulateInto(world, key, Ticks.Zero);
+
+        var simulation = new Simulation(world, key) { VerifyDecideWritesNothing = false };
+
+        Assert.True(world.TryMoneyResource(out ResourceId money));
+
+        // The levy Rule, by position in the file. Read rather than hard-coded so that inserting a
+        // Rule above it moves the test with the Ruleset instead of silently measuring another Rule --
+        // which happened while this was being written, and read as "the mechanism does not fire".
+        RuleId levy = default;
+        long amount = 0;
+
+        for (int id = 0; id < rules.RuleCount; id++)
+        {
+            var candidate = new RuleId((byte)(id + 1));
+
+            foreach (Term input in rules.Inputs(candidate))
+            {
+                if (input.Bin.Scope == Scope.Local && rules.IsConserved(input.Bin.Resource))
+                {
+                    levy = candidate;
+                    amount = input.Amount;
+                }
+            }
+        }
+
+        Assert.NotEqual(default, levy);
+        Assert.True(amount > 0);
+
+        long ended = 0;
+        int declined = Rows.NoSlot;
+        int diagTick = -1;
+
+        // Businesses seen, ON AN EARLIER SAMPLE, holding at least one levy's worth. THE WHOLE TEST
+        // TURNS ON THIS SET, and on both halves of how it is built.
+        //
+        // A shopfront opens at a ZERO balance -- adr/0148 instantiates the kind's trade and nothing on
+        // this file founds one -- and it cannot sell until the watershed gives it a District, so its
+        // first levies fail while it is simply NEW. ***That is poverty at birth and it is not
+        // decline.*** Without this set the test passes on the first shopfront ever raised, at Tick
+        // 6,144, having proved only that a shop with nothing cannot pay.
+        //
+        // ⚠ The threshold is the levy's own AMOUNT and not "> 0", and the set is updated AFTER the
+        // check rather than before. Held to "> 0" and updated first, a shop that had earned 100 and
+        // owed 8,192 would qualify -- which is the same shop, still too new, wearing a stronger word.
+        // What is asserted here is that the shop COULD have paid on an earlier Tick and cannot now.
+        var earned = new HashSet<int>();
+
+        // till Bin slot -> Business. A Business's Bin leaves BinTable.Owner unset -- that column is a
+        // Handle<Building> and cannot hold one (adr/0114) -- so the link is only walkable in this
+        // direction.
+        var tills = new Dictionary<int, int>();
+
+        for (int tick = 0; tick < 32_768 && declined == Rows.NoSlot; tick++)
+        {
+            simulation.Step(TickInput.Empty);
+            ended += simulation.Zoning.Drain().Ended.Sum;
+
+            if (tick % 256 != 0)
+            {
+                continue;
+            }
+
+            for (int i = 0; i < world.RuleInstances.Rows.SlotCount; i++)
+            {
+                if (!world.RuleInstances.Rows.IsLive(i)
+                    || world.RuleInstances.Rule[i] != levy
+                    || !world.Bins.Rows.TryResolve(world.RuleInstances.WaitingOn[i], out int on))
+                {
+                    continue;
+                }
+
+                // THE POINT OF task 5, ASSERTED. A levy Rule waits on a MONEY Bin, and every other
+                // failure in this world waits on a Good -- so the Resource's family is what tells
+                // bankruptcy from starvation, exactly as adr/0137 said it would once Evidence could
+                // see the Bin at all.
+                Assert.True(
+                    rules.IsConserved(world.Bins.Resource[on]),
+                    "the levy Rule is waiting on a Bin that does not hold money. Its only input is "
+                    + "local money, so there is nothing else it can be short of; a Good here means "
+                    + "the subject was resolved to the premises rather than to the Business.");
+
+                if (diagTick < 0)
+                {
+                    diagTick = tick;
+                }
+
+                if (tills.TryGetValue(on, out int shop) && earned.Contains(shop))
+                {
+                    declined = shop;
+                }
+            }
+
+            for (int i = 0; i < world.Businesses.Rows.SlotCount; i++)
+            {
+                if (world.Businesses.Rows.IsLive(i)
+                    && world.Bins.Rows.TryResolve(world.Businesses.Balance[i], out int till))
+                {
+                    tills[till] = i;
+
+                    if (world.Bins.LevelAt(till) >= amount)
+                    {
+                        earned.Add(i);
+                    }
+                }
+            }
+        }
+
+        Assert.True(
+            declined != Rows.NoSlot,
+            $"no shop that had earned money ever failed its levy (first broke shop of any kind at Tick "
+            + $"{diagTick}), so the decline half is present and unobservable. That is how this Rule was "
+            + "first written -- at ~6% of a median shop's revenue nothing could fail. Check [[rule]] "
+            + "rates' amount against what a shop on this file actually earns before assuming the "
+            + "mechanism is broken.");
+
+        Assert.True(ended > 0, "no tenancy ended, so nothing was actually turned out by going broke.");
+
+        // The counterparty, and the reason the Rule has two terms rather than one. adr/0024: money is
+        // conserved, so a cost paid to nobody is a leak. CheckEndOfRun folds every balance against
+        // MoneySupplyTable.Issued and would fail if the levy created or destroyed a unit.
+        int treasury = world.FindTreasuryBin(money);
+
+        Assert.NotEqual(Rows.NoSlot, treasury);
+        Assert.True(world.Bins.LevelAt(treasury) > 0, "the treasury collected nothing, so no levy settled.");
+
+        simulation.CheckEndOfRun();
     }
 }

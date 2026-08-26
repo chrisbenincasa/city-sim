@@ -124,13 +124,41 @@ public sealed class BoardShapeTests
         }
     }
 
+    /// <summary>
+    /// Splits a table row into its cells.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>The trailing <c>|</c> is OPTIONAL and this used to require it</b>, dropping the last cell
+    /// of any row that omitted one — <c>i &lt; parts.Length - 1</c> exists to skip the empty string
+    /// after a trailing pipe, and a row without one has a real cell in that position instead.
+    /// <b>Found 2026-08-26 by milestone 26 task 7</b>: exactly one row on the board lacked the pipe,
+    /// it was row 1, and the cell it hid was <b>1,724 characters and seven sentences</b> against a
+    /// ceiling of three. ⚠ <b>The busiest cell on the board was the one cell rule 2 could not see</b>,
+    /// and it had been growing there for days while the check reported green.
+    /// <para>
+    /// ***A parser that assumes well-formed input fails silently on the row that needs it most***,
+    /// because the row somebody keeps appending to is the row whose punctuation eventually goes wrong.
+    /// The repair is to normalise the row rather than to fix the board, so the next omission costs
+    /// nothing.
+    /// </para>
+    /// </remarks>
     private static IEnumerable<string> Cells(string row)
     {
-        string[] parts = row.Split('|');
+        string trimmed = row.Trim();
 
-        for (int i = 1; i < parts.Length - 1; i++)
+        if (trimmed.StartsWith('|'))
         {
-            yield return parts[i].Trim();
+            trimmed = trimmed[1..];
+        }
+
+        if (trimmed.EndsWith('|'))
+        {
+            trimmed = trimmed[..^1];
+        }
+
+        foreach (string part in trimmed.Split('|'))
+        {
+            yield return part.Trim();
         }
     }
 
@@ -377,6 +405,20 @@ public sealed class BoardShapeTests
             "| **11** | ✅ **DONE 2026-08-21**, all nine tasks and all ten decisions settled. |",
         ];
         Assert.Single(Rule3Violations(closed));
+
+        // 🔴 THE TRAILING PIPE IS OPTIONAL, AND REQUIRING IT HID THE BOARD'S LARGEST CELL FOR DAYS.
+        // Cells() skips one empty part at the end to account for a trailing '|'; a row without one has
+        // a real cell there instead. On 2026-08-26 exactly one row on the board omitted it, it was row
+        // 1, and the cell it hid was seven sentences and 1,724 characters against a ceiling of three.
+        // ⚠ Both spellings must report the SAME violation, which is what this pair asserts -- a check
+        // that reads one dialect of its own input format is a check with a silent exemption in it.
+        string[] noTrailingPipe =
+        [
+            "| | Task |",
+            "|---|---|",
+            "| **1** | One sentence here. Two sentences here. Three sentences here. Four is over.",
+        ];
+        Assert.Single(Rule2Violations(noTrailingPipe));
 
         // A link's URL and a code span carry punctuation that is not prose, and must not be read as any.
         string[] punctuationInside =

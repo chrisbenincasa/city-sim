@@ -4203,3 +4203,62 @@ already `0139`'s own revisit trigger and `0167`'s first one.
       caught this does not exist and may not be cheap**: it is *a record does not contradict itself*,
       which is not a link, a citation, a count or a registry figure — the four shapes
       `tests/Borough.Tests/Corpus/` can currently express.
+
+---
+
+## Filed 2026-08-26, by milestone 26 task 7 — a mechanical check with a silent exemption, and a quotation attributed to a plausible neighbour
+
+### 🔴 `BoardShapeTests` rule 2 could not see the board's largest cell, because the row omitted a trailing `|`
+
+**Fixed the day it was found; recorded because the shape is the point and the shape is new.**
+`BoardShapeTests.Cells` split a row on `|` and iterated `1 .. parts.Length - 2`, which is correct for a
+row written `| a | b |` — the last part is the empty string after the trailing pipe — and **drops a real
+cell** from a row written `| a | b`. Markdown accepts both.
+
+🔴 **Exactly one row on the board omitted it, it was row 1, and the cell it hid was 1,724 characters and
+seven sentences against a ceiling of three.** The check had been reporting green while the cell it
+exists for grew unread. ⚠ **It is not a coincidence that it was that row**: the row somebody appends to
+every day is the row whose punctuation eventually goes wrong, so ***the cell a length check most needs
+to see is the cell most likely to break the parser that feeds it.***
+
+⚠ **This is not `Cause 5` and it is not `Cause 1`.** Nothing drifted and nothing was miscopied — a
+check was **narrower than its own claim**, and the gap was invisible from the outside because the
+failure mode of a too-narrow check is *silence*. The nearest sibling in this ledger is `adr/0021`
+*called a rule **checkable** for four years, and nothing could have checked it*, and the difference is
+that this one **half**-worked, which is worse: a check that never runs gets noticed, and a check that
+runs on nine rows out of ten reports success.
+
+**Repair, and it is two halves.** `Cells` now normalises the row — strip one leading and one trailing
+pipe, then split — so the next omission costs nothing. And the synthetic board in
+`The_three_rules_hold_on_a_synthetic_board` gained the row **without** the trailing pipe asserting the
+**same** violation as the row with it, under `CLAUDE.md`'s rule that a diagnostic ships with a test that
+writes the violation and watches it fire. ⚠ **The board itself was also brought under the ceiling**, but
+that is the smaller half: ***fixing the row would have left the parser waiting for the next row.***
+
+**A sibling nobody has looked for.** Every corpus check parses markdown by hand. This one assumed a
+dialect; the others may too — `CitationTests` splits on nothing, but the table-rendering checks and
+`0000a`'s index checks all read rows. ⚠ **No claim is made here that they are wrong** — this is a place
+to look, which is [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+observed rather than a finding.
+
+### ⚠ *"A cost paid to nobody is a leak, not a cost"* is the loader's message, and three documents credited `adr/0024`
+
+**Corrected on the day, in all three, and recorded because the corpus's own checks cannot reach it.**
+The sentence is `RulesetLoader`'s **refusal 4**, quoted by
+[`adr/0117`](../docs/adr/0117-upkeep-leaves-milestone-10-and-its-blocker-is-a-rule-with-no-actor.md).
+`adr/0024` argues that money is conserved and **never puts it that way**. Milestone 26 task 7 attributed
+it to `0024` in the new `adr/0169`, in `rulesets/provisioned.toml`'s header and in
+`ProvisionedRulesetTests`' doc comment — three places, one act — and it was found only by grepping for
+the phrase after two *unrelated* link targets failed to resolve.
+
+🔴 **This is `Cause 5` with the digits replaced by a sentence.** A quotation needed a source, a
+plausible neighbour was to hand, and the attribution was supplied rather than checked — the caveat
+travelled and the provenance did not. ⚠ **The consequence is worse than a bare number**: the wrong
+document now reads as having said something load-bearing, so anyone who follows the citation to check
+the claim finds a record that does not contain it and has no way to tell whether the claim or the
+citation is the error.
+
+⚠ **`CitationTests` cannot catch this and is not failing.** It asserts that a link **resolves**, never
+that a quotation is **where it says it is** — a gap that is real and probably not worth closing
+mechanically, since the check would have to distinguish quotation from paraphrase. ***The reading rule
+already covers it and was simply not followed***: quote the sentence, and name where the sentence is.
