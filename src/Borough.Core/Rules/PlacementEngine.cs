@@ -333,20 +333,52 @@ public sealed class PlacementEngine
             return false;
         }
 
+        // ⚠ DRAWS AND LOOKS ARE DIFFERENT THINGS, AND A SHELL IS THE REASON.
+        //
+        // `candidates` is the Ruleset's number and it means LOOKS AT SOMEWHERE ONE COULD LIVE. An
+        // abandoned Building is not one: adr/0091 leaves the shell standing on its Lot, and
+        // World.HasRoom refuses it unconditionally, so a draw that lands on one can never house
+        // anybody however the rest of the city is doing. Spending a look on it made `candidates`
+        // mean `candidates x (1 - blight)` -- which is EXACTLY the defect adr/0165 removed when it
+        // moved this draw from Buildings to Lots, arriving from the other direction. That remark is
+        // worth reading beside this one: *"lowering the demolition rate would have silently raised
+        // the effective candidate count."* Raising the ABANDONMENT rate silently lowered it.
+        //
+        // Measured on declining.toml at 1,000 Citizens: 44% of standing Buildings are shells at
+        // steady state, so three looks bought about 1.7.
+        //
+        // ⚠ THE VACANT LOT STAYS A LOOK AND THAT IS NOT AN INCONSISTENCY. ZonedLots draws the line
+        // and this side of it is unchanged: a vacant Lot that admits a dwelling is *a home not yet
+        // built*, and viewing one is a real disappointment a seeker really has. A shell is not a home
+        // at all -- it is the ruin of one, and it cannot become a home again until it collapses and
+        // the Lot returns to vacant. Nobody flat-hunting ever viewed a demolition site.
+        //
+        // 🔴 THE REDRAW BUDGET REUSES `candidates` RATHER THAN INTRODUCING A NUMBER. A bound is
+        // needed at all because a city can be almost entirely shells, and an unbounded skip would be
+        // an unbounded loop in the hot path. Doubling is the weakest bound that leaves `candidates`
+        // meaning what the Ruleset says in any city where shells are the minority, and it is chosen
+        // rather than derived -- filed in plans/0002 as a work bound owed a ratifier, NOT as a design
+        // number, because it cannot change who gets housed until a world is more than half derelict.
+        int budget = candidates * 2;
+
         // Read once, above the loop, and it stays valid for the whole call: the Pool only churns
         // inside Place, which is the last thing this method does. Re-reading it per candidate would
         // be free and correct today, and would silently stop being correct the day anything between
         // here and Place removes a member.
         int position = _world.Households.PoolPosition(slot);
 
-        for (int look = 0; look < candidates; look++)
+        int looks = 0;
+
+        for (int draw = 0; draw < budget && looks < candidates; draw++)
         {
             // Keyed on the Household's monotonic id rather than its Pool position, so that who a
-            // family looks at does not change because somebody ahead of them was housed. The look
-            // ordinal separates the candidates within one occasion; the shift count is constant,
-            // which is what keeps BOR0204 quiet.
+            // family looks at does not change because somebody ahead of them was housed. ⚠ The
+            // ordinal is the DRAW and not the look, because two draws sharing an ordinal would
+            // return the same Lot -- so a skipped shell would be redrawn for ever inside its own
+            // budget and the redraw would buy nothing. The shift count is constant, which is what
+            // keeps BOR0204 quiet.
             ulong entity = Randomness.Mix(
-                _world.Households.Rows.IdAt(slot) ^ ((ulong)(uint)look << 32));
+                _world.Households.Rows.IdAt(slot) ^ ((ulong)(uint)draw << 32));
 
             ulong value = Randomness.Draw(_key, entity, tick, PurposeTag.PlacementCandidate);
 
@@ -354,12 +386,20 @@ public sealed class PlacementEngine
             int lot = _world.LotsAdmitting.Nth(
                 _world.Lots, LotTable.Housing, (int)(value % (ulong)(uint)lots));
 
+            int building = _world.Lots.BuildingOn(lot);
+
+            // The shell. Not a look, not a disappointment, and not counted as either.
+            if (building != Rows.NoSlot && _world.Buildings.IsAbandoned(building))
+            {
+                continue;
+            }
+
+            looks++;
+
             // A vacant Lot is a look that found nothing, which is a real thing to happen to somebody
             // looking for somewhere to live and is why the draw is over Lots at all. ⚠ It is a real
             // thing only because this Lot ADMITS a dwelling -- see ZonedLots, which draws the line
             // between a home not yet built and land that will never hold one.
-            int building = _world.Lots.BuildingOn(lot);
-
             if (building == Rows.NoSlot)
             {
                 continue;
@@ -370,6 +410,10 @@ public sealed class PlacementEngine
             // in a city with a housing shortage. Counting only the ones with room would make the
             // Evidence line read zero in exactly the city it exists to describe, and a look that
             // found a vacant Lot is still not counted, because nobody was shown a home.
+            //
+            // ⚠ A SHELL IS NOT COUNTED HERE EITHER, AND IT USED TO BE. `considered N dwellings` was
+            // counting ruins nobody could be shown, so on a declining world the Evidence line
+            // overstated what a Household had been offered by roughly the blight share.
             _world.UnplacedPool.Considered[position]++;
 
             if (!_world.HasRoom(building))

@@ -409,7 +409,7 @@ public readonly record struct RuleDefinition(
     /// </para>
     /// <para>
     /// <b>An init property rather than a positional parameter</b>, on
-    /// <see cref="KindDefinition.CondemnAfter"/>'s precedent and for its reason: the default is the
+    /// <see cref="KindDefinition.CondemnAfterTicks"/>'s precedent and for its reason: the default is the
     /// behaviour of every Ruleset written before this existed, and the forty-odd construction sites
     /// in the test suite are all stating it.
     /// </para>
@@ -422,15 +422,37 @@ public readonly record struct KindDefinition(
     int BinFirst, int BinCount, int RuleFirst, int RuleCount)
 {
     /// <summary>
-    /// How many firings a Rule of this kind may miss, starved, before the Building is condemned.
-    /// Zero means it never is.
+    /// How many TICKS a Rule of this kind may starve continuously before the premises are condemned
+    /// and the Building is abandoned. Zero means it never is.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>In missed firings rather than in Ticks</b> (<c>adr/0053</c>). A Rule fires every
-    /// <c>rate</c> Ticks when healthy, so silence of <c>N × rate</c> is <c>N</c> missed firings —
-    /// dimensionless, and immune to a Ruleset that retunes every rate and would otherwise have
-    /// silently retuned every Building's lifespan.
+    /// 🔴 <b>A DURATION, AND IT WAS A COUNT OF MISSED FIRINGS UNTIL MILESTONE 17.</b>
+    /// <c>adr/0053</c> chose the firing count so that a Ruleset retuning every <c>rate</c> would not
+    /// silently retune every Building's lifespan. That reasoning is sound and it solved the wrong
+    /// half: it protects the number from a cadence edit and leaves the <em>designer</em> unable to
+    /// see what the number means. <c>condemn_after = 4</c> against <c>upkeep</c>'s rate of 16 is 64
+    /// Ticks — <b>45 in-world minutes</b> — and it stood in all eighteen shipped Rulesets without
+    /// one author ever writing a different value, because nothing on the page said it was
+    /// three quarters of an hour.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>THE RULESET AUTHORS DAYS AND THIS FIELD HOLDS TICKS.</b> The designer-facing key is
+    /// <c>condemn_after_days</c> and <c>RulesetLoader</c> multiplies it up, which is
+    /// <c>adr/0048</c>'s division doing exactly what it is for — <i>the parse site is where a
+    /// Ruleset is validated, and only integers cross into the core</i>. A Day is the coarsest unit
+    /// that makes the mistake above unwritable on the page: the shortest decline a Ruleset can
+    /// author is 2,048 Ticks, and 45 minutes is not expressible at all. <b>A fixture built in code
+    /// may still hold any Tick count</b>, and most of them do, because a test that had to run a
+    /// whole in-world Day to watch one Building fall down would be a four-minute assertion.
+    /// </para>
+    /// <para>
+    /// <b>The PREMISES only</b> (<c>adr/0141</c>). This threshold judges the Rules the premises own —
+    /// <c>upkeep</c> and its kin — and the tenants are judged separately against
+    /// <see cref="TenancyEndsAfterTicks"/>. ⚠ <b>ONE key drove both verdicts until milestone 17</b>,
+    /// so stripping decline from a world also stopped every tenancy in it from ever ending, which is
+    /// how <c>rulesets/evicted.toml</c> — the one file whose whole purpose is a tenancy that ends —
+    /// silently stopped demonstrating it.
     /// </para>
     /// <para>
     /// <b>On the kind rather than on the Zone Rule</b> (<c>adr/0055</c>, and task 3 of
@@ -447,8 +469,71 @@ public readonly record struct KindDefinition(
     /// established; it is left unrefused because a growth-only Ruleset is coherent and would be
     /// refused with it.
     /// </para>
+    /// <para>
+    /// <b>Hash-bearing and UNRATIFIED</b>, held in <c>plans/0002</c> §D1.
+    /// </para>
     /// </remarks>
-    public int CondemnAfter { get; init; }
+    public int CondemnAfterTicks { get; init; }
+
+    /// <summary>
+    /// How many TICKS a tenant's own Rule may starve continuously before the tenancy ends and the
+    /// Occupant is unplaced. Zero means a tenancy of this kind never ends.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The tenant half of <c>adr/0141</c>'s split, and it is a separate number because it is a
+    /// separate question.</b> The ADR split the <em>verdict</em> — a tenant's Failure Pressure ends
+    /// the tenancy, the premises' condemns the Building — and stopped at the threshold, leaving
+    /// <see cref="CondemnAfterTicks"/> answering both. ⚠ <b>That is not a tidiness defect</b>: it
+    /// means a world cannot demonstrate a failing tenant without also demolishing its housing stock,
+    /// and it cannot demonstrate decline without also evicting every tenant, so the two mechanisms
+    /// could never be shown or tested apart.
+    /// </para>
+    /// <para>
+    /// <b>On the PREMISES kind, and that is deliberate rather than convenient.</b> The obvious home
+    /// is the tenant's own kind — but a Household has no kind byte at all (<c>adr/0141</c> found the
+    /// same thing about Bin capacity and reached the same answer), and a Business does. A threshold
+    /// that existed for one kind of tenant and not the other would be unaskable in
+    /// <c>ZoneRuleEngine.Condemn</c>'s occupant walk, which does not know which it is holding.
+    /// <b>So it is a property of the lease rather than of the tenant</b>, which is
+    /// <c>adr/0141</c>'s own <i>the premises own the capacity</i> reaching the one thing left
+    /// unassigned.
+    /// </para>
+    /// <para>
+    /// <b>Authored as <c>tenancy_ends_after_days</c> and held in Ticks</b>, for
+    /// <see cref="CondemnAfterTicks"/>'s reason, and hash-bearing and
+    /// <b>UNRATIFIED</b>, held in <c>plans/0002</c> §D1.
+    /// </para>
+    /// </remarks>
+    public int TenancyEndsAfterTicks { get; init; }
+
+    /// <summary>
+    /// How many Days an abandoned Building of this kind stands before it collapses and its Lot
+    /// returns to vacant.
+    /// </summary>
+    /// <remarks>
+    /// <b>The sink for abandoned stock, and it is REQUIRED of any kind that can be abandoned and
+    /// refused of any kind that cannot</b> — exactly <c>adr/0130</c>'s disposition for
+    /// <c>gives_up_after_days</c>, and for the same reason: <i>a Pool with an inflow and no sink is
+    /// <c>adr/0006</c></i>. A kind with a <see cref="CondemnAfterTicks"/> collects shells, so a kind with
+    /// one and no collapse duration is an unbounded collection a Ruleset can author, and the loader
+    /// refuses it rather than letting a city discover it at Tick 100,000.
+    /// <para>
+    /// 🔴 <b>MEASURED, not reasoned.</b> Milestone 17 task 1 made abandonment leave the shell
+    /// standing with no sink at all, and the result was not a slow leak — <b>the city converts
+    /// entirely to shells</b>: zero jobs, a land value field peaking at zero, and a divide-by-zero in
+    /// the placement pass, across 19 tests in eight subsystems. ***A player-only sink cannot satisfy
+    /// a Definition of done that requires a steady state at 100,000 Ticks with no player present.***
+    /// </para>
+    /// <para>
+    /// <b>A duration in Days rather than a count of sweeps</b> (<c>adr/0059</c>, <c>adr/0130</c>):
+    /// authoring the count would make the felt quantity move whenever a cadence was retuned. It is on
+    /// the <em>kind</em> for <see cref="CondemnAfterTicks"/>'s reason — a concrete tower and a timber shed
+    /// do not stand the same length of time — and it is <b>hash-bearing and UNRATIFIED</b>, held in
+    /// <c>plans/0002</c> §D1.
+    /// </para>
+    /// </remarks>
+    public int CollapsesAfterDays { get; init; }
 
     /// <summary>
     /// How many Occupants a Building of this kind may hold. Zero means it houses nobody.
@@ -2294,7 +2379,7 @@ public sealed class Ruleset
     /// <remarks>
     /// <para>
     /// <b>An init property rather than a positional parameter, following
-    /// <see cref="KindDefinition.CondemnAfter"/>'s precedent</b>, and for the same reason:
+    /// <see cref="KindDefinition.CondemnAfterTicks"/>'s precedent</b>, and for the same reason:
     /// <see cref="LayerRuleset.Default"/> is what every Ruleset written before slice 8 ran on, so the
     /// default is the existing behaviour rather than a placeholder. A file with no <c>[layers]</c>
     /// table is a complete Ruleset.

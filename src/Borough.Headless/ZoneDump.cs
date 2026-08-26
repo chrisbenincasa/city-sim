@@ -46,6 +46,17 @@ internal static class ZoneDump
     /// </remarks>
     private const char Built = '#';
     private const char Vacant = '.';
+
+    /// <summary>
+    /// A Lot whose Building has been abandoned and is standing empty.
+    /// </summary>
+    /// <remarks>
+    /// <b>A shell is not a vacant Lot and not a standing Building</b>, and until milestone 17 the
+    /// dump had no way to say so -- <c>LotTable.IsVacant</c> asks whether a Building stands here,
+    /// which a shell does. The distinction is the whole of what abandonment added: the Lot is
+    /// occupied, nobody lives there, and no Household can be placed into it.
+    /// </remarks>
+    private const char Shell = '~';
     private const char Unzoned = ' ';
 
     /// <summary>Runs the demonstration and writes it to <paramref name="output"/>.</summary>
@@ -111,6 +122,15 @@ internal static class ZoneDump
 
         return 0;
     }
+
+    /// <summary>How much a glyph outranks another when scaling collapses several Lots onto one.</summary>
+    private static int Rank(char glyph) => glyph switch
+    {
+        Built => 3,
+        Shell => 2,
+        Vacant => 1,
+        _ => 0,
+    };
 
     /// <summary>
     /// One row per North coordinate, one glyph per Lot.
@@ -205,6 +225,7 @@ internal static class ZoneDump
 
         int built = 0;
         int vacant = 0;
+        int shells = 0;
 
         for (int slot = 0; slot < slots; slot++)
         {
@@ -214,37 +235,18 @@ internal static class ZoneDump
             }
 
             bool occupied = !lots.IsVacant(slot);
+            bool shell = occupied && world.Buildings.IsAbandoned(lots.BuildingOn(slot));
             int column = lots.East[slot].Raw / scale;
             int row = lots.North[slot].Raw / scale;
 
-            if (column > east || row > north)
+            // Tallied before the window check, because the tallies are about the city and only the
+            // picture is clipped -- a legend saying "877 built" over a grid holding 200 of them
+            // would be worse than either number on its own.
+            if (shell)
             {
-                // Outside the window. Still counted, because the tallies are about the city and only
-                // the picture is clipped -- a legend saying "877 built" over a grid holding 200 of
-                // them would be worse than either number on its own.
-                if (occupied)
-                {
-                    built++;
-                }
-                else
-                {
-                    vacant++;
-                }
-
-                continue;
+                shells++;
             }
-
-            int cell = (row * (east + 1)) + column;
-
-            // Built wins a shared cell. Scaling can only ever collapse Lots together, never split
-            // them, so the honest reading of a cell is "something here is built" -- a picture that
-            // reported the last writer would make occupancy depend on table order.
-            if (occupied || grid[cell] == Unzoned)
-            {
-                grid[cell] = occupied ? Built : Vacant;
-            }
-
-            if (occupied)
+            else if (occupied)
             {
                 built++;
             }
@@ -252,11 +254,32 @@ internal static class ZoneDump
             {
                 vacant++;
             }
+
+            if (column > east || row > north)
+            {
+                continue;
+            }
+
+            int cell = (row * (east + 1)) + column;
+
+            // Built beats Shell beats Vacant beats Unzoned when scaling collapses several Lots onto
+            // one character. Scaling can only ever collapse Lots together, never split them, so the
+            // honest reading of a cell is "the most built thing here" -- a picture that reported the
+            // last writer would make occupancy depend on table order. A shell outranks a vacant Lot
+            // because a Building stands on it, and loses to a standing one because a character that
+            // said "blighted" over a block with a working dwelling in it would overstate the decline.
+            char glyph = occupied ? (shell ? Shell : Built) : Vacant;
+
+            if (Rank(glyph) > Rank(grid[cell]))
+            {
+                grid[cell] = glyph;
+            }
         }
 
         output.WriteLine(
-            $"{built} built, {vacant} vacant. '{Built}' holds a Building, '{Vacant}' is a Lot with "
-            + "none, blank is no Lot at all."
+            $"{built} built, {shells} abandoned, {vacant} vacant. '{Built}' holds a Building "
+            + $"somebody lives in, '{Shell}' holds an abandoned shell nobody can move into, "
+            + $"'{Vacant}' is a Lot with no Building, blank is no Lot at all."
             + (scale == 1 ? string.Empty : Legend(scale, world.Roads.Streets.BlockTiles / scale))
             + (clippedEast > east || clippedNorth > north
                 ? Clipped(east + 1, north + 1, clippedEast + 1, clippedNorth + 1)

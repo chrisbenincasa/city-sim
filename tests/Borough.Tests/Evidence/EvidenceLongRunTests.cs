@@ -76,9 +76,24 @@ public sealed class EvidenceLongRunTests(ITestOutputHelper output)
     /// <remarks>
     /// The trail fills from empty and employment climbs from nobody, so the early Days are a ramp in
     /// both quantities. <c>[jobs] revisit_ticks</c> is 1,024 and the trail saturates well inside one
-    /// Day at this population; eight is generous for both and leaves forty-one Days of tail.
+    /// Day at this population.
+    /// <para>
+    /// 🔴 <b>Eight until milestone 17, and the two quantities above stopped being the slowest ones
+    /// in the world.</b> <c>adr/0167</c> made decline a duration and <c>diagnosed.toml</c> authors
+    /// two Days, so the city's blight now takes tens of Days to reach steady state rather than the
+    /// two it took at a 64-Tick threshold. The reach-failure carrier count read a 3.2-sigma rise
+    /// across a tail that began at Day 8 — <em>which is the transient being sampled as if it were
+    /// the tail</em>, not the city changing under the instrument.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>16 is taken from an independent measurement and not fitted to this test.</b> The blight
+    /// census on <c>declining.toml</c> converges between 32,768 and 65,536 Ticks (41% then 39% of
+    /// stock derelict), and 32,768 Ticks is sixteen Days. Choosing the number from the shape of
+    /// <em>this</em> statistic would be picking a window because the data has that shape, which is
+    /// the one thing a tripwire must not do. Thirty-three Days of tail remain.
+    /// </para>
     /// </remarks>
-    private const int SettleDays = 8;
+    private const int SettleDays = 16;
 
     /// <summary>How far above the first half of the tail the second may read, in standard errors.</summary>
     /// <remarks>
@@ -123,8 +138,29 @@ public sealed class EvidenceLongRunTests(ITestOutputHelper output)
         Assert.True(Mean(tail, d => d.Condemnations) > 0, "nothing was ever condemned.");
         Assert.True(Mean(tail, d => d.Carriers) > 0, "nobody was ever refused a job for distance.");
 
-        // The collection half. Fixed by construction, so this is a guard on the constructor.
+        // The collection half, and 🔴 IT IS A CEILING RATHER THAN A CONSTANT since milestone 17.
+        // This read `Assert.Equal(Retained + 1, day.Slots)` over every Day and called it "fixed by
+        // construction, so this is a guard on the constructor" -- which was wrong about the
+        // mechanism and passed anyway, because the trail reached its cap inside Day 0 while
+        // condemnation took 64 Ticks. The table GROWS to its cap; it does not open at it.
+        //
+        // ***adr/0093 exactly: the sentence named a time when it should have named a symbol.*** A
+        // 2-Day threshold means Days 0 and 1 condemn nothing, so the trail holds one slot and no
+        // entries, and the "constructor guard" failed on a world doing nothing wrong.
+        //
+        // What adr/0006 actually claims is the ceiling, so that is what is asserted over the whole
+        // run -- and equality is kept over the tail, where the trail is full and a table that had
+        // started handing out fresh rows instead of recycling would show it.
         foreach (Day day in days)
+        {
+            Assert.True(
+                day.Slots <= CondemnationTrailTable.Retained + 1,
+                $"the condemnation trail reached {day.Slots} slots against a cap of "
+                + $"{CondemnationTrailTable.Retained + 1}. The trail is a ring: past the cap it "
+                + "aggregates rather than allocating, so a slot count above it is adr/0006.");
+        }
+
+        foreach (Day day in tail)
         {
             Assert.Equal(CondemnationTrailTable.Retained + 1, day.Slots);
         }

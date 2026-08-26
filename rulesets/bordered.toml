@@ -147,8 +147,6 @@ bins = [
     { resource = "sundries", capacity = 48, owner = "occupant" },
     { resource = "repairs",  capacity = 4 },
 ]
-condemn_after = 4
-
 # adr/0148 MOVED THIS FROM 3 TO 4, AND WHAT IT MEANS DID NOT MOVE. One ceiling counts both kinds
 # of tenant (adr/0147), and this kind now comes with a shop -- so four slots minus one trade is
 # the three Households this file has always housed, and `jobs` below still derives from three.

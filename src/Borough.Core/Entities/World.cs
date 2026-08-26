@@ -4646,9 +4646,24 @@ public sealed class World
     /// Placement asks this of every candidate it samples and moves on when the answer is no, which is
     /// an ordinary outcome and not a fault; the guard exists for a caller that placed without asking.
     /// Keeping the two apart is what stops a full city filling the invariant log.
+    /// <para>
+    /// 🔴 <b>AN ABANDONED SHELL IS REFUSED FIRST, and leaving it out was milestone 17 task 1's own
+    /// defect.</b> The occupancy test is <i>declared ceiling against current tenants</i>, and an
+    /// abandoned Building has a declared kind and <b>zero</b> tenants — so it does not merely pass,
+    /// it looks like the emptiest and most attractive dwelling in the city. Placement rehoused
+    /// Households into premises the city had just condemned, and re-premised pooled Businesses into
+    /// them, and the collapse then evicted the lot a second time.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It surfaced as an <c>adr/0006</c> failure on the BUSINESS table</b> — the churn founded
+    /// and pooled trades faster than anything retired them — which is a long way from the Building
+    /// the defect is about. ***The symptom named the collection that grew, not the predicate that
+    /// was wrong.***
+    /// </para>
     /// </remarks>
     public bool HasRoom(int buildingSlot) =>
-        TryDeclaredOccupancy(Buildings.Kind[buildingSlot], out int occupants)
+        !Buildings.IsAbandoned(buildingSlot)
+        && TryDeclaredOccupancy(Buildings.Kind[buildingSlot], out int occupants)
         && Tenants(buildingSlot) < occupants;
 
     /// <summary>
@@ -5566,6 +5581,74 @@ public sealed class World
     {
         int slot = Buildings.Rows.Resolve(building);
 
+        EmptyPremises(slot, tick);
+
+        // The Car Park, and it goes with the Building because the parking a garage provides stops
+        // existing when the garage does. The cars in it are NOT unparked here, and that is deliberate
+        // rather than an oversight: CitizenTable.ParkedIn is Reference.Severable, so every holder's
+        // handle stops resolving in the same act -- which is what keeps adr/0084's conservation sum
+        // balanced across a demolition instead of reporting the leak it exists to catch.
+        //
+        // ⚠ It is also adr/0084's named second mutation site -- *a car displaced by a bulldozed
+        // garage* -- and that ADR says the write-site predicate needs restating before it ships. What
+        // is restated here is only the conservation half. Whether a displaced car should re-query a
+        // shed, and where, is task 4's, and it is the acquire/release pairing that decides it.
+        if (Buildings.HasCarPark(slot))
+        {
+            int carPark = Buildings.CarParkOf(slot);
+            Buildings.DetachCarPark(slot);
+
+            // Before the Free, because unlisting reads the row's own Address to find which Segment's
+            // list to walk -- see CarParkResidency.Remove.
+            CarParksOnSegments.Remove(CarParks, Roads.Segments, carPark);
+
+            CarParks.Rows.Free(CarParks.Rows.At(carPark));
+        }
+
+        // Before the Lot is freed below, because BuildingResidency reads the Lot's position through
+        // the Building's Lot handle -- so a Building removed after its Lot has gone would not find
+        // the Cell it is listed in and would leave a dangling entry for the next allocation of this
+        // slot to be inserted into twice.
+        BuildingsInCells.Remove(Buildings, Lots, slot);
+
+        // Before the row is freed, because the Lot handle is read off it.
+        if (Lots.Rows.TryResolve(Buildings.Lot[slot], out int lotSlot))
+        {
+            Lots.Vacate(lotSlot);
+
+            // A Lot with no frontage outlived its Street only because something stood on it
+            // (adr/0079). With the Building gone there is nothing to keep it a parcel, so it goes
+            // back to being land -- and land with no Street re-parcels if one ever returns.
+            //
+            // Found by LotLongRunTests rather than reasoned out: re-subdivision runs on a road edit,
+            // and a Lot can be vacated at any Tick, so between a demolition and the next edit the
+            // world held a vacant Lot with no Street. That is exactly what
+            // Invariant.VacantLotHasFrontage forbids, and freeing it here is what makes the
+            // invariant true continuously rather than only immediately after an edit.
+            if (HasStreets && !Lots.HasFrontage(lotSlot))
+            {
+                Lots.Rows.Free(Lots.Rows.At(lotSlot));
+
+                // The Lot set shrank, so the zoned draw space is out of date.
+                LotsAdmitting.Invalidate();
+            }
+        }
+
+        Buildings.Rows.Free(building);
+    }
+
+    /// <summary>
+    /// Empties a Building of everything that lives in it, leaving the structure itself untouched.
+    /// </summary>
+    /// <remarks>
+    /// <b>Shared by <see cref="DestroyBuilding"/> and <see cref="AbandonBuilding"/>, and that sharing
+    /// is the point.</b> The two differ only in what happens to the shell afterwards — demolition
+    /// frees the row and returns the Lot to vacant, abandonment leaves both standing. Everything
+    /// before that point is identical, and stating it twice would be two rules that drift
+    /// (<c>05 §4</c>'s reason for one home per predicate).
+    /// </remarks>
+    private void EmptyPremises(int slot, Ticks tick)
+    {
         // Peeked rather than popped, because Unplace removes the Household from this list itself —
         // popping first would leave it unlinking a node that is already off, and the two spellings of
         // "leave the occupant list" would have to agree for ever.
@@ -5671,59 +5754,41 @@ public sealed class World
             Bins.Rows.Free(Bins.Rows.At(bin));
             bin = BuildingBins.PopFront(slot);
         }
+    }
 
-        // The Car Park, and it goes with the Building because the parking a garage provides stops
-        // existing when the garage does. The cars in it are NOT unparked here, and that is deliberate
-        // rather than an oversight: CitizenTable.ParkedIn is Reference.Severable, so every holder's
-        // handle stops resolving in the same act -- which is what keeps adr/0084's conservation sum
-        // balanced across a demolition instead of reporting the leak it exists to catch.
-        //
-        // ⚠ It is also adr/0084's named second mutation site -- *a car displaced by a bulldozed
-        // garage* -- and that ADR says the write-site predicate needs restating before it ships. What
-        // is restated here is only the conservation half. Whether a displaced car should re-query a
-        // shed, and where, is task 4's, and it is the acquire/release pairing that decides it.
-        if (Buildings.HasCarPark(slot))
-        {
-            int carPark = Buildings.CarParkOf(slot);
-            Buildings.DetachCarPark(slot);
+    /// <summary>
+    /// The city abandons a Building: its Occupants leave, its tenants leave, and <b>the shell stays
+    /// standing on its Lot</b>.
+    /// </summary>
+    /// <remarks>
+    /// <b><c>02 §5.9</c> contradicts itself about this twelve lines apart and
+    /// <c>adr/0091</c> settled which reading stands</b> — <i>"abandonment empties a Building and
+    /// leaves it standing on its Lot"</i> — because three other mechanisms need the shell to exist:
+    /// the abandonment contagion that raises a neighbour's pressure has no carrier without it,
+    /// <c>01 §6</c>'s sustained-detection duration is derived from that contagion, and
+    /// <c>adr/0091</c>'s own clearance verb has nothing to act on. <b>The build implemented the other
+    /// reading</b> and did so from before that ADR was written.
+    /// <para>
+    /// ⚠ <b>This is not dereliction and must never be called that</b> (<c>CONTEXT.md</c>:313).
+    /// Dereliction is what a Ruleset edit does to a Building and it is recovered by a reload;
+    /// abandonment is what the city did to one and a reload must not undo it.
+    /// </para>
+    /// <para>
+    /// The Lot is <b>not</b> vacated and the row is <b>not</b> freed, so nothing here re-parcels the
+    /// Lot or disturbs <c>BuildingsInCells</c> — the Building is still standing ground as far as
+    /// every reader of those structures is concerned, which is exactly what the contagion term will
+    /// need. The Car Park is likewise left attached: the garage still physically stands.
+    /// </para>
+    /// </remarks>
+    public void AbandonBuilding(Handle<Building> building, Ticks tick)
+    {
+        int slot = Buildings.Rows.Resolve(building);
 
-            // Before the Free, because unlisting reads the row's own Address to find which Segment's
-            // list to walk -- see CarParkResidency.Remove.
-            CarParksOnSegments.Remove(CarParks, Roads.Segments, carPark);
+        EmptyPremises(slot, tick);
 
-            CarParks.Rows.Free(CarParks.Rows.At(carPark));
-        }
-
-        // Before the Lot is freed below, because BuildingResidency reads the Lot's position through
-        // the Building's Lot handle -- so a Building removed after its Lot has gone would not find
-        // the Cell it is listed in and would leave a dangling entry for the next allocation of this
-        // slot to be inserted into twice.
-        BuildingsInCells.Remove(Buildings, Lots, slot);
-
-        // Before the row is freed, because the Lot handle is read off it.
-        if (Lots.Rows.TryResolve(Buildings.Lot[slot], out int lotSlot))
-        {
-            Lots.Vacate(lotSlot);
-
-            // A Lot with no frontage outlived its Street only because something stood on it
-            // (adr/0079). With the Building gone there is nothing to keep it a parcel, so it goes
-            // back to being land -- and land with no Street re-parcels if one ever returns.
-            //
-            // Found by LotLongRunTests rather than reasoned out: re-subdivision runs on a road edit,
-            // and a Lot can be vacated at any Tick, so between a demolition and the next edit the
-            // world held a vacant Lot with no Street. That is exactly what
-            // Invariant.VacantLotHasFrontage forbids, and freeing it here is what makes the
-            // invariant true continuously rather than only immediately after an edit.
-            if (HasStreets && !Lots.HasFrontage(lotSlot))
-            {
-                Lots.Rows.Free(Lots.Rows.At(lotSlot));
-
-                // The Lot set shrank, so the zoned draw space is out of date.
-                LotsAdmitting.Invalidate();
-            }
-        }
-
-        Buildings.Rows.Free(building);
+        // After the emptying rather than before it, so that a reader of this column during the walk
+        // above cannot see a half-emptied Building calling itself abandoned.
+        Buildings.AbandonedSince[slot] = tick;
     }
 
     /// <summary>Which of a Bin's two wait lists a given blocking reason queues on.</summary>

@@ -291,7 +291,45 @@ bins = [
     { resource = "sundries", capacity = 48, owner = "occupant" },
     { resource = "repairs",  capacity = 4 },
 ]
-condemn_after = 4
+# HOW MANY DAYS A PREMISES RULE MAY STARVE CONTINUOUSLY before the Building is condemned.
+#
+# !! IT MUST EQUAL declining.toml's, AND THAT IS AN INVARIANT RATHER THAN A COINCIDENCE. This file
+# is declining.toml plus one `on_fail` key and one reporting terminal, and a terminal is never
+# evaluated -- RuleEngine.Descend returns on IsTerminal before calling Check -- so it rescues
+# nothing and must change no behaviour. EvidenceDumpTests.The_two_rulesets_differ_in_the_why_column
+# _and_in_nothing_else runs both and asserts every count agrees, which is what makes the why column
+# attributable to the chain rather than to a different city. A threshold that differed here would
+# make the two files different worlds and the test would be comparing two cities.
+#
+# !! SO IF YOU RETUNE declining.toml, RETUNE THIS TOO. The pair is the demonstration.
+#
+# !! IT WAS `condemn_after = 4`, WHICH WAS 64 TICKS -- 45 in-world minutes -- because the old key
+# counted missed FIRINGS and had to be multiplied by the Rule's own `rate` to mean anything.
+# Milestone 17 authored the duration instead (adr/0059, adr/0130). THE VALUE DID NOT MOVE BY A
+# TUNING DECISION; the unit changed underneath it, so this is a 32x slower decline and every
+# number this file has ever printed about timing is stale.
+#
+# !! UNRATIFIED, plans/0002 D1.
+condemn_after_days = 2
+# The sink for what condemn_after_days creates: how many Days the empty shell stands before it
+# collapses and the Lot returns to vacant (adr/0091, milestone 17). REQUIRED wherever
+# condemn_after is stated -- a kind that can be abandoned and cannot collapse accumulates
+# shells for ever, which is adr/0006, and the loader refuses it.
+#
+# !! A STOPWATCH SETTING AND NOT A DESIGN CLAIM, exactly as crowded.toml's two are. What this
+# number actually dials is WHAT SHARE OF THE CITY IS DERELICT at steady state, because it is
+# read against condemn_after's failure rate and not against a clock: measured on minimal.toml
+# at 1,000 Citizens over 8,192 Ticks, 165 condemnations against 121 Buildings -- a Building
+# fails about every 3 Days -- so at 1 Day the live stock cycles 121 -> 85 -> 123 and roughly
+# 30% of the city is a shell. At 30 it would be nearly all of it, and the run would show a
+# ruin rather than a city declining.
+#
+# !! ONE DAY IS THE FLOOR THE UNIT ALLOWS and it is chosen so the demonstration demonstrates:
+# a shell that a short run can watch appear, stand and fall. A city a player would live in
+# wants a gentler failure rate AND a longer blight, and that pair is UNRATIFIED with no world
+# to settle it -- plans/0002 D1, ratified by the first play session in which somebody watches
+# a district decline, which is adr/0091's own ratifier for the clearance price.
+collapses_after_days = 1
 
 # adr/0068. HOW MANY HOUSEHOLDS THIS HOLDS, and it is read by two things that used to disagree about
 # it: Borough.Core.Entities.SyntheticCity builds ceil(households / this) Buildings and fills each,

@@ -131,6 +131,7 @@ public sealed class DerivedRebuildAuditTests
             Run(Stepped(64)),
             Run(Stepped(512)),
             Run(Stepped(2048)),
+            Run(Declining(8192)),
             Run(Severed()),
             Run(Stocked()),
             Run(Orphaned()),
@@ -264,6 +265,45 @@ public sealed class DerivedRebuildAuditTests
         ulong[] scribbled = Trace(Ticks, scribble: true);
 
         Assert.Equal(clean, scribbled);
+    }
+
+    /// <summary>
+    /// <see cref="Stepped"/>'s world with decline in it, run long enough for a Building to be
+    /// condemned and its Household to be turned out into the Unplaced Pool.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>Added by milestone 17 because <c>household.pool_slot</c> stopped being exercised by
+    /// anything.</b> <c>adr/0164</c> moved decline out of <c>minimal.toml</c>, which is
+    /// <see cref="GoldenFixtures.Rules"/> and therefore every <see cref="Stepped"/> world — so no
+    /// fixture here evicted anybody and the column went uncovered <em>with every other test in this
+    /// class still green</em>.
+    /// <para>
+    /// ⚠ <b>This is the audit doing its job and not a bug in it.</b> The class exists to name a
+    /// derived column no world populates, and it named one the day one appeared. What is worth
+    /// keeping is the shape: <em>coverage here is a property of the FIXTURES, so a Ruleset edit
+    /// three directories away can silently shrink it</em>, and only this test says so.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>8,192 Ticks is derived and not chosen</b> — <c>declining.toml</c> condemns on a 2-Day
+    /// threshold and collapses a Day later, so nothing is turned out before 4,096 Ticks and this is
+    /// the first round number with a whole cycle of headroom past that.
+    /// </para>
+    /// </remarks>
+    private static World Declining(int ticks)
+    {
+        var key = WorldKey.FromSeed(GoldenFixtures.Seed);
+        var world = new World(GoldenFixtures.Population, GoldenFixtures.DecliningRules());
+
+        var simulation = new Simulation(world, key) { VerifyDecideWritesNothing = false };
+
+        SyntheticCity.PopulateInto(world, key, new Ticks(0));
+
+        for (int tick = 0; tick < ticks; tick++)
+        {
+            simulation.Step(default);
+        }
+
+        return world;
     }
 
     /// <summary>Steps a real city, so the derived structures are populated and have been maintained.</summary>

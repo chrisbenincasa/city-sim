@@ -64,8 +64,17 @@
 # W17: an unsold Bin fills, the Rule stops on Blocking.Space, and RuleEngine.Stop clears the pressure
 # clock for every blocking reason but Supply -- deliberately, because a full Bin "is what a
 # well-supplied Building with nobody to sell to looks like." The failable Rule that kills a shop is a
-# money-consuming one, it needs adr/0166's Business Rules, and it is TASK 7. `condemn_after` is
-# declared below so that the mechanism has somewhere to land, and today nothing reaches it.
+# money-consuming one, it needs adr/0166's Business Rules, and it is TASK 7 -- which is also where
+# `condemn_after` RETURNS to this file, at a value chosen for a trade rather than inherited from a
+# dwelling.
+#
+# ⚠ THIS FILE DECLARED `condemn_after` ON BOTH KINDS UNTIL MILESTONE 17 AND NOW DECLARES IT ON
+# NEITHER. It stood at 4 in all eighteen shipped files and no author had ever set it to anything
+# else, which is adr/0164's test -- `would a designer ever set this?` -- answered by the tree rather
+# than argued. It mattered here because a condemned Building no longer vanishes: abandonment leaves a
+# SHELL standing (adr/0091), so every world was demonstrating blight on its way to demonstrating
+# whatever it was built for. Decline now lives in declining.toml and in diagnosed.toml, and a key
+# arrives with the mechanism that needs it rather than ahead of it.
 #
 # ---------------------------------------------------------------------------------------------------
 # ⚠ THE COMMERCIAL LAND IS AT A FIXED STRIDE AND THAT IS NOT HOW ANY CITY IS ZONED. adr/0165 requires
@@ -150,7 +159,6 @@ bins = [
     { resource = "sundries", capacity = 48, owner = "occupant" },
     { resource = "repairs",  capacity = 4 },
 ]
-condemn_after = 4
 
 # adr/0148 MOVED THIS FROM 3 TO 4, AND WHAT IT MEANS DID NOT MOVE. One ceiling counts both kinds
 # of tenant (adr/0147), and this kind now comes with a shop -- so four slots minus one trade is
@@ -195,9 +203,12 @@ parking = 8
 # never be placed here, and PlacementEngine never looks: adr/0165's split puts this kind on the trade
 # bit and Space.ZonedLots keeps a house-hunter's draw on land that admits a dwelling.
 #
-# ⚠ `condemn_after` IS DECLARED AND NOTHING REACHES IT TODAY. See the header: an unsold Bin stops on
-# Blocking.Space and the pressure clock is cleared for every reason but Supply, so a shop nobody buys
-# from is immortal until task 7 authors a money-consuming Rule it can fail.
+# ⚠ NO `condemn_after`, AND ITS ABSENCE IS THE SAME POINT ITS PRESENCE USED TO MAKE. See the header:
+# an unsold Bin stops on Blocking.Space and the pressure clock is cleared for every reason but
+# Supply, so a shop nobody buys from is immortal whether or not the key is stated. It was declared
+# here until milestone 17 "so the mechanism has somewhere to land"; adr/0164 is why it is not --
+# a key nothing can reach is a key no designer can have an opinion about. It returns at task 7 with
+# the money-consuming Rule that can fail, at a value chosen for a trade.
 #
 # ⚠ NO `parking` KEY, and that is an omission with a reason rather than a default: a Car Park is
 # supply at a Building (adr/0120), a shopper is not a mechanism this build has, and the only trips
@@ -210,7 +221,6 @@ bins = [
     { resource = "sundries", capacity = 96, owner = "business" },
     { resource = "repairs",  capacity = 4 },
 ]
-condemn_after = 4
 occupants = 1
 business = "grocer"
 

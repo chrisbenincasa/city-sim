@@ -89,8 +89,26 @@ public sealed class ArrivalLongRunTests : IClassFixture<ArrivalLongRun>
     [Fact]
     public void The_placement_pass_ran_throughout()
     {
+        // LOOKING is asserted over the tail and HOUSING over the whole run, and the split is the
+        // point rather than a weakening. 🔴 Both were on the tail until milestone 17, which passed
+        // only because every shipped world declined: a Building was always falling down somewhere,
+        // so a saturated city still had a vacancy a moment later and `Placed` never reached zero.
+        //
+        // ***crowded.toml has no turnover at all now.*** adr/0164 moved decline into declining.toml,
+        // and nothing else here retires a Building or a Household -- so once the city fills, housing
+        // NOBODY is the correct behaviour and not a stalled pass. This world is built so arrivals
+        // outpace housing; a tail in which placement still housed people would mean it had not
+        // filled, which is the opposite of what the class exists to put under pressure.
+        //
+        // What still has to hold in the tail is that the pass keeps LOOKING -- a Pool that stops
+        // growing because placement stopped running reads identically to one that stopped because
+        // the city is full, and `Considered` is the counter that separates them.
         Assert.True(Mean(Tail, r => r.Considered) > 0, "placement never looked at anybody.");
-        Assert.True(Mean(Tail, r => r.Placed) > 0, "placement never housed anybody.");
+
+        Assert.True(
+            Mean(_run.Readings, r => r.Placed) > 0,
+            "placement never housed anybody in the whole run, not even while the city was still "
+            + "filling. The pass is not wired up at all.");
 
         Assert.True(
             Mean(Tail, r => r.Pool) > 0,

@@ -3,6 +3,7 @@ using Borough.Core;
 using Borough.Core.Input;
 using Borough.Core.Instruments;
 using Borough.Core.Quantities;
+using Borough.Formats;
 using Borough.Headless;
 using Borough.Tests.Golden;
 
@@ -31,7 +32,19 @@ namespace Borough.Tests.Headless;
 public sealed class SeriesReportTests
 {
     /// <summary>Long enough for the assignment pass, a few departure phases and four readings.</summary>
-    private const int TickCount = 256;
+    /// <remarks>
+    /// <b>256 until milestone 17, and it is derived rather than lengthened for comfort.</b> Both
+    /// tests here need a column that MOVES, which means a Building has to fall down inside the run:
+    /// <c>declining.toml</c> condemns on a 2-Day threshold and collapses a Day later, so nothing
+    /// moves before 6,144 Ticks and this is the first round number past it. The old 256 worked only
+    /// because <c>minimal.toml</c> condemned after 64 Ticks, which <c>adr/0164</c> removed.
+    /// <para>
+    /// ⚠ <b>The 32× costs nothing, because the guard was the price and not the Ticks.</b> See
+    /// <c>Report</c>: with <c>VerifyDecideWritesNothing</c> left on, this ran past ten minutes; off,
+    /// it is about a second.
+    /// </para>
+    /// </remarks>
+    private const int TickCount = 8_192;
 
     /// <summary>The reading cadence, chosen so the row count below is a fact rather than a guess.</summary>
     private const int Cadence = 64;
@@ -112,7 +125,8 @@ public sealed class SeriesReportTests
 
         // And it is not in the table it was withheld from, or the footnote would be a second copy
         // rather than a substitute.
-        string header = block.Split('\n').First(line => line.StartsWith("tick", StringComparison.Ordinal));
+        string header = block.Split('\n').First(
+    line => line.TrimStart().StartsWith("tick", StringComparison.Ordinal));
 
         Assert.DoesNotContain("citizen", header, StringComparison.Ordinal);
     }
@@ -130,7 +144,8 @@ public sealed class SeriesReportTests
     public void A_moving_column_is_a_column()
     {
         string block = Block(Report(), "tables — live");
-        string header = block.Split('\n').First(line => line.StartsWith("tick", StringComparison.Ordinal));
+        string header = block.Split('\n').First(
+    line => line.TrimStart().StartsWith("tick", StringComparison.Ordinal));
 
         Assert.Contains("building", header, StringComparison.Ordinal);
         Assert.DoesNotContain("held constant: building", block, StringComparison.Ordinal);
@@ -149,17 +164,39 @@ public sealed class SeriesReportTests
     }
 
     /// <summary>The series of a short run of the shipped Ruleset. <c>CensusReportTests</c>' fixture.</summary>
+    /// <remarks>
+    /// 🔴 <b><c>declining.toml</c> rather than <c>minimal.toml</c> since milestone 17, because both
+    /// tests in this class need a column that MOVES.</b> A series report withholds a flat column by
+    /// name; on a city where nothing is ever built or demolished every column is flat, so the report
+    /// withheld all of them and both assertions failed looking for a column that was not there. That
+    /// is a vacuous fixture rather than a broken report.
+    /// <para>
+    /// ⚠ <b>The content hash is COMPUTED here and a literal at <see cref="GoldenFixtures.RulesetHash"/>,
+    /// and the difference is not style.</b> That one has to be a literal because a committed
+    /// <c>session.borough</c> carries it, so editing the file is a re-baseline. This log is built in
+    /// code and thrown away, so nothing outside this method records the number and pinning it would
+    /// only mean a second thing to update.
+    /// </para>
+    /// </remarks>
     private static string Report()
     {
         InputLogBuilder builder = new(
             GoldenFixtures.Seed,
             new WorldConfiguration(GoldenFixtures.Population),
-            GoldenFixtures.RulesetHash);
+            RulesetFile.HashOf(GoldenFixtures.DecliningRulesetPath));
 
         builder.Append(new Ticks(0), new Command(CommandKind.Populate, default, default));
 
         InputLog log = builder.Build();
-        Simulation simulation = Replay.Start(log, GoldenFixtures.Rules());
+        Simulation simulation = Replay.Start(log, GoldenFixtures.DecliningRules());
+
+        // ⚠ THE GUARD IS WHAT MADE THE LONGER RUN UNAFFORDABLE, not the Tick count. It folds the
+        // whole world's State Hash twice a Tick against a phase meant to be O(woken), so 8,192 Ticks
+        // ran past ten minutes with it on and takes seconds without -- the same ~75x CLAUDE.md
+        // records for `--no-decide-guard`. Its own correctness has its own tests; this one is about
+        // what the report prints.
+        simulation.VerifyDecideWritesNothing = false;
+
         var census = new Census(simulation.World);
 
         Replay.Trace(simulation, log, new Ticks(TickCount), Cadence, [], census);

@@ -336,17 +336,81 @@ public sealed class ZoneRuleEngine
             return;
         }
 
-        int threshold = _world.Rules.Kind(kind).CondemnAfter;
+        // THE SINK. A shell that has stood its kind's collapse duration comes down here, and its Lot
+        // returns to vacant -- which is what lets the Zone Rule build on it again and what closes the
+        // growth cycle abandonment opened.
+        //
+        // ⚠ An abandoned Building holds no Rules, so the pressure walk below would find nothing and
+        // fall through to the occupant loop, which is also empty. Returning here rather than relying
+        // on that is what keeps a second trail entry from ever being written for a Building that has
+        // already been recorded as condemned once.
+        //
+        // Compared by ADDING the duration to the moment rather than subtracting, because Ticks
+        // refuses a subtraction operator on purpose -- a clock difference that underflows is a
+        // duration of about six hundred million years and reads as "not yet" for ever.
+        //
+        // ⚠ A shell whose kind the Ruleset has since STOPPED declaring never reaches this line: the
+        // Declares guard above returns first. That is correct rather than missed -- such a Building
+        // is derelict as well as abandoned, and CONTEXT.md is explicit that a derelict "stands until
+        // the player clears it". A reload that describes the kind again restores it to a shell that
+        // collapses on schedule.
+        if (_world.Buildings.IsAbandoned(building))
+        {
+            int stands = _world.Rules.Kind(kind).CollapsesAfterDays;
 
-        if (threshold == 0)
+            // ⚠ ZERO MEANS NEVER, and it is unreachable from any Ruleset a designer can write: the
+            // loader requires the key wherever condemn_after is stated and refuses a non-positive
+            // one. What reaches here with zero is a Ruleset built IN CODE -- every test fixture that
+            // predates this milestone -- and the alternative reading cost an afternoon: zero as a
+            // duration makes `due` the abandonment Tick itself, so the shell collapses on the sweep
+            // that finds it and the abandoned state has no observable extent at all.
+            //
+            // ***So the engine's default is the old behaviour and the loader is what forbids it***,
+            // which is adr/0048's division: the parse site refuses what a designer must not author,
+            // and the engine stays defined for everything it can be handed.
+            if (stands > 0)
+            {
+                Ticks due = _world.Buildings.AbandonedSince[building]
+                    + new Ticks((ulong)Ticks.PerDay * (ulong)stands);
+
+                if (tick >= due)
+                {
+                    _world.DestroyBuilding(_world.Buildings.Rows.At(building), tick);
+                }
+            }
+
+            return;
+        }
+
+        // TWO THRESHOLDS, TWO SUBJECTS, TWO KEYS -- which is adr/0141's split finished. The ADR
+        // separated the VERDICT in milestone 25 (a tenant's pressure ends the tenancy, the premises'
+        // condemns the Building) and left both reading one number, so a world could not demonstrate
+        // either mechanism without the other. Stripping decline from the shipped Rulesets is what
+        // exposed it: evicted.toml, whose entire purpose is a tenancy that ends, stopped ending any.
+        //
+        // Both are DURATIONS IN TICKS as of milestone 17 and were counts of missed firings before it
+        // (adr/0053). ⚠ The Ruleset authors DAYS -- `condemn_after_days`, `tenancy_ends_after_days` --
+        // and RulesetLoader multiplies them up, so the designer's unit never reaches here. That is
+        // adr/0048's division and it is also why the engine can be handed any Tick count: every test
+        // fixture in the suite holds one too short to be authored in a file.
+        KindDefinition definition = _world.Rules.Kind(kind);
+
+        ulong condemns = (ulong)definition.CondemnAfterTicks;
+        ulong endsTenancy = (ulong)definition.TenancyEndsAfterTicks;
+
+        // ZERO MEANS NEVER for each, independently. A kind stating neither declines and evicts
+        // nobody, which is what every Ruleset written before decline existed meant and what most of
+        // the shipped files mean today.
+        if (condemns == 0 && endsTenancy == 0)
         {
             return;
         }
 
-        // THE PREMISES' OWN RULES ONLY, which is adr/0141 and the whole of what changed here. The
-        // unset handle is the premises (RuleInstanceTable.Household), so the same walk answers both
-        // verdicts and the discriminator is a parameter rather than a branch.
-        int worst = Worst(building, tenant: default, threshold, tick);
+        // THE PREMISES FIRST, and the order matters: abandonment empties the Building, so a premises
+        // verdict makes every tenancy question below moot. Judging the tenants first would end a
+        // tenancy on the same Tick the shell it sits in is abandoned, and the Household would be
+        // unplaced twice.
+        int worst = condemns == 0 ? -1 : Worst(building, tenant: default, condemns, tick);
 
         if (worst >= 0)
         {
@@ -361,18 +425,34 @@ public sealed class ZoneRuleEngine
                 kind,
                 _world.RuleInstances.Reported[worst]);
 
-            _world.DestroyBuilding(_world.Buildings.Rows.At(building), tick);
+            // ABANDONED RATHER THAN DEMOLISHED, and the shell stays standing on its Lot.
+            // adr/0091 found 02 §5.9 contradicting itself twelve lines apart -- "its Lot returns to
+            // vacant" against "the specific accumulated condition is retained on the Building" -- and
+            // settled on the second reading, because the contagion, the sustained-detection duration
+            // and the clearance verb all need a shell to act on. This line held the first reading
+            // from before that ADR existed.
+            //
+            // ⚠ The city no longer removes anything. What clears an abandoned Building is adr/0091's
+            // Demolish verb or its Govern clearance programme, and until one of those ships the stock
+            // has no sink -- which is milestone 17's named risk arriving, deliberately, here.
+            _world.AbandonBuilding(_world.Buildings.Rows.At(building), tick);
             _tickDemolished++;
 
-            // A demolition ends every tenancy in the Building, through DestroyBuilding's own walk of
-            // the occupant list. There is nothing left to end, and the Building row is gone.
+            // Abandonment ends every tenancy in the Building, through EmptyPremises' own walk of the
+            // occupant list. There is nothing left to end, and the shell holds nobody.
             return;
         }
 
-        // The tenancies, each judged on ITS OWN Rules. ⚠ This is what adr/0141 means by *what changes
-        // is what dies*: a Building whose tenant starves used to fall down, so ONE STARVING TENANT
-        // CONDEMNED THE OTHER'S SHOP. The pressure mechanism is untouched -- same durations, same
-        // threshold, same cross-multiplied comparison -- and only the subject of the verdict moved.
+        if (endsTenancy == 0)
+        {
+            return;
+        }
+
+        // The tenancies, each judged on ITS OWN Rules and against THEIR OWN threshold. ⚠ This is what
+        // adr/0141 means by *what changes is what dies*: a Building whose tenant starves used to fall
+        // down, so ONE STARVING TENANT CONDEMNED THE OTHER'S SHOP. Milestone 25 moved the subject of
+        // the verdict; milestone 17 moved the number behind it, and until it did, a Ruleset could not
+        // say `my tenants fail but my buildings stand` -- which is the whole of evicted.toml.
         //
         // Restarted from the front after every eviction, because World.Unplace removes the Household
         // from the list being walked. A Building holds `occupants` of them -- three in every shipped
@@ -387,7 +467,7 @@ public sealed class ZoneRuleEngine
             {
                 Handle<Household> household = _world.Households.Rows.At(occupant);
 
-                if (Worst(building, household, threshold, tick) < 0)
+                if (Worst(building, household, endsTenancy, tick) < 0)
                 {
                     continue;
                 }
@@ -408,16 +488,17 @@ public sealed class ZoneRuleEngine
     }
 
     /// <summary>
-    /// The worst-starved Rule Instance one subject runs on this Building past
-    /// <paramref name="threshold"/> missed firings, or <c>-1</c> when none of them is.
+    /// The starving Rule Instance of <paramref name="tenant"/>'s that has been starving longest
+    /// relative to its own cadence, provided any of them has starved for <paramref name="endures"/>
+    /// Ticks or more. <c>-1</c> when none has.
     /// </summary>
     /// <remarks>
     /// <para>
     /// <b>One walk answers both verdicts, and <paramref name="tenant"/> is the whole difference</b>
     /// (<c>adr/0141</c>). The unset handle selects the Rules the premises run themselves; a Household
     /// selects that tenant's. ***Spelling it as one function is what keeps the two verdicts from
-    /// drifting into two pressure models***, which is the failure <c>adr/0053</c>'s
-    /// <em>missed firings rather than Ticks</em> was already guarding against on the other axis.
+    /// drifting into two pressure models*** — which matters more now that they are measured against
+    /// two different authored numbers rather than one.
     /// </para>
     /// <para>
     /// <b>The walk does not stop at the first Rule past its threshold, and the reason is attribution
@@ -426,22 +507,32 @@ public sealed class ZoneRuleEngine
     /// means — the subject's pressure is the LONGEST of its Rules'. That maximum is stored nowhere.
     /// </para>
     /// <para>
-    /// <b>Missed firings, compared by cross-multiplying</b> — <c>elapsed/rate</c> against
-    /// <c>worstElapsed/worstRate</c>, for the reason <see cref="Condemn"/> gives for multiplying the
-    /// threshold: the division would be spelled through <see cref="Arithmetic.IntegerMath"/> for an
-    /// answer nothing keeps. Strictly greater, so a tie leaves the earlier Rule in place and the
-    /// choice is a function of the Building's own Rule list rather than of the order two equal
-    /// pressures were met in.
+    /// 🔴 <b>THIS COMMENT ARGUED THE OPPOSITE UNTIL MILESTONE 17</b>, and the argument is worth
+    /// keeping because it was nearly right: <i>"a tenant has no kind to declare its own — a Household
+    /// never will — so a second threshold would be a number with nowhere to be authored."</i> The
+    /// premise holds and the conclusion does not. A tenant threshold has nowhere to be authored
+    /// <em>on the tenant</em>; it is authored on the <b>premises</b> kind, as
+    /// <c>tenancy_ends_after_days</c>, which is <c>adr/0141</c>'s own answer to the identical problem
+    /// about Bin capacity. ⚠ <b>The cost of the missing number was invisible</b> until decline was
+    /// stripped from the shipped Rulesets and every tenancy in the repository stopped ending with it.
     /// </para>
     /// <para>
-    /// ⚠ <b>Both subjects are measured against the SAME <c>condemn_after</c>, which is the premises'
-    /// kind's.</b> A tenant has no kind to declare its own — a Household never will, and a Business
-    /// gets one at milestone 27 — so a second threshold would be a number with nowhere to be authored.
-    /// <c>adr/0052</c> is not owed a ratifier here because no number is chosen; what is chosen is that
-    /// there is only one.
+    /// ⚠ <b>THE THRESHOLD AND THE RANKING ARE DENOMINATED DIFFERENTLY, AND THAT IS THE DESIGN.</b>
+    /// <paramref name="endures"/> is a <em>duration</em> in Ticks — milestone 17 moved it off
+    /// <c>adr/0053</c>'s missed-firing count so a designer authors the felt quantity — but the
+    /// comparison that picks the <em>worst</em> instance is still cross-multiplied against each
+    /// Rule's <c>rate</c>, which ranks by <b>firings missed</b>.
+    /// </para>
+    /// <para>
+    /// They answer different questions. <i>Should this be condemned</i> is about how long the thing
+    /// has been broken, and a wall clock is the honest unit. <i>Which condition do we name in the
+    /// trail</i> is about severity, and a Rule due every 8 Ticks that has been silent for 100 is
+    /// more starved than one due every 32 that has been silent for the same 100. Collapsing both
+    /// onto one unit would make the reported cause depend on cadence, which is
+    /// <c>plans/0012</c> <b>Cause 5</b> waiting to happen in the Evidence panel.
     /// </para>
     /// </remarks>
-    private int Worst(int building, Handle<Household> tenant, int threshold, Ticks tick)
+    private int Worst(int building, Handle<Household> tenant, ulong endures, Ticks tick)
     {
         int worst = -1;
         ulong worstElapsed = 0;
@@ -462,7 +553,7 @@ public sealed class ZoneRuleEngine
             ulong elapsed = tick.Raw - _world.RuleInstances.StarvedSince[instance].Raw;
             uint rate = _world.Rules.Rule(_world.RuleInstances.Rule[instance]).Rate;
 
-            if (elapsed < (ulong)threshold * rate)
+            if (elapsed < endures)
             {
                 continue;
             }

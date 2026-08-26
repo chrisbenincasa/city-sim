@@ -1131,6 +1131,29 @@ public static class RulesetLoader
 
         // ---- building kinds -------------------------------------------------------------------
 
+        /// <summary>
+        /// A designer's duration in Days as the engine's duration in Ticks, saturating rather than
+        /// wrapping.
+        /// </summary>
+        /// <remarks>
+        /// <b>The whole of <c>adr/0048</c>'s division for the decline thresholds.</b> A Ruleset
+        /// authors the felt quantity — <c>condemn_after_days</c>, <c>tenancy_ends_after_days</c> —
+        /// and <c>ZoneRuleEngine</c> compares Ticks, so the multiplication happens exactly once, at
+        /// the parse site, and no designer unit ever crosses into the core.
+        /// <para>
+        /// ⚠ <b>Saturating and not wrapping.</b> <c>int.MaxValue / Ticks.PerDay</c> is about 1.05
+        /// million Days, or roughly 2,870 in-world years; a Ruleset authoring more than that means
+        /// <i>never</i>, and clamping says so where an overflow would say <i>immediately</i> — the
+        /// exact inversion the negative-value refusals above exist to prevent.
+        /// </para>
+        /// </remarks>
+        private static int InTicks(long days)
+        {
+            long ticks = days * Ticks.PerDay;
+
+            return ticks > int.MaxValue ? int.MaxValue : (int)ticks;
+        }
+
         private KindDefinition[] ReadKinds(
             RuleDefinition[] rules, Term[] inputs, Term[] outputs,
             out BinDeclaration[] bins, out RuleId[] kindRules)
@@ -1184,25 +1207,116 @@ public static class RulesetLoader
                     }
                 }
 
-                // adr/0053's threshold, in missed firings. Optional, and absent means this kind never
-                // declines — which is what every Ruleset written before decline existed already
-                // meant. A negative one is refused rather than clamped: it reads as "condemn
-                // immediately", and a Ruleset that demolished every Building it built would be a
-                // sentence somebody meant to write and nobody would guess from the symptom.
-                int condemnAfter = 0;
-
-                if (TryInteger(table, "condemn_after", out long missed, required: false, name))
+                // 🔴 THE RENAMED KEY IS REFUSED BY NAME, AND THIS IS THE WHOLE REASON THE RENAME IS
+                // SAFE. `condemn_after` counted missed firings (adr/0053); `condemn_after_days` is a
+                // duration. The two units differ by the Rule's rate -- a factor of 16 on the shipped
+                // upkeep Rule -- so a file that kept the old key and the old value would load clean
+                // and decline SIXTEEN TIMES too slowly, which is a change nobody would attribute to
+                // a rename. A silent unit change is plans/0012 Cause 5 arriving in content rather
+                // than in prose, so the parse site says so out loud (adr/0048).
+                if (Find(table, "condemn_after") is not null)
                 {
-                    if (missed < 0)
+                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "condemn_after") ?? table), name,
+                        $"'{name}' states condemn_after, which was renamed to condemn_after_days in "
+                        + "milestone 17 AND CHANGED UNITS. It counted firings a starved Rule may "
+                        + "miss; it is now how many Days a Rule may starve continuously. Four missed "
+                        + "firings of a rate-16 Rule was 64 Ticks — 45 in-world minutes — so the old "
+                        + "value does not carry over. Choose the duration you meant.");
+                }
+
+                // The premises' threshold, in Days (adr/0059, adr/0130). Optional, and absent means
+                // this kind never declines — which is what every Ruleset written before decline
+                // existed already meant. A negative one is refused rather than clamped: it reads as
+                // "condemn immediately", and a Ruleset that abandoned every Building it built would
+                // be a sentence somebody meant to write and nobody would guess from the symptom.
+                int condemnAfterTicks = 0;
+
+                if (TryInteger(table, "condemn_after_days", out long declines, required: false, name))
+                {
+                    if (declines < 0)
                     {
-                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "condemn_after") ?? table), name,
-                            $"condemn_after is {missed}. It counts firings a starved Rule may miss "
-                            + "before the Building is condemned, so it cannot be negative; omit it "
-                            + "for a kind that never declines.");
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "condemn_after_days") ?? table), name,
+                            $"condemn_after_days is {declines}. It is how many Days a Rule of this "
+                            + "kind may starve continuously before the premises are condemned, so it "
+                            + "cannot be negative; omit it for a kind that never declines.");
                     }
                     else
                     {
-                        condemnAfter = missed > int.MaxValue ? int.MaxValue : (int)missed;
+                        condemnAfterTicks = InTicks(declines);
+                    }
+                }
+
+                // The TENANT's threshold, and it is deliberately independent of the one above
+                // (adr/0141). A kind may state either, both or neither: `evicted.toml` states this
+                // one alone, because its premises never fail and its tenants always do, and until
+                // milestone 17 split the key that world was unwritable.
+                int tenancyEndsAfterTicks = 0;
+
+                if (TryInteger(table, "tenancy_ends_after_days", out long evicts, required: false, name))
+                {
+                    if (evicts < 0)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "tenancy_ends_after_days") ?? table), name,
+                            $"tenancy_ends_after_days is {evicts}. It is how many Days a tenant's own "
+                            + "Rule may starve continuously before the tenancy ends, so it cannot be "
+                            + "negative; omit it for a kind whose tenancies never end.");
+                    }
+                    else
+                    {
+                        tenancyEndsAfterTicks = InTicks(evicts);
+                    }
+                }
+
+                // The sink for what condemn_after_days creates. REQUIRED of a kind that can be
+                // abandoned and REFUSED of one that cannot, which is adr/0130's disposition for
+                // gives_up_after_days arriving on the other collection abandonment fills.
+                //
+                // ⚠ IT PAIRS WITH THE PREMISES KEY ONLY. A tenancy that ends leaves the Building
+                // standing and occupied by nobody new until placement acts, so it creates no shell
+                // and needs no sink -- which is why evicted.toml states neither this nor the
+                // threshold above and is still bounded.
+                //
+                // 🔴 Measured rather than argued. Milestone 17 task 1 left the shell standing with no
+                // sink, and a long run does not degrade -- it STOPS: every Building eventually fails,
+                // every failure is permanent, and the city converts to dead shells. Zero jobs, a land
+                // value field peaking at zero, a divide-by-zero in the placement pass. A Ruleset that
+                // can author that is a Ruleset that can author adr/0006, so the refusal is here at
+                // the parse site (adr/0048) rather than in an invariant that fires at Tick 100,000.
+                int collapsesAfterDays = 0;
+
+                bool statesCollapse =
+                    TryInteger(table, "collapses_after_days", out long stands, required: false, name);
+
+                if (condemnAfterTicks > 0 && !statesCollapse)
+                {
+                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "condemn_after_days") ?? table), name,
+                        $"'{name}' states condemn_after_days and not collapses_after_days. A kind "
+                        + "that can be abandoned accumulates standing shells, and a collection with "
+                        + "an inflow and no sink is adr/0006 — so the duration a shell stands before "
+                        + "it collapses is required here, in Days.");
+                }
+
+                if (condemnAfterTicks == 0 && statesCollapse)
+                {
+                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "collapses_after_days") ?? table), name,
+                        $"'{name}' states collapses_after_days and no condemn_after_days, so nothing "
+                        + "can ever abandon a Building of this kind and the duration would never be "
+                        + "read. Omit it, or state the threshold that makes it mean something.");
+                }
+
+                if (statesCollapse)
+                {
+                    if (stands <= 0)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "collapses_after_days") ?? table), name,
+                            $"collapses_after_days is {stands}. It is how many Days an abandoned "
+                            + "Building stands before it collapses, so it must be positive; zero "
+                            + "would clear a shell on the sweep that found it and there would be no "
+                            + "abandoned state to see.");
+                    }
+                    else
+                    {
+                        collapsesAfterDays = stands > int.MaxValue ? int.MaxValue : (int)stands;
                     }
                 }
 
@@ -1369,7 +1483,9 @@ public static class RulesetLoader
                 definitions[i] = new KindDefinition(
                     binFirst, allBins.Count - binFirst, ruleFirst, allRules.Count - ruleFirst)
                 {
-                    CondemnAfter = condemnAfter,
+                    CondemnAfterTicks = condemnAfterTicks,
+                    TenancyEndsAfterTicks = tenancyEndsAfterTicks,
+                    CollapsesAfterDays = collapsesAfterDays,
                     Occupants = occupants,
                     FootprintTiles = footprintTiles,
                     Business = business,

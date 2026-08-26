@@ -28,15 +28,30 @@ public sealed class EvidenceDumpTests
     private const string Population = "4000";
 
     /// <summary>
-    /// One Day, which is where the trail saturates.
+    /// Long enough for the condemnation trail to saturate its 256 entries and fold some away.
     /// </summary>
     /// <remarks>
-    /// ⚠ <b>Measured, and shorter does not work.</b> The trail holds 256 and the fixture condemns 187
-    /// by Tick 1,024 — so at half a Day the aggregate is <b>empty</b>, and the panel that exists to
-    /// show ***attribution decays to magnitude*** would show nothing decaying. At 2,048 it is 256
-    /// retained and 76 folded away. ***A demonstration of a cap has to be run past the cap.***
+    /// ⚠ <b>Measured, and shorter does not work.</b> The panel exists to show ***attribution decaying
+    /// to magnitude***, so the run has to pass the cap — a trail that never overflows shows nothing
+    /// decaying, and the test says so rather than passing on an empty aggregate.
+    /// <para>
+    /// 🔴 <b>IT WAS 2,048 — ONE DAY — AND MILESTONE 17 MADE THAT TOO SHORT BY A FACTOR OF THIRTY-TWO.</b>
+    /// The old note read <i>"the fixture condemns 187 by Tick 1,024"</i>, which was true when
+    /// <c>condemn_after</c> counted four missed firings of a rate-16 Rule — <b>64 Ticks</b>, or 45
+    /// in-world minutes. The threshold is now a duration and <c>diagnosed.toml</c> states one Day, so
+    /// the first Building cannot be condemned before Tick 2,048 and a one-Day run ends with an
+    /// <em>empty</em> trail. ⚠ <b>Both failures read as broken panels and neither was</b>: one said
+    /// the aggregate was empty and one said a substring was missing, and the cause of both was that
+    /// the city had not had time to fall down yet.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The cost is real and is the price of the unit.</b> Every test in this class runs four
+    /// times as long as it did. ***A slower decline is a slower demonstration of decline***, and the
+    /// alternative — a fixture Ruleset with a sub-Day threshold — is unauthorable by construction
+    /// now, which is the point of the unit rather than an oversight in it.
+    /// </para>
     /// </remarks>
-    private const string Ticks = "2048";
+    private const string Ticks = "8192";
 
     /// <summary>
     /// <b>The same city, condemned in the same places, with one column filled in.</b>
@@ -52,7 +67,7 @@ public sealed class EvidenceDumpTests
     [Fact]
     public void The_two_rulesets_differ_in_the_why_column_and_in_nothing_else()
     {
-        string bare = Dump("minimal.toml");
+        string bare = Dump("declining.toml");
         string diagnosed = Dump("diagnosed.toml");
 
         Assert.Contains("0 of 256 retained entries name the condition", bare, Ordinal);
@@ -158,7 +173,7 @@ public sealed class EvidenceDumpTests
     [Fact]
     public void A_ruleset_that_names_no_condition_is_printed_rather_than_refused()
     {
-        (int code, string report) = Run(Ruleset("minimal.toml"));
+        (int code, string report) = Run(Ruleset("declining.toml"));
 
         Assert.Equal(0, code);
         Assert.Contains("NONE OF THEM DO", report, Ordinal);
@@ -175,32 +190,55 @@ public sealed class EvidenceDumpTests
     /// entries lack one field says exactly what is missing.
     /// </para>
     /// <para>
-    /// <b>The fixture is minimal.toml with one line deleted</b>, because no shipped Ruleset declines
-    /// nothing — all four set <c>condemn_after</c>. Deleting the key rather than writing a file from
-    /// scratch keeps the input a city that populates, so what is under test is the refusal and not
-    /// whether a hand-written stub can generate a world.
+    /// <b>The fixture is declining.toml with the decline keys deleted</b>. Deleting them rather than
+    /// writing a file from scratch keeps the input a city that populates, so what is under test is
+    /// the refusal and not whether a hand-written stub can generate a world.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It read minimal.toml until milestone 17 and the sentence beside it — <em>no shipped
+    /// Ruleset declines nothing</em> — is now false of almost all of them.</b> Decline moved out of
+    /// every world that demonstrates something else (<c>adr/0164</c>), so the two files that still
+    /// state <c>condemn_after</c> are declining.toml and diagnosed.toml, and this fixture has to be
+    /// built from one of them or <see cref="Without"/> deletes nothing and the test passes for the
+    /// wrong reason. It does not silently do that — Without asserts each line is present first.
     /// </para>
     /// </remarks>
     [Fact]
     public void A_ruleset_that_condemns_nothing_is_refused()
     {
-        (int code, string report) = Run(Without("condemn_after = 4"), citizens: "1000", ticks: "64");
+        (int code, string report) = Run(
+            Without("condemn_after_days = 2", "collapses_after_days = 1"),
+            citizens: "1000",
+            ticks: "64");
 
         Assert.Equal(3, code);
-        Assert.Contains("condemn_after", report, Ordinal);
+        Assert.Contains("condemn_after_days", report, Ordinal);
         Assert.Contains("diagnosed.toml", report, Ordinal);
     }
 
-    /// <summary>minimal.toml with one line removed, written where the runner can load it.</summary>
-    private static string Without(string line)
+    /// <summary>declining.toml with lines removed, written where the runner can load it.</summary>
+    /// <remarks>
+    /// ⚠ <b>Takes a set rather than a single line since milestone 17</b>, because
+    /// <c>condemn_after</c> and <c>collapses_after_days</c> are now coupled at the parse site: a
+    /// kind that can be abandoned must say what collapses the shell, and one that cannot must not.
+    /// Removing either alone is refused for <em>that</em> reason and never reaches the refusal a
+    /// caller is trying to provoke. ***Removing one line of a pair tests the coupling, not the
+    /// claim.***
+    /// </remarks>
+    private static string Without(params string[] lines)
     {
-        string text = File.ReadAllText(Ruleset("minimal.toml"));
+        string text = File.ReadAllText(Ruleset("declining.toml"));
 
-        Assert.Contains(line, text, Ordinal);
+        foreach (string line in lines)
+        {
+            Assert.Contains(line, text, Ordinal);
+            text = text.Replace(line, string.Empty, Ordinal);
+        }
 
-        string path = Path.Combine(Path.GetTempPath(), $"borough-evidence-{line.GetHashCode(Ordinal)}.toml");
+        string path = Path.Combine(
+            Path.GetTempPath(), $"borough-evidence-{string.Join('|', lines).GetHashCode(Ordinal)}.toml");
 
-        File.WriteAllText(path, text.Replace(line, string.Empty, Ordinal));
+        File.WriteAllText(path, text);
 
         return path;
     }
@@ -299,7 +337,7 @@ public sealed class EvidenceDumpTests
     public void The_finances_panel_separates_destitution_from_a_world_with_no_money()
     {
         string destitute = Dump("diagnosed.toml");
-        string endowed = Dump("taxed.toml");
+        string endowed = DumpAt(Endowed());
 
         Assert.Contains("## Household finances", destitute, Ordinal);
         Assert.Contains("DESTITUTION rather than a", destitute, Ordinal);
@@ -347,13 +385,52 @@ public sealed class EvidenceDumpTests
     private static string Ruleset(string name) =>
         Path.Combine(AppContext.BaseDirectory, "Rulesets", name);
 
-    private static string Dump(string ruleset)
+    private static string Dump(string ruleset) => DumpAt(Ruleset(ruleset));
+
+    private static string DumpAt(string path)
     {
-        (int code, string report) = Run(Ruleset(ruleset));
+        (int code, string report) = Run(path);
 
         Assert.Equal(0, code);
 
         return report;
+    }
+
+    /// <summary>taxed.toml with decline added back, written where the runner can load it.</summary>
+    /// <remarks>
+    /// 🔴 <b>A FIXTURE RATHER THAN AN EDIT TO taxed.toml, AND THE REASON IS THE STRIP.</b> This test
+    /// needs a world that holds money <em>and</em> condemns Buildings, because <c>--evidence</c>
+    /// refuses a Ruleset whose kinds never condemn — an empty trail is uninterpretable. Milestone 17
+    /// moved decline out of every world that demonstrates something else (<c>adr/0164</c>), and
+    /// <c>taxed.toml</c> demonstrates a tax. ***Adding the keys back there to make one test pass
+    /// would put blight in the money world for a testing reason***, which is exactly the drift the
+    /// strip existed to undo, and <c>taxed.toml</c>'s own header now forbids it by name.
+    /// <para>
+    /// ⚠ <b>It is built from the shipped file rather than hand-written</b>, on <see cref="Without"/>'s
+    /// precedent: a stub that generated its own world would test whether a stub can generate a world.
+    /// The keys are appended to the <c>dwelling</c> kind, which is the only one <c>taxed.toml</c>
+    /// declares, and they are the coupled pair because the loader refuses either alone.
+    /// </para>
+    /// </remarks>
+    private static string Endowed()
+    {
+        const string Anchor = "name = \"dwelling\"";
+
+        string text = File.ReadAllText(Ruleset("taxed.toml"));
+
+        Assert.Contains(Anchor, text, Ordinal);
+        Assert.DoesNotContain("condemn_after_days", text, Ordinal);
+
+        text = text.Replace(
+            Anchor,
+            Anchor + "\ncondemn_after_days = 1\ncollapses_after_days = 1",
+            Ordinal);
+
+        string path = Path.Combine(Path.GetTempPath(), "borough-evidence-endowed.toml");
+
+        File.WriteAllText(path, text);
+
+        return path;
     }
 
     private static (int Code, string Report) Run(

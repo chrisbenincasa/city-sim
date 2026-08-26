@@ -66,7 +66,7 @@ public sealed class RulesetShapeTests
             ],
             kinds:
             [
-                new KindDefinition(0, 1, 0, 1) { CondemnAfter = condemnAfter },
+                new KindDefinition(0, 1, 0, 1) { CondemnAfterTicks = condemnAfter },
                 new KindDefinition(1, 1, 1, 1),
             ],
             inputs:
@@ -258,7 +258,7 @@ public sealed class RulesetShapeTests
                     Shop, 8, ApplyCount.Band(1, 1), RuleId.None, false, default,
                     ConditionId.None, 1, 1, 1, 0, 1, 0),
             ],
-            kinds: [new KindDefinition(0, 1, 0, 1) { CondemnAfter = 4 }, new KindDefinition(1, 1, 1, 1)],
+            kinds: [new KindDefinition(0, 1, 0, 1) { CondemnAfterTicks = 4 }, new KindDefinition(1, 1, 1, 1)],
             inputs:
             [
                 new Term(new BinRef(Scope.Local, Flour), 1),
@@ -303,7 +303,7 @@ public sealed class RulesetShapeTests
                     Shop, 8, ApplyCount.Band(1, 1), RuleId.None, false, default,
                     ConditionId.None, 1, 1, 1, 0, 1, 0),
             ],
-            kinds: [new KindDefinition(0, 1, 0, 1) { CondemnAfter = 4 }, new KindDefinition(1, 1, 1, 1)],
+            kinds: [new KindDefinition(0, 1, 0, 1) { CondemnAfterTicks = 4 }, new KindDefinition(1, 1, 1, 1)],
             inputs:
             [
                 new Term(new BinRef(Scope.Local, Flour), 1),

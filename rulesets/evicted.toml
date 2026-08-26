@@ -16,10 +16,16 @@
 # looks like. THE NUMBERS THIS FILE PRODUCES RATIFY NOTHING.
 #
 # ⚠ ON THIS FILE NO BUILDING IS EVER DEMOLISHED, and that is the point rather than a limitation.
-# `minimal.toml` is the opposite: its `upkeep` starves for ever and its tenants are fed, so it
+# `declining.toml` is the opposite: its `upkeep` starves for ever and its tenants are fed, so it
 # condemns constantly and ends no tenancies -- measured at 2,610 condemned against 0 tenancies ended
 # over ten Days. ***The two files are the same city with the failure moved from the premises to the
 # tenant***, which is why this one is a two-rule diff rather than a new world.
+#
+# ⚠ THE COMPARISON NAMED `minimal.toml` UNTIL MILESTONE 17 AND NOW NAMES `declining.toml`, because
+# minimal.toml no longer states `condemn_after` and condemns nothing at all (adr/0164). The 2,610 was
+# measured on the file that used to carry decline, which is declining.toml's content exactly, so the
+# DIGITS still describe the world the sentence now points at -- but this file is a two-Rule diff
+# against minimal.toml and the world it is contrasted with is a two-key diff the other way.
 #
 # ⚠ IT CYCLES, AND THE CYCLE IS WHAT A LONG RUN IS FOR. A tenancy ends, the Household goes to the
 # Unplaced Pool, placement puts it in a standing Building, and it starves again. Every turn of that
@@ -86,9 +92,7 @@
 # against the PRE-CLOCK world, which is adr/0094's cost arriving in one more place, not this edit's.
 # plans/0012 Cause 5: a number that is one half of a ratio says which half.
 #
-# NOTHING HERE CAME OUT OF PROPORTION, because everything in this file is denominated in FIRINGS --
-# `condemn_after` included, which says so at the [[building]] below. A dwelling's whole life is 4 missed
-# `upkeep` firings x rate 16 = 64 Ticks, which went 11.25 -> 45 in-world minutes by the same x4.
+# NOTHING HERE CAME OUT OF PROPORTION, because everything in this file is denominated in FIRINGS.
 #
 # 48 IS A COST DIAL HERE, NOT A BALANCE DIAL, AND THAT IS MEASURED TOO. Swept at 24, 36, 48 and 96, NO
 # ROW OF THE CENSUS MOVES; only `rules due` and `rules evaluations` move, and they move UP with capacity
@@ -206,9 +210,17 @@ family = "money"
 # this file being tuned: three Households do not share a kitchen, and the shared one was a shortcut
 # the first line of this file already disclaimed.
 #
-# `condemn_after` is in MISSED FIRINGS, not Ticks (adr/0053): a Rule fires every `rate` Ticks when
-# healthy, so four missed firings of `upkeep` is 64 Ticks of continuous starvation. Authoring it in
-# Ticks would mean that halving every rate in this file silently doubled every dwelling's lifespan.
+# NOTHING IN THIS FILE DECLINES, AND THAT IS DELIBERATE AS OF MILESTONE 17. `condemn_after` stood at 4
+# here, as it did in all eighteen shipped files, and no author had ever set it to anything else -- which
+# is adr/0164's test (`would a designer ever set this?`) answered by the tree. It is gone from every
+# world that demonstrates something other than decline, because a Building that falls down does not
+# stay fallen: abandonment leaves a SHELL standing (adr/0091), and at the shipped failure rate two
+# thirds of the city is derelict at steady state. A world demonstrating traffic, water or a market
+# should not have to do so in a ruin.
+#
+# Decline now lives in rulesets/declining.toml, which is this file plus two keys, and in
+# diagnosed.toml, which needs Buildings to fall down so its on_fail chain has something to record.
+# DO NOT ADD `condemn_after` BACK HERE to make a test fail faster -- that is what declining.toml is for.
 # ---------------------------------------------------------------------------------------------------
 # THE TRADE. adr/0141 gave `jobs`, the Shift band and the wage to the BUSINESS rather than to the
 # premises; adr/0148 removed the first two from [[building]] rather than leaving them parsed and
@@ -268,8 +280,31 @@ bins = [
     { resource = "sundries", capacity = 48, owner = "occupant" },
     { resource = "repairs",  capacity = 4 },
 ]
-condemn_after = 4
-
+# HOW MANY DAYS A TENANT'S OWN RULE MAY STARVE CONTINUOUSLY before the tenancy ends and the
+# Household is unplaced. adr/0141's TENANT half, and this file is the only shipped world that
+# states it.
+#
+# !! THIS KEY DID NOT EXIST UNTIL MILESTONE 17, AND ITS ABSENCE IS WHAT BROKE THIS FILE. One key --
+# `condemn_after` -- armed BOTH verdicts: the premises' and the tenant's. So when decline was
+# stripped out of every world that demonstrates something else, this world lost its tenancy churn
+# with it, and the ONE FILE WHOSE ENTIRE PURPOSE IS A TENANCY THAT ENDS quietly stopped ending any.
+# The tests caught it; nothing in the file said it could happen. adr/0141 split the VERDICT in
+# milestone 25 and stopped at the number, which is the half that bit.
+#
+# !! THE PREMISES THRESHOLD IS STILL ABSENT AND THAT IS THE WHOLE DEMONSTRATION. This file states
+# `tenancy_ends_after_days` and NOT `condemn_after_days`, so its tenants fail and its buildings
+# stand -- which is the sentence this world exists to be. declining.toml is the mirror: premises
+# threshold, no tenant one. NEITHER FILE COULD BE WRITTEN BEFORE THE SPLIT.
+#
+# !! NO `collapses_after_days` IS OWED HERE, and the loader agrees. That key is required only
+# alongside condemn_after_days, because only an abandoned Building leaves a shell. A tenancy that
+# ends leaves the premises standing and empty, which placement refills -- so the cycle is bounded
+# by the housing stock and needs no sink of its own.
+#
+# !! ONE DAY IS THE FLOOR THE UNIT ALLOWS, and it is UNRATIFIED -- plans/0002 D1. A dwelling whose
+# larder nothing fills is an absence of a mechanism rather than a hardship, so the rate at which
+# this world evicts people is not a claim about how long a hungry Household keeps its home.
+tenancy_ends_after_days = 1
 # adr/0068. HOW MANY HOUSEHOLDS THIS HOLDS, and it is read by two things that used to disagree about
 # it: Borough.Core.Entities.SyntheticCity builds ceil(households / this) Buildings and fills each,
 # and the placement pass admits up to this many. Before it existed the populator put 3 in every

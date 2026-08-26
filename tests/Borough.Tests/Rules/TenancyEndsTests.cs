@@ -42,7 +42,19 @@ public sealed class TenancyEndsTests
     private const ushort Housing = 1 << HousingBit;
 
     private const uint Rate = 8;
-    private const int Condemn = 4;
+    /// <summary>
+    /// The threshold both verdicts are measured against, in <b>Ticks</b> — four missed firings of a
+    /// rate-<see cref="Rate"/> Rule, which is what this fixture meant when the key was a firing count.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Both thresholds are set to the SAME duration on purpose, and that is what makes the
+    /// assertions below evidence.</b> Milestone 17 split <c>condemn_after</c> into a premises
+    /// threshold and a tenant one, so a fixture could now pass by setting only the tenant's — and it
+    /// would prove nothing, because the premises would have had no threshold to breach. Setting both
+    /// keeps the old question: <i>given identical pressure budgets, whose pressure produces which
+    /// outcome?</i>
+    /// </remarks>
+    private const int CondemnTicks = 4 * (int)Rate;
     private const int Occupants = 3;
 
     /// <summary>
@@ -89,7 +101,12 @@ public sealed class TenancyEndsTests
             ],
             kinds:
             [
-                new KindDefinition(0, 2, 0, 2) { CondemnAfter = Condemn, Occupants = Occupants },
+                new KindDefinition(0, 2, 0, 2)
+                {
+                    CondemnAfterTicks = CondemnTicks,
+                    TenancyEndsAfterTicks = CondemnTicks,
+                    Occupants = Occupants,
+                },
             ],
             inputs: [new Term(new BinRef(Scope.Local, Food), 1)],
             outputs: [new Term(new BinRef(Scope.Local, Repairs), 1)],
@@ -150,7 +167,7 @@ public sealed class TenancyEndsTests
     {
         (World world, Simulation simulation) = Built();
 
-        Run(simulation, (int)Rate * (Condemn + 4));
+        Run(simulation, CondemnTicks + ((int)Rate * 4));
 
         Assert.Equal(2, world.Buildings.Rows.LiveCount);
         Assert.Equal(6, world.UnplacedPool.Count);
@@ -185,7 +202,7 @@ public sealed class TenancyEndsTests
 
         world.Deposit(larder, 10, Ticks.Zero);
 
-        Run(simulation, (int)Rate * (Condemn + 4));
+        Run(simulation, CondemnTicks + ((int)Rate * 4));
 
         Assert.Equal(1, world.Buildings.Rows.LiveCount);
         Assert.True(
@@ -207,7 +224,7 @@ public sealed class TenancyEndsTests
     {
         (_, Simulation simulation) = Built();
 
-        Run(simulation, (int)Rate * (Condemn + 4));
+        Run(simulation, CondemnTicks + ((int)Rate * 4));
 
         ZoneActivity activity = simulation.Zoning.Drain();
 
@@ -256,7 +273,12 @@ public sealed class TenancyEndsTests
 
         var simulation = new Simulation(world, key);
 
-        Run(simulation, 2_048);
+        // ⚠ 4,096 AND NOT 2,048, AND THE REASON IS THE UNIT RATHER THAN THE CITY. evicted.toml now
+        // states `tenancy_ends_after_days = 1`, which is 2,048 Ticks exactly -- so a run of 2,048
+        // could only ever end a tenancy that began starving on Tick 0 and was swept on the last one.
+        // It read as `the mechanism is broken` and meant `the run is one Tick short of the
+        // threshold`. Two Days leaves room for the stagger and the sweep cadence both.
+        Run(simulation, 4_096);
 
         ZoneActivity zoning = simulation.Zoning.Drain();
 

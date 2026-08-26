@@ -6,6 +6,35 @@ instant the Building stops failing, so recovery is total rather than a debt work
 no decay rate to stay bounded because nothing accumulates.
 `LEGIBLE CAUSE` `HONEST DEGRADATION` `SOLVE THE ACTUAL PROBLEM`
 
+> ⚠ **PARTLY SUPERSEDED 2026-08-26 by
+> [`adr/0168`](0168-a-decline-threshold-is-a-duration-and-the-premises-and-the-tenant-get-one-each.md).**
+> **The headline claim stands and is strengthened** — failure pressure is a *duration*, recovery is
+> *total*, and nothing accumulates. **What is superseded is the sentence below beginning *"The threshold
+> is expressed in missed firings, not in Ticks"*.** A Ruleset now authors `condemn_after_days`, a
+> duration in Days, and `RulesetLoader` derives the Tick count.
+>
+> **Why, in one line:** this ADR's reasoning protected the number from a *cadence* edit and left the
+> **designer** unable to read it. `condemn_after = 4` against a rate-16 Rule is 64 Ticks — **45 in-world
+> minutes** — it stood at 4 in all eighteen shipped Rulesets, and ***no author ever changed it, because
+> no author could see what it said.***
+>
+> 🔴 ⚠ **ONE LEG OF THE PER-RULE-CLOCK ARGUMENT BELOW HAS DISSOLVED, AND THE OTHER HOLDS.** *"The clock
+> lives on the Rule Instance, not on the Building"* rests on two legs. The **first** — *a kind running
+> one Rule at 8 Ticks and another at 32 has two different meanings for three missed firings* — **is no
+> longer true**: a duration means the same thing for every Rule, whatever its rate. The **second** —
+> *two Rules that began failing at different moments are two durations, of which the Building's is the
+> longest* — is untouched and is now the sole support for the decision. **The decision itself is
+> unchanged and correct.** ***This note exists because a reader would otherwise cite the dissolved leg
+> in good faith***, which is `plans/0012` Cause 4: a decision taken from a description that has stopped
+> being true about its trigger.
+>
+> ✅ **And this ADR's third revisit trigger fired, in a shape it did not predict.** It named *"the
+> threshold needing to differ per Building kind in a way missed firings cannot express"* and guessed the
+> case would be a kind whose Rules legitimately idle. What actually could not be expressed was **the
+> threshold being readable at all**. ***The trigger was right about the direction and wrong about the
+> occasion***, which is the ordinary way a revisit trigger earns its keep.
+
+
 **The obvious implementation is the wrong one, and it fails in the direction nobody would check.**
 Counting the times a Building's Rules reach a reporting terminal *inverts severity*: it condemns the
 Buildings that are partly working and spares the ones that have stopped entirely.

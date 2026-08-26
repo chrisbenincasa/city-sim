@@ -263,6 +263,41 @@ internal static class GoldenFixtures
     internal static Ruleset Rules() => Load(RulesetPath);
 
     /// <summary>
+    /// The one shipped file in which a Building falls down: <c>declining.toml</c>, which is
+    /// <see cref="RulesetPath"/> plus <c>condemn_after_days</c> and <c>collapses_after_days</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A sibling rather than a change to <see cref="RulesetPath"/>, for
+    /// <see cref="DrivingRulesetPath"/>'s reason exactly.</b> The golden session's Ruleset is a
+    /// baseline artefact whose content hash is a committed literal, so repointing it is a
+    /// re-baseline; adding a second file beside it costs nothing that was covered.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>Every long-run guard that asserts the city CHURNS used to ride on
+    /// <c>minimal.toml</c>, and milestone 17 took decline out of it.</b>
+    /// <c>adr/0164</c> moved <c>condemn_after</c> out of every world that demonstrates something
+    /// else, which is right — and the guards inherited a static city in the same commit, so they
+    /// failed together with eighteen different messages. <em>What they share is not a mechanism, it
+    /// is a fixture.</em> The lesson worth keeping is that a shared fixture named after the
+    /// <em>smallest</em> world is a fixture that will one day stop demonstrating whatever the caller
+    /// silently needed from it, and the caller will read as broken.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>No content-hash literal accompanies this one</b>, because no committed session runs on
+    /// it. A guard reads the city's row counts and never a trace, so editing this file re-baselines
+    /// nothing.
+    /// </para>
+    /// </remarks>
+    internal static string DecliningRulesetPath =>
+        Path.Combine(AppContext.BaseDirectory, "Rulesets", "declining.toml");
+
+    /// <summary>
+    /// <see cref="Rules"/>'s city, with decline in it. See <see cref="DecliningRulesetPath"/>.
+    /// </summary>
+    internal static Ruleset DecliningRules() => Load(DecliningRulesetPath);
+
+    /// <summary>
     /// Both Rulesets the golden session names, opening one first.
     /// </summary>
     /// <remarks>
