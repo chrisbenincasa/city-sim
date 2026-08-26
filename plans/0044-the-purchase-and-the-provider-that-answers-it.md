@@ -15,6 +15,16 @@ inherits from [`0037`](0037-goods-between-buildings-the-district-pool.md) tasks 
 
 ## Status
 
+🟢 **TASK 4 LANDED 2026-08-26 — `Scope.Pool` RESOLVES, AND `rulesets/provisioned.toml` TRADES.** A
+`pool` input is one term and **three** Bin deltas — the seller's stock down, the buyer's balance down,
+the seller's balance up — netted and settled atomically with the Rule. Open decisions **2 and 3 are
+closed by the user**. **Assertion tier green at 2,317 tests, 7m47s**, which is the reading the previous
+commit recorded, so the mechanism costs the tier nothing. ⚠ **It moves no golden hash**: every golden
+fixture runs on a file with no `[districts]` table, and no saved column was added — the two new indexes
+are `(derived AND rebuilt)`.
+🔴 **THE MEASUREMENT `adr/0139` DEMANDED IS TAKEN AND IT IS NOT THE ANSWER THAT RECORD EXPECTED** (**F26**).
+🔴 **THE WORLD TASK 3 SHIPPED COULD NOT DEMONSTRATE ANYTHING AND ONE RUN SAID SO** (**F23**).
+
 🟢 **TASKS 1, 2 AND 3 LANDED 2026-08-25.** Task 3 is `rulesets/provisioned.toml` — **W-Q4 answered**,
 and the first shipped file in which anything is built to *sell*. ⚠ **It moves no hash**: a new file
 changes no existing world, and no golden is touched. **Assertion tier green at 2,317.**
@@ -156,7 +166,25 @@ anywhere else is a new column with `adr/0006`'s question on it.
 ***`adr/0163` decided that a claim happens and not what it writes.*** **Arguable**, and it is the
 decision the two §D2 numbers are denominated against.
 
-### 2. 🔴 Which Bin does a purchase blame?
+### 2. ✅ SETTLED 2026-08-26 — the Good leg is touched first, so a purchase blames the MARKET ROW
+
+**Taken by the user.** A purchase can be short of stock or short of money, and when it is short of both
+the Good leg is the one that names the blocker. It falls out of `RuleEngine.Check`'s existing rule —
+*the first short Bin, in touch order* — because `Buy` touches the seller's stock before either money
+leg. ⚠ **And the stock leg blames the market row rather than the seller's Bin**, which is the half that
+is not free: `Touch` gained a **blame** parameter for it, because a buyer parked on one shop's Bin is
+woken by that shop alone and sleeps through every other seller in the District restocking.
+
+**Why the Good and not the money.** A district-wide shortage is the more informative cause and the one
+a player can act on; destitution is the buyer's own and is reached anyway, because a woken buyer
+re-`Check`s, fails on money and re-subscribes on its own balance. ***Both converge and only one of them
+tells you something about the city.*** The bounce **P5** describes is therefore real, accepted and
+unrecorded — `adr/0137`'s field is task 5's.
+
+⚠ **A third case turned out to exist and neither the decision nor P5 saw it**: *no market at all*. See
+**F22** — it is not a blame question, because there is no Bin to blame.
+
+### 2a. 🔴 Which Bin does a purchase blame? — *the question as first written*
 
 `RuleVerdict` carries **one** `int Bin` (`RuleEngine.cs:19`) and `Succeeded => Bin == Rows.NoSlot`.
 `RuleEngine.Check` blames **the first short Bin, inputs before outputs**. `RuleEngine.Requirement` is
@@ -170,7 +198,35 @@ can bounce between two Bins.**
 names the field `RuleEvidence` is missing; ***it does not arbitrate which Bin a two-sided term
 blames.*** **Arguable.**
 
-### 3. 🔴 What is a seller, and how is one chosen?
+### 3. ✅ SETTLED 2026-08-26 — a counter-based START and a first-fit walk from it
+
+**Taken by the user.** A seller is a **Business-owned Bin of a Good, standing in the buyer's District**
+— one Bin is exactly one `(Business, Good)`, which is the cardinality the question has.
+`PurposeTag.SellerChoice` draws a start offset over the market row's seller list on
+`(seed, buying Rule Instance id, tick)`, and the walk takes the first seller holding a whole batch —
+`floor × amount` — from there.
+
+⚠ **Cheapest was not on the table.** `DistrictPoolTable.Price` is per market row, so every seller in a
+District charges the same and *cheapest* has nothing to discriminate. `adr/0139` says the `Price` field
+*"moves from the market row to the seller"*; the build kept it on the row and `CONTEXT.md` records that
+reading. **When per-seller prices arrive — `06` milestone 13, which is `adr/0139`'s own revisit trigger
+— the draw is retired rather than ratified**, because cheapest becomes a discriminator.
+
+⚠ **First-fit from the head was refused as `02 §8` rule 5's own worked failure** — *"the same Building
+would win every contested draw for the life of the city"* — with **list position** standing in for
+entity id. ***A list order nobody chose is still an order somebody profits from.***
+
+⚠ **It is keyed on the BUYER and not on the market row.** Keyed on the row, every buyer in a District
+would be sent to the same seller on the same Tick and the dispersion the draw exists to create would be
+a rotation the whole city performed in step.
+
+**A seller below one batch cannot sell, and that is what being out of stock is** — `adr/0139`'s own
+surviving consequence, and a Rule fails only when *no* seller in the District holds one.
+
+**Its cost is measured and it is [`0013`](0013-tick-budget.md)'s row.** See **F26**, which is the part
+of this decision that did not go as the ADR expected.
+
+### 3a. 🔴 What is a seller, and how is one chosen? — *the question as first written*
 
 `adr/0139` says resolution chooses **one** seller at term-resolution time and says **nothing about
 which one**. Reach is the District, so the candidate set is every Business in it selling that Good.
@@ -281,7 +337,7 @@ makes that an attribution question rather than a scheduling one.
    ⚠ **It loads and does not run**, and that asymmetry is the task's own acceptance test: `TryScope`
    accepts `pool`, `RuleEngine.Bin` throws. ⚠ **Its header must say the stride is not how any city is
    zoned** — `adr/0165` requires it. **Moves no hash of its own**; it is a new file.
-4. **The purchase — `Scope.Pool` resolves.** The District from the Building's Cell, then a seller,
+4. ✅ **DONE — The purchase — `Scope.Pool` resolves.** The District from the Building's Cell, then a seller,
    then Good one way and money the other, settled atomically with the Rule. Owed with it: the
    `(District, Resource) → Bin` index `DistrictPoolTable`'s doc says **task 7 owes**; a `Bin →` market
    row lookup for the price; and `DistrictPoolTable.Consumed` gets its **first writer**.
@@ -591,3 +647,96 @@ name *milestone 26's own demonstration Ruleset* as their world, which is this fi
 steps, so every price sits at its ceiling, every consumption bucket is zero and no shop earns anything.
 ***The earliest run that could ratify them is task 9's.*** The header says so rather than leaving the
 §D2 rows pointing at a file that looks ready.
+
+
+## What task 4 found
+
+**F20 — 🔴 `Invariant.ADistrictDiesWithAnHeirOrAnEmptyPool` IS NOT ARMED BY THIS TASK, AND THE TASK
+ENTRY ABOVE SAYS IT IS.** That entry quotes `World.cs`'s own comment — *"what will fail on the day task
+7 opens the scope"* — and the scope is open and it did not. The comment was written the day **before**
+[`adr/0139`](../docs/adr/0139-a-district-pool-is-a-market-and-not-a-store-so-stock-stays-with-the-seller.md),
+which makes the Pool a **market and not a store**: the stock stays in the selling Business's own Bin,
+so nothing ever deposits into a Pool Bin, `held` is zero for ever, and `RetirePool`'s transfer branch is
+unreachable. ***The conclusion held and its stated cause was retired without anybody noticing***, which
+is [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+exactly. **Corrected at the symbol under `adr/0073`**, and `ProvisionedRulesetTests` now asserts the
+Pool Bins hold nothing on **every Tick** of the one world that trades — which is the assertion
+[`0037`](0037-goods-between-buildings-the-district-pool.md)'s *must not implement `Scope.Pool` as a
+wider Bin lookup* had no test behind.
+
+**F21 — ⚠ `adr/0139` SAYS THE `Bin` COLUMN GOES AND THE BUILD KEEPS IT, AND THE MECHANISM WINS.** That
+record's *Consequences* list *"what goes"*: the `Bin` column, `BinOwnerKind.District`, `RetirePool`'s
+transfer and the invariant above. But the same record requires a wake target — *"a waiter names **one**
+Bin … so subscribing to N sellers is not expressible and never will be. The market row is therefore the
+subscription target"* — and a subscription target **is** a Bin. ***So the column survives with a level
+that is always zero***, which is what `CONTEXT.md` already records: *the row is the price, the wake
+target and the reachable sellers*. **The consequences list and the mechanism disagree and this is filed
+rather than resolved**; what is actually dead is the transfer and the invariant, which is F20.
+
+**F22 — 🔴 A BUILDING CAN RUN A RULE ON GROUND NO DISTRICT HAS CLAIMED, AND IT CRASHED THE FIRST RUN.**
+The watershed runs on `[districts] revisit_ticks` — **2,048** on this file, one Day — and admission is
+unconditional but happens only at an evaluation. So a Building raised between two evaluations stands
+outside every District for up to a Day, and its `pool` term has no market row to resolve against. ⚠ **It
+is neither a defect nor a blame question**: there is no Bin to wait on, so subscribing is not
+expressible. ✅ **It resolves to a SUCCESS AT ZERO APPLICATIONS, and `RuleVerdict.Succeeded`'s own remark
+is the argument, written five milestones ago**: *"it re-arms on its rate, waits on nothing, and moves
+nothing, because there is no Bin that could ever wake it."* ***No third outcome, no new mechanism, and
+the sentence that authorises it was already in the file.***
+
+**F23 — 🔴 `provisioned.toml` GAVE HOUSEHOLDS NO MONEY, SO THE WORLD TASK 3 SHIPPED AS THE
+DEMONSTRATION COULD NOT DEMONSTRATE ANYTHING.** It states no `[households]` table; every Household opens
+an empty balance at Tick 0; and `adr/0024` makes the Outside Connection money's only source. There is no
+wage (`adr/0026`, milestone 15), no gate, no `[[policy]]`. ***So the first run after `Scope.Pool`
+resolved failed every purchase on the MONEY leg, at Tick 0, for ever*** — the shops filled and nobody
+bought. **Found by running it, not by reading it**, and it is milestone 11's **F25** a third time: a task
+specified against a world that does not exist. ✅ Repaired with `[households] car_ownership_percent = 0`
+and an `opening_balance` band, **whose ceiling is derived** — 256 sundries a Day at an import ceiling of
+100 is 25,600, one Day's shopping — and whose floor is zero for `taxed.toml`'s own reason. Two
+[`0002`](0002-open-questions.md) §D1 rows. ⚠ **It is a stock spent down and never replaced, so a run of
+this file has an END rather than a steady state**, and that is the shape task 9's acceptance run has to
+be written against rather than surprised by.
+
+**F24 — 🔴 TASK 1 SHIPPED A BUSINESS STOCK BIN THAT VIOLATES AN END-OF-RUN INVARIANT, AND NO WORLD COULD
+REACH IT.** `Invariant.BinCapacityMatchesItsDeclaration` exempts a **Household**-owned non-conserved Bin
+because its ceiling is the premises kind's (`adr/0141`) and checks it from the owner instead; `adr/0166`
+gave a **Business** the same arrangement and `RebuildCapacities` grew the same owner walk for it, and
+this check did not. So a Business-owned Good Bin fell through to the *must be `long.MaxValue`* branch and
+failed. ⚠ **`provisioned.toml` is the only shipped file declaring `owner = "business"` on a Good, and
+`Scope.Pool` threw before the end-of-run walk ever ran** — so the defect was shipped, correct-looking and
+unreachable, for one day. ***A widening that reaches the rebuild and not the check is invisible until a
+world exercises both***, which is F2's *"a widening is cheap in proportion to how completely the previous
+one finished"* read from the other end.
+
+**F25 — ⚠ `VerifyDecideWritesNothing` IS THE ENTIRE COST OF A TEST ON THIS FILE: 49 s BECAME 2 s.** A
+6,144-Tick, 1,000-Citizen run in the assertion tier, unchanged but for the guard. The guard folds the
+whole world twice a Tick and this world is `twinned.toml`'s **two paved lattices**, so it is
+`bordered.toml`'s recorded ~75× arriving on a second file. ⚠ **It is a GUARD's cost and not the city's**
+and must never be quoted as one — `plans/0013` already carries that sentence about a different capture.
+***What is worth keeping is that the first instinct was to cut the Tick count***, which would have
+bought the same 47 seconds by testing less.
+
+**F26 — 🔴 THE MEASUREMENT `adr/0139` DEMANDED IS TAKEN, AND IT SPENDS THAT RECORD'S OWN ESCAPE.** The
+ADR routed *the per-firing seller lookup* to a machine, said `adr/0043` binds until a number exists, and
+named the fallback: *"the fallback is **not** a return to a shared store — it is an index on the market
+row, which is the shape `DistrictPoolTable` already has."* ⚠ **Task 4 built that index on day one**, so
+the reading is *with* it. **Measured on the reference machine against `provisioned.toml` with ONE LINE
+changed** — `restock`'s `inputs` from a `pool` term to `[]`, so the shops, the split, the lattices and
+the Districts are in both arms: **0.237 / 0.585 / 1.267 ms a Tick at 10,000 / 20,000 / 40,000
+Citizens.** 🔴 **That is ~n^1.2 and the only super-linear consumer in [`0013`](0013-tick-budget.md)** —
+linear extrapolation to 1M gives ~32 ms a Tick and carrying the exponent gives order 60, against a
+**15.6 ms whole-Tick budget**, so ***the two disagree by 2× at the target and neither is an answer.***
+⚠ **The attribution is conservative**: without the `pool` term `restock` never fails, so the cheap arm
+runs *more* Rule firings. ⚠ **And it is the WHOLE purchase, not the seller walk** — a stopwatch cannot
+separate the District lookup, the seller draw, the settlement, `RingMarket` and the index rebuilds.
+**Routed to [`0002`](0002-open-questions.md) §B as a NEW question, because `adr/0139`'s is answered and
+its fallback is gone.** ***Do not optimise the seller walk on this number until something has said the
+seller walk is where it goes.***
+
+**F27 — ⚠ A RULESET WITH A `pool` TERM AND NO `[districts]` TABLE WOULD HAVE SILENTLY DONE NOTHING,
+WHICH IS THE FAILURE MODE F22's FIX INTRODUCED.** Firing at zero applications is right for a Building
+waiting on a boundary that is coming; it is wrong for a city that has no Districts at all, because that
+condition is **permanent**. The two are told apart by `DistrictRuleset.Runs` and the second throws.
+⚠ **The refusal belongs at LOAD with a file and a line** (`adr/0048`) and the loader has no such check —
+filed rather than assumed. ***One fix's correct case is another's silent one, and the tell was two
+existing tests continuing to pass for a reason that had changed***; both had their summaries rewritten
+rather than their assertions, which is what `adr/0093` asks for.

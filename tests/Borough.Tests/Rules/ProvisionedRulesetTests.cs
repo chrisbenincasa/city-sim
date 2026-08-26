@@ -9,7 +9,8 @@ using Borough.Formats;
 namespace Borough.Tests.Rules;
 
 /// <summary>
-/// Milestone 26 task 3: <c>rulesets/provisioned.toml</c> — <b>it loads and it does not run.</b>
+/// <c>rulesets/provisioned.toml</c> — <b>it loaded and did not run at task 3, and it trades at
+/// task 4.</b>
 /// </summary>
 /// <remarks>
 /// <para>
@@ -25,8 +26,17 @@ namespace Borough.Tests.Rules;
 /// write would leave *does the loader agree with the engine about what a pool term is* unanswered
 /// until task 4, and the two disagreeing by one scope is the only thing standing between this file
 /// and a running market. ***When task 4 resolves the scope, this file starts working with no edit to
-/// it*** — and <see cref="It_loads_and_does_not_run"/> is the test that must then be rewritten, on
-/// purpose. It is a milestone marker as much as an assertion.
+/// it*** — and that is what happened: the second half is now
+/// <see cref="It_runs_and_the_market_trades"/>, rewritten on the day rather than deleted, so the
+/// marker records which milestone moved it.
+/// </para>
+/// <para>
+/// 🔴 <b>⚠ THE FILE DID NEED ONE EDIT, AND IT WAS NOT THE SCOPE.</b> It states no
+/// <c>[households]</c> table, so every Household opened at a zero balance and nothing in the build
+/// ever issued one a penny — no wage, no gate, no policy. The first run after <c>Scope.Pool</c>
+/// resolved therefore failed every purchase on the MONEY leg, at Tick 0, for ever: the shops filled
+/// and nobody bought. ***A world that loads, runs and demonstrates nothing is the failure this class
+/// was written to make visible, arriving one leg over from where it was looked for.***
 /// </para>
 /// <para>
 /// ⚠ <b>The throw does not come from a Rule firing, which is worth knowing before debugging it.</b>
@@ -129,10 +139,34 @@ public sealed class ProvisionedRulesetTests
     }
 
     /// <summary>
-    /// The second half, and the one that must be rewritten when task 4 lands: <b>it does not run.</b>
+    /// The second half, rewritten at task 4 as its own doc said it would be: <b>it runs, and it
+    /// trades.</b>
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A Business holding money is the assertion, and nothing else in this world could have put it
+    /// there.</b> A Business opens at a zero balance — <c>adr/0144</c> for a founded one and
+    /// <c>adr/0148</c> for an instantiated one, and this file founds none — there is no wage
+    /// (<c>adr/0026</c>, milestone 15), no <c>[[policy]]</c>, and no gate. ***So the only door money
+    /// can reach a grocer through is a sale***, which makes one line stand for the whole of
+    /// <c>adr/0050</c>: the Good moved one way and the money the other, settled atomically.
+    /// </para>
+    /// <para>
+    /// <b>Conservation is asserted by <c>CheckEndOfRun</c> and not restated here.</b>
+    /// <c>Invariant.MoneyIsConserved</c> folds every balance against
+    /// <c>MoneySupplyTable.Issued</c>, which only <c>World.Endow</c> moves — so a purchase that
+    /// created or destroyed a unit fails there, on a walk this test already performs. Restating it
+    /// would be a second spelling that has to agree for ever.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The run must outlast the watershed's cadence, and that is why it is Ticks in the
+    /// thousands rather than 64.</b> A shop has to be raised on trade land, take a tenancy, stock its
+    /// Bin, and stand in a District — and a District arrives on <c>[districts] revisit_ticks</c>,
+    /// which is 2,048 here. A shorter run tests that nothing throws and nothing more.
+    /// </para>
+    /// </remarks>
     [Fact]
-    public void It_loads_and_does_not_run()
+    public void It_runs_and_the_market_trades()
     {
         Ruleset rules = Load();
 
@@ -141,22 +175,64 @@ public sealed class ProvisionedRulesetTests
 
         SyntheticCity.PopulateInto(world, key, Ticks.Zero);
 
-        var simulation = new Simulation(world, key);
+        // Off for the long-run tests' reason, and it matters more on this file than on most: the
+        // guard folds the whole world twice a Tick, and this world is twinned.toml's TWO paved
+        // lattices. It asks whether Phase 2 wrote a column; what a purchase writes in Phase 2 is
+        // engine scratch and a derived index, neither of which is a column, and ReplayTests and the
+        // golden baseline hold the property for the build as a whole.
+        var simulation = new Simulation(world, key) { VerifyDecideWritesNothing = false };
 
-        string refusal = Assert.Throws<NotSupportedException>(
-            () =>
+        for (int tick = 0; tick < 6_144; tick++)
+        {
+            simulation.Step(TickInput.Empty);
+
+            // ⚠ THE POOL'S OWN BINS STAY EMPTY FOR EVER, and that is what a market rather than a
+            // store MEANS (adr/0139). It is the assertion that would catch the one failure no other
+            // test in this repository can: plans/0044's "must not implement Scope.Pool as a wider Bin
+            // lookup", which ships an unconserved economy, and whose tell is stock appearing in a Bin
+            // nobody sells from. Asserted every Tick and inside this run rather than in a second one,
+            // because a second 6,144-Tick run costs the assertion tier the same again for one
+            // predicate.
+            for (int row = 0; row < world.DistrictPools.Rows.SlotCount; row++)
             {
-                for (int tick = 0; tick < 64; tick++)
+                if (world.DistrictPools.Rows.IsLive(row)
+                    && world.Bins.Rows.TryResolve(world.DistrictPools.Bin[row], out int pool))
                 {
-                    simulation.Step(TickInput.Empty);
+                    Assert.Equal(0, world.Bins.LevelAt(pool));
                 }
+            }
+        }
 
-                simulation.CheckEndOfRun();
-            }).Message;
+        // Every invariant, including MoneyIsConserved across every purchase the run settled.
+        simulation.CheckEndOfRun();
 
-        // The refusal names the mechanism rather than the symbol, because what a reader needs here is
-        // *which milestone owns this hole* and not which line threw.
-        Assert.Contains("the District Pool does not exist", refusal);
-        Assert.Contains("adr/0050", refusal);
+        long earned = 0;
+        int sellers = 0;
+
+        for (int slot = 0; slot < world.Businesses.Rows.SlotCount; slot++)
+        {
+            if (!world.Businesses.Rows.IsLive(slot)
+                || !world.Bins.Rows.TryResolve(world.Businesses.Balance[slot], out int balance))
+            {
+                continue;
+            }
+
+            long held = world.Bins.LevelAt(balance);
+
+            if (held > 0)
+            {
+                earned += held;
+                sellers++;
+            }
+        }
+
+        Assert.True(
+            sellers > 0,
+            "no Business in this world holds a penny, so no purchase ever settled. A grocer opens at "
+            + "zero and this file has no wage, no policy and no gate, so a sale is the only way money "
+            + "reaches one. Check that Households were endowed -- [households] opening_balance_max -- "
+            + "before looking at Scope.Pool.");
+
+        Assert.True(earned > 0);
     }
 }

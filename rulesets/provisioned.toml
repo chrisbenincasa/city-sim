@@ -359,6 +359,49 @@ shift_hours_max = 10
 
 arrive_early_max_minutes = 15
 
+# ---------------------------------------------------------------------------------------------------
+# 🔴 THE BUYER'S MONEY. Milestone 26 task 4, and without it THIS FILE'S ONE POINT DOES NOT HAPPEN.
+#
+# A purchase moves the Good one way and money the other (adr/0050). Every Household in the build opens
+# an EMPTY money Bin -- World.OpenBalance, at Tick 0 -- and adr/0024 makes the Outside Connection
+# money's only source, so a Household is penniless for ever unless something issues it some. Nothing
+# in this file did: there is no wage (adr/0026, milestone 15), no gate to arrive through, and no
+# [[policy]] circuit. ***So on the day Scope.Pool resolved, every `restock` failed on the money leg at
+# Tick 0 and went on failing*** -- the shops filled, nobody bought, and the market this file exists to
+# demonstrate never traded once. Found by running it, not by reading it.
+#
+# `[households]` IS TAXED.TOML'S MECHANISM AND IT IS THE ONLY ISSUANCE IN THE BUILD.
+# Borough.Core.Entities.SyntheticCity reads the band and World.Endow issues it. Read taxed.toml's own
+# header for why that is fixture content rather than adr/0116's deferred founding balance.
+#
+# car_ownership_percent = 0 FOR TAXED.TOML'S REASON EXACTLY: the table has to exist to carry the two
+# keys below and this key is required inside it, so 0 is the value that leaves the rest of this file
+# behaving as it did. adr/0098: 0 is a city before the motor car, not a placeholder.
+#
+# ⚠ THE CEILING IS DERIVED AND THE FLOOR IS NOT. A Household here eats 4 sundries every 32 Ticks
+# (`consume` below), which is 256 a Day, and the import ceiling on sundries is 100 -- the min across
+# the two Hinterlands -- so ONE DAY'S SHOPPING AT THE CEILING PRICE IS 25,600. That is the ceiling.
+# It is chosen so that both halves of the demonstration are inside a run somebody will sit through:
+# a Household near the top shops for about a Day, and one near the bottom cannot buy a single batch.
+# ***A band larger than this would hide the second half; a band smaller would hide the first.***
+#
+# THE FLOOR IS ZERO ON PURPOSE, which is taxed.toml's line and its reason: a Household that opens with
+# nothing is the one this file most needs -- it is the Building that could not afford it, which
+# plans/0044 task 8 says is the clause that gets dropped and the only one showing the market having a
+# consequence.
+#
+# 🔴 BOTH NUMBERS ARE UNRATIFIED AND THIS FILE CANNOT RATIFY THEM YET, for the header's reason: what
+# would ratify a starting balance is a city with an INCOME, and there is no wage until milestone 15.
+# Until then this is a stock being spent down and never replaced, so ***a run of this file has an END
+# rather than a steady state***, and no number out of it is evidence about what a Household should
+# hold. plans/0002 §D1 carries a row apiece.
+# ---------------------------------------------------------------------------------------------------
+[households]
+car_ownership_percent = 0
+
+opening_balance_min = 0
+opening_balance_max = 25600
+
 [[lattice]]
 origin_east_tiles  = 0
 origin_north_tiles = 0

@@ -548,4 +548,33 @@ public enum PurposeTag : ulong
     /// identical order</b>, so a shop would trail a family around the city.
     /// </remarks>
     PremisesCandidate = 29,
+
+    /// <summary>
+    /// Which seller in a District a purchase resolves to (<c>adr/0139</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>02 §8</c> rule 5 arriving in the market.</b> A District's sellers are a list, every one
+    /// of them charges the market row's price, and a purchase needs exactly one. Walking the list
+    /// from the head costs nothing and gives ***the shop nearest the head every sale for the life of
+    /// the city*** — which is the rule's own worked failure, *"the same Building would win every
+    /// contested draw"*, with list position standing in for entity id. The draw picks a start offset
+    /// and the walk is first-fit from there, so no seller holds a standing advantage and a shop that
+    /// restocks is reachable on the next occasion rather than behind a queue that never moves.
+    /// </para>
+    /// <para>
+    /// <b>Keyed on the buying Rule Instance rather than on the market row</b>, so it is a lottery
+    /// number the buyer holds. Keyed on the row instead, every buyer in a District would be sent to
+    /// the same seller on the same Tick and the dispersion the draw exists to create would be a
+    /// rotation the whole city performed in step.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Distinct from <see cref="PoolDraw"/> despite the name, and they are unrelated
+    /// mechanisms.</b> That tag draws out of the <em>Unplaced</em> Pool — who takes a newly built
+    /// dwelling — and this one draws a counterparty out of a <em>District</em> Pool. Sharing would
+    /// tie *which family gets housed* to *which shop gets the sale*, a correlation nothing in either
+    /// readout could show.
+    /// </para>
+    /// </remarks>
+    SellerChoice = 30,
 }
