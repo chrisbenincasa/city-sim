@@ -169,11 +169,22 @@ public sealed class SaveHashTests(ITestOutputHelper output)
         SaveFile.Write(world, InForce, new WorldSnapshot(), file);
 
         byte[] bytes = file.Bytes;
-        // `bin_head` rather than `balance`, as of adr/0143: a Household's balance became DERIVED when
-        // an Occupant started owning a list of Bins, and this test needs a column the save actually
-        // carries. ⚠ The point of the test is unchanged and so is the column's shape -- both are the
-        // saved handle a Household holds into BinTable, and bin_head is now the one that is saved.
-        bytes[ByteIn(world, "household", "bin_head", slot: 0)] ^= 0xFF;
+        // `lot.zone` rather than `household.bin_head`, as of milestone 26 task 2, and the reason is
+        // a finding rather than a preference: FOLDING A HANDLE COLUMN RESOLVES IT. The State Hash
+        // folds a handle as the target row's monotonic id, so a corrupted handle throws out of the
+        // resolver -- StaleHandleException, or an index error -- BEFORE it can reach the comparison
+        // below, and which of the two you get depends on what the corrupt bytes happen to address.
+        //
+        // ⚠ THE LOAD REFUSES EITHER WAY, so nothing here is a hole in adr/0112. What is fragile is
+        // the TEST: it names the hash refusal specifically, and pointing it at a handle made that
+        // assertion depend on luck. adr/0165's land-use split changed the bin table's contents,
+        // the same flipped byte started addressing a freed slot, and this went red for a reason
+        // that had nothing to do with saving. Routed to plans/0003 rather than worked around.
+        //
+        // `zone` is a value column nothing dereferences: World.RebuildDerived buckets it by bit
+        // (ZonedLots) and any bit pattern is a legal input to that, so the fold is reached and the
+        // refusal below is the one adr/0112 describes.
+        bytes[ByteIn(world, "lot", "zone", slot: 0)] ^= 0xFF;
 
         var corrupt = new MemorySave();
         corrupt.Write(bytes);

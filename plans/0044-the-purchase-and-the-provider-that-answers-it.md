@@ -15,6 +15,13 @@ inherits from [`0037`](0037-goods-between-buildings-the-district-pool.md) tasks 
 
 ## Status
 
+🟢 **TASKS 1 AND 2 LANDED 2026-08-25.** Task 2's own account is *What task 2 found* below, and the
+short version is that ***the split's mechanism was never the hard part***: `ZonedLots` reproduces
+`main`'s city to the digit on a world with no trade land, and every difficulty was the fixture
+absorbing the land the split took. **Assertion tier green at 2,311 tests.** ⚠ **All three golden
+artefacts re-baselined this time** — `session.borough` as well as both traces, because task 2 moved
+three zone commands in `GoldenFixtures` and the committed log carries them.
+
 🟢 **TASK 1 LANDED 2026-08-25.** Decomposed against the tree at `22c6fb0`; open decision 4 settled by
 reading, and the reading **refuted** the paragraph that proposed it. **Assertion tier green at 2,311
 tests.** ⚠ **Two golden traces re-baselined** — `session-trace.txt` and `driving-session-trace.txt`, which
@@ -257,7 +264,7 @@ makes that an attribution question rather than a scheduling one.
    `BinTenancy`, `owner = "business"` on `[[building]] bins`, and a money Resource declarable there
    with no `capacity` so `ApplyTenancies` can reach the decline Rule. **No `[[rule]]` key**, so
    `adr/0141` is unamended.
-2. **The land-use split** — [`adr/0165`](../docs/adr/0165-a-zone-permits-building-kinds-so-the-split-is-exclusive-and-the-instrument-paints-it.md).
+2. ✅ **DONE — The land-use split** — [`adr/0165`](../docs/adr/0165-a-zone-permits-building-kinds-so-the-split-is-exclusive-and-the-instrument-paints-it.md).
    `SyntheticCity`'s three `zone: 1` literals become index arithmetic: every *N*th block carries the
    trade bit, at the `:693` loop that already has `column` and `row` in hand. **No number, no
    `purpose_tag`, no §D row** — the ADR *removes* a number. 🔴 **Its own commit**: it moves the State
@@ -437,3 +444,97 @@ with 26's first code task"*, and [`06`](../docs/06-roadmap.md)'s nine-Resource p
 three were found by reading the ledgers for this decomposition and none by reading `0037`***, which is
 the same shape as the payer and the Provider's own content decisions: **a blocker named inside one
 document's entry is invisible to the ledger that owns what is next.**
+
+
+## What task 2 found
+
+**The split itself was three lines. Everything below is what the rest of the build did about it.**
+
+**F4 — `ZonedLots`: a seeker draws over land that admits a dwelling, and `candidates` stops being a
+land-use dial.** `PlacementEngine` drew a Household's candidates uniformly over the *whole* Lot
+table. Its own remarks argue at length for why the draw moved to Lots — over Buildings,
+`candidates` *"meant something the file could not state"*, because freed slots made three looks buy
+about 1.3. ⚠ **Painting one block in eight commercial does the identical thing from the other side**:
+three looks bought about 2.6, and the commercial share silently became a placement tuning knob.
+**Measured: vacancy 18.5% → 26% at an unchanged capacity of ~188, which is fourteen dwellings nobody
+found.** ✅ **The index is provably neutral where it should be** — with trade land off it reproduces
+`main` at 35 of 189 with 206 queued, to the digit. ⚠ **The dead look the engine defends SURVIVES**: a
+vacant Lot that admits a dwelling is a home not yet built and looking at it is a real
+disappointment; a Lot that admits only a trade is not a home at all.
+
+**F5 — `adr/0055` forbids the same repair one level up, and that is why the Zone Rule keeps its
+diluted sample.** *"A Zone Rule's permission set scopes what it builds, never which Lots it looks
+at"* — filtering its sample would let a player repaint a Lot and put the Building on it beyond every
+Rule's reach, which is **immortality by paintbrush**. So the Zone Rule spends part of every sample on
+land it cannot build on, deliberately, and placement was the only draw legitimately narrowable.
+
+**F6 — 🔴 THE STRIDE SATURATES, so most of its values are the same world.** `(column + row) % stride`
+spans `0..2(n−1)` on a grid of *n* blocks a side, and at 1,000 Citizens that is a handful — so
+**strides 8, 12, 16 and 32 all produce 124 housing Lots and 10 trade Lots, byte for byte**, and a run
+on each returns identical numbers. ⚠ ***This is why three successive guesses at the placement failure
+each returned the reading unchanged***: the changes were real and the worlds were not. **A stride is
+only a dial while it is smaller than the city.**
+
+**F7 — 🔴 A SMALLER stride yields MORE housing land, which refutes the reading everyone starts with.**
+The lattice is sized from the housing Lots it must hold, so a denser commercial grid forces a wider
+city: **166 Lots = 126 housing + 40 trade at stride 4**, against **134 = 124 + 10 at stride 8**.
+⚠ **The `adr/0055` dilution theory — that commercial land slows construction by wasting Zone Rule
+samples — is REFUTED by the same sweep**, because stride 4 carries four times the trade land and
+produces *lower* vacancy. ***The cost is land, not wasted looks***, and vacancy tracks housing Lot
+count monotonically: 134 → 18.5%, 126 → 21.9%, 124 → 25.0%.
+
+**F8 — 🔴 STRIDE 4 WAS ADOPTED AND WITHDRAWN THE SAME DAY, on a recommendation that rested on one
+test.** It passes the placement long-run test untouched, which is what it was recommended on. The
+full tier then showed it introduces an [`adr/0006`](../docs/adr/0006-no-collection-grows-with-elapsed-time.md)
+trend in `EvidenceLongRunTests` — people carrying a reach-failure history rising **32.9** across the
+tail against a 3-sigma band of **23.2**. ***A bound traded for an invariant is not a trade this
+project makes.*** ⚠ **The lesson is about the evidence and not the number**: a 2×2 of the stride
+against `PavedTiles`' compensation reads **6 / 11 / 8 / 9** failures, and no single test predicts it.
+
+**F9 — ⚠ `PavedTiles`' compensation is NOT a Lot-supply fix, and its first comment said it was.** It
+was written to keep housing capacity constant across the split and its comment claimed exactly that.
+**Measured: it does not move the Lot counts by one Lot** — 134 = 124 + 10, with it and without it —
+because the extent is quantised to whole blocks a side (`blocks = sqrt(wanted / perBlock)`, an
+integer), so a 14% bump in `wanted` either moves that integer or does nothing. ✅ **What it actually
+moves is the paved EXTENT, and that is load-bearing**: without it five `TripCommandTests` fixtures
+and `CarOwnershipTests` fail. ***It was recorded as a Lot-supply fix, measured, and found to supply
+no Lots*** — [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)'s
+failure mode, caught by the instrument rather than by review.
+
+**F10 — the placement test's tolerance was denominated in the wrong quantity, and the split is what
+exposed it.** Both its bounds took *a quarter of capacity*, calibrated on a world where **every** Lot
+admitted a dwelling. It is now derived from the housing land the city actually has, which is **the
+same number to the digit on a world with no split** and widens only in proportion to the land
+removed. 🔴 ⚠ **CHOSEN AND NOT DERIVED**: the observed rise is *steeper* than inversely proportional —
+scaling 18.5% by 134/124 predicts 20.0% where the run gives 25.0% — so it under-corrects and leaves
+**3 places of margin on the vacancy bound and 2 on the residue**, against `main`'s 12. ***Nobody has
+derived why vacancy rises faster than the land it lost.***
+
+**F11 — the golden fixture is 548 Lots and not 134, and a report of this sitting said otherwise for
+an hour.** `PlacementLongRunTests` declares its own `Population = 1_000`; `GoldenFixtures.Population`
+is **4,000**. Measured across populations: 1,000 → 134 Lots (7.5% trade), 4,000 → **548** (10.9%),
+8,000 → 1,104 (12.9%) — so the trade share converges on the intended eighth as the city grows, and
+**F6's saturation is a property of the 1,000-Citizen world only**. ⚠ ***A conclusion about "the
+fixture" that was measured on a different fixture*** — and it was load-bearing, because it made
+*grow the golden world* look like the root-cause fix when a bigger city has **longer** commutes and
+would worsen the one failure it was meant to cure.
+
+**F12 — `JobSearchBoxTests` lost a property the fixture genuinely had.** It asserted *every* accepted
+commute is Fast — *"what a city smaller than a commute looks like from inside the instrument."*
+Re-measured: **2,294 employed, 2,293 / 1 / 0**, `beyond` still **0**. The cause is F9's extra
+block-ring, and one commute at the far corner crossed the 20-minute rung. ⚠ **`beyond` and
+`unsavoury` stay pinned at zero** — `adr/0095` is explicit that only the ceiling refuses — and only
+the fast-against-moderate line was relaxed, to **99% Fast**, *as a bound and not a baseline*.
+***The city stopped being strictly smaller than a commute, and that is a real loss recorded rather
+than absorbed.***
+
+**F13 — routed under `adr/0073`, not worked around.** A corrupted **handle** column is refused by the
+resolver and never reaches `adr/0112`'s hash check, because folding a handle *resolves* it — so which
+refusal you get depends on what the corrupt bytes happen to address. 🔴 **The load refuses either
+way, so this is not a hole in invariant 6**; what was fragile is a test that named *which* refusal.
+`SaveHashTests` flipped a byte in `household.bin_head`, the split changed the bin table's contents,
+the byte started addressing a freed slot, and it went red for a reason with nothing to do with
+saving. **Filed as `plans/0003` hash-moving queue item 19**; the flip now targets `lot.zone`.
+⚠ **The `World.Migrate` finding this sitting owed was already filed** — queue item **15** states it
+in full, including that `RemapBins` is applied by walking Buildings and *"that is the whole of where
+it is applied."*

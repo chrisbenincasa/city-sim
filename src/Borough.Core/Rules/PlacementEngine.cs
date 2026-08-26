@@ -1,5 +1,6 @@
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
+using Borough.Core.Space;
 using Borough.Core.Quantities;
 using Borough.Core.Tables;
 
@@ -303,20 +304,29 @@ public sealed class PlacementEngine
     /// <c>02 §5.4</c> arrives it replaces this line and the candidate list stays.
     /// </para>
     /// <para>
-    /// <b>The draw is over <em>Lots</em> rather than over Buildings, and the difference is not
-    /// cosmetic.</b> A Lot is a place in the city and the Lot table's slot count is the size of the
-    /// city; the Building table's is a <em>recycling</em> table whose freed slots are an artefact of
-    /// storage. Drawing over Buildings made <c>candidates</c> mean something the file could not
+    /// <b>The draw is over <em>Lots that admit a dwelling</em> rather than over Buildings, and
+    /// neither half of that is cosmetic.</b> A Lot is a place in the city; the Building table is a
+    /// <em>recycling</em> table whose freed slots are an artefact of storage. Drawing over Buildings made <c>candidates</c> mean something the file could not
     /// state — under the shipped Ruleset roughly 55% of Building slots stand freed at any instant, so
     /// three looks bought about 1.3 real ones, and lowering the demolition rate would have silently
     /// raised the effective candidate count. Over Lots, a look that lands on a vacant one found
     /// nothing, which is a thing that happens to somebody looking for somewhere to live.
     /// </para>
+    /// <para>
+    /// <b>⚠ And the draw space is <see cref="ZonedLots"/> rather than the whole Lot table, because
+    /// <c>adr/0165</c>'s land-use split would otherwise have done the same silent thing from the
+    /// other side.</b> Once one block in eight admits only a trade, a uniform draw over all Lots
+    /// spends a look on land that will never hold a home — so three looks bought about 2.6, and the
+    /// commercial share became a placement tuning knob nobody had argued. Measured on
+    /// <c>GoldenFixtures</c>: vacancy 18.5% → 26% at an unchanged capacity, which is fourteen
+    /// dwellings nobody found. <b>The dead look above survives</b> — a vacant Lot that admits a
+    /// dwelling is a home not yet built — and the one that never was a home does not.
+    /// </para>
     /// </remarks>
     private bool TryHouse(Handle<Household> seeker, int slot, Ticks tick)
     {
         int candidates = _world.Rules.Placement.Candidates;
-        int lots = _world.Lots.Rows.SlotCount;
+        int lots = _world.LotsAdmitting.Count(_world.Lots, LotTable.Housing);
 
         if (lots == 0)
         {
@@ -340,15 +350,14 @@ public sealed class PlacementEngine
 
             ulong value = Randomness.Draw(_key, entity, tick, PurposeTag.PlacementCandidate);
 
-            int lot = (int)(value % (ulong)(uint)lots);
-
-            if (!_world.Lots.Rows.IsLive(lot))
-            {
-                continue;
-            }
+            // No liveness test: the draw space holds live Lots only, and a freed Lot invalidates it.
+            int lot = _world.LotsAdmitting.Nth(
+                _world.Lots, LotTable.Housing, (int)(value % (ulong)(uint)lots));
 
             // A vacant Lot is a look that found nothing, which is a real thing to happen to somebody
-            // looking for somewhere to live and is why the draw is over Lots at all.
+            // looking for somewhere to live and is why the draw is over Lots at all. ⚠ It is a real
+            // thing only because this Lot ADMITS a dwelling -- see ZonedLots, which draws the line
+            // between a home not yet built and land that will never hold one.
             int building = _world.Lots.BuildingOn(lot);
 
             if (building == Rows.NoSlot)

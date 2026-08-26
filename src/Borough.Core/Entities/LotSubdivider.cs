@@ -142,6 +142,10 @@ public static class LotSubdivider
         if (created > 0)
         {
             world.Frontage.Claim(segment, side);
+
+            // Once per run rather than once per Lot: the zoned draw space is rebuilt whole, so what
+            // a writer owes it is a flag and never a maintenance step.
+            world.LotsAdmitting.Invalidate();
         }
 
         return created;
@@ -191,7 +195,10 @@ public static class LotSubdivider
         if (freed > 0)
         {
             // Freeing releases claims, and the mask is derived from the Lots rather than maintained,
-            // so it is recomputed before anything reads it to decide what to lay.
+            // so it is recomputed before anything reads it to decide what to lay. The zoned draw
+            // space is derived the same way and lost Lots the same way, so it is invalidated here.
+            world.LotsAdmitting.Invalidate();
+
             world.Frontage.Rebuild(world.Lots, world.Roads.Streets);
         }
 

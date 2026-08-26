@@ -175,7 +175,46 @@ public sealed class DistrictWatershedTests
         return extents;
     }
 
-    /// <summary>Every Cell that holds at least one Building, as a grid index.</summary>
+    /// <summary>
+    /// Whether a Cell is in the settlement: <b>built on, or ground a Zone is holding vacant for a
+    /// trade</b>.
+    /// </summary>
+    /// <remarks>
+    /// <b>The watershed's own input, and this had to widen with it</b> (<c>adr/0165</c>). The extent
+    /// was *built Cells only* while every Lot the generator carved was permitted to dwellings and
+    /// filled immediately. A commercial block is permitted to a trade, is deliberately left vacant
+    /// for demand to claim, and ***counting it as empty made a one-lattice world report eight
+    /// concentrations***. <c>Space.DistrictWatershed.HeldForTrade</c> is where the simulation says so;
+    /// this mirrors it so the assertions here keep asking the operator's own question.
+    /// </remarks>
+    private static bool Settled(World world, Cells east, Cells north)
+    {
+        if (world.BuildingsInCells.Density(east, north) > 0)
+        {
+            return true;
+        }
+
+        for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
+        {
+            if (world.Lots.Rows.IsLive(slot)
+                && world.Lots.IsVacant(slot)
+                && (world.Lots.Zone[slot] & LotTable.Trade) != 0
+                && CellGrid.ToCells(world.Lots.East[slot]).Raw == east.Raw
+                && CellGrid.ToCells(world.Lots.North[slot]).Raw == north.Raw)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Every Cell in the settlement, as a grid index.</summary>
+    /// <remarks>
+    /// ⚠ <b>It said <em>every Cell that holds at least one Building</em> until <c>adr/0165</c></b>,
+    /// and the name still says so. It is kept because it is what the watershed's extent is compared
+    /// against, and <see cref="Settled"/> is now the operator's own question.
+    /// </remarks>
     private static List<int> BuiltCells(World world)
     {
         List<int> built = [];
@@ -184,7 +223,7 @@ public sealed class DistrictWatershedTests
         {
             for (int east = 0; east < CellGrid.WorldCells; east++)
             {
-                if (world.BuildingsInCells.Density(new Cells(east), new Cells(north)) > 0)
+                if (Settled(world, new Cells(east), new Cells(north)))
                 {
                     built.Add(CellGrid.Index(new Cells(east), new Cells(north)));
                 }
@@ -346,9 +385,9 @@ public sealed class DistrictWatershedTests
 
             Assert.True(filed.Add(index), $"Cell {index} was filed under two Districts.");
             Assert.True(
-                world.BuildingsInCells.Density(
-                    world.DistrictCells.East[slot], world.DistrictCells.North[slot]) > 0,
-                $"Cell {index} holds no Building and is in a District. Empty ground drains nowhere.");
+                Settled(world, world.DistrictCells.East[slot], world.DistrictCells.North[slot]),
+                $"Cell {index} is neither built on nor held for a trade, and is in a District. "
+                + "Empty ground drains nowhere.");
         }
 
         Assert.Equal(built.Count, filed.Count);

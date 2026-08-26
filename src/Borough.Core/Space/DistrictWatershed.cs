@@ -188,6 +188,7 @@ public static class DistrictWatershed
         BuildingResidency density, BuildingTable buildings, LotTable lots, RoadGraph roads)
     {
         int[] ordinalOf = new int[CellGrid.WorldCellCount];
+        int[] held = HeldForTrade(lots, density);
 
         List<int> cellIndex = [];
         List<int> heights = [];
@@ -200,7 +201,7 @@ public static class DistrictWatershed
                 Cells e = new(east);
                 Cells n = new(north);
 
-                int height = density.Density(e, n);
+                int height = density.Density(e, n) + held[CellGrid.Index(e, n)];
 
                 if (height <= 0)
                 {
@@ -217,6 +218,114 @@ public static class DistrictWatershed
 
         return new Basins(
             [.. cellIndex], [.. heights], [.. components], ordinalOf);
+    }
+
+    /// <summary>
+    /// Vacant Lots zoned for a trade, per Cell — <b>settlement that is standing empty on purpose</b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>Without this a commercial block reads as a HOLE in the density field, and the watershed
+    /// shatters.</b> <c>adr/0165</c>'s land-use split leaves one block in
+    /// <c>SyntheticCity.TradeBlockStride</c> permitted to a trade and unbuilt, and a block's Lots sit
+    /// on the faces it shares with its neighbours — so a trade block does not merely zero its own
+    /// Cell, it **thins the Cells around it**. Measured on `minimal.toml` at 16,000 Citizens before
+    /// this existed: an interior Cell holding 10 Buildings fell to **5**, a one-lattice world reported
+    /// **8** concentrations instead of one, and `twinned.toml` reported 6 and 12 instead of two.
+    /// </para>
+    /// <para>
+    /// <b>The field measures where the settlement IS, and land a Zone holds vacant for a shop is
+    /// inside the settlement.</b> That is why this counts rather than smooths. ***A kernel would have
+    /// been answering noise that is not there***: <c>plans/0037</c> **F8** measured the field before
+    /// refusing to smooth it — *"the field is not noisy, it is flat"* — and that argument survives
+    /// this change intact, where a radius would have replaced it with a fifth hash-bearing number
+    /// <c>adr/0134</c> does not enumerate and nothing in milestone 26 could ratify.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It counts VACANT trade Lots only, so the height does not move when a shop is built</b> —
+    /// the Lot leaves this count and arrives in <see cref="BuildingResidency.Density"/> in the same
+    /// instant. ***A District that grew when its first shop opened would be a District reacting to
+    /// construction rather than to settlement.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Vacant HOUSING land is deliberately NOT counted, and the asymmetry is the point.</b>
+    /// Trade land is vacant because a permission set is holding it; housing land is vacant because
+    /// nobody wanted it. ***The first is a statement about the city and the second is the absence of
+    /// one***, which is why the extent stays *built Cells only* everywhere else (<c>plans/0037</c>).
+    /// </para>
+    /// </remarks>
+    private static int[] HeldForTrade(LotTable lots, BuildingResidency density)
+    {
+        int[] held = new int[CellGrid.WorldCellCount];
+
+        for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
+        {
+            if (!lots.Rows.IsLive(slot)
+                || !lots.IsVacant(slot)
+                || (lots.Zone[slot] & LotTable.Trade) == 0)
+            {
+                continue;
+            }
+
+            Cells east = CellGrid.ToCells(lots.East[slot]);
+            Cells north = CellGrid.ToCells(lots.North[slot]);
+
+            if (!HasBuiltNeighbour(density, east, north))
+            {
+                continue;
+            }
+
+            held[CellGrid.Index(east, north)]++;
+        }
+
+        return held;
+    }
+
+    /// <summary>
+    /// Whether this Cell or one of its eight neighbours holds a Building.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>The clause that keeps <em>held for a trade</em> meaning INSIDE A SETTLEMENT rather than
+    /// merely ZONED</b>, and it was found by a test rather than by argument.
+    /// <c>DistrictReevaluationTests.A_district_whose_centre_is_demolished_is_destroyed</c> razes every
+    /// Building east of an authored gap and expects the eastern District to die. Without this it
+    /// **survived its own demolition**: the commercial Lots were still zoned, still vacant, still
+    /// counted, and a District went on standing over ground with nothing on it.
+    /// </para>
+    /// <para>
+    /// <b>Zoning is a statement about a city, and it stops being one when the city goes.</b> A
+    /// commercial block among houses is land the settlement is holding for a shop; the same block
+    /// with every neighbour razed is a line on a map. ***The permission set did not change and what it
+    /// MEANS did***, which is why this reads the Buildings around it rather than the bits on it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Eight-neighbour and not four</b>, because a block's Lots sit on the faces it shares with
+    /// its neighbours, so a trade block's diagonal is as much its surroundings as its orthogonal is.
+    /// </para>
+    /// </remarks>
+    private static bool HasBuiltNeighbour(BuildingResidency density, Cells east, Cells north)
+    {
+        for (int dn = -1; dn <= 1; dn++)
+        {
+            for (int de = -1; de <= 1; de++)
+            {
+                int e = east.Raw + de;
+                int n = north.Raw + dn;
+
+                if (e < 0 || n < 0 || e >= CellGrid.WorldCells || n >= CellGrid.WorldCells)
+                {
+                    continue;
+                }
+
+                if (density.Density(new Cells(e), new Cells(n)) > 0)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -251,21 +360,63 @@ public static class DistrictWatershed
                 continue;
             }
 
-            int frontage = lots.FrontageSlot[lot];
+            int found = ComponentAt(lots, roads, lot);
 
-            if (frontage == 0 || !roads.Segments.Rows.IsLive(frontage - 1))
+            if (found != RoadConnectivity.Unlabelled)
+            {
+                return found;
+            }
+        }
+
+        // ⚠ AND THEN THE GROUND HELD FOR A TRADE, which has no Building to ask. A Cell whose only
+        // occupants are vacant commercial Lots is in the settlement -- HeldForTrade gave it a height
+        // -- so it must also be able to name a road component, or it is a Cell the field admits and
+        // the clip immediately severs. ***That is how a fixed density field still produced three
+        // Districts where there is one lattice***: the height was right and the component was
+        // Unlabelled, and an unlabelled Cell may never merge with anything.
+        //
+        // A vacant Lot HAS a frontage -- the subdivider gave it one, because frontage is the
+        // geometric precondition for a Lot existing at all (CONTEXT.md -> Frontage) -- so this asks
+        // the same question of the same column by a different route.
+        for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
+        {
+            if (!lots.Rows.IsLive(slot)
+                || !lots.IsVacant(slot)
+                || (lots.Zone[slot] & LotTable.Trade) == 0
+                || CellGrid.ToCells(lots.East[slot]).Raw != east.Raw
+                || CellGrid.ToCells(lots.North[slot]).Raw != north.Raw)
             {
                 continue;
             }
 
-            if (roads.Nodes.Rows.TryResolve(roads.Segments.NodeA[frontage - 1], out int node)
-                && roads.Nodes.FootComponent[node] != RoadConnectivity.Unlabelled)
+            int found = ComponentAt(lots, roads, slot);
+
+            if (found != RoadConnectivity.Unlabelled)
             {
-                return roads.Nodes.FootComponent[node];
+                return found;
             }
         }
 
         return RoadConnectivity.Unlabelled;
+    }
+
+    /// <summary>The Foot component of one Lot's frontage, or <c>Unlabelled</c>.</summary>
+    /// <remarks>
+    /// <b>Factored out because two walks now ask it</b> — the Buildings in a Cell, and the ground a
+    /// Zone holds vacant for a trade — and a second copy would be the place the two answers drift.
+    /// </remarks>
+    private static int ComponentAt(LotTable lots, RoadGraph roads, int lot)
+    {
+        int frontage = lots.FrontageSlot[lot];
+
+        if (frontage == 0 || !roads.Segments.Rows.IsLive(frontage - 1))
+        {
+            return RoadConnectivity.Unlabelled;
+        }
+
+        return roads.Nodes.Rows.TryResolve(roads.Segments.NodeA[frontage - 1], out int node)
+            ? roads.Nodes.FootComponent[node]
+            : RoadConnectivity.Unlabelled;
     }
 
     /// <summary>

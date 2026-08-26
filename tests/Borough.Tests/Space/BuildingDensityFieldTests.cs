@@ -66,8 +66,41 @@ public sealed class BuildingDensityFieldTests
         return world;
     }
 
-    private static int Density(World world, int east, int north) =>
-        world.BuildingsInCells.Density(new Cells(east), new Cells(north));
+    /// <summary>
+    /// <b>The height the WATERSHED sees</b>, which is Buildings plus the Lots a Zone is holding
+    /// vacant for a trade.
+    /// </summary>
+    /// <remarks>
+    /// <b>Not <c>BuildingsInCells.Density</c> alone, and the difference is <c>adr/0165</c>.</b> The
+    /// land-use split leaves one block in <c>SyntheticCity.TradeBlockStride</c> permitted to a trade
+    /// and unbuilt, and a block's Lots sit on the faces it shares with its neighbours — so counting
+    /// only Buildings makes a commercial block **thin the Cells around it**, and this class measured
+    /// an interior Cell at 5 where every other held 10. ***That is a hole in the instrument, not a
+    /// gradient in the city***, and `DistrictWatershed.HeldForTrade` is where the simulation says so.
+    /// This helper mirrors it so the assertions below keep measuring the field the watershed reads.
+    /// </remarks>
+    private static int Density(World world, int east, int north)
+    {
+        int height = world.BuildingsInCells.Density(new Cells(east), new Cells(north));
+
+        for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
+        {
+            if (!world.Lots.Rows.IsLive(slot)
+                || !world.Lots.IsVacant(slot)
+                || (world.Lots.Zone[slot] & LotTable.Trade) == 0)
+            {
+                continue;
+            }
+
+            if (CellGrid.ToCells(world.Lots.East[slot]).Raw == east
+                && CellGrid.ToCells(world.Lots.North[slot]).Raw == north)
+            {
+                height++;
+            }
+        }
+
+        return height;
+    }
 
     /// <summary>The smallest box of Cells holding every Cell with a Building in it.</summary>
     private static (int East, int North, int EastEnd, int NorthEnd) Built(World world)
@@ -212,9 +245,14 @@ public sealed class BuildingDensityFieldTests
 
         Assert.NotEmpty(expected);
 
+        // ⚠ THE RAW FIELD and not Density() above, because this is the one test whose subject IS the
+        // Building count. Density() adds the Lots a Zone holds vacant for a trade, which is the
+        // height the WATERSHED reads (adr/0165); asking it here would make this test assert the
+        // watershed's input while claiming to assert the table's contents.
         foreach (((int east, int north), int count) in expected)
         {
-            Assert.Equal(count, Density(world, east, north));
+            Assert.Equal(
+                count, world.BuildingsInCells.Density(new Cells(east), new Cells(north)));
         }
     }
 

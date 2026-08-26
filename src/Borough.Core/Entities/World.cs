@@ -511,6 +511,17 @@ public sealed class World
     public BuildingResidency BuildingsInCells { get; } = new();
 
     /// <summary>
+    /// Which live Lots admit a given use — the draw space a seeker's candidates come from.
+    /// </summary>
+    /// <remarks>
+    /// <b>Rebuilt whole rather than maintained, and every writer of the Lot set invalidates it</b>
+    /// (<see cref="ZonedLots"/>, which carries the argument). Nothing here calls it per Lot: a
+    /// subdivision creates them in bulk and an eager rebuild per <c>Create</c> would be quadratic
+    /// over one road edit.
+    /// </remarks>
+    public ZonedLots LotsAdmitting { get; } = new();
+
+    /// <summary>
     /// The city's Districts — a centre and the basin that drains to it, <c>adr/0134</c>.
     /// </summary>
     /// <remarks>
@@ -2525,6 +2536,11 @@ public sealed class World
         // clears its own arrays and CellNext rather than being cleared with the block at the top,
         // because its head and tail are not columns and the block above is a list of columns.
         BuildingsInCells.Rebuild(Buildings, Lots);
+
+        // The zoned draw space, from the Lots' own saved Zones. A counting sort in slot order, so a
+        // load reproduces the runs exactly rather than plausibly -- which is what makes a candidate
+        // draw over it stable across save and reload.
+        LotsAdmitting.Rebuild(Lots);
 
         // The Cell-to-District index, from the membership rows' own saved coordinates. NOT a
         // re-evaluation: the watershed does not run here and must not, because a load restores the
@@ -5701,6 +5717,9 @@ public sealed class World
             if (HasStreets && !Lots.HasFrontage(lotSlot))
             {
                 Lots.Rows.Free(Lots.Rows.At(lotSlot));
+
+                // The Lot set shrank, so the zoned draw space is out of date.
+                LotsAdmitting.Invalidate();
             }
         }
 

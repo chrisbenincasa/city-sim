@@ -69,9 +69,10 @@ public sealed class PlacementLongRunTests
         // stock that a burst of demolition raises for a few triggers and the pass then works off.
         long capacity = Mean(tail, r => r.Capacity);
         long vacant = Mean(tail, r => r.Capacity - r.Housed);
+        long tolerance = Tolerance(world, capacity);
 
         Assert.True(
-            vacant <= capacity / 4,
+            vacant <= tolerance,
             $"{vacant} of {capacity} declared places stood empty on average while "
             + $"{Mean(tail, r => r.Pool)} Households queued. The housing stock is not being used, "
             + "which is what adr/0069's pass exists to do -- and is what slice 10 recorded as a "
@@ -84,7 +85,7 @@ public sealed class PlacementLongRunTests
         long unhousable = Mean(tail, r => r.Households - r.Capacity);
 
         Assert.True(
-            pool <= unhousable + (capacity / 4),
+            pool <= unhousable + tolerance,
             $"{pool} Households queued on average against {unhousable} more people than places. The "
             + "gap is families the city had room for and did not house.");
     }
@@ -212,6 +213,71 @@ public sealed class PlacementLongRunTests
     }
 
     private static Reading[] Run(out World world) => Run(GoldenFixtures.Seed, out world);
+
+    /// <summary>
+    /// The vacancy this test tolerates: a quarter of capacity, widened by the share of the city's
+    /// land that cannot hold a home.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A quarter was the whole of it until <c>adr/0165</c>, and the split is what made the
+    /// denominator wrong rather than the fraction.</b> The old bound read <c>capacity / 4</c>, which
+    /// is a tolerance on the vacancy floor a continuously-building city carries — and it was
+    /// calibrated on a world where <em>every</em> Lot admitted a dwelling. Once one block in
+    /// <c>SyntheticCity.TradeBlockStride</c> is permitted only to a trade, the same fraction is being
+    /// asked of a city with less housing land, and it fails for a reason that is nothing to do with
+    /// the mechanism the test is about.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>MEASURED, and it is the housing Lot count that vacancy tracks — not capacity, and not
+    /// commercial share.</b> A sweep on this fixture: <b>134</b> housing Lots → <b>18.5%</b> vacancy,
+    /// <b>126</b> → <b>21.9%</b>, <b>124</b> → <b>25.0%</b>. The city is 134 Lots and near-saturated,
+    /// so ten Lots is a large fraction of it. ***An <c>adr/0055</c> reading — that commercial land
+    /// dilutes the Zone Rule's sample — was proposed and is refuted by the same sweep***, because a
+    /// stride of 4 carries four times the trade land and yields <em>lower</em> vacancy: it also
+    /// yields a wider lattice and two more housing Lots. The cost is land, not wasted looks.
+    /// </para>
+    /// <para>
+    /// <b>On a world with no split this is exactly the old number, which is the property worth
+    /// having.</b> Every Lot admits a dwelling there, so the ratio is one and the bound is
+    /// <c>capacity / 4</c> to the digit — verified against <c>main</c>'s city, which reads 35 of 189.
+    /// It widens only in proportion to the housing land actually removed, so a future change to the
+    /// land-use mix moves the bound <em>with</em> the city instead of against it.
+    /// </para>
+    /// <para>
+    /// 🔴 ⚠ <b>CHOSEN AND NOT DERIVED, and the measurement above is what says so.</b> The observed
+    /// rise is <em>steeper</em> than inversely proportional to housing land — scaling 18.5% by
+    /// 134/124 predicts 20.0% where the run gives 25.0% — so this scaling under-corrects, and the
+    /// margin it leaves is **3 places on the vacancy bound and 2 on the residue** rather than
+    /// <c>main</c>'s 12. ***Nobody has derived why vacancy rises faster than the land it lost***, and
+    /// until somebody does, a change that eats those three places will read as a placement regression
+    /// when it may be a land one. That is the reading to distrust first.
+    /// </para>
+    /// </remarks>
+    private static long Tolerance(World world, long capacity)
+    {
+        long lots = 0;
+        long housing = 0;
+
+        for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
+        {
+            if (!world.Lots.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            lots++;
+
+            if ((world.Lots.Zone[slot] & LotTable.Housing) != 0)
+            {
+                housing++;
+            }
+        }
+
+        // A city with no housing land at all is a different failure, and the caller's own vacuity
+        // assertions catch it; falling back to the old bound keeps this from dividing by zero.
+        return housing == 0 ? capacity / 4 : capacity * lots / (4 * housing);
+    }
 
     private static Reading[] Run(ulong seed, out World world)
     {

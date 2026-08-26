@@ -38,6 +38,26 @@ public sealed class LotTable
     /// </remarks>
     public const int ZoneBits = 16;
 
+    /// <summary>Land where a dwelling may stand. Bit 0, and every Lot the generator ever painted.</summary>
+    /// <remarks>
+    /// <b>Named here rather than in <see cref="SyntheticCity"/> because two subsystems read it and
+    /// only one paints it</b> (<c>adr/0165</c>). The generator assigns the bits; the District
+    /// watershed has to know which vacant land is <em>deliberately</em> vacant. A bit index repeated
+    /// in two files is one edit away from a watershed that reads commercial land as a hole.
+    /// </remarks>
+    public const ushort Housing = 1 << 0;
+
+    /// <summary>
+    /// Land where a trade's premises may stand, and <b>where a dwelling may not</b>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Exclusive with <see cref="Housing"/></b>, which is <c>CONTEXT.md</c> → Zone's own definition
+    /// of a permission set: *"it lists the uses allowed there and forbids every other."* ⚠ <b>A Lot
+    /// carrying this and standing vacant is not empty ground</b> — see
+    /// <c>Space.DistrictWatershed</c>, which counts it toward settlement height for that reason.
+    /// </remarks>
+    public const ushort Trade = 1 << 1;
+
     private readonly Rows<Lot> _rows;
 
     /// <param name="capacity">Initial slot count. ~225 Lots per 1,000 Citizens, per S4 task 2.</param>

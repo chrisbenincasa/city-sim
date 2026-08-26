@@ -289,15 +289,39 @@ public sealed class JobSearchBoxTests
     }
 
     /// <summary>
-    /// <b>On the golden fixture every accepted commute is <see cref="CommuteRung.Fast"/> and none is
-    /// refused</b>, which is what a city smaller than a commute looks like from inside the instrument.
+    /// <b>On the golden fixture essentially every accepted commute is <see cref="CommuteRung.Fast"/>
+    /// and none is refused</b>, which is what a city barely larger than a commute looks like from
+    /// inside the instrument.
     /// </summary>
     /// <remarks>
-    /// Measured 2026-08-14 at the shipped ceiling: 2,307 employed, <b>2,307 / 0 / 0</b> across the three
-    /// rungs, <c>beyond</c> <b>0</b>. <b>The three-rung instrument reports one value on the world the
-    /// baseline commits</b>, so a change that broke the grading entirely would not move this fixture.
-    /// <see cref="EmploymentRungTests"/> covers the far end of that ladder; this states the near end, so
-    /// the pair is visible from one place.
+    /// <para>
+    /// Measured 2026-08-14 at the shipped ceiling: 2,307 employed, <b>2,307 / 0 / 0</b> across the
+    /// three rungs, <c>beyond</c> <b>0</b>. <b>The three-rung instrument reports one value on the
+    /// world the baseline commits</b>, so a change that broke the grading entirely would not move
+    /// this fixture. <see cref="EmploymentRungTests"/> covers the far end of that ladder; this
+    /// states the near end, so the pair is visible from one place.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>IT SAID *EVERY* COMMUTE UNTIL 2026-08-25, AND `adr/0165`'s LAND-USE SPLIT MOVED IT BY
+    /// ONE.</b> Re-measured at milestone 26 task 2: <b>2,294 employed, 2,293 / 1 / 0</b>,
+    /// <c>beyond</c> still <b>0</b>. The cause is not the commercial land itself but the ground the
+    /// city needed to absorb it — <see cref="SyntheticCity"/>'s extent compensation steps the
+    /// lattice up by one block-ring, and one commute at the far corner crossed the 20-minute rung.
+    /// ***The city stopped being strictly smaller than a commute***, which is a real property this
+    /// fixture used to have and no longer does.
+    /// </para>
+    /// <para>
+    /// <b>What is still asserted exactly, and why the softened one is the right half to soften.</b>
+    /// <c>beyond</c> and <see cref="CommuteRung.Unsavoury"/> stay pinned at zero:
+    /// <c>adr/0095</c> is explicit that <em>only the ceiling refuses</em> and the rungs below it
+    /// grade a commute that happens anyway, so a refusal appearing here would be a different claim
+    /// entirely and this test would still catch it on the nose. What is relaxed is the
+    /// fast-against-moderate line, to <b>99% of accepted commutes Fast</b> — which one crossing in
+    /// 2,294 clears by a factor of twenty, and which a grading that had actually broken would miss
+    /// by far more. ⚠ <b>A bound and not a baseline</b>: do not re-pin it to the measured 1, because
+    /// the count moves with the world and pinning it would make every unrelated world change land
+    /// here.
+    /// </para>
     /// </remarks>
     [Fact]
     public void Every_commute_on_the_golden_fixture_is_fast_and_none_is_refused()
@@ -312,10 +336,18 @@ public sealed class JobSearchBoxTests
 
         Assert.True(shipped.Employed.Sum > 0, "nobody was employed, so nothing was checked.");
 
-        Assert.Equal(shipped.Employed.Sum, shipped.Fast.Sum);
-        Assert.Equal(0, shipped.Moderate.Sum);
+        // The refusal and the worst rung, pinned. adr/0095: only the ceiling refuses.
         Assert.Equal(0, shipped.Unsavoury.Sum);
         Assert.Equal(0, shipped.Beyond.Sum);
+
+        // And the near end as a bound rather than a baseline -- see the remarks for why this is the
+        // half that gives, and why re-pinning it to the measured count would be wrong.
+        Assert.True(
+            shipped.Fast.Sum >= shipped.Employed.Sum - (shipped.Employed.Sum / 100),
+            $"{shipped.Fast.Sum} of {shipped.Employed.Sum} accepted commutes were fast, with "
+            + $"{shipped.Moderate.Sum} moderate. This fixture is a city barely larger than a "
+            + "commute, so a moderate commute is the far corner and a crowd of them is the grading "
+            + "having moved or the city having outgrown its Commute Budget.");
     }
 
     /// <summary>Share of seekers whose box holds every Building in the world, as a percentage.</summary>

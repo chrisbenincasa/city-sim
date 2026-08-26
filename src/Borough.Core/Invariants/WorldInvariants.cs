@@ -1594,12 +1594,53 @@ public static class WorldInvariants
             Cells east = cells.East[slot];
             Cells north = cells.North[slot];
 
+            // ⚠ OR GROUND A ZONE IS HOLDING VACANT FOR A TRADE, which is adr/0165 widening what
+            // *settled* means rather than loosening this check. The evaluation's own input is
+            // Buildings PLUS vacant trade Lots (Space.DistrictWatershed.HeldForTrade), because a
+            // commercial block that counted as empty would read as a hole and shatter the watershed
+            // -- measured at 8 concentrations where there is one lattice. ***A post-condition that
+            // asked a different question from the operator it follows would fail on correct output***,
+            // which is exactly what it did the hour this landed.
             report.Require(
-                world.BuildingsInCells.Density(east, north) > 0,
+                world.BuildingsInCells.Density(east, north) > 0
+                    || HoldsGroundForTrade(world, east, north),
                 Invariant.ADistrictCellNamesBuiltGroundWhenEvaluated,
                 slot,
                 CellGrid.Index(east, north));
         }
+    }
+
+    /// <summary>
+    /// Whether this Cell holds at least one vacant Lot zoned for a trade.
+    /// </summary>
+    /// <remarks>
+    /// <b>A scan rather than an index, because this runs once per District Cell on the evaluation
+    /// cadence and the alternative is a structure to maintain</b> — and the one thing worse than a
+    /// slow check here is a derived index that disagrees with the operator it is checking.
+    /// <see cref="Space.DistrictWatershed"/> builds the same answer densely because it needs every
+    /// Cell; this needs one.
+    /// </remarks>
+    private static bool HoldsGroundForTrade(World world, Cells east, Cells north)
+    {
+        Entities.LotTable lots = world.Lots;
+
+        for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
+        {
+            if (!lots.Rows.IsLive(slot)
+                || !lots.IsVacant(slot)
+                || (lots.Zone[slot] & Entities.LotTable.Trade) == 0)
+            {
+                continue;
+            }
+
+            if (CellGrid.ToCells(lots.East[slot]).Raw == east.Raw
+                && CellGrid.ToCells(lots.North[slot]).Raw == north.Raw)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>

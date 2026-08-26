@@ -162,9 +162,19 @@ internal static class GoldenFixtures
     /// <para>
     /// <b>The Zone commands sit clear of the populated blocks.</b> The populator subdivides along
     /// lattice row 0 and stops as soon as it has land for the Buildings it wants, so every command
-    /// here names a block in row 2 or above. Zoning a block the populator already carved is not an
-    /// error — the claim mask refuses it face by face — but it is a <em>no-op</em>, and a session
+    /// here names a block well beyond its reach. Zoning a block the populator already carved is not
+    /// an error — the claim mask refuses it face by face — but it is a <em>no-op</em>, and a session
     /// full of no-ops is a baseline that covers nothing while every hash in it still moves.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>THREE COMMANDS MOVED OUT OF ROW 5 ON 2026-08-25, and the populator is why.</b>
+    /// <c>adr/0165</c>'s land-use split leaves one block in <c>SyntheticCity.TradeBlockStride</c>
+    /// permitted to a trade rather than to dwellings, and those blocks are carved but **not counted
+    /// toward the housing target** — so the populator now reaches further to find the land it wants,
+    /// and it reached into row 5. ***Three commands became no-ops and exactly 30 Lots went missing***,
+    /// which `GoldenSessionCoverageTests` caught and no hash test could have: a no-op costs the
+    /// baseline its coverage rather than its correctness. **The commands moved; the assertion did
+    /// not**, which is that test's own instruction.
     /// </para>
     /// <para>
     /// <b>Connect is applied as of 5a-bis; Service and Govern are still declared and still throw.</b>
@@ -189,9 +199,9 @@ internal static class GoldenFixtures
 
         builder.Append(new Ticks(0), new Command(CommandKind.Populate, default, default));
 
-        Append(builder, tick: 0, block: (0, 5), zone: 1);
-        Append(builder, tick: 1, block: (1, 5), zone: 1);
-        Append(builder, tick: 1, block: (2, 5), zone: 2);
+        Append(builder, tick: 0, block: (0, 8), zone: 1);
+        Append(builder, tick: 1, block: (1, 8), zone: 1);
+        Append(builder, tick: 1, block: (2, 8), zone: 2);
         Append(builder, tick: 2, block: (2, 6), zone: 2);
         Append(builder, tick: 9, block: (7, 6), zone: 3);
         Append(builder, tick: 17, block: (3, 7), zone: 1);

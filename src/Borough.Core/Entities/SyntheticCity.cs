@@ -72,6 +72,87 @@ public static class SyntheticCity
     /// <summary>Lots per row, before the strip wraps northward.</summary>
     private const int LotsPerRow = 64;
 
+    /// <summary>Land where a dwelling may be raised. <see cref="LotTable.Housing"/>.</summary>
+    private const ushort Housing = LotTable.Housing;
+
+    /// <summary>
+    /// Land where a trade's premises may be raised, and <b>where a dwelling may not</b>
+    /// (<c>adr/0165</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>Exclusive, which is <c>CONTEXT.md</c> → Zone's own definition of a permission set</b> —
+    /// *"it lists the uses allowed there and forbids every other"* — and this is the first time this
+    /// class obeys it. It painted <see cref="Housing"/> on every Lot it carved, so the design's rule
+    /// was *nothing is permitted by default* and the generator's behaviour was *everything is
+    /// permitted, for houses.*
+    /// </remarks>
+    private const ushort Trade = LotTable.Trade;
+
+    /// <summary>
+    /// One block in this many carries <see cref="Trade"/> rather than <see cref="Housing"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>A fixture constant, and it ratifies nothing</b> (<c>adr/0165</c>, <c>adr/0164</c>): no
+    /// designer touches this class, so there is no <c>[lots]</c> key, no <c>plans/0002</c> §D row and
+    /// nothing to tune. ***It moves the State Hash of every generated world and is still not a design
+    /// object***, which is the distinction <c>adr/0100</c> draws — a hash move is an attribution
+    /// question rather than a scheduling one.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A generated city will look wrong and the Ruleset headers must say so.</b> Commercial
+    /// blocks appear at a fixed stride rather than along a corridor, which is not how any city is
+    /// zoned. ***A demonstration file's job is to exercise a mechanism, not to resemble a city.***
+    /// </para>
+    /// <para>
+    /// <b>Why not keyed on distance from the centre</b>, which would look immediately right — shops
+    /// in the middle, houses out. <c>adr/0165</c> refuses it by name: it would encode a location
+    /// theory into world creation at the same moment
+    /// <c>adr/0163</c> puts location in *demand's* hands, and would make the demand mechanism
+    /// unfalsifiable in the only world that exercises it.
+    /// </para>
+    /// <para>
+    /// 🔴 ⚠ <b>EIGHT, AND WHAT PICKED IT WAS A FULL-SUITE SWEEP RATHER THAN AN ARGUMENT ABOUT
+    /// CITIES.</b> Nothing here claims one block in eight is a plausible commercial share. It is the
+    /// value at which the suite is least broken, measured across a 2×2 of this constant against
+    /// <see cref="PavedTiles"/>' compensation: <b>stride 8 with the compensation fails 6</b>, stride
+    /// 8 without it fails 11, stride 4 without it fails 8, stride 4 with it fails 9.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>THE STRIDE SATURATES, so most values of it are the same world.</b> The diagonal spans
+    /// <c>0..2(n−1)</c> on a grid of <em>n</em> blocks a side, and the golden fixture is a handful of
+    /// blocks — so strides <b>8, 12, 16 and 32 all produce 124 housing Lots and 10 trade Lots, byte
+    /// for byte</b>, and a run on each returns identical numbers. ***Above 8 this is a constant
+    /// wearing a parameter's name.*** Only 4 and below change anything.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A SMALLER stride yields MORE housing land, which is the opposite of what carving blocks
+    /// out sounds like it does</b> — the lattice is sized from the housing Lots it must hold, so a
+    /// denser commercial grid forces a wider city: 166 Lots = 126 housing + 40 trade at stride 4,
+    /// against 134 = 124 + 10 here. <b>Stride 4 was adopted for four hours on that strength and
+    /// withdrawn</b>: it passes the placement long-run test untouched, and it introduces an
+    /// <c>adr/0006</c> trend in <c>EvidenceLongRunTests</c> — people carrying a reach-failure history
+    /// rising 32.9 across the tail against a 3-sigma band of 23.2. ***A bound traded for an invariant
+    /// is not a trade this project makes.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>What this number is NOT evidence about.</b> An <c>adr/0055</c> reading — that commercial
+    /// land dilutes the Zone Rule's sample and slows construction — was proposed and is
+    /// <b>refuted</b> by the same sweep, since stride 4 carries four times the trade land and
+    /// produces <em>lower</em> vacancy. <b>The cost is land, not wasted looks</b>, and vacancy tracks
+    /// housing Lot count monotonically: 134 Lots → 18.5%, 126 → 21.9%, 124 → 25.0%.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>UNRATIFIED, hash-bearing world-creation data, and in the generator rather than in any
+    /// Ruleset</b> — so it is in every world the populator builds. <c>plans/0002</c> §D1 holds the
+    /// row and names what would settle it. ⚠ <b>A <c>const</c> where <c>adr/0015</c> says Ruleset
+    /// data belongs</b>, on <c>TICKS_PER_DAY</c>'s precedent and filed in <c>plans/0012</c> for the
+    /// same reason. <b>Reopens the moment the golden fixture grows</b>: every number above is a
+    /// property of a 134-Lot world.
+    /// </para>
+    /// </remarks>
+    private const int TradeBlockStride = 8;
+
     /// <summary>The world every Ruleset described before <c>[[lattice]]</c> existed.</summary>
     private static readonly LatticeDefinition[] OneAtTheOrigin = [new LatticeDefinition(0, 0)];
 
@@ -340,6 +421,41 @@ public static class SyntheticCity
     }
 
     /// <summary>
+    /// Whether this block's land is permitted to a trade rather than to dwellings.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Keyed on the block's ABSOLUTE position and not on the loop index</b>, which matters in
+    /// exactly one shipped world and would have been invisible everywhere else: <c>twinned.toml</c>
+    /// carves two lattices with different origins, and an index-keyed stride would give the same
+    /// ground a different use depending on which walk reached it. ***A block's use is a property of
+    /// the ground, not of the order it was visited in.***
+    /// </para>
+    /// <para>
+    /// <b>The diagonal is what spreads it.</b> <c>column % stride</c> would make whole columns
+    /// commercial; summing the two scatters one block in <see cref="TradeBlockStride"/> evenly across
+    /// every row. ⚠ <b>It puts block (0, 0) on the trade side</b>, which is a consequence of the
+    /// arithmetic rather than a location theory — and it is the direction to err in, because the
+    /// alternative offset yields **no commercial land at all** in a small city, which is
+    /// <c>plans/0044</c> **P6**'s silent failure exactly.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The diagonal is also why the stride saturates</b>: on a grid of <em>n</em> blocks a side,
+    /// <c>column + row</c> spans 0..2(n−1), so any stride past that marks exactly the one block at
+    /// the origin and every larger value is the same world. See <see cref="TradeBlockStride"/>, which
+    /// carries the measurement. <b>A stride is only a dial while it is smaller than the city.</b>
+    /// </para>
+    /// <para>
+    /// <b>It draws no randomness</b>, which is this class's own standing rule: every value it
+    /// produces is index arithmetic, so the city is a pure function of its size and needs no
+    /// <c>purpose_tag</c> — and therefore cannot correlate itself with a simulation decision sharing
+    /// a stream. <c>adr/0165</c> quotes that sentence to refuse a drawn share.
+    /// </para>
+    /// </remarks>
+    private static bool IsTradeBlock(int column, int row) =>
+        (column + row) % TradeBlockStride == 0;
+
+    /// <summary>
     /// Raises up to <paramref name="wanted"/> dwellings on the vacant Lots inside one lattice's box.
     /// </summary>
     /// <remarks>
@@ -368,6 +484,22 @@ public static class SyntheticCity
             // two are the same walk: the Lot table started empty, so the nth Lot is slot n and none
             // of them is built on.
             if (!world.Lots.Rows.IsLive(slot) || !world.Lots.IsVacant(slot))
+            {
+                continue;
+            }
+
+            // 🔴 THE HALF adr/0165 DOES NOT MENTION AND WITHOUT WHICH THE SPLIT IS A NO-OP. This
+            // method raises dwellings DIRECTLY rather than through a Zone Rule, so it never consulted
+            // a permission set at all -- and a generator that paints a trade bit and then builds
+            // houses on it obeys the rule with one hand and breaks it with the other.
+            //
+            // What that would cost is not untidiness, it is a FALSE NEGATIVE: the commercial land
+            // would arrive already built on, the trade's Zone Rule would find no vacant permitted Lot,
+            // and a run of the Provider Ruleset would produce no shops and look like a demand-signal
+            // failure. ***That is plans/0044 P6 -- the split's failure mode is silent, and it is
+            // silent in the one world that matters*** -- reached through the populator instead of
+            // through the painter.
+            if ((world.Lots.Zone[slot] & Housing) == 0)
             {
                 continue;
             }
@@ -573,6 +705,26 @@ public static class SyntheticCity
             return CellGrid.WorldTiles;
         }
 
+
+        // ⚠ AND THE GROUND THE SPLIT TOOK AWAY, which adr/0165 made a real quantity. One block in
+        // TradeBlockStride is permitted to a trade, so a lattice paved for exactly `wanted` Lots
+        // leaves fewer than `wanted` a family can live on.
+        //
+        // 🔴 ⚠ WHAT THIS ACTUALLY DOES IS STEP THE LATTICE UP BY ONE RING, AND NOT WHAT THE
+        // ARITHMETIC LOOKS LIKE. The extent below is quantised to whole blocks a side --
+        // `blocks = sqrt(wanted / perBlock)`, an integer -- so on a city this small a 14% bump in
+        // `wanted` either moves that integer or does nothing at all. MEASURED: it does not move the
+        // Lot counts by one Lot (134 = 124 housing + 10 trade, with it and without it). What it
+        // moves is the paved EXTENT, and that is load-bearing: without it five TripCommandTests
+        // fixtures and CarOwnershipTests fail, because their probes need ground the city has not
+        // otherwise paved.
+        //
+        // ***So this is a compensation for the split whose effect arrives through the extent rather
+        // than through the Lot count, and the first version of this comment claimed the second.***
+        // It was recorded as a Lot-supply fix, measured, and found to supply no Lots.
+
+        wanted = IntegerMath.FloorDiv(wanted * TradeBlockStride, TradeBlockStride - 1) + 1;
+
         // SqrtFloor and then step up, rather than a ceiling division that would need a float. One
         // step is enough because the floor is out by at most one.
         long perBlock = 2L * perSegment;
@@ -660,8 +812,10 @@ public static class SyntheticCity
             for (int i = 0; i < wanted; i++)
             {
                 world.Lots.Create(
-                    new Tiles(i % LotsPerRow), new Tiles(IntegerMath.FloorDiv(i, LotsPerRow)), zone: 1);
+                    new Tiles(i % LotsPerRow), new Tiles(IntegerMath.FloorDiv(i, LotsPerRow)), Housing);
             }
+
+            world.LotsAdmitting.Invalidate();
 
             return wanted;
         }
@@ -690,7 +844,19 @@ public static class SyntheticCity
                 continue;
             }
 
-            made += LotSubdivider.SubdivideBlock(world, column, row, zone: 1);
+            // adr/0165's split, at the loop that already had `column` and `row` in hand -- the ADR's
+            // own words are that the change is WHAT THAT VALUE IS and not where it comes from.
+            if (IsTradeBlock(column, row))
+            {
+                // Carved and NOT counted, which is what keeps `wanted` meaning what this method's
+                // summary says it means: enough land to hold `wanted` DWELLINGS. Counting a
+                // commercial block toward a housing target would silently shrink every generated
+                // city by the trade's share -- a population change wearing a zoning change's clothes.
+                LotSubdivider.SubdivideBlock(world, column, row, Trade);
+                continue;
+            }
+
+            made += LotSubdivider.SubdivideBlock(world, column, row, Housing);
         }
 
         return made;
@@ -799,7 +965,11 @@ public static class SyntheticCity
     /// sits in two Hinterlands with nothing to say which its emigrants came from.
     /// </para>
     /// <para>
-    /// ⚠ <b>It is zoned like any other land</b> (<c>zone: 1</c>, <see cref="Subdivide"/>'s own), so a
+    /// ⚠ <b>It is zoned <see cref="Housing"/> unconditionally, and never <see cref="Trade"/></b> —
+    /// it does not consult <see cref="IsTradeBlock"/>, which is a decision rather than an omission:
+    /// what makes a far gate usable is <em>a dwelling beside it</em> (see the Commute Budget note on
+    /// <see cref="ReachesTheBoundary"/>), so putting a gate's own block on the trade side would
+    /// forbid the one thing the carve exists to permit. So a
     /// Zone Rule may later raise a dwelling on whatever the gate does not take. That is deliberate:
     /// land at the edge is land, and reserving it would be siting policy — milestone 24's.
     /// </para>
@@ -826,7 +996,7 @@ public static class SyntheticCity
 
         if (column >= 0)
         {
-            LotSubdivider.SubdivideBlock(world, column, row, zone: 1);
+            LotSubdivider.SubdivideBlock(world, column, row, Housing);
         }
     }
 

@@ -514,6 +514,26 @@ public sealed class TripCommandTests
                 continue;
             }
 
+            // ⚠ AND SOMEBODY LIVING IN IT, which `IsVacant` does not answer: that asks whether the
+            // Lot has a BUILDING, and this probe's own summary asks for an *occupied* one. The two
+            // were the same thing while the populator housed everybody it created, and adr/0165's
+            // land-use split ended that -- commercial blocks take land the housing target still
+            // wants, so Households queue in the Unplaced Pool while Buildings stand empty.
+            // ***A Traveller is a cursor over a Citizen's journey (adr/0075), so a Building is a
+            // usable origin only if somebody is home.***
+            //
+            // ⚠ IT DOES NOT FIRE AT THE COMMITTED SEED AND IS NOT DEAD -- checked by deleting it,
+            // on the day it was written. What it guards is SEED-DEPENDENT: PlacementLongRunTests
+            // measures 47 of 188 declared places standing empty on this Ruleset, so an empty
+            // Building is an ordinary thing for this walk to land on and the current extent merely
+            // happens to miss one. Without it the failure is `ApplyTrip` throwing *"trip names an
+            // origin Building with no Citizen in it"* -- a fixture fault wearing a Trip bug's
+            // clothes, which is what makes it worth a guard rather than a re-roll.
+            if (world.Occupants.Length(world.Lots.BuildingOn(slot)) == 0)
+            {
+                continue;
+            }
+
             (int East, int North) here = (
                 IntegerMath.FloorDiv(world.Lots.East[slot].Raw, block),
                 IntegerMath.FloorDiv(world.Lots.North[slot].Raw, block));

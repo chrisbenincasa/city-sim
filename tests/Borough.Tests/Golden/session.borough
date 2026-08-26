@@ -5,9 +5,9 @@ ruleset 0x1991824FFCC6C30A
 reload 1024 0x1991824FFCC6C30A 0x1A63B041CED101CD
 --
 0 populate 0 0 0
-0 zone 16 176 1
-1 zone 48 176 1
-1 zone 80 176 2
+0 zone 16 272 1
+1 zone 48 272 1
+1 zone 80 272 2
 2 zone 80 208 2
 9 zone 240 208 3
 17 zone 112 240 1
