@@ -905,6 +905,12 @@ public sealed class RuleEngine
 
         foreach (Term term in world.Rules.Inputs(rule))
         {
+            if (term.Bin.Scope == Scope.Pool)
+            {
+                net += PoolDraw(world, instance, term, rule, binSlot);
+                continue;
+            }
+
             if (Bin(world, instance, term.Bin, rule) == binSlot)
             {
                 net -= term.Amount;
@@ -925,6 +931,78 @@ public sealed class RuleEngine
         }
 
         return net > 0 ? floor * net : 0;
+    }
+
+    /// <summary>
+    /// What one application of a <see cref="Scope.Pool"/> term draws from <paramref name="binSlot"/>,
+    /// negative for a draw and zero when this Bin is not on either side of the purchase.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>This exists because a purchase's money leg has NO TERM, and a term walk therefore priced
+    /// it at zero.</b> <c>adr/0050</c>: *"there is no Ruleset syntax for the payment"*, the price is
+    /// emergent and the counterparty is implied by the scope. So a buyer stopped for want of funds
+    /// subscribed to its own balance, <c>RuleEngine.Stop</c> drained that Bin immediately as it always
+    /// does, <see cref="Requirement"/> answered **0**, and <c>World.Drain</c> woke it on the spot.
+    /// ***A wait that is undone by the drain that follows it is indistinguishable from no wait at
+    /// all***, so the buyer spun on its rate for ever, never appeared on any wait list, and reported
+    /// itself as armed.
+    /// </para>
+    /// <para>
+    /// ⚠ <b><c>adr/0137</c> predicted this failure and described it one layer up</b> — *"the cheapest
+    /// implementation returns insufficient funds and subscribes to nothing"*. Milestone 26 task 4 did
+    /// subscribe, which looked like the record's requirement being met; **the subscription was
+    /// cancelled a line later by shared code the purchase does not own**. ***Found by building
+    /// <c>adr/0137</c>'s own field and watching it read <c>—</c> on a world where every purse was
+    /// empty***, which is what an instrument is for (<c>adr/0093</c>: the code said one thing and the
+    /// run said another).
+    /// </para>
+    /// <para>
+    /// <b>Derived rather than stored, so <c>adr/0063</c> is kept rather than excepted.</b> The payment
+    /// is recomputable at drain time because <b>the price is a property of the market row and not of
+    /// the seller</b> — <c>adr/0167</c>, and it is the same fact that made *buy from the cheapest*
+    /// unavailable. ⚠ <b>So no seller has to be re-drawn here</b>, and this method deliberately does
+    /// not: a draw at drain time would be a second lottery with a different <c>purpose_tag</c>'s worth
+    /// of consequences, and it would answer a question nobody asked.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The money guard is first because this runs inside <c>World.Drain</c>.</b> Every deposit and
+    /// every withdrawal in the city reaches here once per waiter, so the ordinary case — a Good Bin,
+    /// which is every Bin in nine of the shipped files — must cost one column read and a comparison.
+    /// </para>
+    /// </remarks>
+    private static long PoolDraw(World world, int instance, in Term term, RuleId rule, int binSlot)
+    {
+        // The Good leg. Bin() resolves a pool term to the MARKET ROW's Bin for every caller but
+        // Check, which is adr/0139's wake target and what a blocked buyer actually sleeps on.
+        if (Bin(world, instance, term.Bin, rule) == binSlot)
+        {
+            return -term.Amount;
+        }
+
+        if (!world.Rules.IsConserved(world.Bins.Resource[binSlot]))
+        {
+            return 0;
+        }
+
+        if (!world.TryMoneyResource(out ResourceId money)
+            || world.FindLocalBin(instance, money) != binSlot)
+        {
+            // A money Bin, but not this buyer's. The seller's till is the ordinary case, and it is
+            // an output of the purchase rather than a draw on it.
+            return 0;
+        }
+
+        int row = MarketRow(world, instance, term.Bin.Resource);
+
+        if (row == Rows.NoSlot)
+        {
+            // Premises in no District yet. Check answers this with a fire at zero applications, so
+            // there is nothing waiting here and nothing to price.
+            return 0;
+        }
+
+        return -(term.Amount * world.DistrictPools.Price[row].Raw);
     }
 
     /// <summary>

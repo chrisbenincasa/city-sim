@@ -306,6 +306,23 @@ public static class Evidence
             ? 0
             : IntegerMath.FloorDiv((long)(now.Raw - starvedSince.Raw), rate);
 
+        // adr/0137: the wait list has always known which Bin, and this type did not. Resolved rather
+        // than handed out as a handle, for BinEvidence.Resource's reason -- Evidence is the read the
+        // shell may enumerate, and a handle it has to dereference against a live world is not one.
+        //
+        // TryResolve rather than Resolve, and the unset case is the ordinary one: a Rule that
+        // SUCCEEDED is armed on the Event Wheel with WaitingOn cleared by World.Unlink, so most rows
+        // in a healthy Building take this branch. A stale handle is the same answer for a different
+        // reason and neither is worth a throw on a panel read.
+        ResourceId waitingFor = default;
+        BinOwnerKind waitingOn = BinOwnerKind.None;
+
+        if (world.Bins.Rows.TryResolve(world.RuleInstances.WaitingOn[instance], out int blocking))
+        {
+            waitingFor = world.Bins.Resource[blocking];
+            waitingOn = world.Bins.OwnerKind[blocking];
+        }
+
         return new RuleEvidence(
             id,
             world.RuleInstances.Household[instance],
@@ -315,7 +332,9 @@ public static class Evidence
             world.RuleInstances.Reported[instance],
             starvedSince,
             rate,
-            missed);
+            missed,
+            waitingFor,
+            waitingOn);
     }
 
     /// <summary>

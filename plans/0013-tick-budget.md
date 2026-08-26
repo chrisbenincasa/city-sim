@@ -119,7 +119,7 @@ the durable half of the document.
 | ⚠️ **Segment volume attribution**, at 1M | **~320,000 increment/decrement pairs a Tick** | **no — the multiplicand is arithmetic and its premise moved** | [`adr/0041`](../docs/adr/0041-volume-is-attributed-by-the-traveller-not-the-district-pair.md), re-derived 2026-08-14 |
 | 🔴 ⚠️ **The purchase**, whole, at **40,000** Citizens | **1.27 ms a Tick** | **NO — it is ~n^1.2 and the whole point of the row** | [`0044`](0044-the-purchase-and-the-provider-that-answers-it.md) task 4, measured 2026-08-26 |
 | 🔴 ⚠️ **The purchase**, whole, at **20,000** Citizens | **0.585 ms a Tick** | as above | as above |
-| 🔴 ⚠️ **The purchase**, whole, at **10,000** Citizens | **0.237 ms a Tick** | as above | as above |
+| 🔴 ⚠️ **The purchase**, whole, at **10,000** Citizens — ⚠ **an UPPER BOUND**, measured with a spin defect running (see below) | **0.237 ms a Tick** | as above | as above |
 
 ### ⚠️ Volume attribution is four times what its own ADR priced, and nobody changed its number
 
@@ -148,6 +148,10 @@ more and nothing has recomputed it. `adr/0041`'s revisit trigger is re-opened th
 because it is a decision and this is a ledger.
 
 ### 🔴 ⚠️ The purchase is the first consumer measured as super-linear, and it must not be extrapolated
+
+> 🔴 ⚠️ **AMENDED 2026-08-26, the day after, by milestone 26 task 5: EVERY FIGURE BELOW WAS TAKEN WITH A DEFECT RUNNING, AND THEY ARE NOW UPPER BOUNDS.** A buyer stopped for want of money subscribed to its own balance and was woken **by the drain its own stop performed** — `RuleEngine.Requirement` walks a Rule's terms and `adr/0050` gives the payment none, so it priced the wait at zero. ***So a broke buyer never slept***: it re-evaluated on its rate for ever and paid the purchase's full cost — the District lookup, the seller walk, the settlement — every time, while reporting itself armed. **323,438 money-blamed stops reached the wait list as 0.**
+>
+> ⚠ **They are NOT WITHDRAWN and the shape of the finding is why.** The A/B arms differ only in `restock`'s `inputs`, so ***both arms carried the defect*** — the cheap arm has no `pool` term and therefore no spin, which makes the delta between them **larger** than the true cost of a working purchase, not smaller. **The direction is known and the magnitude is not.** 🔴 **The `~n^1.2` exponent is the part most at risk**: a spin rate that itself grows with population would inflate it, and nothing here separates the two. ***Re-measure before quoting the exponent at any scale***, which is the [`0002`](0002-open-questions.md) **§B** question this row already owns.
 
 **Measured 2026-08-26 by wall-clock delta on the headless runner, on the reference machine** — a 2020
 six-core i5-10400, `powersave`, Release, `--no-decide-guard`, 8,192 Ticks. Not BenchmarkDotNet, so it

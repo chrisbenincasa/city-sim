@@ -513,8 +513,8 @@ internal static class EvidenceDump
         // 05 §1's boundary rather than a presentation choice: Handle<T>.Index is internal precisely
         // so that identity does not escape the core, and `tenant 2` is what a reader of one
         // Building's panel actually wants -- a slot number is a fact about the allocator.
-        output.WriteLine("  rule            whose      rate  last ran  state    reports         missed");
-        output.WriteLine("  --------------  ---------  ----  --------  -------  --------------  ------");
+        output.WriteLine("  rule            whose      rate  last ran  state    reports         missed  waiting on");
+        output.WriteLine("  --------------  ---------  ----  --------  -------  --------------  ------  ----------------------");
 
         foreach (RuleEvidence rule in evidence.Rules.ToArray())
         {
@@ -532,8 +532,9 @@ internal static class EvidenceDump
                 CultureInfo.InvariantCulture,
                 $"  {Name(names.Rule(rule.Rule)),-14}  {whose,-9}  {rule.Rate,4}  "
                 + $"{rule.LastRan.Raw,8}  "
-                + $"{(rule.Succeeded ? "ok" : rule.Blocked.ToString().ToLowerInvariant()),-7}  "
-                + $"{Name(names.Condition(rule.Reported)),-14}  {rule.MissedFirings,6}"));
+                + $"{State(rule),-7}  "
+                + $"{Name(names.Condition(rule.Reported)),-14}  {rule.MissedFirings,6}  "
+                + $"{WaitingOn(rules, names, rule),-22}"));
         }
 
         int threshold = evidence.IsDeclared ? rules.Kind(evidence.Kind).CondemnAfter : 0;
@@ -551,6 +552,35 @@ internal static class EvidenceDump
             + "⚠ This line is a maximum over the whole Building and does not say WHICH tenant — the "
             + "`whose` column above does, per Rule.");
 
+        output.WriteLine(
+            "⚠ `waiting on` is the column that makes BANKRUPTCY and STARVATION different sentences "
+            + "(adr/0137). `state` says only `supply`, and it says that for a shop with no flour and "
+            + "a shop with no money alike — the wait list has always known which Bin and no reader "
+            + "could see it, which is adr/0050's claim being true of the build's state and false of "
+            + "its instruments.");
+
+        output.WriteLine(
+            "  larder: <good>   — the Bin it draws from is empty, and it belongs to these premises "
+            + "or to the tenant running the Rule. This is the ordinary failure the city is built "
+            + "around.");
+
+        output.WriteLine(
+            "  market: <good>   — it is a PURCHASE and no seller in the whole District holds a batch "
+            + "(adr/0139). ⚠ It waits on the market row and NEVER on the shop it drew, so any seller "
+            + "restocking wakes it (adr/0167). A larder line is about this Building; a market line is "
+            + "about a District.");
+
+        output.WriteLine(
+            "  broke: <money>   — it could not pay. ⚠ THIS IS AN INTERPRETATION and adr/0137 says so: "
+            + "a money Bin is short, and reading that as bankruptcy holds for an actor spending its "
+            + "own balance. `city broke` is the treasury and is a sentence about the CITY.");
+
+        output.WriteLine(
+            "⚠ A buyer can bounce between `market` and `broke` across Ticks and that is legal "
+            + "(plans/0044 P5): a restock wakes it, it re-checks, it fails on money, and it "
+            + "subscribes to its own balance instead. Read a single line as one Tick's answer.");
+
+        output.WriteLine();
         output.WriteLine(
             "⚠ `last ran` is DERIVED and not a column. A Rule Instance is armed on the Event Wheel "
             + "or asleep on a Bin's wait list and never both, so an armed one last fired at its due "
@@ -651,4 +681,74 @@ internal static class EvidenceDump
     /// a file that did not mention it and would read as information.
     /// </remarks>
     private static string Name(string? found) => found ?? Dash;
+
+    /// <summary>
+    /// <b>Three states from two columns, because <c>ok</c> alone was printing over a live pressure
+    /// clock.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="RuleEvidence.Succeeded"/> means <em>armed rather than asleep</em> — its own summary
+    /// says so — and a Rule that a deposit has just <b>woken</b> is armed and has not run yet.
+    /// <c>World.Unlink</c> clears <c>Blocked</c> and <c>WaitingOn</c> on the wake; only
+    /// <c>RuleEngine.Fire</c> clears <c>StarvedSince</c>, and it does that when the Rule actually
+    /// fires. ***So armed-with-a-clock is a real third state and not an inconsistency***, and
+    /// <c>adr/0053</c>'s *recovery is total* is what makes it transient.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Found by running this panel on <c>rulesets/provisioned.toml</c>, where it printed
+    /// <c>ok</c> beside <b>459</b> missed firings.</b> The number was right and the word was wrong,
+    /// and on <c>minimal.toml</c> the pair never occurs — a purchase fails and is woken far more often
+    /// than a Rule drawing on its own premises, so ***the market world is what made a nine-milestone-old
+    /// display ambiguity visible.***
+    /// </para>
+    /// </remarks>
+    private static string State(RuleEvidence rule) => rule.Succeeded
+        ? rule.StarvedSince == default ? "ok" : "woken"
+        : rule.Blocked.ToString().ToLowerInvariant();
+
+    /// <summary>
+    /// <b><c>adr/0137</c>'s classification, and it lives here because it is the Ruleset's fact rather
+    /// than the engine's.</b> Money is a <c>ResourceFamily</c> a file declares, so
+    /// <see cref="Ruleset.IsConserved"/> answers *is this bankruptcy* from an id and <c>Core</c> never
+    /// has to return the word.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// ⚠ <b>Three sentences and not two, because the purchase added the third</b> (milestone 26
+    /// task 4). A Rule short of a Good sleeps on a Bin owned by its own premises or its tenant, and
+    /// that is <c>larder</c>; a buyer whose District has no stocked seller sleeps on the
+    /// <b>market row</b>, owned by a <see cref="BinOwnerKind.District"/>, and that is a shortage
+    /// across a whole District rather than in this Building
+    /// (<c>adr/0139</c>, <c>adr/0167</c>). ***The Resource alone reads the same in both***, which is
+    /// why <see cref="RuleEvidence.WaitingOn"/> exists at all.
+    /// </para>
+    /// <para>
+    /// ⚠ <b><c>broke</c> is an interpretation and is labelled as one in the legend below the table.</b>
+    /// <c>adr/0137</c>'s own revisit trigger says so: *money Bin short → bankruptcy* holds for an actor
+    /// spending its own balance and does not hold for the treasury, which is the **city** being broke
+    /// and a different sentence about a different subject.
+    /// </para>
+    /// </remarks>
+    private static string WaitingOn(Ruleset rules, RulesetNames names, RuleEvidence rule)
+    {
+        if (rule.WaitingOn == BinOwnerKind.None)
+        {
+            return Dash;
+        }
+
+        string resource = Name(names.Resource(rule.WaitingFor));
+
+        // Blocking.Space is a FULL Bin and not an empty one, so it gets its own word. Printing
+        // `larder: sundries` against a full larder was this column's first output and it read as the
+        // exact opposite of the truth -- caught by running it on minimal.toml, where a `restock`
+        // stopped on Space, rather than by reading it back.
+        string sentence = rule.Blocked == Blocking.Space
+            ? "full"
+            : rules.IsConserved(rule.WaitingFor)
+                ? rule.WaitingOn == BinOwnerKind.Treasury ? "city broke" : "broke"
+                : rule.WaitingOn == BinOwnerKind.District ? "market" : "larder";
+
+        return string.Create(CultureInfo.InvariantCulture, $"{sentence}: {resource}");
+    }
 }

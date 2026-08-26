@@ -13,6 +13,18 @@ returning ids and never strings.
 
 `LEGIBLE CAUSE` `HONEST DEGRADATION` `SOLVE THE ACTUAL PROBLEM`
 
+> 🔴 ⚠ **AMENDED 2026-08-26 by milestone 26 task 5, which BUILT this record and found both halves of it wrong in the same afternoon. The decision stands; the two sentences describing what it costs do not.**
+>
+> **1. It is TWO fields, not one, and the second could not have been foreseen here.** `RuleEvidence` carries the blocking Bin's **Resource** *and* its **`BinOwnerKind`**. When this was written every Bin that could stop a Rule belonged to the Building the Rule ran in, so the enclosing `BuildingEvidence` said whose it was. [`0139`](0139-a-district-pool-is-a-market-and-not-a-store-so-stock-stays-with-the-seller.md) and [`0167`](0167-a-purchase-picks-its-seller-by-a-draw-and-waits-on-the-market-rather-than-on-a-shop.md) then made a buyer sleep on the **District market row**, so ***a Resource alone now reports `sundries` for two different cities*** — a tenant with an empty larder, and a District in which nobody is selling. One is a household's problem and one is the market's.
+>
+> **2. 🔴 The second half was implemented exactly as written and DID NOT WORK, and this record's own prediction is what hid it.** It says the cheapest implementation *"returns insufficient funds and subscribes to nothing"*, so *subscribes to something* read as compliance. Milestone 26 task 4 did subscribe — `RuleEngine.Buy` pushes the money leg through `Touch`, the affordability walk blames the purse, and `Stop` calls `World.Subscribe` on it. **Measured: 323,438 stops correctly named a money Bin, and the wait list held ZERO of them.**
+>
+> ***The subscription was cancelled one line later by code the purchase does not own.*** `Stop` drains the Bin it has just joined (`plans/0003` queue item 11), `World.Drain` asks `RuleEngine.Requirement` how much the waiter needs, and **`Requirement` walks the Rule's terms** — under [`0050`](0050-crossing-an-ownership-boundary-is-a-trade-and-payment-is-implicit-in-the-scope.md) *the payment has no term*, so it answered **0**, and a requirement of nothing is satisfied by a Bin holding nothing. The buyer was woken by its own stop. ⚠ **A wait undone by the drain that follows it is indistinguishable from no wait at all**: the buyer spun on its rate for ever, appeared on no wait list, and reported itself **armed**.
+>
+> ⚠ **So this record was right about the outcome and wrong about the trigger, which is [`0093`](0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)'s failure mode exactly** — and it is the sharper form of it, because ***a prediction that names the wrong mechanism is checked off by the wrong evidence.*** The fix is `RuleEngine.PoolDraw`, which prices the money leg from the **market row's** price; it is derivable at drain time precisely because [`0167`](0167-a-purchase-picks-its-seller-by-a-draw-and-waits-on-the-market-rather-than-on-a-shop.md) put the price on the row rather than on the seller, so [`0063`](0063-a-wait-list-wakes-on-the-bins-state-and-a-shortfall-is-derived-rather-than-stored.md)'s *derived rather than stored* is kept rather than excepted.
+>
+> ⚠ **It was found by an INSTRUMENT and could not have been found by reading.** The field above was built, pointed at a world where every purse was empty, and printed `—`. Both the code and this record said the money leg subscribed; the run said it did not.
+
 ## Why
 
 ### The claim was about the build and nobody had read the build

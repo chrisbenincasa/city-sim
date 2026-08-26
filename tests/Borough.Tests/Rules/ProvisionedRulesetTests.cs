@@ -1,6 +1,7 @@
 using Borough.Core;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
+using Borough.Core.Evidence;
 using Borough.Core.Input;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
@@ -234,5 +235,123 @@ public sealed class ProvisionedRulesetTests
             + "before looking at Scope.Pool.");
 
         Assert.True(earned > 0);
+    }
+
+    /// <summary>
+    /// <b>Bankruptcy and starvation are different sentences, and this is the world that produces
+    /// both</b> — <c>adr/0137</c>, and milestone 26's Definition of done.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>What it asserts is that the three failures are TOLD APART, not that each is common.</b>
+    /// Before <c>adr/0137</c>'s field, every one of them surfaced as <c>Blocked = Supply</c> and a
+    /// reader had nothing else to go on — so a test that only counted blocked Rules would have passed
+    /// against the defect. ***The assertion is on the discriminator and never on the volume.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The three are reachable only because this file has a purchase in it.</b> A Rule short of a
+    /// Good sleeps on a Bin its own premises or tenant owns; a buyer whose District has no stocked
+    /// seller sleeps on the <b>market row</b>, which a District owns (<c>adr/0139</c>,
+    /// <c>adr/0167</c>); and a buyer that cannot pay sleeps on its own <b>money</b> Bin. On
+    /// <c>minimal.toml</c> only the first exists, which is why no world before this one could have
+    /// been the acceptance test.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>The money leg subscribes because the purchase TOUCHES it, and that is the half
+    /// <c>adr/0137</c> predicted would be skipped.</b> That record warned that a Pool draw failing for
+    /// want of money has *"no term and therefore no Bin to subscribe to"*, and that the cheapest
+    /// implementation returns insufficient funds and subscribes to nothing. Milestone 26 task 4 made
+    /// it unskippable by shape rather than by discipline: <c>RuleEngine.Buy</c> pushes all three legs
+    /// through <c>Touch</c>, so the money leg is walked by the same affordability loop as every
+    /// authored term and blames its Bin by the same rule. ***This test is what would notice if that
+    /// ever stopped being true.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It walks every Building rather than the worst one</b>, because the worst Building is
+    /// chosen by pressure and the pressure leader on this file is a <c>consume</c> Rule starving in an
+    /// ordinary larder — so the panel a human reads first is exactly the one that shows none of what
+    /// is being asserted here.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void Bankruptcy_starvation_and_a_district_shortage_are_told_apart()
+    {
+        Ruleset rules = Load();
+
+        var key = WorldKey.FromSeed(0x9A0FEDU);
+        var world = new World(1_000, rules, key);
+
+        SyntheticCity.PopulateInto(world, key, Ticks.Zero);
+
+        var simulation = new Simulation(world, key) { VerifyDecideWritesNothing = false };
+
+        bool larder = false;
+        bool market = false;
+        bool broke = false;
+
+        for (int tick = 0; tick < 6_144; tick++)
+        {
+            simulation.Step(TickInput.Empty);
+
+            for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
+            {
+                if (!world.Buildings.Rows.IsLive(slot))
+                {
+                    continue;
+                }
+
+                BuildingEvidence evidence =
+                    Core.Evidence.Evidence.OfBuilding(world, world.Buildings.Rows.At(slot));
+
+                foreach (RuleEvidence rule in evidence.Rules.ToArray())
+                {
+                    if (rule.WaitingOn == BinOwnerKind.None)
+                    {
+                        // Not asleep, so it names no Bin. The unset pair is the ordinary case and is
+                        // asserted below rather than here.
+                        continue;
+                    }
+
+                    Assert.NotEqual(default, rule.WaitingFor);
+
+                    if (rules.IsConserved(rule.WaitingFor))
+                    {
+                        broke = true;
+                    }
+                    else if (rule.WaitingOn == BinOwnerKind.District)
+                    {
+                        market = true;
+                    }
+                    else
+                    {
+                        larder = true;
+                    }
+                }
+            }
+
+            if (larder && market && broke)
+            {
+                break;
+            }
+        }
+
+        Assert.True(
+            larder,
+            "no Rule in this world ever slept on a Good Bin owned by its own premises or tenant, "
+            + "which is the ordinary starvation every shipped file produces. If this is the only "
+            + "one failing, suspect the walk rather than the field.");
+
+        Assert.True(
+            market,
+            "no buyer ever slept on a DISTRICT-owned Bin, so either no purchase ever ran short of a "
+            + "seller or the wait is landing on the seller's own Bin instead of on the market row. "
+            + "The second would be adr/0167 broken -- a buyer parked on one shop sleeps through "
+            + "every other shop in the District restocking.");
+
+        Assert.True(
+            broke,
+            "no buyer ever slept on a MONEY Bin, so the purchase failed for want of funds without "
+            + "subscribing to anything -- which is exactly the half adr/0137 said would be skipped. "
+            + "Check that RuleEngine.Buy still Touches the purse rather than checking it separately.");
     }
 }

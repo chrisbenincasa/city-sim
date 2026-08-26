@@ -344,11 +344,14 @@ makes that an attribution question rather than a scheduling one.
    ⚠ **Open decisions 2 and 3 land here.** 🔴 **`Invariant.ADistrictDiesWithAnHeirOrAnEmptyPool` is
    armed by this task** — `World.cs:3639` says it is safe today *"because `Scope.Pool` throws"* and
    names this as *"what will fail on the day task 7 opens the scope."*
-5. **Evidence — [`adr/0137`](../docs/adr/0137-the-wait-list-knows-which-bin-and-evidence-does-not-so-bankruptcy-needs-one-field.md)'s
+5. ✅ **DONE — Evidence — [`adr/0137`](../docs/adr/0137-the-wait-list-knows-which-bin-and-evidence-does-not-so-bankruptcy-needs-one-field.md)'s
    two halves.** `RuleEvidence` gains the blocking Bin — it has `Blocking` and `ConditionId` and no
    Bin today (`BuildingEvidence.cs:82`) — **and** the money check produces a verdict *naming the money
    Bin* rather than failing without subscribing. ⚠ ***The second half is the one that gets skipped***,
    because nothing about the money leg is authored and so nothing about it is prompted.
+   🔴 **AND IT WAS SKIPPED — not by omission but by a subscription that shared code cancelled a
+   line later.** `Requirement` walks terms, the payment has none, so `Stop`'s own drain woke every
+   buyer it had just parked. **F28**–**F33**, and `adr/0137` is amended with both halves.
 6. **`adr/0163` tier 1 — demand for a shop.** The reach query over `WalkScratch.SettleAll`, the elapsed
    sum, and the claim. **Replaces `UnplacedPool.Count == 0` for the trade rule only**; the housing rule
    stays tier 0. ⚠ **Open decision 1 lands here**, and both §D2 numbers are chosen here and move to
@@ -740,3 +743,76 @@ condition is **permanent**. The two are told apart by `DistrictRuleset.Runs` and
 filed rather than assumed. ***One fix's correct case is another's silent one, and the tell was two
 existing tests continuing to pass for a reason that had changed***; both had their summaries rewritten
 rather than their assertions, which is what `adr/0093` asks for.
+
+---
+
+## Task 5's findings — Evidence, and the defect the instrument found in task 4
+
+**F28 — 🔴 A BUYER BLOCKED ON MONEY NEVER SLEPT, AND `adr/0137` PREDICTED THE OUTCOME WHILE NAMING THE
+WRONG MECHANISM.** That record warned the money leg would be skipped because *"a Pool draw that fails
+for want of money has no term and therefore no Bin to subscribe to"*, and that the cheapest
+implementation *"returns insufficient funds and subscribes to nothing"*. **Task 4 did subscribe** —
+`RuleEngine.Buy` pushes all three legs through `Touch`, so the affordability walk blames the purse by
+the same rule as any authored term — and reading that code, ***this session concluded before running
+anything that the second half was already satisfied by shape.*** It was not.
+
+`RuleEngine.Stop` drains the Bin it has just joined (queue item **11**'s repair, and correct);
+`World.Drain` asks `RuleEngine.Requirement` what the waiter needs; **`Requirement` walks the Rule's
+terms**, and under `adr/0050` the payment has none. It answered **0**, and a requirement of nothing is
+satisfied by a Bin holding nothing, ***so the buyer was woken by its own stop.*** Measured on
+`provisioned.toml` with every purse emptied and every shop held full: **323,438 stops correctly named a
+money Bin and the wait list held 0 of them**; after the fix, **61**, with spinning armed buyers falling
+from 60 to 3.
+
+⚠ **A wait undone by the drain that follows it is indistinguishable from no wait at all** — the buyer
+re-evaluated every 8 Ticks for ever, paid the purchase's full cost each time, and reported itself
+**armed**. 🔴 ***So the build's single super-linear consumer was ALSO doing its most expensive work in
+a loop that could never terminate***, and F26's measurement was taken with that loop running. **The
+figures are not withdrawn** — the A/B arms shared the defect — but they are an upper bound now.
+
+**The fix is `RuleEngine.PoolDraw`**, which prices the money leg from the **market row's** price rather
+than from a re-drawn seller. ⚠ **It is derivable at drain time only because `adr/0167` put the price on
+the row**, which is the same fact that made *buy from the cheapest* unavailable — ***the constraint that
+cost the design a discriminator is what let this stay derived***, so `adr/0063`'s *derived rather than
+stored* is kept rather than excepted.
+
+**F29 — ⚠ IT WAS FOUND BY AN INSTRUMENT AND COULD NOT HAVE BEEN FOUND BY READING, WHICH IS THE WHOLE
+ARGUMENT FOR THIS TASK.** The sequence: build `adr/0137`'s field, point the panel at a world, and watch
+the bankruptcy column read `—` where it had to read something. Every reading of the source said the
+money leg subscribed — the ADR said so, the code said so, and this session said so in writing.
+***`adr/0093` names this exactly: a description of the build is where to look and never what you
+found***, and the sharper form is that **a prediction naming the wrong mechanism gets checked off by
+the wrong evidence.** `adr/0137` is amended with both halves rather than superseded.
+
+**F30 — ⚠ `adr/0137` SAYS *ONE FIELD* AND IT IS TWO, BECAUSE TASK 4 CREATED A WAIT TARGET IT COULD NOT
+HAVE SEEN.** `RuleEvidence` carries the blocking Bin's **Resource** and its **`BinOwnerKind`**. When
+`0137` was written every Bin that could stop a Rule belonged to the Building running it, so the
+enclosing `BuildingEvidence` answered *whose*. A buyer now sleeps on the **District market row**
+(`adr/0139`, `adr/0167`), so ***a Resource alone reports `sundries` for a tenant with an empty larder
+and for a District with no sellers alike*** — one is a household's problem and one is the market's.
+**Not a redesign**: both are ids, both are cold-path, and classification stays in the shell.
+
+**F31 — ⚠ THE PANEL WAS PRINTING `ok` OVER A LIVE PRESSURE CLOCK, AND ON `minimal.toml` THE PAIR NEVER
+OCCURS.** `RuleEvidence.Succeeded` means *armed rather than asleep* — its own summary says so — and a
+woken-but-not-yet-refired Rule is armed with `StarvedSince` still set, because `World.Unlink` clears the
+wait and only `RuleEngine.Fire` clears the clock. The dump printed **`ok` beside 459 missed firings**.
+⚠ **It is a real third state and `EvidenceDump.State` now names it `woken`** — but it was *this* defect's
+loudest symptom, and reading it as the benign transient it also is would have closed the investigation.
+***The market world is what made a nine-milestone-old display ambiguity visible***, and a spinning buyer
+is what made it loud.
+
+**F32 — ⚠ `larder: sundries` WAS PRINTED AGAINST A BIN THAT WAS FULL.** `Blocking.Space` is a full
+output, not an empty input, and the first cut of the `waiting on` column read as the exact opposite of
+the truth. Caught by running the panel on `minimal.toml`, where a `restock` stops on `Space` — ***not by
+reading the column back***, which is F29 again at one tenth the scale. `full:` is now its own word and
+`EvidenceDumpTests` anchors on it.
+
+**F33 — ⚠ BANKRUPTCY IS REACHABLE ON `provisioned.toml` AND WAS NOT BEFORE THE FIX, AND THE REASON IS
+WORTH RECORDING BEFORE TASK 7 CHANGES IT.** On this file **stock is the binding constraint, not money**:
+one shopfront per `TradeBlockStride = 8` blocks produces 8 sundries per 8 Ticks against four occupants
+per dwelling each drawing 4 every 8, so the market is empty far more often than a purse is. With
+stock-first blame (`adr/0167`), a broke buyer facing an empty market reads as **`market`** and not as
+**`broke`**. ⚠ **Over 40,960 Ticks the defect gave 549,899 market blocks and zero money blocks**; the
+fix makes money blocks appear in the ordinary run with no fixture at all. 🔴 **The three-way test
+asserts the DISCRIMINATOR and never the volume**, because a test counting blocked Rules would have
+passed against the defect throughout.
