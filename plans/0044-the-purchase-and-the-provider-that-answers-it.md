@@ -15,6 +15,18 @@ inherits from [`0037`](0037-goods-between-buildings-the-district-pool.md) tasks 
 
 ## Status
 
+🟢 **TASK 9 LANDED 2026-08-26 — THE ACCEPTANCE RUN, 524,288 TICKS ON BOTH WORLDS, AND ITS HORIZON IS
+WHAT IT BOUGHT.** 🟢 **`adr/0024`'s equality is EXACT at every one of 256 readings on both files**, and
+`adr/0137`'s three-way shortfall distinction survives the whole run in `Evidence` rather than only in
+the tables (**F56**). 🔴 **IT FOUND AN INVARIANT VIOLATION NO SHORTER RUN COULD REACH** — a District
+boundary migrating under a sleeping buyer strands it on the market row of a District it has left,
+first seen at **Tick 362,496**, where every earlier test on these files stops at 32,768 (**F53**,
+[`0003`](0003-build-plan.md) queue item **22**). 🔴 **AND THE MILESTONE'S OWN REVISIT TRIGGER CANNOT
+BE READ HERE**: the treasury holds **98.3%** of the money supply by the end, because `provisioned.toml`
+states no `[[policy]]` and `adr/0169`'s levy is a one-way pump — ***a conserved economy draining into
+one account is exactly what conservation cannot see*** (**F54**). ⚠ **The `adr/0006` check had to be
+written twice and the first version was a committed idiom** (**F55**). **Moves no hash.**
+
 🟢 **TASK 8 LANDED 2026-08-26 — `--market`, AND THE PANEL THE TASK ENTRY SAID WOULD BE DROPPED IS THE
 ONE THAT WORKED.** *"A Building that could not afford it"* is **141 of 408** starving Rule Instances on
 `provisioned.toml`, against 60% whose own larder is empty and 5% waiting on a market with no seller
@@ -425,11 +437,17 @@ makes that an attribution question rather than a scheduling one.
    [`0003`](0003-build-plan.md) queue item **21** rather than patched: what cover *means* for a
    market that is not a store is arguable and owes a record. Both ADRs amended. **Moves no hash** —
    the dump populates and steps a world of its own and writes nothing.
-9. **The long acceptance run.** Conservation across trades with `adr/0024`'s equality **exact**, no
-   collection or magnitude trending at steady state (`adr/0006`), and bankruptcy distinguishable from
-   starvation in `Evidence`. 🔴 **Look for `adr/0163`'s own revisit trigger**: shops built, condemned
-   for want of customers, and rebuilt on the demand their condemnation restored. ***That is the
-   threshold and the claim disagreeing, and it is the first thing to look for rather than the last.***
+9. ✅ **DONE — The long acceptance run** — `MarketLongRunTests`, both worlds, **524,288 Ticks** at
+   2,000 Citizens, ~22 s. 🟢 **Conservation is exact at every one of 256 readings on both files**, and
+   the three-way shortfall distinction survives the whole run in `Evidence` (**F56**). 🔴 **It found
+   an invariant violation nothing shorter could reach** — a District boundary migrating under a
+   sleeping buyer strands it on the market row of a District it has left, first seen at **Tick
+   362,496** (**F53**, [`0003`](0003-build-plan.md) queue item **22**). 🔴 **And the trigger this
+   entry names cannot be read on this world**: the treasury holds **98.3%** of the supply by the end
+   because the file states no `[[policy]]`, so ***a shop count that settles here is a city that
+   stopped buying rather than a market that cleared*** (**F54**). ⚠ **The `adr/0006` check had to be
+   written twice** — a high-water mark of a bounded population grows logarithmically for ever and
+   both committed idioms reject it (**F55**). **Moves no hash.**
 10. **Closing — the ledger debts this milestone owes and nothing else discharges.**
     [`0003`](0003-build-plan.md) **queue item 17** is *"retired by design rather than fixed, and it
     must be STRUCK DELIBERATELY when the code lands"*; [`0012`](0012-corpus-audit.md)'s two doc
@@ -1140,3 +1158,59 @@ three refusals read a Ruleset table anybody can see — `[districts]`, `[market]
 both checks a person would think to write pass on a world with a one-sided market in it. ***Declaring
 a trade is not the same test as having a seller***, which is that file's own header sentence arriving
 as a guard.
+
+## Task 9's findings — the acceptance run, and the two things only its horizon could see
+
+**F53 — 🔴 A DISTRICT BOUNDARY MIGRATING UNDER A SLEEPING BUYER STRANDS IT, AND IT FIRST APPEARS AT
+TICK 362,496.** `Invariant.WaiterIsBlockedByTheBinItNames` fires on `rulesets/oversupplied.toml` at
+2,000 Citizens. Read off the world at the Tick: Rule Instance **754**, a Household's `restock`, asleep
+on Bin **1652** — a market row's Bin, `owner = District`, `sundries` — with a `Requirement` of
+**zero**. Its Building stands in **District 7**, whose sundries row is row **8**; ***it is parked on
+row 2, which belongs to District 3.*** Row 2 has three sellers and row 8 has none, so the buyer is
+asleep in a market it has left, waiting on stock it may not have.
+
+⚠ **The requirement of zero is the SYMPTOM and reading it as the cause is how this gets fixed in the
+wrong place.** `RuleEngine.Requirement` walks the Rule's terms; the `pool` term now resolves to row 8,
+so no term names Bin 1652 and the walk answers nothing. ***The Rule is right and the queue is stale.***
+🔴 **Every earlier test on these files stops at 32,768 Ticks**, and `provisioned.toml` reaches 524,288
+clean because it churns fewer Districts — so this is invisible on the milestone's own demonstration
+file and invisible at every horizon anybody had run. ***That is the argument for a long acceptance run,
+stated as a number rather than as a principle.*** Filed unfixed to [`0003`](0003-build-plan.md) queue
+item **22**: the re-homing is unarguable, its *placement* — eagerly in `DistrictWatershed.Migrate`, or
+lazily at the Rule's next evaluation — is a design question and owes a record.
+
+**F54 — 🔴 THE CITY HAS NO STEADY STATE, AND CONSERVATION IS PERFECT THE WHOLE WAY DOWN.** Measured at
+2,000 Citizens over 524,288 Ticks on `provisioned.toml`: **the treasury holds 9,363,456 of a 9,522,192
+supply — 98.3% — and every Household is floored.** `oversupplied.toml` is the same at 97.8%. ⚠ **The
+file states no `[[policy]]`**, so `adr/0169`'s levy is a **one-way pump**: Households pay shops, shops
+pay the treasury, and nothing pays anybody back. 🔴 ***The two obligations are independent and that is
+the finding***: `adr/0024`'s equality is exact at every one of 256 readings on both worlds, and **a
+conserved economy draining into one account is precisely what conservation cannot see.** ⚠ It is
+[`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) ***unbuilt*** and the
+unbuilt thing is named — no wage until `adr/0026` at milestone 15 — so it is not filed as a defect.
+**What follows for the milestone**: `adr/0163`'s revisit trigger and `adr/0170`'s convergence ratifier
+**cannot be read here**, because a shop count that settles in a city whose Households have stopped
+buying is a reading of a city that stopped, not of a market that cleared. `plans/0002` §D1 already says
+this of the levy's own numbers; this is the same sentence arriving as a measurement.
+
+**F55 — ⚠ THE OBVIOUS `adr/0006` CHECK IS WRONG FOR A RARE TABLE, AND IT WAS WRITTEN, RUN AND
+WITHDRAWN.** A slot count is a high-water mark of the concurrent live count, so for a population that
+fluctuates in a bounded range it grows like the maximum of *n* draws — ***logarithmically, for ever,
+with nothing leaking.*** Measured on `provisioned.toml` at 2,000 Citizens, the unpremised pool's
+**slots** read **4, 9, 12, 13** at 131,072 / 524,288 / 2,097,152 / 8,388,608 Ticks while its **live**
+count read **1, 4, 6, 1**. 🔴 **Sixty-four times the Ticks for three more slots**, and both the exact
+equality `RuleLongRunTests` uses and `BusinessLongRunTests`' four-fold deceleration reject it — ***two
+committed idioms, each correct for its own table, both wrong here.*** The claim is made in two halves
+instead: the **live** count must not trend, which is `adr/0006` proper and where a leak would show,
+and the **slot** count must not *accelerate*, which separates a log curve from a leak without pinning a
+rate. ⚠ **`minimal.toml` never uses that pool at all** — live 0, slots 0 over 2,097,152 Ticks — so the
+table only fills where re-premising cannot keep up, which is `plans/0044` **F47**'s Lot-limited city
+arriving in a third place.
+
+**F56 — 🟢 THE THREE-WAY SHORTFALL DISTINCTION SURVIVES HALF A MILLION TICKS, IN `Evidence` AND NOT
+ONLY IN THE TABLES.** `adr/0137`'s claim is proved at 6,144 Ticks by `ProvisionedRulesetTests`; the
+acceptance run holds it over 524,288 on both worlds, with all three classes non-empty throughout.
+⚠ **The `Evidence` half is asserted separately from the table half on purpose** — the counts come from
+a walk over `RuleInstances`, and the discrimination is then re-read through `Evidence.OfBuilding`,
+which is the surface a shell would use. ***A distinction the tables carry and `Evidence` drops is
+`adr/0137`'s original defect exactly***, and it is the half no amount of counting catches.
