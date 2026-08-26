@@ -357,16 +357,24 @@ necessary yet or not understood well enough to start.
 - 🔴 **No shipped world can express *balance → unbalance → balance*, and this is the standing constraint
   on every demonstration Ruleset.** A premises Rule needing a **scarce** input has five places to draw
   on and **all five are shut**: `local` is circular (the chain must bottom out in a no-input Rule, which
-  never fails); `pool` **throws**; `global` is **money-family only** and
+  never fails); `pool` **is SHIPPED as of 2026-08-26 and REFUSES THE PREMISES SPECIFICALLY** — a premises Rule with a `pool` term throws at `RuleEngine.Buy`, because *a Building never holds money*; `global` is **money-family only** and
   [`adr/0113`](docs/adr/0113-a-business-is-an-occupant-with-its-own-balance-and-a-building-never-holds-money.md)
   says a Building never holds money, so a premises Rule **cannot buy anything**; `map` is **write-only
   by construction** — a Layer cell has no capacity to exceed, so a map term can never fail and no Rule
   ever waits on one; and a term reaching the **tenant's** Bins is **refused at the parse site**, because
   *a term crossing an ownership boundary is a trade, which is `pool`*. ***So a premises Rule chain today
   is always-succeeds or never-succeeds.*** `declining.toml` is one pole and `maintained.toml` is the
-  other. ⚠ **Every one of the five is *unbuilt* rather than *refused*** ([`adr/0070`](docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md)),
-  so **none of it is evidence about the design** and the answer to *given scarcity does not exist,
-  should the threshold compensate?* is **build scarcity**. ⚠ **It is why no decline number in
+  other. 🔴 ⚠ **THIS BULLET WAS AMENDED 2026-08-26 AND THE TWO HALVES HAVE PARTED COMPANY.** It said
+  *every one of the five is unbuilt rather than refused*, so none of it was evidence and the answer was
+  **build scarcity**. `Scope.Pool` then shipped and split it. ✅ **A TENANT now has a middle** — its
+  `pool` input fails on `Blocking.Supply` when the market is short, and `RuleEngine.Stop` arms the
+  pressure clock on `Supply` and nothing else — so what the tenant threshold lacks is a **world**, not a
+  mechanism. 🔴 **A PREMISES got a REFUSAL**, and under
+  [`adr/0070`](docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) ***refused is the one
+  classification that IS evidence***: with `pool` shut by decision rather than by absence, no premises
+  Rule can fail on anything outside its own Building and the design says so on purpose. ***So the
+  premises threshold is no longer waiting on a mechanism; it is waiting on an argument about what a
+  premises Rule is for.*** ⚠ **It is why no decline number in
   [`plans/0002`](plans/0002-open-questions.md) §D1 can be ratified** — ***a threshold measured in a world
   where failure is certain, or impossible, is measuring a stopwatch and not a design*** ([`adr/0168`](docs/adr/0168-a-decline-threshold-is-a-duration-and-the-premises-and-the-tenant-get-one-each.md)).
 - **Don't move a mechanism between Rule families for performance.** Bin Rules and Sweep Rules

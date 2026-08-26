@@ -101,7 +101,7 @@ vacant — **39% blight against the old unit's 65%**, with live stock **313 → 
 population with the census**: the 65% figure was taken with `--citizens` unset, which `Options.cs`
 defaults to 10,000, and was written up as 1,000 in three documents (`plans/0012` Cause 5).
 
-### 🔴 Neither number can be ratified, and the reason is bigger than this decision
+### 🔴 Neither number could be ratified when this was written, and `Scope.Pool` has since SPLIT the reason rather than removing it
 
 **No shipped world can express balance → unbalance → balance.** `plans/0002` §D1 records both
 thresholds as unratified with a **prior condition** attached rather than a ratifier alone: *a world in
@@ -113,12 +113,13 @@ decay term and no second mechanism. It had never been reachable, because no ship
 anything into `repairs`. `rulesets/maintained.toml` now does, and it is one Rule long.
 
 ⚠ **But it lands on the opposite pole rather than in the middle.** A premises Rule needing a scarce
-input has five places to draw on and every one is shut:
+input has five places to draw on and every one is shut — ⚠ **`pool` was reopened the same day and the
+row below says how; read the amendment under this table before quoting the sentence you are reading**:
 
 | Source | Status |
 |---|---|
 | `local` — another premises Bin | **Circular.** The chain must bottom out in a no-input Rule, and that Rule never fails |
-| `pool` — the District market | **Throws.** `adr/0045`'s ladder starts there; Phase 2 owns it |
+| `pool` — the District market | 🟢 **SHIPPED 2026-08-26, and it answers the tenant and REFUSES the premises.** A pool input expands 1:3 — Good from a seller, money from the buyer's purse, money to the seller's till ([`adr/0167`](0167-a-purchase-picks-its-seller-by-a-draw-and-waits-on-the-market-rather-than-on-a-shop.md)). A **tenant** can therefore fail on a shortage it does not control. A **premises** Rule with a pool term ***throws*** at `RuleEngine.Buy` — *a Building never holds money, so this is the landlord shopping* — which is [`adr/0113`](0113-a-business-is-an-occupant-with-its-own-balance-and-a-building-never-holds-money.md) arriving as a runtime refusal rather than a gap |
 | `global` — the treasury | **Money-family Resources only**, and [`adr/0113`](0113-a-business-is-an-occupant-with-its-own-balance-and-a-building-never-holds-money.md) says a Building never holds money — so a premises Rule cannot buy anything |
 | `map` — a Layer read | **Write-only by construction.** A Layer cell has no capacity to exceed, so a map term can never fail and no Rule ever waits on one |
 | the tenant's Bins | **Refused at the parse site.** A Rule with two owners has no subject to run on, and *a term crossing an ownership boundary is a trade, which is `pool`* |
@@ -135,11 +136,58 @@ measured in a world where failure is certain, or impossible, is measuring a stop
 design.*** Routed to `plans/0002` as a question against Phase 2 rather than worked around here, per
 [`adr/0073`](0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md).
 
+### 🟢 AMENDED 2026-08-26, the same day, when `Scope.Pool` landed — and the two thresholds part company
+
+**The paragraphs above were written against a build in which `pool` threw for everybody.** Milestone 26
+task 4 shipped it, and the row that changed did not change symmetrically. ***One threshold got its
+middle and the other got a refusal***, so *"neither number can be ratified"* is no longer one sentence
+about two numbers.
+
+**`tenancy_ends_after_days` now has a middle, and it is the one this ADR predicted.** A tenant's Rule
+with a `pool` input fails on `Blocking.Supply` when the market is short of the Good, and
+`RuleEngine.Stop` arms `StarvedSince` on `Supply` and on nothing else — so the tenant's Failure Pressure
+clock now runs on **scarcity the tenant does not control, varying between Buildings and over time**,
+which is the *partial answer that would count* named in `plans/0002` §A verbatim. ⚠ **What is still
+missing is a WORLD and no longer a mechanism**: `rulesets/provisioned.toml` is the only file with
+sellers in it, and it must both run and go **short**. A market that always clears measures nothing, for
+the same reason `maintained.toml` measures nothing.
+
+🔴 **`condemn_after_days` did not get a middle; it got a REFUSAL, and that is a harder answer than
+waiting.** A premises Rule with a `pool` term throws at `RuleEngine.Buy`, which spells the reason out:
+*a balance is a Bin belonging to a Household or a Business, and a Building never holds money, so this
+is a PREMISES Rule with a pool term — the landlord shopping.* That is
+[`adr/0113`](0113-a-business-is-an-occupant-with-its-own-balance-and-a-building-never-holds-money.md)
+being enforced rather than a gap being left.
+
+⚠ **So the premises row moves from *unbuilt* to *refused*, and under `adr/0070` that is the one
+classification which IS evidence.** The four remaining sources are unchanged — `local` circular,
+`global` money-family, `map` write-only, the tenant's Bins refused at the parse site — and with `pool`
+now closed *by decision* rather than by absence, ***there is no route by which a premises Rule can fail
+on anything outside its own Building, and the design says so on purpose.***
+
+***This stops being a question about when scarcity ships and becomes a question about what a premises
+Rule is for.*** Three readings are available and this ADR picks none of them: that a Building's decline
+should be driven by its **tenant's** state rather than by its own Rules failing, which would make
+`condemn_after_days` a reading of the lease; that the premises need a non-money input a landlord could
+plausibly hold, which needs a Resource family that is neither Good nor money; or that `adr/0113` is
+right and **a premises threshold measured on Rule failure is measuring the wrong thing entirely**. It
+is an argument, it is now unblocked, and it is not a measurement — [`adr/0043`](0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)
+does not reach it, because the number that would refute it cannot be produced by any world the build
+can express.
+
 ## What would trigger revisiting
 
-- **`Scope.Pool` shipping**, which is the first time a premises Rule can fail on something outside the
+- ~~**`Scope.Pool` shipping**, which is the first time a premises Rule can fail on something outside the
   Building. That is the world both thresholds are owed a measurement in, and it is the trigger that
-  matters — everything below is smaller.
+  matters — everything below is smaller.~~ 🟢 **FIRED 2026-08-26 and it was HALF right** — see the
+  amendment above. It gave the tenant threshold its middle and refused the premises one outright, so
+  what replaces it is two triggers rather than one.
+- **A world in which `rulesets/provisioned.toml`'s market goes SHORT.** That is what
+  `tenancy_ends_after_days` is owed a measurement in, and it is now content rather than engine. ⚠ **The
+  file does not run at all as of this merge** — `adr/0164` left it with no inflow to its Unplaced Pool,
+  so no shop is ever raised and there is no seller; a market that never opened cannot be short.
+- **An argument about what a premises Rule is for**, which is what `condemn_after_days` is now blocked
+  on. Not a measurement, and no world settles it.
 - **A Business becoming a tenant with its own kind.** `adr/0141`'s second namespace would then have
   somewhere to author a tenant threshold, and *the premises own the lease* is worth re-arguing on the
   day it stops being the only available home.
