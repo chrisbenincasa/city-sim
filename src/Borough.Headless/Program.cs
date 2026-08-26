@@ -81,6 +81,9 @@ internal static class Program
                 case Mode.Business:
                     return Session.DumpBusiness(options);
 
+                case Mode.Market:
+                    return Session.DumpMarket(options);
+
                 case Mode.Report:
                 default:
                     return Report.Print(options);

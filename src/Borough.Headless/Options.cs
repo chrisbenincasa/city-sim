@@ -172,6 +172,19 @@ internal enum Mode
     /// declares two and builds neither. See <c>BusinessDump</c>.
     /// </remarks>
     Business,
+
+    /// <summary>
+    /// The market: what a District Pool's rows hold, what their price did, and who could not afford
+    /// what they were selling. Milestone 26's.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Three panels, and the third is the reason the mode exists</b> — <c>plans/0044</c> task 8:
+    /// *"the third clause is the one that would be dropped, and it is the only one that shows the
+    /// market having a consequence."* It refuses on three separate grounds, of which the one that
+    /// would be missed is ***a Ruleset that declares a trade and gives no kind a Good to sell*** —
+    /// <c>rulesets/twinned.toml</c>, a market with one side. See <c>MarketDump</c>.
+    /// </remarks>
+    Market,
 }
 
 /// <summary>
@@ -414,6 +427,7 @@ internal sealed class Options
         bool landValue = false;
         bool arrivals = false;
         bool business = false;
+        bool market = false;
         Layer? dump = null;
 
         for (int i = 0; i < arguments.Length; i++)
@@ -527,6 +541,14 @@ internal sealed class Options
                 // time, because construction, founding and placement are all paced.
                 case "--business":
                     business = true;
+                    session = true;
+                    continue;
+
+                // A session flag for --business's reason, and it needs MORE elapsed time than any of
+                // them: a market row waits on the watershed, a seller waits on a Zone Rule, and a
+                // Household short of money has to have had time to spend what it opened with.
+                case "--market":
+                    market = true;
                     session = true;
                     continue;
 
@@ -805,6 +827,32 @@ internal sealed class Options
             return false;
         }
 
+        if (market && (business || arrivals || landValue || parking || evidence || traffic || commute
+                       || zones || roads || trips || dump is not null))
+        {
+            complaint = "--market asks for another picture, and each picture builds its own world. "
+                      + "Ask for one.";
+            return false;
+        }
+
+        if (market && rulesets.Count == 0)
+        {
+            complaint = "--market needs --ruleset PATH. A market is content three times over: a "
+                      + "[districts] table for the rows to hang on, a [market] table for the price "
+                      + "to be allowed to move, and a kind holding a Good in a business-owned Bin so "
+                      + "that somebody is selling. rulesets/provisioned.toml is the file this mode "
+                      + "was written for -- it is the only shipped world in which a Building sells.";
+            return false;
+        }
+
+        // --money's refusal for --money's reason: this dump populates and steps a world of its own.
+        if (market && log is not null)
+        {
+            complaint = "--market and --log disagree: the dump populates its own world and steps it, "
+                      + "so a recorded session would be replayed and then over-populated.";
+            return false;
+        }
+
         if (business && (arrivals || landValue || parking || evidence || traffic || commute || zones
                          || roads || trips || dump is not null))
         {
@@ -1064,7 +1112,7 @@ internal sealed class Options
         // with nothing in it. Found while adding --series; the hole was --census's since slice 10.
         if ((census || series)
             && (zones || commute || traffic || evidence || money || parking || roads || trips
-                || dump is not null))
+                || market || dump is not null))
         {
             string asked = series ? "--series" : "--census";
 
@@ -1132,7 +1180,8 @@ internal sealed class Options
 
         options = new Options
         {
-            Mode = business ? Mode.Business
+            Mode = market ? Mode.Market
+                 : business ? Mode.Business
                  : arrivals ? Mode.Arrivals
                  : money ? Mode.Money
                  : landValue ? Mode.LandValue
@@ -1287,6 +1336,16 @@ internal sealed class Options
                                 [founding] channel -- which is a different test from one
                                 that merely declares a [[business]]. rulesets/levied.toml
                                 is the only shipped world with all four quarters in it
+          --market              dump the District Pool: what each (District, Good) row holds,
+                                what its price did over the run, and WHO COULD NOT AFFORD IT,
+                                which is the only one of the three that shows the market
+                                having a consequence for somebody. The stock column sums the
+                                SELLERS' Bins, because a Pool is a market and not a store.
+                                Needs --ruleset stating [districts] and [market] AND giving
+                                some kind a Good in a business-owned Bin -- declaring a
+                                [[business]] trade is a different test, and twinned.toml
+                                passes it while selling nothing. rulesets/provisioned.toml
+                                is the file this mode was written for
           --csv                 dump the Layer, the Lot grid or the Segments as CSV rather
                                 than as an ASCII field
 

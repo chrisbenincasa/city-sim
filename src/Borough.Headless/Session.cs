@@ -864,6 +864,20 @@ internal static class Session
         return BusinessDump.Run(options, writer);
     }
 
+    /// <summary>Runs the market dump, to a file or to the console.</summary>
+    internal static int DumpMarket(Options options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (options.OutPath is null)
+        {
+            return MarketDump.Run(options, Console.Out);
+        }
+
+        using var writer = new StreamWriter(options.OutPath);
+        return MarketDump.Run(options, writer);
+    }
+
     /// <summary>Runs the land value dump, to a file or to the console.</summary>
     internal static int DumpLandValue(Options options)
     {

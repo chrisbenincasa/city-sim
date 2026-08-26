@@ -15,6 +15,20 @@ inherits from [`0037`](0037-goods-between-buildings-the-district-pool.md) tasks 
 
 ## Status
 
+🟢 **TASK 8 LANDED 2026-08-26 — `--market`, AND THE PANEL THE TASK ENTRY SAID WOULD BE DROPPED IS THE
+ONE THAT WORKED.** *"A Building that could not afford it"* is **141 of 408** starving Rule Instances on
+`provisioned.toml`, against 60% whose own larder is empty and 5% waiting on a market with no seller
+(**F51**). 🔴 **AND THE PRICE PANEL FOUND A DEFECT: THE PRICE HAS NEVER MOVED, ON ANY WORLD** (**F50**)
+— `World.RepriceDistrictPools` measures cover from the market row's own Bin, and
+[`adr/0139`](../docs/adr/0139-a-district-pool-is-a-market-and-not-a-store-so-stock-stays-with-the-seller.md)
+emptied that Bin when it made a Pool a market instead of a store. ⚠ **That record predicted the repair
+in its own words — *"only its caller changes"* — and the caller is the one thing nobody changed**,
+because the same sentence also said the `Bin` column would go and keeping it was right.
+🔴 **ROUTED, NOT PATCHED**: the fix is one line and moves the hash, but *what cover means for a market
+that is not a store* is arguable and owes a record — [`0003`](0003-build-plan.md) queue item **21**,
+`adr/0135` and `adr/0139` both amended, and a test asserting both halves so a fix goes red.
+**Moves no hash.**
+
 🟢 **TASK 6 LANDED 2026-08-26 — A SHOP IS RAISED ON HUNGER RATHER THAN ON HOMELESSNESS.**
 [`adr/0170`](../docs/adr/0170-a-shop-is-selected-rather-than-sited-so-the-birth-signal-is-coarse-and-death-does-the-correcting.md):
 the reach is the **District**, the birth signal is deliberately coarse, and ***death does the
@@ -401,9 +415,16 @@ makes that an attribution question rather than a scheduling one.
    🔴 **THE ORDER CHANGED AND THE USER CHANGED IT**, on the reasoning in **F34**: task 6 was about to
    be designed around this task's absence. **Moves the hash** — a new `[[rule]]` and a new Bin on a
    kind. **No engine change at all**, which is the finding.
-8. **Something to look at** — a runner mode showing a Pool with stock, a price that moves, and **a
-   Building that could not afford it**. ⚠ **The third clause is the one that would be dropped**, and
-   it is the only one that shows the market having a consequence.
+8. ✅ **DONE — Something to look at** — `--market`, `src/Borough.Headless/MarketDump.cs`. Three
+   panels: the market rows, what the price did, and **who could not afford it**. 🟢 **The third
+   clause was the one that worked** — 141 of 408 starving Rule Instances blocked on a money Bin,
+   against 60% with an empty larder and 5% on a market with no seller (**F51**). 🔴 **The second
+   clause found a DEFECT: the price has never moved, on any world** (**F50**), because
+   `RepriceDistrictPools` measures cover from the Bin `adr/0139` emptied — ***and `adr/0139` predicted
+   that exact repair in a sentence whose other half was correctly refused.*** Routed to
+   [`0003`](0003-build-plan.md) queue item **21** rather than patched: what cover *means* for a
+   market that is not a store is arguable and owes a record. Both ADRs amended. **Moves no hash** —
+   the dump populates and steps a world of its own and writes nothing.
 9. **The long acceptance run.** Conservation across trades with `adr/0024`'s equality **exact**, no
    collection or magnitude trending at steady state (`adr/0006`), and bankruptcy distinguishable from
    starvation in `Evidence`. 🔴 **Look for `adr/0163`'s own revisit trigger**: shops built, condemned
@@ -1058,3 +1079,64 @@ sentence somebody would carry out of it. 🔴 **A third arm with the trade `[[zo
 so deleting the rule deletes the **purchase**. ***Every arm that removes the scan also removes the
 market***, so what is owed is a profiler and the row is filed **UNMEASURED** rather than filled with
 the number that was available.
+
+## Task 8's findings — the picture, and the price it found pinned
+
+**F50 — 🔴 THE PRICE HAS NEVER MOVED, ON ANY WORLD, AND THE RECORD THAT BROKE IT SAID IN THE SAME
+BREATH THAT IT HAD NOT.** `--market` prints one row per `(District, Good)` with what the price opened
+at, what it is now, and how many times it changed. Measured on `rulesets/provisioned.toml` at 2,000
+Citizens over 24,576 Ticks: **eight rows, eight opened-equals-now, zero moves.**
+
+***The cause is one argument.*** `World.RepriceDistrictPools` passes `Bins.LevelAt(bin)` as
+`MarketRuleset.Reprice`'s `level`, where `bin` is **the market row's own Bin** — and
+[`adr/0139`](../docs/adr/0139-a-district-pool-is-a-market-and-not-a-store-so-stock-stays-with-the-seller.md)
+emptied that Bin when it made a Pool a **market and not a store**. With `level` structurally zero,
+`cover = max(level, rate)` is the rate, `target = ceiling × rate ÷ rate` is the ceiling exactly, and a
+price that **opens** at the ceiling has nowhere to move. The dump prints the Pool Bin's level as its
+own column for this reason: ***the number that pins the price is printed beside the price it pins.***
+
+🔴 **`adr/0139` PREDICTED THE EXACT REPAIR AND IT WAS NOT MADE.** Its own words: *"`MarketRuleset`
+survives with its signature unchanged, because `Reprice` takes the level as a plain `long` and **only
+its caller changes**"*, and, two sentences on, *"what goes is the `Bin` column and what reaches through
+it, `BinOwnerKind.District` and its three uses."* **Neither happened.** The Bin column stayed — and
+staying was *right*, because `adr/0139`'s own wait-list argument needs a single Bin for a buyer to
+subscribe to — but ***the caller that the record said must change is the one thing nobody changed.***
+⚠ **So the record was right about the outcome and wrong about which line carried it**, which is
+[`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+for the second time this milestone, and this is its sharpest form yet: **a prediction that names two
+edits, of which one is refused on good grounds, makes the other one look refused too.**
+
+⚠ **`adr/0135`'s amendment banner is the sentence that closed the question.** It reads *"`[market]`'s
+two keys and the damping argument are **untouched**"* — and the damping argument is *from Pool level
+against recent consumption*, so removing the Pool's stock removed one of its two inputs. ***An
+amendment that says a mechanism is untouched while deleting what it reads is worse than one that says
+nothing***, because it is a positive assurance somebody can cite.
+
+🔴 **IT IS ROUTED AND NOT PATCHED, AND THAT IS DELIBERATE.** The obvious fix — sum what the reachable
+sellers hold and pass that as cover — is one line, moves the State Hash, and ***changes what a market
+means***: whether a market-not-a-store's cover is its sellers' inventory, their production rate, or
+something else is **arguable** and therefore
+[`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)'s,
+not a task-8 edit. Filed to [`0003`](0003-build-plan.md)'s queue as a defect, with both ADRs amended
+and `MarketDumpTests.The_price_does_not_move_and_the_dump_says_so_in_the_table` asserting the two
+halves so the day it is fixed the test names what changed.
+
+**F51 — 🟢 THE PANEL THE TASK ENTRY SAID WOULD BE DROPPED IS THE ONE THAT WORKED.** *"A Building that
+could not afford it"* is not a rhetorical flourish: it is 141 of 408 starving Rule Instances on
+`provisioned.toml` at 2,000 Citizens over 24,576 Ticks — **34% blocked on a money Bin**, against 60%
+whose own larder is empty and 5% waiting on a market with no seller in it. ⚠ **The three-way split is
+what makes any of them readable**: a count of *starving Rules* is a number about a world, and
+[`plans/0044`](0044-the-purchase-and-the-provider-that-answers-it.md) **F42**'s shape — *a counter that
+aggregates over the whole world, read as though it were scoped to the subject the claim names* — is
+exactly what an undifferentiated total would have been. 🔴 **A shop nobody buys from does NOT appear
+here and that is correct**: unsold stock stops on `Blocking.Space`, which clears the pressure clock, so
+this panel counts what is short and never what is full (`adr/0166`). The dump says so in its own prose
+rather than leaving the absence to be noticed.
+
+**F52 — ⚠ THE REFUSAL THAT MATTERED IS THE ONE A READER WOULD NOT HAVE WRITTEN.** Two of `--market`'s
+three refusals read a Ruleset table anybody can see — `[districts]`, `[market]`. The third asks whether
+**any declared kind holds a Good in a business-owned Bin**, and it exists because
+`rulesets/twinned.toml` states both tables, names two `[[business]]` trades, and **sells nothing**. So
+both checks a person would think to write pass on a world with a one-sided market in it. ***Declaring
+a trade is not the same test as having a seller***, which is that file's own header sentence arriving
+as a guard.
