@@ -209,6 +209,7 @@ name = "shopfront"
 bins = [
     { resource = "sundries", capacity = 96, owner = "business" },
     { resource = "repairs",  capacity = 4 },
+    { resource = "money",    owner = "business" },
 ]
 condemn_after = 4
 occupants = 1
@@ -271,6 +272,71 @@ rate    = 8
 apply   = { min = 1, max = 4 }
 inputs  = []
 outputs = [ { scope = "local", resource = "sundries", amount = 8 } ]
+
+# ---------------------------------------------------------------------------------------------------
+# 🔴 THE DECLINE HALF, AND IT IS A RECURRING COST RATHER THAN A FAILURE TO SELL.
+#
+# ⚠ A SHOP NOBODY BUYS FROM IS IMMORTAL, and that is why this Rule exists. Unsold stock fills the
+# `sundries` Bin, so `stock` stops on `Blocking.Space` -- and `RuleEngine.Stop` CLEARS the failure
+# pressure clock for every blocking reason that is not `Blocking.Supply`, deliberately, because a full
+# Bin is what a well-supplied Building with nobody to sell to looks like. So a trade cannot be made to
+# churn by failing to SELL; it must go short of something it CONSUMES (adr/0163, corrected the day it
+# was written; adr/0166).
+#
+# ⚠ IT IS TWO TERMS AND NOT ONE, and that is adr/0024 rather than a style. Money is conserved -- never
+# created or destroyed inside the city -- so a local money input with no counterparty is REFUSED at
+# load by RulesetLoader's refusal 4 -- *"a cost paid to nobody is a leak, not a cost"*, which is the
+# loader's own message and not a sentence in adr/0024. The counterparty here is the treasury, which
+# makes this a LEVY on a trade and not rent to a landlord: nothing in this build owns premises, and
+# writing rent would name an actor that does not exist (adr/0070 -- classify it, and this one is
+# `unbuilt`). ⚠ Cost of goods to a supplier is the SUCCESSOR and is named in adr/0169 with its
+# trigger; it is not written here because nothing sells to a grocer.
+#
+# ⚠ THE MONEY BIN ON THE KIND ABOVE IS WHAT ROUTES THIS RULE TO THE BUSINESS. `ApplyTenancies` reads a
+# Rule's local terms against the kind's declared Bins to decide whose Rule it is, so without that line
+# the only local term is `money`, no declaration matches, and the subject defaults to the PREMISES --
+# which holds no money (adr/0113) and would throw. ⚠ It does NOT open a second balance:
+# `World.FitBusiness` guards with `FindOwnerBin(...).IsNone`, so it finds the one `World.OpenBalance`
+# already made.
+#
+# 🔴 BOTH NUMBERS ARE UNRATIFIED and plans/0002 §D1 holds them.
+#
+# ⚠ `rate = 1024` IS HALF A DAY BECAUSE A DAY IS NOT EXPRESSIBLE. A rate is a reschedule interval and
+# the loader refuses anything at or beyond `WHEEL_SIZE`, which is 2048 -- a rate of exactly one Day
+# would re-arm into the Event Wheel bucket it just came off. So *a daily levy* cannot be written, and
+# the nearest thing that can is twice a day at half the money. ***The burden is the Day's and the
+# period is the wheel's***, which is worth knowing before reading either digit as a design intent.
+#
+# ⚠ `amount` IS A SHARE OF A MEASURED REVENUE AND NOT A GUESS, and the measurement is the point.
+# Twenty shopfronts on this file at 2,000 Citizens earn between **5.2 and 62.6 money a Tick**, median
+# ~32 -- a **19x spread**, and that spread is LOCATION: a shop with hungry Households in reach sells
+# and one without does not. 8,192 twice a Day is ~25% of the median, which fails the weakest **2 of
+# 20** and leaves the rest trading. ***So bankruptcy here is a TAIL event rather than the normal
+# outcome***, which is what makes it worth distinguishing from starvation at all.
+#
+# 🔴 THE FIRST VALUE WRITTEN HERE WAS 2,048 AND NOTHING EVER FAILED. At ~6% of revenue the levy was
+# unfailable, so the mechanism was present, correct and **unobservable** -- the exact shape this
+# corpus keeps filing, a producer shipped without a consequence. ⚠ A trade whose total recurring cost
+# is 6% of its takings is not a trade. ***The number was not too small for the test; it was wrong
+# about the world.***
+#
+# ⚠ Read the sentence rather than the digits: what is claimed is a *share of a measured median*, and
+# that median moves the moment anything else about this file does -- the stride, the arrival rate, the
+# import ceiling or the number of shopfronts.
+#
+# ⚠ THE SLACK IS `condemn_after = 4`, and it is doing real work here. A shopfront opens at a ZERO
+# balance (adr/0148 instantiates the kind's trade; nothing founds on this file), and it cannot sell
+# until a District exists at `[districts] revisit_ticks` = 2048. So its first levies fail by
+# construction. Four missed firings at 1024 is 4,096 Ticks of rope, which reaches past the watershed
+# -- and adr/0053's recovery is TOTAL, so the first successful levy clears the clock outright.
+# ---------------------------------------------------------------------------------------------------
+[[rule]]
+name    = "rates"
+kind    = "shopfront"
+rate    = 1024
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local",  resource = "money", amount = 8192 } ]
+outputs = [ { scope = "global", resource = "money", amount = 8192 } ]
 
 [[zone_rule]]
 name          = "housing"

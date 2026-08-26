@@ -15,6 +15,17 @@ inherits from [`0037`](0037-goods-between-buildings-the-district-pool.md) tasks 
 
 ## Status
 
+🟢 **TASK 7 LANDED 2026-08-26, OUT OF ORDER AND AT THE USER'S INSTRUCTION — A SHOP CAN NOW GO BROKE.**
+[`adr/0169`](../docs/adr/0169-a-standing-cost-needs-a-counterparty-so-a-trade-pays-rates-until-there-is-a-supplier-to-pay.md):
+a trade carries one recurring cost, a **levy to the treasury**, because money is conserved and a cost
+paid to nobody is refused at load. ⚠ **Eleven lines of TOML and no engine change** (**F35**).
+🔴 **Task 6 was about to be designed around this task's absence, and the user stopped it** (**F34**) —
+`adr/0163`'s claim reads a shop's failure pressure, and until today no shop could be under any.
+🔴 **THE LEVEL SHIPPED FIRST WAS UNOBSERVABLE AND ONLY A RUN SAID SO** (**F36**); **the test passed
+for the wrong reason twice** (**F37**). Measured on `provisioned.toml` at 2,000 Citizens: **2 of 20
+live shopfronts starving at end of run**, treasury 4,702,208, money conserved, 27 tenancies ended.
+**Moves the hash** — a new `[[rule]]` and a new Bin on a kind, on a file no golden fixture runs.
+
 🟢 **TASK 4 LANDED 2026-08-26 — `Scope.Pool` RESOLVES, AND `rulesets/provisioned.toml` TRADES.** A
 `pool` input is one term and **three** Bin deltas — the seller's stock down, the buyer's balance down,
 the seller's balance up — netted and settled atomically with the Rule. Open decisions **2 and 3 are
@@ -358,11 +369,16 @@ makes that an attribution question rather than a scheduling one.
    §D1. **A [`0013`](0013-tick-budget.md) row is owed on the day, with a measured multiplicand and
    not a guessed one.** Corrects `ZoneRuleEngine.Create`'s summary to say **which rule** it describes
    ([`0012`](0012-corpus-audit.md)).
-7. **The decline half.** A money-consuming Rule on the trade, so an empty balance is `Blocking.Supply`
+7. ✅ **DONE, AND RUN BEFORE TASK 6 — the decline half** —
+   [`adr/0169`](../docs/adr/0169-a-standing-cost-needs-a-counterparty-so-a-trade-pays-rates-until-there-is-a-supplier-to-pay.md).
+   A money-consuming Rule on the trade, so an empty balance is `Blocking.Supply`
    on a money Bin — which is pressure, is **bankruptcy** rather than starvation, and is the world
    [`0037`](0037-goods-between-buildings-the-district-pool.md) task 10 has been waiting for. ⚠ **A
    shop nobody buys from is IMMORTAL** and this is why: unsold stock stops on `Blocking.Space`, and
    `RuleEngine.Stop` clears the pressure clock for every reason but `Supply`.
+   🔴 **THE ORDER CHANGED AND THE USER CHANGED IT**, on the reasoning in **F34**: task 6 was about to
+   be designed around this task's absence. **Moves the hash** — a new `[[rule]]` and a new Bin on a
+   kind. **No engine change at all**, which is the finding.
 8. **Something to look at** — a runner mode showing a Pool with stock, a price that moves, and **a
    Building that could not afford it**. ⚠ **The third clause is the one that would be dropped**, and
    it is the only one that shows the market having a consequence.
@@ -816,3 +832,97 @@ stock-first blame (`adr/0167`), a broke buyer facing an empty market reads as **
 fix makes money blocks appear in the ordinary run with no fixture at all. 🔴 **The three-way test
 asserts the DISCRIMINATOR and never the volume**, because a test counting blocked Rules would have
 passed against the defect throughout.
+
+---
+
+## Task 7's findings — the decline half, run out of order at the user's instruction
+
+**F34 — 🔴 THE ORDER WAS WRONG AND THE USER CAUGHT IT, AND WHAT HE CAUGHT WAS ME ARGUING FROM AN
+ABSENCE WHILE QUOTING THE RULE THAT FORBIDS IT.** Task 6 is `adr/0163`'s claim — *a shop in reach
+counts as serving unless it is itself under failure pressure* — and the pressure it reads is the thing
+task 7 creates. Designing 6 first meant designing a claim rule around a world where **no shop is ever
+under pressure**, and the candidate I was defending had shops counted as serving whether or not they
+held any stock. The user's words were *"why would we want to count resources served for a shop that has
+none? that is like… completely wrong"*, and then, when I answered that the truthful model needed
+mechanisms that do not exist: *"so are you recommending we sacrifice depth of the engine just because we
+haven't built the mechanisms yet?"* ***That is [`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md)
+verbatim, aimed at me, three messages after I had cited it.*** The rule's own sentence is *the answer to
+"given X does not exist, should Y compensate?" is **build X***. Task 7 **is** X, it was already in the
+milestone, and it was two tasks away. ⚠ **The failure mode is not that the rule was unknown — it is that
+a rule about absences is invisible from inside the absence.** I was reasoning about what could be
+written *given the world as it stood*, which is precisely the frame the rule exists to break.
+
+**F35 — 🟢 IT NEEDED NO ENGINE CHANGE AT ALL, AND THAT IS THE FINDING RATHER THAN A CONVENIENCE.** The
+whole of task 7 is **eleven lines of TOML**: a `{ resource = "money", owner = "business" }` Bin on the
+`shopfront` kind, and a `[[rule]]` with one `local` money input and one `global` money output. No new
+column, no new `purpose_tag`, no engine edit, no test helper. ⚠ **That is tasks 1 and 4 being load-bearing
+rather than this task being small** — `adr/0166` gave a Business its own Rules and Bins, `adr/0143` gave
+it a Bin *list*, and `RulesetLoader.ApplyTenancies` derives a Rule's subject from its **local** terms
+against the kind's declared Bins. ***The trade owns the levy because the kind declares the till***, and
+nothing had to be told about money for that to work.
+
+**F36 — 🔴 THE FIRST LEVEL SHIPPED WAS PRESENT, CORRECT AND UNOBSERVABLE, AND ONLY A RUN SAID SO.** At
+`amount = 2048` — ~6% of a measured median shop's revenue — the world produced **no money block of any
+kind, at any Tick, on any shop**. Not *few failures*: zero. The Rule fired, the treasury filled, money
+stayed conserved, and every assertion anybody would think to write passed. ⚠ **The level was raised to
+8192 by the user against a measured median, not argued to**, and the failure it now produces is a tail —
+**2 of 20 live shopfronts starving at end of run**. 🔴 ***This is milestone 9's land-value producer
+exactly*** — built, correct, and observable by nothing — and it is the third sighting of that shape in
+this corpus. **The instrument that found it was the falsification run**: the level was put back to 2,048
+and the new test was watched to fail, which is `CLAUDE.md`'s *ships with a test that writes the violation
+and watches it fire* applied to a **number** rather than to a diagnostic.
+
+**F37 — ⚠ THE TEST PASSED FOR THE WRONG REASON TWICE BEFORE IT PASSED FOR THE RIGHT ONE, AND BOTH
+WRONG REASONS WERE *A SHOP TOO NEW TO HAVE EARNED ANYTHING*.** A shopfront opens at a **zero** balance —
+`adr/0148` instantiates the kind's trade and nothing on this file founds one — and it cannot sell until
+the watershed gives it a District at `[districts] revisit_ticks`. So its first levies fail **by
+construction**. Version one asserted *a levy Rule is blocked on a money Bin* and passed at Tick 6,144 on
+the first shopfront ever raised. Version two required the shop to have held money and passed at the same
+Tick, because the set was updated in the same sample as the check and *some* money is not *enough*
+money. ***The assertion that means anything is: it once held at least one levy's worth, and later could
+not pay one*** — threshold at the levy's own `amount`, set updated **after** the check. ⚠ **Both wrong
+versions were green, fast and quotable.** A passing test whose subject is *new* rather than *declining*
+is `adr/0093`'s failure mode wearing a green tick: right about the outcome, wrong about the trigger.
+
+**F38 — ⚠ `0168` WAS FREE ON `main` AND IS NOT FREE, AND THE END OF THE COLUMN IS NOT EVIDENCE OF A
+FREE NUMBER.** `ls docs/adr` ends at `0167`; `milestone-17-decline-and-cleared-land` already holds
+`0168-a-decline-threshold-is-a-duration-and-the-premises-and-the-tenant-get-one-each.md`. This ADR is
+`0169` and the gap closes at merge. ⚠ **`plans/0002` §F2 has recorded this hazard seven times in the
+form *a gap is not a missing decision*, and never in the form that bit here.** Both halves are now on
+that row. ***It was avoided by `git ls-tree` over every branch and would not have been avoided by
+anything on `main`.***
+
+**F39 — 🔴 THAT BRANCH REFUSES `condemn_after` BY NAME, AND THIS TASK'S SLACK ARGUMENT IS WRITTEN ON
+IT.** `adr/0168` supersedes `adr/0053`'s authored unit: a Ruleset states `condemn_after_days` and
+`tenancy_ends_after_days` in **Days**, and the old key is *refused at the parse site* because a file
+keeping it would load clean and decline sixteen times too slowly. `rulesets/provisioned.toml` states
+`condemn_after = 4` twice and its new `rates` header reasons from it — 4 missed firings at `rate = 1024`
+is 4,096 Ticks of rope, which is what reaches past the watershed. ⚠ **The quantity survives the unit
+change and the spelling does not**: 4,096 Ticks is 2 Days, so the migration's value is
+`tenancy_ends_after_days = 2` and the header's arithmetic has to be restated, not just its key.
+**Routed to the branch that owns it under [`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md)
+rather than worked around here**, because the migration is theirs and `provisioned.toml` is simply one
+more file in it.
+
+**F40 — ⚠ I QUOTED A SENTENCE TO THE WRONG DOCUMENT, IN AN ADR, WHILE WRITING ABOUT CONSERVATION.**
+*"A cost paid to nobody is a leak, not a cost"* is **`RulesetLoader`'s refusal 4**, cited by
+[`adr/0117`](../docs/adr/0117-upkeep-leaves-milestone-10-and-its-blocker-is-a-rule-with-no-actor.md).
+`adr/0024` argues conservation and never puts it that way. I attributed it to `0024` in `adr/0169`, in
+`provisioned.toml`'s header and in the test's doc comment — three places, one act — and found it only
+by grepping for the phrase after the links failed. ⚠ **The corpus's citation tests cannot reach this**:
+they check that a link *resolves*, not that a quotation is *where it says it is*. 🔴 ***A quotation
+attributed to a plausible neighbour is `plans/0012` **Cause 5** with the digits replaced by a
+sentence*** — the caveat travelled, the attribution did not, and the wrong document now reads as having
+said something load-bearing that it never said. All three are corrected.
+
+**F41 — 🔴 A CORPUS CHECK HAD A SILENT EXEMPTION, AND IT WAS ON THE ONE CELL IT EXISTED FOR.**
+`BoardShapeTests` rule 2 holds a board cell to three sentences. `Cells` split the row on `|` and
+iterated `1 .. parts.Length - 2` — right for `| a | b |`, and it **drops a real cell** from `| a | b`,
+which markdown also accepts. Exactly one row on the board omitted the trailing pipe, it was **row 1**,
+and the cell it hid was **1,724 characters and seven sentences**. ⚠ **The check reported green the
+whole time**, including the run this session made against it two tasks ago. ⚠ **That it was row 1 is
+not luck**: the row somebody appends to daily is the row whose punctuation eventually goes wrong, so
+***the cell a length check most needs to see is the cell most likely to break the parser feeding it.***
+Fixed by normalising the row rather than by fixing the board, with the no-trailing-pipe case added to
+the synthetic board so it fires; filed to [`0012`](0012-corpus-audit.md), which notes that every corpus
+check parses markdown by hand and none of the others has been asked this question.

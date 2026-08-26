@@ -53,6 +53,10 @@ Money is not a score. It is a **conserved stock that moves without transport** �
 
 So the city has a **balance of payments**: Food and Materials imports flow money out, service exports flow it in, and a city whose land is sealed and whose schools were never built watches its supply drain. Borrowing is the damper. See [`adr/0024`](adr/0024-money-is-conserved-and-the-city-has-a-balance-of-payments.md).
 
+⚠ **Of the four channels named above, two move money today and two name an actor that does not exist**, and the list is written as design rather than as status — read it that way. **Purchases** move it as of milestone 26 task 4: a `pool` term pays its seller, and the price comes off the District market row ([`adr/0167`](adr/0167-a-purchase-picks-its-seller-by-a-draw-and-waits-on-the-market-rather-than-on-a-shop.md)). **Taxes** move it as a Policy, which `taxed.toml` and `levied.toml` demonstrate. **Wages** do not: a `wage` key is *refused at load* until milestone 15 ([`adr/0026`](adr/0026-wages-are-posted-locally-and-never-cleared.md)). **Rent** does not, and cannot be written: a Building never holds money ([`adr/0113`](adr/0113-a-business-is-an-occupant-with-its-own-balance-and-a-building-never-holds-money.md)) and no table names a landlord.
+
+**That absence has a consequence, and it is a shop's only recurring cost.** A trade with no outgoings is one nothing can end — an unsold shop stops on a full Bin, which clears its failure-pressure clock, so it stands solvent and dead for ever. [`adr/0169`](adr/0169-a-standing-cost-needs-a-counterparty-so-a-trade-pays-rates-until-there-is-a-supplier-to-pay.md) gives it a **levy to the treasury**, because conservation demands a counterparty and the treasury is the only money-holding actor a shop can reach. ⚠ **It is a stand-in with a named successor** — cost of goods to a supplier — ***and rates are the least explanatory of the costs a shop actually has***, so a readout naming one is saying what the build can pay rather than what a shopkeeper would recognise.
+
 ### Why these five
 
 The three sinks are deliberately asymmetric, and the asymmetry is the whole design:
