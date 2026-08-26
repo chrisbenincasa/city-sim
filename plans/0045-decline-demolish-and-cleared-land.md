@@ -6,7 +6,40 @@
 
 ## Status
 
-🟡 **SCOPED, NOT STARTED.** ✅ **GATE ASSESSED THE SAME DAY: no document names a gate on milestone 17.**
+🟢 **IN FLIGHT.** ⚠ **This block said *SCOPED, NOT STARTED* until 2026-08-26 while three commits
+stood** — `plans/0012` **Cause 1** in the document that owns the status, which is the copy that is
+supposed to be right.
+
+**Landed** (branch `milestone-17-decline-and-cleared-land`):
+
+| Task | State | Where |
+|---|---|---|
+| **1** — the second threshold stops destroying | 🟢 **done** | `ZoneRuleEngine.Condemn`, `BuildingTable.AbandonedSince` |
+| **2** — the abandoned state | 🟢 **done**, and it is a **column** rather than derived — `AbandonedSince`, `(saved AND hashed)` | `BuildingTable.IsAbandoned` |
+| **3** — the first threshold, occupancy loss | 🔴 **not started** | — |
+| **4** — `Demolish`, the sixth verb | 🔴 **not started** | — |
+| **5** — the `Govern` clearance programme | 🔴 **not started** | — |
+| **6** — Trips-failing as a second pressure source | 🔴 **not started** | — |
+| **7** — the contagion term | 🔴 **not started** | — |
+| **8** — something to look at | 🟡 **partial** — `--zones` prints shells as `~` and counts them; nothing shows a clearance | `ZoneDump` |
+| **9** — the long acceptance run, and decision 1's measurement | 🟡 **partial** — censuses taken and quoted in the Ruleset headers; **no committed long-run assertion** | — |
+
+🔴 ⚠ **DECISION 1 WAS ANSWERED BY THE CODE RATHER THAN BY THE SITTING, and no ADR records it.**
+`collapses_after_days` is reading **(b)** — *a shell is removed without a player, after a duration* —
+and it shipped inside `dc529a2`, whose subject line is about the threshold's **unit**. ***The decision
+this milestone said it turns on was taken as an implementation detail of a different task.*** It needs
+either an ADR or an explicit demotion, and the measurement task 9 was to settle it with has not run.
+
+⚠ **`dc529a2` carries three tasks and names one.** Its subject is *a decline threshold is a duration*;
+its diff also holds the shell, the collapse sink and the two-key split. That is
+[`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+arriving in a commit message, and it is why this table exists.
+
+---
+
+### Gate, as assessed at scoping
+
+🟡 **SCOPED 2026-08-25.** ✅ **GATE ASSESSED THE SAME DAY: no document names a gate on milestone 17.**
 [`0003`](0003-build-plan.md)'s Phase 2 ledger holds it in the collective row whose Gate cell is `—`,
 [`0002`](0002-open-questions.md) §A has no row against it, and [`06`](../docs/06-roadmap.md):101 names
 no upstream. ⚠ **That is an absence of a recorded gate and not a survey**; what scoping found instead is
@@ -279,6 +312,38 @@ NEITHER IS ABOUT DECLINE.** Both are filed in [`0012`](0012-corpus-audit.md) as 
   is the **second** time the same test has aliased — the first repair inherited the defect one level
   along. Repaired with a `Stride` stated against the window, and it now walks the run once instead of
   replaying it eight times.
+
+**F8 — 🔴 `ConnectedCityCongestionTests` WAS CALLED *a live question about the traffic model rather
+than a stale fixture* AND IT WAS THE STALE FIXTURE, WHICH IS WHY THE LIVE QUESTION IN IT WENT
+UNEXAMINED FOR A DAY.** `dc529a2`'s own commit message left it red on that reading. Bisected
+2026-08-26: it passes at `92e360a` and fails at `dc529a2`, with **identical numbers** at `dc529a2` and
+at `HEAD` — so it broke in this milestone's first commit and nothing since moved it.
+
+**The cause is `adr/0164` again, one fixture further along.** The test's city is `congested.toml`;
+taking `condemn_after` out of it means nothing knocks a Building down, so more Households stay housed
+and **employment at 4×4 went 1,156 → 2,560 on the same population**. Twice the commuters over the same
+corridor took the peak from **65.1%** of capacity to **97.7%**, and the fixture's *flat rung* — the
+control that says *the volume-delay function is real and costs nothing anybody can see* — was no longer
+below the knee. ⚠ **The rung is stated in BLOCKS and the property is stated in `v/c`**, so a Ruleset
+edit walked it off its own claim without touching the file: `plans/0012` **Cause 9 candidate B**.
+
+*Repaired by moving the rung to 2×2, where the two runs are byte-identical again, re-recording the
+ladder, and asserting the regime explicitly before the equality that depends on it — so the next drift
+says `the flat rung is no longer flat` rather than printing two numbers 0.09% apart.*
+
+🔴 ⚠ **AND THE FIXTURE HELD A REAL FINDING THAT THE STALE-VERSUS-LIVE FRAMING HID.** At 4×4 the priced
+run holds **fewer** Vehicle-Ticks than the free-flow control — 16,562 against 16,577 — while peaking
+**higher**, 97.7% against 86.8%. The file's own control note states the direction outright (*a free-flow
+run is the same journeys priced cheaper, so it can hold FEWER Vehicle-Ticks*), and 3×3 and 8×8 both
+obey it. ***A sign flip is not a rounding error***, so near `v/c` = 1 the loop appears to
+**redistribute** load rather than add occupancy — which is a different claim from the one `adr/0099`
+makes. **Filed in [`0002`](0002-open-questions.md) §A as *measurable*, owned by milestone 16**, with
+the sweep that would settle it named. ⚠ **It was unreachable before this milestone**: only the band
+around the knee shows it, and no fixture sat there until decline left `congested.toml`.
+
+⚠ **The lesson is about the triage and not about traffic.** *Stale fixture* and *live question* were
+treated as alternatives, and it was both — the staleness moved the fixture into the band where the
+question becomes visible. ***Calling a red test one of the two is what stops anybody reading it.***
 
 ---
 
