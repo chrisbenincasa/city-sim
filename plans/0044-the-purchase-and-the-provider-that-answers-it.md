@@ -15,6 +15,10 @@ inherits from [`0037`](0037-goods-between-buildings-the-district-pool.md) tasks 
 
 ## Status
 
+🟢 **TASKS 1, 2 AND 3 LANDED 2026-08-25.** Task 3 is `rulesets/provisioned.toml` — **W-Q4 answered**,
+and the first shipped file in which anything is built to *sell*. ⚠ **It moves no hash**: a new file
+changes no existing world, and no golden is touched. **Assertion tier green at 2,317.**
+
 🟢 **TASKS 1 AND 2 LANDED 2026-08-25.** Task 2's own account is *What task 2 found* below, and the
 short version is that ***the split's mechanism was never the hard part***: `ZonedLots` reproduces
 `main`'s city to the digit on a world with no trade land, and every difficulty was the fixture
@@ -270,7 +274,7 @@ makes that an attribution question rather than a scheduling one.
    `purpose_tag`, no §D row** — the ADR *removes* a number. 🔴 **Its own commit**: it moves the State
    Hash of **every generated world**, so every golden baseline is re-recorded, and folding it into a
    feature task would hide the attribution.
-3. **The Provider Ruleset** — **W-Q4, and the world.** A second `[[building]]` kind, its `[[business]]`
+3. ✅ **DONE — The Provider Ruleset** — `rulesets/provisioned.toml`. **W-Q4, and the world.** A second `[[building]]` kind, its `[[business]]`
    trade, a second `[[zone_rule]]` on the trade bit, the input and output Goods. On `twinned.toml`'s
    two-lattice base, because `[districts]` needs two centres and `RefuseUnpricedGoods`
    (`RulesetLoader.cs:5194`) then demands a `[[hinterland]] prices` entry for **every** Good.
@@ -538,3 +542,52 @@ saving. **Filed as `plans/0003` hash-moving queue item 19**; the flip now target
 ⚠ **The `World.Migrate` finding this sitting owed was already filed** — queue item **15** states it
 in full, including that `RemapBins` is applied by walking Buildings and *"that is the whole of where
 it is applied."*
+
+
+## What task 3 found
+
+**F14 — ✅ the *loads and does not run* asymmetry is real, and the throw does NOT come from a Rule
+firing.** The header and the plan both describe it as `TryScope` accepting `pool` while
+`RuleEngine.Bin` throws, which is true and is not where it fires. Measured: the exception arrives from
+the **end-of-run invariant** — `NoWaiterSleepsOnANonBlockingBin` → `CheckQueueStillBlocks` →
+`AccumulateClaims` → `RuleEngine.Bin`. ***That invariant walks every claim of every waiting Rule
+Instance whether or not it fired***, so a `pool` term is unreachable in this build even by a Rule that
+never runs. `ProvisionedRulesetTests` says so at the symbol, because a reader debugging it would
+otherwise look at the Rule engine's firing path and find nothing.
+
+**F15 — the file could not choose its own base, and two refusals decide it.** A District derivation
+over one peak returns one basin however it is written, so a Provider file on `minimal.toml` would have
+no market to sell into; and the moment a file states `[districts]`, `RulesetLoader.RefuseUnpricedGoods`
+demands a `[[hinterland]]` price for **every** declared Good. ***So the `[districts]` table, the second
+lattice and the Hinterland prices arrive together or not at all***, which is why this is `twinned.toml`
+plus a Provider rather than `minimal.toml` plus one. It declares **no new Good** for the same reason.
+
+**F16 — ⚠ two exclusivity tests named `twinned.toml` by name and both went red on a file that had to
+inherit from it.** `TwinLatticeTests.Only_twinned_authors_two_lattices_and_only_coastal_authors_another`
+and `DistrictWatershedTests.Only_twinned_states_a_districts_table`. ✅ **Both were widened by name with
+the reason attached, which is what the first one's own failure message instructs** — *"if this is
+deliberate, say why in the file's header and add it to the exemptions above rather than widening the
+test."* ***A file-scoped exclusivity claim is a corpus assertion wearing a test's clothes***, and the
+right repair is to name the second file rather than to loosen the predicate, so a third file growing
+either table by accident still goes red.
+
+**F17 — 🔴 THE TRADE IS RAISED BY DEMAND FOR HOUSING AND THE FILE CANNOT FIX IT.**
+`ZoneRuleEngine.Create` builds only while the Unplaced Pool is non-empty — tier 0, and the only demand
+signal that exists. So `provisioned.toml`'s `trade` rule opens a shop *because somebody is unhoused*.
+⚠ **This is recorded as a header warning rather than worked around**, because `adr/0163`'s tier 1 is
+task 6 and authoring a stand-in here would be a mechanism nobody asked for. ***Until task 6, every shop
+this file builds was built for the wrong reason, and no number out of it is evidence about siting.***
+It is `crowded.toml`'s header shape exactly — a demonstration whose emitting kind contradicts what the
+demonstration is about — and the two are worth reading beside each other.
+
+**F18 — ⚠ the decline half is deliberately absent and `condemn_after` is declared anyway.** `plans/0043`
+**W17**: an unsold Bin fills, the Rule stops on `Blocking.Space`, and `RuleEngine.Stop` clears the
+pressure clock for every blocking reason but `Supply` — so **a shop nobody buys from is immortal**. The
+failable Rule that kills one is money-consuming, needs `adr/0166`'s Business Rules, and is **task 7**.
+The key is declared so the mechanism has somewhere to land and nothing reaches it today.
+
+**F19 — 🔴 it is `adr/0163`'s own named ratifier and cannot serve as one yet.** Those two §D2 numbers
+name *milestone 26's own demonstration Ruleset* as their world, which is this file — and nothing in it
+steps, so every price sits at its ceiling, every consumption bucket is zero and no shop earns anything.
+***The earliest run that could ratify them is task 9's.*** The header says so rather than leaving the
+§D2 rows pointing at a file that looks ready.

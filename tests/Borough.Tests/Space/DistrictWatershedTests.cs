@@ -689,11 +689,24 @@ public sealed class DistrictWatershedTests
         Assert.Null(result.Ruleset);
     }
 
-    /// <summary><c>twinned.toml</c> is the only shipped Ruleset that states the table.</summary>
+    /// <summary>
+    /// <c>twinned.toml</c> and <c>provisioned.toml</c> are the only shipped Rulesets that state the
+    /// table, and the second is the first one plus a Provider.
+    /// </summary>
     /// <remarks>
-    /// <b>It is the demonstration file and the others are demonstrations of other things.</b> A
+    /// <para>
+    /// <b>They are the demonstration files and the others are demonstrations of other things.</b> A
     /// <c>[districts]</c> table in a file with one lattice in it would derive one District and teach
     /// nobody anything, at the cost of a hash-bearing unratified number in eight more files.
+    /// </para>
+    /// <para>
+    /// ⚠ <b><c>provisioned.toml</c> did not choose to state it</b> (milestone 26 task 3). It needs
+    /// two centres because a District derivation over one peak returns one basin however it is
+    /// written, and once it states <c>[districts]</c> the loader's <c>RefuseUnpricedGoods</c> demands
+    /// a <c>[[hinterland]]</c> price for every declared Good — so the table, the second lattice and
+    /// the prices arrive together or not at all. ***The exemption is by name and carries its reason,
+    /// so a third file growing the table by accident still goes red here.***
+    /// </para>
     /// </remarks>
     [Fact]
     public void Only_twinned_states_a_districts_table()
@@ -707,8 +720,9 @@ public sealed class DistrictWatershedTests
         {
             string file = Path.GetFileName(path);
             bool states = Shipped(file).Districts.Runs;
+            bool expected = file is "twinned.toml" or "provisioned.toml";
 
-            Assert.Equal(file == "twinned.toml", states);
+            Assert.Equal(expected, states);
         }
     }
 }

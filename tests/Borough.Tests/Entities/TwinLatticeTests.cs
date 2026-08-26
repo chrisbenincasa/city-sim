@@ -141,6 +141,19 @@ public sealed class TwinLatticeTests
                 continue;
             }
 
+            // provisioned.toml IS twinned.toml plus a Provider, and it inherits both lattices with
+            // everything else. Milestone 26 task 3 built it on that base rather than on minimal.toml
+            // for two reasons it does not get to choose: a District needs two centres or the
+            // derivation is untestable, and RulesetLoader.RefuseUnpricedGoods demands a
+            // [[hinterland]] price for every Good in any file stating [districts]. Its header
+            // carries both at length. ⚠ It is the SAME two centres and not a third arrangement, so
+            // twinned.toml is still the only world whose lattice count is the thing under test.
+            if (file == "provisioned.toml")
+            {
+                Assert.Equal(2, Shipped(file).Lattices.Length);
+                continue;
+            }
+
             int authored = Shipped(file).Lattices.Length;
 
             if (file == "coastal.toml")
@@ -157,7 +170,8 @@ public sealed class TwinLatticeTests
 
             Assert.True(
                 authored == 0,
-                $"{file} authors a [[lattice]]. Every world but twinned.toml and coastal.toml is one "
+                $"{file} authors a [[lattice]]. Every world but twinned.toml, provisioned.toml and "
+                + "coastal.toml is one "
                 + "lattice at the origin corner, and authoring one moves that file's State Hash. If "
                 + "this is deliberate, say why in the file's header and add it to the exemptions "
                 + "above rather than widening the test.");
