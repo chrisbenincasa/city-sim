@@ -15,6 +15,21 @@ inherits from [`0037`](0037-goods-between-buildings-the-district-pool.md) tasks 
 
 ## Status
 
+🟢 **TASK 6 LANDED 2026-08-26 — A SHOP IS RAISED ON HUNGER RATHER THAN ON HOMELESSNESS.**
+[`adr/0170`](../docs/adr/0170-a-shop-is-selected-rather-than-sited-so-the-birth-signal-is-coarse-and-death-does-the-correcting.md):
+the reach is the **District**, the birth signal is deliberately coarse, and ***death does the
+correcting.*** 🔴 **The user reframed the question and the session had been answering the wrong one**
+(**F43**) — I was buying precision on the birth signal that the reaper supplies for free.
+🔴 **THE REAPER WAS MIS-AIMED AND A BROKE SHOP DEMOLISHED ITS OWN PREMISES** (**F44**); fixed, and
+measured on the same run at **shop buildings lost 2 → 0, Businesses turned out 0 → 2, money supply
+flat**. 🔴 **A READER RETURNED `NoRow` FOR EVERY BIN THE CLAIM NEEDED** and nothing failed (**F45**).
+⚠ **The threshold SATURATES; the cooldown is the only live dial** (**F46**), and the city is
+**Lot-limited** so every number was measured against a wall (**F47**).
+🔴 **IT COST THE DECLINE HALF ITS WORLD** (**F48**) — tier 1 and bankruptcy pull against each other by
+construction, so `rulesets/oversupplied.toml` ships to carry task 7's test and `adr/0170` gains a
+**fourth condition** it could not have listed the morning it was written.
+**Moves the hash** — two `[[zone_rule]]` keys and a new saved column on the market row.
+
 🟢 **TASK 7 LANDED 2026-08-26, OUT OF ORDER AND AT THE USER'S INSTRUCTION — A SHOP CAN NOW GO BROKE.**
 [`adr/0169`](../docs/adr/0169-a-standing-cost-needs-a-counterparty-so-a-trade-pays-rates-until-there-is-a-supplier-to-pay.md):
 a trade carries one recurring cost, a **levy to the treasury**, because money is conserved and a cost
@@ -363,12 +378,19 @@ makes that an attribution question rather than a scheduling one.
    🔴 **AND IT WAS SKIPPED — not by omission but by a subscription that shared code cancelled a
    line later.** `Requirement` walks terms, the payment has none, so `Stop`'s own drain woke every
    buyer it had just parked. **F28**–**F33**, and `adr/0137` is amended with both halves.
-6. **`adr/0163` tier 1 — demand for a shop.** The reach query over `WalkScratch.SettleAll`, the elapsed
-   sum, and the claim. **Replaces `UnplacedPool.Count == 0` for the trade rule only**; the housing rule
-   stays tier 0. ⚠ **Open decision 1 lands here**, and both §D2 numbers are chosen here and move to
-   §D1. **A [`0013`](0013-tick-budget.md) row is owed on the day, with a measured multiplicand and
-   not a guessed one.** Corrects `ZoneRuleEngine.Create`'s summary to say **which rule** it describes
-   ([`0012`](0012-corpus-audit.md)).
+6. ✅ **DONE — `adr/0163` tier 1 — demand for a shop** —
+   [`adr/0170`](../docs/adr/0170-a-shop-is-selected-rather-than-sited-so-the-birth-signal-is-coarse-and-death-does-the-correcting.md).
+   🔴 **The reach fork was settled by the USER reframing the question**, not by the precision argument
+   this entry assumed: the District is the reach, the birth signal is deliberately **coarse**, and
+   *death does the correcting* (**F43**). The elapsed unserved sum lives on `DistrictPoolTable`, which
+   answers **open decision 1** — the build had nowhere to subtract from, and the reach unit supplied
+   it. Both §D2 numbers are chosen and in **§D1**, ⚠ **with the finding that the threshold SATURATES
+   and the cooldown is the only live dial** (**F46**). **A [`0013`](0013-tick-budget.md) row is
+   filed and it says UNMEASURED**: the A/B comes out **negative** — tier 1 is 0.067 ms a Tick cheaper
+   at 40,000 Citizens because it declines to build 637 shops — and every arm that removes the scan
+   also removes the purchase, so a stopwatch cannot separate them. 🔴 **It cost the DECLINE half its
+   world** (**F48**): `rulesets/oversupplied.toml` now carries task 7's test. **Moves the hash** — two
+   new `[[zone_rule]]` keys on one file, and a new saved `last_raised` column on the market row.
 7. ✅ **DONE, AND RUN BEFORE TASK 6 — the decline half** —
    [`adr/0169`](../docs/adr/0169-a-standing-cost-needs-a-counterparty-so-a-trade-pays-rates-until-there-is-a-supplier-to-pay.md).
    A money-consuming Rule on the trade, so an empty balance is `Blocking.Supply`
@@ -958,3 +980,81 @@ world. 🔴 **What a broke shop's eviction should DO is undecided and is filed i
 [`0002`](0002-open-questions.md) §A owned by this milestone**: `Unplace` sends a Household to the
 Unplaced Pool, and whether a Business goes to `UnpremisedTable` or is destroyed decides ***whether its
 capital survives***, which is a money-conservation question and not a plumbing one.
+
+## Task 6's findings — the demand signal, and the world that could no longer show death
+
+**F43 — 🔴 THE REACH QUESTION WAS THE WRONG QUESTION AND THE USER REFRAMED IT, NOT ME.** I presented
+four reach units and argued them on **precision** — which boundary best describes who a shop can serve.
+The user's answer was *"why should the game optimise where shops are placed? or rather, why would it try
+to be 'perfect' about it. if the mechanisms of the game work, the shops that have emerged on their own
+within the ranges of the households that need them are the ones that survive."* ***That is a different
+mechanism, not a different parameter***: generate-and-test rather than site-selection, with the accuracy
+living in the death half. [`adr/0170`](../docs/adr/0170-a-shop-is-selected-rather-than-sited-so-the-birth-signal-is-coarse-and-death-does-the-correcting.md)
+is the record. ⚠ **What I had been doing was buying precision on the birth signal that the reaper
+supplies for free**, and I had been doing it while task 7 — the reaper — sat two tasks away and unbuilt.
+**F34 is the same failure with a different absence in it.**
+
+**F44 — 🔴 `Worst` COUNTED A BUSINESS'S FAILURE PRESSURE AS THE BUILDING'S, WHICH IS F42'S OTHER HALF
+AND THE ONE THAT WAS ACTIVELY WRONG.** F42 says nothing walks `BuildingBusinesses`, so a Business is
+never turned out. True. **But `ZoneRuleEngine.Worst` filtered on `RuleInstances.Household[instance] !=
+tenant` and on nothing else**, and a Business's Rule Instance leaves `Household` **unset** — so it
+matched the *premises* call and its pressure was read as the building's. ***A broke shop demolished its
+own premises instead of ending its tenancy.*** 🔴 **Measured on `provisioned.toml` at 2,000 Citizens
+over 24,576 Ticks: 20 shops raised, 2 demolished, and 2 is exactly the number that go broke.** The
+attribution is airtight because a `shopfront` runs two Rules and `stock` has `inputs = []` — a Rule with
+no inputs can never be `Blocking.Supply`, so the levy is the only thing on that kind that can set
+`StarvedSince`. ⚠ **A pressure routed to the wrong verdict is not an inert pressure**, and the two halves
+have opposite repairs: one adds a walk, the other narrows a filter. **Doing only the peer's half would
+have left every broke shop demolishing its building *and* ending its tenancy.** After the fix, on the
+same run: **shop buildings lost 2 → 0, Businesses turned out 0 → 2, money supply flat.**
+
+**F45 — 🔴 A READER RETURNED `NoRow` FOR EVERY BIN THE CLAIM NEEDED, AND THE SYMPTOM WAS SILENCE.**
+Tier 1 sums elapsed unserved need per `(District, Good)`, which means mapping a starving Rule's
+`WaitingOn` Bin to a market row. `DistrictMarkets.MarketOf` looked like that function and is not: it
+maps a **seller's** Bin to the District it sells into. A buyer waits on the **market row's own Bin**
+(`adr/0167`), which is not any seller's, so it answered `NoRow`. ***Result: zero demand read in a world
+with 390 starving Rule Instances in it, and nothing failed.*** Fixed by `DistrictMarkets.PoolRowOf`,
+populated in the same `RebuildRows` pass. ⚠ **This is the third reader-shaped defect in this milestone**
+— `adr/0137`'s amendment, F42, and this — and all three share *the column was written and the consumer
+was assumed*. ***A signal that reads zero and a signal that reads nothing are the same green test.***
+
+**F46 — ⚠ `build_threshold_days` SATURATES, AND `cooldown_days` IS THE ONLY LIVE DIAL.** Measured on
+`provisioned.toml` at 2,000 Citizens: the threshold at **1, 2 and 4 Days gives the identical shop
+count**, because unserved demand on this world is **bimodal** — a District is either being served or
+wholly unserved, so any threshold in that band lands in the same gap. The cooldown is not: **0 → 11
+shops, 1 → 4, 2 → 2.** 🔴 ***So the number `adr/0163` spent a record arguing about is not the number
+that decides anything here***, and the one that does was added as an afterthought. Both are in
+[`0002`](0002-open-questions.md) §D1 with that sentence attached. ⚠ **This is not evidence the threshold
+is inert in general** — it is evidence that *this* world has no middle, which is F47.
+
+**F47 — 🔴 THE CITY IS LOT-LIMITED, SO EVERY NUMBER ABOVE WAS MEASURED AGAINST A WALL.** ~237 Households
+each consuming 4 sundries every 32 Ticks want on the order of **30 shops**; one `stock` Rule makes 1 a
+Tick; and `provisioned.toml`'s trade zone offers about **18 vacant Lots**. Tier 0 raises 20 and sits at
+the ceiling. ***So tier 0's "over-supply" was the Lot count and not a judgement***, and tier 1's
+restraint was never tested against a world that could have said yes. **The cheapest way to re-open every
+finding in this section is a bigger trade zone**, and it is recorded as `adr/0170`'s first revisit
+trigger.
+
+**F48 — 🔴 TIER 1 AND THE DECLINE HALF PULL AGAINST EACH OTHER BY CONSTRUCTION, AND ONE WORLD CANNOT
+SHOW BOTH.** Selection needs something to select *from*. A shop with no competitor sells all it makes
+and pays its levy for ever — so **a city that builds only what demand justifies prunes nothing**, and
+that is precisely tier 1's job. Task 7's decline test went red the moment tier 1 landed and **could not
+be made green at any threshold or cooldown, over any horizon, measured to 131,072 Ticks**. ⚠ **The user
+chose the repair: give decline its own Ruleset.** `rulesets/oversupplied.toml` is `provisioned.toml`
+with the two tier-1 keys deleted, so ***the diff is the whole demonstration***, and `provisioned.toml`
+now demonstrates tier 1 alone. 🔴 **`adr/0170` had three conditions when it was written and this is a
+fourth — *the city over-supplies* — which the record could not have listed, because it was written the
+morning before the mechanism that removes it was built.** It now carries all four.
+
+**F49 — 🔴 THE COST ROW THIS TASK OWED CAME OUT NEGATIVE, AND THE ISOLATION THAT WOULD HAVE FIXED IT
+CANNOT BE BUILT WITH A STOPWATCH.** The task entry demanded a [`0013`](0013-tick-budget.md) row *"with
+a measured multiplicand and not a guessed one"*. The A/B is `provisioned.toml` against
+`oversupplied.toml` — the shipped two-key diff — and at 40,000 Citizens over 8,192 Ticks tier 1 runs
+**0.55 s faster**, three repetitions, because it raises **18** shopfronts where tier 0 raises **655**.
+***The shops it declines to build cost more than the scan that declined them.*** ⚠ **That is a NET and
+not a unit cost**, and the row says so in bold, because *the demand scan costs nothing* is exactly the
+sentence somebody would carry out of it. 🔴 **A third arm with the trade `[[zone_rule]]` deleted ran in
+0.67 s against 4.44 s, and that 3.8 s is NOT the scan**: with no shop anywhere no `pool` term resolves,
+so deleting the rule deletes the **purchase**. ***Every arm that removes the scan also removes the
+market***, so what is owed is a profiler and the row is filed **UNMEASURED** rather than filled with
+the number that was available.

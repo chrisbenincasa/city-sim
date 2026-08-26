@@ -1622,7 +1622,56 @@ public static class RulesetLoader
                 uint interval = ReadInterval(table, name);
                 int revisit = ReadRevisit(table, name, interval);
 
-                definitions.Add(new ZoneRuleDefinition(kind, zone, interval, revisit));
+                // adr/0163 tier 1, both optional and both in DAYS (adr/0168's direction). Absent
+                // means the Rule keeps the tier-0 predicate, which is every shipped file but the
+                // Provider's -- so a Ruleset written before this existed is unchanged, and a Ruleset
+                // that wants demand says so.
+                int thresholdDays = 0;
+                int cooldownDays = 0;
+
+                if (TryInteger(table, "build_threshold_days", out long threshold, required: false, name))
+                {
+                    if (threshold < 1)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "build_threshold_days") ?? table), name,
+                            $"a build threshold of {threshold} household-Days is not a threshold. "
+                            + "adr/0170 makes this the ENTRY COST for a trade -- raising a Building "
+                            + "costs nobody anything today, so it is the only brake on birth, and a "
+                            + "city with no brake builds until it runs out of Lots. Omit the key to "
+                            + "keep the tier-0 predicate instead.");
+                    }
+                    else
+                    {
+                        thresholdDays = (int)threshold;
+                    }
+                }
+
+                if (TryInteger(table, "cooldown_days", out long cooldown, required: false, name))
+                {
+                    if (cooldown < 0)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "cooldown_days") ?? table), name,
+                            $"a cooldown of {cooldown} Days is negative.");
+                    }
+                    else if (thresholdDays == 0)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "cooldown_days") ?? table), name,
+                            "a cooldown is stated without build_threshold_days. It damps how fast a "
+                            + "District raises Buildings on the tier-1 demand signal, and a Rule with "
+                            + "no threshold reads no demand -- so this key would load clean and do "
+                            + "nothing, which is exactly what refusals 6 to 10 exist to stop.");
+                    }
+                    else
+                    {
+                        cooldownDays = (int)cooldown;
+                    }
+                }
+
+                definitions.Add(new ZoneRuleDefinition(kind, zone, interval, revisit)
+                {
+                    BuildThresholdDays = thresholdDays,
+                    CooldownDays = cooldownDays,
+                });
             }
 
             return [.. definitions];

@@ -201,6 +201,46 @@ the number above is *with* it. ***The escape the ADR held in reserve has been sp
 answers this is a third thing nobody has named. **Routed to [`0002`](0002-open-questions.md) §B rather
 than guessed at here.**
 
+### 🔴 The tier-1 demand scan is CHEAPER THAN THE CITY IT PREVENTS, and its own cost is unmeasured
+
+**Measured 2026-08-26 by wall-clock delta on the headless runner, on the reference machine** — a 2020
+six-core i5-10400, `powersave`, Release, `--no-decide-guard`, 8,192 Ticks, three repetitions.
+[`plans/0044`](0044-the-purchase-and-the-provider-that-answers-it.md) task 6 owes this row a
+*measured* multiplicand and not a guessed one, which is why it exists.
+
+**The A/B is `rulesets/provisioned.toml` against `rulesets/oversupplied.toml`** — the same file
+differing only by `[[zone_rule]] build_threshold_days` and `cooldown_days`, which is what turns
+[`adr/0163`](../docs/adr/0163-demand-for-a-shop-is-elapsed-unserved-need-in-reach-and-building-claims-it.md)'s
+tier-1 demand signal on. So the scan, the per-District claim and the Lot scoring are in one arm and
+not the other.
+
+| Citizens | Tier 0 (`oversupplied.toml`) | Tier 1 (`provisioned.toml`) | Delta over 8,192 Ticks | **Per Tick** |
+|---|---|---|---|---|
+| 10,000 | 1.99 s | 2.01 s | +0.02 s | ~0 |
+| 20,000 | 2.93 s | 2.76 s | −0.17 s | −0.021 ms |
+| 40,000 | 5.36 / 5.16 / 5.18 s | 4.58 / 4.58 / 4.91 s | **−0.55 s** | **−0.067 ms** |
+
+🔴 **The delta is NEGATIVE and that is the row.** Turning the demand signal on makes the run *faster*,
+because the shops it declines to build cost more to run than the scan that declined them: at 40,000
+Citizens tier 0 raises **655** shopfronts and tier 1 raises **18**, against 1,665 Buildings that stand
+either way. ⚠ **So this is a NET and not a unit cost**, and it may not be quoted as *the demand scan
+costs nothing*.
+
+🔴 ⚠ **THE SCAN'S OWN COST IS UNMEASURED AND THE ISOLATION ATTEMPT FAILED, WHICH IS WORTH RECORDING
+BECAUSE THE NEXT PERSON WILL TRY IT.** A third arm was built with the trade `[[zone_rule]]` deleted
+outright — no scan, no shops — and it ran in **0.67 s** against 4.44 s for an arm that scans and
+builds nothing. That 3.8 s is **not** the scan: with no shop anywhere no `pool` term ever resolves, so
+deleting the rule deletes the **purchase**, which is the consumer priced three sections above.
+***Every arm that removes the scan also removes the market***, so a stopwatch cannot separate them and
+what is owed is a profiler.
+
+**What the shape of the scan is, for whoever takes that measurement.** `ZoneRuleEngine.RecomputeDemand`
+is one pass over **live Rule Instances**, run at most **once a Tick** and only on a Tick when a
+demand-reading Zone Rule sweeps — `[[zone_rule]] interval`, which is **32** in every shipped file. It
+writes `_demand` per `(District, Good)` market row. ⚠ **Its multiplicand is the Rule Instance count and
+not the Lot count**, so it grows with the *population* and not with the trade land, and it is the
+Zone Rule row below whose multiplicand was already the guessed one.
+
 ### ⚠️ The job assignment pass is a burst, and the interval is what concentrates it
 
 **Measured 2026-08-12 by wall-clock delta on the headless runner — `rulesets/minimal.toml` with and
@@ -678,6 +718,7 @@ which is why that column sits next to it rather than in a footnote.
 | **Woodland regrowth** (`MapLayers.RegrowWoodland`), on the Tick it lands | 5 Layers | **1.357 ms** — unit **measured**, whole map, `varied.toml` at 4,000 Citizens, reference machine, Release, single-threaded | **262,144 Cells — measured and FIXED**, because it is the map | **8.7% of ONE Tick, 0.004% amortised** |
 | **Sealing decay** (`MapLayers.DecaySealing`), on the Tick it lands | 5 Layers | **UNMEASURED, and this row exists to say so.** It walks the *sparse* Layer rows rather than the map, so it is bounded by the built city rather than by the world — but milestone 24 task 4 shipped it without a number and `plans/0042` **F7** is this milestone getting burned by exactly that once already | live Layer rows — **unmeasured** | — |
 | **Zone Rules**, worst aligned Tick | 6 Growth | **0.012 ms** | 16 Rules triggering together — **guessed**; unit **measured** | **0.08%** |
+| 🔴 **The tier-1 demand scan** (`ZoneRuleEngine.RecomputeDemand`) | 6 Growth | **UNMEASURED, and this row exists to say so.** The A/B above is a **net** and comes out *negative* — tier 1 is 0.067 ms a Tick **cheaper** at 40,000 Citizens, because it declines to build 637 shops. ***That is not the scan's price and must not be quoted as one.*** Every arm that removes the scan also removes the purchase, so a stopwatch cannot separate them | one pass over **live Rule Instances**, once a Tick at most, on the `interval` a demand-reading Zone Rule sweeps on — **32** in every shipped file. **Measured** as a count; **unpriced** per instance | — |
 | ⚠️ **District re-evaluation and the Pool reprice** | 6 Growth | **UNMEASURED, and this row exists to say so.** Two cadenced whole-table passes landed at milestone 12 and neither was priced: `DistrictWatershed.Evaluate` on `[districts] revisit_ticks`, a watershed over **every built Cell** of the world, and `World.RepriceDistrictPools` on a `Ticks.PerDay` boundary, one pass over one row per Good per District. ⚠ **They are not the same size** — the reprice is a handful of rows and the watershed scales with the built city — so ***one row for both is a placeholder and not an estimate*** | `CellGrid.WorldCellCount` for the first, Districts × Goods for the second — **neither measured, and only the second is small by construction** | — |
 | **Event Wheel, general** | 1 Wake | **unbuilt** — slice 9 | — | — |
 | **Commit** | 7 | **unbuilt** | — | — |

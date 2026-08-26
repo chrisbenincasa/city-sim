@@ -91,6 +91,21 @@ public sealed class DistrictMarkets
     // over the whole Business table. plans/0044 names this lookup as one the purchase owes.
     private int[] _marketOf = [];
 
+    /// <summary>
+    /// A market row's OWN Bin back to its row — the mirror of <see cref="_marketOf"/>, which maps a
+    /// <em>seller's</em> Bin.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>The two answer different questions and conflating them cost milestone 26 task 6 an
+    /// afternoon.</b> <see cref="_marketOf"/> answers <em>which market is this stock offered in</em>,
+    /// which is what a seller's deposit asks. This answers <em>which row is this the Bin of</em>,
+    /// which is what a <b>blocked buyer</b> asks — because <c>adr/0167</c> parks a buyer on the market
+    /// row's Bin and never on a seller's, so the wait target is the one Bin <see cref="_marketOf"/>
+    /// deliberately does not contain. ***A reverse index built for one direction reads as broken from
+    /// the other, rather than as absent.***
+    /// </remarks>
+    private int[] _poolOf = [];
+
     private bool _stale = true;
 
     /// <summary>Marks the index out of date. The next query rebuilds it.</summary>
@@ -165,6 +180,25 @@ public sealed class DistrictMarkets
         return binSlot >= 0 && binSlot < _marketOf.Length ? _marketOf[binSlot] - 1 : NoRow;
     }
 
+    /// <summary>
+    /// The market row a Bin <em>is</em>, or <see cref="NoRow"/> if it is not a Pool's own Bin.
+    /// </summary>
+    /// <remarks>
+    /// <b>What a blocked buyer asks, and it is not <see cref="MarketOf"/>.</b> A Rule short of a
+    /// pooled Good waits on the market row's Bin (<c>adr/0167</c>), so reading a wait list back into
+    /// <c>(District, Good)</c> goes through here. ⚠ <b>Passing a market Bin to <see cref="MarketOf"/>
+    /// returns <see cref="NoRow"/> and looks exactly like <em>nobody is hungry</em></b>, which is how
+    /// milestone 26 task 6 measured zero demand in a world with 390 starving Rules.
+    /// </remarks>
+    public int PoolRowOf(World world, int binSlot)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+
+        Ensure(world);
+
+        return binSlot >= 0 && binSlot < _poolOf.Length ? _poolOf[binSlot] - 1 : NoRow;
+    }
+
     /// <summary>Rebuilds both lookups from the Pool rows and the Businesses standing in them.</summary>
     public void Rebuild(World world)
     {
@@ -189,6 +223,13 @@ public sealed class DistrictMarkets
 
         Array.Clear(_rows);
 
+        if (_poolOf.Length < world.Bins.Rows.SlotCount)
+        {
+            _poolOf = new int[world.Bins.Rows.SlotCount];
+        }
+
+        Array.Clear(_poolOf);
+
         DistrictPoolTable pools = world.DistrictPools;
 
         for (int row = 0; row < pools.Rows.SlotCount; row++)
@@ -201,6 +242,7 @@ public sealed class DistrictMarkets
             }
 
             _rows[(districtSlot * _stride) + world.Bins.Resource[bin].Raw] = row + 1;
+            _poolOf[bin] = row + 1;
         }
     }
 
