@@ -4373,6 +4373,20 @@ window that does not move when a fixture's length does, so a sample rate stated 
 moment somebody lengthens the run for an unrelated reason. State the interval against the window.
 *Repaired by a `Stride` of 256 Ticks, stated against the 683-Tick window and documented against it.*
 
+### The contrast, which is what says the two candidates above are about design and not about luck
+
+**`InputLogCodecTests.An_unknown_verb_is_refused` used `demolish` as its example of a word the format
+does not know, and went RED the day milestone 17 task 4 made `demolish` a verb.** That is the same
+class of staleness as both candidates — a check whose subject moved — and it behaved in the opposite
+way, because a negative assertion *names* the thing it denies. ***A test that says `X does not exist`
+fails loudly when X arrives; a test that says `look every N` or `check what the pointer points at`
+goes quiet.***
+
+⚠ **What was actually wrong was the CHOICE of example, and it was wrong from the day it was written**:
+`adr/0091` had already decided `Demolish` was the sixth verb, so the token was a prediction the corpus
+already contradicted. **A negative test's example is a bet about the future of the thing it tests**, and
+the repair is to pick a word no design document has ever wanted rather than one that reads naturally.
+
 ⚠ **Neither candidate is a mechanical check and both are recorded anyway.** A linter cannot tell a
 sampling stride that means to be a fraction of the run from one that has aliased, and cannot tell a
 pointer-following guard that still covers its set from one that no longer does. What is available is a

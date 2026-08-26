@@ -17,7 +17,7 @@ supposed to be right.
 | **1** — the second threshold stops destroying | 🟢 **done** | `ZoneRuleEngine.Condemn`, `BuildingTable.AbandonedSince` |
 | **2** — the abandoned state | 🟢 **done**, and it is a **column** rather than derived — `AbandonedSince`, `(saved AND hashed)` | `BuildingTable.IsAbandoned` |
 | **3** — the first threshold, occupancy loss | 🔴 **not started** | — |
-| **4** — `Demolish`, the sixth verb | 🔴 **not started** | — |
+| **4** — `Demolish`, the sixth verb | 🟡 **the narrow half is done** — over **abandoned stock only**; an occupied Building is refused by name with compulsory purchase written beside it, which stays blocked on the land value target | `CommandKind.Demolish`, `Simulation.ApplyDemolish`, `DemolishVerbTests` |
 | **5** — the `Govern` clearance programme | 🔴 **not started** | — |
 | **6** — Trips-failing as a second pressure source | 🔴 **not started** | — |
 | **7** — the contagion term | 🔴 **not started** | — |
@@ -29,6 +29,15 @@ supposed to be right.
 and it shipped inside `dc529a2`, whose subject line is about the threshold's **unit**. ***The decision
 this milestone said it turns on was taken as an implementation detail of a different task.*** It needs
 either an ADR or an explicit demotion, and the measurement task 9 was to settle it with has not run.
+
+⚠ **Task 4 left a debt `adr/0091` had already decided against, and it is filed rather than lived with.**
+That ADR retires `Connect`'s bulldoze flag so there is **one** spelling of *remove a thing* in the Input
+Log; task 4 shipped `Demolish` over Buildings and left Streets on the old flag. 🔴 **The reason is scope
+and expressly NOT cost** — retiring it re-spells six of the committed golden session's seven `connect`
+commands, and
+[`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)
+forbids citing baseline movement as a reason to defer. **[`0003`](0003-build-plan.md) queue item 21**,
+with the shape settled and only the work owed.
 
 ⚠ **`dc529a2` carries three tasks and names one.** Its subject is *a decline threshold is a duration*;
 its diff also holds the shell, the collapse sink and the two-key split. That is

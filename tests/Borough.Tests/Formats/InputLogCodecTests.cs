@@ -227,13 +227,31 @@ public sealed class InputLogCodecTests
         Assert.Throws<FormatException>(() => InputLogCodec.FromText("[ruleset]\nname = \"vanilla\"\n"));
     }
 
+    /// <summary>
+    /// A word this format does not know is refused, and named in the refusal.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>Its example was <c>demolish</c> until milestone 17 task 4 made that a verb</b>, and the
+    /// test went red the day the enum grew — which is the good outcome and is worth reading rather
+    /// than just fixing. ***A negative test names a value it asserts does NOT exist, so its example is
+    /// a prediction about the future of the thing it tests.*** <c>demolish</c> was a poor prediction:
+    /// <c>adr/0091</c> had already decided the verb, two years of corpus said so, and the example was
+    /// chosen because it read naturally rather than because it could never be real.
+    /// <para>
+    /// ⚠ <b>The repair is the CHOICE of word and not the word.</b> Pick something no design document
+    /// has ever wanted — this project's verb list is short on purpose (<c>01 §2</c>) and every
+    /// candidate for it is written down somewhere, so a token that appears nowhere in the corpus is a
+    /// token nothing will promote. A second plausible verb here would expire the same way, quietly
+    /// later instead of loudly now.
+    /// </para>
+    /// </remarks>
     [Fact]
     public void An_unknown_verb_is_refused()
     {
         FormatException failure = Assert.Throws<FormatException>(
-            () => InputLogCodec.FromText(Header + "0 demolish 1 2 3\n"));
+            () => InputLogCodec.FromText(Header + "0 wibble 1 2 3\n"));
 
-        Assert.Contains("demolish", failure.Message, StringComparison.Ordinal);
+        Assert.Contains("wibble", failure.Message, StringComparison.Ordinal);
     }
 
     /// <summary>
