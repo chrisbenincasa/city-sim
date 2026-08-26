@@ -4377,3 +4377,29 @@ moment somebody lengthens the run for an unrelated reason. State the interval ag
 sampling stride that means to be a fraction of the run from one that has aliased, and cannot tell a
 pointer-following guard that still covers its set from one that no longer does. What is available is a
 question for whoever moves a fixture: ***what was this pointing at, and what is watching that now?***
+
+---
+
+## Filed 2026-08-26, by `adr/0170` — one document still authoring a unit that moved
+
+**`docs/02-simulation-model.md` §5.9 still says the decline threshold is authored in *missed firings*,
+and it has not been since [`adr/0168`](../docs/adr/0168-a-decline-threshold-is-a-duration-and-the-premises-and-the-tenant-get-one-each.md).**
+Two sentences carry it: *"The threshold is therefore authored in **missed firings** rather than Ticks,
+so that a Ruleset which retunes every `rate` cannot silently retune every Building's lifespan"*, and the
+`adr/0141` amendment below it, which lists *same `missed firings`* among the things the split left
+untouched.
+
+⚠ **The paragraph's REASONING is not wrong and that is what makes this worth filing rather than
+striking.** `adr/0053`'s argument — that a tally inverts severity, because a comprehensively starved
+Building emits one failure event and an intermittently supplied one emits many — survives `adr/0168`
+completely; the Rule still counts firings internally. What moved is **what the designer writes in the
+file**, and `adr/0168`'s whole finding is that those two had come apart without anybody noticing.
+***So a reader who obeys this section authors a key the loader now refuses by name.***
+
+**Owed to `02 §5.9`**: an amendment saying the unit is `condemn_after_days` and
+`tenancy_ends_after_days`, in Days, converted at the parse site, with `adr/0053`'s severity argument
+kept and re-homed as the reason the *derived* count is what the engine compares.
+
+⚠ **It is a sighting of `Cause 4`** — a decision taken from a description of the code, wrong about the
+**trigger** — arriving in the design document rather than in a doc comment. It was found by writing
+`adr/0170` against the same section, which is the only reason anybody looked.

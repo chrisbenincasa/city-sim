@@ -115,7 +115,42 @@ quality term in desirability, and no document that says what quality is. **Decis
 
 ## Open decisions this milestone owes
 
-### 1. Is a player a sink? Typed *arguable* — 🔴 **and it is the decision this milestone turns on**
+### 1. Is a player a sink? ✅ **CLOSED 2026-08-26 into [`adr/0170`](../docs/adr/0170-an-abandoned-shell-collapses-on-a-clock-because-a-bound-is-not-a-sink.md) — and it closed by MEASUREMENT, which is not how it was typed**
+
+> ✅ **Answer: no, and reading (a) is refuted.** A `[[building]]` kind states `collapses_after_days`,
+> and an abandoned Building's Lot returns to vacant that many Days later with no player act involved.
+>
+> ⚠ **The mechanism shipped inside [`dc529a2`](#), whose subject line is about the threshold's UNIT**,
+> so for a day the decision this milestone said it turned on existed only as code. The ADR was written
+> afterwards, and the measurement it rests on was taken afterwards too — ***which is the right order
+> reversed, and is recorded here rather than tidied away.***
+>
+> **The run reading (a) needed, and nobody had taken:** `rulesets/declining.toml`, 10,000 Citizens, one
+> seed, the only difference being whether a shell ever falls.
+>
+> | Ticks | collapse after 1 Day | collapse never |
+> |---|---|---|
+> | 8,192 | 254 / 717 / 403 | 169 / 1,035 / 170 |
+> | 32,768 | 594 / 407 / 373 | **0 / 1,204 / 170** |
+> | 65,536 | 602 / 385 / 387 | **0 / 1,204 / 170** |
+>
+> *built / abandoned / vacant, over 1,374 Lots, from an opening 1,201 / 0 / 173.*
+>
+> 🔴 **With no collapse the city is dead by Tick 32,768 and stays dead** — every buildable Lot a
+> permanent shell. ***And `adr/0006` is green the whole way down***: the collection is bounded at
+> exactly the Lot count `adr/0091` named, it stops growing, and a trend assertion would report health.
+> **A bound is not a sink** — it answers *does it grow for ever* and not *can the city come back*.
+>
+> ⚠ **Reading (a) was not sloppy; it was `adr/0006` applied correctly to the wrong property.** The
+> milestone's own acceptance run would have been taken on the right-hand column, because a headless
+> run has no player in it.
+>
+> **What this leaves owed:** task 9 must assert **turnover** and not only boundedness — that the built
+> count does not trend to zero — and that is a new obligation rather than a restatement of `adr/0006`.
+
+<details><summary>The decision as it was framed at scoping, kept because the framing is what nearly got it wrong</summary>
+
+#### 1. Is a player a sink? Typed *arguable* — 🔴 **and it is the decision this milestone turns on**
 
 [`adr/0006`](../docs/adr/0006-no-collection-grows-with-elapsed-time.md) is *no collection grows with
 elapsed time*. `adr/0091` gives abandoned stock exactly two sinks and **both are player acts** — the
@@ -140,6 +175,8 @@ a human rather than a property of the simulation.
 *(a)*'s bound is **measurable** — run a long headless city with abandonment on and count standing
 shells, trail rows and Pool arrivals against Ticks. ***So the first move on this decision is a
 measurement and not a sitting***, and it cannot be taken until task 2 exists to produce the world.
+
+</details>
 
 ### 2. What is *quality*, and does it ship here? Typed *arguable* — **recommendation: no**
 
