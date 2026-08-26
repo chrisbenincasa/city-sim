@@ -95,6 +95,14 @@ anybody is dissatisfied.**
   median shop's revenue **no shop in the world ever blocked on money at all**, so the mechanism was
   present, correct and **unobservable** — the same failure shape as milestone 9's land-value producer.
   It was found by running it, not by reading it.
+- 🔴 **A shop can now go broke and STILL cannot be turned out, which this record does not fix and must
+  not be read as fixing.** `ZoneRuleEngine.Condemn` walks `World.Occupants` — the Households in a
+  Building — and a Business occupies through `World.BuildingBusinesses`, which nothing walks; `Worst`
+  is typed `Handle<Household>`. ***So the pressure this levy creates accumulates against a threshold no
+  code consults for a Business.*** ⚠ **What a broke shop's eviction should DO is the undecided half and
+  it is not plumbing**: `Unplace` sends a Household to the Unplaced Pool, and whether a Business goes to
+  `UnpremisedTable` or is destroyed decides **whether its capital survives**, which is an `adr/0024`
+  question. Filed in `plans/0002` §A, owned by milestone 26.
 - **It is a levy on capital rather than on revenue, exactly as `levied.toml` already is**, because a
   shop's income is sales and sales are the thing under test. ⚠ **So a number out of a run of
   `provisioned.toml` ratifies nothing about taxation**, and the file's header says so.

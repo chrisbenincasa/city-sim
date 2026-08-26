@@ -23,7 +23,7 @@ paid to nobody is refused at load. ⚠ **Eleven lines of TOML and no engine chan
 `adr/0163`'s claim reads a shop's failure pressure, and until today no shop could be under any.
 🔴 **THE LEVEL SHIPPED FIRST WAS UNOBSERVABLE AND ONLY A RUN SAID SO** (**F36**); **the test passed
 for the wrong reason twice** (**F37**). Measured on `provisioned.toml` at 2,000 Citizens: **2 of 20
-live shopfronts starving at end of run**, treasury 4,702,208, money conserved, 27 tenancies ended.
+live shopfronts starving at end of run**, treasury 4,702,208, money conserved. 🔴 **AND A BROKE SHOP CANNOT BE TURNED OUT** (**F42**).
 **Moves the hash** — a new `[[rule]]` and a new Bin on a kind, on a file no golden fixture runs.
 
 🟢 **TASK 4 LANDED 2026-08-26 — `Scope.Pool` RESOLVES, AND `rulesets/provisioned.toml` TRADES.** A
@@ -940,3 +940,35 @@ not luck**: the row somebody appends to daily is the row whose punctuation event
 Fixed by normalising the row rather than by fixing the board, with the no-trailing-pipe case added to
 the synthetic board so it fires; filed to [`0012`](0012-corpus-audit.md), which notes that every corpus
 check parses markdown by hand and none of the others has been asked this question.
+
+**F42 — 🔴 A SHOP CAN GO BROKE AND CANNOT BE TURNED OUT, AND TASK 7'S TEST ASSERTED OTHERWISE AND
+PASSED.** `ZoneRuleEngine.Condemn`'s tenancy loop walks `_world.Occupants` — the **Households** in a
+Building. A Business occupies through `World.BuildingBusinesses`, *"the second Occupant list"*
+(`adr/0113`), and **nothing walks it**; `Worst` is typed `Handle<Household>`, so the gap is visible in
+a signature. ***A Business's Failure Pressure therefore never reaches any threshold, at any Ruleset
+value.*** ⚠ **Found by the milestone-17 session across four Ruleset variants with every threshold armed
+on both kinds, and verified here by reading `ZoneRuleEngine.cs:386` and `:444`.**
+
+🔴 **The half that matters is HOW THE ASSERTION PASSED.** Task 7's test asserted `ended > 0` off
+`Zoning.Drain().Ended.Sum`, **which counts every tenancy end in the world**. What it counted were
+**dwellings**: the tenant-side clock was `condemn_after` 4 against `restock`'s rate of 8 — **32 Ticks** —
+while no District, and therefore no market to buy from, exists until `[districts] revisit_ticks` = 2048.
+So every Household on this file starved *by construction* for 2,048 Ticks and was evicted after 32 of
+them. ***The assertion's own failure message — "nothing was actually turned out by going broke" — was
+TRUE ON THE DAY IT PASSED.***
+
+⚠ **This is F37 a third time and it is no longer a coincidence.** That finding was *the test passed for
+the wrong reason twice, and both wrong reasons were a shop too new to have earned anything*. This is the
+same shape one level out: **a counter that aggregates over the whole world was read as though it were
+scoped to the subject under test.** ***An assertion on a global counter is an assertion about the world
+and not about the thing you named in the test's title***, and no amount of care inside the test body
+fixes it — the fault is in the reading of what the counter counts.
+
+⚠ **The repair is NOT to widen what `ended` counts**, which is what was silently happening. The
+assertion is now **accumulated failure pressure on the broke shop's own levy Rule Instance** — `Stop`
+sets `StarvedSince` and `Fire` clears it *totally* (`adr/0053`), so a clock still running at end of run
+is a shop that has not paid since it began failing. That is a property of the subject and not of the
+world. 🔴 **What a broke shop's eviction should DO is undecided and is filed in
+[`0002`](0002-open-questions.md) §A owned by this milestone**: `Unplace` sends a Household to the
+Unplaced Pool, and whether a Business goes to `UnpremisedTable` or is destroyed decides ***whether its
+capital survives***, which is a money-conservation question and not a plumbing one.

@@ -4262,3 +4262,55 @@ citation is the error.
 that a quotation is **where it says it is** — a gap that is real and probably not worth closing
 mechanically, since the check would have to distinguish quotation from paraphrase. ***The reading rule
 already covers it and was simply not followed***: quote the sentence, and name where the sentence is.
+
+## Filed 2026-08-26, by milestone 17's guard repair and milestone 26 task 7's correction — a **Cause 8 candidate** with four sightings in one day, and a duplicated ordinal in this document
+
+### 🔴 A counter that aggregates over the whole world, read as though it were scoped to the subject the claim names
+
+**The framing is milestone 26's, arrived at from its side; the fourth sighting is milestone 17's, arrived
+at from the other.** Two sessions hit it independently on 2026-08-26 and it is not
+[**Cause 5**](#cause-5--a-number-is-quoted-away-from-the-sentence-that-qualifies-it), though it is its
+sibling. Cause 5 is a number travelling away from the clause that qualifies it. **This is a number whose
+*scope* is wider than the claim it is being used for, sitting in the file that makes the claim, with its
+qualifying clause still attached and still correct.** ***Nothing has moved and nothing has been
+compressed; the number simply answers a broader question than the one being asked.***
+
+| # | Sighting | The counter | The claim it was read as |
+|---|---|---|---|
+| **1** | `ProvisionedRulesetTests.A_shop_can_go_broke` | `Zoning.Drain().Ended.Sum` — **every** tenancy ended anywhere in the city | *a broke shop was turned out*. It was satisfied by **dwellings evicting Households** on a 32-Tick clock in the window before the market could exist, and a Business tenancy **cannot end at all** — `ZoneRuleEngine.Condemn` walks `World.Occupants` and never `World.BuildingBusinesses`. [`plans/0002`](0002-open-questions.md) §A |
+| **2** | milestone 26 task 7's **F37**, first half | a shop too new to have earned anything | *the levy is failing because the shop is broke* |
+| **3** | milestone 26 task 7's **F37**, second half | the same, a second time | the same |
+| **4** | `PlacementLongRunTests.The_hundred_thousand_Tick_occupancy_run` | `capacity` summed over **every live Building** | *places somebody could move into*. [`adr/0091`](../docs/adr/0091-clearing-land-is-bought-rather-than-taken-and-demolish-is-the-sixth-verb.md) leaves a condemned Building **standing**, so `Rows.IsLive` stopped meaning *habitable* and the denominator became a statement about blight |
+
+⚠ **CARE INSIDE THE TEST BODY CANNOT FIX IT, which is what makes it a Cause rather than four bugs.** The
+fault is in the *reading of what the counter counts*, and the counter is usually named correctly —
+`Ended` really is the count of endings, `capacity` really is the declared capacity. ***Every one of these
+four passed review, and three of them passed a green test.***
+
+⚠ **The tell is a title with a subject in it.** *A shop can go broke* names a shop; *the occupancy run*
+names places somebody lives in. **When the assertion's title names a subject and its counter names a
+world, the two have to be reconciled explicitly or the test is measuring the world.**
+
+**The repair, in both directions.** ***Writing***: assert on the subject rather than on the aggregate —
+milestone 26's correction reads `tick - StarvedSince` on the broke shop's **own** Rule Instance, which is
+a property of the subject and cannot be satisfied by anything else in the city. ***Reading***: before
+trusting a counter, ask what else could move it. ⚠ **It is not a mechanical check.** A test that names
+its subject and folds a world-wide sum is indistinguishable, to a linter, from one that means to.
+
+🔴 ⚠ **A CORRECTION HERE REMOVES A SYMPTOM AND IS NOT A FIX, and sighting 1 is now the example.** The
+assertion was corrected the same day and the mechanism gap under it is untouched — a Business's Failure
+Pressure still reaches no threshold. ***What was a red test is now a silent one***, which is why
+`plans/0002` §A stays open with the correction recorded in it rather than closing on it.
+
+### ⚠ And this document has two sections numbered **Cause 7**, one of which is titled *two documents claim one ordinal*
+
+`### Cause 7 — two documents claim one ordinal` and `### Cause 7 — a description takes its noun from the
+build, and the build is behind the design` are both present, at different depths of the file. **They are
+two different causes wearing one number**, which is the first one's own subject arriving inside the
+document that names it.
+
+⚠ **Not renumbered here, because a Cause number is cited from elsewhere** and a renumber is a sweep
+rather than an edit — the same hazard `adr/0119`/`0120`'s renumber recorded. Recorded so the next reader
+of *Cause 7* knows to check which. ***It is also why the section above is filed as a Cause 8
+CANDIDATE and not minted as Cause 8***: allocating an ordinal in a document with a live ordinal
+collision is how the collision doubles.
