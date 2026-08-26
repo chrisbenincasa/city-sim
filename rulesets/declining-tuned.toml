@@ -1,37 +1,80 @@
-# minimal.toml with one number changed, and that is the whole of its content.
+# declining.toml with one number changed, and that is the whole of its content.
 #
-# Slice 8 task 10 of plans/0015-hot-reload-and-the-ruleset-as-a-thing-that-changes.md. Everything below
-# is minimal.toml verbatim except `restock`'s output amount, which is 8 here and 4 there.
+# THE GOLDEN SESSION'S RELOAD TARGET SINCE MILESTONE 17. It replaces minimal-tuned.toml in that role
+# and for the same reason its predecessor held it: the committed session reloads halfway through its
+# run, so replay equivalence covers a session with a TRANSITION in it rather than only sessions with
+# one Ruleset. Everything below is declining.toml verbatim except `restock`'s output amount, which is
+# 8 here and 4 there.
 #
-# 🔴 IT IS NO LONGER THE GOLDEN SESSION'S RELOAD TARGET, and two things this header said were wrong
-# before it stopped being one. It said the reload happened at *Tick 128*, which slice 10 task 11 moved
-# to 1,024 without touching this line; and it said the amount was *2 here and 1 there*, which it has
-# not been for longer than anybody can date from the file. ***Both are the same failure***: a sentence
-# describing a number that lives somewhere else, left to drift because nothing reads a comment.
-#
-# Milestone 17 moved the baseline to declining.toml / declining-tuned.toml. adr/0164 took
-# `condemn_after` out of minimal.toml, so the golden session stopped condemning, the Unplaced Pool
-# stopped filling, adr/0069's Zone Rule stopped building, and the committed trace covered NEITHER
-# branch while every hash in it stayed freshly correct. See tests/Borough.Tests/Golden/README.md.
-#
-# WHAT STILL LOADS THIS FILE: BinWaitListTests and TreasuryFromAFileTests. The one-line guard below
-# still covers this pair -- The_two_golden_rulesets_differ_in_exactly_one_line asserts BOTH pairs on
-# purpose, because a guard written against a fixture pointer stops guarding whatever the pointer moved
-# off, and says nothing when it does.
+# 🔴 WHY THE PAIR MOVED OFF minimal.toml. adr/0164 took `condemn_after` out of every world that
+# demonstrates something else, and minimal.toml is one of them -- so the golden session stopped
+# condemning anything, the Unplaced Pool emptied at Tick 0, and adr/0069's Zone Rule stopped building
+# because it builds only while the Pool is non-empty. The committed baseline ran 481 Buildings with
+# `created 0, demolished 0, unplaced 0` from end to end. ***Every hash in the directory was freshly
+# correct over a city in which neither Zone Rule branch fired***, and the only things that noticed
+# were two coverage tests that assert on what the session DOES rather than on what it hashes.
 #
 # WHY ONE NUMBER. A production ratio is exactly what adr/0015's acceptance test names -- *changing a
 # production ratio and seeing the effect must take seconds* -- and it is a TUNING change, so
 # RulesetShape.Compare reports None, the migration pass is skipped and no row moves. That is the
 # reload a designer performs a hundred times in a sitting, and it is therefore the one the committed
-# baseline should have covered, and declining-tuned.toml now does. The degrading reloads are covered by RulesetMigrationTests, which can build
+# baseline should cover. The degrading reloads are covered by RulesetMigrationTests, which can build
 # the ten shapes that matter far more cheaply than a golden session can hold one of them.
 #
-# WHY THE DUPLICATION IS TOLERATED. A Ruleset is a whole file to the loader, so "minimal.toml plus a
+# WHY THE DUPLICATION IS TOLERATED. A Ruleset is a whole file to the loader, so "declining.toml plus a
 # patch" is not a thing this format can express. What guards the copy is a test rather than a
 # convention: The_two_golden_rulesets_differ_in_exactly_one_line fails the moment the two drift, with
-# the diff in the message. Edit minimal.toml and you edit this file, and the suite says so.
+# the diff in the message. Edit declining.toml and you edit this file, and the suite says so.
 
-# The minimal Ruleset. It models no city, and it is not the beginning of one.
+# minimal.toml with DECLINE left switched on. It models no city, and it is not the beginning of one.
+#
+# Milestone 17's demonstration Ruleset, and it exists because decline used to be in every shipped file
+# and belonged in none of them. `condemn_after` sat at 4 in all eighteen and had never once been set to
+# anything else -- which is adr/0164's test (`would a designer ever set this?`) answered by the tree
+# rather than by an argument. A key no author has ever diverged on is not a lever; it is a constant
+# wearing a key's clothes, and leaving it in coastal.toml and congested.toml meant every world in the
+# repository demonstrated blight on its way to demonstrating water or traffic.
+#
+# So this file is the one that demonstrates it, on the pattern congested.toml sets for [traffic] and
+# twinned.toml for [market]: the mechanism lives in the world built to show it. THE DIFF AGAINST
+# minimal.toml IS TWO KEYS -- `condemn_after` and `collapses_after_days` on [[building]] dwelling --
+# and that diff is the whole demonstration.
+#
+# !! WHAT IT LOOKS LIKE, MEASURED RATHER THAN REASONED. At 10,000 CITIZENS on the reference machine:
+#
+#     602 built, 385 abandoned, 387 vacant       (--zones, after-state, 65,536 Ticks)
+#
+# so ROUGHLY TWO FIFTHS OF STANDING BUILDINGS ARE SHELLS. Converged: 41% at 32,768 against 39% here,
+# and shells fall 407 -> 385, so adr/0006 holds and the collapse sink works. NOTHING ABOUT THAT SHARE
+# IS RATIFIED: it is what this pair of stopwatch settings produces, not a claim about how a city
+# should decay.
+#
+# !! DO NOT READ THE 8,192-TICK SAMPLE AS THE STEADY STATE. It is 254 built / 717 abandoned -- 74% --
+# because the city is built in one cohort and dies in one, so it boom-busts with a period longer than
+# a short run. The old 45-minute threshold cycled fast enough to hide that.
+#
+# !! THIS HEADER SAID `at 1,000 Citizens` UNTIL 2026-08-26 AND THE READING WAS TAKEN AT TEN THOUSAND.
+# Options.cs defaults --citizens to 10_000, the runner was run bare, and the population beside the
+# census came from nowhere. The Lot total gives it away -- 313+586+475 = 1,374, where a 1,000-Citizen
+# world has 134 -- and the same wrong population reached plans/0002 SS D1 and CLAUDE.md, so three
+# documents agreed to the last digit and none of them named the city. plans/0012 Cause 5, and the
+# SECOND one on this figure: first the share was derived on paper as 30%, then the measurement that
+# refuted it was filed against the wrong world.
+#
+# !! THE 65% FIGURE IS SUPERSEDED AND NOT MERELY REPOPULATED. It was measured when `condemn_after`
+# counted missed firings and was worth 64 Ticks -- 45 in-world minutes. Milestone 17 made the
+# threshold a duration; at 2 Days the same census reads 39%, with live stock 313 -> 602.
+#
+# !! AN EARLIER VERSION OF THIS NOTE SAID `roughly 30% of the city is a shell` AND IT WAS WRONG. The 30
+# was derived on paper from the failure rate and the blight duration; the instrument says 65. It was
+# written into every one of the eighteen files before anybody ran the dump that measures it, which is
+# plans/0042 F12's shape exactly -- a multiple derived on paper, propagated, and refuted by the first
+# measurement taken of it. Quote the census, never the arithmetic.
+#
+# !! WHY THE PLACEMENT DRAW CARES. A shell holds its Lot and keeps its housing permission, so it stays
+# in the draw space while never being housable. At the share above that takes a single look from
+# near-certain to about one in four, and adr/0069 chose `candidates = 3` for a world in which every
+# occupied Lot held a working Building. That is milestone 17's own work and not a property of this file.
 #
 # Slice 7 task 10a of plans/0011-rule-engine-bins-and-rules.md. Its whole job is to be the smallest
 # content that makes Bins move, so that the wiring underneath it — a Ruleset reaching a World, a
@@ -85,7 +128,9 @@
 # against the PRE-CLOCK world, which is adr/0094's cost arriving in one more place, not this edit's.
 # plans/0012 Cause 5: a number that is one half of a ratio says which half.
 #
-# NOTHING HERE CAME OUT OF PROPORTION, because everything in this file is denominated in FIRINGS.
+# NOTHING HERE CAME OUT OF PROPORTION, because everything in this file is denominated in FIRINGS --
+# `condemn_after` included, which says so at the [[building]] below. A dwelling's whole life is 4 missed
+# `upkeep` firings x rate 16 = 64 Ticks, which went 11.25 -> 45 in-world minutes by the same x4.
 #
 # 48 IS A COST DIAL HERE, NOT A BALANCE DIAL, AND THAT IS MEASURED TOO. Swept at 24, 36, 48 and 96, NO
 # ROW OF THE CENSUS MOVES; only `rules due` and `rules evaluations` move, and they move UP with capacity
@@ -203,17 +248,9 @@ family = "money"
 # this file being tuned: three Households do not share a kitchen, and the shared one was a shortcut
 # the first line of this file already disclaimed.
 #
-# NOTHING IN THIS FILE DECLINES, AND THAT IS DELIBERATE AS OF MILESTONE 17. `condemn_after` stood at 4
-# here, as it did in all eighteen shipped files, and no author had ever set it to anything else -- which
-# is adr/0164's test (`would a designer ever set this?`) answered by the tree. It is gone from every
-# world that demonstrates something other than decline, because a Building that falls down does not
-# stay fallen: abandonment leaves a SHELL standing (adr/0091), and at the shipped failure rate two
-# thirds of the city is derelict at steady state. A world demonstrating traffic, water or a market
-# should not have to do so in a ruin.
-#
-# Decline now lives in rulesets/declining.toml, which is this file plus two keys, and in
-# diagnosed.toml, which needs Buildings to fall down so its on_fail chain has something to record.
-# DO NOT ADD `condemn_after` BACK HERE to make a test fail faster -- that is what declining.toml is for.
+# `condemn_after` is in MISSED FIRINGS, not Ticks (adr/0053): a Rule fires every `rate` Ticks when
+# healthy, so four missed firings of `upkeep` is 64 Ticks of continuous starvation. Authoring it in
+# Ticks would mean that halving every rate in this file silently doubled every dwelling's lifespan.
 # ---------------------------------------------------------------------------------------------------
 # THE TRADE. adr/0141 gave `jobs`, the Shift band and the wage to the BUSINESS rather than to the
 # premises; adr/0148 removed the first two from [[building]] rather than leaving them parsed and
@@ -227,8 +264,26 @@ family = "money"
 [[business]]
 name = "shop"
 
-# Identical to minimal.toml's. See there for why `jobs` sits on the dwelling kind rather than on a
-# workplace kind of its own, and why 8 is the floor of 1000/360 x 3 rather than a chosen number.
+# 5b-bis task 4, and the ratifier plans/0002 §D1 named for this key: the first Ruleset that grants
+# employment. HOW MANY CITIZENS THIS BUILDING EMPLOYS -- Citizens, never Households, because a job
+# has one holder (adr/0068 on a second axis).
+#
+# IT IS ON THE DWELLING RATHER THAN ON A WORKPLACE KIND, AND THAT IS THIS FILE'S FIRST LINE BEING
+# OBEYED RATHER THAN A SHORTCUT. A second kind needs a second [[zone_rule]] to raise it, a second
+# decline Rule so that it churns rather than accumulating until the city is all offices, and a
+# land-use split -- which is three decisions about CONTENT, and content is what this file says it
+# does not make. Living above the shop is the smallest arrangement in which the assignment pass
+# has somewhere to send anybody, and it claims nothing: the geography still binds, because the pass
+# draws from a box around home and the Commute Budget still refuses what the Road Graph cannot
+# deliver. A city with districts is a Ruleset that models a city, and none exists.
+#
+# EIGHT IS DERIVED FROM THE ROW RATIOS, not chosen. SyntheticCity builds 360 Households per 1,000
+# Citizens (S4 task 2) and `occupants` above puts 3 in a Building, so a dwelling holds 1000/360 x 3
+# = 8.33 Citizens. Eight is the floor of that, which makes the city hold 0.96 jobs per resident:
+# FULL EMPLOYMENT IS JUST OUT OF REACH BY CONSTRUCTION. That is deliberate -- a ceiling nobody can
+# hit is a ceiling doing nothing, and `seeking - employed` in the census would read zero for a city
+# with no shortage and for a mechanism that had stopped, which is the reading PlacementCounter's
+# own remark exists to refuse.
 jobs = 8
 
 # WHEN THIS KIND'S JOBS START, as a band of in-world hours, from which each BUILDING draws its own one
@@ -255,6 +310,46 @@ bins = [
     { resource = "sundries", capacity = 48, owner = "occupant" },
     { resource = "repairs",  capacity = 4 },
 ]
+# HOW MANY DAYS A PREMISES RULE MAY STARVE CONTINUOUSLY before the Building is condemned and
+# abandoned. adr/0141's premises half; the tenant half is `tenancy_ends_after_days`, which this
+# file does not state because its tenants are fed.
+#
+# !! IT WAS `condemn_after = 4` AND THAT WAS 45 IN-WORLD MINUTES. The old key counted FIRINGS a
+# starved Rule may miss, so its value had to be read against the Rule's own `rate` to mean
+# anything: 4 missed firings of `upkeep` at rate 16 is 64 Ticks. Nothing on the page said so, the
+# value stood at 4 in all eighteen shipped files, and NO AUTHOR EVER CHANGED IT -- because no
+# author could see what it said. A dwelling here lived about half an in-world Day.
+#
+# So milestone 17 authored the felt quantity and derived the count, which is adr/0059 and
+# adr/0130's rule arriving at the one key that had gone the other way. THE FLOOR IS NOW ONE DAY
+# AND 45 MINUTES IS NOT EXPRESSIBLE AT ALL, which is the point of the unit rather than a side
+# effect of it.
+#
+# !! UNRATIFIED, and plans/0002 D1 holds it. This is a stopwatch setting: what it dials with
+# `collapses_after_days` is WHAT SHARE OF THE CITY IS DERELICT at steady state, and that share is
+# a ratio of the two -- roughly blight / (life + blight). QUOTE THE CENSUS AND NEVER THE
+# ARITHMETIC: this file's header carries the measured numbers and an earlier version of it
+# carried a paper figure that was wrong by a factor of two.
+condemn_after_days = 2
+# The sink for what condemn_after_days creates: how many Days the empty shell stands before it
+# collapses and the Lot returns to vacant (adr/0091, milestone 17). REQUIRED wherever
+# condemn_after is stated -- a kind that can be abandoned and cannot collapse accumulates
+# shells for ever, which is adr/0006, and the loader refuses it.
+#
+# !! A STOPWATCH SETTING AND NOT A DESIGN CLAIM, exactly as crowded.toml's two are. What this
+# number actually dials, together with condemn_after_days above, is WHAT SHARE OF THE CITY IS
+# DERELICT at steady state -- because the share is a RATIO of the two and not a property of
+# either. A shell that stands 1 Day in a city whose Buildings live 2 is a third of the stock; the
+# same 1 Day against a life of half a Day is two thirds, which is what this file measured when
+# the threshold above was 45 minutes.
+#
+# !! ONE DAY IS THE FLOOR THE UNIT ALLOWS and it is chosen so the demonstration demonstrates:
+# a shell that a short run can watch appear, stand and fall. A city a player would live in
+# wants a gentler failure rate AND a longer blight, and that pair is UNRATIFIED with no world
+# to settle it -- plans/0002 D1, ratified by the first play session in which somebody watches
+# a district decline, which is adr/0091's own ratifier for the clearance price.
+collapses_after_days = 1
+
 # adr/0068. HOW MANY HOUSEHOLDS THIS HOLDS, and it is read by two things that used to disagree about
 # it: Borough.Core.Entities.SyntheticCity builds ceil(households / this) Buildings and fills each,
 # and the placement pass admits up to this many. Before it existed the populator put 3 in every
@@ -296,10 +391,28 @@ occupants = 4
 business = "shop"
 
 
-# HOW MANY VEHICLES A DWELLING OF THIS KIND CAN PARK. Identical to minimal.toml's, including the
-# value. See there for why eight is `jobs`' own derivation rather than a second guess -- both count
-# CITIZENS, and adr/0119 settled that a parking space is held by the Citizen because World.ModeOf
-# drives every MEMBER of a car-owning Household. UNRATIFIED; ratifier is milestone 7 task 8.
+# HOW MANY VEHICLES A DWELLING OF THIS KIND CAN PARK. adr/0009's supply, adr/0120's Car Park, and
+# `occupants`' rule on a third axis (adr/0068): an authored number keyed on the kind, derived from the
+# Ruleset in force rather than frozen when the Building was raised, so lowering it reaches every
+# Building standing. The overflow is DISMISSED rather than left to drain, which is `jobs`' side of
+# adr/0064's line -- a Bin is left to drain because it has a consumer, and a parked car has a HOLDER.
+#
+# EIGHT IS `jobs`' OWN DERIVATION AND NOT A SECOND GUESS, because both count CITIZENS: 1000/360 x 3
+# = 8.33, floored. That is deliberate rather than convenient. adr/0119 settled that a parking space is
+# held by the CITIZEN, and the reason is that World.ModeOf drives every MEMBER of a car-owning
+# Household -- so a Building of 3 Households puts ~8.3 cars on the road, not 3. Sizing this per
+# HOUSEHOLD would have under-provisioned by 2.8x and baked in the exact confusion that ADR corrected;
+# 01 §8 ledger #2's "every Household owning a car" is about WHO OWNS and was never about HOW MANY.
+#
+# ONE CAR PER RESIDENT, NOT PER DRIVER, IS WHAT THIS ACTUALLY BUYS. This file states no
+# `car_ownership_percent`, so nobody here drives at all and no Car Park is ever occupied -- the
+# provision is exercised at creation and demolition and nowhere else. congested.toml is where cars
+# exist, and it is where a full Car Park first means something.
+#
+# UNRATIFIED. The named ratifier is milestone 7 task 8's long run, on the shed radius's own machine,
+# and it needs the WORLD that row now names -- a sixth Ruleset in which parking is scarce, because a
+# generated city cannot vary parking occupancy: capacity is per kind and demand is per Citizen, both
+# sized by the generator from one population. THE SAME NUMBER SIZES BOTH THE DEMAND AND THE SUPPLY.
 parking = 8
 
 # Greedy, and with no inputs. An extraction step with its Layer read elided — 04 §1's Produce comes
@@ -584,38 +697,239 @@ foot_path_capacity_per_hour    = 1000
 lots_per_segment = 5
 
 [parking]
-# How far a driver will walk from a Car Park, in metres. adr/0009's radius, milestone 7 task 2.
-# minimal.toml's header carries why it is metres rather than minutes, why 400 is R5.6's measured
-# rung rather than the five-minute intuition it nearly coincides with, and what ratifies it.
+# HOW FAR A DRIVER WILL WALK FROM A CAR PARK, in metres. adr/0009's radius, milestone 7 task 2.
+#
+# The Parking Shed is the Car Parks within this reach of a Building's pedestrian Access Point,
+# nearest first; arrival takes the first with space and the walk from it is a Leg. So this decides
+# which Car Park a car takes, which decides the walk Leg, which counts against the Commute Budget,
+# which decides whether the Trip fails. HASH-BEARING BY FOUR STEPS, and unratified since the prose
+# that first described parking here.
+#
+# METRES RATHER THAN MINUTES, AND THAT WAS A DECISION RATHER THAN A HABIT. Minutes were the live
+# alternative: the shed's one stated bound is the Commute Budget's walk allowance, which is a time,
+# and a key in minutes would have made that bound a comparison instead of a conversion. It is
+# refused on two grounds. A key in minutes invites exactly the derivation adr/0083 forbids by name
+# -- five minutes at 5 km/h -- and it would make shed membership move whenever somebody retuned
+# [roads] walk_speed_kph, so a designer making people walk faster would silently shrink every
+# Building's parking. A RADIUS IN METRES IS THE SAME SET OF CAR PARKS HOWEVER FAST ANYBODY WALKS.
+#
+# ⚠ THE UPPER BOUND IS STATED HERE AND ENFORCED NOWHERE, AND A GUARD FOR IT WAS WRITTEN AND
+# WITHDRAWN. adr/0083 says a shed wider than the Commute Budget's walk allowance has outer Car Parks
+# that can never be taken. That is true and it is not a predicate: commute_budget_minutes is a
+# ceiling on a WHOLE JOURNEY and a parking walk is one LEG inside it, so the only non-arbitrary line
+# a loader could draw -- the whole Budget -- is far looser than the real constraint. Keep it below
+# the allowance when you tune it; nothing will stop you if you do not. At 5 km/h this radius is a
+# 4.8-minute walk against a 50-minute ceiling.
+#
+# ⚠ 400 IS S2 R5.6'S MEASURED RUNG AND IS NOT THE FIVE-MINUTE INTUITION, AND THE TWO NEARLY
+# COINCIDE -- WHICH IS THE TRAP RATHER THAN THE CORROBORATION. 400 is the rung whose cost this
+# project has actually measured. Five minutes at 5 km/h is 417 m. Those agree to within 4%, and
+# adr/0083 warns against the second one by name because it is exactly the sort of plausible figure
+# adr/0044 had to measure back out of three documents that cited it as settled. A NUMBER THAT
+# AGREES WITH A FORBIDDEN DERIVATION CANNOT ANNOUNCE ITSELF, so this comment is the only thing
+# standing between the measured rung and a later reader re-deriving it from the walk.
+#
+# ⚠ THIS COMMENT USED TO SAY "110 CAR PARKS FOUND AT 400 M AGAINST 596 AT 800 M, SO DOUBLING THE
+# RADIUS IS ROUGHLY 5X THE SHED". STRUCK 2026-08-19 BY MILESTONE 7 TASK 3, WHICH MEASURED IT.
+# On a generated city it is 132.8 in range at 400 m (min 35, median 135, max 166) and the gradient
+# is x3.81 from 400 to 800 and x4.23 from 200 to 400 -- not x5. A shed is an AREA, so the gradient
+# is an area ratio damped by the lattice, and x5 was never a number this geometry could produce.
+# The deeper error was the NOUN: S2 R5.6's ShedBuilder stored KeptBins = 8 and counted the rest in
+# a separate accumulator, so 110 was what its BALL ENCOUNTERED and 8 was what it KEPT. "Roughly 5x
+# the shed" was a claim about the ball wearing the word shed -- and of a capped shed it is false
+# outright, because a capped shed's size is CONSTANT. plans/0012 Cause 5: the digits travelled and
+# the clause stayed behind, and A NUMBER THAT IS ONE HALF OF A RATIO SAYS WHICH HALF.
+#
+# UNRATIFIED. The named ratifier is milestone 7 task 8's run reporting the walk-Leg length
+# distribution as shed occupancy approaches 1, AND IT NEEDS A WORLD THIS FILE IS NOT: capacity is
+# per building kind and demand is per Citizen, both sized by the generator from one population, so
+# occupancy here is flat at every population and never approaches anything. A sixth Ruleset is
+# owed, on congested.toml's precedent. The refuting readings are denominated in WALK LENGTH and
+# never in Trip failures -- a radius that never produces a walk longer than the shortest band is too
+# small, and one at which the distribution never moves as occupancy climbs is not being reached.
+#
+# NOTHING READS THIS YET. The shed is task 3 and the arrival that queries it is task 4, so today
+# this number is stated and inert. It is here rather than withheld because a file that states Car
+# Parks and no radius describes half a mechanism.
 radius_metres = 400
 
-# How many Car Parks a Building's Parking Shed holds. minimal.toml's header carries where 24
-# came from, why the search for a derivation failed, why it is a different dial from the radius
-# rather than a second spelling of it, and why it must live here rather than on [[building]].
+# HOW MANY CAR PARKS A BUILDING'S PARKING SHED HOLDS -- the nearest 24 of them. Milestone 7 task 3.
+#
+# WHERE 24 CAME FROM, AND IT IS NOT A DERIVATION. The search for one was made and it failed, which
+# is a result rather than a silence (plans/0023 task 3). Every candidate reduces to picking a
+# number of Segments and multiplying by [lots] lots_per_segment = 5: adr/0009's own payoff sentence
+# "you parked three blocks away" gives about 15, and "your own Street plus everything one junction
+# away" is 7 Segments and gives about 35. 24 sits between them at roughly 4.8 Segments. Each of
+# those is a sentence chosen to justify a number rather than a number falling out of a mechanism.
+# SO THIS IS CHOSEN, NOT DERIVED, and it is written down that way so nobody re-derives it later and
+# believes the derivation.
+#
+# IT IS A DIFFERENT DIAL FROM radius_metres AND THEY ARE NOT REDUNDANT. The CAP BOUNDS THE WORK and
+# binds where supply is dense; the RADIUS BOUNDS THE WALK and binds where supply is sparse. That is
+# mechanical rather than rhetorical: with fewer than 24 Car Parks in reach the kept set never fills,
+# ParkingShed's early exit never fires, and the ball walks the whole radius. Measured on a generated
+# city at 400 m the MINIMUM over every Building is 35 in range, so THERE the cap binds at every door
+# and the radius binds nowhere. A player's thinly-built edge is the case where that reverses.
+#
+# WORLD-CREATION, AND IT MUST NOT BE HOT-RELOADED, on [layers] kernel_metres' precedent. A shed is
+# materialised per Building at a fixed width, so a reload that changed this would reallocate every
+# shed in the city.
+#
+# IT BELONGS IN [parking] AND NOT ON [[building]], AND THAT IS CORRECTNESS RATHER THAN TIDINESS. A
+# per-kind cap is a perfectly plausible design -- a shopping centre's shed reaching further than a
+# house's -- and it would sit on [[building]] next to `parking`, where it looks like it belongs.
+# CarParkTable.Capacity is (derived AND rebuilt) from the Ruleset in force (adr/0064, adr/0068), so
+# a key on the KIND moves the STANDING city's State Hash with no code change and no mechanism
+# reading it. Here it moves only this file's content hash. WHAT PROTECTS THE HASH IS THE KEY'S
+# LOCATION, NOT THE ABSENCE OF A READER.
+#
+# ⚠ HASH-BEARING ON A DELAY, WHICH IS WORSE THAN HASH-BEARING NOW. Today nothing reads the shed, so
+# adding this moves no per-tick State Hash and the re-record it forces is complete and covers
+# nothing. At task 4 the cap decides which Car Park a Traveller reaches, which writes CarParkTable
+# Occupied, which is Saved with Touch.PerTick and IS folded. adr/0100 says hash movement is free
+# because the commit that causes it explains it -- and that assumes the movement and the cause land
+# in the SAME commit. Here they cannot. The commit that introduces this number has a clean diff and
+# nothing to attribute, and the commit that moves every hash two tasks later will not contain it.
+#
+# UNRATIFIED, and its ratifier is NOT the radius's. adr/0052 as amended twice wants a machine, a
+# world and a QUANTITY. The world is the sixth Ruleset milestone 7 decision 3 already owes, because
+# a generated city cannot vary parking occupancy -- capacity is per kind and demand is per Citizen
+# and the generator sizes both from one population, so occupancy is flat at every population. The
+# quantity is EXHAUSTION and never walk length: a shed NEVER exhausted means 24 is larger than it
+# needs to be, and one routinely exhausted means it is too small. The radius is ratified on walk
+# length instead, and the two must not share a reading -- car_ownership_percent's refuting readings
+# were named against reach while its live consequence was congestion, so both fired and refuted the
+# wrong thing.
 shed_keeps = 24
 
 [trips]
-# Identical to minimal.toml's, and it must stay identical: this file is that one with a single
-# number changed, and a test holds it to a one-line difference. See minimal.toml for why 30 s and
-# why there is no commute_budget_minutes -- the short version is that the crossing cost is a
-# hash-bearing number chosen with a named ratifier (adr/0052), and the Commute Budget is a
-# percentile of a distribution that does not exist yet, so omitting it states a city with no
-# ceiling rather than defaulting one.
+# What travelling costs, and what makes a journey fail. Two numbers, both hash-bearing, and they
+# are unset in two DIFFERENT senses -- which is the whole reason one of them is here and the
+# other is not.
+#
+# THE CROSSING COST IS CHOSEN WITH A NAMED RATIFIER, which adr/0052 permits and which the Budget
+# below cannot use. It is what it costs on foot to reach the other side of a Segment (adr/0074),
+# charged exactly when two Addresses share a Segment and differ in side and silent everywhere
+# else -- because "the same side" stops meaning anything once a route turns a corner. Zero is a
+# legitimate value for it: that is rung 1, what this corpus had by omission, the city where the
+# shop opposite is the shop next door.
+#
+# 30 SECONDS, AND THE DERIVATION WAS LOOKED FOR BEFORE THE VALUE. plans/0002 §D asks for one and
+# gives its shape -- half a signal period, which is a property of a junction rather than a
+# preference. This simulation has no signals and a Segment has no width, so neither derivation is
+# available; both need a mechanism nobody has built, and under adr/0070 that absence is evidence
+# of nothing. What is left is the band the row states: large enough that the shop opposite is not
+# the shop next door, small enough that it does not dominate a Leg made of blocks. A block is 32
+# Tiles = 128 m and takes 92 s to walk at 5 km/h, so this is a third of one block. Half a
+# 60-second signal cycle arrives at the same number from the other end, which is the most this
+# corpus can honestly say for it.
+#
+# ITS RATIFIER IS THIS MILESTONE'S OWN LONG RUN, and that run is made twice: the walk-Leg cost
+# distribution with the term at zero and at this value. `--trips` prints the distribution and
+# names the value it ran at, so the pair is comparable rather than remembered.
+#
+# THERE IS NO commute_budget_minutes, AND THE OMISSION IS THE STATEMENT RATHER THAN AN OVERSIGHT.
+# The Budget is a percentile of a Trip-cost distribution, so it is meaningless before one exists,
+# and a value here today would be exactly what adr/0052 forbids -- a hash-bearing number chosen
+# because the schema wanted one. An omitted key is a city with NO CEILING: nothing is refused for
+# its length, the Trip Fate "exceeded commute budget" stays unreachable, and the Census says so.
+# That is also the only city whose cost distribution is uncensored, which is the one this
+# milestone has to measure before it can state the number. The loader refuses a zero rather than
+# reading it as "nobody travels", because the intent a zero would be reaching for is the intent
+# deleting the key already states.
 crossing_seconds = 30
-# Identical to minimal.toml's, and it must stay identical. See there for the rungs, why the upper two
-# read zero in a city this small, and why that is not a reason to move them.
+# THE THREE RUNGS, AND ONLY THE LAST ONE REFUSES (adr/0095). A commute is FAST to 20 minutes,
+# MODERATE to 40, UNSAVOURY to 50, and refused beyond it. The two lower edges refuse nothing at all --
+# they grade a commute that happens anyway, so a city whose commutes are creeping from twelve minutes
+# to nineteen is legible BEFORE anything fails. A single threshold reports zero throughout that period
+# and then reports a cliff, arriving exactly when 01 SS4's spatial fix has stopped being cheap.
+#
+# ALL THREE OR NONE. There is no ceiling without grading and no default for either lower rung: a
+# default would be the thing adr/0052 forbids, a hash-bearing number chosen because the schema wanted
+# one. The loader refuses a partial set and refuses one that is not strictly increasing.
+#
+# ⚠ THE UNSAVOURY RUNG READS ZERO IN THIS CITY, AND IT IS MEASURED RATHER THAN SUSPECTED. The paved
+# extent is derived from population, so 10,000 Citizens is a city 1.9 km across, against a 50-minute
+# walking ceiling that reaches 4.2 km -- nobody can live far enough from work to be graded badly. No
+# commute here exceeds 32 minutes and `beyond ceiling` is 0. Over 1,024 Ticks:
+#
+#     citizens    10,000   20,000   40,000   80,000  160,000
+#     paved       1.92 km  2.56 km  3.84 km  5.44 km  7.68 km
+#     fast           612    1,164    1,951    2,950    4,405
+#     moderate         3       54      463    1,728    4,330
+#     unsavoury        0        0       10      131      738
+#     beyond           0        0       90    1,576    6,290
+#
+# The unsavoury rung first occupies at 40,000 Citizens; at 160,000 fast and moderate are level, which
+# is a city genuinely deteriorating as it spreads. That is NOT a reason to change these numbers, and
+# the fixture is not inflated to fill a rung. A rung is a VOCABULARY -- calling a 20-minute commute
+# unsavoury would be bending the words to fit a village.
+#
+# ⚠ AND THE OTHER HALF OF THE REASON IS THAT CONGESTION IS UNBUILT. 01 SS4 names TWO scarcities that
+# read as long commutes: CONGESTION, which is road capacity, and SEPARATION, which is distance. This
+# simulation implements the second. A walk Leg's cost is distance / speed EXACTLY, because pedestrian
+# networks do not saturate (03 SS3.7), and a vehicular Leg carries no congestion term because adr/0075
+# gives a Leg a cost and no path. So these rungs report Separation and nothing else until 5c, and
+# 01 SS7's Gridlock overlay -- "the commute-time distribution's upper tail sliding toward the Commute
+# Budget wedge" -- is the reading they cannot yet produce. adr/0070: stated, not compensated for.
 commute_fast_minutes = 20
 commute_moderate_minutes = 40
 
 
-# Identical to minimal.toml's, and it must stay identical. See there for why 20 minutes -- the
-# short version is that it is read off the walk-cost distribution --trips prints, at the rung
-# where it admits an eight-block neighbourhood and refuses half a sixteen-block one, and that it
-# also sizes the box the assignment pass draws candidates from.
+# THE COMMUTE BUDGET, MEASURED RATHER THAN CHOSEN, and the paragraph above is now history: it said
+# this key is absent because the Budget is a percentile of a distribution that does not exist. The
+# distribution exists. `--trips` walks every Building pair in this city and prints it by
+# grid-ideal band, and these are its numbers -- p90 walks of 2.5 min at 1 block, 7.0 at 4, 13.7 at
+# 8, and 71.2 at 16, over 1,201 Buildings on the network [roads] above describes.
+#
+# ⚠ IT IS THE CEILING NOW, NOT THE ACCEPTABLE COMMUTE (adr/0095), AND THAT MOVED IT 20 -> 50. The
+# paragraph beneath the rungs above carries the reasoning. What this key means changed and so did
+# its value: 20 is the FAST rung, where it was once the only edge there was, and the ceiling is
+# where somebody stops taking the job rather than where they stop being pleased about it.
+#
+# 20 MINUTES WAS READ OFF `--trips` AND STILL IS, as the fast rung. It admits the whole eight-block
+# neighbourhood at p90 and refuses half of the sixteen-block one. plans/0023 §B rules out the
+# MEDIAN specifically -- the median detour is 100% of the grid ideal in a severed city and an
+# intact one alike, so a rung read off it cannot tell the two apart, which is the one job the
+# Severance demonstration needs it to do.
+#
+# ⚠ ITS OLD RATIFIER IS SPENT AND THE REPLACEMENT IS PLAYTEST. It used to say: `beyond budget` of
+# ZERO means this number is not binding. It IS zero here now, and that is no longer a refutation --
+# it is the ceiling doing its job in a village, and the ladder above shows it biting from 40,000
+# Citizens up. What refutes 50 is a person playing: an unsavoury rung never occupied in a city big
+# enough to occupy it, or a fast rung never left.
+#
+# IT ALSO SIZES THE SEARCH, and that is why [jobs] below refuses to exist without it: the box a
+# Citizen draws candidates from is what a walk within the CEILING covers -- 50 min at
+# walk_speed_kph = 5 is 4.17 km, 1,042 Tiles, 33 Cells. The box derives from the ceiling rather
+# than the fast rung because a seeker will take an unsavoury job rather than none, and a box that
+# could not contain one would refuse it before the walk did. ⚠ Its area is 6.25x the old
+# 20-minute derivation, which is the one cost of this change that is not free: the Cell-uniform
+# draw finding (5b-bis task 4) was measured against the smaller box.
 commute_budget_minutes = 50
 
-# Identical to minimal.toml's. adr/0081's assignment pass: [placement]'s three keys on the
-# employment axis, with the sample derived from the duration (adr/0059).
+# adr/0081, and 02 §5.2 step 2b arriving from the other side. HOW A CITIZEN WITH NO WORKPLACE COMES
+# TO HAVE ONE: every `interval` Ticks the pass looks at a share of the population, and somebody with
+# no job draws `candidates` Buildings from the box above and takes the first with a vacancy it can
+# walk to inside the Budget. First rather than best (adr/0017) -- satisficing, never optimising.
+#
+# THREE KEYS, PREDICTED RATHER THAN DISCOVERED. adr/0069 is the standing counter-example: placement's
+# ADR predicted no numbers, the pass needed exactly these three, and the first of them shipped at a
+# value copied from a default that meant something else and left 45% of the housing stock empty.
+# This is the same shape of pass, so it is the same three keys, and all three are hash-bearing and
+# UNRATIFIED in plans/0002 §D1 with a named ratifier each.
+#
+# `revisit_ticks` IS A DURATION AND THE SAMPLE IS DERIVED (adr/0059, a third time): it is how long
+# the pass takes to look at every Citizen once, and the engine derives
+# `sample = ceil(Citizens x interval / revisit_ticks)`. It is REQUIRED rather than defaulting to a
+# Day, unlike a [[zone_rule]]'s, because a Day is derived from the scale a `rate` is denominated in
+# and nothing here is denominated in anything -- how often somebody out of work looks for some is a
+# feel decision with no derivation behind it.
+#
+# 1024 IS [placement]'S, AND THE COPY IS AN ARGUMENT RATHER THAN A CONVENIENCE: a person without a
+# job and a family without a home are looking at the same rate for the same reason, and nothing in
+# this project yet distinguishes them. It is its own key so that they can diverge without one
+# retuning the other, which is why this is a table and not three more lines of [placement].
 [jobs]
 interval      = 32
 revisit_ticks = 1024

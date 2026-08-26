@@ -62,11 +62,22 @@ internal static class GoldenFixtures
     /// baseline covers. <c>The_golden_ruleset_is_the_one_the_session_names</c> is the test that says
     /// so, and it fails with the number to paste in.
     /// </remarks>
-    internal const ulong RulesetHash = 0xBEFE_5ABB_5193_03F5UL;
+    internal const ulong RulesetHash = 0x6470_5585_269E_780DUL;
 
     /// <summary>The Ruleset the golden session runs under, beside the test assembly.</summary>
+    /// <remarks>
+    /// <b><c>minimal.toml</c> until milestone 17, and it had to move because that file stopped
+    /// declining.</b> <c>adr/0164</c> took <c>condemn_after</c> out of every world that demonstrates
+    /// something else, so the committed session ran 481 Buildings with <em>created 0, demolished 0,
+    /// unplaced 0</em> from Tick 0 to the end — <c>adr/0069</c> builds only while the Unplaced Pool
+    /// is non-empty, and nothing was condemning anybody out of a home to fill it. Every hash in the
+    /// directory stayed freshly correct over a city in which <em>neither</em>
+    /// <see cref="Borough.Core.Rules.ZoneRuleEngine"/> branch fired, which is the exact failure
+    /// <see cref="GoldenSessionCoverageTests"/> exists to catch and the reason a baseline is not
+    /// self-guarding.
+    /// </remarks>
     internal static string RulesetPath =>
-        Path.Combine(AppContext.BaseDirectory, "Rulesets", "minimal.toml");
+        Path.Combine(AppContext.BaseDirectory, "Rulesets", "declining.toml");
 
     /// <summary>
     /// The content hash of <see cref="TunedRulesetPath"/>, which the session reloads into.
@@ -75,11 +86,18 @@ internal static class GoldenFixtures
     /// A literal for <see cref="RulesetHash"/>'s reason, and it is in <c>session.borough</c> too:
     /// a reload line carries both hashes, so editing either file is a re-baseline of both artefacts.
     /// </remarks>
-    internal const ulong TunedRulesetHash = 0x7BAF_FF94_0B4F_7083UL;
+    internal const ulong TunedRulesetHash = 0x43C9_F650_234A_FE92UL;
 
     /// <summary>The Ruleset the golden session reloads into at <see cref="ReloadAt"/>.</summary>
+    /// <remarks>
+    /// <b><c>minimal-tuned.toml</c> until milestone 17</b>, and it moved for
+    /// <see cref="RulesetPath"/>'s reason rather than for one of its own. The pair has to stay one
+    /// line apart — <c>The_two_golden_rulesets_differ_in_exactly_one_line</c> — so repointing the
+    /// opening file obliges a sibling of that file, and <c>declining-tuned.toml</c> is
+    /// <c>declining.toml</c> with the same single <c>restock</c> amount changed.
+    /// </remarks>
     internal static string TunedRulesetPath =>
-        Path.Combine(AppContext.BaseDirectory, "Rulesets", "minimal-tuned.toml");
+        Path.Combine(AppContext.BaseDirectory, "Rulesets", "declining-tuned.toml");
 
     /// <summary>
     /// The Tick the golden session reloads on.
@@ -89,8 +107,12 @@ internal static class GoldenFixtures
     /// each Ruleset rather than a run and a postscript; on a boundary so the first sample after the
     /// transition is the Tick after it, which is what makes the failure message name the right window
     /// when this moves.
+    /// <para>
+    /// <b>1,024 until milestone 17.</b> It is still halfway and still on a sampling boundary; both
+    /// properties are what it is for, and <see cref="Ticks"/> is what moved underneath it.
+    /// </para>
     /// </remarks>
-    internal const int ReloadAt = 1_024;
+    internal const int ReloadAt = 4_096;
 
     /// <summary>
     /// How far the session runs. Well past its last command, which is the ordinary case.
@@ -113,8 +135,19 @@ internal static class GoldenFixtures
     /// still the assertion that makes the length mean something; if you shorten this session, that
     /// is what will tell you.
     /// </para>
+    /// <para>
+    /// 🔴 <b>2,048 until milestone 17, and what lengthened it was a UNIT CHANGE three directories
+    /// away.</b> <c>adr/0168</c> made the decline threshold a <em>duration</em>, so
+    /// <c>declining.toml</c>'s <c>condemn_after_days = 2</c> is <b>4,096 Ticks</b> and its
+    /// <c>collapses_after_days = 1</c> is another 2,048 — <b>6,144 Ticks before the first Building
+    /// can leave a Lot</b>, against a session that used to end at 2,048. Repointing the Ruleset
+    /// without this number would have bought <em>zero</em> coverage and looked exactly like it had:
+    /// the session would run a declining world for less time than declining takes.
+    /// <b>8,192 is the first clean power of two past 6,144</b>, which leaves one full threshold's
+    /// slack for the create branch to fire in after the first demolition clears a Lot.
+    /// </para>
     /// </remarks>
-    internal const int Ticks = 2_048;
+    internal const int Ticks = 8_192;
 
     /// <summary>
     /// The trace's sampling cadence.
@@ -124,8 +157,13 @@ internal static class GoldenFixtures
     /// thirty-two samples.</b> The sample count is what the bisection message is worth reading for;
     /// a longer session at the old cadence would have been a 256-line artefact whose diff nobody
     /// reads, and the window a failure names would have got no narrower for it.
+    /// <para>
+    /// <b>64 until milestone 17</b>, and it moved with <see cref="Ticks"/> again and for the same
+    /// reason: <c>8,192 / 256</c> is thirty-two, so the artefact keeps its length and a failure
+    /// keeps naming a window of one thirty-second of the run.
+    /// </para>
     /// </remarks>
-    internal const int HashEvery = 64;
+    internal const int HashEvery = 256;
 
     /// <summary>
     /// The Street lattice spacing the golden Ruleset states — <c>[roads] block_tiles</c>.
@@ -295,7 +333,31 @@ internal static class GoldenFixtures
     /// <summary>
     /// <see cref="Rules"/>'s city, with decline in it. See <see cref="DecliningRulesetPath"/>.
     /// </summary>
+    /// <remarks>
+    /// ⚠ <b>It resolves to the same file as <see cref="Rules"/> since milestone 17, and the two are
+    /// deliberately not merged.</b> They mean different things: <see cref="Rules"/> is
+    /// <em>whatever the committed baseline opens on</em>, and this is <em>the world in which a
+    /// Building falls down</em>. A caller that needs the second and writes the first inherits the
+    /// baseline's next repoint, silently — which is how <c>LotLongRunTests</c> came to be running a
+    /// declining city on a test about the subdivider.
+    /// </remarks>
     internal static Ruleset DecliningRules() => Load(DecliningRulesetPath);
+
+    /// <summary>
+    /// The Ruleset in which nothing declines: <c>minimal.toml</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>For a test whose subject is not decline and which needs a city that stands still.</b> A
+    /// condemned Building leaves a <b>shell</b> (<c>adr/0091</c>) and a Building outlives its frontage
+    /// (<c>adr/0079</c>), so in a declining world an increasing share of Segment faces are occupied by
+    /// something nobody lives in — which is a statement about the Zone Rule and drowns out any
+    /// statement about Lots.
+    /// </remarks>
+    internal static string StaticRulesetPath =>
+        Path.Combine(AppContext.BaseDirectory, "Rulesets", "minimal.toml");
+
+    /// <inheritdoc cref="StaticRulesetPath"/>
+    internal static Ruleset StaticRules() => Load(StaticRulesetPath);
 
     /// <summary>
     /// Both Rulesets the golden session names, opening one first.

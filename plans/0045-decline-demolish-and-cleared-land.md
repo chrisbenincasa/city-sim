@@ -231,6 +231,55 @@ this milestone owns the **premises'**, which is driven by a duration and needs n
 so a recurring cost on the premises would be reaching for a mechanism three documents have already
 declined to place.
 
+**F6 — 🔴 TAKING DECLINE OUT OF `minimal.toml` SILENTLY BLINDED THE GOLDEN BASELINE, AND EVERY HASH IN
+IT STAYED FRESHLY CORRECT.** `adr/0164` moved `condemn_after` out of every world demonstrating
+something else. `minimal.toml` is the golden session's opening Ruleset, so the committed session
+stopped condemning anything; [`adr/0069`](../docs/adr/0069-placement-is-a-mechanism-of-its-own-and-construction-houses-nobody.md)
+builds **only while the Unplaced Pool is non-empty** and the Pool is filled by Households losing a home,
+so it stopped building too. Measured on the committed log: **`building live 481 → 481`, `unplaced live
+0` throughout, `zones created 0`, `demolished 0`, `tenancies ended 0`** — ***neither `ZoneRuleEngine`
+branch fired for the whole run***, and `session-trace.txt` recorded thirty-two correct samples of it.
+
+⚠ **The general shape, which is the part worth keeping: A DEMONSTRATION RULESET IS A TEST FIXTURE, and
+editing one moves what the suite COVERS rather than only what it HASHES.** A trace records what a run
+*did*, so a change narrowing what a run *reaches* is invisible in it by construction. Slice 10 task 11
+found this once from inside the test project; this time the edit was in `rulesets/`, three directories
+away, and nothing connected the two. The only assertions that noticed are the two that ask what the
+session **does** — `GoldenSessionCoverageTests` and
+`The_golden_session_raises_buildings_as_well_as_condemning_them`.
+
+**Repaired by repointing the baseline**, which took four changes and every one was forced: the session
+opens on `declining.toml`; a `declining-tuned.toml` sibling had to exist because the pair must stay one
+line apart; the session had to grow **2,048 → 8,192 Ticks**, because `adr/0168` made the threshold a
+duration and `condemn_after_days = 2` plus `collapses_after_days = 1` is **6,144 Ticks before the first
+Lot is cleared** — ***repointing without lengthening would have bought zero coverage and been
+indistinguishable from having bought it***; and the cadence went 64 → 256 to hold the trace at
+thirty-two samples, with the reload at 4,096 to stay halfway.
+
+⚠ **A second guard was about to be lost on the way past, and was not.**
+`The_two_golden_rulesets_differ_in_exactly_one_line` was written against the *fixture pointer*, so
+repointing it at the declining pair would have taken it off `minimal-tuned.toml` — which
+`BinWaitListTests` and `TreasuryFromAFileTests` still load. It now asserts **both** pairs. ***A guard
+that follows a fixture pointer stops guarding whatever the pointer moved off, and says nothing when it
+does.*** Owed to [`0012`](0012-corpus-audit.md) as a shape rather than a sighting.
+
+**F7 — ⚠ REPOINTING THE BASELINE SURFACED TWO MORE TESTS THAT WERE NOT MEASURING WHAT THEY SAID, AND
+NEITHER IS ABOUT DECLINE.** Both are filed in [`0012`](0012-corpus-audit.md) as **Cause 9 candidates**.
+
+- **`LotLongRunTests.The_hundred_thousand_Tick_lot_run`** built its world with `GoldenFixtures.Rules()`
+  — *whatever the baseline opens on* — so a test about the **subdivider** silently acquired a city in
+  which Buildings fall down. ✅ **Its own vacuity guard caught it and named the cause correctly**:
+  *carved Lots on only 15 of 97 edits … the second is a statement about the Zone Rule rather than about
+  the subdivider*. Repaired with a named `GoldenFixtures.StaticRules()` rather than by relaxing the
+  ratio.
+- **`GoldenSessionCoverageTests.The_session_sends_people_to_work_without_a_trip_command`** sampled
+  *eight times across the run*, so its interval was a fraction of the session while departures fall in
+  a fixed **683**-Tick window of each Day. Lengthening the session took the stride to 1,024 and every
+  look landed in the quiet after a wave. ***A sampling interval is a bound and not a count***, and this
+  is the **second** time the same test has aliased — the first repair inherited the defect one level
+  along. Repaired with a `Stride` stated against the window, and it now walks the run once instead of
+  replaying it eight times.
+
 ---
 
 ## Where this sits

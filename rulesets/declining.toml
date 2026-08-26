@@ -9,8 +9,22 @@
 #
 # So this file is the one that demonstrates it, on the pattern congested.toml sets for [traffic] and
 # twinned.toml for [market]: the mechanism lives in the world built to show it. THE DIFF AGAINST
-# minimal.toml IS TWO KEYS -- `condemn_after` and `collapses_after_days` on [[building]] dwelling --
-# and that diff is the whole demonstration.
+# minimal.toml IS TWO KEYS -- `condemn_after_days` and `collapses_after_days` on [[building]] dwelling
+# -- and that diff is the whole demonstration.
+#
+# 🔴 IT IS ALSO THE GOLDEN BASELINE'S OPENING RULESET AS OF MILESTONE 17, so EDITING THIS FILE -- ITS
+# COMMENTS INCLUDED -- MOVES A RECORDED CONTENT HASH in GoldenFixtures.RulesetHash, in
+# tests/Borough.Tests/Golden/session.borough (twice: the `ruleset` line and the `reload` line) and in
+# the header of session-trace.txt. Re-record with the command in tests/Borough.Tests/Golden/README.md
+# rather than pasting numbers by hand. Its sibling declining-tuned.toml is this file with `restock`'s
+# output amount changed and NOTHING else, and a test holds it there.
+#
+# WHY THE BASELINE MOVED HERE. minimal.toml stopped declining when adr/0164 took `condemn_after` out
+# of it, and the golden session went quiet in a way no hash could show: adr/0069 builds only while the
+# Unplaced Pool is non-empty, the Pool is filled by Households losing a home, and nothing was
+# condemning anybody. The committed trace ran `building live 481 -> 481, created 0, demolished 0` and
+# every sample in it was freshly regenerated and correct. ***A demonstration Ruleset is a test fixture,
+# and a content edit three directories away moves what the suite COVERS and not only what it hashes.***
 #
 # !! WHAT IT LOOKS LIKE, MEASURED RATHER THAN REASONED. At 10,000 CITIZENS on the reference machine:
 #

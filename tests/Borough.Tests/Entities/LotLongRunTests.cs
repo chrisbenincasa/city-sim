@@ -215,7 +215,16 @@ public sealed class LotLongRunTests
     {
         var key = WorldKey.FromSeed(GoldenFixtures.Seed);
 
-        world = new World(Population, GoldenFixtures.Rules());
+        // 🔴 GoldenFixtures.Rules() UNTIL MILESTONE 17, AND THAT WAS A POINTER RATHER THAN A CHOICE.
+        // Rules() is "whatever the committed baseline opens on", which milestone 17 repointed from
+        // minimal.toml to declining.toml -- so this test, whose subject is the SUBDIVIDER, silently
+        // acquired a city where Buildings fall down. adr/0091 leaves a condemned Building standing as
+        // a SHELL and adr/0079 has a Building outlive its frontage, so the share of Segment faces
+        // occupied by something nobody lives in climbs through the run and a bulldoze frees nothing on
+        // them: the vacuity guard below went from carving on most edits to carving on 15 of 97, and
+        // said so. It was right, and about the Zone Rule rather than about Lots -- which is the
+        // distinction the guard's own message already drew.
+        world = new World(Population, GoldenFixtures.StaticRules());
 
         var simulation = new Simulation(world, key)
         {

@@ -4314,3 +4314,66 @@ rather than an edit — the same hazard `adr/0119`/`0120`'s renumber recorded. R
 of *Cause 7* knows to check which. ***It is also why the section above is filed as a Cause 8
 CANDIDATE and not minted as Cause 8***: allocating an ordinal in a document with a live ordinal
 collision is how the collision doubles.
+
+---
+
+## Filed 2026-08-26, by milestone 17's golden-session repair — two **Cause 9 candidates**, both about a check that keeps passing after its subject moves
+
+⚠ **Filed as candidates for the reason the section above gives**: this document has a live ordinal
+collision at *Cause 7*, and minting numbers into that is how a collision doubles.
+
+**Both shapes below are about a test that goes on passing, cheerfully, once the thing it was written to
+watch has moved out from under it.** Neither is a wrong sentence in a document, which is why neither
+would ever have reached this ledger by the route the other Causes did. They are here because the audit's
+subject is *how a record stops being true without anybody noticing*, and a green test is a record.
+
+### Candidate A — a guard written against a fixture pointer stops guarding whatever the pointer moved off
+
+**Sighting 1 — `The_two_golden_rulesets_differ_in_exactly_one_line`, 2026-08-26.** It read
+`GoldenFixtures.RulesetPath` and `TunedRulesetPath`, which is correct and is what made it dangerous.
+Milestone 17 repointed those at `declining.toml` / `declining-tuned.toml`; the test **followed
+automatically and passed**, and `minimal-tuned.toml` — still loaded by `BinWaitListTests` and
+`TreasuryFromAFileTests` — was left a hand-maintained copy of `minimal.toml` with **nothing** watching it
+drift. Caught during the repair rather than after it, and only because somebody asked what the pointer
+had been pointing at. *Repaired by asserting both pairs.*
+
+**Sighting 2 — `LotLongRunTests.The_hundred_thousand_Tick_lot_run`, 2026-08-26, and it is the same shape
+with the pointer on the OTHER side.** The test's subject is the **subdivider**, and it built its world
+with `GoldenFixtures.Rules()` — which means *whatever the committed baseline opens on*, not *a city that
+stands still*. Repointing the baseline at `declining.toml` gave a test about Lots a city in which
+Buildings fall down: `adr/0091` leaves a condemned Building standing as a **shell** and `adr/0079` has a
+Building outlive its frontage, so the share of Segment faces occupied by something nobody lives in
+climbs through the run and a bulldoze frees nothing on them. ✅ **Its vacuity guard caught it and named
+the cause correctly** — *carved Lots on only 15 of 97 edits … the second is a statement about the Zone
+Rule rather than about the subdivider* — which is a guard written in 2026-08-13 diagnosing a cause that
+did not exist yet. *Repaired by giving the test its own named Ruleset, `GoldenFixtures.StaticRules()`.*
+
+⚠ **The tempting reading is that the test should have used a literal, and that is wrong** — a literal is
+`plans/0012` **Cause 1** and drifts the other way. ***The property that matters is coverage of a set,
+and a pointer names a member.*** A guard over "the two golden Rulesets" is a guard over a set that
+changed size when nobody said so.
+
+### Candidate B — a sample rate derived from the run's length cannot see a phenomenon whose period comes from the Day
+
+**Sighting 1 — `The_session_sends_people_to_work_without_a_trip_command`, 2026-08-13.** It read the final
+Tick alone. `adr/0094` took the Day to 2,048 Ticks, the departure window fell 2,731 → **683**, and the
+session finished a whole Day's commuting with time to spare — so the one instant it read found the quiet
+*after* the wave. **Coverage went up and the assertion measuring it went to zero.** Repaired by sampling
+eight times across the run.
+
+**Sighting 2 — the same test, 2026-08-26, and the repair is what recurred.** Eight samples across the run
+is a *stride equal to one eighth of the session*. Milestone 17 took the session 2,048 → 8,192 Ticks, so
+the stride went 256 → **1,024**, and every one of the eight looks landed past 683 and short of the next
+Day's window. ***The city was commuting exactly as much as before.*** The fix had inherited the defect
+one level along, because it was still denominated in the run rather than in the thing being looked for.
+
+**The shape, which is what to carry**: ***a sampling interval is a bound and not a count.*** Anything
+periodic in the Day — departures, a Map Layer cadence, a revisit period, a decline threshold — has a
+window that does not move when a fixture's length does, so a sample rate stated as *N looks* aliases the
+moment somebody lengthens the run for an unrelated reason. State the interval against the window.
+*Repaired by a `Stride` of 256 Ticks, stated against the 683-Tick window and documented against it.*
+
+⚠ **Neither candidate is a mechanical check and both are recorded anyway.** A linter cannot tell a
+sampling stride that means to be a fraction of the run from one that has aliased, and cannot tell a
+pointer-following guard that still covers its set from one that no longer does. What is available is a
+question for whoever moves a fixture: ***what was this pointing at, and what is watching that now?***
