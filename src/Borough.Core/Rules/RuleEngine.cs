@@ -148,6 +148,17 @@ public sealed class RuleEngine
     /// </remarks>
     private const long Unbounded = long.MaxValue;
 
+    /// <summary>
+    /// What <see cref="Buy"/> answers when the premises stand in no District at all.
+    /// </summary>
+    /// <remarks>
+    /// <b>Distinct from <see cref="Rows.NoSlot"/>, which that method uses for *settled*, and from a
+    /// Bin slot, which it uses for *blocked on this*.</b> The three answers are three different
+    /// cities: a purchase happened, a purchase is waiting on a market, and there is no market to wait
+    /// on. The last re-arms rather than subscribing, and the reason is at the call site.
+    /// </remarks>
+    private const int Marketless = -2;
+
     private readonly World _world;
     private readonly WorldKey _key;
 
@@ -163,6 +174,19 @@ public sealed class RuleEngine
     private int[] _touchedBin = new int[8];
     private long[] _touchedDelta = new long[8];
     private int _touchedCount;
+
+    // Which Bin to NAME when a touch cannot carry its delta, which is the touched Bin itself for
+    // every term but one. A purchase draws on a seller's own Bin and must blame the MARKET ROW
+    // (adr/0139): a buyer parked on one shop's Bin is woken by that shop alone and sleeps through
+    // every other seller in the District restocking. See Buy.
+    private int[] _touchedBlame = new int[8];
+
+    // The pool draws of the Rule currently being checked, per application: which market row and how
+    // much. Read by Fire to post DistrictPoolTable.Consumed, which is the tatonnement's numerator
+    // and had no writer at all before this. Term structure, which the netted deltas above have lost.
+    private int[] _boughtRow = new int[4];
+    private long[] _boughtAmount = new long[4];
+    private int _boughtCount;
 
     // 02 §4's counters. The first three are the Tick in flight; CloseTick folds them into the second
     // three, which are the interval a Census reading drains.
@@ -468,9 +492,36 @@ public sealed class RuleEngine
         }
 
         _touchedCount = 0;
+        _boughtCount = 0;
 
         foreach (Term term in _world.Rules.Inputs(rule))
         {
+            if (term.Bin.Scope == Scope.Pool)
+            {
+                // A purchase is one term and three deltas, so it cannot go through Touch(Bin(...)).
+                // It also fails BEFORE the affordability walk when no seller can cover a batch, which
+                // is a district-wide shortage rather than one Bin being short.
+                int unsupplied = Buy(instance, rule, term, floor);
+
+                if (unsupplied == Marketless)
+                {
+                    // ⚠ A SUCCESS AT ZERO APPLICATIONS, and RuleVerdict.Succeeded's own remark is
+                    // the argument: "it re-arms on its rate, waits on nothing, and moves nothing,
+                    // because there is no Bin that could ever wake it." A buyer whose premises stand
+                    // in no District is that sentence exactly -- the market row it would wait on has
+                    // not been opened, so subscribing is not expressible and the honest answer is to
+                    // try again on the rate. The window is bounded by [districts] revisit_ticks.
+                    return RuleVerdict.Fire(instance, rule, 0);
+                }
+
+                if (unsupplied != Rows.NoSlot)
+                {
+                    return RuleVerdict.Stopped(instance, rule, unsupplied, Blocking.Supply);
+                }
+
+                continue;
+            }
+
             Touch(Bin(_world, instance, term.Bin, rule), -term.Amount);
         }
 
@@ -495,7 +546,7 @@ public sealed class RuleEngine
 
                 if (affordable < floor)
                 {
-                    return RuleVerdict.Stopped(instance, rule, bin, Blocking.Supply);
+                    return RuleVerdict.Stopped(instance, rule, _touchedBlame[i], Blocking.Supply);
                 }
             }
             else if (delta > 0)
@@ -505,7 +556,7 @@ public sealed class RuleEngine
 
                 if (affordable < floor)
                 {
-                    return RuleVerdict.Stopped(instance, rule, bin, Blocking.Space);
+                    return RuleVerdict.Stopped(instance, rule, _touchedBlame[i], Blocking.Space);
                 }
             }
             else
@@ -526,6 +577,163 @@ public sealed class RuleEngine
         }
 
         return RuleVerdict.Fire(instance, rule, applications);
+    }
+
+    /// <summary>
+    /// Resolves one <c>pool</c> input into a seller, a payment and three Bin deltas, or names the
+    /// market row nobody could supply from.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>adr/0050</c>'s whole sentence, and it is the one term in the design a designer does not
+    /// author in full.</b> The Good moves one way and money the other at the prevailing price, settled
+    /// atomically with the Rule: the seller's stock falls by the term's <c>amount</c>, the buyer's
+    /// balance falls by <c>amount × price</c>, and the seller's balance rises by the same. ***Money is
+    /// conserved across a purchase because the two money legs are one number with two signs*** — there
+    /// is no leg to the treasury and none to nowhere.
+    /// </para>
+    /// <para>
+    /// <b>The counterparty is one seller, chosen here</b> (<c>adr/0139</c>): the Pool is a market and
+    /// not a store, so the stock is in the selling Business's own Bin and a <c>pool</c> term names a
+    /// counterparty rather than a container. The candidates are the market row's sellers, which is the
+    /// District's connectivity already applied.
+    /// </para>
+    /// <para>
+    /// <b>⚠ The draw picks a START and the walk is first-fit from it, which is <c>02 §8</c> rule 5.</b>
+    /// Every seller in a District charges the market row's price, so *cheapest* is not a discriminator
+    /// and first-fit from the head would give the shop nearest the head every sale for the life of the
+    /// city — the rule's own worked failure with list position standing in for entity id.
+    /// <see cref="PurposeTag.SellerChoice"/> carries the rest.
+    /// </para>
+    /// <para>
+    /// <b>⚠ A seller must hold a whole batch — <c>floor × amount</c> — and one below it cannot sell.</b>
+    /// That is <c>adr/0139</c>'s surviving consequence stated in code: a Rule fails only when *no*
+    /// seller in the District holds a batch, which is a genuine district-wide shortage and the correct
+    /// failure. It is not the atomicity objection that record withdrew, because the band a shipped
+    /// production Rule declares is one batch rather than a day's appetite.
+    /// </para>
+    /// <para>
+    /// <b>⚠ It returns the MARKET ROW's Bin on failure and never the seller's</b>, and that is open
+    /// decision 2 of <c>plans/0044</c> resolved for the supply half. A buyer parked on one shop's Bin
+    /// is woken by that shop alone; parked on the market it is woken by any seller's deposit — which
+    /// is what <c>World.RingMarket</c> exists to do. <b>Short of money is a different failure and
+    /// blames the buyer's own balance</b>, reached through the affordability walk in the ordinary way,
+    /// because the Good leg is touched first and <see cref="Check"/> blames the first short Bin.
+    /// </para>
+    /// </remarks>
+    /// <returns>
+    /// <see cref="Rows.NoSlot"/> when a seller was found, or the market row's Bin when none was.
+    /// </returns>
+    private int Buy(int instance, RuleId rule, in Term term, long floor)
+    {
+        int market = Bin(_world, instance, term.Bin, rule);
+
+        if (market == Rows.NoSlot)
+        {
+            return Marketless;
+        }
+
+        int row = MarketRow(_world, instance, term.Bin.Resource);
+
+        long batch = floor * term.Amount;
+        int sellers = _world.Markets.SellerCount(_world, row);
+
+        if (sellers == 0)
+        {
+            return market;
+        }
+
+        // Keyed on the buying Rule Instance's monotonic id, so it is a lottery number the buyer holds
+        // rather than a rotation the whole District performs in step.
+        ulong draw = Randomness.Draw(
+            _key, _world.RuleInstances.Rows.IdAt(instance), _world.Tick, PurposeTag.SellerChoice);
+
+        int start = (int)(draw % (ulong)sellers);
+        var seller = new Space.Offer(Rows.NoSlot, Rows.NoSlot);
+
+        for (int i = 0; i < sellers; i++)
+        {
+            Space.Offer candidate = _world.Markets.Seller(_world, row, (start + i) % sellers);
+
+            if (_world.Bins.LevelAt(candidate.Bin) >= batch)
+            {
+                seller = candidate;
+                break;
+            }
+        }
+
+        if (seller.Bin == Rows.NoSlot)
+        {
+            return market;
+        }
+
+        if (!_world.TryMoneyResource(out ResourceId money))
+        {
+            throw new InvalidOperationException(
+                $"rule {rule.Raw} buys from a District Pool and this Ruleset declares no Resource "
+                + "whose family is money. A purchase crosses an ownership boundary, so the Good moves "
+                + "one way and money the other at the prevailing price (adr/0050) -- there is no "
+                + "spelling of a pool term that moves only the Good. A file with a pool term and no "
+                + "money Resource is refusable at load and no refusal does so yet.");
+        }
+
+        int purse = _world.FindLocalBin(instance, money);
+
+        if (purse == Rows.NoSlot)
+        {
+            throw new InvalidOperationException(
+                $"rule {rule.Raw} buys from a District Pool and the subject running it holds no "
+                + "balance to pay from. A balance is a Bin belonging to a Household or a Business "
+                + "(adr/0113, adr/0114) and a Building never holds money, so this is a PREMISES Rule "
+                + "with a pool term -- the landlord shopping. Give the Rule a local term whose Bin is "
+                + "owner = \"occupant\" or owner = \"business\" and RulesetLoader.ApplyTenancies will "
+                + "derive the payer.");
+        }
+
+        long payment = term.Amount * _world.DistrictPools.Price[row].Raw;
+        int till = _world.Bins.Rows.Resolve(_world.Businesses.Balance[seller.Business]);
+
+        Touch(seller.Bin, -term.Amount, market);
+        Touch(purse, -payment);
+        Touch(till, payment);
+
+        Grow(ref _boughtRow, _boughtCount + 1);
+        Grow(ref _boughtAmount, _boughtCount + 1);
+
+        _boughtRow[_boughtCount] = row;
+        _boughtAmount[_boughtCount] = term.Amount;
+        _boughtCount++;
+
+        return Rows.NoSlot;
+    }
+
+    /// <summary>
+    /// The <c>DistrictPoolTable</c> row marketing a Resource where a Rule Instance stands.
+    /// </summary>
+    /// <remarks>
+    /// <b>Premises, then Lot, then Cell, then the residency index</b> — the same chain
+    /// <see cref="Emit"/> walks for a Map emission, and the one
+    /// <c>Space.DistrictResidency.Of</c>'s own remark says a Building's District goes through. ⚠ <b>A
+    /// Building carries no District handle and must not</b>: it would be a copy that goes stale the
+    /// first time the watershed moves a boundary.
+    /// </remarks>
+    internal static int MarketRow(World world, int instance, ResourceId resource)
+    {
+        int building = world.Buildings.Rows.Resolve(world.RuleInstances.Building[instance]);
+
+        if (!world.Lots.Rows.TryResolve(world.Buildings.Lot[building], out int lotSlot))
+        {
+            return Rows.NoSlot;
+        }
+
+        Handle<District> district = world.DistrictsInCells.Of(
+            world.DistrictCells,
+            CellGrid.ToCells(world.Lots.East[lotSlot]),
+            CellGrid.ToCells(world.Lots.North[lotSlot]));
+
+        return world.Districts.Rows.TryResolve(district, out int districtSlot)
+            ? world.Markets.Row(world, districtSlot, resource)
+            : Rows.NoSlot;
     }
 
     /// <summary>Applies a Rule: its net Bin deltas, its Map emissions, and its re-arm.</summary>
@@ -563,6 +771,19 @@ public sealed class RuleEngine
             {
                 _world.Deposit(bin, delta, tick);
             }
+        }
+
+        // DistrictPoolTable.Consumed's FIRST WRITER, and the column shipped at milestone 12 task 6
+        // with none -- so every Day's bucket read zero, MarketRuleset.Reprice read that as NO TRADES,
+        // and the price sat at its ceiling on every world. It is the tatonnement's numerator: what
+        // the District drew since the last recompute, which the reprice zeroes.
+        //
+        // ⚠ Posted from the term list rather than from the netted deltas, because the deltas have
+        // lost which Bin was a purchase -- a seller's stock Bin is an ordinary Bin by the time Fire
+        // sees it. And posted here rather than in Check because Phase 2 writes nothing (adr/0037).
+        for (int i = 0; i < _boughtCount; i++)
+        {
+            _world.DistrictPools.Consumed[_boughtRow[i]] += _boughtAmount[i] * verdict.Applications;
         }
 
         int building = _world.Buildings.Rows.Resolve(_world.RuleInstances.Building[instance]);
@@ -684,6 +905,12 @@ public sealed class RuleEngine
 
         foreach (Term term in world.Rules.Inputs(rule))
         {
+            if (term.Bin.Scope == Scope.Pool)
+            {
+                net += PoolDraw(world, instance, term, rule, binSlot);
+                continue;
+            }
+
             if (Bin(world, instance, term.Bin, rule) == binSlot)
             {
                 net -= term.Amount;
@@ -704,6 +931,78 @@ public sealed class RuleEngine
         }
 
         return net > 0 ? floor * net : 0;
+    }
+
+    /// <summary>
+    /// What one application of a <see cref="Scope.Pool"/> term draws from <paramref name="binSlot"/>,
+    /// negative for a draw and zero when this Bin is not on either side of the purchase.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>This exists because a purchase's money leg has NO TERM, and a term walk therefore priced
+    /// it at zero.</b> <c>adr/0050</c>: *"there is no Ruleset syntax for the payment"*, the price is
+    /// emergent and the counterparty is implied by the scope. So a buyer stopped for want of funds
+    /// subscribed to its own balance, <c>RuleEngine.Stop</c> drained that Bin immediately as it always
+    /// does, <see cref="Requirement"/> answered **0**, and <c>World.Drain</c> woke it on the spot.
+    /// ***A wait that is undone by the drain that follows it is indistinguishable from no wait at
+    /// all***, so the buyer spun on its rate for ever, never appeared on any wait list, and reported
+    /// itself as armed.
+    /// </para>
+    /// <para>
+    /// ⚠ <b><c>adr/0137</c> predicted this failure and described it one layer up</b> — *"the cheapest
+    /// implementation returns insufficient funds and subscribes to nothing"*. Milestone 26 task 4 did
+    /// subscribe, which looked like the record's requirement being met; **the subscription was
+    /// cancelled a line later by shared code the purchase does not own**. ***Found by building
+    /// <c>adr/0137</c>'s own field and watching it read <c>—</c> on a world where every purse was
+    /// empty***, which is what an instrument is for (<c>adr/0093</c>: the code said one thing and the
+    /// run said another).
+    /// </para>
+    /// <para>
+    /// <b>Derived rather than stored, so <c>adr/0063</c> is kept rather than excepted.</b> The payment
+    /// is recomputable at drain time because <b>the price is a property of the market row and not of
+    /// the seller</b> — <c>adr/0167</c>, and it is the same fact that made *buy from the cheapest*
+    /// unavailable. ⚠ <b>So no seller has to be re-drawn here</b>, and this method deliberately does
+    /// not: a draw at drain time would be a second lottery with a different <c>purpose_tag</c>'s worth
+    /// of consequences, and it would answer a question nobody asked.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The money guard is first because this runs inside <c>World.Drain</c>.</b> Every deposit and
+    /// every withdrawal in the city reaches here once per waiter, so the ordinary case — a Good Bin,
+    /// which is every Bin in nine of the shipped files — must cost one column read and a comparison.
+    /// </para>
+    /// </remarks>
+    private static long PoolDraw(World world, int instance, in Term term, RuleId rule, int binSlot)
+    {
+        // The Good leg. Bin() resolves a pool term to the MARKET ROW's Bin for every caller but
+        // Check, which is adr/0139's wake target and what a blocked buyer actually sleeps on.
+        if (Bin(world, instance, term.Bin, rule) == binSlot)
+        {
+            return -term.Amount;
+        }
+
+        if (!world.Rules.IsConserved(world.Bins.Resource[binSlot]))
+        {
+            return 0;
+        }
+
+        if (!world.TryMoneyResource(out ResourceId money)
+            || world.FindLocalBin(instance, money) != binSlot)
+        {
+            // A money Bin, but not this buyer's. The seller's till is the ordinary case, and it is
+            // an output of the purchase rather than a draw on it.
+            return 0;
+        }
+
+        int row = MarketRow(world, instance, term.Bin.Resource);
+
+        if (row == Rows.NoSlot)
+        {
+            // Premises in no District yet. Check answers this with a fire at zero applications, so
+            // there is nothing waiting here and nothing to price.
+            return 0;
+        }
+
+        return -(term.Amount * world.DistrictPools.Price[row].Raw);
     }
 
     /// <summary>
@@ -770,6 +1069,14 @@ public sealed class RuleEngine
             for (int position = 0; position < terms; position++)
             {
                 int bin = BinAt(world, instance, rule, inputs, outputs, position);
+
+                // A pool term whose District does not exist yet resolves to nothing, and there is no
+                // Bin for its claim to be recorded against. It claims nothing because it cannot fire
+                // -- Check answers zero applications for exactly this Rule Instance.
+                if (bin == Rows.NoSlot)
+                {
+                    continue;
+                }
 
                 // Requirement nets every term naming this Bin, so a Bin that two terms name must be
                 // counted once. The rescan is over a Rule's own term list, which is a handful.
@@ -873,14 +1180,46 @@ public sealed class RuleEngine
                 return slot;
 
             case Scope.Pool:
-                throw new NotSupportedException(
-                    "the District Pool does not exist. The pool scope requires road connectivity, "
-                    + "which arrives with Phase 2 of the roadmap; until then a pool term is a named "
-                    + "hole rather than a Bin that is always empty. NOTE (adr/0050): the Pool is a "
-                    + "MARKET, not a wider Bin lookup. A pool term crosses an ownership boundary, so "
-                    + "the Good moves one way and money the other at the prevailing price, settled "
-                    + "atomically with the Rule. Implementing this as a Bin lookup ships an "
-                    + "unconserved economy, and no refusal can catch that.");
+                // ⚠ THE MARKET ROW'S BIN AND NEVER A SELLER'S (adr/0139). This is the Bin a pool term
+                // NAMES -- the wake target a blocked buyer parks on, and the address every caller but
+                // Check wants: BinAt, AccumulateClaims and Requirement all reason about where a
+                // waiter sleeps rather than about who supplied it. The three deltas a purchase
+                // actually settles are Check's alone, through Buy, because a term is 1:1 here and a
+                // purchase is 1:3. Its level is always zero and that is not a stub: the Pool is a
+                // market and not a store, so the stock is in the selling Business's own Bin and this
+                // row is the price, the wake target and the reachable sellers.
+                // 🔴 A RULESET WITH A POOL TERM AND NO [districts] TABLE HAS NO MARKET AND NEVER
+                // WILL, which is a different thing from not having one YET and must not share its
+                // answer. Firing at zero for ever is the "loads clean and misbehaves in silence"
+                // shape adr/0048 refuses outright, and it would be silent in exactly the file whose
+                // whole point is the purchase. ⚠ THE REFUSAL BELONGS AT LOAD, with a file and a
+                // line; it is here because the loader has no such check yet, and that debt is filed
+                // rather than assumed.
+                if (!world.Rules.Districts.Runs)
+                {
+                    throw new NotSupportedException(
+                        $"rule {rule.Raw} names pool Resource {reference.Resource.Raw} and this "
+                        + "Ruleset states no [districts] table, so the city has no Districts, no "
+                        + "Pools and no markets -- a pool term in it can never resolve. NOTE "
+                        + "(adr/0050, adr/0139): the Pool is a MARKET, not a wider Bin lookup. A "
+                        + "pool term crosses an ownership boundary, so the Good moves one way and "
+                        + "money the other at the prevailing price, settled atomically with the "
+                        + "Rule. rulesets/provisioned.toml is the smallest shipped file that "
+                        + "carries one.");
+                }
+
+                int row = MarketRow(world, instance, reference.Resource);
+
+                // ⚠ NoSlot RATHER THAN A THROW, and the case is ordinary rather than exceptional:
+                // the watershed runs on [districts] revisit_ticks, so a Building raised between two
+                // evaluations stands on ground no District has claimed for up to a Day. Every caller
+                // handles it -- Check fires at zero, Requirement nets nothing and the claim walk
+                // skips it -- and none of them may throw, because AccumulateClaims walks every armed
+                // Rule Instance at end of run whether or not it ever fired (plans/0044 F14).
+                return row != Rows.NoSlot
+                    && world.Bins.Rows.TryResolve(world.DistrictPools.Bin[row], out int pool)
+                        ? pool
+                        : Rows.NoSlot;
 
             case Scope.Global:
                 // The entity decision this case waited on is adr/0114's: a Bin's owner is
@@ -963,7 +1302,22 @@ public sealed class RuleEngine
     /// A linear scan because a Rule's term list is a handful — <c>02 §4.3</c>'s bakery has two — so
     /// anything cleverer would cost more to set up than the scan costs to run.
     /// </remarks>
-    private void Touch(int bin, long delta)
+    private void Touch(int bin, long delta) => Touch(bin, delta, bin);
+
+    /// <summary>Accumulates a delta against a Bin, merging a Bin already named by this Rule.</summary>
+    /// <remarks>
+    /// <para>
+    /// A linear scan because a Rule's term list is a handful — <c>02 §4.3</c>'s bakery has two — so
+    /// anything cleverer would cost more to set up than the scan costs to run.
+    /// </para>
+    /// <para>
+    /// <b><paramref name="blame"/> is the Bin a failure NAMES, which is the Bin itself except for a
+    /// purchase.</b> The first writer wins where two terms merge, so a Bin a Rule both buys from and
+    /// touches directly keeps the market's blame — the reading that sends the waiter somewhere a
+    /// restock can reach it.
+    /// </para>
+    /// </remarks>
+    private void Touch(int bin, long delta, int blame)
     {
         for (int i = 0; i < _touchedCount; i++)
         {
@@ -976,9 +1330,11 @@ public sealed class RuleEngine
 
         Grow(ref _touchedBin, _touchedCount + 1);
         Grow(ref _touchedDelta, _touchedCount + 1);
+        Grow(ref _touchedBlame, _touchedCount + 1);
 
         _touchedBin[_touchedCount] = bin;
         _touchedDelta[_touchedCount] = delta;
+        _touchedBlame[_touchedCount] = blame;
         _touchedCount++;
     }
 

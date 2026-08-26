@@ -406,7 +406,14 @@ public static class WorldInvariants
             // second traversal. ⚠ A tenant's MONEY Bin is not one of these: its ceiling is 04 §2's
             // and needs no owner at all, so it falls through to the check below on the treasury's
             // reasoning rather than on the premises'.
-            if (bins.OwnerKind[bin] == BinOwnerKind.Household
+            // ⚠ EITHER TENANCY, and the Business arm was missing until milestone 26 task 4 reached
+            // it. adr/0166 gave a Business its own Bins with the premises' ceiling (adr/0141) and
+            // RebuildCapacities grew the owner walk for them; this check did not, so a Business-owned
+            // Good Bin fell through to the `must be long.MaxValue` branch below and failed. ***No
+            // world could reach it***: rulesets/provisioned.toml is the only file declaring
+            // owner = "business" on a Good and Scope.Pool threw before the end-of-run walk ran.
+            if ((bins.OwnerKind[bin] == BinOwnerKind.Household
+                    || bins.OwnerKind[bin] == BinOwnerKind.Business)
                 && bins.Resource[bin].Raw <= world.Rules.ResourceCount
                 && !world.Rules.IsConserved(bins.Resource[bin]))
             {
@@ -460,6 +467,44 @@ public static class WorldInvariants
                 : (byte)0;
 
             Handle<Bin> at = households.BinHead[slot];
+
+            while (!at.IsNone)
+            {
+                int owned = bins.Rows.Resolve(at);
+                ResourceId held = bins.Resource[owned];
+
+                if (held.Raw <= world.Rules.ResourceCount && !world.Rules.IsConserved(held))
+                {
+                    report.Require(
+                        bins.Capacity[owned] == world.DeclaredCapacity(kind, held),
+                        Invariant.BinCapacityMatchesItsDeclaration,
+                        owned,
+                        bins.Capacity[owned]);
+                }
+
+                at = bins.OwnerNext[owned];
+            }
+        }
+
+        // The other tenant's Bins, walked from its own owner row -- FitBusiness' twin of the loop
+        // above, for FitBusiness' own reason: the set of Bins comes from the PREMISES' kind in both,
+        // because a ceiling is a function of (building kind, Resource) and neither tenant has a kind
+        // of its own. ⚠ An unpremised Business is checked at kind zero exactly as an unhoused
+        // Household is, and holds only its balance (adr/0142, adr/0144).
+        BusinessTable businesses = world.Businesses;
+
+        for (int slot = 0; slot < businesses.Rows.SlotCount; slot++)
+        {
+            if (!businesses.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            byte kind = world.Buildings.Rows.TryResolve(businesses.Building[slot], out int premises)
+                ? world.Buildings.Kind[premises]
+                : (byte)0;
+
+            Handle<Bin> at = businesses.BinHead[slot];
 
             while (!at.IsNone)
             {

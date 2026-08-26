@@ -1,6 +1,7 @@
 using Borough.Core;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
+using Borough.Core.Evidence;
 using Borough.Core.Input;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
@@ -9,7 +10,8 @@ using Borough.Formats;
 namespace Borough.Tests.Rules;
 
 /// <summary>
-/// Milestone 26 task 3: <c>rulesets/provisioned.toml</c> — <b>it loads and it does not run.</b>
+/// <c>rulesets/provisioned.toml</c> — <b>it loaded and did not run at task 3, and it trades at
+/// task 4.</b>
 /// </summary>
 /// <remarks>
 /// <para>
@@ -25,8 +27,17 @@ namespace Borough.Tests.Rules;
 /// write would leave *does the loader agree with the engine about what a pool term is* unanswered
 /// until task 4, and the two disagreeing by one scope is the only thing standing between this file
 /// and a running market. ***When task 4 resolves the scope, this file starts working with no edit to
-/// it*** — and <see cref="It_loads_and_does_not_run"/> is the test that must then be rewritten, on
-/// purpose. It is a milestone marker as much as an assertion.
+/// it*** — and that is what happened: the second half is now
+/// <see cref="It_runs_and_the_market_trades"/>, rewritten on the day rather than deleted, so the
+/// marker records which milestone moved it.
+/// </para>
+/// <para>
+/// 🔴 <b>⚠ THE FILE DID NEED ONE EDIT, AND IT WAS NOT THE SCOPE.</b> It states no
+/// <c>[households]</c> table, so every Household opened at a zero balance and nothing in the build
+/// ever issued one a penny — no wage, no gate, no policy. The first run after <c>Scope.Pool</c>
+/// resolved therefore failed every purchase on the MONEY leg, at Tick 0, for ever: the shops filled
+/// and nobody bought. ***A world that loads, runs and demonstrates nothing is the failure this class
+/// was written to make visible, arriving one leg over from where it was looked for.***
 /// </para>
 /// <para>
 /// ⚠ <b>The throw does not come from a Rule firing, which is worth knowing before debugging it.</b>
@@ -129,10 +140,34 @@ public sealed class ProvisionedRulesetTests
     }
 
     /// <summary>
-    /// The second half, and the one that must be rewritten when task 4 lands: <b>it does not run.</b>
+    /// The second half, rewritten at task 4 as its own doc said it would be: <b>it runs, and it
+    /// trades.</b>
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A Business holding money is the assertion, and nothing else in this world could have put it
+    /// there.</b> A Business opens at a zero balance — <c>adr/0144</c> for a founded one and
+    /// <c>adr/0148</c> for an instantiated one, and this file founds none — there is no wage
+    /// (<c>adr/0026</c>, milestone 15), no <c>[[policy]]</c>, and no gate. ***So the only door money
+    /// can reach a grocer through is a sale***, which makes one line stand for the whole of
+    /// <c>adr/0050</c>: the Good moved one way and the money the other, settled atomically.
+    /// </para>
+    /// <para>
+    /// <b>Conservation is asserted by <c>CheckEndOfRun</c> and not restated here.</b>
+    /// <c>Invariant.MoneyIsConserved</c> folds every balance against
+    /// <c>MoneySupplyTable.Issued</c>, which only <c>World.Endow</c> moves — so a purchase that
+    /// created or destroyed a unit fails there, on a walk this test already performs. Restating it
+    /// would be a second spelling that has to agree for ever.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The run must outlast the watershed's cadence, and that is why it is Ticks in the
+    /// thousands rather than 64.</b> A shop has to be raised on trade land, take a tenancy, stock its
+    /// Bin, and stand in a District — and a District arrives on <c>[districts] revisit_ticks</c>,
+    /// which is 2,048 here. A shorter run tests that nothing throws and nothing more.
+    /// </para>
+    /// </remarks>
     [Fact]
-    public void It_loads_and_does_not_run()
+    public void It_runs_and_the_market_trades()
     {
         Ruleset rules = Load();
 
@@ -141,22 +176,182 @@ public sealed class ProvisionedRulesetTests
 
         SyntheticCity.PopulateInto(world, key, Ticks.Zero);
 
-        var simulation = new Simulation(world, key);
+        // Off for the long-run tests' reason, and it matters more on this file than on most: the
+        // guard folds the whole world twice a Tick, and this world is twinned.toml's TWO paved
+        // lattices. It asks whether Phase 2 wrote a column; what a purchase writes in Phase 2 is
+        // engine scratch and a derived index, neither of which is a column, and ReplayTests and the
+        // golden baseline hold the property for the build as a whole.
+        var simulation = new Simulation(world, key) { VerifyDecideWritesNothing = false };
 
-        string refusal = Assert.Throws<NotSupportedException>(
-            () =>
+        for (int tick = 0; tick < 6_144; tick++)
+        {
+            simulation.Step(TickInput.Empty);
+
+            // ⚠ THE POOL'S OWN BINS STAY EMPTY FOR EVER, and that is what a market rather than a
+            // store MEANS (adr/0139). It is the assertion that would catch the one failure no other
+            // test in this repository can: plans/0044's "must not implement Scope.Pool as a wider Bin
+            // lookup", which ships an unconserved economy, and whose tell is stock appearing in a Bin
+            // nobody sells from. Asserted every Tick and inside this run rather than in a second one,
+            // because a second 6,144-Tick run costs the assertion tier the same again for one
+            // predicate.
+            for (int row = 0; row < world.DistrictPools.Rows.SlotCount; row++)
             {
-                for (int tick = 0; tick < 64; tick++)
+                if (world.DistrictPools.Rows.IsLive(row)
+                    && world.Bins.Rows.TryResolve(world.DistrictPools.Bin[row], out int pool))
                 {
-                    simulation.Step(TickInput.Empty);
+                    Assert.Equal(0, world.Bins.LevelAt(pool));
+                }
+            }
+        }
+
+        // Every invariant, including MoneyIsConserved across every purchase the run settled.
+        simulation.CheckEndOfRun();
+
+        long earned = 0;
+        int sellers = 0;
+
+        for (int slot = 0; slot < world.Businesses.Rows.SlotCount; slot++)
+        {
+            if (!world.Businesses.Rows.IsLive(slot)
+                || !world.Bins.Rows.TryResolve(world.Businesses.Balance[slot], out int balance))
+            {
+                continue;
+            }
+
+            long held = world.Bins.LevelAt(balance);
+
+            if (held > 0)
+            {
+                earned += held;
+                sellers++;
+            }
+        }
+
+        Assert.True(
+            sellers > 0,
+            "no Business in this world holds a penny, so no purchase ever settled. A grocer opens at "
+            + "zero and this file has no wage, no policy and no gate, so a sale is the only way money "
+            + "reaches one. Check that Households were endowed -- [households] opening_balance_max -- "
+            + "before looking at Scope.Pool.");
+
+        Assert.True(earned > 0);
+    }
+
+    /// <summary>
+    /// <b>Bankruptcy and starvation are different sentences, and this is the world that produces
+    /// both</b> — <c>adr/0137</c>, and milestone 26's Definition of done.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>What it asserts is that the three failures are TOLD APART, not that each is common.</b>
+    /// Before <c>adr/0137</c>'s field, every one of them surfaced as <c>Blocked = Supply</c> and a
+    /// reader had nothing else to go on — so a test that only counted blocked Rules would have passed
+    /// against the defect. ***The assertion is on the discriminator and never on the volume.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The three are reachable only because this file has a purchase in it.</b> A Rule short of a
+    /// Good sleeps on a Bin its own premises or tenant owns; a buyer whose District has no stocked
+    /// seller sleeps on the <b>market row</b>, which a District owns (<c>adr/0139</c>,
+    /// <c>adr/0167</c>); and a buyer that cannot pay sleeps on its own <b>money</b> Bin. On
+    /// <c>minimal.toml</c> only the first exists, which is why no world before this one could have
+    /// been the acceptance test.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>The money leg subscribes because the purchase TOUCHES it, and that is the half
+    /// <c>adr/0137</c> predicted would be skipped.</b> That record warned that a Pool draw failing for
+    /// want of money has *"no term and therefore no Bin to subscribe to"*, and that the cheapest
+    /// implementation returns insufficient funds and subscribes to nothing. Milestone 26 task 4 made
+    /// it unskippable by shape rather than by discipline: <c>RuleEngine.Buy</c> pushes all three legs
+    /// through <c>Touch</c>, so the money leg is walked by the same affordability loop as every
+    /// authored term and blames its Bin by the same rule. ***This test is what would notice if that
+    /// ever stopped being true.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It walks every Building rather than the worst one</b>, because the worst Building is
+    /// chosen by pressure and the pressure leader on this file is a <c>consume</c> Rule starving in an
+    /// ordinary larder — so the panel a human reads first is exactly the one that shows none of what
+    /// is being asserted here.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void Bankruptcy_starvation_and_a_district_shortage_are_told_apart()
+    {
+        Ruleset rules = Load();
+
+        var key = WorldKey.FromSeed(0x9A0FEDU);
+        var world = new World(1_000, rules, key);
+
+        SyntheticCity.PopulateInto(world, key, Ticks.Zero);
+
+        var simulation = new Simulation(world, key) { VerifyDecideWritesNothing = false };
+
+        bool larder = false;
+        bool market = false;
+        bool broke = false;
+
+        for (int tick = 0; tick < 6_144; tick++)
+        {
+            simulation.Step(TickInput.Empty);
+
+            for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
+            {
+                if (!world.Buildings.Rows.IsLive(slot))
+                {
+                    continue;
                 }
 
-                simulation.CheckEndOfRun();
-            }).Message;
+                BuildingEvidence evidence =
+                    Core.Evidence.Evidence.OfBuilding(world, world.Buildings.Rows.At(slot));
 
-        // The refusal names the mechanism rather than the symbol, because what a reader needs here is
-        // *which milestone owns this hole* and not which line threw.
-        Assert.Contains("the District Pool does not exist", refusal);
-        Assert.Contains("adr/0050", refusal);
+                foreach (RuleEvidence rule in evidence.Rules.ToArray())
+                {
+                    if (rule.WaitingOn == BinOwnerKind.None)
+                    {
+                        // Not asleep, so it names no Bin. The unset pair is the ordinary case and is
+                        // asserted below rather than here.
+                        continue;
+                    }
+
+                    Assert.NotEqual(default, rule.WaitingFor);
+
+                    if (rules.IsConserved(rule.WaitingFor))
+                    {
+                        broke = true;
+                    }
+                    else if (rule.WaitingOn == BinOwnerKind.District)
+                    {
+                        market = true;
+                    }
+                    else
+                    {
+                        larder = true;
+                    }
+                }
+            }
+
+            if (larder && market && broke)
+            {
+                break;
+            }
+        }
+
+        Assert.True(
+            larder,
+            "no Rule in this world ever slept on a Good Bin owned by its own premises or tenant, "
+            + "which is the ordinary starvation every shipped file produces. If this is the only "
+            + "one failing, suspect the walk rather than the field.");
+
+        Assert.True(
+            market,
+            "no buyer ever slept on a DISTRICT-owned Bin, so either no purchase ever ran short of a "
+            + "seller or the wait is landing on the seller's own Bin instead of on the market row. "
+            + "The second would be adr/0167 broken -- a buyer parked on one shop sleeps through "
+            + "every other shop in the District restocking.");
+
+        Assert.True(
+            broke,
+            "no buyer ever slept on a MONEY Bin, so the purchase failed for want of funds without "
+            + "subscribing to anything -- which is exactly the half adr/0137 said would be skipped. "
+            + "Check that RuleEngine.Buy still Touches the purse rather than checking it separately.");
     }
 }

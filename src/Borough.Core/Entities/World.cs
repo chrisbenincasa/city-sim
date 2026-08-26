@@ -543,6 +543,18 @@ public sealed class World
     public Space.DistrictPoolTable DistrictPools { get; }
 
     /// <summary>
+    /// Where a purchase looks — a District's market row for a Good, and the sellers standing in it.
+    /// </summary>
+    /// <remarks>
+    /// <b>Rebuilt whole rather than maintained</b> (<see cref="Space.DistrictMarkets"/>, which carries
+    /// the argument), and the writers that invalidate it are the two ends of a Business's tenancy,
+    /// the two ends of a Pool row, and the watershed. ⚠ <b>It is not <see cref="FindDistrictPoolBin"/>
+    /// with an index in front of it</b>: that walk stays, because it is what the rebuild reads and a
+    /// lookup that consulted the thing it builds could not build it.
+    /// </remarks>
+    public Space.DistrictMarkets Markets { get; } = new();
+
+    /// <summary>
     /// The Water Bodies and which one each drains into. <b>Generated once and never written again.</b>
     /// </summary>
     /// <remarks>
@@ -2261,6 +2273,10 @@ public sealed class World
     /// </remarks>
     public void EvaluateDistricts()
     {
+        // A boundary that moves changes which market a shop sells in, and nothing about the shop
+        // changed -- which is the one invalidation that is not a lifecycle event.
+        Markets.Invalidate();
+
         Space.DistrictWatershed.Evaluate(this);
 
         // After, and never before. A District opened by the evaluation has no Pool until this runs,
@@ -2547,6 +2563,11 @@ public sealed class World
         // Districts the world had rather than the ones its field would support today. That
         // distinction is the whole of why DistrictCellTable is Saved and this is not.
         DistrictsInCells.Rebuild(DistrictCells);
+
+        // Not rebuilt here, invalidated. It reads Businesses, Buildings, Lots and the Cell index --
+        // the last of which is the line above -- and the Rule Instance threading below has not run
+        // yet. A flag costs one O(n) pass at the first query and cannot be got wrong by ordering.
+        Markets.Invalidate();
 
         IndexList buildingRules = BuildingRules;
         for (int slot = 0; slot < RuleInstances.Rows.SlotCount; slot++)
@@ -3274,6 +3295,14 @@ public sealed class World
             int binSlot = Bins.Rows.Resolve(at);
             Handle<Bin> next = Bins.OwnerNext[binSlot];
 
+            if (!Rules.IsConserved(Bins.Resource[binSlot]))
+            {
+                // A seller left the market with its stock. Narrowed to this branch for
+                // CreateTraderBin's reason: the balance below survives the tenancy and was never
+                // merchandise, and most Businesses in this build hold nothing else.
+                Markets.Invalidate();
+            }
+
             if (Rules.IsConserved(Bins.Resource[binSlot]))
             {
                 Bins.OwnerNext[binSlot] = default;
@@ -3468,11 +3497,13 @@ public sealed class World
     /// <b>A walk, and it is a walk over the whole join rather than over one District's list.</b>
     /// <see cref="FindTreasuryBin"/> and <see cref="FindBin"/> each walk an intrusive list because
     /// their owner rows carry a head; a Pool's owner row does not, because the relation is saved in
-    /// <see cref="Space.DistrictPoolTable"/> rather than threaded. ⚠ <b>Every caller today is cold</b>
+    /// <see cref="Space.DistrictPoolTable"/> rather than threaded. ⚠ <b>Every caller here is cold</b>
     /// — opening a Pool, and retiring one — and the table is one row per Good per District, so the
-    /// product is small twice over. <c>Scope.Pool</c> is what puts a lookup on the hot path, and the
-    /// index that wants building is <c>plans/0037</c> task 7's rather than a thing to add before
-    /// anything measures it.
+    /// product is small twice over. ✅ <b>The hot path arrived with the purchase and does not come
+    /// through here</b>: <see cref="Space.DistrictMarkets"/> is the <c>(District, Resource) → row</c>
+    /// index milestone 26 task 4 owed, and this walk is what its rebuild reads. ***A lookup that
+    /// consulted the thing it builds could not build it***, which is why the walk stays rather than
+    /// being replaced.
     /// </remarks>
     public int FindDistrictPoolBin(int districtSlot, ResourceId resource)
     {
@@ -3536,6 +3567,8 @@ public sealed class World
         Handle<Bin> handle = Bins.Create(BinOwnerKind.District, resource, long.MaxValue);
 
         DistrictPools.Create(district, handle, Rules.ImportCeiling(resource));
+
+        Markets.Invalidate();
 
         return handle;
     }
@@ -3856,13 +3889,22 @@ public sealed class World
     /// and any other rule would make identity and succession disagree about the same Cell.
     /// </para>
     /// <para>
-    /// 🔴 <b>A District can die with NO heir, and this destroys Goods when it does.</b> Demolish
-    /// everything in a District and its centre Cell stops being built, so nothing owns it and there is
-    /// no row to move stock into. <c>04 §2</c> forbids that outright. It is not a live defect
-    /// <em>today</em> and the reason is exact rather than lucky: <c>Scope.Pool</c> throws, so nothing
-    /// in the build can put a unit into a Pool, and every Pool is empty at every moment.
-    /// <see cref="Invariant.ADistrictDiesWithAnHeirOrAnEmptyPool"/> is what makes that a check instead
-    /// of a hope, and what will fail on the day task 7 opens the scope.
+    /// 🔴 <b>A District can die with NO heir, and this would destroy Goods if a Pool ever held any.
+    /// It cannot, and the reason changed at milestone 26 without this transfer being reached once.</b>
+    /// ⚠ <b>The paragraph below predicted the wrong trigger and is kept so the correction is legible:
+    /// it said the check <em>"will fail on the day task 7 opens the scope"</em>, and task 4 opened
+    /// the scope and it did not.</b> <c>adr/0139</c> — written the day after this comment — makes the
+    /// Pool a <b>market and not a store</b>: the stock stays in the selling Business's own Bin and the
+    /// market row is a price, a wake target and a list of reachable sellers. ***So nothing deposits
+    /// into a Pool Bin in this build either, and <c>held</c> is zero for ever by a different
+    /// argument.*** <see cref="Invariant.ADistrictDiesWithAnHeirOrAnEmptyPool"/> still makes that a
+    /// check instead of a hope, and <c>ProvisionedRulesetTests</c> asserts the same thing every Tick
+    /// of a run on the one world that trades. <b>The transfer below is therefore unreachable</b>, and
+    /// <c>adr/0139</c> says it and this invariant both go — struck deliberately rather than deleted
+    /// because a method disappeared. *What it said:* <em>"It is not a live defect today and the reason
+    /// is exact rather than lucky: <c>Scope.Pool</c> throws, so nothing in the build can put a unit
+    /// into a Pool, and every Pool is empty at every moment."</em> ***The conclusion held and its
+    /// stated cause was retired without anybody noticing***, which is <c>adr/0093</c> exactly.
     /// </para>
     /// <para>
     /// <b>It opens the heir's Bin on demand rather than trusting <see cref="FitDistrictPools"/> to
@@ -3873,6 +3915,8 @@ public sealed class World
     /// </remarks>
     internal void RetirePool(int districtSlot, Handle<District> heir)
     {
+        Markets.Invalidate();
+
         Handle<District> dying = Districts.Rows.At(districtSlot);
 
         if (dying.IsNone)
@@ -4171,6 +4215,12 @@ public sealed class World
             DeclaredCapacity(Buildings.Kind[premisesSlot], resource));
 
         AppendOwnerBin(Businesses.BinHead, Businesses.BinTail, slot, handle);
+
+        // A seller appeared, so the market index is out of date. ⚠ Here and not in FitBusiness,
+        // which is where it was first written: that runs whenever ANY Business takes premises, and
+        // adr/0148 gives every dwelling one -- so invalidating there would have been a rebuild per
+        // Building raised, on every world, including the eight that have no Districts at all.
+        Markets.Invalidate();
 
         return handle;
     }
@@ -5488,6 +5538,59 @@ public sealed class World
 
         Bins.Move(slot, amount);
         Drain(slot, Blocking.Supply, tick);
+        RingMarket(slot, tick);
+    }
+
+    /// <summary>
+    /// Wakes the buyers waiting on a market row, when the Bin just filled is a seller's stock.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>adr/0139</c>'s one mechanism that could not be read off the build, because it did not
+    /// exist</b>: *"a blocked buyer waits on the market row, and a seller's deposit rings it."* A
+    /// waiter names <b>one</b> Bin — <c>RuleInstanceTable.WaitingOn</c> is a single handle and
+    /// <c>QueueNext</c> a single link — so ***subscribing to N sellers is not expressible and never
+    /// will be***, and the market row is therefore the subscription target. Nothing deposits into that
+    /// row, so without this the queue on it would never drain.
+    /// </para>
+    /// <para>
+    /// <b>⚠ The budget is THIS seller's level, not the market Bin's and not the arriving delta.</b>
+    /// The market Bin holds nothing by construction, so <see cref="Drain(int, Blocking, Ticks)"/>'s
+    /// own budget would be zero and wake nobody. The arriving delta is what <c>adr/0063</c> refused —
+    /// a consumer short of three, fed by arrivals of one, sleeping for ever behind a filling Bin. What
+    /// is left is the level of the seller that just restocked, which is exactly what a buyer woken by
+    /// this ring could draw on.
+    /// </para>
+    /// <para>
+    /// <b>⚠ A woken waiter reserves nothing, so several may wake against one seller's stock and
+    /// re-fail.</b> <c>adr/0139</c> says so in terms and files it as inherited from <c>adr/0063</c>
+    /// rather than created here: the drain's guarantee was always about an instant. It is also why
+    /// this rings only the row the depositing seller stands in — another District's buyers cannot
+    /// reach this stock at all.
+    /// </para>
+    /// </remarks>
+    private void RingMarket(int binSlot, Ticks tick)
+    {
+        // ⚠ TWO ARRAY READS BEFORE THE INDEX IS CONSULTED, and they are not a micro-optimisation.
+        // Every Deposit in the city arrives here -- a larder filling, a treasury collecting, runoff
+        // reaching a Water Body -- and Markets.MarketOf may REBUILD, which walks every Business and
+        // every Bin. Only a Business-owned Good Bin can be stock, so asking the Bin its own owner
+        // first turns the common case into two loads and keeps the rebuild on the seller's path.
+        if (Bins.OwnerKind[binSlot] != BinOwnerKind.Business
+            || Rules.IsConserved(Bins.Resource[binSlot]))
+        {
+            return;
+        }
+
+        int row = Markets.MarketOf(this, binSlot);
+
+        if (row == Space.DistrictMarkets.NoRow
+            || !Bins.Rows.TryResolve(DistrictPools.Bin[row], out int market))
+        {
+            return;
+        }
+
+        Drain(market, Blocking.Supply, tick, Bins.LevelAt(binSlot));
     }
 
     /// <summary>
@@ -5840,13 +5943,27 @@ public sealed class World
     /// queue the waiter had not yet joined.
     /// </para>
     /// </remarks>
-    internal void Drain(int binSlot, Blocking blocking, Ticks tick)
+    internal void Drain(int binSlot, Blocking blocking, Ticks tick) =>
+        Drain(
+            binSlot,
+            blocking,
+            tick,
+            blocking == Blocking.Supply ? Bins.LevelAt(binSlot) : Bins.SpaceAt(binSlot));
+
+    /// <summary>
+    /// <see cref="Drain(int, Blocking, Ticks)"/> against a budget the Bin itself does not hold.
+    /// </summary>
+    /// <remarks>
+    /// <b>One caller, and it is the only Bin in the design whose own state does not answer the
+    /// question</b> — a District's market row, which is a price and a wake target rather than a store
+    /// (<c>adr/0139</c>). See <see cref="RingMarket"/>. Everything else about the walk is unchanged,
+    /// including the spend-down, which is what bounds size bias.
+    /// </remarks>
+    private void Drain(int binSlot, Blocking blocking, Ticks tick, long budget)
     {
         IndexList waiters = Waiters(blocking);
 
-        long remaining = blocking == Blocking.Supply
-            ? Bins.LevelAt(binSlot)
-            : Bins.SpaceAt(binSlot);
+        long remaining = budget;
 
         while (true)
         {

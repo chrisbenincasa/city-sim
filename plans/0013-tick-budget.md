@@ -117,6 +117,9 @@ the durable half of the document.
 | **One walk search, in a real world** | **~32.5 µs** | **no — it is an attribution, see below** | [`0023`](0023-jobs-and-the-commute.md) task 7 |
 | ⚠️ **Commute generation**, in a departure Tick | **0.52 ms at 100,000 Citizens** | **no — it runs on a third of Ticks** | as above |
 | ⚠️ **Segment volume attribution**, at 1M | **~320,000 increment/decrement pairs a Tick** | **no — the multiplicand is arithmetic and its premise moved** | [`adr/0041`](../docs/adr/0041-volume-is-attributed-by-the-traveller-not-the-district-pair.md), re-derived 2026-08-14 |
+| 🔴 ⚠️ **The purchase**, whole, at **40,000** Citizens | **1.27 ms a Tick** | **NO — it is ~n^1.2 and the whole point of the row** | [`0044`](0044-the-purchase-and-the-provider-that-answers-it.md) task 4, measured 2026-08-26 |
+| 🔴 ⚠️ **The purchase**, whole, at **20,000** Citizens | **0.585 ms a Tick** | as above | as above |
+| 🔴 ⚠️ **The purchase**, whole, at **10,000** Citizens — ⚠ **an UPPER BOUND**, measured with a spin defect running (see below) | **0.237 ms a Tick** | as above | as above |
 
 ### ⚠️ Volume attribution is four times what its own ADR priced, and nobody changed its number
 
@@ -143,6 +146,60 @@ scheme was discharged at **105 Ticks** on the old rate. The direction is favoura
 rate makes direct attribution *dearer*, so the crossover moves **down** — but the number is not 105 any
 more and nothing has recomputed it. `adr/0041`'s revisit trigger is re-opened there rather than here,
 because it is a decision and this is a ledger.
+
+### 🔴 ⚠️ The purchase is the first consumer measured as super-linear, and it must not be extrapolated
+
+> 🔴 ⚠️ **AMENDED 2026-08-26, the day after, by milestone 26 task 5: EVERY FIGURE BELOW WAS TAKEN WITH A DEFECT RUNNING, AND THEY ARE NOW UPPER BOUNDS.** A buyer stopped for want of money subscribed to its own balance and was woken **by the drain its own stop performed** — `RuleEngine.Requirement` walks a Rule's terms and `adr/0050` gives the payment none, so it priced the wait at zero. ***So a broke buyer never slept***: it re-evaluated on its rate for ever and paid the purchase's full cost — the District lookup, the seller walk, the settlement — every time, while reporting itself armed. **323,438 money-blamed stops reached the wait list as 0.**
+>
+> ⚠ **They are NOT WITHDRAWN and the shape of the finding is why.** The A/B arms differ only in `restock`'s `inputs`, so ***both arms carried the defect*** — the cheap arm has no `pool` term and therefore no spin, which makes the delta between them **larger** than the true cost of a working purchase, not smaller. **The direction is known and the magnitude is not.** 🔴 **The `~n^1.2` exponent is the part most at risk**: a spin rate that itself grows with population would inflate it, and nothing here separates the two. ***Re-measure before quoting the exponent at any scale***, which is the [`0002`](0002-open-questions.md) **§B** question this row already owns.
+
+**Measured 2026-08-26 by wall-clock delta on the headless runner, on the reference machine** — a 2020
+six-core i5-10400, `powersave`, Release, `--no-decide-guard`, 8,192 Ticks. Not BenchmarkDotNet, so it
+is a **first measurement rather than a unit cost**, and it is filed here on
+[`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md)'s
+rule that a cost goes to this document on the day it is found.
+[`adr/0139`](../docs/adr/0139-a-district-pool-is-a-market-and-not-a-store-so-stock-stays-with-the-seller.md)
+demanded it by name: *"the per-firing seller lookup is **measurable** and remains UNMEASURED"*, with
+[`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)
+binding until a number existed. This is that number, and it is **not** the number that record expected.
+
+**The A/B is `rulesets/provisioned.toml` against itself with ONE LINE changed** — `restock`'s
+`inputs` from a `pool` term to `[]`. So the shops, the second Zone Rule, the land-use split, the two
+lattices and the Districts are in **both** arms, and the delta is the purchase and nothing else.
+
+| Citizens | Without the `pool` term | With | Delta over 8,192 Ticks | **Per Tick** | Per 1,000 Citizens |
+|---|---|---|---|---|---|
+| 10,000 | 4.86 s | 6.80 s | 1.94 s | **0.237 ms** | 0.0237 ms |
+| 20,000 | 5.87 s | 10.66 s | 4.79 s | **0.585 ms** | 0.0293 ms |
+| 40,000 | 8.97 s | 19.35 s | 10.38 s | **1.267 ms** | 0.0317 ms |
+
+🔴 **The last column is the row.** Population doubles and the cost rises **2.47×** then **2.17×**, so
+the per-Citizen price is *going up* — roughly **n^1.2**. ***Every other consumer in this ledger is
+quoted with a linear scaling and this one may not be.*** A naive linear extrapolation from 40,000 to
+1M gives ~32 ms a Tick; carrying the measured exponent instead gives **order 60 ms against a 15.6 ms
+whole-Tick budget**. **Neither figure is a measurement and this row does not assert either** — what it
+asserts is that the two disagree by 2× at the target, which is the reason the exponent had to be in
+the table rather than one convenient point.
+
+⚠ **The attribution is CONSERVATIVE rather than inflated, and it is worth knowing why.** Without the
+`pool` term `restock` has no inputs and therefore never fails, so the baseline arm runs **more** Rule
+firings than the purchasing one, where a Household that runs out of money stops buying. ***The cheaper
+arm is doing more Rule work***, so the delta understates the purchase if it errs at all.
+
+⚠ **It is the WHOLE purchase and not the seller lookup alone**, which is the thing `adr/0139` asked
+about. It contains the District lookup off the buyer's Cell, the market-row lookup, the seller draw
+and its first-fit walk, the three-Bin settlement, `World.RingMarket` on every seller's deposit, and the
+amortised rebuilds of `Space.DistrictMarkets`. ***Separating them needs a profiler and this is a
+stopwatch***, so no line item may be cut out of this figure and quoted alone.
+
+🔴 **[`adr/0139`](../docs/adr/0139-a-district-pool-is-a-market-and-not-a-store-so-stock-stays-with-the-seller.md)'s
+revisit trigger names the fallback and the fallback is already built.** That record says: *"If
+resolution over a District's sellers prices above its share of the Tick budget at target scale, the
+fallback is **not** a return to a shared store — it is an index on the market row, which is the shape
+`DistrictPoolTable` already has."* ⚠ **Milestone 26 task 4 shipped that index on the first day**, so
+the number above is *with* it. ***The escape the ADR held in reserve has been spent***, and whatever
+answers this is a third thing nobody has named. **Routed to [`0002`](0002-open-questions.md) §B rather
+than guessed at here.**
 
 ### ⚠️ The job assignment pass is a burst, and the interval is what concentrates it
 

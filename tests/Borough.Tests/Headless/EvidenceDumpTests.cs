@@ -157,7 +157,16 @@ public sealed class EvidenceDumpTests
         Assert.Contains("supply", starved, Ordinal);
         Assert.Contains("disrepair", starved, Ordinal);
 
-        Assert.EndsWith("0", full.TrimEnd(), Ordinal);
+        // The claim is that a Rule stopped for SPACE carries no pressure -- RuleEngine.Stop clears
+        // StarvedSince for every blocking reason but Supply -- and it was asserted as "the row ends
+        // in 0" until milestone 26 task 5 put a `waiting on` column after the missed count.
+        //
+        // ⚠ Re-anchored on the two fields TOGETHER rather than moved along by one, because
+        // EndsWith("0") would pass again on any row whose last column happened to end in a zero.
+        // `full:` is also the word this panel uses for a Bin that is FULL: printing `larder: sundries`
+        // against an output with no headroom read as the exact opposite of the truth, and this row is
+        // the only one in the suite that would have caught it.
+        Assert.Matches(@"\s0\s+full: sundries$", full.TrimEnd());
     }
 
     /// <summary>

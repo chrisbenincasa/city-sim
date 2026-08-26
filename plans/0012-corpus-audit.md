@@ -2171,6 +2171,8 @@ replace.***
       `CLAUDE.md`'s table **as a pair — count and duration from the same run**. 🔴 **It has now landed
       past five minutes on three consecutive readings, so `adr/0121`'s band is the next question and
       it is no longer a footnote.**
+⚠ **Sixth and seventh readings, 2026-08-26, by milestone 26 task 4, and they take the band's top OUT: 8 m 21 s and 9 m 22 s over 2,317 tests**, both Release, both on the reference machine with nothing else in this repository running, the second immediately after the first. ***So the range in this heading is now 3m02s–9m22s and the ceiling moved by a minute in one afternoon.*** ⚠ **The same session read 7 m 47 s at 2,317 the day before**, which is a **20% spread across three readings of one tree at one count** — and that spread is the finding, because ***a measurement that moves 20% between consecutive runs cannot resolve the two jumps this row is trying to attribute.*** 🔴 **What it does settle is `adr/0121`'s band**: *past five minutes a test stifles iteration and ten is the ceiling*, and the assertion tier is now **within 40 seconds of that ceiling on its worst reading** — so the gate the whole tier exists to keep cheap is about to stop being cheap, on a preference no measurement can settle. ⚠ **Task 4 added two tests and 6,144 Ticks of `provisioned.toml`, which is not where a minute came from**; it is recorded here rather than diagnosed, and it does not move `CLAUDE.md`, which stays wrong at 42s until somebody takes a controlled capture.
+
 - [ ] Re-time the four earlier readings **per class** to settle whether the two jumps are the two
       long-run clusters. ***It is the cheapest thing that would turn this row's hypothesis into a
       finding***, and it needs no new instrument — only `--logger trx` at four earlier commits.
@@ -4141,3 +4143,63 @@ authoring a key nobody would ever set.***
 same afternoon and nothing has been checked against it yet. **It wants a session or a milestone task of
 its own**, and the first thing it should produce is a count: how many keys, how many hits, and how many
 of the hits are the third row rather than the first two.
+
+---
+
+## Filed 2026-08-26, by milestone 26 task 4 — one finding, and the document that holds it holds **both halves of it**
+
+### 🔴 `adr/0139` says the price sits on the market row and says it sits on the seller, four paragraphs apart
+
+**Found by writing [`adr/0167`](../docs/adr/0167-a-purchase-picks-its-seller-by-a-draw-and-waits-on-the-market-rather-than-on-a-shop.md),
+because *buy from whoever is cheapest* is the obvious seller rule and the first thing it needs is
+somewhere to read a price from.** There are two answers in one record and they are not compatible.
+
+| Where | What it says |
+|---|---|
+| [`0139`](../docs/adr/0139-a-district-pool-is-a-market-and-not-a-store-so-stock-stays-with-the-seller.md)'s **Decision**, line 4 | *"the `(District, Good)` row is the **market** — **the price it clears at**, the thing a blocked buyer waits on, and the set of sellers"* |
+| its own **correction banner**, 2026-08-22 | *"the market row is **still the price** and the wake target"* — listed among the things the correction explicitly does **not** move |
+| its **Consequences** | *"**The `Price` field moves from the market row to the seller**, so per-seller dispersion is expressible from the first day rather than retrofitted — which is the whole point of deciding it now."* |
+
+**The build took the first reading**, and it was not a slip: `Space.DistrictPoolTable.Price` is keyed by
+`(District, Good)` and has been since milestone 12 task 6, [`CONTEXT.md`](../CONTEXT.md) → District Pool
+records that reading, and [`CLAUDE.md`](../CLAUDE.md)'s `twinned.toml` cell repeats it. ***Three
+documents agree with the half of `0139` that `0139`'s own Consequences overrule.***
+
+⚠ **This is not Cause 2 and it is worth being precise about why.** Cause 2 is *an ADR issues writes to
+other documents and the writes do not all land* — a delivery failure, where the source is coherent and
+the copies lag. Here **the source is incoherent**, so there was never one write to deliver. It is the
+shape milestone 10's collection named — *the first defect a document committed against itself* — on its
+second sighting, and the aggravating detail is that **the correction banner passed over it**: a sitting
+went through this record clause by clause on 2026-08-22, enumerated what did and did not move, wrote
+*"the market row is still the price"*, and did not notice that sixty lines further down the same record
+said otherwise. ***A banner that lists what survives is a re-reading, and this one re-read the half it
+was already holding.***
+
+🔴 **What it cost is a design question that could not be asked.** With one price per `(District, Good)`
+every seller in a District charges the same number, so *cheapest* is a comparison of one value with
+itself and there is no discriminator for a purchase to choose on. `adr/0167` reached that by measuring
+the build rather than by reading `0139`, and it says so in its own *Why* — but ***a sitting that had
+read only the Consequences would have written a tie-break dressed as a price comparison***, which reads
+as price competition in a world that has none. That is the failure `LEGIBLE CAUSE` exists to prevent,
+reached through a document rather than through code.
+
+⚠ **Neither half is obviously the one to keep, and this ledger must not pick.** The Consequences'
+argument is real — per-seller dispersion *is* cheaper to express on the first day than to retrofit — and
+the row's argument is real too, because a price with one home per District is the only shape the
+tâtonnement in `MarketRuleset.Reprice` currently has a denominator for. ***A ledger entry that resolved
+this would be settling a design question in the corpus audit***, which is what [`adr/0042`](../docs/adr/0042-a-planning-document-cites-and-a-design-document-owns.md)
+forbids. **It is an ADR, and the natural home is `06` milestone 13, the price surface** — which is
+already `0139`'s own revisit trigger and `0167`'s first one.
+
+- [x] **`04 §4`'s *Local* bullet struck 2026-08-26.** It had copied the Consequences —
+      *"⚠ **A price now sits on the SELLER**"* — and now states where the price actually is, names both
+      halves, points here, and says what `adr/0167` chose because of it.
+- [ ] 🔴 **`adr/0139` itself is untouched and that is deliberate**, because a superseded document gets a
+      banner and never a deletion ([`PROCESS.md`](../PROCESS.md) → *Conventions*) and the banner has to
+      say which half stands. **Owed at milestone 13**, or on the day anybody proposes reading a price
+      per seller — whichever is first.
+- [ ] Check whether any *other* document quoted the Consequences' half. `04 §4` was found by grep for
+      the word *seller*; nothing systematic has been run. ⚠ **The mechanical check that would have
+      caught this does not exist and may not be cheap**: it is *a record does not contradict itself*,
+      which is not a link, a citation, a count or a registry figure — the four shapes
+      `tests/Borough.Tests/Corpus/` can currently express.

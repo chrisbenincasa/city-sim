@@ -39,12 +39,15 @@ public readonly struct DistrictPool;
 /// that row***, and the join it would have needed is the join this table already is.
 /// </para>
 /// <para>
-/// ⚠ <b>There is no lookup index and tasks 5 and 6 do not need one.</b> <c>Scope.Pool</c> still throws,
-/// so every read of this table is cold — opening a Pool, merging one into its heir, and once a Day
-/// repricing every row of it, which is a full walk rather than a lookup. A dense
-/// <c>(District, Resource) → Bin</c> index is what a <em>hot</em> path wants, and the hot path arrives
-/// with the purchase. Building it now would be an index nothing measures, sized against a table nothing
-/// walks. <b>Task 7 owes it</b>, on the Tick a pool term resolves for the first time.
+/// ✅ <b>The lookup index arrived with the purchase, which is where this said it would.</b>
+/// <see cref="DistrictMarkets"/> holds it — a dense <c>(District, Resource) → row</c> map, and beside
+/// it the thing that had never existed at all: the <em>sellers</em> standing in each row, which
+/// <c>adr/0139</c> needs and which no path in the build could answer. Both are
+/// <c>(derived AND rebuilt)</c> and rebuilt whole, so no column here moved and no State Hash with it.
+/// ⚠ <b>The cold callers stay cold and stay on <c>World.FindDistrictPoolBin</c>'s walk</b> — opening a
+/// Pool, merging one into its heir — because that walk is what the index's rebuild reads.
+/// <i>What this said:</i> <em>"There is no lookup index and tasks 5 and 6 do not need one … Task 7
+/// owes it, on the Tick a pool term resolves for the first time."</em>
 /// </para>
 /// </remarks>
 [Table]
@@ -131,13 +134,16 @@ public sealed class DistrictPoolTable
     /// zeroed by every recompute.
     /// </summary>
     /// <remarks>
-    /// 🔴 <b>NOTHING WRITES THIS AT TASK 6 and the column ships anyway.</b> <c>Scope.Pool</c> still
-    /// throws, so no Rule can draw from a Pool and every Day's bucket is zero — which
-    /// <see cref="MarketRuleset.Reprice"/> reads as *no trades*, keeps the price, and leaves the
-    /// market visibly correct and visibly inert. ⚠ <b>That is the shape this corpus has accepted
-    /// twice</b> — milestone 9's land-value producer and task 5's Pool Bins — and it is accepted here
-    /// for the same reason: <b>task 7 supplies the writer</b>, and a purchase settling at a price
-    /// needs the price to already exist.
+    /// ✅ <b>The writer arrived at milestone 26 task 4 and it is <c>RuleEngine.Fire</c>.</b> A purchase
+    /// posts <c>amount × applications</c> against the market row it drew on — from the term list
+    /// rather than from the netted deltas, because by the time Fire runs a seller's stock Bin is an
+    /// ordinary Bin, and in Phase 3 rather than Phase 2 because deciding writes nothing
+    /// (<c>adr/0037</c>). ⚠ <b>A Pool nobody buys in still reads zero and still keeps its price</b>,
+    /// which is every shipped world but <c>rulesets/provisioned.toml</c>.
+    /// <i>What this said:</i> <em>"NOTHING WRITES THIS AT TASK 6 and the column ships anyway …
+    /// task 7 supplies the writer."</em> ⚠ <b>The shape it named — a producer shipped without a
+    /// consumer, accepted twice before — was right, and the number of the task was not</b>
+    /// (<c>plans/0044</c> reordered them).
     /// </remarks>
     public Column<long> Consumed { get; }
 

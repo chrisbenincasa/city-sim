@@ -79,6 +79,47 @@ public readonly record struct BinEvidence(
 /// healthy. <b>This is the Building's failure pressure, per Rule</b>, and the Building's own is the
 /// largest of them (<c>adr/0053</c> as amended, and milestone 6 task 2's finding).
 /// </param>
+/// <param name="WaitingFor">
+/// <b>Which Resource the Bin it is asleep on holds</b>, or <c>default</c> when it is not asleep —
+/// <c>adr/0137</c>, and the field that record exists for.
+/// <para>
+/// ⚠ <b>This is what makes bankruptcy and starvation different sentences.</b>
+/// <c>RuleInstanceTable.WaitingOn</c> has always known which Bin stopped a Rule and this type did
+/// not, so a Business short of flour and a Business short of money both surfaced as
+/// <see cref="Blocked"/> = <c>Supply</c> and nothing downstream could tell them apart.
+/// <c>adr/0050</c> called the distinction one that *"falls out of the wait list rather than needing a
+/// mechanism"*, ***which was true of the wait list and false of every reader***, because the wait
+/// list is not one.
+/// </para>
+/// <para>
+/// <b>Classification is the shell's and stays there.</b> Money is a <c>ResourceFamily</c>, declared
+/// by the Ruleset, so <c>Ruleset.IsConserved</c> answers *is this bankruptcy* from this id alone and
+/// <c>Core</c> keeps returning ids rather than words (<c>CLAUDE.md</c>, and <c>adr/0137</c>'s
+/// *Rejected* refusing a third <see cref="Blocking"/> value for the same reason: that enum
+/// distinguishes wait lists by <em>what wakes them</em>, and a money shortfall is woken by a deposit,
+/// so it <em>is</em> <c>Supply</c>).
+/// </para>
+/// </param>
+/// <param name="WaitingOn">
+/// <b>Whose Bin that is</b>, or <see cref="BinOwnerKind.None"/> when it is not asleep.
+/// <para>
+/// 🔴 ⚠ <b><c>adr/0137</c> says <em>gains one field</em> and this is the second, because milestone 26
+/// task 4 created a wait target that record could not have seen.</b> A buyer blocked on a purchase
+/// sleeps on the <b>District market row</b> — <c>adr/0139</c>, and <c>adr/0167</c> for why it is the
+/// market and never the shop it drew — so ***the Bin that stopped a Rule need no longer belong to the
+/// Building the Rule runs in.*** <see cref="WaitingFor"/> alone would then report <c>sundries</c> for
+/// two different cities: a tenant whose own larder is empty, and a District in which nobody is
+/// selling. **One is a household's problem and one is the market's**, and the enclosing
+/// <see cref="BuildingEvidence"/> no longer disambiguates them the way it did for every Bin before
+/// the purchase existed.
+/// </para>
+/// <para>
+/// ⚠ <b>It is an owner <em>kind</em> and not an owner.</b> Which District is a question this panel
+/// does not ask and could not answer cheaply — <c>BinTable.Owner</c> is a <c>Handle&lt;Building&gt;</c>
+/// and a District names its Bins from the other side (<see cref="BinOwnerKind.District"/>). ***What a
+/// reader needs is which sentence to write, and the kind decides that.***
+/// </para>
+/// </param>
 public readonly record struct RuleEvidence(
     RuleId Rule,
     Handle<Household> Tenant,
@@ -88,7 +129,9 @@ public readonly record struct RuleEvidence(
     ConditionId Reported,
     Ticks StarvedSince,
     uint Rate,
-    long MissedFirings);
+    long MissedFirings,
+    ResourceId WaitingFor,
+    BinOwnerKind WaitingOn);
 
 /// <summary>
 /// <c>02 §9</c>'s Building answer: who is in it, what is in its Bins, what its Rules are doing, and
