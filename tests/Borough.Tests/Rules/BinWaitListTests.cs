@@ -236,9 +236,13 @@ public sealed class BinWaitListTests
     /// <para>
     /// <b>This is the half that mattered for <c>minimal.toml</c>'s credibility.</b> Its steady state
     /// survived only because <c>restock</c>'s deficit is one, the smallest quantity expressible, so any
-    /// withdrawal covered it — and <c>rulesets/minimal-tuned.toml</c>, which the golden session reloads
-    /// into at Tick 128, raises that output amount to 2 and broke it. The committed trace held a
-    /// <c>restock</c> asleep on space 3 until this fix landed.
+    /// withdrawal covered it — and <c>rulesets/minimal-tuned.toml</c>, <b>which the golden session
+    /// reloaded into at the time</b>, raises that output amount and broke it. The committed trace held
+    /// a <c>restock</c> asleep on space 3 until this fix landed. ⚠ <b>Both halves of that sentence
+    /// have since moved and the finding has not</b>: milestone 17 repointed the baseline at
+    /// <c>declining.toml</c> / <c>declining-tuned.toml</c>, and the two amounts are no longer the 1
+    /// and 2 the finding was written against. This class still loads <c>minimal-tuned.toml</c>, which
+    /// is why it is still named here.
     /// </para>
     /// </remarks>
     [Fact]

@@ -53,11 +53,31 @@ public class RuleLongRunTests
     private const int Population = 1_000;
 
     /// <summary>
-    /// The interval a reading covers. <b>A whole number of <c>consume</c>'s 32-Tick periods</b>, so
-    /// the sums compare exactly; an interval that cut a period in half would wobble by the remainder
-    /// and force the assertion back down to a trend line.
+    /// The interval a reading covers. <b>A whole number of periods of the SLOWEST cycle in the
+    /// world, which is decline and not <c>consume</c></b>, so the sums compare exactly; an interval
+    /// that cut a period in half would wobble by the remainder and force the assertion back down to
+    /// a trend line.
     /// </summary>
-    private const int ReadEvery = 2_048;
+    /// <remarks>
+    /// <b>2,048 until milestone 17, and the sentence above is why it had to move.</b> It read <em>a
+    /// whole number of <c>consume</c>'s 32-Tick periods</em>, which was true and had stopped being
+    /// the binding constraint: <c>declining.toml</c> condemns on a 2-Day threshold, so the city
+    /// churns in cohorts with a 4,096-Tick period and a 2,048-Tick window samples half of one.
+    /// <para>
+    /// 🔴 <b>It failed as a shape change and it was aliasing.</b> The interval total ranged 21,931 to
+    /// 79,707 against a band of 2×, while the upward-drift assertion directly above it passed — so
+    /// there was no trend, only a wave being sampled at half its period. Widening the band to fit
+    /// would have been a tolerance picked because the data has that shape, and it would have
+    /// permanently blinded this test to a real 3× excursion. <em>Covering a whole cycle restores the
+    /// band at 2 with nothing loosened.</em>
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The general form: this interval is derived from the longest period in the world, and
+    /// which mechanism owns that period is not fixed.</b> It was <c>consume</c> while decline was
+    /// 64 Ticks; it is decline now; a slower mechanism landing later takes it again.
+    /// </para>
+    /// </remarks>
+    private const int ReadEvery = 8_192;
 
     /// <summary>
     /// How much of the run is discarded as the transient. The Bin fills from empty in about forty
@@ -169,7 +189,7 @@ public class RuleLongRunTests
     {
         var key = WorldKey.FromSeed(GoldenFixtures.Seed);
 
-        world = new World(Population, GoldenFixtures.Rules());
+        world = new World(Population, GoldenFixtures.DecliningRules());
 
         simulation = new Simulation(world, key)
         {

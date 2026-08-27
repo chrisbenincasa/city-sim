@@ -56,8 +56,19 @@ public sealed class CondemnationCauseTests
     private const uint SlowRate = 16;
     private const uint FastRate = 4;
 
-    /// <summary>Missed firings before condemnation: 64 Ticks of silence for slow, 16 for fast.</summary>
-    private const int Condemn = 4;
+    /// <summary>
+    /// The condemnation threshold in <b>Ticks</b> — four missed firings of a
+    /// <see cref="SlowRate"/> Rule, which is what this constant meant when the key was a firing
+    /// count.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>It is denominated on the SLOW rate deliberately.</b> Milestone 17 made the threshold one
+    /// wall clock for every Rule on a Building, where it used to be scaled by each Rule's own
+    /// <c>rate</c>. Taking the slower Rule's old budget keeps every Rule in this fixture reaching the
+    /// verdict, which is what the cause assertions need; taking the fast one's would condemn on the
+    /// slow Rule's first missed firing and the trail would name a different condition.
+    /// </remarks>
+    private const int Condemn = 4 * (int)SlowRate;
 
     /// <summary>
     /// How often the Zone Rule looks. Long enough that both Rules are past their thresholds by the
@@ -92,7 +103,7 @@ public sealed class CondemnationCauseTests
             new RuleDefinition(House, FastRate, ApplyCount.Band(1, 1), RuleId.None,
                 false, default, Unsupplied, 0, 0, 0, 0, 0, 0),
         ],
-        kinds: [new KindDefinition(0, 2, 0, 2) { CondemnAfter = Condemn, Occupants = 1 }],
+        kinds: [new KindDefinition(0, 2, 0, 2) { CondemnAfterTicks = Condemn, Occupants = 1 }],
         inputs:
         [
             new Term(new BinRef(Scope.Local, Repairs), 1),
@@ -116,7 +127,7 @@ public sealed class CondemnationCauseTests
             new RuleDefinition(House, FastRate, ApplyCount.Band(1, 1), RuleId.None,
                 false, default, ConditionId.None, 0, 1, 0, 0, 0, 0),
         ],
-        kinds: [new KindDefinition(0, 1, 0, 1) { CondemnAfter = Condemn, Occupants = 1 }],
+        kinds: [new KindDefinition(0, 1, 0, 1) { CondemnAfterTicks = Condemn, Occupants = 1 }],
         inputs: [new Term(new BinRef(Scope.Local, Repairs), 1)],
         outputs: [],
         emissions: [],
@@ -151,13 +162,20 @@ public sealed class CondemnationCauseTests
     }
 
     /// <summary>
-    /// Steps until the Building is gone and returns the Tick it went on, which is the Tick the trail
-    /// should carry.
+    /// Steps until the Building is abandoned and returns the Tick it went on, which is the Tick the
+    /// trail should carry.
     /// </summary>
     /// <remarks>
     /// The Tick is read <em>before</em> the step rather than after it, because the clock has moved on
-    /// by the time the caller can see the empty table. Asserting the trail against a number this
-    /// method computed from the same clock is the only version that could catch an off-by-one.
+    /// by the time the caller can see the result. Asserting the trail against a number this method
+    /// computed from the same clock is the only version that could catch an off-by-one.
+    /// <para>
+    /// ⚠ <b>This waited on <c>Buildings.Rows.LiveCount == 0</c> until milestone 17 task 1</b>, which
+    /// was the same question while condemnation freed the row. It is not any more: the shell stays
+    /// standing on its Lot (<c>adr/0091</c>), so the table never empties and the old spelling would
+    /// wait out its budget and report that the fixture had never condemned anything. ***The count it
+    /// wants is Buildings still in use, and that is not a row count.***
+    /// </para>
     /// </remarks>
     private static Ticks Fell(World world, Simulation simulation)
     {
@@ -167,7 +185,7 @@ public sealed class CondemnationCauseTests
 
             simulation.Step(TickInput.Empty);
 
-            if (world.Buildings.Rows.LiveCount == 0)
+            if (Standing(world) == 0)
             {
                 return on;
             }
@@ -175,6 +193,25 @@ public sealed class CondemnationCauseTests
 
         throw new InvalidOperationException(
             "the fixture never condemned its Building, so nothing here is testing the trail.");
+    }
+
+    /// <summary>
+    /// Buildings that are live <em>and still in use</em> — the count that meant
+    /// <c>Rows.LiveCount</c> before abandonment left the shell standing.
+    /// </summary>
+    private static int Standing(World world)
+    {
+        int standing = 0;
+
+        for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
+        {
+            if (world.Buildings.Rows.IsLive(slot) && !world.Buildings.IsAbandoned(slot))
+            {
+                standing++;
+            }
+        }
+
+        return standing;
     }
 
     /// <summary>
@@ -210,11 +247,22 @@ public sealed class CondemnationCauseTests
 
         Fell(world, simulation);
 
-        // Nothing that knew the answer is left: the Rule Instances are freed, the Building row is
-        // freed, and the Lot is vacant. This is the state 02 §9's question is asked in.
+        // Nothing that knew the answer is left: the Rule Instances are freed, so the condition the
+        // trail reports cannot be re-derived from the city. This is the state 02 §9's question is
+        // asked in.
+        //
+        // ⚠ THE SHELL IS STILL THERE, and this block asserted the opposite until milestone 17 task 1
+        // -- "the Building row is freed, and the Lot is vacant". Abandonment leaves both standing
+        // (adr/0091), so what is gone is the Rules and not the premises. ***The trail's job is
+        // unchanged and is arguably plainer now***: the Building outlives the Rule Instance that
+        // reported the condition, which is exactly the outliving this test is named for.
         Assert.Equal(0, world.RuleInstances.Rows.LiveCount);
-        Assert.Equal(0, world.Buildings.Rows.LiveCount);
-        Assert.Equal(Rows.NoSlot, world.Lots.BuildingOn(world.Lots.Rows.Resolve(lot)));
+        Assert.Equal(0, Standing(world));
+
+        int abandoned = world.Lots.BuildingOn(world.Lots.Rows.Resolve(lot));
+
+        Assert.NotEqual(Rows.NoSlot, abandoned);
+        Assert.True(world.Buildings.IsAbandoned(abandoned));
 
         Assert.Equal(
             Unsupplied,

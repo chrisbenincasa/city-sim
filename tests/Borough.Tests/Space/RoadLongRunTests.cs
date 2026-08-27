@@ -271,7 +271,7 @@ public sealed class RoadLongRunTests
     {
         var key = WorldKey.FromSeed(GoldenFixtures.Seed);
 
-        world = new World(Population, GoldenFixtures.Rules());
+        world = new World(Population, GoldenFixtures.DecliningRules());
 
         var simulation = new Simulation(world, key)
         {

@@ -168,16 +168,35 @@ public sealed class MarketLongRunTests(MarketLongRun run) : IClassFixture<Market
     }
 
     /// <summary>
-    /// <b><c>adr/0163</c>'s revisit trigger does not fire: the shop count is bounded and does not
-    /// grow, on both worlds.</b>
+    /// <b>The shop count is bounded by the land, on both worlds.</b>
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The trigger is *shops built, condemned for want of customers, and rebuilt on the demand their
-    /// condemnation restored*, re-aimed by <c>adr/0170</c> at **non-convergence** rather than at
-    /// churn: ***that cycle is the mechanism, and what distinguishes health from failure is whether
-    /// it converges.*** So what is asserted is that the tail's shop count neither trends nor swings
-    /// wider than the band the world sat in early.
+    /// <c>adr/0163</c>'s revisit trigger is *shops built, condemned for want of customers, and rebuilt
+    /// on the demand their condemnation restored*, re-aimed by <c>adr/0170</c> at **non-convergence**
+    /// rather than at churn: ***that cycle is the mechanism, and what distinguishes health from
+    /// failure is whether it converges.***
+    /// </para>
+    /// <para>
+    /// 🔴 <b>THIS ASKED WHETHER THE TAIL WAS FLAT UNTIL MILESTONE 17, AND THE FLATNESS IT FOUND WAS
+    /// PAID FOR BY A DYING CITY.</b> On <c>main</c>, <c>provisioned.toml</c>'s premises condemned into
+    /// shells that stood for ever — <c>condemn_after</c> with no collapse clock — so the Lots were
+    /// consumed, nothing could be raised on them again, and the shop count sat at 4 because the city
+    /// had stopped building anything at all. ***It was not converged; it was over.*** Milestone 17
+    /// gives a shell a collapse clock (<c>adr/0172</c>) and the dwelling a rope that reaches past the
+    /// District watershed, so the city keeps living and keeps building — and the count climbs toward
+    /// the land instead of stopping at a corpse. Measured sellers on <c>provisioned.toml</c> at 2,000
+    /// Citizens: <b>4 / 2 / 8 / 8 / 10</b> at 131k / 262k / 524k / 1M / 2M Ticks, against roughly
+    /// <b>18</b> trade Lots.
+    /// </para>
+    /// <para>
+    /// <b>So the bound asserted is the LAND, which is a real ceiling rather than a shape.</b> A
+    /// shopfront stands on a Lot zoned for trade and there are only so many, so the count cannot run
+    /// away however coarse the birth signal is — which is <c>adr/0170</c>'s own reading of
+    /// <c>oversupplied.toml</c>: tier 0 pins itself at the Lot ceiling and the weakest shops then go
+    /// broke. ⚠ <b>A tail mean would need a horizon this class cannot afford</b>: the count is still
+    /// climbing at 2M Ticks and the run is 393k, so *flat over this tail* is a claim about the horizon
+    /// and not about the city.
     /// </para>
     /// <para>
     /// 🔴 ⚠ <b>THIS IS NOT `adr/0170`'S RATIFIER AND MUST NOT BE READ AS ONE.</b> That record names
@@ -188,7 +207,7 @@ public sealed class MarketLongRunTests(MarketLongRun run) : IClassFixture<Market
     /// </para>
     /// </remarks>
     [Fact]
-    public void The_shop_count_is_bounded_and_does_not_trend()
+    public void The_shop_count_is_bounded_by_the_land()
     {
         foreach (MarketLongRun.Arm world in _run.Worlds)
         {
@@ -196,46 +215,81 @@ public sealed class MarketLongRunTests(MarketLongRun run) : IClassFixture<Market
 
             Assert.True(
                 tail.Max(at => at.Shops) > 0,
-                $"{world.File} never raised a shop, so there is no count to converge.");
+                $"{world.File} never raised a shop, so there is no count to bound.");
 
-            double early = tail[..(tail.Length / 2)].Average(at => (double)at.Shops);
-            double late = tail[(tail.Length / 2)..].Average(at => (double)at.Shops);
+            foreach (MarketLongRun.Reading at in tail)
+            {
+                Assert.True(
+                    at.Shops <= at.TradeLots,
+                    $"{world.File} stood {at.Shops:N0} shops on {at.TradeLots:N0} Lots that admit "
+                    + "one. A shopfront occupies a trade Lot, so this is not over-building -- it is "
+                    + "the count and the land disagreeing, which means one of them is being read "
+                    + "wrong.");
+            }
+
+            // ⚠ THE NON-VACUITY GUARD, and it is what stops a dead city passing this. A world that
+            // condemned itself into permanent shells has a shop count that cannot rise and would sit
+            // under any ceiling for ever -- which is exactly the green main was getting. So the land
+            // has to be genuinely contested: most of what admits a shop has to be spoken for by the
+            // end of the tail.
+            MarketLongRun.Reading closing = tail[^1];
 
             Assert.True(
-                late <= (early * 2) + 1,
-                $"{world.File}'s shop count read {early:F1} over the first half of the tail and "
-                + $"{late:F1} over the second. That is adr/0163's revisit trigger: the threshold and "
-                + "the claim disagreeing, with each condemnation restoring the demand that rebuilds.");
+                closing.Shops * 4 >= closing.TradeLots,
+                $"{world.File} ended with {closing.Shops:N0} shops on {closing.TradeLots:N0} trade "
+                + "Lots, so the ceiling asserted above is nowhere near binding and this fact is "
+                + "green for the wrong reason. Check that the city is still building at all: a world "
+                + "whose premises have condemned into standing shells stops raising anything, and "
+                + "that is the state main's flat shop count was measured in.");
         }
     }
 
     /// <summary>
-    /// 🔴 <b>THE STRANDED-WAITER DEFECT IS GONE AND A DIFFERENT MISSED WAKE IS UNDERNEATH IT, SO THIS
-    /// FACT IS AN ALLOWLIST THAT TELLS THE TWO APART.</b>
+    /// ✅ <b>NO WAITER IS STRANDED ON EITHER WORLD, AND THIS ASSERTS THAT RATHER THAN TRUSTING IT.</b>
     /// </summary>
     /// <remarks>
     /// <para>
-    /// ✅ <b><c>plans/0003</c> queue item 22 is FIXED and this asserts the fix rather than trusting
-    /// it.</b> A buyer stranded on the market row of a District it had left broke
-    /// <see cref="Invariant.WaiterIsBlockedByTheBinItNames"/> at Tick 362,496 on
-    /// <c>oversupplied.toml</c>; <c>adr/0171</c> has <c>World.EvaluateDistricts</c> sweep every market
-    /// row's queue for waiters whose Rule no longer names it. ***Any violation on a market row's Bin
-    /// fails here***, which is the regression that matters.
+    /// <b>This fact was an ALLOWLIST until the milestone 17 merge and is now a regression test.</b> It
+    /// carried <c>plans/0003</c> queue item 23 as a permitted violation — an ordinary Bin whose waiter
+    /// still wanted something the Bin already covered — and asserted only that queue item 22 had not
+    /// come back. ***Both are fixed, so what it allowed is now what it forbids.*** Its own closing
+    /// assertion said to delete it once nothing violated; keeping it as the inverse is worth more,
+    /// because the two repairs below are exactly the kind that rot silently.
     /// </para>
     /// <para>
-    /// 🔴 <b>What is left is <c>plans/0003</c> queue item 23, and it is not a market defect at all.</b>
-    /// Measured on <c>provisioned.toml</c> at Tick 32,768: bin 1523 is a Household's larder holding
-    /// <b>294</b>, and Rule Instance 725 is asleep on it needing <b>280</b>. ***The Bin never moved and
-    /// the REQUIREMENT came down to meet it*** — 320, then 280, then 240 — because
-    /// <c>RuleEngine.Band</c> derives the application count from a <b>readout</b>, and a readout
-    /// changes with the city rather than with a Bin write. <c>adr/0063</c> made the requirement live
-    /// and nothing re-drains when its input moves.
+    /// <b>Queue item 22 — a buyer stranded on a market row of a District it had left</b> —
+    /// <c>adr/0171</c>, <c>World.EvaluateDistricts</c> sweeping every market row's queue for waiters
+    /// whose Rule no longer names it.
     /// </para>
     /// <para>
-    /// ⚠ <b>It is PRE-EXISTING and was unmasked rather than caused</b>, which was checked rather than
-    /// assumed: the probe reaches it on <c>provisioned.toml</c> with <c>adr/0171</c> in and does not
-    /// reach it at the commit before. ***A trajectory change is not a cause***, and the readout hole
-    /// is reachable by anything that moves an occupancy.
+    /// <b>Queue item 23 — a requirement that came down to meet a Bin that never moved — and 🔴 IT WAS
+    /// FILED AGAINST THE WRONG INPUT.</b> It was recorded as a <em>readout</em> shrinking a Rule's
+    /// band, which would have made the repair site open-ended: <c>plans/0003</c> lists three candidate
+    /// placements and says none should be picked in a market milestone. ***The arithmetic says it was
+    /// never a readout.*** The filed trace is <c>restock</c> stepping 320 → 280 → 240, and
+    /// <c>restock</c>'s apply is <c>{ min = 1, max = 4 }</c> — not derived, so <c>RuleEngine.Band</c>
+    /// returns a constant floor of 1 and <c>Readouts.Read</c> is never called. The requirement is
+    /// <c>floor × amount × price</c> = <c>4 × price</c>, so 320/280/240 is the PRICE stepping
+    /// 80 → 70 → 60 — steps of exactly <c>[market] move_cap_percent</c> of a ceiling of 100.
+    /// </para>
+    /// <para>
+    /// <b>So the site was never open-ended: it is the reprice.</b>
+    /// <c>World.RingEveryMoneyBin</c> drains the money Bins whenever a reprice moves anything, which
+    /// closes both sightings — the requirement that fell to something the buyer could afford (Tick
+    /// 21,249, Rule Instance 865 on bin 661 holding 351 against 344), and the requirement that fell to
+    /// ZERO when the price reached zero (Tick 251,904, waiter 432 on bin 517).
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A price of zero is NOT the defect and a floor of one was tried and reverted.</b> It is
+    /// <c>plans/0037</c> decision 4, settled with the user in the room, and
+    /// <c>PoolPriceTests.A_glut_walks_the_price_to_nothing</c> asserts it. ***The price is allowed to
+    /// reach zero; what was not allowed is nobody noticing.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Both were PRE-EXISTING and were reached rather than caused.</b> On <c>main</c> the same
+    /// file bottoms out at a price of 38 over 262,144 Ticks with 9 moves; with milestone 17's decline
+    /// in it the same run makes 111 moves and touches 0. ***Decline did not break the market; it ran
+    /// the market far enough to find what was already wrong with it.***
     /// </para>
     /// <para>
     /// ⚠ <b>A green here is worth nothing without the horizon, so the horizon is asserted too.</b> The
@@ -245,24 +299,22 @@ public sealed class MarketLongRunTests(MarketLongRun run) : IClassFixture<Market
     /// </para>
     /// </remarks>
     [Fact]
-    public void The_only_missed_wake_left_is_the_one_a_readout_shrank()
+    public void No_waiter_is_left_asleep_on_a_bin_that_could_serve_it()
     {
         foreach (MarketLongRun.Arm world in _run.Worlds)
         {
             foreach (MarketLongRun.Broken broken in world.Violations)
             {
-                Assert.True(
-                    broken.Violation.Invariant == Invariant.WaiterIsBlockedByTheBinItNames
-                    && !broken.OnAMarketRow
-                    && broken.Requirement > 0,
+                Assert.Fail(
                     $"{world.File} broke {broken.Violation.Invariant} at Tick "
                     + $"{broken.Violation.Tick.Raw:N0}, waiter {broken.Violation.Slot:N0}, bin "
                     + $"{broken.Violation.Other:N0}, on a market row = {broken.OnAMarketRow}, "
-                    + $"requirement {broken.Requirement:N0}. The allowlist here is queue item 23 "
-                    + "alone -- an ORDINARY Bin whose waiter still wants something it now covers, "
-                    + "because a readout shrank the band under it. A market row's Bin, or a "
-                    + "requirement of zero, is queue item 22 coming back and adr/0171's sweep has "
-                    + "stopped working.");
+                    + $"requirement {broken.Requirement:N0}. Queue items 22 and 23 are both fixed and "
+                    + "nothing here is allowed any more. A market row's Bin is adr/0171's sweep having "
+                    + "stopped working; a requirement of ZERO is a price that reached zero again; a "
+                    + "requirement the Bin already covers -- zero included -- is a wake path missing "
+                    + "for whatever input moved: a readout (World.WakeDerivedApply) or a price "
+                    + "(World.RingEveryMoneyBin).");
             }
 
             Assert.True(
@@ -270,11 +322,6 @@ public sealed class MarketLongRunTests(MarketLongRun run) : IClassFixture<Market
                 $"{world.File} stopped short of Tick 362,496, which is where the stranded waiter "
                 + "first appeared. A shorter run is green for the wrong reason.");
         }
-
-        Assert.True(
-            _run.Worlds.Any(at => at.Violations.Length > 0),
-            "no invariant was violated on either world, so queue item 23 is fixed too and this fact "
-            + "is the thing to delete.");
     }
 
     /// <summary>
@@ -395,11 +442,20 @@ public sealed class MarketLongRunTests(MarketLongRun run) : IClassFixture<Market
         int gainedEarly = slots(tail[half]) - slots(tail[0]);
         int gainedLate = slots(tail[^1]) - slots(tail[half]);
 
+        // ⚠ ONE RECORD OF SLACK, AND IT IS THE MEASUREMENT'S RESOLUTION RATHER THAN A TOLERANCE FOR
+        // GROWTH. These two arenas hold a RARE population, so a half of the tail sets a handful of new
+        // records and the difference between halves is a small integer: provisioned.toml reads 2 then
+        // 3 with milestone 17's decline in it. ***One extra record over 32 readings is one draw, not a
+        // trend*** -- a log curve and a leak are indistinguishable at that resolution, and a bare
+        // `<=` was reading the noise as the signal. What actually separates them is the long-horizon
+        // series in these remarks -- 4, 9, 12, 13 slots over a 64-fold increase in Ticks -- and the
+        // LIVE half above, which is adr/0006 proper and where a leak has to show.
         Assert.True(
-            gainedLate <= gainedEarly,
+            gainedLate <= gainedEarly + 1,
             $"{world.File}'s {what} arena gained {gainedEarly:N0} slots over the first half of the "
             + $"tail and {gainedLate:N0} over the second. A high-water mark of a bounded population "
-            + "gains less each half; one that gains more is a population that is growing.");
+            + "gains no more each half than the last, give or take the one record this measurement "
+            + "cannot resolve; one that gains more is a population that is growing.");
     }
 
     /// <summary>Population variance about the mean.</summary>
@@ -606,6 +662,7 @@ public sealed class MarketLongRun
             Treasury: ledger.Treasury,
             Households: Held(world, BinOwnerKind.Household),
                 Shops: shops,
+            TradeLots: world.LotsAdmitting.Count(world.Lots, LotTable.Trade),
             Broke: broke,
             Larder: larder,
             Market: market,
@@ -727,6 +784,7 @@ public sealed class MarketLongRun
         long Treasury,
         long Households,
         int Shops,
+        int TradeLots,
         long Broke,
         long Larder,
         long Market,

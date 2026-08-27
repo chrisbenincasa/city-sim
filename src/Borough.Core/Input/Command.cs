@@ -135,6 +135,49 @@ public enum CommandKind : ushort
     /// </para>
     /// </remarks>
     Arrive = 7,
+
+    /// <summary>
+    /// Take a Building away. <c>01 §2</c>'s <b>sixth</b> verb and
+    /// <c>adr/0091</c>'s, and — unlike <see cref="Populate"/>, <see cref="Trip"/> and
+    /// <see cref="Arrive"/> — a verb a player really has.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Applied over ABANDONED stock only, and a standing Building is refused by name.</b>
+    /// <c>adr/0091</c> settles that every route to clearing <em>occupied</em> ground pays market
+    /// value read off the land value Map Layer, and deliberately refuses to choose the composition —
+    /// so compulsory purchase is a designed mechanism whose price does not exist, and it is blocked
+    /// on the land value target rather than on this verb. Abandoned stock needs no compensation term
+    /// because there is nobody left in it to compensate, which is the half that could ship.
+    /// ⚠ <b>Refused by name with its successor beside it</b>, on
+    /// <see cref="ConnectPayload"/>'s Arterial precedent: <c>adr/0070</c> only lets a later sitting
+    /// reason from an absence that was <em>refused</em>, never from one that is silently missing.
+    /// </para>
+    /// <para>
+    /// <b>It is the player's FAST path and not the city's only one</b>
+    /// (<c>adr/0172</c>). A shell falls on its own after
+    /// <c>[[building]] collapses_after_days</c>, because a player is not a sink and a headless run has
+    /// no player in it. What this verb buys is the Lot back <em>sooner</em>, which is a choice rather
+    /// than maintenance the simulation could not perform for itself.
+    /// </para>
+    /// <para>
+    /// <b>No payload, and the Tile is matched EXACTLY.</b> There is nothing to say about a demolition
+    /// beyond where it is, and <see cref="Command.Zone"/> stays zero. The exactness is
+    /// <c>Simulation.GateOn</c>'s narrowing taken for its reason rather than by analogy:
+    /// <c>[lots] lots_per_segment</c> is five, so <em>the Building in this block</em> names up to
+    /// twenty of them, and a verb that removes a neighbour's house because the click resolved to the
+    /// first Lot in the block is worse than one that refuses.
+    /// </para>
+    /// <para>
+    /// 🔴 ⚠ <b><c>Connect</c>'s bulldoze flag is NOT superseded here, and <c>adr/0091</c> says it
+    /// should be</b> — <em>"one spelling of remove a thing in the Input Log rather than two"</em>.
+    /// Retiring <see cref="ConnectAction"/> re-spells six of the committed golden session's seven
+    /// <c>connect</c> commands, so it is a change to the baseline artefact rather than to a
+    /// mechanism, and it is owed rather than done. ***Two spellings stand today and that is a debt,
+    /// not the design.***
+    /// </para>
+    /// </remarks>
+    Demolish = 8,
 }
 
 /// <summary>

@@ -25,11 +25,28 @@ namespace Borough.Tests.Corpus;
 /// </remarks>
 public sealed class CorpusBudgetTests
 {
-    /// <summary>ADR files on 2026-08-26, the day the amnesty opened.</summary>
-    private const int AdrCeiling = 169;
+    /// <summary>ADR files on 2026-08-26, the day the amnesty opened — plus milestone 17's two.</summary>
+    /// <remarks>
+    /// 🔴 <b>RE-SEEDED 169 → 171 on 2026-08-27 for the merge of <c>milestone-17-decline-and-cleared-land</c>,
+    /// and this is the raise the message above warns against, made deliberately.</b> The two ADRs are
+    /// <c>0168</c> (a decline threshold is a duration, and the premises and the tenant get one each)
+    /// and <c>0172</c> (an abandoned shell collapses on a clock). ***Both were written BEFORE the
+    /// amnesty opened*** — the freeze was captured against <c>main</c> on the day, and this branch was
+    /// already in flight with them in it. ⚠ <b>The ratchet stops <em>new</em> growth; it was never
+    /// meant to retroactively refuse work that predates it</b>, and the only alternative was to unwrite
+    /// two records of a milestone that had already landed. It keeps working from the new baseline, and
+    /// standing order 1 is unchanged: no ADR written after 2026-08-26 gets in this way.
+    /// </remarks>
+    private const int AdrCeiling = 171;
 
-    /// <summary><c>plans/0002-open-questions.md</c> on 2026-08-26.</summary>
-    private const int OpenQuestionsCeiling = 146_606;
+    /// <summary><c>plans/0002-open-questions.md</c> on 2026-08-26, plus milestone 17's §D rows.</summary>
+    /// <remarks>
+    /// <b>RE-SEEDED 146,606 → 153,786 on 2026-08-27</b>, for <see cref="AdrCeiling"/>'s reason and no
+    /// other. The added rows are milestone 17's decline numbers, opened under <c>adr/0052</c> while it
+    /// was still in force — ⚠ <b>which the amnesty has since SUSPENDED</b>, so nothing written after
+    /// 2026-08-26 opens a §D row at all and this ceiling has no ordinary way to move again.
+    /// </remarks>
+    private const int OpenQuestionsCeiling = 153_786;
 
     /// <summary>Every markdown file under <c>docs/</c> and <c>plans/</c> on 2026-08-26.</summary>
     /// <remarks>
@@ -43,14 +60,14 @@ public sealed class CorpusBudgetTests
     /// repository's. Re-seeded from this test's own count against a clean tree.
     /// </para>
     /// <para>
-    /// 🔴 <b>RAISED 2026-08-27 from 1,172,148 to 1,174,449 to admit <c>plans/0046</c>, and the raise is the point
+    /// 🔴 <b>RAISED 2026-08-27 from 1,172,148, twice and on two branches, and the raise is the point
     /// rather than a defeat.</b> <c>plans/0045</c>'s standing order 3 caps corpus growth and its
     /// escape hatch is <i>delete this test in a commit saying why — visible, not hard</i>. This is
     /// the cheaper half of that hatch: the ceiling moves, in a commit that says what it bought, and
     /// the ratchet goes on working afterwards.
     /// </para>
     /// <para>
-    /// ⚠ <b>What it bought was 2,302 words of PLAN, and that is the distinction the cap is for.</b>
+    /// ⚠ <b>On <c>main</c> it bought 2,302 words of PLAN — <c>plans/0046</c> — and that is the distinction the cap is for.</b>
     /// The amnesty was opened against 1.17M words of prose standing over 17,872 lines of simulation —
     /// 169 ADRs, 30 of them in five days, 236 of 524 commits changing no code at all. ***The disease
     /// is prose that substitutes for a mechanism, not prose that schedules one.*** A plan naming the
@@ -59,8 +76,20 @@ public sealed class CorpusBudgetTests
     /// while a raise stays awkward enough to be argued for</b>, so a raise with no plan behind it is
     /// the one to refuse.
     /// </para>
+    /// <para>
+    /// 🔴 <b>AND ON THIS BRANCH IT ADMITTED A CORPUS THAT PREDATES THE FREEZE.</b> The amnesty was
+    /// captured against <c>main</c> on 2026-08-26 while
+    /// <c>milestone-17-decline-and-cleared-land</c> was already in flight, so its prose could never
+    /// have fitted under a ceiling taken without it — see <see cref="AdrCeiling"/>. ⚠ <b>The two
+    /// raises are the same act for different reasons</b>, and the merged figure is neither branch's:
+    /// it is what the union actually counts.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Taken from this test's own message rather than from a shell</b>, which is the lesson of
+    /// the first re-seed — <c>find | xargs cat | wc -w</c> concatenates and reads low.
+    /// </para>
     /// </remarks>
-    private const int CorpusCeiling = 1_174_449;
+    private const int CorpusCeiling = 1_198_426;
 
     /// <summary>The two directories the corpus ceiling covers.</summary>
     private static readonly string[] Covered = ["docs", "plans"];

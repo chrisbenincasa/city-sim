@@ -88,6 +88,45 @@ internal static class AllocationProbe
 
         /// <summary>The thread the window ran on.</summary>
         internal int Thread;
+
+        /// <summary>
+        /// Methods the JIT compiled <b>on this thread</b> inside the window.
+        /// </summary>
+        /// <remarks>
+        /// <b>The rival mechanism's counter, which this probe recorded nothing for until
+        /// 2026-08-26.</b> <c>plans/0003</c> queue item 13 holds a <em>tiered-JIT rejit allocating on
+        /// the measuring thread</em> against <c>plans/0002</c> §D's allocation context, and the probe
+        /// recorded <see cref="GC.CollectionCount"/> for one of them and nothing at all for the other.
+        /// ***An instrument that records only one of two rival mechanisms cannot separate them***, and
+        /// separating them is the entire reason the class exists.
+        /// </remarks>
+        internal long JitMethods;
+
+        /// <summary>IL bytes the JIT compiled on this thread inside the window.</summary>
+        /// <remarks>
+        /// <b>Carried beside the count because a count of one says nothing about size.</b> A tier-1
+        /// promotion of a large method and a first-touch of a tiny one both read as <c>1</c>.
+        /// </remarks>
+        internal long JitIl;
+
+        /// <summary>When the reading was taken — <see cref="DateTime.UtcNow"/> ticks.</summary>
+        /// <remarks>
+        /// <para>
+        /// 🔴 <b>Owed since the probe was written and taken 2026-08-26.</b> The file carried
+        /// <c>process,test,bytes,gen0,gen1,gen2,thread</c> and no clock, so of three samples found that
+        /// day only the two somebody watched go red could be dated — the third sat at row 706 of 853
+        /// and could have come from any run in four days. ***A reading that cannot be ordered in time
+        /// cannot be read against a change to the tree***, which is what <c>plans/0002</c> §D's history
+        /// is made of: every sample in it is carried by its date.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>Ticks rather than a formatted string, because <see cref="Record"/> may not allocate.</b>
+        /// <see cref="DateTime.UtcNow"/> is a struct and costs nothing; rendering one costs a string,
+        /// so the formatting waits until <see cref="Flush"/>. ***The instrument's own constraint
+        /// decides the column's type.***
+        /// </para>
+        /// </remarks>
+        internal long Taken;
     }
 
     /// <summary>
@@ -148,7 +187,8 @@ internal static class AllocationProbe
     /// <param name="gen0">Gen0 collections inside the window.</param>
     /// <param name="gen1">Gen1 collections inside the window.</param>
     /// <param name="gen2">Gen2 collections inside the window.</param>
-    internal static void Record(string test, long bytes, int gen0, int gen1, int gen2)
+    internal static void Record(
+        string test, long bytes, int gen0, int gen1, int gen2, long jitMethods, long jitIl)
     {
         var sample = new Sample
         {
@@ -158,6 +198,9 @@ internal static class AllocationProbe
             Gen1 = gen1,
             Gen2 = gen2,
             Thread = Environment.CurrentManagedThreadId,
+            JitMethods = jitMethods,
+            JitIl = jitIl,
+            Taken = DateTime.UtcNow.Ticks,
         };
 
         int slot = Interlocked.Increment(ref count);
@@ -195,13 +238,23 @@ internal static class AllocationProbe
     /// asserted in two spellings is a property nothing can enumerate.***
     /// </para>
     /// </remarks>
-    internal static void Check(string test, long before, long after, int gen0, int gen1, int gen2)
+    internal static void Check(
+        string test,
+        long before,
+        long after,
+        int gen0,
+        int gen1,
+        int gen2,
+        long jitMethods,
+        long jitIl)
     {
         int firedGen0 = GC.CollectionCount(0) - gen0;
         int firedGen1 = GC.CollectionCount(1) - gen1;
         int firedGen2 = GC.CollectionCount(2) - gen2;
+        long compiled = System.Runtime.JitInfo.GetCompiledMethodCount(currentThread: true) - jitMethods;
+        long compiledIl = System.Runtime.JitInfo.GetCompiledILBytes(currentThread: true) - jitIl;
 
-        Record(test, after - before, firedGen0, firedGen1, firedGen2);
+        Record(test, after - before, firedGen0, firedGen1, firedGen2, compiled, compiledIl);
 
         if (after == before)
         {
@@ -209,7 +262,7 @@ internal static class AllocationProbe
         }
 
         throw new Xunit.Sdk.XunitException(
-            Explain(test, after - before, firedGen0, firedGen1, firedGen2));
+            Explain(test, after - before, firedGen0, firedGen1, firedGen2, compiled, compiledIl));
     }
 
     /// <summary>
@@ -223,19 +276,26 @@ internal static class AllocationProbe
     /// real samples in four years would have been buried under one fake per test run.
     /// ***A test for an instrument must not write to the instrument's output.***
     /// </remarks>
-    internal static string Explain(string test, long delta, int gen0, int gen1, int gen2)
+    internal static string Explain(
+        string test, long delta, int gen0, int gen1, int gen2, long jitMethods, long jitIl)
     {
         return
             $"{test} moved the allocation counter by {delta} bytes, with "
-            + $"{gen0} gen0, {gen1} gen1 and {gen2} gen2 collections inside the "
-            + "window.\n\n"
-            + "⚠ THIS MAY BE THE INTERMITTENT AND NOT A REGRESSION. plans/0002 §B is open on exactly "
-            + "this: GC.GetAllocatedBytesForCurrentThread is served out of a per-thread allocation "
-            + "context, and six recorded firings are all under 8,192 bytes, which is that context's "
-            + "size. A delta under 8,192 is consistent with the intermittent; one over it is not, and "
-            + "would be the refutation §B is waiting for.\n\n"
+            + $"{gen0} gen0, {gen1} gen1 and {gen2} gen2 collections inside the window, and "
+            + $"{jitMethods} methods ({jitIl} IL bytes) compiled on this thread inside it.\n\n"
+            + "⚠ THIS MAY BE THE INTERMITTENT AND NOT A REGRESSION. plans/0002 §D is open on exactly "
+            + "this, and TWO RIVAL MECHANISMS are on the table with the evidence split between them:\n"
+            + "  - plans/0002 §D: GC.GetAllocatedBytesForCurrentThread is served out of a per-thread "
+            + "allocation context, and every recorded firing is under 8,192 bytes, which is that "
+            + "context's size. The gen columns are this mechanism's counter.\n"
+            + "  - plans/0003 queue item 13: a tiered-JIT rejit allocating on the measuring thread. "
+            + "The jit columns are this mechanism's counter, and they exist only since 2026-08-26.\n\n"
+            + "🔴 SO READ THE JIT COLUMNS FIRST -- they are the half nobody had. A firing with jit "
+            + "movement inside the window supports item 13; one without it, on a site whose delta "
+            + "repeats a previous reading exactly, supports neither and is the state the question was "
+            + "left in.\n\n"
             + $"🔴 THE SAMPLE HAS ALREADY BEEN WRITTEN TO {Path} -- go and read it, and put the row "
-            + "in plans/0002 §B, BEFORE re-running. A green re-run is the correct response to an "
+            + "in plans/0002 §D, BEFORE re-running. A green re-run is the correct response to an "
             + "intermittent and it is also how the last sample was lost.";
     }
 
@@ -272,7 +332,7 @@ internal static class AllocationProbe
     private static string Render(Sample sample) =>
         string.Create(
             CultureInfo.InvariantCulture,
-            $"{Environment.ProcessId},{sample.Test},{sample.Bytes},{sample.Gen0},{sample.Gen1},{sample.Gen2},{sample.Thread}\n");
+            $"{new DateTime(sample.Taken, DateTimeKind.Utc):yyyy-MM-ddTHH:mm:ssZ},{Environment.ProcessId},{sample.Test},{sample.Bytes},{sample.Gen0},{sample.Gen1},{sample.Gen2},{sample.Thread},{sample.JitMethods},{sample.JitIl}\n");
 
     private static void Append(string rows)
     {
@@ -283,7 +343,9 @@ internal static class AllocationProbe
 
             File.AppendAllText(
                 path,
-                fresh ? "process,test,bytes,gen0,gen1,gen2,thread\n" + rows : rows);
+                fresh
+                    ? "taken,process,test,bytes,gen0,gen1,gen2,thread,jit_methods,jit_il\n" + rows
+                    : rows);
         }
     }
 }

@@ -754,11 +754,25 @@ this file builds was built for the wrong reason, and no number out of it is evid
 It is `crowded.toml`'s header shape exactly — a demonstration whose emitting kind contradicts what the
 demonstration is about — and the two are worth reading beside each other.
 
-**F18 — ⚠ the decline half is deliberately absent and `condemn_after` is declared anyway.** `plans/0043`
-**W17**: an unsold Bin fills, the Rule stops on `Blocking.Space`, and `RuleEngine.Stop` clears the
-pressure clock for every blocking reason but `Supply` — so **a shop nobody buys from is immortal**. The
-failable Rule that kills one is money-consuming, needs `adr/0166`'s Business Rules, and is **task 7**.
-The key is declared so the mechanism has somewhere to land and nothing reaches it today.
+**F18 — ⚠ the decline half is deliberately absent, and ~~`condemn_after` is declared anyway~~ the key
+is no longer declared here at all.** `plans/0043` **W17**: an unsold Bin fills, the Rule stops on
+`Blocking.Space`, and `RuleEngine.Stop` clears the pressure clock for every blocking reason but
+`Supply` — so **a shop nobody buys from is immortal**. The failable Rule that kills one is
+money-consuming, needs `adr/0166`'s Business Rules, and is **task 7** — ***which is also where
+`condemn_after` returns to this file***, at a value chosen for a trade rather than inherited from a
+dwelling.
+
+⚠ **THE STRUCK HALF WAS TRUE FOR ONE DAY AND WAS CORRECTED BY MILESTONE 17, NOT BY THIS SESSION.**
+The key was declared on both of this file's kinds *so the mechanism has somewhere to land*, and it was
+removed along with the same key in **seventeen other shipped Rulesets**: it stood at **4** in every one
+of the eighteen and no author had ever set it to anything else, which is
+[`adr/0164`](../docs/adr/0164-a-ruleset-key-is-designer-facing-or-it-belongs-in-the-instrument.md)'s
+*would a designer ever set this?* answered by the tree rather than argued. ⚠ **What made it matter is
+not this file**: abandonment means a condemned Building leaves a **shell standing**
+([`adr/0091`](../docs/adr/0091-clearing-land-is-bought-rather-than-taken-and-demolish-is-the-sixth-verb.md)),
+so every world was demonstrating blight on the way to demonstrating whatever it was built for. Decline
+now lives in `rulesets/declining.toml` and `rulesets/diagnosed.toml`. ***A key that arrives with the
+mechanism needing it is the thing that change is for***, so F18's own reasoning is what removed it.
 
 **F19 — 🔴 it is `adr/0163`'s own named ratifier and cannot serve as one yet.** Those two §D2 numbers
 name *milestone 26's own demonstration Ruleset* as their world, which is this file — and nothing in it

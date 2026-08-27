@@ -422,6 +422,13 @@ public sealed class Simulation
                 ApplyArrive(command, tick);
                 break;
 
+            case CommandKind.Demolish:
+                // 01 §2's sixth verb, and adr/0091's. Over abandoned stock only -- clearing occupied
+                // ground is a compulsory purchase whose price that ADR refuses to compose, so the
+                // half that could ship is the half with nobody left in it to compensate.
+                ApplyDemolish(command, tick);
+                break;
+
             case CommandKind.None:
             case CommandKind.Service:
             case CommandKind.Govern:
@@ -712,6 +719,108 @@ public sealed class Simulation
                 break;
             }
         }
+    }
+
+    /// <summary>
+    /// Clears an abandoned Building off the Lot at exactly the named Tile.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The first player act in this design that removes a Building</b>, and
+    /// <c>adr/0091</c>'s sixth verb arriving over the narrow half of its own scope. The wide half —
+    /// clearing ground somebody still lives on — is a <b>compulsory purchase</b> that pays market
+    /// value read off the land value Map Layer, and that ADR settles the shape while deliberately
+    /// refusing the composition. So it is blocked on the land value target, which is a named hole in
+    /// <c>MapLayers</c>, and not on anything here.
+    /// </para>
+    /// <para>
+    /// <b>A standing Building is refused by name with its successor beside it</b>, which is
+    /// <c>adr/0070</c>'s discipline rather than caution: an absence a later sitting may reason from
+    /// has to read <em>refused-for-now</em> rather than <em>silently missing</em>, and those are
+    /// different premises. ⚠ <b>The alternative — demolishing it for free — is the one thing this
+    /// must not do</b>, because a free bulldozer is a verb no part of the city governs, and
+    /// <c>adr/0091</c>'s whole argument is that the price is what makes clearing a decision.
+    /// </para>
+    /// <para>
+    /// <b>Nothing is paid here and nothing is owed</b>: the Building is empty by construction, so
+    /// there is no Household to compensate and no [`adr/0024`] transfer to conserve. ⚠ <b>That is
+    /// what makes this half shippable and is also its limit</b> — this verb can never be the one a
+    /// player uses on a district they want to redevelop.
+    /// </para>
+    /// <para>
+    /// <b>It is a shortcut through <c>adr/0172</c>'s clock and not a replacement for it.</b> A shell
+    /// falls on its own after <c>[[building]] collapses_after_days</c>; this takes the Lot back
+    /// sooner. ***A player is not a sink and this verb does not make one*** — the measurement that
+    /// settled that is in the ADR, and it is a city that dies with every invariant green.
+    /// </para>
+    /// <para>
+    /// <b>Repeating it is free rather than fatal</b>, on <see cref="ApplyConnect"/>'s reasoning: a log
+    /// replays a player's clicks, and clicking a Lot whose shell has already fallen — on its own
+    /// clock, between the click and the replay — is an ordinary event. ⚠ <b>The refusals below are
+    /// the ones that mean the command named the wrong place</b>, which is the distinction
+    /// <see cref="ApplyTrip"/> draws and this inherits.
+    /// </para>
+    /// </remarks>
+    private void ApplyDemolish(Command command, Ticks tick)
+    {
+        int building = BuildingOn(command.East, command.North);
+
+        if (building < 0)
+        {
+            throw new InvalidOperationException(
+                $"demolish names Tile ({command.East.Raw}, {command.North.Raw}), where no Building "
+                + "stands. The verb refuses rather than clearing the nearest one, because "
+                + "[lots] lots_per_segment is five and a substituted target is somebody else's "
+                + "house -- a mistyped command must not be indistinguishable from the demolition "
+                + "somebody meant.");
+        }
+
+        if (!_world.Buildings.IsAbandoned(building))
+        {
+            throw new InvalidOperationException(
+                $"demolish names Tile ({command.East.Raw}, {command.North.Raw}), where a Building "
+                + "still stands occupied. adr/0091 makes clearing occupied ground a COMPULSORY "
+                + "PURCHASE paid at market value from the land value Map Layer to whoever is "
+                + "displaced, and refuses to compose that price -- so the successor is named and "
+                + "unbuilt rather than missing, and it is blocked on the land value target. "
+                + "Abandoned stock is the half that needs no compensation, because there is nobody "
+                + "left in it to compensate.");
+        }
+
+        _world.DestroyBuilding(_world.Buildings.Rows.At(building), tick);
+    }
+
+    /// <summary>
+    /// The Building standing on the Lot at exactly this Tile, or <c>-1</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b><see cref="GateOn"/> without the kind test</b>, and exact for its reason rather than by
+    /// analogy: a block carries up to twenty Lots, so <em>the Building in this block</em> is not a
+    /// thing a verb that removes one may resolve.
+    /// </remarks>
+    private int BuildingOn(Tiles east, Tiles north)
+    {
+        LotTable lots = _world.Lots;
+
+        for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
+        {
+            if (!lots.Rows.IsLive(slot)
+                || lots.IsVacant(slot)
+                || lots.East[slot].Raw != east.Raw
+                || lots.North[slot].Raw != north.Raw)
+            {
+                continue;
+            }
+
+            int building = lots.BuildingOn(slot);
+
+            if (building >= 0)
+            {
+                return building;
+            }
+        }
+
+        return -1;
     }
 
     /// <summary>

@@ -4126,6 +4126,8 @@ public sealed class World
     {
         MarketRuleset market = Rules.Market;
 
+        bool anyPriceMoved = false;
+
         for (int row = 0; row < DistrictPools.Rows.SlotCount; row++)
         {
             if (!DistrictPools.Rows.IsLive(row)
@@ -4139,11 +4141,75 @@ public sealed class World
             DistrictPools.Rate[row] = rate;
             DistrictPools.Consumed[row] = 0;
 
+            Money was = DistrictPools.Price[row];
+
             DistrictPools.Price[row] = market.Reprice(
-                DistrictPools.Price[row],
+                was,
                 Rules.ImportCeiling(Bins.Resource[bin]),
                 Markets.Stock(this, row).Held,
                 rate);
+
+            anyPriceMoved |= DistrictPools.Price[row] != was;
+        }
+
+        if (anyPriceMoved)
+        {
+            RingEveryMoneyBin();
+        }
+    }
+
+    /// <summary>
+    /// Drains every money Bin's supply queue after a price has moved, because a price move changes
+    /// what a sleeping buyer needs without touching the Bin it is sleeping on.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b><c>adr/0063</c> wakes a wait list on the BIN's state, and a purchase's money leg is
+    /// priced live.</b> <c>RuleEngine.PoolDraw</c> charges the money leg as
+    /// <c>amount × the row's price</c>, so a buyer asleep on its own money Bin has a requirement that
+    /// moves whenever the market reprices — ***the Bin never moved and the requirement came down to
+    /// meet it***, and nothing re-drains when that happens. Sighted on
+    /// <c>rulesets/oversupplied.toml</c> at Tick 21,249: Rule Instance 865 asleep on bin 661 holding
+    /// <b>351</b> against a requirement of <b>344</b>, which it could afford and never woke to spend.
+    /// </para>
+    /// <para>
+    /// <b>This is the same hole <c>World.WakeDerivedApply</c> closed for a readout, one input over.</b>
+    /// Milestone 17 found that a Rule whose <c>apply</c> is derived depends on something other than a
+    /// Bin and needs a wake path of its own; a Rule with a <c>pool</c> term depends on a <em>price</em>
+    /// in exactly the same way. ***A live-derived requirement needs a wake path per input, and the
+    /// price was the input nobody had written one for.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Money Bins only, and that is derived rather than a narrowing for speed.</b> The Good leg
+    /// of a purchase parks the buyer on the market row's Bin and costs <c>floor × amount</c>, with no
+    /// price in it — so a reprice cannot change that requirement and a drain there would be a walk
+    /// with nothing to find. Only the money leg carries the price.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A drain and not a <c>WakeAll</c>.</b> <see cref="Drain(int, Blocking, Ticks)"/> wakes only
+    /// waiters the Bin can now cover, so a buyer whose price fell but still cannot afford it stays
+    /// asleep and <c>02 §4.1</c>'s <em>a starved District costs nothing until supply arrives</em> is
+    /// untouched.
+    /// </para>
+    /// <para>
+    /// <b>Gated on a price having actually moved</b>, which is most Days nothing: every shipped world
+    /// but the Provider Rulesets prices at the ceiling for ever, so this walk does not run at all on
+    /// them. Where it does run it is one queue walk per money Bin on the <c>[market]</c> cadence.
+    /// </para>
+    /// </remarks>
+    private void RingEveryMoneyBin()
+    {
+        if (!TryMoneyResource(out ResourceId money))
+        {
+            return;
+        }
+
+        for (int bin = 0; bin < Bins.Rows.SlotCount; bin++)
+        {
+            if (Bins.Rows.IsLive(bin) && Bins.Resource[bin] == money)
+            {
+                Drain(bin, Blocking.Supply, Tick);
+            }
         }
     }
 
@@ -4816,9 +4882,24 @@ public sealed class World
     /// Placement asks this of every candidate it samples and moves on when the answer is no, which is
     /// an ordinary outcome and not a fault; the guard exists for a caller that placed without asking.
     /// Keeping the two apart is what stops a full city filling the invariant log.
+    /// <para>
+    /// 🔴 <b>AN ABANDONED SHELL IS REFUSED FIRST, and leaving it out was milestone 17 task 1's own
+    /// defect.</b> The occupancy test is <i>declared ceiling against current tenants</i>, and an
+    /// abandoned Building has a declared kind and <b>zero</b> tenants — so it does not merely pass,
+    /// it looks like the emptiest and most attractive dwelling in the city. Placement rehoused
+    /// Households into premises the city had just condemned, and re-premised pooled Businesses into
+    /// them, and the collapse then evicted the lot a second time.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It surfaced as an <c>adr/0006</c> failure on the BUSINESS table</b> — the churn founded
+    /// and pooled trades faster than anything retired them — which is a long way from the Building
+    /// the defect is about. ***The symptom named the collection that grew, not the predicate that
+    /// was wrong.***
+    /// </para>
     /// </remarks>
     public bool HasRoom(int buildingSlot) =>
-        TryDeclaredOccupancy(Buildings.Kind[buildingSlot], out int occupants)
+        !Buildings.IsAbandoned(buildingSlot)
+        && TryDeclaredOccupancy(Buildings.Kind[buildingSlot], out int occupants)
         && Tenants(buildingSlot) < occupants;
 
     /// <summary>
@@ -5825,6 +5906,74 @@ public sealed class World
     {
         int slot = Buildings.Rows.Resolve(building);
 
+        EmptyPremises(slot, tick);
+
+        // The Car Park, and it goes with the Building because the parking a garage provides stops
+        // existing when the garage does. The cars in it are NOT unparked here, and that is deliberate
+        // rather than an oversight: CitizenTable.ParkedIn is Reference.Severable, so every holder's
+        // handle stops resolving in the same act -- which is what keeps adr/0084's conservation sum
+        // balanced across a demolition instead of reporting the leak it exists to catch.
+        //
+        // ⚠ It is also adr/0084's named second mutation site -- *a car displaced by a bulldozed
+        // garage* -- and that ADR says the write-site predicate needs restating before it ships. What
+        // is restated here is only the conservation half. Whether a displaced car should re-query a
+        // shed, and where, is task 4's, and it is the acquire/release pairing that decides it.
+        if (Buildings.HasCarPark(slot))
+        {
+            int carPark = Buildings.CarParkOf(slot);
+            Buildings.DetachCarPark(slot);
+
+            // Before the Free, because unlisting reads the row's own Address to find which Segment's
+            // list to walk -- see CarParkResidency.Remove.
+            CarParksOnSegments.Remove(CarParks, Roads.Segments, carPark);
+
+            CarParks.Rows.Free(CarParks.Rows.At(carPark));
+        }
+
+        // Before the Lot is freed below, because BuildingResidency reads the Lot's position through
+        // the Building's Lot handle -- so a Building removed after its Lot has gone would not find
+        // the Cell it is listed in and would leave a dangling entry for the next allocation of this
+        // slot to be inserted into twice.
+        BuildingsInCells.Remove(Buildings, Lots, slot);
+
+        // Before the row is freed, because the Lot handle is read off it.
+        if (Lots.Rows.TryResolve(Buildings.Lot[slot], out int lotSlot))
+        {
+            Lots.Vacate(lotSlot);
+
+            // A Lot with no frontage outlived its Street only because something stood on it
+            // (adr/0079). With the Building gone there is nothing to keep it a parcel, so it goes
+            // back to being land -- and land with no Street re-parcels if one ever returns.
+            //
+            // Found by LotLongRunTests rather than reasoned out: re-subdivision runs on a road edit,
+            // and a Lot can be vacated at any Tick, so between a demolition and the next edit the
+            // world held a vacant Lot with no Street. That is exactly what
+            // Invariant.VacantLotHasFrontage forbids, and freeing it here is what makes the
+            // invariant true continuously rather than only immediately after an edit.
+            if (HasStreets && !Lots.HasFrontage(lotSlot))
+            {
+                Lots.Rows.Free(Lots.Rows.At(lotSlot));
+
+                // The Lot set shrank, so the zoned draw space is out of date.
+                LotsAdmitting.Invalidate();
+            }
+        }
+
+        Buildings.Rows.Free(building);
+    }
+
+    /// <summary>
+    /// Empties a Building of everything that lives in it, leaving the structure itself untouched.
+    /// </summary>
+    /// <remarks>
+    /// <b>Shared by <see cref="DestroyBuilding"/> and <see cref="AbandonBuilding"/>, and that sharing
+    /// is the point.</b> The two differ only in what happens to the shell afterwards — demolition
+    /// frees the row and returns the Lot to vacant, abandonment leaves both standing. Everything
+    /// before that point is identical, and stating it twice would be two rules that drift
+    /// (<c>05 §4</c>'s reason for one home per predicate).
+    /// </remarks>
+    private void EmptyPremises(int slot, Ticks tick)
+    {
         // Peeked rather than popped, because Unplace removes the Household from this list itself —
         // popping first would leave it unlinking a node that is already off, and the two spellings of
         // "leave the occupant list" would have to agree for ever.
@@ -5930,59 +6079,41 @@ public sealed class World
             Bins.Rows.Free(Bins.Rows.At(bin));
             bin = BuildingBins.PopFront(slot);
         }
+    }
 
-        // The Car Park, and it goes with the Building because the parking a garage provides stops
-        // existing when the garage does. The cars in it are NOT unparked here, and that is deliberate
-        // rather than an oversight: CitizenTable.ParkedIn is Reference.Severable, so every holder's
-        // handle stops resolving in the same act -- which is what keeps adr/0084's conservation sum
-        // balanced across a demolition instead of reporting the leak it exists to catch.
-        //
-        // ⚠ It is also adr/0084's named second mutation site -- *a car displaced by a bulldozed
-        // garage* -- and that ADR says the write-site predicate needs restating before it ships. What
-        // is restated here is only the conservation half. Whether a displaced car should re-query a
-        // shed, and where, is task 4's, and it is the acquire/release pairing that decides it.
-        if (Buildings.HasCarPark(slot))
-        {
-            int carPark = Buildings.CarParkOf(slot);
-            Buildings.DetachCarPark(slot);
+    /// <summary>
+    /// The city abandons a Building: its Occupants leave, its tenants leave, and <b>the shell stays
+    /// standing on its Lot</b>.
+    /// </summary>
+    /// <remarks>
+    /// <b><c>02 §5.9</c> contradicts itself about this twelve lines apart and
+    /// <c>adr/0091</c> settled which reading stands</b> — <i>"abandonment empties a Building and
+    /// leaves it standing on its Lot"</i> — because three other mechanisms need the shell to exist:
+    /// the abandonment contagion that raises a neighbour's pressure has no carrier without it,
+    /// <c>01 §6</c>'s sustained-detection duration is derived from that contagion, and
+    /// <c>adr/0091</c>'s own clearance verb has nothing to act on. <b>The build implemented the other
+    /// reading</b> and did so from before that ADR was written.
+    /// <para>
+    /// ⚠ <b>This is not dereliction and must never be called that</b> (<c>CONTEXT.md</c>:313).
+    /// Dereliction is what a Ruleset edit does to a Building and it is recovered by a reload;
+    /// abandonment is what the city did to one and a reload must not undo it.
+    /// </para>
+    /// <para>
+    /// The Lot is <b>not</b> vacated and the row is <b>not</b> freed, so nothing here re-parcels the
+    /// Lot or disturbs <c>BuildingsInCells</c> — the Building is still standing ground as far as
+    /// every reader of those structures is concerned, which is exactly what the contagion term will
+    /// need. The Car Park is likewise left attached: the garage still physically stands.
+    /// </para>
+    /// </remarks>
+    public void AbandonBuilding(Handle<Building> building, Ticks tick)
+    {
+        int slot = Buildings.Rows.Resolve(building);
 
-            // Before the Free, because unlisting reads the row's own Address to find which Segment's
-            // list to walk -- see CarParkResidency.Remove.
-            CarParksOnSegments.Remove(CarParks, Roads.Segments, carPark);
+        EmptyPremises(slot, tick);
 
-            CarParks.Rows.Free(CarParks.Rows.At(carPark));
-        }
-
-        // Before the Lot is freed below, because BuildingResidency reads the Lot's position through
-        // the Building's Lot handle -- so a Building removed after its Lot has gone would not find
-        // the Cell it is listed in and would leave a dangling entry for the next allocation of this
-        // slot to be inserted into twice.
-        BuildingsInCells.Remove(Buildings, Lots, slot);
-
-        // Before the row is freed, because the Lot handle is read off it.
-        if (Lots.Rows.TryResolve(Buildings.Lot[slot], out int lotSlot))
-        {
-            Lots.Vacate(lotSlot);
-
-            // A Lot with no frontage outlived its Street only because something stood on it
-            // (adr/0079). With the Building gone there is nothing to keep it a parcel, so it goes
-            // back to being land -- and land with no Street re-parcels if one ever returns.
-            //
-            // Found by LotLongRunTests rather than reasoned out: re-subdivision runs on a road edit,
-            // and a Lot can be vacated at any Tick, so between a demolition and the next edit the
-            // world held a vacant Lot with no Street. That is exactly what
-            // Invariant.VacantLotHasFrontage forbids, and freeing it here is what makes the
-            // invariant true continuously rather than only immediately after an edit.
-            if (HasStreets && !Lots.HasFrontage(lotSlot))
-            {
-                Lots.Rows.Free(Lots.Rows.At(lotSlot));
-
-                // The Lot set shrank, so the zoned draw space is out of date.
-                LotsAdmitting.Invalidate();
-            }
-        }
-
-        Buildings.Rows.Free(building);
+        // After the emptying rather than before it, so that a reader of this column during the walk
+        // above cannot see a half-emptied Building calling itself abandoned.
+        Buildings.AbandonedSince[slot] = tick;
     }
 
     /// <summary>Which of a Bin's two wait lists a given blocking reason queues on.</summary>
@@ -6062,6 +6193,73 @@ public sealed class World
 
             waiters.PopFront(binSlot);
             Wake(head, tick);
+        }
+    }
+
+    /// <summary>
+    /// Wakes the premises' sleeping Rules whose <c>apply</c> count is derived, because the Readout
+    /// they derive it from has just changed.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b><c>adr/0063</c>'s principle reaching the one input that is not a Bin.</b> A wait list
+    /// wakes on the <em>Bin's</em> state, and that is every reason a Rule's verdict can change —
+    /// except one. A Rule whose <c>apply</c> is <c>{ derived = ... }</c> also depends on a Readout,
+    /// and ***nothing anywhere was watching it***: the count is recomputed only when the Rule is
+    /// evaluated, and a starving Rule subscribes and sleeps rather than re-arming on its rate
+    /// (<c>adr/0045</c>). So a Rule could be asleep waiting for supply it no longer needed.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>Found by a test rather than by reading, and it had made milestone 17 task 3 silently
+    /// inert.</b> Shedding an Occupant lowers a derived Rule's demand to nothing at zero occupancy —
+    /// the whole point of the first threshold — and the Building was condemned anyway, because
+    /// <c>upkeep</c> never woke to notice. ***The mechanism was correct and unobservable***, which is
+    /// the shape <c>adr/0093</c> warns about.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Only the SLEEPING ones need this, and that is what makes the fix complete rather than
+    /// partial.</b> A Rule that is not starving is armed on the Wheel and re-evaluates on its rate,
+    /// picking up the new Readout by itself — so a rise in occupancy needs no wake at all. Only a
+    /// fall, on a Rule already asleep, is unreachable by any other path.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The PREMISES only.</b> A tenant's Rule Instances carry their Household handle and derive
+    /// nothing from the Building's occupancy; waking them would re-arm Rules whose inputs did not
+    /// move.
+    /// </para>
+    /// <para>
+    /// <b>Safe here by the phase order and not by anything this does</b> — see <see cref="Unlink"/>.
+    /// Its caller is <c>ZoneRuleEngine.Shed</c>, which runs in phase 6, after Phase 3 has put every
+    /// due row back.
+    /// </para>
+    /// </remarks>
+    internal void WakeDerivedApply(int buildingSlot, Ticks tick)
+    {
+        foreach (int instance in BuildingRules.Walk(buildingSlot))
+        {
+            if (RuleInstances.Household[instance] != default)
+            {
+                continue;
+            }
+
+            // ⚠ ASLEEP ON A WAIT LIST, which is NOT the same as starving and the difference threw.
+            // StarvedSince stays stamped until the Rule actually fires again, so an instance this
+            // method has already woken still reads as starving while being armed on the Wheel --
+            // and EventWheel.Arm refuses an instance that is already armed
+            // (Invariant.RuleInstanceIsArmedOrWaiting). `Blocked` is the state that answers the
+            // question this method is asking: is anything other than a Bin write going to reach it.
+            if (RuleInstances.Blocked[instance] == Blocking.Nothing)
+            {
+                continue;
+            }
+
+            if (!Rules.Rule(RuleInstances.Rule[instance]).Apply.IsDerived)
+            {
+                continue;
+            }
+
+            Unlink(instance);
+            Wake(instance, tick);
         }
     }
 

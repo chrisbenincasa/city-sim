@@ -279,7 +279,7 @@ public sealed class CommuteLongRunTests(ITestOutputHelper output)
     public void The_empty_middle_of_the_Day_is_land_use_and_a_second_kind_fills_it()
     {
         World mixed = RunToSettled(WithASecondKind(3, 6), PeakPopulation, ProfileTickCount);
-        World single = RunToSettled(GoldenFixtures.Rules(), PeakPopulation, ProfileTickCount);
+        World single = RunToSettled(GoldenFixtures.DecliningRules(), PeakPopulation, ProfileTickCount);
 
         (int[] perBin, int total) = Profile(mixed);
         (int[] control, int controlTotal) = Profile(single);
@@ -520,7 +520,7 @@ public sealed class CommuteLongRunTests(ITestOutputHelper output)
     /// and the callers are not in this file.
     /// </remarks>
     internal static string SecondKindToml(int earliestHour, int latestHour) =>
-        File.ReadAllText(GoldenFixtures.RulesetPath) + $$"""
+        File.ReadAllText(GoldenFixtures.DecliningRulesetPath) + $$"""
 
             [[business]]
             name = "workshop_trade"
@@ -534,9 +534,10 @@ public sealed class CommuteLongRunTests(ITestOutputHelper output)
                 { resource = "sundries", capacity = 48 },
                 { resource = "repairs",  capacity = 4 },
             ]
-            condemn_after = 4
             occupants = 4
             business = "workshop_trade"
+            condemn_after_days   = 2
+            collapses_after_days = 1
 
             [[rule]]
             name    = "restock_workshop"
@@ -578,6 +579,22 @@ public sealed class CommuteLongRunTests(ITestOutputHelper output)
     /// Parsed from the committed file rather than built here, for <c>GoldenFixtures.Rules</c>' own
     /// reason: a Ruleset built in C# agrees with the loader by construction, so a run over one proves
     /// nothing about the file the city actually ships with.
+    /// </para>
+    /// <para>
+    /// 🔴 <b><c>declining.toml</c> rather than <c>minimal.toml</c> since milestone 17, and the
+    /// paragraph below is what said so before anyone checked.</b> It claims the clone holds <em>the
+    /// condemnation cadence</em>; <c>adr/0164</c> made that cadence <em>nothing</em>, and the
+    /// consequence is not that the workshops decline more slowly — <em>it is that they are never
+    /// built at all</em>. The two Zone Rules compete for the same Lots, the city opens fully built
+    /// in dwellings, and without a Building falling down no Lot ever comes free for the second kind
+    /// to win. The midday count was 0 because the mixed city had no workshops in it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The two <c>condemn_after_days</c> keys on the appended kind are part of the clone and
+    /// not a new choice</b> — they restate what <c>declining.toml</c> gives <c>dwelling</c>, which is
+    /// what "cloning holds the cadence" has always meant. A second kind that never declined would
+    /// ratchet: every cleared Lot taken by a workshop would stay one for ever, and the comparison
+    /// would drift into being about tenure rather than about Shift bands.
     /// </para>
     /// <para>
     /// <b>The appended kind is a clone of <c>dwelling</c> with one line changed</b>, and everything

@@ -193,6 +193,22 @@ public sealed class PlacementLongRunTests
                 continue;
             }
 
+            // 🔴 A SHELL IS A LIVE ROW AND NOT A PLACE, and this loop counted it as one until
+            // milestone 17. adr/0091 leaves a condemned Building standing rather than freeing its
+            // row, so `IsLive` stopped meaning "somebody could move in here" on the day clearing
+            // became a purchase -- and the reading went unexamined because no shipped world
+            // condemned anything once the fixture stopped declining.
+            //
+            // ***The vacancy this test exists to refuse is a place that COULD be filled and is not.***
+            // A shell is a place that cannot be, so counting it makes the denominator a statement
+            // about blight and the ratio a statement about nothing. The same sentence is already
+            // written in PlacementEngine.TryHouse, which skips shells rather than spending a look on
+            // one -- this is that fix arriving in the measurement, one layer up.
+            if (world.Buildings.IsAbandoned(slot))
+            {
+                continue;
+            }
+
             // HOUSING capacity and not TENANT capacity (adr/0148). `occupants` is one ceiling over
             // both kinds, so a Building holding a shop houses that many families fewer -- and this
             // reading is compared against `housed`, which counts Households alone. Taking the live
@@ -283,7 +299,7 @@ public sealed class PlacementLongRunTests
     {
         var key = WorldKey.FromSeed(seed);
 
-        world = new World(Population, GoldenFixtures.Rules());
+        world = new World(Population, GoldenFixtures.DecliningRules());
 
         var simulation = new Simulation(world, key)
         {

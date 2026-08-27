@@ -252,14 +252,21 @@ public sealed class GoldenSessionCoverageTests
     public void The_session_sends_people_to_work_without_a_trip_command()
     {
         InputLog session = GoldenFixtures.Session();
-        int busiest = 0;
+        Simulation simulation = Replay.Start(session, GoldenFixtures.Catalogue());
+        simulation.VerifyDecideWritesNothing = false;
 
-        // Eight samples across the run. A Fate frees the row, so no single instant can be relied on
-        // to hold one -- what is asserted is that some instant does, which is what "the session
-        // generates commutes" means and what the final Tick alone was standing in for.
-        for (int sample = 1; sample <= 8; sample++)
+        int busiest = 0;
+        int samples = 0;
+
+        // One pass, looked at every Stride Ticks. A Fate frees the row, so no single instant can be
+        // relied on to hold a Trip -- what is asserted is that some instant does, which is what "the
+        // session generates commutes" means and what the final Tick alone was standing in for.
+        for (int tick = Stride; tick <= GoldenFixtures.Ticks; tick += Stride)
         {
-            World world = At(session, new Ticks((ulong)(GoldenFixtures.Ticks * sample / 8)));
+            Replay.Trace(simulation, session, new Ticks(Stride), Stride, []);
+            samples++;
+
+            World world = simulation.World;
             int commuting = 0;
 
             for (int slot = 0; slot < world.Trips.Rows.SlotCount; slot++)
@@ -274,9 +281,38 @@ public sealed class GoldenSessionCoverageTests
             busiest = commuting > busiest ? commuting : busiest;
         }
 
-        Assert.True(busiest > 0, "the committed session generates no commute Trip at any of eight "
-            + "samples across its run, so nothing in the baseline covers the commute generator.");
+        Assert.True(busiest > 0, $"the committed session generates no commute Trip at any of "
+            + $"{samples} samples across its run, so nothing in the baseline covers the commute "
+            + "generator.");
     }
+
+    /// <summary>
+    /// How often this test looks at the city, in Ticks.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>A DEPARTURE WINDOW IS NOT A STRIDE, and this test read one with the other twice.</b>
+    /// It sampled at <c>Ticks × sample ÷ 8</c>, so the interval between looks was a fixed fraction of
+    /// the session and moved whenever the session's length did. Departures do not: they fall in the
+    /// first <c>ceil(TICKS_PER_DAY ÷ commute_peak_factor)</c> = <b>683</b> Ticks of each Day, for
+    /// ever. At 2,048 Ticks the stride was 256 and two looks landed inside a window; milestone 17
+    /// took the session to 8,192, the stride to 1,024, and <b>every one of the eight looks landed in
+    /// the quiet after a wave</b> — 1,024, 2,048, 3,072 … all past 683 and all short of the next
+    /// Day's. The city was commuting exactly as much as before.
+    /// <para>
+    /// ⚠ <b>This is the second time, and the first is recorded three paragraphs up</b>: <c>adr/0094</c>
+    /// took the Day to 2,048, the window fell 2,731 → 683, and reading the final Tick alone found
+    /// nothing. Sampling was the repair, and it inherited the same defect one level along. ***A
+    /// sample rate derived from the run's length cannot see a phenomenon whose period is derived from
+    /// the Day***, and no session length is safe from it — 8 is a count where a bound was needed.
+    /// </para>
+    /// <para>
+    /// <b>So the stride is stated against the window rather than against the session.</b> 256 Ticks
+    /// is comfortably inside 683, so at least two looks fall in every departure wave whatever the
+    /// session's length becomes. It is also one pass now rather than eight replays: <c>Replay.Trace</c>
+    /// advances a simulation from wherever it is, so the run is walked once and looked at on the way.
+    /// </para>
+    /// </remarks>
+    private const int Stride = 256;
 
     /// <summary>
     /// <b>The driving session parks cars and walks at both ends of the drive.</b>

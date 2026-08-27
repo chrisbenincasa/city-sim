@@ -310,7 +310,11 @@ internal static class EvidenceDump
 
         for (byte kind = 1; kind <= byte.MaxValue; kind++)
         {
-            if (rules.Declares(kind) && rules.Kind(kind).CondemnAfter > 0)
+            // ⚠ THE PREMISES' THRESHOLD ONLY, and tenancy_ends_after_days deliberately does not
+            // count here. The condemnation trail is a LOT's, and a tenancy that ends leaves the Lot,
+            // the kind and the Building exactly as they were -- so evicted.toml, which ends tenancies
+            // constantly, still produces an empty trail and is still the wrong file for --evidence.
+            if (rules.Declares(kind) && rules.Kind(kind).CondemnAfterTicks > 0)
             {
                 return null;
             }
@@ -322,8 +326,8 @@ internal static class EvidenceDump
         }
 
         output.WriteLine(
-            "No [[building]] in this Ruleset sets condemn_after, so no Building can ever be "
-            + "condemned however badly it is supplied. adr/0053 makes decline a duration and absent "
+            "No [[building]] in this Ruleset sets condemn_after_days, so no Building can ever be "
+            + "condemned however badly it is supplied. Decline is a duration and absent "
             + "means never, which is what every Ruleset written before decline existed already "
             + "meant — so this is a file that declines nothing rather than an accumulator that has "
             + "lost something.");
@@ -537,17 +541,26 @@ internal static class EvidenceDump
                 + $"{WaitingOn(rules, names, rule),-22}"));
         }
 
-        int threshold = evidence.IsDeclared ? rules.Kind(evidence.Kind).CondemnAfter : 0;
+        // TWO THRESHOLDS SINCE MILESTONE 17, and printing one against both readings was wrong in a
+        // way nobody could see: the tenant line said "against the same" and meant it.
+        KindDefinition declared = evidence.IsDeclared ? rules.Kind(evidence.Kind) : default;
+
+        int condemns = declared.CondemnAfterTicks;
+        int endsTenancy = declared.TenancyEndsAfterTicks;
 
         output.WriteLine();
         output.WriteLine(
             $"Failure pressure {evidence.Pressure} missed firings — the LONGEST of its Rules' and "
-            + $"not their sum (adr/0053) — against a condemn_after of {threshold}. Nothing stores "
-            + "that maximum; it is recomputed here, which is what an assembler is for.");
+            + $"not their sum (adr/0053) — against a condemn_after_days of {condemns}. Nothing "
+            + "stores that maximum; it is recomputed here, which is what an assembler is for. ⚠ The "
+            + "pressure is in FIRINGS and the threshold is in DAYS: milestone 17 moved the threshold "
+            + "to a duration and left the ranking in firings, because they answer different "
+            + "questions (ZoneRuleEngine.Worst says which).");
 
         output.WriteLine(
-            $"Its worst TENANT is at {evidence.TenantPressure} missed firings against the same "
-            + $"{threshold}, and that is a different verdict (adr/0141): the premises' pressure "
+            $"Its worst TENANT is at {evidence.TenantPressure} missed firings against a "
+            + $"tenancy_ends_after_days of {endsTenancy}, and that is a different verdict "
+            + "(adr/0141): the premises' pressure "
             + "condemns the BUILDING, a tenant's ends the TENANCY and leaves the premises standing. "
             + "⚠ This line is a maximum over the whole Building and does not say WHICH tenant — the "
             + "`whose` column above does, per Rule.");

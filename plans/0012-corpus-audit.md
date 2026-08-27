@@ -451,6 +451,7 @@ between them can see anything wrong.
 | **`plans/0002` §D2**, written 2026-08-13, found 2026-08-14 | S2 R1's entry-error sweep, **24.70%–3.80%** | ⚠ **none — the clause that was written is *wrong*.** §D2 says the sweep *"was measured with the store in the denominator and on the District axis"*; `MatrixReport.MeasureError` divides by the **per-query A\* cost** and the route store is a separate size table, while the harness's partition is a Cell-aligned grid over nodes and is geometrically the routing partition | nothing yet — **5c task 1 caught it before quoting it**, which is the first time the tell fired before the damage. The three real disqualifiers had never been written: a **uniform** O-D draw (R4: *a different city*), **pre-`adr/0094` Ticks** at 8192 a Day, and **car** times against foot rungs. Corrected in §D2 and `RoutingPartition.DesignEdge` |
 | ⚠ **`plans/0013`'s routing row**, found 2026-08-16 by session **T** | the **routing bill**, ≥17.8 ms, quoted as the ledger's whole sum | not a caveat — a **correction**. `adr/0094`'s ×4 was stated in `01 §1`, in `CLAUDE.md`, **and twice inside `plans/0013` itself**: the *volume attribution* row was re-derived for it on 2026-08-14 and a sidebar on `adr/0061` stated it on 2026-08-13 | the routing row was never multiplied, so the document that **owns** the sum under-reported it by ~2.6× for three days while two views of it were right. Corrected: **≥44–50 ms** |
 | ⚠ **`0d8b114`'s merge subject**, committed and found 2026-08-19 | **the State Hash is unchanged** — a claim rather than a figure | *"the golden world still reproduces its committed hash"*, which is true of the **test** and silent about **`main`**: the baseline file arrived in that same merge, already re-recorded on the parking branch for milestone 7 | It shipped as the message of the merge that moved `main`'s hash from **`0x4D7675CF9217B955`** to **`0x817C9B00CA65113D`**, so the one commit a later reader would search for the move is the commit that denies it. ⚠ **`tests/Borough.Tests/Golden/README.md` → *Re-baselining* asks for the opposite at step 4** — *say why, in the commit message: what moved, whether it was intended, and which document authorises it* — and forbids at step 5 the pairing a merge creates by construction. ***A green baseline test proves the committed number matches the built world; it does not prove that number is the one that was there yesterday.*** Recorded rather than repaired: the merge stands and [`0031`](0031-parking.md) now carries the move |
+| 🔴 ⚠ **`plans/0002` §D1's blight census**, written 2026-08-25, found 2026-08-26 | **313 built, 586 abandoned, 475 vacant** on `declining.toml`, quoted as **at 1,000 Citizens** | ⚠ **none — the population beside the number is simply WRONG, and the number is right.** `Options.cs:200` defaults `--citizens` to **`10_000`**; the runner was run bare and the census filed against a world ten times smaller than the one measured | it reached `rulesets/declining.toml`'s header and `CLAUDE.md`'s repository map with the same wrong population, so **three documents agreed to the last digit and none of them named the city.** ***The Lot total is what gives it away and no reader would have looked***: 313+586+475 = **1,374**, and a 1,000-Citizen world has **134**. ⚠ **It is the SECOND Cause 5 error on this one figure** — the row already records the share being derived on paper as *roughly 30%* and refuted at 65% by the first instrument to measure it. ***First the number was reasoned instead of measured; then the measurement was filed against the wrong world.*** ⚠ **The damage is that every before-and-after comparison drawn against it was invalid**, including two taken during milestone 17's own threshold change, which read a 1,000-Citizen *after* against a 10,000-Citizen *before* and reported a smaller gain than the change actually made (39% against 65%, not 44%). **The writing-half repair is this Cause's own rule arriving on a dimension nobody had applied it to**: *name a number after what it measures* has always meant the quantity, and a population is part of what a census measures. Corrected in `plans/0002` §D1; `declining.toml` and `CLAUDE.md` owed |
 
 > ⚠ **That last row is a third form of this Cause and it is the one no check can reach.** The first two
 > forms are a **caveat** left behind when digits are copied, and a **compressed caveat** acquiring a new
@@ -2623,6 +2624,39 @@ file runs in surplus — it has no second producer and no sink — which is a di
       least as large as any producer's headroom deficit*. Its absence is why `minimal-tuned.toml` broke the
       headroom side the day it was written.
 
+🔴 ⚠ **A THIRD FILE CARRIES IT, WRITTEN 2026-08-26 — SIXTEEN DAYS AFTER FINDING 41 WAS STRUCK.**
+`rulesets/maintained.toml`'s `repairs` header says *"See finding 41 for why the **partial** shortage
+regime is the one that cannot be written."* This entry names two files and the defect had spread to a
+third, because the entry is a list of **sightings** and nothing checks the claim itself. ***An open
+correction that enumerates its instances goes stale every time somebody writes a new one***, and a
+citation to a struck finding is `adr/0093`'s failure mode with the pointer aimed at something that was
+withdrawn.
+
+⚠ **The sentence is wrong in a way that matters more than the stale citation.** The partial shortage
+regime *is* expressible since [`adr/0063`](../docs/adr/0063-a-wait-list-wakes-on-the-bins-state-and-a-shortfall-is-derived-rather-than-stored.md).
+What is actually unreachable is something the file never claimed: **a premises trough long enough to
+cross a decline threshold** — bounded at **2,016 Ticks against a floor of 2,048**, measured in
+[`0047`](0047-decline-demolish-and-cleared-land.md) **F9**. ***The file was right that something cannot be
+written and wrong about what it was***, which is why the citation survived: the conclusion kept looking
+correct.
+
+- [ ] Rewrite `maintained.toml`'s `repairs` header to cite `0046` F9 and drop finding 41.
+- [ ] ⚠ **And state the mechanism rather than the outcome**, since the outcome is what let a withdrawn
+      finding stand for it: **a consumer that waits on supply cannot run a persistent deficit**, because
+      a failed Rule subscribes and sleeps (`adr/0045`) instead of retrying on its own cadence, so demand
+      is throttled by supply and a local chain always finds a surplus equilibrium.
+
+🔴 ⚠ **`CLAUDE.md`'s standing-constraint bullet is wrong for the same reason and is the higher-traffic
+copy.** It explains `local`'s absent middle as *"circular — the chain must bottom out in a no-input Rule,
+which never fails"*. The premise holds and the conclusion does not: `maintained.toml` has exactly that
+no-input bottom and a real middle, measured at **992 Ticks of pressure at `maintain` rate 1024**, which
+recovers. ***What shuts `local` is the throttling and the Event Wheel's 2047-Tick cap, not circularity***
+— and the difference is not academic, because circularity would be unfixable and a cap is a number.
+
+- [ ] Correct the `local` clause in `CLAUDE.md`'s *Things to be careful about* bullet. ⚠ **Not done here
+      on purpose**: it is the repository's most-read file and the correction should be somebody's
+      deliberate edit rather than a side effect of a task 3 measurement.
+
 **⚠ A second item joined this entry on 2026-08-11, and it shares the cause rather than merely the cost.**
 Both shipped Rulesets also say this, in the `[roads]` section:
 
@@ -4291,3 +4325,187 @@ citation is the error.
 that a quotation is **where it says it is** — a gap that is real and probably not worth closing
 mechanically, since the check would have to distinguish quotation from paraphrase. ***The reading rule
 already covers it and was simply not followed***: quote the sentence, and name where the sentence is.
+
+## Filed 2026-08-26, by milestone 17's guard repair and milestone 26 task 7's correction — a **Cause 8 candidate** with four sightings in one day, and a duplicated ordinal in this document
+
+### 🔴 A counter that aggregates over the whole world, read as though it were scoped to the subject the claim names
+
+**The framing is milestone 26's, arrived at from its side; the fourth sighting is milestone 17's, arrived
+at from the other.** Two sessions hit it independently on 2026-08-26 and it is not
+[**Cause 5**](#cause-5--a-number-is-quoted-away-from-the-sentence-that-qualifies-it), though it is its
+sibling. Cause 5 is a number travelling away from the clause that qualifies it. **This is a number whose
+*scope* is wider than the claim it is being used for, sitting in the file that makes the claim, with its
+qualifying clause still attached and still correct.** ***Nothing has moved and nothing has been
+compressed; the number simply answers a broader question than the one being asked.***
+
+| # | Sighting | The counter | The claim it was read as |
+|---|---|---|---|
+| **1** | `ProvisionedRulesetTests.A_shop_can_go_broke` | `Zoning.Drain().Ended.Sum` — **every** tenancy ended anywhere in the city | *a broke shop was turned out*. It was satisfied by **dwellings evicting Households** on a 32-Tick clock in the window before the market could exist, and a Business tenancy **cannot end at all** — `ZoneRuleEngine.Condemn` walks `World.Occupants` and never `World.BuildingBusinesses`. [`plans/0002`](0002-open-questions.md) §A |
+| **2** | milestone 26 task 7's **F37**, first half | a shop too new to have earned anything | *the levy is failing because the shop is broke* |
+| **3** | milestone 26 task 7's **F37**, second half | the same, a second time | the same |
+| **4** | `PlacementLongRunTests.The_hundred_thousand_Tick_occupancy_run` | `capacity` summed over **every live Building** | *places somebody could move into*. [`adr/0091`](../docs/adr/0091-clearing-land-is-bought-rather-than-taken-and-demolish-is-the-sixth-verb.md) leaves a condemned Building **standing**, so `Rows.IsLive` stopped meaning *habitable* and the denominator became a statement about blight |
+
+⚠ **CARE INSIDE THE TEST BODY CANNOT FIX IT, which is what makes it a Cause rather than four bugs.** The
+fault is in the *reading of what the counter counts*, and the counter is usually named correctly —
+`Ended` really is the count of endings, `capacity` really is the declared capacity. ***Every one of these
+four passed review, and three of them passed a green test.***
+
+⚠ **The tell is a title with a subject in it.** *A shop can go broke* names a shop; *the occupancy run*
+names places somebody lives in. **When the assertion's title names a subject and its counter names a
+world, the two have to be reconciled explicitly or the test is measuring the world.**
+
+**The repair, in both directions.** ***Writing***: assert on the subject rather than on the aggregate —
+milestone 26's correction reads `tick - StarvedSince` on the broke shop's **own** Rule Instance, which is
+a property of the subject and cannot be satisfied by anything else in the city. ***Reading***: before
+trusting a counter, ask what else could move it. ⚠ **It is not a mechanical check.** A test that names
+its subject and folds a world-wide sum is indistinguishable, to a linter, from one that means to.
+
+🔴 ⚠ **A CORRECTION HERE REMOVES A SYMPTOM AND IS NOT A FIX, and sighting 1 is now the example.** The
+assertion was corrected the same day and the mechanism gap under it is untouched — a Business's Failure
+Pressure still reaches no threshold. ***What was a red test is now a silent one***, which is why
+`plans/0002` §A stays open with the correction recorded in it rather than closing on it.
+
+### ⚠ And this document has two sections numbered **Cause 7**, one of which is titled *two documents claim one ordinal*
+
+`### Cause 7 — two documents claim one ordinal` and `### Cause 7 — a description takes its noun from the
+build, and the build is behind the design` are both present, at different depths of the file. **They are
+two different causes wearing one number**, which is the first one's own subject arriving inside the
+document that names it.
+
+⚠ **Not renumbered here, because a Cause number is cited from elsewhere** and a renumber is a sweep
+rather than an edit — the same hazard `adr/0119`/`0120`'s renumber recorded. Recorded so the next reader
+of *Cause 7* knows to check which. ***It is also why the section above is filed as a Cause 8
+CANDIDATE and not minted as Cause 8***: allocating an ordinal in a document with a live ordinal
+collision is how the collision doubles.
+
+---
+
+## Filed 2026-08-26, by milestone 17's golden-session repair — two **Cause 9 candidates**, both about a check that keeps passing after its subject moves
+
+⚠ **Filed as candidates for the reason the section above gives**: this document has a live ordinal
+collision at *Cause 7*, and minting numbers into that is how a collision doubles.
+
+**Both shapes below are about a test that goes on passing, cheerfully, once the thing it was written to
+watch has moved out from under it.** Neither is a wrong sentence in a document, which is why neither
+would ever have reached this ledger by the route the other Causes did. They are here because the audit's
+subject is *how a record stops being true without anybody noticing*, and a green test is a record.
+
+### Candidate A — a guard written against a fixture pointer stops guarding whatever the pointer moved off
+
+**Sighting 1 — `The_two_golden_rulesets_differ_in_exactly_one_line`, 2026-08-26.** It read
+`GoldenFixtures.RulesetPath` and `TunedRulesetPath`, which is correct and is what made it dangerous.
+Milestone 17 repointed those at `declining.toml` / `declining-tuned.toml`; the test **followed
+automatically and passed**, and `minimal-tuned.toml` — still loaded by `BinWaitListTests` and
+`TreasuryFromAFileTests` — was left a hand-maintained copy of `minimal.toml` with **nothing** watching it
+drift. Caught during the repair rather than after it, and only because somebody asked what the pointer
+had been pointing at. *Repaired by asserting both pairs.*
+
+**Sighting 2 — `LotLongRunTests.The_hundred_thousand_Tick_lot_run`, 2026-08-26, and it is the same shape
+with the pointer on the OTHER side.** The test's subject is the **subdivider**, and it built its world
+with `GoldenFixtures.Rules()` — which means *whatever the committed baseline opens on*, not *a city that
+stands still*. Repointing the baseline at `declining.toml` gave a test about Lots a city in which
+Buildings fall down: `adr/0091` leaves a condemned Building standing as a **shell** and `adr/0079` has a
+Building outlive its frontage, so the share of Segment faces occupied by something nobody lives in
+climbs through the run and a bulldoze frees nothing on them. ✅ **Its vacuity guard caught it and named
+the cause correctly** — *carved Lots on only 15 of 97 edits … the second is a statement about the Zone
+Rule rather than about the subdivider* — which is a guard written in 2026-08-13 diagnosing a cause that
+did not exist yet. *Repaired by giving the test its own named Ruleset, `GoldenFixtures.StaticRules()`.*
+
+⚠ **The tempting reading is that the test should have used a literal, and that is wrong** — a literal is
+`plans/0012` **Cause 1** and drifts the other way. ***The property that matters is coverage of a set,
+and a pointer names a member.*** A guard over "the two golden Rulesets" is a guard over a set that
+changed size when nobody said so.
+
+### Candidate B — a sample rate derived from the run's length cannot see a phenomenon whose period comes from the Day
+
+**Sighting 1 — `The_session_sends_people_to_work_without_a_trip_command`, 2026-08-13.** It read the final
+Tick alone. `adr/0094` took the Day to 2,048 Ticks, the departure window fell 2,731 → **683**, and the
+session finished a whole Day's commuting with time to spare — so the one instant it read found the quiet
+*after* the wave. **Coverage went up and the assertion measuring it went to zero.** Repaired by sampling
+eight times across the run.
+
+**Sighting 2 — the same test, 2026-08-26, and the repair is what recurred.** Eight samples across the run
+is a *stride equal to one eighth of the session*. Milestone 17 took the session 2,048 → 8,192 Ticks, so
+the stride went 256 → **1,024**, and every one of the eight looks landed past 683 and short of the next
+Day's window. ***The city was commuting exactly as much as before.*** The fix had inherited the defect
+one level along, because it was still denominated in the run rather than in the thing being looked for.
+
+**The shape, which is what to carry**: ***a sampling interval is a bound and not a count.*** Anything
+periodic in the Day — departures, a Map Layer cadence, a revisit period, a decline threshold — has a
+window that does not move when a fixture's length does, so a sample rate stated as *N looks* aliases the
+moment somebody lengthens the run for an unrelated reason. State the interval against the window.
+*Repaired by a `Stride` of 256 Ticks, stated against the 683-Tick window and documented against it.*
+
+### The contrast, which is what says the two candidates above are about design and not about luck
+
+**`InputLogCodecTests.An_unknown_verb_is_refused` used `demolish` as its example of a word the format
+does not know, and went RED the day milestone 17 task 4 made `demolish` a verb.** That is the same
+class of staleness as both candidates — a check whose subject moved — and it behaved in the opposite
+way, because a negative assertion *names* the thing it denies. ***A test that says `X does not exist`
+fails loudly when X arrives; a test that says `look every N` or `check what the pointer points at`
+goes quiet.***
+
+⚠ **What was actually wrong was the CHOICE of example, and it was wrong from the day it was written**:
+`adr/0091` had already decided `Demolish` was the sixth verb, so the token was a prediction the corpus
+already contradicted. **A negative test's example is a bet about the future of the thing it tests**, and
+the repair is to pick a word no design document has ever wanted rather than one that reads naturally.
+
+⚠ **Neither candidate is a mechanical check and both are recorded anyway.** A linter cannot tell a
+sampling stride that means to be a fraction of the run from one that has aliased, and cannot tell a
+pointer-following guard that still covers its set from one that no longer does. What is available is a
+question for whoever moves a fixture: ***what was this pointing at, and what is watching that now?***
+
+---
+
+## Filed 2026-08-26, by `adr/0172` — one document still authoring a unit that moved
+
+**`docs/02-simulation-model.md` §5.9 still says the decline threshold is authored in *missed firings*,
+and it has not been since [`adr/0168`](../docs/adr/0168-a-decline-threshold-is-a-duration-and-the-premises-and-the-tenant-get-one-each.md).**
+Two sentences carry it: *"The threshold is therefore authored in **missed firings** rather than Ticks,
+so that a Ruleset which retunes every `rate` cannot silently retune every Building's lifespan"*, and the
+`adr/0141` amendment below it, which lists *same `missed firings`* among the things the split left
+untouched.
+
+⚠ **The paragraph's REASONING is not wrong and that is what makes this worth filing rather than
+striking.** `adr/0053`'s argument — that a tally inverts severity, because a comprehensively starved
+Building emits one failure event and an intermittently supplied one emits many — survives `adr/0168`
+completely; the Rule still counts firings internally. What moved is **what the designer writes in the
+file**, and `adr/0168`'s whole finding is that those two had come apart without anybody noticing.
+***So a reader who obeys this section authors a key the loader now refuses by name.***
+
+**Owed to `02 §5.9`**: an amendment saying the unit is `condemn_after_days` and
+`tenancy_ends_after_days`, in Days, converted at the parse site, with `adr/0053`'s severity argument
+kept and re-homed as the reason the *derived* count is what the engine compares.
+
+⚠ **It is a sighting of `Cause 4`** — a decision taken from a description of the code, wrong about the
+**trigger** — arriving in the design document rather than in a doc comment. It was found by writing
+`adr/0172` against the same section, which is the only reason anybody looked.
+
+---
+
+**⚠ A plan's status table said a decision had no ADR while the same plan's decision section said it was
+closed — and the stale half escaped into a hand-off written for somebody else.** Found and struck
+2026-08-26 while picking up milestone 17. [`0047`](0047-decline-demolish-and-cleared-land.md)'s
+**Landed** table carried *"DECISION 1 WAS ANSWERED BY THE CODE RATHER THAN BY THE SITTING, and no ADR
+records it"* for four commits after [`adr/0172`](../docs/adr/0172-an-abandoned-shell-collapses-on-a-clock-because-a-bound-is-not-a-sink.md)
+landed in `93b1af7` — closing decision 1 by measurement, in the same session, in the same plan, a
+hundred lines further down.
+
+**Cause 1** at the range the sighting above already named — two sections of one document — so the
+*shape* is not new. **What is new is the exit.** Every earlier sighting stayed inside the corpus until
+somebody re-read it. This one was read out: the stale sentence was copied into a session summary and
+then into a **starter prompt written for a fresh session that would not have the context to doubt it**,
+where it stood as the second of two things *"owed that are not tasks"* and would have sent the next
+reader to write an ADR that already existed. ***A drifted status line is normally a thing a document
+says wrongly; this one became a thing somebody was told to do.***
+
+⚠ **The tell is which half was right.** The section that stored the **argument** — the run, the table,
+the refutation of reading (a) — was correct and current, because closing the decision *is* work done in
+that section. The table that stored the **status** was wrong, because updating it is a separate act
+that buys nothing at the moment you do it. ***A plan that carries both a status table and the argument
+behind it has two places to update and exactly one of them is on the critical path.*** This is the
+argument for a status row being a pointer with no content of its own, which is what it now is.
+
+⚠ **No mechanical check reaches it and none could.** Both halves cite real files, every link opens, and
+`adr/0172` is correctly linked *from the section that was already right*. The contradiction is two
+prose claims about state, which is the class this ledger holds because no test can.

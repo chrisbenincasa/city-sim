@@ -382,6 +382,8 @@ public sealed class ZoneRuleTriggerTests
         simulation.Step(TickInput.Empty);
         simulation.Step(TickInput.Empty);
 
+        long jitMethods = System.Runtime.JitInfo.GetCompiledMethodCount(currentThread: true);
+        long jitIl = System.Runtime.JitInfo.GetCompiledILBytes(currentThread: true);
         int gen0 = GC.CollectionCount(0);
         int gen1 = GC.CollectionCount(1);
         int gen2 = GC.CollectionCount(2);
@@ -395,6 +397,6 @@ public sealed class ZoneRuleTriggerTests
         long after = GC.GetAllocatedBytesForCurrentThread();
 
         AllocationProbe.Check(
-            "ZoneRuleTriggerTests.Sweeping_allocates_nothing_after_the_first_trigger", before, after, gen0, gen1, gen2);
+            "ZoneRuleTriggerTests.Sweeping_allocates_nothing_after_the_first_trigger", before, after, gen0, gen1, gen2, jitMethods, jitIl);
     }
 }

@@ -151,6 +151,8 @@ public class LayerQueryTests
         // Warm the path first: a first call would otherwise measure the JIT rather than the query.
         _ = layers.LayerCells(box, Layer.IndustrialPollution, readings);
 
+        long jitMethods = System.Runtime.JitInfo.GetCompiledMethodCount(currentThread: true);
+        long jitIl = System.Runtime.JitInfo.GetCompiledILBytes(currentThread: true);
         int gen0 = GC.CollectionCount(0);
         int gen1 = GC.CollectionCount(1);
         int gen2 = GC.CollectionCount(2);
@@ -164,7 +166,7 @@ public class LayerQueryTests
         long after = GC.GetAllocatedBytesForCurrentThread();
 
         AllocationProbe.Check(
-            "LayerQueryTests.Answering_the_query_allocates_nothing", before, after, gen0, gen1, gen2);
+            "LayerQueryTests.Answering_the_query_allocates_nothing", before, after, gen0, gen1, gen2, jitMethods, jitIl);
     }
 
     /// <summary>

@@ -169,6 +169,22 @@ public sealed class FactorioTests(ITestOutputHelper output)
         // is the only shipped file that does. Milestone 24 task 6a, adr/0160.
         Scan(WithWater(512), reached, []);
 
+        // 🔴 The EIGHTH, milestone 17, and it is the fourth's reason arriving from the opposite
+        // direction. Every fixture above leaves `unplaced` empty and all SEVEN of its saved columns
+        // unreachable -- `id`, `generation`, `free_next`, `household`, `gate`, `since` and
+        // `considered` -- because a Household reaches the Unplaced Pool by being turned out of a
+        // condemned Building, and adr/0164 moved decline out of minimal.toml.
+        //
+        // ***What is worth noticing is that the coverage did not shrink by anyone editing this
+        // file.*** A Ruleset three directories away stopped demonstrating a mechanism, and seven
+        // saved columns quietly stopped reaching the save with every other test still green. That is
+        // the same day's finding as DerivedRebuildAuditTests.Declining, on the saved half instead of
+        // the derived one, and the pair of them is the argument for asserting coverage BY NAME.
+        //
+        // ⚠ 8,192 Ticks is derived: declining.toml condemns on a 2-Day threshold and collapses a Day
+        // later, so nobody is turned out before 6,144.
+        Scan(Stepped(GoldenFixtures.DecliningRules(), GoldenFixtures.Population, 8_192).World, reached, []);
+
         List<string> unreachable = [.. every.Where(name => !reached.Contains(name))];
 
         _output.WriteLine($"{reached.Count} of {every.Count} columns corrupted and observed");

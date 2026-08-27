@@ -215,7 +215,7 @@ internal static class ZoneRuleFixture
                 House, 8, ApplyCount.Band(1, 1), RuleId.None, false, default,
                 ConditionId.None, 0, 1, 0, 0, 0, 0),
         ],
-        kinds: [new KindDefinition(0, 1, 0, 1) { CondemnAfter = NeverCondemned }],
+        kinds: [new KindDefinition(0, 1, 0, 1) { CondemnAfterTicks = NeverCondemned }],
         inputs: [new Term(new BinRef(Scope.Local, new ResourceId(1)), 1)],
         outputs: [],
         emissions: [],

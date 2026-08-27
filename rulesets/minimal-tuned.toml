@@ -1,15 +1,29 @@
 # minimal.toml with one number changed, and that is the whole of its content.
 #
-# Slice 8 task 10 of plans/0015-hot-reload-and-the-ruleset-as-a-thing-that-changes.md. The golden
-# session reloads into this file at Tick 128, so replay equivalence covers a session with a TRANSITION
-# in it rather than only sessions with one Ruleset. Everything below is minimal.toml verbatim except
-# `restock`'s output amount, which is 2 here and 1 there.
+# Slice 8 task 10 of plans/0015-hot-reload-and-the-ruleset-as-a-thing-that-changes.md. Everything below
+# is minimal.toml verbatim except `restock`'s output amount, which is 8 here and 4 there.
+#
+# 🔴 IT IS NO LONGER THE GOLDEN SESSION'S RELOAD TARGET, and two things this header said were wrong
+# before it stopped being one. It said the reload happened at *Tick 128*, which slice 10 task 11 moved
+# to 1,024 without touching this line; and it said the amount was *2 here and 1 there*, which it has
+# not been for longer than anybody can date from the file. ***Both are the same failure***: a sentence
+# describing a number that lives somewhere else, left to drift because nothing reads a comment.
+#
+# Milestone 17 moved the baseline to declining.toml / declining-tuned.toml. adr/0164 took
+# `condemn_after` out of minimal.toml, so the golden session stopped condemning, the Unplaced Pool
+# stopped filling, adr/0069's Zone Rule stopped building, and the committed trace covered NEITHER
+# branch while every hash in it stayed freshly correct. See tests/Borough.Tests/Golden/README.md.
+#
+# WHAT STILL LOADS THIS FILE: BinWaitListTests and TreasuryFromAFileTests. The one-line guard below
+# still covers this pair -- The_two_golden_rulesets_differ_in_exactly_one_line asserts BOTH pairs on
+# purpose, because a guard written against a fixture pointer stops guarding whatever the pointer moved
+# off, and says nothing when it does.
 #
 # WHY ONE NUMBER. A production ratio is exactly what adr/0015's acceptance test names -- *changing a
 # production ratio and seeing the effect must take seconds* -- and it is a TUNING change, so
 # RulesetShape.Compare reports None, the migration pass is skipped and no row moves. That is the
 # reload a designer performs a hundred times in a sitting, and it is therefore the one the committed
-# baseline should cover. The degrading reloads are covered by RulesetMigrationTests, which can build
+# baseline should have covered, and declining-tuned.toml now does. The degrading reloads are covered by RulesetMigrationTests, which can build
 # the ten shapes that matter far more cheaply than a golden session can hold one of them.
 #
 # WHY THE DUPLICATION IS TOLERATED. A Ruleset is a whole file to the loader, so "minimal.toml plus a
@@ -71,9 +85,7 @@
 # against the PRE-CLOCK world, which is adr/0094's cost arriving in one more place, not this edit's.
 # plans/0012 Cause 5: a number that is one half of a ratio says which half.
 #
-# NOTHING HERE CAME OUT OF PROPORTION, because everything in this file is denominated in FIRINGS --
-# `condemn_after` included, which says so at the [[building]] below. A dwelling's whole life is 4 missed
-# `upkeep` firings x rate 16 = 64 Ticks, which went 11.25 -> 45 in-world minutes by the same x4.
+# NOTHING HERE CAME OUT OF PROPORTION, because everything in this file is denominated in FIRINGS.
 #
 # 48 IS A COST DIAL HERE, NOT A BALANCE DIAL, AND THAT IS MEASURED TOO. Swept at 24, 36, 48 and 96, NO
 # ROW OF THE CENSUS MOVES; only `rules due` and `rules evaluations` move, and they move UP with capacity
@@ -191,9 +203,17 @@ family = "money"
 # this file being tuned: three Households do not share a kitchen, and the shared one was a shortcut
 # the first line of this file already disclaimed.
 #
-# `condemn_after` is in MISSED FIRINGS, not Ticks (adr/0053): a Rule fires every `rate` Ticks when
-# healthy, so four missed firings of `upkeep` is 64 Ticks of continuous starvation. Authoring it in
-# Ticks would mean that halving every rate in this file silently doubled every dwelling's lifespan.
+# NOTHING IN THIS FILE DECLINES, AND THAT IS DELIBERATE AS OF MILESTONE 17. `condemn_after` stood at 4
+# here, as it did in all eighteen shipped files, and no author had ever set it to anything else -- which
+# is adr/0164's test (`would a designer ever set this?`) answered by the tree. It is gone from every
+# world that demonstrates something other than decline, because a Building that falls down does not
+# stay fallen: abandonment leaves a SHELL standing (adr/0091), and at the shipped failure rate two
+# thirds of the city is derelict at steady state. A world demonstrating traffic, water or a market
+# should not have to do so in a ruin.
+#
+# Decline now lives in rulesets/declining.toml, which is this file plus two keys, and in
+# diagnosed.toml, which needs Buildings to fall down so its on_fail chain has something to record.
+# DO NOT ADD `condemn_after` BACK HERE to make a test fail faster -- that is what declining.toml is for.
 # ---------------------------------------------------------------------------------------------------
 # THE TRADE. adr/0141 gave `jobs`, the Shift band and the wage to the BUSINESS rather than to the
 # premises; adr/0148 removed the first two from [[building]] rather than leaving them parsed and
@@ -235,8 +255,6 @@ bins = [
     { resource = "sundries", capacity = 48, owner = "occupant" },
     { resource = "repairs",  capacity = 4 },
 ]
-condemn_after = 4
-
 # adr/0068. HOW MANY HOUSEHOLDS THIS HOLDS, and it is read by two things that used to disagree about
 # it: Borough.Core.Entities.SyntheticCity builds ceil(households / this) Buildings and fills each,
 # and the placement pass admits up to this many. Before it existed the populator put 3 in every

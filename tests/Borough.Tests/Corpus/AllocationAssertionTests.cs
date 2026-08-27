@@ -34,10 +34,21 @@ public sealed class AllocationAssertionTests
     /// <b>The diagnostic fires, and its message names the file the evidence went to.</b>
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <c>CLAUDE.md</c>'s rule that every diagnostic ships with a test that writes the violation and
     /// watches it fire. ⚠ <b>The message is the point of the method</b>, not the throw: a firing
     /// <em>already</em> failed the suite before this change, and what was missing was anything telling
     /// the reader that the run had just written the sample <c>plans/0002</c> §B was waiting for.
+    /// </para>
+    /// <para>
+    /// 🔴 ⚠ <b>It asserted the probe's DEFAULT filename until 2026-08-26, so redirecting the probe
+    /// failed this test.</b> <c>BOROUGH_ALLOC_PROBE</c> exists precisely so an experiment can keep
+    /// its readings in a file of its own, and an experiment that used it got a deterministic failure
+    /// here — in a test about a message — for four full runs before anybody read the name.
+    /// ***A supported configuration that turns the suite red is a defect in the test, not in the
+    /// configuration***, and the repair is to assert <see cref="AllocationProbe.Path"/>: the property
+    /// worth having is that the message names wherever the evidence actually went.
+    /// </para>
     /// </remarks>
     [Fact]
     public void A_non_zero_reading_throws_and_names_the_probe_file()
@@ -46,15 +57,31 @@ public sealed class AllocationAssertionTests
         // test calling it with a fabricated delta would append a synthetic firing to the evidence
         // file on every run. Six real samples are on record; one fake per run buries them.
         string message = AllocationProbe.Explain(
-            "AllocationAssertionTests.A_deliberate_firing", 4_096, 0, 0, 0);
+            "AllocationAssertionTests.A_deliberate_firing", 4_096, 0, 0, 0, 1, 427);
 
         Assert.Contains("4096 bytes", message, StringComparison.Ordinal);
-        Assert.Contains("alloc-probe.csv", message, StringComparison.Ordinal);
         Assert.Contains("plans/0002", message, StringComparison.Ordinal);
+
+        // 🔴 AllocationProbe.Path rather than the literal "alloc-probe.csv", and the difference was
+        // a defect rather than a style. BOROUGH_ALLOC_PROBE is the probe's own supported
+        // redirection -- it is how an experiment keeps its readings out of the shared file -- and a
+        // hard-coded default filename made USING it turn the suite red, deterministically, in a
+        // test that had nothing to do with the experiment. Found 2026-08-26 by an arms run that
+        // redirected the probe and then spent four runs looking for a failure in its own changes.
+        // ***A test that asserts the default configuration is not asserting the property it names***:
+        // the property is that the message names the file the evidence went to, whichever file that
+        // is, and only the second spelling survives the probe being pointed somewhere else.
+        Assert.Contains(AllocationProbe.Path, message, StringComparison.Ordinal);
 
         // The band that separates the intermittent from a regression, because a reader who does not
         // know it will read any firing as a bug in the code under test.
         Assert.Contains("8,192", message, StringComparison.Ordinal);
+
+        // ⚠ The message must carry BOTH mechanisms, because carrying one is how a reader stops
+        // looking. plans/0002 §D and plans/0003 item 13 hold rival explanations for the same firing;
+        // the jit columns were added 2026-08-26 and are the half that had never been recorded.
+        Assert.Contains("1 methods (427 IL bytes)", message, StringComparison.Ordinal);
+        Assert.Contains("plans/0003 queue item 13", message, StringComparison.Ordinal);
     }
 
     /// <summary>

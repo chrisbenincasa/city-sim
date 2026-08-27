@@ -13,16 +13,19 @@ are the only thing that can notice a change nobody was looking for.
 | File | What it is | Recorded from |
 |---|---|---|
 | `session.borough` | The session itself, as the Input Log the runner replays | hand-written; checked against `GoldenFixtures.Session()` |
-| `session-trace.txt` | Thirty-two State Hash samples from that 2,048-Tick session | `Borough.Headless --out` |
+| `session-trace.txt` | Thirty-two State Hash samples from that 8,192-Tick session | `Borough.Headless --out` |
 | `world-hash.txt` | One State Hash over a hand-built city, with its row counts | `GoldenFixtures.Build()` |
 | `driving-session.borough` | **The second session**, on the one shipped Ruleset in which anybody owns a car | hand-written; checked against `GoldenFixtures.DrivingSession()` |
 | `driving-session-trace.txt` | Thirty-two samples from that 4,096-Tick session | `Borough.Headless --out` |
 
 **Two further artefacts are not in this directory and are part of the baseline anyway**:
-**[`rulesets/minimal.toml`](../../../rulesets/minimal.toml)**, which the session opens on, and
-**[`rulesets/minimal-tuned.toml`](../../../rulesets/minimal-tuned.toml)**, which it **reloads into at
-Tick 1,024** (slice 8 task 10; it was Tick 128 until slice 10 task 11 lengthened the session and moved
-the reload to stay halfway, and this line went on saying 128 for two slices afterwards). Both are named
+**[`rulesets/declining.toml`](../../../rulesets/declining.toml)**, which the session opens on, and
+**[`rulesets/declining-tuned.toml`](../../../rulesets/declining-tuned.toml)**, which it **reloads into
+at Tick 4,096** (slice 8 task 10; it was Tick 128 until slice 10 task 11 lengthened the session and
+moved the reload to stay halfway, and this line went on saying 128 for two slices afterwards). ⚠ **The
+pair was `minimal.toml` and `minimal-tuned.toml` until milestone 17** — see *The session stopped
+declining, and every hash here stayed correct* below, which is the only paragraph in this file worth
+reading before you touch a Ruleset. Both are named
 by content hash, so editing either moves every sample here — and
 `The_golden_ruleset_is_the_one_the_session_names` says so for **both**, with the number to paste in.
 It covered only the first until 5a-bis, which is how the second's hash came to be wrong in this
@@ -32,7 +35,7 @@ directory for a slice with nothing to notice it.
 `The_two_golden_rulesets_differ_in_exactly_one_line` compares them with the comments stripped, so a
 copy that drifts fails with the diff in the message. And
 `The_committed_reload_moves_the_trace_and_only_after_it` is the one that makes *the golden session
-reloads* worth saying: every sample up to Tick 1,024 is identical to the same session with no
+reloads* worth saying: every sample up to Tick 4,096 is identical to the same session with no
 transition, and every sample after it differs. Without that line the baseline could be covering a
 reload that changed nothing.
 
@@ -47,7 +50,7 @@ verbs that build a city, the session absorbs the world fixture's job and this fi
 **Slice 7 task 10a moved that boundary without dissolving it.** The session now opens with
 `populate`, so it raises 121 Buildings, 360 Households and 1,000 Citizens on land the subdivider
 carved for it (13 blocks of lattice row 0), gives every Building its
-kind's Bins and Rule Instances, and runs the Rule engine for 2,048 Ticks — the first time the golden
+kind's Bins and Rule Instances, and runs the Rule engine for 8,192 Ticks — the first time the golden
 trace has covered any of that. What it does **not** cover is what `GoldenFixtures.Build()` was
 written for: a destroyed Household and a destroyed Citizen, so the allocator's free head and its
 never-reused id counter are off their initial values. Nothing in a session can destroy a row yet.
@@ -68,6 +71,42 @@ assertion that makes the new length mean something rather than being a number so
 you shorten this session, that test is what will tell you. **5a-bis widened the same margin without
 moving either number**: a real subdivider carves blocks, so the session peaks at **247** Lots against
 132 and the derived sample is **2** rather than 1.
+
+## The session stopped declining, and every hash here stayed correct
+
+🔴 **Read this before editing any Ruleset, and read it as being about *this directory* rather than
+about milestone 17.**
+
+[`adr/0164`](../../../docs/adr/0164-a-ruleset-key-is-designer-facing-or-it-belongs-in-the-instrument.md)
+took `condemn_after` out of every shipped world that demonstrates something else, and `minimal.toml`
+is one of them. That is correct as a Ruleset decision and it was made three directories from here. Its
+effect on the baseline was total:
+[`adr/0069`](../../../docs/adr/0069-placement-is-a-mechanism-of-its-own-and-construction-houses-nobody.md)
+has a Zone Rule build **only while the Unplaced Pool is non-empty**, the Pool is filled by Households
+losing a home, and nothing was condemning anybody. Measured on the committed session: **`building live
+481 → 481`, `unplaced live 0` throughout, `zones created 0`, `demolished 0`, `tenancies ended 0`.**
+
+***Every sample in `session-trace.txt` was freshly regenerated, correct, and taken over a city in which
+neither `ZoneRuleEngine` branch fired.*** Nothing in the trace could have said so, because a trace
+records what a run *did* — this is the same structural blindness slice 10 task 11 found, arriving by a
+different door and costing more, since this time the change was not even in the test project.
+
+**A demonstration Ruleset is a test fixture, and the repository does not treat it as one.** Editing
+`rulesets/*.toml` moves what the suite *covers* and not only what it *hashes*, and the only two things
+in the suite that ask are `GoldenSessionCoverageTests` and
+`The_golden_session_raises_buildings_as_well_as_condemning_them`. Both assert on what the session
+**does**. Keep adding to that set rather than to the hash count.
+
+**The repair is three numbers and a new file, and all four are forced.** The session opens on
+`declining.toml`, so a Building can be condemned again. It needs a `-tuned` sibling because the pair
+must stay one line apart, hence `declining-tuned.toml`. And it had to get **longer**:
+[`adr/0168`](../../../docs/adr/0168-a-decline-threshold-is-a-duration-and-the-premises-and-the-tenant-get-one-each.md)
+made the threshold a duration, so `condemn_after_days = 2` is 4,096 Ticks and `collapses_after_days = 1`
+is 2,048 more — **6,144 Ticks before the first Lot is cleared**, against a session that ended at 2,048.
+⚠ ***Repointing the Ruleset without lengthening the session would have bought zero coverage and been
+indistinguishable from having bought it.*** 8,192 is the first clean power of two past 6,144; the
+cadence went to **256** to hold the trace at thirty-two samples, and the reload to **4,096** to stay
+halfway.
 
 **Milestone 5a re-recorded all three artefacts, and the reason is worth separating into its two
 halves.** `world-hash.txt` and `session-trace.txt` moved because `road_node` and `road_segment` joined
@@ -192,9 +231,9 @@ A failure here is a question — *did you mean to do that?* — and the answer i
    ```
    dotnet run --project src/Borough.Headless -- \
      --log tests/Borough.Tests/Golden/session.borough \
-     --ruleset rulesets/minimal.toml \
-     --ruleset rulesets/minimal-tuned.toml \
-     --ticks 2048 --hash-every 64 \
+     --ruleset rulesets/declining.toml \
+     --ruleset rulesets/declining-tuned.toml \
+     --ticks 8192 --hash-every 256 \
      --out tests/Borough.Tests/Golden/session-trace.txt
    ```
 
@@ -263,8 +302,8 @@ about.**~~ **CLOSED BY MILESTONE 7 TASK 8.** The paragraph's own prediction — 
 adopt it* — is what happened, with one correction: a **second** session adopted it, so nothing this one
 covers stopped being covered.
  That file states both tables, so the mechanism now has a Ruleset — but the golden session loads
-`minimal.toml` and reloads into `minimal-tuned.toml`, and neither states either table, so **nothing in
-this directory has changed**. A Ruleset existing is not a Ruleset the baseline runs. The session would
+`declining.toml` and reloads into `declining-tuned.toml`, and neither states either table, so **nothing
+in this directory has changed**. A Ruleset existing is not a Ruleset the baseline runs. The session would
 have to adopt it, which is a decision about the committed trace rather than about congestion, and it is
 5c task 8's to make with the long run in hand. `TrafficDumpTests` joins the three suites above as a
 reader; the hash files still cover none of it.
@@ -331,7 +370,7 @@ four zeroed ones and demolition frees them.
 not at all.* It closed the same way.
 
 Occupancy needs somebody to drive, driving needs `[households] car_ownership_percent`, and
-`minimal.toml` states none — so nobody in the committed session owns a car and every Car Park here is
+`declining.toml` states none — so nobody in the committed session owns a car and every Car Park here is
 permanently empty. That is **exactly 5c task 6's hole on a new mechanism**, and it closes the same way
 or not at all: the session would have to adopt `congested.toml`, which is a decision about the
 committed trace rather than about parking. The acquire and the release do not exist yet either; they
@@ -435,7 +474,7 @@ the whole decision.** Two paragraphs above have been standing open — 5c task 6
 mechanism sits outside every hash in this directory*, and milestone 7 task 1's *what it still does not
 cover is a Car Park being **occupied*** — and both diagnosed the same cause and named the same repair.
 Driving needs `[households] car_ownership_percent`; parking needs somebody driving; **`rulesets/congested.toml`
-is the only shipped file stating that key**, and `minimal.toml` states no `[households]` table at all by
+is the only shipped file stating that key**, and `declining.toml` states no `[households]` table at all by
 design. Both paragraphs said the session would have to adopt the file, and both deferred it, *because it
 is a decision about the committed trace rather than about the mechanism*.
 
@@ -447,9 +486,9 @@ costs one file, one trace and one fixture method, and costs the first session no
 
 | | `session.borough` | `driving-session.borough` |
 |---|---|---|
-| Ruleset | `minimal.toml`, reloading into `minimal-tuned.toml` | `congested.toml`, no reload |
-| Length | 2,048 Ticks — one Day | 4,096 Ticks — **two** Days |
-| Cadence | every 64 Ticks, 32 samples | every 128 Ticks, 32 samples |
+| Ruleset | `declining.toml`, reloading into `declining-tuned.toml` | `congested.toml`, no reload |
+| Length | 8,192 Ticks — **four** Days | 4,096 Ticks — **two** Days |
+| Cadence | every 256 Ticks, 32 samples | every 128 Ticks, 32 samples |
 | Commands | `populate`, 12 × `zone`, 7 × `connect` | `populate`, **and nothing else** |
 | What it is for | the player's verbs, the Rule engine, the reload | **what a populated city does**: driving, congestion, parking, the walks at each end |
 
@@ -529,7 +568,7 @@ and `rulesets/levied.toml` were both rewritten in the same commit and neither is
 gained a saved `kind` byte — the trade, on `adr/0141`'s second kind namespace — so `world-hash.txt`
 moved. ⚠ **Neither session trace moved and neither Ruleset content hash moved**, and the reason is
 worth keeping: `GoldenFixtures.Build()` is the **only golden world that contains a Business at all**.
-The sessions run `populate` over `minimal.toml`, nothing in the simulation creates a Business
+The sessions run `populate` over `declining.toml`, nothing in the simulation creates a Business
 (`World.CreateBusiness` has no production caller until task 8), so both sessions hold an empty
 `business` table and a column added to a table with no live rows folds nothing. ***A saved column can
 therefore move one baseline and not the others, and that is the tables being reached differently
@@ -546,9 +585,15 @@ the committed `0xD32D3335AA6D991E` — which is the proof the value is folded ra
 column.
 
 ⚠ **Both trades are DERELICT in this fixture and that is deliberate rather than sloppy.**
-`minimal.toml` declares no `[[business]]`, so ids 1 and 2 name nothing under the Ruleset this fixture
+`declining.toml` declares no `[[business]]`, so ids 1 and 2 name nothing under the Ruleset this fixture
 loads. Dereliction is a legal state for a trade exactly as `02 §4.3` gives one to a Building, and it
 is the honest one here, because **nothing creates a Business from a declared kind until milestone 27
 task 8**. What this fixture does *not* cover — a trade with a name behind it — is covered by
 [`rulesets/tenanted.toml`](../../../rulesets/tenanted.toml) and `BusinessKindLoadTests`, which is
 where to look for it rather than here.
+
+⚠ **Several sentences above named `minimal.toml` and now name `declining.toml`** — count them rather
+than trusting a number here — **and none of the claims under them moved**: `declining.toml` is `minimal.toml` plus `condemn_after_days` and
+`collapses_after_days` and nothing else, so every *absent* table those sentences turn on — no
+`[households]`, no `[[business]]`, no `[[terrain]]` — is absent from it too. The dated slice notes
+still say `minimal.toml` and are left saying it, because they record what ran on the day.

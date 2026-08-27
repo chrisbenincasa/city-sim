@@ -115,8 +115,35 @@ public sealed class ConnectedCityCongestionTests(ITestOutputHelper output)
         public int Population => 4_000 * DistrictBlocks * DistrictBlocks / 16;
     }
 
-    /// <summary>Sixteen blocks a side. Enough to load a corridor and cheap to run.</summary>
-    private static Plan Small => new(4);
+    /// <summary>The rung below the knee: enough to load a corridor and cheap to run.</summary>
+    /// <remarks>
+    /// 🔴 <b>Four district blocks until milestone 17, and what moved it was decline leaving
+    /// <c>congested.toml</c>.</b> <c>adr/0164</c> took <c>condemn_after</c> out of every world that
+    /// demonstrates something else, and this fixture's city is <c>congested.toml</c> — so nothing
+    /// knocks a Building down any more, more Households stay housed, and <b>employment at 4×4 went
+    /// 1,156 → 2,560 on the same population</b>. Twice the commuters over the same corridor took the
+    /// peak from <b>65.1%</b> of capacity to <b>97.7%</b>, and the bottom rung stopped being flat: the
+    /// priced and free-flow runs came apart by 15 Vehicle-Ticks and the equality below failed.
+    /// <para>
+    /// ⚠ <b>The rung is stated in BLOCKS and the property it carries is stated in <c>v/c</c></b>,
+    /// which is why a change to a Ruleset three directories away could walk it off its own claim
+    /// without touching this file. <c>plans/0012</c>'s <b>Cause 9 candidate B</b> is the same shape.
+    /// The regime is now asserted explicitly beside the equality, so the next drift says <em>the flat
+    /// rung is no longer flat</em> rather than printing two numbers that differ by 0.09%.
+    /// </para>
+    /// </remarks>
+    private static Plan Small => new(2);
+
+    /// <summary>
+    /// How far below capacity <see cref="Small"/> must sit for its equality to mean anything.
+    /// </summary>
+    /// <remarks>
+    /// <b>75%, against a measured 54.3%.</b> BPR at α 15% and β 4 costs ×1.05 at <c>v/c</c> = 0.75 and
+    /// ×1.14 at 0.97, and the sub-Tick carry absorbs the first and not the second. The bound is a
+    /// margin rather than the knee itself: at 0.97 the two runs already differ, so asserting only
+    /// <c>&lt; 1</c> would let the rung drift to where it was when this broke.
+    /// </remarks>
+    private static Ratio BelowTheKnee => Ratio.FromFraction(3, 4);
 
     // ---- the two claims --------------------------------------------------------------------------
 
@@ -185,6 +212,38 @@ public sealed class ConnectedCityCongestionTests(ITestOutputHelper output)
     ///  10x10   25,000      7,022        2,767.0%        173.6%        122,725 /  80,978
     /// </code>
     /// <para>
+    /// 🔴 <b>RE-MEASURED 2026-08-26, AND THE LADDER ABOVE IS SUPERSEDED RATHER THAN WRONG</b> — it
+    /// records a city that no longer exists. <c>adr/0164</c> took <c>condemn_after</c> out of
+    /// <c>congested.toml</c> at milestone 17, so nothing knocks a Building down, more Households stay
+    /// housed, and <b>employment at 4×4 went 1,156 → 2,560 on the same population</b>. Every rung moved
+    /// up. Same seed, same two Days, same capacity:
+    /// </para>
+    /// <code>
+    /// district   pop     employed   peak v/c loaded   free-flow   vehicle-Ticks loaded / free
+    ///    2x2    1,000        640           54.3%          54.3%         2,656 /   2,656
+    ///    3x3    2,250      1,440           86.8%          86.8%         8,170 /   8,159
+    ///    4x4    4,000      2,560           97.7%          86.8%        16,562 /  16,577
+    ///    8x8   16,000     10,240        2,767.0%         206.2%       242,029 / 110,241
+    /// </code>
+    /// <para>
+    /// ⚠ <b>The flat rung is now 2×2 and it used to be 4×4</b>, which is the whole of why this test
+    /// failed: at 97.7% the sub-Tick carry stops absorbing the delay, so the equality that says
+    /// <em>the function costs nothing anybody can see</em> stopped being true of a city it was still
+    /// being asserted on. See <see cref="Small"/>.
+    /// </para>
+    /// <para>
+    /// 🔴 ⚠ <b>AND ONE ROW OF THE NEW LADDER RUNS THE WRONG WAY, WHICH IS A FINDING RATHER THAN A
+    /// TOLERANCE.</b> At 4×4 the priced run holds <b>fewer</b> Vehicle-Ticks than the free-flow
+    /// control — 16,562 against 16,577 — while peaking <em>higher</em>, 97.7% against 86.8%. This
+    /// file's own control note states the direction as <em>a free-flow run is the same journeys priced
+    /// cheaper, so it can hold FEWER Vehicle-Ticks</em>, and 3×3 and 8×8 both obey it. ***So at the
+    /// knee the loop appears to REDISTRIBUTE rather than add***: it concentrates load onto one Segment
+    /// without lengthening the city's total occupancy. It is 0.09% and it is not this fixture's
+    /// subject, so it is filed in <c>plans/0002</c> §A rather than chased here — but a sign flip is
+    /// not a rounding error, and nothing should quote the 4×4 row as a measurement of the function's
+    /// cost.
+    /// </para>
+    /// <para>
     /// ⚠ <b>The onset is at <c>v/c</c> = 1 and the behaviour past it is a runaway, which no static
     /// reading of BPR predicts.</b> At 8×8 the free-flow world peaks at 130% and the priced one at
     /// <b>1,074%</b> — the function is not merely visible, it is <em>feeding itself</em>: congestion
@@ -217,6 +276,19 @@ public sealed class ConnectedCityCongestionTests(ITestOutputHelper output)
         Assert.True(
             flat.Loaded.VehicleTicks > 0 && loadedUp.Loaded.VehicleTicks > 0,
             "nobody drove, so nothing was measured.");
+
+        // 🔴 THE RUNG'S REGIME, ASSERTED BEFORE THE EQUALITY THAT DEPENDS ON IT. The equality below is
+        // a claim about a city BELOW THE KNEE, and the rung is stated in blocks while the knee is
+        // stated in v/c -- so anything that puts more commuters on the same corridor walks the rung
+        // off its own claim without touching this file, which is what adr/0164 did at milestone 17.
+        // Without this line that arrives as `16577 != 16562`, a 0.09% difference with no cause in it.
+        Assert.True(
+            flat.Loaded.PeakLoad < BelowTheKnee,
+            $"the flat rung peaked at v/c {Percent(flat.Loaded.PeakLoad)}, past the "
+            + $"{Percent(BelowTheKnee)} this fixture needs it to sit under. It is no longer a city in "
+            + "which the volume-delay function is provably free, so the equality below is not a "
+            + "reading of anything. Shrink Small until it is, and re-record the ladder in the remarks "
+            + "-- do NOT relax the equality, which is the whole of what this rung asserts.");
 
         // The bottom rung: the shipped city, where the function is real and costs nothing anybody can
         // see. Equality rather than "close", because a sub-Tick delay is absorbed exactly.

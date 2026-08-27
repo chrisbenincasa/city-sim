@@ -40,8 +40,17 @@ public sealed class ZoneRuleDemolishTests
     /// <summary>How long <c>upkeep</c> waits between firings, when it can fire at all.</summary>
     private const uint Rate = 8;
 
-    /// <summary>Missed firings before condemnation, so the threshold is <c>Condemn × Rate</c> Ticks.</summary>
-    private const int Condemn = 4;
+    /// <summary>
+    /// The condemnation threshold in <b>Ticks</b> — four missed firings of a rate-<see cref="Rate"/>
+    /// Rule, which is what this constant meant when the key was a firing count.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Milestone 17 moved the threshold from missed firings to a duration</b>, so the engine no
+    /// longer multiplies by each Rule's own rate and every Rule on a Building is now judged against
+    /// one wall clock. This fixture runs a single rate, so the two readings coincide here and the
+    /// old assertions still mean what they meant.
+    /// </remarks>
+    private const int Condemn = 4 * (int)Rate;
 
     /// <summary>
     /// A kind whose one Rule draws on a Bin nothing fills, condemned after
@@ -56,7 +65,13 @@ public sealed class ZoneRuleDemolishTests
                     House, Rate, ApplyCount.Band(1, 1), RuleId.None, false, default,
                     ConditionId.None, 0, 1, 0, 0, 0, 0),
             ],
-            kinds: [new KindDefinition(0, 1, 0, 1) { CondemnAfter = condemnAfter, Occupants = 1 }],
+            kinds:
+            [
+                new KindDefinition(0, 1, 0, 1)
+                {
+                    CondemnAfterTicks = condemnAfter, CollapsesAfterDays = 1, Occupants = 1,
+                },
+            ],
             inputs: [new Term(new BinRef(Scope.Local, Repairs), 1)],
             outputs: [],
             emissions: [],
@@ -77,7 +92,13 @@ public sealed class ZoneRuleDemolishTests
                     House, Rate, ApplyCount.Band(1, 1), RuleId.None, false, default,
                     ConditionId.None, 0, 0, 0, 1, 0, 0),
             ],
-            kinds: [new KindDefinition(0, 1, 0, 1) { CondemnAfter = Condemn, Occupants = 1 }],
+            kinds:
+            [
+                new KindDefinition(0, 1, 0, 1)
+                {
+                    CondemnAfterTicks = Condemn, CollapsesAfterDays = 1, Occupants = 1,
+                },
+            ],
             inputs: [],
             outputs: [new Term(new BinRef(Scope.Local, Repairs), 1)],
             emissions: [],
@@ -147,6 +168,31 @@ public sealed class ZoneRuleDemolishTests
         }
 
         return Rows.NoSlot;
+    }
+
+    /// <summary>
+    /// Buildings that are live <em>and still in use</em> — the count that meant
+    /// <c>Rows.LiveCount</c> before abandonment left the shell standing.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Every <c>Assert.Equal(0, Buildings.Rows.LiveCount)</c> in this class meant <i>they all
+    /// fell</i></b>, and while condemnation freed the row those were the same sentence. Since
+    /// milestone 17 task 1 they are not: an abandoned Building keeps its row and its Lot
+    /// (<c>adr/0091</c>), so the row count stays at the house count for ever and only this one moves.
+    /// </remarks>
+    private static int Standing(World world)
+    {
+        int standing = 0;
+
+        for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
+        {
+            if (world.Buildings.Rows.IsLive(slot) && !world.Buildings.IsAbandoned(slot))
+            {
+                standing++;
+            }
+        }
+
+        return standing;
     }
 
     // ---- the clock ------------------------------------------------------------------------------
@@ -266,17 +312,21 @@ public sealed class ZoneRuleDemolishTests
         Assert.Equal(4, world.Buildings.Rows.LiveCount);
     }
 
-    /// <summary>Past it, the sample that finds it demolishes it.</summary>
+    /// <summary>Past it, the sample that finds it empties it and leaves the shell standing.</summary>
     [Fact]
-    public void A_building_past_the_threshold_is_demolished()
+    public void A_building_past_the_threshold_is_abandoned()
     {
         (World world, Simulation simulation) = Built(Declining(Condemn, [Watching()]));
 
         Run(simulation, (int)Rate * (Condemn + 2));
 
-        Assert.Equal(0, world.Buildings.Rows.LiveCount);
+        Assert.Equal(0, Standing(world));
         Assert.Equal(0, world.Bins.Rows.LiveCount);
         Assert.Equal(0, world.RuleInstances.Rows.LiveCount);
+
+        // The shells outlive what emptied them, which is the whole of what task 1 changed: the Bins
+        // and the Rules are gone and the premises are not.
+        Assert.Equal(4, world.Buildings.Rows.LiveCount);
     }
 
     /// <summary>A kind with no threshold never declines, whatever its Rules do.</summary>
@@ -296,27 +346,97 @@ public sealed class ZoneRuleDemolishTests
 
     /// <summary>The threshold is in missed firings, so halving every rate does not halve a lifespan.</summary>
     /// <remarks>
-    /// <b>The property <c>adr/0053</c> chose the unit for.</b> Two Rulesets identical but for their
-    /// rate condemn at different Ticks and after the same number of missed firings — which is what a
-    /// threshold in Ticks would have got wrong, silently, on the day somebody retuned the file.
+    /// 🔴 <b>THIS TEST ASSERTED THE OPPOSITE UNTIL MILESTONE 17, and it was right to.</b> It was
+    /// called <c>The_threshold_is_in_firings_and_not_in_ticks</c> and it guarded
+    /// <c>adr/0053</c>'s choice: two Rulesets identical but for their rate condemned after the same
+    /// number of <em>missed firings</em>, so retuning a cadence could not silently retune a
+    /// Building's lifespan.
+    /// <para>
+    /// <b>What that protected, and what it cost.</b> The property is real and the price was that no
+    /// designer could see what the number meant — <c>condemn_after = 4</c> against a rate-16
+    /// <c>upkeep</c> is 45 in-world minutes, and it stood in all eighteen shipped files without one
+    /// author ever changing it. Milestone 17 authored the felt quantity instead
+    /// (<c>adr/0059</c>, <c>adr/0130</c>), which inverts this test.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The cadence sensitivity did not vanish; it shrank to one firing.</b> A Rule starts
+    /// starving at its first failed firing, so a patient Rule begins its clock later — by one
+    /// <c>rate</c> and not by a multiple of the threshold. That residue is asserted here, because a
+    /// reader who expects the two cities to fall down on the identical Tick would otherwise file a
+    /// defect against arithmetic that is working.
+    /// </para>
     /// </remarks>
     [Fact]
-    public void The_threshold_is_in_firings_and_not_in_ticks()
+    public void The_threshold_is_a_duration_and_not_a_count_of_firings()
     {
         (World fast, Simulation fastRun) = Built(Declining(Condemn, [Watching()]));
-
-        Run(fastRun, (int)Rate * (Condemn + 2));
-        Assert.Equal(0, fast.Buildings.Rows.LiveCount);
-
-        // The same city, whose Rule is four times as patient. At the Tick the first was flat, this
-        // one is untouched; it needs four times as long to reach the same number of missed firings.
         (World slow, Simulation slowRun) = Built(Patient([Watching()]));
 
-        Run(slowRun, (int)Rate * (Condemn + 2));
-        Assert.Equal(4, slow.Buildings.Rows.LiveCount);
+        // The patient Rule's first firing, then the whole threshold starved, then a sweep to notice.
+        // ⚠ Under the firing count this was nowhere near enough — that Rule needed FOUR TIMES the
+        // threshold to reach the same missed-firing count, which is 128 Ticks of starvation against
+        // the 32 it gets here. The two cities being flat at the same moment IS the unit change.
+        int enough = ((int)Rate * 4) + Condemn + ((int)Rate * 4);
 
-        Run(slowRun, (int)Rate * 4 * (Condemn + 2));
-        Assert.Equal(0, slow.Buildings.Rows.LiveCount);
+        Run(fastRun, enough);
+        Run(slowRun, enough);
+
+        Assert.Equal(0, Standing(fast));
+        Assert.Equal(0, Standing(slow));
+    }
+
+    /// <summary>
+    /// The patient city is still standing at the Tick the fast one went flat, and the gap is one
+    /// <c>rate</c> rather than a multiple of the threshold.
+    /// </summary>
+    /// <remarks>
+    /// <b>The residue the test above describes, asserted rather than described.</b> Without this, a
+    /// cadence that stopped mattering at all would pass the test above and nobody would notice that
+    /// <c>StarvedSince</c> had started being written at Tick 0 instead of at the first failed firing.
+    /// </remarks>
+    [Fact]
+    public void A_patient_rule_starts_its_clock_one_firing_later()
+    {
+        // Stepped rather than compared at one chosen Tick, because the exact Tick each city goes
+        // flat is a function of the arming stagger and the sweep cadence as well as the threshold.
+        // ***Pinning it would make this test fail whenever either was retuned, which is the failure
+        // mode adr/0053 chose its unit to avoid and this file is not going to reintroduce.***
+        int fastFlat = WhenFlat(Built(Declining(Condemn, [Watching()])));
+        int slowFlat = WhenFlat(Built(Patient([Watching()])));
+
+        Assert.True(
+            slowFlat > fastFlat,
+            $"the patient city went flat at {slowFlat} and the fast one at {fastFlat}. A Rule starts "
+            + "its pressure clock at its first FAILED firing, so a slower cadence must start later.");
+
+        // ⚠ THE BOUND IS THE WHOLE POINT. Under the old firing count the patient Rule needed FOUR
+        // TIMES the threshold to reach the same missed-firing count, so this gap was ~3 x Condemn.
+        // It is now one cadence -- bounded by a single threshold and nowhere near a multiple of it.
+        Assert.True(
+            slowFlat - fastFlat < Condemn,
+            $"the gap is {slowFlat - fastFlat} Ticks against a threshold of {Condemn}. A gap that "
+            + "scales with the threshold means the comparison is back in missed firings.");
+    }
+
+    /// <summary>The first Tick at which nothing is left standing, stepping one sweep at a time.</summary>
+    private static int WhenFlat((World World, Simulation Simulation) city)
+    {
+        const int Step = 4;
+        const int GiveUp = 4_096;
+
+        for (int tick = Step; tick <= GiveUp; tick += Step)
+        {
+            Run(city.Simulation, Step);
+
+            if (Standing(city.World) == 0)
+            {
+                return tick;
+            }
+        }
+
+        Assert.Fail($"nothing was condemned in {GiveUp} Ticks, so the fixture never declines.");
+
+        return GiveUp;
     }
 
     /// <summary><see cref="Declining"/> with a rate four times as long.</summary>
@@ -329,7 +449,7 @@ public sealed class ZoneRuleDemolishTests
                     House, Rate * 4, ApplyCount.Band(1, 1), RuleId.None, false, default,
                     ConditionId.None, 0, 1, 0, 0, 0, 0),
             ],
-            kinds: [new KindDefinition(0, 1, 0, 1) { CondemnAfter = Condemn, Occupants = 1 }],
+            kinds: [new KindDefinition(0, 1, 0, 1) { CondemnAfterTicks = Condemn, Occupants = 1 }],
             inputs: [new Term(new BinRef(Scope.Local, Repairs), 1)],
             outputs: [],
             emissions: [],
@@ -356,7 +476,7 @@ public sealed class ZoneRuleDemolishTests
 
         Run(simulation, (int)Rate * (Condemn + 2));
 
-        Assert.Equal(0, world.Buildings.Rows.LiveCount);
+        Assert.Equal(0, Standing(world));
         Assert.Equal(4, world.Households.Rows.LiveCount);
         Assert.Equal(4, world.UnplacedPool.Count);
 
@@ -384,7 +504,14 @@ public sealed class ZoneRuleDemolishTests
     {
         (World world, Simulation simulation) = Built(Declining(Condemn, [Sweeping()]));
 
-        Run(simulation, (int)Rate * (Condemn + 4));
+        // ⚠ THREE DAYS RATHER THAN A HANDFUL OF FIRINGS, and the change is milestone 17's whole
+        // shape. This ran for `Rate * (Condemn + 4)` -- 64 Ticks -- because condemnation used to
+        // free the Lot on the sweep that found it, so the cycle closed within a few firings. It does
+        // not any more: abandonment leaves a shell, and the shell's collapse is a DURATION IN DAYS
+        // (adr/0091, and adr/0059's rule that a Ruleset states a duration). One Day is 2,048 Ticks,
+        // so a 64-Tick run cannot contain a single collapse and the cycle it asserts cannot happen.
+        // ***The test was calibrated against the old sink's units, not against the city.***
+        Run(simulation, Ticks.PerDay * 3);
 
         ZoneActivity activity = simulation.Zoning.Drain();
 

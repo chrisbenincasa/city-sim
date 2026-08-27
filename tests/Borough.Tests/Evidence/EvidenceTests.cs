@@ -8,6 +8,7 @@ using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
 using Borough.Core.Tables;
+using Borough.Formats;
 using Borough.Tests.Golden;
 
 namespace Borough.Tests.Evidence;
@@ -106,9 +107,25 @@ public sealed class EvidenceTests
 
             at = 0;
 
-            foreach (int worker in world.Workers.Walk(slot))
+            // 🔴 The tenants' worker lists, NOT the Building's, matching Evidence.OfBuilding.
+            //
+            // ⚠ THIS PREDATES MILESTONE 17 AND IS FIXED HERE BECAUSE 17 IS WHAT MADE IT FAIL.
+            // `Workers` has been indexed by BUSINESS slot since milestone 27 task 7, and this test
+            // walked it at a BUILDING slot — so it asserted production was wrong and passed anyway,
+            // because adr/0148 instantiates a Business with every dwelling and the two tables were
+            // the same width. Abandonment made Buildings outlive their Businesses, the widths
+            // diverged, and the stale walk read a different list.
+            //
+            // ***A second route that happens to agree is not a second route.*** The whole point of
+            // this test is that the assembler and the simulation walk the same lists; keying them
+            // differently and getting away with it is the failure it exists to catch, arriving in
+            // the test itself.
+            foreach (int tenant in world.BuildingBusinesses.Walk(slot))
             {
-                Assert.Equal(world.Citizens.Rows.At(worker), evidence.Workers.Span[at++]);
+                foreach (int worker in world.Workers.Walk(tenant))
+                {
+                    Assert.Equal(world.Citizens.Rows.At(worker), evidence.Workers.Span[at++]);
+                }
             }
 
             Assert.Equal(at, evidence.Workers.Length);
@@ -690,15 +707,45 @@ public sealed class EvidenceTests
         throw new InvalidOperationException("the trail holds no entry for a Lot it was asked about.");
     }
 
-    /// <summary>The golden fixture, run half a Day.</summary>
+    /// <summary>The golden fixture with decline in it, run four Days.</summary>
+    /// <remarks>
+    /// 🔴 <b><c>minimal.toml</c> for half a Day until milestone 17, and both callers need a Building
+    /// to have FALLEN DOWN.</b> One reads the condemnation trail and one wants a Citizen whose
+    /// workplace handle has stopped resolving; neither exists in a city where nothing is ever
+    /// demolished, and <c>adr/0164</c> made <c>minimal.toml</c> that city.
+    /// <para>
+    /// ⚠ <b>A local fixture rather than a change to <c>RunTicks</c>.</b> That constant is shared with
+    /// <c>A_traveller_in_flight_is_found_and_a_citizen_at_rest_is_not</c>, which needs somebody in
+    /// flight and not a demolition — raising it there would multiply a passing test's cost eightfold
+    /// to buy it nothing.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>8,192 Ticks is derived</b>: <c>declining.toml</c> condemns on a 2-Day threshold and
+    /// collapses a Day later, so nothing is demolished before 6,144 Ticks. The guard is off because
+    /// it, and not the length, is what a long replay costs — see <c>SeriesReportTests.Report</c>.
+    /// </para>
+    /// </remarks>
     private static World Golden()
     {
-        Simulation simulation = Start(GoldenFixtures.Rules(), out InputLog log);
+        InputLogBuilder builder = new(
+            GoldenFixtures.Seed,
+            new WorldConfiguration(GoldenFixtures.Population),
+            RulesetFile.HashOf(GoldenFixtures.DecliningRulesetPath));
 
-        Replay.Trace(simulation, log, new Ticks(RunTicks), HashEvery, []);
+        builder.Append(new Ticks(0), new Command(CommandKind.Populate, default, default));
+
+        InputLog log = builder.Build();
+        Simulation simulation = Replay.Start(log, GoldenFixtures.DecliningRules());
+
+        simulation.VerifyDecideWritesNothing = false;
+
+        Replay.Trace(simulation, log, new Ticks(DeclineTicks), HashEvery, []);
 
         return simulation.World;
     }
+
+    /// <summary>How far <see cref="Golden"/> runs: past a condemnation and its collapse.</summary>
+    private const int DeclineTicks = 8_192;
 
     private static Simulation Start(Ruleset rules, out InputLog log)
     {

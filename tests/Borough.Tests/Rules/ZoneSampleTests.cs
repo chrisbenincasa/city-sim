@@ -200,6 +200,8 @@ public sealed class ZoneSampleTests
         // Once first, so that nothing being measured is first-call JIT or a lazily built table.
         ZoneSample.Draw(lots, into, Key, new Ticks(1), rule: 0);
 
+        long jitMethods = System.Runtime.JitInfo.GetCompiledMethodCount(currentThread: true);
+        long jitIl = System.Runtime.JitInfo.GetCompiledILBytes(currentThread: true);
         int gen0 = GC.CollectionCount(0);
         int gen1 = GC.CollectionCount(1);
         int gen2 = GC.CollectionCount(2);
@@ -213,6 +215,6 @@ public sealed class ZoneSampleTests
         long after = GC.GetAllocatedBytesForCurrentThread();
 
         AllocationProbe.Check(
-            "ZoneSampleTests.Sampling_allocates_nothing", before, after, gen0, gen1, gen2);
+            "ZoneSampleTests.Sampling_allocates_nothing", before, after, gen0, gen1, gen2, jitMethods, jitIl);
     }
 }

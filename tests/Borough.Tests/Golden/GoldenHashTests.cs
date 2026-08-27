@@ -41,10 +41,19 @@ public sealed class GoldenHashTests
     private const string DrivingSessionFile = "driving-session.borough";
 
     /// <summary>The command that regenerates <c>session-trace.txt</c>. Named by the failure message.</summary>
-    private const string Regenerate =
+    /// <remarks>
+    /// ⚠ <b>Built from the fixture rather than typed out, since milestone 17.</b> It was four
+    /// literals — two file names, the Tick count and the cadence — and every one of them was a second
+    /// copy of a number <see cref="GoldenFixtures"/> already owned. That is <c>plans/0012</c>
+    /// <b>Cause 1</b> inside a failure message, which is the worst place for it: the message is read
+    /// by somebody who has just been told a hash moved and is about to run whatever it says.
+    /// </remarks>
+    private static readonly string Regenerate =
         "dotnet run --project src/Borough.Headless -- "
-        + "--log tests/Borough.Tests/Golden/session.borough --ruleset rulesets/minimal.toml "
-        + "--ruleset rulesets/minimal-tuned.toml --ticks 2048 --hash-every 64 "
+        + "--log tests/Borough.Tests/Golden/session.borough "
+        + $"--ruleset rulesets/{System.IO.Path.GetFileName(GoldenFixtures.RulesetPath)} "
+        + $"--ruleset rulesets/{System.IO.Path.GetFileName(GoldenFixtures.TunedRulesetPath)} "
+        + $"--ticks {GoldenFixtures.Ticks} --hash-every {GoldenFixtures.HashEvery} "
         + "--out tests/Borough.Tests/Golden/session-trace.txt";
 
     /// <summary>The command that regenerates <c>driving-session-trace.txt</c>.</summary>
@@ -53,7 +62,7 @@ public sealed class GoldenHashTests
     /// session's command needs both files and the runner refuses it without them — <i>Rules nobody
     /// has are not a mismatch</i> — so the two commands differ in a way worth not copying wrong.
     /// </remarks>
-    private const string RegenerateDriving =
+    private static readonly string RegenerateDriving =
         "dotnet run --project src/Borough.Headless -- "
         + "--log tests/Borough.Tests/Golden/driving-session.borough "
         + "--ruleset rulesets/congested.toml --ticks 4096 --hash-every 128 "
@@ -106,14 +115,36 @@ public sealed class GoldenHashTests
     /// guard, and it is a test rather than a convention because a convention is what drifted. Comments
     /// are excluded: the two files explain themselves differently on purpose, and the claim is about
     /// the <em>city</em> they describe.
+    /// <para>
+    /// <b>It holds BOTH pairs, and the second pair is here because the golden session left it.</b>
+    /// Milestone 17 moved the baseline off <c>minimal.toml</c> onto <c>declining.toml</c>, which
+    /// would have taken this guard off <c>minimal-tuned.toml</c> on the way past — and that file is
+    /// still loaded by <c>BinWaitListTests</c> and <c>TreasuryFromAFileTests</c>, so the copy would
+    /// have gone on being a copy with nothing watching it drift. ***A guard that follows a fixture
+    /// pointer stops guarding whatever the pointer moved off***, silently, which is the same shape
+    /// as the failure the whole directory exists to catch.
+    /// </para>
     /// </remarks>
     [Fact]
     public void The_two_golden_rulesets_differ_in_exactly_one_line()
     {
-        string[] plain = Content(GoldenFixtures.RulesetPath);
-        string[] tuned = Content(GoldenFixtures.TunedRulesetPath);
+        OneLineApart(GoldenFixtures.RulesetPath, GoldenFixtures.TunedRulesetPath);
+        OneLineApart(
+            System.IO.Path.Combine(AppContext.BaseDirectory, "Rulesets", "minimal.toml"),
+            System.IO.Path.Combine(AppContext.BaseDirectory, "Rulesets", "minimal-tuned.toml"));
+    }
 
-        Assert.Equal(plain.Length, tuned.Length);
+    /// <summary>Fails unless two Rulesets differ in exactly one non-comment line.</summary>
+    private static void OneLineApart(string first, string second)
+    {
+        string[] plain = Content(first);
+        string[] tuned = Content(second);
+
+        Assert.True(
+            plain.Length == tuned.Length,
+            $"{System.IO.Path.GetFileName(first)} has {plain.Length} content lines and "
+            + $"{System.IO.Path.GetFileName(second)} has {tuned.Length}; they should be one line "
+            + "apart.");
 
         string[] differences =
         [
@@ -124,7 +155,8 @@ public sealed class GoldenHashTests
 
         Assert.True(
             differences.Length == 1,
-            $"the two golden Rulesets differ in {differences.Length} lines and should differ in "
+            $"{System.IO.Path.GetFileName(first)} and {System.IO.Path.GetFileName(second)} differ in "
+            + $"{differences.Length} lines and should differ in "
             + $"one:\n{string.Join("\n\n", differences)}");
     }
 
@@ -293,10 +325,10 @@ public sealed class GoldenHashTests
     /// </para>
     /// </remarks>
     [Theory]
-    [InlineData("minimal.toml", "RulesetHash")]
-    [InlineData("minimal-tuned.toml", "TunedRulesetHash")]
-    [InlineData("congested.toml", "DrivingRulesetHash")]
-    public void The_golden_ruleset_is_the_one_the_session_names(string file, string constant)
+    [InlineData("RulesetHash")]
+    [InlineData("TunedRulesetHash")]
+    [InlineData("DrivingRulesetHash")]
+    public void The_golden_ruleset_is_the_one_the_session_names(string constant)
     {
         (ulong named, string path, string log, string command) = constant switch
         {
@@ -311,6 +343,7 @@ public sealed class GoldenHashTests
         };
 
         ulong observed = RulesetFile.HashOf(path);
+        string file = System.IO.Path.GetFileName(path);
 
         Assert.True(
             observed == named,

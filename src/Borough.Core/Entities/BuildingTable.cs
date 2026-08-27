@@ -1,5 +1,6 @@
 namespace Borough.Core.Entities;
 
+using Borough.Core.Quantities;
 using Borough.Core.Tables;
 
 /// <summary>
@@ -50,6 +51,24 @@ public sealed class BuildingTable
         // admit its whole quota twice in one Day, and the Factorio test is where that would surface.
         ArrivalsToday = _rows.Saved<int>("arrivals_today");
         ArrivalDay = _rows.Saved<int>("arrival_day");
+
+        // When the city abandoned this Building, or default if it did not. SAVED AND NOT DERIVED, and
+        // the reason is the whole of what separates this state from dereliction.
+        //
+        // CONTEXT.md -> Derelict is derived on purpose: `Kind == 0` is read off the Ruleset in force,
+        // so a reload that describes the kind again RECOVERS the Building, which is what a designer
+        // balancing needs because their commonest move is undo (adr/0057).
+        //
+        // Abandonment has the opposite requirement. It is what the CITY did, over a duration, and a
+        // reload must not undo it -- but a reload re-runs Fit, so anything derived from `has a kind
+        // and holds no Rules` would resurrect every abandoned shell in the world the first time a
+        // designer touched the Ruleset. So it is recorded, and the two states cannot share a
+        // representation for the same reason CONTEXT.md:313 says they share no machinery.
+        //
+        // A Ticks rather than a flag, because 02 5.9 wants the condition retained ON the Building and
+        // `how long has this stood empty` is the question the contagion term and the clearance Policy
+        // both ask. Zero reads as standing, which is what a zero-filled row should mean.
+        AbandonedSince = _rows.Saved<Ticks>("abandoned_since", Touch.Cold);
 
         _rows.Seal();
     }
@@ -133,6 +152,15 @@ public sealed class BuildingTable
     /// </summary>
     public int CarParkOf(int slot) => CarPark[slot] - 1;
 
+    /// <summary>Whether the city has abandoned this Building — see <see cref="AbandonedSince"/>.</summary>
+    /// <remarks>
+    /// An abandoned Building still stands and still holds its Lot. What it no longer holds is
+    /// Occupants, Rules or Bins, so it has nothing left to fail at and accumulates no further
+    /// pressure — the shell outlives what killed it, which is what <c>02 §5.9</c> needs in order to
+    /// retain the condition on the Building and what <c>adr/0091</c>'s clearance acts on.
+    /// </remarks>
+    public bool IsAbandoned(int slot) => AbandonedSince[slot] != default;
+
     /// <summary>Records that this Building's parking lives in <paramref name="carParkSlot"/>.</summary>
     internal void AttachCarPark(int slot, int carParkSlot) => CarPark[slot] = carParkSlot + 1;
 
@@ -183,6 +211,17 @@ public sealed class BuildingTable
     /// nothing on a Building nobody arrives at, and is right across a save.
     /// </remarks>
     public Column<int> ArrivalDay { get; }
+
+    /// <summary>
+    /// The Tick the city abandoned this Building on, or <c>default</c> if it still stands in use.
+    /// </summary>
+    /// <remarks>
+    /// <b>Abandonment is what the city does to a Building; dereliction is what a Ruleset edit does to
+    /// one, and they share no machinery</b> (<c>CONTEXT.md</c>:313). Do not read this column to answer
+    /// <i>is this Building derelict</i> — that is <see cref="Kind"/> being undeclared, it is derived,
+    /// and a reload recovers it. This one is recorded and a reload must not.
+    /// </remarks>
+    public Column<Ticks> AbandonedSince { get; }
 
     /// <summary>Allocates a Building on a Lot, and records it on the Lot.</summary>
     /// <param name="lots">

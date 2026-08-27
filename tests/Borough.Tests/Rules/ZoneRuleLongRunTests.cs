@@ -164,7 +164,18 @@ public class ZoneRuleLongRunTests
 
         // And the transient, which the tail cannot speak for: a table that grew once while the first
         // cohort was being condemned and then held would pass every line above.
-        NoLargerThanOpening(readings, opening, "Buildings", r => r.Buildings.Slots);
+        // ⚠ AGAINST THE LOT COUNT AND NOT THE OPENING BUILDING COUNT, corrected by milestone 17.
+        // This helper's own sentence -- "the populator builds one Building per Lot, so the opening
+        // count is the size of the city" -- is not true of the world it runs on: it opens with 121
+        // Buildings on 124 Lots, because a Lot the Pool had nobody for is left unbuilt. The three
+        // spare Lots were simply never built on while failure was instantaneous and every cleared
+        // Lot was rebuilt by the sample that cleared it.
+        //
+        // ***The bound was always the Lot count; the opening count happened to equal it closely
+        // enough that nothing noticed.*** MEASURED at 524,288 Ticks on minimal.toml: Building slots
+        // plateau at 123 against 124 Lots and stay there, so the ceiling holds and is not a trend.
+        NoLargerThan(
+            readings, opening.Lots.Slots, "Buildings", "the Lot count", r => r.Buildings.Slots);
         NoLargerThanOpening(readings, opening, "Bins", r => r.Bins.Slots);
         NoLargerThanOpening(readings, opening, "Rule Instances", r => r.Instances.Slots);
 
@@ -236,17 +247,26 @@ public class ZoneRuleLongRunTests
 
     /// <summary>No reading, transient included, exceeds the size the city opened at.</summary>
     private static void NoLargerThanOpening(
-        Reading[] readings, Reading opening, string table, Func<Reading, int> of)
-    {
-        int allowed = of(opening);
+        Reading[] readings, Reading opening, string table, Func<Reading, int> of) =>
+        NoLargerThan(readings, of(opening), table, "the opening count", of);
 
+    /// <summary>No reading, transient included, exceeds a stated ceiling.</summary>
+    /// <remarks>
+    /// <b>Split out by milestone 17 because one of the three callers wanted a different ceiling.</b>
+    /// A table sized per-Building is bounded by what the city opened with; the Building table itself
+    /// is bounded by the <em>Lots</em>, and those two were the same number only by accident.
+    /// </remarks>
+    private static void NoLargerThan(
+        Reading[] readings, int allowed, string table, string ceiling, Func<Reading, int> of)
+    {
         foreach (Reading reading in readings)
         {
             Assert.True(
                 of(reading) <= allowed,
-                $"the slot count for {table} reached {of(reading)} against {allowed} at the opening. "
-                + "The populator builds one Building per Lot, so the opening count is the size of "
-                + "the city and nothing the run does may need more rows than that.");
+                $"the slot count for {table} reached {of(reading)} against {allowed}, which is "
+                + $"{ceiling}. Nothing the run does may need more rows than that, and a table whose "
+                + "slots grow against a city of bounded size is freed rows not being handed back "
+                + "out — adr/0006's collection half.");
         }
     }
 
@@ -316,7 +336,7 @@ public class ZoneRuleLongRunTests
     {
         var key = WorldKey.FromSeed(seed);
 
-        world = new World(Population, GoldenFixtures.Rules());
+        world = new World(Population, GoldenFixtures.DecliningRules());
 
         simulation = new Simulation(world, key)
         {

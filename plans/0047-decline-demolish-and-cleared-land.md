@@ -1,0 +1,543 @@
+# 0047 — Decline, Demolish and cleared land
+
+**Milestone 17.** Scoped 2026-08-25, against `main` at `fabca9f`.
+
+---
+
+## Status
+
+🟢 **IN FLIGHT.** ⚠ **This block said *SCOPED, NOT STARTED* until 2026-08-26 while three commits
+stood** — `plans/0012` **Cause 1** in the document that owns the status, which is the copy that is
+supposed to be right.
+
+**Landed** (branch `milestone-17-decline-and-cleared-land`):
+
+| Task | State | Where |
+|---|---|---|
+| **1** — the second threshold stops destroying | 🟢 **done** | `ZoneRuleEngine.Condemn`, `BuildingTable.AbandonedSince` |
+| **2** — the abandoned state | 🟢 **done**, and it is a **column** rather than derived — `AbandonedSince`, `(saved AND hashed)` | `BuildingTable.IsAbandoned` |
+| **3** — the first threshold, occupancy loss | 🟢 **done, mechanism and world together** — `sheds_occupant_after_days`, paced off the clock rather than the sweep, and it needed a wake path nobody had built (**F10**). **5 condemned per 131,072 Ticks against `declining.toml`'s 392 per 32,768** | `KindDefinition.ShedsOccupantAfterTicks`, `ZoneRuleEngine.Shed`, `World.WakeDerivedApply`, `rulesets/thinned.toml`, `OccupancySheddingTests` |
+| **4** — `Demolish`, the sixth verb | 🟡 **the narrow half is done** — over **abandoned stock only**; an occupied Building is refused by name with compulsory purchase written beside it, which stays blocked on the land value target | `CommandKind.Demolish`, `Simulation.ApplyDemolish`, `DemolishVerbTests` |
+| **5** — the `Govern` clearance programme | 🔴 **not started** | — |
+| **6** — Trips-failing as a second pressure source | 🔴 **not started** | — |
+| **7** — the contagion term | 🔴 **not started** | — |
+| **8** — something to look at | 🟡 **partial** — `--zones` prints shells as `~` and counts them; nothing shows a clearance | `ZoneDump` |
+| **9** — the long acceptance run, and decision 1's measurement | 🟡 **partial** — censuses taken and quoted in the Ruleset headers; **no committed long-run assertion** | — |
+
+✅ **DECISION 1 IS CLOSED** into [`adr/0172`](../docs/adr/0172-an-abandoned-shell-collapses-on-a-clock-because-a-bound-is-not-a-sink.md)
+— *no, a player is not a sink*, and reading (a) is refuted by measurement. **Read decision 1 below for
+the run that closed it**; this row is a pointer and holds none of it.
+
+> 🔴 ⚠ **THIS PARAGRAPH SAID *no ADR records it* FOR THE WHOLE OF 2026-08-26, AND `adr/0172` HAD ALREADY
+> LANDED IN `93b1af7`.** The decision section was updated and this one was not, so **the plan contradicted
+> itself for four commits** and a reader starting at the Landed table — which is what a Landed table is
+> for — got the stale half. It was read that way twice on the day, once into a session summary and once
+> into a hand-off prompt written for somebody else. ***This is [`plans/0012`](0012-corpus-audit.md)
+> **Cause 1** inside a single document rather than across two***: the copy that stores status drifted,
+> and the copy that stores the *argument* stayed right. **A plan with a status table has two places to
+> update and the table is the one that gets missed**, because the work that closes a decision happens in
+> the section, not in the summary of it.
+
+⚠ **What the closure did NOT settle.** It shipped inside [`dc529a2`](#), whose subject line is about the
+threshold's **unit**, so for a day the decision existed only as code — and the ADR and the measurement
+both came afterwards, ***which is the right order reversed and is kept rather than tidied away.*** **Task
+9 now owes turnover rather than boundedness**: that the built count does not trend to zero, which
+`adr/0006` does not ask and would report healthy.
+
+⚠ **Task 4 left a debt `adr/0091` had already decided against, and it is filed rather than lived with.**
+That ADR retires `Connect`'s bulldoze flag so there is **one** spelling of *remove a thing* in the Input
+Log; task 4 shipped `Demolish` over Buildings and left Streets on the old flag. 🔴 **The reason is scope
+and expressly NOT cost** — retiring it re-spells six of the committed golden session's seven `connect`
+commands, and
+[`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)
+forbids citing baseline movement as a reason to defer. **[`0003`](0003-build-plan.md) queue item 26**,
+with the shape settled and only the work owed.
+
+⚠ **`dc529a2` carries three tasks and names one.** Its subject is *a decline threshold is a duration*;
+its diff also holds the shell, the collapse sink and the two-key split. That is
+[`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+arriving in a commit message, and it is why this table exists.
+
+---
+
+### Gate, as assessed at scoping
+
+🟡 **SCOPED 2026-08-25.** ✅ **GATE ASSESSED THE SAME DAY: no document names a gate on milestone 17.**
+[`0003`](0003-build-plan.md)'s Phase 2 ledger holds it in the collective row whose Gate cell is `—`,
+[`0002`](0002-open-questions.md) §A has no row against it, and [`06`](../docs/06-roadmap.md):101 names
+no upstream. ⚠ **That is an absence of a recorded gate and not a survey**; what scoping found instead is
+that two of this milestone's own mechanisms are blocked on things outside it, and they are decisions
+**3** and **4** below rather than gates on the row.
+
+---
+
+## Why this milestone exists, in one paragraph
+
+⚠ **This is not a feature. It is the build being made to agree with a decision taken 2026-08-16.**
+[`adr/0091`](../docs/adr/0091-clearing-land-is-bought-rather-than-taken-and-demolish-is-the-sixth-verb.md)
+found that [`02 §5.9`](../docs/02-simulation-model.md) **contradicts itself twelve lines apart** —
+*"Past a further threshold, it is abandoned and its Lot returns to vacant"* against *"an abandoned
+Building raises its neighbours' failure pressure"* and *"the specific accumulated condition is **retained
+on the Building** and shown in the inspector"* — and it decided which reading stands: ***abandonment
+empties a Building and leaves it standing on its Lot***, because three other mechanisms depend on the
+shell being there. 🔴 **The build implements the reading that was refused.** `ZoneRuleEngine.Condemn`
+calls `World.DestroyBuilding`, which frees everything, and it has done so since before the ADR was
+written. **So the shell that `adr/0091`, `01 §6` and `02 §5.9` all presume exists, does not.**
+
+---
+
+## The named risk, as `06` states it
+
+**That standing abandoned stock has no sink**, which is
+[`adr/0006`](../docs/adr/0006-no-collection-grows-with-elapsed-time.md)-class (`06`:101).
+
+⚠ **The risk is stated against a world this milestone CREATES.** Today nothing stands abandoned, so
+nothing accumulates and the risk is unreachable — it arrives the moment task 2 lands and not before.
+***A milestone whose named risk is created by its own first half is a milestone that must ship its sink
+in the same breath***, which is why decision **1** is the one this turns on and why the sink is not
+deferred to a task 9 nobody reaches.
+
+---
+
+## What the build already holds — surveyed 2026-08-25
+
+**Read from the symbols, not from prose about them**
+([`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)).
+
+| | What | Where |
+|---|---|---|
+| ✅ | **Failure Pressure as a duration**, per subject, cross-multiplied against a threshold | `RuleInstanceTable.StarvedSince`, `ZoneRuleEngine.Worst` |
+| ✅ | **Two subjects**, premises and tenant, on one `condemn_after` — `adr/0141` | `ZoneRuleEngine.Condemn`, `:319` |
+| ✅ | **The condemnation trail** — tick, Lot, kind and the reported condition, written **before** the demolition because the demolition frees what it would copy | `CondemnationTrailTable.Record` |
+| ✅ | **Eviction with capital intact** — `adr/0054` | `World.DestroyBuilding` |
+| 🔴 | **ONE threshold, where `CONTEXT.md` specifies two** | `KindDefinition.CondemnAfter`, `Ruleset.cs:451` |
+| 🔴 | **ONE Failure Pressure source of the three `CONTEXT.md` names** | `RuleEngine.Stop`, `:608`–`:627` |
+| 🔴 | **No standing abandoned state at all** — the verdict goes straight to `DestroyBuilding` | `ZoneRuleEngine.Condemn:364` |
+| 🔴 | **No `Demolish` verb.** `adr/0091` decided it; `01 §2`'s list is still five | — |
+| 🔴 | **No clearance Policy**, the `Govern` wholesale sibling `adr/0091`:49 names | — |
+
+### The two findings that size this milestone
+
+🔴 **F1 — `RuleEngine.Stop` starts the pressure clock on `Blocking.Supply` ALONE, and CLEARS it for
+every other reason.** Read it: the `else if` arms only on `Supply`, and the first branch zeroes
+`StarvedSince` on anything else. `CONTEXT.md`:296 names **three** sources — *Trips to or from it
+failing*, *its Rules repeatedly reaching a reporting terminal*, and *local conditions falling below its
+Occupants' tolerance* — and **only the second is built**. ⚠ **This is not a defect**: nothing decided
+against the other two, so under
+[`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) they are ***unbuilt***
+and the answer to *should the one source compensate* is **build the others**. They are decision **3**.
+
+🔴 **F2 — THE DECLINE STAGE BETWEEN THE TWO THRESHOLDS IS ENTIRELY UNBUILT, AND IT IS TWO MECHANISMS
+RATHER THAN ONE.** `CONTEXT.md`:296: *"Past a threshold it **loses occupancy and quality**; past a
+further one it is **abandoned**."* The build has the second threshold only, and *loses occupancy* and
+*loses quality* are separate things — the first has a mechanism to borrow (`adr/0068`'s over-capacity
+eviction) and ⚠ **the second has no referent in the build at all**: there is no quality column, no
+quality term in desirability, and no document that says what quality is. **Decision 2.**
+
+---
+
+## Open decisions this milestone owes
+
+### 1. Is a player a sink? ✅ **CLOSED 2026-08-26 into [`adr/0172`](../docs/adr/0172-an-abandoned-shell-collapses-on-a-clock-because-a-bound-is-not-a-sink.md) — and it closed by MEASUREMENT, which is not how it was typed**
+
+> ✅ **Answer: no, and reading (a) is refuted.** A `[[building]]` kind states `collapses_after_days`,
+> and an abandoned Building's Lot returns to vacant that many Days later with no player act involved.
+>
+> ⚠ **The mechanism shipped inside [`dc529a2`](#), whose subject line is about the threshold's UNIT**,
+> so for a day the decision this milestone said it turned on existed only as code. The ADR was written
+> afterwards, and the measurement it rests on was taken afterwards too — ***which is the right order
+> reversed, and is recorded here rather than tidied away.***
+>
+> **The run reading (a) needed, and nobody had taken:** `rulesets/declining.toml`, 10,000 Citizens, one
+> seed, the only difference being whether a shell ever falls.
+>
+> | Ticks | collapse after 1 Day | collapse never |
+> |---|---|---|
+> | 8,192 | 254 / 717 / 403 | 169 / 1,035 / 170 |
+> | 32,768 | 594 / 407 / 373 | **0 / 1,204 / 170** |
+> | 65,536 | 602 / 385 / 387 | **0 / 1,204 / 170** |
+>
+> *built / abandoned / vacant, over 1,374 Lots, from an opening 1,201 / 0 / 173.*
+>
+> 🔴 **With no collapse the city is dead by Tick 32,768 and stays dead** — every buildable Lot a
+> permanent shell. ***And `adr/0006` is green the whole way down***: the collection is bounded at
+> exactly the Lot count `adr/0091` named, it stops growing, and a trend assertion would report health.
+> **A bound is not a sink** — it answers *does it grow for ever* and not *can the city come back*.
+>
+> ⚠ **Reading (a) was not sloppy; it was `adr/0006` applied correctly to the wrong property.** The
+> milestone's own acceptance run would have been taken on the right-hand column, because a headless
+> run has no player in it.
+>
+> **What this leaves owed:** task 9 must assert **turnover** and not only boundedness — that the built
+> count does not trend to zero — and that is a new obligation rather than a restatement of `adr/0006`.
+
+<details><summary>The decision as it was framed at scoping, kept because the framing is what nearly got it wrong</summary>
+
+#### 1. Is a player a sink? Typed *arguable* — 🔴 **and it is the decision this milestone turns on**
+
+[`adr/0006`](../docs/adr/0006-no-collection-grows-with-elapsed-time.md) is *no collection grows with
+elapsed time*. `adr/0091` gives abandoned stock exactly two sinks and **both are player acts** — the
+`Demolish` verb, and the `Govern` clearance programme. ***A player is not a sink***: a city left alone
+accumulates abandoned shells for as long as it runs, and *the player will clear them* is a hope about
+a human rather than a property of the simulation.
+
+**Two readings, and scoping could not settle between them:**
+
+- **(a) It is already bounded, and the risk is misstated.** Abandoned Buildings stand on **Lots**, Lots
+  are finite and fixed by the Road Graph, so the collection is bounded by the Lot count and cannot grow
+  with *elapsed time* — only with *city size*. On this reading `adr/0006` is satisfied by construction
+  and nothing further is owed. ⚠ **Check it against the actual invariant before relying on it**: the
+  standing shells are bounded, but the **`CondemnationTrailTable` rows, the Evidence rows and the
+  Unplaced Pool arrivals** each abandonment produces may not be.
+- **(b) It needs a decay sink, and that is a design change.** A shell that stands for ever is also a
+  shell whose contagion term (decision **4**) suppresses its neighbours for ever, which is a city that
+  cannot recover without the player. On this reading something must remove a shell **without** a player
+  — collapse after a duration, or a rebuild that overwrites it.
+
+⚠ **Type it before arguing it** ([`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)):
+*(a)*'s bound is **measurable** — run a long headless city with abandonment on and count standing
+shells, trail rows and Pool arrivals against Ticks. ***So the first move on this decision is a
+measurement and not a sitting***, and it cannot be taken until task 2 exists to produce the world.
+
+</details>
+
+### 2. What is *quality*, and does it ship here? Typed *arguable* — **recommendation: no**
+
+`CONTEXT.md`:296's first threshold loses *occupancy and quality*. Occupancy has a mechanism to borrow.
+**Quality has no column, no term and no definition**, and inventing one here would put a hash-bearing
+number under a word no ADR defines. **Recommend shipping the first threshold as occupancy loss only**
+and routing *quality* to [`0002`](0002-open-questions.md) §A as *undesigned*, named rather than
+silently dropped.
+
+### 3. Which of the two missing Failure Pressure sources ship here? Typed *arguable*
+
+- **Trips failing** — the record exists (`adr/0097` counts a reach failure on the Citizen), so this is
+  reachable. ⚠ **Check whether it is a Building-addressable signal**: pressure is the *Building's*, and
+  a Citizen's failed reach has to be attributed back to premises.
+- **Conditions below tolerance** — 🔴 **tolerance is milestone 16's**, the residential choice model,
+  which `06`:100 calls *"the most leaned-on absence in the corpus."* **This one cannot ship here** and
+  saying so is the decision.
+
+### 4. Does abandonment contagion ship here? Typed *arguable* — **and it has a named blocker**
+
+`02 §5.9` wants an abandoned Building to raise its neighbours' pressure. `adr/0091`:59 already found
+why it cannot: ***"bare ground has no dereliction term in the desirability composition, so the mechanism
+the section calls deliberate cannot occur."*** Task 2 supplies the carrier — a shell is no longer bare
+ground — **but the desirability term itself is a new weight and therefore a hash-bearing number owed a
+named ratifier** under [`adr/0052`](../docs/adr/0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md).
+
+### 5. The clearance price — ⚠ **already decided as *unset*, and it is a gap rather than a debt**
+
+`adr/0091`:69 settles the shape and refuses the number: it is `f(land value at the Lot, what stands on
+it)`, hash-bearing, and **the composition is the decision**. It enters `plans/0002` §D **unset**, with
+its ratifier named as *the first play session in which a player clears something*. ⚠ **It is the second
+thing in the corpus blocked on the land value target**, which is a named hole in `MapLayers`. **Nothing
+in this milestone requires the price to exist** — the `Govern` clearance programme needs no compensation
+term at all, because abandoned stock has nobody left in it to compensate.
+
+---
+
+### F9 — a premises trough is bounded at 2,016 Ticks against a 2,048-Tick floor, and the gap cannot be closed by tuning
+
+**Measured 2026-08-26, before writing any of task 3.** The question was decision 2's leftover: *is there a
+world in which a first threshold on premises pressure does something a second threshold would not?*
+**There is not, and three separate bounds close it.**
+
+**The probe needs no new code.** `condemn_after_days` is already a threshold on exactly the quantity in
+question, so *did any premises trough exceed one Day?* is a condemnation count. **Control:
+`rulesets/declining.toml` at `condemn_after_days = 1` gives 493 condemned** at 1,000 Citizens over 32,768
+Ticks, so the probe fires when it should.
+
+**1. The Event Wheel caps a producer's period one Tick below the threshold's floor.** `RulesetLoader`
+refuses a rate outside `1..2047` — *"one at or beyond WHEEL_SIZE would re-arm into the Event Wheel bucket
+it just came off"* — and `adr/0168` makes a decline threshold a duration in **Days**, so the shortest
+authorable is `Ticks.PerDay` = **2048**. ***The two numbers meet at 2048 and the inequality is strict.***
+
+**2. A trough is bounded by its producer's period, and the measurement is exact.** On `maintained.toml`
+with `maintain` slowed and `condemn_after_days = 1`:
+
+| `maintain` rate | `upkeep` missed firings | pressure in Ticks | condemned |
+|---|---|---|---|
+| 32 (shipped) | 1 | 16 | 0 |
+| 1024 | 62 | **992** | 0 |
+| **2047** — the largest the wheel permits | **126** | **2,016** | **0** |
+| 2048 | — | — | **refused at load** |
+
+***2,016 against 2,048. It misses by 32 Ticks, which is two firings of the consumer.*** Every rate from
+**16 to 2047** gives **0 condemned**.
+
+🔴 **3. And the third bound is the one that matters, because it is not about the wheel at all: a consumer
+that waits on supply cannot run a persistent deficit.** A failed Rule subscribes to the Bin and sleeps
+(`adr/0045`); it does not retry on its own cadence. So its demand is **throttled by supply** rather than
+fixed at its rate — `upkeep` wants `occupancy` per 16 Ticks on paper and in fact takes what arrives, when
+it arrives. ***A premises chain fed by a local producer therefore always reaches a surplus equilibrium,
+whatever the rates say.*** That is why the sweep is flat: the arithmetic predicts a deficit at every rate
+above 21, and there is never one.
+
+**So exactly two regimes are reachable, and there is nothing between them:**
+
+- **a producer exists** → equilibrium, sawtooth troughs bounded by its period, **< 2048 Ticks, threshold
+  never fires** — `maintained.toml`, 0 condemned at every rate;
+- **no producer at all** → the trough is unbounded from the first failure, **threshold fires at once and
+  always** — `declining.toml`, where the second threshold follows the first by a fixed lead time.
+
+⚠ **The boundary is *is there a producer*, which is not a number a designer can tune between.**
+
+### What this does to task 3
+
+🔴 **The only thing that can return a Building from the deficit regime to the surplus one is REDUCING ITS
+OCCUPANCY**, because occupancy is the sole term on the demand side. **Nothing in the build does that** —
+`tenancy_ends_after_days` is the *tenant's* verdict and is `0` on `maintained.toml` — and the mechanism
+that would is **task 3 itself**.
+
+***So task 3's demonstration world cannot be written before task 3 exists: the mechanism creates the only
+regime that would exercise it.*** ⚠ **This is not a reason to skip the world.** It is a reason the world
+and the mechanism are **one task**, and the shape of what it buys is now known rather than hoped for:
+the first threshold **converts a death sentence into a correction** — a crowded dwelling sheds an
+occupant, demand falls, the trough closes, and the Building that `declining.toml` would have abandoned
+survives. ***That is `NO VERDICT` arriving as a mechanism rather than as an argument***, and it is the
+first thing in this milestone that makes decline reversible by the city.
+
+⚠ **The threshold's value stays unratified and a §D row is owed on the day it is written**
+(`adr/0052`). ⚠ **And it must be authored BELOW `condemn_after_days`** or the Building is abandoned before
+it can shed anything — which is a constraint between two keys and therefore the loader's, not the
+engine's (`adr/0048`).
+
+---
+
+### F10 — a Rule whose demand is DERIVED had no wake path, and it made the whole rung silently inert
+
+**Found by a test rather than by reading, 2026-08-26, after task 3's mechanism was written and looked
+right.** `adr/0063` makes a wait list wake on **the Bin's state**, and that is every reason a Rule's
+verdict can change — ***except one***. A Rule whose `apply` is `{ derived = ... }` also depends on a
+**Readout**, the count is recomputed only when the Rule is evaluated, and a starving Rule subscribes to
+the Bin and sleeps rather than re-arming on its rate (`adr/0045`). **So nothing anywhere was watching
+the Readout**, and a Rule could sleep for ever waiting on supply it no longer needed.
+
+🔴 **The cost was exactly the mechanism task 3 exists to provide.** Shedding an Occupant lowers a
+derived Rule's demand — to *nothing* at zero occupancy, which is the recovery the whole rung is for —
+and the Building was condemned anyway, because `upkeep` never woke to notice. ***The mechanism was
+correct, complete and unobservable***, which is [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)'s
+shape: the code said what it did and the city did not do it.
+
+**`World.WakeDerivedApply` is the repair**, called once after a shed. ⚠ **Only the SLEEPING instances
+need it, and that is what makes the fix complete rather than partial**: a Rule that is not starving is
+armed on the Wheel and re-evaluates on its rate, picking up the new Readout by itself — so a *rise* in
+occupancy needs no wake at all, and only a *fall*, on a Rule already asleep, is unreachable by any other
+path.
+
+⚠ **The guard is `Blocked != Nothing` and NOT `IsStarving`, and the difference threw an invariant.**
+`StarvedSince` stays stamped until the Rule actually fires again, so an instance already woken still
+reads as starving while being armed — and `EventWheel.Arm` refuses an already-armed instance
+(`Invariant.RuleInstanceIsArmedOrWaiting`). ***The two spellings of "asleep" are not the same set***,
+and the one that matters is the one naming the structure the instance is in.
+
+### What the world shows
+
+`rulesets/thinned.toml` is `declining.toml` plus **three lines**, and the third is the one nobody would
+guess: `sheds_occupant_after_days = 1`; `condemn_after_days` **2 → 8**, which is headroom derived from
+`occupants` rather than tuning; and `upkeep`'s `apply`, `{ min = 1, max = 1 }` → `{ derived =
+"occupancy" }`. 🔴 **Without the third the other two buy nothing** — a fixed `apply` demands the same
+repairs whether four Households live there or none, so shedding does not reduce what the Building needs
+and it is condemned anyway, just later and emptier.
+
+At 1,000 Citizens, same seed, `--zones --no-decide-guard`:
+
+| Ticks | built / abandoned / vacant | condemned | shed |
+|---|---|---|---|
+| 8,192 | 124 / **0** / 10 | **0** | 327 |
+| 32,768 | 124 / **0** / 10 | **1** | 1,988 |
+| 65,536 | 124 / **0** / 10 | **2** | 4,080 |
+| 131,072 | 124 / **0** / 10 | **5** | 8,429 |
+| *`declining.toml`, 32,768* | *—* | ***392*** | *0* |
+
+***The census is flat across a 16× range and `abandoned` is zero at every sample.*** ⚠ **The five are
+the SAMPLE and not the key**: a Zone Rule samples Lots rather than scanning them (`adr/0059`), so one
+unlooked-at for eight Days is condemned on the first look having never been offered the rung below.
+
+🔴 **What the file is NOT.** Nothing in it produces `repairs`, so every Building always starves and the
+steady state is a permanent churn — roughly 8,400 evictions per 131,072 Ticks into a Pool that rehouses
+them into Buildings that immediately start failing again. ***It demonstrates that the mechanism
+terminates and the stock survives, not that this is a city anybody would want***, and **F9** measures
+why the settling version cannot be authored at all.
+
+---
+
+## Tasks — ⚠ **PROVISIONAL until decision 1**
+
+1. **The second threshold stops destroying** — `ZoneRuleEngine.Condemn`'s premises verdict empties the
+   Building and leaves the row standing on its Lot, instead of calling `DestroyBuilding`. Occupants are
+   still evicted into the Pool with capital intact (`adr/0054`), the trail is still written. 🔴 **This
+   is the whole risk arriving**: from this task onward the city accumulates shells. **Moves the State
+   Hash.**
+2. **The abandoned state, read rather than recorded if that is possible.** ⚠ **Try hard to derive it
+   before adding a column** — `CONTEXT.md` → Derelict is emphatic that its own state is derived and says
+   why (`adr/0057`), and a state that is *empty, standing, and was condemned* may be answerable from the
+   Lot, the occupant list and the trail. **If a column is unavoidable it is `(saved AND hashed)`** and
+   this task moves the hash a second time.
+3. **The first threshold** — occupancy loss, per decision 2, quality routed out rather than invented.
+4. **`Demolish`, the sixth verb** — `01 §2`'s list becomes six, compulsory purchase paid from the land
+   value layer to whoever is displaced. ⚠ **Blocked on decision 5's composition**, so it may ship as the
+   verb over *abandoned* stock only, where no compensation is owed.
+5. **The `Govern` clearance programme** — the wholesale sibling, treasury-funded, no compensation term.
+   ⚠ **This is the sink `adr/0006` is asking after**, on reading (b), and it is a Policy rather than a
+   verb.
+6. **Trips-failing as a second Failure Pressure source**, per decision 3.
+7. **The contagion term**, per decision 4 — with its `plans/0002` §D row written on the day.
+8. **Something to look at** — a runner mode showing a district declining, standing empty, and being
+   cleared. ⚠ **The third clause is the one that gets dropped**, and it is the only one that shows the
+   sink working.
+9. **The long acceptance run** — 100k+ Ticks with abandonment on, and **decision 1's measurement taken
+   here**: standing shells, trail rows and Pool arrivals against Ticks, each checked for a trend.
+
+---
+
+## What this milestone must not do
+
+- ⚠ **It must not call any of this *derelict*.** `CONTEXT.md`:313 — dereliction is what a **Ruleset
+  edit** does to a Building (`Kind == 0`, derived, `adr/0057`), abandonment is what the **city** does,
+  and the entry says outright that they *"share none of its machinery."* ***Scoping made this mistake on
+  its first pass and it is recorded here so the next reader does not.***
+- **It must not add a demand scalar**, and *quality* is where one would enter.
+- **It must not build tolerance** — that is milestone 16's and taking it here would scope-creep the
+  most leaned-on absence in the corpus into a decline milestone.
+- **It must not price compulsory purchase** by choosing a composition to unblock task 4. `adr/0091`
+  refused that number deliberately.
+
+---
+
+## Definition of done
+
+`CLAUDE.md`'s cumulative list, plus:
+
+- **A Building that fails stands empty and is visible as such**, and the condition that killed it is
+  still readable off it — which is `02 §5.9`'s *retained on the Building* clause, the one the current
+  build cannot satisfy because the row is gone.
+- **Decision 1 is settled by the measurement in task 9, not by argument**, and whichever reading wins is
+  written into `adr/0006`'s neighbourhood rather than left in this plan.
+- **The long run shows no collection and no magnitude trending** — with standing shells, trail rows and
+  Pool arrivals each named and counted separately, because they have different bounds.
+
+---
+
+## What scoping found
+
+**F1** and **F2** are above, where they size the milestone.
+
+**F3 — 🔴 THE BUILD CONTRADICTS A SETTLED ADR AND NO LEDGER RECORDS IT.** `adr/0091` chose `02 §5.9`'s
+second reading on 2026-08-16 and noted *"the build implemented the first reading."* **That sentence is
+the only place the contradiction is written down.** It is not in [`0012`](0012-corpus-audit.md), not in
+[`0003`](0003-build-plan.md)'s queue, and not in `02 §5.9` itself, which still carries both readings
+twelve lines apart. ⚠ ***A decision recorded only in the ADR that made it is invisible to every document
+that would route work at it*** — which is why this milestone reads as a feature and is a repair.
+**Owed to [`0012`](0012-corpus-audit.md)** whether or not this milestone runs.
+
+**F4 — ⚠ SCOPING CONFLATED DERELICTION WITH ABANDONMENT ON ITS FIRST PASS**, in exactly the way
+`CONTEXT.md`:315 says the two must not be — and it did so while holding the roadmap row, which cites
+`CONTEXT.md` → Derelict directly. ***The citation is what caused it***: the row's own reference list
+names Derelict beside `adr/0053` and `adr/0091`, and reading the row rather than the entry makes the two
+look like one subject. **Recorded because the same reference list will do it to the next reader.**
+
+**F5 — ✅ THE `adr/0166` DECLINE DECISION IS *NOT* THIS MILESTONE'S, AND THE SUBJECT SPLIT IS WHY.**
+[`0044`](0044-the-purchase-and-the-provider-that-answers-it.md) **F1** found that a money-consuming
+decline Rule needs a counterparty — treasury or market — and that the choice is unmade. It was offered
+to this milestone as *"probably yours rather than task 7's."* ⚠ **It is not.** `adr/0141` splits Failure
+Pressure into two subjects: a **tenant's** pressure ends the tenancy, a **premises'** condemns the
+Building. `adr/0166`'s money Rule is a **Business's** decline and belongs to milestone 26's task 7;
+this milestone owns the **premises'**, which is driven by a duration and needs no money term at all.
+⚠ **And it must not acquire one**: Upkeep is UNPLACED
+([`adr/0136`](../docs/adr/0136-upkeep-has-three-blockers-landing-at-three-times-so-it-has-a-queue-and-not-a-milestone.md)),
+so a recurring cost on the premises would be reaching for a mechanism three documents have already
+declined to place.
+
+**F6 — 🔴 TAKING DECLINE OUT OF `minimal.toml` SILENTLY BLINDED THE GOLDEN BASELINE, AND EVERY HASH IN
+IT STAYED FRESHLY CORRECT.** `adr/0164` moved `condemn_after` out of every world demonstrating
+something else. `minimal.toml` is the golden session's opening Ruleset, so the committed session
+stopped condemning anything; [`adr/0069`](../docs/adr/0069-placement-is-a-mechanism-of-its-own-and-construction-houses-nobody.md)
+builds **only while the Unplaced Pool is non-empty** and the Pool is filled by Households losing a home,
+so it stopped building too. Measured on the committed log: **`building live 481 → 481`, `unplaced live
+0` throughout, `zones created 0`, `demolished 0`, `tenancies ended 0`** — ***neither `ZoneRuleEngine`
+branch fired for the whole run***, and `session-trace.txt` recorded thirty-two correct samples of it.
+
+⚠ **The general shape, which is the part worth keeping: A DEMONSTRATION RULESET IS A TEST FIXTURE, and
+editing one moves what the suite COVERS rather than only what it HASHES.** A trace records what a run
+*did*, so a change narrowing what a run *reaches* is invisible in it by construction. Slice 10 task 11
+found this once from inside the test project; this time the edit was in `rulesets/`, three directories
+away, and nothing connected the two. The only assertions that noticed are the two that ask what the
+session **does** — `GoldenSessionCoverageTests` and
+`The_golden_session_raises_buildings_as_well_as_condemning_them`.
+
+**Repaired by repointing the baseline**, which took four changes and every one was forced: the session
+opens on `declining.toml`; a `declining-tuned.toml` sibling had to exist because the pair must stay one
+line apart; the session had to grow **2,048 → 8,192 Ticks**, because `adr/0168` made the threshold a
+duration and `condemn_after_days = 2` plus `collapses_after_days = 1` is **6,144 Ticks before the first
+Lot is cleared** — ***repointing without lengthening would have bought zero coverage and been
+indistinguishable from having bought it***; and the cadence went 64 → 256 to hold the trace at
+thirty-two samples, with the reload at 4,096 to stay halfway.
+
+⚠ **A second guard was about to be lost on the way past, and was not.**
+`The_two_golden_rulesets_differ_in_exactly_one_line` was written against the *fixture pointer*, so
+repointing it at the declining pair would have taken it off `minimal-tuned.toml` — which
+`BinWaitListTests` and `TreasuryFromAFileTests` still load. It now asserts **both** pairs. ***A guard
+that follows a fixture pointer stops guarding whatever the pointer moved off, and says nothing when it
+does.*** Owed to [`0012`](0012-corpus-audit.md) as a shape rather than a sighting.
+
+**F7 — ⚠ REPOINTING THE BASELINE SURFACED TWO MORE TESTS THAT WERE NOT MEASURING WHAT THEY SAID, AND
+NEITHER IS ABOUT DECLINE.** Both are filed in [`0012`](0012-corpus-audit.md) as **Cause 9 candidates**.
+
+- **`LotLongRunTests.The_hundred_thousand_Tick_lot_run`** built its world with `GoldenFixtures.Rules()`
+  — *whatever the baseline opens on* — so a test about the **subdivider** silently acquired a city in
+  which Buildings fall down. ✅ **Its own vacuity guard caught it and named the cause correctly**:
+  *carved Lots on only 15 of 97 edits … the second is a statement about the Zone Rule rather than about
+  the subdivider*. Repaired with a named `GoldenFixtures.StaticRules()` rather than by relaxing the
+  ratio.
+- **`GoldenSessionCoverageTests.The_session_sends_people_to_work_without_a_trip_command`** sampled
+  *eight times across the run*, so its interval was a fraction of the session while departures fall in
+  a fixed **683**-Tick window of each Day. Lengthening the session took the stride to 1,024 and every
+  look landed in the quiet after a wave. ***A sampling interval is a bound and not a count***, and this
+  is the **second** time the same test has aliased — the first repair inherited the defect one level
+  along. Repaired with a `Stride` stated against the window, and it now walks the run once instead of
+  replaying it eight times.
+
+**F8 — 🔴 `ConnectedCityCongestionTests` WAS CALLED *a live question about the traffic model rather
+than a stale fixture* AND IT WAS THE STALE FIXTURE, WHICH IS WHY THE LIVE QUESTION IN IT WENT
+UNEXAMINED FOR A DAY.** `dc529a2`'s own commit message left it red on that reading. Bisected
+2026-08-26: it passes at `92e360a` and fails at `dc529a2`, with **identical numbers** at `dc529a2` and
+at `HEAD` — so it broke in this milestone's first commit and nothing since moved it.
+
+**The cause is `adr/0164` again, one fixture further along.** The test's city is `congested.toml`;
+taking `condemn_after` out of it means nothing knocks a Building down, so more Households stay housed
+and **employment at 4×4 went 1,156 → 2,560 on the same population**. Twice the commuters over the same
+corridor took the peak from **65.1%** of capacity to **97.7%**, and the fixture's *flat rung* — the
+control that says *the volume-delay function is real and costs nothing anybody can see* — was no longer
+below the knee. ⚠ **The rung is stated in BLOCKS and the property is stated in `v/c`**, so a Ruleset
+edit walked it off its own claim without touching the file: `plans/0012` **Cause 9 candidate B**.
+
+*Repaired by moving the rung to 2×2, where the two runs are byte-identical again, re-recording the
+ladder, and asserting the regime explicitly before the equality that depends on it — so the next drift
+says `the flat rung is no longer flat` rather than printing two numbers 0.09% apart.*
+
+🔴 ⚠ **AND THE FIXTURE HELD A REAL FINDING THAT THE STALE-VERSUS-LIVE FRAMING HID.** At 4×4 the priced
+run holds **fewer** Vehicle-Ticks than the free-flow control — 16,562 against 16,577 — while peaking
+**higher**, 97.7% against 86.8%. The file's own control note states the direction outright (*a free-flow
+run is the same journeys priced cheaper, so it can hold FEWER Vehicle-Ticks*), and 3×3 and 8×8 both
+obey it. ***A sign flip is not a rounding error***, so near `v/c` = 1 the loop appears to
+**redistribute** load rather than add occupancy — which is a different claim from the one `adr/0099`
+makes. **Filed in [`0002`](0002-open-questions.md) §A as *measurable*, owned by milestone 16**, with
+the sweep that would settle it named. ⚠ **It was unreachable before this milestone**: only the band
+around the knee shows it, and no fixture sat there until decline left `congested.toml`.
+
+⚠ **The lesson is about the triage and not about traffic.** *Stale fixture* and *live question* were
+treated as alternatives, and it was both — the staleness moved the fixture into the band where the
+question becomes visible. ***Calling a red test one of the two is what stops anybody reading it.***
+
+---
+
+## Where this sits
+
+`06` row order puts 17 after 16 and before 18. **It is being taken out of order**, which is what created
+decision **3**'s second half — tolerance is 16's, so one of the three Failure Pressure sources is
+unreachable from here and the milestone ships two of three by construction. ⚠ **That is a smaller
+version of milestone 18's problem and it does not have 18's answer**: 18 taken early had *no* consumer
+and collapsed to an argument; 17 taken early has two of its three sources and a complete decline chain
+without the third. ***Partial is not the same as empty.***

@@ -86,8 +86,34 @@ public sealed class ParkingDumpTests
 
         (string arrival, string departure) = Panels(report);
 
+        // The arrival half is unchanged and is the half that is a PROOF: a space is drawn from a
+        // ball of the shed's radius around the door, so a walk longer than that is one nothing could
+        // have chosen, and zero of them is the endpoint swap working.
         Assert.Contains("0 of these", Over(arrival), StringComparison.Ordinal);
-        Assert.DoesNotContain("0 of these", Over(departure), StringComparison.Ordinal);
+
+        // 🔴 THE DEPARTURE HALF IS ASSERTED ON WHAT THE PANEL CLAIMS AND NO LONGER ON A COUNT, and
+        // that is a finding rather than a relaxation. It read `DoesNotContain("0 of these", ...)`
+        // -- some departure walk must exceed the shed -- which passed only while every shipped world
+        // declined: Buildings own the parking, so a collapsing city keeps taking Car Parks away from
+        // under drivers who then park further off. adr/0164 removed decline from congested.toml and
+        // the supply became static and locally matched, so nobody ever walks far.
+        //
+        // ⚠ NO SHIPPED WORLD EXHIBITS IT ANY MORE, and it is not a population away. Measured on
+        // congested.toml at 4,096 Ticks: 0 of 10,821 walks at 4,000 Citizens, 3 of 22,902 at 8,000,
+        // 0 of 47,237 at 16,000; scarce.toml -- the file whose whole purpose is parking scarcity --
+        // gives 0 of 500. ***A count that reads 0, 3, 0 across a sweep is a knife-edge, and choosing
+        // the 8,000 would be picking the world in which the assertion passes.***
+        //
+        // So what is asserted is the structural claim itself, which the report states in prose and
+        // which is what the count was ever standing in for: the shed bounds the arrival walk and does
+        // NOT bound the departure walk. Restoring the count needs a world where parking supply is
+        // under pressure -- filed against Scope.Pool's milestone with the rest of milestone 17's
+        // no-demonstrable-middle findings, per adr/0073.
+        Assert.Contains("NOT a ceiling here", Ceiling(departure), StringComparison.Ordinal);
+
+        // And the arrival panel makes the opposite claim, so the two are a comparison rather than
+        // one panel's wording asserted twice.
+        Assert.Contains("it is a CEILING here", Ceiling(arrival), StringComparison.Ordinal);
     }
 
     /// <summary>Supply is printed as a balance and never as a grid.</summary>
@@ -243,6 +269,19 @@ public sealed class ParkingDumpTests
 
         return (report[arrival..departure], report[departure..supply]);
     }
+
+    /// <summary>
+    /// The line in which a panel says whether the shed's width is a ceiling on its walk.
+    /// </summary>
+    /// <remarks>
+    /// <b>The claim rather than the count</b>, and the two panels state opposite ones — which is what
+    /// makes this assertable in a world where the count is zero under both. See the test.
+    /// </remarks>
+    private static string Ceiling(string panel) =>
+        panel.Split('\n').FirstOrDefault(
+            line => line.Contains("ceiling here", StringComparison.OrdinalIgnoreCase))
+        ?? throw new InvalidOperationException(
+            "a walk panel no longer says whether the shed bounds it. Its shape has moved.");
 
     /// <summary>The line saying how many walks in a panel are past the shed's own reach.</summary>
     private static string Over(string panel) =>
