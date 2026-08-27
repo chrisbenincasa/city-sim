@@ -154,7 +154,10 @@ public sealed class TwinLatticeTests
             // stop the city over-supplying — the birth rule and the death rule cannot be
             // demonstrated in one world. The diff is the whole demonstration, so anything it shares
             // with its base is shared deliberately.
-            if (file is "provisioned.toml" or "oversupplied.toml")
+            // waged.toml IS provisioned.toml with two [[business]] keys added -- wages on the one
+            // trade that earns -- so it inherits both lattices for that file's reason. Its header
+            // says so, and everything below that header is provisioned.toml unchanged.
+            if (file is "provisioned.toml" or "oversupplied.toml" or "waged.toml")
             {
                 Assert.Equal(2, Shipped(file).Lattices.Length);
                 continue;

@@ -685,6 +685,79 @@ public static class RulesetLoader
             return definitions;
         }
 
+        /// <summary>
+        /// Reads <c>wage_per_day</c> and <c>pay_period_days</c>, which are required together or not
+        /// at all.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>The pairing is <see cref="ReadShiftStartBand"/>'s, for the same reason and with one
+        /// difference.</b> A rate with no period never pays and a period with no rate pays nothing,
+        /// so each alone is half a mechanism — and unlike the Shift band, <b>zero is not ambiguous
+        /// here</b>: a trade that pays nothing is a real trade, so the keys are optional together and
+        /// their absence means exactly that. ***What is refused is stating one and not the other.***
+        /// </para>
+        /// <para>
+        /// ⚠ <b>A wage with no <c>jobs</c> is refused</b>, on the band's argument word for word: a
+        /// rate is what a job pays, so it means nothing on a trade that employs nobody.
+        /// </para>
+        /// </remarks>
+        private (int WagePerDay, int PayPeriodDays) ReadWage(
+            TableSyntaxBase table, string? name, int jobs)
+        {
+            bool hasRate = TryInteger(table, "wage_per_day", out long rate, required: false, name);
+            bool hasPeriod = TryInteger(
+                table, "pay_period_days", out long period, required: false, name);
+
+            if (!hasRate && !hasPeriod)
+            {
+                return (0, 0);
+            }
+
+            if (jobs <= 0)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, "wage_per_day") ?? table), name,
+                    "this trade states a wage and employs nobody. A wage is what one job pays for "
+                    + "one Day worked, so it means nothing without a `jobs` above zero -- state "
+                    + "one, or delete the wage.");
+
+                return (0, 0);
+            }
+
+            if (!hasRate || !hasPeriod)
+            {
+                Refuse(LineOf(table), name,
+                    "this trade states one of `wage_per_day` and `pay_period_days` and not the "
+                    + "other. They are required together: a rate with no period never pays anybody "
+                    + "and a period with no rate pays nothing, so each on its own is half a "
+                    + "mechanism that loads clean and does nothing.");
+
+                return (0, 0);
+            }
+
+            if (rate < 0)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, "wage_per_day") ?? table), name,
+                    $"wage_per_day is {rate}. It is what one job pays for one Day worked, so it "
+                    + "cannot be negative -- a negative wage is the worker paying the employer. "
+                    + "Omit both keys for a trade that pays nothing.");
+
+                return (0, 0);
+            }
+
+            if (period <= 0)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, "pay_period_days") ?? table), name,
+                    $"pay_period_days is {period}. It is how many Days pass between paydays, so it "
+                    + "is at least 1 (paid daily); 0 is a payday that never comes round.");
+
+                return (0, 0);
+            }
+
+            return ((int)(rate > int.MaxValue ? int.MaxValue : rate),
+                (int)(period > int.MaxValue ? int.MaxValue : period));
+        }
+
         private uint ReadRate(TableSyntaxBase table, string? rule)
         {
             if (!TryInteger(table, "rate", out long rate, required: true, rule))
@@ -1534,19 +1607,22 @@ public static class RulesetLoader
                 {
                     Refuse(LineOf((SyntaxNodeBase?)Find(table, "wage") ?? table), name,
                         "this trade states a wage. adr/0141 does give the trade `jobs`, shift hours "
-                        + "AND the wage -- but a wage is not a declared number, it MOVES: adr/0026 "
-                        + "has each Business post one and adjust it by its own fill rate, which "
-                        + "arrives at milestone 15 and cannot be a key on a kind. Delete it; the "
-                        + "two keys that do work here are `jobs` and the Shift band.");
+                        + "AND the wage -- and adr/0026's wage is not a declared number, it MOVES: "
+                        + "each Business posts one and adjusts it by its own fill rate. That is "
+                        + "still unbuilt. What exists is `wage_per_day`, a flat rate per Day worked, "
+                        + "paired with `pay_period_days` -- write those two.");
                 }
 
                 (int shiftFrom, int shiftTo) = ReadShiftStartBand(table, name, jobs);
+                (int wagePerDay, int payPeriodDays) = ReadWage(table, name, jobs);
 
                 definitions[i] = new BusinessKindDefinition
                 {
                     Jobs = jobs,
                     ShiftStartEarliestHour = shiftFrom,
                     ShiftStartLatestHour = shiftTo,
+                    WagePerDay = wagePerDay,
+                    PayPeriodDays = payPeriodDays,
                 };
             }
 

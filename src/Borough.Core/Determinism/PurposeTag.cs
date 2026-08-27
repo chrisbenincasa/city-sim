@@ -581,4 +581,30 @@ public enum PurposeTag : ulong
     /// </para>
     /// </remarks>
     SellerChoice = 30,
+
+    /// <summary>
+    /// Which Day of its pay period a Business's payday falls on.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The stagger, and it is what keeps a city's payroll off one Tick.</b> A trade declares
+    /// <c>pay_period_days</c> and every Business of it would otherwise pay on the same Days — so a
+    /// weekly city would move its entire wage bill on Day 7, then nothing for six Days, and a
+    /// profiler would read a spike that no Ruleset asked for. The offset is this draw taken against
+    /// the period, and payday is the Day whose remainder matches.
+    /// </para>
+    /// <para>
+    /// <b>Keyed on the Business's monotonic row id and on nothing else</b>, which is what makes it
+    /// free: it is derived on demand rather than stored, it survives a save and a reload without a
+    /// column, and it does not move when the Business's slot is recycled — because the id is not.
+    /// ⚠ <b>Not keyed on the Tick</b>, deliberately. A Tick-keyed draw would give a Business a
+    /// different payday every period, which is a lottery rather than a wage.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Distinct from <see cref="FoundingDraw"/> and <see cref="PremisesDraw"/> though all three
+    /// are keyed on a Business.</b> Sharing a tag would tie <i>when a shop pays</i> to <i>whether it
+    /// was founded</i> — a correlation invisible in every readout either mechanism has.
+    /// </para>
+    /// </remarks>
+    WagePayday = 31,
 }

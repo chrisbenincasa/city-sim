@@ -43,6 +43,8 @@ public sealed class Simulation
     private readonly RuleEngine _rules;
     private readonly ZoneRuleEngine _zoning;
     private readonly PolicyEngine _policies;
+    private readonly WageEngine _wages;
+    private PayrollReading _lastPayroll;
     private readonly PlacementEngine _placement;
     private readonly EmploymentEngine _employment;
     private readonly TripEngine _trips;
@@ -104,6 +106,7 @@ public sealed class Simulation
         _rules = new RuleEngine(world, key);
         _zoning = new ZoneRuleEngine(world, key);
         _policies = new PolicyEngine(world, key);
+        _wages = new WageEngine(world, key);
         _employment = new EmploymentEngine(world, key);
 
         // No WorldKey: nothing in Phase 4 draws. A Traveller advances when its Leg's arrival Tick has
@@ -182,6 +185,14 @@ public sealed class Simulation
     /// yet, which is why the ordering is stated here rather than discovered later.
     /// </remarks>
     public PolicyEngine Policies => _policies;
+
+    /// <summary>What the most recent payday moved, or zeroes on a Tick that was not one.</summary>
+    /// <remarks>
+    /// <b>The last reading rather than a total</b>, so an instrument samples it and nothing
+    /// accumulates across a run (<c>adr/0006</c>). ⚠ <b>It is only non-zero on a Day boundary</b>,
+    /// and only then when some trade's payday fell on that Day.
+    /// </remarks>
+    public PayrollReading LastPayroll => _lastPayroll;
 
     /// <summary>Tick phase 4, and the Trip Fate counters the Census drains.</summary>
     public TripEngine Trips => _trips;
@@ -902,6 +913,17 @@ public sealed class Simulation
         // an actor holds, so the three passes behind it respond to the city it just changed rather
         // than to last Tick's -- phase 5 -> phase 6's own argument, one level in. Nothing downstream
         // reads a balance today, which is exactly why this is the cheap moment to fix it.
+        // AHEAD OF THE POLICIES, and the order is the decision rather than the presence -- the
+        // paragraph above says so about this line's neighbour and it is truer here, because these two
+        // move the same money out of the same Bins on the same Tick. Payroll first means a Business
+        // pays its people out of what it earned and is levied on what is left; policies first would
+        // levy the gross and let a shop be taxed into being unable to pay wages it had the money for
+        // when the Tick began. ***Both are defensible cities and only one of them is this one.***
+        //
+        // ⚠ It is silent on nine of the shipped Rulesets: no trade there declares wage_per_day, so
+        // the walk finds no employer with a rate and moves nothing.
+        _lastPayroll = _wages.Sweep(tick);
+
         _policies.Sweep(tick);
 
         _placement.Place(tick);
