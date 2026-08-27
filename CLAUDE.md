@@ -227,11 +227,21 @@ waits.
 
 | When | Command | Cost |
 |---|---|---|
-| **While working** — the default, and what you should be running nearly all the time | `dotnet test -c Release --filter "tier!=instrument"` | **42s**, 1,690 tests |
-| **Narrower still** — while iterating on one area | `dotnet test -c Release --filter "tier!=instrument&FullyQualifiedName~Policy"` | seconds |
-| **Before a commit** — the gate, and deliberately the same command as the default | `dotnet test -c Release --filter "tier!=instrument"` | **42s** |
+| **While working** — the default, and what you should be running nearly all the time | `scripts/test.sh` | **42s**, 1,690 tests |
+| **Narrower still** — while iterating on one area | `scripts/test.sh Policy` | seconds |
+| **Before a commit** — the gate, and deliberately the same command as the default | `scripts/test.sh` | **42s** |
 | **Post-submit** — `.github/workflows/post-submit.yml`, **on every push to `main`** and nightly, on a runner | `dotnet test -c Release`, then three long headless runs | nobody's |
 | **At a milestone** — the Definition of done, on the reference machine | `dotnet test -c Release` | **~36m** |
+
+⚠ **`scripts/test.sh` is `dotnet test` with the failure list kept, and nothing else** — same lane,
+same filter, same exit status, so it is a wrapper rather than a fourth lane. What it adds is that a
+failing run **re-prints the failed test names last**, after the stack traces, and **tees the whole
+run to a file** it names on the way in and out. ***A run that costs minutes must never have to be
+repeated in order to be read***: reading a result is a `grep` against that log, never a second run.
+`--all` runs the whole suite; `--filter 'EXPR'` takes an explicit expression; anything after `--`
+goes to `dotnet test`. ⚠ **It also surfaces a BUILD error**, which `dotnet test` otherwise buries
+above thousands of lines of restore output and which reads, at a truncated tail, exactly like a test
+failure with no name.
 
 ⚠ **The 42s names *nothing else running in this repository* as its first control**, and the two
 readings before it did not: 1m52s and 50s were both taken while a second session was running
