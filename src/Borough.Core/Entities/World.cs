@@ -5439,6 +5439,26 @@ public sealed class World
     {
         Citizens.LastTripFate[citizenSlot] = (byte)fate;
 
+        // The Activity half, added 2026-08-26 with CitizenActivity. It is decided from the value
+        // already standing rather than from an argument, because this is the choke point four call
+        // sites converge on and none of them knows which direction the journey was in -- but the
+        // Citizen does, because CommuteEngine wrote it before the journey started.
+        //
+        // A journey that did not complete leaves them where they set off from. That is the honest
+        // reading and not a fallback: NoRouteFound and ExceededCommuteBudget are both resolved
+        // inside TripEngine.Start, before anybody has moved.
+        bool arrived = fate == Movement.TripFate.Completed;
+
+        Citizens.Activity[citizenSlot] = (byte)((CitizenActivity)Citizens.Activity[citizenSlot]
+            switch
+            {
+                CitizenActivity.TravellingToWork =>
+                    arrived ? CitizenActivity.AtWork : CitizenActivity.AtHome,
+                CitizenActivity.TravellingHome =>
+                    arrived ? CitizenActivity.AtHome : CitizenActivity.AtWork,
+                CitizenActivity other => other,
+            });
+
         // Days, not Ticks: CitizenTable.LastTripEndedDay carries why, and it is a memory argument
         // rather than a precision one. FloorDiv because 05 §4's lint 3 bans the raw operator, and the
         // quotient IS the answer here rather than something thrown away.

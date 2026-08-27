@@ -790,7 +790,25 @@ internal static class Session
         return TrafficDump.Run(options, writer);
     }
 
+    /// <summary>One Citizen, one Day, every Tick. <c>plans/0045</c>'s queue item 3.</summary>
+    /// <param name="options">The parsed command line.</param>
+    /// <returns>The process exit code.</returns>
+    internal static int DumpDay(Options options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (options.OutPath is null)
+        {
+            return DayDump.Run(options, Console.Out);
+        }
+
+        using var writer = new StreamWriter(options.OutPath);
+        return DayDump.Run(options, writer);
+    }
+
     /// <summary>Runs the Evidence dump. Milestone 6 task 5.</summary>
+    /// <param name="options">The parsed command line.</param>
+    /// <returns>The process exit code.</returns>
     internal static int DumpEvidence(Options options)
     {
         ArgumentNullException.ThrowIfNull(options);

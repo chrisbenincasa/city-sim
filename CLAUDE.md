@@ -2,6 +2,17 @@
 
 Guidance for Claude Code working in this repository.
 
+---
+
+🔴 **AMNESTY IN FORCE UNTIL 2026-10-07. READ [`plans/0045-amnesty.md`](plans/0045-amnesty.md) AND
+NOTHING ELSE ON A COLD START.** It is one page, it is the only thing in flight, and it supersedes
+*Where to look* below for the duration. **Do not read the board.** The corpus is frozen at its
+2026-08-26 size by `CorpusBudgetTests`, no new ADRs may be written, and `adr/0043` and `adr/0052` are
+suspended. ⚠ **A session that ends without a change under `src/` is not committed.** Everything below
+this line is reference material to be consulted when a task needs it — it is no longer a reading list.
+
+---
+
 ## What this is
 
 A city-builder where the city is made of people you can actually meet, the economy is made of Goods
@@ -341,7 +352,9 @@ obligations, not milestones of their own. Refined per slice by `plans/0003 §Def
   surface these bugs are the million-Tick headless balance runs, and those are release builds
 - The long-run test passes — 100k+ Ticks with **no collection and no magnitude** trending upward at
   steady state (`adr/0006`, and `adr/0003`'s extension of it to quantities)
-- There is something to *look at* showing the milestone doing its job
+- ~~There is something to *look at* showing the milestone doing its job~~ 🔴 **AMENDED 2026-08-26 —
+  that clause was being satisfied by a column of hexadecimal.** ***A milestone is done when you have
+  watched it happen and something surprised you*** ([`plans/0045`](plans/0045-amnesty.md))
 
 Every milestone names the specific risk it retires. A milestone that cannot name one is either not
 necessary yet or not understood well enough to start.

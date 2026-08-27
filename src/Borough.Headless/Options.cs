@@ -6,6 +6,16 @@ namespace Borough.Headless;
 /// <summary>What the runner was asked to do.</summary>
 internal enum Mode
 {
+    /// <summary>
+    /// Follow one Citizen through one Day, Tick by Tick. <c>plans/0045</c>'s queue item 3.
+    /// </summary>
+    /// <remarks>
+    /// The only mode that does not aggregate. Every other one answers <em>what is the city doing</em>;
+    /// this answers <em>what is it like to be in it</em>, which is the first pillar and which nothing
+    /// in the tree had ever printed.
+    /// </remarks>
+    Day,
+
     /// <summary>Build a synthetic city and print what is in it. Slice 4's artefact.</summary>
     Report,
 
@@ -421,6 +431,7 @@ internal sealed class Options
         bool trips = false;
         bool commute = false;
         bool traffic = false;
+        bool day = false;
         bool evidence = false;
         bool money = false;
         bool parking = false;
@@ -501,6 +512,13 @@ internal sealed class Options
                 // world that has not stepped has nothing in one.
                 case "--evidence":
                     evidence = true;
+                    session = true;
+                    continue;
+
+                // A session flag for --evidence's reason, and the strongest case of it: employment is
+                // assigned on a cadence, so a Day traced from Tick 0 follows somebody with no job.
+                case "--day":
+                    day = true;
                     session = true;
                     continue;
 
@@ -1180,7 +1198,8 @@ internal sealed class Options
 
         options = new Options
         {
-            Mode = market ? Mode.Market
+            Mode = day ? Mode.Day
+                 : market ? Mode.Market
                  : business ? Mode.Business
                  : arrivals ? Mode.Arrivals
                  : money ? Mode.Money
@@ -1300,6 +1319,13 @@ internal sealed class Options
                                 Policies move nothing conserved: a balance sheet over a city
                                 with no money says "conserved" and means nothing by it.
                                 rulesets/taxed.toml is the file written for it
+          --day                 follow ONE Citizen through one Day, Tick by Tick --
+                                where they went, when, and what it cost them. Every
+                                other mode aggregates; this one is a person. Needs
+                                --ruleset with a [jobs] table, and runs --ticks Ticks
+                                first so somebody has a job to go to. Read the footer:
+                                it names the mechanisms that do not exist yet, and a
+                                thin Day is the finding rather than a broken dump
           --evidence            dump what the city can say about why something happened to
                                 it: the condemnation trail with its aggregate expanded,
                                 one Building's answer assembled from live state, and why
