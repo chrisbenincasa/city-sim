@@ -96,7 +96,7 @@ public sealed class CitizenActivityTests
     }
 
     /// <summary>
-    /// <b>The writer fires in a real city</b> — somebody is somewhere other than at home.
+    /// <b>The writer fires in a real city</b> — somebody leaves the house.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -106,10 +106,27 @@ public sealed class CitizenActivityTests
     /// was in, with a saved and hashed column and no production writer.
     /// </para>
     /// <para>
-    /// ⚠ <b>It asserts <em>somebody</em> and never a count.</b> How many people are out of the house
-    /// at a given Tick is a property of the Shift draw and the geometry, so a number here would be a
-    /// baseline in an assertion-tier test — and it would move whenever a Ruleset was retuned, which
-    /// is <c>plans/0032</c>'s line between an assertion and an instrument.
+    /// 🔴 <b>IT SAMPLED THE FINAL TICK UNTIL MILESTONE 17 AND THE FINAL TICK IS MIDNIGHT.</b>
+    /// <c>Ticks.PerDay * 2</c> is Tick 4,096 and Tick 0 is midnight, so the run ended at the one hour
+    /// of the day when ***everybody being at home is the correct answer***. A Shift starts between 06
+    /// and 10 and lasts six to ten hours (<c>adr/0101</c>), so the city empties and refills long before
+    /// the sample. Measured on the golden fixture: 1,913 at work at Tick 1,024, 3,622 at Tick 3,072,
+    /// and <b>0 at Ticks 1,792, 2,048, 3,840 and 4,096</b>.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It passed for a reason that had nothing to do with the assertion.</b> The fixture ran
+    /// <c>minimal.toml</c>, where <c>plans/0045</c> queue item 4's phantom commuting left people
+    /// ratcheted at work overnight; repointing the fixture at <c>declining.toml</c> changed the
+    /// trajectory and the accident stopped happening. ***The city was right on both days and the
+    /// sample point was wrong on both.***
+    /// </para>
+    /// <para>
+    /// <b>So it observes the whole run rather than its last instant</b>, which is what "the writer
+    /// fires in a real city" meant in the first place. ⚠ <b>It asserts <em>somebody</em>, <em>ever</em>,
+    /// and never a count and never a Tick.</b> How many people are out of the house at a given moment
+    /// is a property of the Shift draw and the geometry, so either would be a baseline in an
+    /// assertion-tier test — and it would move whenever a Ruleset was retuned, which is
+    /// <c>plans/0032</c>'s line between an assertion and an instrument.
     /// </para>
     /// </remarks>
     [Fact]
@@ -117,15 +134,29 @@ public sealed class CitizenActivityTests
     {
         Simulation simulation = Populated();
 
-        for (int tick = 0; tick < Ticks.PerDay * 2; tick++)
+        bool anybodyEverLeft = false;
+
+        for (int tick = 0; tick < Ticks.PerDay * 2 && !anybodyEverLeft; tick++)
         {
             simulation.Step(default);
+
+            foreach (int citizen in LiveCitizens(simulation.World))
+            {
+                if ((CitizenActivity)simulation.World.Citizens.Activity[citizen]
+                    != CitizenActivity.AtHome)
+                {
+                    anybodyEverLeft = true;
+                    break;
+                }
+            }
         }
 
-        Assert.Contains(
-            LiveCitizens(simulation.World),
-            citizen => (CitizenActivity)simulation.World.Citizens.Activity[citizen]
-                != CitizenActivity.AtHome);
+        Assert.True(
+            anybodyEverLeft,
+            "no Citizen was anywhere but at home at any Tick of two whole Days, so CommuteEngine "
+            + "never wrote CitizenTable.Activity in a running city. ⚠ Read this as the WRITER being "
+            + "gone rather than as the city being asleep: a count at any one Tick is a property of "
+            + "the Shift draw, which is why this looks across the run and not at the end of it.");
     }
 
     /// <summary><c>Evidence.OfCitizen</c> reports the same value the column holds.</summary>
