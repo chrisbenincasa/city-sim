@@ -33,6 +33,7 @@ public sealed class CorpusBudgetTests
 
     /// <summary>Every markdown file under <c>docs/</c> and <c>plans/</c> on 2026-08-26.</summary>
     /// <remarks>
+    /// <para>
     /// ⚠ <b>RE-SEEDED 2026-08-27, and the reason is worth carrying.</b> The figure first written here
     /// was <b>1,171,820</b>, taken at a shell. It became unreproducible within the day: the tree's
     /// markdown was byte-identical to the commit that set it, and both a shell reading and this test
@@ -40,8 +41,26 @@ public sealed class CorpusBudgetTests
     /// edit at the moment the first reading was taken. ***A ratchet is only as good as the instant its
     /// baseline was captured***, and a baseline captured over somebody else's working tree is not the
     /// repository's. Re-seeded from this test's own count against a clean tree.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>RAISED 2026-08-27 from 1,172,148 to 1,174,449 to admit <c>plans/0046</c>, and the raise is the point
+    /// rather than a defeat.</b> <c>plans/0045</c>'s standing order 3 caps corpus growth and its
+    /// escape hatch is <i>delete this test in a commit saying why — visible, not hard</i>. This is
+    /// the cheaper half of that hatch: the ceiling moves, in a commit that says what it bought, and
+    /// the ratchet goes on working afterwards.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>What it bought was 2,302 words of PLAN, and that is the distinction the cap is for.</b>
+    /// The amnesty was opened against 1.17M words of prose standing over 17,872 lines of simulation —
+    /// 169 ADRs, 30 of them in five days, 236 of 524 commits changing no code at all. ***The disease
+    /// is prose that substitutes for a mechanism, not prose that schedules one.*** A plan naming the
+    /// order the work happens in, the traps it will hit and the invariant it will fire is prose that
+    /// was bought; another ADR arguing a number nobody can measure is not. ⚠ <b>The cap works only
+    /// while a raise stays awkward enough to be argued for</b>, so a raise with no plan behind it is
+    /// the one to refuse.
+    /// </para>
     /// </remarks>
-    private const int CorpusCeiling = 1_172_148;
+    private const int CorpusCeiling = 1_174_449;
 
     /// <summary>The two directories the corpus ceiling covers.</summary>
     private static readonly string[] Covered = ["docs", "plans"];
