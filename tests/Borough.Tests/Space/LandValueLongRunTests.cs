@@ -179,6 +179,16 @@ public sealed class LandValueLongRunTests(LandValueLongRun run) : IClassFixture<
     /// 1,000-Citizen city can genuinely have nobody on the road. ***A silent Day is a reading about
     /// the world; it becomes a reading about the instrument only when there are many of them.***
     /// </para>
+    /// <para>
+    /// ⚠ <b>THE SILENT SHARE WENT 1-IN-49 TO 8-IN-37 ON 2026-08-27, and the city really did go
+    /// quiet.</b> <c>CommuteEngine</c> stopped sending Citizens on journeys to where they already
+    /// stood, which was ***about a quarter of this city's commuting*** — and every one of those
+    /// phantom journeys had been putting traffic on a Segment and noise in this term. So the ceiling
+    /// moves from a tenth to a quarter. 🔴 <b>What is worth carrying is not the constant: part of the
+    /// noise term's visibility was being paid for by a defect</b>, and the same is true of any
+    /// figure taken off this Layer before that date. The two-term claim still holds on 29 of 37
+    /// Days, which is what this test is actually for.
+    /// </para>
     /// </remarks>
     [Fact]
     public void Floor_reading_two_both_terms_are_visible()
@@ -208,9 +218,9 @@ public sealed class LandValueLongRunTests(LandValueLongRun run) : IClassFixture<
         }
 
         Assert.True(
-            silent * 10 <= settled.Length,
+            silent * 4 <= settled.Length,
             $"the noise term was zero across the whole commute band on {silent} of {settled.Length} "
-            + "Days. One is the city having a quiet morning; this many is the instrument sampling "
+            + "Days. A few are the city having quiet mornings; this many is the instrument sampling "
             + "the wrong hours");
     }
 

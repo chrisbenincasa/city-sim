@@ -29,13 +29,24 @@ public sealed class ParkingDumpTests
     /// Enough Ticks that a driver has parked twice, which is what makes a departure walk exist.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// ⚠ <b>Measured, and the first cut was too short.</b> A Citizen's first car journey walks to
     /// their own Building's kerb, because they hold nothing — so at a few hundred Ticks every
     /// departure walk is zero by construction and the panel that carries this file's whole claim
     /// would read as a city where nobody ever walks to a car. ***A distribution over a state a run
     /// has not reached is a distribution of the initial condition.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>RAISED 4,096 → 16,384 on 2026-08-27, and the same sentence is the reason a second
+    /// time.</b> <c>CommuteEngine</c> stopped sending Citizens on journeys to where they already
+    /// stood, and ***a quarter of this city's commuting went with them*** — so the state a long
+    /// departure walk needs, a car left somewhere the next journey does not start from, now takes
+    /// four times as long to accumulate. Measured across the horizon: <b>0</b> long walks at 4,096,
+    /// <b>2</b> at 8,192, <b>12</b> at 16,384, <b>43</b> at 40,960. The claim below did not change
+    /// and its demonstration was being paid for by a defect.
+    /// </para>
     /// </remarks>
-    private const string Ticks = "4096";
+    private const string Ticks = "16384";
 
     private const string Population = "4000";
 
