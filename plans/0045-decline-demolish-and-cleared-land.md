@@ -16,7 +16,7 @@ supposed to be right.
 |---|---|---|
 | **1** — the second threshold stops destroying | 🟢 **done** | `ZoneRuleEngine.Condemn`, `BuildingTable.AbandonedSince` |
 | **2** — the abandoned state | 🟢 **done**, and it is a **column** rather than derived — `AbandonedSince`, `(saved AND hashed)` | `BuildingTable.IsAbandoned` |
-| **3** — the first threshold, occupancy loss | 🔴 **not started** | — |
+| **3** — the first threshold, occupancy loss | 🔴 **NOT STARTED, AND ITS DEMONSTRATION WORLD CANNOT BE WRITTEN BEFORE IT** — see **F9**; the mechanism creates the only regime that would exercise it | — |
 | **4** — `Demolish`, the sixth verb | 🟡 **the narrow half is done** — over **abandoned stock only**; an occupied Building is refused by name with compulsory purchase written beside it, which stays blocked on the land value target | `CommandKind.Demolish`, `Simulation.ApplyDemolish`, `DemolishVerbTests` |
 | **5** — the `Govern` clearance programme | 🔴 **not started** | — |
 | **6** — Trips-failing as a second pressure source | 🔴 **not started** | — |
@@ -220,6 +220,74 @@ its ratifier named as *the first play session in which a player clears something
 thing in the corpus blocked on the land value target**, which is a named hole in `MapLayers`. **Nothing
 in this milestone requires the price to exist** — the `Govern` clearance programme needs no compensation
 term at all, because abandoned stock has nobody left in it to compensate.
+
+---
+
+### F9 — a premises trough is bounded at 2,016 Ticks against a 2,048-Tick floor, and the gap cannot be closed by tuning
+
+**Measured 2026-08-26, before writing any of task 3.** The question was decision 2's leftover: *is there a
+world in which a first threshold on premises pressure does something a second threshold would not?*
+**There is not, and three separate bounds close it.**
+
+**The probe needs no new code.** `condemn_after_days` is already a threshold on exactly the quantity in
+question, so *did any premises trough exceed one Day?* is a condemnation count. **Control:
+`rulesets/declining.toml` at `condemn_after_days = 1` gives 493 condemned** at 1,000 Citizens over 32,768
+Ticks, so the probe fires when it should.
+
+**1. The Event Wheel caps a producer's period one Tick below the threshold's floor.** `RulesetLoader`
+refuses a rate outside `1..2047` — *"one at or beyond WHEEL_SIZE would re-arm into the Event Wheel bucket
+it just came off"* — and `adr/0168` makes a decline threshold a duration in **Days**, so the shortest
+authorable is `Ticks.PerDay` = **2048**. ***The two numbers meet at 2048 and the inequality is strict.***
+
+**2. A trough is bounded by its producer's period, and the measurement is exact.** On `maintained.toml`
+with `maintain` slowed and `condemn_after_days = 1`:
+
+| `maintain` rate | `upkeep` missed firings | pressure in Ticks | condemned |
+|---|---|---|---|
+| 32 (shipped) | 1 | 16 | 0 |
+| 1024 | 62 | **992** | 0 |
+| **2047** — the largest the wheel permits | **126** | **2,016** | **0** |
+| 2048 | — | — | **refused at load** |
+
+***2,016 against 2,048. It misses by 32 Ticks, which is two firings of the consumer.*** Every rate from
+**16 to 2047** gives **0 condemned**.
+
+🔴 **3. And the third bound is the one that matters, because it is not about the wheel at all: a consumer
+that waits on supply cannot run a persistent deficit.** A failed Rule subscribes to the Bin and sleeps
+(`adr/0045`); it does not retry on its own cadence. So its demand is **throttled by supply** rather than
+fixed at its rate — `upkeep` wants `occupancy` per 16 Ticks on paper and in fact takes what arrives, when
+it arrives. ***A premises chain fed by a local producer therefore always reaches a surplus equilibrium,
+whatever the rates say.*** That is why the sweep is flat: the arithmetic predicts a deficit at every rate
+above 21, and there is never one.
+
+**So exactly two regimes are reachable, and there is nothing between them:**
+
+- **a producer exists** → equilibrium, sawtooth troughs bounded by its period, **< 2048 Ticks, threshold
+  never fires** — `maintained.toml`, 0 condemned at every rate;
+- **no producer at all** → the trough is unbounded from the first failure, **threshold fires at once and
+  always** — `declining.toml`, where the second threshold follows the first by a fixed lead time.
+
+⚠ **The boundary is *is there a producer*, which is not a number a designer can tune between.**
+
+### What this does to task 3
+
+🔴 **The only thing that can return a Building from the deficit regime to the surplus one is REDUCING ITS
+OCCUPANCY**, because occupancy is the sole term on the demand side. **Nothing in the build does that** —
+`tenancy_ends_after_days` is the *tenant's* verdict and is `0` on `maintained.toml` — and the mechanism
+that would is **task 3 itself**.
+
+***So task 3's demonstration world cannot be written before task 3 exists: the mechanism creates the only
+regime that would exercise it.*** ⚠ **This is not a reason to skip the world.** It is a reason the world
+and the mechanism are **one task**, and the shape of what it buys is now known rather than hoped for:
+the first threshold **converts a death sentence into a correction** — a crowded dwelling sheds an
+occupant, demand falls, the trough closes, and the Building that `declining.toml` would have abandoned
+survives. ***That is `NO VERDICT` arriving as a mechanism rather than as an argument***, and it is the
+first thing in this milestone that makes decline reversible by the city.
+
+⚠ **The threshold's value stays unratified and a §D row is owed on the day it is written**
+(`adr/0052`). ⚠ **And it must be authored BELOW `condemn_after_days`** or the Building is abandoned before
+it can shed anything — which is a constraint between two keys and therefore the loader's, not the
+engine's (`adr/0048`).
 
 ---
 

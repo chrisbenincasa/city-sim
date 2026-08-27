@@ -2624,6 +2624,39 @@ file runs in surplus — it has no second producer and no sink — which is a di
       least as large as any producer's headroom deficit*. Its absence is why `minimal-tuned.toml` broke the
       headroom side the day it was written.
 
+🔴 ⚠ **A THIRD FILE CARRIES IT, WRITTEN 2026-08-26 — SIXTEEN DAYS AFTER FINDING 41 WAS STRUCK.**
+`rulesets/maintained.toml`'s `repairs` header says *"See finding 41 for why the **partial** shortage
+regime is the one that cannot be written."* This entry names two files and the defect had spread to a
+third, because the entry is a list of **sightings** and nothing checks the claim itself. ***An open
+correction that enumerates its instances goes stale every time somebody writes a new one***, and a
+citation to a struck finding is `adr/0093`'s failure mode with the pointer aimed at something that was
+withdrawn.
+
+⚠ **The sentence is wrong in a way that matters more than the stale citation.** The partial shortage
+regime *is* expressible since [`adr/0063`](../docs/adr/0063-a-wait-list-wakes-on-the-bins-state-and-a-shortfall-is-derived-rather-than-stored.md).
+What is actually unreachable is something the file never claimed: **a premises trough long enough to
+cross a decline threshold** — bounded at **2,016 Ticks against a floor of 2,048**, measured in
+[`0045`](0045-decline-demolish-and-cleared-land.md) **F9**. ***The file was right that something cannot be
+written and wrong about what it was***, which is why the citation survived: the conclusion kept looking
+correct.
+
+- [ ] Rewrite `maintained.toml`'s `repairs` header to cite `0045` F9 and drop finding 41.
+- [ ] ⚠ **And state the mechanism rather than the outcome**, since the outcome is what let a withdrawn
+      finding stand for it: **a consumer that waits on supply cannot run a persistent deficit**, because
+      a failed Rule subscribes and sleeps (`adr/0045`) instead of retrying on its own cadence, so demand
+      is throttled by supply and a local chain always finds a surplus equilibrium.
+
+🔴 ⚠ **`CLAUDE.md`'s standing-constraint bullet is wrong for the same reason and is the higher-traffic
+copy.** It explains `local`'s absent middle as *"circular — the chain must bottom out in a no-input Rule,
+which never fails"*. The premise holds and the conclusion does not: `maintained.toml` has exactly that
+no-input bottom and a real middle, measured at **992 Ticks of pressure at `maintain` rate 1024**, which
+recovers. ***What shuts `local` is the throttling and the Event Wheel's 2047-Tick cap, not circularity***
+— and the difference is not academic, because circularity would be unfixable and a cap is a number.
+
+- [ ] Correct the `local` clause in `CLAUDE.md`'s *Things to be careful about* bullet. ⚠ **Not done here
+      on purpose**: it is the repository's most-read file and the correction should be somebody's
+      deliberate edit rather than a side effect of a task 3 measurement.
+
 **⚠ A second item joined this entry on 2026-08-11, and it shares the cause rather than merely the cost.**
 Both shipped Rulesets also say this, in the `[roads]` section:
 
