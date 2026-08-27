@@ -1,4 +1,4 @@
-# 0047 — Life Stages and a self-generating population
+# 0046 — Life Stages and a self-generating population
 
 **`plans/0045` queue item 7, and its real name is `06` milestone 20.**
 

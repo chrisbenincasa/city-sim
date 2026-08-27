@@ -2636,7 +2636,7 @@ withdrawn.
 regime *is* expressible since [`adr/0063`](../docs/adr/0063-a-wait-list-wakes-on-the-bins-state-and-a-shortfall-is-derived-rather-than-stored.md).
 What is actually unreachable is something the file never claimed: **a premises trough long enough to
 cross a decline threshold** — bounded at **2,016 Ticks against a floor of 2,048**, measured in
-[`0046`](0046-decline-demolish-and-cleared-land.md) **F9**. ***The file was right that something cannot be
+[`0047`](0047-decline-demolish-and-cleared-land.md) **F9**. ***The file was right that something cannot be
 written and wrong about what it was***, which is why the citation survived: the conclusion kept looking
 correct.
 
@@ -4485,7 +4485,7 @@ kept and re-homed as the reason the *derived* count is what the engine compares.
 
 **⚠ A plan's status table said a decision had no ADR while the same plan's decision section said it was
 closed — and the stale half escaped into a hand-off written for somebody else.** Found and struck
-2026-08-26 while picking up milestone 17. [`0046`](0046-decline-demolish-and-cleared-land.md)'s
+2026-08-26 while picking up milestone 17. [`0047`](0047-decline-demolish-and-cleared-land.md)'s
 **Landed** table carried *"DECISION 1 WAS ANSWERED BY THE CODE RATHER THAN BY THE SITTING, and no ADR
 records it"* for four commits after [`adr/0172`](../docs/adr/0172-an-abandoned-shell-collapses-on-a-clock-because-a-bound-is-not-a-sink.md)
 landed in `93b1af7` — closing decision 1 by measurement, in the same session, in the same plan, a

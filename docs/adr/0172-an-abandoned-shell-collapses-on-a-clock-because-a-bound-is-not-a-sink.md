@@ -12,7 +12,7 @@ Guiding concepts: `NO VERDICT`, `SOLVE THE ACTUAL PROBLEM`, `HONEST DEGRADATION`
 
 ### The measurement, because the reading this replaces is refutable and was never run
 
-[`0091`](0091-clearing-land-is-bought-rather-than-taken-and-demolish-is-the-sixth-verb.md) concluded that standing abandoned stock needs no sink of its own: Lots are finite and fixed by the Road Graph, so shells are bounded by the Lot count and cannot grow with *elapsed time*, which is what [`0006`](0006-no-collection-grows-with-elapsed-time.md) asks. [`plans/0046`](../../plans/0046-decline-demolish-and-cleared-land.md) decision **1** typed that claim **measurable** and said the first move was a run rather than a sitting. It is the run.
+[`0091`](0091-clearing-land-is-bought-rather-than-taken-and-demolish-is-the-sixth-verb.md) concluded that standing abandoned stock needs no sink of its own: Lots are finite and fixed by the Road Graph, so shells are bounded by the Lot count and cannot grow with *elapsed time*, which is what [`0006`](0006-no-collection-grows-with-elapsed-time.md) asks. [`plans/0047`](../../plans/0047-decline-demolish-and-cleared-land.md) decision **1** typed that claim **measurable** and said the first move was a run rather than a sitting. It is the run.
 
 `rulesets/declining.toml`, 10,000 Citizens, one seed, `--zones` census, `--no-decide-guard`. The city opens at **1,201 built / 0 abandoned / 173 vacant** over **1,374** Lots. The only difference between the columns is `collapses_after_days`: **1** on the left, and on the right a value so large the shell never falls within the run.
 
@@ -34,7 +34,7 @@ The dead column passes [`0006`](0006-no-collection-grows-with-elapsed-time.md). 
 
 ### A player is not a sink, and the acceptance run has no player in it
 
-`0091` names two clearing routes and **both are player acts** — the `Demolish` verb and the `Govern` clearance programme. *The player will clear them* is a hope about a human rather than a property of the simulation, which is the objection `plans/0046` decision **1** opened with.
+`0091` names two clearing routes and **both are player acts** — the `Demolish` verb and the `Govern` clearance programme. *The player will clear them* is a hope about a human rather than a property of the simulation, which is the objection `plans/0047` decision **1** opened with.
 
 It is worse than a hope, and the reason is procedural rather than philosophical: **`CLAUDE.md`'s Definition of done requires a 100k-Tick headless balance run**, and a headless run has no player in it at all. On the superseded reading, this milestone's own acceptance test would have been taken on the right-hand column above — a city that is 100% derelict for four fifths of the run, passing every invariant, with `0006` green.
 

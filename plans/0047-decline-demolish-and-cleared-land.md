@@ -1,4 +1,4 @@
-# 0046 — Decline, Demolish and cleared land
+# 0047 — Decline, Demolish and cleared land
 
 **Milestone 17.** Scoped 2026-08-25, against `main` at `fabca9f`.
 

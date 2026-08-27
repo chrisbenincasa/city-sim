@@ -55,7 +55,7 @@ Ordered; reordering deletes this.
 | 4 | ~~Nobody comes home~~ — misread; real defect fixed | ✅ 27-08 |
 | 5 | ~~Held parking drifts upward~~ — a ramp, not a drift; `ParkingLongRunTests` owns it | ✅ 27-08 |
 | 6 | ~~Wages~~ — `waged.toml`; arrears got a sink | ✅ 27-08 |
-| 7 | Life Stages and self-generation — [`0047`](0047-life-stages-and-a-self-generating-population.md) | 🟡 scoped |
+| 7 | Life Stages and self-generation — [`0046`](0046-life-stages-and-a-self-generating-population.md) | 🟡 scoped |
 
 Items 2 and 3 cost one day and added no Ruleset key, number or ADR. They moved three golden
 baselines: a hashed column stopped being zero (`adr/0100`).
