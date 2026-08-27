@@ -64,6 +64,7 @@ public sealed class CorpusBudgetTests
     /// reason: the merge of <c>milestone-17-decline-and-cleared-land</c>, whose prose predates the
     /// freeze. ⚠ <b>Taken from this test's own message rather than from a shell</b>, which is the
     /// lesson of the first re-seed — <c>find | xargs cat | wc -w</c> concatenates and reads low.
+    /// </para>
     /// </remarks>
     private const int CorpusCeiling = 1_196_030;
 

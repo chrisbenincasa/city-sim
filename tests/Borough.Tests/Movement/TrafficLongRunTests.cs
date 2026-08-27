@@ -66,10 +66,30 @@ public sealed class TrafficLongRunTests(ITestOutputHelper output)
 
     /// <summary>Days discarded as the transient: nobody drives until the assignment pass has run.</summary>
     /// <remarks>
+    /// <para>
     /// <c>[jobs] revisit_ticks</c> is 1,024 and the sample is derived from it, so employment climbs for
-    /// several Days before it settles. Eight is generous and leaves forty-one Days of tail.
+    /// several Days before it settles. <b>Employment settles on Day 6 and never moves again</b> — 3,410,
+    /// 3,770, 3,830, 3,845, 3,847, 3,848 — which is what Eight was generous against.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>8 → 32 on 2026-08-27, because EMPLOYMENT SETTLING IS NOT THE CITY SETTLING.</b> Drive Legs
+    /// overshoot and come back: 7,376 on Day 3, down to 7,121 by Day 14, then recovering to about 7,230
+    /// and flat from roughly Day 31. ***The whole 41-Day tail sat inside that recovery***, so
+    /// <see cref="AssertFlat"/> was comparing one part of a settling curve against a later part of the
+    /// same curve and reading the difference as a trend — 7,182.4 against 7,231.9, a rise of 49.5 on a
+    /// 3-sigma band of 25.8.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>THE WINDOW WAS WRONG AND THE BAND WAS NOT</b>, which is <c>plans/0045</c> queue item 5's
+    /// finding arriving on a second instrument: widening the band would make the test blind at exactly
+    /// the size a real leak first appears. ⚠ <b>It went red on the milestone-17 merge and neither side
+    /// caused it</b> — <c>adr/0164</c> took <c>condemn_after</c> out of <c>congested.toml</c>, so this
+    /// world stopped condemning and its transient stopped being churned flat, and the commute direction
+    /// guard makes a Citizen who missed their outbound phase wait for tomorrow. ***Both make the
+    /// settling curve cleaner and longer, which is what let a ramp that was always there be seen.***
+    /// </para>
     /// </remarks>
-    private const int SettleDays = 8;
+    private const int SettleDays = 32;
 
     /// <summary>How far above the first half of the tail the second may read, in standard errors.</summary>
     /// <remarks>
