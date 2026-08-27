@@ -53,9 +53,9 @@ Ordered; reordering deletes this.
 | 2 | Write `Citizens.Activity` — saved, hashed, per-Tick, **no writer** | ✅ 26-08 |
 | 3 | `--day` — one Citizen, one Day, off `Evidence.OfCitizen` | ✅ 26-08 |
 | 4 | ~~Nobody comes home~~ — misread; real defect fixed | ✅ 27-08 |
-| 5 | 🔴 **Held parking drifts upward** — below | ⬜ |
-| 6 | Wages — close the money loop | ⬜ |
-| 7 | Ageing, birth, death — write `Citizens.Age` | ⬜ |
+| 5 | ~~Held parking drifts upward~~ — a ramp, not a drift; `ParkingLongRunTests` owns it | ✅ 27-08 |
+| 6 | ~~Wages~~ — `waged.toml`; arrears got a sink | ✅ 27-08 |
+| 7 | Life Stages and self-generation — [`0046`](0046-life-stages-and-a-self-generating-population.md) | 🟡 scoped |
 
 Items 2 and 3 cost one day and added no Ruleset key, number or ADR. They moved three golden
 baselines: a hashed column stopped being zero (`adr/0100`).
@@ -72,9 +72,3 @@ writer: home-to-home is a Trip like any other. `CommuteDirectionTests` holds it.
 ⚠ **It failed three other tests, none a regression**: one horizon too short, two bands calibrated on
 phantom traffic. ***Figures off those instruments before 2026-08-27 were partly paid for by a
 defect.***
-
-## Item 5 — held parking drifts upward
-
-Twenty-Day means over 160 Days, with the guard and without: **251 → 283** against **370 → 388** —
-same shape, same dip at Days 81–100. **Pre-existing.** `AssertFlat`'s proportional
-band hid it behind a denominator the defect inflated; widened to 12.5%.

@@ -815,6 +815,60 @@ public readonly record struct BusinessKindDefinition
     /// all start together.
     /// </summary>
     public int ShiftStartLatestHour { get; init; }
+
+    /// <summary>
+    /// What one job of this trade pays a Citizen for one Day worked, in the smallest money unit.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The third of <c>adr/0141</c>'s three, and the corpus said it would arrive at milestone 15.</b>
+    /// It arrives here instead, under <c>plans/0045</c>'s amnesty, because the money loop had exactly
+    /// one direction: a Household could be taxed and a Business could be levied, and nothing anywhere
+    /// paid anybody. ⚠ <b>PROVISIONAL</b> — chosen by taste rather than ratified, with no <c>§D</c>
+    /// row and no ratifier, which is what the amnesty suspends <c>adr/0052</c> in order to allow.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>A DAILY RATE AND NOT WHAT LANDS ON PAYDAY, and the distinction is the whole reason
+    /// <see cref="PayPeriodDays"/> is worth having.</b> Payday moves this multiplied by the Days
+    /// actually worked, so moving a trade from daily to weekly pay changes <em>when</em> its workers
+    /// are paid and never <em>how much</em> — the rhythm becomes a variable you can turn on its own.
+    /// ***Declaring the lump instead would make every daily-against-weekly comparison a comparison of
+    /// two different incomes***, and no reading off it could be attributed to the period.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Optional, and zero means a trade that pays nothing</b> rather than a trade that has
+    /// forgotten to say. That is the honest default for the nine shipped files that predate wages: a
+    /// world whose trades all pay zero behaves exactly as it did before this key existed.
+    /// </para>
+    /// </remarks>
+    public int WagePerDay { get; init; }
+
+    /// <summary>
+    /// How many Days pass between paydays for this trade. <c>1</c> is paid daily.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A property of the trade, the way its Shift band is</b> — a grocer may pay weekly while a
+    /// shop pays daily, and that is the sort of difference a second kind table exists to express
+    /// (<c>adr/0141</c>). Nothing about it is global, and it introduces no new unit of time:
+    /// <c>7</c> is a week because seven Days is a week, and <c>CONTEXT.md</c> needs no new noun.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Paydays are STAGGERED across Businesses and the offset is derived, not stored.</b> Every
+    /// weekly trade paying on the same Day would put the city's whole payroll on one Tick — a cost
+    /// spike, and a city where nobody is ever paid on a Tuesday. The offset is
+    /// <c>hash(world_seed, business id, <see cref="Determinism.PurposeTag.WagePayday"/>)</c> taken
+    /// against this, so it needs no column, survives a reload for free, and is stable for the life of
+    /// the Business because a row id is monotonic and never reused.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Refused at zero and refused negative.</b> A period of zero is a division by it, and a
+    /// negative one is not a sentence anybody meant to write. <b>Required wherever
+    /// <see cref="WagePerDay"/> is stated and refused without it</b>, in both directions: a rate with
+    /// no period never pays and a period with no rate pays nothing, and each is half a mechanism.
+    /// </para>
+    /// </remarks>
+    public int PayPeriodDays { get; init; }
 }
 
 

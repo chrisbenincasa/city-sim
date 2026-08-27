@@ -93,6 +93,7 @@ public sealed class CitizenTable
 
         Age = _rows.Saved<ushort>("age", Touch.Cold);
         Health = _rows.Saved<byte>("health", Touch.Cold);
+        LastPaidDay = _rows.Saved<ushort>("last_paid_day", Touch.Cold);
 
         _rows.Seal();
     }
@@ -445,4 +446,31 @@ public sealed class CitizenTable
 
     /// <summary>Health.</summary>
     public Column<byte> Health { get; }
+
+    /// <summary>The Day this Citizen was last paid up to, in whole Days since the world began.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>What makes a wage pro-rata rather than a lump handed to whoever happens to be standing on
+    /// the worker list on payday.</b> Payday moves
+    /// <c>WagePerDay × (today − this)</c>, so a Citizen hired halfway through a period is paid for
+    /// the half they worked and a Citizen who changes employer carries no entitlement across with
+    /// them. ***Without it, job churn is a money supply***: a hire before payday is paid for Days
+    /// they did not work, every time, and nothing anywhere subtracts it.
+    /// </para>
+    /// <para>
+    /// <b>Days rather than Ticks, and the argument is <see cref="LastTripEndedDay"/>'s exactly</b> —
+    /// <c>2 MB</c> at a million Citizens against <c>8 MB</c> for a <c>Ticks</c> column, for a field
+    /// no code path reads within a Day. ⚠ <b>What it costs is sub-Day resolution on pay</b>, which a
+    /// wage denominated in Days cannot want.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is set on hire and not left at zero</b>, which is the one place this column and
+    /// <see cref="LastTripEndedDay"/> differ. A zero-filled row reads as <i>last paid on Day 0</i>,
+    /// so a Citizen hired on Day 400 into a trade that pays daily would be owed four hundred Days'
+    /// wages on their first payday — a zero that is inside the range of legitimate answers, which is
+    /// the trap <see cref="ParkedIn"/>'s sentinel note is about, arriving in a column where the
+    /// honest default is not free.
+    /// </para>
+    /// </remarks>
+    public Column<ushort> LastPaidDay { get; }
 }

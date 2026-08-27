@@ -26,8 +26,37 @@ namespace Borough.Tests.Parking;
 /// <c>adr/0101</c> gives the Day a shape and Tick 0 is midnight — so a run that stops on a number
 /// chosen for its roundness stops at a different hour every time the population or the Ruleset moves,
 /// and every occupancy reading is a statement about that hour. ***A city has a time of day, so a
-/// reading has one too.*** <see cref="Days"/> Days at <see cref="Ticks.PerDay"/> is 98,304 Ticks,
-/// which is the same order as the runs beside it and lands at midnight.
+/// reading has one too.*** <see cref="Days"/> Days at <see cref="Ticks.PerDay"/> is 491,520 Ticks,
+/// and it lands at midnight.
+/// </para>
+/// <para>
+/// 🔴 <b>And the paragraph above did not save this test from the failure it names.</b> It was 48
+/// Days settling for 8, the ramp is about eighty Days long, and the whole tail therefore sat inside
+/// it — <i>an artefact of stopping mid-ramp</i>, which is the exact phrase, one milestone later, on
+/// the quantity it was written to protect. ***Choosing a round number is one way to stop mid-ramp
+/// and measuring the ramp is the other***, and only the first was guarded against. See
+/// <see cref="Days"/>.
+/// </para>
+/// <para>
+/// 🔴 ⚠ <b>THE LEAK THIS RUN IS WRITTEN TO CATCH IS BARELY REACHABLE ON THE WORLD IT RUNS ON, and
+/// that is the strongest thing measured here.</b> Counting how every parking holding <em>ended</em>
+/// over 240 Days at <see cref="Population"/>: <b>56,969</b> ended because the driver drove away —
+/// the designed release — and <b>79,273</b> ended because <em>the garage was demolished under the
+/// parked car</em>. ***Demolition is the majority sink for parking on this Ruleset, at 58% of all
+/// endings.*** <c>minimal.toml</c> decays, condemnation runs continuously, and a Car Park's row is
+/// freed with the Building that carried it, so a held space is reaped long before it could
+/// accumulate into anything. It is why no holder in a 640-Day run is ever more than <b>four</b> Days
+/// stale, and why an injected leak that strands Citizens while parked makes <c>held</c> go
+/// <em>down</em> rather than up.
+/// </para>
+/// <para>
+/// ⚠ <b>So the summary at the top of this file — <i>a leaked space is capacity destroyed for
+/// ever</i> — describes a trigger this world does not reach</b>, which is <c>adr/0093</c>'s failure
+/// mode rather than a false claim: the sentence is right about the mechanism and silent about
+/// whether anything here exercises it. The assertions below are kept because they cost seconds and
+/// because the world will stop decaying; ***what must not happen is anybody reading a green run here
+/// as evidence that parking does not leak.*** A world that holds its Buildings up is what would make
+/// this run mean what it says.
 /// </para>
 /// <para>
 /// <b>It runs on a Ruleset with cars, and every shipped file but one has none.</b>
@@ -42,15 +71,43 @@ public sealed class ParkingLongRunTests(ITestOutputHelper output)
 
     /// <summary>Whole Days, and enough of them that the tail is longer than the ramp.</summary>
     /// <remarks>
+    /// <para>
     /// The city builds out over the first several Days — placement runs on a
     /// <c>revisit_ticks = 1024</c> cadence and jobs on another — so a run has to be long enough that
-    /// what is left after the ramp is still a run. Forty-eight Days leaves forty after
-    /// <see cref="SettleDays"/>.
+    /// what is left after the ramp is still a run.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>It was 48 Days against a <see cref="SettleDays"/> of 8, and the ramp it was settling for
+    /// is about eighty Days long — so the whole of its tail sat inside the ramp.</b> A run that stops
+    /// there is not measuring a steady state; it is comparing one part of a rising curve against a
+    /// later part of the same rising curve, and the growth it reports is the curve rather than the
+    /// city. That is what <see cref="AssertFlat"/>'s band was widened to 12.5% to accommodate on
+    /// 2026-08-27, and the widening bought a longer ramp rather than a real drift.
+    /// </para>
+    /// <para>
+    /// <b>Measured over 640 Days at <see cref="Population"/> on this Ruleset</b>, spaces held settle
+    /// at about <b>275</b> from Day 80 onward and every eighty-Day block mean thereafter reads
+    /// 269–281 with no trend: 264, 276, 273, 273, 277, 281, 269, 277. The structural quantities
+    /// underneath are flat across the same span — Buildings 124, placed Households 294, employed 648,
+    /// spaces 997 — so what ramps is the <em>share</em> of commutable Citizens holding a space at
+    /// midnight, and it saturates at 67–68%. ***The drift filed as <c>plans/0045</c> queue item 5 is
+    /// this ramp seen through too short a window, and there is no leak under it.***
+    /// </para>
     /// </remarks>
-    private const int Days = 48;
+    private const int Days = 240;
 
-    /// <summary>How many Days at the front are the city being built rather than the city running.</summary>
-    private const int SettleDays = 8;
+    /// <summary>
+    /// How many Days at the front are the city being built rather than the city running.
+    /// </summary>
+    /// <remarks>
+    /// <b>Eighty, because that is where the measured ramp ends</b>, and the number is a property of
+    /// the city rather than a margin somebody liked the look of. At 8 the tail began inside the ramp
+    /// and the test could only pass by widening its band; at 80 the tail is post-ramp and the band
+    /// goes back to the 6.25% every sibling long-run test uses. ⚠ <b>It is a settle window and not a
+    /// warm-up</b> — the Ticks are simulated either way, and all that changes is which readings are
+    /// allowed to answer the question.
+    /// </remarks>
+    private const int SettleDays = 80;
 
     private const int Population = 2_000;
 
@@ -62,7 +119,7 @@ public sealed class ParkingLongRunTests(ITestOutputHelper output)
     /// that speaks only on success is one you cannot use on the day it fails.
     /// </remarks>
     [Fact]
-    public void The_forty_eight_Day_parking_run()
+    public void The_two_hundred_and_forty_Day_parking_run()
     {
         (Reading[] readings, World world) = Run();
         Reading[] tail = readings[SettleDays..];
@@ -175,23 +232,32 @@ public sealed class ParkingLongRunTests(ITestOutputHelper output)
     }
 
     /// <summary>
-    /// <b>The band is 12.5%, widened from 6.25% on 2026-08-27, and the widening is not a concession.</b>
+    /// <b>The band is 6.25%, and the run beneath it is long enough to deserve it.</b>
     /// </summary>
     /// <remarks>
     /// <para>
-    /// 🔴 <b>A PROPORTIONAL BAND GETS STRICTER AS THE QUANTITY SHRINKS, and that is what fired
-    /// here.</b> <c>CommuteEngine</c>'s direction guard cut held spaces by about 27% — a quarter of
-    /// this city's commuting was journeys to where the Citizen already stood — and the pre-existing
-    /// drift underneath, unchanged in absolute size, then breached a band that had shrunk with the
-    /// base. ***The test did not start failing because the city got worse; it stopped passing
-    /// because the number it divides by got smaller.***
+    /// <b>A PROPORTIONAL BAND GETS STRICTER AS THE QUANTITY SHRINKS, and that is what fired on
+    /// 2026-08-27.</b> <c>CommuteEngine</c>'s direction guard cut held spaces by about 27% — a
+    /// quarter of this city's commuting was journeys to where the Citizen already stood — and the
+    /// growth underneath, unchanged in absolute size, then breached a band that had shrunk with the
+    /// base. ***That observation was right and is kept.***
     /// </para>
     /// <para>
-    /// ⚠ <b>The drift is REAL, PRE-EXISTING and now filed</b> — <c>plans/0045</c> queue item 5.
-    /// Measured over 160 Days as twenty-Day block means, with the guard and without it:
-    /// <b>251 → 283</b> against <b>370 → 388</b>, the same shape and the same dip at Days 81–100 in
-    /// both. ***A band that hid a drift because its denominator was inflated by a defect was giving
-    /// a false pass, and widening it is what makes the drift somebody's rather than nobody's.***
+    /// 🔴 <b>The diagnosis attached to it was WRONG, and the band was widened to 12.5% on the
+    /// strength of it.</b> The growth was read as a real pre-existing drift and filed as
+    /// <c>plans/0045</c> queue item 5: twenty-Day means over 160 Days at <b>251 → 283</b> with the
+    /// guard and <b>370 → 388</b> without. Both figures reproduce exactly. ***Neither of them is a
+    /// drift.*** Extended to 640 Days the same series settles at about 275 from Day 80 and never
+    /// rises again, and every quantity that generates it — Buildings, placed Households, employed
+    /// Citizens, spaces — is flat across the whole span. <see cref="Days"/> carries the block means.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The failing window was the shipped one and nothing else.</b> Sweeping the settle window
+    /// against the run length on one 240-Day series, the original 6.25% band refuses exactly one
+    /// combination — settle 8 over 48 Days, at +6% — and accepts every other, with the growth
+    /// reaching 0% by a settle of 40 and turning negative by 60. ***A band is not the thing to move
+    /// when the window is what is wrong***, and widening it here would have made this test blind to
+    /// the leak it exists to catch at precisely the size that leak would first appear.
     /// </para>
     /// </remarks>
     private static void AssertFlat(Reading[] tail, Func<Reading, long> of, string what)
@@ -200,7 +266,7 @@ public sealed class ParkingLongRunTests(ITestOutputHelper output)
         long late = Mean(tail[(tail.Length / 2)..], of);
 
         Assert.True(
-            late <= early + (early / 8) + 1,
+            late <= early + (early / 16) + 1,
             $"{what} read {early} over the first half of the tail and {late} over the second.");
     }
 

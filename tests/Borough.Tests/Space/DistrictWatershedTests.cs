@@ -726,7 +726,11 @@ public sealed class DistrictWatershedTests
         {
             string file = Path.GetFileName(path);
             bool states = Shipped(file).Districts.Runs;
-            bool expected = file is "twinned.toml" or "provisioned.toml" or "oversupplied.toml";
+            // waged.toml IS provisioned.toml with two [[business]] keys added, so it inherits
+            // [districts] for that file's reason and not for one of its own -- oversupplied.toml's
+            // note above, arriving a second time. Its header says the same.
+            bool expected = file is "twinned.toml" or "provisioned.toml" or "oversupplied.toml"
+                or "waged.toml";
 
             Assert.Equal(expected, states);
         }

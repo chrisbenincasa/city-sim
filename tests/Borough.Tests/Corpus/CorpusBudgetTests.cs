@@ -60,13 +60,36 @@ public sealed class CorpusBudgetTests
     /// repository's. Re-seeded from this test's own count against a clean tree.
     /// </para>
     /// <para>
-    /// 🔴 <b>RE-SEEDED AGAIN 1,172,148 → 1,196,030 on 2026-08-27</b>, for <see cref="AdrCeiling"/>'s
-    /// reason: the merge of <c>milestone-17-decline-and-cleared-land</c>, whose prose predates the
-    /// freeze. ⚠ <b>Taken from this test's own message rather than from a shell</b>, which is the
-    /// lesson of the first re-seed — <c>find | xargs cat | wc -w</c> concatenates and reads low.
+    /// 🔴 <b>RAISED 2026-08-27 from 1,172,148, twice and on two branches, and the raise is the point
+    /// rather than a defeat.</b> <c>plans/0045</c>'s standing order 3 caps corpus growth and its
+    /// escape hatch is <i>delete this test in a commit saying why — visible, not hard</i>. This is
+    /// the cheaper half of that hatch: the ceiling moves, in a commit that says what it bought, and
+    /// the ratchet goes on working afterwards.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>On <c>main</c> it bought 2,302 words of PLAN — <c>plans/0046</c> — and that is the distinction the cap is for.</b>
+    /// The amnesty was opened against 1.17M words of prose standing over 17,872 lines of simulation —
+    /// 169 ADRs, 30 of them in five days, 236 of 524 commits changing no code at all. ***The disease
+    /// is prose that substitutes for a mechanism, not prose that schedules one.*** A plan naming the
+    /// order the work happens in, the traps it will hit and the invariant it will fire is prose that
+    /// was bought; another ADR arguing a number nobody can measure is not. ⚠ <b>The cap works only
+    /// while a raise stays awkward enough to be argued for</b>, so a raise with no plan behind it is
+    /// the one to refuse.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>AND ON THIS BRANCH IT ADMITTED A CORPUS THAT PREDATES THE FREEZE.</b> The amnesty was
+    /// captured against <c>main</c> on 2026-08-26 while
+    /// <c>milestone-17-decline-and-cleared-land</c> was already in flight, so its prose could never
+    /// have fitted under a ceiling taken without it — see <see cref="AdrCeiling"/>. ⚠ <b>The two
+    /// raises are the same act for different reasons</b>, and the merged figure is neither branch's:
+    /// it is what the union actually counts.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Taken from this test's own message rather than from a shell</b>, which is the lesson of
+    /// the first re-seed — <c>find | xargs cat | wc -w</c> concatenates and reads low.
     /// </para>
     /// </remarks>
-    private const int CorpusCeiling = 1_196_030;
+    private const int CorpusCeiling = 1_198_426;
 
     /// <summary>The two directories the corpus ceiling covers.</summary>
     private static readonly string[] Covered = ["docs", "plans"];

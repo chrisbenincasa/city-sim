@@ -5431,6 +5431,18 @@ public sealed class World
         // caller is a mechanism nobody built.
         Citizens.ReachFailures[slot] = 0;
 
+        // The pay clock starts on the day of hire, and it is here for the reason the line above is:
+        // this is the one door onto the Workplace handle. Left at zero, a Citizen hired on Day 400
+        // would be owed four hundred Days of back pay on their first payday -- a zero inside the
+        // range of legitimate answers, which CitizenTable.LastPaidDay says more about.
+        //
+        // ⚠ It is also what makes changing employer cost the new one nothing: entitlement is
+        // measured from this Day forward, so no Business inherits another's arrears.
+        long today = IntegerMath.FloorDiv((long)Tick.Raw, Quantities.Ticks.PerDay);
+
+        Citizens.LastPaidDay[slot] =
+            today >= ushort.MaxValue ? ushort.MaxValue : (ushort)today;
+
         Invariants.Require(
             !Lists(Workers, buildingSlot, slot),
             Invariant.CitizenIsNotAlreadyEmployedHere,
