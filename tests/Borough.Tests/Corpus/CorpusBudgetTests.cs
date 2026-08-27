@@ -25,14 +25,32 @@ namespace Borough.Tests.Corpus;
 /// </remarks>
 public sealed class CorpusBudgetTests
 {
-    /// <summary>ADR files on 2026-08-26, the day the amnesty opened.</summary>
-    private const int AdrCeiling = 169;
+    /// <summary>ADR files on 2026-08-26, the day the amnesty opened — plus milestone 17's two.</summary>
+    /// <remarks>
+    /// 🔴 <b>RE-SEEDED 169 → 171 on 2026-08-27 for the merge of <c>milestone-17-decline-and-cleared-land</c>,
+    /// and this is the raise the message above warns against, made deliberately.</b> The two ADRs are
+    /// <c>0168</c> (a decline threshold is a duration, and the premises and the tenant get one each)
+    /// and <c>0172</c> (an abandoned shell collapses on a clock). ***Both were written BEFORE the
+    /// amnesty opened*** — the freeze was captured against <c>main</c> on the day, and this branch was
+    /// already in flight with them in it. ⚠ <b>The ratchet stops <em>new</em> growth; it was never
+    /// meant to retroactively refuse work that predates it</b>, and the only alternative was to unwrite
+    /// two records of a milestone that had already landed. It keeps working from the new baseline, and
+    /// standing order 1 is unchanged: no ADR written after 2026-08-26 gets in this way.
+    /// </remarks>
+    private const int AdrCeiling = 171;
 
-    /// <summary><c>plans/0002-open-questions.md</c> on 2026-08-26.</summary>
-    private const int OpenQuestionsCeiling = 146_606;
+    /// <summary><c>plans/0002-open-questions.md</c> on 2026-08-26, plus milestone 17's §D rows.</summary>
+    /// <remarks>
+    /// <b>RE-SEEDED 146,606 → 153,786 on 2026-08-27</b>, for <see cref="AdrCeiling"/>'s reason and no
+    /// other. The added rows are milestone 17's decline numbers, opened under <c>adr/0052</c> while it
+    /// was still in force — ⚠ <b>which the amnesty has since SUSPENDED</b>, so nothing written after
+    /// 2026-08-26 opens a §D row at all and this ceiling has no ordinary way to move again.
+    /// </remarks>
+    private const int OpenQuestionsCeiling = 153_786;
 
     /// <summary>Every markdown file under <c>docs/</c> and <c>plans/</c> on 2026-08-26.</summary>
     /// <remarks>
+    /// <para>
     /// ⚠ <b>RE-SEEDED 2026-08-27, and the reason is worth carrying.</b> The figure first written here
     /// was <b>1,171,820</b>, taken at a shell. It became unreproducible within the day: the tree's
     /// markdown was byte-identical to the commit that set it, and both a shell reading and this test
@@ -40,8 +58,14 @@ public sealed class CorpusBudgetTests
     /// edit at the moment the first reading was taken. ***A ratchet is only as good as the instant its
     /// baseline was captured***, and a baseline captured over somebody else's working tree is not the
     /// repository's. Re-seeded from this test's own count against a clean tree.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>RE-SEEDED AGAIN 1,172,148 → 1,196,030 on 2026-08-27</b>, for <see cref="AdrCeiling"/>'s
+    /// reason: the merge of <c>milestone-17-decline-and-cleared-land</c>, whose prose predates the
+    /// freeze. ⚠ <b>Taken from this test's own message rather than from a shell</b>, which is the
+    /// lesson of the first re-seed — <c>find | xargs cat | wc -w</c> concatenates and reads low.
     /// </remarks>
-    private const int CorpusCeiling = 1_172_148;
+    private const int CorpusCeiling = 1_196_030;
 
     /// <summary>The two directories the corpus ceiling covers.</summary>
     private static readonly string[] Covered = ["docs", "plans"];
