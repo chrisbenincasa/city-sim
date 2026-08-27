@@ -401,10 +401,14 @@ public enum PurposeTag : ulong
     /// happened to be examined. Two decisions, two tags.
     /// </para>
     /// <para>
-    /// ⚠ <b>What it decides today is only WHEN a Business is asked whether it has given up</b>, since
-    /// nothing tenants one (<c>adr/0142</c>, milestone 25 task 5). It becomes a draw over a real
-    /// choice the day a Business placement pass ships, and it is separate now so that the day it does,
-    /// no correlation has to be untangled.
+    /// ✅ <b>It is a draw over a real choice, and it became one without this remark noticing.</b> The
+    /// sentence here read <em>"what it decides today is only WHEN a Business is asked whether it has
+    /// given up, since nothing tenants one … it becomes a draw over a real choice the day a Business
+    /// placement pass ships"</em>. That day was <c>adr/0147</c>, and ***the prediction was right about
+    /// the mechanism and never came back to collect***, which is <c>adr/0093</c>'s trigger failure in
+    /// its most forgivable form. <b>Keeping it separate is what that foresight bought</b>: no
+    /// correlation had to be untangled when the pass landed, which is the whole argument above
+    /// arriving as a fact.
     /// </para>
     /// </remarks>
     UnpremisedDraw = 22,

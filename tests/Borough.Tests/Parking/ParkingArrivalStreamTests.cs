@@ -586,17 +586,26 @@ public sealed class ParkingArrivalStreamTests
     /// </summary>
     private static Ruleset WithASecondEmployingKind()
     {
-        // Anchored on the second kind's own Shift band, the one line unique to it -- `jobs = 8` is on
-        // the dwelling too, and the raw string's indentation is stripped on emission, so anchoring on
-        // layout is anchoring on something that is not there.
-        const string band = "shift_start_earliest_hour = 3";
+        // 🔴 ANCHORED ON THE BUILDING'S NAME LINE, AND IT WAS THE SHIFT BAND UNTIL 2026-08-26. The band
+        // moved out of [[building]] and into [[business]] with milestone 26 task 2's land-use split
+        // (adr/0149), so a replace-all put `parking` into the TRADE table as well -- where it is not a
+        // key, and the loader refuses it. Parking is a property of PREMISES, so the building's own name
+        // is the line to hang it off, and `name = "workshop_trade"` does not contain it: the closing
+        // quote is part of the anchor.
+        //
+        // ⚠ THE OLD CODE ASSERTED Contains AND THAT IS WHY THIS SURVIVED THE SPLIT. Contains passes on
+        // two occurrences exactly as it passes on one, so the guard was blind to the only thing that
+        // could go wrong with a replace-all. It counts now.
+        const string anchor = "name = \"workshop\"";
 
         string toml = Movement.CommuteLongRunTests.SecondKindToml(3, 6);
 
-        Assert.Contains(band, toml, StringComparison.Ordinal);
+        Assert.Equal(
+            1,
+            toml.Split(anchor, StringSplitOptions.None).Length - 1);
 
         return Load(
-            toml.Replace(band, "parking = 8\n" + band, StringComparison.Ordinal)
+            toml.Replace(anchor, anchor + "\nparking = 8", StringComparison.Ordinal)
             + "\n\n[households]\ncar_ownership_percent = 100\n");
     }
 

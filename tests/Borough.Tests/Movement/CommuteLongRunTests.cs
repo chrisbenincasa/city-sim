@@ -508,6 +508,16 @@ public sealed class CommuteLongRunTests(ITestOutputHelper output)
     /// <c>Parking.ParkingArrivalStreamTests</c> needs this city with <c>parking</c> on the second
     /// kind, and a duplicate would be <c>plans/0012</c> <i>Cause 1</i> by construction — one fact,
     /// two files, and the copy nobody is looking at is the one that drifts.
+    /// </para>
+    /// <para>
+    /// 🔴 ⚠ <b>THE SHARING IS REAL AND SO IS ITS COST, WHICH MILESTONE 26 COLLECTED.</b> This text
+    /// gained a <c>[[business]]</c> table with the land-use split (<c>adr/0149</c>), and that table
+    /// carries the Shift band the reader over there was anchoring a string replace on — so
+    /// <c>parking</c> landed in the **trade** table too and the loader refused the file. ⚠ <b>Nothing
+    /// caught it for eight tasks</b>, because that reader is <c>tier=instrument</c> and the assertion
+    /// tier never runs it. ***A shared fixture makes one edit reach two tests, which is the point, and
+    /// it also makes one edit BREAK two tests*** — so a key added here is a change to every caller,
+    /// and the callers are not in this file.
     /// </remarks>
     internal static string SecondKindToml(int earliestHour, int latestHour) =>
         File.ReadAllText(GoldenFixtures.RulesetPath) + $$"""

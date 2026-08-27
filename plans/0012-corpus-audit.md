@@ -4044,6 +4044,36 @@ misdirects the next `adr/0006` audit.**
 no code, and these are doc comments on the mechanism session W is about to make decisions against.
 **They go with milestone 26's first code task**, whoever takes it.
 
+✅ ~~**STRUCK 2026-08-26 by milestone 26 task 10**~~ — and the correction is larger than the row, in the
+one way that matters. 🔴 **THE SURVEY FOUND TWO SITES AND THERE WERE SIX**, of which **five** were
+stale: the two above, plus `PlacementEngine.Retire`'s own remarks (*"a SINK with no source beside
+it … this half has nothing to try"*), `PurposeTag.UnpremisedDraw` (*"it becomes a draw over a real
+choice the day a Business placement pass ships"* — that day was `adr/0147`), and **two in
+`RulesetLoader`'s `[founding]` refusal**, one doc comment and one inline. ⚠ **The sixth,
+`UnpremisedTable.cs:14`, is conditional — *"if nothing tenants it"* — and is still true**, which is
+why a grep is a survey and not a verdict.
+
+🔴 **The sharpest one is that `PlacementEngine.Tenant` QUOTES `Retire`'s wrong sentence while
+correcting it.** The repair documented itself, in the same file, and the sentence it repaired went on
+saying the old thing for a milestone. ***So `adr/0093`'s failure mode survives a fix that knows about
+it***, and nothing in this corpus would have caught that: the mechanical checks are
+document-to-document and a doc comment is invisible to every one of them.
+
+⚠ **The `RulesetLoader` pair is the one that could have cost something.** Both give *nothing tenants a
+Business* as the **reason** the `[founding]` refusal exists — so a reader arriving after tenanting
+shipped would have read the reason as expired and the refusal as removable. **It is not**: tenanting
+drains the pool only while vacant premises exist, which is the city cooperating rather than a bound,
+and `adr/0142`'s give-up is the exit that holds when it stops. ***A stale justification on a live
+refusal is an argument for deleting the refusal***, and that is a worse failure than a stale
+description.
+
+⚠ **Two residues, both routed rather than fixed here.** `UnpremisedTable`'s remarks also said the table
+has **two** columns and that `Gate` is absent, while its own constructor allocates **three** including
+`Gate` — ***a doc comment enumerating a table's columns is a second copy of the constructor***. And
+`Considered`'s absence was argued on *"nothing looks at premises on a Business's behalf"*, which
+`PlacementEngine.Tenant` falsified; the column is still absent, so that is now an **open question**
+(`plans/0002` §B) rather than a settled absence.
+
 ### 🔴 `CLAUDE.md`'s demand-scalar rule dropped the word that made it narrow, and a session read it as a ban
 
 **Found 2026-08-25, in session W** ([`0043`](0043-session-w-the-provider-kinds-content.md) **W13**).

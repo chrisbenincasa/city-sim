@@ -15,6 +15,29 @@ inherits from [`0037`](0037-goods-between-buildings-the-district-pool.md) tasks 
 
 ## Status
 
+🟢 **TASK 10 LANDED 2026-08-26 — MILESTONE 26 IS TEN OF TEN.** The three ledger debts are
+discharged and ***every one of them was larger than its entry said***. `plans/0003` queue item 17 was
+already struck deliberately by task 4. [`0012`](0012-corpus-audit.md)'s *two* stale doc comments were
+**six sites, five of them stale** (**F61**), including two in `RulesetLoader` that gave the falsified
+claim as the **reason for a live refusal** (**F62**). And [`06`](../docs/06-roadmap.md)'s placement row
+could never have had one answer, because it named **three** mechanisms with three standings — split
+into three rows, and the re-read found that [`adr/0031`](../docs/adr/0031-one-resource-abstraction-and-depth-not-count.md)'s
+chain-depth guard **was never built**, leaving the anti-goal it replaced with no guard at all
+([`0003`](0003-build-plan.md) queue item **24**, **F63**).
+
+🔴 **AND CLOSING THE MILESTONE FOUND TWO THINGS NOBODY WAS LOOKING FOR, BOTH IN CI.** The full suite
+came back **2,374 passed, 1 failed** —
+`ParkingArrivalStreamTests.The_arrival_peak_is_land_use_as_much_as_it_is_the_city`, broken by **this
+milestone's own task 2** when the land-use split moved a key into `[[business]]` under a shared
+fixture's replace-*all*. ⚠ **It is instrument tier, so neither the working default nor the commit gate
+ran it**, and the post-submit lane reported it correctly on **2026-08-25T13:02** and again on the 08-26
+schedule. ***The lane worked; the reading did not happen*** (**F64**). 🔴 **And the same lane says the
+balance runs went 3–5.6× slower across the milestone-24 terrain merge**, so `minimal.toml` alone now
+eats 2h44m of a 180-minute job and ⚠ **`evicted.toml` — the only long run where a tenancy ends — has
+not executed since 2026-08-25**. ⚠ **A runner is not the reference machine, so that is a summons to
+measure and not a measurement**: routed out under `adr/0073` to [`0003`](0003-build-plan.md) queue item
+**25** and [`0013`](0013-tick-budget.md) as an **UNMEASURED** row (**F65**).
+
 🟢 **QUEUE ITEMS 21 AND 22 ARE STRUCK, 2026-08-26 — ONE RECORD CLOSES BOTH**
 ([`adr/0171`](../docs/adr/0171-a-markets-level-is-what-its-sellers-hold-and-the-price-divides-by-the-sum-while-a-wake-spends-the-maximum.md)).
 A District Pool holds nothing, so *how much is there* is answered by walking the row's sellers — and
@@ -463,7 +486,7 @@ makes that an attribution question rather than a scheduling one.
    stopped buying rather than a market that cleared*** (**F54**). ⚠ **The `adr/0006` check had to be
    written twice** — a high-water mark of a bounded population grows logarithmically for ever and
    both committed idioms reject it (**F55**). **Moves no hash.**
-10. **Closing — the ledger debts this milestone owes and nothing else discharges.**
+10. ✅ **DONE — Closing — the ledger debts this milestone owes and nothing else discharges.**
     [`0003`](0003-build-plan.md) **queue item 17** is *"retired by design rather than fixed, and it
     must be STRUCK DELIBERATELY when the code lands"*; [`0012`](0012-corpus-audit.md)'s two doc
     comments at `UnpremisedTable.cs:19-25` and `PlacementEngine.cs:645-650`, both of which say
@@ -1304,3 +1327,103 @@ the Bin is a market row's and what the waiter's requirement was. Item 22's shape
 a requirement of zero*; item 23's is *an ordinary Bin and a positive requirement*. ***An allowlist that
 cannot tell its own defect from the one it replaced is a silence***, which is what the first version
 of this fact would have been.
+
+## Task 10's findings — the ledger debts, each one larger than its entry
+
+**F61 — 🔴 THE AUDIT SAID TWO DOC COMMENTS AND THERE WERE SIX, AND THE SHARPEST ONE QUOTES ITS OWN
+CORRECTION.** `plans/0012` named `UnpremisedTable.cs:19-25` and `PlacementEngine.cs`'s `Retire`
+remarks. A grep for the falsified sentence found **six** sites, of which **five** were stale: those
+two, plus `PurposeTag.UnpremisedDraw`'s *"it becomes a draw over a real choice the day a Business
+placement pass ships"* — that day was `adr/0147` — and **two in `RulesetLoader`**. ⚠ **The sixth is
+conditional and still true**, so ***a grep is a survey and not a verdict***.
+
+🔴 **`PlacementEngine.Tenant` QUOTES `Retire`'s wrong sentence while correcting it.** Its own remarks
+open with *"`Retire`'s own remark said 'nothing tenants a Business … the placement pass that would is
+milestone 27's', and complained that this half has nothing to try … **It has something to try now**"* —
+and `Retire`, four hundred lines below in the same file, went on saying the old thing for a whole
+milestone. ***So `adr/0093`'s failure mode survives a fix that knows about it***: the repair documented
+itself and left the thing it repaired unamended. ⚠ **Nothing in this corpus could have caught it** —
+`tests/Borough.Tests/Corpus/` is document-to-document, and a doc comment is invisible to every check in
+it (`CLAUDE.md` says so in its own words, and this is the sighting).
+
+**F62 — 🔴 A STALE JUSTIFICATION ON A LIVE REFUSAL IS AN ARGUMENT FOR DELETING THE REFUSAL.** Both
+`RulesetLoader` sites — one doc comment, one inline — give *nothing tenants a Business* as **the reason
+`[founding]` requires `gives_up_after_days`**. A reader arriving after tenanting shipped would have
+read the reason as expired and the refusal as removable. ⚠ **The refusal is right and its argument was
+wrong**: tenanting drains the unpremised pool only while vacant premises exist, so it is ***the city
+cooperating rather than a bound***, and `adr/0142`'s give-up is the exit that holds when it stops.
+🔴 **That is worse than a stale description**, which merely misdirects: this one hands a future reader a
+reason to remove an `adr/0006` guard. ⚠ **And the bound has never fired on any shipped world** — 7,165
+premisings against zero give-ups over 131,072 Ticks — so the path it guards is unexercised as well as
+under-argued.
+
+**F63 — 🔴 THE ROADMAP ROW COULD NEVER HAVE HAD ONE ANSWER, AND THE RE-READ FOUND A GUARD THAT WAS
+NEVER BUILT.** *"The nine-Resource abstraction; Utility families; Waste"* carried a single **Placed:
+12**, and the row's own flag blamed the milestone-12 split. ⚠ **The split is not the cause.** The row
+names **three** mechanisms with three standings: the Resource abstraction is **built** and milestone 26
+leans on it (`DistrictMarkets.OfferedIn` discriminates on family); **Utility families** have a family
+with one member — `coastal.toml`'s water — and no transport, `World.FitDistrictPools` refusing it a Pool
+in the build's own words *"a different mechanism with no milestone"*; **Waste** is untouched by
+anything. ***A row naming three mechanisms takes the placement of whichever one the reader was thinking
+about***, and no renumbering was needed to make that wrong. Split into three rows.
+
+🔴 **What the re-read turned up is worth more than the placement.** `adr/0031` retires `04 §1`'s
+counting bound — *five Goods, and a sixth should replace something* — in favour of **maximum chain
+depth of three**, describing that constraint in its own words as *"the constraint the same document
+already states and never enforced"*. **It is still never enforced**, four milestones later. ⚠ **So the
+anti-goal has no guard at all**: one was withdrawn and its replacement was never written, which is
+worse than either alone because the record reads as though something is in force. ⚠ **`adr/0049` rests
+on it** — *"depth of three, so the graph is a shallow DAG and a topological sort over Bins is
+feasible"* — so a deep chain would also put a decision about apply counts on ground that decision
+assumed away. Filed as `plans/0003` queue item **24**, with no design question open: the number is
+three and the walk is one the loader already builds.
+
+**F64 — 🔴 THIS MILESTONE BROKE A TEST IN TASK 2, THE LANE SAID SO ON THE DAY, AND NOBODY READ IT FOR
+EIGHT TASKS.** `ParkingArrivalStreamTests.The_arrival_peak_is_land_use_as_much_as_it_is_the_city`
+builds its world by calling `CommuteLongRunTests.SecondKindToml` — a fixture it does not own — and
+injecting `parking = 8` with a `string.Replace` anchored on `shift_start_earliest_hour = 3`. ⚠ **Task
+2's land-use split moved that key into `[[business]]`**, so the anchor matched **twice**, the replace
+hit both, and the loader refused `test.toml:864: 'parking' is not a key of [[business]]`. ⚠ **A
+`Replace` is a replace-*all* and the test asserted with `Assert.Contains`**, which cannot tell one
+occurrence from two — fixed by anchoring on `name = "workshop"` and asserting the count is exactly one.
+
+🔴 **What matters is not the break, it is the eight tasks.** The test is **instrument tier**, so
+`tier!=instrument` — the working default *and* the commit gate ([`adr/0121`](../docs/adr/0121-the-commit-gate-is-the-assertion-tier-and-a-long-test-runs-post-submit-on-a-machine-that-is-not-yours.md))
+— never ran it, and every commit from task 2 onward was green by the gate's own definition. ⚠ **The
+post-submit lane caught it immediately and correctly**: `Failed: 1, Passed: 2337` on 2026-08-25T13:02,
+and again on the 08-26 scheduled run. ***The lane worked and the reading did not happen.*** 🔴 **So
+`adr/0121`'s split has an unstated obligation: a notifying lane is only notifying if somebody reads
+it**, and nothing in this repository makes anybody. Not a design question — a habit that has no home,
+and it belongs beside the tier rule rather than in this plan.
+
+⚠ **A shared fixture is the mechanism, and this is the second time.** `SecondKindToml` has two callers
+in different subsystems; task 2 edited it for the one it was working in. That is recorded in the
+fixture's own doc comment now, which — per **F61** — is a place no corpus check can see.
+
+**F65 — 🔴 THE BALANCE LANE GOT 3–5.6× SLOWER AND IT WAS NOT THIS MILESTONE.** Between post-submit
+`7048c157` (green, 2026-08-25T11:20) and `43b07b6c` (red, 08-25T13:02 and 08-26T06:33), the same three
+runs on the same runner class moved:
+
+| Run | 7048c157 | 43b07b6c |
+|---|---|---|
+| `minimal.toml`, 1,000,000 Ticks | 54m42s | **2h43m56s** |
+| `fouled.toml`, 100,000 Ticks at 4,000 | 2m22s | **13m16s** |
+| `evicted.toml`, 100,000 Ticks at 4,000 | 1m57s | **never started** |
+
+The first run ate 2h44m of the job's 180-minute ceiling, so the third was cancelled — ⚠ **which means
+the only lane that reaches `evicted.toml` has not run since 2026-08-25, and that is the run
+[`adr/0006`](../docs/adr/0006-no-collection-grows-with-elapsed-time.md)'s per-tenancy cycle is reachable
+through**. The interval is the **milestone-24 terrain merge** (water, drainage, sealing, a saved handle
+per Cell, two new tables), and ⚠ **`minimal.toml` states neither `[water]` nor `[[terrain]]`** — so
+whatever got slower is being paid **unconditionally**, which is the shape of a fold or a sweep over all
+262,144 Cells rather than of new content.
+
+🔴 ⚠ **NONE OF THESE SIX FIGURES MAY BE QUOTED AS A COST.** A runner is not the reference machine
+([`adr/0106`](../docs/adr/0106-a-wall-clock-budget-names-a-machine-class-and-a-thread-count-or-it-is-not-a-budget.md),
+[`adr/0121`](../docs/adr/0121-the-commit-gate-is-the-assertion-tier-and-a-long-test-runs-post-submit-on-a-machine-that-is-not-yours.md)),
+and its class is not stable between runs. What the lane is entitled to say is that something **moved
+against its own history**, which is exactly what `adr/0121` §4 puts it there for. ***So this is a
+summons to measure and not a measurement.*** Routed out of this milestone under
+[`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md):
+the defect to `plans/0003` queue item **25**, the cost to [`0013`](0013-tick-budget.md) as an
+**UNMEASURED** row.

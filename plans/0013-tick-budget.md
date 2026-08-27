@@ -990,6 +990,7 @@ the room is a habit this corpus has already recorded**, and this table is where 
 | **One State Hash** | 32.47 ms | 208% | Sampled on a cadence, never per-Tick. What it bounds is *how often a hash may be taken*, which every golden-baseline and bisection workflow is downstream of. `05 §9` does not mention it — [`0000`](0000-board.md) → *Owed* |
 | **The Decide guard** | 76.4 ms | 490% | A correctness check, not a shipping consumer. On by default, `--no-decide-guard` for long runs. It is here because it was `O(world)` **with no switch at all** until S0a, and being a guard is not what made it affordable |
 | **End-of-run invariants** | 4.84 ms at 100k, once | — | `adr/0033`'s *unaffordable per Tick and trivial at the end of a run*, which is the tiering working |
+| 🔴 **Whatever the milestone-24 terrain merge added to every Tick** | **UNMEASURED** | — | Filed 2026-08-26 from the post-submit lane's own history, which is a **summons to measure and not a measurement**: the same runs on the same runner class went 3–5.6× slower across `7048c157..43b07b6c`, and `minimal.toml` — which states neither `[water]` nor `[[terrain]]` — is in the 3×. ⚠ **So it is paid unconditionally**, which puts it in the Tick rather than in the content. No figure here may be quoted; a runner is not the reference machine ([`adr/0106`](../docs/adr/0106-a-wall-clock-budget-names-a-machine-class-and-a-thread-count-or-it-is-not-a-budget.md)). [`0003`](0003-build-plan.md) queue item **25**, [`0044`](0044-the-purchase-and-the-provider-that-answers-it.md) **F65** |
 
 ---
 
