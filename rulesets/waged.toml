@@ -32,7 +32,7 @@
 # under it -- which on this world is 3 workers per shopfront and nobody else.
 #
 # ⚠ SO DO NOT READ A HOUSEHOLD BALANCE HERE AS AN INCOME. Measured at 2,000 Citizens over 60 Days,
-# total household money FALLS from ~7.8M to ~0.2M while wages pay ~2.8M into it: the spending is an
+# total household money FALLS from ~9.3M to ~0.2M while wages pay ~2.7M into it: the spending is an
 # order above the earning, because only a dozen Citizens in the city have a paying job at all. The
 # loop is CLOSED and it is NARROW, and those are different claims.
 #
@@ -41,7 +41,7 @@
 # ---------------------------------------------------------------------------------------------------
 # `wage_per_day` is a DAILY RATE and payday moves it times the Days actually worked, so changing
 # `pay_period_days` changes WHEN people are paid and not HOW MUCH. Measured over 60 Days at 2,000
-# Citizens, total wages paid: 2,701,864 at a period of 14; 2,809,328 at 7; 2,950,152 at 1 -- a 9%
+# Citizens, total wages paid: 2,731,028 at a period of 14; 2,738,256 at 7; 2,914,416 at 1 -- a 7%
 # spread across a 14x change in the period, and what moves inside it is the lumpiness.
 #
 # ***That is what makes this file an experiment rather than a demonstration***: change the one key
@@ -64,6 +64,25 @@
 # rate -- a price that moves. This is a flat number on a kind, because the posted wage is UNBUILT and
 # adr/0070 says an unbuilt mechanism is not a design constraint. When it ships, WageEngine becomes
 # where a wage is PAID rather than what it is WORTH, and these two keys go.
+#
+# ---------------------------------------------------------------------------------------------------
+# 🔴 ⚠ EVERY FIGURE ABOVE WAS RE-MEASURED ON 2026-08-27 BECAUSE THE PARENT MOVED UNDER THIS FILE.
+# ---------------------------------------------------------------------------------------------------
+# This file was authored against a provisioned.toml whose two premises kinds both stated
+# `condemn_after = 4`. Milestone 17 migrated that key to durations (adr/0168) and split the premises
+# threshold from the tenant's, so the merged parent condemns the dwelling on `condemn_after_days`
+# and ends the shopfront's TENANCY on `tenancy_ends_after_days` instead. ***A derived file inherits
+# its parent's city, so it inherits the parent's edits to it*** -- and the honest repair was to
+# regenerate this file from the merged parent rather than to translate two keys in place.
+#
+# What moved: household money opens at ~9.3M rather than ~7.8M, wages over 60 Days fall ~2%, and
+# the spread across the three periods narrows from 9% to 7%. ⚠ WHAT DID NOT MOVE IS THE ARREARS
+# CAP at 12,288 -- three workers, one period, one rate -- because that is structural rather than a
+# property of the city, and it is the one figure here a run cannot talk out of.
+#
+# ⚠ THE CLAIMS SURVIVED AND THE DIGITS DID NOT, which is the distinction worth carrying: the loop
+# is still closed and still narrow, the rhythm still moves and the income still does not. A reader
+# wanting a number out of this file should quote the sentence around it (plans/0012 Cause 5).
 #
 # ---------------------------------------------------------------------------------------------------
 # Everything below is provisioned.toml unchanged, and its reasoning lives THERE rather than being
@@ -136,8 +155,17 @@
 # W17: an unsold Bin fills, the Rule stops on Blocking.Space, and RuleEngine.Stop clears the pressure
 # clock for every blocking reason but Supply -- deliberately, because a full Bin "is what a
 # well-supplied Building with nobody to sell to looks like." The failable Rule that kills a shop is a
-# money-consuming one, it needs adr/0166's Business Rules, and it is TASK 7. `condemn_after` is
-# declared below so that the mechanism has somewhere to land, and today nothing reaches it.
+# money-consuming one, it needs adr/0166's Business Rules, and it is TASK 7 -- which is also where
+# `condemn_after` RETURNS to this file, at a value chosen for a trade rather than inherited from a
+# dwelling.
+#
+# ⚠ THIS FILE DECLARED `condemn_after` ON BOTH KINDS UNTIL MILESTONE 17 AND NOW DECLARES IT ON
+# NEITHER. It stood at 4 in all eighteen shipped files and no author had ever set it to anything
+# else, which is adr/0164's test -- `would a designer ever set this?` -- answered by the tree rather
+# than argued. It mattered here because a condemned Building no longer vanishes: abandonment leaves a
+# SHELL standing (adr/0091), so every world was demonstrating blight on its way to demonstrating
+# whatever it was built for. Decline now lives in declining.toml and in diagnosed.toml, and a key
+# arrives with the mechanism that needs it rather than ahead of it.
 #
 # ---------------------------------------------------------------------------------------------------
 # ⚠ THE COMMERCIAL LAND IS AT A FIXED STRIDE AND THAT IS NOT HOW ANY CITY IS ZONED. adr/0165 requires
@@ -222,11 +250,37 @@ shift_start_latest_hour   = 10
 
 [[building]]
 name = "dwelling"
+
+# 🔴 MIGRATED FROM `condemn_after = 4` BY MILESTONE 17 (adr/0168), AND UNLIKE THE `shopfront` KIND
+# BELOW ***THE QUANTITY DID NOT SURVIVE***. That key had no header defending it here: it stood at 4
+# in all eighteen shipped files and no author ever set it, which is adr/0164's `would a designer ever
+# set this?` answered by the tree. What it BOUGHT was invisible and differed per verdict --
+#
+#   premises, via `upkeep` at rate 16:  4 x 16 =  64 Ticks  (45 in-world minutes)
+#   tenant,   via `restock` at rate  8:  4 x  8 =  32 Ticks  (22 in-world minutes)
+#
+# -- and a Day is 2,048 Ticks, so NEITHER IS EXPRESSIBLE ANY MORE. That is the unit doing its job
+# rather than an obstacle: adr/0168 chose the Day precisely so that forty-five minutes is unwritable.
+#
+# 🔴 ⚠ THE 32-TICK TENANT CLOCK WAS EVICTING HOUSEHOLDS BEFORE THE MARKET COULD EXIST. `restock`
+# buys from a District Pool, and no District exists until `[districts] revisit_ticks` = 2048 -- so
+# every Household in this file starved by construction for the first 2,048 Ticks and was turned out
+# after 32 of them. ***That is the same rope the `shopfront` kind is given deliberately, and the
+# dwelling was never given it.*** The value below is the first authorable duration that reaches past
+# the watershed, which is the shopfront header's own reasoning applied to the other kind.
+#
+# 🔴 THE THREE NUMBERS BELOW ARE UNRATIFIED and are recorded in plans/0002 §D1. They are the FLOOR of
+# the unit rather than a chosen quantity -- the honest migration of a value that was smaller than the
+# unit permits -- and a floor is not an argument. ⚠ Do not read the condemnation count of a run of
+# this file as a claim about decline: `upkeep` draws `repairs`, nothing on this file produces any, so
+# every dwelling is condemned with probability 1 and the threshold sets only the cycle time.
+condemn_after_days      = 1
+tenancy_ends_after_days = 1
+collapses_after_days    = 1
 bins = [
     { resource = "sundries", capacity = 48, owner = "occupant" },
     { resource = "repairs",  capacity = 4 },
 ]
-condemn_after = 4
 
 # adr/0148 MOVED THIS FROM 3 TO 4, AND WHAT IT MEANS DID NOT MOVE. One ceiling counts both kinds
 # of tenant (adr/0147), and this kind now comes with a shop -- so four slots minus one trade is
@@ -271,9 +325,12 @@ parking = 8
 # never be placed here, and PlacementEngine never looks: adr/0165's split puts this kind on the trade
 # bit and Space.ZonedLots keeps a house-hunter's draw on land that admits a dwelling.
 #
-# ⚠ `condemn_after` IS DECLARED AND NOTHING REACHES IT TODAY. See the header: an unsold Bin stops on
-# Blocking.Space and the pressure clock is cleared for every reason but Supply, so a shop nobody buys
-# from is immortal until task 7 authors a money-consuming Rule it can fail.
+# ⚠ NO `condemn_after`, AND ITS ABSENCE IS THE SAME POINT ITS PRESENCE USED TO MAKE. See the header:
+# an unsold Bin stops on Blocking.Space and the pressure clock is cleared for every reason but
+# Supply, so a shop nobody buys from is immortal whether or not the key is stated. It was declared
+# here until milestone 17 "so the mechanism has somewhere to land"; adr/0164 is why it is not --
+# a key nothing can reach is a key no designer can have an opinion about. It returns at task 7 with
+# the money-consuming Rule that can fail, at a value chosen for a trade.
 #
 # ⚠ NO `parking` KEY, and that is an omission with a reason rather than a default: a Car Park is
 # supply at a Building (adr/0120), a shopper is not a mechanism this build has, and the only trips
@@ -287,7 +344,23 @@ bins = [
     { resource = "repairs",  capacity = 4 },
     { resource = "money",    owner = "business" },
 ]
-condemn_after = 4
+
+# THE ROPE, MIGRATED FROM `condemn_after = 4` BY MILESTONE 17 (adr/0168), AND THE QUANTITY SURVIVED
+# THE UNIT CHANGE. `rates` fires every 1,024 Ticks, so four missed firings was 4,096 Ticks and 4,096
+# Ticks is two Days. The number below buys the same rope the `rates` header reasons for; only the
+# spelling moved. Read that header -- grep `THE SLACK IS` -- for what the rope is FOR.
+#
+# ⚠ IT IS THE **TENANCY** THRESHOLD AND NOT THE PREMISES ONE, which is the half adr/0168 exists to
+# separate. `rates` consumes `local money`, a balance belongs to a Business and never to a Building
+# (adr/0113), so RulesetLoader.ApplyTenancies derives the SHOP as the payer: it is the shop that runs
+# out of rope, and what ends is its tenancy. The premises stand and placement re-lets them.
+#
+# ⚠ NO `condemn_after_days` ON THIS KIND, and its absence is a reading rather than an omission. The
+# only other Rule here is `stock`, which has no inputs and therefore cannot fail on supply -- it can
+# block on `Space` alone, and RuleEngine.Stop CLEARS the pressure clock on every reason but supply.
+# ***A premises threshold on this kind would arm on nothing.***
+tenancy_ends_after_days = 2
+
 occupants = 1
 business = "grocer"
 
@@ -400,11 +473,19 @@ outputs = [ { scope = "local", resource = "sundries", amount = 8 } ]
 # that median moves the moment anything else about this file does -- the stride, the arrival rate, the
 # import ceiling or the number of shopfronts.
 #
-# ⚠ THE SLACK IS `condemn_after = 4`, and it is doing real work here. A shopfront opens at a ZERO
+# ⚠ THE SLACK IS `tenancy_ends_after_days = 2` ON THE `shopfront` KIND, and it is doing real work here. A shopfront opens at a ZERO
 # balance (adr/0148 instantiates the kind's trade; nothing founds on this file), and it cannot sell
 # until a District exists at `[districts] revisit_ticks` = 2048. So its first levies fail by
-# construction. Four missed firings at 1024 is 4,096 Ticks of rope, which reaches past the watershed
-# -- and adr/0053's recovery is TOTAL, so the first successful levy clears the clock outright.
+# construction. ***Two Days is 4,096 Ticks of rope, which reaches past the watershed*** -- and
+# adr/0053's recovery is TOTAL, so the first successful levy clears the clock outright.
+#
+# ⚠ THIS PARAGRAPH READ `THE SLACK IS condemn_after = 4` AND ITS SUM WAS `four missed firings at 1024
+# is 4,096 Ticks`. Milestone 17 re-authored the threshold as a duration (adr/0168) and the QUANTITY IS
+# UNCHANGED -- 4 x 1024 = 4,096 = two Days -- but the DERIVATION is not, and restating the key without
+# restating the sum would have left a header reasoning from a rate the number no longer depends on.
+# ***The rope is now stated directly, so retuning `rate` below cannot silently move it*** -- which is
+# adr/0059 and adr/0130's `author the duration, derive the count`, and the whole reason this key
+# changed.
 # ---------------------------------------------------------------------------------------------------
 [[rule]]
 name    = "rates"

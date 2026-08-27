@@ -67,7 +67,8 @@ public sealed class CorpusBudgetTests
     /// the ratchet goes on working afterwards.
     /// </para>
     /// <para>
-    /// ⚠ <b>On <c>main</c> it bought 2,302 words of PLAN — <c>plans/0046</c> — and that is the distinction the cap is for.</b>
+    /// ⚠ <b>On <c>main</c> it bought 2,302 words of PLAN — <c>plans/0047</c>, which was <c>plans/0046</c>
+    /// until this merge renumbered it off a collision — and that is the distinction the cap is for.</b>
     /// The amnesty was opened against 1.17M words of prose standing over 17,872 lines of simulation —
     /// 169 ADRs, 30 of them in five days, 236 of 524 commits changing no code at all. ***The disease
     /// is prose that substitutes for a mechanism, not prose that schedules one.*** A plan naming the
