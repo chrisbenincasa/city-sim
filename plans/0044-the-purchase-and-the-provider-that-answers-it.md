@@ -1427,3 +1427,14 @@ summons to measure and not a measurement.*** Routed out of this milestone under
 [`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md):
 the defect to `plans/0003` queue item **25**, the cost to [`0013`](0013-tick-budget.md) as an
 **UNMEASURED** row.
+
+🔴 **AND THE REFERENCE MACHINE SAYS THE SAME THING, WHICH IS WHAT TAKES IT OUT OF RUNNER NOISE.** The
+whole suite ran **52m48s** here against the **36m22s** [`CLAUDE.md`](../CLAUDE.md) records, and the one
+instrument class re-run to verify task 10's fixture fix — `ParkingArrivalStreamTests`, five tests —
+took **50m42s**, which by itself exceeds the documented whole-suite figure. ⚠ **NEITHER IS A CAPTURE
+AND BOTH ARE UPPER BOUNDS**: the machine was carrying other test runs and two builds throughout, and
+***a timing capture names nothing else running on this machine as its first control***. ⚠ **The class
+figure is not a claim that the class moved** — no prior reading for it exists, so it is a magnitude
+worth explaining and not a delta. ***An upper bound is the one thing a spoiled measurement is still
+good for***, and 52m48s against 36m22s is outside the band in the same direction the lane moved, across
+the same interval. **The bisect is still the first work and a quiet-machine capture is the second.**
