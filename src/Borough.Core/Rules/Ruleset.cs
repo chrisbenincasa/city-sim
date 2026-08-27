@@ -1562,9 +1562,11 @@ public readonly record struct MarketRuleset(int DecayPercent, int MoveCapPercent
     /// <c>adr/0006</c>'s growth</b>, and it is arguably the better city: a Pool that has stopped
     /// selling prices from its cover — which for a stocked one collapses toward nothing — rather than
     /// freezing at whatever it last charged. ***A market that stops clearing is worth less, not the
-    /// same.*** 🔴 <b>Whether one unit a Day is fine enough resolution is MEASURABLE and nothing can
-    /// measure it yet</b> — it needs a world with real consumption in it, which is task 8's Provider
-    /// Ruleset. Filed rather than guessed at (<c>adr/0043</c>).
+    /// same.*** ⚠ <b>Whether one unit a Day is fine enough resolution is MEASURABLE and is now
+    /// REACHABLE, which it was not when this was written</b> — it needed a world with real consumption
+    /// in it <em>and</em> a cover that is not structurally zero, and <c>rulesets/oversupplied.toml</c>
+    /// is both as of <c>adr/0171</c>. Still unmeasured, and still filed rather than guessed at
+    /// (<c>adr/0043</c>).
     /// </para>
     /// </remarks>
     /// <param name="standing">The rate at the end of the previous Day, in units per Day.</param>

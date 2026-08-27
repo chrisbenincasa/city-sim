@@ -15,6 +15,21 @@ inherits from [`0037`](0037-goods-between-buildings-the-district-pool.md) tasks 
 
 ## Status
 
+🟢 **QUEUE ITEMS 21 AND 22 ARE STRUCK, 2026-08-26 — ONE RECORD CLOSES BOTH**
+([`adr/0171`](../docs/adr/0171-a-markets-level-is-what-its-sellers-hold-and-the-price-divides-by-the-sum-while-a-wake-spends-the-maximum.md)).
+A District Pool holds nothing, so *how much is there* is answered by walking the row's sellers — and
+there are **two** such questions taking **different** answers: the price divides by the **sum**, a wake
+spends the **maximum**, because `RuleEngine.Buy` takes a whole batch from one seller. ✅ **THE PRICE
+MOVES FOR THE FIRST TIME IN THIS PROJECT'S HISTORY** — `rulesets/oversupplied.toml` walks **100 → 58**,
+11 changes across eight rows — and ✅ **both worlds run 524,288 Ticks with NO INVARIANT VIOLATED**.
+🔴 **TWO MORE CALL SITES WERE READING THE SAME UNDEFINED QUANTITY AND NEITHER HAD A SYMPTOM** (**F57**),
+⚠ **neither placement queue item 22 offered for the stranded waiter was taken and the fork was the
+wrong fork** (**F58**), and ⚠ **`provisioned.toml` still prints a flat price, which is now the
+mechanism and prints the same digits the defect did** (**F59**). 🔴 **AND CLOSING 22 UNCOVERED A THIRD
+MISSED WAKE THAT IS NOT A MARKET DEFECT** — a Rule left asleep on a Bin that covers it because a
+**readout** shrank its band under it, pre-existing and checked to be so, filed as
+[`0003`](0003-build-plan.md) queue item **23** (**F60**).
+
 🟢 **TASK 9 LANDED 2026-08-26 — THE ACCEPTANCE RUN, 524,288 TICKS ON BOTH WORLDS, AND ITS HORIZON IS
 WHAT IT BOUGHT.** 🟢 **`adr/0024`'s equality is EXACT at every one of 256 readings on both files**, and
 `adr/0137`'s three-way shortfall distinction survives the whole run in `Evidence` rather than only in
@@ -1214,3 +1229,78 @@ acceptance run holds it over 524,288 on both worlds, with all three classes non-
 a walk over `RuleInstances`, and the discrimination is then re-read through `Evidence.OfBuilding`,
 which is the surface a shell would use. ***A distinction the tables carry and `Evidence` drops is
 `adr/0137`'s original defect exactly***, and it is the half no amount of counting catches.
+
+## What closing queue items 21 and 22 found
+
+**F57 — 🔴 THE UNDEFINED QUANTITY WAS BEING GUESSED AT THREE CALL SITES, AND TWO OF THEM HAD NO
+SYMPTOM.** `plans/0003` queue item 21 was filed as *the reprice reads a Bin `adr/0139` emptied*, which
+is true and is a third of it. Asking the same question of every site that wants a market's level found
+`World.RingMarket` spending the **depositing** seller's own Bin as a wake budget — an under-approximation
+whenever the depositor is not the largest seller — and `RuleEngine.Stop`'s rescue drain running against
+the market row's structural **zero**, so ***the one thing that method exists to do could never fire on a
+market at all***. ⚠ **Neither would ever have been found by a failing test.** A spurious wake and a
+missed wake both leave the tables consistent, and `Invariant.WaiterIsBlockedByTheBinItNames` is
+one-directional: it catches a waiter asleep when it should be running, and says nothing about a Rule
+woken for nothing. ***A quantity nobody defined is not wrong in one place; it is guessed in every
+place***, and the one place with a symptom was the least consequential of the three.
+
+**F58 — ⚠ BOTH PLACEMENTS THE FILING OFFERED FOR THE STRANDED WAITER WERE WRONG, AND THE FORK WAS THE
+WRONG FORK.** Queue item 22 named the choice as *eagerly in `DistrictWatershed.Migrate`* against *lazily
+at the Rule's next evaluation*. **Lazily is not a placement**: `02 §4.1`'s *does not re-arm* means there
+is no next evaluation for a waiter nothing rings — ***a stranded waiter is not late, it is gone.*** And
+**eagerly in `Migrate` is incomplete**, which reading the method rather than its name showed: District
+membership changes in **four** places in `DistrictWatershed.Evaluate`, and a Cell whose incumbent
+District is dying moves *for free* while a newly built Cell is *filed* without moving at all — so a
+`Migrate`-only re-home would have fixed the case that fired and left two it had not seen. ⚠ **It is also
+the wrong direction of lookup**: a migration knows Cells, and Cell → Buildings → occupants → Rule
+Instances is a walk the build has no path for, ***where draining the market row gets the same set out of
+the queue that already exists.*** The answer is neither branch — every market row is swept and then drained at
+the end of every evaluation, unconditionally.
+
+🔴 **AND THE FIRST VERSION OF THAT ANSWER WAS ALSO WRONG, WHICH ONLY THE ACCEPTANCE RUN SAID.** A
+drain from the head looked exactly right — the same walk, from the same end, with the same requirement
+derivation as the invariant that caught the defect, so the invariant would be true by construction.
+***What it misses is that the head changes.*** A stranded waiter behind a legitimately blocked one
+survives the drain and is invisible to the invariant too, until the waiter in front of it wakes for its
+own reasons. **Shipping it moved the violation from Tick 362,496 on `oversupplied.toml` to Tick 32,768
+on `provisioned.toml`, which had been clean** — ***a repair that relocated its own symptom onto the
+world that had been the control.*** The sweep looks anywhere in the queue, and `Requirement == 0` is
+the exact test, being the invariant's own.
+
+**F59 — 🟢 THE SCARCE CITY'S FLAT PRICE IS THE MECHANISM, AND IT PRINTS THE SAME DIGITS THE DEFECT
+DID.** With the cover corrected, `rulesets/provisioned.toml` **still** shows eight rows opening and
+ending at the ceiling with zero moves — because it holds 192 units of sundries against a 357/Day draw,
+which is half a Day of cover, and a market under a Day of supply prices at its import ceiling. ⚠ **So
+the column that was the whole of F50's evidence is no longer evidence of anything on its own.**
+`rulesets/oversupplied.toml` is the same file with two tier-1 keys deleted and it holds 948 against 545
+— **100 → 58**, 11 changes across the table. ***The fix is only visible in the difference between two
+worlds***, which is why `MarketDumpTests` runs both, why the scarce half asserts `stock ≤ rate/Day`
+rather than asserting flatness, and why `--market` derives which of the two states it is looking at
+instead of printing a fixed verdict. ⚠ **`adr/0170` condition 4's Ruleset pair now carries a third
+demonstration it was not built for** — birth, death, and the price.
+
+**F60 — 🔴 CLOSING QUEUE ITEM 22 UNCOVERED A THIRD MISSED WAKE, AND IT IS NOT A MARKET DEFECT AT
+ALL.** With the stranded waiter fixed, `provisioned.toml` — which had run 524,288 Ticks clean —
+started breaking `Invariant.WaiterIsBlockedByTheBinItNames` at Tick **32,768**. It is a different
+shape: bin 1523 is a Household's **larder** holding **294**, and Rule Instance 725 is asleep on it
+needing **280**. ⚠ **The Bin never moved. The requirement came down to meet it**, traced tick by tick
+at **320 → 280 → 240**. `RuleEngine.Band` takes a derived Rule's application count from
+`Readouts.Read`, so the requirement is `readout × percent ÷ 100 × amount` — ***a function of the city
+and not of the Bin*** — while every drain in the design hangs off a Bin write. **A readout that falls
+past a sleeping waiter's level is a wake nobody owes.**
+
+⚠ **PRE-EXISTING AND UNMASKED, WHICH WAS CHECKED RATHER THAN ASSUMED.** A probe reaches it with
+`adr/0171` in and does not reach it at `2051d5f`, the commit before — so what changed is the
+trajectory, and ***a trajectory change is not a cause***. It matters because the tempting reading is
+*the market fix broke it*, which would send the next reader to `World.Budget` and `RingEveryMarket`,
+where nothing is wrong. 🔴 **Filed as `plans/0003` queue item 23 rather than fixed**: `adr/0171` could
+re-drain because a market's membership changes in exactly one place, and ***a readout has no such
+place*** — the set is open-ended, so *drain when a readout changes* names no site at all. Three
+candidates are in the queue entry and none of them belongs to a market milestone.
+
+⚠ **The acceptance test is an allowlist AGAIN, and this time it discriminates.** Both defects are the
+same invariant with the same message, so `MarketLongRunTests` records, at the Tick it fires, whether
+the Bin is a market row's and what the waiter's requirement was. Item 22's shape is *a market row and
+a requirement of zero*; item 23's is *an ordinary Bin and a positive requirement*. ***An allowlist that
+cannot tell its own defect from the one it replaced is a silence***, which is what the first version
+of this fact would have been.

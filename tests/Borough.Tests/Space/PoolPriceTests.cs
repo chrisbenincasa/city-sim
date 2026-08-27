@@ -320,24 +320,49 @@ public sealed class PoolPriceTests
         Assert.Equal(ceiling, world.DistrictPools.Price[row]);
     }
 
-    /// <summary>A glut walks the price down to nothing, and the floor is zero.</summary>
+    /// <summary>A glut walks the price down to nothing, and the glut is the SELLERS' stock.</summary>
     /// <remarks>
-    /// 🔴 <b>Zero is the floor on purpose, and it is task 10's material.</b> A Provider selling into
-    /// a saturated Pool earns less than it spent, and bankruptcy is the observable that tells this
-    /// market from a decorative one — <c>plans/0037</c> decision 4, settled with the user in the
-    /// room.
+    /// <para>
+    /// 🔴 <b>THIS TEST DEPOSITED INTO THE POOL'S OWN BIN UNTIL 2026-08-26, WHICH IS THE ONE PLACE A
+    /// GLUT CANNOT BE.</b> It passed, and it proved nothing about a city: <c>adr/0139</c> makes a Pool
+    /// a market and not a store, so that Bin is empty in every row of every world, and
+    /// <c>World.RepriceDistrictPools</c> was handing exactly that zero to <c>Reprice</c> as its cover.
+    /// ***The suite asserted the mechanism through a channel no Ruleset can reach***, which is why no
+    /// price had ever moved on any world and nothing here said so. <c>adr/0171</c>;
+    /// <see cref="Depositing_into_the_pools_own_bin_moves_no_price"/> pins the defect so it cannot
+    /// return.
+    /// </para>
+    /// <para>
+    /// <b>The glut needs no deposit at all, and that is the point.</b> A tier-0 Provider city over-supplies
+    /// itself: the sellers hold more sundries than the import ceiling is worth, so one unit a Day of
+    /// draw is many Days of cover and the target is zero. ⚠ <b>Zero is the floor on purpose</b> — a
+    /// Provider selling into a saturated market earns less than it spent, and bankruptcy is the
+    /// observable that tells this market from a decorative one (<c>plans/0037</c> decision 4, settled
+    /// with the user in the room).
+    /// </para>
     /// </remarks>
     [Fact]
     public void A_glut_walks_the_price_to_nothing()
     {
-        var world = new World(2_000, Twinned(), Key);
+        var world = new World(2_000, Load("oversupplied.toml"), Key);
+        var simulation = new Simulation(world, Key) { VerifyDecideWritesNothing = false };
 
         SyntheticCity.PopulateInto(world, Key, Ticks.Zero);
 
-        int row = FirstPoolRow(world);
-        Handle<Bin> bin = world.DistrictPools.Bin[row];
+        int row = Rows.NoSlot;
 
-        world.Deposit(bin, 10_000_000, Ticks.Zero);
+        for (int tick = 0; tick < 24_576 && row == Rows.NoSlot; tick++)
+        {
+            simulation.Step(default);
+            row = GluttedRow(world);
+        }
+
+        Assert.True(
+            row != Rows.NoSlot,
+            "no market row ever held more stock than its ceiling is worth, so there is no glut to "
+            + "price and this test's premise has gone. A tier-0 Provider city is supposed to "
+            + "over-supply itself (adr/0170 condition 4); check that oversupplied.toml still states "
+            + "no build_threshold_days.");
 
         for (int day = 0; day < 40; day++)
         {
@@ -346,5 +371,78 @@ public sealed class PoolPriceTests
         }
 
         Assert.Equal(Money.Zero, world.DistrictPools.Price[row]);
+    }
+
+    /// <summary>
+    /// 🔴 Filling the Pool's own Bin moves no price, because a Pool is a market and not a store.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is the defect <see cref="A_glut_walks_the_price_to_nothing"/> used to be written as, kept
+    /// as an assertion so that it cannot come back as a repair.</b> A future author looking for
+    /// somewhere to put a market's inventory has one obviously-shaped place to put it, and it is the
+    /// wrong one: <c>adr/0139</c> spent a record deciding that stock stays with the seller, and the
+    /// Pool's Bin exists to be a wait target and nothing else (<c>adr/0167</c>). ***If this ever fails,
+    /// somebody has made a Pool a store again*** — read <c>adr/0139</c> and <c>adr/0171</c> before
+    /// changing it.
+    /// </remarks>
+    [Fact]
+    public void Depositing_into_the_pools_own_bin_moves_no_price()
+    {
+        var world = new World(2_000, Twinned(), Key);
+
+        SyntheticCity.PopulateInto(world, Key, Ticks.Zero);
+
+        int row = FirstPoolRow(world);
+        int bin = world.Bins.Rows.Resolve(world.DistrictPools.Bin[row]);
+        Money ceiling = world.Rules.ImportCeiling(world.Bins.Resource[bin]);
+
+        world.Deposit(world.DistrictPools.Bin[row], 10_000_000, Ticks.Zero);
+
+        for (int day = 0; day < 40; day++)
+        {
+            world.DistrictPools.Consumed[row] = 1;
+            world.RepriceDistrictPools();
+        }
+
+        Assert.Equal(ceiling, world.DistrictPools.Price[row]);
+    }
+
+    /// <summary>
+    /// The first live market row whose sellers hold more than its ceiling is worth.
+    /// </summary>
+    /// <remarks>
+    /// <b>More than the ceiling, and not merely more than nothing, because that is what makes the
+    /// target zero.</b> The target is <c>ceiling × rate ÷ cover</c> under floor division, so a draw of
+    /// one Day against a cover above the ceiling's own magnitude rounds to nothing. ***A row with one
+    /// unit in it is a market, not a glut***, and waiting for the second condition is what stops this
+    /// test depending on which Tick the first seller happened to open.
+    /// </remarks>
+    private static int GluttedRow(World world)
+    {
+        for (int slot = 0; slot < world.DistrictPools.Rows.SlotCount; slot++)
+        {
+            if (!world.DistrictPools.Rows.IsLive(slot)
+                || !world.Bins.Rows.TryResolve(world.DistrictPools.Bin[slot], out int bin))
+            {
+                continue;
+            }
+
+            if (world.Markets.Stock(world, slot).Held
+                > world.Rules.ImportCeiling(world.Bins.Resource[bin]).Raw)
+            {
+                return slot;
+            }
+        }
+
+        return Rows.NoSlot;
+    }
+
+    private static Ruleset Load(string file)
+    {
+        RulesetLoadResult result = RulesetLoader.Parse(Body(file), file);
+
+        return result.Ruleset
+            ?? throw new InvalidOperationException(
+                $"{file} was refused, so this test cannot run:\n{result.Describe()}");
     }
 }

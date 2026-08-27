@@ -5,6 +5,7 @@ using Borough.Core.Invariants;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Tables;
+using Borough.Core.Space;
 using Borough.Formats;
 
 namespace Borough.Tests.Rules;
@@ -209,70 +210,71 @@ public sealed class MarketLongRunTests(MarketLongRun run) : IClassFixture<Market
     }
 
     /// <summary>
-    /// 🔴 <b>ONE INVARIANT IS VIOLATED, ON ONE WORLD, AND THIS FACT IS AN ALLOWLIST OF EXACTLY THAT
-    /// ONE.</b>
+    /// 🔴 <b>THE STRANDED-WAITER DEFECT IS GONE AND A DIFFERENT MISSED WAKE IS UNDERNEATH IT, SO THIS
+    /// FACT IS AN ALLOWLIST THAT TELLS THE TWO APART.</b>
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Found by this run and by nothing before it.</b> Every earlier horizon on these files stops
-    /// at 32,768 Ticks; the violation first appears at <b>Tick 362,496 on
-    /// <c>oversupplied.toml</c></b>, and <c>provisioned.toml</c> reaches 524,288 clean. ***So the
-    /// acceptance run's whole value is the horizon***, which is the argument for running one at all.
+    /// ✅ <b><c>plans/0003</c> queue item 22 is FIXED and this asserts the fix rather than trusting
+    /// it.</b> A buyer stranded on the market row of a District it had left broke
+    /// <see cref="Invariant.WaiterIsBlockedByTheBinItNames"/> at Tick 362,496 on
+    /// <c>oversupplied.toml</c>; <c>adr/0171</c> has <c>World.EvaluateDistricts</c> sweep every market
+    /// row's queue for waiters whose Rule no longer names it. ***Any violation on a market row's Bin
+    /// fails here***, which is the regression that matters.
     /// </para>
     /// <para>
-    /// 🔴 <b>The defect, read off the world at the Tick it fired.</b> Bin 1652 is a <b>market row's</b>
-    /// Bin — <c>owner = District</c>, <c>sundries</c> — and Rule Instance 754 is a Household's
-    /// <c>restock</c>, asleep on it with a <c>Requirement</c> of <b>zero</b>. The Building it runs in
-    /// stands in <b>District 7</b>, whose sundries row is row <b>8</b>; it is parked on row <b>2</b>,
-    /// which belongs to <b>District 3</b>. ***A District boundary migrated under a sleeping buyer and
-    /// nothing re-homed it.*** Row 2 has three sellers and row 8 has none, so the buyer is asleep in a
-    /// market it has left, waiting on stock it may not have.
+    /// 🔴 <b>What is left is <c>plans/0003</c> queue item 23, and it is not a market defect at all.</b>
+    /// Measured on <c>provisioned.toml</c> at Tick 32,768: bin 1523 is a Household's larder holding
+    /// <b>294</b>, and Rule Instance 725 is asleep on it needing <b>280</b>. ***The Bin never moved and
+    /// the REQUIREMENT came down to meet it*** — 320, then 280, then 240 — because
+    /// <c>RuleEngine.Band</c> derives the application count from a <b>readout</b>, and a readout
+    /// changes with the city rather than with a Bin write. <c>adr/0063</c> made the requirement live
+    /// and nothing re-drains when its input moves.
     /// </para>
     /// <para>
-    /// ⚠ <b>The requirement of zero is a SYMPTOM and not the cause</b>, and reading it as the cause is
-    /// how this gets fixed in the wrong place. <c>RuleEngine.Requirement</c> walks the Rule's terms;
-    /// the <c>pool</c> term now resolves to row 8, so no term names bin 1652 and the walk answers
-    /// nothing. ***The Rule is right and the queue is stale.***
+    /// ⚠ <b>It is PRE-EXISTING and was unmasked rather than caused</b>, which was checked rather than
+    /// assumed: the probe reaches it on <c>provisioned.toml</c> with <c>adr/0171</c> in and does not
+    /// reach it at the commit before. ***A trajectory change is not a cause***, and the readout hole
+    /// is reachable by anything that moves an occupancy.
     /// </para>
     /// <para>
-    /// 🔴 <b>ROUTED AND NOT FIXED HERE</b> ([`adr/0073`], <c>plans/0003</c> queue item <b>22</b>). The
-    /// re-homing is unarguable — <c>adr/0139</c> has a Household buy <em>only</em> from sellers in its
-    /// own District — but <b>where</b> it happens is not: eagerly in
-    /// <c>DistrictWatershed.Migrate</c>, which would make a boundary move cost a wait-list walk, or
-    /// lazily when the Rule next evaluates, which leaves the invariant true only between evaluations.
-    /// That is a design question and it owes a record.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>This fact is an ALLOWLIST and not a suppression.</b> It names the one invariant on the one
-    /// world; a second violation, a different invariant, or the same one on
-    /// <c>provisioned.toml</c> fails here. And on the day the re-homing lands it fails too, because
-    /// the allowlist will be empty and this fact says so — which is the point of writing a known
-    /// defect as an assertion rather than as a comment.
+    /// ⚠ <b>A green here is worth nothing without the horizon, so the horizon is asserted too.</b> The
+    /// same green is produced by a run that no longer reaches Tick 362,496, and a fixture constant is
+    /// one edit away from that at all times. ***The cheapest way to make a defect look fixed is to stop
+    /// looking.***
     /// </para>
     /// </remarks>
     [Fact]
-    public void The_only_invariant_violation_is_the_waiter_a_district_migration_stranded()
+    public void The_only_missed_wake_left_is_the_one_a_readout_shrank()
     {
         foreach (MarketLongRun.Arm world in _run.Worlds)
         {
-            foreach (Violation violation in world.Violations)
+            foreach (MarketLongRun.Broken broken in world.Violations)
             {
                 Assert.True(
-                    world.File == "oversupplied.toml"
-                    && violation.Invariant == Invariant.WaiterIsBlockedByTheBinItNames,
-                    $"{world.File} broke {violation.Invariant} at Tick {violation.Tick.Raw:N0}, row "
-                    + $"{violation.Slot:N0}, other {violation.Other:N0}. The allowlist here is "
-                    + "WaiterIsBlockedByTheBinItNames on oversupplied.toml alone (plans/0003 queue "
-                    + "item 22, a buyer stranded on the market row of a District it has left). This "
-                    + "is something else, and it wants diagnosing rather than adding.");
+                    broken.Violation.Invariant == Invariant.WaiterIsBlockedByTheBinItNames
+                    && !broken.OnAMarketRow
+                    && broken.Requirement > 0,
+                    $"{world.File} broke {broken.Violation.Invariant} at Tick "
+                    + $"{broken.Violation.Tick.Raw:N0}, waiter {broken.Violation.Slot:N0}, bin "
+                    + $"{broken.Violation.Other:N0}, on a market row = {broken.OnAMarketRow}, "
+                    + $"requirement {broken.Requirement:N0}. The allowlist here is queue item 23 "
+                    + "alone -- an ORDINARY Bin whose waiter still wants something it now covers, "
+                    + "because a readout shrank the band under it. A market row's Bin, or a "
+                    + "requirement of zero, is queue item 22 coming back and adr/0171's sweep has "
+                    + "stopped working.");
             }
+
+            Assert.True(
+                world.Readings.Length * MarketLongRun.ReadEvery > 362_496,
+                $"{world.File} stopped short of Tick 362,496, which is where the stranded waiter "
+                + "first appeared. A shorter run is green for the wrong reason.");
         }
 
         Assert.True(
             _run.Worlds.Any(at => at.Violations.Length > 0),
-            "no invariant was violated on either world, so queue item 22 is fixed and this fact is "
-            + "the thing to delete. Check that the run still reaches Tick 362,496 before believing "
-            + "it -- a horizon that shrank would produce the same green.");
+            "no invariant was violated on either world, so queue item 23 is fixed too and this fact "
+            + "is the thing to delete.");
     }
 
     /// <summary>
@@ -466,7 +468,7 @@ public sealed class MarketLongRun
     private const int Population = 2_000;
 
     /// <summary>One reading a Day, which is what <c>[market]</c> reprices on.</summary>
-    private const int ReadEvery = 2_048;
+    internal const int ReadEvery = 2_048;
 
     /// <summary>
     /// The first sixteen Days are the cold start and are not the tail.
@@ -505,7 +507,7 @@ public sealed class MarketLongRun
         var simulation = new Simulation(world, key) { VerifyDecideWritesNothing = false };
 
         List<Reading> readings = [];
-        List<Violation> violations = [];
+        List<Broken> violations = [];
 
         for (int tick = 0; tick < TickCount; tick++)
         {
@@ -527,7 +529,7 @@ public sealed class MarketLongRun
             }
             catch (InvariantViolationException broken)
             {
-                violations.Add(broken.Violation);
+                violations.Add(Classify(world, broken.Violation));
             }
 
             readings.Add(Read(world, trade));
@@ -535,6 +537,25 @@ public sealed class MarketLongRun
 
         return new Arm(
             file, [.. readings], [.. readings[SettleReadings..]], Seen(world, rules), [.. violations]);
+    }
+
+    /// <summary>What kind of missed wake this is, read off the world at the Tick it fired.</summary>
+    private static Broken Classify(World world, Violation violation)
+    {
+        int bin = (int)violation.Other;
+        int waiter = (int)violation.Slot;
+
+        if (violation.Invariant != Invariant.WaiterIsBlockedByTheBinItNames
+            || !world.Bins.Rows.IsLive(bin)
+            || !world.RuleInstances.Rows.IsLive(waiter))
+        {
+            return new Broken(violation, false, -1);
+        }
+
+        return new Broken(
+            violation,
+            world.Markets.PoolRowOf(world, bin) != DistrictMarkets.NoRow,
+            RuleEngine.Requirement(world, waiter, bin, Blocking.Supply));
     }
 
     /// <summary>One Day's reading of everything the four obligations need.</summary>
@@ -683,7 +704,21 @@ public sealed class MarketLongRun
         Reading[] Readings,
         Reading[] Tail,
         HashSet<string> SeenInEvidence,
-        Violation[] Violations);
+        Broken[] Violations);
+
+    /// <summary>
+    /// One violation, plus the two readings that tell <c>plans/0003</c> queue item 22 from item 23.
+    /// </summary>
+    /// <remarks>
+    /// <b>Recorded at the Tick it fired, because neither is recoverable afterwards.</b> A slot is
+    /// recycled and a requirement is derived live, so a test that looked at the world at the end of the
+    /// run would be asking about a different city. ***The two defects are the same invariant and the
+    /// same message***, and what separates them is whether the Bin is a market row's — item 22, a stale
+    /// queue, whose waiter's requirement is therefore <b>zero</b> — or an ordinary Bin whose waiter
+    /// still wants something the Bin now covers, which is item 23.
+    /// </remarks>
+    public readonly record struct Broken(
+        Violation Violation, bool OnAMarketRow, long Requirement);
 
     /// <summary>One Day's reading.</summary>
     public readonly record struct Reading(

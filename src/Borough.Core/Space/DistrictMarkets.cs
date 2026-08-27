@@ -20,6 +20,30 @@ namespace Borough.Core.Space;
 public readonly record struct Offer(int Bin, int Business);
 
 /// <summary>
+/// What a market row's sellers are holding: everything on offer, and the largest single offer.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>Two numbers, because a market that is not a store answers two different questions and this
+/// build answered both with a third quantity that was structurally zero.</b> <c>adr/0139</c> moved
+/// the stock out to the sellers and left the Pool's own Bin empty for ever; three call sites went on
+/// reading a level off <em>something</em>, and each of them read a different something. See
+/// <c>adr/0171</c>, which is the record of what a market's level IS.
+/// </para>
+/// <para>
+/// ⚠ <b><see cref="Held"/> is what the market HOLDS and <see cref="Largest"/> is what it can SERVE,
+/// and substituting either for the other is a defect rather than an approximation.</b>
+/// <c>RuleEngine.Buy</c> takes a whole batch from ONE seller, so a row whose four sellers hold three
+/// units each can serve a batch of three and not a batch of five — the sum says otherwise and would
+/// wake a buyer nobody in that market can fill. Pricing is the opposite case: what a District is
+/// carrying is the sum, and a market of four small sellers is not scarce.
+/// </para>
+/// </remarks>
+/// <param name="Held">The sum of every seller's stock — the cover a price divides by.</param>
+/// <param name="Largest">The biggest single seller's stock — the budget a wake may spend.</param>
+public readonly record struct Offered(long Held, long Largest);
+
+/// <summary>
 /// Where a purchase looks: a District's market row for a Good, and the sellers standing in it.
 /// </summary>
 /// <remarks>
@@ -162,6 +186,50 @@ public sealed class DistrictMarkets
         }
 
         return new Offer(_entries[start + ordinal], _owners[start + ordinal]);
+    }
+
+    /// <summary>What the sellers standing in one market row are holding.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Derived on the ask rather than carried on the row.</b> A seller's Bin moves on every firing,
+    /// so a cached total would be a column whose writer is not on the path that changes it — which is
+    /// exactly the shape <c>DerivedRebuildAuditTests</c> exists to catch. The walk is bounded by the
+    /// sellers in one District's row for one Good, and both callers are rare: a Day-boundary reprice
+    /// and a wake.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>An empty row returns zeroes and that is not the same as no row.</b> A District nobody
+    /// sells that Good in is a shortage, and <see cref="Offered.Largest"/> of zero is what stops a
+    /// wake spending a budget the market has not got.
+    /// </para>
+    /// </remarks>
+    public Offered Stock(World world, int poolRow)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+
+        Ensure(world);
+
+        if (poolRow < 0 || poolRow + 1 >= _starts.Length)
+        {
+            return default;
+        }
+
+        long held = 0;
+        long largest = 0;
+
+        for (int at = _starts[poolRow]; at < _starts[poolRow + 1]; at++)
+        {
+            long level = world.Bins.LevelAt(_entries[at]);
+
+            held += level;
+
+            if (level > largest)
+            {
+                largest = level;
+            }
+        }
+
+        return new Offered(held, largest);
     }
 
     /// <summary>

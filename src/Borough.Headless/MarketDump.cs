@@ -31,14 +31,16 @@ using Borough.Formats;
 /// <c>Bins.LevelAt</c> for it would print a column of zeroes and call it inventory.
 /// </para>
 /// <para>
-/// 🔴 <b>THE PRICE PANEL EXISTS TO REPORT THAT THE PRICE DOES NOT MOVE, AND THAT IS A FINDING RATHER
-/// THAN A DISAPPOINTMENT.</b> <see cref="MarketRuleset.Reprice"/> takes the Pool Bin's
-/// <c>level</c> as its measure of cover — and that is the Bin <c>adr/0139</c> emptied. With
-/// <c>level</c> structurally zero the cover is the rate, the target is the ceiling exactly, and a
-/// price that opens at the ceiling has nowhere to go. ***The damping is live, the writer for
-/// <c>Consumed</c> shipped at task 4, and the price is still pinned*** — see <c>plans/0044</c>
-/// <b>F50</b> and <c>plans/0002</c> §B, where it is routed rather than worked around
-/// (<c>adr/0073</c>).
+/// 🔴 <b>A FLAT PRICE COLUMN IS NOT A FINDING ON ITS OWN, AND IT WAS ONE UNTIL 2026-08-26.</b> The
+/// panel was written to report that no price had ever moved on any world, because
+/// <see cref="MarketRuleset.Reprice"/> took the Pool Bin's own <c>level</c> as its cover and that is
+/// the Bin <c>adr/0139</c> emptied. <c>adr/0171</c> makes the cover
+/// <see cref="Borough.Core.Space.Offered.Held"/> — the sum over the sellers — and the price moves.
+/// ⚠ <b>It still does not move on <c>rulesets/provisioned.toml</c>, and there THAT IS THE MECHANISM
+/// WORKING</b>: a tier-1 city holds under a Day of cover, and a market with less than a Day of supply
+/// prices at its import ceiling because there is nothing to undercut it with. ***The defect and the
+/// correct result print the same digits***, so this panel prints <c>stock</c> and <c>rate/Day</c>
+/// beside the price and says which of the two a reader is looking at.
 /// </para>
 /// <para>
 /// ⚠ <b>It steps its own world</b>, for <c>--money</c>'s reason one further on: a market row is
@@ -224,7 +226,9 @@ internal static class MarketDump
         output.WriteLine(
             "  construction — and the `in the Pool` column is printed to SHOW that rather than to");
         output.WriteLine(
-            "  measure anything, because it is the level MarketRuleset.Reprice takes as its cover.");
+            "  measure anything. It is what MarketRuleset.Reprice took as its cover until adr/0171,");
+        output.WriteLine(
+            "  which is why no price had ever moved on any world; the cover is now the stock column.");
         output.WriteLine(
             "  The ceiling is the MINIMUM [[hinterland]] price across every declared edge (adr/0135),");
         output.WriteLine(
@@ -316,22 +320,58 @@ internal static class MarketDump
             return;
         }
 
+        // ⚠ THE BRANCH IS THE POINT. A flat price column meant a defect until adr/0171 and means
+        // scarcity after it, and the two print identical digits -- so the dump derives which it is
+        // looking at rather than asserting one. A row holding MORE than a Day's cover and still
+        // sitting at its ceiling is the old defect returning, and nothing else would say so.
+        int glutted = 0;
+
+        for (int row = 0; row < world.DistrictPools.Rows.SlotCount; row++)
+        {
+            if (Live(world, row, out _, out _)
+                && world.Markets.Stock(world, row).Held > world.DistrictPools.Rate[row])
+            {
+                glutted++;
+            }
+        }
+
+        if (glutted > 0)
+        {
+            output.WriteLine(
+                "  🔴 NOT ONE PRICE MOVED AND THAT IS A DEFECT REPORT RATHER THAN A QUIET COLUMN:");
+            output.WriteLine(
+                F($"  {glutted:N0} of {printed:N0} rows hold MORE than a Day's cover and are still at"));
+            output.WriteLine(
+                "  the ceiling. A price falls when the sellers' stock outruns the District's daily");
+            output.WriteLine(
+                "  draw (adr/0171), so a glut priced at the import ceiling is the tâtonnement not");
+            output.WriteLine(
+                "  running. Check that [market] states move_cap_percent above zero, then check what");
+            output.WriteLine(
+                "  MarketRuleset.Reprice is being handed as its cover — that is where this last hid.");
+
+            return;
+        }
+
         output.WriteLine(
-            "  🔴 NOT ONE PRICE MOVED, AND THAT IS A DEFECT REPORT RATHER THAN A QUIET COLUMN.");
+            "  No price moved, and on this world that is the mechanism rather than a defect.");
         output.WriteLine(
-            "  MarketRuleset.Reprice measures cover as max(the POOL BIN'S level, the rate) — and that");
+            "  A price OPENS at the import ceiling and falls only where the market holds more than a");
         output.WriteLine(
-            "  is the Bin adr/0139 emptied when it made a Pool a market instead of a store. With the");
+            "  Day's cover — the sellers' stock against the District's daily draw (adr/0171). Every");
         output.WriteLine(
-            "  level structurally zero the cover is the rate, the target is ceiling*rate/rate = the");
+            "  row above is unsold or under a Day, so the ceiling is the honest price: there is");
         output.WriteLine(
-            "  ceiling exactly, and a price that OPENS at the ceiling has nowhere to move to. The");
+            "  nothing in this city to undercut it with.");
+        output.WriteLine();
         output.WriteLine(
-            "  damping is live and Consumed has had a writer since task 4; neither is what is wrong.");
+            "  ⚠ Read the stock and rate/Day columns before reading anything into this one. A flat");
         output.WriteLine(
-            "  ⚠ Read this as the price mechanism being UNBUILT rather than refused (adr/0070): what");
+            "  price was a DEFECT REPORT until 2026-08-26 — the cover was read off the Pool's own");
         output.WriteLine(
-            "  is missing is a measure of cover that a market-not-a-store can supply. plans/0044 F50.");
+            "  Bin, which adr/0139 had emptied — and the defect printed these same digits.");
+        output.WriteLine(
+            "  For a glut, run rulesets/oversupplied.toml: the same file with two keys deleted.");
     }
 
     /// <summary>Panel 3 — who could not afford it, which is the point of the dump.</summary>

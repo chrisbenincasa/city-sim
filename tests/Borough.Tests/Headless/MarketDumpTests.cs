@@ -15,13 +15,12 @@ namespace Borough.Tests.Headless;
 /// shows the market having a consequence for somebody. Everything else here is a refusal or a shape.
 /// </para>
 /// <para>
-/// 🔴 <b><see cref="The_price_does_not_move_and_the_dump_says_so_in_the_table"/> ASSERTS A DEFECT AND
-/// IS MEANT TO GO RED.</b> It pins the two halves of <c>plans/0044</c> <b>F50</b> — the Pool's own Bin
-/// is empty in every row, and that is the level <c>MarketRuleset.Reprice</c> reads as cover — so on
-/// the day somebody gives the reprice a measure of cover a market-not-a-store can supply, this fails
-/// and names what changed. ⚠ <b>It does not assert that a flat price is correct</b>; it asserts that
-/// the price is flat *and* that the input which makes it flat is zero, which is a diagnosis rather
-/// than an expectation.
+/// ✅ <b><see cref="The_price_moves_where_there_is_a_glut_and_holds_at_the_ceiling_where_there_is_not"/>
+/// REPLACED A TEST THAT ASSERTED A DEFECT.</b> Until <c>adr/0171</c> no price had ever moved on any
+/// world, because the cover was read off the Pool's own Bin and <c>adr/0139</c> had emptied it
+/// (<c>plans/0044</c> <b>F50</b>). ⚠ <b>The defect and a correctly scarce market print the SAME
+/// COLUMN</b> — a price flat at the import ceiling — so the replacement runs on two Rulesets and
+/// asserts the difference between them, which is the only thing neither state can fake.
 /// </para>
 /// <para>
 /// ⚠ <b>The third refusal is the one worth a test.</b> Two of them read off a Ruleset table a person
@@ -76,22 +75,40 @@ public sealed class MarketDumpTests
     }
 
     /// <summary>
-    /// 🔴 The price is pinned at the ceiling, and the column that pins it is printed beside it.
+    /// ✅ The price moves where the city has a glut and holds at the ceiling where it has not.
     /// </summary>
     /// <remarks>
-    /// ⚠ <b>THIS TEST EXISTS TO FAIL ONE DAY.</b> It is <c>plans/0044</c> <b>F50</b> written as an
-    /// assertion, and the two clauses are the finding: every price moved zero times, and the Pool's
-    /// own Bin — which is what <c>MarketRuleset.Reprice</c> takes as <c>level</c> — holds nothing in
-    /// every row. A fix makes the first clause false and this test names the second as the reason.
+    /// <para>
+    /// <b>Two worlds, because the finding is the DIFFERENCE and neither half means anything alone.</b>
+    /// <c>rulesets/oversupplied.toml</c> is <c>rulesets/provisioned.toml</c> with two tier-1 keys
+    /// deleted (<c>adr/0170</c> condition 4), so it raises 10 sellers a District where the other raises
+    /// 2 — and ***the diff between the files is the whole demonstration***, for the price exactly as
+    /// for the shop's life.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The scarce half asserts the CAUSE and not merely the flatness.</b> Every row holds no more
+    /// than a Day's cover, which is why the ceiling is the honest price there. ***A row over a Day's
+    /// cover sitting at its ceiling is the old defect returning***, and it is the one shape this has to
+    /// go red on — a test that asserted flatness alone would have passed both before and after
+    /// <c>adr/0171</c>.
+    /// </para>
     /// </remarks>
     [Fact]
-    public void The_price_does_not_move_and_the_dump_says_so_in_the_table()
+    public void The_price_moves_where_there_is_a_glut_and_holds_at_the_ceiling_where_there_is_not()
     {
-        string report = Dump("provisioned.toml");
+        string scarce = Dump("provisioned.toml");
 
-        Assert.Contains("NOT ONE PRICE MOVED", report, Ordinal);
+        foreach (string row in Rows(scarce, "Where the market is"))
+        {
+            string[] cells = Cells(row);
 
-        foreach (string row in Rows(report, "What the price did"))
+            Assert.True(
+                Number(cells[^3]) <= Number(cells[^1]),
+                $"'{row}' holds more than a Day's cover and the price is still flat, which is the "
+                + "cover being taken from the wrong Bin again (adr/0171).");
+        }
+
+        foreach (string row in Rows(scarce, "What the price did"))
         {
             string[] cells = Cells(row);
 
@@ -99,10 +116,33 @@ public sealed class MarketDumpTests
             Assert.Equal("0", cells[^1]);
         }
 
-        foreach (string row in Rows(report, "Where the market is"))
+        Assert.Contains("the mechanism rather than a defect", scarce, Ordinal);
+
+        string glut = Dump("oversupplied.toml");
+
+        long moves = 0;
+        long fell = 0;
+
+        foreach (string row in Rows(glut, "What the price did"))
         {
-            Assert.Equal(0, Number(Cells(row)[^2]));
+            string[] cells = Cells(row);
+
+            moves += Number(cells[^1]);
+
+            if (Number(cells[3]) < Number(cells[2]))
+            {
+                fell++;
+            }
         }
+
+        Assert.True(
+            moves > 0,
+            "no price moved in the over-supplied city, so the tatonnement is not running at all.");
+
+        Assert.True(
+            fell > 0,
+            "prices moved and none of them FELL under a glut, which is the wrong direction and is "
+            + "worse than not moving.");
     }
 
     /// <summary>

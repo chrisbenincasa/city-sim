@@ -117,9 +117,18 @@ public sealed class DistrictPoolTable
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>The denominator of the tâtonnement's cover ratio</b> — how long <see cref="Bin"/>'s level
-    /// would last at the rate the District has recently been drawing. <see cref="MarketRuleset.Smooth"/>
-    /// folds each Day's <see cref="Consumed"/> into it, and the decay is the designer's.
+    /// <b>The denominator of the tâtonnement's cover ratio</b> — how long the row's stock would last at
+    /// the rate the District has recently been drawing. <see cref="MarketRuleset.Smooth"/> folds each
+    /// Day's <see cref="Consumed"/> into it, and the decay is the designer's.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>THE STOCK IS <c>Space.DistrictMarkets.Stock(row).Held</c> AND NOT <see cref="Bin"/>'S OWN
+    /// LEVEL, and this sentence said the latter until 2026-08-26.</b> A Pool is a market and not a
+    /// store (<c>adr/0139</c>), so that Bin is empty in every row of every world — which made the cover
+    /// collapse to this rate, the target the ceiling exactly, and ***no price had ever moved on any
+    /// world.*** <c>adr/0171</c> is the record of what a market's level is. ⚠ <b>The sentence was true
+    /// when it was written</b> and went wrong about its **trigger**, which is <c>adr/0093</c>'s failure
+    /// mode exactly.
     /// </para>
     /// <para>
     /// ⚠ <b>It is a rate and <see cref="Consumed"/> is a bucket, and keeping them apart is deliberate.</b>
@@ -187,7 +196,11 @@ public sealed class DistrictPoolTable
     /// <c>World.CreateDistrictPoolBin</c> where the Ruleset is in hand.
     /// </remarks>
     /// <param name="district">Whose Pool this is.</param>
-    /// <param name="bin">The Bin holding the stock.</param>
+    /// <param name="bin">
+    /// The market row's Bin. ⚠ <b>It holds no stock and never will</b> — a Pool is a market and not a
+    /// store (<c>adr/0139</c>), so this is the wait target a blocked buyer subscribes to and nothing
+    /// else. What the market holds is <c>Space.DistrictMarkets.Stock</c> (<c>adr/0171</c>).
+    /// </param>
     /// <param name="price">What the Good costs on the day the Pool opens.</param>
     public Handle<DistrictPool> Create(Handle<District> district, Handle<Bin> bin, Money price)
     {
