@@ -873,14 +873,25 @@ public sealed class Simulation
 
     /// <summary>Phase 1 — drain the Event Wheel bucket for this Tick.</summary>
     /// <remarks>
+    /// <para>
     /// <b>Serial, and the only phase that takes rows off the Wheel.</b> Slice 7's wheel carries Rule
     /// Instances; slice 9 generalises it to everything else that sleeps, and every Citizen already
     /// carries the <c>next_event_tick</c> it will be bucketed by, declared in slice 4.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The cascade runs first, and the ordering is the coarse wheel's one load-bearing
+    /// requirement.</b> <see cref="EventWheel.Cascade"/> moves a Day's long sleepers down onto the fine
+    /// wheel; a sleep ending at exactly midnight lands in the fine bucket this Tick is about to drain,
+    /// so cascading first fires it on the Tick it was armed for and cascading second loses it for a
+    /// whole further period. ***Reversing these two lines is a silent Day-long delay on one arming in
+    /// 2,048*** — <c>CoarseWheelTests.A_sleep_ending_at_midnight_fires_at_midnight</c> holds it.
+    /// </para>
     /// </remarks>
     private void Wake(Ticks tick)
     {
         _phase = TickPhase.Wake;
 
+        _world.Wheel.Cascade(tick);
         _rules.CollectDue(tick);
     }
 

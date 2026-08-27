@@ -1131,6 +1131,16 @@ public sealed class RulesetLoaderTests
     }
 
     /// <summary>A rate at or beyond the wheel's period would re-arm into the bucket it came off.</summary>
+    /// <remarks>
+    /// ⚠ <b>The period this names is the COARSE wheel's as of <c>plans/0046</c> stage 0, and the
+    /// number moved from 2,048 to 260,096.</b> The claim is unchanged and the refusal is still a wrap
+    /// — what changed is that a rate between a Day and 127 Days now has a tier to live on. That
+    /// mattered: <c>rulesets/provisioned.toml</c>'s <c>rates</c> levy carries a header saying
+    /// <i>rate = 1024 IS HALF A DAY BECAUSE A DAY IS NOT EXPRESSIBLE</i>, and <c>WageEngine</c>
+    /// implements a weekly payday as a modulo over a daily sweep for the same reason. ***Two shipped
+    /// mechanisms had already worked around this line***, which is what <c>plans/0036</c> decision 2
+    /// asked for evidence of.
+    /// </remarks>
     [Fact]
     public void A_rate_that_would_wrap_the_event_wheel_is_refused()
     {
@@ -1146,12 +1156,12 @@ public sealed class RulesetLoaderTests
             [[rule]]
             name   = "bake"
             kind   = "bakery"
-            rate   = {{EventWheel.Size}}
+            rate   = {{EventWheel.CoarseCeilingTicks}}
             apply  = { min = 1, max = 1 }
             inputs = [ { scope = "local", resource = "flour", amount = 6 } ]
             """);
 
-        Assert.Contains("WHEEL_SIZE", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("coarse wheel's period", refusal.Reason, StringComparison.Ordinal);
     }
 
     [Fact]

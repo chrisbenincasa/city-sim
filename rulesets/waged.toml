@@ -32,7 +32,7 @@
 # under it -- which on this world is 3 workers per shopfront and nobody else.
 #
 # ⚠ SO DO NOT READ A HOUSEHOLD BALANCE HERE AS AN INCOME. Measured at 2,000 Citizens over 60 Days,
-# total household money FALLS from ~9.3M to ~0.2M while wages pay ~2.7M into it: the spending is an
+# total household money FALLS from ~9.3M to ~0.15M while wages pay ~2.8M into it: the spending is an
 # order above the earning, because only a dozen Citizens in the city have a paying job at all. The
 # loop is CLOSED and it is NARROW, and those are different claims.
 #
@@ -41,7 +41,7 @@
 # ---------------------------------------------------------------------------------------------------
 # `wage_per_day` is a DAILY RATE and payday moves it times the Days actually worked, so changing
 # `pay_period_days` changes WHEN people are paid and not HOW MUCH. Measured over 60 Days at 2,000
-# Citizens, total wages paid: 2,731,028 at a period of 14; 2,738,256 at 7; 2,914,416 at 1 -- a 7%
+# Citizens, total wages paid: 2,739,220 at a period of 14; 2,756,360 at 7; 2,914,028 at 1 -- a 6%
 # spread across a 14x change in the period, and what moves inside it is the lumpiness.
 #
 # ***That is what makes this file an experiment rather than a demonstration***: change the one key
@@ -66,7 +66,8 @@
 # where a wage is PAID rather than what it is WORTH, and these two keys go.
 #
 # ---------------------------------------------------------------------------------------------------
-# 🔴 ⚠ EVERY FIGURE ABOVE WAS RE-MEASURED ON 2026-08-27 BECAUSE THE PARENT MOVED UNDER THIS FILE.
+# 🔴 ⚠ EVERY FIGURE ABOVE WAS RE-MEASURED TWICE ON 2026-08-27 BECAUSE THE PARENT MOVED UNDER THIS
+# FILE, TWICE, IN TWO DIFFERENT WAYS.
 # ---------------------------------------------------------------------------------------------------
 # This file was authored against a provisioned.toml whose two premises kinds both stated
 # `condemn_after = 4`. Milestone 17 migrated that key to durations (adr/0168) and split the premises
@@ -75,10 +76,19 @@
 # its parent's city, so it inherits the parent's edits to it*** -- and the honest repair was to
 # regenerate this file from the merged parent rather than to translate two keys in place.
 #
-# What moved: household money opens at ~9.3M rather than ~7.8M, wages over 60 Days fall ~2%, and
-# the spread across the three periods narrows from 9% to 7%. ⚠ WHAT DID NOT MOVE IS THE ARREARS
-# CAP at 12,288 -- three workers, one period, one rate -- because that is structural rather than a
-# property of the city, and it is the one figure here a run cannot talk out of.
+# The FIRST was the decline migration above. The SECOND was the coarse day wheel (plans/0046 stage
+# 0) making a one-Day rate expressible, after which the parent's `rates` levy went `rate` 1024 ->
+# 2048 with `amount` 8192 -> 16384 -- the same burden a Day, on a different phase.
+#
+# What moved across both: household money opens at ~9.3M rather than ~7.8M, closes at ~0.15M, and
+# the spread across the three periods narrows from 9% to 6%. ⚠ WHAT DID NOT MOVE, EITHER TIME, IS
+# THE ARREARS CAP at 12,288 -- three workers, one period, one rate -- because that is structural
+# rather than a property of the city, and it is the one figure here a run cannot talk out of.
+#
+# ⚠ THE SECOND RE-MEASUREMENT MOVED THE WAGE TOTALS BY UNDER 1% AND IS STILL WORTH HAVING. A levy
+# on the shop is not a wage, and the phase change reaches a wage only through which shops are
+# solvent on which Day. ***A small movement measured is a different thing from a small movement
+# assumed***, and the file cannot tell you which it was unless somebody runs it.
 #
 # ⚠ THE CLAIMS SURVIVED AND THE DIGITS DID NOT, which is the distinction worth carrying: the loop
 # is still closed and still narrow, the rhythm still moves and the income still does not. A reader
@@ -450,11 +460,36 @@ outputs = [ { scope = "local", resource = "sundries", amount = 8 } ]
 #
 # 🔴 BOTH NUMBERS ARE UNRATIFIED and plans/0002 §D1 holds them.
 #
-# ⚠ `rate = 1024` IS HALF A DAY BECAUSE A DAY IS NOT EXPRESSIBLE. A rate is a reschedule interval and
-# the loader refuses anything at or beyond `WHEEL_SIZE`, which is 2048 -- a rate of exactly one Day
-# would re-arm into the Event Wheel bucket it just came off. So *a daily levy* cannot be written, and
-# the nearest thing that can is twice a day at half the money. ***The burden is the Day's and the
-# period is the wheel's***, which is worth knowing before reading either digit as a design intent.
+# ✅ `rate = 2048` IS ONE DAY, AND IT WAS 1024 UNTIL 2026-08-27 BECAUSE A DAY WAS NOT EXPRESSIBLE.
+# The sentence that stood here said so at length: a rate is a reschedule interval, the loader refused
+# anything at or beyond `WHEEL_SIZE`, and a rate of exactly one Day would re-arm into the Event Wheel
+# bucket it just came off -- so *a daily levy* could not be written and the nearest thing that could
+# was twice a Day at half the money. ***The burden was the Day's and the period was the wheel's.***
+#
+# ⚠ THAT IS A WORKAROUND FOR A MISSING MECHANISM, WRITTEN INTO A DEMONSTRATION FILE AS THOUGH IT WERE
+# A PROPERTY OF THE LEVY. plans/0046 stage 0 built the coarse wheel -- a bucket per Day above the
+# bucket per Tick -- and the bound moved from 2,048 Ticks to 260,096. The levy is now what it always
+# meant to be: once a Day, at the Day's money. ⚠ `amount` DOUBLED with the period, so the burden per
+# Day is unchanged and every measurement in the paragraph below still describes this file.
+#
+# ⚠ WHAT MOVED IS NOT THE MONEY BUT THE PHASE. Twice a Day at half is not once a Day at full for a
+# shop whose balance crosses zero between the two firings.
+#
+# ✅ AND THE ROPE BELOW DID NOT MOVE WITH IT, WHICH IS THE POINT OF THE KEY THAT HOLDS IT. The
+# sentence here read `condemn_after = 4` counts FIRINGS: the rope was 4,096 Ticks and is now 8,192`
+# when this edit was written, and it was true of the file it was written against. Milestone 17 had
+# already re-authored that threshold as a DURATION (adr/0168), so on the merged file the rope is two
+# Days whatever `rate` is, and doubling the cadence bought the shop no extra rope at all.
+#
+# 🔴 ⚠ AND THE PHASE MOVED THE CITY WHILE `--market` PRINTED THE SAME BYTES. Measured 2026-08-27 at
+# 2,000 Citizens over 24,576 Ticks: EVERY State Hash sample differs -- 0x94BA1A8F64406DA9 against
+# 0x4117658A9D60943D at Tick 4,096, and so on at all six -- and the `--market` dump is byte-identical
+# before and after, every column of every row. ***A readout agreeing is not the city agreeing.***
+# The dump shows price, stock, sellers, the daily draw and what each starving Rule waits on; a shop's
+# BALANCE is in none of them, so the one quantity this levy touches is the one quantity not printed.
+# ⚠ That is the amnesty's own complaint arriving inverted: plans/0045 struck "something to look at"
+# because hexadecimal was satisfying it, and here the panel is the reassuring half and the hexadecimal
+# is the half that noticed. Read the two together or neither.
 #
 # ⚠ `amount` IS A SHARE OF A MEASURED REVENUE AND NOT A GUESS, and the measurement is the point.
 # Twenty shopfronts on this file at 2,000 Citizens earn between **5.2 and 62.6 money a Tick**, median
@@ -486,14 +521,26 @@ outputs = [ { scope = "local", resource = "sundries", amount = 8 } ]
 # ***The rope is now stated directly, so retuning `rate` below cannot silently move it*** -- which is
 # adr/0059 and adr/0130's `author the duration, derive the count`, and the whole reason this key
 # changed.
+#
+# 🔴 ✅ AND THEN main DOUBLED `rate` AND WATCHED THE OLD KEY MOVE, ONE COMMIT BEFORE THE TWO MET.
+# The coarse wheel (plans/0046 stage 0) made a one-Day rate expressible, this levy went 1024 -> 2048
+# with `amount` doubled to match, and the paragraph that arrived with it said: ***a slack expressed
+# in occasions moves when the cadence moves***, the rope having gone 4,096 -> 8,192 Ticks for a
+# retune that was meant to change nothing but the phase.
+#
+# ⚠ THAT IS adr/0168's CASE, MADE INDEPENDENTLY AND FROM THE OTHER SIDE. Two sessions on one day
+# reached the same conclusion about the same key -- one by re-authoring it as a duration, one by
+# retuning a rate and reporting the collateral damage -- and neither could see the other. ***A
+# defect observed by the person who tripped over it is worth more than the same defect argued for***,
+# so the observation is kept here rather than dropped as superseded prose.
 # ---------------------------------------------------------------------------------------------------
 [[rule]]
 name    = "rates"
 kind    = "shopfront"
-rate    = 1024
+rate    = 2048
 apply   = { min = 1, max = 1 }
-inputs  = [ { scope = "local",  resource = "money", amount = 8192 } ]
-outputs = [ { scope = "global", resource = "money", amount = 8192 } ]
+inputs  = [ { scope = "local",  resource = "money", amount = 16384 } ]
+outputs = [ { scope = "global", resource = "money", amount = 16384 } ]
 
 [[zone_rule]]
 name          = "housing"

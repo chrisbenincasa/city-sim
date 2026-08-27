@@ -765,12 +765,20 @@ public static class RulesetLoader
                 return 1;
             }
 
-            if (rate < 1 || rate >= Borough.Core.Rules.EventWheel.Size)
+            // ✅ RAISED from WHEEL_SIZE to the coarse wheel's ceiling, plans/0046 stage 0. The old
+            // bound was a Day, so a Ruleset could not state a rule that runs weekly -- which is why
+            // provisioned.toml's `rates` levy carries a header explaining that `rate = 1024` IS HALF A
+            // DAY BECAUSE A DAY IS NOT EXPRESSIBLE, and why WageEngine implements a weekly payday as a
+            // modulo over a daily sweep instead of as an arming. ***Both are workarounds for this
+            // line***, and plans/0036 decision 2 asked whether a multi-Day rate was real demand or
+            // invented. They are the answer: two shipped mechanisms already wanted it.
+            if (rate < 1 || rate >= Borough.Core.Rules.EventWheel.CoarseCeilingTicks)
             {
                 Refuse(LineOf((SyntaxNodeBase?)Find(table, "rate") ?? table), rule,
-                    $"rate {rate} is outside 1..{Borough.Core.Rules.EventWheel.Size - 1}. A rate is a "
-                    + "reschedule interval in Ticks, and one at or beyond WHEEL_SIZE would re-arm "
-                    + "into the Event Wheel bucket it just came off.");
+                    $"rate {rate} is outside 1..{Borough.Core.Rules.EventWheel.CoarseCeilingTicks - 1}"
+                    + " Ticks. A rate is a reschedule interval, and one at or beyond the coarse "
+                    + $"wheel's period ({Borough.Core.Rules.EventWheel.CoarseDays - 1} Days) would "
+                    + "re-arm into the bucket it just came off.");
                 return 1;
             }
 

@@ -492,10 +492,17 @@ public sealed class BinTests
             Walk(world.BuildingRules, buildingSlot));
     }
 
+    /// <summary>Zero is refused, and a whole period is no longer — it is the coarse wheel's.</summary>
+    /// <remarks>
+    /// ⚠ <b><c>WHEEL_SIZE</c> and <c>WHEEL_SIZE + 1</c> were in this theory until <c>plans/0046</c>
+    /// stage 0 and they belong to a tier now.</b> The claim the fine wheel makes is unchanged — a
+    /// delay landing in the bucket being drained is refused — and what changed is which delays do
+    /// that. <see cref="CoarseWheelTests"/> owns the ceiling; this keeps the floor, which is the half
+    /// no tier will ever take, since a delay of zero has nowhere to go on any wheel.
+    /// </remarks>
     [Theory]
     [InlineData(0u)]
-    [InlineData((uint)EventWheel.Size)]
-    [InlineData((uint)EventWheel.Size + 1)]
+    [InlineData((uint)EventWheel.CoarseCeilingTicks)]
     public void The_wheel_refuses_an_arming_that_would_land_in_the_bucket_being_drained(uint delay)
     {
         (World world, Handle<Building> building) = Built();
