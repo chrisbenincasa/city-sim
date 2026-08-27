@@ -301,11 +301,31 @@ outputs = [ { scope = "local", resource = "sundries", amount = 8 } ]
 #
 # 🔴 BOTH NUMBERS ARE UNRATIFIED and plans/0002 §D1 holds them.
 #
-# ⚠ `rate = 1024` IS HALF A DAY BECAUSE A DAY IS NOT EXPRESSIBLE. A rate is a reschedule interval and
-# the loader refuses anything at or beyond `WHEEL_SIZE`, which is 2048 -- a rate of exactly one Day
-# would re-arm into the Event Wheel bucket it just came off. So *a daily levy* cannot be written, and
-# the nearest thing that can is twice a day at half the money. ***The burden is the Day's and the
-# period is the wheel's***, which is worth knowing before reading either digit as a design intent.
+# ✅ `rate = 2048` IS ONE DAY, AND IT WAS 1024 UNTIL 2026-08-27 BECAUSE A DAY WAS NOT EXPRESSIBLE.
+# The sentence that stood here said so at length: a rate is a reschedule interval, the loader refused
+# anything at or beyond `WHEEL_SIZE`, and a rate of exactly one Day would re-arm into the Event Wheel
+# bucket it just came off -- so *a daily levy* could not be written and the nearest thing that could
+# was twice a Day at half the money. ***The burden was the Day's and the period was the wheel's.***
+#
+# ⚠ THAT IS A WORKAROUND FOR A MISSING MECHANISM, WRITTEN INTO A DEMONSTRATION FILE AS THOUGH IT WERE
+# A PROPERTY OF THE LEVY. plans/0046 stage 0 built the coarse wheel -- a bucket per Day above the
+# bucket per Tick -- and the bound moved from 2,048 Ticks to 260,096. The levy is now what it always
+# meant to be: once a Day, at the Day's money. ⚠ `amount` DOUBLED with the period, so the burden per
+# Day is unchanged and every measurement in the paragraph below still describes this file.
+#
+# ⚠ WHAT MOVED IS NOT THE MONEY BUT THE PHASE. Twice a Day at half is not once a Day at full for a
+# shop whose balance crosses zero between the two firings, and `condemn_after = 4` counts FIRINGS: the
+# rope was 4,096 Ticks and is now 8,192.
+#
+# 🔴 ⚠ AND THE PHASE MOVED THE CITY WHILE `--market` PRINTED THE SAME BYTES. Measured 2026-08-27 at
+# 2,000 Citizens over 24,576 Ticks: EVERY State Hash sample differs -- 0x94BA1A8F64406DA9 against
+# 0x4117658A9D60943D at Tick 4,096, and so on at all six -- and the `--market` dump is byte-identical
+# before and after, every column of every row. ***A readout agreeing is not the city agreeing.***
+# The dump shows price, stock, sellers, the daily draw and what each starving Rule waits on; a shop's
+# BALANCE is in none of them, so the one quantity this levy touches is the one quantity not printed.
+# ⚠ That is the amnesty's own complaint arriving inverted: plans/0045 struck "something to look at"
+# because hexadecimal was satisfying it, and here the panel is the reassuring half and the hexadecimal
+# is the half that noticed. Read the two together or neither.
 #
 # ⚠ `amount` IS A SHARE OF A MEASURED REVENUE AND NOT A GUESS, and the measurement is the point.
 # Twenty shopfronts on this file at 2,000 Citizens earn between **5.2 and 62.6 money a Tick**, median
@@ -327,16 +347,20 @@ outputs = [ { scope = "local", resource = "sundries", amount = 8 } ]
 # ⚠ THE SLACK IS `condemn_after = 4`, and it is doing real work here. A shopfront opens at a ZERO
 # balance (adr/0148 instantiates the kind's trade; nothing founds on this file), and it cannot sell
 # until a District exists at `[districts] revisit_ticks` = 2048. So its first levies fail by
-# construction. Four missed firings at 1024 is 4,096 Ticks of rope, which reaches past the watershed
+# construction. Four missed firings at 2048 is 8,192 Ticks of rope, which reaches past the watershed
 # -- and adr/0053's recovery is TOTAL, so the first successful levy clears the clock outright.
+# ⚠ It was 4,096 Ticks while the rate was half a Day; the rope doubled when the period did, because
+# the key counts FIRINGS and not Ticks. ***A slack expressed in occasions moves when the cadence
+# moves***, which is adr/0059's own reason for stating durations rather than counts, arriving here
+# from the other direction.
 # ---------------------------------------------------------------------------------------------------
 [[rule]]
 name    = "rates"
 kind    = "shopfront"
-rate    = 1024
+rate    = 2048
 apply   = { min = 1, max = 1 }
-inputs  = [ { scope = "local",  resource = "money", amount = 8192 } ]
-outputs = [ { scope = "global", resource = "money", amount = 8192 } ]
+inputs  = [ { scope = "local",  resource = "money", amount = 16384 } ]
+outputs = [ { scope = "global", resource = "money", amount = 16384 } ]
 
 [[zone_rule]]
 name          = "housing"

@@ -313,6 +313,14 @@ public sealed class World
             // at the load.
             UnpremisedPool.Rows,
 
+            // Appended, plans/0046 stage 0 -- the coarse wheel's Day buckets, for the reason
+            // Wheel.Buckets.Rows is in this list at all: the ORDER within a bucket is arrival order
+            // and nothing re-derives it, so a reload that rebuilt the membership from every armed
+            // row's next_tick would fire one Day's sleepers in a different sequence. 128 rows, two
+            // int columns, and it moves the State Hash on the commit that adds it because a column
+            // that was not folded now is (adr/0100).
+            Wheel.CoarseBuckets.Rows,
+
             // TreasuryTable is deliberately NOT here, milestone 10 task 1. Both its columns are
             // Derived, and 5a's finding is that a wholly-derived table cannot join this list: Rows.Fold
             // folds the allocator's four scalars BEFORE consulting any column's disposition, so such a

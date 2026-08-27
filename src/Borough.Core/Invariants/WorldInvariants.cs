@@ -1309,6 +1309,53 @@ public static class WorldInvariants
             }
         }
 
+        // The coarse tier, walked separately because the claim about it is a DIFFERENT claim and not
+        // a wider one -- plans/0036 decision 4. Everything here is at least a Day out, so the fine
+        // wheel's window would fail every row; what holds instead is that the row is due on the one
+        // Day its bucket names, which is a 2,048-Tick window somewhere in the next 127 Days.
+        IndexList coarse = world.Wheel.CoarseArmed;
+        long today = IntegerMath.FloorDiv((long)report.Tick.Raw, Ticks.PerDay);
+
+        for (int bucket = 0; bucket < EventWheel.CoarseDays; bucket++)
+        {
+            foreach (int instance in coarse.Walk(bucket))
+            {
+                if (!Tally(seen, instance, instances.Rows, bucket, report))
+                {
+                    return;
+                }
+
+                report.Require(
+                    instances.Blocked[instance] == Blocking.Nothing,
+                    Invariant.WaiterIsQueuedOnTheBinItNames,
+                    instance,
+                    bucket);
+
+                long dueDay = IntegerMath.FloorDiv((long)instances.NextTick[instance].Raw, Ticks.PerDay);
+                long ahead = dueDay - today;
+
+                // Three errors in one expression, and they are the three a coarse bucket can hold: a
+                // row already overdue (ahead < 0 -- the cascade ran past it), a row a whole coarse
+                // period stale (ahead >= CoarseDays, the error the modulus below cannot see), and a
+                // row in the wrong bucket for its Day.
+                //
+                // ⚠ HALF-OPEN AT THE BOTTOM, for the reason the fine wheel's check above is: the Tick
+                // this is handed is the NEXT one to run, because Simulation advances the clock after
+                // running a tier. So at end of run on a Day boundary, today's coarse bucket still
+                // holds today's sleepers -- Cascade has not run for that Tick yet -- and `ahead > 0`
+                // reports a healthy world. It did, on the first long run: provisioned.toml at 2,000
+                // Citizens over 24,576 Ticks, row 1252 in bucket 12 at Tick 24576, which is midnight
+                // of Day 12 exactly. ***The instrument was wrong about the phase and not the wheel***,
+                // and it was written that way because the reasoning behind it was done mid-Day.
+                report.Require(
+                    ahead >= 0 && ahead < EventWheel.CoarseDays
+                        && dueDay % EventWheel.CoarseDays == bucket,
+                    Invariant.ACoarseRowIsDueOnTheDayItsBucketNames,
+                    instance,
+                    bucket);
+            }
+        }
+
         for (int instance = 0; instance < seen.Length; instance++)
         {
             if (instances.Rows.IsLive(instance) && seen[instance] != 1)

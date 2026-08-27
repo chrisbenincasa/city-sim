@@ -1093,4 +1093,32 @@ public enum Invariant
     /// rather than the trunk***, as it did for the ADR numbers and for <c>PurposeTag</c>.
     /// </remarks>
     TerrainIsUnchangedSinceItWasLaid = 55,
+
+    /// <summary>
+    /// A Rule Instance on the <b>coarse</b> wheel is due outside the one Day its bucket names.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The second of the two claims <c>plans/0036</c> decision 4 asked for, and splitting them is
+    /// the whole content of that decision.</b> <see cref="AnArmedRowIsDueWithinOnePeriod"/> says an
+    /// armed row is due within 2,048 Ticks of now; on the coarse wheel that is false by construction,
+    /// since every row there is at least a Day out and may be 127. One claim covering both tiers would
+    /// have had to be the weaker of the two, ***which is the failure mode of merging an invariant: the
+    /// claim that survives is the one that catches less.***
+    /// </para>
+    /// <para>
+    /// <b>What this one says is narrower than the fine wheel's, not looser.</b> A coarse bucket names
+    /// a Day, so the claim is that the row's <c>NextTick</c> falls inside <em>that</em> Day — a
+    /// 2,048-Tick window somewhere in the next 127 Days, rather than a 2,048-Tick window starting now.
+    /// A row whose Day is right and whose bucket is wrong, or whose <c>NextTick</c> has gone stale by
+    /// a whole coarse period, fails it; and the second of those is again the error a modulus cannot
+    /// catch, so this is written in absolute Days.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is checked at the bucket's own Day and not at <c>report.Tick</c></b>, because a coarse
+    /// row's due Day is not reachable from the present one: the walk knows which bucket it is in, and
+    /// that bucket plus the current Day is enough to name the only Day the row may be due on.
+    /// </para>
+    /// </remarks>
+    ACoarseRowIsDueOnTheDayItsBucketNames = 56,
 }
