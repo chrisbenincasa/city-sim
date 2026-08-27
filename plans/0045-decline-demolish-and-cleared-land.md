@@ -24,11 +24,25 @@ supposed to be right.
 | **8** — something to look at | 🟡 **partial** — `--zones` prints shells as `~` and counts them; nothing shows a clearance | `ZoneDump` |
 | **9** — the long acceptance run, and decision 1's measurement | 🟡 **partial** — censuses taken and quoted in the Ruleset headers; **no committed long-run assertion** | — |
 
-🔴 ⚠ **DECISION 1 WAS ANSWERED BY THE CODE RATHER THAN BY THE SITTING, and no ADR records it.**
-`collapses_after_days` is reading **(b)** — *a shell is removed without a player, after a duration* —
-and it shipped inside `dc529a2`, whose subject line is about the threshold's **unit**. ***The decision
-this milestone said it turns on was taken as an implementation detail of a different task.*** It needs
-either an ADR or an explicit demotion, and the measurement task 9 was to settle it with has not run.
+✅ **DECISION 1 IS CLOSED** into [`adr/0170`](../docs/adr/0170-an-abandoned-shell-collapses-on-a-clock-because-a-bound-is-not-a-sink.md)
+— *no, a player is not a sink*, and reading (a) is refuted by measurement. **Read decision 1 below for
+the run that closed it**; this row is a pointer and holds none of it.
+
+> 🔴 ⚠ **THIS PARAGRAPH SAID *no ADR records it* FOR THE WHOLE OF 2026-08-26, AND `adr/0170` HAD ALREADY
+> LANDED IN `93b1af7`.** The decision section was updated and this one was not, so **the plan contradicted
+> itself for four commits** and a reader starting at the Landed table — which is what a Landed table is
+> for — got the stale half. It was read that way twice on the day, once into a session summary and once
+> into a hand-off prompt written for somebody else. ***This is [`plans/0012`](0012-corpus-audit.md)
+> **Cause 1** inside a single document rather than across two***: the copy that stores status drifted,
+> and the copy that stores the *argument* stayed right. **A plan with a status table has two places to
+> update and the table is the one that gets missed**, because the work that closes a decision happens in
+> the section, not in the summary of it.
+
+⚠ **What the closure did NOT settle.** It shipped inside [`dc529a2`](#), whose subject line is about the
+threshold's **unit**, so for a day the decision existed only as code — and the ADR and the measurement
+both came afterwards, ***which is the right order reversed and is kept rather than tidied away.*** **Task
+9 now owes turnover rather than boundedness**: that the built count does not trend to zero, which
+`adr/0006` does not ask and would report healthy.
 
 ⚠ **Task 4 left a debt `adr/0091` had already decided against, and it is filed rather than lived with.**
 That ADR retires `Connect`'s bulldoze flag so there is **one** spelling of *remove a thing* in the Input

@@ -4450,3 +4450,32 @@ kept and re-homed as the reason the *derived* count is what the engine compares.
 ⚠ **It is a sighting of `Cause 4`** — a decision taken from a description of the code, wrong about the
 **trigger** — arriving in the design document rather than in a doc comment. It was found by writing
 `adr/0170` against the same section, which is the only reason anybody looked.
+
+---
+
+**⚠ A plan's status table said a decision had no ADR while the same plan's decision section said it was
+closed — and the stale half escaped into a hand-off written for somebody else.** Found and struck
+2026-08-26 while picking up milestone 17. [`0045`](0045-decline-demolish-and-cleared-land.md)'s
+**Landed** table carried *"DECISION 1 WAS ANSWERED BY THE CODE RATHER THAN BY THE SITTING, and no ADR
+records it"* for four commits after [`adr/0170`](../docs/adr/0170-an-abandoned-shell-collapses-on-a-clock-because-a-bound-is-not-a-sink.md)
+landed in `93b1af7` — closing decision 1 by measurement, in the same session, in the same plan, a
+hundred lines further down.
+
+**Cause 1** at the range the sighting above already named — two sections of one document — so the
+*shape* is not new. **What is new is the exit.** Every earlier sighting stayed inside the corpus until
+somebody re-read it. This one was read out: the stale sentence was copied into a session summary and
+then into a **starter prompt written for a fresh session that would not have the context to doubt it**,
+where it stood as the second of two things *"owed that are not tasks"* and would have sent the next
+reader to write an ADR that already existed. ***A drifted status line is normally a thing a document
+says wrongly; this one became a thing somebody was told to do.***
+
+⚠ **The tell is which half was right.** The section that stored the **argument** — the run, the table,
+the refutation of reading (a) — was correct and current, because closing the decision *is* work done in
+that section. The table that stored the **status** was wrong, because updating it is a separate act
+that buys nothing at the moment you do it. ***A plan that carries both a status table and the argument
+behind it has two places to update and exactly one of them is on the critical path.*** This is the
+argument for a status row being a pointer with no content of its own, which is what it now is.
+
+⚠ **No mechanical check reaches it and none could.** Both halves cite real files, every link opens, and
+`adr/0170` is correctly linked *from the section that was already right*. The contradiction is two
+prose claims about state, which is the class this ledger holds because no test can.
