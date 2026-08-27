@@ -32,7 +32,16 @@ public sealed class CorpusBudgetTests
     private const int OpenQuestionsCeiling = 146_606;
 
     /// <summary>Every markdown file under <c>docs/</c> and <c>plans/</c> on 2026-08-26.</summary>
-    private const int CorpusCeiling = 1_171_820;
+    /// <remarks>
+    /// ⚠ <b>RE-SEEDED 2026-08-27, and the reason is worth carrying.</b> The figure first written here
+    /// was <b>1,171,820</b>, taken at a shell. It became unreproducible within the day: the tree's
+    /// markdown was byte-identical to the commit that set it, and both a shell reading and this test
+    /// then agreed on <b>1,172,148</b>. The likeliest cause is another session holding an uncommitted
+    /// edit at the moment the first reading was taken. ***A ratchet is only as good as the instant its
+    /// baseline was captured***, and a baseline captured over somebody else's working tree is not the
+    /// repository's. Re-seeded from this test's own count against a clean tree.
+    /// </remarks>
+    private const int CorpusCeiling = 1_172_148;
 
     /// <summary>The two directories the corpus ceiling covers.</summary>
     private static readonly string[] Covered = ["docs", "plans"];

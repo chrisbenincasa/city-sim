@@ -130,6 +130,29 @@ public sealed class CommuteEngine
     {
         CitizenTable citizens = _world.Citizens;
 
+        // ⚠ WHERE THEY ARE, and it is checked first because it is the cheapest test here and because
+        // the roster does not know. Departing() and Returning() partition by the Day's PHASE, so both
+        // lists fire on a Citizen wherever they happen to be standing -- and until Activity had a
+        // writer the only observable was a Trip count, in which a journey home from home is a Trip
+        // like any other. Measured on minimal.toml at 2,000 Citizens over one Day: 163 journeys home
+        // from home and 69 to work from work, against 369 honest departures.
+        //
+        // Being in the wrong place is not itself a defect. adr/0081 assigns employment on a cadence,
+        // so somebody hired after their outbound phase has passed meets their HOMEWARD phase first --
+        // 149 were hired during the measured Day. adr/0101 anchors both journeys on the Shift and
+        // says nothing about the Citizen who missed the first one, so they wait for tomorrow morning
+        // rather than being given a journey they never earned.
+        //
+        // A Citizen mid-journey is excluded by the same test, which is the second thing it buys: a
+        // roster phase arriving while somebody is still walking would otherwise start a second Trip
+        // under the first.
+        var standing = (CitizenActivity)citizens.Activity[citizen];
+
+        if (standing != (homeward ? CitizenActivity.AtWork : CitizenActivity.AtHome))
+        {
+            return;
+        }
+
         // Two hops as of milestone 27 task 7: a Workplace is a Business, and a Business sits in
         // premises. An employer with no premises has nowhere to travel to -- a founder before
         // placement (adr/0146, adr/0147) -- and that is a Citizen with a job and no journey rather
