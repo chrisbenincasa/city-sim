@@ -113,7 +113,16 @@ internal static class ZoneDump
         output.WriteLine(
             $"{activity.Triggers.Sum} triggers, {activity.Vacant.Sum} vacant Lots evaluated, "
             + $"{activity.Occupied.Sum} occupied. {activity.Created.Sum} Buildings raised, "
-            + $"{activity.Demolished.Sum} condemned, {activity.Ended.Sum} tenancies ended.");
+            + $"{activity.Demolished.Sum} condemned, {activity.Ended.Sum} tenancies ended, "
+            + $"{activity.Shed.Sum} Occupants shed.");
+
+        // ⚠ SHED AND CONDEMNED ARE THE SAME MECHANISM AT TWO RUNGS, so the pair is the reading and
+        // neither number means much alone. A world where shedding works has the first large and the
+        // second small; declining.toml, which states no first threshold, has the second alone.
+        output.WriteLine(
+            "A shed Occupant is CONTEXT.md → Failure Pressure's first threshold — the Building keeps "
+            + "standing and its Lot stays occupied, which is what makes it different from the "
+            + "condemnation beside it. Read the two together (plans/0045 F9).");
         output.WriteLine(
             $"{world.UnplacedPool.Count} Households are in the Unplaced Pool, waiting for somewhere "
             + "to live. A demolition evicts a Building's whole occupancy; a Zone Rule rehouses one "

@@ -1267,6 +1267,58 @@ public static class RulesetLoader
                     }
                 }
 
+                // THE FIRST THRESHOLD (CONTEXT.md → Failure Pressure). Optional, and absent means a
+                // Building of this kind loses no occupancy on its way down -- which is what every
+                // Ruleset written before milestone 17 task 3 meant.
+                //
+                // ⚠ IT IS REFUSED AT OR ABOVE condemn_after_days, and that relation is the whole of
+                // the check. The premises verdict is taken first, so a first threshold at or past the
+                // second could never fire: abandonment empties the Building before the shedding
+                // rung is ever reached, and the key would load clean and do nothing. ***A key that
+                // can be authored into inertness is a key that will be*** -- adr/0130's reason for
+                // refusing a stated zero, arriving as a relation between two numbers rather than as a
+                // range on one, which is why it cannot be checked where the value is parsed.
+                //
+                // It pairs with the PREMISES key alone, for collapses_after_days' reason: shedding is
+                // a verdict on the premises' own Rules (adr/0141), and a kind whose tenants fail
+                // sheds nothing.
+                int shedsAfterTicks = 0;
+
+                bool statesSheds =
+                    TryInteger(table, "sheds_occupant_after_days", out long sheds, required: false, name);
+
+                if (statesSheds)
+                {
+                    if (sheds <= 0)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "sheds_occupant_after_days") ?? table), name,
+                            $"sheds_occupant_after_days is {sheds}. It is how many Days the premises "
+                            + "may starve continuously before the Building sheds one Occupant, so it "
+                            + "must be positive; omit it for a kind that sheds nobody.");
+                    }
+                    else if (condemnAfterTicks == 0)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "sheds_occupant_after_days") ?? table), name,
+                            $"'{name}' states sheds_occupant_after_days and no condemn_after_days. "
+                            + "Shedding is paced off the premises' Failure Pressure, and a kind with "
+                            + "no decline threshold has no pressure that is ever read — so the "
+                            + "duration would never be consulted. State the threshold that makes it "
+                            + "mean something, or omit this.");
+                    }
+                    else if (InTicks(sheds) >= condemnAfterTicks)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "sheds_occupant_after_days") ?? table), name,
+                            $"sheds_occupant_after_days is {sheds} against a condemn_after_days of "
+                            + $"{declines}. The premises verdict is taken first, so a Building is "
+                            + "abandoned before it could shed anything and this key would load clean "
+                            + "and never fire. It must be strictly shorter than condemn_after_days.");
+                    }
+                    else
+                    {
+                        shedsAfterTicks = InTicks(sheds);
+                    }
+                }
+
                 // The sink for what condemn_after_days creates. REQUIRED of a kind that can be
                 // abandoned and REFUSED of one that cannot, which is adr/0130's disposition for
                 // gives_up_after_days arriving on the other collection abandonment fills.
@@ -1485,6 +1537,7 @@ public static class RulesetLoader
                 {
                     CondemnAfterTicks = condemnAfterTicks,
                     TenancyEndsAfterTicks = tenancyEndsAfterTicks,
+                    ShedsOccupantAfterTicks = shedsAfterTicks,
                     CollapsesAfterDays = collapsesAfterDays,
                     Occupants = occupants,
                     FootprintTiles = footprintTiles,

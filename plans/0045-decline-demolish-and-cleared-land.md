@@ -16,7 +16,7 @@ supposed to be right.
 |---|---|---|
 | **1** — the second threshold stops destroying | 🟢 **done** | `ZoneRuleEngine.Condemn`, `BuildingTable.AbandonedSince` |
 | **2** — the abandoned state | 🟢 **done**, and it is a **column** rather than derived — `AbandonedSince`, `(saved AND hashed)` | `BuildingTable.IsAbandoned` |
-| **3** — the first threshold, occupancy loss | 🔴 **NOT STARTED, AND ITS DEMONSTRATION WORLD CANNOT BE WRITTEN BEFORE IT** — see **F9**; the mechanism creates the only regime that would exercise it | — |
+| **3** — the first threshold, occupancy loss | 🟢 **done, mechanism and world together** — `sheds_occupant_after_days`, paced off the clock rather than the sweep, and it needed a wake path nobody had built (**F10**). **5 condemned per 131,072 Ticks against `declining.toml`'s 392 per 32,768** | `KindDefinition.ShedsOccupantAfterTicks`, `ZoneRuleEngine.Shed`, `World.WakeDerivedApply`, `rulesets/thinned.toml`, `OccupancySheddingTests` |
 | **4** — `Demolish`, the sixth verb | 🟡 **the narrow half is done** — over **abandoned stock only**; an occupied Building is refused by name with compulsory purchase written beside it, which stays blocked on the land value target | `CommandKind.Demolish`, `Simulation.ApplyDemolish`, `DemolishVerbTests` |
 | **5** — the `Govern` clearance programme | 🔴 **not started** | — |
 | **6** — Trips-failing as a second pressure source | 🔴 **not started** | — |
@@ -288,6 +288,64 @@ first thing in this milestone that makes decline reversible by the city.
 (`adr/0052`). ⚠ **And it must be authored BELOW `condemn_after_days`** or the Building is abandoned before
 it can shed anything — which is a constraint between two keys and therefore the loader's, not the
 engine's (`adr/0048`).
+
+---
+
+### F10 — a Rule whose demand is DERIVED had no wake path, and it made the whole rung silently inert
+
+**Found by a test rather than by reading, 2026-08-26, after task 3's mechanism was written and looked
+right.** `adr/0063` makes a wait list wake on **the Bin's state**, and that is every reason a Rule's
+verdict can change — ***except one***. A Rule whose `apply` is `{ derived = ... }` also depends on a
+**Readout**, the count is recomputed only when the Rule is evaluated, and a starving Rule subscribes to
+the Bin and sleeps rather than re-arming on its rate (`adr/0045`). **So nothing anywhere was watching
+the Readout**, and a Rule could sleep for ever waiting on supply it no longer needed.
+
+🔴 **The cost was exactly the mechanism task 3 exists to provide.** Shedding an Occupant lowers a
+derived Rule's demand — to *nothing* at zero occupancy, which is the recovery the whole rung is for —
+and the Building was condemned anyway, because `upkeep` never woke to notice. ***The mechanism was
+correct, complete and unobservable***, which is [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)'s
+shape: the code said what it did and the city did not do it.
+
+**`World.WakeDerivedApply` is the repair**, called once after a shed. ⚠ **Only the SLEEPING instances
+need it, and that is what makes the fix complete rather than partial**: a Rule that is not starving is
+armed on the Wheel and re-evaluates on its rate, picking up the new Readout by itself — so a *rise* in
+occupancy needs no wake at all, and only a *fall*, on a Rule already asleep, is unreachable by any other
+path.
+
+⚠ **The guard is `Blocked != Nothing` and NOT `IsStarving`, and the difference threw an invariant.**
+`StarvedSince` stays stamped until the Rule actually fires again, so an instance already woken still
+reads as starving while being armed — and `EventWheel.Arm` refuses an already-armed instance
+(`Invariant.RuleInstanceIsArmedOrWaiting`). ***The two spellings of "asleep" are not the same set***,
+and the one that matters is the one naming the structure the instance is in.
+
+### What the world shows
+
+`rulesets/thinned.toml` is `declining.toml` plus **three lines**, and the third is the one nobody would
+guess: `sheds_occupant_after_days = 1`; `condemn_after_days` **2 → 8**, which is headroom derived from
+`occupants` rather than tuning; and `upkeep`'s `apply`, `{ min = 1, max = 1 }` → `{ derived =
+"occupancy" }`. 🔴 **Without the third the other two buy nothing** — a fixed `apply` demands the same
+repairs whether four Households live there or none, so shedding does not reduce what the Building needs
+and it is condemned anyway, just later and emptier.
+
+At 1,000 Citizens, same seed, `--zones --no-decide-guard`:
+
+| Ticks | built / abandoned / vacant | condemned | shed |
+|---|---|---|---|
+| 8,192 | 124 / **0** / 10 | **0** | 327 |
+| 32,768 | 124 / **0** / 10 | **1** | 1,988 |
+| 65,536 | 124 / **0** / 10 | **2** | 4,080 |
+| 131,072 | 124 / **0** / 10 | **5** | 8,429 |
+| *`declining.toml`, 32,768* | *—* | ***392*** | *0* |
+
+***The census is flat across a 16× range and `abandoned` is zero at every sample.*** ⚠ **The five are
+the SAMPLE and not the key**: a Zone Rule samples Lots rather than scanning them (`adr/0059`), so one
+unlooked-at for eight Days is condemned on the first look having never been offered the rung below.
+
+🔴 **What the file is NOT.** Nothing in it produces `repairs`, so every Building always starves and the
+steady state is a permanent churn — roughly 8,400 evictions per 131,072 Ticks into a Pool that rehouses
+them into Buildings that immediately start failing again. ***It demonstrates that the mechanism
+terminates and the stock survives, not that this is a city anybody would want***, and **F9** measures
+why the settling version cannot be authored at all.
 
 ---
 

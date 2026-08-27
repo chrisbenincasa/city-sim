@@ -1,5 +1,6 @@
 namespace Borough.Core.Rules;
 
+using Borough.Core.Arithmetic;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
@@ -45,7 +46,8 @@ public readonly record struct ZoneActivity(
     RuleFlow Occupied,
     RuleFlow Created,
     RuleFlow Demolished,
-    RuleFlow Ended)
+    RuleFlow Ended,
+    RuleFlow Shed)
 {
     /// <summary>Lots evaluated over the interval, which is what a trigger is charged for.</summary>
     /// <remarks>
@@ -109,6 +111,7 @@ public sealed class ZoneRuleEngine
     private int _tickCreated;
     private int _tickDemolished;
     private int _tickEnded;
+    private int _tickShed;
 
     private RuleFlow _triggerFlow;
     private RuleFlow _vacantFlow;
@@ -116,6 +119,7 @@ public sealed class ZoneRuleEngine
     private RuleFlow _createdFlow;
     private RuleFlow _demolishedFlow;
     private RuleFlow _endedFlow;
+    private RuleFlow _shedFlow;
 
     /// <param name="world">The tables this sweeps, and the Ruleset it sweeps under. Not copied.</param>
     /// <param name="key">The world seed, as the sample's first coordinate.</param>
@@ -137,7 +141,8 @@ public sealed class ZoneRuleEngine
     public ZoneActivity Drain()
     {
         var activity = new ZoneActivity(
-            _triggerFlow, _vacantFlow, _occupiedFlow, _createdFlow, _demolishedFlow, _endedFlow);
+            _triggerFlow, _vacantFlow, _occupiedFlow, _createdFlow, _demolishedFlow, _endedFlow,
+            _shedFlow);
 
         _triggerFlow = default;
         _vacantFlow = default;
@@ -145,6 +150,7 @@ public sealed class ZoneRuleEngine
         _createdFlow = default;
         _demolishedFlow = default;
         _endedFlow = default;
+        _shedFlow = default;
 
         return activity;
     }
@@ -443,6 +449,19 @@ public sealed class ZoneRuleEngine
             return;
         }
 
+        // THE FIRST THRESHOLD, and it runs here because the premises verdict above did not fire --
+        // so the premises are failing and have not yet been failing long enough to be condemned.
+        // That is exactly CONTEXT.md → Failure Pressure's "past a threshold it loses occupancy; past a
+        // further one it is abandoned", with the further one already handled above.
+        //
+        // ⚠ IT IS A NEGATIVE FEEDBACK LOOP AND THAT IS THE WHOLE POINT. A premises Rule's demand
+        // scales with occupancy -- upkeep's `apply` is `{ derived = "occupancy" }` -- so shedding an
+        // Occupant lowers the demand that caused the shedding. At zero Occupants a derived Rule bands
+        // to (0,0), fires with zero applications and RuleEngine.Fire clears StarvedSince, so the
+        // Building recovers outright and placement can refill it. ***A city that could only ever lose
+        // stock now has a way back***, which is milestone 17's `NO VERDICT` half.
+        Shed(building, kind, definition, tick);
+
         if (endsTenancy == 0)
         {
             return;
@@ -485,6 +504,125 @@ public sealed class ZoneRuleEngine
                 break;
             }
         }
+    }
+
+    /// <summary>
+    /// Thins a failing Building down to the occupancy its pressure has earned, one Occupant per
+    /// multiple of <c>sheds_occupant_after_days</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>The target is DERIVED FROM ELAPSED TIME, so this method holds no state and is idempotent
+    /// within a threshold period.</b> It runs on every sweep that finds the Building failing — every
+    /// <c>[placement] interval</c> Ticks, which is 32 on every shipped Ruleset — and a spelling that
+    /// shed one Occupant per call would empty a dwelling in three sweeps, about ninety Ticks, rather
+    /// than over three Days. ***The pacing has to come from the clock and not from the cadence***,
+    /// which is <c>adr/0059</c>'s <i>author the duration, derive the count</i> arriving at a sink.
+    /// </para>
+    /// <para>
+    /// <b>Measured against the KIND's declared occupancy rather than the current count</b>, which is
+    /// what makes it stateless. Counting down from what is presently there would make the shed count
+    /// depend on how many sweeps happened to land inside the window; counting down from the ceiling
+    /// makes it a pure function of <c>elapsed</c>. ⚠ <b>A Building that placement has not yet filled
+    /// therefore sheds nothing at the first rung</b>, and that is correct: it is already below the
+    /// occupancy its pressure has earned.
+    /// </para>
+    /// <para>
+    /// <b>The clock is NOT reset here, and that is the load-bearing refusal.</b> Resetting it would
+    /// also reset progress toward <see cref="KindDefinition.CondemnAfterTicks"/>, so a kind stating
+    /// both keys would shed for ever and never be condemned — the second threshold would become dead
+    /// code in every world that used the first, and <c>declining.toml</c> would stop demonstrating
+    /// what it exists to demonstrate.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Nothing records WHY these Households were unplaced</b>, for the reason the tenancy walk
+    /// below gives at length: the condemnation trail is a <em>Lot's</em> and names the condition
+    /// behind a demolition, and a Building that sheds is still standing. The channel that carries
+    /// <i>why is this Household unhoused</i> is <c>adr/0130</c>'s.
+    /// </para>
+    /// </remarks>
+    private void Shed(int building, byte kind, in KindDefinition definition, Ticks tick)
+    {
+        ulong sheds = (ulong)definition.ShedsOccupantAfterTicks;
+
+        if (sheds == 0)
+        {
+            return;
+        }
+
+        int instance = Worst(building, tenant: default, sheds, tick);
+
+        if (instance < 0)
+        {
+            return;
+        }
+
+        ulong elapsed = tick.Raw - _world.RuleInstances.StarvedSince[instance].Raw;
+
+        // FloorDiv rather than raw `/`, which BOR0203 refuses: both operands are non-negative here,
+        // so the two agree -- and the lint is about STATING the rounding rather than about this
+        // call's operands, because the next reader cannot see that they are non-negative. One
+        // Occupant leaves at each multiple of the threshold. The subtraction cannot underflow into a
+        // huge target because `sheds` is non-zero and `elapsed >= sheds` -- Worst returned an
+        // instance, which is that test.
+        long gone = IntegerMath.FloorDiv((long)elapsed, (long)sheds);
+        long target = definition.Occupants - gone;
+
+        if (target < 0)
+        {
+            target = 0;
+        }
+
+        // Restarted from the front after every eviction, because World.Unplace removes the Household
+        // from the list being walked -- the tenancy walk below does the same and says why.
+        bool shed = false;
+
+        while (Occupancy(building) > target)
+        {
+            int occupant = Rows.NoSlot;
+
+            foreach (int first in _world.Occupants.Walk(building))
+            {
+                occupant = first;
+                break;
+            }
+
+            if (occupant == Rows.NoSlot)
+            {
+                return;
+            }
+
+            _world.Unplace(_world.Households.Rows.At(occupant));
+            _tickShed++;
+            shed = true;
+        }
+
+        // 🔴 WITHOUT THIS THE WHOLE RUNG IS INERT, and a test rather than a reading found it. A
+        // derived `apply` falls when occupancy does -- that IS the feedback loop -- but the count is
+        // only recomputed when the Rule is evaluated, and a starving Rule is asleep on a Bin rather
+        // than armed on its rate (adr/0045). So `upkeep` slept on supply it no longer needed and the
+        // Building was condemned with nobody left in it.
+        //
+        // ⚠ ONCE, AFTER THE WALK, rather than after each eviction: waking is idempotent in effect
+        // and was not in mechanism -- the second call met an instance this one had already armed,
+        // and EventWheel.Arm refuses that by invariant.
+        if (shed)
+        {
+            _world.WakeDerivedApply(building, tick);
+        }
+    }
+
+    /// <summary>How many Occupants the Building currently holds.</summary>
+    private long Occupancy(int building)
+    {
+        long held = 0;
+
+        foreach (int _ in _world.Occupants.Walk(building))
+        {
+            held++;
+        }
+
+        return held;
     }
 
     /// <summary>
@@ -611,6 +749,7 @@ public sealed class ZoneRuleEngine
         _createdFlow = _createdFlow.Fold(_tickCreated);
         _demolishedFlow = _demolishedFlow.Fold(_tickDemolished);
         _endedFlow = _endedFlow.Fold(_tickEnded);
+        _shedFlow = _shedFlow.Fold(_tickShed);
 
         _tickTriggers = 0;
         _tickVacant = 0;
@@ -618,5 +757,6 @@ public sealed class ZoneRuleEngine
         _tickCreated = 0;
         _tickDemolished = 0;
         _tickEnded = 0;
+        _tickShed = 0;
     }
 }

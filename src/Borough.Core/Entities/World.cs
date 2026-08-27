@@ -5988,6 +5988,73 @@ public sealed class World
         }
     }
 
+    /// <summary>
+    /// Wakes the premises' sleeping Rules whose <c>apply</c> count is derived, because the Readout
+    /// they derive it from has just changed.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b><c>adr/0063</c>'s principle reaching the one input that is not a Bin.</b> A wait list
+    /// wakes on the <em>Bin's</em> state, and that is every reason a Rule's verdict can change —
+    /// except one. A Rule whose <c>apply</c> is <c>{ derived = ... }</c> also depends on a Readout,
+    /// and ***nothing anywhere was watching it***: the count is recomputed only when the Rule is
+    /// evaluated, and a starving Rule subscribes and sleeps rather than re-arming on its rate
+    /// (<c>adr/0045</c>). So a Rule could be asleep waiting for supply it no longer needed.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>Found by a test rather than by reading, and it had made milestone 17 task 3 silently
+    /// inert.</b> Shedding an Occupant lowers a derived Rule's demand to nothing at zero occupancy —
+    /// the whole point of the first threshold — and the Building was condemned anyway, because
+    /// <c>upkeep</c> never woke to notice. ***The mechanism was correct and unobservable***, which is
+    /// the shape <c>adr/0093</c> warns about.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Only the SLEEPING ones need this, and that is what makes the fix complete rather than
+    /// partial.</b> A Rule that is not starving is armed on the Wheel and re-evaluates on its rate,
+    /// picking up the new Readout by itself — so a rise in occupancy needs no wake at all. Only a
+    /// fall, on a Rule already asleep, is unreachable by any other path.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The PREMISES only.</b> A tenant's Rule Instances carry their Household handle and derive
+    /// nothing from the Building's occupancy; waking them would re-arm Rules whose inputs did not
+    /// move.
+    /// </para>
+    /// <para>
+    /// <b>Safe here by the phase order and not by anything this does</b> — see <see cref="Unlink"/>.
+    /// Its caller is <c>ZoneRuleEngine.Shed</c>, which runs in phase 6, after Phase 3 has put every
+    /// due row back.
+    /// </para>
+    /// </remarks>
+    internal void WakeDerivedApply(int buildingSlot, Ticks tick)
+    {
+        foreach (int instance in BuildingRules.Walk(buildingSlot))
+        {
+            if (RuleInstances.Household[instance] != default)
+            {
+                continue;
+            }
+
+            // ⚠ ASLEEP ON A WAIT LIST, which is NOT the same as starving and the difference threw.
+            // StarvedSince stays stamped until the Rule actually fires again, so an instance this
+            // method has already woken still reads as starving while being armed on the Wheel --
+            // and EventWheel.Arm refuses an instance that is already armed
+            // (Invariant.RuleInstanceIsArmedOrWaiting). `Blocked` is the state that answers the
+            // question this method is asking: is anything other than a Bin write going to reach it.
+            if (RuleInstances.Blocked[instance] == Blocking.Nothing)
+            {
+                continue;
+            }
+
+            if (!Rules.Rule(RuleInstances.Rule[instance]).Apply.IsDerived)
+            {
+                continue;
+            }
+
+            Unlink(instance);
+            Wake(instance, tick);
+        }
+    }
+
     /// <summary>Empties both of a Bin's wait lists, for a Bin that is about to stop existing.</summary>
     private void WakeAll(int binSlot, Ticks tick)
     {

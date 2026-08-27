@@ -508,6 +508,54 @@ public readonly record struct KindDefinition(
     public int TenancyEndsAfterTicks { get; init; }
 
     /// <summary>
+    /// How many TICKS the premises may starve continuously before the Building sheds one Occupant.
+    /// Zero means it sheds none, and it must be shorter than <see cref="CondemnAfterTicks"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b><c>CONTEXT.md</c> → Failure Pressure's FIRST threshold, and it is the one that makes
+    /// decline reversible by the city.</b> <i>"Past a threshold it loses occupancy and quality; past a
+    /// further one it is abandoned."</i> The further one is <see cref="CondemnAfterTicks"/> and has
+    /// existed since slice 10; this is the rung below it. ⚠ <b>Quality is deliberately not here</b> —
+    /// it has no column, no term and no definition, so inventing one would put a hash-bearing number
+    /// under a word no ADR defines (<c>plans/0045</c> decision 2).
+    /// </para>
+    /// <para>
+    /// <b>What it buys is a NEGATIVE FEEDBACK LOOP, which is the only one in the build.</b> A premises
+    /// Rule's demand scales with occupancy — <c>upkeep</c>'s <c>apply</c> is
+    /// <c>{ derived = "occupancy" }</c> — so shedding an Occupant <em>lowers the demand that caused
+    /// the shedding</em>. A Building that would have been abandoned instead thins out until it can
+    /// cope, and at zero Occupants a derived Rule bands to <c>(0,0)</c> and fires with zero
+    /// applications, which clears <c>StarvedSince</c> outright. ***So the correction terminates, and
+    /// it terminates at a Building placement can refill rather than at a ruin.***
+    /// </para>
+    /// <para>
+    /// 🔴 <b>THE PACING IS STATELESS AND THAT IS THE DESIGN, not a saving.</b> The target occupancy is
+    /// <c>declared − elapsed / this</c>, so one Occupant goes at each multiple of the threshold and the
+    /// count is a pure function of how long the premises have been failing. **The obvious spelling —
+    /// shed one and reset the clock — was refused**: it also resets progress toward
+    /// <see cref="CondemnAfterTicks"/>, so a kind stating both would shed for ever and never be
+    /// condemned, and the second threshold would become dead code in every world that used the first.
+    /// ⚠ <b>A column recording the last shed was refused for <see cref="Occupants"/>' reason</b> — it
+    /// would be live state pointed at by nothing, where the same fact is already derivable from
+    /// <c>StarvedSince</c>.
+    /// </para>
+    /// <para>
+    /// <b>Shorter than <see cref="CondemnAfterTicks"/>, and the loader enforces it</b>
+    /// (<c>adr/0048</c>): a first threshold at or past the second never fires, because the premises
+    /// verdict is taken first and abandonment empties the Building. ***A key that can be authored into
+    /// inertness is a key that will be***, which is <c>adr/0130</c>'s reason for refusing a stated
+    /// zero arriving as a relation between two numbers rather than a range on one.
+    /// </para>
+    /// <para>
+    /// <b>Authored as <c>sheds_occupant_after_days</c> and held in Ticks</b>, for
+    /// <see cref="CondemnAfterTicks"/>'s reason, and hash-bearing and <b>UNRATIFIED</b>, held in
+    /// <c>plans/0002</c> §D1.
+    /// </para>
+    /// </remarks>
+    public int ShedsOccupantAfterTicks { get; init; }
+
+    /// <summary>
     /// How many Days an abandoned Building of this kind stands before it collapses and its Lot
     /// returns to vacant.
     /// </summary>
