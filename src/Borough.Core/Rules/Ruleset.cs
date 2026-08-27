@@ -1748,6 +1748,17 @@ public readonly record struct MarketRuleset(int DecayPercent, int MoveCapPercent
         else if (step < -cap) step = -cap;
 
         long moved = price.Raw + step;
+
+        // ⚠ ZERO IS THE FLOOR ON PURPOSE and a floor of one was tried and reverted. A Provider selling
+        // into a saturated market earns less than it spent, and bankruptcy is the observable that
+        // tells this market from a decorative one -- plans/0037 decision 4, settled with the user in
+        // the room, and PoolPriceTests.A_glut_walks_the_price_to_nothing asserts it.
+        //
+        // ⚠ A zero price DOES make a buyer's money requirement zero, because RuleEngine.PoolDraw
+        // charges the money leg as `amount x price`. That is not repaired here by refusing the zero:
+        // it is repaired by World.RingEveryMoneyBin, which drains the money Bins whenever a reprice
+        // moves anything, so a buyer whose requirement has changed underneath it is woken rather than
+        // left asleep. ***The price is allowed to reach zero; what is not allowed is nobody noticing.***
         if (moved < 0) moved = 0;
         else if (moved > ceiling.Raw) moved = ceiling.Raw;
         return new Money(moved);

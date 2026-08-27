@@ -4118,6 +4118,8 @@ public sealed class World
     {
         MarketRuleset market = Rules.Market;
 
+        bool anyPriceMoved = false;
+
         for (int row = 0; row < DistrictPools.Rows.SlotCount; row++)
         {
             if (!DistrictPools.Rows.IsLive(row)
@@ -4131,11 +4133,75 @@ public sealed class World
             DistrictPools.Rate[row] = rate;
             DistrictPools.Consumed[row] = 0;
 
+            Money was = DistrictPools.Price[row];
+
             DistrictPools.Price[row] = market.Reprice(
-                DistrictPools.Price[row],
+                was,
                 Rules.ImportCeiling(Bins.Resource[bin]),
                 Markets.Stock(this, row).Held,
                 rate);
+
+            anyPriceMoved |= DistrictPools.Price[row] != was;
+        }
+
+        if (anyPriceMoved)
+        {
+            RingEveryMoneyBin();
+        }
+    }
+
+    /// <summary>
+    /// Drains every money Bin's supply queue after a price has moved, because a price move changes
+    /// what a sleeping buyer needs without touching the Bin it is sleeping on.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b><c>adr/0063</c> wakes a wait list on the BIN's state, and a purchase's money leg is
+    /// priced live.</b> <c>RuleEngine.PoolDraw</c> charges the money leg as
+    /// <c>amount × the row's price</c>, so a buyer asleep on its own money Bin has a requirement that
+    /// moves whenever the market reprices — ***the Bin never moved and the requirement came down to
+    /// meet it***, and nothing re-drains when that happens. Sighted on
+    /// <c>rulesets/oversupplied.toml</c> at Tick 21,249: Rule Instance 865 asleep on bin 661 holding
+    /// <b>351</b> against a requirement of <b>344</b>, which it could afford and never woke to spend.
+    /// </para>
+    /// <para>
+    /// <b>This is the same hole <c>World.WakeDerivedApply</c> closed for a readout, one input over.</b>
+    /// Milestone 17 found that a Rule whose <c>apply</c> is derived depends on something other than a
+    /// Bin and needs a wake path of its own; a Rule with a <c>pool</c> term depends on a <em>price</em>
+    /// in exactly the same way. ***A live-derived requirement needs a wake path per input, and the
+    /// price was the input nobody had written one for.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Money Bins only, and that is derived rather than a narrowing for speed.</b> The Good leg
+    /// of a purchase parks the buyer on the market row's Bin and costs <c>floor × amount</c>, with no
+    /// price in it — so a reprice cannot change that requirement and a drain there would be a walk
+    /// with nothing to find. Only the money leg carries the price.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A drain and not a <c>WakeAll</c>.</b> <see cref="Drain(int, Blocking, Ticks)"/> wakes only
+    /// waiters the Bin can now cover, so a buyer whose price fell but still cannot afford it stays
+    /// asleep and <c>02 §4.1</c>'s <em>a starved District costs nothing until supply arrives</em> is
+    /// untouched.
+    /// </para>
+    /// <para>
+    /// <b>Gated on a price having actually moved</b>, which is most Days nothing: every shipped world
+    /// but the Provider Rulesets prices at the ceiling for ever, so this walk does not run at all on
+    /// them. Where it does run it is one queue walk per money Bin on the <c>[market]</c> cadence.
+    /// </para>
+    /// </remarks>
+    private void RingEveryMoneyBin()
+    {
+        if (!TryMoneyResource(out ResourceId money))
+        {
+            return;
+        }
+
+        for (int bin = 0; bin < Bins.Rows.SlotCount; bin++)
+        {
+            if (Bins.Rows.IsLive(bin) && Bins.Resource[bin] == money)
+            {
+                Drain(bin, Blocking.Supply, Tick);
+            }
         }
     }
 
