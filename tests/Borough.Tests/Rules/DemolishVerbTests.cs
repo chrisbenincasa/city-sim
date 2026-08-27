@@ -28,7 +28,7 @@ namespace Borough.Tests.Rules;
 /// </para>
 /// <para>
 /// <b>This is not the sink and does not claim to be.</b> A shell falls on its own after
-/// <c>[[building]] collapses_after_days</c> (<c>adr/0170</c>) — a player is not a sink, and the
+/// <c>[[building]] collapses_after_days</c> (<c>adr/0172</c>) — a player is not a sink, and the
 /// measurement that settled it is a city that dies with every invariant green. What this verb buys is
 /// the Lot back sooner.
 /// </para>
@@ -273,9 +273,9 @@ public sealed class DemolishVerbTests
     /// The shell falls on its own clock, and the verb only makes it sooner.
     /// </summary>
     /// <remarks>
-    /// <b>The control for <c>adr/0170</c>, stated as a test rather than left in the ADR.</b> Both
+    /// <b>The control for <c>adr/0172</c>, stated as a test rather than left in the ADR.</b> Both
     /// cities end with the Lot vacant; what differs is when. ⚠ <b>If this ever fails by the clock
-    /// stopping, the verb has become the sink</b> — and the measurement in `adr/0170` is what that
+    /// stopping, the verb has become the sink</b> — and the measurement in `adr/0172` is what that
     /// costs: a city that dies with `adr/0006` green from end to end.
     /// </remarks>
     [Fact]

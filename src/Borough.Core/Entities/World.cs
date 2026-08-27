@@ -2284,6 +2284,109 @@ public sealed class World
         // fitting first would open Bins for rows that are about to die and then leave the heir short.
         // FitTreasury's own rule, meeting a table that changes shape underneath it.
         FitDistrictPools();
+
+        // Last, because it is the only line here that needs every row to exist and every membership
+        // to be settled.
+        RingEveryMarket();
+    }
+
+    /// <summary>
+    /// Drains every market row's wait list, because a boundary evaluation may have moved the ground
+    /// under a sleeping buyer.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>Without this a Household is stranded asleep on the market row of a District it has
+    /// left</b>, and <see cref="Invariants.Invariant.WaiterIsBlockedByTheBinItNames"/> fires. A buyer
+    /// short of a pooled Good parks on the market row's Bin (<c>adr/0167</c>); its Building's District
+    /// then changes under it; its <c>pool</c> term now resolves to a different row, so no term names
+    /// the Bin it is asleep on and nothing will ever wake it there on its own account.
+    /// <c>plans/0044</c> <b>F53</b> is the sighting — Tick 362,496 on <c>rulesets/oversupplied.toml</c>,
+    /// reached by no shorter run in this repository.
+    /// </para>
+    /// <para>
+    /// <b>EVERY row, unconditionally, rather than the Districts the evaluation touched.</b> Membership
+    /// changes in four places in <c>DistrictWatershed.Evaluate</c> and only one of them is
+    /// <c>Migrate</c> — a Cell whose incumbent District is dying moves for free, and a newly built Cell
+    /// is filed into a District without moving at all. ***A conditional ring would have to be right
+    /// about all four, and the two that are not <c>Migrate</c> are the two a reader forgets.*** The
+    /// walk is one row per Good per District, on the <c>[districts]</c> cadence, behind a whole-map
+    /// flood that has just run — so being exact here would cost more reasoning than it saves work.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>THE SWEEP LOOKS ANYWHERE IN THE QUEUE AND A DRAIN FROM THE HEAD IS NOT ENOUGH, WHICH WAS
+    /// MEASURED RATHER THAN REASONED TO.</b> A stranded waiter parked *behind* a legitimately blocked
+    /// one is invisible to <see cref="Drain(int, Blocking, Ticks)"/>, which stops at the first waiter
+    /// its budget cannot cover, and invisible to the invariant, which is narrowed to the head — ***until
+    /// the waiter in front of it wakes, at which point it becomes the head and the invariant fires.***
+    /// Ringing from the head alone moved the violation from Tick 362,496 on <c>oversupplied.toml</c> to
+    /// Tick <b>32,768</b> on <c>provisioned.toml</c>, which had been clean.
+    /// </para>
+    /// <para>
+    /// <b>A requirement of zero IS the test for stranded, and it is the invariant's own.</b>
+    /// <c>RuleEngine.Requirement</c> walks the Rule's terms against this Bin; zero means no term names
+    /// it, which for a market row means the Rule's <c>pool</c> term now resolves somewhere else.
+    /// ***The Rule is right and the queue is stale***, so the waiter is removed and re-armed rather
+    /// than being counted as unsatisfiable.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The sweep is not a <c>WakeAll</c> and the two must not be confused.</b> It wakes only
+    /// waiters whose Rule has stopped naming this Bin; a Household genuinely short of sundries in a
+    /// market that has none stays asleep, and <c>02 §4.1</c>'s <em>a starved District costs nothing
+    /// until supply arrives</em> is untouched.
+    /// </para>
+    /// <para>
+    /// <b>The drain that follows is a second thing, not the same thing.</b> A boundary move changes
+    /// <em>which sellers a row has</em> as well as which buyers — a shop migrating into a District is
+    /// stock arriving with no deposit to announce it, and nothing else in the design would ring for it.
+    /// </para>
+    /// </remarks>
+    private void RingEveryMarket()
+    {
+        for (int row = 0; row < DistrictPools.Rows.SlotCount; row++)
+        {
+            if (!DistrictPools.Rows.IsLive(row)
+                || !Bins.Rows.TryResolve(DistrictPools.Bin[row], out int bin))
+            {
+                continue;
+            }
+
+            // The sweep, and it is ANYWHERE IN THE QUEUE rather than at the head. A stranded waiter
+            // behind a legitimately blocked one is invisible to a drain and invisible to the invariant
+            // -- until the waiter in front of it wakes, at which point it becomes the head and the
+            // invariant fires. That is measured: ringing from the head alone moved the violation from
+            // Tick 362,496 on oversupplied.toml to Tick 32,768 on provisioned.toml rather than
+            // removing it.
+            //
+            // One removal per pass, re-walking each time, because Remove clobbers the node's own next
+            // and a walk cannot outlive it. Strandings per evaluation are bounded by how many Cells a
+            // boundary may move, so the re-walk is not the shape it looks like.
+            while (true)
+            {
+                int stranded = Rows.NoSlot;
+
+                foreach (int waiter in SupplyWaiters.Walk(bin))
+                {
+                    if (RuleEngine.Requirement(this, waiter, bin, Blocking.Supply) == 0)
+                    {
+                        stranded = waiter;
+                        break;
+                    }
+                }
+
+                if (stranded == Rows.NoSlot)
+                {
+                    break;
+                }
+
+                SupplyWaiters.Remove(bin, stranded);
+                Wake(stranded, Tick);
+            }
+
+            // And then the ordinary wake, because a boundary move also changes WHICH sellers a row
+            // has: a shop migrating into a District is stock arriving with no deposit to announce it.
+            Drain(bin, Blocking.Supply, Tick);
+        }
     }
 
     /// <summary>
@@ -3977,9 +4080,19 @@ public sealed class World
     /// <para>
     /// <b>One pass over <c>DistrictPools</c>, and the whole market is one column read and one written.</b>
     /// For each row: fold the Day's <see cref="Space.DistrictPoolTable.Consumed"/> into the standing
-    /// <see cref="Space.DistrictPoolTable.Rate"/>, zero the bucket, and reprice from the Bin's level
-    /// against that rate — <see cref="MarketRuleset.Reprice"/> holds the arithmetic and the argument
-    /// for it.
+    /// <see cref="Space.DistrictPoolTable.Rate"/>, zero the bucket, and reprice from what the row's
+    /// sellers are holding against that rate — <see cref="MarketRuleset.Reprice"/> holds the arithmetic
+    /// and the argument for it.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>The cover is <see cref="Space.Offered.Held"/> and it read the Pool Bin's own level until
+    /// 2026-08-26, which is why NO PRICE HAD EVER MOVED ON ANY WORLD.</b> <c>adr/0139</c> made a Pool
+    /// a market and not a store, so that Bin is empty in every row of every Ruleset by construction;
+    /// with the level zero the cover collapses to the rate, the target is
+    /// <c>ceiling × rate ÷ rate</c> = the ceiling exactly, and a price that <em>opens</em> at the
+    /// ceiling has nowhere to go. ⚠ <b>The mechanism was not inert and the damping was not wrong</b> —
+    /// both were live and correct, and the one broken thing was the quantity handed in. <c>adr/0171</c>
+    /// is the record of what a market's level is; <c>plans/0044</c> <b>F50</b> is the sighting.
     /// </para>
     /// <para>
     /// ⚠ <b>The bucket is zeroed even when <c>[market]</c> is absent.</b> A file with no damping still
@@ -3995,11 +4108,10 @@ public sealed class World
     /// changes that, and it is task 7's purchase rather than this.
     /// </para>
     /// <para>
-    /// 🔴 <b>It is correct and it is inert, on every Ruleset that exists.</b> Nothing writes
-    /// <see cref="Space.DistrictPoolTable.Consumed"/> while <c>Scope.Pool</c> throws, so every rate is
-    /// zero, <see cref="MarketRuleset.Reprice"/> reads that as *no trades*, and every price stays at
-    /// the ceiling it opened at. <b>Task 7 is the writer</b>, and the price has to exist before a
-    /// purchase can settle at one.
+    /// ⚠ <b>A rate of zero still keeps the standing price, and that is <see cref="MarketRuleset.Reprice"/>'s
+    /// decision rather than this loop's.</b> No trades is an absence of information; a Ruleset in which
+    /// nothing buys therefore prices at the ceiling for ever, which is every shipped world except the
+    /// Provider Rulesets.
     /// </para>
     /// </remarks>
     internal void RepriceDistrictPools()
@@ -4022,7 +4134,7 @@ public sealed class World
             DistrictPools.Price[row] = market.Reprice(
                 DistrictPools.Price[row],
                 Rules.ImportCeiling(Bins.Resource[bin]),
-                Bins.LevelAt(bin),
+                Markets.Stock(this, row).Held,
                 rate);
         }
     }
@@ -5342,6 +5454,26 @@ public sealed class World
     {
         Citizens.LastTripFate[citizenSlot] = (byte)fate;
 
+        // The Activity half, added 2026-08-26 with CitizenActivity. It is decided from the value
+        // already standing rather than from an argument, because this is the choke point four call
+        // sites converge on and none of them knows which direction the journey was in -- but the
+        // Citizen does, because CommuteEngine wrote it before the journey started.
+        //
+        // A journey that did not complete leaves them where they set off from. That is the honest
+        // reading and not a fallback: NoRouteFound and ExceededCommuteBudget are both resolved
+        // inside TripEngine.Start, before anybody has moved.
+        bool arrived = fate == Movement.TripFate.Completed;
+
+        Citizens.Activity[citizenSlot] = (byte)((CitizenActivity)Citizens.Activity[citizenSlot]
+            switch
+            {
+                CitizenActivity.TravellingToWork =>
+                    arrived ? CitizenActivity.AtWork : CitizenActivity.AtHome,
+                CitizenActivity.TravellingHome =>
+                    arrived ? CitizenActivity.AtHome : CitizenActivity.AtWork,
+                CitizenActivity other => other,
+            });
+
         // Days, not Ticks: CitizenTable.LastTripEndedDay carries why, and it is a memory argument
         // rather than a precision one. FloorDiv because 05 §4's lint 3 bans the raw operator, and the
         // quotient IS the answer here rather than something thrown away.
@@ -5590,7 +5722,11 @@ public sealed class World
             return;
         }
 
-        Drain(market, Blocking.Supply, tick, Bins.LevelAt(binSlot));
+        // ⚠ NOT `Bins.LevelAt(binSlot)`, which is what it spent until 2026-08-26. The budget is what
+        // the MARKET can serve and not what this one seller just deposited: a buyer needing five, with
+        // a neighbour holding ten, was left asleep by an arrival of three -- and the neighbour's own
+        // deposit had rung the queue before that buyer joined it. adr/0171.
+        Drain(market, Blocking.Supply, tick);
     }
 
     /// <summary>
@@ -5943,24 +6079,10 @@ public sealed class World
     /// queue the waiter had not yet joined.
     /// </para>
     /// </remarks>
-    internal void Drain(int binSlot, Blocking blocking, Ticks tick) =>
-        Drain(
-            binSlot,
-            blocking,
-            tick,
-            blocking == Blocking.Supply ? Bins.LevelAt(binSlot) : Bins.SpaceAt(binSlot));
-
-    /// <summary>
-    /// <see cref="Drain(int, Blocking, Ticks)"/> against a budget the Bin itself does not hold.
-    /// </summary>
-    /// <remarks>
-    /// <b>One caller, and it is the only Bin in the design whose own state does not answer the
-    /// question</b> — a District's market row, which is a price and a wake target rather than a store
-    /// (<c>adr/0139</c>). See <see cref="RingMarket"/>. Everything else about the walk is unchanged,
-    /// including the spend-down, which is what bounds size bias.
-    /// </remarks>
-    private void Drain(int binSlot, Blocking blocking, Ticks tick, long budget)
+    internal void Drain(int binSlot, Blocking blocking, Ticks tick)
     {
+        long budget = Budget(binSlot, blocking);
+
         IndexList waiters = Waiters(blocking);
 
         long remaining = budget;
@@ -6053,6 +6175,50 @@ public sealed class World
             Unlink(instance);
             Wake(instance, tick);
         }
+    }
+
+    /// <summary>
+    /// What a Bin may spend on waking the queue it heads.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Almost always the Bin's own state, and the exception is the one Bin in the design whose own
+    /// state does not answer the question</b> — a District's market row, which is a price and a wake
+    /// target rather than a store (<c>adr/0139</c>). <c>adr/0171</c> is the record of what it answers
+    /// with instead, and of the three call sites that each guessed differently before it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is <see cref="Space.Offered.Largest"/> and not <see cref="Space.Offered.Held"/>, because
+    /// <c>RuleEngine.Buy</c> takes a whole batch from ONE seller.</b> A row of four sellers holding
+    /// three units each can serve a batch of three and not a batch of five; spending the sum would wake
+    /// a buyer nobody in that market can fill, which costs an evaluation and re-parks it. ***The price
+    /// divides by the sum and the wake spends the maximum, and they are different questions about the
+    /// same shelf.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>ONE ARRAY READ BEFORE THE INDEX IS CONSULTED, and it is not a micro-optimisation</b> —
+    /// <see cref="RingMarket"/>'s own reason, arriving one level down. Every Bin write in the city
+    /// drains, and <c>DistrictMarkets</c> may REBUILD on a query; asking the Bin its owner kind first
+    /// keeps that rebuild on the market's path rather than on every larder's.
+    /// </para>
+    /// </remarks>
+    private long Budget(int binSlot, Blocking blocking)
+    {
+        if (blocking != Blocking.Supply)
+        {
+            return Bins.SpaceAt(binSlot);
+        }
+
+        if (Bins.OwnerKind[binSlot] != BinOwnerKind.District)
+        {
+            return Bins.LevelAt(binSlot);
+        }
+
+        int row = Markets.PoolRowOf(this, binSlot);
+
+        return row == Space.DistrictMarkets.NoRow
+            ? Bins.LevelAt(binSlot)
+            : Markets.Stock(this, row).Largest;
     }
 
     /// <summary>Empties both of a Bin's wait lists, for a Bin that is about to stop existing.</summary>

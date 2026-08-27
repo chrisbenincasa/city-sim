@@ -16,30 +16,41 @@ using Borough.Core.Tables;
 /// <c>MoneySupply.Issued</c>. ***The money is neither destroyed nor confiscated; it is exported.***
 /// </para>
 /// <para>
-/// 🔴 ⚠ <b>IT SHIPS WITH ONE EXIT AND THAT EXIT IS THE SINK.</b> Nothing tenants a Business, because
-/// nothing <em>creates</em> one — <c>World.CreateBusiness</c> has no <c>src/</c> caller and milestone
-/// <b>27 task 8</b> is the first pass that would. So a Business that enters this pool today leaves it
-/// only by giving up. ***That is the collection being bounded, not the mechanism being finished***:
-/// <c>adr/0142</c>'s *"a pool plus a placement pass is what not auto-tenanting looks like"* describes
-/// two halves and this is the one <c>adr/0006</c> requires first. The placement half is <b>unbuilt</b>
-/// (<c>adr/0070</c>), and the day it lands it draws from the same sample this pool is already swept
-/// by.
+/// 🔴 ⚠ <b>IT HAS TWO EXITS AND ONLY ONE OF THEM IS GUARANTEED, and this paragraph said it had one
+/// until 2026-08-26.</b> It read <em>"IT SHIPS WITH ONE EXIT AND THAT EXIT IS THE SINK. Nothing
+/// tenants a Business, because nothing creates one — <c>World.CreateBusiness</c> has no <c>src/</c>
+/// caller"</em>, which was true when it was written and was falsified by milestone 27's placement pass
+/// (<c>adr/0147</c>) and founding channel (<c>adr/0145</c>). <c>CreateBusiness</c> has **two**
+/// production callers and <see cref="Rules.PlacementEngine"/> premises pool members into any standing
+/// Building with room. ⚠ <b>It is <c>adr/0093</c>'s shape exactly — right about where to look, wrong
+/// about the trigger</b>, and <c>plans/0012</c> is where it was filed.
 /// </para>
 /// <para>
-/// <b>TWO columns, against the Unplaced Pool's four, and each absence is a decision.</b>
-/// <c>Gate</c> is absent because a Business has no arrival door: a Household carries a balance in
-/// from its Hinterland's band, and what capitalises a Business is <em>unanswered</em> and owed a
-/// ratifier (<c>plans/0002</c> §D2, milestone 27 task 8). ***A column meaningless for every one of its
-/// rows is worse than one meaningless for half of them***, which is the argument <see cref="UnplacedTable"/>
-/// already makes against a lifetime column, one step further along.
+/// 🔴 <b>WHY THAT ONE MATTERED MORE THAN A STALE COMMENT: it named the wrong sink.</b> A reader sizing
+/// <c>adr/0006</c> off it would conclude the pool drains only by emigration, and ***in every world that
+/// exists the exit it denied is the only one that has ever fired*** — 7,165 premisings against
+/// <b>zero</b> give-ups over 131,072 Ticks on <c>rulesets/founded.toml</c>. <b>The bound is still
+/// required and is not weakened by this</b>: tenanting drains the pool only while vacant premises
+/// exist, so it is the city cooperating rather than a bound, and <c>adr/0142</c>'s give-up is the exit
+/// that holds when it does not.
 /// </para>
 /// <para>
-/// <b><c>Considered</c> is absent for that column's OWN stated reason, used in reverse.</b> It counts
-/// premises actually looked at, and nothing looks at premises on a Business's behalf — so the counter
-/// would read identically zero in every world, for ever. Its remark on the Unplaced Pool is that a
-/// counter which cannot read zero in its headline case is measuring the mechanism rather than the
-/// city; ***a counter that can read NOTHING BUT zero is not measuring at all.*** It arrives with the
-/// placement pass that gives it something to count.
+/// 🔴 <b>THREE columns, against the Unplaced Pool's four, and this paragraph counted TWO and named the
+/// wrong absence until 2026-08-26.</b> It said <em>"<c>Gate</c> is absent because a Business has no
+/// arrival door"</em> — and <see cref="Gate"/> is right there, allocated by this constructor, holding
+/// the gate a Business arrived through or <c>default</c> if it was founded here. ***A doc comment that
+/// enumerates a table's columns is a second copy of the constructor***, which is the thing
+/// <c>CLAUDE.md</c> warns about arriving inside one file, and it is why this now describes what each
+/// column is FOR rather than counting them.
+/// </para>
+/// <para>
+/// <b>The one genuine absence is <c>Considered</c>, and its stated reason has expired.</b> It was
+/// absent because <em>"nothing looks at premises on a Business's behalf — so the counter would read
+/// identically zero in every world, for ever"</em>. <c>PlacementEngine.Tenant</c> now looks at
+/// <c>[placement] candidates</c> premises per seeker, so the counter would read something. ⚠ <b>The
+/// column is still not here, and that is now an open question rather than a settled absence</b> —
+/// <c>plans/0002</c> §B. ***An absence whose argument has expired is not the same as an absence
+/// somebody re-decided***, and recording which of the two this is was the whole of the debt.
 /// </para>
 /// <para>
 /// <b>Density, the swap-with-last in <see cref="Leave"/>, the LIFO dependency in <see cref="Join"/>,

@@ -15,6 +15,85 @@ inherits from [`0037`](0037-goods-between-buildings-the-district-pool.md) tasks 
 
 ## Status
 
+🟢 **TASK 10 LANDED 2026-08-26 — MILESTONE 26 IS TEN OF TEN.** The three ledger debts are
+discharged and ***every one of them was larger than its entry said***. `plans/0003` queue item 17 was
+already struck deliberately by task 4. [`0012`](0012-corpus-audit.md)'s *two* stale doc comments were
+**six sites, five of them stale** (**F61**), including two in `RulesetLoader` that gave the falsified
+claim as the **reason for a live refusal** (**F62**). And [`06`](../docs/06-roadmap.md)'s placement row
+could never have had one answer, because it named **three** mechanisms with three standings — split
+into three rows, and the re-read found that [`adr/0031`](../docs/adr/0031-one-resource-abstraction-and-depth-not-count.md)'s
+chain-depth guard **was never built**, leaving the anti-goal it replaced with no guard at all
+([`0003`](0003-build-plan.md) queue item **24**, **F63**).
+
+🔴 **AND CLOSING THE MILESTONE FOUND TWO THINGS NOBODY WAS LOOKING FOR, BOTH IN CI.** The full suite
+came back **2,374 passed, 1 failed** —
+`ParkingArrivalStreamTests.The_arrival_peak_is_land_use_as_much_as_it_is_the_city`, broken by **this
+milestone's own task 2** when the land-use split moved a key into `[[business]]` under a shared
+fixture's replace-*all*. ⚠ **It is instrument tier, so neither the working default nor the commit gate
+ran it**, and the post-submit lane reported it correctly on **2026-08-25T13:02** and again on the 08-26
+schedule. ***The lane worked; the reading did not happen*** (**F64**). 🔴 **And the same lane says the
+balance runs went 3–5.6× slower across the milestone-24 terrain merge**, so `minimal.toml` alone now
+eats 2h44m of a 180-minute job and ⚠ **`evicted.toml` — the only long run where a tenancy ends — has
+not executed since 2026-08-25**. ⚠ **A runner is not the reference machine, so that is a summons to
+measure and not a measurement**: routed out under `adr/0073` to [`0003`](0003-build-plan.md) queue item
+**25** and [`0013`](0013-tick-budget.md) as an **UNMEASURED** row (**F65**).
+
+🟢 **QUEUE ITEMS 21 AND 22 ARE STRUCK, 2026-08-26 — ONE RECORD CLOSES BOTH**
+([`adr/0171`](../docs/adr/0171-a-markets-level-is-what-its-sellers-hold-and-the-price-divides-by-the-sum-while-a-wake-spends-the-maximum.md)).
+A District Pool holds nothing, so *how much is there* is answered by walking the row's sellers — and
+there are **two** such questions taking **different** answers: the price divides by the **sum**, a wake
+spends the **maximum**, because `RuleEngine.Buy` takes a whole batch from one seller. ✅ **THE PRICE
+MOVES FOR THE FIRST TIME IN THIS PROJECT'S HISTORY** — `rulesets/oversupplied.toml` walks **100 → 58**,
+11 changes across eight rows — and ✅ **both worlds run 524,288 Ticks with NO INVARIANT VIOLATED**.
+🔴 **TWO MORE CALL SITES WERE READING THE SAME UNDEFINED QUANTITY AND NEITHER HAD A SYMPTOM** (**F57**),
+⚠ **neither placement queue item 22 offered for the stranded waiter was taken and the fork was the
+wrong fork** (**F58**), and ⚠ **`provisioned.toml` still prints a flat price, which is now the
+mechanism and prints the same digits the defect did** (**F59**). 🔴 **AND CLOSING 22 UNCOVERED A THIRD
+MISSED WAKE THAT IS NOT A MARKET DEFECT** — a Rule left asleep on a Bin that covers it because a
+**readout** shrank its band under it, pre-existing and checked to be so, filed as
+[`0003`](0003-build-plan.md) queue item **23** (**F60**).
+
+🟢 **TASK 9 LANDED 2026-08-26 — THE ACCEPTANCE RUN, 524,288 TICKS ON BOTH WORLDS, AND ITS HORIZON IS
+WHAT IT BOUGHT.** 🟢 **`adr/0024`'s equality is EXACT at every one of 256 readings on both files**, and
+`adr/0137`'s three-way shortfall distinction survives the whole run in `Evidence` rather than only in
+the tables (**F56**). 🔴 **IT FOUND AN INVARIANT VIOLATION NO SHORTER RUN COULD REACH** — a District
+boundary migrating under a sleeping buyer strands it on the market row of a District it has left,
+first seen at **Tick 362,496**, where every earlier test on these files stops at 32,768 (**F53**,
+[`0003`](0003-build-plan.md) queue item **22**). 🔴 **AND THE MILESTONE'S OWN REVISIT TRIGGER CANNOT
+BE READ HERE**: the treasury holds **98.3%** of the money supply by the end, because `provisioned.toml`
+states no `[[policy]]` and `adr/0169`'s levy is a one-way pump — ***a conserved economy draining into
+one account is exactly what conservation cannot see*** (**F54**). ⚠ **The `adr/0006` check had to be
+written twice and the first version was a committed idiom** (**F55**). **Moves no hash.**
+
+🟢 **TASK 8 LANDED 2026-08-26 — `--market`, AND THE PANEL THE TASK ENTRY SAID WOULD BE DROPPED IS THE
+ONE THAT WORKED.** *"A Building that could not afford it"* is **141 of 408** starving Rule Instances on
+`provisioned.toml`, against 60% whose own larder is empty and 5% waiting on a market with no seller
+(**F51**). 🔴 **AND THE PRICE PANEL FOUND A DEFECT: THE PRICE HAS NEVER MOVED, ON ANY WORLD** (**F50**)
+— `World.RepriceDistrictPools` measures cover from the market row's own Bin, and
+[`adr/0139`](../docs/adr/0139-a-district-pool-is-a-market-and-not-a-store-so-stock-stays-with-the-seller.md)
+emptied that Bin when it made a Pool a market instead of a store. ⚠ **That record predicted the repair
+in its own words — *"only its caller changes"* — and the caller is the one thing nobody changed**,
+because the same sentence also said the `Bin` column would go and keeping it was right.
+🔴 **ROUTED, NOT PATCHED**: the fix is one line and moves the hash, but *what cover means for a market
+that is not a store* is arguable and owes a record — [`0003`](0003-build-plan.md) queue item **21**,
+`adr/0135` and `adr/0139` both amended, and a test asserting both halves so a fix goes red.
+**Moves no hash.**
+
+🟢 **TASK 6 LANDED 2026-08-26 — A SHOP IS RAISED ON HUNGER RATHER THAN ON HOMELESSNESS.**
+[`adr/0170`](../docs/adr/0170-a-shop-is-selected-rather-than-sited-so-the-birth-signal-is-coarse-and-death-does-the-correcting.md):
+the reach is the **District**, the birth signal is deliberately coarse, and ***death does the
+correcting.*** 🔴 **The user reframed the question and the session had been answering the wrong one**
+(**F43**) — I was buying precision on the birth signal that the reaper supplies for free.
+🔴 **THE REAPER WAS MIS-AIMED AND A BROKE SHOP DEMOLISHED ITS OWN PREMISES** (**F44**); fixed, and
+measured on the same run at **shop buildings lost 2 → 0, Businesses turned out 0 → 2, money supply
+flat**. 🔴 **A READER RETURNED `NoRow` FOR EVERY BIN THE CLAIM NEEDED** and nothing failed (**F45**).
+⚠ **The threshold SATURATES; the cooldown is the only live dial** (**F46**), and the city is
+**Lot-limited** so every number was measured against a wall (**F47**).
+🔴 **IT COST THE DECLINE HALF ITS WORLD** (**F48**) — tier 1 and bankruptcy pull against each other by
+construction, so `rulesets/oversupplied.toml` ships to carry task 7's test and `adr/0170` gains a
+**fourth condition** it could not have listed the morning it was written.
+**Moves the hash** — two `[[zone_rule]]` keys and a new saved column on the market row.
+
 🟢 **TASK 7 LANDED 2026-08-26, OUT OF ORDER AND AT THE USER'S INSTRUCTION — A SHOP CAN NOW GO BROKE.**
 [`adr/0169`](../docs/adr/0169-a-standing-cost-needs-a-counterparty-so-a-trade-pays-rates-until-there-is-a-supplier-to-pay.md):
 a trade carries one recurring cost, a **levy to the treasury**, because money is conserved and a cost
@@ -363,12 +442,19 @@ makes that an attribution question rather than a scheduling one.
    🔴 **AND IT WAS SKIPPED — not by omission but by a subscription that shared code cancelled a
    line later.** `Requirement` walks terms, the payment has none, so `Stop`'s own drain woke every
    buyer it had just parked. **F28**–**F33**, and `adr/0137` is amended with both halves.
-6. **`adr/0163` tier 1 — demand for a shop.** The reach query over `WalkScratch.SettleAll`, the elapsed
-   sum, and the claim. **Replaces `UnplacedPool.Count == 0` for the trade rule only**; the housing rule
-   stays tier 0. ⚠ **Open decision 1 lands here**, and both §D2 numbers are chosen here and move to
-   §D1. **A [`0013`](0013-tick-budget.md) row is owed on the day, with a measured multiplicand and
-   not a guessed one.** Corrects `ZoneRuleEngine.Create`'s summary to say **which rule** it describes
-   ([`0012`](0012-corpus-audit.md)).
+6. ✅ **DONE — `adr/0163` tier 1 — demand for a shop** —
+   [`adr/0170`](../docs/adr/0170-a-shop-is-selected-rather-than-sited-so-the-birth-signal-is-coarse-and-death-does-the-correcting.md).
+   🔴 **The reach fork was settled by the USER reframing the question**, not by the precision argument
+   this entry assumed: the District is the reach, the birth signal is deliberately **coarse**, and
+   *death does the correcting* (**F43**). The elapsed unserved sum lives on `DistrictPoolTable`, which
+   answers **open decision 1** — the build had nowhere to subtract from, and the reach unit supplied
+   it. Both §D2 numbers are chosen and in **§D1**, ⚠ **with the finding that the threshold SATURATES
+   and the cooldown is the only live dial** (**F46**). **A [`0013`](0013-tick-budget.md) row is
+   filed and it says UNMEASURED**: the A/B comes out **negative** — tier 1 is 0.067 ms a Tick cheaper
+   at 40,000 Citizens because it declines to build 637 shops — and every arm that removes the scan
+   also removes the purchase, so a stopwatch cannot separate them. 🔴 **It cost the DECLINE half its
+   world** (**F48**): `rulesets/oversupplied.toml` now carries task 7's test. **Moves the hash** — two
+   new `[[zone_rule]]` keys on one file, and a new saved `last_raised` column on the market row.
 7. ✅ **DONE, AND RUN BEFORE TASK 6 — the decline half** —
    [`adr/0169`](../docs/adr/0169-a-standing-cost-needs-a-counterparty-so-a-trade-pays-rates-until-there-is-a-supplier-to-pay.md).
    A money-consuming Rule on the trade, so an empty balance is `Blocking.Supply`
@@ -379,15 +465,28 @@ makes that an attribution question rather than a scheduling one.
    🔴 **THE ORDER CHANGED AND THE USER CHANGED IT**, on the reasoning in **F34**: task 6 was about to
    be designed around this task's absence. **Moves the hash** — a new `[[rule]]` and a new Bin on a
    kind. **No engine change at all**, which is the finding.
-8. **Something to look at** — a runner mode showing a Pool with stock, a price that moves, and **a
-   Building that could not afford it**. ⚠ **The third clause is the one that would be dropped**, and
-   it is the only one that shows the market having a consequence.
-9. **The long acceptance run.** Conservation across trades with `adr/0024`'s equality **exact**, no
-   collection or magnitude trending at steady state (`adr/0006`), and bankruptcy distinguishable from
-   starvation in `Evidence`. 🔴 **Look for `adr/0163`'s own revisit trigger**: shops built, condemned
-   for want of customers, and rebuilt on the demand their condemnation restored. ***That is the
-   threshold and the claim disagreeing, and it is the first thing to look for rather than the last.***
-10. **Closing — the ledger debts this milestone owes and nothing else discharges.**
+8. ✅ **DONE — Something to look at** — `--market`, `src/Borough.Headless/MarketDump.cs`. Three
+   panels: the market rows, what the price did, and **who could not afford it**. 🟢 **The third
+   clause was the one that worked** — 141 of 408 starving Rule Instances blocked on a money Bin,
+   against 60% with an empty larder and 5% on a market with no seller (**F51**). 🔴 **The second
+   clause found a DEFECT: the price has never moved, on any world** (**F50**), because
+   `RepriceDistrictPools` measures cover from the Bin `adr/0139` emptied — ***and `adr/0139` predicted
+   that exact repair in a sentence whose other half was correctly refused.*** Routed to
+   [`0003`](0003-build-plan.md) queue item **21** rather than patched: what cover *means* for a
+   market that is not a store is arguable and owes a record. Both ADRs amended. **Moves no hash** —
+   the dump populates and steps a world of its own and writes nothing.
+9. ✅ **DONE — The long acceptance run** — `MarketLongRunTests`, both worlds, **524,288 Ticks** at
+   2,000 Citizens, ~22 s. 🟢 **Conservation is exact at every one of 256 readings on both files**, and
+   the three-way shortfall distinction survives the whole run in `Evidence` (**F56**). 🔴 **It found
+   an invariant violation nothing shorter could reach** — a District boundary migrating under a
+   sleeping buyer strands it on the market row of a District it has left, first seen at **Tick
+   362,496** (**F53**, [`0003`](0003-build-plan.md) queue item **22**). 🔴 **And the trigger this
+   entry names cannot be read on this world**: the treasury holds **98.3%** of the supply by the end
+   because the file states no `[[policy]]`, so ***a shop count that settles here is a city that
+   stopped buying rather than a market that cleared*** (**F54**). ⚠ **The `adr/0006` check had to be
+   written twice** — a high-water mark of a bounded population grows logarithmically for ever and
+   both committed idioms reject it (**F55**). **Moves no hash.**
+10. ✅ **DONE — Closing — the ledger debts this milestone owes and nothing else discharges.**
     [`0003`](0003-build-plan.md) **queue item 17** is *"retired by design rather than fixed, and it
     must be STRUCK DELIBERATELY when the code lands"*; [`0012`](0012-corpus-audit.md)'s two doc
     comments at `UnpremisedTable.cs:19-25` and `PlacementEngine.cs:645-650`, both of which say
@@ -972,3 +1071,384 @@ world. 🔴 **What a broke shop's eviction should DO is undecided and is filed i
 [`0002`](0002-open-questions.md) §A owned by this milestone**: `Unplace` sends a Household to the
 Unplaced Pool, and whether a Business goes to `UnpremisedTable` or is destroyed decides ***whether its
 capital survives***, which is a money-conservation question and not a plumbing one.
+
+## Task 6's findings — the demand signal, and the world that could no longer show death
+
+**F43 — 🔴 THE REACH QUESTION WAS THE WRONG QUESTION AND THE USER REFRAMED IT, NOT ME.** I presented
+four reach units and argued them on **precision** — which boundary best describes who a shop can serve.
+The user's answer was *"why should the game optimise where shops are placed? or rather, why would it try
+to be 'perfect' about it. if the mechanisms of the game work, the shops that have emerged on their own
+within the ranges of the households that need them are the ones that survive."* ***That is a different
+mechanism, not a different parameter***: generate-and-test rather than site-selection, with the accuracy
+living in the death half. [`adr/0170`](../docs/adr/0170-a-shop-is-selected-rather-than-sited-so-the-birth-signal-is-coarse-and-death-does-the-correcting.md)
+is the record. ⚠ **What I had been doing was buying precision on the birth signal that the reaper
+supplies for free**, and I had been doing it while task 7 — the reaper — sat two tasks away and unbuilt.
+**F34 is the same failure with a different absence in it.**
+
+**F44 — 🔴 `Worst` COUNTED A BUSINESS'S FAILURE PRESSURE AS THE BUILDING'S, WHICH IS F42'S OTHER HALF
+AND THE ONE THAT WAS ACTIVELY WRONG.** F42 says nothing walks `BuildingBusinesses`, so a Business is
+never turned out. True. **But `ZoneRuleEngine.Worst` filtered on `RuleInstances.Household[instance] !=
+tenant` and on nothing else**, and a Business's Rule Instance leaves `Household` **unset** — so it
+matched the *premises* call and its pressure was read as the building's. ***A broke shop demolished its
+own premises instead of ending its tenancy.*** 🔴 **Measured on `provisioned.toml` at 2,000 Citizens
+over 24,576 Ticks: 20 shops raised, 2 demolished, and 2 is exactly the number that go broke.** The
+attribution is airtight because a `shopfront` runs two Rules and `stock` has `inputs = []` — a Rule with
+no inputs can never be `Blocking.Supply`, so the levy is the only thing on that kind that can set
+`StarvedSince`. ⚠ **A pressure routed to the wrong verdict is not an inert pressure**, and the two halves
+have opposite repairs: one adds a walk, the other narrows a filter. **Doing only the peer's half would
+have left every broke shop demolishing its building *and* ending its tenancy.** After the fix, on the
+same run: **shop buildings lost 2 → 0, Businesses turned out 0 → 2, money supply flat.**
+
+**F45 — 🔴 A READER RETURNED `NoRow` FOR EVERY BIN THE CLAIM NEEDED, AND THE SYMPTOM WAS SILENCE.**
+Tier 1 sums elapsed unserved need per `(District, Good)`, which means mapping a starving Rule's
+`WaitingOn` Bin to a market row. `DistrictMarkets.MarketOf` looked like that function and is not: it
+maps a **seller's** Bin to the District it sells into. A buyer waits on the **market row's own Bin**
+(`adr/0167`), which is not any seller's, so it answered `NoRow`. ***Result: zero demand read in a world
+with 390 starving Rule Instances in it, and nothing failed.*** Fixed by `DistrictMarkets.PoolRowOf`,
+populated in the same `RebuildRows` pass. ⚠ **This is the third reader-shaped defect in this milestone**
+— `adr/0137`'s amendment, F42, and this — and all three share *the column was written and the consumer
+was assumed*. ***A signal that reads zero and a signal that reads nothing are the same green test.***
+
+**F46 — ⚠ `build_threshold_days` SATURATES, AND `cooldown_days` IS THE ONLY LIVE DIAL.** Measured on
+`provisioned.toml` at 2,000 Citizens: the threshold at **1, 2 and 4 Days gives the identical shop
+count**, because unserved demand on this world is **bimodal** — a District is either being served or
+wholly unserved, so any threshold in that band lands in the same gap. The cooldown is not: **0 → 11
+shops, 1 → 4, 2 → 2.** 🔴 ***So the number `adr/0163` spent a record arguing about is not the number
+that decides anything here***, and the one that does was added as an afterthought. Both are in
+[`0002`](0002-open-questions.md) §D1 with that sentence attached. ⚠ **This is not evidence the threshold
+is inert in general** — it is evidence that *this* world has no middle, which is F47.
+
+**F47 — 🔴 THE CITY IS LOT-LIMITED, SO EVERY NUMBER ABOVE WAS MEASURED AGAINST A WALL.** ~237 Households
+each consuming 4 sundries every 32 Ticks want on the order of **30 shops**; one `stock` Rule makes 1 a
+Tick; and `provisioned.toml`'s trade zone offers about **18 vacant Lots**. Tier 0 raises 20 and sits at
+the ceiling. ***So tier 0's "over-supply" was the Lot count and not a judgement***, and tier 1's
+restraint was never tested against a world that could have said yes. **The cheapest way to re-open every
+finding in this section is a bigger trade zone**, and it is recorded as `adr/0170`'s first revisit
+trigger.
+
+**F48 — 🔴 TIER 1 AND THE DECLINE HALF PULL AGAINST EACH OTHER BY CONSTRUCTION, AND ONE WORLD CANNOT
+SHOW BOTH.** Selection needs something to select *from*. A shop with no competitor sells all it makes
+and pays its levy for ever — so **a city that builds only what demand justifies prunes nothing**, and
+that is precisely tier 1's job. Task 7's decline test went red the moment tier 1 landed and **could not
+be made green at any threshold or cooldown, over any horizon, measured to 131,072 Ticks**. ⚠ **The user
+chose the repair: give decline its own Ruleset.** `rulesets/oversupplied.toml` is `provisioned.toml`
+with the two tier-1 keys deleted, so ***the diff is the whole demonstration***, and `provisioned.toml`
+now demonstrates tier 1 alone. 🔴 **`adr/0170` had three conditions when it was written and this is a
+fourth — *the city over-supplies* — which the record could not have listed, because it was written the
+morning before the mechanism that removes it was built.** It now carries all four.
+
+**F49 — 🔴 THE COST ROW THIS TASK OWED CAME OUT NEGATIVE, AND THE ISOLATION THAT WOULD HAVE FIXED IT
+CANNOT BE BUILT WITH A STOPWATCH.** The task entry demanded a [`0013`](0013-tick-budget.md) row *"with
+a measured multiplicand and not a guessed one"*. The A/B is `provisioned.toml` against
+`oversupplied.toml` — the shipped two-key diff — and at 40,000 Citizens over 8,192 Ticks tier 1 runs
+**0.55 s faster**, three repetitions, because it raises **18** shopfronts where tier 0 raises **655**.
+***The shops it declines to build cost more than the scan that declined them.*** ⚠ **That is a NET and
+not a unit cost**, and the row says so in bold, because *the demand scan costs nothing* is exactly the
+sentence somebody would carry out of it. 🔴 **A third arm with the trade `[[zone_rule]]` deleted ran in
+0.67 s against 4.44 s, and that 3.8 s is NOT the scan**: with no shop anywhere no `pool` term resolves,
+so deleting the rule deletes the **purchase**. ***Every arm that removes the scan also removes the
+market***, so what is owed is a profiler and the row is filed **UNMEASURED** rather than filled with
+the number that was available.
+
+## Task 8's findings — the picture, and the price it found pinned
+
+**F50 — 🔴 THE PRICE HAS NEVER MOVED, ON ANY WORLD, AND THE RECORD THAT BROKE IT SAID IN THE SAME
+BREATH THAT IT HAD NOT.** `--market` prints one row per `(District, Good)` with what the price opened
+at, what it is now, and how many times it changed. Measured on `rulesets/provisioned.toml` at 2,000
+Citizens over 24,576 Ticks: **eight rows, eight opened-equals-now, zero moves.**
+
+***The cause is one argument.*** `World.RepriceDistrictPools` passes `Bins.LevelAt(bin)` as
+`MarketRuleset.Reprice`'s `level`, where `bin` is **the market row's own Bin** — and
+[`adr/0139`](../docs/adr/0139-a-district-pool-is-a-market-and-not-a-store-so-stock-stays-with-the-seller.md)
+emptied that Bin when it made a Pool a **market and not a store**. With `level` structurally zero,
+`cover = max(level, rate)` is the rate, `target = ceiling × rate ÷ rate` is the ceiling exactly, and a
+price that **opens** at the ceiling has nowhere to move. The dump prints the Pool Bin's level as its
+own column for this reason: ***the number that pins the price is printed beside the price it pins.***
+
+🔴 **`adr/0139` PREDICTED THE EXACT REPAIR AND IT WAS NOT MADE.** Its own words: *"`MarketRuleset`
+survives with its signature unchanged, because `Reprice` takes the level as a plain `long` and **only
+its caller changes**"*, and, two sentences on, *"what goes is the `Bin` column and what reaches through
+it, `BinOwnerKind.District` and its three uses."* **Neither happened.** The Bin column stayed — and
+staying was *right*, because `adr/0139`'s own wait-list argument needs a single Bin for a buyer to
+subscribe to — but ***the caller that the record said must change is the one thing nobody changed.***
+⚠ **So the record was right about the outcome and wrong about which line carried it**, which is
+[`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+for the second time this milestone, and this is its sharpest form yet: **a prediction that names two
+edits, of which one is refused on good grounds, makes the other one look refused too.**
+
+⚠ **`adr/0135`'s amendment banner is the sentence that closed the question.** It reads *"`[market]`'s
+two keys and the damping argument are **untouched**"* — and the damping argument is *from Pool level
+against recent consumption*, so removing the Pool's stock removed one of its two inputs. ***An
+amendment that says a mechanism is untouched while deleting what it reads is worse than one that says
+nothing***, because it is a positive assurance somebody can cite.
+
+🔴 **IT IS ROUTED AND NOT PATCHED, AND THAT IS DELIBERATE.** The obvious fix — sum what the reachable
+sellers hold and pass that as cover — is one line, moves the State Hash, and ***changes what a market
+means***: whether a market-not-a-store's cover is its sellers' inventory, their production rate, or
+something else is **arguable** and therefore
+[`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)'s,
+not a task-8 edit. Filed to [`0003`](0003-build-plan.md)'s queue as a defect, with both ADRs amended
+and `MarketDumpTests.The_price_does_not_move_and_the_dump_says_so_in_the_table` asserting the two
+halves so the day it is fixed the test names what changed.
+
+**F51 — 🟢 THE PANEL THE TASK ENTRY SAID WOULD BE DROPPED IS THE ONE THAT WORKED.** *"A Building that
+could not afford it"* is not a rhetorical flourish: it is 141 of 408 starving Rule Instances on
+`provisioned.toml` at 2,000 Citizens over 24,576 Ticks — **34% blocked on a money Bin**, against 60%
+whose own larder is empty and 5% waiting on a market with no seller in it. ⚠ **The three-way split is
+what makes any of them readable**: a count of *starving Rules* is a number about a world, and
+[`plans/0044`](0044-the-purchase-and-the-provider-that-answers-it.md) **F42**'s shape — *a counter that
+aggregates over the whole world, read as though it were scoped to the subject the claim names* — is
+exactly what an undifferentiated total would have been. 🔴 **A shop nobody buys from does NOT appear
+here and that is correct**: unsold stock stops on `Blocking.Space`, which clears the pressure clock, so
+this panel counts what is short and never what is full (`adr/0166`). The dump says so in its own prose
+rather than leaving the absence to be noticed.
+
+**F52 — ⚠ THE REFUSAL THAT MATTERED IS THE ONE A READER WOULD NOT HAVE WRITTEN.** Two of `--market`'s
+three refusals read a Ruleset table anybody can see — `[districts]`, `[market]`. The third asks whether
+**any declared kind holds a Good in a business-owned Bin**, and it exists because
+`rulesets/twinned.toml` states both tables, names two `[[business]]` trades, and **sells nothing**. So
+both checks a person would think to write pass on a world with a one-sided market in it. ***Declaring
+a trade is not the same test as having a seller***, which is that file's own header sentence arriving
+as a guard.
+
+## Task 9's findings — the acceptance run, and the two things only its horizon could see
+
+**F53 — 🔴 A DISTRICT BOUNDARY MIGRATING UNDER A SLEEPING BUYER STRANDS IT, AND IT FIRST APPEARS AT
+TICK 362,496.** `Invariant.WaiterIsBlockedByTheBinItNames` fires on `rulesets/oversupplied.toml` at
+2,000 Citizens. Read off the world at the Tick: Rule Instance **754**, a Household's `restock`, asleep
+on Bin **1652** — a market row's Bin, `owner = District`, `sundries` — with a `Requirement` of
+**zero**. Its Building stands in **District 7**, whose sundries row is row **8**; ***it is parked on
+row 2, which belongs to District 3.*** Row 2 has three sellers and row 8 has none, so the buyer is
+asleep in a market it has left, waiting on stock it may not have.
+
+⚠ **The requirement of zero is the SYMPTOM and reading it as the cause is how this gets fixed in the
+wrong place.** `RuleEngine.Requirement` walks the Rule's terms; the `pool` term now resolves to row 8,
+so no term names Bin 1652 and the walk answers nothing. ***The Rule is right and the queue is stale.***
+🔴 **Every earlier test on these files stops at 32,768 Ticks**, and `provisioned.toml` reaches 524,288
+clean because it churns fewer Districts — so this is invisible on the milestone's own demonstration
+file and invisible at every horizon anybody had run. ***That is the argument for a long acceptance run,
+stated as a number rather than as a principle.*** Filed unfixed to [`0003`](0003-build-plan.md) queue
+item **22**: the re-homing is unarguable, its *placement* — eagerly in `DistrictWatershed.Migrate`, or
+lazily at the Rule's next evaluation — is a design question and owes a record.
+
+**F54 — 🔴 THE CITY HAS NO STEADY STATE, AND CONSERVATION IS PERFECT THE WHOLE WAY DOWN.** Measured at
+2,000 Citizens over 524,288 Ticks on `provisioned.toml`: **the treasury holds 9,363,456 of a 9,522,192
+supply — 98.3% — and every Household is floored.** `oversupplied.toml` is the same at 97.8%. ⚠ **The
+file states no `[[policy]]`**, so `adr/0169`'s levy is a **one-way pump**: Households pay shops, shops
+pay the treasury, and nothing pays anybody back. 🔴 ***The two obligations are independent and that is
+the finding***: `adr/0024`'s equality is exact at every one of 256 readings on both worlds, and **a
+conserved economy draining into one account is precisely what conservation cannot see.** ⚠ It is
+[`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) ***unbuilt*** and the
+unbuilt thing is named — no wage until `adr/0026` at milestone 15 — so it is not filed as a defect.
+**What follows for the milestone**: `adr/0163`'s revisit trigger and `adr/0170`'s convergence ratifier
+**cannot be read here**, because a shop count that settles in a city whose Households have stopped
+buying is a reading of a city that stopped, not of a market that cleared. `plans/0002` §D1 already says
+this of the levy's own numbers; this is the same sentence arriving as a measurement.
+
+**F55 — ⚠ THE OBVIOUS `adr/0006` CHECK IS WRONG FOR A RARE TABLE, AND IT WAS WRITTEN, RUN AND
+WITHDRAWN.** A slot count is a high-water mark of the concurrent live count, so for a population that
+fluctuates in a bounded range it grows like the maximum of *n* draws — ***logarithmically, for ever,
+with nothing leaking.*** Measured on `provisioned.toml` at 2,000 Citizens, the unpremised pool's
+**slots** read **4, 9, 12, 13** at 131,072 / 524,288 / 2,097,152 / 8,388,608 Ticks while its **live**
+count read **1, 4, 6, 1**. 🔴 **Sixty-four times the Ticks for three more slots**, and both the exact
+equality `RuleLongRunTests` uses and `BusinessLongRunTests`' four-fold deceleration reject it — ***two
+committed idioms, each correct for its own table, both wrong here.*** The claim is made in two halves
+instead: the **live** count must not trend, which is `adr/0006` proper and where a leak would show,
+and the **slot** count must not *accelerate*, which separates a log curve from a leak without pinning a
+rate. ⚠ **`minimal.toml` never uses that pool at all** — live 0, slots 0 over 2,097,152 Ticks — so the
+table only fills where re-premising cannot keep up, which is `plans/0044` **F47**'s Lot-limited city
+arriving in a third place.
+
+**F56 — 🟢 THE THREE-WAY SHORTFALL DISTINCTION SURVIVES HALF A MILLION TICKS, IN `Evidence` AND NOT
+ONLY IN THE TABLES.** `adr/0137`'s claim is proved at 6,144 Ticks by `ProvisionedRulesetTests`; the
+acceptance run holds it over 524,288 on both worlds, with all three classes non-empty throughout.
+⚠ **The `Evidence` half is asserted separately from the table half on purpose** — the counts come from
+a walk over `RuleInstances`, and the discrimination is then re-read through `Evidence.OfBuilding`,
+which is the surface a shell would use. ***A distinction the tables carry and `Evidence` drops is
+`adr/0137`'s original defect exactly***, and it is the half no amount of counting catches.
+
+## What closing queue items 21 and 22 found
+
+**F57 — 🔴 THE UNDEFINED QUANTITY WAS BEING GUESSED AT THREE CALL SITES, AND TWO OF THEM HAD NO
+SYMPTOM.** `plans/0003` queue item 21 was filed as *the reprice reads a Bin `adr/0139` emptied*, which
+is true and is a third of it. Asking the same question of every site that wants a market's level found
+`World.RingMarket` spending the **depositing** seller's own Bin as a wake budget — an under-approximation
+whenever the depositor is not the largest seller — and `RuleEngine.Stop`'s rescue drain running against
+the market row's structural **zero**, so ***the one thing that method exists to do could never fire on a
+market at all***. ⚠ **Neither would ever have been found by a failing test.** A spurious wake and a
+missed wake both leave the tables consistent, and `Invariant.WaiterIsBlockedByTheBinItNames` is
+one-directional: it catches a waiter asleep when it should be running, and says nothing about a Rule
+woken for nothing. ***A quantity nobody defined is not wrong in one place; it is guessed in every
+place***, and the one place with a symptom was the least consequential of the three.
+
+**F58 — ⚠ BOTH PLACEMENTS THE FILING OFFERED FOR THE STRANDED WAITER WERE WRONG, AND THE FORK WAS THE
+WRONG FORK.** Queue item 22 named the choice as *eagerly in `DistrictWatershed.Migrate`* against *lazily
+at the Rule's next evaluation*. **Lazily is not a placement**: `02 §4.1`'s *does not re-arm* means there
+is no next evaluation for a waiter nothing rings — ***a stranded waiter is not late, it is gone.*** And
+**eagerly in `Migrate` is incomplete**, which reading the method rather than its name showed: District
+membership changes in **four** places in `DistrictWatershed.Evaluate`, and a Cell whose incumbent
+District is dying moves *for free* while a newly built Cell is *filed* without moving at all — so a
+`Migrate`-only re-home would have fixed the case that fired and left two it had not seen. ⚠ **It is also
+the wrong direction of lookup**: a migration knows Cells, and Cell → Buildings → occupants → Rule
+Instances is a walk the build has no path for, ***where draining the market row gets the same set out of
+the queue that already exists.*** The answer is neither branch — every market row is swept and then drained at
+the end of every evaluation, unconditionally.
+
+🔴 **AND THE FIRST VERSION OF THAT ANSWER WAS ALSO WRONG, WHICH ONLY THE ACCEPTANCE RUN SAID.** A
+drain from the head looked exactly right — the same walk, from the same end, with the same requirement
+derivation as the invariant that caught the defect, so the invariant would be true by construction.
+***What it misses is that the head changes.*** A stranded waiter behind a legitimately blocked one
+survives the drain and is invisible to the invariant too, until the waiter in front of it wakes for its
+own reasons. **Shipping it moved the violation from Tick 362,496 on `oversupplied.toml` to Tick 32,768
+on `provisioned.toml`, which had been clean** — ***a repair that relocated its own symptom onto the
+world that had been the control.*** The sweep looks anywhere in the queue, and `Requirement == 0` is
+the exact test, being the invariant's own.
+
+**F59 — 🟢 THE SCARCE CITY'S FLAT PRICE IS THE MECHANISM, AND IT PRINTS THE SAME DIGITS THE DEFECT
+DID.** With the cover corrected, `rulesets/provisioned.toml` **still** shows eight rows opening and
+ending at the ceiling with zero moves — because it holds 192 units of sundries against a 357/Day draw,
+which is half a Day of cover, and a market under a Day of supply prices at its import ceiling. ⚠ **So
+the column that was the whole of F50's evidence is no longer evidence of anything on its own.**
+`rulesets/oversupplied.toml` is the same file with two tier-1 keys deleted and it holds 948 against 545
+— **100 → 58**, 11 changes across the table. ***The fix is only visible in the difference between two
+worlds***, which is why `MarketDumpTests` runs both, why the scarce half asserts `stock ≤ rate/Day`
+rather than asserting flatness, and why `--market` derives which of the two states it is looking at
+instead of printing a fixed verdict. ⚠ **`adr/0170` condition 4's Ruleset pair now carries a third
+demonstration it was not built for** — birth, death, and the price.
+
+**F60 — 🔴 CLOSING QUEUE ITEM 22 UNCOVERED A THIRD MISSED WAKE, AND IT IS NOT A MARKET DEFECT AT
+ALL.** With the stranded waiter fixed, `provisioned.toml` — which had run 524,288 Ticks clean —
+started breaking `Invariant.WaiterIsBlockedByTheBinItNames` at Tick **32,768**. It is a different
+shape: bin 1523 is a Household's **larder** holding **294**, and Rule Instance 725 is asleep on it
+needing **280**. ⚠ **The Bin never moved. The requirement came down to meet it**, traced tick by tick
+at **320 → 280 → 240**. `RuleEngine.Band` takes a derived Rule's application count from
+`Readouts.Read`, so the requirement is `readout × percent ÷ 100 × amount` — ***a function of the city
+and not of the Bin*** — while every drain in the design hangs off a Bin write. **A readout that falls
+past a sleeping waiter's level is a wake nobody owes.**
+
+⚠ **PRE-EXISTING AND UNMASKED, WHICH WAS CHECKED RATHER THAN ASSUMED.** A probe reaches it with
+`adr/0171` in and does not reach it at `2051d5f`, the commit before — so what changed is the
+trajectory, and ***a trajectory change is not a cause***. It matters because the tempting reading is
+*the market fix broke it*, which would send the next reader to `World.Budget` and `RingEveryMarket`,
+where nothing is wrong. 🔴 **Filed as `plans/0003` queue item 23 rather than fixed**: `adr/0171` could
+re-drain because a market's membership changes in exactly one place, and ***a readout has no such
+place*** — the set is open-ended, so *drain when a readout changes* names no site at all. Three
+candidates are in the queue entry and none of them belongs to a market milestone.
+
+⚠ **The acceptance test is an allowlist AGAIN, and this time it discriminates.** Both defects are the
+same invariant with the same message, so `MarketLongRunTests` records, at the Tick it fires, whether
+the Bin is a market row's and what the waiter's requirement was. Item 22's shape is *a market row and
+a requirement of zero*; item 23's is *an ordinary Bin and a positive requirement*. ***An allowlist that
+cannot tell its own defect from the one it replaced is a silence***, which is what the first version
+of this fact would have been.
+
+## Task 10's findings — the ledger debts, each one larger than its entry
+
+**F61 — 🔴 THE AUDIT SAID TWO DOC COMMENTS AND THERE WERE SIX, AND THE SHARPEST ONE QUOTES ITS OWN
+CORRECTION.** `plans/0012` named `UnpremisedTable.cs:19-25` and `PlacementEngine.cs`'s `Retire`
+remarks. A grep for the falsified sentence found **six** sites, of which **five** were stale: those
+two, plus `PurposeTag.UnpremisedDraw`'s *"it becomes a draw over a real choice the day a Business
+placement pass ships"* — that day was `adr/0147` — and **two in `RulesetLoader`**. ⚠ **The sixth is
+conditional and still true**, so ***a grep is a survey and not a verdict***.
+
+🔴 **`PlacementEngine.Tenant` QUOTES `Retire`'s wrong sentence while correcting it.** Its own remarks
+open with *"`Retire`'s own remark said 'nothing tenants a Business … the placement pass that would is
+milestone 27's', and complained that this half has nothing to try … **It has something to try now**"* —
+and `Retire`, four hundred lines below in the same file, went on saying the old thing for a whole
+milestone. ***So `adr/0093`'s failure mode survives a fix that knows about it***: the repair documented
+itself and left the thing it repaired unamended. ⚠ **Nothing in this corpus could have caught it** —
+`tests/Borough.Tests/Corpus/` is document-to-document, and a doc comment is invisible to every check in
+it (`CLAUDE.md` says so in its own words, and this is the sighting).
+
+**F62 — 🔴 A STALE JUSTIFICATION ON A LIVE REFUSAL IS AN ARGUMENT FOR DELETING THE REFUSAL.** Both
+`RulesetLoader` sites — one doc comment, one inline — give *nothing tenants a Business* as **the reason
+`[founding]` requires `gives_up_after_days`**. A reader arriving after tenanting shipped would have
+read the reason as expired and the refusal as removable. ⚠ **The refusal is right and its argument was
+wrong**: tenanting drains the unpremised pool only while vacant premises exist, so it is ***the city
+cooperating rather than a bound***, and `adr/0142`'s give-up is the exit that holds when it stops.
+🔴 **That is worse than a stale description**, which merely misdirects: this one hands a future reader a
+reason to remove an `adr/0006` guard. ⚠ **And the bound has never fired on any shipped world** — 7,165
+premisings against zero give-ups over 131,072 Ticks — so the path it guards is unexercised as well as
+under-argued.
+
+**F63 — 🔴 THE ROADMAP ROW COULD NEVER HAVE HAD ONE ANSWER, AND THE RE-READ FOUND A GUARD THAT WAS
+NEVER BUILT.** *"The nine-Resource abstraction; Utility families; Waste"* carried a single **Placed:
+12**, and the row's own flag blamed the milestone-12 split. ⚠ **The split is not the cause.** The row
+names **three** mechanisms with three standings: the Resource abstraction is **built** and milestone 26
+leans on it (`DistrictMarkets.OfferedIn` discriminates on family); **Utility families** have a family
+with one member — `coastal.toml`'s water — and no transport, `World.FitDistrictPools` refusing it a Pool
+in the build's own words *"a different mechanism with no milestone"*; **Waste** is untouched by
+anything. ***A row naming three mechanisms takes the placement of whichever one the reader was thinking
+about***, and no renumbering was needed to make that wrong. Split into three rows.
+
+🔴 **What the re-read turned up is worth more than the placement.** `adr/0031` retires `04 §1`'s
+counting bound — *five Goods, and a sixth should replace something* — in favour of **maximum chain
+depth of three**, describing that constraint in its own words as *"the constraint the same document
+already states and never enforced"*. **It is still never enforced**, four milestones later. ⚠ **So the
+anti-goal has no guard at all**: one was withdrawn and its replacement was never written, which is
+worse than either alone because the record reads as though something is in force. ⚠ **`adr/0049` rests
+on it** — *"depth of three, so the graph is a shallow DAG and a topological sort over Bins is
+feasible"* — so a deep chain would also put a decision about apply counts on ground that decision
+assumed away. Filed as `plans/0003` queue item **24**, with no design question open: the number is
+three and the walk is one the loader already builds.
+
+**F64 — 🔴 THIS MILESTONE BROKE A TEST IN TASK 2, THE LANE SAID SO ON THE DAY, AND NOBODY READ IT FOR
+EIGHT TASKS.** `ParkingArrivalStreamTests.The_arrival_peak_is_land_use_as_much_as_it_is_the_city`
+builds its world by calling `CommuteLongRunTests.SecondKindToml` — a fixture it does not own — and
+injecting `parking = 8` with a `string.Replace` anchored on `shift_start_earliest_hour = 3`. ⚠ **Task
+2's land-use split moved that key into `[[business]]`**, so the anchor matched **twice**, the replace
+hit both, and the loader refused `test.toml:864: 'parking' is not a key of [[business]]`. ⚠ **A
+`Replace` is a replace-*all* and the test asserted with `Assert.Contains`**, which cannot tell one
+occurrence from two — fixed by anchoring on `name = "workshop"` and asserting the count is exactly one.
+
+🔴 **What matters is not the break, it is the eight tasks.** The test is **instrument tier**, so
+`tier!=instrument` — the working default *and* the commit gate ([`adr/0121`](../docs/adr/0121-the-commit-gate-is-the-assertion-tier-and-a-long-test-runs-post-submit-on-a-machine-that-is-not-yours.md))
+— never ran it, and every commit from task 2 onward was green by the gate's own definition. ⚠ **The
+post-submit lane caught it immediately and correctly**: `Failed: 1, Passed: 2337` on 2026-08-25T13:02,
+and again on the 08-26 scheduled run. ***The lane worked and the reading did not happen.*** 🔴 **So
+`adr/0121`'s split has an unstated obligation: a notifying lane is only notifying if somebody reads
+it**, and nothing in this repository makes anybody. Not a design question — a habit that has no home,
+and it belongs beside the tier rule rather than in this plan.
+
+⚠ **A shared fixture is the mechanism, and this is the second time.** `SecondKindToml` has two callers
+in different subsystems; task 2 edited it for the one it was working in. That is recorded in the
+fixture's own doc comment now, which — per **F61** — is a place no corpus check can see.
+
+**F65 — 🔴 THE BALANCE LANE GOT 3–5.6× SLOWER AND IT WAS NOT THIS MILESTONE.** Between post-submit
+`7048c157` (green, 2026-08-25T11:20) and `43b07b6c` (red, 08-25T13:02 and 08-26T06:33), the same three
+runs on the same runner class moved:
+
+| Run | 7048c157 | 43b07b6c |
+|---|---|---|
+| `minimal.toml`, 1,000,000 Ticks | 54m42s | **2h43m56s** |
+| `fouled.toml`, 100,000 Ticks at 4,000 | 2m22s | **13m16s** |
+| `evicted.toml`, 100,000 Ticks at 4,000 | 1m57s | **never started** |
+
+The first run ate 2h44m of the job's 180-minute ceiling, so the third was cancelled — ⚠ **which means
+the only lane that reaches `evicted.toml` has not run since 2026-08-25, and that is the run
+[`adr/0006`](../docs/adr/0006-no-collection-grows-with-elapsed-time.md)'s per-tenancy cycle is reachable
+through**. The interval is the **milestone-24 terrain merge** (water, drainage, sealing, a saved handle
+per Cell, two new tables), and ⚠ **`minimal.toml` states neither `[water]` nor `[[terrain]]`** — so
+whatever got slower is being paid **unconditionally**, which is the shape of a fold or a sweep over all
+262,144 Cells rather than of new content.
+
+🔴 ⚠ **NONE OF THESE SIX FIGURES MAY BE QUOTED AS A COST.** A runner is not the reference machine
+([`adr/0106`](../docs/adr/0106-a-wall-clock-budget-names-a-machine-class-and-a-thread-count-or-it-is-not-a-budget.md),
+[`adr/0121`](../docs/adr/0121-the-commit-gate-is-the-assertion-tier-and-a-long-test-runs-post-submit-on-a-machine-that-is-not-yours.md)),
+and its class is not stable between runs. What the lane is entitled to say is that something **moved
+against its own history**, which is exactly what `adr/0121` §4 puts it there for. ***So this is a
+summons to measure and not a measurement.*** Routed out of this milestone under
+[`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md):
+the defect to `plans/0003` queue item **25**, the cost to [`0013`](0013-tick-budget.md) as an
+**UNMEASURED** row.
+
+🔴 **AND THE REFERENCE MACHINE SAYS THE SAME THING, WHICH IS WHAT TAKES IT OUT OF RUNNER NOISE.** The
+whole suite ran **52m48s** here against the **36m22s** [`CLAUDE.md`](../CLAUDE.md) records, and the one
+instrument class re-run to verify task 10's fixture fix — `ParkingArrivalStreamTests`, five tests —
+took **50m42s**, which by itself exceeds the documented whole-suite figure. ⚠ **NEITHER IS A CAPTURE
+AND BOTH ARE UPPER BOUNDS**: the machine was carrying other test runs and two builds throughout, and
+***a timing capture names nothing else running on this machine as its first control***. ⚠ **The class
+figure is not a claim that the class moved** — no prior reading for it exists, so it is a magnitude
+worth explaining and not a delta. ***An upper bound is the one thing a spoiled measurement is still
+good for***, and 52m48s against 36m22s is outside the band in the same direction the lane moved, across
+the same interval. **The bisect is still the first work and a quiet-machine capture is the second.**

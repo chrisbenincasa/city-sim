@@ -155,7 +155,7 @@ public enum CommandKind : ushort
     /// </para>
     /// <para>
     /// <b>It is the player's FAST path and not the city's only one</b>
-    /// (<c>adr/0170</c>). A shell falls on its own after
+    /// (<c>adr/0172</c>). A shell falls on its own after
     /// <c>[[building]] collapses_after_days</c>, because a player is not a sink and a headless run has
     /// no player in it. What this verb buys is the Lot back <em>sooner</em>, which is a choice rather
     /// than maintenance the simulation could not perform for itself.

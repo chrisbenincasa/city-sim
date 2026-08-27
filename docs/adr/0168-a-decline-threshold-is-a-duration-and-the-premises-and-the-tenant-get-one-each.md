@@ -196,7 +196,7 @@ can express.
   correctly against three, and the two that are missing — Trips failing, and conditions below tolerance
   — are not supply-shaped.
 - **The first threshold shipping** — `CONTEXT.md`:296's *loses occupancy and quality*, which is
-  `plans/0045` task 3. A decline chain with an intermediate stage a Building recovers from changes what
+  `plans/0046` task 3. A decline chain with an intermediate stage a Building recovers from changes what
   the second threshold is measuring, because it would no longer be the only thing standing between
   healthy and abandoned.
 - **Anything making a Day the wrong grain.** The unit is chosen so 45 minutes is unwritable; if a

@@ -2636,11 +2636,11 @@ withdrawn.
 regime *is* expressible since [`adr/0063`](../docs/adr/0063-a-wait-list-wakes-on-the-bins-state-and-a-shortfall-is-derived-rather-than-stored.md).
 What is actually unreachable is something the file never claimed: **a premises trough long enough to
 cross a decline threshold** — bounded at **2,016 Ticks against a floor of 2,048**, measured in
-[`0045`](0045-decline-demolish-and-cleared-land.md) **F9**. ***The file was right that something cannot be
+[`0046`](0046-decline-demolish-and-cleared-land.md) **F9**. ***The file was right that something cannot be
 written and wrong about what it was***, which is why the citation survived: the conclusion kept looking
 correct.
 
-- [ ] Rewrite `maintained.toml`'s `repairs` header to cite `0045` F9 and drop finding 41.
+- [ ] Rewrite `maintained.toml`'s `repairs` header to cite `0046` F9 and drop finding 41.
 - [ ] ⚠ **And state the mechanism rather than the outcome**, since the outcome is what let a withdrawn
       finding stand for it: **a consumer that waits on supply cannot run a persistent deficit**, because
       a failed Rule subscribes and sleeps (`adr/0045`) instead of retrying on its own cadence, so demand
@@ -4078,6 +4078,36 @@ misdirects the next `adr/0006` audit.**
 no code, and these are doc comments on the mechanism session W is about to make decisions against.
 **They go with milestone 26's first code task**, whoever takes it.
 
+✅ ~~**STRUCK 2026-08-26 by milestone 26 task 10**~~ — and the correction is larger than the row, in the
+one way that matters. 🔴 **THE SURVEY FOUND TWO SITES AND THERE WERE SIX**, of which **five** were
+stale: the two above, plus `PlacementEngine.Retire`'s own remarks (*"a SINK with no source beside
+it … this half has nothing to try"*), `PurposeTag.UnpremisedDraw` (*"it becomes a draw over a real
+choice the day a Business placement pass ships"* — that day was `adr/0147`), and **two in
+`RulesetLoader`'s `[founding]` refusal**, one doc comment and one inline. ⚠ **The sixth,
+`UnpremisedTable.cs:14`, is conditional — *"if nothing tenants it"* — and is still true**, which is
+why a grep is a survey and not a verdict.
+
+🔴 **The sharpest one is that `PlacementEngine.Tenant` QUOTES `Retire`'s wrong sentence while
+correcting it.** The repair documented itself, in the same file, and the sentence it repaired went on
+saying the old thing for a milestone. ***So `adr/0093`'s failure mode survives a fix that knows about
+it***, and nothing in this corpus would have caught that: the mechanical checks are
+document-to-document and a doc comment is invisible to every one of them.
+
+⚠ **The `RulesetLoader` pair is the one that could have cost something.** Both give *nothing tenants a
+Business* as the **reason** the `[founding]` refusal exists — so a reader arriving after tenanting
+shipped would have read the reason as expired and the refusal as removable. **It is not**: tenanting
+drains the pool only while vacant premises exist, which is the city cooperating rather than a bound,
+and `adr/0142`'s give-up is the exit that holds when it stops. ***A stale justification on a live
+refusal is an argument for deleting the refusal***, and that is a worse failure than a stale
+description.
+
+⚠ **Two residues, both routed rather than fixed here.** `UnpremisedTable`'s remarks also said the table
+has **two** columns and that `Gate` is absent, while its own constructor allocates **three** including
+`Gate` — ***a doc comment enumerating a table's columns is a second copy of the constructor***. And
+`Considered`'s absence was argued on *"nothing looks at premises on a Business's behalf"*, which
+`PlacementEngine.Tenant` falsified; the column is still absent, so that is now an **open question**
+(`plans/0002` §B) rather than a settled absence.
+
 ### 🔴 `CLAUDE.md`'s demand-scalar rule dropped the word that made it narrow, and a session read it as a ban
 
 **Found 2026-08-25, in session W** ([`0043`](0043-session-w-the-provider-kinds-content.md) **W13**).
@@ -4427,7 +4457,7 @@ question for whoever moves a fixture: ***what was this pointing at, and what is 
 
 ---
 
-## Filed 2026-08-26, by `adr/0170` — one document still authoring a unit that moved
+## Filed 2026-08-26, by `adr/0172` — one document still authoring a unit that moved
 
 **`docs/02-simulation-model.md` §5.9 still says the decline threshold is authored in *missed firings*,
 and it has not been since [`adr/0168`](../docs/adr/0168-a-decline-threshold-is-a-duration-and-the-premises-and-the-tenant-get-one-each.md).**
@@ -4449,15 +4479,15 @@ kept and re-homed as the reason the *derived* count is what the engine compares.
 
 ⚠ **It is a sighting of `Cause 4`** — a decision taken from a description of the code, wrong about the
 **trigger** — arriving in the design document rather than in a doc comment. It was found by writing
-`adr/0170` against the same section, which is the only reason anybody looked.
+`adr/0172` against the same section, which is the only reason anybody looked.
 
 ---
 
 **⚠ A plan's status table said a decision had no ADR while the same plan's decision section said it was
 closed — and the stale half escaped into a hand-off written for somebody else.** Found and struck
-2026-08-26 while picking up milestone 17. [`0045`](0045-decline-demolish-and-cleared-land.md)'s
+2026-08-26 while picking up milestone 17. [`0046`](0046-decline-demolish-and-cleared-land.md)'s
 **Landed** table carried *"DECISION 1 WAS ANSWERED BY THE CODE RATHER THAN BY THE SITTING, and no ADR
-records it"* for four commits after [`adr/0170`](../docs/adr/0170-an-abandoned-shell-collapses-on-a-clock-because-a-bound-is-not-a-sink.md)
+records it"* for four commits after [`adr/0172`](../docs/adr/0172-an-abandoned-shell-collapses-on-a-clock-because-a-bound-is-not-a-sink.md)
 landed in `93b1af7` — closing decision 1 by measurement, in the same session, in the same plan, a
 hundred lines further down.
 
@@ -4477,5 +4507,5 @@ behind it has two places to update and exactly one of them is on the critical pa
 argument for a status row being a pointer with no content of its own, which is what it now is.
 
 ⚠ **No mechanical check reaches it and none could.** Both halves cite real files, every link opens, and
-`adr/0170` is correctly linked *from the section that was already right*. The contradiction is two
+`adr/0172` is correctly linked *from the section that was already right*. The contradiction is two
 prose claims about state, which is the class this ledger holds because no test can.

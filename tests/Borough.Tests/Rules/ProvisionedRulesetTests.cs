@@ -5,6 +5,7 @@ using Borough.Core.Evidence;
 using Borough.Core.Input;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
+using Borough.Core.Space;
 using Borough.Core.Tables;
 using Borough.Formats;
 
@@ -52,10 +53,12 @@ public sealed class ProvisionedRulesetTests
 {
     private const string File = "provisioned.toml";
 
-    private static Ruleset Load()
+    private static Ruleset Load() => Load(File);
+
+    private static Ruleset Load(string file)
     {
         RulesetLoadResult loaded = RulesetLoader.Load(
-            Path.Combine(AppContext.BaseDirectory, "Rulesets", File));
+            Path.Combine(AppContext.BaseDirectory, "Rulesets", file));
 
         Assert.True(loaded.Ok, loaded.Describe());
 
@@ -383,6 +386,17 @@ public sealed class ProvisionedRulesetTests
     /// levy at any level, including one nothing could fail.
     /// </para>
     /// <para>
+    /// 🔴 <b>ON <c>oversupplied.toml</c> AND NOT ON <c>provisioned.toml</c>, AND THAT MOVE IS A FINDING
+    /// RATHER THAN A CONVENIENCE.</b> This test ran on the Provider file until milestone 26 task 6 put
+    /// <c>adr/0163</c>'s tier-1 demand signal on it, and then it could not pass at any Ruleset value or
+    /// over any horizon — measured to 131,072 Ticks. ***Selection needs OVER-SUPPLY***: a shop with no
+    /// competitor sells all it makes and pays its levy for ever, so a city that builds only what demand
+    /// justifies prunes nothing. ⚠ <b>That is precisely tier 1's job</b>, so the birth rule and the
+    /// death rule pull against each other and one world cannot show both — under tier 0 the city builds
+    /// 20 shops against ~18 vacant trade Lots and the weakest fail; under tier 1 it builds 4 and none
+    /// does. <c>adr/0170</c> carries it as a fourth condition on the selection model.
+    /// </para>
+    /// <para>
     /// ⚠ <b>It must outlast <c>condemn_after</c> firings of a 1,024-Tick Rule</b>, so the horizon is
     /// tens of thousands of Ticks rather than thousands: a shop has to be raised, stand in a District,
     /// trade long enough to be poor rather than new, and then miss four levies.
@@ -391,7 +405,7 @@ public sealed class ProvisionedRulesetTests
     [Fact]
     public void A_shop_that_cannot_pay_its_levy_goes_broke_and_the_treasury_is_paid()
     {
-        Ruleset rules = Load();
+        Ruleset rules = Load("oversupplied.toml");
 
         var key = WorldKey.FromSeed(0x9A0FEDU);
         var world = new World(2_000, rules, key);
@@ -549,5 +563,121 @@ public sealed class ProvisionedRulesetTests
         Assert.True(world.Bins.LevelAt(treasury) > 0, "the treasury collected nothing, so no levy settled.");
 
         simulation.CheckEndOfRun();
+    }
+
+
+
+
+    /// <summary>
+    /// <b>A shop is raised because somebody went hungry, and not because somebody was homeless</b> —
+    /// <c>adr/0163</c> tier 1, milestone 26 task 6.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>What is asserted is the SIGNAL'S IDENTITY, not the shop count.</b> The tier-0 predicate is
+    /// <c>UnplacedPool.Count != 0</c> — demand for <em>homes</em> proxying for demand for
+    /// <em>shops</em> — so a city that housed everybody would stop building shops. Tier 1 reads
+    /// elapsed unserved need off the wait list instead, and the test that tells them apart is that
+    /// <b>shops keep appearing while the Unplaced Pool is empty</b>.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>THE THRESHOLD SATURATES ON THIS WORLD AND THE TEST THEREFORE ASSERTS NOTHING ABOUT IT.</b>
+    /// Measured at 1, 2 and 4 household-Days: identical shop counts, identical refusal counts. Demand
+    /// here is <em>bimodal</em> — a District with no shop accumulates hunger without bound and one
+    /// with a shop sits near zero — so every threshold between those two answers the same question.
+    /// ***A dial whose values are one world is a constant wearing a parameter's name***
+    /// (<c>plans/0044</c> F6 said so about <c>TradeBlockStride</c> first).
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The cooldown is the dial that moves</b>: 0 → 11 shops, 1 Day → 4, 2 Days → 2, over 24,576
+    /// Ticks at 2,000 Citizens. It is asserted as <em>observable</em> rather than at a value.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_shop_is_raised_on_hunger_rather_than_on_homelessness()
+    {
+        Ruleset rules = Load();
+
+        var key = WorldKey.FromSeed(0x9A0FEDU);
+        var world = new World(2_000, rules, key);
+
+        SyntheticCity.PopulateInto(world, key, Ticks.Zero);
+
+        var simulation = new Simulation(world, key) { VerifyDecideWritesNothing = false };
+
+        ZoneRuleDefinition trade = default;
+
+        foreach (ZoneRuleDefinition definition in rules.ZoneRules)
+        {
+            if (definition.ReadsDemand)
+            {
+                trade = definition;
+            }
+        }
+
+        Assert.True(
+            trade.ReadsDemand,
+            "no [[zone_rule]] on this file states build_threshold_days, so nothing here reads the "
+            + "tier-1 demand signal and this test would pass against the tier-0 predicate it exists "
+            + "to distinguish from.");
+
+        long raisedWithEmptyPool = 0;
+        int shops = 0;
+
+        for (int tick = 0; tick < 24_576; tick++)
+        {
+            bool poolEmpty = world.UnplacedPool.Count == 0;
+            int before = Shops(world, trade.Kind);
+
+            simulation.Step(TickInput.Empty);
+
+            int after = Shops(world, trade.Kind);
+
+            if (after > before)
+            {
+                shops = after;
+
+                // THE DISCRIMINATOR. Under tier 0 this is unreachable by construction: Create's third
+                // term IS "the Pool is non-empty", so a Building raised on an empty Pool cannot happen.
+                // Every occurrence is a shop raised on hunger.
+                if (poolEmpty)
+                {
+                    raisedWithEmptyPool++;
+                }
+            }
+        }
+
+        Assert.True(shops > 0, "no shop was ever raised, so the demand signal never cleared its threshold.");
+
+        Assert.True(
+            raisedWithEmptyPool > 0,
+            "every shop was raised on a Tick when the Unplaced Pool was non-empty, so this run cannot "
+            + "tell the tier-1 signal from the tier-0 one it replaces. Both would have built.");
+
+        // The claim and the cooldown between them must leave the city bounded: a mechanism that read
+        // unrelieved demand every trigger and answered it every time would pave every trade Lot.
+        Assert.True(
+            shops < 18,
+            $"{shops} shops stand on a world with 18 vacant trade Lots at the start, which means "
+            + "nothing damped the response. The claim stops several Lots in ONE sweep answering one "
+            + "hunger; the cooldown stops the NEXT sweep re-reading demand a new shop has not yet had "
+            + "time to relieve.");
+
+        simulation.CheckEndOfRun();
+    }
+
+    private static int Shops(World world, byte kind)
+    {
+        int count = 0;
+
+        for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
+        {
+            if (world.Buildings.Rows.IsLive(slot) && world.Buildings.Kind[slot] == kind)
+            {
+                count++;
+            }
+        }
+
+        return count;
     }
 }

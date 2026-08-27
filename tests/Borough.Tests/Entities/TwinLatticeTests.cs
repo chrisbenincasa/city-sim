@@ -148,7 +148,13 @@ public sealed class TwinLatticeTests
             // [[hinterland]] price for every Good in any file stating [districts]. Its header
             // carries both at length. ⚠ It is the SAME two centres and not a third arrangement, so
             // twinned.toml is still the only world whose lattice count is the thing under test.
-            if (file == "provisioned.toml")
+            // oversupplied.toml IS provisioned.toml with two [[zone_rule]] keys deleted, so it
+            // inherits the same two lattices for the same two reasons. Milestone 26 task 6 split it
+            // out because adr/0170's selection model needs OVER-SUPPLY and tier 1's whole job is to
+            // stop the city over-supplying — the birth rule and the death rule cannot be
+            // demonstrated in one world. The diff is the whole demonstration, so anything it shares
+            // with its base is shared deliberately.
+            if (file is "provisioned.toml" or "oversupplied.toml")
             {
                 Assert.Equal(2, Shipped(file).Lattices.Length);
                 continue;
@@ -170,8 +176,8 @@ public sealed class TwinLatticeTests
 
             Assert.True(
                 authored == 0,
-                $"{file} authors a [[lattice]]. Every world but twinned.toml, provisioned.toml and "
-                + "coastal.toml is one "
+                $"{file} authors a [[lattice]]. Every world but twinned.toml, provisioned.toml, "
+                + "oversupplied.toml and coastal.toml is one "
                 + "lattice at the origin corner, and authoring one moves that file's State Hash. If "
                 + "this is deliberate, say why in the file's header and add it to the exemptions "
                 + "above rather than widening the test.");

@@ -70,6 +70,7 @@ public sealed class DistrictPoolTable
         Price = _rows.Saved<Money>("price", Touch.Cold);
         Rate = _rows.Saved<long>("rate", Touch.Cold);
         Consumed = _rows.Saved<long>("consumed", Touch.Cold);
+        LastRaised = _rows.Saved<Ticks>("last_raised", Touch.Cold);
 
         _rows.Seal();
     }
@@ -116,9 +117,18 @@ public sealed class DistrictPoolTable
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>The denominator of the tâtonnement's cover ratio</b> — how long <see cref="Bin"/>'s level
-    /// would last at the rate the District has recently been drawing. <see cref="MarketRuleset.Smooth"/>
-    /// folds each Day's <see cref="Consumed"/> into it, and the decay is the designer's.
+    /// <b>The denominator of the tâtonnement's cover ratio</b> — how long the row's stock would last at
+    /// the rate the District has recently been drawing. <see cref="MarketRuleset.Smooth"/> folds each
+    /// Day's <see cref="Consumed"/> into it, and the decay is the designer's.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>THE STOCK IS <c>Space.DistrictMarkets.Stock(row).Held</c> AND NOT <see cref="Bin"/>'S OWN
+    /// LEVEL, and this sentence said the latter until 2026-08-26.</b> A Pool is a market and not a
+    /// store (<c>adr/0139</c>), so that Bin is empty in every row of every world — which made the cover
+    /// collapse to this rate, the target the ceiling exactly, and ***no price had ever moved on any
+    /// world.*** <c>adr/0171</c> is the record of what a market's level is. ⚠ <b>The sentence was true
+    /// when it was written</b> and went wrong about its **trigger**, which is <c>adr/0093</c>'s failure
+    /// mode exactly.
     /// </para>
     /// <para>
     /// ⚠ <b>It is a rate and <see cref="Consumed"/> is a bucket, and keeping them apart is deliberate.</b>
@@ -148,6 +158,36 @@ public sealed class DistrictPoolTable
     public Column<long> Consumed { get; }
 
     /// <summary>
+    /// <b>When a Zone Rule last raised a Building selling this Good in this District</b>
+    /// (<c>adr/0170</c>, milestone 26 task 6).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The cooldown's state, and it is here because the key is already right.</b> A cooldown is a
+    /// fact about <c>(District, Good)</c> — how recently this District answered hunger for this Good —
+    /// which is this row's identity exactly, so it belongs on the row rather than in a table joined to
+    /// it. That is the same argument <see cref="Price"/> and <see cref="Consumed"/> arrived by.
+    /// </para>
+    /// <para>
+    /// ⚠ <b><c>(saved AND hashed)</c> and it has to be.</b> It gates a decision, so a world that
+    /// reloaded without it would raise a Building the saved world would have refused and diverge on
+    /// the next trigger. ***A timestamp that gates is state, however cheap it looks.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Tick zero is the sentinel and it is sound for <see cref="RuleInstanceTable"/>'s reason</b>:
+    /// nothing is raised on Tick 0 — the world is populated before the first Sweep — so *never raised*
+    /// and *raised at Tick 0* need not be told apart.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>It does not grow and it is not a collection</b> (<c>adr/0006</c>). One <c>Ticks</c> per
+    /// row, overwritten in place, and the rows are one per Good per District. ***The claim it partners
+    /// is deliberately NOT stored*** — see <c>ZoneRuleEngine</c>, which holds it for the duration of a
+    /// sweep and drops it, so no magnitude accumulates and no decay rate is owed a ratifier.
+    /// </para>
+    /// </remarks>
+    public Column<Ticks> LastRaised { get; }
+
+    /// <summary>
     /// Records that a Bin belongs to a District's Pool, at a starting price.
     /// </summary>
     /// <remarks>
@@ -156,7 +196,11 @@ public sealed class DistrictPoolTable
     /// <c>World.CreateDistrictPoolBin</c> where the Ruleset is in hand.
     /// </remarks>
     /// <param name="district">Whose Pool this is.</param>
-    /// <param name="bin">The Bin holding the stock.</param>
+    /// <param name="bin">
+    /// The market row's Bin. ⚠ <b>It holds no stock and never will</b> — a Pool is a market and not a
+    /// store (<c>adr/0139</c>), so this is the wait target a blocked buyer subscribes to and nothing
+    /// else. What the market holds is <c>Space.DistrictMarkets.Stock</c> (<c>adr/0171</c>).
+    /// </param>
     /// <param name="price">What the Good costs on the day the Pool opens.</param>
     public Handle<DistrictPool> Create(Handle<District> district, Handle<Bin> bin, Money price)
     {
@@ -168,6 +212,7 @@ public sealed class DistrictPoolTable
         Price[slot] = price;
         Rate[slot] = 0;
         Consumed[slot] = 0;
+        LastRaised[slot] = default;
 
         return handle;
     }

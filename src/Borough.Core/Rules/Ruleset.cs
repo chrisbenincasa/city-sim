@@ -855,6 +855,58 @@ public readonly record struct BusinessKindDefinition
 /// <param name="RevisitTicks">How long the industry takes to look at every Lot once.</param>
 public readonly record struct ZoneRuleDefinition(byte Kind, byte Zone, uint Interval, int RevisitTicks)
 {
+    /// <summary>
+    /// <b>How much elapsed unserved need, in <em>household-Days</em>, raises a Building of this kind.</b>
+    /// Zero means the Rule uses the tier-0 predicate instead.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>adr/0163</c>'s tier 1 threshold, and <c>adr/0170</c>'s entry cost.</b> Demand is the sum
+    /// of <c>tick − StarvedSince</c> over the buyers waiting on a District's market row for this
+    /// kind's Good, so its unit is <em>Ticks of one household's hunger</em> and eight household-Days
+    /// is one household hungry for eight Days or eight hungry for one.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>In Days rather than in Ticks</b>, which is <c>adr/0168</c>'s direction and <c>adr/0059</c>'s
+    /// before it: ***author the felt quantity and derive the count***. A Tick figure here would be a
+    /// number no designer could read, and the shortest expressible threshold being one household-Day
+    /// is the point rather than a limitation.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>It is an ENTRY COST and not a forecast</b> (<c>adr/0170</c>). Raising a shop costs nobody
+    /// anything today — no capital, no means test — so this is the only brake on birth, standing in
+    /// for a capitalisation band that belongs to milestone 27. ***It may be loose; it may not be
+    /// zero.***
+    /// </para>
+    /// </remarks>
+    public int BuildThresholdDays { get; init; }
+
+    /// <summary>
+    /// <b>How long after raising one Building of this kind in a District before another may be raised
+    /// there.</b> Zero means no cooldown.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The across-trigger damper, and it is NOT the claim.</b> The claim stops several Lots sampled
+    /// in <em>one</em> pass from answering the same hunger; this stops the <em>next</em> pass building
+    /// again before the shop just raised has had time to stock up and sell anything. Between them they
+    /// are what <c>adr/0163</c> means by *a claim makes the demand a stock that answering it depletes*
+    /// — one within a sweep, one across sweeps.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Per DISTRICT, which is what makes it legal under <c>adr/0163</c>.</b> That record refuses a
+    /// build-rate throttle because *"a throttle cannot tell five shops for one hungry neighbourhood
+    /// from five shops for five"* — and a **global** throttle cannot. This one is keyed on the market
+    /// row, so five hungry Districts each raise a shop on the same trigger and one hungry District
+    /// raises one. ***The refusal was of a throttle that could not discriminate, and the reach unit is
+    /// what supplies the discriminator.***
+    /// </para>
+    /// </remarks>
+    public int CooldownDays { get; init; }
+
+    /// <summary>Whether this Rule uses <c>adr/0163</c>'s tier-1 demand signal rather than the Pool.</summary>
+    public bool ReadsDemand => BuildThresholdDays > 0;
+
     /// <summary>The permission set a Lot must carry for this Rule to build on it.</summary>
     /// <remarks>
     /// Through <see cref="IntegerMath.ShiftLeft"/> rather than <c>&lt;&lt;</c>, per <c>BOR0204</c>:
@@ -1643,9 +1695,11 @@ public readonly record struct MarketRuleset(int DecayPercent, int MoveCapPercent
     /// <c>adr/0006</c>'s growth</b>, and it is arguably the better city: a Pool that has stopped
     /// selling prices from its cover — which for a stocked one collapses toward nothing — rather than
     /// freezing at whatever it last charged. ***A market that stops clearing is worth less, not the
-    /// same.*** 🔴 <b>Whether one unit a Day is fine enough resolution is MEASURABLE and nothing can
-    /// measure it yet</b> — it needs a world with real consumption in it, which is task 8's Provider
-    /// Ruleset. Filed rather than guessed at (<c>adr/0043</c>).
+    /// same.*** ⚠ <b>Whether one unit a Day is fine enough resolution is MEASURABLE and is now
+    /// REACHABLE, which it was not when this was written</b> — it needed a world with real consumption
+    /// in it <em>and</em> a cover that is not structurally zero, and <c>rulesets/oversupplied.toml</c>
+    /// is both as of <c>adr/0171</c>. Still unmeasured, and still filed rather than guessed at
+    /// (<c>adr/0043</c>).
     /// </para>
     /// </remarks>
     /// <param name="standing">The rate at the end of the previous Day, in units per Day.</param>

@@ -20,6 +20,30 @@ namespace Borough.Core.Space;
 public readonly record struct Offer(int Bin, int Business);
 
 /// <summary>
+/// What a market row's sellers are holding: everything on offer, and the largest single offer.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>Two numbers, because a market that is not a store answers two different questions and this
+/// build answered both with a third quantity that was structurally zero.</b> <c>adr/0139</c> moved
+/// the stock out to the sellers and left the Pool's own Bin empty for ever; three call sites went on
+/// reading a level off <em>something</em>, and each of them read a different something. See
+/// <c>adr/0171</c>, which is the record of what a market's level IS.
+/// </para>
+/// <para>
+/// ⚠ <b><see cref="Held"/> is what the market HOLDS and <see cref="Largest"/> is what it can SERVE,
+/// and substituting either for the other is a defect rather than an approximation.</b>
+/// <c>RuleEngine.Buy</c> takes a whole batch from ONE seller, so a row whose four sellers hold three
+/// units each can serve a batch of three and not a batch of five — the sum says otherwise and would
+/// wake a buyer nobody in that market can fill. Pricing is the opposite case: what a District is
+/// carrying is the sum, and a market of four small sellers is not scarce.
+/// </para>
+/// </remarks>
+/// <param name="Held">The sum of every seller's stock — the cover a price divides by.</param>
+/// <param name="Largest">The biggest single seller's stock — the budget a wake may spend.</param>
+public readonly record struct Offered(long Held, long Largest);
+
+/// <summary>
 /// Where a purchase looks: a District's market row for a Good, and the sellers standing in it.
 /// </summary>
 /// <remarks>
@@ -91,6 +115,21 @@ public sealed class DistrictMarkets
     // over the whole Business table. plans/0044 names this lookup as one the purchase owes.
     private int[] _marketOf = [];
 
+    /// <summary>
+    /// A market row's OWN Bin back to its row — the mirror of <see cref="_marketOf"/>, which maps a
+    /// <em>seller's</em> Bin.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>The two answer different questions and conflating them cost milestone 26 task 6 an
+    /// afternoon.</b> <see cref="_marketOf"/> answers <em>which market is this stock offered in</em>,
+    /// which is what a seller's deposit asks. This answers <em>which row is this the Bin of</em>,
+    /// which is what a <b>blocked buyer</b> asks — because <c>adr/0167</c> parks a buyer on the market
+    /// row's Bin and never on a seller's, so the wait target is the one Bin <see cref="_marketOf"/>
+    /// deliberately does not contain. ***A reverse index built for one direction reads as broken from
+    /// the other, rather than as absent.***
+    /// </remarks>
+    private int[] _poolOf = [];
+
     private bool _stale = true;
 
     /// <summary>Marks the index out of date. The next query rebuilds it.</summary>
@@ -149,6 +188,50 @@ public sealed class DistrictMarkets
         return new Offer(_entries[start + ordinal], _owners[start + ordinal]);
     }
 
+    /// <summary>What the sellers standing in one market row are holding.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Derived on the ask rather than carried on the row.</b> A seller's Bin moves on every firing,
+    /// so a cached total would be a column whose writer is not on the path that changes it — which is
+    /// exactly the shape <c>DerivedRebuildAuditTests</c> exists to catch. The walk is bounded by the
+    /// sellers in one District's row for one Good, and both callers are rare: a Day-boundary reprice
+    /// and a wake.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>An empty row returns zeroes and that is not the same as no row.</b> A District nobody
+    /// sells that Good in is a shortage, and <see cref="Offered.Largest"/> of zero is what stops a
+    /// wake spending a budget the market has not got.
+    /// </para>
+    /// </remarks>
+    public Offered Stock(World world, int poolRow)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+
+        Ensure(world);
+
+        if (poolRow < 0 || poolRow + 1 >= _starts.Length)
+        {
+            return default;
+        }
+
+        long held = 0;
+        long largest = 0;
+
+        for (int at = _starts[poolRow]; at < _starts[poolRow + 1]; at++)
+        {
+            long level = world.Bins.LevelAt(_entries[at]);
+
+            held += level;
+
+            if (level > largest)
+            {
+                largest = level;
+            }
+        }
+
+        return new Offered(held, largest);
+    }
+
     /// <summary>
     /// The market row a Bin is offered in, or <see cref="NoRow"/> if it is nobody's stock.
     /// </summary>
@@ -163,6 +246,25 @@ public sealed class DistrictMarkets
         Ensure(world);
 
         return binSlot >= 0 && binSlot < _marketOf.Length ? _marketOf[binSlot] - 1 : NoRow;
+    }
+
+    /// <summary>
+    /// The market row a Bin <em>is</em>, or <see cref="NoRow"/> if it is not a Pool's own Bin.
+    /// </summary>
+    /// <remarks>
+    /// <b>What a blocked buyer asks, and it is not <see cref="MarketOf"/>.</b> A Rule short of a
+    /// pooled Good waits on the market row's Bin (<c>adr/0167</c>), so reading a wait list back into
+    /// <c>(District, Good)</c> goes through here. ⚠ <b>Passing a market Bin to <see cref="MarketOf"/>
+    /// returns <see cref="NoRow"/> and looks exactly like <em>nobody is hungry</em></b>, which is how
+    /// milestone 26 task 6 measured zero demand in a world with 390 starving Rules.
+    /// </remarks>
+    public int PoolRowOf(World world, int binSlot)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+
+        Ensure(world);
+
+        return binSlot >= 0 && binSlot < _poolOf.Length ? _poolOf[binSlot] - 1 : NoRow;
     }
 
     /// <summary>Rebuilds both lookups from the Pool rows and the Businesses standing in them.</summary>
@@ -189,6 +291,13 @@ public sealed class DistrictMarkets
 
         Array.Clear(_rows);
 
+        if (_poolOf.Length < world.Bins.Rows.SlotCount)
+        {
+            _poolOf = new int[world.Bins.Rows.SlotCount];
+        }
+
+        Array.Clear(_poolOf);
+
         DistrictPoolTable pools = world.DistrictPools;
 
         for (int row = 0; row < pools.Rows.SlotCount; row++)
@@ -201,6 +310,7 @@ public sealed class DistrictMarkets
             }
 
             _rows[(districtSlot * _stride) + world.Bins.Resource[bin].Raw] = row + 1;
+            _poolOf[bin] = row + 1;
         }
     }
 

@@ -1,4 +1,4 @@
-# 0045 — Decline, Demolish and cleared land
+# 0046 — Decline, Demolish and cleared land
 
 **Milestone 17.** Scoped 2026-08-25, against `main` at `fabca9f`.
 
@@ -24,11 +24,11 @@ supposed to be right.
 | **8** — something to look at | 🟡 **partial** — `--zones` prints shells as `~` and counts them; nothing shows a clearance | `ZoneDump` |
 | **9** — the long acceptance run, and decision 1's measurement | 🟡 **partial** — censuses taken and quoted in the Ruleset headers; **no committed long-run assertion** | — |
 
-✅ **DECISION 1 IS CLOSED** into [`adr/0170`](../docs/adr/0170-an-abandoned-shell-collapses-on-a-clock-because-a-bound-is-not-a-sink.md)
+✅ **DECISION 1 IS CLOSED** into [`adr/0172`](../docs/adr/0172-an-abandoned-shell-collapses-on-a-clock-because-a-bound-is-not-a-sink.md)
 — *no, a player is not a sink*, and reading (a) is refuted by measurement. **Read decision 1 below for
 the run that closed it**; this row is a pointer and holds none of it.
 
-> 🔴 ⚠ **THIS PARAGRAPH SAID *no ADR records it* FOR THE WHOLE OF 2026-08-26, AND `adr/0170` HAD ALREADY
+> 🔴 ⚠ **THIS PARAGRAPH SAID *no ADR records it* FOR THE WHOLE OF 2026-08-26, AND `adr/0172` HAD ALREADY
 > LANDED IN `93b1af7`.** The decision section was updated and this one was not, so **the plan contradicted
 > itself for four commits** and a reader starting at the Landed table — which is what a Landed table is
 > for — got the stale half. It was read that way twice on the day, once into a session summary and once
@@ -50,7 +50,7 @@ Log; task 4 shipped `Demolish` over Buildings and left Streets on the old flag. 
 and expressly NOT cost** — retiring it re-spells six of the committed golden session's seven `connect`
 commands, and
 [`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)
-forbids citing baseline movement as a reason to defer. **[`0003`](0003-build-plan.md) queue item 21**,
+forbids citing baseline movement as a reason to defer. **[`0003`](0003-build-plan.md) queue item 26**,
 with the shape settled and only the work owed.
 
 ⚠ **`dc529a2` carries three tasks and names one.** Its subject is *a decline threshold is a duration*;
@@ -138,7 +138,7 @@ quality term in desirability, and no document that says what quality is. **Decis
 
 ## Open decisions this milestone owes
 
-### 1. Is a player a sink? ✅ **CLOSED 2026-08-26 into [`adr/0170`](../docs/adr/0170-an-abandoned-shell-collapses-on-a-clock-because-a-bound-is-not-a-sink.md) — and it closed by MEASUREMENT, which is not how it was typed**
+### 1. Is a player a sink? ✅ **CLOSED 2026-08-26 into [`adr/0172`](../docs/adr/0172-an-abandoned-shell-collapses-on-a-clock-because-a-bound-is-not-a-sink.md) — and it closed by MEASUREMENT, which is not how it was typed**
 
 > ✅ **Answer: no, and reading (a) is refuted.** A `[[building]]` kind states `collapses_after_days`,
 > and an abandoned Building's Lot returns to vacant that many Days later with no player act involved.

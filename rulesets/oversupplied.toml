@@ -1,3 +1,48 @@
+# ===================================================================================================
+# oversupplied.toml -- `provisioned.toml` with TWO KEYS DELETED, and the deletion is the whole
+# demonstration.
+#
+# THE DIFF: the `trade` [[zone_rule]] loses `build_threshold_days` and `cooldown_days`. That drops it
+# from adr/0163's TIER 1 back to TIER 0 -- `UnplacedPool.Count != 0`, which is demand for HOMES used
+# as a proxy for demand for SHOPS -- so the city builds a shopfront on every trade Lot it draws,
+# until it runs out of trade Lots.
+#
+# WHAT IT EXISTS TO SHOW: **a shop going broke because there are too many shops.**
+#
+# 🔴 AND WHY IT HAD TO BE A SEPARATE FILE. adr/0170 makes a shop SELECTED rather than sited: the
+# birth signal is coarse, and bankruptcy prunes what should not have been built. ***Selection needs
+# OVER-SUPPLY.*** A shop with no competitor sells everything it makes, earns comfortably, and pays
+# its levy for ever -- so if the city builds only what demand justifies, nothing is ever pruned and
+# the death half is inert.
+#
+# ⚠ THAT IS EXACTLY WHAT TIER 1 IS FOR, so the two mechanisms pull against each other and this world
+# is too small to show both. ⚠ EVERY NUMBER IN THIS HEADER IS AT 2,000 CITIZENS over 131,072 Ticks on
+# the reference machine, and the counts move a lot with population -- at 40,000 the same two arms are
+# 655 shops against 18. ***Quote the sentence and never the digits.*** Measured on `provisioned.toml`
+# at 2,000 Citizens: under tier 0 the city builds 20 shops
+# against ~18 vacant trade Lots -- pinned at the Lot ceiling, maximum over-build -- and shops compete
+# and the weakest fail. Under tier 1 it builds 4, and **no shop ever earns a levy's worth and later
+# fails**, over 131,072 Ticks. The arithmetic says why: at `consume` rate 32 taking 4 sundries, ~237
+# Households draw ~30 sundries a Tick, one `stock` Rule makes 1 a Tick, so feeding this city takes
+# ~30 shops and there are not 30 Lots to put them on. ***The city is LOT-LIMITED, and tier 0 was
+# already at the ceiling.***
+#
+# ⚠ SO WHAT THIS FILE DEMONSTRATES IS A PROPERTY OF A SATURATED MARKET AND NOT OF THE BUILD RULE.
+# Do not read its shop count as a recommendation, and do not read `provisioned.toml`'s as a defect:
+# they are the same city with the birth signal moved, which is why this is a two-key diff and not a
+# new world.
+#
+# 🔴 THE NUMBERS THIS FILE PRODUCES RATIFY NOTHING. A shop here has no cost of goods, no rent, no
+# wage bill and no capital -- adr/0169's levy is the only outgoing that exists, and it is a levy on
+# capital rather than on revenue because a founded balance is all a shop ever holds. So *how many
+# shops fail* is a fact about a stand-in cost, not about an economy. Read adr/0169 before quoting a
+# money figure out of a run of this.
+#
+# ⚠ EVERYTHING ELSE IS `provisioned.toml`'s and its header governs: the stride is not how any city is
+# zoned, `tenancy_ends_after_days`'s rope, the levy's level and why it was raised
+# from a value at which nothing could fail. Read that file first.
+# ===================================================================================================
+
 # The provisioned Ruleset. It is `twinned.toml` with a PROVIDER in it -- a second premises kind, the
 # trade that occupies it, and a Zone Rule that raises it on the trade bit -- and it is the first
 # shipped file in which anything is built to SELL.
@@ -65,16 +110,9 @@
 # clock for every blocking reason but Supply -- deliberately, because a full Bin "is what a
 # well-supplied Building with nobody to sell to looks like." The failable Rule that kills a shop is a
 # money-consuming one, it needs adr/0166's Business Rules, and it is TASK 7 -- which is also where
-# `condemn_after` RETURNS to this file, at a value chosen for a trade rather than inherited from a
-# dwelling.
-#
-# ⚠ THIS FILE DECLARED `condemn_after` ON BOTH KINDS UNTIL MILESTONE 17 AND NOW DECLARES IT ON
-# NEITHER. It stood at 4 in all eighteen shipped files and no author had ever set it to anything
-# else, which is adr/0164's test -- `would a designer ever set this?` -- answered by the tree rather
-# than argued. It mattered here because a condemned Building no longer vanishes: abandonment leaves a
-# SHELL standing (adr/0091), so every world was demonstrating blight on its way to demonstrating
-# whatever it was built for. Decline now lives in declining.toml and in diagnosed.toml, and a key
-# arrives with the mechanism that needs it rather than ahead of it.
+# a PREMISES threshold returns to this kind, at a value chosen for a trade rather than inherited
+# from a dwelling. What the `shopfront` kind states below is the TENANCY threshold and not that
+# one; `rates` is the only Rule here that can starve, and what runs out of rope is the shop.
 #
 # ---------------------------------------------------------------------------------------------------
 # ⚠ THE COMMERCIAL LAND IS AT A FIXED STRIDE AND THAT IS NOT HOW ANY CITY IS ZONED. adr/0165 requires
@@ -155,7 +193,6 @@ shift_start_latest_hour   = 10
 
 [[building]]
 name = "dwelling"
-
 # 🔴 MIGRATED FROM `condemn_after = 4` BY MILESTONE 17 (adr/0168), AND UNLIKE THE `shopfront` KIND
 # BELOW ***THE QUANTITY DID NOT SURVIVE***. That key had no header defending it here: it stood at 4
 # in all eighteen shipped files and no author ever set it, which is adr/0164's `would a designer ever
@@ -182,6 +219,7 @@ name = "dwelling"
 condemn_after_days      = 1
 tenancy_ends_after_days = 1
 collapses_after_days    = 1
+
 bins = [
     { resource = "sundries", capacity = 48, owner = "occupant" },
     { resource = "repairs",  capacity = 4 },
@@ -265,7 +303,6 @@ bins = [
 # block on `Space` alone, and RuleEngine.Stop CLEARS the pressure clock on every reason but supply.
 # ***A premises threshold on this kind would arm on nothing.***
 tenancy_ends_after_days = 2
-
 occupants = 1
 business = "grocer"
 
@@ -430,8 +467,6 @@ kind          = "shopfront"
 zone          = 1
 interval      = 32
 revisit_ticks = 2048
-build_threshold_days = 1
-cooldown_days        = 1
 
 [placement]
 interval      = 32

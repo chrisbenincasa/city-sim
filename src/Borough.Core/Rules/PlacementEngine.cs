@@ -190,12 +190,22 @@ public sealed class PlacementEngine
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>The unpremised pool's whole mechanism today, and it is a SINK with no source beside it</b>
+    /// <b>The give-up half of the unpremised pool, and it is no longer the whole of it</b>
     /// (<see href="../../docs/adr/0142-an-unpremised-business-emigrates-so-the-sink-is-the-one-households-already-use.md">adr/0142</see>,
-    /// milestone 25 task 5). The Household half of this pass tries to house somebody and only then
-    /// asks whether they have given up; this half has nothing to try, because ***nothing tenants a
-    /// Business*** — <c>World.CreateBusiness</c> has no production caller and the placement pass that
-    /// would is milestone <b>27</b>'s. So the bound is asked directly, and it is the only exit.
+    /// milestone 25 task 5). ⚠ <b>This remark read <em>"a SINK with no source beside it … nothing
+    /// tenants a Business … this half has nothing to try"</em> until 2026-08-26</b>, and
+    /// <see cref="Tenant"/> — four hundred lines above, in this file — has been tenanting them since
+    /// <c>adr/0147</c>. ***The sentence that was wrong is quoted inside the method that made it
+    /// wrong***, which is <c>adr/0093</c>'s failure mode at its sharpest: the repair documented itself
+    /// and the thing it repaired went on saying the old thing.
+    /// </para>
+    /// <para>
+    /// <b>So it has something to try now, and <see cref="Tenant"/> runs FIRST for that reason</b> — a
+    /// Business that could take premises this Tick must not be retired before it is offered any. What
+    /// is left here is the bound, asked directly: ***the exit that holds when the city has no room***,
+    /// as against tenanting, which is the city cooperating. ⚠ <b>The bound has never fired on a shipped
+    /// world</b> — 7,165 premisings against zero give-ups over 131,072 Ticks on
+    /// <c>rulesets/founded.toml</c> — so <c>adr/0006</c> rests here on a path nothing exercises.
     /// </para>
     /// <para>
     /// <b>It rides the SAME trigger, the SAME sample derivation and the SAME bound, and every one of

@@ -1791,7 +1791,56 @@ public static class RulesetLoader
                 uint interval = ReadInterval(table, name);
                 int revisit = ReadRevisit(table, name, interval);
 
-                definitions.Add(new ZoneRuleDefinition(kind, zone, interval, revisit));
+                // adr/0163 tier 1, both optional and both in DAYS (adr/0168's direction). Absent
+                // means the Rule keeps the tier-0 predicate, which is every shipped file but the
+                // Provider's -- so a Ruleset written before this existed is unchanged, and a Ruleset
+                // that wants demand says so.
+                int thresholdDays = 0;
+                int cooldownDays = 0;
+
+                if (TryInteger(table, "build_threshold_days", out long threshold, required: false, name))
+                {
+                    if (threshold < 1)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "build_threshold_days") ?? table), name,
+                            $"a build threshold of {threshold} household-Days is not a threshold. "
+                            + "adr/0170 makes this the ENTRY COST for a trade -- raising a Building "
+                            + "costs nobody anything today, so it is the only brake on birth, and a "
+                            + "city with no brake builds until it runs out of Lots. Omit the key to "
+                            + "keep the tier-0 predicate instead.");
+                    }
+                    else
+                    {
+                        thresholdDays = (int)threshold;
+                    }
+                }
+
+                if (TryInteger(table, "cooldown_days", out long cooldown, required: false, name))
+                {
+                    if (cooldown < 0)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "cooldown_days") ?? table), name,
+                            $"a cooldown of {cooldown} Days is negative.");
+                    }
+                    else if (thresholdDays == 0)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "cooldown_days") ?? table), name,
+                            "a cooldown is stated without build_threshold_days. It damps how fast a "
+                            + "District raises Buildings on the tier-1 demand signal, and a Rule with "
+                            + "no threshold reads no demand -- so this key would load clean and do "
+                            + "nothing, which is exactly what refusals 6 to 10 exist to stop.");
+                    }
+                    else
+                    {
+                        cooldownDays = (int)cooldown;
+                    }
+                }
+
+                definitions.Add(new ZoneRuleDefinition(kind, zone, interval, revisit)
+                {
+                    BuildThresholdDays = thresholdDays,
+                    CooldownDays = cooldownDays,
+                });
             }
 
             return [.. definitions];
@@ -5183,11 +5232,14 @@ public static class RulesetLoader
         /// each absence is checked against the file rather than left to fail quietly at Tick 0.
         /// </para>
         /// <para>
-        /// 🔴 <b>The sink one is the one that matters.</b> <c>[founding]</c> is an inflow into the
-        /// unpremised pool and nothing tenants a Business yet, so a file stating it without
-        /// <c>gives_up_after_days</c> grows a collection with elapsed time — <c>adr/0006</c> — and
-        /// <c>adr/0130</c>'s <em>whoever builds the gate owes the give-up rule</em> is the same
-        /// sentence about the other pool.
+        /// 🔴 <b>The sink one is the one that matters, and its reason is NOT that nothing tenants a
+        /// Business.</b> This said so until 2026-08-26 and <c>PlacementEngine.Tenant</c> had been
+        /// tenanting them since <c>adr/0147</c>. ***The refusal survives its own stale argument***:
+        /// tenanting drains the pool only while vacant premises exist, so it is the city cooperating
+        /// rather than a bound, and a file stating <c>[founding]</c> without
+        /// <c>gives_up_after_days</c> still grows a collection with elapsed time the moment the city
+        /// runs out of room — <c>adr/0006</c>. <c>adr/0130</c>'s <em>whoever builds the gate owes the
+        /// give-up rule</em> is the same sentence about the other pool.
         /// </para>
         /// <para>
         /// ⚠ <b>There is no demand key and its absence is the decision</b> (<c>adr/0145</c>'s
@@ -5244,10 +5296,15 @@ public static class RulesetLoader
 
             // 🔴 A SINK. This is adr/0130's argument reaching a SECOND pool, and it is the refusal
             // that matters most here: [founding] is an inflow into the unpremised pool, exactly as a
-            // gate kind is an inflow into the Unplaced Pool. Without gives_up_after_days nothing ever
-            // leaves -- nothing tenants a Business until milestone 27's placement half -- so the pool
-            // grows with elapsed time, which adr/0006 forbids outright. ⚠ The gate check above it
-            // says the same sentence about the other pool; neither can see this one.
+            // gate kind is an inflow into the Unplaced Pool. ⚠ THE POOL HAS A SECOND EXIT AND IT IS
+            // NOT A BOUND -- PlacementEngine.Tenant premises pool members into standing Buildings
+            // (adr/0147), and it drains the pool only while there is room. So a city that runs out of
+            // vacant premises has an inflow and no outflow, which adr/0006 forbids outright, and the
+            // give-up bound is the exit that holds when the cooperating one stops. ⚠ This comment
+            // said "nothing tenants a Business until milestone 27's placement half" until 2026-08-26,
+            // which was true when written and would have read as a reason to DROP this refusal once
+            // tenanting shipped. ⚠ The gate check above it says the same sentence about the other
+            // pool; neither can see this one.
             if (!placement.GivesUp)
             {
                 Refuse(LineOf(_foundingTable), null,

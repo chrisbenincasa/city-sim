@@ -690,14 +690,20 @@ public sealed class DistrictWatershedTests
     }
 
     /// <summary>
-    /// <c>twinned.toml</c> and <c>provisioned.toml</c> are the only shipped Rulesets that state the
-    /// table, and the second is the first one plus a Provider.
+    /// <c>twinned.toml</c>, <c>provisioned.toml</c> and <c>oversupplied.toml</c> are the only
+    /// shipped Rulesets that state the table, and the last two descend from the first.
     /// </summary>
     /// <remarks>
     /// <para>
     /// <b>They are the demonstration files and the others are demonstrations of other things.</b> A
     /// <c>[districts]</c> table in a file with one lattice in it would derive one District and teach
     /// nobody anything, at the cost of a hash-bearing unratified number in eight more files.
+    /// </para>
+    /// <para>
+    /// ⚠ <b><c>oversupplied.toml</c> inherits it from <c>provisioned.toml</c>, which is its base</b>
+    /// (milestone 26 task 6) — the two differ by <c>build_threshold_days</c> and <c>cooldown_days</c>
+    /// and by nothing else, because <c>adr/0170</c>'s selection model needs over-supply and tier 1
+    /// exists to remove it.
     /// </para>
     /// <para>
     /// ⚠ <b><c>provisioned.toml</c> did not choose to state it</b> (milestone 26 task 3). It needs
@@ -720,7 +726,7 @@ public sealed class DistrictWatershedTests
         {
             string file = Path.GetFileName(path);
             bool states = Shipped(file).Districts.Runs;
-            bool expected = file is "twinned.toml" or "provisioned.toml";
+            bool expected = file is "twinned.toml" or "provisioned.toml" or "oversupplied.toml";
 
             Assert.Equal(expected, states);
         }

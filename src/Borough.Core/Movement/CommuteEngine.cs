@@ -154,6 +154,14 @@ public sealed class CommuteEngine
         TravelMode mode = _world.ModeOf(citizen);
         (int origin, int destination) = homeward ? (workplace, home) : (home, workplace);
 
+        // Set BEFORE Start rather than after, and it is not a style choice: every refusal inside
+        // Start resolves through World.ResolveTrip on the spot, so a journey that is never made
+        // has already been read back and reverted by the time Start returns. Writing it afterwards
+        // would stamp "travelling" onto somebody standing still.
+        citizens.Activity[citizen] = (byte)(homeward
+            ? CitizenActivity.TravellingHome
+            : CitizenActivity.TravellingToWork);
+
         _trips.Start(citizen, origin, destination, mode, TripPurpose.Commute, tick);
     }
 

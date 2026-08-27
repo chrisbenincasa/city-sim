@@ -66,6 +66,9 @@ internal static class Program
                 case Mode.Evidence:
                     return Session.DumpEvidence(options);
 
+                case Mode.Day:
+                    return Session.DumpDay(options);
+
                 case Mode.Money:
                     return Session.DumpMoney(options);
 
@@ -80,6 +83,9 @@ internal static class Program
 
                 case Mode.Business:
                     return Session.DumpBusiness(options);
+
+                case Mode.Market:
+                    return Session.DumpMarket(options);
 
                 case Mode.Report:
                 default:

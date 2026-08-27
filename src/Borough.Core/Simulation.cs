@@ -737,7 +737,7 @@ public sealed class Simulation
     /// player uses on a district they want to redevelop.
     /// </para>
     /// <para>
-    /// <b>It is a shortcut through <c>adr/0170</c>'s clock and not a replacement for it.</b> A shell
+    /// <b>It is a shortcut through <c>adr/0172</c>'s clock and not a replacement for it.</b> A shell
     /// falls on its own after <c>[[building]] collapses_after_days</c>; this takes the Lot back
     /// sooner. ***A player is not a sink and this verb does not make one*** — the measurement that
     /// settled that is in the ADR, and it is a city that dies with every invariant green.

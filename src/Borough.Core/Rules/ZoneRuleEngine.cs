@@ -4,6 +4,7 @@ using Borough.Core.Arithmetic;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
+using Borough.Core.Space;
 using Borough.Core.Tables;
 
 /// <summary>
@@ -47,7 +48,8 @@ public readonly record struct ZoneActivity(
     RuleFlow Created,
     RuleFlow Demolished,
     RuleFlow Ended,
-    RuleFlow Shed)
+    RuleFlow Shed,
+    RuleFlow Unpremised)
 {
     /// <summary>Lots evaluated over the interval, which is what a trigger is charged for.</summary>
     /// <remarks>
@@ -56,6 +58,22 @@ public readonly record struct ZoneActivity(
     /// a burst that never happened. Only sums compose.
     /// </remarks>
     public long Evaluated => Vacant.Sum + Occupied.Sum;
+
+    /// <summary>
+    /// <b>Businesses turned out of premises that stay standing</b> — the trade half of
+    /// <see cref="Ended"/>.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>A SEPARATE FLOW RATHER THAN A WIDENING OF <see cref="Ended"/>, and that is the whole
+    /// point of it.</b> <c>Ended</c> counts Household tenancies. Folding trade evictions into it would
+    /// make a counter that already answers <em>how many tenancies ended</em> answer a broader question
+    /// under the same name — and milestone 26 task 7 shipped an assertion that read <c>Ended.Sum</c>
+    /// as <em>a broke shop was turned out</em> when every one it counted was a dwelling.
+    /// ***A counter that aggregates over the whole world, read as though it were scoped to the subject
+    /// the claim names***, is a shape with four sightings in <c>plans/0012</c>; this is the one place
+    /// the repair was cheap, so it was taken.
+    /// </remarks>
+    public long TurnedOut => Unpremised.Sum;
 }
 
 /// <summary>
@@ -112,6 +130,7 @@ public sealed class ZoneRuleEngine
     private int _tickDemolished;
     private int _tickEnded;
     private int _tickShed;
+    private int _tickUnpremised;
 
     private RuleFlow _triggerFlow;
     private RuleFlow _vacantFlow;
@@ -120,6 +139,13 @@ public sealed class ZoneRuleEngine
     private RuleFlow _demolishedFlow;
     private RuleFlow _endedFlow;
     private RuleFlow _shedFlow;
+    private RuleFlow _unpremisedFlow;
+
+    /// <summary>Elapsed unserved need per District market row, recomputed each trigger.</summary>
+    private long[] _demand = [];
+
+    /// <summary>What this sweep has already answered per row, so two Lots cannot answer one hunger.</summary>
+    private long[] _claimed = [];
 
     /// <param name="world">The tables this sweeps, and the Ruleset it sweeps under. Not copied.</param>
     /// <param name="key">The world seed, as the sample's first coordinate.</param>
@@ -141,8 +167,14 @@ public sealed class ZoneRuleEngine
     public ZoneActivity Drain()
     {
         var activity = new ZoneActivity(
-            _triggerFlow, _vacantFlow, _occupiedFlow, _createdFlow, _demolishedFlow, _endedFlow,
-            _shedFlow);
+            _triggerFlow,
+            _vacantFlow,
+            _occupiedFlow,
+            _createdFlow,
+            _demolishedFlow,
+            _endedFlow,
+            _shedFlow,
+            _unpremisedFlow);
 
         _triggerFlow = default;
         _vacantFlow = default;
@@ -151,6 +183,7 @@ public sealed class ZoneRuleEngine
         _demolishedFlow = default;
         _endedFlow = default;
         _shedFlow = default;
+        _unpremisedFlow = default;
 
         return activity;
     }
@@ -177,6 +210,11 @@ public sealed class ZoneRuleEngine
     {
         ReadOnlySpan<ZoneRuleDefinition> rules = _world.Rules.ZoneRules;
 
+        // Lazily, and at most once a Tick however many Rules read it -- the pass walks every Rule
+        // Instance in the world and its answer does not depend on who asked. A world whose Rules are
+        // all tier 0 never pays for it at all.
+        bool demanded = false;
+
         for (int rule = 0; rule < rules.Length; rule++)
         {
             ZoneRuleDefinition definition = rules[rule];
@@ -202,8 +240,24 @@ public sealed class ZoneRuleEngine
             // it moves as Lots are painted. SlotCount rather than LiveCount for the reason
             // ZoneSample.Draw already draws against it -- the draw is over slots and discards the
             // ones that are not live, so a denominator of live rows would systematically over-sample.
+            if (definition.ReadsDemand && !demanded)
+            {
+                // Once a Tick and not once a Rule: the pass is over every Rule Instance in the world
+                // and its answer does not depend on which Zone Rule asked.
+                RecomputeDemand(tick);
+                demanded = true;
+            }
+
             Span<int> into = Scratch(definition.SampleFor(_world.Lots.Rows.SlotCount));
             int drawn = ZoneSample.Draw(_world.Lots, into, _key, tick, rule);
+
+            // adr/0170: the SAMPLE IS THE CANDIDATE LIST, and no extra draws are taken. A tier-1
+            // Rule scores every vacant Lot it drew and builds on the best one; a tier-0 Rule builds
+            // on the first that passes, exactly as before. ⚠ Best-of-N over a sample the Rule was
+            // already going to take is what makes siting non-random for no extra work -- the shape
+            // EmploymentEngine.TryEmploy uses, one subsystem over.
+            int best = Rows.NoSlot;
+            int bestScore = int.MinValue;
 
             for (int i = 0; i < drawn; i++)
             {
@@ -212,7 +266,28 @@ public sealed class ZoneRuleEngine
                 if (_world.Lots.IsVacant(into[i]))
                 {
                     _tickVacant++;
-                    Create(definition, into[i], tick);
+
+                    if (!definition.ReadsDemand)
+                    {
+                        Create(definition, into[i], tick);
+                        continue;
+                    }
+
+                    if ((_world.Lots.Zone[into[i]] & definition.Admits) == 0)
+                    {
+                        continue;
+                    }
+
+                    int score = Score(into[i]);
+
+                    // ⚠ STRICTLY better keeps the EARLIER draw, which is EmploymentEngine's rule and
+                    // its reason: the result is then a function of draw ORDER and not of scan order,
+                    // so it does not move when the Lot table is compacted.
+                    if (best == Rows.NoSlot || score > bestScore)
+                    {
+                        best = into[i];
+                        bestScore = score;
+                    }
                 }
                 else
                 {
@@ -220,9 +295,268 @@ public sealed class ZoneRuleEngine
                     Condemn(into[i], tick);
                 }
             }
+
+            if (best != Rows.NoSlot)
+            {
+                Create(definition, best, tick);
+            }
         }
 
         CloseTick();
+    }
+
+
+
+    /// <summary>
+    /// Whether this District's unserved need for <paramref name="definition"/>'s Good justifies
+    /// raising one — and, if it does, <b>claims it</b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Three terms and they fail in the cheapest order</b>: is there a market here at all, is the
+    /// cooldown clear, and has enough hunger gone unanswered.
+    /// </para>
+    /// <para>
+    /// <b>THE CLAIM IS THE SUBTRACTION AND IT IS DELIBERATELY NOT STORED.</b> <c>adr/0163</c> wants
+    /// demand to be *a stock that answering depletes* because several Lots are sampled in one pass and
+    /// each would otherwise read the same starving Households — ***an undifferentiated read overshoots
+    /// in proportion to how many Lots happen to be sampled together***, which is a number belonging to
+    /// the cadence rather than to the city. That failure is entirely <em>within</em> one sweep, so the
+    /// claim lives exactly as long as one sweep: <see cref="_claimed"/> is zeroed by every recompute.
+    /// ***A stored claim would be a magnitude that only grows, owing a decay rate no measurement could
+    /// ratify*** — <c>adr/0006</c> avoided by not creating the collection.
+    /// </para>
+    /// <para>
+    /// <b>The claim's AMOUNT is the threshold, derived rather than chosen.</b> Raising a Building
+    /// claims exactly the hunger that justified it, so a District with twice the threshold raises two
+    /// and one with a fraction over raises one. ⚠ <b>That is one fewer <c>plans/0002</c> §D row than
+    /// <c>adr/0163</c> anticipated</b>, which expected the threshold and the claim to be a chosen pair
+    /// ratified together; making the second follow the first removes the question of whether they
+    /// agree. ***A pair that must be ratified together is better replaced by one number and a rule.***
+    /// </para>
+    /// <para>
+    /// <b>The cooldown is the across-sweep half</b> (<c>adr/0170</c>). A shop raised this trigger has
+    /// bought nothing, sold nothing and relieved nobody, so its District's hunger reads exactly as high
+    /// on the next trigger; without this the same demand is answered again and again until it finally
+    /// falls. ⚠ <b>Per District rather than globally, which is what keeps it legal under
+    /// <c>adr/0163</c></b> — that record refuses a build-rate throttle for being unable to tell *five
+    /// shops for one hungry neighbourhood* from *five shops for five*, and a per-market-row gate tells
+    /// them apart exactly.
+    /// </para>
+    /// </remarks>
+    private bool Demanded(ZoneRuleDefinition definition, int lot, Ticks tick)
+    {
+        int row = MarketFor(definition.Kind, lot);
+
+        // No market: either the kind sells nothing, or this Lot stands on ground no District has
+        // claimed yet. Both are ordinary rather than exceptional -- the watershed runs on a cadence
+        // (RuleEngine.Bin's remark says the same from the purchase's side) -- and both mean there is
+        // no demand here to read.
+        if (row == DistrictMarkets.NoRow || row >= _demand.Length)
+        {
+            return false;
+        }
+
+        if (definition.CooldownDays > 0)
+        {
+            ulong since = tick.Raw - _world.DistrictPools.LastRaised[row].Raw;
+
+            if (_world.DistrictPools.LastRaised[row].Raw != 0
+                && since < (ulong)definition.CooldownDays * Ticks.PerDay)
+            {
+                    return false;
+            }
+        }
+
+        long threshold = (long)definition.BuildThresholdDays * Ticks.PerDay;
+
+        if (_demand[row] - _claimed[row] < threshold)
+        {
+            return false;
+        }
+
+
+        _claimed[row] += threshold;
+        _world.DistrictPools.LastRaised[row] = tick;
+
+        return true;
+    }
+
+    /// <summary>
+    /// A Lot's site quality, as a small ordinal — <b>higher is better</b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>An ORDINAL LADDER and never a weighted sum, and that is the whole reason this costs no
+    /// ratifier.</b> A weighted score needs weights, every weight is hash-bearing, and each one would
+    /// owe <c>adr/0052</c> a machine, a world and a quantity — for a <em>siting preference</em>, which
+    /// no measurement settles. A ladder needs none: it says <em>nearer the houses beats further</em>,
+    /// which is an ordering rather than a magnitude. ***<c>EmploymentEngine.TryEmploy</c> reaches the
+    /// same shape from the other side***, scoring on <c>CommuteRung</c> rather than on minutes.
+    /// </para>
+    /// <para>
+    /// <b>Two terms, in priority order.</b> <b>Density</b> — the Buildings in the Lot's Cell, which is
+    /// <c>BuildingResidency.Density</c>: maintained at the write site, exact at every Tick, free to
+    /// read, and non-zero in every shipped world. It is the only <em>customer</em> proxy the build has.
+    /// ⚠ <b>It is capacity and not population</b> — there is no per-Cell Household or Citizen count
+    /// anywhere in the core — so it says <em>how much building is here</em>, which is the honest
+    /// reading. <b>Centrality</b> breaks its ties, on the District's own centre, which the watershed
+    /// already computed because <c>adr/0134</c> makes a District <em>a centre and its basin</em>.
+    /// ***Nothing new is derived for either.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Chebyshev distance rather than Euclidean</b>, because a square ring is what a Cell grid
+    /// has and a hypotenuse would need a root this project does not take in integers. It is a
+    /// tie-break over a ladder, so its exact shape is not load-bearing.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Three signals were considered and refused as NOT CHEAP.</b> <em>Near other shops</em> and
+    /// <em>not too near other shops</em> both need a per-Cell count filtered by Building kind, and no
+    /// such index exists. <em>Footfall</em> does not exist and never will — <c>03 §3.7</c> makes a
+    /// pedestrian network permanently non-saturating, so a foot Leg is priced once and attributed to
+    /// no Segment. <em>Land value</em> is readable in O(1) and is ≤ 0 everywhere, because every term in
+    /// it subtracts and amenity is unbuilt — so preferring a high one means preferring the quietest
+    /// street, which is backwards for a shop.
+    /// </para>
+    /// </remarks>
+    private int Score(int lot)
+    {
+        Cells east = CellGrid.ToCells(_world.Lots.East[lot]);
+        Cells north = CellGrid.ToCells(_world.Lots.North[lot]);
+
+        int density = _world.BuildingsInCells.Density(east, north);
+
+        Handle<District> district = _world.DistrictsInCells.Of(_world.DistrictCells, east, north);
+
+        // No District yet -- the watershed runs on a cadence and a Lot may stand on unclaimed ground
+        // for up to [districts] revisit_ticks. Density alone still orders it.
+        if (!_world.Districts.Rows.TryResolve(district, out int districtSlot))
+        {
+            return density * CentralityRange;
+        }
+
+        int acrossEast = (_world.Districts.CentreEast[districtSlot] - east).Magnitude.Raw;
+        int acrossNorth = (_world.Districts.CentreNorth[districtSlot] - north).Magnitude.Raw;
+
+        // Chebyshev: the larger of the two, and no Math.Max because there is none in this project.
+        int reach = acrossEast > acrossNorth ? acrossEast : acrossNorth;
+
+        if (reach > CentralityRange - 1)
+        {
+            reach = CentralityRange - 1;
+        }
+
+        // Density leads and centrality breaks its ties, which the multiply expresses without a weight:
+        // one more Building in the Cell outranks any centrality difference, and centrality decides
+        // only between Lots that tied on density.
+        return (density * CentralityRange) + (CentralityRange - reach);
+    }
+
+    /// <summary>How finely centrality separates two Lots that tied on density.</summary>
+    /// <remarks>
+    /// <b>The District's working extent</b> — <c>CONTEXT.md</c> → District's 128 Cells, which is a
+    /// curve's scale rather than a ceiling (<c>adr/0134</c>). ⚠ <b>It is a tie-break's resolution and
+    /// not a distance anything is measured against</b>, so it carries no <c>plans/0002</c> §D row:
+    /// changing it reorders Lots that were already equal on the term that leads.
+    /// </remarks>
+    private const int CentralityRange = 128;
+
+    /// <summary>
+    /// Sums elapsed unserved need onto every District market row, for this trigger.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>adr/0163</c>'s signal, and the wait list is what makes it one pass instead of a search.</b>
+    /// A buyer short of a Good sleeps on the <b>market row's Bin</b> and never on a seller's
+    /// (<c>adr/0167</c>) — so the Bin a starving Rule Instance waits on <em>is</em> the
+    /// <c>(District, Good)</c> address its hunger belongs to, and <c>DistrictMarkets.MarketOf</c> turns
+    /// it into the row in one lookup. ***No District walk, no reach query, no spatial index.***
+    /// </para>
+    /// <para>
+    /// <b>Elapsed rather than counted</b>, which is <c>adr/0163</c>'s own fork: <c>StarvedSince</c> is
+    /// a timestamp, recovery is total, and a Household starving intermittently is invisible to
+    /// whichever samples catch it fed. ***A signal that flickers under sampling reports a sampling
+    /// artefact.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Recomputed whole and stored nowhere.</b> One pass over live Rule Instances, which is the
+    /// cost <c>adr/0163</c> owes <c>plans/0013</c> a measured row for. Keeping a running total instead
+    /// would be a magnitude that only grows, needing a decay rate nobody could ratify —
+    /// <c>adr/0006</c> avoided by not creating the collection.
+    /// </para>
+    /// </remarks>
+    private void RecomputeDemand(Ticks tick)
+    {
+        int rows = _world.DistrictPools.Rows.SlotCount;
+
+        if (_demand.Length < rows)
+        {
+            _demand = new long[rows];
+            _claimed = new long[rows];
+        }
+
+        Array.Clear(_demand, 0, rows);
+        Array.Clear(_claimed, 0, rows);
+
+        int instances = _world.RuleInstances.Rows.SlotCount;
+
+        for (int slot = 0; slot < instances; slot++)
+        {
+            if (!_world.RuleInstances.Rows.IsLive(slot)
+                || !_world.RuleInstances.IsStarving(slot)
+                || !_world.Bins.Rows.TryResolve(_world.RuleInstances.WaitingOn[slot], out int bin))
+            {
+                continue;
+            }
+
+            int row = _world.Markets.PoolRowOf(_world, bin);
+
+            if (row == DistrictMarkets.NoRow)
+            {
+                continue;
+            }
+
+            _demand[row] += (long)(tick.Raw - _world.RuleInstances.StarvedSince[slot].Raw);
+        }
+    }
+
+    /// <summary>
+    /// The market row a Lot's District would sell <paramref name="kind"/>'s Good in, or
+    /// <see cref="DistrictMarkets.NoRow"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>A kind sells what it stocks AS A BUSINESS, and that needs no new Ruleset key.</b> A
+    /// <c>[[building]]</c> declaring <c>{ resource = "sundries", owner = "business" }</c> is a shop;
+    /// one declaring the same Bin <c>owner = "occupant"</c> is a larder. ***That is the discriminator
+    /// <c>DistrictMarkets</c> already uses to decide who is a seller*** — a Business's own Bin, offered
+    /// in its District's row — so the Zone Rule and the market agree by construction rather than by two
+    /// definitions kept in step. ⚠ <b>Money is skipped</b>: a till is a Business-owned Bin and is not
+    /// stock.
+    /// </remarks>
+    private int MarketFor(byte kind, int lot)
+    {
+        Handle<District> district = _world.DistrictsInCells.Of(
+            _world.DistrictCells,
+            CellGrid.ToCells(_world.Lots.East[lot]),
+            CellGrid.ToCells(_world.Lots.North[lot]));
+
+        if (!_world.Districts.Rows.TryResolve(district, out int districtSlot))
+        {
+            return DistrictMarkets.NoRow;
+        }
+
+        foreach (BinDeclaration declaration in _world.Rules.BinsOf(kind))
+        {
+            if (declaration.Tenancy != BinTenancy.Business
+                || _world.Rules.IsConserved(declaration.Resource))
+            {
+                continue;
+            }
+
+            return _world.Markets.Row(_world, districtSlot, declaration.Resource);
+        }
+
+        return DistrictMarkets.NoRow;
     }
 
     /// <summary>
@@ -257,7 +591,19 @@ public sealed class ZoneRuleEngine
     /// </remarks>
     private void Create(ZoneRuleDefinition definition, int lot, Ticks tick)
     {
-        if ((_world.Lots.Zone[lot] & definition.Admits) == 0 || _world.UnplacedPool.Count == 0)
+        if ((_world.Lots.Zone[lot] & definition.Admits) == 0)
+        {
+            return;
+        }
+
+        if (definition.ReadsDemand)
+        {
+            if (!Demanded(definition, lot, tick))
+            {
+                return;
+            }
+        }
+        else if (_world.UnplacedPool.Count == 0)
         {
             return;
         }
@@ -416,7 +762,13 @@ public sealed class ZoneRuleEngine
         // verdict makes every tenancy question below moot. Judging the tenants first would end a
         // tenancy on the same Tick the shell it sits in is abandoned, and the Household would be
         // unplaced twice.
-        int worst = condemns == 0 ? -1 : Worst(building, tenant: default, condemns, tick);
+        //
+        // THE PREMISES' OWN RULES ONLY, which is adr/0141. Both subject handles unset selects the
+        // Rules the premises run themselves, so the same walk answers all three verdicts and the
+        // discriminator is a parameter rather than a branch.
+        int worst = condemns == 0
+            ? -1
+            : Worst(building, household: default, business: default, condemns, tick);
 
         if (worst >= 0)
         {
@@ -486,7 +838,7 @@ public sealed class ZoneRuleEngine
             {
                 Handle<Household> household = _world.Households.Rows.At(occupant);
 
-                if (Worst(building, household, endsTenancy, tick) < 0)
+                if (Worst(building, household, business: default, endsTenancy, tick) < 0)
                 {
                     continue;
                 }
@@ -501,6 +853,46 @@ public sealed class ZoneRuleEngine
                 _world.Unplace(household);
                 _tickEnded++;
                 ended = true;
+                break;
+            }
+        }
+
+        // THE TRADES, and this walk did not exist until 2026-08-26 (adr/0170). A Business occupies
+        // through BuildingBusinesses -- "the second Occupant list" (adr/0113) -- and nothing walked
+        // it, so its Failure Pressure reached no threshold AS A TENANCY while reaching the premises'
+        // by mistake through Worst's missing filter. ***Both halves ship together on purpose***: the
+        // filter alone would leave a broke shop immortal, and this walk alone would leave it
+        // demolishing its building AND losing its tenancy for the same starvation.
+        //
+        // ⚠ Unpremise rather than DestroyBuilding, and that is adr/0141's "what changes is what
+        // dies": the trade failed, the premises did not, and the building stands for another tenant.
+        // The Business keeps its balance (adr/0144), joins the bounded UnpremisedPool, and leaves the
+        // city through Depart with its money EXPORTED rather than destroyed (adr/0142) -- so the sink
+        // adr/0006 requires is the one already built, and destroying the row instead would take its
+        // balance with it, which is adr/0024's leak with extra steps.
+        bool turned = true;
+
+        while (turned)
+        {
+            turned = false;
+
+            // Restarted from the front for the Household loop's reason: Unpremise removes the
+            // Business from the list being walked.
+            foreach (int occupant in _world.BuildingBusinesses.Walk(building))
+            {
+                Handle<Business> business = _world.Businesses.Rows.At(occupant);
+
+                if (Worst(building, household: default, business, endsTenancy, tick) < 0)
+                {
+                    continue;
+                }
+
+                // ⚠ NOTHING RECORDS *WHY*, for the Household loop's reason exactly: the condemnation
+                // trail is a LOT's, and a trade turned out of a building still standing has moved no
+                // Lot, no kind and no Building.
+                _world.Unpremise(business, tick);
+                _tickUnpremised++;
+                turned = true;
                 break;
             }
         }
@@ -550,7 +942,7 @@ public sealed class ZoneRuleEngine
             return;
         }
 
-        int instance = Worst(building, tenant: default, sheds, tick);
+        int instance = Worst(building, household: default, business: default, sheds, tick);
 
         if (instance < 0)
         {
@@ -632,11 +1024,21 @@ public sealed class ZoneRuleEngine
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>One walk answers both verdicts, and <paramref name="tenant"/> is the whole difference</b>
-    /// (<c>adr/0141</c>). The unset handle selects the Rules the premises run themselves; a Household
-    /// selects that tenant's. ***Spelling it as one function is what keeps the two verdicts from
-    /// drifting into two pressure models*** — which matters more now that they are measured against
-    /// two different authored numbers rather than one.
+    /// <b>One walk answers every verdict, and the two subject handles are the whole difference</b>
+    /// (<c>adr/0141</c>). Both unset selects the Rules the premises run themselves; a Household or a
+    /// Business selects that tenant's. ***Spelling it as one function is what keeps the verdicts from
+    /// drifting into separate pressure models*** — which matters more now that they are measured
+    /// against different authored numbers rather than one, and is the failure <c>adr/0053</c>'s
+    /// <em>missed firings rather than Ticks</em> was already guarding against on the other axis.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>IT FILTERED ON <paramref name="household"/> ALONE UNTIL 2026-08-26 AND THAT WAS A DEFECT,
+    /// NOT A SIMPLIFICATION</b> (<c>adr/0170</c>, <c>plans/0044</c> <b>F44</b>). A Business's Rule
+    /// Instance leaves <c>Household</c> unset, so it matched the *premises* call and its failure
+    /// pressure was counted as the building's — ***a broke shop demolished its own premises instead of
+    /// ending its tenancy.*** Measured at 20 shops raised and 2 demolished, which is exactly the number
+    /// that go broke. ⚠ <b>The sentence this paragraph replaced was TRUE WHEN IT WAS WRITTEN</b>,
+    /// because no Business ran a Rule until milestone 26 task 1.
     /// </para>
     /// <para>
     /// <b>The walk does not stop at the first Rule past its threshold, and the reason is attribution
@@ -670,7 +1072,12 @@ public sealed class ZoneRuleEngine
     /// <c>plans/0012</c> <b>Cause 5</b> waiting to happen in the Evidence panel.
     /// </para>
     /// </remarks>
-    private int Worst(int building, Handle<Household> tenant, ulong endures, Ticks tick)
+    private int Worst(
+        int building,
+        Handle<Household> household,
+        Handle<Business> business,
+        ulong endures,
+        Ticks tick)
     {
         int worst = -1;
         ulong worstElapsed = 0;
@@ -678,7 +1085,21 @@ public sealed class ZoneRuleEngine
 
         foreach (int instance in _world.BuildingRules.Walk(building))
         {
-            if (_world.RuleInstances.Household[instance] != tenant)
+            // 🔴 BOTH SUBJECTS, AND THE SECOND ONE WAS MISSING UNTIL 2026-08-26 (adr/0170). A
+            // Business's Rule Instance leaves Household UNSET, so while this filtered on Household
+            // alone every trade's Rule matched the PREMISES call -- and a broke shop's failure
+            // pressure condemned the building it stood in instead of ending its tenancy. Measured on
+            // rulesets/provisioned.toml at 2,000 Citizens over 24,576 Ticks: 20 shops raised, 2
+            // demolished, and 2 is exactly the number that go broke. The attribution is airtight
+            // because a shopfront runs two Rules and `stock` has inputs = [], so a Rule with no
+            // inputs can never be Blocking.Supply and can never starve; the levy is the only thing on
+            // that kind able to set StarvedSince.
+            //
+            // ⚠ That is adr/0141's "ONE STARVING TENANT CONDEMNED THE OTHER'S SHOP" arriving one
+            // subject late -- the record fixed it for Households and no Business ran a Rule until
+            // milestone 26 task 1, so the gap opened after the repair rather than surviving it.
+            if (_world.RuleInstances.Household[instance] != household
+                || _world.RuleInstances.Business[instance] != business)
             {
                 continue;
             }
@@ -750,6 +1171,7 @@ public sealed class ZoneRuleEngine
         _demolishedFlow = _demolishedFlow.Fold(_tickDemolished);
         _endedFlow = _endedFlow.Fold(_tickEnded);
         _shedFlow = _shedFlow.Fold(_tickShed);
+        _unpremisedFlow = _unpremisedFlow.Fold(_tickUnpremised);
 
         _tickTriggers = 0;
         _tickVacant = 0;
@@ -758,5 +1180,6 @@ public sealed class ZoneRuleEngine
         _tickDemolished = 0;
         _tickEnded = 0;
         _tickShed = 0;
+        _tickUnpremised = 0;
     }
 }
