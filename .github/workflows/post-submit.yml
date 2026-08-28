@@ -84,14 +84,27 @@ jobs:
       #
       # A MILLION, which is what CLAUDE.md's Definition of done actually names. It started at
       # 100,000 because nobody had measured what a runner costs; the first dispatch did that job in
-      # 5m04s end to end, of which roughly a minute is checkout, SDK and build. A million is
-      # therefore an EXTRAPOLATION rather than a measurement -- call it half an hour -- and the run
-      # that proves or refutes it is the next one. The 180-minute ceiling has room for being wrong
-      # by a factor of five.
+      # 5m04s end to end, of which roughly a minute is checkout, SDK and build. A million was
+      # therefore an EXTRAPOLATION rather than a measurement -- "call it half an hour" -- and the
+      # run that proves or refutes it has now happened, and REFUTED IT: 3h0m14s, 3h0m15s, 3h0m17s,
+      # each one killed by the 180-minute ceiling inside THIS FIRST STEP. So between 2026-08-25 and
+      # 2026-08-28 the two runs below never executed once, and the lane reported nothing about the
+      # only world that reaches the Map Layers or the only world where a tenancy ends.
+      #
+      # ⚠ THE EXTRAPOLATION WAS WRONG ABOUT THE GUARD, NOT ABOUT THE TICKS. --no-decide-guard is now
+      # passed to all three runs. Options.cs's own remarks carry the reason: the guard is O(world),
+      # folds every column of every table TWICE a Tick, and spike S0 "tried to run one at the 1M
+      # target and found the guard was the whole Tick". Every long-run test in the suite already
+      # turns it off for that reason; this lane was the one caller that never did. adr/0037 keeps
+      # its coverage from the short tests in the full-suite job, which still run with the guard ON.
+      #
+      # ⚠ The 180-minute ceiling stays, and is STILL A GUESS. The first green run is what replaces
+      # it -- quote the run, never the arithmetic.
       - name: Headless balance run
         run: |
           dotnet run -c Release --no-build --project src/Borough.Headless -- \
             --ruleset rulesets/minimal.toml \
+            --no-decide-guard \
             --ticks ${{ github.event.inputs.ticks || '1000000' }}
 
       # ⚠ A SECOND BALANCE RUN, AND ON THE ONLY WORLD WHERE THE MAP LAYERS DO ANYTHING. The run above
@@ -107,6 +120,7 @@ jobs:
         run: |
           dotnet run -c Release --no-build --project src/Borough.Headless -- \
             --ruleset rulesets/fouled.toml \
+            --no-decide-guard \
             --citizens 4000 \
             --ticks 100000
 
@@ -138,5 +152,6 @@ jobs:
         run: |
           dotnet run -c Release --no-build --project src/Borough.Headless -- \
             --ruleset rulesets/evicted.toml \
+            --no-decide-guard \
             --citizens 4000 \
             --ticks 100000
