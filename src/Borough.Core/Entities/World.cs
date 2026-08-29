@@ -55,7 +55,13 @@ public sealed class World
     // differently* -- the clock was state that already existed, re-composed. New state is a design
     // change under 05 §4: the city genuinely has more in it, the baselines move because the world
     // moved, and signing that would file a real change as a bookkeeping one.
-    internal const ulong HashSeed = 0x426F_726F_7567_6802UL;
+    //
+    // 03: terrain left the WALK and not the composition. HashState folds MapLayers.TerrainFold -- one
+    // ulong -- where it used to fold 262,144 rows, so THE SAME CITY HASHES DIFFERENTLY, which is the
+    // case this byte exists for and the opposite of the paragraph above. No state was added, none was
+    // removed, and terrain stays in _tables because that list is also the saved set. SaveHash.Of
+    // mirrors the rule, and SaveHashTests caught the one-sided version of this change immediately.
+    internal const ulong HashSeed = 0x426F_726F_7567_6803UL;
 
     private readonly Rows[] _tables;
     private readonly Rows[] _writableTables;
@@ -247,6 +253,7 @@ public sealed class World
         Invariants = new InvariantRegistry(this);
 
         Wheel = new EventWheel(RuleInstances, Invariants);
+        LifeStages = new LifeStageWheel(Households);
 
         // Declaration order, which is hash composition order. The Rule engine's three tables go last
         // because they arrived last; the order is arbitrary but it is not free to change, so it is
@@ -320,6 +327,14 @@ public sealed class World
             // int columns, and it moves the State Hash on the commit that adds it because a column
             // that was not folded now is (adr/0100).
             Wheel.CoarseBuckets.Rows,
+
+            // Appended, plans/0046 stage 1 -- the Life Stage wheel's Day buckets, for the reason both
+            // of the Rule wheel's bucket tables are in this list: the ORDER within a bucket is arrival
+            // order and nothing re-derives it, so a reload that rebuilt membership from every
+            // Household's next_stage_day would transition one Day's Households in a different
+            // sequence -- and a transition DRAWS, so a different sequence lands different Households
+            // on different Days. 128 rows, two int columns.
+            LifeStages.Buckets.Rows,
 
             // TreasuryTable is deliberately NOT here, milestone 10 task 1. Both its columns are
             // Derived, and 5a's finding is that a wholly-derived table cannot join this list: Rows.Fold
@@ -657,8 +672,16 @@ public sealed class World
     /// <summary>One row per (Building, Bin Rule) — armed, or asleep on a Bin.</summary>
     public RuleInstanceTable RuleInstances { get; }
 
-    /// <summary>Slice 7's minimal Event Wheel: a bucket per Tick, an arming, and a drain.</summary>
+    /// <summary>The Event Wheel: a bucket per Tick, a bucket per Day above it, and a drain.</summary>
     public EventWheel Wheel { get; }
+
+    /// <summary>A bucket per Day, carrying Households towards their next Life Stage.</summary>
+    /// <remarks>
+    /// <b>A separate wheel because <see cref="Wheel"/> is typed to <c>RuleInstanceTable</c></b> — see
+    /// <see cref="LifeStageWheel"/>'s own remark for why generalising the two into one is deliberately
+    /// deferred until a second Day-denominated consumer exists.
+    /// </remarks>
+    public LifeStageWheel LifeStages { get; }
 
     /// <summary>
     /// Which Citizens leave for work on which Tick of the Day (<c>adr/0081</c>).
@@ -1115,10 +1138,98 @@ public sealed class World
 
         foreach (Rows table in _tables)
         {
+            // Terrain folds as its lay-time fingerprint rather than as 262,144 rows, and it stays in
+            // _tables because THIS LIST IS ALSO THE SAVED SET (adr/0112, SaveFile walks World.Tables):
+            // taking it out here would drop the column from every save, which is a different and worse
+            // hole than the one being closed. What is skipped is the WALK and never the membership.
+            //
+            // Coverage is kept and not narrowed: MapLayers.TerrainFold folds the kind column, so a
+            // changed Cell still moves the State Hash. See its remark for why a stored fingerprint is
+            // safe to fold and for the end-of-run invariant that pays for it.
+            if (ReferenceEquals(table, Layers.Terrain.Rows))
+            {
+                hash = Randomness.Mix(hash + Layers.TerrainFold);
+                continue;
+            }
+
             table.Fold(ref hash);
         }
 
         return hash;
+    }
+
+
+    /// <summary>
+    /// Puts a newly created Household on the Life Stage wheel, if this world has stages at all.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>At creation rather than in the sweep, because the alternative is a scan.</b> A Household
+    /// armed lazily would have to be found by something walking every row looking for one not yet on
+    /// a bucket, which is the whole-population pass the wheel exists to avoid — and it would run
+    /// every Day for ever to catch the handful of rows created that Day.
+    /// </para>
+    /// <para>
+    /// <b>Silent when the Ruleset declares no <c>[[life_stage]]</c></b>, which is thirteen of the
+    /// shipped files. That is <c>[[hinterland]]</c>'s precedent: a mechanism a Ruleset may state, not
+    /// a default every world inherits — and it is what keeps this milestone off every standing
+    /// baseline.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The stage a Household is created IN is not this method's to choose.</b> Both callers
+    /// already write <c>life_stage</c> from their own source — a Command's payload nibble, or a
+    /// Hinterland's arriving band — and a world whose Ruleset declares stages may still be handed a
+    /// Household in stage 3. What is armed is the countdown out of whatever stage it arrived in.
+    /// </para>
+    /// </remarks>
+    private void ArmLifeStage(int slot) => ArmLifeStageAt(slot, LifeStageWheel.DayOf(Tick));
+
+    /// <summary>Arms a Household's stage countdown against a Day the caller already has.</summary>
+    /// <remarks>
+    /// <b>Separate from <see cref="ArmLifeStage"/> only so the sweep does not re-derive the Day it is
+    /// sweeping.</b> <c>LifeStageEngine</c> is handed a Tick, computes today once, and transitions a
+    /// whole bucket against it; asking <c>World.Tick</c> per Household would give the same answer
+    /// every time and divide by 2,048 to get it.
+    /// </remarks>
+    internal void ArmLifeStageAt(int slot, long today)
+    {
+        byte stage = Households.LifeStage[slot];
+
+        if (!Rules.DeclaresLifeStages || stage == 0 || stage > Rules.LifeStageCount)
+        {
+            return;
+        }
+
+        LifeStages.Arm(slot, today, today + DrawStageLength(slot, definition: Rules.LifeStage(stage)));
+    }
+
+    /// <summary>How many Days this Household spends in the stage it is entering.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Uniform on <c>[N, N+W)</c>, which is <c>adr/0011</c>'s amendment exactly.</b> The floor is
+    /// the stage's own <c>duration_days</c> and the window is its <c>spread_days</c>; a window of
+    /// zero collapses the draw and every Household in the stage leaves it together, which is a world
+    /// a Ruleset may legitimately ask for.
+    /// </para>
+    /// <para>
+    /// <b>Keyed on the Household's monotonic row id and on the Tick</b>, so a Household draws afresh
+    /// at every transition rather than carrying one number through four stages. See
+    /// <see cref="PurposeTag.LifeStageDuration"/> for why that is the opposite choice from
+    /// <see cref="PurposeTag.WagePayday"/>'s.
+    /// </para>
+    /// </remarks>
+    private long DrawStageLength(int slot, LifeStageDefinition definition)
+    {
+        if (definition.SpreadDays <= 0)
+        {
+            return definition.DurationDays;
+        }
+
+        ulong offset = Randomness.Draw(
+                Key, Households.Rows.IdAt(slot), Tick, PurposeTag.LifeStageDuration)
+            % (ulong)definition.SpreadDays;
+
+        return definition.DurationDays + (long)offset;
     }
 
     /// <summary>Adds a Household to a Building, linking it into the Building's occupant list.</summary>
@@ -1157,6 +1268,8 @@ public sealed class World
         // occupant list is joined because FitOccupant reads the dwelling handle to find the kind
         // whose ceilings it opens Bins at.
         FitOccupant(handle);
+
+        ArmLifeStage(slot);
 
         return handle;
     }
@@ -1626,12 +1739,16 @@ public sealed class World
         // Household nobody can make the move-in Trip for -- adr/0075 makes a Traveller a cursor over
         // a CITIZEN's journey, so an empty Household would arrive and then never travel.
         //
-        // They wake on the Tick they arrive, which is the honest reading of the Event Wheel's bucket
-        // key for somebody who has just got here: their next event is this one.
         for (int i = 0; i < citizens; i++)
         {
-            CreateCitizen(handle, now);
+            CreateCitizen(handle);
         }
+
+        // The stage countdown starts when the Household does, and an arriving Household is no
+        // different from a founded one -- adr/0023's immigrants are Households like any other, and a
+        // stage clock that only ran for the locally born would make the Pool's composition a function
+        // of where its members came from.
+        ArmLifeStage(slot);
 
         // The dwelling handle is left default by the allocator -- FreeSlot zeroes every column, so a
         // recycled slot arrives unhoused rather than carrying its predecessor's address.
@@ -1713,7 +1830,7 @@ public sealed class World
     }
 
     /// <summary>Adds a Citizen to a Household, linking it into the Household's member list.</summary>
-    public Handle<Citizen> CreateCitizen(Handle<Household> household, Ticks nextEventTick)
+    public Handle<Citizen> CreateCitizen(Handle<Household> household)
     {
         int householdSlot = Households.Rows.Resolve(household);
 
@@ -1721,7 +1838,6 @@ public sealed class World
         int slot = Citizens.Rows.Resolve(handle);
 
         Citizens.HouseholdOf[slot] = household;
-        Citizens.NextEventTick[slot] = nextEventTick;
 
         // 02 §10's per-Tick tier: O(changed), at the write site. A member list is small by
         // construction, so this is the cheap half of *no Citizen in two places* — complete within

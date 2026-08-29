@@ -443,8 +443,8 @@ public sealed class SimulationTests
         Handle<Building> building = world.Buildings.Create(world.Lots, lot, kind: 1);
         Handle<Household> household = world.CreateHousehold(building, lifeStage: 1);
 
-        world.CreateCitizen(household, new Ticks(4));
-        world.CreateCitizen(household, new Ticks(9));
+        world.CreateCitizen(household);
+        world.CreateCitizen(household);
 
         return world;
     }

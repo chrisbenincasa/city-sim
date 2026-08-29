@@ -348,7 +348,7 @@ public sealed class ParkingHoldTests
 
             Handle<Building> building = world.CreateBuilding(lot, Dwelling, Ticks.Zero, Key);
             Handle<Household> household = world.CreateHousehold(building, lifeStage: 0);
-            Handle<Citizen> citizen = world.CreateCitizen(household, Ticks.Zero);
+            Handle<Citizen> citizen = world.CreateCitizen(household);
 
             return new Fixture(world, building, world.Citizens.Rows.Resolve(citizen))
             {
@@ -358,7 +358,7 @@ public sealed class ParkingHoldTests
 
         /// <summary>A second driver in the same Household.</summary>
         public int AddCitizen() =>
-            World.Citizens.Rows.Resolve(World.CreateCitizen(Household, Ticks.Zero));
+            World.Citizens.Rows.Resolve(World.CreateCitizen(Household));
 
         public bool Take(out int carPark) => Take(Citizen, out carPark);
 

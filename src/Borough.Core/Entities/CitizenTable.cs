@@ -11,15 +11,26 @@ using Borough.Core.Tables;
 /// <para>
 /// <b>Three columns are <see cref="Touch.PerTick"/> and the rest are not, which is the whole
 /// point.</b> S4 task 2 found the corpus's <em>"on the order of 40 bytes hot"</em> was never one
-/// number: the row is 13 B under the per-Tick reading — <c>next_event_tick</c>, the Wheel link and
-/// the current activity — and 51 B under the working-set one. The two size different things: the
+/// number: the row was 13 B under the per-Tick reading — <c>next_event_tick</c>, the Wheel link and
+/// the current activity — and 51 B under the working-set one. ⚠ <b><c>next_event_tick</c> is gone as
+/// of <c>plans/0046</c> stage 1</b>, so the per-Tick reading is 5 B; the figure above is left as it
+/// was measured, because it is what S4 task 2 measured and the row it describes is not this one. The two size different things: the
 /// per-Tick figure sizes the Wheel drain and the wake gather, the working-set figure sizes the world
 /// and the save copy. K0 then measured that only 13% of the world is addressable on an ordinary Tick,
 /// which is the Event Wheel's premise made arithmetic.
 /// </para>
 /// <para>
-/// <b><c>wheel_next</c> is declared here and used in slice 9, and its disposition is provisional.</b>
-/// It is the intrusive link into an Event Wheel bucket, and it is <see cref="Disposition.Derived"/>
+/// 🔴 <b><c>wheel_next</c> and <c>next_event_tick</c> were declared here in slice 4 for a wheel that
+/// never carried a Citizen, and BOTH are now gone.</b> <c>wheel_next</c> was renamed to the commute
+/// roster's link in 5b-bis; <c>next_event_tick</c> was deleted in <c>plans/0046</c> stage 1, having
+/// been written once at creation and read by nothing for the life of the project — the fourth dead
+/// column found in a week, after <c>Citizens.Age</c>, <c>Citizens.Health</c> and
+/// <c>Households.LifeStage</c>. ⚠ <b>A saved, hashed column with no reader is worse than an absent
+/// one</b>: it folds into the State Hash, so it costs a baseline to remove and looks like a
+/// mechanism to everyone who finds it. ***The paragraph below is what it looked like*** — a careful
+/// argument about the disposition of a column that was never going to have a wheel behind it.
+/// <para>
+/// It was the intrusive link into an Event Wheel bucket, and it was <see cref="Disposition.Derived"/>
 /// because the bucket a Citizen sits in is a pure function of <c>next_event_tick</c> — the Wheel is
 /// an index over saved state, not state. <b>That is true of membership and is unproven of order.</b>
 /// Under the rule <c>05 §3</c> now states — a list may be derived only if its <em>order</em> is
@@ -28,6 +39,7 @@ using Borough.Core.Tables;
 /// order-dependent, and <c>02 §8</c> rule 5 settles contested outcomes by shuffle rather than by
 /// arrival; slice 9 has to make that claim explicitly rather than inherit it, and if it fails this
 /// column becomes <see cref="Disposition.Saved"/> exactly as the Bin wait list did.
+/// </para>
 /// </para>
 /// </remarks>
 [Table]
@@ -52,7 +64,6 @@ public sealed class CitizenTable
 
         _rows = new Rows<Citizen>("citizen", capacity, Buffering.OneCopy);
 
-        NextEventTick = _rows.Saved<Ticks>("next_event_tick", Touch.PerTick);
         CommuteNext = _rows.Derived<int>("commute_next", Touch.PerTick);
         CommuteReturnNext = _rows.Derived<int>("commute_return_next", Touch.PerTick);
         CommuteBucket = _rows.Derived<int>("commute_bucket", Touch.PerTick);
@@ -100,9 +111,6 @@ public sealed class CitizenTable
 
     /// <summary>The slot allocator, the generation counters and the column list.</summary>
     public Rows<Citizen> Rows => _rows;
-
-    /// <summary>The Tick this Citizen next wakes on. The Event Wheel's bucket key.</summary>
-    public Column<Ticks> NextEventTick { get; }
 
     /// <summary>
     /// Link in this Citizen's departure bucket — see <c>Movement.CommuteRoster</c>.

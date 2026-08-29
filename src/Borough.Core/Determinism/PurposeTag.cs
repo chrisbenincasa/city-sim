@@ -607,4 +607,32 @@ public enum PurposeTag : ulong
     /// </para>
     /// </remarks>
     WagePayday = 31,
+
+    /// <summary>
+    /// How many Days a Household spends in the Life Stage it is entering.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>adr/0011</c>'s <c>W</c>, and it is the load-bearing half of the stage table.</b> A stage
+    /// declares a floor <c>N</c> and a window <c>W</c>, and the countdown is a uniform draw over
+    /// <c>[N, N+W)</c> Days. Without the window every Household created at Tick 0 transitions on the
+    /// same Day for ever, and the founding generation's cohort echoes through the whole run — a
+    /// demographic wave that reads as a mechanism and is an artefact of world creation.
+    /// </para>
+    /// <para>
+    /// <b>Keyed on the Household's monotonic row id AND on the Tick</b>, which is the opposite of
+    /// <see cref="WagePayday"/> and deliberately so. A payday is a property of a Business and must not
+    /// move; a stage duration is drawn afresh on every transition, because a Household that drew a
+    /// short Young stage has earned no claim on a short Family one. ⚠ <b>Tick-keyed means a Household
+    /// re-entering a stage draws again</b>, which is what makes the four draws across a life
+    /// independent rather than one number wearing four hats.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Distinct from every placement and founding tag though all are keyed on a Household or a
+    /// Business.</b> Sharing one would tie <i>how long a family lasts</i> to <i>where it was
+    /// housed</i> — a correlation no readout in this build could see, which is the whole reason
+    /// <c>02 §1.1</c> requires a tag per use.
+    /// </para>
+    /// </remarks>
+    LifeStageDuration = 32,
 }

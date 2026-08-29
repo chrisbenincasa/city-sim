@@ -89,7 +89,17 @@ public sealed class CorpusBudgetTests
     /// the first re-seed — <c>find | xargs cat | wc -w</c> concatenates and reads low.
     /// </para>
     /// </remarks>
-    private const int CorpusCeiling = 1_198_426;
+    /// <remarks>
+    /// 🔴 <b>RAISED 2026-08-28 by 195 words for <c>plans/0046</c> stage 1's six loader refusals, and
+    /// this raise was DEMANDED BY ANOTHER TEST.</b> <c>RefusalCountTests</c> holds <c>adr/0048</c> to
+    /// the loader's own <c>Refuse(</c> count and its failure message says <i>put the new number there
+    /// AND add it to that ADR's enumeration — the number without the list is what drifted from 22 to
+    /// 58 with nothing noticing</i>. ⚠ <b>So two corpus checks pull opposite ways here</b>, and that
+    /// is not a conflict to resolve but the two halves working: one refuses prose that substitutes
+    /// for a mechanism, the other insists that a mechanism which grew be described. ***The enumeration
+    /// is prose that was bought***, on the same test as <c>plans/0046</c> itself.
+    /// </remarks>
+    private const int CorpusCeiling = 1_198_621;
 
     /// <summary>The two directories the corpus ceiling covers.</summary>
     private static readonly string[] Covered = ["docs", "plans"];

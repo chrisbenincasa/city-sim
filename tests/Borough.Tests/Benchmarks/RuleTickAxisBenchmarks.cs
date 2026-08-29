@@ -158,7 +158,7 @@ public class RuleTickAxisBenchmarks
                 world.CreateHousehold(made[i % buildings], lifeStage: (byte)(i % 5));
             }
 
-            world.CreateCitizen(world.Households.Rows.At(i / 3), new Ticks((ulong)i % 8192));
+            world.CreateCitizen(world.Households.Rows.At(i / 3));
         }
 
         for (int i = 0; i < stagger + 4; i++)

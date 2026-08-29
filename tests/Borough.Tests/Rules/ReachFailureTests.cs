@@ -401,7 +401,7 @@ public sealed class ReachFailureTests
             lot, kind: 1, Ticks.Zero, WorldKey.FromSeed(0x8000_0003UL));
         Handle<Household> household = world.CreateHousehold(building, lifeStage: 0);
 
-        world.CreateCitizen(household, Ticks.Zero);
+        world.CreateCitizen(household);
 
         return world;
     }

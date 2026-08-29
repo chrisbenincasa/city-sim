@@ -135,7 +135,7 @@ public sealed class EmploymentTests
 
         for (int i = 0; i < workers; i++)
         {
-            world.Employ(world.CreateCitizen(household, Ticks.Zero), employer, Ticks.Zero);
+            world.Employ(world.CreateCitizen(household), employer, Ticks.Zero);
         }
 
         return world;
@@ -165,7 +165,7 @@ public sealed class EmploymentTests
 
         for (int i = 0; i < workers; i++)
         {
-            world.Employ(world.CreateCitizen(household, Ticks.Zero), employer, Ticks.Zero);
+            world.Employ(world.CreateCitizen(household), employer, Ticks.Zero);
         }
 
         return world;
@@ -199,7 +199,7 @@ public sealed class EmploymentTests
 
         for (int i = 0; i < workers; i++)
         {
-            world.Employ(world.CreateCitizen(household, Ticks.Zero), employer, Ticks.Zero);
+            world.Employ(world.CreateCitizen(household), employer, Ticks.Zero);
         }
 
         return world;
@@ -515,8 +515,8 @@ public sealed class EmploymentTests
         // more is what walks them back into the buckets the destroyed pair was left in.
         Handle<Household> second = world.CreateHousehold(building, lifeStage: 0);
 
-        world.Employ(world.CreateCitizen(second, Ticks.Zero), employer, Ticks.Zero);
-        world.Employ(world.CreateCitizen(second, Ticks.Zero), employer, Ticks.Zero);
+        world.Employ(world.CreateCitizen(second), employer, Ticks.Zero);
+        world.Employ(world.CreateCitizen(second), employer, Ticks.Zero);
 
         Assert.Equal(2, Staff(world, TheBusiness(world)).Length);
     }
@@ -597,7 +597,7 @@ public sealed class EmploymentTests
         Handle<Household> household = world.Households.Rows.At(0);
 
         world.DestroyCitizen(world.Citizens.Rows.At(0));
-        world.Employ(world.CreateCitizen(household, Ticks.Zero), employer, Ticks.Zero);
+        world.Employ(world.CreateCitizen(household), employer, Ticks.Zero);
 
         int slot = world.Businesses.Rows.Resolve(employer);
         ulong[] maintained = Staff(world, slot);

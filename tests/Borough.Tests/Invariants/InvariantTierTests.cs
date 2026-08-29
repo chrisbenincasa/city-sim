@@ -56,8 +56,8 @@ public sealed class InvariantTierTests
         Handle<Building> building = world.Buildings.Create(world.Lots, lot, kind: 1);
         Handle<Household> household = world.CreateHousehold(building, lifeStage: 1);
 
-        world.CreateCitizen(household, new Ticks(10));
-        world.CreateCitizen(household, new Ticks(20));
+        world.CreateCitizen(household);
+        world.CreateCitizen(household);
 
         return world;
     }
@@ -116,7 +116,7 @@ public sealed class InvariantTierTests
         world.Citizens.Rows.Free(world.Citizens.Rows.At(0));
 
         InvariantViolationException failure = Assert.Throws<InvariantViolationException>(
-            () => world.CreateCitizen(household, new Ticks(30)));
+            () => world.CreateCitizen(household));
 
         Assert.Equal(Invariant.CitizenIsNotAlreadyInThisHousehold, failure.Violation.Invariant);
     }

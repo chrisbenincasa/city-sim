@@ -139,6 +139,7 @@ public static class RulesetLoader
         // are uncorrelated, so a file may name a [[building]] and a [[business]] the same word and
         // mean two different things -- which one map could not express.
         private readonly Dictionary<string, byte> _businessKinds = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, byte> _lifeStages = new(StringComparer.Ordinal);
         /// <summary>
         /// The three <c>[[building]]</c> keys <c>adr/0148</c> moved to <c>[[business]]</c>, refused
         /// by name here so an author is told where they went rather than that they are unknown.
@@ -151,6 +152,7 @@ public static class RulesetLoader
 
         private readonly List<TableSyntaxBase> _kindTables = [];
         private readonly List<TableSyntaxBase> _businessKindTables = [];
+        private readonly List<TableSyntaxBase> _lifeStageTables = [];
         private readonly List<TableSyntaxBase> _ruleTables = [];
         private readonly List<TableSyntaxBase> _zoneRuleTables = [];
         private readonly List<TableSyntaxBase> _policyTables = [];
@@ -206,6 +208,7 @@ public static class RulesetLoader
             KindDefinition[] kinds = ReadKinds(rules, inputs, outputs, out BinDeclaration[] bins,
                 out RuleId[] kindRules);
             BusinessKindDefinition[] businessKinds = ReadBusinessKinds();
+            LifeStageDefinition[] lifeStages = ReadLifeStages();
             ZoneRuleDefinition[] zoneRules = ReadZoneRules();
             PolicyDefinition[] policies = ReadPolicies();
             HinterlandDefinition[] hinterlands = ReadHinterlands(out Money[] hinterlandPrices);
@@ -273,7 +276,8 @@ public static class RulesetLoader
             // Ruleset is Borough.Core and holds none -- so these four maps were built while parsing
             // and dropped, and the resolution path the architecture assumes had no implementation.
             // See RulesetNames.
-            var names = new RulesetNames(_kinds, _businessKinds, _conditions, _resources, _rules);
+            var names = new RulesetNames(
+                _kinds, _businessKinds, _conditions, _resources, _rules, _lifeStages);
 
             return RulesetLoadResult.Accepted(new Ruleset(
                     [.. _families], rules, kinds, inputs, outputs, emissions, bins, kindRules,
@@ -301,6 +305,9 @@ public static class RulesetLoader
                     KindKeys = Keys(_kinds),
                     BusinessKindCount = _businessKinds.Count,
                     BusinessKindKeys = Keys(_businessKinds),
+                    LifeStageCount = _lifeStages.Count,
+                    LifeStageKeys = Keys(_lifeStages),
+                    LifeStages = lifeStages,
                     BusinessKinds = businessKinds,
                 },
                 names);
@@ -361,6 +368,24 @@ public static class RulesetLoader
                         // which is adr/0093's failure being wrong about the TRIGGER.
                         _businessKindTables.Add(table);
                         Register(_businessKinds, table, "business", (byte)(_businessKinds.Count + 1));
+                        break;
+
+                    case "life_stage":
+                        if (_lifeStages.Count >= byte.MaxValue)
+                        {
+                            Refuse(LineOf(table), null,
+                                $"more than {byte.MaxValue - 1} Life Stages are declared, and a "
+                                + "Household's life_stage column is one byte wide.");
+                            break;
+                        }
+
+                        // Registered into a name table, unlike [[zone_rule]] and [[policy]], because
+                        // a stage IS referred to from inside the Ruleset: `next` names the stage this
+                        // one exits to. adr/0011's chain is not a line -- Young exits to Family or to
+                        // Childless -- so the successor is authored rather than taken from the order
+                        // these tables appear in, and a name is what it is authored as.
+                        _lifeStageTables.Add(table);
+                        Register(_lifeStages, table, "life_stage", (byte)(_lifeStages.Count + 1));
                         break;
 
                     case "rule":
@@ -1800,6 +1825,133 @@ public static class RulesetLoader
                     ShiftStartLatestHour = shiftTo,
                     WagePerDay = wagePerDay,
                     PayPeriodDays = payPeriodDays,
+                };
+            }
+
+            return definitions;
+        }
+
+        /// <summary>
+        /// Reads <c>[[life_stage]]</c>: a countdown floor, its window, and the stage it exits to.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>A second pass, because <c>next</c> names a stage that may be declared below this
+        /// one.</b> <c>adr/0011</c>'s chain runs Young → Family → Mature Family → Empty Nest with
+        /// Young also able to exit sideways to Childless, and a file is free to author the terminals
+        /// first. Resolving names in the pass that collects them would make the file's line order a
+        /// constraint on what a designer may write, which is the same objection that made the
+        /// successor authored rather than derived.
+        /// </para>
+        /// <para>
+        /// <b>Four refusals, and the one worth explaining is the self-reference.</b> A stage naming
+        /// itself is a Household that transitions for ever and arrives back where it started — it
+        /// costs a wake every countdown, it is indistinguishable from a typo, and nothing in the
+        /// build reports it. Terminal is spelled by omitting <c>next</c>, which cannot be mistyped
+        /// into a loop.
+        /// </para>
+        /// </remarks>
+        private LifeStageDefinition[] ReadLifeStages()
+        {
+            var definitions = new LifeStageDefinition[_lifeStageTables.Count];
+
+            for (int i = 0; i < _lifeStageTables.Count; i++)
+            {
+                TableSyntaxBase table = _lifeStageTables[i];
+                string? name = TryString(table, "name", out string? found, required: false)
+                    ? found
+                    : null;
+
+                int durationDays = 1;
+
+                if (TryInteger(table, "duration_days", out long duration, required: true, name))
+                {
+                    if (duration < 1)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "duration_days") ?? table), name,
+                            $"duration_days is {duration}. It is the FEWEST Days a Household spends "
+                            + "in this stage, so it is at least 1: a stage of zero Days is entered "
+                            + "and left on the same Day, and a chain of them collapses a whole life "
+                            + "into one Tick.");
+                    }
+                    else
+                    {
+                        durationDays = duration > int.MaxValue ? int.MaxValue : (int)duration;
+                    }
+                }
+
+                // Required with no default, and zero is ALLOWED. adr/0011's W is the load-bearing
+                // half -- without it every Household created at Tick 0 leaves every stage on the same
+                // Day for the whole run, and the founding generation's echo reads as a demographic
+                // mechanism rather than as an artefact of world creation. A designer who wants that
+                // world states 0 and gets it; a designer who forgets the key is asked, because a
+                // defaulted W would silently choose one of the two cities.
+                int spreadDays = 0;
+
+                if (TryInteger(table, "spread_days", out long spread, required: true, name))
+                {
+                    if (spread < 0)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "spread_days") ?? table), name,
+                            $"spread_days is {spread}. It is the width of the window the countdown "
+                            + "is drawn over, uniform on [duration_days, duration_days + "
+                            + "spread_days), so a negative one is a window that runs backwards. "
+                            + "Zero is allowed and means every Household in this stage leaves it on "
+                            + "the same Day.");
+                    }
+                    else
+                    {
+                        spreadDays = spread > int.MaxValue ? int.MaxValue : (int)spread;
+                    }
+                }
+
+                byte next = 0;
+
+                if (TryString(table, "next", out string? successor, required: false)
+                    && successor is not null)
+                {
+                    if (!_lifeStages.TryGetValue(successor, out next))
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "next") ?? table), name,
+                            $"next is \"{successor}\", and no [[life_stage]] declares that name. "
+                            + "A stage exits to another stage by name; omit the key for a stage "
+                            + "nothing follows.");
+
+                        next = 0;
+                    }
+                    else if (next == (byte)(i + 1))
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "next") ?? table), name,
+                            $"next is \"{successor}\", which is this stage. A Household would "
+                            + "transition for ever and arrive back where it started -- a wake every "
+                            + "countdown, for no change. Omit `next` for a terminal stage.");
+
+                        next = 0;
+                    }
+                }
+
+                // The wheel's period, checked at LOAD rather than at the arming. LifeStageWheel.Arm
+                // throws past CoarseDays - 1 Days ahead, and a stage drawing up to duration + spread
+                // - 1 Days would reach it -- so without this the refusal arrives as a crash on
+                // whichever Household happened to draw the top of the window, which is a Ruleset
+                // defect reported as an engine one. ***A bound a Ruleset can violate belongs in the
+                // loader***, which is plans/0014 task 3's whole rule.
+                int longest = durationDays + spreadDays - 1;
+
+                if (longest >= Borough.Core.Rules.EventWheel.CoarseDays)
+                {
+                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "duration_days") ?? table), name,
+                        $"duration_days {durationDays} and spread_days {spreadDays} draw a countdown "
+                        + $"of up to {longest} Days, and the Life Stage wheel reaches "
+                        + $"{Borough.Core.Rules.EventWheel.CoarseDays - 1}. A longer stage needs a "
+                        + "third wheel tier, which nothing has asked for yet.");
+                }
+
+                definitions[i] = new LifeStageDefinition
+                {
+                    DurationDays = durationDays,
+                    SpreadDays = spreadDays,
+                    NextStage = next,
                 };
             }
 

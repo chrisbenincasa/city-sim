@@ -54,19 +54,22 @@ public sealed class RulesetNames
     private readonly string[] _conditions;
     private readonly string[] _resources;
     private readonly string[] _rules;
+    private readonly string[] _lifeStages;
 
     internal RulesetNames(
         IReadOnlyDictionary<string, byte> kinds,
         IReadOnlyDictionary<string, byte> businessKinds,
         IReadOnlyDictionary<string, ushort> conditions,
         IReadOnlyDictionary<string, ushort> resources,
-        IReadOnlyDictionary<string, ushort> rules)
+        IReadOnlyDictionary<string, ushort> rules,
+        IReadOnlyDictionary<string, byte> lifeStages)
     {
         _kinds = Invert(kinds);
         _businessKinds = Invert(businessKinds);
         _conditions = Invert(conditions);
         _resources = Invert(resources);
         _rules = Invert(rules);
+        _lifeStages = Invert(lifeStages);
     }
 
     private RulesetNames()
@@ -76,6 +79,7 @@ public sealed class RulesetNames
         _conditions = Nothing;
         _resources = Nothing;
         _rules = Nothing;
+        _lifeStages = Nothing;
     }
 
     /// <summary>A Ruleset whose names were not kept. Every lookup returns null.</summary>
@@ -98,6 +102,16 @@ public sealed class RulesetNames
     /// different kinds.
     /// </remarks>
     public string? BusinessKind(byte id) => At(_businessKinds, id);
+
+    /// <summary>What the file called a Life Stage, or null.</summary>
+    /// <remarks>
+    /// <b>A third namespace, and it shares ids with neither kind table.</b> A stage is named so that
+    /// <c>[[life_stage]] next</c> can refer to one — the chain is authored rather than taken from
+    /// declaration order — and so that a readout can print <em>empty_nest</em> instead of
+    /// <em>stage 5</em>. ⚠ <b><c>Core</c> never sees these</b>: it returns ids and numbers, and the
+    /// shell resolves them, which is the boundary <c>05 §2</c> draws.
+    /// </remarks>
+    public string? LifeStage(byte id) => At(_lifeStages, id);
 
     /// <summary>What the file called a condition, or null.</summary>
     /// <remarks>

@@ -337,7 +337,7 @@ public sealed class LastTripFateTests
             simulation.Key);
 
         int citizen = world.Citizens.Rows.Resolve(
-            world.CreateCitizen(world.CreateHousehold(home, lifeStage: 0), Ticks.Zero));
+            world.CreateCitizen(world.CreateHousehold(home, lifeStage: 0)));
 
         Assert.Equal(
             TripFate.NoRouteFound,

@@ -66,7 +66,7 @@ public sealed class CensusTests
 
         for (int i = 0; i < 8; i++)
         {
-            world.CreateCitizen(household, new Ticks(0));
+            world.CreateCitizen(household);
         }
 
         census.Observe(world, new Ticks(0), default);
@@ -74,7 +74,7 @@ public sealed class CensusTests
 
         for (int round = 0; round < 32; round++)
         {
-            Handle<Citizen> passing = world.CreateCitizen(household, new Ticks(0));
+            Handle<Citizen> passing = world.CreateCitizen(household);
             world.DestroyCitizen(passing);
         }
 

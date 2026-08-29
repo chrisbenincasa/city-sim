@@ -251,9 +251,15 @@ bins = [
 ]
 
 # THE ROPE, MIGRATED FROM `condemn_after = 4` BY MILESTONE 17 (adr/0168), AND THE QUANTITY SURVIVED
-# THE UNIT CHANGE. `rates` fires every 1,024 Ticks, so four missed firings was 4,096 Ticks and 4,096
-# Ticks is two Days. The number below buys the same rope the `rates` header reasons for; only the
-# spelling moved. Read that header -- grep `THE SLACK IS` -- for what the rope is FOR.
+# THE UNIT CHANGE. `rates` fired every 1,024 Ticks when the migration was done, so four missed firings
+# was 4,096 Ticks and 4,096 Ticks is two Days. The number below buys the same rope; only the spelling
+# moved. Read the `rates` header -- grep `THE SLACK IS` -- for what the rope is FOR.
+#
+# ⚠ PAST TENSE ON PURPOSE: `rates` NOW FIRES EVERY 2,048 TICKS, and this sentence said `fires` until
+# the two branches met. ***The derivation is history and the duration below is not***, which is the
+# entire point of adr/0168 -- had this key still been `condemn_after = 4`, the rate doubling would
+# have moved the rope to 8,192 Ticks and this paragraph would have gone on reading as though it had
+# not. A stale derivation beside a live number is the shape worth noticing here.
 #
 # ⚠ IT IS THE **TENANCY** THRESHOLD AND NOT THE PREMISES ONE, which is the half adr/0168 exists to
 # separate. `rates` consumes `local money`, a balance belongs to a Business and never to a Building

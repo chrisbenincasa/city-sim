@@ -20,7 +20,7 @@ namespace Borough.Analysers;
 /// <para>
 /// <b>The check is on fields rather than on properties, and auto-properties are covered by
 /// that.</b> A property is a pair of methods; storage is a field, including the one the compiler
-/// writes for <c>public Column&lt;Ticks&gt; NextEventTick { get; }</c>. Checking fields therefore
+/// writes for <c>public Column&lt;Ticks&gt; PlannedCommute { get; }</c>. Checking fields therefore
 /// reaches both spellings, and the diagnostic is reported at the property when that is what produced
 /// the field — pointing at a compiler-generated symbol teaches nobody anything.
 /// </para>

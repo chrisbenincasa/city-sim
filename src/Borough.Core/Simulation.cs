@@ -45,6 +45,8 @@ public sealed class Simulation
     private readonly PolicyEngine _policies;
     private readonly WageEngine _wages;
     private PayrollReading _lastPayroll;
+    private readonly LifeStageEngine _lifeStages;
+    private LifeStageReading _lastLifeStages;
     private readonly PlacementEngine _placement;
     private readonly EmploymentEngine _employment;
     private readonly TripEngine _trips;
@@ -107,6 +109,7 @@ public sealed class Simulation
         _zoning = new ZoneRuleEngine(world, key);
         _policies = new PolicyEngine(world, key);
         _wages = new WageEngine(world, key);
+        _lifeStages = new LifeStageEngine(world);
         _employment = new EmploymentEngine(world, key);
 
         // No WorldKey: nothing in Phase 4 draws. A Traveller advances when its Leg's arrival Tick has
@@ -193,6 +196,9 @@ public sealed class Simulation
     /// and only then when some trade's payday fell on that Day.
     /// </remarks>
     public PayrollReading LastPayroll => _lastPayroll;
+
+    /// <summary>What the last Life Stage sweep did. Zero on any Tick but a Day's first.</summary>
+    public LifeStageReading LastLifeStages => _lastLifeStages;
 
     /// <summary>Tick phase 4, and the Trip Fate counters the Census drains.</summary>
     public TripEngine Trips => _trips;
@@ -875,8 +881,12 @@ public sealed class Simulation
     /// <remarks>
     /// <para>
     /// <b>Serial, and the only phase that takes rows off the Wheel.</b> Slice 7's wheel carries Rule
-    /// Instances; slice 9 generalises it to everything else that sleeps, and every Citizen already
-    /// carries the <c>next_event_tick</c> it will be bucketed by, declared in slice 4.
+    /// Instances, and it still does. ⚠ <b>The sentence here used to add that <em>every Citizen already
+    /// carries the <c>next_event_tick</c> it will be bucketed by, declared in slice 4</em>, and that
+    /// column was DELETED in <c>plans/0046</c> stage 1</b> — written once at creation, read by
+    /// nothing, and standing in the State Hash for eleven slices. ***A declared column is not a
+    /// half-built mechanism, it is a note somebody left***, and this comment is how it kept reading
+    /// as the former.
     /// </para>
     /// <para>
     /// ⚠ <b>The cascade runs first, and the ordering is the coarse wheel's one load-bearing
@@ -1043,6 +1053,18 @@ public sealed class Simulation
         // ⚠ It is silent on nine of the shipped Rulesets: no trade there declares wage_per_day, so
         // the walk finds no employer with a rate and moves nothing.
         _lastPayroll = _wages.Sweep(tick);
+
+        // AHEAD OF PLACEMENT and behind payroll, and only the first half is a decision. A stage
+        // change is what makes a Household want a different dwelling (adr/0011: household life stage
+        // is one of the primary drivers of residential mobility), so transitioning before the
+        // placement pass means a Household that changed stage this Day is considered in the stage it
+        // is now in rather than the one it left at midnight. ⚠ Nothing reads a stage yet, so the
+        // ordering buys nothing today and is written where it will be right rather than where it is
+        // currently indistinguishable.
+        //
+        // ⚠ It is silent on every shipped Ruleset: none declares [[life_stage]], so DeclaresLifeStages
+        // is false and the sweep returns before it looks at a bucket.
+        _lastLifeStages = _lifeStages.Sweep(tick);
 
         _policies.Sweep(tick);
 

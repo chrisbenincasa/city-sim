@@ -873,6 +873,89 @@ public readonly record struct BusinessKindDefinition
 
 
 /// <summary>
+/// One of <c>adr/0011</c>'s Life Stages: a countdown floor, the window it is drawn over, and the
+/// stage it exits to.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>A stage is a duration and a successor, and nothing else yet.</b> <c>adr/0011</c> hangs six
+/// preference axes off this table and calls it <em>"the most load-bearing data in the design"</em> —
+/// dwelling size, mixed-use tolerance, job-access weighting, school access, rent elasticity,
+/// willingness to move. <b>Every one of them is a CONSUMER of a Life Stage rather than part of
+/// one</b>, and <c>adr/0027</c> owns the drawing of them. <c>plans/0046</c> builds the clock; the
+/// readers arrive after, and adding a field here before its reader exists is the dead-column disease
+/// this milestone was opened to cure.
+/// </para>
+/// <para>
+/// <b>The successor is AUTHORED and not derived from declaration order</b>, which is the one shape
+/// decision in this type. <c>adr/0011</c>'s chain is not a line: <em>Young</em> exits to
+/// <em>Family</em> or to <em>Childless</em> depending on a fertility decision, and <em>Childless</em>
+/// and <em>Empty Nest</em> are separate terminals that <em>"behave identically going forward and are
+/// deliberately kept separate"</em> because they are different diagnoses. ***An order-derived
+/// successor would make the file's line order a mechanism***, and would silently re-route the chain
+/// the first time somebody added a stage in the middle.
+/// </para>
+/// </remarks>
+public readonly record struct LifeStageDefinition
+{
+    /// <summary>
+    /// <c>N</c>: the fewest Days a Household spends in this stage. <b>A floor and not a length.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>In Days, because there is no calendar and <c>CONTEXT.md</c> bans inventing one.</b>
+    /// <em>Year</em>, <em>month</em> and <em>season</em> are named in its <i>Terms we deliberately do
+    /// not use</i>; the precedent for anything wanting a longer unit is
+    /// <see cref="BusinessKindDefinition.PayPeriodDays"/>, which is a week because seven Days is a
+    /// week. ⚠ <b>Refused below 1.</b> A stage of zero Days is entered and left on the same Day, so a
+    /// chain of them collapses the whole life into one Tick.
+    /// </remarks>
+    public int DurationDays { get; init; }
+
+    /// <summary>
+    /// <c>W</c>: the width of the window the countdown is drawn over, uniform on <c>[N, N+W)</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>This is the load-bearing half and it is easy to read as decoration.</b> Without it every
+    /// Household created at Tick 0 leaves this stage on the same Day, and keeps doing so at every
+    /// stage for the whole run — so the founding generation stays a single cohort and the city
+    /// breathes in lockstep. ***That echo would read as a demographic mechanism and is an artefact of
+    /// world creation.*** <c>adr/0011</c>'s amendment adds <c>W</c> for exactly this and calls it
+    /// hash-bearing.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Zero is ALLOWED and means the lockstep world above.</b> It is refused nowhere because a
+    /// file demonstrating the echo is a legitimate thing to author — and because a key whose zero is
+    /// a real answer must not be defaulted, which is
+    /// <see cref="BusinessKindDefinition.ShiftStartEarliestHour"/>'s rule arriving here. <b>Refused
+    /// negative</b>, which is a window that runs backwards.
+    /// </para>
+    /// </remarks>
+    public int SpreadDays { get; init; }
+
+    /// <summary>
+    /// The stage a Household enters when this one ends; <b>zero means this stage is terminal</b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Terminal is spelled as an absent key rather than as a self-reference</b>, and the loader
+    /// refuses the self-reference outright. A stage naming itself is a Household that transitions for
+    /// ever and arrives back where it was — indistinguishable from a typo, and expensive in a way
+    /// nothing reports.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Under <c>plans/0046</c> stage 1 the last stage in the chain IS terminal, and a city of
+    /// Households stuck in it is the correct outcome rather than an unfinished one.</b> Dissolution is
+    /// one of <c>adr/0011</c>'s two <em>decisions</em> and it arrives at stage 2; generation at stage
+    /// 3. A run of stage 1 is a city whose age structure ages and then stops, which is the thing to
+    /// look at before anything is allowed to die of it.
+    /// </para>
+    /// </remarks>
+    public byte NextStage { get; init; }
+}
+
+
+/// <summary>
 /// One Zone Rule: a time trigger, a sample of Lots, and the kind it builds on those that qualify.
 /// </summary>
 /// <remarks>
@@ -2970,6 +3053,52 @@ public sealed class Ruleset
         return BusinessKinds[kind - 1];
     }
 
+    /// <summary>What each Life Stage declares, indexed by <c>stage - 1</c>.</summary>
+    /// <remarks>
+    /// <b>Empty is the ordinary case and means the city has no demographics at all.</b> Every shipped
+    /// file declares none, on <c>[[hinterland]]</c>'s precedent: a mechanism arrives as a table a
+    /// Ruleset may state rather than as a default every world inherits. ⚠ <b>A world declaring no
+    /// stage never advances one</b>, which is what keeps <c>plans/0046</c> stage 1 off thirteen
+    /// standing baselines.
+    /// </remarks>
+    public LifeStageDefinition[] LifeStages { get; init; } = [];
+
+    /// <summary>How many Life Stages are declared. Ids run <c>1..LifeStageCount</c>.</summary>
+    public int LifeStageCount { get; init; }
+
+    /// <summary>The authored name of each Life Stage, indexed by <c>stage - 1</c>.</summary>
+    /// <remarks>
+    /// <b>Held for the same reason <see cref="BusinessKindKeys"/> is</b>: a reload compares two
+    /// Rulesets that may disagree about how many stages exist and about their order, and a name is the
+    /// only thing that survives a renumbering. <c>Core</c> returns ids and never strings, so nothing
+    /// in the simulation reads these — the shell and the migration do.
+    /// </remarks>
+    public ulong[] LifeStageKeys { get; init; } = [];
+
+    /// <summary>Whether this Ruleset has demographics at all.</summary>
+    public bool DeclaresLifeStages => LifeStageCount > 0;
+
+    /// <summary>What the Life Stage with this id declares.</summary>
+    /// <remarks>
+    /// <b>Throws for <see cref="BusinessKind"/>'s reason.</b> A caller here has already resolved a
+    /// live Household's <c>life_stage</c> column, so an out-of-range id is a corrupt row rather than
+    /// a question. ⚠ <b>Zero is out of range on purpose</b> — it is the terminal marker on
+    /// <see cref="LifeStageDefinition.NextStage"/> and the value a Household carries in a world with
+    /// no stage table, and both are conditions a caller tests rather than looks up.
+    /// </remarks>
+    public LifeStageDefinition LifeStage(byte stage)
+    {
+        if (stage == 0 || stage > LifeStages.Length)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(stage),
+                stage,
+                $"no Life Stage carries id {stage}; this Ruleset declares {LifeStages.Length}.");
+        }
+
+        return LifeStages[stage - 1];
+    }
+
     /// <summary>This Ruleset with different Map Layer data, and everything else shared.</summary>
     /// <remarks>
     /// <para>
@@ -3029,6 +3158,9 @@ public sealed class Ruleset
             BusinessKindCount = BusinessKindCount,
             BusinessKindKeys = BusinessKindKeys,
             BusinessKinds = BusinessKinds,
+            LifeStageCount = LifeStageCount,
+            LifeStageKeys = LifeStageKeys,
+            LifeStages = LifeStages,
         };
 
     /// <summary>How many Resources are declared. Ids run <c>1..ResourceCount</c>.</summary>

@@ -367,8 +367,23 @@ public static class SyntheticCity
 
         for (int i = 0; i < households; i++)
         {
+            // 🔴 THIS READ `(byte)(i % 5)` UNTIL plans/0046 STAGE 1, AND IT WAS WRITING A STAGE INTO
+            // WORLDS THAT HAVE NONE. adr/0011 names five stages, so a 0-based cycle over five looked
+            // right for as long as `life_stage` was a byte nothing read -- and it stopped being right
+            // the moment stages became RULESET DATA with ids running from 1, because 0 now means
+            // *this world has no demographics* rather than *stage zero*. The old spelling therefore
+            // did two wrong things at once: it left a fifth of every city stageless in a world that
+            // HAS stages, and it stamped a stage id on every Household in the thirteen shipped files
+            // that declare none. ***A column nothing reads cannot be wrong, which is exactly how it
+            // stays wrong until something reads it.***
+            //
+            // It moves the State Hash on every world (adr/0100 -- and nobody is carrying a save).
+            byte stage = world.Rules.DeclaresLifeStages
+                ? (byte)(1 + (i % world.Rules.LifeStageCount))
+                : (byte)0;
+
             Handle<Household> household =
-                world.CreateHousehold(Dwelling(world, i % buildings, gates), lifeStage: (byte)(i % 5));
+                world.CreateHousehold(Dwelling(world, i % buildings, gates), lifeStage: stage);
 
             // THE ONLY PRODUCTION ISSUANCE OF MONEY IN THE BUILD, and it is here rather than
             // anywhere a player can reach. adr/0024 makes the Outside Connection money's only source
@@ -416,7 +431,7 @@ public static class SyntheticCity
             // exactly what CONTEXT.md -> Unemployment describes and is an honest state rather than a
             // hole.
             world.CreateCitizen(
-                world.Households.Rows.At(i % households), new Ticks((ulong)i % 8192));
+                world.Households.Rows.At(i % households));
         }
     }
 

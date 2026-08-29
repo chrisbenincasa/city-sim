@@ -601,8 +601,7 @@ internal static class GoldenFixtures
         for (int i = 0; i < citizens.Length; i++)
         {
             citizens[i] = world.CreateCitizen(
-                households[i % households.Length],
-                new Ticks((ulong)((i * 401) % 8192)));
+                households[i % households.Length]);
 
             int slot = world.Citizens.Rows.Resolve(citizens[i]);
 

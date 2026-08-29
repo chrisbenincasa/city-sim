@@ -39,6 +39,8 @@ public sealed class HouseholdTable
 
         Dwelling = _rows.SavedHandle("dwelling", buildings.Rows);
         LifeStage = _rows.Saved<byte>("life_stage");
+        StageNext = _rows.Saved<int>("stage_next", Touch.Cold);
+        NextStageDay = _rows.Saved<int>("next_stage_day", Touch.Cold);
         DwellingNext = _rows.Derived<int>("dwelling_next");
         PoolSlot = _rows.Derived<int>("pool_slot");
         MemberHead = _rows.Derived<int>("member_head");
@@ -57,7 +59,43 @@ public sealed class HouseholdTable
     public HandleColumn<Building> Dwelling { get; }
 
     /// <summary>Which of adr/0011's five Life Stages. Resolved through the Ruleset.</summary>
+    /// <remarks>
+    /// ⚠ <b>Written on creation and advanced by NOTHING until <c>plans/0046</c> stage 1</b>, which is
+    /// what that milestone was opened to fix — the third dead column found in a week, after
+    /// <c>Citizens.Age</c> and <c>Citizens.Health</c>. <b>Zero means <em>this world has no
+    /// demographics</em></b> rather than <em>stage zero</em>: stage ids run from 1, and a Ruleset
+    /// declaring no <c>[[life_stage]]</c> leaves every Household here for ever.
+    /// </remarks>
     public Column<byte> LifeStage { get; }
+
+    /// <summary>Link in this Household's Life Stage bucket — see <c>Rules.LifeStageWheel</c>.</summary>
+    /// <remarks>
+    /// <b><see cref="Disposition.Saved"/> rather than derived, on <c>RuleInstanceTable.QueueNext</c>'s
+    /// reasoning and for <c>05 §3</c>'s rule.</b> A list may be derived only if its <em>order</em> is
+    /// recoverable and not merely its membership. Membership here is recoverable —
+    /// <see cref="NextStageDay"/> names the bucket — but the order within a bucket is arrival order,
+    /// and a reload that rebuilt it by walking slots would transition one Day's Households in a
+    /// different sequence from the run that saved it. ⚠ <b>That sequence is observable</b>: a
+    /// transition draws a new countdown, and a draw taken in a different order lands different
+    /// Households on different Days.
+    /// </remarks>
+    public Column<int> StageNext { get; }
+
+    /// <summary>The Day this Household leaves its current Life Stage.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>An absolute Day and not a countdown</b>, which is what lets the wheel's bucket be checked
+    /// against it rather than trusted. A remaining-Days column would have to be decremented on every
+    /// Household every Day — the whole-population scan the wheel exists to avoid — and would carry no
+    /// evidence of which bucket it belonged in.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Meaningless while <see cref="LifeStage"/> is zero.</b> A world with no stage table never
+    /// arms a Household, so this column is zero everywhere in thirteen of the shipped files, and
+    /// <c>Day 0</c> is not a claim that anything is due then.
+    /// </para>
+    /// </remarks>
+    public Column<int> NextStageDay { get; }
 
     /// <summary>Link in the dwelling's occupant list.</summary>
     public Column<int> DwellingNext { get; }

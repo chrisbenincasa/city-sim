@@ -480,7 +480,7 @@ public sealed class CarParkTests
 
         Handle<Building> building = world.Buildings.Rows.At(0);
         Handle<Household> household = world.CreateHousehold(building, lifeStage: 0);
-        Handle<Citizen> citizen = world.CreateCitizen(household, Ticks.Zero);
+        Handle<Citizen> citizen = world.CreateCitizen(household);
 
         int citizenSlot = world.Citizens.Rows.Resolve(citizen);
 

@@ -195,6 +195,18 @@ internal enum Mode
     /// <c>rulesets/twinned.toml</c>, a market with one side. See <c>MarketDump</c>.
     /// </remarks>
     Market,
+
+    /// <summary>
+    /// Print the city's age structure, Day by Day. <c>plans/0046</c> stage 1's artefact.
+    /// </summary>
+    /// <remarks>
+    /// <b>A session mode for <see cref="LandValue"/>'s reason at its most literal.</b> A Life Stage
+    /// is a quantity that only exists as a <em>trajectory</em>: a world that has not run holds the
+    /// stages it was created with, and a single snapshot of those is a picture of the initialiser
+    /// rather than of a mechanism. What this prints is the histogram over time, because the question
+    /// <c>plans/0046</c> asks is whether the founding generation's cohort ever blurs.
+    /// </remarks>
+    Stages,
 }
 
 /// <summary>
@@ -437,6 +449,7 @@ internal sealed class Options
         bool parking = false;
         bool landValue = false;
         bool arrivals = false;
+        bool stages = false;
         bool business = false;
         bool market = false;
         Layer? dump = null;
@@ -551,6 +564,14 @@ internal sealed class Options
                 // asked. This mode drives the gates itself.
                 case "--arrivals":
                     arrivals = true;
+                    session = true;
+                    continue;
+
+                // A session flag on --land-value's reasoning: a Life Stage histogram taken off a
+                // world that has not run is a picture of SyntheticCity's own round-robin, which is
+                // the initialiser and not the city. What makes it a reading is elapsed Days.
+                case "--stages":
+                    stages = true;
                     session = true;
                     continue;
 
@@ -1199,6 +1220,7 @@ internal sealed class Options
         options = new Options
         {
             Mode = day ? Mode.Day
+                 : stages ? Mode.Stages
                  : market ? Mode.Market
                  : business ? Mode.Business
                  : arrivals ? Mode.Arrivals
@@ -1372,6 +1394,14 @@ internal sealed class Options
                                 [[business]] trade is a different test, and twinned.toml
                                 passes it while selling nothing. rulesets/provisioned.toml
                                 is the file this mode was written for
+          --stages              dump the city's age structure Day by Day: who is in which
+                                Life Stage, how many moved, and whether the founding
+                                generation's cohort ever blurs. The population column is
+                                expected to be FLAT -- plans/0046 stage 1 advances a stage
+                                and does nothing else, so dissolution and generation are
+                                later stages and a city that grew here would be a defect.
+                                Needs --ruleset stating [[life_stage]]; rulesets/aged.toml
+                                is the only shipped file that does
           --csv                 dump the Layer, the Lot grid or the Segments as CSV rather
                                 than as an ASCII field
 
