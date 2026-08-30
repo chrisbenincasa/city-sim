@@ -5808,6 +5808,27 @@ public sealed class World
     }
 
     /// <summary>
+    /// How many posts <paramref name="businessSlot"/>'s trade declares, or zero if it declares none.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The labour SUPPLY side of the same pair <see cref="HasJob"/> asks about</b>, exposed
+    /// because a reader outside this assembly cannot reach <c>TryDeclaredJobs</c> and the ratio
+    /// <em>posts per working-age Citizen</em> is the quantity <c>[[building]] jobs</c> actually
+    /// sets. ⚠ <b>A predicate cannot be summed</b>: <see cref="HasJob"/> answers <em>is there room
+    /// here</em>, and an instrument asking how tight the labour market is needs the capacity rather
+    /// than the vacancy.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Zero means the trade declares no <c>jobs</c> key, NOT that its posts are full.</b> The
+    /// two are told apart by <see cref="Workers"/>, and an instrument that conflated them would
+    /// report a city with no employers and a city whose employers are all full as the same city.
+    /// </para>
+    /// </remarks>
+    public int DeclaredJobs(int businessSlot) =>
+        TryDeclaredJobs(Businesses.Kind[businessSlot], out int jobs) ? jobs : 0;
+
+    /// <summary>
     /// Whether <paramref name="buildingSlot"/> has a job nobody holds.
     /// </summary>
     /// <remarks>

@@ -84,6 +84,7 @@ internal static class StageDump
 
         int count = rules.LifeStageCount;
         List<int[]> days = [Histogram(world, count)];
+        List<Labour> labour = [Market(world)];
         var advanced = new List<int>() { 0 };
         var dissolved = new List<int>() { 0 };
         var born = new List<int>() { 0 };
@@ -111,6 +112,7 @@ internal static class StageDump
             if (tick % (ulong)Ticks.PerDay == 0UL)
             {
                 days.Add(Histogram(world, count));
+                labour.Add(Market(world));
                 advanced.Add(simulation.LastLifeStages.Advanced);
                 dissolved.Add(simulation.LastLifeStages.Dissolved);
                 born.Add(simulation.LastLifeStages.Born);
@@ -124,6 +126,7 @@ internal static class StageDump
         Trajectory(days, advanced, dissolved, born, names, rules, output);
         output.WriteLine();
         Echo(advanced, dissolved, born, bore, spawned, days, output);
+        Work(labour, output);
 
         return 0;
     }
@@ -162,12 +165,18 @@ internal static class StageDump
         output.WriteLine(F($"{sizing}, {days:N0} Days, {rules.LifeStageCount} stages."));
         output.WriteLine("#");
         output.WriteLine(
-            "# The population column is expected to be FLAT: stage 1 advances a stage and does "
-            + "nothing else.");
+            "# The population column MOVES, and every stage of plans/0046 changed which way. It was "
+            + "flat while");
         output.WriteLine(
-            "# Dissolution is plans/0046 stage 2 and generation is stage 3, so a city that grew or "
-            + "shrank here");
-        output.WriteLine("# would be a defect rather than a demography.");
+            "# stage 1 only advanced a stage, fell to zero while stage 2 was a sink with no source, "
+            + "and now");
+        output.WriteLine(
+            "# rises and falls. ⚠ A DESCRIPTION WRITTEN AGAINST A HALF-BUILT MECHANISM READS AS A "
+            + "CLAIM ABOUT");
+        output.WriteLine(
+            "# THE CITY — this line said FLAT for two commits after it stopped being true, printed "
+            + "above a");
+        output.WriteLine("# column that was visibly doing something else.");
         output.WriteLine();
         output.WriteLine("The chain, as this Ruleset authors it");
         output.WriteLine();
@@ -429,6 +438,226 @@ internal static class StageDump
             "  below 2.00 here is THE BAND THE RULESET AUTHORED, not a city that cannot afford");
         output.WriteLine(
             "  children. Read it as a check that the arithmetic works, never as a diagnosis.");
+    }
+
+    /// <summary>One Day's labour market: who can work, and how many posts stand for them.</summary>
+    /// <remarks>
+    /// <b>Four levels rather than a ratio, because a ratio cannot be re-divided.</b> Whoever reads
+    /// this wants <em>posts per worker</em>, but they may also want the unemployment level, the
+    /// child share, or the vacancy count — and every one of those is a different pair out of these
+    /// four. Storing the quotient would keep one reading and discard the other three.
+    /// </remarks>
+    private readonly record struct Labour(
+        int Workers, int Children, int Posts, int Filled, int Dwellings);
+
+    /// <summary>The labour market as it stands right now.</summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>Posts are counted on PREMISED Businesses only, and the difference is not pedantry.</b>
+    /// The assignment pass reaches an employer by walking the Buildings inside a box, so a Business
+    /// sitting in the pool is unreachable however many posts its trade declares. Counting those
+    /// would report a labour supply no Citizen can take a job from — the shape of
+    /// <c>plans/0041</c> <b>G44</b>'s stranded shops, which outlived their premises and stayed in
+    /// the pool for ever.
+    /// </para>
+    /// <para>
+    /// ⚠ <b><c>Workers</c> is what <see cref="World.IsOfWorkingAge"/> says and not what the age
+    /// column says</b>, which is the whole reason it can be summed at all. <c>Citizens.Age</c> is
+    /// zero in every world declaring no <c>[[life_stage]]</c>, so a count reading the column
+    /// directly would report twenty Rulesets as cities with no workers in them.
+    /// </para>
+    /// </remarks>
+    private static Labour Market(World world)
+    {
+        int workers = 0;
+        int children = 0;
+        int posts = 0;
+        int filled = 0;
+
+        CitizenTable citizens = world.Citizens;
+
+        for (int slot = 0; slot < citizens.Rows.SlotCount; slot++)
+        {
+            if (!citizens.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            if (world.IsOfWorkingAge(slot))
+            {
+                workers++;
+            }
+            else
+            {
+                children++;
+            }
+        }
+
+        for (int slot = 0; slot < world.Businesses.Rows.SlotCount; slot++)
+        {
+            if (!world.Businesses.Rows.IsLive(slot)
+                || !world.Buildings.Rows.TryResolve(world.Businesses.Building[slot], out int _))
+            {
+                continue;
+            }
+
+            posts += world.DeclaredJobs(slot);
+            filled += world.Workers.Length(slot);
+        }
+
+        return new Labour(workers, children, posts, filled, world.Buildings.Rows.LiveCount);
+    }
+
+    /// <summary>
+    /// 🔴 <c>plans/0046</c>'s loose end: whether <c>[[building]] jobs = 8</c> still buys what it was
+    /// derived to buy.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The number was derived as <c>1000/360 × 3 = 8.33</c>, floored</b> — the world generator's
+    /// Citizens-per-Household ratio through the dwelling kind's <c>occupants = 3</c> — and
+    /// <c>plans/0023</c> recorded what the flooring bought: <em>"full employment is out of reach by
+    /// construction and the shortage flow is never trivially zero, which was the point"</em>. ⚠
+    /// <b>Every term in that derivation counts CITIZENS, and it assumes every Citizen works.</b>
+    /// That assumption is what <c>plans/0046</c> stage 4 retired.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>So the panel prints a BAND and not a census, because the ratio is not a constant of the
+    /// city.</b> Posts follow the standing Building stock and workers follow the population, and on
+    /// a world with demographics those two move on different clocks — the stock outlives the people
+    /// who built it. ***A single reading of this ratio is a reading of the Day it was taken on***,
+    /// which is why the stage-4 commit's <c>1,200 of 1,411</c> and a Day-400 census disagree by a
+    /// factor of two without either being wrong.
+    /// </para>
+    /// </remarks>
+    private static void Work(List<Labour> labour, TextWriter output)
+    {
+        double lowest = double.MaxValue;
+        double highest = 0;
+        long posts = 0;
+        long workers = 0;
+        long people = 0;
+        int reachable = 0;
+        int peakStock = 0;
+        int stockFell = 0;
+
+        for (int day = 1; day < labour.Count; day++)
+        {
+            Labour today = labour[day];
+
+            if (today.Dwellings < labour[day - 1].Dwellings)
+            {
+                stockFell++;
+            }
+
+            peakStock = Math.Max(peakStock, today.Dwellings);
+
+            if (today.Workers == 0)
+            {
+                continue;
+            }
+
+            double ratio = today.Posts / (double)today.Workers;
+
+            lowest = Math.Min(lowest, ratio);
+            highest = Math.Max(highest, ratio);
+            posts += today.Posts;
+            workers += today.Workers;
+            people += today.Workers + today.Children;
+
+            if (today.Posts >= today.Workers)
+            {
+                reachable++;
+            }
+        }
+
+        Labour last = labour[^1];
+        int population = last.Workers + last.Children;
+        int share = population == 0 ? 0 : 100 * last.Children / population;
+
+        output.WriteLine();
+        output.WriteLine("Is there work for the people who can work?");
+        output.WriteLine();
+        output.WriteLine(F($"  working age           {last.Workers,8:N0}   at the end of the run"));
+        output.WriteLine(F($"  children              {last.Children,8:N0}   {share}% of the population"));
+        output.WriteLine(F($"  dwellings standing    {last.Dwellings,8:N0}   peak {peakStock:N0}"));
+        output.WriteLine(F($"  posts standing        {last.Posts,8:N0}"));
+        output.WriteLine(F($"  posts filled          {last.Filled,8:N0}"));
+        output.WriteLine(F($"  unemployed            {last.Workers - last.Filled,8:N0}"));
+
+        if (workers > 0)
+        {
+            int sampled = labour.Count - 1;
+
+            output.WriteLine();
+            output.WriteLine(F(
+                $"  POSTS PER WORKER      {posts / (double)workers,8:N2}   mean over the run"));
+            output.WriteLine(F($"                        {lowest,8:N2}   lowest Day"));
+            output.WriteLine(F($"                        {highest,8:N2}   highest Day"));
+            output.WriteLine(F(
+                $"  full employment       {reachable,8:N0}   Days of {sampled} with posts >= workers"));
+            output.WriteLine();
+            output.WriteLine("  It is the PRODUCT of two ratios and the derivation fixed both:");
+            output.WriteLine();
+            output.WriteLine(F(
+                $"  posts per Citizen     {posts / (double)people,8:N2}   derived 0.96"));
+            output.WriteLine(F(
+                $"  Citizens per worker   {people / (double)workers,8:N2}   derived 1.00"));
+            output.WriteLine(F(
+                $"  Days the stock fell   {stockFell,8:N0}   of {sampled}"));
+        }
+
+        output.WriteLine();
+        output.WriteLine(
+            "  `jobs = 8` is the floor of 1000/360 x 3 — the generator's Citizens per Household");
+        output.WriteLine(
+            "  through the dwelling kind's occupants — and plans/0023 recorded what the flooring");
+        output.WriteLine(
+            "  bought: 0.96 posts per resident, so full employment is out of reach BY CONSTRUCTION");
+        output.WriteLine(
+            "  and the shortage is never trivially zero.");
+        output.WriteLine();
+        output.WriteLine(
+            "  🔴 BOTH FACTORS HAVE MOVED AND THE BIGGER ONE IS NOT ABOUT CHILDREN. plans/0046 recorded");
+        output.WriteLine(
+            "  that `Citizens per worker` left 1.00 when stage 4 stopped counting children as labour.");
+        output.WriteLine(
+            "  It did not record the other, and the other is larger: `posts per Citizen` is");
+        output.WriteLine(
+            "  8 x DWELLINGS / Citizens, adr/0069 builds while the Unplaced Pool is non-empty, and");
+        output.WriteLine(
+            "  NOTHING ON THIS WORLD CONDEMNS — so the stock only ever rises. `Days the stock fell` is");
+        output.WriteLine(
+            "  the claim stated as a number, and it is zero.");
+        output.WriteLine();
+        output.WriteLine(
+            "  ⚠ THAT IS NOT adr/0006 VIOLATED, WHICH IS WHY NO LONG RUN HAS EVER CAUGHT IT. The stock");
+        output.WriteLine(
+            "  is BOUNDED — by peak demand — so the collection converges and every collection check");
+        output.WriteLine(
+            "  passes. What is unbounded is the RATIO, because its denominator is free to fall and on");
+        output.WriteLine(
+            "  a world with dissolution it does. A monotone numerator over a falling denominator is");
+        output.WriteLine(
+            "  invisible to a test that watches the numerator.");
+        output.WriteLine();
+        output.WriteLine(
+            "  ⚠ AND THE MISSING SINK IS NOT SIMPLY A BUG TO PATCH. adr/0091 makes demolish the sixth");
+        output.WriteLine(
+            "  PLAYER verb — clearing land is bought rather than taken — so a city that razed its own");
+        output.WriteLine(
+            "  empty dwellings would be taking a decision the design gives away. Whether a vacant");
+        output.WriteLine(
+            "  dwelling decays on its own is a question adr/0011's stage table cannot answer either.");
+        output.WriteLine();
+        output.WriteLine(
+            "  ⚠ SO THERE IS NO VALUE OF `jobs` THAT RESTORES THE PROPERTY. The ratio it sets is not a");
+        output.WriteLine(
+            "  constant of this city, and a number re-derived against any one Day of this run is a");
+        output.WriteLine(
+            "  reading of that Day. `jobs` is DOWNSTREAM of a stock that does not shrink; re-deriving");
+        output.WriteLine(
+            "  it first would be adr/0073's local workaround for a cause that lives elsewhere.");
     }
 
     private static int Live(int[] tally)

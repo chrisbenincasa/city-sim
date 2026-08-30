@@ -124,6 +124,96 @@ public sealed class StageDumpTests
     }
 
     /// <summary>
+    /// 🔴 <b>The instrument's own arithmetic: the ratio is the product of the two factors it
+    /// prints.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>This is the one claim in the class that checks the READOUT rather than the city.</b>
+    /// <c>posts per worker</c> is <c>posts per Citizen × Citizens per worker</c> by construction,
+    /// and every one of the three is summed over a different denominator — so a decomposition that
+    /// mixed a per-Day mean with a run total would print three plausible numbers that do not
+    /// multiply. ⚠ <b>The tolerance is rounding and nothing else</b>: the panel prints two decimals,
+    /// so the product of two rounded factors can miss the rounded ratio by about a part in a
+    /// hundred, and anything wider is a summing bug rather than a display one.
+    /// </remarks>
+    [Fact]
+    public void The_labour_panel_decomposes_its_own_ratio()
+    {
+        string report = Dump();
+
+        Assert.Contains("Is there work for the people who can work?", report, StringComparison.Ordinal);
+
+        double ratio = Figure(report, @"POSTS PER WORKER\s+([\d.]+)");
+        double perCitizen = Figure(report, @"posts per Citizen\s+([\d.]+)");
+        double perWorker = Figure(report, @"Citizens per worker\s+([\d.]+)");
+
+        Assert.True(
+            Math.Abs((perCitizen * perWorker) - ratio) < 0.02,
+            $"{perCitizen} x {perWorker} = {perCitizen * perWorker}, printed as {ratio}");
+    }
+
+    /// <summary>
+    /// 🔴 <b>The finding <c>plans/0046</c> was reopened for: the dwelling stock never falls.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>adr/0069</c> builds while the Unplaced Pool is non-empty and this world condemns
+    /// nothing</b>, so the stock is monotone while the population oscillates — and
+    /// <c>posts per Citizen</c> is <c>8 × dwellings ÷ Citizens</c>. ⚠ <b>It is NOT
+    /// <c>adr/0006</c> violated</b>, which is why no long run has ever caught it: the stock is
+    /// bounded by peak demand and converges, so every collection check passes. What is unbounded is
+    /// the ratio, whose denominator is free to fall.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>THIS TEST IS EXPECTED TO GO RED THE DAY SOMETHING DEMOLISHES</b>, and that failure is
+    /// the repair landing rather than a regression. It is pinned rather than left unwatched because
+    /// the quantity is invisible to every check the project already runs — a monotone numerator over
+    /// a falling denominator does not trend upward anywhere a collection test is looking.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_dwelling_stock_only_ever_rises()
+    {
+        string report = Dump();
+
+        Assert.Matches(@"Days the stock fell\s+0\b", report);
+    }
+
+    /// <summary>
+    /// 🔴 <b><c>jobs = 8</c> no longer buys what it was derived to buy.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b><c>plans/0023</c> recorded the property the flooring bought</b> — <em>"full employment is
+    /// out of reach by construction and the shortage flow is never trivially zero, which was the
+    /// point"</em>. ⚠ <b>On a world with demographics it is in reach on most Days</b>, and this test
+    /// says so with a number rather than leaving the claim in prose. ***It asserts the property is
+    /// BROKEN***, which is the honest thing to pin while the cause lives in a stock that has no
+    /// sink: re-deriving <c>jobs</c> to make this pass would be <c>adr/0073</c>'s local workaround
+    /// for a cause somewhere else.
+    /// </remarks>
+    [Fact]
+    public void Full_employment_is_no_longer_out_of_reach()
+    {
+        string report = Dump();
+
+        Assert.True(
+            Figure(report, @"full employment\s+([\d,]+)") > 0,
+            "posts never reached workers on any Day — `jobs = 8`'s derived property has come back, "
+            + "so read the panel and re-derive the number rather than deleting this test.");
+    }
+
+    private static double Figure(string report, string pattern)
+    {
+        Match match = Regex.Match(report, pattern);
+
+        Assert.True(match.Success, $"the panel printed no line matching {pattern}");
+
+        return double.Parse(
+            match.Groups[1].Value.Replace(",", "", StringComparison.Ordinal),
+            System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
     /// A Ruleset with no stage table is refused rather than printing an initialiser's histogram.
     /// </summary>
     /// <remarks>

@@ -52,15 +52,13 @@ shape — one bucket per Day, cascading into the fine wheel at each Day boundary
 clock rather than a second clock*. Stage 0 below is **execute `plans/0036`**; nothing about the wheel
 is restated here, because a second copy is `plans/0012` **Cause 1** by construction.
 
-⚠ **The alternative was considered and rejected on the day.** A Day countdown does not strictly need a
-wheel: a saved `NextStageDay` column compared against today on the Day boundary is what `WageEngine`,
-the market reprice and the water graph all already do, and the corpus argues for it in
-`Simulation.cs` — *"18's wheel exists so that MANY Day countdowns can share a structure."* At ~400,000
-Households that scan is ~195 rows a Tick amortised, which is not a milestone's worth of cost.
-***It was rejected because Life Stages are the third Day countdown the design names, not the first***
-— Need decay and the housed re-evaluation are both waiting behind the same throw — and because
-building the sweep would leave `EventWheel.Arm` still throwing with a message naming a consumer that
-now exists. **A repair that leaves the error message lying is not a repair.**
+⚠ **The alternative was considered and rejected on the day.** A saved `NextStageDay` compared against
+today on the Day boundary is what `WageEngine`, the market reprice and the water graph already do,
+and ~195 rows a Tick amortised at 400,000 Households is not a milestone's cost. ***It was rejected
+because Life Stages are the third Day countdown the design names, not the first*** — Need decay and
+the housed re-evaluation wait behind the same throw — and because a sweep would leave
+`EventWheel.Arm` throwing with a message naming a consumer that now exists. **A repair that leaves
+the error message lying is not a repair.**
 
 **2. A Household's whole life is on the order of 160 Days, and
 [`adr/0094`](../docs/adr/0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md)
@@ -115,9 +113,19 @@ generation, and the city is allowed to die before it is allowed to breed.***
 source is stage 3.
 
 ✅ **Separating stage 4 from stage 3 paid**: the gate's cost was measurable *because* nothing else
-moved employment that day. ⚠ **`[[building]] jobs = 8` is now underived** — *"1000/360 × 3 = 8.33
-Citizens"* assumes **every Citizen works**, which stops holding once a world has children. Nothing
-has re-derived it.
+moved employment that day.
+
+🔴 **`[[building]] jobs = 8` IS NOT RE-DERIVABLE, and that is the answer rather than a deferral.**
+`--stages`' *Is there work for the people who can work?* panel measures the ratio it sets:
+**0.96 at its lowest — the derivation exactly — 12.51 at its highest, mean 2.86.** It is the **product of
+two factors** and ⚠ **the larger is not about children.** Nothing on either demographic world
+condemns, so the dwelling stock is **monotone — 0 Days of 400 saw it fall** — while the population
+oscillates. ⚠ **That is not `adr/0006` violated**, which is why no long run ever caught it: the stock
+is bounded by peak demand and converges, so every collection check passes. ***The unbounded thing is
+the ratio, whose denominator is free to fall.*** So `jobs` is downstream of a stock with no sink, and
+re-deriving it first would be
+[`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md)'s
+local workaround. `StageDumpTests` pins all three readings.
 
 ---
 
@@ -134,15 +142,12 @@ never had the defect** — this document said "the same shape" and was wrong, an
 the pass that was already right. ⚠ **And the table was not going sparse for the first time**: a
 give-up departure has destroyed Households since milestone 11, so `crowded.toml` was already sparse.
 
-**3. ⏸ DEFERRED at stage 2 — the fix is a SAVE-FORMAT change, not a line edit.** The founding Citizen
-count is nowhere in `SaveHeader`, so `Session.cs` has no better value to reach for. What it damages is
-a written artefact rather than a running world: the trace header, and the `.borough` log a replay
-would build a *fresh* city from. Save and resume conflate capacity with population.
-`Session.cs:313` rebuilds `WorldConfiguration(world.Citizens.Rows.LiveCount)`, and
-`WorldConfiguration.cs:16` documents that field as *"a capacity and not a population"*. Once births
-and deaths move the live count away from the constructed capacity, a resumed run sizes every derived
-table differently from the run it resumed. `SyntheticCity` reads `Rows.Capacity` **as** the population
-in two places (`SyntheticCity.cs:283`, `:628`), correct only while the table has never grown.
+**3. ⏸ DEFERRED at stage 2 — the fix is a SAVE-FORMAT change, not a line edit.** `SaveHeader` carries
+no founding Citizen count, so `Session.cs:313` rebuilds
+`WorldConfiguration(world.Citizens.Rows.LiveCount)` into a field `WorldConfiguration.cs:16` calls
+*"a capacity and not a population"*. Once births move the live count off the constructed capacity, a
+resumed run sizes every derived table differently. `SyntheticCity.cs:283` and `:628` read
+`Rows.Capacity` **as** the population.
 
 **4. ✅ NOT A TRAP — checked 2026-08-28.** `CreateCitizen` leaves `LastPaidDay` zero, but `World.Employ`
 starts the pay clock on the day of hire and is the one door onto the Workplace handle, so no Citizen
@@ -218,5 +223,4 @@ drawing. **This milestone builds the clock and the table, and the readers arrive
 ⚠ **And it does not make immigration redundant.**
 [`adr/0023`](../docs/adr/0023-immigration-arrives-through-the-gate.md) makes Hinterlands finite
 stocks, so ***internal generation is the only growth channel that survives the late game*** — the two
-are complementary, and a city that generates its own next generation is what makes housing Families
-structurally necessary rather than merely encouraged.
+are complementary.
