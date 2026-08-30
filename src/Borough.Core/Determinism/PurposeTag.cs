@@ -635,4 +635,33 @@ public enum PurposeTag : ulong
     /// </para>
     /// </remarks>
     LifeStageDuration = 32,
+
+    /// <summary>How many children a Household bears on leaving its bearing stage.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>adr/0011</c>'s first <em>decision</em>, shipped as a draw.</b> That ADR conditions
+    /// fertility on housing cost, dwelling size and job security through the discrete-choice
+    /// machinery, and none of it is built — so what runs is a uniform draw over the authored band,
+    /// and <c>adr/0070</c> says the absence is a mechanism nobody has built rather than a decision
+    /// about what fertility is.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Distinct from <see cref="LifeStageDuration"/> though both are drawn at the same
+    /// transition, on the same Household, on the same Tick.</b> Sharing the tag would tie <i>how many
+    /// children</i> to <i>how long the next stage lasts</i> — every large family a long one — and
+    /// that is exactly the invisible correlation <c>02 §1.1</c> requires a tag per use to prevent.
+    /// ***Two draws at one instant is the case the rule exists for.***
+    /// </para>
+    /// </remarks>
+    LifeStageChildren = 33,
+
+    /// <summary>The static age a Citizen carries from the moment it becomes an adult.</summary>
+    /// <remarks>
+    /// <b>Keyed on the Citizen's monotonic row id and NOT on the Tick</b>, which is
+    /// <see cref="WagePayday"/>'s polarity rather than <see cref="LifeStageDuration"/>'s. An age is
+    /// drawn once on formation and never advances (<c>adr/0011</c>), so a Tick-keyed draw would be a
+    /// number that could move — and a re-draw on any path that touched it would be an ageing
+    /// mechanism this design refuses by name.
+    /// </remarks>
+    CitizenAge = 34,
 }

@@ -86,6 +86,9 @@ internal static class StageDump
         List<int[]> days = [Histogram(world, count)];
         var advanced = new List<int>() { 0 };
         var dissolved = new List<int>() { 0 };
+        var born = new List<int>() { 0 };
+        var spawned = new List<int>() { 0 };
+        var bore = new List<int>() { 0 };
 
         for (ulong tick = 0; tick < options.Ticks; tick++)
         {
@@ -110,14 +113,17 @@ internal static class StageDump
                 days.Add(Histogram(world, count));
                 advanced.Add(simulation.LastLifeStages.Advanced);
                 dissolved.Add(simulation.LastLifeStages.Dissolved);
+                born.Add(simulation.LastLifeStages.Born);
+                spawned.Add(simulation.LastLifeStages.Spawned);
+                bore.Add(simulation.LastLifeStages.Bore);
             }
         }
 
         Header(options, rules, names, days.Count - 1, output);
         output.WriteLine();
-        Trajectory(days, advanced, dissolved, names, rules, output);
+        Trajectory(days, advanced, dissolved, born, names, rules, output);
         output.WriteLine();
-        Echo(advanced, dissolved, days, output);
+        Echo(advanced, dissolved, born, bore, spawned, days, output);
 
         return 0;
     }
@@ -188,6 +194,7 @@ internal static class StageDump
         List<int[]> days,
         List<int> advanced,
         List<int> dissolved,
+        List<int> born,
         RulesetNames names,
         Ruleset rules,
         TextWriter output)
@@ -206,8 +213,8 @@ internal static class StageDump
             output.Write(Short(Named(names, rules, stage)));
         }
 
-        output.WriteLine("   none   moved   ended    live");
-        output.WriteLine(new string('-', 30 + (9 * rules.LifeStageCount)));
+        output.WriteLine("   none   moved   ended    born    live");
+        output.WriteLine(new string('-', 38 + (9 * rules.LifeStageCount)));
 
         for (int day = 0; day < days.Count; day += stride)
         {
@@ -225,7 +232,7 @@ internal static class StageDump
             live += tally[0];
 
             output.WriteLine(F(
-                $"{tally[0],6}  {advanced[day],6}  {dissolved[day],6}  {live,6}"));
+                $"{tally[0],6}  {advanced[day],6}  {dissolved[day],6}  {born[day],6}  {live,6}"));
         }
     }
 
@@ -241,7 +248,13 @@ internal static class StageDump
     /// city started with.
     /// </remarks>
     private static void Echo(
-        List<int> advanced, List<int> dissolved, List<int[]> days, TextWriter output)
+        List<int> advanced,
+        List<int> dissolved,
+        List<int> born,
+        List<int> bore,
+        List<int> spawned,
+        List<int[]> days,
+        TextWriter output)
     {
         int moves = 0;
         int busiest = 0;
@@ -293,6 +306,7 @@ internal static class StageDump
             "  it is enough is what plans/0046 says to come here and find out.");
 
         Deaths(dissolved, days, output);
+        Replacement(born, bore, spawned, days, output);
     }
 
     /// <summary>
@@ -341,13 +355,80 @@ internal static class StageDump
 
         output.WriteLine();
         output.WriteLine(
-            "  🔴 THE CITY EMPTIES AND THAT IS THE MILESTONE, not a defect. Stage 2 is a SINK");
+            "  A Household reaching a terminal Life Stage dissolves, its estate goes to the");
         output.WriteLine(
-            "  with no source: a Household reaching a terminal Life Stage dissolves, its estate");
+            "  treasury and its members are retired. ⚠ THIS NO LONGER EMPTIES THE CITY: stage 3");
         output.WriteLine(
-            "  goes to the treasury and its members are retired, and nothing is born until stage");
+            "  gave the sink a source, so read this panel against `births` below rather than on");
         output.WriteLine(
-            "  3. An emptying city is bounded below by zero, which is why this ships first.");
+            "  its own. A city that empties now is one whose fertility band sits under 2.0.");
+    }
+
+    /// <summary>
+    /// <c>plans/0046</c> stage 3: the readout the milestone owes.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>Two children per Household is EXACT replacement and it is not a constant anybody
+    /// chose</b> — <c>adr/0011</c>: <em>"children become adults and form new Households, so two
+    /// children per Household is exact Citizen replacement — two replacing two. That threshold falls
+    /// out of conservation rather than being chosen."</em> ***So the number below is a reading of the
+    /// city and the 2.0 beside it is arithmetic.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The denominator counts every Household that made the decision, INCLUDING the ones that
+    /// drew zero.</b> Dividing by the Households that had at least one child would report the
+    /// fertility of the fertile, and the city the ADR's stagnation spiral describes — one where
+    /// expensive housing produces zero-child draws — would read as perfectly healthy.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Spawned is not a birth and is printed to say so.</b> A birth creates a Citizen; a spawn
+    /// moves one out of its parents' Household into its own. <c>adr/0011</c> makes the conservation
+    /// claim on the second: ***"Citizen count is conserved across the spawn transition"***.
+    /// </para>
+    /// </remarks>
+    private static void Replacement(
+        List<int> born, List<int> bore, List<int> spawned, List<int[]> days, TextWriter output)
+    {
+        int children = 0;
+        int decisions = 0;
+        int left = 0;
+
+        for (int day = 1; day < born.Count; day++)
+        {
+            children += born[day];
+            decisions += bore[day];
+            left += spawned[day];
+        }
+
+        output.WriteLine();
+        output.WriteLine("Does the city replace itself?");
+        output.WriteLine();
+        output.WriteLine(F($"  births                {children,8:N0}"));
+        output.WriteLine(F($"  fertility decisions   {decisions,8:N0}"));
+        output.WriteLine(F($"  children left home    {left,8:N0}"));
+        output.WriteLine(F($"  standing at the end   {Live(days[^1]),8:N0} Households"));
+
+        if (decisions > 0)
+        {
+            output.WriteLine();
+            output.WriteLine(F(
+                $"  REPLACEMENT RATE      {children / (double)decisions,8:N2}  against 2.00 for exact"));
+        }
+
+        output.WriteLine();
+        output.WriteLine(
+            "  Two children per Household replaces two adults with two, so 2.00 is exact");
+        output.WriteLine(
+            "  replacement and it falls out of conservation rather than being chosen (adr/0011).");
+        output.WriteLine(
+            "  🔴 THE DRAW IS UNCONDITIONED: adr/0011 conditions fertility on housing cost,");
+        output.WriteLine(
+            "  dwelling size and job security, and none of that machinery is built. So a rate");
+        output.WriteLine(
+            "  below 2.00 here is THE BAND THE RULESET AUTHORED, not a city that cannot afford");
+        output.WriteLine(
+            "  children. Read it as a check that the arithmetic works, never as a diagnosis.");
     }
 
     private static int Live(int[] tally)

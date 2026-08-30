@@ -4,14 +4,16 @@ using Borough.Headless;
 namespace Borough.Tests.Headless;
 
 /// <summary>
-/// <c>plans/0046</c> stages 1 and 2: <c>--stages</c>, the age structure Day by Day.
+/// <c>plans/0046</c> stages 1 to 3: <c>--stages</c>, the age structure Day by Day.
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>The load-bearing test is <see cref="The_city_empties_and_the_dump_says_so"/></b>, because it is
-/// the one claim that says the sink is running rather than merely wired. A histogram that moved
-/// between stages while the population stayed flat is stage 1, and stage 1 shipped a commit earlier —
-/// so the assertion that separates them is the population reaching zero.
+/// <b>The load-bearing test is
+/// <see cref="The_replacement_rate_is_printed_against_its_threshold"/></b>, because it is the one
+/// claim that says the SOURCE is running rather than merely wired. ⚠ <b>Its predecessor asserted the
+/// city reached zero</b>, which was correct while stage 2 was a sink with nothing feeding it — the
+/// second time these assertions have been rewritten rather than extended, and the cost of pinning a
+/// half-built mechanism.
 /// </para>
 /// <para>
 /// ⚠ <b>Every measurement is on <c>rulesets/aged.toml</c> and it has to be.</b> It is the only
@@ -19,16 +21,16 @@ namespace Borough.Tests.Headless;
 /// printing a histogram of whatever <c>SyntheticCity</c> handed out at creation.
 /// </para>
 /// <para>
-/// ⚠ <b>240 Days is chosen and not rounded.</b> A Household seeded into <c>young</c> lives at most
-/// <c>31 + 63 + 63 + 55 = 212</c> Days, so 240 is the shortest run in which the emptying is a
-/// measured fact rather than a trend. It is also what makes this the most expensive dump test in the
-/// tier, which is why the report is built once and shared.
+/// ⚠ <b>400 Days is chosen and not rounded.</b> A Household seeded into <c>young</c> lives at most
+/// <c>31 + 63 + 63 + 55 = 212</c> Days, so past 240 every Household standing was born here — and 400
+/// leaves room for a third generation, which is what the cohort question needs. It is what makes this
+/// the most expensive dump test in the tier, which is why the report is built once and shared.
 /// </para>
 /// </remarks>
 public sealed class StageDumpTests
 {
-    /// <summary>240 Days — past the longest life the shipped stage table can draw.</summary>
-    private const string Ticks = "491520";
+    /// <summary>400 Days — past the longest life the table can draw, with room for three generations.</summary>
+    private const string Ticks = "819200";
 
     private const string Population = "2000";
 
@@ -60,27 +62,48 @@ public sealed class StageDumpTests
     }
 
     /// <summary>
-    /// 🔴 <b>The city empties, which is the whole of stage 2.</b>
+    /// 🔴 <b>The city outlives the generation it was seeded with.</b>
     /// </summary>
     /// <remarks>
-    /// <b>Both halves, because either alone is a different mechanism.</b> Dissolutions with a
-    /// standing population would be a sink too slow to matter; an empty city with no dissolutions
-    /// counted would mean the rows went somewhere this dump cannot see. ⚠ <b>The stage-1 version of
-    /// this dump asserted the population was FLAT</b>, and that assertion was correct for exactly one
-    /// commit.
+    /// <b>400 Days is past the longest life the table can draw</b>, so every Household standing at
+    /// the end was born here rather than seeded. ⚠ <b>This is the THIRD claim this test has made
+    /// about the same column</b> — flat at stage 1, zero at stage 2, standing at stage 3 — and each
+    /// was correct for exactly as long as the mechanism was half-built. ***A test written against a
+    /// half-built mechanism is a claim about the stage and not about the city.***
     /// </remarks>
     [Fact]
-    public void The_city_empties_and_the_dump_says_so()
+    public void The_city_outlives_its_founding_generation()
     {
         string report = Dump();
 
-        Assert.Contains("the city emptied on Day", report, StringComparison.Ordinal);
-        Assert.DoesNotContain("had not emptied when the run ended", report, StringComparison.Ordinal);
-        // A pattern rather than a column: the padding is a formatting choice and pinning it would
-        // make this fail on a cosmetic edit. The Day it empties on is deliberately NOT asserted --
-        // that is a figure for a document to quote, and an assertion that re-derives one is an
-        // instrument wearing the wrong tier.
-        Assert.Matches(@"standing at the end\s+0\b", report);
+        // ⚠ THE OPPOSITE ASSERTION TO THE ONE THIS TEST SHIPPED WITH. At stage 2 it read
+        // `the city emptied on Day`; stage 3 gave the sink a source, and 400 Days is past the
+        // longest life the table can draw, so everybody standing at the end was born here.
+        Assert.Contains("had not emptied when the run ended", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("the city emptied on Day", report, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// 🔴 <b>Replacement Rate is printed, and it is a reading rather than a restatement.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>The 2.00 is arithmetic and the rate beside it is the city</b> — <c>adr/0011</c>: two
+    /// children replace two adults, and ***"that threshold falls out of conservation rather than
+    /// being chosen"***. ⚠ <b>The rate itself is not asserted to a value</b>: it is a figure for a
+    /// document to quote, and pinning it would make an instrument out of an assertion. What is
+    /// asserted is that births and spawns are counted APART — a birth creates a Citizen and a spawn
+    /// moves one, and a readout summing them would report a population growing twice as fast as it
+    /// is.
+    /// </remarks>
+    [Fact]
+    public void The_replacement_rate_is_printed_against_its_threshold()
+    {
+        string report = Dump();
+
+        Assert.Contains("Does the city replace itself?", report, StringComparison.Ordinal);
+        Assert.Contains("against 2.00 for exact", report, StringComparison.Ordinal);
+        Assert.Matches(@"births\s+[1-9]", report);
+        Assert.Matches(@"children left home\s+[1-9]", report);
     }
 
     /// <summary>The cohort blurs rather than moving in lockstep.</summary>

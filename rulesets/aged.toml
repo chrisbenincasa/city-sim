@@ -1,27 +1,41 @@
 # aged.toml -- minimal.toml with FIVE [[life_stage]] tables, and nothing else changed.
 #
-# THE FIRST SHIPPED FILE IN WHICH A HOUSEHOLD'S LIFE STAGE ADVANCES. `HouseholdTable.LifeStage` has
-# been a saved, hashed byte written on creation and advanced by NOTHING since it was declared -- the
-# third dead column found in the week the amnesty opened, after `Citizens.Age` and `Citizens.Health`.
-# plans/0046 stage 1 gives it a writer, and this file is the world that exercises it.
+# THE ONLY SHIPPED FILE IN WHICH THE CITY GENERATES ITS OWN POPULATION. `HouseholdTable.LifeStage` and
+# `CitizenTable.Age` were both saved, hashed columns written by NOTHING -- two of the three dead
+# columns found in the week the amnesty opened. plans/0046 gives them writers and this file is the
+# world that exercises them.
 #
-# WHAT IT DEMONSTRATES: a chain, a countdown and a spread. Nothing else. adr/0011 gives the stage
-# table two DECISIONS -- how many children, and when to dissolve -- and BOTH ARE LATER STAGES:
-# dissolution at plans/0046 stage 2, generation at stage 3.
+# WHAT IT DEMONSTRATES, in the order the stages shipped: a chain with a countdown and a spread
+# (stage 1); a terminal stage that DISSOLVES, its estate going to the treasury (stage 2); and
+# adr/0011's fertility decision with the spawn that follows it (stage 3). What is still missing is
+# the WORKING-AGE GATE -- stage 4 -- so a CHILD IN THIS WORLD TAKES A JOB AND FOUNDS A BUSINESS
+# exactly as an adult does. Do not read employment out of a run of this file.
 #
-# 🔴 SO A RUN OF THIS FILE ENDS WITH EVERY HOUSEHOLD IN `empty_nest` AND THE POPULATION UNCHANGED,
-# and that is the correct outcome rather than an unfinished one. The ordering is the safety property
-# and it is not negotiable: a source without a sink is adr/0006 exactly; a sink without a source
-# merely empties, and an emptying city is bounded below by zero. ***The city is allowed to die before
-# it is allowed to breed.*** Read a stage histogram off this file as an AGE STRUCTURE THAT AGES AND
-# THEN STOPS, which is the thing worth looking at before anything can die of it.
+# MEASURED at 2,000 Citizens over 400 Days: 720 Households seeded, ALL OF THEM DEAD BY DAY 212, and
+# 234 standing at the end -- every one of which was born here. Replacement Rate 1.45 against the 2.00
+# that is exact replacement.
 #
-# ⚠ `childless` IS DECLARED AND UNREACHABLE, deliberately. adr/0011 has `young` exit to `family` OR to
-# `childless` on a fertility decision, and that decision is stage 3 -- so under stage 1 the only exit
-# authored is the scheduled one and nothing ever enters `childless`. It is declared anyway because it
-# is what makes `next` an AUTHORED key rather than a derived one: a chain taken from declaration order
-# would route `family` into `childless` and be wrong in a way no refusal could catch. ***The stage
-# whose absence would be invisible is the one worth shipping early.***
+# 🔴 THIS CITY DECLINES AND THAT IS THE BAND, NOT A DIAGNOSIS. `young` authors children_min = 0 and
+# children_max = 3, whose mean is 1.5, and two children per Household is exact Citizen replacement
+# (adr/0011, and the threshold falls out of conservation rather than being chosen). So the decline is
+# arithmetic on a number in this file. ***The fertility draw is UNCONDITIONED*** -- adr/0011 wants it
+# conditioned on housing cost, dwelling size and job security, and none of that machinery exists
+# (adr/0070: unbuilt, not refused) -- so nothing here is evidence about whether cities can afford
+# children.
+#
+# 🔴 THE POPULATION OSCILLATES BETWEEN 156 AND 452 HOUSEHOLDS AND DOES NOT SETTLE, and that is the
+# finding this file was built to produce. adr/0011's `W` exists to smear the founding cohort so the
+# city does not breathe in lockstep; over 400 Days and three generations IT DOES NOT DAMP -- busiest
+# transition Day is 7.0x the mean, 116 of 400 Days see no transition at all, and INDIVIDUAL STAGES GO
+# COMPLETELY EMPTY AND REFILL (`mature_family` holds nobody at Day 160 and 155 at Day 242). ***So the
+# four windows below are too narrow***, and widening them is an edit to this file alone. Read it with
+# `--stages`.
+#
+# ⚠ `childless` WAS DECLARED AND UNREACHABLE UNTIL STAGE 3, deliberately, and it is REACHABLE NOW:
+# `young`'s zero draw is what routes into it. It was declared before anything could reach it because
+# it is what makes `next` an AUTHORED key rather than a derived one -- a chain taken from declaration
+# order would route `family` into `childless` and be wrong in a way no refusal could catch.
+# ***The stage whose absence would be invisible is the one worth shipping early.***
 #
 # ⚠ AND IT IS KEPT SEPARATE FROM `empty_nest` THOUGH THE TWO BEHAVE IDENTICALLY, which is adr/0011's
 # own instruction and not an oversight: they are DIFFERENT DIAGNOSES. A large childless population
@@ -30,7 +44,7 @@
 # symptom, different remedy -- and a file that merged them would make the diagnosis unavailable
 # for ever after.
 #
-# 🔴 ALL EIGHT NUMBERS BELOW ARE PROVISIONAL, CHOSEN BY TASTE, WITH NO RATIFIER AND NO plans/0002 §D
+# 🔴 EVERY NUMBER BELOW IS PROVISIONAL, CHOSEN BY TASTE, WITH NO RATIFIER AND NO plans/0002 §D
 # ROW. That is what plans/0045's amnesty suspends adr/0052 in order to allow. They are numbers that
 # let the mechanism run and they are nothing more.
 #
@@ -475,6 +489,22 @@ revisit_ticks = 2048
 interval      = 32
 revisit_ticks = 1024
 candidates    = 3
+
+# 🔴 THE POOL'S SINK, AND THE LOADER REFUSES THIS FILE WITHOUT IT. Until stage 3 the only door into
+# the Unplaced Pool was a gate kind, so gives_up_after_days was required of a gated Ruleset and
+# refused nowhere else. INTERNAL GENERATION IS A SECOND DOOR: `mature_family` sends its children into
+# the Pool, and a Pool with a door and no give-up rule grows without bound -- adr/0006, arriving at a
+# door that did not exist when the refusal was written.
+#
+# ⚠ THIS FILE HAS NO GATE, so nothing arrives from outside and everything in the Pool was BORN here.
+# That makes the give-up the one adr/0011 actually describes: "an unaffordable city fails to house
+# its own children and they become Departures -- you raised them and priced them out." The derived
+# metric it names is RETENTION, of the Households the city generated.
+#
+# 60 Days is UNRATIFIED and chosen by taste. bordered.toml holds the designer's 120 for an arriving
+# Household; half of that is a guess that a child leaving home is quicker to give up on the city it
+# grew up in than a stranger is to give up on one it has never lived in. NOTHING MEASURES THAT.
+gives_up_after_days = 60
 
 # The Map Layers, stated rather than defaulted. Slice 8 task 8 of plans/0015, and it is the slice's
 # externally-stated definition of done: adr/0015 says every tuning number lives in a file, and until
@@ -942,11 +972,44 @@ arrive_early_max_minutes = 15
 # young -> family -> mature_family -> empty_nest -> (terminal)
 # childless: declared, unreachable until stage 3's fertility decision exists.
 # ---------------------------------------------------------------------------------------------------
+# THE FERTILITY DECISION, and the band is the whole of it. adr/0011: "Decision: how many children,
+# possibly zero. Zero sends the Household to Childless; otherwise to Family."
+#
+# 0..3 STRADDLES REPLACEMENT ON PURPOSE. Two children per Household is EXACT Citizen replacement --
+# two adults replaced by two -- and adr/0011 is emphatic that the threshold "falls out of
+# conservation rather than being chosen". A band whose whole range sat above or below 2 would make
+# the outcome a restatement of this file; one straddling it makes Replacement Rate a reading of the
+# city. The mean of 0..3 is 1.5, so THIS WORLD IS BELOW REPLACEMENT BY CONSTRUCTION and the
+# population declines. That is a property of the band and not a finding about cities.
+#
+# 🔴 THE DRAW IS UNCONDITIONED. adr/0011 conditions fertility on housing cost, dwelling size and job
+# security, and the discrete-choice machinery all three would read is UNBUILT -- adr/0070, which
+# says that is a mechanism nobody has written rather than evidence about what fertility should be.
+# So do not read a number out of a run of this file as a statement about affordability.
+#
+# UNRATIFIED, chosen by taste, no plans/0002 §D row. plans/0045 suspends adr/0052 to allow that.
 [[life_stage]]
 name          = "young"
 duration_days = 24
 spread_days   = 8
 next          = "family"
+childless     = "childless"
+children_min  = 0
+children_max  = 3
+
+# The age an adult carries, in Days, drawn on formation and NEVER ADVANCED -- adr/0011, and adr/0010
+# is why: real ageing is arithmetically impossible under one clock. It is stated HERE because this is
+# the stage children become adults in, and the loader refuses a children_become target without it.
+#
+# ⚠ 1..160 IS THE LENGTH OF A LIFE IN THIS FILE and not a human age. A full chain is ~160 Days at the
+# floor, so the band spans one lifetime -- which is the only scale this world has. There is no
+# calendar and CONTEXT.md bans inventing one, so a number that looked like human years would be a
+# unit this project does not have.
+#
+# ⚠ ZERO IS NOT IN THE BAND and cannot be: zero is what a CHILD carries, and it is the only marker of
+# childhood there is. plans/0046 stage 4 is the gate that reads it.
+adult_age_min_days = 1
+adult_age_max_days = 160
 
 [[life_stage]]
 name          = "family"
@@ -958,12 +1021,14 @@ next          = "mature_family"
 # Pool." That is stage 3 and it is why THIS row is the one to watch when generation lands -- under
 # stage 1 its exit is an ordinary scheduled transition and spawns nobody.
 [[life_stage]]
-name          = "mature_family"
-duration_days = 48
-spread_days   = 16
-next          = "empty_nest"
+name           = "mature_family"
+duration_days  = 48
+spread_days    = 16
+next           = "empty_nest"
+children_become = "young"
 
-# Adults who never had children. UNREACHABLE under stage 1: nothing routes into it, because the only
+# Adults who never had children. REACHABLE AS OF STAGE 3, and it is `young`'s zero draw that reaches
+# it. Under stages 1 and 2 nothing routed into it at all, because the only
 # thing that would is the fertility decision. Terminal, like empty_nest, and kept separate from it
 # because they are different diagnoses -- see the header.
 [[life_stage]]

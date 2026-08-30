@@ -1829,8 +1829,39 @@ public sealed class World
         FitOccupant(household);
     }
 
-    /// <summary>Adds a Citizen to a Household, linking it into the Household's member list.</summary>
-    public Handle<Citizen> CreateCitizen(Handle<Household> household)
+    /// <summary>Adds an adult Citizen to a Household, linking it into the member list.</summary>
+    /// <remarks>
+    /// <b>An ADULT, and <see cref="Bear"/> is the door a child comes through.</b> The distinction is
+    /// <see cref="CitizenTable.Age"/>: a child carries zero and an adult carries a draw from the
+    /// Ruleset's band, and ***that column is the only marker of childhood there is***. Age zero on a
+    /// founding city's Citizens would make the whole population children under <c>plans/0046</c>
+    /// stage 4's gate, which is why the draw is here rather than only at the spawn.
+    /// </remarks>
+    public Handle<Citizen> CreateCitizen(Handle<Household> household) =>
+        AddMember(household, child: false);
+
+    /// <summary>
+    /// Bears a child into a Household — <c>adr/0011</c>'s fertility decision, one Citizen at a time.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>This is the ONE place in the build where a Citizen comes into existence without arriving
+    /// from somewhere.</b> Everything else is <c>SyntheticCity</c> at world creation or
+    /// <see cref="TryArrive"/> through a gate, and both of those are immigration.
+    /// <c>adr/0023</c>'s point is that Hinterlands are finite stocks, so ***this is the only growth
+    /// channel that survives the late game***.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A child is a Citizen in every other respect and that is currently a gap.</b> Nothing
+    /// reads <see cref="CitizenTable.Age"/> yet, so a child is drawn for a job by
+    /// <c>EmploymentEngine</c> and can found a Business, exactly as an adult can. <c>plans/0046</c>
+    /// stage 4 is the working-age gate and is kept separate on purpose: landing it here would make
+    /// two changes to the labour supply on one day and leave neither attributable.
+    /// </para>
+    /// </remarks>
+    public Handle<Citizen> Bear(Handle<Household> household) => AddMember(household, child: true);
+
+    private Handle<Citizen> AddMember(Handle<Household> household, bool child)
     {
         int householdSlot = Households.Rows.Resolve(household);
 
@@ -1838,6 +1869,7 @@ public sealed class World
         int slot = Citizens.Rows.Resolve(handle);
 
         Citizens.HouseholdOf[slot] = household;
+        Citizens.Age[slot] = child ? (ushort)0 : DrawAdultAge(slot);
 
         // 02 §10's per-Tick tier: O(changed), at the write site. A member list is small by
         // construction, so this is the cheap half of *no Citizen in two places* — complete within
@@ -1857,6 +1889,41 @@ public sealed class World
         return handle;
     }
 
+    /// <summary>
+    /// The age a Citizen carries from the moment it becomes an adult, in Days.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Drawn once and never advanced</b> — <c>adr/0011</c>: <em>"Adults carry a static age drawn
+    /// on formation"</em>, and <c>adr/0010</c>'s one clock is what makes real ageing arithmetically
+    /// impossible. ***So no run of this simulation makes anybody older.*** A lived age would need the
+    /// Day of birth kept per Citizen and nothing reads one: the schooling tier the ADR cares about is
+    /// derived from the Household's stage.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Zero when the Ruleset declares no band, which is every world but one.</b> That is the
+    /// state the column has been in since it was declared, so a file with no <c>[[life_stage]]</c>
+    /// is unchanged — <c>[[hinterland]]</c>'s precedent, a mechanism arriving as a table a Ruleset
+    /// may state rather than as a default every world inherits.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Keyed on the row's monotonic id and not on the Tick</b>, so the number cannot move.
+    /// See <see cref="PurposeTag.CitizenAge"/>.
+    /// </para>
+    /// </remarks>
+    private ushort DrawAdultAge(int slot)
+    {
+        if (!Rules.TryAdultAge(out int min, out int max))
+        {
+            return 0;
+        }
+
+        ulong span = (ulong)(max - min + 1);
+        ulong draw = Randomness.Draw(Key, Citizens.Rows.IdAt(slot), Tick, PurposeTag.CitizenAge);
+
+        return (ushort)(min + (long)(draw % span));
+    }
+
     /// <summary>Whether <paramref name="node"/> is already in <paramref name="owner"/>'s list.</summary>
     private static bool Lists(IndexList list, int owner, int node)
     {
@@ -1869,6 +1936,124 @@ public sealed class World
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Sends a Household's children out to form their own, in the Unplaced Pool.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>adr/0011</c>'s Mature Family exit</b> — ***"the children become adults and form new
+    /// Young Households, entering the Unplaced Pool"*** — and the Citizens are <b>moved rather than
+    /// created</b>. That is what makes the ADR's own invariant testable: ***"Citizen count is
+    /// conserved across the spawn transition"***. They were born at
+    /// <see cref="Bear"/>, one stage earlier.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>ONE Household per child, so Household count is NOT conserved here.</b> Two children
+    /// replace two adults exactly and arrive as two Households of one adult rather than one of two,
+    /// because pairing them would be a rule about who partners with whom and nothing in the design
+    /// says. ***The conserved quantity is Citizens; Households are not one.***
+    /// </para>
+    /// <para>
+    /// <b>A child is a member whose <see cref="CitizenTable.Age"/> is zero</b>, and the age is drawn
+    /// as the Citizen leaves — which is the formation <c>adr/0011</c> means by <em>"drawn on
+    /// formation"</em>. An adult member stays where it is and dissolves with the Household.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The walk restarts from the front after every move rather than iterating once.</b> The
+    /// member list is being modified as it is read, and a cursor into a list that is losing its
+    /// nodes is the class of bug <c>DestroyHousehold</c>'s own <c>PeekFront</c> loop is written
+    /// against. A member list is small by construction, so restarting costs nothing worth an
+    /// allocation to avoid.
+    /// </para>
+    /// </remarks>
+    public int SpawnChildren(Handle<Household> household, byte becomes, Ticks now)
+    {
+        int slot = Households.Rows.Resolve(household);
+        int spawned = 0;
+
+        for (int child = FirstChild(slot); child != Rows.NoSlot; child = FirstChild(slot))
+        {
+            Handle<Household> formed = FormHousehold(becomes, now);
+
+            // Off the roster BEFORE the move, because a commute is derived from the Household's
+            // dwelling and this Citizen is about to have a different one -- none at all, since a
+            // formed Household is unhoused. DestroyCitizen unlinks in the same order and for the
+            // same reason.
+            Commutes.Remove(Citizens, child);
+
+            Members.Remove(slot, child);
+            Citizens.HouseholdOf[child] = formed;
+            Members.InsertOrdered(Households.Rows.Resolve(formed), child);
+
+            // The formation adr/0011 means: an adult's age is drawn once, here, and never advances.
+            Citizens.Age[child] = DrawAdultAge(child);
+
+            Commutes.Add(Citizens, Buildings, Businesses, Rules, Key, child);
+
+            spawned++;
+        }
+
+        return spawned;
+    }
+
+    /// <summary>The first member of <paramref name="householdSlot"/> that is a child, or none.</summary>
+    private int FirstChild(int householdSlot)
+    {
+        foreach (int member in Members.Walk(householdSlot))
+        {
+            if (Citizens.Age[member] == 0)
+            {
+                return member;
+            }
+        }
+
+        return Rows.NoSlot;
+    }
+
+    /// <summary>
+    /// Creates a Household that has never been housed, straight into the Unplaced Pool.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="TryArrive"/>'s body without the door.</b> A Household formed here came from
+    /// inside the city, so there is no gate to record and no Hinterland to draw a carried balance
+    /// from — it opens at zero, and the estate its parents held goes to the treasury when they
+    /// dissolve rather than down to it. ***A generated Household inherits nothing***, which is a
+    /// consequence of <c>World.Dissolve</c>'s answer rather than a decision taken here.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>No gate on the Pool membership</b>, which is the eviction path's spelling and its reason
+    /// (<c>adr/0129</c>): this Household's move-in has no origin to start from, and the column says
+    /// so rather than borrowing one.
+    /// </para>
+    /// </remarks>
+    private Handle<Household> FormHousehold(byte lifeStage, Ticks now)
+    {
+        Handle<Household> handle = Households.Rows.Allocate();
+        int slot = Households.Rows.Resolve(handle);
+
+        Households.LifeStage[slot] = lifeStage;
+
+        // CreateHousehold's line, for its reason (adr/0114): a Household never exists without a
+        // balance in a world whose Ruleset names money.
+        if (TryMoneyResource(out ResourceId money))
+        {
+            Handle<Bin> balance = OpenBalance(BinOwnerKind.Household, money);
+
+            AppendOwnerBin(Households.BinHead, Households.BinTail, slot, balance);
+            Households.Balance[slot] = balance;
+        }
+
+        ArmLifeStage(slot);
+
+        Invariants.Require(
+            UnplacedPool.Join(Households, handle, default, now) == UnplacedPool.Count - 1,
+            Invariant.ThePoolAppendsInOrder,
+            slot);
+
+        return handle;
     }
 
     /// <summary>

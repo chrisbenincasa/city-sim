@@ -250,6 +250,11 @@ public static class RulesetLoader
 
             if (_refusals.Count == 0)
             {
+                RefuseIncompleteGeneration(lifeStages, placement);
+            }
+
+            if (_refusals.Count == 0)
+            {
                 // Cycles first, and it is not a nicety: three of the checks below walk a chain to
                 // its end, and a chain with a cycle in it is a walk that does not terminate.
                 RefuseCycles(rules);
@@ -1832,6 +1837,112 @@ public static class RulesetLoader
         }
 
         /// <summary>
+        /// Resolves an optional <c>[[life_stage]]</c> key naming another stage, or 0.
+        /// </summary>
+        /// <remarks>
+        /// <b>`next`'s two refusals, factored out when the third and fourth key wanted them.</b> An
+        /// undeclared name and a self-reference are the same two mistakes whichever key makes them,
+        /// and the second is the one worth having: a stage naming itself is indistinguishable from a
+        /// typo and expensive in a way nothing reports. ⚠ <b><c>next</c> itself still reads inline</b>
+        /// — its refusal text is asserted verbatim by a test, and rewording it to share this one
+        /// would move a string the corpus quotes.
+        /// </remarks>
+        private byte Stage(TableSyntaxBase table, string key, string? name, int self)
+        {
+            if (!TryString(table, key, out string? named, required: false) || named is null)
+            {
+                return 0;
+            }
+
+            if (!_lifeStages.TryGetValue(named, out byte stage))
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, key) ?? table), name,
+                    $"{key} is \"{named}\", and no [[life_stage]] declares that name. A stage names "
+                    + "another stage by name; omit the key to mean there is no such destination.");
+
+                return 0;
+            }
+
+            if (stage == (byte)(self + 1))
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, key) ?? table), name,
+                    $"{key} is \"{named}\", which is this stage. A destination that is its own "
+                    + "origin is a Household that transitions for ever and arrives back where it "
+                    + "started -- a wake every countdown, for no change.");
+
+                return 0;
+            }
+
+            return stage;
+        }
+
+        /// <summary>
+        /// The two refusals that are properties of the stage table as a whole rather than of a row.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// 🔴 <b>The second one is <c>adr/0006</c> arriving at a door nobody had built when the first
+        /// one was written.</b> <see cref="ReadGivesUpAfterDays"/> refuses a Ruleset with a gate kind
+        /// and no give-up rule, because ***a Pool with a door into it and no sink grows without
+        /// bound***. <c>plans/0046</c> stage 3 opens a <b>second door</b>: a Household leaving the
+        /// spawning stage sends its children into the Unplaced Pool, and nothing about that is an
+        /// arrival through a gate. ***So the obligation is a property of anything that fills the
+        /// Pool, and it was written as a property of gates.***
+        /// </para>
+        /// <para>
+        /// ⚠ <b>It is the dynamic <c>adr/0011</c> already describes, not a new one.</b> That ADR's
+        /// own sentence is <em>"an unaffordable city fails to house its own children and they become
+        /// Departures — you raised them and priced them out"</em>, and the derived metric it names is
+        /// <b>retention</b>. A generating Ruleset with no give-up rule cannot express either: the
+        /// children simply queue for ever.
+        /// </para>
+        /// <para>
+        /// <b>The first is narrower.</b> A stage children become adults in has to say what age they
+        /// carry, because <c>Citizens.Age</c> is drawn on formation and static — there is no default
+        /// that is not a guess about a population.
+        /// </para>
+        /// </remarks>
+        private void RefuseIncompleteGeneration(
+            LifeStageDefinition[] stages, PlacementRuleset placement)
+        {
+            bool spawns = false;
+
+            for (int i = 0; i < stages.Length; i++)
+            {
+                byte become = stages[i].ChildrenBecome;
+
+                if (become == 0)
+                {
+                    continue;
+                }
+
+                spawns = true;
+
+                if (stages[become - 1].AdultAgeMaxDays == 0)
+                {
+                    Refuse(LineOf(_lifeStageTables[become - 1]), null,
+                        "this stage is named by a children_become and states no adult age band, so "
+                        + "a Citizen forming a Household here would have no age to carry. An age is "
+                        + "DRAWN on formation and never advances (adr/0011), so there is no default "
+                        + "that is not a guess about a population. State adult_age_min_days and "
+                        + "adult_age_max_days.");
+                }
+            }
+
+            if (spawns && !placement.GivesUp)
+            {
+                Refuse(1, null,
+                    "this Ruleset declares a [[life_stage]] whose children_become sends children "
+                    + "into the Unplaced Pool, and [placement] states no gives_up_after_days -- so "
+                    + "nothing ever leaves the Pool except by being housed. Internal generation is a "
+                    + "door into the Pool exactly as a gate kind is, and a Pool with a door and no "
+                    + "give-up rule grows without bound, which adr/0006 forbids. State how long a "
+                    + "Household keeps looking, in Days. adr/0011 wants this anyway: an unaffordable "
+                    + "city failing to house its own children is what makes retention a reading.");
+            }
+        }
+
+        /// <summary>
         /// Reads <c>[[life_stage]]</c>: a countdown floor, its window, and the stage it exits to.
         /// </summary>
         /// <remarks>
@@ -1930,6 +2041,92 @@ public static class RulesetLoader
                     }
                 }
 
+                byte childless = Stage(table, "childless", name, i);
+                byte become = Stage(table, "children_become", name, i);
+
+                int childrenMin = 0;
+                int childrenMax = 0;
+                bool bandStated =
+                    Find(table, "children_min") is not null || Find(table, "children_max") is not null;
+
+                if (bandStated)
+                {
+                    TryInteger(table, "children_min", out long low, required: true, name);
+                    TryInteger(table, "children_max", out long high, required: true, name);
+
+                    if (low < 0)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "children_min") ?? table), name,
+                            $"children_min is {low}. It is the fewest children a Household bears on "
+                            + "leaving this stage, so it is at least 0 -- and 0 is the answer that "
+                            + "matters: adr/0011 sends a Household drawing zero to the childless "
+                            + "stage, which is what makes one reachable at all.");
+                    }
+                    else if (high < low)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "children_max") ?? table), name,
+                            $"children_max is {high} and children_min is {low}. The band is "
+                            + "inclusive at both ends, so the top is at least the bottom. Equal ends "
+                            + "are allowed and mean every Household bears the same number -- the "
+                            + "lockstep answer spread_days exists to avoid one stage along.");
+                    }
+                    else
+                    {
+                        childrenMin = (int)Math.Min(low, int.MaxValue);
+                        childrenMax = (int)Math.Min(high, int.MaxValue);
+                    }
+                }
+
+                // Both halves of the fertility decision or neither, and the refusal runs in both
+                // directions because each half alone is a Ruleset that loads clean and does nothing.
+                // A band with no childless successor draws zero and has nowhere to send anybody; a
+                // childless successor with no band is a stage nothing can ever route into, which is
+                // exactly the state childless was in before plans/0046 stage 3.
+                if (bandStated && childless == 0)
+                {
+                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "children_min") ?? table), name,
+                        "this stage states a child band and no `childless` successor. A Household "
+                        + "drawing zero children has nowhere to go -- adr/0011's Young exit is "
+                        + "\"zero sends the Household to Childless; otherwise to Family\", and both "
+                        + "destinations are authored. Name one, or drop the band.");
+                }
+                else if (!bandStated && childless != 0)
+                {
+                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "childless") ?? table), name,
+                        "this stage names a `childless` successor and states no child band, so "
+                        + "nothing ever draws zero and that successor is unreachable. State "
+                        + "children_min and children_max, or drop the key.");
+                }
+
+                int adultMin = 0;
+                int adultMax = 0;
+                bool ageStated = Find(table, "adult_age_min_days") is not null
+                    || Find(table, "adult_age_max_days") is not null;
+
+                if (ageStated)
+                {
+                    TryInteger(table, "adult_age_min_days", out long young, required: true, name);
+                    TryInteger(table, "adult_age_max_days", out long old, required: true, name);
+
+                    if (young < 1 || old < young || old > ushort.MaxValue)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "adult_age_min_days") ?? table),
+                            name,
+                            $"the adult age band is {young}..{old} Days. It is the age a Citizen "
+                            + "carries when it becomes an adult in this stage -- drawn on formation "
+                            + "and static, because Citizens do not age (adr/0011) -- so the bottom "
+                            + $"is at least 1, the top is at least the bottom and at most "
+                            + $"{ushort.MaxValue}, which is what the column holds. Zero is not "
+                            + "available: it is what a CHILD carries, and it is the only marker of "
+                            + "childhood there is.");
+                    }
+                    else
+                    {
+                        adultMin = (int)young;
+                        adultMax = (int)old;
+                    }
+                }
+
                 // The wheel's period, checked at LOAD rather than at the arming. LifeStageWheel.Arm
                 // throws past CoarseDays - 1 Days ahead, and a stage drawing up to duration + spread
                 // - 1 Days would reach it -- so without this the refusal arrives as a crash on
@@ -1952,6 +2149,12 @@ public static class RulesetLoader
                     DurationDays = durationDays,
                     SpreadDays = spreadDays,
                     NextStage = next,
+                    ChildrenMin = childrenMin,
+                    ChildrenMax = childrenMax,
+                    ChildlessStage = childless,
+                    ChildrenBecome = become,
+                    AdultAgeMinDays = adultMin,
+                    AdultAgeMaxDays = adultMax,
                 };
             }
 

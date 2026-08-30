@@ -4,9 +4,11 @@
 
 ## Status
 
-🟡 **STAGES 0, 1 AND 2 BUILT — 2026-08-28.** ***The city now empties*** — `aged.toml` at 2,000
-Citizens reaches zero by Day 210 — the correct state between a sink and its source. **The estate goes
-to the treasury**; `World.Dissolve` carries the candidates it rejected.
+🟡 **STAGES 0–3 BUILT — 2026-08-30.** ***The city generates its own population.*** `aged.toml` at
+2,000 Citizens: 720 Households seeded, all dead by Day 212, **234 standing at Day 400 and every one
+of them born here**. Replacement Rate **1.45 against 2.00**, which is the authored band's own mean of
+1.5 — the arithmetic works. Stage 4, the working-age gate, remains. **The estate goes to the
+treasury**; `World.Dissolve` carries the candidates it rejected.
 
 ⚠ **The queue calls this *"Ageing, birth, death — write `Citizens.Age`"* and that title is wrong in one
 word.** Nothing here makes a Citizen age. `CONTEXT.md`, [`adr/0010`](../docs/adr/0010-one-clock-and-demographics-by-sorting.md)
@@ -88,21 +90,8 @@ opened to cure rather than a second case of it.
 
 ## What the build already holds — surveyed 2026-08-27
 
-| Symbol | Where | What it is |
-|---|---|---|
-| `HouseholdTable.LifeStage` | written at `World.cs:1573` | 🔴 **A byte that is written on creation and advanced by NOTHING.** The third dead column found this week, after `Citizens.Age` and `Citizens.Health` |
-| `CitizenTable.Age` | `CitizenTable.cs:94` | `ushort`, Days, `Touch.Cold`, **no writer** |
-| `CitizenTable.Health` | `CitizenTable.cs:95` | `byte`, **no writer**, and out of scope here |
-| `World.CreateCitizen` | `World.cs:1708` | Sets `HouseholdOf` and `NextEventTick` and **nothing else** — every other column arrives zeroed |
-| `World.DestroyCitizen` | `World.cs:2138` | The **only** site that frees a Citizen row. Unrosters, releases parking, unlinks from Household and employer |
-| `World.DestroyHousehold` | `World.cs:2177` | Drains the member list through `DestroyCitizen`, ends the tenancy, frees **every** owned Bin |
-| `World.Depart(Household)` | `World.cs:1791` | The emigration channel. **Unhoused-only**, and it is where `MoneySupply.Issued` is decremented (`World.cs:1819`) |
-| `PlacementEngine.GivesUp` | `PlacementEngine.cs:452` | `gives_up_after_days`. **The one production path that frees a Citizen row today** |
-| `EmploymentEngine.Assign` | `EmploymentEngine.cs:203` | Three conditions: live, not already employed, has a reachable home. **No age term, no `SkillTier`, no stage** |
-
-**Nothing kills a Citizen today except giving up on housing**, and only in the two Rulesets that
-declare a gate. The Citizen table has therefore been **dense for the life of this project**, and two
-passes say so in their own comments.
+⚠ **STRUCK 2026-08-30.** It listed nine symbols and the state each was in before any of this was
+built; all nine have moved, and a table of where things *were* can only drift. ***Read the code.***
 
 ---
 
@@ -118,7 +107,7 @@ generation, and the city is allowed to die before it is allowed to breed.***
 | **0** | The coarse Day wheel | [`plans/0036`](0036-the-coarse-day-wheel.md), unchanged | — |
 | **1** | Stages advance | The five-stage table, scheduled transitions only. `LifeStage` gets its writer; `Citizens.Age` gets its draw | unchanged |
 | **2** | Dissolution | Childless and Empty Nest dissolve. **The estate question** below | **falls** |
-| **3** | Generation | Mature Family's exit spawns Young Households into the Unplaced Pool. Replacement Rate | **can rise** |
+| **3** | Generation | ⚠ **TWO transitions and this row said one.** Young's exit is the *fertility decision* — a child count drawn, zero routing to Childless — and Mature Family's exit sends those children out as Young Households. Without the first, Replacement Rate is a restatement of the Ruleset and `childless` stays unreachable | **can rise** |
 | **4** | The working-age gate | Children stop taking jobs and founding businesses | unchanged |
 
 ⚠ **Stage 2 ends with an EMPTY city, and that is correct rather than unfinished** — a sink whose
@@ -133,14 +122,10 @@ and leave neither attributable.
 
 ## The traps, in the order they will be met
 
-**1. 🔴 `DestroyHousehold` destroys money silently, and a death has no recipient.**
-`World.cs:2224` frees every Bin a Household owns, balance included, and the `MoneySupply.Issued` write
-lives in `Depart` rather than here — because *destroying a Household is a table op with several
-callers and only one of them means "emigrated"*. **Emigration exports the money
-(`adr/0142`); a death cannot.** So stage 2 has to answer an estate question the corpus has never
-asked: does a dissolving Household's balance pass to the Households it spawned, return to the
-treasury, or leave the money supply? ***Whatever it does, it must decrement `Issued` or
-`Invariant.MoneyIsConserved` will fire***, and that invariant is an exact equality.
+**1. ✅ ANSWERED 2026-08-28 — the estate goes to the treasury.** `DestroyHousehold` frees every Bin a
+Household owns and the `MoneySupply.Issued` write lives in `Depart`, because **emigration exports the
+money and a death cannot**. `World.Dissolve` carries the two rejected candidates and the reasoning;
+`Invariant.MoneyIsConserved` is the exact equality that holds it.
 
 **2. ✅ MET AND FIXED 2026-08-28 — one pass, not two.** `EmploymentEngine` sized its sample from
 `LiveCount` while drawing over `SlotCount`; it now sizes from `SlotCount`. ⚠ **`PlacementEngine.Found`
@@ -207,14 +192,20 @@ is a new file rather than an edit to a standing one.
 
 `plans/0045`'s, and it is the hard half: ***you watched it happen and something surprised you.***
 
-A stage histogram over a long run is the thing to watch, and the specific question to ask it is
-**whether the founding generation's echo ever damps**. `W` exists to smear it; whether four widths of
-16 Days are enough to blur a cohort across 160 Days of life is not something this document can settle
-by reasoning, and it is the first number that will move.
+🔴 **ANSWERED 2026-08-30, AND THE ANSWER IS NO.** The question was whether the founding
+generation's echo ever damps. Over 400 Days and three generations on `aged.toml` it does not:
+**busiest ÷ mean 7.0×, and 116 of 400 Days see no transition at all.** The population *oscillates*
+between **156 and 452** Households with a period near the chain's own length, and ***individual
+stages go completely empty and refill*** — `mature_family` holds nobody at Day 160 and 155 at Day
+242. A test asserting every stage occupied at one instant failed on exactly this.
 
-**Replacement Rate is the readout the milestone owes** — children per Household, where **two is exact
-replacement** and the threshold is *"a consequence of conservation rather than a chosen constant"*.
-It cannot be produced before stage 3 and is meaningless before stage 2.
+⚠ **So `W` is too narrow**: four windows of 8–16 Days do not smear a cohort across a 160-Day life.
+Widening it is an edit to `aged.toml` alone, judged by `--stages`.
+
+**Replacement Rate is delivered**: children per fertility *decision*, zero draws included, against
+the 2.00 that falls out of conservation. ⚠ **The denominator is the trap** — dividing by the
+Households that bore *at least one* child reports the fertility of the fertile, and the stagnation
+spiral `adr/0011` describes would read as a healthy city.
 
 ## What this does not do
 

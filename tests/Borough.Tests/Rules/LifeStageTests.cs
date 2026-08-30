@@ -79,6 +79,29 @@ public sealed class LifeStageTests
         }
     }
 
+    /// <summary>Runs one Day and returns what the midnight sweep did.</summary>
+    /// <remarks>
+    /// ⚠ <b>The reading is taken on the FIRST Tick and never after the loop.</b>
+    /// <see cref="LifeStageReading"/> is a <em>flow</em>, written only at midnight, so a caller that
+    /// steps a whole Day and then reads <c>LastLifeStages</c> gets <c>default</c> — the trap that
+    /// made <c>--stages</c> print a moving histogram beside a transition column of zeros, and that
+    /// cost this class a test at stage 2. ***A level tolerates being sampled a Tick late; a flow does
+    /// not.***
+    /// </remarks>
+    private static LifeStageReading RunDay(Simulation simulation)
+    {
+        simulation.Step(default);
+
+        LifeStageReading midnight = simulation.LastLifeStages;
+
+        for (int tick = 1; tick < Ticks.PerDay; tick++)
+        {
+            simulation.Step(default);
+        }
+
+        return midnight;
+    }
+
     /// <summary>The chain the file authors is the chain the loader read.</summary>
     /// <remarks>
     /// <b>The successor is authored and not taken from declaration order</b>, and this is where that
@@ -150,60 +173,173 @@ public sealed class LifeStageTests
 
         Assert.All(Transient, stage => Assert.True(before[stage] > 0));
 
-        Run(simulation, days: 160);
+        // Past `young`'s ceiling of 31 Days and short of anything generated arriving back in it: the
+        // founding cohort has left the head of the chain and nothing has refilled it yet.
+        Run(simulation, days: 40);
 
-        int[] after = Histogram(world);
+        Assert.Equal(0, Histogram(world)[1]);
 
-        Assert.Equal(0, after[1]);
-        Assert.Equal(0, after[2]);
-        Assert.Equal(0, after[3]);
+        // 🔴 AND THEN IT REFILLS, which is the whole of stage 3 in one assertion. Under stages 1 and
+        // 2 this stayed at zero for the rest of the run, because nothing in the build could route a
+        // Household back to the head of the chain. `mature_family` now sends its children out as new
+        // `young` Households, so a second generation is standing in a stage the first one emptied.
+        // ⚠ SAMPLED EVERY DAY RATHER THAN AT THE END, and the first draft was not -- it asserted
+        // every stage occupied at Day 160 and `mature_family` was EMPTY there. That is not a defect:
+        // the founding cohort does not blur, so it passes through the chain as a WAVE and leaves
+        // each stage empty behind it until the next generation arrives. ***A snapshot of an
+        // oscillating city catches whatever phase it is in***, which is a property of this world and
+        // the reason the cohort question is worth asking at all.
+        var everOccupied = new bool[world.Rules.LifeStageCount + 1];
 
-        // childless is declared and UNREACHABLE -- nothing routes into it, because the only thing
-        // that would is stage 3's fertility decision. Under stage 1 it held exactly what it was
-        // seeded with; under stage 2 it DRAINS, because it is terminal and a terminal stage
-        // dissolves. So the claim is that it never GREW, which is what a chain wired wrong would
-        // have done.
-        Assert.True(after[4] < before[4]);
+        for (int day = 0; day < 120; day++)
+        {
+            Run(simulation, days: 1);
 
-        // Everything that had anywhere to go arrived at the terminal stage, less whatever has
-        // already dissolved out of it. The inequality is the honest form: an equality here would be
-        // asserting that nothing died, which is the stage-1 claim.
-        Assert.True(after[5] > 0);
-        Assert.True(after[5] <= before[1] + before[2] + before[3] + before[5]);
+            int[] tally = Histogram(world);
+
+            for (int stage = 1; stage <= world.Rules.LifeStageCount; stage++)
+            {
+                everOccupied[stage] |= tally[stage] > 0;
+            }
+        }
+
+        // 🔴 `young` REFILLED, which is the whole of stage 3 in one assertion. Under stages 1 and 2
+        // it stayed at zero for the rest of the run, because nothing in the build could route a
+        // Household back to the head of the chain.
+        Assert.True(everOccupied[1]);
+
+        // And every other stage was reached -- the chain is walked end to end rather than piling up
+        // anywhere. ⚠ `childless` among them, which nothing could reach before stage 3: it is where
+        // a zero draw goes, and until the fertility decision existed no Household ever drew.
+        for (int stage = 2; stage <= world.Rules.LifeStageCount; stage++)
+        {
+            Assert.True(everOccupied[stage], $"stage {stage} was never occupied.");
+        }
     }
 
     /// <summary>
-    /// 🔴 <b>The city empties, and that is the milestone rather than a side condition.</b>
+    /// 🔴 <b>The city outlives its founding generation, which is the whole of stage 3.</b>
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>240 Days is past the longest life the stage table can draw.</b> A Household seeded into
-    /// <c>young</c> lives at most <c>31 + 63 + 63 + 55 = 212</c> Days; every other seeding is
-    /// shorter. So a city still holding anybody at 240 has a countdown that is not firing, and the
-    /// assertion is an exact zero rather than a decline.
+    /// <b>240 Days is past the longest life the stage table can draw</b> — a Household seeded into
+    /// <c>young</c> lives at most <c>31 + 63 + 63 + 55 = 212</c> Days — so ***every Household alive
+    /// at 240 was born here***. ⚠ <b>This test asserted an EMPTY city one commit ago</b> and that was
+    /// correct while stage 2 was a sink with no source. It is the second time these assertions have
+    /// been rewritten rather than extended, which is what a test pinning a half-built mechanism
+    /// costs.
     /// </para>
     /// <para>
-    /// ⚠ <b>The Citizens go with the Households and nothing here asks them to.</b>
-    /// <see cref="World.DestroyHousehold"/> retires every member through
-    /// <c>DestroyCitizen</c> — one implementation, which is <c>plans/0035</c> <b>F29</b>'s repair —
-    /// so a Citizen table that did not empty alongside would mean members were being orphaned rather
-    /// than retired.
+    /// ⚠ <b>It does not assert the population GROWS</b>, and must not: <c>aged.toml</c>'s band is
+    /// <c>0..3</c> with a mean of 1.5, which is below the 2.0 that replaces exactly, so the city
+    /// declines by construction. ***That is a property of the authored band and not a finding about
+    /// cities.***
     /// </para>
     /// </remarks>
     [Fact]
-    public void Nothing_is_born_so_the_city_empties()
+    public void The_city_outlives_its_founding_generation()
     {
         (World world, Simulation simulation) = City(2_000);
+
+        Run(simulation, days: 240);
 
         Assert.True(world.Households.Rows.LiveCount > 0);
         Assert.True(world.Citizens.Rows.LiveCount > 0);
 
-        Run(simulation, days: 240);
-
-        Assert.Equal(0, world.Households.Rows.LiveCount);
-        Assert.Equal(0, world.Citizens.Rows.LiveCount);
-
         world.Invariants.RunEndOfRun(world);
+    }
+
+    /// <summary>
+    /// 🔴 <b><c>adr/0011</c>'s own invariant: Citizens are conserved across the spawn.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The ADR states it as a property worth having</b> — ***"Citizen count is conserved across
+    /// the spawn transition — children become the adults of the new Households — which makes the
+    /// invariant testable rather than asserted."*** This is that test. A spawn that CREATED its
+    /// adults would leave the children behind to be destroyed with their parents, and the city would
+    /// read as healthy while quietly running two populations.
+    /// </para>
+    /// <para>
+    /// <b>Measured across ONE Day and not over the run</b>, because a run mixes the spawn with
+    /// births and dissolutions and the sum of three flows cannot fail informatively. The Day chosen
+    /// is one on which the counter says a spawn happened.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_spawn_moves_citizens_and_never_creates_them()
+    {
+        (World world, Simulation simulation) = City(2_000);
+
+        int checkedDays = 0;
+
+        for (int day = 1; day <= 200 && checkedDays < 3; day++)
+        {
+            int before = world.Citizens.Rows.LiveCount;
+
+            LifeStageReading reading = RunDay(simulation);
+
+            if (reading.Spawned == 0 || reading.Born > 0 || reading.Dissolved > 0)
+            {
+                continue;
+            }
+
+            // A Day that spawned and did nothing else to the population. The Households grew by one
+            // per child; the Citizens did not move at all.
+            Assert.Equal(before, world.Citizens.Rows.LiveCount);
+            checkedDays++;
+        }
+
+        Assert.True(checkedDays > 0, "no Day in 200 spawned without also bearing or dissolving.");
+    }
+
+    /// <summary>A child carries age zero and an adult carries a draw from the authored band.</summary>
+    /// <remarks>
+    /// 🔴 <b><c>Citizens.Age</c>'s writer, which is the amnesty queue item's literal ask</b> — the
+    /// column has been declared, saved and hashed since the table was written and nothing had ever
+    /// written it. ⚠ <b>Zero is the only marker of childhood there is</b>, so an adult drawing zero
+    /// would make the whole population children under stage 4's gate; the band is refused below 1
+    /// for exactly that reason.
+    /// </remarks>
+    [Fact]
+    public void A_child_is_age_zero_and_an_adult_is_drawn_from_the_band()
+    {
+        (World world, Simulation simulation) = City(2_000);
+
+        Assert.True(world.Rules.TryAdultAge(out int min, out int max));
+
+        // The founding city is all adults: nothing has borne a child yet.
+        for (int slot = 0; slot < world.Citizens.Rows.SlotCount; slot++)
+        {
+            if (world.Citizens.Rows.IsLive(slot))
+            {
+                Assert.InRange(world.Citizens.Age[slot], min, max);
+            }
+        }
+
+        Run(simulation, days: 60);
+
+        int children = 0;
+
+        for (int slot = 0; slot < world.Citizens.Rows.SlotCount; slot++)
+        {
+            if (!world.Citizens.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            if (world.Citizens.Age[slot] == 0)
+            {
+                children++;
+            }
+            else
+            {
+                Assert.InRange(world.Citizens.Age[slot], min, max);
+            }
+        }
+
+        // Past the Young stage's ceiling of 31 Days, so the fertility decision has fired.
+        Assert.True(children > 0);
     }
 
     /// <summary>Every transition is drawn inside its stage's own window.</summary>
@@ -330,15 +466,22 @@ public sealed class LifeStageTests
 
         Run(simulation, days: 240);
 
-        Assert.Equal(0, world.Households.Rows.LiveCount);
-
-        // Every penny, and in the one place left that can hold it.
+        // EVERY penny, and stage 3 does not change that even though the city is still standing.
+        // 240 Days is past the longest life the table can draw, so every endowed Household has
+        // dissolved -- and the Households alive at the end were FORMED by the spawn, which opens
+        // them at zero. ***A generated Household inherits nothing***, which is what makes this an
+        // equality rather than a band.
         Assert.Equal(opening + estates, world.Bins.LevelAt(treasury));
 
-        // The supply is FLAT. A death is not an emigration: nothing left the city, so unlike
-        // World.Depart there is no decrement to make and making one would be the leak.
+        // The supply is FLAT, and this is the load-bearing half. A death is not an emigration:
+        // nothing left the city, so unlike World.Depart there is no decrement to make and making one
+        // would be the leak. ⚠ A Household FORMED by the spawn opens at zero, so generation adds
+        // nothing to the supply either -- a generated Household inherits nothing.
         Assert.Equal(issued, world.MoneySupply.Issued[MoneySupplyTable.Slot].Raw);
 
+        // The exact equality lives here: Invariant.MoneyIsConserved walks every conserved Bin in the
+        // world and compares the sum against Issued, so a penny lost in a dissolution or invented in
+        // a formation is named with its size.
         world.Invariants.RunEndOfRun(world);
     }
 
@@ -375,19 +518,23 @@ public sealed class LifeStageTests
 
         Assert.True(stranded > 0);
 
-        // 240 Days is past the longest life the table can draw, so everything with a real stage has
-        // dissolved and the survivors are exactly the stranded.
         Run(simulation, days: 240);
 
-        Assert.Equal(stranded, world.Households.Rows.LiveCount);
+        // ⚠ NOT the whole live count: stage 3 means the rest of the city goes on generating around
+        // them. The claim is that every stranded Household is STILL THERE -- none was dissolved for
+        // carrying a stage id a reload deleted.
+        int survivors = 0;
 
         for (int slot = 0; slot < world.Households.Rows.SlotCount; slot++)
         {
-            if (world.Households.Rows.IsLive(slot))
+            if (world.Households.Rows.IsLive(slot)
+                && world.Households.LifeStage[slot] == world.Rules.LifeStageCount + 1)
             {
-                Assert.Equal(world.Rules.LifeStageCount + 1, world.Households.LifeStage[slot]);
+                survivors++;
             }
         }
+
+        Assert.Equal(stranded, survivors);
 
         world.Invariants.RunEndOfRun(world);
     }

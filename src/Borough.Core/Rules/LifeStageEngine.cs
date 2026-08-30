@@ -1,5 +1,6 @@
 namespace Borough.Core.Rules;
 
+using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
 using Borough.Core.Tables;
@@ -9,13 +10,17 @@ using Borough.Core.Tables;
 /// </summary>
 /// <remarks>
 /// <para>
-/// ⚠ <b>A stage advances, or the Household ends</b> — <c>plans/0046</c> stages 1 and 2. What is still
-/// missing is the <em>source</em>: nothing is born, so a run of this ends with an <b>empty city</b>.
-/// ***That is the correct outcome at stage 2 rather than an unfinished one***, and the ordering is
-/// the safety property: a source without a sink is <c>adr/0006</c>, a sink without a source merely
-/// empties, and an emptying city is bounded below by zero — so the city is allowed to die before it
-/// is allowed to breed. Stage 3 gives Mature Family's exit a cohort of Young Households and the
-/// population stops falling.
+/// <b>A stage advances, a Household bears children, its children leave home, or it ends</b> —
+/// <c>plans/0046</c> stages 1 to 3, and all four happen in the one loop below. ⚠ <b>The city now
+/// SUSTAINS ITSELF</b>: the sink shipped first and the source second, which is the ordering the plan
+/// calls the safety property — a source without a sink is <c>adr/0006</c>, a sink without a source
+/// merely empties, and an emptying city is bounded below by zero.
+/// </para>
+/// <para>
+/// 🔴 <b>Whether it GROWS is the Ruleset's to say and not this engine's.</b> Two children per
+/// Household replaces two adults with two, so a band whose mean sits under 2.0 declines and one over
+/// it grows. <c>aged.toml</c> authors <c>0..3</c>, mean 1.5, and declines by construction — ***a
+/// property of the authored band, never a finding about cities.***
 /// </para>
 /// <para>
 /// ⚠ <b>Dissolution here is SCHEDULED and <c>adr/0011</c> calls it a decision.</b> That ADR gives the
@@ -39,10 +44,27 @@ using Borough.Core.Tables;
 /// reload's footprint and a dissolution is the mechanism, and a single column would have made the
 /// first look like the second in every readout.
 /// </param>
-public readonly record struct LifeStageReading(int Advanced, int Dissolved, int Dropped)
+/// <param name="Born">
+/// Citizens borne into their parents' Household by the fertility decision. ⚠ <b>The ONE place in the
+/// build where a Citizen comes into existence without arriving from somewhere.</b>
+/// </param>
+/// <param name="Bore">
+/// Households that made the fertility decision, whatever it came to. 🔴 <b>The DENOMINATOR of
+/// Replacement Rate, and it must count the zero draws.</b> <c>Born ÷ Bore</c> against a threshold of
+/// two is the diagnosis <c>adr/0011</c> wants to show a player; dividing by the Households that bore
+/// at least one child instead would report the fertility of the fertile and never see the childless
+/// city, which is the exact failure the ADR's stagnation spiral describes.
+/// </param>
+/// <param name="Spawned">
+/// Children that left home and formed their own Household in the Unplaced Pool. ⚠ <b>No Citizen is
+/// created or destroyed here</b> — <c>adr/0011</c>'s conservation claim — so this counts Households
+/// formed and Citizens moved, and never a birth.
+/// </param>
+public readonly record struct LifeStageReading(
+    int Advanced, int Dissolved, int Dropped, int Born, int Spawned, int Bore)
 {
     /// <summary>Whether this Day did anything at all.</summary>
-    public bool Ran => Advanced > 0 || Dissolved > 0 || Dropped > 0;
+    public bool Ran => Advanced > 0 || Dissolved > 0 || Dropped > 0 || Born > 0 || Spawned > 0;
 }
 
 /// <summary>Advances or dissolves every Household whose Life Stage countdown ends today.</summary>
@@ -87,6 +109,9 @@ internal sealed class LifeStageEngine(World world)
         int advanced = 0;
         int dissolved = 0;
         int dropped = 0;
+        int born = 0;
+        int spawned = 0;
+        int bore = 0;
 
         for (int slot = _world.LifeStages.PopDue(today);
              slot != Rows.NoSlot;
@@ -105,7 +130,40 @@ internal sealed class LifeStageEngine(World world)
                 continue;
             }
 
-            byte next = _world.Rules.LifeStage(stage).NextStage;
+            LifeStageDefinition definition = _world.Rules.LifeStage(stage);
+            byte next = definition.NextStage;
+
+            // The fertility decision, and the branch is the whole of it: a Household drawing zero
+            // goes to the childless stage instead of to `next`. adr/0011's Young exit exactly.
+            if (definition.Bears)
+            {
+                int children = Draw(slot, definition, tick);
+
+                bore++;
+
+                if (children == 0)
+                {
+                    next = definition.ChildlessStage;
+                }
+                else
+                {
+                    for (int i = 0; i < children; i++)
+                    {
+                        _world.Bear(_world.Households.Rows.At(slot));
+                    }
+
+                    born += children;
+                }
+            }
+
+            // BEFORE the stage is written, because the spawn belongs to the stage being LEFT. A
+            // Household that had advanced first would send its children out of a stage it is no
+            // longer in, which reads identically here and differently in every readout.
+            if (definition.Spawns)
+            {
+                spawned += _world.SpawnChildren(
+                    _world.Households.Rows.At(slot), definition.ChildrenBecome, tick);
+            }
 
             if (next == 0)
             {
@@ -119,6 +177,29 @@ internal sealed class LifeStageEngine(World world)
             advanced++;
         }
 
-        return new LifeStageReading(advanced, dissolved, dropped);
+        return new LifeStageReading(advanced, dissolved, dropped, born, spawned, bore);
+    }
+
+    /// <summary>How many children this Household bears, uniform over the authored band.</summary>
+    /// <remarks>
+    /// <b>Inclusive at both ends</b>, which is <c>LifeStageDefinition.ChildrenMax</c>'s own note: a
+    /// child count is a small enumerated set and an author writing <c>children_max = 3</c> means
+    /// three to be possible. ⚠ <b>Its own <c>PurposeTag</c> though the duration is drawn on the same
+    /// Household on the same Tick</b> — sharing one would make every large family a long one, which
+    /// is the invisible correlation <c>02 §1.1</c> requires a tag per use to prevent.
+    /// </remarks>
+    private int Draw(int slot, LifeStageDefinition definition, Ticks tick)
+    {
+        int span = definition.ChildrenMax - definition.ChildrenMin + 1;
+
+        if (span <= 1)
+        {
+            return definition.ChildrenMin;
+        }
+
+        ulong value = Randomness.Draw(
+            _world.Key, _world.Households.Rows.IdAt(slot), tick, PurposeTag.LifeStageChildren);
+
+        return definition.ChildrenMin + (int)(value % (ulong)span);
     }
 }

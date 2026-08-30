@@ -944,14 +944,124 @@ public readonly record struct LifeStageDefinition
     /// nothing reports.
     /// </para>
     /// <para>
-    /// ⚠ <b>Under <c>plans/0046</c> stage 1 the last stage in the chain IS terminal, and a city of
-    /// Households stuck in it is the correct outcome rather than an unfinished one.</b> Dissolution is
-    /// one of <c>adr/0011</c>'s two <em>decisions</em> and it arrives at stage 2; generation at stage
-    /// 3. A run of stage 1 is a city whose age structure ages and then stops, which is the thing to
-    /// look at before anything is allowed to die of it.
+    /// ⚠ <b>Terminal now means DISSOLVES</b> (<c>plans/0046</c> stage 2), so the last stage in a chain
+    /// is where a Household ends rather than where it piles up. A stage table whose chain has no
+    /// terminal is a city nothing can leave, which the loader refuses.
     /// </para>
     /// </remarks>
     public byte NextStage { get; init; }
+
+    /// <summary>
+    /// The fewest children a Household bears on leaving this stage. <b>Zero is the whole point.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>A BAND and not a count, because <c>adr/0011</c> refuses a constant here</b> — ***"two
+    /// children per Household is exact Citizen replacement… that threshold falls out of conservation
+    /// rather than being chosen"***. A fixed count would make Replacement Rate a restatement of the
+    /// Ruleset rather than a reading of the city, and the diagnosis the ADR wants to show a player
+    /// (<em>"your city averages 1.4 children; replacement is 2.0"</em>) would be arithmetic on a
+    /// declared number.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Zero drawn is a REAL answer and routes to <see cref="ChildlessStage"/></b>, not to
+    /// <see cref="NextStage"/>. That is <c>adr/0011</c>'s Young exit exactly: <em>"Zero sends the
+    /// Household to Childless; otherwise to Family."</em> It is what makes a childless stage
+    /// reachable at all, and until <c>plans/0046</c> stage 3 no shipped world could reach one.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The draw is UNCONDITIONED and that is <em>undesigned</em> rather than a decision.</b>
+    /// <c>adr/0011</c> conditions fertility on housing cost, dwelling size and job security, and the
+    /// discrete-choice machinery all three would read does not exist. Under
+    /// <c>adr/0070</c> that is not evidence about what fertility should be — it is a mechanism
+    /// nobody has built, and the answer is build it. ***Do not read a number out of a run of this as
+    /// a statement about affordability.***
+    /// </para>
+    /// </remarks>
+    public int ChildrenMin { get; init; }
+
+    /// <summary>The most children a Household bears on leaving this stage, inclusive.</summary>
+    /// <remarks>
+    /// <b>Inclusive, unlike <see cref="SpreadDays"/>' half-open window, and the difference is not an
+    /// inconsistency.</b> A duration's window is a spread around a floor and reads naturally as
+    /// <c>[N, N+W)</c>; a child count is a small enumerated set and an author writing
+    /// <c>children_max = 3</c> means three children to be possible. ⚠ <b>Equal to
+    /// <see cref="ChildrenMin"/> is allowed and means every Household bears the same number</b> —
+    /// the lockstep answer, refused nowhere for <see cref="SpreadDays"/>' reason.
+    /// </remarks>
+    public int ChildrenMax { get; init; }
+
+    /// <summary>
+    /// Where a Household goes when it draws zero children; <b>zero means no stage bears here</b>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Its presence is what makes this stage a bearing stage</b>, so there is no separate
+    /// <c>bears = true</c> key to disagree with it — the same shape
+    /// <see cref="ChildrenBecome"/> uses one stage along. A stage stating a child band and no
+    /// childless successor is refused: it would draw zero and have nowhere to send anybody.
+    /// </remarks>
+    public byte ChildlessStage { get; init; }
+
+    /// <summary>
+    /// The stage this one's children form on leaving it; <b>zero means the children do not leave</b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>adr/0011</c>'s Mature Family exit</b> — ***"the children become adults and form new Young
+    /// Households, entering the Unplaced Pool"*** — and it is <b>authored rather than taken as stage
+    /// 1</b>, for the reason <see cref="NextStage"/> is: a successor read off declaration order is a
+    /// chain nobody wrote down, and the test that pins it is
+    /// <c>The_successor_is_authored_rather_than_taken_from_declaration_order</c>.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>The Citizens are MOVED and never created, which is what makes conservation testable.</b>
+    /// <c>adr/0011</c>: ***"Citizen count is conserved across the spawn transition — children become
+    /// the adults of the new Households — which makes the invariant testable rather than
+    /// asserted."*** The children were born at the bearing stage's exit; this transition rehomes
+    /// them.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>ONE new Household per child, so Households grow where Citizens are conserved.</b> Two
+    /// children replace two adults exactly, and they arrive as two Households of one adult rather
+    /// than one of two — because pairing them would be a rule about who partners with whom, and
+    /// nothing in the design says. ***Household count is not conserved here and Citizen count is***,
+    /// which is the invariant <c>adr/0011</c> names.
+    /// </para>
+    /// </remarks>
+    public byte ChildrenBecome { get; init; }
+
+    /// <summary>The youngest a Citizen is when it becomes an adult in this stage, in Days.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is <c>Citizens.Age</c>'s writer, and it is the amnesty queue item's literal ask.</b>
+    /// The column has been declared, saved and hashed since the table was written and nothing has
+    /// ever written it.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>A DRAWN age and not a LIVED one, which is <c>adr/0011</c> word for word</b> —
+    /// ***"Adults carry a static age drawn on formation"***, and Citizens do not age. A lived age
+    /// would need the Day of birth kept per Citizen, and nothing reads one: the schooling tier the
+    /// ADR cares about is ***"derived from the Household's stage rather than from a per-Citizen
+    /// counter"***. ⚠ <b>So this number does not advance and no run makes anybody older.</b>
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A child is age ZERO and that is the only marker of childhood there is.</b> Nothing reads
+    /// it yet — <c>plans/0046</c> stage 4 is the working-age gate — so ***a child currently takes a
+    /// job and founds a Business like anybody else***. That is a known gap kept separate on purpose:
+    /// landing it with generation would make two changes to employment on one day and leave neither
+    /// attributable.
+    /// </para>
+    /// </remarks>
+    public int AdultAgeMinDays { get; init; }
+
+    /// <summary>The oldest a Citizen is when it becomes an adult in this stage, in Days, inclusive.</summary>
+    public int AdultAgeMaxDays { get; init; }
+
+    /// <summary>Whether a Household leaving this stage draws a child count.</summary>
+    public bool Bears => ChildlessStage != 0;
+
+    /// <summary>Whether a Household leaving this stage sends its children out to form their own.</summary>
+    public bool Spawns => ChildrenBecome != 0;
 }
 
 
@@ -3065,6 +3175,43 @@ public sealed class Ruleset
 
     /// <summary>How many Life Stages are declared. Ids run <c>1..LifeStageCount</c>.</summary>
     public int LifeStageCount { get; init; }
+
+    /// <summary>
+    /// The band a Citizen's age is drawn from when it becomes an adult, or <c>false</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>One band for the world, found rather than authored as one.</b> It is stated on the stage a
+    /// <c>children_become</c> names, because that is the stage adults are formed in — and in practice
+    /// exactly one stage is ever named, so the scan finds one band. ⚠ <b>The FIRST is taken if a file
+    /// states several</b>, which is a Ruleset saying that adults formed in different stages carry
+    /// different ages; nothing in the design says that, and nothing refuses it either.
+    /// </para>
+    /// <para>
+    /// <b>Read by the populator as well as by the spawn</b>, and that is the point: a founding city
+    /// whose Citizens all carried age zero would be a city of children under
+    /// <c>plans/0046</c> stage 4's gate. ***Zero is the marker of childhood, so every adult needs a
+    /// real one.***
+    /// </para>
+    /// </remarks>
+    public bool TryAdultAge(out int min, out int max)
+    {
+        for (int i = 0; i < LifeStageCount; i++)
+        {
+            if (LifeStages[i].AdultAgeMaxDays > 0)
+            {
+                min = LifeStages[i].AdultAgeMinDays;
+                max = LifeStages[i].AdultAgeMaxDays;
+
+                return true;
+            }
+        }
+
+        min = 0;
+        max = 0;
+
+        return false;
+    }
 
     /// <summary>The authored name of each Life Stage, indexed by <c>stage - 1</c>.</summary>
     /// <remarks>

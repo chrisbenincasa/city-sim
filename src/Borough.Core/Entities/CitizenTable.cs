@@ -449,7 +449,32 @@ public sealed class CitizenTable
     /// </remarks>
     public Column<int> WorkerNext { get; }
 
-    /// <summary>Age, in Days.</summary>
+    /// <summary>Age, in Days. <b>Drawn on formation and it never advances.</b></summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>It got its writer in <c>plans/0046</c> stage 3, having been declared, saved and hashed
+    /// and written by nothing for the life of the project.</b> <c>World.CreateCitizen</c> draws it
+    /// from the Ruleset's adult band; <c>World.Bear</c> writes zero; <c>World.SpawnChildren</c> draws
+    /// it again as a child becomes an adult.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>NOTHING MAKES ANYBODY OLDER, and that is <c>adr/0011</c> rather than an omission</b> —
+    /// <em>"Adults carry a static age drawn on formation"</em>, and <c>adr/0010</c> is why: eighty
+    /// years at a few minutes a Day is over a thousand real hours, so ageing at human timescales is
+    /// arithmetically impossible under one clock. ***What carries a life here is the HOUSEHOLD's Life
+    /// Stage.*** A number in this column is therefore an age <em>at formation</em> and not an age
+    /// now, and no run of this simulation changes one.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>ZERO MEANS CHILD, and it is the only marker of childhood there is.</b> The loader refuses
+    /// an adult band starting below 1 for exactly that reason, and <c>World.SpawnChildren</c> reads
+    /// this column to decide who leaves home. ⚠ <b>It also means <em>this world has no
+    /// demographics</em></b>: a Ruleset declaring no <c>[[life_stage]]</c> writes nothing here, which
+    /// is every shipped file but one. ***The two readings are told apart by the Ruleset and not by
+    /// the column***, which is a thing to know before reading a gate off it — <c>plans/0046</c>
+    /// stage 4.
+    /// </para>
+    /// </remarks>
     public Column<ushort> Age { get; }
 
     /// <summary>Health.</summary>
