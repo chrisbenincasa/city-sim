@@ -1,6 +1,7 @@
 namespace Borough.Core.Persistence;
 
 using System.Buffers.Binary;
+using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Tables;
 
@@ -110,8 +111,21 @@ public static class SaveHash
             int at = blockStart[i];
             int slotCount = slotCounts[i];
 
+            // Terrain contributes ONE mixed value rather than its 262,144 rows, which is exactly what
+            // World.HashState does -- see the comment there and MapLayers.TerrainFold. The two sides
+            // agree by computing the same function of the same bytes rather than by trusting each
+            // other, which is the property SaveHashTests asserts and the one that caught this walk
+            // diverging the first time it did.
+            //
+            // ⚠ WALKING THE ROWS IS FINE HERE and that asymmetry is the whole trade: a save happens
+            // rarely and a fold happens twice a Tick, so the saving was never in the bytes touched but
+            // in how often they are touched.
+            bool asDigest = ReferenceEquals(table, world.Layers.Terrain.Rows);
+            ulong digest = 0;
+            ref ulong into = ref (asDigest ? ref digest : ref hash);
+
             Rows.FoldScalars(
-                ref hash,
+                ref into,
                 slotCount,
                 BinaryPrimitives.ReadInt32LittleEndian(body[(at + 4)..]),
                 BinaryPrimitives.ReadInt32LittleEndian(body[(at + 8)..]),
@@ -124,11 +138,16 @@ public static class SaveHash
                 int width = field.BytesPerRow * slotCount;
 
                 field.Fold(
-                    ref hash,
+                    ref into,
                     body.Slice(column, width),
                     TargetsOf(field, tables, blockStart, slotCounts, body));
 
                 column += width;
+            }
+
+            if (asDigest)
+            {
+                hash = Randomness.Mix(hash + digest);
             }
         }
 

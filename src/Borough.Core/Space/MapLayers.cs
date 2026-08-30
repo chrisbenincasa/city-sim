@@ -276,6 +276,36 @@ public sealed class MapLayers
     public bool TerrainIsUnchangedSinceLaid() => _terrain.Fingerprint() == _terrainLaidFold;
 
     /// <summary>
+    /// The fingerprint terrain was laid with. <b>What the State Hash folds in the table's place.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>One <c>ulong</c> standing for 262,144 rows, and the coverage it gives is the same
+    /// coverage.</b> <see cref="TerrainCellTable"/> is dense — a row per Cell — and every row is
+    /// allocated in its constructor and never freed, so its contribution to <c>Rows.Fold</c>'s
+    /// allocator scalars is a constant and only the <c>kind</c> column can move the hash. This
+    /// fingerprint folds that column. ***A changed Cell changes this value and therefore changes the
+    /// State Hash***, which is <c>05 §4</c>'s guarantee kept rather than narrowed.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>It is the fingerprint AT LAY TIME and not a fresh one, and that is the whole saving.</b>
+    /// Recomputing per fold would walk the rows this exists to stop walking. What makes the stored
+    /// value safe to fold is that terrain cannot change: it is written by
+    /// <see cref="LayTerrain"/> and by <see cref="RebuildDerived"/> on the load path, and by nothing
+    /// else for the life of a world. ⚠ <b>So a mid-run write would be folded as the OLD value until
+    /// <c>WorldInvariants.TerrainIsUnchangedSinceItWasLaid</c> catches it at end of run</b> — the
+    /// same bargain <see cref="Entities.World.TablesAPhaseCanWrite"/> already strikes for the Decide
+    /// guard, and it is struck twice now rather than differently.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It stops being the right thing to fold the day terraforming ships</b>, at which point
+    /// terrain is a table the running city writes, the invariant above is replaced rather than
+    /// relaxed, and the composition goes back to walking the rows.
+    /// </para>
+    /// </remarks>
+    public ulong TerrainFold => _terrainLaidFold;
+
+    /// <summary>
     /// How many of every Cell's Tiles are wooded. <b>Dense, and it has no residency index.</b>
     /// </summary>
     /// <remarks>
