@@ -151,7 +151,10 @@ public sealed class CondemnationCauseTests
     private static (World World, Simulation Simulation, Handle<Lot> Lot) Built(Ruleset ruleset)
     {
         var world = new World(1_000, ruleset);
-        var simulation = new Simulation(world, WorldKey.FromSeed(0xB0A0_0C6E_A7E0_0006UL));
+        var simulation = new Simulation(world, WorldKey.FromSeed(0xB0A0_0C6E_A7E0_0006UL))
+        {
+            VerifyDecideWritesNothing = true,
+        };
 
         Handle<Lot> lot = world.Lots.Create(new Tiles(0), new Tiles(0), Housing);
         Handle<Building> building = world.CreateBuilding(lot, House, Ticks.Zero, simulation.Key);
@@ -321,7 +324,10 @@ public sealed class CondemnationCauseTests
     public void A_building_that_is_never_condemned_leaves_no_entry()
     {
         var world = new World(1_000, Immortal());
-        var simulation = new Simulation(world, WorldKey.FromSeed(0xB0A0_0C6E_A7E0_0006UL));
+        var simulation = new Simulation(world, WorldKey.FromSeed(0xB0A0_0C6E_A7E0_0006UL))
+        {
+            VerifyDecideWritesNothing = true,
+        };
 
         Handle<Lot> lot = world.Lots.Create(new Tiles(0), new Tiles(0), Housing);
 

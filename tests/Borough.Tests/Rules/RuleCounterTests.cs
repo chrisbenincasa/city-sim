@@ -98,7 +98,7 @@ public sealed class RuleCounterTests
     private static (World World, Simulation Simulation) Built(Ruleset ruleset)
     {
         var world = new World(1_000, ruleset);
-        var simulation = new Simulation(world, WorldKey.FromSeed(1));
+        var simulation = new Simulation(world, WorldKey.FromSeed(1)) { VerifyDecideWritesNothing = true };
 
         return (world, simulation);
     }

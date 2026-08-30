@@ -118,7 +118,7 @@ public sealed class AccessPointTests
 
         RoadGenerator.LayInto(world.Roads, key, CellGrid.WorldTiles);
 
-        var simulation = new Simulation(world, key);
+        var simulation = new Simulation(world, key) { VerifyDecideWritesNothing = true };
         int block = world.Roads.Streets.BlockTiles;
 
         simulation.Step(new TickInput(

@@ -113,7 +113,10 @@ public sealed class BusinessTenancyTests
     private static (World World, Simulation Simulation, Handle<Building> Premises) Built()
     {
         var world = new World(1_000, Trading());
-        var simulation = new Simulation(world, WorldKey.FromSeed(0xB0A0_0C6E_A7E0_0026UL));
+        var simulation = new Simulation(world, WorldKey.FromSeed(0xB0A0_0C6E_A7E0_0026UL))
+        {
+            VerifyDecideWritesNothing = true,
+        };
 
         Handle<Lot> lot = world.Lots.Create(new Tiles(0), new Tiles(0), AnyZone);
         Handle<Building> premises = world.CreateBuilding(

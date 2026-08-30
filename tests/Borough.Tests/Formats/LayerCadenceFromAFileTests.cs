@@ -91,7 +91,10 @@ public sealed class LayerCadenceFromAFileTests
             Emitting.Replace("{0}", pollutionPeriod.ToString(), StringComparison.Ordinal));
 
         var world = new World(1_000, rules);
-        var simulation = new Simulation(world, Key, RulesetCatalogue.None);
+        var simulation = new Simulation(world, Key, RulesetCatalogue.None)
+        {
+            VerifyDecideWritesNothing = true,
+        };
 
         Handle<Lot> lot = world.Lots.Create(new Tiles(64), new Tiles(64), zone: 1);
         world.CreateBuilding(lot, Works, Ticks.Zero, Key);

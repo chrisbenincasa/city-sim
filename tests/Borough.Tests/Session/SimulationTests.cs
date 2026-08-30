@@ -357,8 +357,8 @@ public sealed class SimulationTests
     }
 
     [Fact]
-    public void The_decide_guard_is_on_by_default() =>
-        Assert.True(Build().VerifyDecideWritesNothing);
+    public void The_decide_guard_is_off_by_default() =>
+        Assert.False(Build().VerifyDecideWritesNothing);
 
     /// <summary>
     /// The guard is a runtime switch rather than a build configuration, so that a release long-run can
@@ -370,6 +370,7 @@ public sealed class SimulationTests
     {
         Simulation guarded = Build();
         Simulation unguarded = Build();
+        guarded.VerifyDecideWritesNothing = true;
         unguarded.VerifyDecideWritesNothing = false;
 
         for (int i = 0; i < 8; i++)

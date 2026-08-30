@@ -417,7 +417,7 @@ public sealed class BusinessKindLoadTests
 
         Core.Entities.SyntheticCity.PopulateInto(world, key, Ticks.Zero);
 
-        var simulation = new Simulation(world, key);
+        var simulation = new Simulation(world, key) { VerifyDecideWritesNothing = true };
         ulong[] samples = new ulong[4];
 
         for (int sample = 0; sample < samples.Length; sample++)

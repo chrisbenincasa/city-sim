@@ -231,20 +231,20 @@ public sealed class Simulation
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>On by default, and a runtime switch rather than a build configuration.</b> The obvious
-    /// implementation is <c>#if DEBUG</c>, and it is backwards for the same reason <c>02 §10</c> gives
-    /// about the invariant tiers: the runs that surface this class of bug are headless balance runs,
-    /// millions of Ticks long, in <b>release</b>. A guard that compiles out of the build where the bug
-    /// appears is a guard aimed at the wrong build.
+    /// <b>A runtime switch rather than a build configuration.</b> The obvious implementation is
+    /// <c>#if DEBUG</c>, and it is backwards for the same reason <c>02 §10</c> gives about the
+    /// invariant tiers: the runs that surface this class of bug are headless balance runs, millions
+    /// of Ticks long, in <b>release</b>. A guard that compiles out of the build where the bug appears
+    /// is a guard aimed at the wrong build.
     /// </para>
     /// <para>
-    /// <b>What it costs is why it is a switch at all.</b> The check folds every column of every table
-    /// twice per Tick, so it is <c>O(world)</c> against a phase that is meant to be <c>O(woken)</c> —
-    /// affordable for a correctness run and not for a long one. Turn it off for the 100,000-Tick test
-    /// and leave it on everywhere else.
+    /// ⚠ <b>OFF by default since 2026-08-30.</b> It folds every column of every table twice per Tick
+    /// — <c>O(world)</c> against a phase meant to be <c>O(woken)</c> — so a default nobody named cost
+    /// <b>43% of the assertion tier</b>, 5m24s against 55s on <c>FoundingTests</c>. Ask for it;
+    /// <c>Borough.Headless</c> does.
     /// </para>
     /// </remarks>
-    public bool VerifyDecideWritesNothing { get; set; } = true;
+    public bool VerifyDecideWritesNothing { get; set; }
 
     /// <summary>
     /// Advances the world by one Tick, running all eight phases in order.

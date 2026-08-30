@@ -102,7 +102,10 @@ public sealed class BinWaitListTests
         Ruleset ruleset, ulong seed = 1)
     {
         var world = new World(1_000, ruleset);
-        var simulation = new Simulation(world, WorldKey.FromSeed(seed));
+        var simulation = new Simulation(world, WorldKey.FromSeed(seed))
+        {
+            VerifyDecideWritesNothing = true,
+        };
 
         Handle<Lot> lot = world.Lots.Create(new Tiles(1), new Tiles(2), zone: 1);
         Handle<Building> building = world.Buildings.Create(world.Lots, lot, Kind);
