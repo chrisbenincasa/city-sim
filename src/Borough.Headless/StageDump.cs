@@ -13,7 +13,7 @@ using Borough.Formats;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b><c>plans/0046</c> stage 1's "something to look at", and the amnesty amended what that phrase
+/// <b><c>plans/0046</c> stages 1 and 2's "something to look at", and the amnesty amended what that phrase
 /// is allowed to mean.</b> <c>plans/0045</c> struck <em>"there is something to look at showing the
 /// milestone doing its job"</em> because a column of hexadecimal was satisfying it, and replaced it
 /// with ***done means you watched it happen and something surprised you***. A State Hash trace off
@@ -29,15 +29,19 @@ using Borough.Formats;
 /// how it gets settled.
 /// </para>
 /// <para>
-/// ⚠ <b>The population column is printed beside the histogram and is expected to be FLAT.</b> Stage 1
-/// advances a stage and does nothing else: dissolution is stage 2 and generation is stage 3, so a run
-/// that moved it would be a defect rather than a demography. ***A reader who finds this column
-/// interesting has found a bug.***
+/// 🔴 <b>The population column FALLS TO ZERO, and that is stage 2 rather than a defect.</b> A
+/// Household reaching a terminal Life Stage dissolves, and nothing is born until stage 3 — so this is
+/// a sink with no source and the city empties. ⚠ <b>This paragraph said the opposite for one commit</b>
+/// — <em>"the column is expected to be FLAT… a reader who finds this column interesting has found a
+/// bug"</em> — and it was correct for exactly as long as stage 1 was the whole mechanism. ***A
+/// description written against a half-built mechanism reads as a claim about the city***, which is
+/// <c>adr/0093</c>'s failure mode from the inside.
 /// </para>
 /// <para>
-/// ⚠ <b>And the terminal stage fills up, which is correct.</b> Nothing leaves the end of the chain
-/// until dissolution exists, so a long run ends with the whole city in one stage. That is the city
-/// stage 1 was specified to produce and it is what makes the next stage's sink legible.
+/// ⚠ <b>The two series are printed apart and must not be summed.</b> An advance moves a Household
+/// along the chain; a dissolution removes it. A single "transitions" figure would have spikes that
+/// could be either, and they answer different questions: whether the founding cohort blurs, and
+/// whether the city dies in a wave.
 /// </para>
 /// </remarks>
 internal static class StageDump
@@ -81,7 +85,7 @@ internal static class StageDump
         int count = rules.LifeStageCount;
         List<int[]> days = [Histogram(world, count)];
         var advanced = new List<int>() { 0 };
-        var retired = new List<int>() { 0 };
+        var dissolved = new List<int>() { 0 };
 
         for (ulong tick = 0; tick < options.Ticks; tick++)
         {
@@ -105,15 +109,15 @@ internal static class StageDump
             {
                 days.Add(Histogram(world, count));
                 advanced.Add(simulation.LastLifeStages.Advanced);
-                retired.Add(simulation.LastLifeStages.Retired);
+                dissolved.Add(simulation.LastLifeStages.Dissolved);
             }
         }
 
         Header(options, rules, names, days.Count - 1, output);
         output.WriteLine();
-        Trajectory(days, advanced, retired, names, rules, output);
+        Trajectory(days, advanced, dissolved, names, rules, output);
         output.WriteLine();
-        Echo(advanced, output);
+        Echo(advanced, dissolved, days, output);
 
         return 0;
     }
@@ -183,7 +187,7 @@ internal static class StageDump
     private static void Trajectory(
         List<int[]> days,
         List<int> advanced,
-        List<int> retired,
+        List<int> dissolved,
         RulesetNames names,
         Ruleset rules,
         TextWriter output)
@@ -221,7 +225,7 @@ internal static class StageDump
             live += tally[0];
 
             output.WriteLine(F(
-                $"{tally[0],6}  {advanced[day],6}  {retired[day],6}  {live,6}"));
+                $"{tally[0],6}  {advanced[day],6}  {dissolved[day],6}  {live,6}"));
         }
     }
 
@@ -236,7 +240,8 @@ internal static class StageDump
     /// number to watch</b> — 1× is blurred, and the founding spike is however many Households the
     /// city started with.
     /// </remarks>
-    private static void Echo(List<int> advanced, TextWriter output)
+    private static void Echo(
+        List<int> advanced, List<int> dissolved, List<int[]> days, TextWriter output)
     {
         int moves = 0;
         int busiest = 0;
@@ -263,7 +268,7 @@ internal static class StageDump
 
         output.WriteLine("Does the founding cohort blur?");
         output.WriteLine();
-        output.WriteLine(F($"  transitions           {moves,8:N0} over {elapsed:N0} Days"));
+        output.WriteLine(F($"  advances              {moves,8:N0} over {elapsed:N0} Days"));
         output.WriteLine(F($"  busiest Day           {busiest,8:N0} on Day {busiestDay:N0}"));
         output.WriteLine(F($"  Days with none        {quiet,8:N0} of {elapsed:N0}"));
 
@@ -286,6 +291,75 @@ internal static class StageDump
             "  and `busiest ÷ mean` is large. adr/0011's spread_days exists to smear that; whether");
         output.WriteLine(
             "  it is enough is what plans/0046 says to come here and find out.");
+
+        Deaths(dissolved, days, output);
+    }
+
+    /// <summary>
+    /// <c>plans/0046</c> stage 2: how the city empties, and whether it empties all at once.
+    /// </summary>
+    /// <remarks>
+    /// <b>A SEPARATE series from the advances above, and it has to be.</b> An advance moves a
+    /// Household along the chain and a dissolution removes it; summing them would produce a
+    /// "transitions" figure whose spikes could be either, and the two answer different questions —
+    /// the first asks whether the founding cohort blurs, the second asks whether the city dies in a
+    /// wave. ⚠ <b>Every Day here is one on which the population strictly FELL</b>, because nothing is
+    /// born until stage 3.
+    /// </remarks>
+    private static void Deaths(List<int> dissolved, List<int[]> days, TextWriter output)
+    {
+        int total = 0;
+        int busiest = 0;
+        int busiestDay = 0;
+        int emptied = -1;
+
+        for (int day = 1; day < dissolved.Count; day++)
+        {
+            total += dissolved[day];
+
+            if (dissolved[day] > busiest)
+            {
+                busiest = dissolved[day];
+                busiestDay = day;
+            }
+
+            if (emptied < 0 && Live(days[day]) == 0)
+            {
+                emptied = day;
+            }
+        }
+
+        output.WriteLine();
+        output.WriteLine("How does the city empty?");
+        output.WriteLine();
+        output.WriteLine(F($"  dissolutions          {total,8:N0}"));
+        output.WriteLine(F($"  busiest Day           {busiest,8:N0} on Day {busiestDay:N0}"));
+        output.WriteLine(F($"  standing at the end   {Live(days[^1]),8:N0}"));
+        output.WriteLine(emptied >= 0
+            ? F($"  the city emptied on Day {emptied:N0}")
+            : "  the city had not emptied when the run ended");
+
+        output.WriteLine();
+        output.WriteLine(
+            "  🔴 THE CITY EMPTIES AND THAT IS THE MILESTONE, not a defect. Stage 2 is a SINK");
+        output.WriteLine(
+            "  with no source: a Household reaching a terminal Life Stage dissolves, its estate");
+        output.WriteLine(
+            "  goes to the treasury and its members are retired, and nothing is born until stage");
+        output.WriteLine(
+            "  3. An emptying city is bounded below by zero, which is why this ships first.");
+    }
+
+    private static int Live(int[] tally)
+    {
+        int live = 0;
+
+        for (int stage = 0; stage < tally.Length; stage++)
+        {
+            live += tally[stage];
+        }
+
+        return live;
     }
 
     private static string Named(RulesetNames names, Ruleset rules, byte stage) =>

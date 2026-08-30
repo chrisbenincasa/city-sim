@@ -4,8 +4,9 @@
 
 ## Status
 
-🟡 **SCOPED 2026-08-27.** Nothing built. Three decisions taken at scoping and recorded below; the rest
-of this document is what the survey found and the order the work has to happen in.
+🟡 **STAGES 0, 1 AND 2 BUILT — 2026-08-28.** ***The city now empties*** — `aged.toml` at 2,000
+Citizens reaches zero by Day 210 — the correct state between a sink and its source. **The estate goes
+to the treasury**; `World.Dissolve` carries the candidates it rejected.
 
 ⚠ **The queue calls this *"Ageing, birth, death — write `Citizens.Age`"* and that title is wrong in one
 word.** Nothing here makes a Citizen age. `CONTEXT.md`, [`adr/0010`](../docs/adr/0010-one-clock-and-demographics-by-sorting.md)
@@ -120,10 +121,8 @@ generation, and the city is allowed to die before it is allowed to breed.***
 | **3** | Generation | Mature Family's exit spawns Young Households into the Unplaced Pool. Replacement Rate | **can rise** |
 | **4** | The working-age gate | Children stop taking jobs and founding businesses | unchanged |
 
-⚠ **Stage 1 ends with every Household stuck in Empty Nest, and that is correct rather than
-unfinished.** Dissolution is one of `adr/0011`'s two *decisions* and it arrives at stage 2. A run of
-stage 1 is a city whose age structure ages and then stops, which is exactly the thing to look at
-before anything can die of it.
+⚠ **Stage 2 ends with an EMPTY city, and that is correct rather than unfinished** — a sink whose
+source is stage 3.
 
 ⚠ **Stage 4 is separated from stage 3 deliberately.** It is hash-bearing, it moves the labour supply,
 and `[[business]] jobs = 8` was derived from *"1000/360 × 3 = 8.33 Citizens"* — a ratio that assumes
@@ -143,25 +142,25 @@ asked: does a dissolving Household's balance pass to the Households it spawned, 
 treasury, or leave the money supply? ***Whatever it does, it must decrement `Issued` or
 `Invariant.MoneyIsConserved` will fire***, and that invariant is an exact equality.
 
-**2. The Citizen table goes sparse for the first time, and two sampling passes assume it is dense.**
-`EmploymentEngine.cs:207` carries the comment *"The Citizen table is dense today — nothing kills a
-Citizen — and the sample is derived from the live count"*: it draws over `SlotCount` and sizes the
-sample from `LiveCount`, so a free list of any size makes the pass **under-deliver in proportion**.
-`PlacementEngine.Found` (`PlacementEngine.cs:702`) has the same shape. ⚠ **Both will degrade quietly
-rather than fail**, which is the worst way for this to be found.
+**2. ✅ MET AND FIXED 2026-08-28 — one pass, not two.** `EmploymentEngine` sized its sample from
+`LiveCount` while drawing over `SlotCount`; it now sizes from `SlotCount`. ⚠ **`PlacementEngine.Found`
+never had the defect** — this document said "the same shape" and was wrong, and the fix was to copy
+the pass that was already right. ⚠ **And the table was not going sparse for the first time**: a
+give-up departure has destroyed Households since milestone 11, so `crowded.toml` was already sparse.
 
-**3. Save and resume conflate capacity with population.**
+**3. ⏸ DEFERRED at stage 2 — the fix is a SAVE-FORMAT change, not a line edit.** The founding Citizen
+count is nowhere in `SaveHeader`, so `Session.cs` has no better value to reach for. What it damages is
+a written artefact rather than a running world: the trace header, and the `.borough` log a replay
+would build a *fresh* city from. Save and resume conflate capacity with population.
 `Session.cs:313` rebuilds `WorldConfiguration(world.Citizens.Rows.LiveCount)`, and
 `WorldConfiguration.cs:16` documents that field as *"a capacity and not a population"*. Once births
 and deaths move the live count away from the constructed capacity, a resumed run sizes every derived
 table differently from the run it resumed. `SyntheticCity` reads `Rows.Capacity` **as** the population
 in two places (`SyntheticCity.cs:283`, `:628`), correct only while the table has never grown.
 
-**4. `CreateCitizen` initialises almost nothing, and one of the zeroes is now a lie.**
-It writes `HouseholdOf` and `NextEventTick`. `Age`, `SkillTier` and `LastPaidDay` all arrive zero —
-and **zero `LastPaidDay` means *last paid on Day 0***, which on a Citizen born on Day 400 is four
-hundred Days of back pay. `World.Employ` (`World.cs:5356`) already makes exactly this point about the
-hire day; a birth is the second door onto the same trap.
+**4. ✅ NOT A TRAP — checked 2026-08-28.** `CreateCitizen` leaves `LastPaidDay` zero, but `World.Employ`
+starts the pay clock on the day of hire and is the one door onto the Workplace handle, so no Citizen
+can reach a payday carrying it. `Age` and `SkillTier` still arrive zero and still have no writer.
 
 **5. There is no calendar and there must not be one.**
 `CONTEXT.md`'s banned vocabulary: *"'Year' / 'month' / 'season' — there is no calendar. Say Day."*
@@ -225,9 +224,8 @@ them is a consumer of Life Stage rather than part of it, and
 [`adr/0027`](../docs/adr/0027-preference-is-drawn-per-household-and-persists-for-life.md) owns the
 drawing. **This milestone builds the clock and the table, and the readers arrive after.**
 
-**No housed departure.** `World.Depart` refuses a housed Household, and the housed-departure channel
-is milestone 16. Dissolution at stage 2 ends a Household that is *housed*, so it is a **third** route
-into `DestroyHousehold` and it must not be mistaken for that milestone's.
+**No housed departure.** `World.Depart` refuses a housed Household and that channel is milestone 16.
+`World.Dissolve` is a **third** route into `DestroyHousehold` and its remark says why it is not that.
 
 ⚠ **And it does not make immigration redundant.**
 [`adr/0023`](../docs/adr/0023-immigration-arrives-through-the-gate.md) makes Hinterlands finite

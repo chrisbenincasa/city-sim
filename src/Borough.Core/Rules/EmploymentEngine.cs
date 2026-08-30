@@ -189,8 +189,20 @@ public sealed class EmploymentEngine
             return;
         }
 
+        // ⚠ SIZED FROM THE SLOT COUNT AND DRAWN OVER IT, which is PlacementEngine.Found's derivation
+        // and for Found's reason: every live Citizen then has probability interval ÷ revisit_ticks of
+        // being asked, exactly as authored, and rejecting a freed slot costs a DRAW rather than
+        // introducing BIAS. Sizing from the live count while drawing over the slots scales the
+        // realised rate by the live fraction, silently.
+        //
+        // ⚠ It said SampleFor(population) until plans/0046 stage 2, and the comment below said the
+        // table was dense and named this line as where to look if that stopped being true. It has:
+        // a Household reaching a terminal Life Stage dissolves and takes its members with it. The
+        // change is a NO-OP wherever nothing has been freed -- Rows.SlotCount only grows when the
+        // free list is empty, so it equals LiveCount there -- and it moves the State Hash on the
+        // worlds that already had a sink, which is the give-up departure on crowded.toml.
         Cells radius = Radius(trips.CommuteBudget, _world.Rules.Roads.WalkSpeed);
-        Span<int> into = Scratch(jobs.SampleFor(population));
+        Span<int> into = Scratch(jobs.SampleFor(slots));
 
         for (int draw = 0; draw < into.Length; draw++)
         {
@@ -206,9 +218,9 @@ public sealed class EmploymentEngine
 
             // A freed row is a look that found nobody. It is silent rather than counted, because a
             // recycled slot is an artefact of storage and counting it would make the *considered*
-            // flow a reading of the free list. The Citizen table is dense today — nothing kills a
-            // Citizen — and the sample is derived from the live count, so if that ever stops being
-            // true the pass under-delivers and this comment is where to look.
+            // flow a reading of the free list. ⚠ The Citizen table is NO LONGER DENSE — a dissolving
+            // Household retires its members — so this branch is now reached in ordinary running
+            // rather than only in principle, and the sample above is sized to absorb it.
             if (!_world.Citizens.Rows.IsLive(slot))
             {
                 continue;

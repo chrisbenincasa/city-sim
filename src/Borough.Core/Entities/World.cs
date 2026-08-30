@@ -1872,6 +1872,82 @@ public sealed class World
     }
 
     /// <summary>
+    /// Ends a Household because its life ended. <b>The estate goes to the treasury.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The THIRD route into <see cref="DestroyHousehold"/>, and it must not be mistaken for the
+    /// other two.</b> <see cref="Depart(Handle{Household})"/> is emigration and refuses a housed
+    /// Household; the housed-departure channel is milestone 16 and is a comparison rather than a
+    /// threshold. ***This one ends a Household that is normally housed***, which is why it handles
+    /// both cases rather than refusing one.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>THE ESTATE GOES TO THE TREASURY, and the alternatives were not free.</b> Money is
+    /// conserved (<c>adr/0024</c>) and <c>Invariant.MoneyIsConserved</c> is an exact equality, so a
+    /// dissolving Household's balance has to go somewhere nameable. <b>Destroying it</b> would need a
+    /// <c>MoneySupply.Issued</c> decrement — which is what <see cref="Depart(Handle{Household})"/>
+    /// does, and it is honest there because the money genuinely leaves the world with the emigrant.
+    /// A death is not an emigration: nothing left the city. <b>Passing it to the Households this one
+    /// spawned</b> is the other candidate and it is <em>unbuilt</em> under <c>adr/0070</c> — nothing
+    /// records a parent, and generation is <c>plans/0046</c> stage 3. ***The treasury is the one
+    /// recipient that exists, keeps the supply flat, and needs no relation nobody stores.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The transfer is out-before-in</b>, on <see cref="Found"/>'s reason: no instant may exist
+    /// in which the estate is in two Bins at once, because a reader folding the State Hash between
+    /// the two halves would see money that is not there.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is silent on a world with no money Resource</b>, which is most of them. A Household
+    /// there has no balance Bin at all, and an estate of nothing needs no recipient.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It does not take the Household off the Life Stage wheel and must not.</b>
+    /// <see cref="DestroyHousehold"/> does, for every caller — see the note there on why an unlink
+    /// belongs in the table operation and an estate does not.
+    /// </para>
+    /// </remarks>
+    public void Dissolve(Handle<Household> household, Ticks now)
+    {
+        int slot = Households.Rows.Resolve(household);
+
+        // Before DestroyHousehold, because that frees the Bin and reading the level afterwards would
+        // read a freed row. Depart's line, with a recipient where that one has a decrement.
+        if (Bins.Rows.TryResolve(Households.Balance[slot], out int balance)
+            && Bins.LevelAt(balance) > 0)
+        {
+            // The Resource comes off the BIN and not out of the Ruleset. TryMoneyResource would
+            // answer the same today, and it would answer it about the world rather than about this
+            // Bin -- and FindTreasuryBin only holds the conserved ones, so a balance in something
+            // else finds no recipient and is left where it is rather than transferred into the
+            // wrong Bin.
+            int into = FindTreasuryBin(Bins.Resource[balance]);
+
+            if (into != Rows.NoSlot)
+            {
+                long estate = Bins.LevelAt(balance);
+
+                Withdraw(Households.Balance[slot], estate, now);
+                Deposit(Bins.Rows.At(into), estate, now);
+            }
+        }
+
+        // An unhoused Household is in the Pool, and the membership holds a handle to the row
+        // DestroyHousehold is about to free. Depart's line and its reason:
+        // Invariant.ThePoolIsDenseAndAgreesWithTheHouseholds would catch a Pool left holding a freed
+        // row, at the end of the run rather than here.
+        int position = Households.PoolPosition(slot);
+
+        if (position >= 0 && position < UnplacedPool.Count)
+        {
+            UnplacedPool.Leave(Households, position);
+        }
+
+        DestroyHousehold(household);
+    }
+
+    /// <summary>
     /// An unhoused Household gives up looking and leaves the city, taking its money with it.
     /// </summary>
     /// <remarks>
@@ -2334,6 +2410,18 @@ public sealed class World
         {
             Occupants.Remove(buildingSlot, slot);
         }
+
+        // ⚠ HERE AND NOT IN World.Dissolve, and the distinction is the one this method's remark about
+        // the money draws. An estate needs a RECIPIENT, which is a policy decision only one caller is
+        // entitled to make; unlinking a row from a bucket before freeing it carries no decision at
+        // all, and it is the same obligation as the Members walk above and the Occupants line beside
+        // it. A freed row still linked into a wheel is plans/0035 F29 -- the next allocation of the
+        // slot gets inserted into a list it is already in -- and putting the unlink in one caller
+        // would have left every other caller carrying that bug silently.
+        //
+        // It is cheap on a world with no [[life_stage]]: NextStageDay is zero, bucket 0 is walked,
+        // nothing is found.
+        LifeStages.Disarm(slot);
 
         // The balance Bin goes with the Household, because a Bin nothing points at is a row nothing
         // will ever free -- adr/0006 through the same back door the members came through four lines

@@ -111,17 +111,46 @@ public sealed class LifeStageWheel
     /// reason: a collection is an allocation on a path that runs every Day. A Household the caller
     /// re-arms cannot land back in this bucket, which is what <see cref="Arm"/>'s refusal buys.
     /// </remarks>
-    public int PopDue(long day) => Waiting.PopFront(BucketOf(day));
+    /// <remarks>
+    /// ⚠ <b>The pop CLEARS <c>next_stage_day</c>, and that is what makes <see cref="Disarm"/>
+    /// O(1).</b> A popped Household is off the wheel, so leaving the Day standing would be a row
+    /// claiming an arming it does not have — and <see cref="Disarm"/> would then walk the bucket it
+    /// was popped from looking for it. That bucket is the one the sweep is draining, so a Day on
+    /// which many Households dissolve would cost a walk per dissolution: <b>quadratic in the Day's
+    /// due count</b>, which is order 3,000 at a million Citizens. ***Zero is available as the
+    /// sentinel because <see cref="Arm"/> refuses a Day less than one ahead***, so no armed Household
+    /// ever carries it.
+    /// </remarks>
+    public int PopDue(long day)
+    {
+        int slot = Waiting.PopFront(BucketOf(day));
+
+        if (slot != Rows.NoSlot)
+        {
+            _households.NextStageDay[slot] = 0;
+        }
+
+        return slot;
+    }
 
     /// <summary>Unlinks a Household from its bucket — for a row about to be freed.</summary>
     /// <remarks>
     /// <b>Returns whether it was there</b>, because discarding that is the defect
     /// <c>BinTests</c> records for the Rule wheel: a row that says it is armed and is not in its
     /// bucket would be silently skipped, and the caller would free a row this wheel still holds.
-    /// ⚠ <b>Nothing calls this in stage 1</b> — no Household dissolves until stage 2 — and it exists
-    /// now because <c>World.DestroyHousehold</c> is the one site that will need it and finding out
-    /// then is finding out late.
+    /// ⚠ <b><c>World.DestroyHousehold</c> is the only caller</b>, and it is there rather than in
+    /// <c>World.Dissolve</c> so that every route to a freed row is covered — see the note at that
+    /// method. ⚠ <b>An unarmed row costs nothing</b>: <see cref="PopDue"/> clears
+    /// <c>next_stage_day</c>, so the common case of destroying a Household the sweep has just popped
+    /// returns on a comparison rather than walking a bucket.
     /// </remarks>
-    public bool Disarm(int householdSlot) =>
-        Waiting.Remove(BucketOf(_households.NextStageDay[householdSlot]), householdSlot);
+    public bool Disarm(int householdSlot)
+    {
+        if (_households.NextStageDay[householdSlot] == 0)
+        {
+            return false;
+        }
+
+        return Waiting.Remove(BucketOf(_households.NextStageDay[householdSlot]), householdSlot);
+    }
 }

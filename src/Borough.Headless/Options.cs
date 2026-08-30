@@ -818,6 +818,28 @@ internal sealed class Options
         // refused here or not at all. A textual union of the two branches would have left
         // `--money --parking` parsing silently -- the exact hole the block below was written to
         // close, re-opened by the merge that landed the fix.
+        // ⚠ FIRST IN THE CHAIN AND IT NAMES EVERY OTHER PICTURE, which is why no block below needed
+        // editing to admit it. The blocks below each name only what sits under them, because the
+        // first block to match returns -- so a mode added in the middle has to be threaded into
+        // every block above it, and one added at the top does not.
+        //
+        // 🔴 It shipped with NO exclusion block at all at plans/0046 stage 1, so `--stages
+        // --land-value` parsed silently and the ternary picked whichever sat higher. That is the
+        // exact hole --evidence left and the comment below records, re-opened one mode later by
+        // somebody who had read neither. ***A pattern held by comments in the file is a pattern the
+        // next author does not inherit***; what caught it was a test asserting the refusal.
+        //
+        // ⚠ --day is named here and still has no block of its own. That is a gap this one does not
+        // close: the pair `--day --market` still parses.
+        if (stages && (day || money || market || business || arrivals || landValue || parking
+                       || evidence || traffic || commute || zones || roads || trips
+                       || dump is not null))
+        {
+            complaint = "--stages asks for another picture, and each picture builds its own world. "
+                      + "Ask for one.";
+            return false;
+        }
+
         if (money && (landValue || parking || evidence || traffic || commute || zones || roads || trips
                       || dump is not null))
         {
