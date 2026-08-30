@@ -237,7 +237,10 @@ public static class RulesetLoader
             DistrictRuleset districts = ReadDistricts();
             MarketRuleset market = ReadMarket();
 
-            NeedRuleset needs = ReadNeeds();
+            // After ReadKinds, because whether an ATTENDED Need's rates are required is a property of
+            // the pair: they are owed by a file declaring a kind that serves one and refused of a file
+            // that declares none (adr/0130's rule for gives_up_after_days, one table along).
+            NeedRuleset needs = ReadNeeds(kinds);
             // After ReadPlacement, because the founding pass rides its trigger and the refusal for a
             // file stating [founding] with no [placement] is a property of the pair.
             FoundingRuleset founding = ReadFounding(placement, businessKinds);
@@ -843,6 +846,100 @@ public static class RulesetLoader
             return (uint)rate;
         }
 
+        /// <summary>
+        /// Which Need a Building of this kind is attended for — <c>serves</c>, optional.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>The mirror of <see cref="ReadNeed"/>, and between them they are <c>04 §1</c>'s Good →
+        /// Need diagram made total.</b> A Need is fed by <em>buying</em> or by <em>attending</em>
+        /// (<c>adr/0032</c>), so every Need has exactly one door and each of these two refuses the
+        /// other's by name. ***A designer who writes the wrong one is told which one they wanted,
+        /// which is the whole reason both refusals are named rather than generic.***
+        /// </para>
+        /// <para>
+        /// ⚠ <b><c>fire</c>, <c>police</c>, <c>power</c>, <c>water</c> and <c>sewage</c> are refused
+        /// by name and they are not Needs at all.</b> <c>adr/0032</c> sorts Services by <em>who
+        /// moves</em>: those five are Dispatched or Networked, nobody attends them, and a Household
+        /// carries no scalar for any of them. A generic <em>not a Need</em> would read as
+        /// <em>not yet</em>, which under <c>adr/0070</c> is the difference between evidence and an
+        /// absence.
+        /// </para>
+        /// <para>
+        /// ⚠ <b><c>recreation</c> is Attended and is still refused</b>, because <c>adr/0032</c> puts
+        /// it somewhere else: <em>"Recreation needs no new machinery at all … widen Business to
+        /// destination and a park is an Amenity entry."</em> It is a term in desirability, not a
+        /// Household scalar, so a column here would be a second home for one quantity.
+        /// </para>
+        /// </remarks>
+        private Need ReadServes(TableSyntaxBase table, string? name)
+        {
+            if (!TryString(table, "serves", out string? serves, required: false, name))
+            {
+                return Need.None;
+            }
+
+            switch (serves)
+            {
+                case "education":
+                    return Need.Education;
+
+                case "health":
+                    return Need.Health;
+
+                case "sustenance":
+                case "satisfaction":
+                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "serves") ?? table), name,
+                        $"serves is \"{serves}\", which is a Need a Household BUYS rather than one it "
+                        + "attends (adr/0032 sorts Services by who moves). It is fed by a Good, so it "
+                        + "is declared on the Resource as [[resource]] need and reaches the Household "
+                        + "through a Rule firing. The two a Building can be attended for are "
+                        + "education and health.");
+                    return Need.None;
+
+                case "fire":
+                case "police":
+                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "serves") ?? table), name,
+                        $"serves is \"{serves}\", which is a DISPATCHED Service and not a Need. "
+                        + "adr/0032 sorts Services by who moves: nobody attends a fire station, the "
+                        + "station travels to the incident, so no Household carries a scalar for it "
+                        + "and there is nothing here for it to feed. Its successor is adr/0030's "
+                        + "dispatch Trip, which is unbuilt (adr/0070) rather than refused. The two a "
+                        + "Building can be attended for are education and health.");
+                    return Need.None;
+
+                case "power":
+                case "water":
+                case "sewage":
+                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "serves") ?? table), name,
+                        $"serves is \"{serves}\", which is a NETWORKED Service and not a Need. "
+                        + "adr/0032: nobody moves -- it flows over the District graph as adr/0031's "
+                        + "one Resource abstraction -- so it is a Good reaching a Building and never "
+                        + "a scalar a Household carries. The two a Building can be attended for are "
+                        + "education and health.");
+                    return Need.None;
+
+                case "recreation":
+                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "serves") ?? table), name,
+                        "serves is \"recreation\". It IS attended, and adr/0032 still puts it "
+                        + "somewhere else: \"Recreation needs no new machinery at all -- widen "
+                        + "Business to destination and a park is an Amenity entry.\" It is a term in "
+                        + "desirability rather than a Household scalar, so a Need column for it "
+                        + "would be a second home for one quantity. The two a Building can be "
+                        + "attended for are education and health.");
+                    return Need.None;
+
+                default:
+                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "serves") ?? table), name,
+                        $"serves is \"{serves}\", which is not a Need. Stating it is what makes a "
+                        + "kind a service Building, and adr/0103 closes the Need set at four: "
+                        + "sustenance, satisfaction, education and health. Only the last two are "
+                        + "attended (adr/0032), so only they may be declared here -- omit the key "
+                        + "for a kind that is not a service.");
+                    return Need.None;
+            }
+        }
+
         /// <summary>Which of <c>adr/0103</c>'s Needs this Resource feeds — <c>need</c>, optional.</summary>
         /// <remarks>
         /// <para>
@@ -853,8 +950,17 @@ public static class RulesetLoader
         /// ⚠ <b><c>education</c> and <c>health</c> are refused BY NAME rather than falling through to
         /// the unknown-value message.</b> They are two of the four Needs and a designer who writes one
         /// has read <c>adr/0103</c>, so the refusal owes them the reason: those two are consumed by
-        /// attending rather than by buying, and their degradation rule is <b>owed and deliberately
-        /// undesigned</b>. ***A generic "not a Need" would tell them the opposite of the truth.***
+        /// attending rather than by buying. ***A generic "not a Need" would tell them the opposite of
+        /// the truth.***
+        /// </para>
+        /// <para>
+        /// 🔴 <b>The refusal SURVIVED and its reason did not.</b> It used to end <em>"its degradation
+        /// rule is owed and DELIBERATELY UNDESIGNED … a Resource cannot feed it until somebody designs
+        /// what attending costs"</em>, and <c>docs/deferred.md</c> named the trigger that would end
+        /// that: a civic Building a Household draws on. <see cref="ReadServes"/> is it. So the key is
+        /// refused here for the same reason as ever — a Resource is the wrong door — and the message
+        /// now names the right one instead of naming an absence. ***A refusal that points somewhere is
+        /// a different sentence from one that only says no.***
         /// </para>
         /// </remarks>
         private Need ReadNeed(TableSyntaxBase table)
@@ -876,12 +982,11 @@ public static class RulesetLoader
                 case "health":
                     Refuse(LineOf(table), need,
                         $"'{need}' is one of adr/0103's four Needs and it has no Good behind it. It "
-                        + "is consumed by attending rather than by buying, so 04 section 1's Good to "
-                        + "Need diagram is not a total map, and its degradation rule is owed and "
-                        + "DELIBERATELY UNDESIGNED (adr/0070) rather than refused. Nothing may be "
-                        + "reasoned from its absence, and a Resource cannot feed it until somebody "
-                        + "designs what attending costs. The two a Good can feed are sustenance and "
-                        + "satisfaction.");
+                        + "is consumed by ATTENDING rather than by buying, so 04 section 1's Good to "
+                        + "Need diagram is not a total map -- and the door it wants is the other "
+                        + $"one: declare a service Building with [[building]] serves = \"{need}\", "
+                        + "and a Household's Trip to it is the occasion (adr/0032). The two a Good "
+                        + "can feed are sustenance and satisfaction.");
                     return Need.None;
 
                 default:
@@ -898,12 +1003,22 @@ public static class RulesetLoader
 
         /// <summary>The <c>[needs]</c> table — how far a Need moves, and how deep it may go.</summary>
         /// <remarks>
-        /// <b>Every key required of a file that states the table</b>, on <c>[market]</c>'s and
+        /// <para>
+        /// <b>Every BOUGHT key required of a file that states the table</b>, on <c>[market]</c>'s and
         /// <c>[districts]</c>' rule: a stated table states its keys, and a defaulted rate is a
         /// hash-bearing number nobody chose. ⚠ <b>Absent means no Household in this city has a Need
         /// at all</b>, which is reached by omitting the table rather than by zeroing it.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>The two ATTENDED pairs are conditional instead — required of a file that declares a
+        /// kind serving them, and refused of one that does not.</b> That is
+        /// <c>[placement] gives_up_after_days</c>'s rule taken whole (<c>adr/0130</c>): required of
+        /// any Ruleset declaring a gate kind and refused elsewhere. ***The unconditional form would
+        /// have made <c>rulesets/hungry.toml</c> author a school's rates to demonstrate hunger***,
+        /// and a number authored to satisfy a loader is the one nobody chose.
+        /// </para>
         /// </remarks>
-        private NeedRuleset ReadNeeds()
+        private NeedRuleset ReadNeeds(KindDefinition[] kinds)
         {
             if (_needsTable is null)
             {
@@ -915,6 +1030,12 @@ public static class RulesetLoader
                 || !TryInteger(_needsTable, "satisfaction_degrade", out long ad, required: true)
                 || !TryInteger(_needsTable, "satisfaction_recover", out long ar, required: true)
                 || !TryInteger(_needsTable, "floor", out long floor, required: true))
+            {
+                return NeedRuleset.None;
+            }
+
+            if (!TryAttendedRates(kinds, Need.Education, "education", out long ed, out long er)
+                || !TryAttendedRates(kinds, Need.Health, "health", out long hd, out long hr))
             {
                 return NeedRuleset.None;
             }
@@ -951,7 +1072,94 @@ public static class RulesetLoader
                 return NeedRuleset.None;
             }
 
-            return new NeedRuleset((int)sd, (int)sr, (int)ad, (int)ar, (int)floor);
+            return new NeedRuleset(
+                (int)sd, (int)sr, (int)ad, (int)ar, (int)ed, (int)er, (int)hd, (int)hr, (int)floor);
+        }
+
+        /// <summary>
+        /// One Attended Need's pair of rates — required where a kind serves it, refused where none
+        /// does.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Both directions are load-bearing and neither is tidiness.</b> A file declaring a school
+        /// and stating no <c>education_degrade</c> is a city whose schools cannot matter — the
+        /// Building stands, the Trips are made, and nothing moves — which is exactly the
+        /// <em>loads clean and does nothing</em> class <c>plans/0014</c> task 3 established. A file
+        /// stating the rates and declaring no school is the mirror: a hash-bearing number nobody can
+        /// reach, which reads on the page as a mechanism the world has.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>The kinds are walked rather than a flag being consulted, because this runs before
+        /// there is a <c>Ruleset</c> to ask.</b> <c>ReadKinds</c> has returned by here and
+        /// <c>Ruleset.ServesAny</c> has not been built yet, so this is the same walk one construction
+        /// step early — and the two must agree, which is what
+        /// <c>ServiceRulesetLoadTests</c> pins.
+        /// </para>
+        /// </remarks>
+        private bool TryAttendedRates(
+            KindDefinition[] kinds, Need need, string name, out long degrade, out long recover)
+        {
+            degrade = 0;
+            recover = 0;
+
+            bool served = false;
+
+            for (int i = 0; i < kinds.Length; i++)
+            {
+                if (kinds[i].Serves == need)
+                {
+                    served = true;
+                    break;
+                }
+            }
+
+            string degradeKey = name + "_degrade";
+            string recoverKey = name + "_recover";
+
+            if (!served)
+            {
+                foreach (string key in new[] { degradeKey, recoverKey })
+                {
+                    if (Find(_needsTable!, key) is not null)
+                    {
+                        Refuse(LineOfNeeds(key), null,
+                            $"{key} is stated and no [[building]] declares serves = \"{name}\". "
+                            + $"{name} is an ATTENDED Need (adr/0032) -- it moves when a Household "
+                            + "travels to a service Building and there is none to travel to -- so "
+                            + "this rate is a hash-bearing number nothing can reach, which reads on "
+                            + "the page as a mechanism this world has. Declare the kind, or drop the "
+                            + "key.");
+
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            if (!TryInteger(_needsTable!, degradeKey, out degrade, required: true)
+                || !TryInteger(_needsTable!, recoverKey, out recover, required: true))
+            {
+                return false;
+            }
+
+            foreach ((string key, long value) in new[] { (degradeKey, degrade), (recoverKey, recover) })
+            {
+                if (value <= 0)
+                {
+                    Refuse(LineOfNeeds(key), null,
+                        $"{key} is {value}. It is how far {name} moves, stated as a positive step "
+                        + "whose DIRECTION is the mechanism's rather than the file's: a degrade "
+                        + "always falls and a recover always rises. Zero would be a Need that never "
+                        + "moves, and this Ruleset declares a kind serving it -- so the Building "
+                        + "would stand, the Trips would be made, and nothing would happen.");
+
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private int LineOfNeeds(string key) =>
@@ -1758,6 +1966,11 @@ public static class RulesetLoader
                     }
                 }
 
+                // adr/0032's Attended services. `serves` is both the declaration and the content --
+                // arrivals_per_day's shape -- so a kind cannot be a service and decline to say what
+                // for, and there is no is_service flag for it to disagree with.
+                Need serves = ReadServes(table, name);
+
                 // adr/0148: the trade a Building of this kind comes with. Optional, because almost
                 // every kind that has ever shipped comes with none -- and resolved to an id HERE
                 // rather than deferred, because [[business]] registration runs in the table walk
@@ -1799,6 +2012,7 @@ public static class RulesetLoader
                     Business = business,
                     Parking = parking,
                     ArrivalsPerDay = arrivalsPerDay,
+                    Serves = serves,
                 };
             }
 

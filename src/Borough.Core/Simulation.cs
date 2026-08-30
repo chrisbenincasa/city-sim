@@ -51,6 +51,7 @@ public sealed class Simulation
     private readonly EmploymentEngine _employment;
     private readonly TripEngine _trips;
     private readonly CommuteEngine _commutes;
+    private readonly ServiceEngine _services;
     private readonly RulesetCatalogue _rulesets;
 
     // Reusable search state for every walk this simulation resolves. It is not simulation state and
@@ -122,6 +123,7 @@ public sealed class Simulation
         // folds World._tables, which nothing here touches.
         _placement = new PlacementEngine(world, key, _trips);
         _commutes = new CommuteEngine(world, _trips);
+        _services = new ServiceEngine(world, _trips);
         _rulesets = rulesets;
     }
 
@@ -160,6 +162,20 @@ public sealed class Simulation
     /// <c>adr/0069</c> exists to break: construction and placement doing each other's jobs.
     /// </remarks>
     public PlacementEngine Placement => _placement;
+
+    /// <summary>
+    /// The Attended Service pass, for its three counters. <b>What it counted on the Tick just
+    /// stepped</b>, so it is meaningful only on a Day boundary and zero on the other 2,047.
+    /// </summary>
+    /// <remarks>
+    /// <b>Read the same way <see cref="LastLifeStages"/> is, and it carries that field's trap.</b>
+    /// <c>Step</c> runs Tick <c>T</c> and then advances, so <see cref="Tick"/> reads <c>T + 1</c> by
+    /// the time control comes back — and a caller gating on <c>Tick % PerDay == 0</c> samples one
+    /// Tick <em>before</em> each boundary and reads zero for ever. ***A level is the same either side
+    /// of a boundary and a flow is not***, which is what made that mistake invisible in every other
+    /// dump and fatal in <c>StageDump</c>.
+    /// </remarks>
+    public ServiceEngine Services => _services;
 
     /// <summary>
     /// <c>adr/0081</c>: a Citizen with no Workplace taking one near home, in phase 6 behind
@@ -442,8 +458,15 @@ public sealed class Simulation
                 ApplyGovern(command);
                 break;
 
-            case CommandKind.None:
             case CommandKind.Service:
+                // 01 section 2's third verb, and the design's one acknowledged placement exception:
+                // pillar 3 is govern-don't-place, and a school appearing wherever the simulation
+                // likes is bad play. adr/0032 is what let it ship -- a Service needs no catchment
+                // key, because coverage is composed from the reachability the Trips already use.
+                ApplyService(command, tick);
+                break;
+
+            case CommandKind.None:
             default:
                 throw new InvalidOperationException(
                     $"command kind {(ushort)command.Kind} is declared but not applied in this slice.");
@@ -855,6 +878,96 @@ public sealed class Simulation
     }
 
     /// <summary>
+    /// Raises one service Building on the vacant Lot at exactly the named Tile.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The design's one placement exception, and it is narrow on purpose.</b> <c>01 §5</c>:
+    /// <em>"Pillar 3 is govern-don't-place, and a fire station appearing wherever the simulation
+    /// likes is bad play — so the player places service Buildings, and <b>only those</b>."</em> A
+    /// kind that serves no Need is refused by name here, which is what keeps the exception from
+    /// becoming a general <em>place any Building</em> verb by the back door.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It does not consult the Lot's Zone, and that is the exception being an exception.</b>
+    /// Every other route to a standing Building goes through a Zone Rule, which builds only where the
+    /// permission set admits its kind — the player paints permissions and the city fills them in.
+    /// This verb is the one place a Building arrives because somebody put it there, so asking a
+    /// permission set would be asking the player to zone for a school before placing one, which is
+    /// two verbs for one decision.
+    /// </para>
+    /// <para>
+    /// <b>Every refusal is a throw and none is a silent no-op</b>, on <c>ApplyDemolish</c>'s rule: a
+    /// command in an Input Log is a thing somebody did, and a verb that quietly declines leaves a
+    /// replay that diverges from the session with nothing in the artefact to say why.
+    /// </para>
+    /// </remarks>
+    private void ApplyService(Command command, Ticks tick)
+    {
+        var kind = (byte)command.Zone;
+
+        if (!_world.Rules.Declares(kind))
+        {
+            throw new InvalidOperationException(
+                $"service names Building kind {kind}, which this Ruleset does not declare. The kind "
+                + "is the verb's whole payload beside the Tile, so an id nothing declares is a "
+                + "command with no subject rather than a placement to fall back from.");
+        }
+
+        Need serves = _world.Rules.Kind(kind).Serves;
+
+        if (serves == Need.None)
+        {
+            throw new InvalidOperationException(
+                $"service names Building kind {kind}, which declares no `serves` key and is "
+                + "therefore not a service Building. 01 section 5 makes this verb the design's ONE "
+                + "placement exception -- the player places service Buildings and only those -- so "
+                + "an ordinary kind is refused here rather than placed. Every other kind reaches the "
+                + "ground through a Zone Rule, which is the city filling in a permission set the "
+                + "player painted.");
+        }
+
+        int lot = VacantLotOn(command.East, command.North);
+
+        if (lot < 0)
+        {
+            throw new InvalidOperationException(
+                $"service names Tile ({command.East.Raw}, {command.North.Raw}), where there is no "
+                + "vacant Lot. The Tile is matched exactly rather than resolved to the block, on "
+                + "demolish's reasoning: [lots] lots_per_segment is five, so `the Lot in this block` "
+                + "names up to twenty of them, and a school landing on a neighbour's plot because "
+                + "the click resolved to the first is worse than a refusal. A Lot holding a Building "
+                + "-- a standing one or an adr/0091 shell -- is not vacant; demolish first.");
+        }
+
+        _world.CreateBuilding(_world.Lots.Rows.At(lot), kind, tick, _key);
+    }
+
+    /// <summary>The vacant Lot at exactly this Tile, or <c>-1</c>.</summary>
+    /// <remarks>
+    /// <b><see cref="BuildingOn"/>'s complement, and exact for the same reason.</b> The two together
+    /// are the whole of how a Tile resolves to ground in this file: one finds what stands there and
+    /// one finds room, and neither will substitute a neighbour.
+    /// </remarks>
+    private int VacantLotOn(Tiles east, Tiles north)
+    {
+        LotTable lots = _world.Lots;
+
+        for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
+        {
+            if (lots.Rows.IsLive(slot)
+                && lots.IsVacant(slot)
+                && lots.East[slot].Raw == east.Raw
+                && lots.North[slot].Raw == north.Raw)
+            {
+                return slot;
+            }
+        }
+
+        return -1;
+    }
+
+    /// <summary>
     /// The Building standing on the Lot at exactly this Tile, or <c>-1</c>.
     /// </summary>
     /// <remarks>
@@ -1031,6 +1144,13 @@ public sealed class Simulation
         // street genuinely costs less than one integration step, and a phase that advanced first would
         // hold such a Trip in flight for a whole Tick for no reason in the city.
         _commutes.Generate(tick);
+
+        // adr/0032's Attended Services, and BEHIND the commute rather than in front of it. Both
+        // create Trips and both walk in slot order, so the ordering is arbitrary and must be fixed:
+        // swapping them renumbers every Trip id the State Hash folds on any Tick carrying both, and
+        // midnight carries both. Behind, because the commute is the older generator and moving it
+        // would re-spell every committed golden baseline for nothing.
+        _services.Attend(tick);
 
         // Serially, though the phase permits parallel. Phases.Runs states that permission as an upper
         // bound rather than an instruction, and plans/0021 task 5 says to take it as one: a parallel

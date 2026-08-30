@@ -3,7 +3,7 @@
 **Read this, not the board. The only thing in flight.**
 
 Opened 2026-08-26. **Ends at a ratio, not on a date: 30 words of prose per line of simulation.**
-**58 at 2026-08-30.** `CorpusBudgetTests.The_amnesty_has_not_yet_earned_its_end` goes red the day
+**57 at 2026-08-30.** `CorpusBudgetTests.The_amnesty_has_not_yet_earned_its_end` goes red the day
 it is earned, and that red is the report. One page, and it stays one page.
 
 
@@ -75,7 +75,7 @@ The rows below were found by asking the code what is missing instead.
 | 7 | Life Stages and self-generation — [`0046`](0046-life-stages-and-a-self-generating-population.md) | ✅ 5/5 |
 | 8 | **`Govern` throws.** `PolicyEngine.Sweep` runs and a Ruleset can declare a `[[policy]]` — but the verb letting a **player** set one hits `InvalidOperationException` at `Simulation.cs:440`. ⚠ **Two of the six verbs are declared and unapplied**; this is the one with a whole mechanism already sitting under it | ✅ 30-08 |
 | 9 | **Needs, and the preference axes.** `Taste` **0 files**, `Preference` **0 files** in `Borough.Core`. `adr/0027` calls them *"the most load-bearing data in the design"*. Until they exist a Household wants nothing a Bin cannot express, and placement satisfices on **distance alone** | ◐ 30-08 |
-| 10 | **`Service` throws.** The civic swath — schools, health, safety. `School` is **0 files**. ⚠ **After 9, not before**: a service with no need to satisfy is a Building with a Bin | |
+| 10 | **`Service` throws.** The civic swath — schools, health, safety. `School` is **0 files**. ⚠ **After 9, not before**: a service with no need to satisfy is a Building with a Bin | ✅ 30-08 |
 | 11 | **The shell.** 🔴 **`src/Borough.Godot` DOES NOT EXIST** — `CLAUDE.md` lists five projects and there are four, and `05` describes this one in detail. The amended done says *you watched it happen*, and the only eye on this city is a text dump | |
 | 12 | **Disasters.** `coastal.toml` carries a Hazard Region and **nothing fires on it** | |
 | 13 | The `0046` loose ends — the dwelling stock's missing sink, `aged.toml`'s narrow windows. ⚠ **Small on purpose and last on purpose**: `StageDumpTests` pins both with tests that assert the defect, so neither can be lost | |
@@ -133,3 +133,49 @@ not depend on a Ruleset having opinions about Buildings.***
 `evicted.toml`'s own cycle rather than by the mechanism. `NeedTests.The_depth_is_a_duration_and_not_a_tally`
 is the guard; ⚠ **every other test in that class passes against the tally.** 🔴 **A new Tick consumer
 with no `plans/0013` row** (`adr/0073`) — the corpus freeze is why.
+
+## What the school run found
+
+**`Service` is applied**, `Need` is complete at four, and `docs/deferred.md` named the exact trigger
+that un-parked Education and Health: *a civic Building a Household draws on*. Nothing was chosen that
+the trigger did not supply.
+
+⚠ **`adr/0118` left this verb's payload examined-not-yet and the answer is clean for a reason it did
+not anticipate.** It expected *a Building and a catchment* to be the hard part. ***There is no catchment
+in the payload at all***: `adr/0032` demoted coverage from mechanism to overlay, so the field that would
+not have fitted turned out not to be a field.
+
+✅ **The degradation rule did not have to be CHOSEN, which was the condition of un-parking.** An attended
+occasion is a daily **sweep**, not a subscription, so the per-occasion step already *is* the per-Day
+rate. ***The asymmetry that forced `RefreshNeed` one item ago was a property of how the occasion
+ARRIVES, not of Needs.***
+
+🔴 **THE ENGINE REWARDED A PLAYER FOR NOT USING IT, AND A RULESET HEADER CAUGHT IT.** The first spelling
+returned early where no school stood, conflating *this Ruleset has no schools* with *this city has built
+none* — so the one city the verb exists to punish was the one where Education stayed pinned at zero.
+`schooled.toml`'s header had already stated the opposite in prose. ***A Ruleset gates the pass; the
+state of the city never does.***
+
+🔴 **AND `main` WAS RED BEFORE ANY OF THIS.** The decide guard's default went false on 08-30 and
+`RuleEvaluationTests.Deciding_writes_nothing_even_on_a_tick_where_rules_fire` asserts it is ON. Eight
+classes were found and opted in; that one was not, and no full run happened afterwards.
+
+**Measured on `schooled.toml`: 2,000 Citizens, 146 Days, 4 schools, 12,122 occasions — `unreached`
+ZERO, and ZERO again at 20,000.**
+
+🔴 **THAT 100% IS A PROPERTY OF THE WORLD.** ***The synthetic city is ~1.4 km across against a Commute
+Budget that walks 4.2 km***, so nothing in it is out of reach — `adr/0089` backwards.
+
+✅ **BUILD ONE WIDER THAN A BUDGET AND THE NUMBER APPEARS: 61% at 100,000 Citizens, 50% at 200,000**
+— 9,841 occasions with a school in the box that no route delivers in time. ***That is the number a
+coverage Map Layer could not have produced.*** ⚠ **It is not `adr/0032`'s Arterial**: `arterial_count
+= 0` here, so the detour is the grid's — a straight-line box against a right-angled walk.
+***Severance stays unmeasured and the instrument for it now exists.***
+
+✅ **The failure half lives at `--schools 0`**: mean depth **−233 by Day 144**, falling at exactly
+`education_degrade = 2` a Day. ⚠ **The knob is the instrument's** — how many schools stand is a fact
+about the city, and no Ruleset says it.
+
+🔴 **A new Tick consumer with no `plans/0013` row** (`adr/0073`) — the corpus freeze is why. ⚠ **It starts
+every school Trip on ONE Tick**; a school day has no hours key to partition on, and the Event Wheel is
+the successor.

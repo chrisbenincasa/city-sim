@@ -853,9 +853,12 @@ public sealed class RuleEngine
 
         int slot = _world.Households.Rows.Resolve(household);
 
-        Column<int> column = need == Need.Sustenance
-            ? _world.Households.Sustenance
-            : _world.Households.Satisfaction;
+        Column<int>? column = _world.Households.NeedColumn(need);
+
+        if (column is null)
+        {
+            return;
+        }
 
         int moved = met
             ? column[slot] + needs.RecoverOf(need)
@@ -952,9 +955,12 @@ public sealed class RuleEngine
                 continue;
             }
 
-            Column<int> column = need == Need.Sustenance
-                ? world.Households.Sustenance
-                : world.Households.Satisfaction;
+            Column<int>? column = world.Households.NeedColumn(need);
+
+            if (column is null)
+            {
+                continue;
+            }
 
             // The Ruleset states steps per DAY (adr/0059's shape: the designer authors a duration),
             // so the cadence this is called on may be retuned without moving the felt quantity.
@@ -973,7 +979,7 @@ public sealed class RuleEngine
     /// ⚠ <b>Written out rather than <c>Math.Clamp</c></b>, which <c>05 §4</c> bans. The floor is
     /// <c>adr/0006</c> as <c>adr/0003</c> extends it: an unbounded magnitude trends downward for ever.
     /// </remarks>
-    private static void Write(Column<int> column, int slot, int value, int floor)
+    internal static void Write(Column<int> column, int slot, int value, int floor)
     {
         if (value > 0)
         {

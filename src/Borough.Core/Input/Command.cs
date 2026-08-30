@@ -14,18 +14,21 @@ namespace Borough.Core.Input;
 /// not an input.
 /// </para>
 /// <para>
-/// <b>Two of the four are declared and not yet applied.</b> Service needs service Buildings and
-/// Govern needs Policy, neither of which exists. Declaring them means the log format already has
-/// their slot, so the artefact a bug report is made of does not change shape when they arrive.
+/// ✅ <b>ALL FOUR ARE NOW APPLIED.</b> This remark read <em>"two of the four are declared and not yet
+/// applied — Service needs service Buildings and Govern needs Policy, neither of which exists"</em>
+/// for most of the project's life. Govern was applied first; <see cref="Service"/> followed once a
+/// <c>[[building]]</c> kind could declare what it is attended for. Declaring them early meant the log
+/// format already had their slot, so the artefact a bug report is made of never changed shape.
 /// </para>
 /// <para>
-/// ⚠ <b>That is a claim about the log's <em>shape</em> and never was a claim about its
+/// ⚠ <b>That was a claim about the log's <em>shape</em> and never was a claim about its
 /// <em>version</em>.</b> This remark used to run on into <em>"and this format version does not have
 /// to be bumped for their arrival"</em>, which <c>InputLogCodec</c> states the refutation of in its
 /// own file: <em>what would bump it is a sixth field on a command</em>. Whether a verb's arrival is
 /// free depends entirely on whether its payload fits the four fields below — <c>Connect</c>'s was
-/// made to fit (<c>adr/0077</c>), and a verb carrying two coordinate pairs would not have.
-/// <b>Service and Govern have not been examined against that test.</b>
+/// made to fit (<c>adr/0077</c>). <b>Both have now been examined against that test and both fit</b>;
+/// <c>adr/0118</c> ran Govern's, and <see cref="Service"/>'s own remark runs its — where the answer
+/// turned on the catchment not being a payload at all.
 /// </para>
 /// </remarks>
 public enum CommandKind : ushort
@@ -50,7 +53,18 @@ public enum CommandKind : ushort
     /// </summary>
     Connect = 2,
 
-    /// <summary>Place a Building with a catchment — the design's one placement exception.</summary>
+    /// <summary>
+    /// Place a service Building — schools and clinics. <b>The design's one placement exception</b>
+    /// (<c>01 §5</c>), and applied since milestone 29.
+    /// </summary>
+    /// <remarks>
+    /// <b>This summary said <em>"place a Building with a catchment"</em> and the catchment is not
+    /// part of it.</b> <c>adr/0032</c> demoted service coverage from <b>mechanism</b> to
+    /// <b>overlay</b>: a Service reaches people because somebody makes a journey, and what a
+    /// catchment describes is composed from that same reachability afterwards. So the verb places a
+    /// Building and names no radius — see <see cref="Command.Service"/>, and
+    /// <c>Rules.KindDefinition.Serves</c> for why the kind carries no catchment key either.
+    /// </remarks>
     Service = 3,
 
     /// <summary>Set taxes, funding, transfers, constraints. Every Policy is a Rule.</summary>
@@ -237,6 +251,47 @@ public readonly struct Command
         ArgumentOutOfRangeException.ThrowIfGreaterThan(policy, ushort.MaxValue);
 
         return new Command(CommandKind.Govern, new Tiles(amount), default, (ushort)policy);
+    }
+
+    /// <summary>
+    /// Place a service Building of this kind on the vacant Lot at this Tile — <c>01 §2</c>'s
+    /// <c>Service</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b><c>adr/0118</c> left this verb's payload EXAMINED-NOT-YET, and the examination comes out
+    /// clean.</b> That record's own words: <em>"`Service` inherits the method rather than the answer.
+    /// Its payload is a Building and a catchment, which is a place and a kind, so it looks like it
+    /// fits — but <b>looks like it fits</b> is what this examination existed to replace."</em> It
+    /// fits, and the reason is not the one the sentence anticipated: ***there is no catchment in the
+    /// payload at all***. <c>adr/0032</c> demoted the catchment from <b>mechanism</b> to
+    /// <b>overlay</b> — coverage is composed from the same reachability the Trips use — so the thing
+    /// that would not have fitted turned out not to be a payload. <b><see cref="East"/> and
+    /// <see cref="North"/> name the Tile and <see cref="Zone"/> carries the kind</b>: no fifth field,
+    /// so <c>InputLogCodec.Version</c> does not move.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The Tile is matched EXACTLY, on <c>Demolish</c>'s reasoning rather than by analogy.</b>
+    /// <c>[lots] lots_per_segment</c> is five, so <em>the Lot in this block</em> names up to twenty of
+    /// them — and a verb that puts a school on a neighbour's plot because the click resolved to the
+    /// first Lot in the block is worse than one that refuses.
+    /// </para>
+    /// <para>
+    /// <b>This is the design's one acknowledged placement exception</b> (<c>01 §5</c>). Pillar 3 is
+    /// govern-don't-place, and a fire station appearing wherever the simulation likes is bad play — so
+    /// the player places service Buildings and only those. ⚠ <b>What the player still does not control
+    /// is staffing</b>, which <c>adr/0026</c> makes demand-determined by catchment and which is
+    /// <c>adr/0070</c> <em>unbuilt</em> here: a school employs whatever its kind's <c>jobs</c> says.
+    /// </para>
+    /// </remarks>
+    /// <param name="east">The Tile's eastward coordinate.</param>
+    /// <param name="north">The Tile's northward coordinate.</param>
+    /// <param name="kind">Which <c>[[building]]</c> kind, by id.</param>
+    public static Command Service(Tiles east, Tiles north, byte kind)
+    {
+        ArgumentOutOfRangeException.ThrowIfZero(kind);
+
+        return new Command(CommandKind.Service, east, north, kind);
     }
 
     /// <summary>Which verb.</summary>

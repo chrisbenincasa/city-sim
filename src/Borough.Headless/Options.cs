@@ -16,6 +16,16 @@ internal enum Mode
     /// </remarks>
     Day,
 
+    /// <summary>
+    /// Place a handful of schools and report who can get to one. <c>plans/0045</c>'s queue item 10.
+    /// </summary>
+    /// <remarks>
+    /// <b>The only mode that issues a PLAYER'S verb.</b> Every other picture either builds a
+    /// synthetic city or steps one; <c>Service</c> is <c>01 §5</c>'s placement exception and there is
+    /// no generator that will ever site a school, so a dump of the mechanism has to play the game.
+    /// </remarks>
+    School,
+
     /// <summary>Build a synthetic city and print what is in it. Slice 4's artefact.</summary>
     Report,
 
@@ -292,6 +302,26 @@ internal sealed class Options
     /// <summary>Citizen sizing, for a fresh session or for the report.</summary>
     public int Citizens { get; private init; } = DefaultPopulation;
 
+    /// <summary>
+    /// How many service Buildings <c>--school</c> places before it runs. <b>Zero is the point of the
+    /// knob.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>An instrument setting and not a design number</b> (<c>adr/0164</c>): no Ruleset key hangs
+    /// on it and no ratifier is owed. ⚠ <b><c>--schools 0</c> is what shows the failure half.</b> A
+    /// city that declares schools and has built none fails every occasion every Day, and that
+    /// branch cannot be reached from a Ruleset — a Ruleset says what a school <em>is</em>, and how
+    /// many stand is a fact about the city the player built. ***A demonstration of an accumulator
+    /// has to be able to fail***, which is <c>rulesets/hungry.toml</c>'s header, and this is where
+    /// that half lives.
+    /// </remarks>
+    public int Schools { get; private init; } = DefaultSchools;
+
+    /// <summary>
+    /// What <c>--schools</c> places when nobody says. <b>Deliberately too few to cover a city.</b>
+    /// </summary>
+    private const int DefaultSchools = 4;
+
     /// <summary>How many Ticks to run.</summary>
     public ulong Ticks { get; private init; } = 1_024;
 
@@ -450,6 +480,8 @@ internal sealed class Options
         bool landValue = false;
         bool arrivals = false;
         bool stages = false;
+        bool school = false;
+        int schools = DefaultSchools;
         bool business = false;
         bool market = false;
         Layer? dump = null;
@@ -575,6 +607,15 @@ internal sealed class Options
                     session = true;
                     continue;
 
+                // A session flag on --stages' reasoning and then some: the schools are placed before
+                // the run, but the reading is a per-Day FLOW off ServiceEngine, which is zero on
+                // every Tick that is not a Day boundary. A snapshot of an unstepped world would find
+                // the counters at their initial zero and report a city nobody had asked anything of.
+                case "--school":
+                    school = true;
+                    session = true;
+                    continue;
+
                 // A session flag for --money's reason rather than --arrivals': a Business is created
                 // by the city on its own and nothing outside has to ask. What it needs is elapsed
                 // time, because construction, founding and placement are all paced.
@@ -684,6 +725,19 @@ internal sealed class Options
                     }
 
                     citizensGiven = true;
+                    break;
+
+                // A count and not a flag, and zero is admitted where --citizens refuses it: a city
+                // with no Citizens has nothing to report, and a city with no schools is the whole
+                // failure half of what --school exists to show.
+                case "--schools":
+                    if (!int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture,
+                            out schools) || schools < 0)
+                    {
+                        complaint = $"--schools {value} is not a count of zero or more.";
+                        return false;
+                    }
+
                     break;
 
                 case "--ticks":
@@ -831,6 +885,15 @@ internal sealed class Options
         //
         // ⚠ --day is named here and still has no block of its own. That is a gap this one does not
         // close: the pair `--day --market` still parses.
+        if (school && (stages || day || money || market || business || arrivals || landValue
+                       || parking || evidence || traffic || commute || zones || roads || trips
+                       || dump is not null))
+        {
+            complaint = "--school asks for another picture, and each picture builds its own world. "
+                      + "Ask for one.";
+            return false;
+        }
+
         if (stages && (day || money || market || business || arrivals || landValue || parking
                        || evidence || traffic || commute || zones || roads || trips
                        || dump is not null))
@@ -1242,6 +1305,7 @@ internal sealed class Options
         options = new Options
         {
             Mode = day ? Mode.Day
+                 : school ? Mode.School
                  : stages ? Mode.Stages
                  : market ? Mode.Market
                  : business ? Mode.Business
@@ -1266,6 +1330,7 @@ internal sealed class Options
             OutPath = output,
             Seed = seed,
             Citizens = citizens,
+            Schools = schools,
             Ticks = ticks,
             HashEvery = hashEvery,
             ForceRuleset = force,

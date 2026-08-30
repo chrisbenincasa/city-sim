@@ -280,29 +280,26 @@ Ship with role and routine. Income, expenses, savings, and purchases-missed are 
 
 ---
 
-## Education and Health as degrading Needs
+## ~~Education and Health as degrading Needs~~ — **BUILT**
 
-**Status:** parked by `adr/0103`, not by this file — the ADR closes the Need set at four and calls a
-degradation rule for these two *"owed and deliberately undesigned"*.
-**Retrofit cost:** Low. Sustenance and Satisfaction ship as two saved columns on `HouseholdTable` and
-one writer, `RuleEngine.MoveNeed`, keyed off `[[resource]] need`. A third and fourth are two more
-columns and two more Ruleset keys; nothing about the shape has to move.
+**Status:** 🔴 **UN-PARKED 2026-08-30 by `plans/0045` queue item 10**, on the trigger this entry named
+itself: ***"a civic Building that a Household draws on ... the moment one exists, the occasion exists
+and the degradation rule follows from it rather than being chosen."*** The verb is applied and a
+`[[building]]` may declare `serves`, so it did.
 
-### Why it's parked
+⚠ **`RulesetLoader` still refuses both by name on `[[resource]] need`, and the refusal is now more
+correct rather than less.** A Resource is the wrong door: these two are consumed by **attending**
+(`adr/0032`), so the message names `[[building]] serves` instead of naming an absence.
 
-**A Need is where a frequent private failure accumulates** (`adr/0103`), and the other two have no
-frequent private failure to accumulate from. Sustenance falls when a Household's larder Rule blocks on
-supply; Satisfaction likewise. Education and Health have **no occasion at all** — no school, no clinic,
-no Rule that a Household runs and that can fail — so a degradation rule for either would be inventing
-the occasion and the rule together. `RulesetLoader` refuses both **by name**, and the message says
-*undesigned* rather than *not a Need*, because `adr/0070` turns on that difference and only *refused*
-is evidence.
+⚠ **The rule was NOT chosen, which was the condition.** An attended occasion is a daily **sweep**
+rather than a subscription, so the per-occasion step already *is* the per-Day rate.
 
-### What would trigger revisiting
+### What is still owed
 
-- **A civic Building that a Household draws on.** `Service` is the unapplied verb and `School` is zero
-  files; the moment one exists, the occasion exists and the degradation rule follows from it rather
-  than being chosen.
-- **`02 §5.4`'s aggregation form settling.** Nothing reads a Need yet — the reader is `adr/0102`'s
-  housed Departure — and whether four Needs combine additively or multiplicatively decides whether a
-  fourth axis is a fourth term or a fourth multiplier.
+- **`02 §5.4`'s aggregation form is still open**, and nothing reads a Need yet — the reader is
+  `adr/0102`'s housed Departure. Four Needs existing does not settle how they combine.
+- **A school employs nobody.** `adr/0026` makes a public job demand-determined by catchment, and
+  nothing sizes a payroll from one. *Unbuilt.*
+- **The drop-off is unbuilt.** `adr/0032` puts a child who cannot walk on a parent's commute; only the
+  walk is built, so a car-owning family is under-served in a way the design says it should not be.
+

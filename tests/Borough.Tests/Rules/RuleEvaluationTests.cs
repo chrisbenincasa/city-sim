@@ -63,7 +63,16 @@ public sealed class RuleEvaluationTests
         Ruleset ruleset, ulong seed = 1)
     {
         var world = new World(1_000, ruleset);
-        var simulation = new Simulation(world, WorldKey.FromSeed(seed));
+        // 🔴 OPTED IN EXPLICITLY, AND main WAS RED FOR WANT OF THIS LINE. The guard's default went
+        // false on 2026-08-30, because it was 43% of the assertion tier's CPU -- and
+        // Deciding_writes_nothing_even_on_a_tick_where_rules_fire asserts the guard is ON, so it
+        // began failing on a tree nobody re-ran afterwards. ***A default that moves is a default
+        // every asserter of it has to be found***, and eight classes were found while this one was
+        // not. It is cheap here: this class builds one Building, so the fold is over a world of one.
+        var simulation = new Simulation(world, WorldKey.FromSeed(seed))
+        {
+            VerifyDecideWritesNothing = true,
+        };
 
         Handle<Lot> lot = world.Lots.Create(new Tiles(1), new Tiles(2), zone: 1);
         Handle<Building> building = world.Buildings.Create(world.Lots, lot, Bakery);

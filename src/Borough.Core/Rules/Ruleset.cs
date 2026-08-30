@@ -744,6 +744,52 @@ public readonly record struct KindDefinition(
     /// </para>
     /// </remarks>
     public int ArrivalsPerDay { get; init; }
+
+    /// <summary>
+    /// Which Need a Building of this kind is attended for; <b><see cref="Need.None"/> means it is
+    /// not a service Building</b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="ArrivalsPerDay"/>'s shape exactly, and taken deliberately rather than by
+    /// analogy.</b> A gate is a <c>[[building]]</c> kind that states one extra key, and stating it is
+    /// what makes the kind a gate — there is no separate <c>[[gate]]</c> table and no
+    /// <c>is_gate = true</c> to disagree with the key. A school is the same: <c>serves</c> is both the
+    /// declaration and the content, so a kind cannot be a service and decline to say what for.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>ONLY <c>adr/0032</c>'s ATTENDED services live here, and the other two modes are not
+    /// missing.</b> That record sorts services by <em>who moves</em>: Attended (the Household
+    /// travels — education, health, recreation), Dispatched (the Service travels — fire, police) and
+    /// Networked (nobody moves — power, water, sewage). ***Only the Attended mode is a Need at all***
+    /// — a Dispatched service is answered by <c>adr/0030</c>'s dispatch Trip and a Networked one by
+    /// flow over the District graph, and neither is a scalar a Household carries. A key here naming
+    /// <c>fire</c> would be filing a Service under the wrong mode, so
+    /// <c>RulesetLoader</c> refuses it by name.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>There is no catchment key, and its absence is the decision.</b> <c>01 §2</c> describes
+    /// this verb as <em>"place a Building with a catchment"</em> and <c>adr/0032</c> demoted the
+    /// catchment from <b>mechanism</b> to <b>overlay</b>: coverage is composed from the same
+    /// reachability the Trips use, so it is <em>derived</em> and authoring it would be authoring an
+    /// answer the Road Graph already has. The single case that decided it is worth keeping in view —
+    /// ***a school across an uncrossable Arterial is 200 m away and unreachable***, which a distance
+    /// field calls excellent and a Trip calls impossible.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A service kind is still an ordinary Building in every other respect.</b> It stands on a
+    /// Lot, seals its footprint, may declare <see cref="Occupants"/> and <c>jobs</c>, and can be
+    /// condemned. What <c>adr/0026</c> adds and this build does not have is that its staffing is
+    /// <em>demand-determined by catchment</em> — ***you cannot fix unemployment by hiring everyone as
+    /// a teacher, because the number of teachers is set by the number of children*** — and that is
+    /// <c>adr/0070</c> <em>unbuilt</em>: a school here employs whatever <c>jobs</c> says, like any
+    /// other kind.
+    /// </para>
+    /// </remarks>
+    public Need Serves { get; init; }
+
+    /// <summary>Whether a Building of this kind is attended for some Need.</summary>
+    public bool IsService => Serves != Need.None;
 }
 
 /// <summary>
@@ -1854,20 +1900,31 @@ public readonly record struct DistrictRuleset(
 /// square wave.
 /// </param>
 /// <summary>
-/// Which of <c>adr/0103</c>'s four Needs a Resource feeds, if it feeds one.
+/// Which of <c>adr/0103</c>'s four Needs a Resource or a service kind feeds.
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Two of the four, and the absence of the other two is a decision rather than a gap.</b>
-/// <c>adr/0103</c> closes the set at Sustenance, Satisfaction, Education and Health — and says of the
-/// last two that <em>"a degradation rule … is owed and is deliberately <b>undesigned</b>"</em>. They
-/// are consumed by attending rather than by buying, so <c>04 §1</c>'s Good → Need diagram is not a
-/// total map and there is nothing here for them to be declared against. ***Adding them would be
-/// inventing a design, not implementing one.***
+/// <b>All four, and the split is now between what feeds them rather than between which exist.</b>
+/// <c>adr/0103</c> closes the set at Sustenance, Satisfaction, Education and Health. The first two
+/// are <em>bought</em> — a Resource declares <c>[[resource]] need</c> and a Rule firing is the
+/// occasion. The last two are <em>attended</em> (<c>adr/0032</c>): a Household travels to a service
+/// Building, which declares <see cref="KindDefinition.Serves"/>, and the Trip is the occasion.
+/// ***So a Resource still cannot feed Education or Health, and <c>RulesetLoader.ReadNeed</c> still
+/// refuses both by name — but the reason changed from <em>undesigned</em> to <em>wrong door</em>.***
 /// </para>
 /// <para>
-/// ⚠ <b>Nothing may reason from their absence</b> (<c>adr/0070</c>): they are <em>undesigned</em>
-/// rather than <em>refused</em>, and only refused is evidence.
+/// 🔴 <b>The last two were parked and <c>docs/deferred.md</c> named the exact thing that would
+/// un-park them</b>: <em>"A civic Building that a Household draws on. <c>Service</c> is the unapplied
+/// verb and <c>School</c> is zero files; the moment one exists, the occasion exists and the
+/// degradation rule follows from it rather than being chosen."</em> The verb is applied, so the
+/// occasion exists and the rule followed. ***Nothing here was chosen that the trigger did not
+/// supply.***
+/// </para>
+/// <para>
+/// ⚠ <b>Education and Health are ONE mechanism and not two.</b> <c>adr/0032</c>: <em>"Health belongs
+/// with schools, not with fire. A clinic is visited routinely; it is Attended."</em> Refusing
+/// <c>serves = "health"</c> while allowing <c>education</c> would re-draw the line that record
+/// removed, and would need an argument nobody has.
 /// </para>
 /// </remarks>
 public enum Need : byte
@@ -1880,6 +1937,24 @@ public enum Need : byte
 
     /// <summary>Fed by Consumer Goods. <em>Fails slowly and softly</em>, and produces decline.</summary>
     Satisfaction = 2,
+
+    /// <summary>
+    /// Fed by attending a school. <b>The first Need whose occasion is a Trip and not a Rule
+    /// firing</b> (<c>adr/0032</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>It has no Good and never will.</b> <c>04 §1</c>'s Good → Need diagram is not a total map,
+    /// which is what <c>ReadNeed</c>'s refusal has always said; what it lacked was somewhere to point
+    /// instead, and <see cref="KindDefinition.Serves"/> is now that place.
+    /// </remarks>
+    Education = 3,
+
+    /// <summary>
+    /// Fed by attending a clinic. <b><see cref="Education"/>'s twin, and deliberately not its
+    /// sibling-by-analogy</b> — <c>adr/0032</c> sorts services by <em>who moves</em>, and both of
+    /// these are Attended.
+    /// </summary>
+    Health = 4,
 }
 
 /// <summary>
@@ -1920,12 +1995,20 @@ public enum Need : byte
 /// <param name="SustenanceRecover">What one met Sustenance occasion returns. Positive.</param>
 /// <param name="SatisfactionDegrade">What a DAY unmet costs. Positive, and a rate.</param>
 /// <param name="SatisfactionRecover">What one met Satisfaction occasion returns. Positive.</param>
+/// <param name="EducationDegrade">What a DAY without a reachable school costs. Positive, a rate.</param>
+/// <param name="EducationRecover">What one attended school run returns. Positive.</param>
+/// <param name="HealthDegrade">What a DAY without a reachable clinic costs. Positive, a rate.</param>
+/// <param name="HealthRecover">What one attended clinic visit returns. Positive.</param>
 /// <param name="Floor">The deepest deficit a Need may reach. Negative, or zero for no Needs.</param>
 public readonly record struct NeedRuleset(
     int SustenanceDegrade,
     int SustenanceRecover,
     int SatisfactionDegrade,
     int SatisfactionRecover,
+    int EducationDegrade,
+    int EducationRecover,
+    int HealthDegrade,
+    int HealthRecover,
     int Floor)
 {
     /// <summary>A Ruleset in which no Household has a Need at all.</summary>
@@ -1934,16 +2017,34 @@ public readonly record struct NeedRuleset(
     /// <summary>Whether any Need moves in this city.</summary>
     public bool Runs => Floor < 0;
 
+    /// <summary>
+    /// Whether any <em>attended</em> Need moves in this city — <c>adr/0032</c>'s Education and
+    /// Health.
+    /// </summary>
+    /// <remarks>
+    /// <b>Asked separately from <see cref="Runs"/> because the two halves have different engines.</b>
+    /// A file stating <c>[needs]</c> and declaring no service kind has bought Needs and no attended
+    /// ones, and <c>ServiceEngine</c> must stay silent in it rather than sweeping a population whose
+    /// answer cannot move. ⚠ <b>It keys on the rates and not on the kinds</b>, because the kinds are
+    /// <see cref="Ruleset.ServesAny"/>'s question and a Ruleset can legally have one without the
+    /// other.
+    /// </remarks>
+    public bool Attends => Runs && (EducationDegrade > 0 || HealthDegrade > 0);
+
     /// <summary>What one failed occasion costs the given Need.</summary>
     public int DegradeOf(Need need) =>
         need == Need.Sustenance ? SustenanceDegrade
         : need == Need.Satisfaction ? SatisfactionDegrade
+        : need == Need.Education ? EducationDegrade
+        : need == Need.Health ? HealthDegrade
         : 0;
 
     /// <summary>What one met occasion returns to the given Need.</summary>
     public int RecoverOf(Need need) =>
         need == Need.Sustenance ? SustenanceRecover
         : need == Need.Satisfaction ? SatisfactionRecover
+        : need == Need.Education ? EducationRecover
+        : need == Need.Health ? HealthRecover
         : 0;
 }
 
@@ -3567,6 +3668,41 @@ public sealed class Ruleset
     /// as <c>02 §4.3</c> has a Building do.
     /// </remarks>
     public bool DeclaresBusiness(byte kind) => kind != 0 && kind <= BusinessKindCount;
+
+    /// <summary>Which Need a Building of this kind is attended for; <c>None</c> if it is not one.</summary>
+    /// <remarks>
+    /// <b>Total over undeclared kinds rather than throwing</b>, which is <see cref="NeedOf"/>'s
+    /// polarity and <c>02 §4.3</c>'s: a Building whose kind a reloaded Ruleset no longer names is
+    /// derelict, and a derelict school is a Building nobody can attend rather than a load failure.
+    /// </remarks>
+    public Need ServedBy(byte kind) => Declares(kind) ? Kind(kind).Serves : Need.None;
+
+    /// <summary>Whether any declared kind is attended for this Need.</summary>
+    /// <remarks>
+    /// <b>Asked once at a sweep's front door and not per Household.</b> A city whose Ruleset declares
+    /// no school cannot fail a school run — there is no occasion to fail — so
+    /// <c>ServiceEngine</c> must be silent rather than degrading everybody, which is the
+    /// difference between <em>the city has no schools</em> and <em>the city's schools are
+    /// unreachable</em>. ⚠ <b>It walks the kinds and is not cached</b>: the array is short, this runs
+    /// once a Day, and a cached flag would be derived state with a rebuild nobody wrote.
+    /// </remarks>
+    public bool ServesAny(Need need)
+    {
+        if (need == Need.None)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < _kinds.Length; i++)
+        {
+            if (_kinds[i].Serves == need)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     /// <summary>One Building kind, or a throw.</summary>
     /// <exception cref="ArgumentOutOfRangeException">No kind carries that id.</exception>

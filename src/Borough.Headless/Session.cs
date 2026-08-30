@@ -910,6 +910,20 @@ internal static class Session
         return StageDump.Run(options, writer);
     }
 
+    /// <summary>Runs the school dump, to a file or to the console.</summary>
+    internal static int DumpSchool(Options options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (options.OutPath is null)
+        {
+            return SchoolDump.Run(options, Console.Out);
+        }
+
+        using var writer = new StreamWriter(options.OutPath);
+        return SchoolDump.Run(options, writer);
+    }
+
     /// <summary>Runs the land value dump, to a file or to the console.</summary>
     internal static int DumpLandValue(Options options)
     {

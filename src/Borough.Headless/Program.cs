@@ -90,6 +90,9 @@ internal static class Program
                 case Mode.Stages:
                     return Session.DumpStages(options);
 
+                case Mode.School:
+                    return Session.DumpSchool(options);
+
                 case Mode.Report:
                 default:
                     return Report.Print(options);

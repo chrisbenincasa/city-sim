@@ -49,10 +49,14 @@ public sealed class HouseholdTable
         BinTail = _rows.SavedHandle("bin_tail", bins.Rows);
         Balance = _rows.DerivedHandle("balance", bins.Rows, reference: Reference.Required);
 
-        // Appended, milestone 28. adr/0103's two Needs that HAVE a Good behind them; Education and
-        // Health are deliberately undesigned and have no column here to be dead in.
+        // adr/0103's four Needs, and the set is now complete. The first two are BOUGHT -- a Rule
+        // firing is the occasion -- and the last two are ATTENDED, where a Household's Trip to a
+        // service Building is (adr/0032). ⚠ The two halves are one scalar type and two engines, so
+        // they are declared together and written from different places on purpose.
         Sustenance = _rows.Saved<int>("sustenance", Touch.Cold);
         Satisfaction = _rows.Saved<int>("satisfaction", Touch.Cold);
+        Education = _rows.Saved<int>("education", Touch.Cold);
+        Health = _rows.Saved<int>("health", Touch.Cold);
 
         _rows.Seal();
     }
@@ -99,6 +103,56 @@ public sealed class HouseholdTable
     /// crises and the second produces decline, which is why <c>NeedRuleset</c> rates them separately.
     /// </remarks>
     public Column<int> Satisfaction { get; }
+
+    /// <summary>
+    /// How well schooled this Household's children are. <b>0 is ideal.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>The first Need fed by ATTENDING rather than by buying</b> (<c>adr/0032</c>), and the
+    /// difference is not a detail of plumbing: <see cref="Sustenance"/> moves when a Rule fires on a
+    /// Bin, and this moves when somebody makes a <em>journey</em>. So a school across an uncrossable
+    /// Arterial is 200 m away and does nothing for the Household beside it — which is the single case
+    /// that decided <c>adr/0032</c>, and it is unrepresentable in a Bin.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Zero here means <em>this world has no schools</em> as readily as it means <em>well
+    /// served</em>, and the two are told apart by the Ruleset rather than by the column</b> —
+    /// <c>Rules.ServesAny(Need.Education)</c>. That is <see cref="LifeStage"/>'s zero exactly, one
+    /// table along, and it is why <c>ServiceEngine</c> asks the Ruleset at its front door instead of
+    /// degrading a population that has nothing to attend.
+    /// </para>
+    /// </remarks>
+    public Column<int> Education { get; }
+
+    /// <summary>
+    /// How well attended this Household's health is. <b>0 is ideal.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b><see cref="Education"/>'s twin, and <c>adr/0032</c> refuses to file it with fire.</b>
+    /// <em>"Health belongs with schools, not with fire. A clinic is visited routinely; it is
+    /// Attended. Only fire and police are genuinely insurance, which makes that category two services
+    /// out of nine rather than the half the group looked like."</em> One engine serves both.
+    /// </remarks>
+    public Column<int> Health { get; }
+
+    /// <summary>The column one Need is kept in, or <c>null</c> for <see cref="Need.None"/>.</summary>
+    /// <remarks>
+    /// <b>One accessor rather than a conditional at each of the four write sites.</b> The set was two
+    /// and the ternary each caller wrote was readable; at four it is a chain that has to be got right
+    /// in every reader, and a Need silently falling through to <see cref="Satisfaction"/> is a
+    /// mis-attribution nothing would report. ⚠ <b>Null rather than a throw</b>, because
+    /// <see cref="Need.None"/> is the ordinary answer for almost every Resource in almost every
+    /// Ruleset and a caller asking about one is not making a mistake.
+    /// </remarks>
+    public Column<int>? NeedColumn(Need need) => need switch
+    {
+        Need.Sustenance => Sustenance,
+        Need.Satisfaction => Satisfaction,
+        Need.Education => Education,
+        Need.Health => Health,
+        _ => null,
+    };
 
     /// <summary>The Building this Household lives in.</summary>
     public HandleColumn<Building> Dwelling { get; }

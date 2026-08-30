@@ -119,13 +119,16 @@ public sealed class NeedTests
     }
 
     /// <summary>
-    /// 🔴 <b>Education and Health are refused BY NAME, and the message says <em>undesigned</em>.</b>
+    /// 🔴 <b>Education and Health are still refused BY NAME, and the message now says where to
+    /// go.</b>
     /// </summary>
     /// <remarks>
-    /// <b>A generic <em>"not a Need"</em> would tell the designer the opposite of the truth.</b> They
-    /// are two of the four, and <c>adr/0070</c> turns on the difference between <em>undesigned</em>
-    /// and <em>refused</em> — only the second is evidence. ***A refusal that miscategorises an absence
-    /// is how somebody later reasons from it.***
+    /// <b>The refusal survived and its reason did not.</b> It used to end <em>"its degradation rule
+    /// is owed and DELIBERATELY UNDESIGNED"</em>, and <c>docs/deferred.md</c> named the exact thing
+    /// that would end that — <em>a civic Building a Household draws on</em>. <c>ServiceEngine</c> is
+    /// it, so the key is refused here for the same reason as ever, which is that a Resource is the
+    /// wrong door, and the message names the right one. ***A refusal that points somewhere is a
+    /// different sentence from one that only says no.***
     /// </remarks>
     [Fact]
     public void A_need_with_no_good_behind_it_is_refused_by_name()
@@ -134,7 +137,8 @@ public sealed class NeedTests
             "need = \"sustenance\"", "need = \"education\"", StringComparison.Ordinal));
 
         Assert.False(result.Ok);
-        Assert.Contains("UNDESIGNED", result.Describe(), StringComparison.Ordinal);
+        Assert.Contains("ATTENDING", result.Describe(), StringComparison.Ordinal);
+        Assert.Contains("serves", result.Describe(), StringComparison.Ordinal);
     }
 
     /// <summary>A floor at or above zero is refused, because it would mean nobody can go short.</summary>
