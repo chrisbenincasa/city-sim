@@ -1126,6 +1126,8 @@ public sealed class Simulation
 
         _policies.Sweep(tick);
 
+        _rules.SweepNeeds(tick);
+
         _placement.Place(tick);
 
         // adr/0081, and behind placement rather than in front of it: a commute is anchored at a

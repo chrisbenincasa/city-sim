@@ -3,7 +3,7 @@
 **Read this, not the board. The only thing in flight.**
 
 Opened 2026-08-26. **Ends at a ratio, not on a date: 30 words of prose per line of simulation.**
-**59 at 2026-08-30.** `CorpusBudgetTests.The_amnesty_has_not_yet_earned_its_end` goes red the day
+**58 at 2026-08-30.** `CorpusBudgetTests.The_amnesty_has_not_yet_earned_its_end` goes red the day
 it is earned, and that red is the report. One page, and it stays one page.
 
 
@@ -74,7 +74,7 @@ The rows below were found by asking the code what is missing instead.
 | 6 | ~~Wages~~ — `waged.toml`; arrears got a sink | ✅ 27-08 |
 | 7 | Life Stages and self-generation — [`0046`](0046-life-stages-and-a-self-generating-population.md) | ✅ 5/5 |
 | 8 | **`Govern` throws.** `PolicyEngine.Sweep` runs and a Ruleset can declare a `[[policy]]` — but the verb letting a **player** set one hits `InvalidOperationException` at `Simulation.cs:440`. ⚠ **Two of the six verbs are declared and unapplied**; this is the one with a whole mechanism already sitting under it | ✅ 30-08 |
-| 9 | **Needs, and the preference axes.** `Taste` **0 files**, `Preference` **0 files** in `Borough.Core`. `adr/0027` calls them *"the most load-bearing data in the design"*. Until they exist a Household wants nothing a Bin cannot express, and placement satisfices on **distance alone** | |
+| 9 | **Needs, and the preference axes.** `Taste` **0 files**, `Preference` **0 files** in `Borough.Core`. `adr/0027` calls them *"the most load-bearing data in the design"*. Until they exist a Household wants nothing a Bin cannot express, and placement satisfices on **distance alone** | ◐ 30-08 |
 | 10 | **`Service` throws.** The civic swath — schools, health, safety. `School` is **0 files**. ⚠ **After 9, not before**: a service with no need to satisfy is a Building with a Bin | |
 | 11 | **The shell.** 🔴 **`src/Borough.Godot` DOES NOT EXIST** — `CLAUDE.md` lists five projects and there are four, and `05` describes this one in detail. The amended done says *you watched it happen*, and the only eye on this city is a text dump | |
 | 12 | **Disasters.** `coastal.toml` carries a Hazard Region and **nothing fires on it** | |
@@ -95,3 +95,41 @@ writer: home-to-home is a Trip like any other. `CommuteDirectionTests` holds it.
 ⚠ **It failed three other tests, none a regression**: one horizon too short, two bands calibrated on
 phantom traffic. ***Figures off those instruments before 2026-08-27 were partly paid for by a
 defect.***
+
+## What `hungry.toml` found
+
+**Sustenance and Satisfaction ship** — two saved columns, one writer (`RuleEngine.MoveNeed`), a
+`[[resource]] need` key and a `[needs]` table. Education and Health are refused **by name** and filed
+in `docs/deferred.md`. `--day` reports the reading and the city's hunger beside it.
+
+🔴 **And watching it ran the mechanism into a wall: the Need is a TALLY where `04 §6` step 6 asks for a
+duration.** It moves on a failed *occasion*, and a blocked Rule has **one** — `RuleEngine.Stop`
+subscribes it to the Bin and it sleeps until that Bin changes, which on a world nothing restocks is
+never. So *a dry afternoon and a dry month* read **-4** alike, which is the sentence the mechanism was
+built from, inverted.
+
+**Measured on `hungry.toml`, 2,000 Citizens over 32,768 Ticks:** deepest **-44**, mean **-28** over
+720 Households — **7 degrades each**, where `consume`'s rate of 32 would give 1,024. ⚠ **The 7 is the
+rehousing count.** The census reads *tenancies ended* at 13–30 per 64-Tick window over 512 readings,
+≈6,600 city-wide, ≈9 a Household; each rehousing builds a fresh Bin and buys exactly one more failure.
+***The column is counting tenancies, not hunger.*** 🔴 **The first reading of this said 30 tenancies
+total and the attribution was withdrawn for an hour** — the census columns are *first/last/low/high* of
+a per-interval **sum**, not a run total, which is `plans/0012` **Cause 5** read off a table header.
+
+***This is `adr/0053` arriving a second time, one subject along*** — the Building's pressure clock was
+rebuilt as a duration for this reason and the Household's was not.
+
+✅ **FIXED THE SAME DAY.** `RuleEngine.RefreshNeed` recomputes the depth from `tick − StarvedSince`
+on `SweepNeeds`, a daily pass. ⚠ **It RECOMPUTES rather than accumulating**, which is what makes a
+staggered pass sound: the depth is a function of the duration, so a Household first visited ten Days
+in arrives at the right depth in one step. **The period is derived** — the Ruleset states a degrade
+*per Day*, so a Day is where the depth is exact and no cadence number enters the design.
+⚠ **Its own pass rather than a ride on the Zone Rule sweep**: `Condemn` reaches a Building only
+through a *sample* and only when its kind declares `condemn_after_days` or `tenancy_ends_after_days`,
+so hunger would have been a silent function of two keys about Buildings. ***A Household mechanism must
+not depend on a Ruleset having opinions about Buildings.***
+
+**Re-measured:** deepest **-31**, mean **-10** — the depth is now days-since-fed, and it is bounded by
+`evicted.toml`'s own cycle rather than by the mechanism. `NeedTests.The_depth_is_a_duration_and_not_a_tally`
+is the guard; ⚠ **every other test in that class passes against the tally.** 🔴 **A new Tick consumer
+with no `plans/0013` row** (`adr/0073`) — the corpus freeze is why.

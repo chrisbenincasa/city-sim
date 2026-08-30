@@ -49,11 +49,56 @@ public sealed class HouseholdTable
         BinTail = _rows.SavedHandle("bin_tail", bins.Rows);
         Balance = _rows.DerivedHandle("balance", bins.Rows, reference: Reference.Required);
 
+        // Appended, milestone 28. adr/0103's two Needs that HAVE a Good behind them; Education and
+        // Health are deliberately undesigned and have no column here to be dead in.
+        Sustenance = _rows.Saved<int>("sustenance", Touch.Cold);
+        Satisfaction = _rows.Saved<int>("satisfaction", Touch.Cold);
+
         _rows.Seal();
     }
 
     /// <summary>The slot allocator, the generation counters and the column list.</summary>
     public Rows<Household> Rows => _rows;
+
+    /// <summary>
+    /// How well fed this Household is. <b>0 is ideal and negative is deficit.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A relative scalar and not a stockpile</b> (<c>CONTEXT.md</c> → Need, <c>04 §2</c>): it
+    /// expresses <em>how well is this Household doing</em>, not how much food it has. The food it has
+    /// is an integer in a Bin, and the two must not be confused — <c>04 §2</c> is titled <em>Goods are
+    /// absolute; Needs are relative</em> for this reason.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It falls on a failed occasion and recovers on a met one, and that is the WHOLE
+    /// mechanism.</b> <c>04 §6</c> step 6: <em>"The Need is the accumulator … so a dry afternoon and a
+    /// dry month are one mechanism at two depths, and nothing else in this chain has to remember
+    /// anything."</em> There is no duration under it and no threshold in it —
+    /// <c>adr/0102</c> is explicit that a threshold here would be <c>adr/0053</c>'s Failure Pressure,
+    /// which is the <em>Building</em> mechanism and exists because abandonment has no actor.
+    /// ***A Household has one.***
+    /// </para>
+    /// <para>
+    /// 🔴 <b>NOTHING READS IT YET.</b> The reader is <c>02 §5.4</c>'s comparison against a Hinterland
+    /// — <c>adr/0102</c>'s housed Departure, which is milestone 19 and which that ADR says
+    /// <em>"inherits a specification rather than a design question"</em>. ⚠ <b>The utility
+    /// aggregation form is itself unsettled</b> (<c>02 §5.4</c> files additive against multiplicative
+    /// as <em>open</em>), so building a reader here would take an undesigned position. This milestone
+    /// builds the accumulator; the comparison arrives after.
+    /// </para>
+    /// </remarks>
+    public Column<int> Sustenance { get; }
+
+    /// <summary>
+    /// How well supplied with Consumer Goods this Household is. <b>0 is ideal.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b><see cref="Sustenance"/>'s sibling, differing only in speed.</b> <c>04 §1</c>: <em>"Food
+    /// fails fast and hard … Consumer Goods fail slowly and softly."</em> The first chain produces
+    /// crises and the second produces decline, which is why <c>NeedRuleset</c> rates them separately.
+    /// </remarks>
+    public Column<int> Satisfaction { get; }
 
     /// <summary>The Building this Household lives in.</summary>
     public HandleColumn<Building> Dwelling { get; }

@@ -210,6 +210,13 @@ public static class Evidence
                 ? new Money(world.Bins.LevelAt(balanceBin))
                 : null;
 
+        // 02 section 9's third clause. Read off the same resolved slot as the balance and null on the
+        // same condition: an unhoused Citizen has no Household row, and a zero would say "ideally fed"
+        // about somebody nobody is feeding.
+        int? sustenance = world.Households.Rows.TryResolve(household, out int needSlot)
+            ? world.Households.Sustenance[needSlot]
+            : null;
+
         return new CitizenEvidence(
             citizen,
             household,
@@ -219,6 +226,7 @@ public static class Evidence
             world.Citizens.PlannedCommute[slot],
             world.Citizens.ReachFailures[slot],
             balance,
+            sustenance,
             InFlightTrip(world, citizen),
             last);
     }

@@ -36,7 +36,8 @@ internal static class DayDump
 {
     /// <summary>The subject's state at one Tick, reduced to what a transition would change.</summary>
     private readonly record struct Reading(
-        CitizenActivity Activity, bool Travelling, TripFate LastFate, long Balance);
+        CitizenActivity Activity, bool Travelling, TripFate LastFate, long Balance,
+        int Sustenance);
 
     internal static int Run(Options options, TextWriter output)
     {
@@ -142,6 +143,7 @@ internal static class DayDump
             $"#   commute      {Minutes(who.PlannedCommute.Raw)} min, as planned when the job was "
             + "taken");
         output.WriteLine($"#   household    {Balance(who)}");
+        output.WriteLine($"#   sustenance   {Need(who)}");
         output.WriteLine(
             $"#   job searches refused for want of a road: {who.ReachFailures}");
         output.WriteLine("#");
@@ -165,6 +167,11 @@ internal static class DayDump
         var counts = new int[4];
         int employed = 0;
         int live = 0;
+        int hungry = 0;
+        int pinned = 0;
+        int deepest = 0;
+        long total = 0;
+        int floor = world.Rules.Needs.Floor;
 
         for (int slot = 0; slot < world.Citizens.Rows.SlotCount; slot++)
         {
@@ -182,12 +189,46 @@ internal static class DayDump
             }
         }
 
+        // ⚠ HOUSEHOLDS rather than Citizens, and it is the one count on this line with a different
+        // denominator. A Need belongs to the Household, so walking the Citizens would count a
+        // Household of three three times and report a hunger that is really an occupancy.
+        int households = 0;
+
+        for (int slot = 0; slot < world.Households.Rows.SlotCount; slot++)
+        {
+            if (!world.Households.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            households++;
+
+            int need = world.Households.Sustenance[slot];
+
+            deepest = need < deepest ? need : deepest;
+            total += need;
+            hungry += need < 0 ? 1 : 0;
+            pinned += need == floor ? 1 : 0;
+        }
+
         output.WriteLine(
             $"#   meanwhile    {live:N0} live, {employed:N0} employed — "
             + $"{counts[(int)CitizenActivity.AtHome]:N0} at home, "
             + $"{counts[(int)CitizenActivity.TravellingToWork]:N0} walking to work, "
             + $"{counts[(int)CitizenActivity.AtWork]:N0} at work, "
             + $"{counts[(int)CitizenActivity.TravellingHome]:N0} walking home");
+
+        if (!world.Rules.Needs.Runs)
+        {
+            return;
+        }
+
+        // The count at the floor is the number to read: a Need is bounded below, so its mean is
+        // dragged by the bound rather than by the city.
+        output.WriteLine(
+            $"#   hunger       {hungry:N0} of {households:N0} Households in deficit, {pinned:N0} "
+            + $"pinned at the floor ({floor}) — deepest {deepest}, mean "
+            + $"{(households > 0 ? total / households : 0)}");
     }
 
     /// <summary>
@@ -245,7 +286,8 @@ internal static class DayDump
             (CitizenActivity)who.Activity,
             who.Trip is not null,
             who.LastTrip?.Fate ?? TripFate.InFlight,
-            who.HouseholdBalance is { } money ? money.Raw : long.MinValue);
+            who.HouseholdBalance is { } money ? money.Raw : long.MinValue,
+            who.Sustenance ?? 0);
     }
 
     private static string Describe(Reading was, Reading now)
@@ -273,6 +315,16 @@ internal static class DayDump
                 : $"the household received {moved:N0}";
         }
 
+        if (was.Sustenance != now.Sustenance)
+        {
+            // Only a world stating [needs] ever reaches this, and only while the Household is short:
+            // 0 is the ideal and the accumulator clamps there, so a fed city produces no line at all
+            // and a starving one stops producing them once it is pinned at the floor.
+            return now.Sustenance < was.Sustenance
+                ? $"went hungrier — sustenance {now.Sustenance}"
+                : $"ate — sustenance {now.Sustenance}";
+        }
+
         return was.Travelling != now.Travelling ? "the journey resolved" : "something changed";
     }
 
@@ -297,7 +349,7 @@ internal static class DayDump
         output.WriteLine(
             "# they chose not to (adr/0070 — an unbuilt mechanism is not a design constraint):");
         output.WriteLine("#");
-        output.WriteLine("#   eat, or feel any Need         adr/0103 closes the set at four; nothing builds it");
+        output.WriteLine("#   feel Education or Health      adr/0103 leaves their degradation UNDESIGNED");
         output.WriteLine("#   buy anything                  no shopping occasion; the commute is the only generator");
         output.WriteLine("#   visit or know anybody         no social mechanism of any kind");
         output.WriteLine("#   get one Day older             CitizenTable.Age is saved, hashed, and written by nothing");
@@ -334,6 +386,16 @@ internal static class DayDump
         TripFate.Completed => "the journey completed",
         _ => "the journey did not finish",
     };
+
+    /// <summary>The subject's Sustenance, or why the question does not apply.</summary>
+    /// <remarks>
+    /// ⚠ <b>Absent rather than zero where the Ruleset states no <c>[needs]</c></b>: 0 is the ideal,
+    /// so printing it about a city nobody feeds would say the opposite of the truth.
+    /// </remarks>
+    private static string Need(CitizenEvidence who) =>
+        who.Sustenance is { } need
+            ? $"{need}  (0 is ideal, negative is deficit)"
+            : "this Ruleset states no [needs], so the question does not apply";
 
     private static string Balance(CitizenEvidence who) =>
         who.HouseholdBalance is { } money

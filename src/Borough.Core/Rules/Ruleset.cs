@@ -1844,6 +1844,109 @@ public readonly record struct DistrictRuleset(
         Runs && tick.Raw > 0 && tick.Raw % (ulong)RevisitTicks == 0;
 }
 
+/// <param name="DecayPercent">
+/// How much of the standing consumption rate survives one Day, as a percentage. The rest of the
+/// weight goes to the Day just ended. <b>Hash-bearing.</b>
+/// </param>
+/// <param name="MoveCapPercent">
+/// The furthest a price may travel in one recompute, as a percentage of the ceiling.
+/// <b>Hash-bearing</b>, and it is what stops <c>04 §4</c>'s predicted oscillation from being a
+/// square wave.
+/// </param>
+/// <summary>
+/// Which of <c>adr/0103</c>'s four Needs a Resource feeds, if it feeds one.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>Two of the four, and the absence of the other two is a decision rather than a gap.</b>
+/// <c>adr/0103</c> closes the set at Sustenance, Satisfaction, Education and Health — and says of the
+/// last two that <em>"a degradation rule … is owed and is deliberately <b>undesigned</b>"</em>. They
+/// are consumed by attending rather than by buying, so <c>04 §1</c>'s Good → Need diagram is not a
+/// total map and there is nothing here for them to be declared against. ***Adding them would be
+/// inventing a design, not implementing one.***
+/// </para>
+/// <para>
+/// ⚠ <b>Nothing may reason from their absence</b> (<c>adr/0070</c>): they are <em>undesigned</em>
+/// rather than <em>refused</em>, and only refused is evidence.
+/// </para>
+/// </remarks>
+public enum Need : byte
+{
+    /// <summary>A Resource that feeds no Need. Every Resource in every Ruleset until milestone 28.</summary>
+    None = 0,
+
+    /// <summary>Fed by Food. <c>04 §1</c>: <em>fails fast and hard</em>, and produces crises.</summary>
+    Sustenance = 1,
+
+    /// <summary>Fed by Consumer Goods. <em>Fails slowly and softly</em>, and produces decline.</summary>
+    Satisfaction = 2,
+}
+
+/// <summary>
+/// How far a Need moves on a failed occasion and on a met one, and how far down it may go.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>A Need is a relative scalar where 0 is ideal and negative values are deficit</b>
+/// (<c>CONTEXT.md</c> → Need, <c>04 §2</c>). It is <em>not</em> a stockpile — it expresses <em>how
+/// well is this Household doing</em> — so these are steps on a scale nobody banks.
+/// </para>
+/// <para>
+/// 🔴 <b>Every number here is PROVISIONAL and chosen by taste</b>, under <c>plans/0045</c> standing
+/// order 4, which suspends <c>adr/0052</c>. No ratifier, no <c>plans/0002</c> §D row. <c>adr/0102</c>
+/// authorises no number and never did; what the corpus specifies is the <em>representation</em> and
+/// the <em>trigger</em>, and it stops there.
+/// </para>
+/// <para>
+/// ⚠ <b><see cref="Floor"/> is required rather than a convenience.</b> A Need that fell for ever
+/// would be a magnitude trending downward at steady state, which is <c>adr/0006</c> as
+/// <c>adr/0003</c> extends it to quantities — the one invariant a long run is written to catch. ***A
+/// Household in a city with no food is destitute at some depth and no more destitute after that.***
+/// </para>
+/// <para>
+/// ⚠ <b>A degrade is a RATE PER DAY and a recover is a STEP PER OCCASION, and the asymmetry is
+/// deliberate.</b> A Rule that fires is being visited, so a meal is an event; a Rule that is blocked
+/// is asleep on its Bin, so a shortage is a <em>state</em> and only a duration can measure it —
+/// <c>adr/0053</c>'s finding about the Building, arriving at the Household.
+/// </para>
+/// <para>
+/// <b>Sustenance and Satisfaction get separate rates because <c>04 §1</c> distinguishes them by
+/// speed</b>: <em>"Food fails fast and hard"</em> against <em>"Consumer Goods fail slowly and
+/// softly"</em>. One shared pair of rates would collapse the crisis chain and the decline chain into
+/// one, which is the distinction that section exists to draw.
+/// </para>
+/// </remarks>
+/// <param name="SustenanceDegrade">What a DAY unmet costs. Positive, and a rate.</param>
+/// <param name="SustenanceRecover">What one met Sustenance occasion returns. Positive.</param>
+/// <param name="SatisfactionDegrade">What a DAY unmet costs. Positive, and a rate.</param>
+/// <param name="SatisfactionRecover">What one met Satisfaction occasion returns. Positive.</param>
+/// <param name="Floor">The deepest deficit a Need may reach. Negative, or zero for no Needs.</param>
+public readonly record struct NeedRuleset(
+    int SustenanceDegrade,
+    int SustenanceRecover,
+    int SatisfactionDegrade,
+    int SatisfactionRecover,
+    int Floor)
+{
+    /// <summary>A Ruleset in which no Household has a Need at all.</summary>
+    public static NeedRuleset None => default;
+
+    /// <summary>Whether any Need moves in this city.</summary>
+    public bool Runs => Floor < 0;
+
+    /// <summary>What one failed occasion costs the given Need.</summary>
+    public int DegradeOf(Need need) =>
+        need == Need.Sustenance ? SustenanceDegrade
+        : need == Need.Satisfaction ? SatisfactionDegrade
+        : 0;
+
+    /// <summary>What one met occasion returns to the given Need.</summary>
+    public int RecoverOf(Need need) =>
+        need == Need.Sustenance ? SustenanceRecover
+        : need == Need.Satisfaction ? SatisfactionRecover
+        : 0;
+}
+
 /// <summary>
 /// The <c>[market]</c> table — <b>how fast a Pool price is allowed to move</b>
 /// (<c>adr/0135</c>, milestone 12 task 6).
@@ -1887,15 +1990,6 @@ public readonly record struct DistrictRuleset(
 /// the alternative is a §D row for a key that never shipped.
 /// </para>
 /// </remarks>
-/// <param name="DecayPercent">
-/// How much of the standing consumption rate survives one Day, as a percentage. The rest of the
-/// weight goes to the Day just ended. <b>Hash-bearing.</b>
-/// </param>
-/// <param name="MoveCapPercent">
-/// The furthest a price may travel in one recompute, as a percentage of the ceiling.
-/// <b>Hash-bearing</b>, and it is what stops <c>04 §4</c>'s predicted oscillation from being a
-/// square wave.
-/// </param>
 public readonly record struct MarketRuleset(int DecayPercent, int MoveCapPercent)
 {
     /// <summary>A Ruleset whose Pool prices never leave the ceiling.</summary>
@@ -3009,6 +3103,30 @@ public sealed class Ruleset
     /// </summary>
     public MarketRuleset Market { get; init; } = MarketRuleset.None;
 
+    /// <summary>How far each Need moves, and how deep it may go. <c>[needs]</c>.</summary>
+    /// <remarks>
+    /// <b>Absent means no Household in this city has a Need</b>, reached by omitting the table rather
+    /// than by a defaulted key — <see cref="Market"/>'s shape. Every Ruleset shipped before milestone
+    /// 28 is such a city.
+    /// </remarks>
+    public NeedRuleset Needs { get; init; } = NeedRuleset.None;
+
+    /// <summary>Which Need each Resource feeds, indexed by <c>resource - 1</c>.</summary>
+    /// <remarks>
+    /// <b>On the Resource rather than on the Rule, because it is a property of the thing consumed.</b>
+    /// <c>04 §1</c> pairs Food with Sustenance and Consumer Goods with Satisfaction — the Good decides
+    /// the Need, and any Rule drawing that Good on a Household's behalf is a shopping occasion for it.
+    /// ⚠ <b>Empty means no Resource feeds a Need</b>, which is every Ruleset that omits
+    /// <see cref="Needs"/>.
+    /// </remarks>
+    public Need[] ResourceNeeds { get; init; } = [];
+
+    /// <summary>Which Need this Resource feeds, or <see cref="Need.None"/>.</summary>
+    public Need NeedOf(ResourceId resource) =>
+        resource.Raw >= 1 && resource.Raw <= ResourceNeeds.Length
+            ? ResourceNeeds[resource.Raw - 1]
+            : Need.None;
+
     /// <summary>
     /// The <c>[founding]</c> table, or <see cref="FoundingRuleset.None"/> when the file states none —
     /// which is a city in which no Household ever founds a shop.
@@ -3338,6 +3456,8 @@ public sealed class Ruleset
             LifeStageCount = LifeStageCount,
             LifeStageKeys = LifeStageKeys,
             PolicyKeys = PolicyKeys,
+            Needs = Needs,
+            ResourceNeeds = ResourceNeeds,
             LifeStages = LifeStages,
         };
 

@@ -51,9 +51,11 @@ public readonly record struct PastTripEvidence(TripFate Fate, ushort EndedDay);
 /// </summary>
 /// <remarks>
 /// <para>
-/// ⚠ <b>One of <c>02 §9</c>'s clauses is absent</b> — it was three when this type shipped.
-/// <b>Need satisfaction</b> is the survivor and has no table anywhere: <c>adr/0103</c> closes the
-/// Need set at four and nothing builds it. ✅ <b>The <b>last</b> Trip's Fate was the second</b>
+/// ✅ <b>The last of <c>02 §9</c>'s three absent clauses is now present.</b> <b>Need
+/// satisfaction</b> is <see cref="CitizenEvidence.Sustenance"/> — a Household's, read through the
+/// Citizen, like the balance beside it. 🔴 <b>Two of <c>adr/0103</c>'s four Needs exist</b>, and the
+/// other two are <em>undesigned</em> rather than unbuilt, so nothing follows from their absence
+/// (<c>adr/0070</c>). ✅ <b>The <b>last</b> Trip's Fate was the second</b>
 /// (milestone 6 task 7): see <see cref="CitizenEvidence.LastTrip"/>. ✅ <b>Household finances was
 /// the third</b> (milestone 10 task 8): see <see cref="CitizenEvidence.HouseholdBalance"/>.
 /// </para>
@@ -94,6 +96,7 @@ public readonly struct CitizenEvidence
         Ticks plannedCommute,
         ushort reachFailures,
         Money? householdBalance,
+        int? sustenance,
         TripEvidence? trip,
         PastTripEvidence? lastTrip)
     {
@@ -105,12 +108,36 @@ public readonly struct CitizenEvidence
         PlannedCommute = plannedCommute;
         ReachFailures = reachFailures;
         HouseholdBalance = householdBalance;
+        Sustenance = sustenance;
         Trip = trip;
         LastTrip = lastTrip;
     }
 
     /// <summary>Which Citizen this is about.</summary>
     public Handle<Citizen> Citizen { get; }
+
+    /// <summary>
+    /// How well fed this Citizen's Household is. <b>0 is ideal, negative is deficit; null if
+    /// unhoused.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// ✅ <b><c>02 §9</c>'s third clause, and the one this type shipped without.</b> It is a Need and
+    /// not a stockpile — <c>04 §2</c>'s <em>Goods are absolute; Needs are relative</em> — so it
+    /// answers <em>how well is this Household doing</em> and never <em>how much food is in the
+    /// cupboard</em>. The cupboard is a Bin and is a different question.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Sustenance only.</b> Satisfaction is a column no shipped Ruleset feeds; Education and
+    /// Health have no column, <c>adr/0103</c> leaving their rule <b>undesigned</b> — and
+    /// ***nothing may be reasoned from any of those absences*** (<c>adr/0070</c>).
+    /// <b>Null where <see cref="Household"/> is unresolvable</b>, on
+    /// <see cref="HouseholdBalance"/>'s shape: a zero would say <em>ideally fed</em> about somebody
+    /// nobody is feeding.
+    /// </para>
+    /// </remarks>
+    public int? Sustenance { get; }
+
 
     /// <summary>The Household they belong to.</summary>
     public Handle<Household> Household { get; }

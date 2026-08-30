@@ -766,6 +766,11 @@ public sealed class RuleEngine
             if (delta < 0)
             {
                 _world.Withdraw(bin, -delta, tick);
+
+                // 04 section 6 step 6, the recovery half: a Household that DREW the Good had its
+                // occasion met. A withdrawal is the shop counter of 04 section 2 -- "a Household
+                // buys Food (an integer leaving a Bin) and its Sustenance moves toward zero".
+                MoveNeed(instance, _touchedBin[i], met: true);
             }
             else if (delta > 0)
             {
@@ -794,6 +799,192 @@ public sealed class RuleEngine
         }
 
         _world.Wheel.Arm(instance, tick, definition.Rate);
+    }
+
+    /// <summary>
+    /// Recovers a Household's Need by one met occasion, on <c>04 §6</c> step 6.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The RECOVERY half only.</b> <c>04 §6</c> asks for a scalar that <em>"falls while unmet and
+    /// recovers when met, so a dry afternoon and a dry month are one mechanism at two depths"</em> —
+    /// and the two halves are written differently on purpose. <b>Recovery is per occasion</b>, because
+    /// a Rule that fires is a Rule being visited and a meal really is an event.
+    /// <see cref="RefreshNeed"/> is the fall, and it is a duration.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>The fall was per occasion too, and it was WRONG.</b> A blocked Rule has exactly one
+    /// failed occasion — <see cref="Stop"/> sleeps it on its Bin — so a shortage nothing ends bought
+    /// one step and then silence. On <c>rulesets/hungry.toml</c> before the repair: <b>7</b> steps a
+    /// Household over 32,768 Ticks where <c>consume</c>'s rate of 32 gives 1,024, the 7 tracking
+    /// <em>rehousings</em>. ***A success is an event and a failure is a state.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>THE OCCASION IS A RULE FIRING, NOT YET A SHOPPING TRIP.</b> <c>04 §6</c> step 4 makes it a
+    /// <b>Trip</b> to a Provider List (<c>adr/0067</c>), unbuilt. What is built has the same shape, so
+    /// ***the Trip will replace this call site and the accumulator will not change.***
+    /// </para>
+    /// </remarks>
+    /// <param name="instance">The Rule Instance whose occasion this was.</param>
+    /// <param name="bin">The Bin the Good was drawn from.</param>
+    /// <param name="met">Whether the occasion succeeded. Only <c>true</c> reaches here now.</param>
+    private void MoveNeed(int instance, int bin, bool met)
+    {
+        NeedRuleset needs = _world.Rules.Needs;
+
+        if (!needs.Runs)
+        {
+            return;
+        }
+
+        Handle<Household> household = _world.RuleInstances.Household[instance];
+
+        if (household.IsNone)
+        {
+            return;
+        }
+
+        Need need = _world.Rules.NeedOf(_world.Bins.Resource[bin]);
+
+        if (need == Need.None)
+        {
+            return;
+        }
+
+        int slot = _world.Households.Rows.Resolve(household);
+
+        Column<int> column = need == Need.Sustenance
+            ? _world.Households.Sustenance
+            : _world.Households.Satisfaction;
+
+        int moved = met
+            ? column[slot] + needs.RecoverOf(need)
+            : column[slot] - needs.DegradeOf(need);
+
+        Write(column, slot, moved, needs.Floor);
+    }
+
+    /// <summary>Deepens every starving Household's Need to the depth its shortage has lasted.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Once a Day, and the period is DERIVED.</b> The Ruleset states a degrade <em>per Day</em>, so
+    /// a Day is where the depth is exact and no cadence number enters the design. A coarser period
+    /// would move only staleness, since <see cref="RefreshNeed"/> recomputes rather than accumulates.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>Its own pass rather than a ride on the Zone Rule sweep.</b> <c>ZoneRuleEngine.Condemn</c>
+    /// reaches a Building only through a <em>sample</em> and only when its kind declares
+    /// <c>condemn_after_days</c> or <c>tenancy_ends_after_days</c> — so hunger would have been a silent
+    /// function of two keys about Buildings. ***A Household mechanism must not depend on a Ruleset
+    /// having opinions about Buildings.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>An O(n) staggered pass</b> (<c>02 §10</c>'s shape, <c>RecomputeDemand</c>'s precedent),
+    /// returning on line one where a Ruleset states no <c>[needs]</c>. ***Owed a <c>plans/0013</c>
+    /// row*** (<c>adr/0073</c>); the corpus freeze is why it has none.
+    /// </para>
+    /// </remarks>
+    /// <param name="tick">The Tick now being stepped.</param>
+    public void SweepNeeds(Ticks tick)
+    {
+        if (!_world.Rules.Needs.Runs || tick.Raw % Ticks.PerDay != 0)
+        {
+            return;
+        }
+
+        for (int instance = 0; instance < _world.RuleInstances.Rows.SlotCount; instance++)
+        {
+            if (!_world.RuleInstances.Rows.IsLive(instance)
+                || !_world.RuleInstances.IsStarving(instance))
+            {
+                continue;
+            }
+
+            RefreshNeed(
+                _world, instance, tick.Raw - _world.RuleInstances.StarvedSince[instance].Raw);
+        }
+    }
+
+    /// <summary>Deepens one Household's Need to the depth its shortage has now lasted.</summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>The degrade half, and it is a DURATION rather than a tally</b> (<c>adr/0053</c>, one
+    /// subject along from the Building). ⚠ <b>It RECOMPUTES from <c>elapsed</c> rather than
+    /// accumulating per visit, which is what makes a staggered pass sound</b>: the depth is a function
+    /// of the duration, so a Household first visited ten Days in arrives at the right depth in one
+    /// step and sampling costs staleness rather than accuracy.
+    /// </para>
+    /// <para>
+    /// <b>Deeper only.</b> An earlier episode's residual is never lifted here — recovery is
+    /// <see cref="MoveNeed"/>'s alone — so a Household back at −2 that starves again keeps the −2
+    /// until this episode passes it.
+    /// </para>
+    /// </remarks>
+    /// <param name="world">The world the Household lives in.</param>
+    /// <param name="instance">A starving Rule Instance.</param>
+    /// <param name="elapsed">Ticks it has been short for.</param>
+    public static void RefreshNeed(World world, int instance, ulong elapsed)
+    {
+        NeedRuleset needs = world.Rules.Needs;
+
+        if (!needs.Runs)
+        {
+            return;
+        }
+
+        Handle<Household> household = world.RuleInstances.Household[instance];
+
+        if (household.IsNone)
+        {
+            return;
+        }
+
+        int slot = world.Households.Rows.Resolve(household);
+
+        // The Rule's INPUT terms rather than the Bin it stopped on: a term carries its Resource, so
+        // no bin slot has to be resolved, and a Rule drawing two Needs' Goods deepens both.
+        foreach (Term term in world.Rules.Inputs(world.RuleInstances.Rule[instance]))
+        {
+            Need need = world.Rules.NeedOf(term.Bin.Resource);
+
+            if (need == Need.None)
+            {
+                continue;
+            }
+
+            Column<int> column = need == Need.Sustenance
+                ? world.Households.Sustenance
+                : world.Households.Satisfaction;
+
+            // The Ruleset states steps per DAY (adr/0059's shape: the designer authors a duration),
+            // so the cadence this is called on may be retuned without moving the felt quantity.
+            long depth = IntegerMath.FloorDiv((long)needs.DegradeOf(need) * (long)elapsed, Ticks.PerDay);
+            long target = depth > int.MaxValue ? int.MinValue : -depth;
+
+            if (target < column[slot])
+            {
+                Write(column, slot, (int)target, needs.Floor);
+            }
+        }
+    }
+
+    /// <summary>Stores a Need, clamped at the ideal above and the Ruleset's floor below.</summary>
+    /// <remarks>
+    /// ⚠ <b>Written out rather than <c>Math.Clamp</c></b>, which <c>05 §4</c> bans. The floor is
+    /// <c>adr/0006</c> as <c>adr/0003</c> extends it: an unbounded magnitude trends downward for ever.
+    /// </remarks>
+    private static void Write(Column<int> column, int slot, int value, int floor)
+    {
+        if (value > 0)
+        {
+            value = 0;
+        }
+        else if (value < floor)
+        {
+            value = floor;
+        }
+
+        column[slot] = value;
     }
 
     /// <summary>Puts a failed Rule to sleep on the Bin that stopped it.</summary>

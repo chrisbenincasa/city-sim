@@ -133,6 +133,11 @@ public static class RulesetLoader
         // Parallel to _resources by declaration order, which is what makes ResourceId.Raw - 1 index
         // it. A Dictionary would be the obvious home and 05 section 4 lint 3 bans walking one.
         private readonly List<ResourceFamily> _families = [];
+
+        // Parallel to _families, milestone 28. adr/0103's Need lives on the RESOURCE because 04
+        // section 1 pairs the Good with the Need -- Food feeds Sustenance, Consumer Goods feed
+        // Satisfaction -- so the thing consumed decides, not the Rule consuming it.
+        private readonly List<Need> _resourceNeeds = [];
         private readonly Dictionary<string, byte> _kinds = new(StringComparer.Ordinal);
 
         // A SECOND kind namespace, not a widening of the first (adr/0141). The premises and the trade
@@ -176,6 +181,8 @@ public static class RulesetLoader
         private TableSyntaxBase? _districtsTable;
 
         private TableSyntaxBase? _marketTable;
+
+        private TableSyntaxBase? _needsTable;
 
         public RulesetLoadResult Read()
         {
@@ -230,6 +237,7 @@ public static class RulesetLoader
             DistrictRuleset districts = ReadDistricts();
             MarketRuleset market = ReadMarket();
 
+            NeedRuleset needs = ReadNeeds();
             // After ReadPlacement, because the founding pass rides its trigger and the refusal for a
             // file stating [founding] with no [placement] is a property of the pair.
             FoundingRuleset founding = ReadFounding(placement, businessKinds);
@@ -306,6 +314,8 @@ public static class RulesetLoader
                     Water = water,
                     Districts = districts,
                     Market = market,
+                    Needs = needs,
+                    ResourceNeeds = [.. _resourceNeeds],
                     Founding = founding,
                     ResourceKeys = Keys(_resources),
                     KindKeys = Keys(_kinds),
@@ -337,6 +347,7 @@ public static class RulesetLoader
                     case "resource":
                         Register(_resources, table, "resource", (ushort)(_resources.Count + 1));
                         _families.Add(ReadFamily(table));
+                        _resourceNeeds.Add(ReadNeed(table));
                         RefuseStorage(table);
                         break;
 
@@ -613,6 +624,21 @@ public static class RulesetLoader
                         _foundingTable = table;
                         break;
 
+                    case "needs":
+                        // Singular and optional, on [market]'s reasoning. A Need's rates are a
+                        // property of the city rather than of a District or a Household, so a second
+                        // table would be a second tempo for one accumulator.
+                        if (_needsTable is not null)
+                        {
+                            Refuse(LineOf(table), null,
+                                "a second [needs] is declared. There is one set of Need rates, so "
+                                + "two tables of numbers for it is ambiguous rather than additive.");
+                            break;
+                        }
+
+                        _needsTable = table;
+                        break;
+
                     case "market":
                         // Singular and optional, on [districts]' reasoning exactly. There is one
                         // damping, shared by every District and every Good: adr/0135 makes the price
@@ -632,6 +658,7 @@ public static class RulesetLoader
                     default:
                         Refuse(LineOf(table), null,
                             $"'{section}' is not a Ruleset section. The sections are "
+                            + "[needs], "
                             + "[[resource]], [[building]], [[business]], [[rule]], [[zone_rule]], "
                             + "[[policy]], [[hinterland]], [[lattice]], [[terrain]], [layers], "
                             + "[placement], [roads], [lots], [trips], [jobs], [households], "
@@ -815,6 +842,122 @@ public static class RulesetLoader
 
             return (uint)rate;
         }
+
+        /// <summary>Which of <c>adr/0103</c>'s Needs this Resource feeds — <c>need</c>, optional.</summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Optional, and absent is the ordinary case</b>: a Resource feeds no Need unless a
+        /// designer says it does, which is every Resource in every file shipped before milestone 28.
+        /// </para>
+        /// <para>
+        /// ⚠ <b><c>education</c> and <c>health</c> are refused BY NAME rather than falling through to
+        /// the unknown-value message.</b> They are two of the four Needs and a designer who writes one
+        /// has read <c>adr/0103</c>, so the refusal owes them the reason: those two are consumed by
+        /// attending rather than by buying, and their degradation rule is <b>owed and deliberately
+        /// undesigned</b>. ***A generic "not a Need" would tell them the opposite of the truth.***
+        /// </para>
+        /// </remarks>
+        private Need ReadNeed(TableSyntaxBase table)
+        {
+            if (!TryString(table, "need", out string? need, required: false))
+            {
+                return Need.None;
+            }
+
+            switch (need)
+            {
+                case "sustenance":
+                    return Need.Sustenance;
+
+                case "satisfaction":
+                    return Need.Satisfaction;
+
+                case "education":
+                case "health":
+                    Refuse(LineOf(table), need,
+                        $"'{need}' is one of adr/0103's four Needs and it has no Good behind it. It "
+                        + "is consumed by attending rather than by buying, so 04 section 1's Good to "
+                        + "Need diagram is not a total map, and its degradation rule is owed and "
+                        + "DELIBERATELY UNDESIGNED (adr/0070) rather than refused. Nothing may be "
+                        + "reasoned from its absence, and a Resource cannot feed it until somebody "
+                        + "designs what attending costs. The two a Good can feed are sustenance and "
+                        + "satisfaction.");
+                    return Need.None;
+
+                default:
+                    Refuse(LineOf(table), need,
+                        $"'{need}' is not a Need. A Need exists for each exhaustible thing a "
+                        + "Household consumes and can be refused on arrival, and adr/0103 closes the "
+                        + "set at four: sustenance, satisfaction, education and health. Only the "
+                        + "first two have a Good behind them and only they may be declared here. "
+                        + "Everything standing -- the commute, the rent, the neighbourhood -- is a "
+                        + "term in 02 section 5.4's utility and never a Need.");
+                    return Need.None;
+            }
+        }
+
+        /// <summary>The <c>[needs]</c> table — how far a Need moves, and how deep it may go.</summary>
+        /// <remarks>
+        /// <b>Every key required of a file that states the table</b>, on <c>[market]</c>'s and
+        /// <c>[districts]</c>' rule: a stated table states its keys, and a defaulted rate is a
+        /// hash-bearing number nobody chose. ⚠ <b>Absent means no Household in this city has a Need
+        /// at all</b>, which is reached by omitting the table rather than by zeroing it.
+        /// </remarks>
+        private NeedRuleset ReadNeeds()
+        {
+            if (_needsTable is null)
+            {
+                return NeedRuleset.None;
+            }
+
+            if (!TryInteger(_needsTable, "sustenance_degrade", out long sd, required: true)
+                || !TryInteger(_needsTable, "sustenance_recover", out long sr, required: true)
+                || !TryInteger(_needsTable, "satisfaction_degrade", out long ad, required: true)
+                || !TryInteger(_needsTable, "satisfaction_recover", out long ar, required: true)
+                || !TryInteger(_needsTable, "floor", out long floor, required: true))
+            {
+                return NeedRuleset.None;
+            }
+
+            foreach ((string key, long value) in
+                new[] { ("sustenance_degrade", sd), ("sustenance_recover", sr),
+                        ("satisfaction_degrade", ad), ("satisfaction_recover", ar) })
+            {
+                if (value <= 0)
+                {
+                    Refuse(LineOfNeeds(key), null,
+                        $"{key} is {value}. It is how far a Need moves on one occasion, stated as a "
+                        + "positive step whose DIRECTION is the mechanism's rather than the file's: a "
+                        + "degrade always falls and a recover always rises. Zero would be a Need that "
+                        + "never moves, which is the table omitted, and a negative would be a failed "
+                        + "occasion that fed somebody.");
+
+                    return NeedRuleset.None;
+                }
+            }
+
+            // A Need is a relative scalar where 0 is ideal and negative is deficit (CONTEXT.md), so
+            // the floor is the DEEPEST it goes and is therefore negative. It is required because an
+            // unbounded magnitude is adr/0006 as adr/0003 extends it to quantities -- the one thing a
+            // long run is written to catch, and it would fail on the Need rather than on this file.
+            if (floor >= 0)
+            {
+                Refuse(LineOfNeeds("floor"), null,
+                    $"floor is {floor}. A Need is a relative scalar where 0 is ideal and negative "
+                    + "values are deficit, so the floor is the deepest deficit reachable and is "
+                    + "negative. Zero would mean no Household can ever be short of anything, which is "
+                    + "the table omitted.");
+
+                return NeedRuleset.None;
+            }
+
+            return new NeedRuleset((int)sd, (int)sr, (int)ad, (int)ar, (int)floor);
+        }
+
+        private int LineOfNeeds(string key) =>
+            _needsTable is null ? 0
+            : Find(_needsTable, key) is KeyValueSyntax entry ? LineOf(entry)
+            : LineOf(_needsTable);
 
         /// <summary>
         /// Reads a Resource's family, which is what tells the loader money from flour.
