@@ -62,6 +62,17 @@ public readonly struct Building;
 /// </remarks>
 public readonly struct Treasury;
 
+/// <summary>
+/// One declared <c>[[policy]]</c>, as the city currently governs it. See <see cref="Citizen"/> for why
+/// it is empty.
+/// </summary>
+/// <remarks>
+/// <b>The Policy itself lives in the Ruleset and this is what the player has done to it</b> — so a row
+/// exists per declared Policy whether or not anybody has governed one, and <see cref="PolicyTable"/>
+/// carries what that row means when nobody has.
+/// </remarks>
+public readonly struct Policy;
+
 /// <summary>A parcel of land. See <see cref="Citizen"/> for why it is empty.</summary>
 public readonly struct Lot;
 

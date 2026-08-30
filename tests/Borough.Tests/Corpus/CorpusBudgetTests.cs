@@ -99,10 +99,85 @@ public sealed class CorpusBudgetTests
     /// for a mechanism, the other insists that a mechanism which grew be described. ***The enumeration
     /// is prose that was bought***, on the same test as <c>plans/0046</c> itself.
     /// </remarks>
-    private const int CorpusCeiling = 1_198_621;
+    /// <remarks>
+    /// 🔴 <b>RAISED 2026-08-30, and what it bought is the amnesty's own exit condition.</b>
+    /// <c>plans/0045</c> traded its expiry date for a ratio, took the doc-comment hole into standing
+    /// order 3, and queued six items. ***A page that schedules work is prose that was bought***,
+    /// which is the distinction <see cref="CorpusCeiling"/> has been raised on twice before.
+    /// <para>
+    /// ⚠ <b>The first four rows written here were REPLACED the same hour, and the correction is
+    /// worth carrying.</b> They were a dwelling-stock sink, a Ruleset window, a tenant's middle and a
+    /// renderer — ***every one of them a repair to something that already ran***. The amnesty was
+    /// opened to build the simulation, not to finish it: <c>Govern</c> and <c>Service</c> both
+    /// <b>throw</b> at <c>Simulation.cs:440</c>, <c>Taste</c> and <c>Preference</c> are <b>0 files</b>
+    /// in <c>Borough.Core</c>, and <c>src/Borough.Godot</c> <b>does not exist</b> though
+    /// <c>CLAUDE.md</c> lists five projects. <b>A queue assembled from failing tests finds only the
+    /// mechanisms that HAVE tests</b>, and nothing unbuilt has one.
+    /// </para>
+    /// </remarks>
+    private const int CorpusCeiling = 1_199_091;
+
+    /// <summary>Doc-comment words under <c>src/</c> and <c>tests/</c> on 2026-08-30.</summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THE HOLE THE FIRST THREE CEILINGS LEFT, MEASURED.</b> <c>CLAUDE.md</c> says the corpus
+    /// checks are all document-to-document, so a number living in a doc-comment is invisible to every
+    /// one of them — and <b>635,983 words were sitting there</b>, 35% of all the prose in this
+    /// repository, growing under a ratchet that could not see it. The three new <c>Borough.Core</c>
+    /// files the amnesty bought are <b>56–66% comment by line</b>.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>This is a ratchet and NOT a judgement that a doc-comment is waste.</b>
+    /// <c>adr/0093</c> asks for exactly this prose — <em>name a symbol, never a time</em> — and a
+    /// remark beside a mechanism is the best-placed sentence in the project. What the ceiling refuses
+    /// is the <em>relocation</em>: prose leaving <c>docs/</c> for a place nothing counts, and the
+    /// amnesty reporting a win it did not earn.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The discovery read 635,983 and the seed is 711 words higher, which is this class's own
+    /// remarks.</b> Seeded from the test's own count against a clean tree — the lesson
+    /// <see cref="CorpusCeiling"/> records, arriving a second time.
+    /// </para>
+    /// </remarks>
+    /// <remarks>
+    /// 🔴 <b>RAISED 2026-08-30 by 2,923 words for <c>Govern</c>, on the first commit after this
+    /// ceiling existed, and the number is the point rather than an embarrassment.</b> The verb cost
+    /// about 250 lines of simulation and brought nearly three thousand words of remark with it —
+    /// ***the very ratio this ceiling was added to make visible***, arriving immediately and from the
+    /// author who added it. <b>It is allowed through because the prose is
+    /// <c>adr/0093</c>-shaped</b>: <c>PolicyTable</c>'s remarks say why a governed amount is state
+    /// rather than a Ruleset write, and why the row is keyed by name — two decisions that are
+    /// invisible in the code and expensive to rediscover. ⚠ <b>A raise of this size for a verb that
+    /// does one thing is worth arguing about next time</b>, which is what a ratchet is for.
+    /// </remarks>
+    private const int DocCommentCeiling = 639_983;
+
+    /// <summary>Words of prose per line of simulation at which the amnesty has done its job.</summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>PROVISIONAL, chosen by taste under <c>plans/0045</c> standing order 4</b>, which
+    /// suspends <c>adr/0052</c>. No ratifier, no §D row.
+    /// </para>
+    /// <para>
+    /// <b>It replaces the expiry date, and the swap is the point.</b> 2026-10-07 would have arrived
+    /// whether or not anything was built; this cannot. The amnesty was opened against a prose-to-code
+    /// ratio and <b>a date is not a measure of one</b>. At 2026-08-30 the figure is <b>59.5</b> — all
+    /// prose, doc-comments included, over non-comment <c>src/</c> lines — and 30 is roughly half.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is earned by deleting prose as readily as by writing simulation, and that is
+    /// deliberate</b>: <c>plans/0045</c> opens by naming the corpus as the one collection with no
+    /// sink, which is <c>adr/0006</c> violated by its own citers. A target reachable only by writing
+    /// code would leave that violation standing.
+    /// </para>
+    /// </remarks>
+    private const int ExitRatio = 30;
 
     /// <summary>The two directories the corpus ceiling covers.</summary>
     private static readonly string[] Covered = ["docs", "plans"];
+
+    /// <summary>The two directories the doc-comment ceiling covers.</summary>
+    private static readonly string[] Commented = ["src", "tests"];
 
     [Fact]
     public void The_ADR_corpus_does_not_grow()
@@ -130,6 +205,72 @@ public sealed class CorpusBudgetTests
 
         Assert.True(
             found <= CorpusCeiling, Explain("docs/ + plans/", "words", found, CorpusCeiling));
+    }
+
+    /// <summary>
+    /// <b>The prose beside the code is prose, and it is counted now.</b>
+    /// </summary>
+    /// <remarks>
+    /// See <see cref="DocCommentCeiling"/>. ⚠ <b>The failure message says <em>relocation</em> on
+    /// purpose</b>: a reader who hits this by writing a good remark should raise the ceiling in a
+    /// commit saying what it bought, exactly as the corpus ceiling has been raised three times.
+    /// </remarks>
+    [Fact]
+    public void The_doc_comments_do_not_grow()
+    {
+        int found = CommentWords();
+
+        Assert.True(
+            found <= DocCommentCeiling,
+            Explain("src/ + tests/ doc-comments", "words", found, DocCommentCeiling));
+    }
+
+    /// <summary>
+    /// 🔴 <b>The amnesty's exit condition, and this test goes RED the day it is met.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A red here is not a regression — it is the amnesty reporting that it is over.</b> Delete
+    /// this class and <c>plans/0045-amnesty.md</c> with it, and take the standing orders off.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The ratio is the whole diagnosis in one number.</b> <c>plans/0045</c> opened on
+    /// <em>1.17M words of prose against 17,872 lines of executable simulation</em>; every other
+    /// figure in this class is a ratchet on one side of that fraction, and this one watches the
+    /// fraction itself.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_amnesty_has_not_yet_earned_its_end()
+    {
+        int prose = CorpusFiles().Sum(file => Words(File.ReadAllText(file))) + CommentWords();
+        int simulation = SimulationLines();
+        int ratio = prose / simulation;
+
+        Assert.True(
+            ratio > ExitRatio,
+            $"{prose:N0} words of prose over {simulation:N0} lines of simulation is {ratio:N0} words "
+            + $"a line, against the amnesty's exit condition of {ExitRatio:N0}. THE AMNESTY IS OVER "
+            + "AND THIS FAILURE IS THE REPORT OF IT — delete this class and plans/0045-amnesty.md "
+            + "in one commit, and lift the standing orders. See plans/0045-amnesty.md.");
+    }
+
+    /// <summary>
+    /// <b>The word counter and the line counter disagree about the same line, and must.</b>
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>A line is comment or simulation and never both</b>, so the two halves of the ratio
+    /// cannot double-count. This is the arithmetic the exit condition rests on, asserted rather
+    /// than assumed.
+    /// </remarks>
+    [Fact]
+    public void A_line_is_counted_on_exactly_one_side_of_the_ratio()
+    {
+        Assert.True(IsComment("/// a remark"));
+        Assert.True(IsComment("// a note"));
+        Assert.True(IsComment("* a continuation"));
+        Assert.False(IsComment("int lots = 5;"));
+        Assert.False(IsComment(string.Empty));
     }
 
     /// <summary>
@@ -169,6 +310,56 @@ public sealed class CorpusBudgetTests
                 Directory.EnumerateFiles(directory, "*.md", SearchOption.AllDirectories))
             .OrderBy(path => path, StringComparer.Ordinal);
     }
+
+    /// <summary>Every C# file the doc-comment ceiling covers, build output excluded.</summary>
+    /// <remarks>
+    /// ⚠ <b><c>obj/</c> and <c>bin/</c> hold generated sources</b> — an assembly-info file and the
+    /// implicit-usings file — and counting them would make the ceiling move on a clean rebuild.
+    /// </remarks>
+    private static IEnumerable<string> CommentedFiles()
+    {
+        string root = RepoRoot();
+
+        return Commented
+            .Select(directory => Path.Combine(root, directory))
+            .SelectMany(directory =>
+                Directory.EnumerateFiles(directory, "*.cs", SearchOption.AllDirectories))
+            .Where(path =>
+                !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}",
+                    StringComparison.Ordinal)
+                && !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}",
+                    StringComparison.Ordinal))
+            .OrderBy(path => path, StringComparer.Ordinal);
+    }
+
+    /// <summary>Words on comment lines, which is what a shell reading of the same rule counts.</summary>
+    private static int CommentWords() =>
+        CommentedFiles()
+            .SelectMany(File.ReadLines)
+            .Select(line => line.Trim())
+            .Where(IsComment)
+            .Sum(Words);
+
+    /// <summary>Lines under <c>src/</c> that are neither comment nor blank.</summary>
+    /// <remarks>
+    /// ⚠ <b><c>src/</c> only, and <c>tests/</c> is deliberately absent.</b> The ratio asks how much
+    /// prose stands over the <em>simulation</em>; a test is not the city. Test comments still count
+    /// on the numerator, because prose relocating into a test file is the same relocation.
+    /// </remarks>
+    private static int SimulationLines() =>
+        CommentedFiles()
+            .Where(path => path.Contains(
+                $"{Path.DirectorySeparatorChar}src{Path.DirectorySeparatorChar}",
+                StringComparison.Ordinal))
+            .SelectMany(File.ReadLines)
+            .Select(line => line.Trim())
+            .Count(line => line.Length > 0 && !IsComment(line));
+
+    /// <summary>A trimmed line that carries prose rather than instructions.</summary>
+    private static bool IsComment(string trimmed) =>
+        trimmed.StartsWith("//", StringComparison.Ordinal)
+        || trimmed.StartsWith("/*", StringComparison.Ordinal)
+        || trimmed.StartsWith('*');
 
     /// <summary>Whitespace-separated runs, which is what <c>wc -w</c> counts.</summary>
     private static int Words(string text) =>

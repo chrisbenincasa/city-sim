@@ -3222,6 +3222,36 @@ public sealed class Ruleset
     /// </remarks>
     public ulong[] LifeStageKeys { get; init; } = [];
 
+    /// <summary>The authored name of each Policy, indexed by its position in declaration order.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Held because <c>CommandKind.Govern</c> made a Policy the first one anything points
+    /// at.</b> Until the verb shipped, this type's own remark was true — <em>nothing in a Ruleset
+    /// refers to a Policy</em> — so declaration order was identity enough and the loader read the name
+    /// for refusal text and threw it away. ***A governed amount is saved state naming a Policy across
+    /// a reload***, and an index is not a name: inserting a <c>[[policy]]</c> above another shifts
+    /// every index below it, and <see cref="RulesetShape"/> reports that as
+    /// <c>RulesetChange.PolicyCount</c> without anything acting on it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Zero means unnameable rather than unnamed-and-therefore-first.</b> <c>name</c> stays
+    /// non-required at the loader — no shipped file omits it, and making it required would be a
+    /// refusal bought for a case nobody writes — so a Policy without one keys to zero and
+    /// <c>CommandKind.Govern</c> refuses to address it by name. ***The constraint lands on the
+    /// verb that needs identity, not on every file that declares a sweep.***
+    /// </para>
+    /// </remarks>
+    public ulong[] PolicyKeys { get; init; } = [];
+
+    /// <summary>What the Policy at this index is, as a key comparable across Rulesets.</summary>
+    /// <remarks>
+    /// <b>Zero for a Policy this Ruleset cannot name</b> — an unnamed table, or one from a Ruleset
+    /// built in code, where <see cref="ResourceKeys"/>' <em>empty means positional</em> cannot apply
+    /// because a governed row has to survive a renumbering and a position does not.
+    /// </remarks>
+    public ulong PolicyKey(int policy) =>
+        policy >= 0 && policy < PolicyKeys.Length ? PolicyKeys[policy] : 0;
+
     /// <summary>Whether this Ruleset has demographics at all.</summary>
     public bool DeclaresLifeStages => LifeStageCount > 0;
 
@@ -3307,6 +3337,7 @@ public sealed class Ruleset
             BusinessKinds = BusinessKinds,
             LifeStageCount = LifeStageCount,
             LifeStageKeys = LifeStageKeys,
+            PolicyKeys = PolicyKeys,
             LifeStages = LifeStages,
         };
 

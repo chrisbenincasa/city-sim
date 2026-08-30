@@ -435,9 +435,15 @@ public sealed class Simulation
                 ApplyDemolish(command, tick);
                 break;
 
+            case CommandKind.Govern:
+                // 01 section 2's fourth verb, and the first whose effect outlives the command: what
+                // it sets is saved and hashed state in PolicyTable, not a write back into Ruleset
+                // data a reload would undo.
+                ApplyGovern(command);
+                break;
+
             case CommandKind.None:
             case CommandKind.Service:
-            case CommandKind.Govern:
             default:
                 throw new InvalidOperationException(
                     $"command kind {(ushort)command.Kind} is declared but not applied in this slice.");
@@ -725,6 +731,58 @@ public sealed class Simulation
                 break;
             }
         }
+    }
+
+    /// <summary>
+    /// Sets one declared Policy's amount, for as long as this world stands.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Two refusals, and both are about identity rather than about the number.</b> An index past
+    /// the declared set names no Policy at all; a Policy whose <c>[[policy]]</c> table states no
+    /// <c>name</c> keys to zero, and a governed row that cannot be matched across a reload would
+    /// re-attach to whatever landed at its index next. ***The second is refused here rather than at
+    /// the loader***, because requiring a name of every Ruleset would buy a refusal for a case no
+    /// shipped file writes.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The amount is not validated and must not be.</b> A Policy's transfer states a direction
+    /// (<c>from</c> and <c>to</c>), so a quantity cannot leak whatever its size, and a levy a player
+    /// has set ruinously high is a city they have governed badly rather than an input the simulation
+    /// should decline. <c>adr/0015</c>'s acceptance test is that a rate moves freely.
+    /// </para>
+    /// </remarks>
+    private void ApplyGovern(Command command)
+    {
+        int policy = command.Zone;
+        PolicyDefinition[] policies = _world.Rules.Policies;
+
+        if (policy >= policies.Length)
+        {
+            throw new InvalidOperationException(
+                $"Govern names Policy {policy} and this Ruleset declares {policies.Length}. A Policy "
+                + "is named by its position in declaration order, and the Ruleset in force at the "
+                + "Tick a command is applied is what that position is resolved against.");
+        }
+
+        if (policy >= _world.Policies.Rows.SlotCount)
+        {
+            throw new InvalidOperationException(
+                $"Govern names Policy {policy} and this world holds "
+                + $"{_world.Policies.Rows.SlotCount} governable row(s). The table is sized at world "
+                + "creation and PolicyTable.Adopt never resizes it, so a Policy that arrived on a "
+                + "reload which grew the set cannot be governed in this world.");
+        }
+
+        if (_world.Policies.Key[policy] == 0)
+        {
+            throw new InvalidOperationException(
+                $"Govern names Policy {policy} and that [[policy]] table states no name. A governed "
+                + "amount is saved state that has to survive a reload, and a name is the only thing "
+                + "that survives a renumbering — see Ruleset.PolicyKeys. Name the table to govern it.");
+        }
+
+        _world.Policies.Govern(policy, command.East.Raw);
     }
 
     /// <summary>

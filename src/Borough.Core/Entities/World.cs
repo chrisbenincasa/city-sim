@@ -185,6 +185,11 @@ public sealed class World
                 PerThousand(citizens, 450), Buildings, Bins, Households, Businesses);
         Clock = new ClockTable();
         Treasury = new TreasuryTable();
+
+        // Sized from the Ruleset rather than from the Citizen count, because a Policy is declared and
+        // not populated. Adopt re-sizes it on a reload; see PolicyTable for why the rows are state at
+        // all rather than a write back into Ruleset data.
+        Policies = new PolicyTable(rules);
         MoneySupply = new MoneySupplyTable();
 
         // adr/0142's collection, and its capacity hint assumes even less than the Business table's:
@@ -388,6 +393,11 @@ public sealed class World
             // And the Hazard Region, milestone 24 task 9. Generated once, never written in a Tick
             // (CONTEXT.md -> Hazard Region), and saved because a load does not re-run the generator.
             Flood.Rows,
+
+            // And the governed Policies, milestone 28. Appended, which is the one edit to this list
+            // that moves no row relative to another -- see the note above it. adr/0100: this moves
+            // every committed State Hash baseline, which costs nothing while nobody carries a save.
+            Policies.Rows,
         ];
 
         // The same list minus the tables no Tick phase can write, for the Decide guard alone. See
@@ -454,6 +464,15 @@ public sealed class World
     /// The city's balance sheet: one row, holding the head of the treasury's Bins (<c>adr/0114</c>).
     /// </summary>
     public TreasuryTable Treasury { get; }
+
+    /// <summary>
+    /// What the player has governed, one row per declared Policy (<c>01 §2</c>'s fourth verb).
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Not <c>Rules.Policies</c>, which is what the designer DECLARED.</b> This table is what has
+    /// been done to those declarations since, and it is the half that is saved and hashed.
+    /// </remarks>
+    public PolicyTable Policies { get; }
 
     /// <summary>
     /// The Businesses, each occupying a Building and holding its own balance (<c>adr/0113</c>).
@@ -840,6 +859,11 @@ public sealed class World
         Layers.Adopt(rules.Layers);
         Roads.Adopt(rules.Roads);
         Rules = rules;
+
+        // The governed amounts follow their Policy's NAME to whatever index it now sits at; see
+        // PolicyTable.Adopt for what happens to one whose name is gone. Before Migrate, because a
+        // governed amount is a decision about a Policy and not about a Resource or a kind.
+        Policies.Adopt(rules);
 
         RulesetDegradation cost = migration is null ? default : Migrate(migration, now, key);
 

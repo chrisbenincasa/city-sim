@@ -210,7 +210,7 @@ public static class RulesetLoader
             BusinessKindDefinition[] businessKinds = ReadBusinessKinds();
             LifeStageDefinition[] lifeStages = ReadLifeStages();
             ZoneRuleDefinition[] zoneRules = ReadZoneRules();
-            PolicyDefinition[] policies = ReadPolicies();
+            PolicyDefinition[] policies = ReadPolicies(out ulong[] policyKeys);
             HinterlandDefinition[] hinterlands = ReadHinterlands(out Money[] hinterlandPrices);
             LayerRuleset layers = ReadLayers();
             PlacementRuleset placement = ReadPlacement(kinds);
@@ -298,6 +298,7 @@ public static class RulesetLoader
                     Households = households,
                     Traffic = traffic,
                     Policies = policies,
+                    PolicyKeys = policyKeys,
                     Hinterlands = hinterlands,
                     HinterlandPrices = hinterlandPrices,
                     Parking = parking,
@@ -3310,15 +3311,23 @@ public static class RulesetLoader
         /// has to be checked.***
         /// </para>
         /// </remarks>
-        private PolicyDefinition[] ReadPolicies()
+        private PolicyDefinition[] ReadPolicies(out ulong[] keys)
         {
             var definitions = new List<PolicyDefinition>(_policyTables.Count);
+            var names = new ulong[_policyTables.Count];
 
             foreach (TableSyntaxBase table in _policyTables)
             {
                 string? name = TryString(table, "name", out string? found, required: false)
                     ? found
                     : null;
+
+                // Govern names a Policy by this and by nothing else, so an unnamed table keys to zero
+                // and is unaddressable rather than addressable-by-position. Ruleset.PolicyKeys carries
+                // why: a position is not an identity once saved state points at one.
+                names[definitions.Count] = name is null
+                    ? 0
+                    : ContentHash.Of(Encoding.UTF8.GetBytes(name));
 
                 PolicySubject subject = ReadSubject(table, name);
                 uint interval = ReadInterval(table, name);
@@ -3327,6 +3336,8 @@ public static class RulesetLoader
 
                 definitions.Add(new PolicyDefinition(subject, interval, apply, from, to, resource, amount));
             }
+
+            keys = names;
 
             return [.. definitions];
         }

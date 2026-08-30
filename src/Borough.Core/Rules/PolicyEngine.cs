@@ -301,7 +301,7 @@ public sealed class PolicyEngine
 
             _tickConsidered++;
 
-            if (!Move(definition, slot, treasury, tick, out bool payerDry))
+            if (!Move(policy, definition, slot, treasury, tick, out bool payerDry))
             {
                 if (payerDry)
                 {
@@ -339,7 +339,12 @@ public sealed class PolicyEngine
     /// </param>
     /// <returns>Whether money moved.</returns>
     private bool Move(
-        in PolicyDefinition definition, int member, int treasury, Ticks tick, out bool payerDry)
+        int policy,
+        in PolicyDefinition definition,
+        int member,
+        int treasury,
+        Ticks tick,
+        out bool payerDry)
     {
         payerDry = false;
 
@@ -350,7 +355,10 @@ public sealed class PolicyEngine
             return false;
         }
 
-        long amount = applications * definition.Amount;
+        // 01 section 2's fourth verb arrives here and nowhere else: PolicyTable.AmountOf falls
+        // through to the Ruleset unless the player has governed this Policy. Reading the column
+        // directly would drop the flag that keeps a hot reload retuning the ungoverned ones.
+        long amount = applications * _world.Policies.AmountOf(policy, definition);
 
         int balance = BalanceBinOf(definition.Subject, member);
         int source = definition.From == Scope.Global ? treasury : balance;

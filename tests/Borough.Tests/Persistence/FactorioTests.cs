@@ -169,6 +169,17 @@ public sealed class FactorioTests(ITestOutputHelper output)
         // is the only shipped file that does. Milestone 24 task 6a, adr/0160.
         Scan(WithWater(512), reached, []);
 
+        // 🔴 The NINTH, milestone 28, and it is the fourth's reason again with the gate one step
+        // earlier. `policy` has a production writer -- PolicyTable's own constructor -- but it
+        // allocates one row per declared [[policy]] and SEVEN of the shipped files declare none, the
+        // golden fixture among them. So the table is empty in every world above and all six of its
+        // saved columns were unreachable the day it landed.
+        //
+        // ⚠ A row here is created by DECLARATION rather than by anything happening, which is why 256
+        // Ticks is plenty: taxed.toml's two Policies exist at Tick 0 and the run only has to reach a
+        // save.
+        Scan(WithPolicies(256), reached, []);
+
         // 🔴 The EIGHTH, milestone 17, and it is the fourth's reason arriving from the opposite
         // direction. Every fixture above leaves `unplaced` empty and all SEVEN of its saved columns
         // unreachable -- `id`, `generation`, `free_next`, `household`, `gate`, `since` and
@@ -453,6 +464,17 @@ public sealed class FactorioTests(ITestOutputHelper output)
     /// </remarks>
     private static World WithWater(int ticks) =>
         Stepped(Shipped("coastal.toml"), GoldenFixtures.Population, ticks).World;
+
+    /// <summary>A world that declares Policies, so the governed table has rows to corrupt.</summary>
+    /// <remarks>
+    /// <b>A ninth fixture, gated on a Ruleset key</b> — <see cref="WithDistricts"/>'s shape — and
+    /// <c>taxed.toml</c> is the smallest shipped file declaring a <c>[[policy]]</c> at all. ⚠ <b>The
+    /// rows exist whether or not anybody has governed one</b>: <c>PolicyTable</c> allocates per
+    /// declaration, so what this fixture buys is that the columns reach the file, not that the verb
+    /// was used.
+    /// </remarks>
+    private static World WithPolicies(int ticks) =>
+        Stepped(Shipped("taxed.toml"), GoldenFixtures.Population, ticks).World;
 
     /// <summary>
     /// A world with a Business in the unpremised pool, its premises demolished under it.

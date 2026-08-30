@@ -4,12 +4,16 @@ Guidance for Claude Code working in this repository.
 
 ---
 
-🔴 **AMNESTY IN FORCE UNTIL 2026-10-07. READ [`plans/0045-amnesty.md`](plans/0045-amnesty.md) AND
-NOTHING ELSE ON A COLD START.** It is one page, it is the only thing in flight, and it supersedes
-*Where to look* below for the duration. **Do not read the board.** The corpus is frozen at its
-2026-08-26 size by `CorpusBudgetTests`, no new ADRs may be written, and `adr/0043` and `adr/0052` are
-suspended. ⚠ **A session that ends without a change under `src/` is not committed.** Everything below
-this line is reference material to be consulted when a task needs it — it is no longer a reading list.
+🔴 **AMNESTY IN FORCE. READ [`plans/0045-amnesty.md`](plans/0045-amnesty.md) AND NOTHING ELSE ON A
+COLD START.** It is one page, it is the only thing in flight, and it supersedes *Where to look* below
+for the duration. **Do not read the board.** ⚠ **It ends at a RATIO and not on a date** — 30 words of
+prose per line of simulation, **59 today** — so no calendar lifts it and
+`CorpusBudgetTests.The_amnesty_has_not_yet_earned_its_end` is what reports it earned. The corpus is
+frozen at its 2026-08-26 size by `CorpusBudgetTests` **and so are doc-comments under `src/` and
+`tests/`, at their 2026-08-30 one** — 636,000 words nothing was counting, which is 35% of the prose
+here. No new ADRs may be written, and `adr/0043` and `adr/0052` are suspended. ⚠ **A session that ends
+without a change under `src/` is not committed.** Everything below this line is reference material to
+be consulted when a task needs it — it is no longer a reading list.
 
 ---
 

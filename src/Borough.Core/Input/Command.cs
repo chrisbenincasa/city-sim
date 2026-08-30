@@ -212,6 +212,33 @@ public readonly struct Command
         North = north;
     }
 
+    /// <summary>Set a declared Policy's amount — <c>01 §2</c>'s <c>Govern</c>.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The Policy is named by its position in declaration order, and that is sound HERE where it
+    /// would not be in saved state.</b> A command is applied at a known Tick against the Ruleset in
+    /// force at that Tick, and a replay reproduces both — so the index resolves to the same Policy
+    /// every time. ***What cannot survive an index is a stored decision***, which is why
+    /// <c>Entities.PolicyTable</c> keys its rows by name instead.
+    /// </para>
+    /// <para>
+    /// ⚠ <b><see cref="East"/> carries the amount and <see cref="North"/> is unused</b>, which is a
+    /// repurposing of two fields whose names say <em>where</em>. The struct is twelve fully-defined
+    /// bytes and widening it would re-spell every committed Input Log, so the payload is packed
+    /// exactly as <see cref="ConnectPayload"/> packs into <see cref="Zone"/>. <b>This factory exists so
+    /// the packing is named in one place</b> rather than spelled at each call site.
+    /// </para>
+    /// </remarks>
+    /// <param name="policy">Which Policy, by position in declaration order.</param>
+    /// <param name="amount">What one application moves from now on.</param>
+    public static Command Govern(int policy, int amount)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(policy);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(policy, ushort.MaxValue);
+
+        return new Command(CommandKind.Govern, new Tiles(amount), default, (ushort)policy);
+    }
+
     /// <summary>Which verb.</summary>
     public CommandKind Kind { get; }
 

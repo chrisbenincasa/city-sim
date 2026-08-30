@@ -2,7 +2,9 @@
 
 **Read this, not the board. The only thing in flight.**
 
-Opened 2026-08-26. Expires **2026-10-07**. One page, and it stays one page.
+Opened 2026-08-26. **Ends at a ratio, not on a date: 30 words of prose per line of simulation.**
+**59 at 2026-08-30.** `CorpusBudgetTests.The_amnesty_has_not_yet_earned_its_end` goes red the day
+it is earned, and that red is the report. One page, and it stays one page.
 
 
 
@@ -13,6 +15,11 @@ Opened 2026-08-26. Expires **2026-10-07**. One page, and it stays one page.
 **1.17M words of prose against 17,872 lines of executable simulation.** 169 ADRs, one per 106 lines,
 30 of them in five days. **236 of 524 commits changed no code.**
 
+🔴 **And that count was low by 636,000 words.** Doc-comments under `src/` and `tests/` are **35% of
+all the prose here** and no corpus check could see one: `CLAUDE.md` says the checks are all
+document-to-document. The three `Borough.Core` files the amnesty bought are **56–66% comment by
+line**. Counted since 2026-08-30 — *the ratchet was reporting a win on the half it could measure.*
+
 Nobody ages, is born or dies. Wages are unbuilt, so money flows one way into Businesses. Every
 shipped world decays. No renderer, no plan for one. The corpus grows with elapsed time and has no
 sink — `adr/0006`, violated by its citers.
@@ -21,11 +28,14 @@ sink — `adr/0006`, violated by its citers.
 
 ## Standing orders
 
-Until this expires:
+Until the ratio is earned:
 
 1. **No new ADRs.** `CorpusBudgetTests` reddens the build if `docs/adr/` passes 169.
 2. **No new entries in `plans/0002` §A–§F.** Frozen at its 2026-08-26 size.
-3. **No corpus growth.** `docs/` + `plans/` capped at their 2026-08-26 count.
+3. **No corpus growth, doc-comments included.** `docs/` + `plans/` capped at their 2026-08-26
+   count; `src/` + `tests/` comment words at their 2026-08-30 one. ⚠ **Prose moving from one to
+   the other is what the second cap is for** — not a claim that a remark beside a mechanism is
+   waste. `adr/0093` asks for exactly that prose.
 4. **`adr/0043` and `adr/0052` are suspended.** Choose numbers by taste, stamp them `PROVISIONAL`,
    open no §D row, name no ratifier. *Ratification needs a city and the city needs the numbers, so
    they now prevent every commitment, not only premature ones.*
@@ -47,6 +57,13 @@ Hexadecimal was satisfying `CLAUDE.md`'s *"something to look at"*.
 
 Ordered; reordering deletes this.
 
+🔴 **Rows 8–11 were written and replaced within the hour, and the reason is a trap worth keeping.**
+The first set was a dwelling sink, a Ruleset window, a tenant's middle and a renderer — chosen
+because a failing test or an instrument named each one. ⚠ **But a queue assembled from failing tests
+finds only the mechanisms that HAVE tests, and nothing unbuilt has one.** Every row was a repair to
+something that already ran. ***This page was opened to build the simulation, not to finish it.***
+The rows below were found by asking the code what is missing instead.
+
 | | Work | State |
 |---|---|---|
 | 1 | `CorpusBudgetTests`, this page, the `CLAUDE.md` pointer | ✅ 26-08 |
@@ -56,6 +73,12 @@ Ordered; reordering deletes this.
 | 5 | ~~Held parking drifts upward~~ — a ramp, not a drift; `ParkingLongRunTests` owns it | ✅ 27-08 |
 | 6 | ~~Wages~~ — `waged.toml`; arrears got a sink | ✅ 27-08 |
 | 7 | Life Stages and self-generation — [`0046`](0046-life-stages-and-a-self-generating-population.md) | ✅ 5/5 |
+| 8 | **`Govern` throws.** `PolicyEngine.Sweep` runs and a Ruleset can declare a `[[policy]]` — but the verb letting a **player** set one hits `InvalidOperationException` at `Simulation.cs:440`. ⚠ **Two of the six verbs are declared and unapplied**; this is the one with a whole mechanism already sitting under it | ✅ 30-08 |
+| 9 | **Needs, and the preference axes.** `Taste` **0 files**, `Preference` **0 files** in `Borough.Core`. `adr/0027` calls them *"the most load-bearing data in the design"*. Until they exist a Household wants nothing a Bin cannot express, and placement satisfices on **distance alone** | |
+| 10 | **`Service` throws.** The civic swath — schools, health, safety. `School` is **0 files**. ⚠ **After 9, not before**: a service with no need to satisfy is a Building with a Bin | |
+| 11 | **The shell.** 🔴 **`src/Borough.Godot` DOES NOT EXIST** — `CLAUDE.md` lists five projects and there are four, and `05` describes this one in detail. The amended done says *you watched it happen*, and the only eye on this city is a text dump | |
+| 12 | **Disasters.** `coastal.toml` carries a Hazard Region and **nothing fires on it** | |
+| 13 | The `0046` loose ends — the dwelling stock's missing sink, `aged.toml`'s narrow windows. ⚠ **Small on purpose and last on purpose**: `StageDumpTests` pins both with tests that assert the defect, so neither can be lost | |
 
 Items 2 and 3 cost one day and added no Ruleset key, number or ADR. They moved three golden
 baselines: a hashed column stopped being zero (`adr/0100`).
