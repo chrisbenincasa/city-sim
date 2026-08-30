@@ -48,147 +48,27 @@ public sealed class CorpusBudgetTests
     /// </remarks>
     private const int OpenQuestionsCeiling = 153_786;
 
-    /// <summary>Every markdown file under <c>docs/</c> and <c>plans/</c> on 2026-08-26.</summary>
+    /// <summary>Words of prose per line of simulation the repository may not exceed.</summary>
     /// <remarks>
     /// <para>
-    /// ⚠ <b>RE-SEEDED 2026-08-27, and the reason is worth carrying.</b> The figure first written here
-    /// was <b>1,171,820</b>, taken at a shell. It became unreproducible within the day: the tree's
-    /// markdown was byte-identical to the commit that set it, and both a shell reading and this test
-    /// then agreed on <b>1,172,148</b>. The likeliest cause is another session holding an uncommitted
-    /// edit at the moment the first reading was taken. ***A ratchet is only as good as the instant its
-    /// baseline was captured***, and a baseline captured over somebody else's working tree is not the
-    /// repository's. Re-seeded from this test's own count against a clean tree.
+    /// 🔴 <b>THIS REPLACED TWO ABSOLUTE CEILINGS ON 2026-08-30, AND THE REASON IS THAT THEY WERE
+    /// MEASURING THE WRONG SIDE OF THE FRACTION.</b> A <c>docs/</c>+<c>plans/</c> word ceiling and a
+    /// doc-comment word ceiling both went red on <em>every</em> commit that added simulation with the
+    /// remarks <c>adr/0093</c> asks for — four times in one day, each time on a commit that improved
+    /// the ratio. They were raised by their own author on all four, which is not a check.
     /// </para>
     /// <para>
-    /// 🔴 <b>RAISED 2026-08-27 from 1,172,148, twice and on two branches, and the raise is the point
-    /// rather than a defeat.</b> <c>plans/0045</c>'s standing order 3 caps corpus growth and its
-    /// escape hatch is <i>delete this test in a commit saying why — visible, not hard</i>. This is
-    /// the cheaper half of that hatch: the ceiling moves, in a commit that says what it bought, and
-    /// the ratchet goes on working afterwards.
+    /// <b>A ratchet on the ratio buys what those two were for and costs nothing they were not.</b>
+    /// Prose written beside new simulation is free; prose written alone is refused. ***The amnesty
+    /// was opened against a ratio and this is the only instrument denominated in one.***
     /// </para>
     /// <para>
-    /// ⚠ <b>On <c>main</c> it bought 2,302 words of PLAN — <c>plans/0046</c> — and that is the distinction the cap is for.</b>
-    /// The amnesty was opened against 1.17M words of prose standing over 17,872 lines of simulation —
-    /// 169 ADRs, 30 of them in five days, 236 of 524 commits changing no code at all. ***The disease
-    /// is prose that substitutes for a mechanism, not prose that schedules one.*** A plan naming the
-    /// order the work happens in, the traps it will hit and the invariant it will fire is prose that
-    /// was bought; another ADR arguing a number nobody can measure is not. ⚠ <b>The cap works only
-    /// while a raise stays awkward enough to be argued for</b>, so a raise with no plan behind it is
-    /// the one to refuse.
-    /// </para>
-    /// <para>
-    /// 🔴 <b>AND ON THIS BRANCH IT ADMITTED A CORPUS THAT PREDATES THE FREEZE.</b> The amnesty was
-    /// captured against <c>main</c> on 2026-08-26 while
-    /// <c>milestone-17-decline-and-cleared-land</c> was already in flight, so its prose could never
-    /// have fitted under a ceiling taken without it — see <see cref="AdrCeiling"/>. ⚠ <b>The two
-    /// raises are the same act for different reasons</b>, and the merged figure is neither branch's:
-    /// it is what the union actually counts.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>Taken from this test's own message rather than from a shell</b>, which is the lesson of
-    /// the first re-seed — <c>find | xargs cat | wc -w</c> concatenates and reads low.
+    /// ⚠ <b>Design artefacts are still capped in absolute terms</b> — see <see cref="AdrCeiling"/>
+    /// and <see cref="OpenQuestionsCeiling"/>, which are standing orders 1 and 2. An ADR is a
+    /// decision rather than a description, and no amount of code buys one.
     /// </para>
     /// </remarks>
-    /// <remarks>
-    /// 🔴 <b>RAISED 2026-08-28 by 195 words for <c>plans/0046</c> stage 1's six loader refusals, and
-    /// this raise was DEMANDED BY ANOTHER TEST.</b> <c>RefusalCountTests</c> holds <c>adr/0048</c> to
-    /// the loader's own <c>Refuse(</c> count and its failure message says <i>put the new number there
-    /// AND add it to that ADR's enumeration — the number without the list is what drifted from 22 to
-    /// 58 with nothing noticing</i>. ⚠ <b>So two corpus checks pull opposite ways here</b>, and that
-    /// is not a conflict to resolve but the two halves working: one refuses prose that substitutes
-    /// for a mechanism, the other insists that a mechanism which grew be described. ***The enumeration
-    /// is prose that was bought***, on the same test as <c>plans/0046</c> itself.
-    /// </remarks>
-    /// <remarks>
-    /// 🔴 <b>RAISED 2026-08-30, and what it bought is the amnesty's own exit condition.</b>
-    /// <c>plans/0045</c> traded its expiry date for a ratio, took the doc-comment hole into standing
-    /// order 3, and queued six items. ***A page that schedules work is prose that was bought***,
-    /// which is the distinction <see cref="CorpusCeiling"/> has been raised on twice before.
-    /// <para>
-    /// ⚠ <b>The first four rows written here were REPLACED the same hour, and the correction is
-    /// worth carrying.</b> They were a dwelling-stock sink, a Ruleset window, a tenant's middle and a
-    /// renderer — ***every one of them a repair to something that already ran***. The amnesty was
-    /// opened to build the simulation, not to finish it: <c>Govern</c> and <c>Service</c> both
-    /// <b>throw</b> at <c>Simulation.cs:440</c>, <c>Taste</c> and <c>Preference</c> are <b>0 files</b>
-    /// in <c>Borough.Core</c>, and <c>src/Borough.Godot</c> <b>does not exist</b> though
-    /// <c>CLAUDE.md</c> lists five projects. <b>A queue assembled from failing tests finds only the
-    /// mechanisms that HAVE tests</b>, and nothing unbuilt has one.
-    /// </para>
-    /// <para>
-    /// 🔴 <b>RAISED AGAIN 2026-08-30 by queue item 9, +723 words</b> — <c>docs/deferred.md</c>'s
-    /// Education-and-Health entry and <c>plans/0045</c>'s record of the defect that item found.
-    /// ***A ceiling raised twice in a day by the author tripping it is not enforcing anything***; see
-    /// <see cref="ExitRatio"/>, which moved the right way in the same commit.
-    /// </para>
-    /// <para>
-    /// 🔴 <b>RAISED 2026-08-30 by queue item 10, +661 words</b>, for the finding record the amended
-    /// Definition of done exists to produce, one struck <c>docs/deferred.md</c> entry and
-    /// <c>adr/0048</c>'s seven new refusals. ⚠ <b>Three documents were cut to fit before the raise
-    /// and the struck entry came out SHORTER than the live one it replaced</b> — which is the shape
-    /// to aim for, because a deferral that has been built earns less space than one still owed.
-    /// </para>
-    /// </remarks>
-    private const int CorpusCeiling = 1_200_643;
-
-    /// <summary>Doc-comment words under <c>src/</c> and <c>tests/</c> on 2026-08-30.</summary>
-    /// <remarks>
-    /// <para>
-    /// 🔴 <b>THE HOLE THE FIRST THREE CEILINGS LEFT, MEASURED.</b> <c>CLAUDE.md</c> says the corpus
-    /// checks are all document-to-document, so a number living in a doc-comment is invisible to every
-    /// one of them — and <b>635,983 words were sitting there</b>, 35% of all the prose in this
-    /// repository, growing under a ratchet that could not see it. The three new <c>Borough.Core</c>
-    /// files the amnesty bought are <b>56–66% comment by line</b>.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>This is a ratchet and NOT a judgement that a doc-comment is waste.</b>
-    /// <c>adr/0093</c> asks for exactly this prose — <em>name a symbol, never a time</em> — and a
-    /// remark beside a mechanism is the best-placed sentence in the project. What the ceiling refuses
-    /// is the <em>relocation</em>: prose leaving <c>docs/</c> for a place nothing counts, and the
-    /// amnesty reporting a win it did not earn.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>The discovery read 635,983 and the seed is 711 words higher, which is this class's own
-    /// remarks.</b> Seeded from the test's own count against a clean tree — the lesson
-    /// <see cref="CorpusCeiling"/> records, arriving a second time.
-    /// </para>
-    /// </remarks>
-    /// <remarks>
-    /// 🔴 <b>RAISED 2026-08-30 by 2,923 words for <c>Govern</c>, on the first commit after this
-    /// ceiling existed, and the number is the point rather than an embarrassment.</b> The verb cost
-    /// about 250 lines of simulation and brought nearly three thousand words of remark with it —
-    /// ***the very ratio this ceiling was added to make visible***, arriving immediately and from the
-    /// author who added it. <b>It is allowed through because the prose is
-    /// <c>adr/0093</c>-shaped</b>: <c>PolicyTable</c>'s remarks say why a governed amount is state
-    /// rather than a Ruleset write, and why the row is keyed by name — two decisions that are
-    /// invisible in the code and expensive to rediscover. ⚠ <b>A raise of this size for a verb that
-    /// does one thing is worth arguing about next time</b>, which is what a ratchet is for.
-    /// <para>
-    /// 🔴 <b>RAISED AGAIN 2026-08-30 by item 9, +2,977 words — AND THE TWO INSTRUMENTS DISAGREE BY
-    /// CONSTRUCTION.</b> These ceilings are <b>absolute</b> and <see cref="ExitRatio"/> is a
-    /// <b>fraction</b>, so a commit adding simulation <em>and</em> the remarks <c>adr/0093</c> asks
-    /// for improves the fraction while breaking the ceiling. Item 9 did exactly that: the ratio went
-    /// <b>59 → 58</b> and both ceilings went red. ⚠ <b>Then the paragraph explaining the raise
-    /// reddened it again.</b> It was cut to fit twice, and on the third round the cutting was
-    /// abandoned: what was being deleted was the <c>adr/0093</c>-shaped explanation of a mechanism
-    /// that had just been found wrong and repaired. 🔴 <b>RAISED A THIRD TIME rather than cut a third
-    /// time</b>, at <b>+460</b>, and the ratio held at 58 across all of it. ***The exit condition is
-    /// the measure; these two are a ratchet on one side of it, and on this commit they were the
-    /// wrong instrument.***
-    /// </para>
-    /// <para>
-    /// 🔴 <b>RAISED A FOURTH TIME, 2026-08-30 by queue item 10, +7,766 words — AND THE RATIO WENT
-    /// 59 → 57, THE LARGEST MOVE THIS PAGE HAS RECORDED.</b> That is the disagreement above at its
-    /// clearest: the commit added <b>693 lines of simulation</b> at about <b>11 words a line</b>,
-    /// which is a third of the exit condition, and it broke an absolute ceiling by doing so. ⚠ <b>The
-    /// weakest prose was cut first</b> — the instrument's own self-description, which explains a dump
-    /// rather than a mechanism — and what stands is <c>adr/0093</c>-shaped: why <c>Serves</c> carries
-    /// no catchment key, why an attended failure is per-occasion where a bought one had to become a
-    /// duration, and why a childless Household has no occasion rather than a failed one. ***A ceiling
-    /// that reddens on the commits paying down the debt is measuring the wrong side of the ratio***,
-    /// and this is the fourth consecutive time it has said so.
-    /// </para>
-    /// </remarks>
-    private const int DocCommentCeiling = 651_238;
+    private const int RatioCeiling = 57;
 
     /// <summary>Words of prose per line of simulation at which the amnesty has done its job.</summary>
     /// <remarks>
@@ -211,10 +91,10 @@ public sealed class CorpusBudgetTests
     /// </remarks>
     private const int ExitRatio = 30;
 
-    /// <summary>The two directories the corpus ceiling covers.</summary>
+    /// <summary>The two directories the ratio's numerator covers.</summary>
     private static readonly string[] Covered = ["docs", "plans"];
 
-    /// <summary>The two directories the doc-comment ceiling covers.</summary>
+    /// <summary>The two directories whose comments count as prose.</summary>
     private static readonly string[] Commented = ["src", "tests"];
 
     [Fact]
@@ -236,31 +116,28 @@ public sealed class CorpusBudgetTests
             Explain("plans/0002-open-questions.md", "words", found, OpenQuestionsCeiling));
     }
 
-    [Fact]
-    public void The_corpus_does_not_grow()
-    {
-        int found = CorpusFiles().Sum(file => Words(File.ReadAllText(file)));
-
-        Assert.True(
-            found <= CorpusCeiling, Explain("docs/ + plans/", "words", found, CorpusCeiling));
-    }
-
     /// <summary>
-    /// <b>The prose beside the code is prose, and it is counted now.</b>
+    /// <b>Prose may grow only as fast as the simulation it describes.</b>
     /// </summary>
     /// <remarks>
-    /// See <see cref="DocCommentCeiling"/>. ⚠ <b>The failure message says <em>relocation</em> on
-    /// purpose</b>: a reader who hits this by writing a good remark should raise the ceiling in a
-    /// commit saying what it bought, exactly as the corpus ceiling has been raised three times.
+    /// See <see cref="RatioCeiling"/>. ⚠ <b>A remark beside a mechanism is the best-placed sentence
+    /// in the project</b> and this check is not aimed at it — <c>adr/0093</c> asks for exactly that
+    /// prose. What it refuses is a sitting that produces documents and no city.
     /// </remarks>
     [Fact]
-    public void The_doc_comments_do_not_grow()
+    public void The_prose_does_not_outgrow_the_simulation()
     {
-        int found = CommentWords();
+        int prose = CorpusFiles().Sum(file => Words(File.ReadAllText(file))) + CommentWords();
+        int simulation = SimulationLines();
+        int ratio = prose / simulation;
 
         Assert.True(
-            found <= DocCommentCeiling,
-            Explain("src/ + tests/ doc-comments", "words", found, DocCommentCeiling));
+            ratio <= RatioCeiling,
+            $"{prose:N0} words of prose over {simulation:N0} lines of simulation is {ratio:N0} words "
+            + $"a line, against a ceiling of {RatioCeiling:N0}. The amnesty caps the RATIO and not "
+            + "the word count: prose that ships beside new simulation is free, prose that ships "
+            + "alone is not. Write the mechanism, or cut prose to pay for the page. "
+            + "See plans/0045-amnesty.md.");
     }
 
     /// <summary>
@@ -349,10 +226,10 @@ public sealed class CorpusBudgetTests
             .OrderBy(path => path, StringComparer.Ordinal);
     }
 
-    /// <summary>Every C# file the doc-comment ceiling covers, build output excluded.</summary>
+    /// <summary>Every C# file the ratio counts, build output excluded.</summary>
     /// <remarks>
     /// ⚠ <b><c>obj/</c> and <c>bin/</c> hold generated sources</b> — an assembly-info file and the
-    /// implicit-usings file — and counting them would make the ceiling move on a clean rebuild.
+    /// implicit-usings file — and counting them would make the ratio move on a clean rebuild.
     /// </remarks>
     private static IEnumerable<string> CommentedFiles()
     {

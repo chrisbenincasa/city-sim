@@ -32,10 +32,14 @@ Until the ratio is earned:
 
 1. **No new ADRs.** `CorpusBudgetTests` reddens the build if `docs/adr/` passes 169.
 2. **No new entries in `plans/0002` §A–§F.** Frozen at its 2026-08-26 size.
-3. **No corpus growth, doc-comments included.** `docs/` + `plans/` capped at their 2026-08-26
-   count; `src/` + `tests/` comment words at their 2026-08-30 one. ⚠ **Prose moving from one to
-   the other is what the second cap is for** — not a claim that a remark beside a mechanism is
-   waste. `adr/0093` asks for exactly that prose.
+3. **Prose grows only as fast as the simulation it describes.** `CorpusBudgetTests` caps the
+   **ratio** — all prose, doc-comments included, over non-comment `src/` lines — at **57**, so a
+   page written beside a mechanism is free and a page written alone is refused. ⚠ **This is not a
+   claim that a remark beside code is waste**: `adr/0093` asks for exactly that prose, and doc-
+   comments are on the numerator only so that prose cannot escape `docs/` by relocating.
+   🔴 **It replaced two absolute word ceilings on 2026-08-30**, which went red on all four commits
+   that *improved* the ratio and were raised by their own author every time. ***A ceiling that
+   reddens on the work paying down the debt is measuring the wrong side of the fraction.***
 4. **`adr/0043` and `adr/0052` are suspended.** Choose numbers by taste, stamp them `PROVISIONAL`,
    open no §D row, name no ratifier. *Ratification needs a city and the city needs the numbers, so
    they now prevent every commitment, not only premature ones.*
@@ -76,7 +80,8 @@ The rows below were found by asking the code what is missing instead.
 | 8 | **`Govern` throws.** `PolicyEngine.Sweep` runs and a Ruleset can declare a `[[policy]]` — but the verb letting a **player** set one hits `InvalidOperationException` at `Simulation.cs:440`. ⚠ **Two of the six verbs are declared and unapplied**; this is the one with a whole mechanism already sitting under it | ✅ 30-08 |
 | 9 | **Needs, and the preference axes.** `Taste` **0 files**, `Preference` **0 files** in `Borough.Core`. `adr/0027` calls them *"the most load-bearing data in the design"*. Until they exist a Household wants nothing a Bin cannot express, and placement satisfices on **distance alone** | ◐ 30-08 |
 | 10 | **`Service` throws.** The civic swath — schools, health, safety. `School` is **0 files**. ⚠ **After 9, not before**: a service with no need to satisfy is a Building with a Bin | ✅ 30-08 |
-| 11 | **The shell.** 🔴 **`src/Borough.Godot` DOES NOT EXIST** — `CLAUDE.md` lists five projects and there are four, and `05` describes this one in detail. The amended done says *you watched it happen*, and the only eye on this city is a text dump | |
+| 11a | **The eye.** Of `05 §2`'s three hot queries only `LayerCells` exists; **`VisibleAgents` and `ChunkAggregates` are nowhere in `src/`** and a **Traveller has no coordinate at all**. ⚠ **Day one of 11b either way** | ✅ 30-08 |
+| 11b | **The shell.** 🔴 **`src/Borough.Godot` DOES NOT EXIST** — `CLAUDE.md` lists five projects and there are four. ⚠ **Godot is not installed here and neither CI lane could build it**: blocked on a toolchain, not on 11a | |
 | 12 | **Disasters.** `coastal.toml` carries a Hazard Region and **nothing fires on it** | |
 | 13 | The `0046` loose ends — the dwelling stock's missing sink, `aged.toml`'s narrow windows. ⚠ **Small on purpose and last on purpose**: `StageDumpTests` pins both with tests that assert the defect, so neither can be lost | |
 
@@ -133,6 +138,39 @@ not depend on a Ruleset having opinions about Buildings.***
 `evicted.toml`'s own cycle rather than by the mechanism. `NeedTests.The_depth_is_a_duration_and_not_a_tally`
 is the guard; ⚠ **every other test in that class passes against the tally.** 🔴 **A new Tick consumer
 with no `plans/0013` row** (`adr/0073`) — the corpus freeze is why.
+
+## What the first frames found
+
+**`--watch` prints the city as ASCII** — Buildings under the Travellers moving over them, scaled to
+the Lots that exist. `VisibleAgents(aabb, alpha)` is `05 §2`'s second hot query and the first thing
+in the project that answers *where is everybody, right now*.
+
+🔴 **THE DAY IS A COMB AND NOT A CURVE.** Measured on `minimal.toml`, 1,000 Citizens, sampled every
+Tick: the morning has **five departure bursts** — peaking at Ticks 486, 570, 652, 733 and 820, one
+per in-world hour — with **50–59 consecutive Ticks of a COMPLETELY EMPTY road network** between
+them. A Shift starts on an integer hour and the window is 6–10, so there are **five** possible
+departure clumps and `arrive_early_max_minutes = 15` is the only thing spreading each one.
+***`adr/0101` says the Day's shape is emergent, and what emerges from an hour-granular Shift start
+is a comb.*** At a million Citizens that is a fifth of the city departing inside 21 Ticks, five
+times a morning.
+
+⚠ **14 of 24 hours have nobody outside at all** — nothing moves before 05:00, after 19:00, or
+between 10:00 and 12:00. That is the commute being the only built Trip generator, seen rather than
+read.
+
+🔴 **A FRAME EVERY 32 TICKS REPORTS AN EMPTY CITY**, which is the job cadence aliased against itself
+and cost the first four readings. ***An instrument sampling a paced mechanism has to pick an
+interval coprime with the pacing***, and nothing warned; the dump's header does now.
+
+⚠ **A walker is placed on a straight line it did not walk, and a driver is placed on its Segment.**
+A foot Leg is priced once and holds no Segment, so the only thing stored about a walking Traveller
+is that it left one Address for another — and **nine shipped worlds have `car_ownership_percent`
+absent or 0**, so this is most of the city. The frames show it: walkers cut through blocks, drivers
+ride the lattice. `alpha` therefore moves the walkers and cannot move the drivers.
+
+✅ **Placement is total** — `placed` equals `travelling` on every frame of every world tried.
+
+⚠ **A new Tick consumer with no `plans/0013` row** (`adr/0073`) — the corpus freeze is why.
 
 ## What the school run found
 

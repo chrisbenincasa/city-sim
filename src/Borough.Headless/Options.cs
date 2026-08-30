@@ -26,6 +26,11 @@ internal enum Mode
     /// </remarks>
     School,
 
+    /// <summary>
+    /// Frames of the city as ASCII, Travellers over Buildings. <c>plans/0045</c>'s queue item 11a.
+    /// </summary>
+    Watch,
+
     /// <summary>Build a synthetic city and print what is in it. Slice 4's artefact.</summary>
     Report,
 
@@ -230,13 +235,10 @@ internal enum Mode
 /// They are kept as separate modes rather than merged into one that degrades.
 /// </para>
 /// <para>
-/// <b>Hand-rolled rather than a parsing library.</b> <c>adr/0018</c> prefers off-the-shelf
-/// infrastructure and requires a written exception naming the property no library provides — this is
-/// not that. It is below the threshold the ADR is aimed at: a flat list of flags, no subcommands, no
-/// completion, and no dependency worth carrying into the one project whose job is to prove it can
-/// build with nothing installed. If the surface grows subcommands, take the library. ⚠ It said
-/// <em>nine flags</em> and there were more than nine when it said it — a count in prose is a fact
-/// that drifts, and the threshold this paragraph is about was never a number anyway.
+/// <b>Hand-rolled rather than a parsing library.</b> Below the threshold <c>adr/0018</c> is aimed
+/// at: a flat list of flags, no subcommands, and no dependency worth carrying into the one project
+/// whose job is to prove it builds with nothing installed. If the surface grows subcommands, take
+/// the library.
 /// </para>
 /// </remarks>
 internal sealed class Options
@@ -321,6 +323,12 @@ internal sealed class Options
     /// What <c>--schools</c> places when nobody says. <b>Deliberately too few to cover a city.</b>
     /// </summary>
     private const int DefaultSchools = 4;
+
+    /// <summary>How many frames <c>--watch</c> prints across its run.</summary>
+    public int Frames { get; private init; } = DefaultFrames;
+
+    /// <summary>What <c>--frames</c> prints when nobody says.</summary>
+    private const int DefaultFrames = 8;
 
     /// <summary>How many Ticks to run.</summary>
     public ulong Ticks { get; private init; } = 1_024;
@@ -482,6 +490,8 @@ internal sealed class Options
         bool stages = false;
         bool school = false;
         int schools = DefaultSchools;
+        bool watch = false;
+        int frames = DefaultFrames;
         bool business = false;
         bool market = false;
         Layer? dump = null;
@@ -616,6 +626,14 @@ internal sealed class Options
                     session = true;
                     continue;
 
+                // A session flag for the plainest of the reasons: a frame of an unstepped world
+                // shows the city SyntheticCity laid and nobody moving over it, and the moving is
+                // the whole point of a frame.
+                case "--watch":
+                    watch = true;
+                    session = true;
+                    continue;
+
                 // A session flag for --money's reason rather than --arrivals': a Business is created
                 // by the city on its own and nothing outside has to ask. What it needs is elapsed
                 // time, because construction, founding and placement are all paced.
@@ -735,6 +753,16 @@ internal sealed class Options
                             out schools) || schools < 0)
                     {
                         complaint = $"--schools {value} is not a count of zero or more.";
+                        return false;
+                    }
+
+                    break;
+
+                case "--frames":
+                    if (!int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture,
+                            out frames) || frames <= 0)
+                    {
+                        complaint = $"--frames {value} is not a count of one or more.";
                         return false;
                     }
 
@@ -861,27 +889,10 @@ internal sealed class Options
         // Ahead of --traffic's for the reason --traffic's is ahead of --commute's: the most specific
         // complaint wins, and every flag below is also a picture that builds its own world.
         //
-        // ⚠ THE COUNT IS GONE FROM THIS COMPLAINT RATHER THAN CORRECTED, and the merge is what took
-        // it. It read `a seventh picture, and each of the seven`, which was true on the branch that
-        // wrote it and false the moment milestone 7's picture landed beside it -- two branches each
-        // added a tenth mode and neither could see the other's. ***A count in prose is a fact that
-        // drifts, and a count on a branch drifts without anybody editing it.*** plans/0012.
-        //
-        // ⚠ --parking is in this condition and --money is NOT in --parking's below, which is the
-        // ordering rule and not an omission: this block runs first and returns, so the pair is
-        // refused here or not at all. A textual union of the two branches would have left
-        // `--money --parking` parsing silently -- the exact hole the block below was written to
-        // close, re-opened by the merge that landed the fix.
-        // ⚠ FIRST IN THE CHAIN AND IT NAMES EVERY OTHER PICTURE, which is why no block below needed
-        // editing to admit it. The blocks below each name only what sits under them, because the
-        // first block to match returns -- so a mode added in the middle has to be threaded into
-        // every block above it, and one added at the top does not.
-        //
-        // 🔴 It shipped with NO exclusion block at all at plans/0046 stage 1, so `--stages
-        // --land-value` parsed silently and the ternary picked whichever sat higher. That is the
-        // exact hole --evidence left and the comment below records, re-opened one mode later by
-        // somebody who had read neither. ***A pattern held by comments in the file is a pattern the
-        // next author does not inherit***; what caught it was a test asserting the refusal.
+        // ⚠ THIS BLOCK RUNS FIRST AND RETURNS, so it names every other picture and no block below
+        // needs editing to admit it. That is why --parking is named here and --money is not named in
+        // --parking's block below: the pair is refused here or not at all. A mode added in the
+        // middle has to be threaded into every block above it; one added at the top does not.
         //
         // ⚠ --day is named here and still has no block of its own. That is a gap this one does not
         // close: the pair `--day --market` still parses.
@@ -911,17 +922,12 @@ internal sealed class Options
             return false;
         }
 
-        // Ahead of --traffic's on the ordering rule stated below, and the two blocks here close a
-        // hole rather than extend a pattern: --evidence shipped with NO exclusion block at all, so
-        // `--evidence --traffic` parsed silently and the ternary below picked whichever sat higher.
-        // A picture flag that loses an argument it never announced is worse than a refused one --
-        // the operator reads the other picture's output as the one they asked for. plans/0012.
+        // Ahead of --traffic's on the ordering rule stated below. A picture flag that loses an
+        // argument it never announced is worse than a refused one -- the operator reads the other
+        // picture's output as the one they asked for. plans/0012.
         //
-        // ⚠ NONE OF THE THREE COMPLAINTS ABOVE AND HERE COUNT THE PICTURES, and the ones below still
-        // do. `--traffic asks for a sixth picture` was true of five and is now true of nothing: a
-        // count in prose is a fact that drifts, and the tenth mode is what made the drift legible.
-        // The counts are left where they are because a test asserts one of the strings; the new ones
-        // do not start another.
+        // ⚠ THE COMPLAINTS BELOW COUNT THE PICTURES AND THE ONES HERE DO NOT: a count in prose is a
+        // fact that drifts. The old ones stay because a test asserts one of the strings.
         // Above --parking's on the ordering rule stated above: this block runs first and returns, so
         // `--land-value --parking` is refused here or not at all.
         // Above --land-value's on the ordering rule stated above: this block runs first and returns.
@@ -1305,6 +1311,7 @@ internal sealed class Options
         options = new Options
         {
             Mode = day ? Mode.Day
+                 : watch ? Mode.Watch
                  : school ? Mode.School
                  : stages ? Mode.Stages
                  : market ? Mode.Market
@@ -1331,6 +1338,7 @@ internal sealed class Options
             Seed = seed,
             Citizens = citizens,
             Schools = schools,
+            Frames = frames,
             Ticks = ticks,
             HashEvery = hashEvery,
             ForceRuleset = force,

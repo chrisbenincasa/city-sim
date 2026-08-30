@@ -924,6 +924,20 @@ internal static class Session
         return SchoolDump.Run(options, writer);
     }
 
+    /// <summary>Runs the watch frames, to a file or to the console.</summary>
+    internal static int DumpWatch(Options options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (options.OutPath is null)
+        {
+            return WatchDump.Run(options, Console.Out);
+        }
+
+        using var writer = new StreamWriter(options.OutPath);
+        return WatchDump.Run(options, writer);
+    }
+
     /// <summary>Runs the land value dump, to a file or to the console.</summary>
     internal static int DumpLandValue(Options options)
     {

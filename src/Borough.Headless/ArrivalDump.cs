@@ -17,39 +17,27 @@ using Borough.Formats;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Milestone 11's "something to look at", and it is four quantities rather than one because the
-/// milestone's mechanism is a pipe with two ends.</b> Arrivals are a flow in, the Unplaced Pool is
-/// the stock between, Departures are a flow out, and the money supply is what all three move. ⚠ ***A
-/// picture of any one of them is a picture of a symptom*** — `CONTEXT` → Departure is explicit that a
-/// large Pool can be a healthy city and a small one a city in crisis, and that only the flow tells
-/// them apart.
+/// <b>Four quantities rather than one, because the mechanism is a pipe with two ends.</b> Arrivals
+/// are a flow in, the Unplaced Pool the stock between, Departures a flow out, and the money supply
+/// is what all three move. ⚠ ***A picture of any one is a picture of a symptom*** — `CONTEXT` →
+/// Departure: a large Pool can be a healthy city and a small one a city in crisis.
 /// </para>
 /// <para>
-/// 🔴 <b>It is the first dump that issues Commands, and that is forced rather than chosen.</b>
-/// Nothing in the simulation decides to arrive: <c>adr/0128</c> puts the comparison at milestone 16,
-/// so until then every arrival comes through <see cref="CommandKind.Arrive"/> and somebody outside
-/// has to ask. Every other dump steps an empty Tick and watches the city act on its own; this one
-/// cannot, because there is nothing here that acts on its own yet.
+/// 🔴 <b>The first dump that issues Commands, and that is forced.</b> Nothing here decides to
+/// arrive (<c>adr/0128</c> puts that at milestone 16), so every arrival comes through
+/// <see cref="CommandKind.Arrive"/> and somebody outside has to ask.
 /// </para>
 /// <para>
-/// 🔴 ⚠ <b>So the rate had to come from somewhere, and it is the Ruleset's rather than this file's.</b>
-/// The dump asks each gate for <em>more than it can take</em>, every Day, and what is admitted is
-/// <c>[[building]] arrivals_per_day</c> clipped by the gate itself. ***A demonstration that chose its
-/// own rate would be showing the demonstration.*** The alternative — a cadence written here — would
-/// have put a number with no ratifier into the shell (<c>adr/0052</c>) and made the picture a
-/// picture of that number. The <b>asked</b> column is printed beside the <b>admitted</b> one so the
-/// clipping is visible rather than implied.
+/// 🔴 ⚠ <b>The rate is the Ruleset's rather than this file's.</b> The dump asks each gate for more
+/// than it can take and what is admitted is <c>[[building]] arrivals_per_day</c> clipped by the
+/// gate. ***A demonstration that chose its own rate would be showing the demonstration.***
+/// <b>asked</b> is printed beside <b>admitted</b> so the clipping is visible.
 /// </para>
 /// <para>
-/// ⚠ <b>What this dump must not be read as is an immigration rate.</b> There is no such thing in this
-/// build and <c>adr/0023</c>'s first line refuses one. <c>arrivals_per_day</c> is a <em>ceiling on a
-/// Day's admissions through one door</em> — what a gate will take, not what a Hinterland will send.
-/// </para>
-/// <para>
-/// <b>The Households-per-command and Citizens-per-Household are the instrument's and are stated as
-/// such.</b> Nothing in the build models Life Stage → composition (milestone 11 task 6 asked and the
-/// answer was that the Command carries it), so a figure here would be a model nobody wrote. They are
-/// printed in the header so no reader has to guess which numbers are the city's.
+/// ⚠ <b>Not to be read as an immigration rate</b>, which <c>adr/0023</c>'s first line refuses:
+/// <c>arrivals_per_day</c> is a ceiling on one door's admissions, not what a Hinterland sends. The
+/// Households-per-command and Citizens-per-Household are the instrument's and are printed in the
+/// header, because nothing in the build models Life Stage → composition.
 /// </para>
 /// </remarks>
 internal static class ArrivalDump
