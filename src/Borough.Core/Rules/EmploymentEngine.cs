@@ -228,6 +228,21 @@ public sealed class EmploymentEngine
 
             _tickConsidered++;
 
+            // plans/0046 stage 4's working-age gate. ⚠ AHEAD of the already-employed check and not
+            // after it, so a child is never counted as SEEKING: this pass's three counters are a
+            // funnel, and a child is not somebody the labour market failed to place. Behind
+            // `considered`, because a look that found a child is still a look.
+            //
+            // ⚠ It changes the LABOUR SUPPLY and therefore the city. `[[building]] jobs = 8` was
+            // derived as "1000/360 x 3 = 8.33 Citizens" -- a ratio that assumes EVERY CITIZEN WORKS
+            // -- so the derivation behind that number no longer holds where a Ruleset declares
+            // demographics. plans/0046 kept this stage apart from generation for exactly that
+            // reason: two changes to employment on one day and neither attributable.
+            if (!_world.IsOfWorkingAge(slot))
+            {
+                continue;
+            }
+
             if (_world.Businesses.Rows.IsValid(_world.Citizens.Workplace[slot]))
             {
                 continue;

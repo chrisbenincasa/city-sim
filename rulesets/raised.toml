@@ -1,185 +1,36 @@
-# aged.toml -- minimal.toml with FIVE [[life_stage]] tables, and nothing else changed.
+# raised.toml -- founded.toml with the five [[life_stage]] tables, and nothing else changed.
 #
-# THE ONLY SHIPPED FILE IN WHICH THE CITY GENERATES ITS OWN POPULATION. `HouseholdTable.LifeStage` and
-# `CitizenTable.Age` were both saved, hashed columns written by NOTHING -- two of the three dead
-# columns found in the week the amnesty opened. plans/0046 gives them writers and this file is the
-# world that exercises them.
+# THE ONLY SHIPPED FILE IN WHICH A CITY BOTH GENERATES ITS OWN POPULATION AND FOUNDS BUSINESSES, and
+# it exists for one reason: plans/0046 stage 4's working-age gate has TWO callers and no world could
+# reach the second. `EmploymentEngine.Assign` and `PlacementEngine.Found` both ask
+# `World.IsOfWorkingAge`; aged.toml has demographics and no [founding], founded.toml has [founding]
+# and no demographics. ***So the founding half of the gate was correct and unobservable*** -- which
+# is plans/0034 F17's shape exactly, a mechanism shipped right and unreachable for want of Ruleset
+# CONTENT rather than code. This file is the content.
 #
-# WHAT IT DEMONSTRATES, in the order the stages shipped: a chain with a countdown and a spread
-# (stage 1); a terminal stage that DISSOLVES, its estate going to the treasury (stage 2); and
-# adr/0011's fertility decision with the spawn that follows it (stage 3); and the WORKING-AGE GATE,
-# which keeps a child out of the employment pass and the founding pass (stage 4).
+# WHY IT IS founded.toml AND NOT aged.toml PLUS A CHANNEL. Founding is a MEANS TEST: it reads the
+# Household's balance against a band, and every Household on minimal.toml -- which aged.toml is built
+# from -- holds exactly zero. A gate on a channel that refuses everybody anyway would demonstrate
+# nothing. founded.toml is taxed.toml underneath and puts money in Households, which is what makes
+# the refusal attributable to AGE rather than to poverty.
 #
-# ⚠ THE GATE COSTS THIS WORLD 15% OF ITS LABOUR FORCE, measured here: 1,411 of 1,411 Citizens held a
-# job before it and 1,200 of 1,411 after, over 60 Days at 2,000 Citizens. `[[building]] jobs = 8` was
-# derived as "1000/360 x 3 = 8.33 Citizens", a ratio that assumes EVERY CITIZEN WORKS -- so that
-# derivation no longer holds in a world with demographics, and the number below is inherited rather
-# than re-derived. ⚠ THIS FILE DECLARES NO [founding], so the gate's second caller is unreachable
-# here; raised.toml is the world that reaches it.
+# ⚠ IT INHERITS founded.toml'S OWN WARNINGS AND THEY STILL APPLY. Its shop count is bounded by the
+# SOURCE EXHAUSTING rather than by any sink, so DO NOT QUOTE A MONEY FIGURE OUT OF A RUN OF THIS AS
+# ANYTHING ABOUT THE ECONOMY. Read that file's header before reading this one's numbers.
 #
-# MEASURED at 2,000 Citizens over 400 Days: 720 Households seeded, ALL OF THEM DEAD BY DAY 212, and
-# 234 standing at the end -- every one of which was born here. Replacement Rate 1.45 against the 2.00
-# that is exact replacement.
+# ⚠ AND IT INHERITS aged.toml'S: the fertility draw is UNCONDITIONED (adr/0011 wants it conditioned
+# on housing cost, dwelling size and job security, and none of that machinery exists), the band's
+# mean of 1.5 sits below the 2.0 that replaces exactly, and the founding cohort's echo does not damp.
 #
-# 🔴 THIS CITY DECLINES AND THAT IS THE BAND, NOT A DIAGNOSIS. `young` authors children_min = 0 and
-# children_max = 3, whose mean is 1.5, and two children per Household is exact Citizen replacement
-# (adr/0011, and the threshold falls out of conservation rather than being chosen). So the decline is
-# arithmetic on a number in this file. ***The fertility draw is UNCONDITIONED*** -- adr/0011 wants it
-# conditioned on housing cost, dwelling size and job security, and none of that machinery exists
-# (adr/0070: unbuilt, not refused) -- so nothing here is evidence about whether cities can afford
-# children.
+# 🔴 SO THIS FILE RATIFIES NOTHING. It is a reachability fixture: it makes one branch executable that
+# no other world could reach. Every number in it is somebody else's, unratified, and carried here so
+# the diff against founded.toml is exactly the stage table.
 #
-# 🔴 THE POPULATION OSCILLATES BETWEEN 156 AND 452 HOUSEHOLDS AND DOES NOT SETTLE, and that is the
-# finding this file was built to produce. adr/0011's `W` exists to smear the founding cohort so the
-# city does not breathe in lockstep; over 400 Days and three generations IT DOES NOT DAMP -- busiest
-# transition Day is 7.0x the mean, 116 of 400 Days see no transition at all, and INDIVIDUAL STAGES GO
-# COMPLETELY EMPTY AND REFILL (`mature_family` holds nobody at Day 160 and 155 at Day 242). ***So the
-# four windows below are too narrow***, and widening them is an edit to this file alone. Read it with
-# `--stages`.
-#
-# ⚠ `childless` WAS DECLARED AND UNREACHABLE UNTIL STAGE 3, deliberately, and it is REACHABLE NOW:
-# `young`'s zero draw is what routes into it. It was declared before anything could reach it because
-# it is what makes `next` an AUTHORED key rather than a derived one -- a chain taken from declaration
-# order would route `family` into `childless` and be wrong in a way no refusal could catch.
-# ***The stage whose absence would be invisible is the one worth shipping early.***
-#
-# ⚠ AND IT IS KEPT SEPARATE FROM `empty_nest` THOUGH THE TWO BEHAVE IDENTICALLY, which is adr/0011's
-# own instruction and not an oversight: they are DIFFERENT DIAGNOSES. A large childless population
-# means the city is too expensive to START a family; a large empty-nest population whose spawned
-# Households all became Departures means it is too expensive to STAY in. Same root cause, different
-# symptom, different remedy -- and a file that merged them would make the diagnosis unavailable
-# for ever after.
-#
-# 🔴 EVERY NUMBER BELOW IS PROVISIONAL, CHOSEN BY TASTE, WITH NO RATIFIER AND NO plans/0002 §D
-# ROW. That is what plans/0045's amnesty suspends adr/0052 in order to allow. They are numbers that
-# let the mechanism run and they are nothing more.
-#
-# WHERE THE ~160 DAYS COMES FROM, AND IT IS THE ONE NUMBER WITH AN ARGUMENT BEHIND IT. The corpus
-# states two incompatible lifespans. adr/0011's cost section reasons from "a life spanning on the
-# order of a thousand Days". adr/0094's revisit trigger says the Day is too slow if "a twenty-hour
-# campaign still does not contain enough generations for Replacement Rate to be readable, which at
-# 562 Days means a Life Stage life longer than about 190 Days." A thousand-Day life puts LESS THAN
-# ONE GENERATION inside a whole campaign, so Replacement Rate -- the readout the entire mechanism
-# exists to produce -- could never be read by a player. adr/0094 wins because it reasons from what a
-# person can SEE and adr/0011 reasons from what a machine can AFFORD. 24+48+48+40 = 160 Days at the
-# floor, inside the ~190, giving roughly three generations to a 562-Day campaign.
-#
-# ⚠ `spread_days` IS THE LOAD-BEARING HALF AND IT READS AS DECORATION. Without it every Household
-# created at Tick 0 leaves every stage on the same Day for the whole run, so the founding generation
-# stays one cohort and the city breathes in lockstep. ***That echo would read as a demographic
-# mechanism and is an artefact of world creation.*** Whether four windows of 8-16 Days are enough to
-# blur a cohort across 160 Days of life is NOT SETTLED BY THIS FILE and is the first number here that
-# will move -- it is what plans/0046's definition of done says to go and watch.
-#
-# ⚠ ZERO IS ALLOWED FOR `spread_days` and means exactly that lockstep world. It is refused nowhere
-# because a file demonstrating the echo is a legitimate thing to author, and because a key whose zero
-# is a real answer must not be defaulted.
-#
-# ⚠ THERE IS NO CALENDAR AND THERE MUST NOT BE ONE. Every duration here is in Days. CONTEXT.md's
-# banned vocabulary names "Year", "month" and "season" outright; the precedent for anything wanting a
-# longer unit is [[business]] pay_period_days = 7, which is a week because seven Days is a week.
-#
-# ⚠ THE CHAIN'S LONGEST DRAW IS 63 DAYS (48 + 16 - 1) AND THE WHEEL REACHES 127. That is not a
-# coincidence: EventWheel.CoarseDays was DERIVED from this table -- plans/0036 decision 3 asked for a
-# bucket count and could not answer it, because the answer is the longest sleep a consumer takes and
-# there was no consumer. 64 is the derived floor and 128 is one doubling of headroom, taken because
-# this table is PROVISIONAL and a number chosen by taste will move. RulesetLoader refuses a stage
-# whose draw would reach the wheel's period, so the two cannot drift apart silently.
-#
-# WHAT IT IS NOT: it is not a claim about content. minimal.toml's first line says it models no city
-# and that is unchanged -- this file adds a demographic clock to a world of one dwelling kind whose
-# larder refills itself. Nothing here should be read as a decision about how long a life is.
-# ---------------------------------------------------------------------------------------------------
-
-# The minimal Ruleset. It models no city, and it is not the beginning of one.
-#
-# Slice 7 task 10a of plans/0011-rule-engine-bins-and-rules.md. Its whole job is to be the smallest
-# content that makes Bins move, so that the wiring underneath it — a Ruleset reaching a World, a
-# Building given its kind's Bins and Rule Instances when it is built, an arming stagger — is exercised
-# by a running city rather than by a test that builds the same shape by hand.
-#
-# WHY IT NAMES NO GOOD. 04 §1's five Goods are Produce, Food, Timber, Materials and Consumer Goods,
-# and every one of them is produced by one Building and consumed by another. That crosses an ownership
-# boundary, which is the `pool` scope, which is a named hole that throws until Phase 2 brings roads,
-# Districts and connectivity. So a Ruleset that could run today and also name a Good would be claiming
-# a chain it cannot express. `sundries` is deliberately a word for goods too unimportant to name:
-# nothing in this file should be read as a decision about content. Choosing the Goods is decision
-# owed 4, and it belongs to task 10b with the chain it is for.
-#
-# WHY THERE IS NO on_fail CHAIN. A link rescues by relieving the Bin the head failed on, from a source
-# the head could not reach. Every source available today is the Building's own Bins, so a chain here
-# would be a Rule rescuing itself. adr/0045's ladder starts at the District Pool, and that is task 10b.
-#
-# WHY IT EMITS NO POLLUTION. Not because it would be unbounded — adr/0051's decay is built, so a `map`
-# term is now a stock the environment absorbs and settles at a level proportional to the emission rate.
-# It emits nothing because a dwelling is not industry. `02 §2.4` gives industrial pollution point
-# sources, and inventing a smokestack here to exercise a code path would be this file claiming
-# something about content, which its first line says it does not. The Rule engine's `map` output is
-# covered by `RuleEvaluationTests`, and the absorption by `LayerFieldsTests` and `LayerLongRunTests`.
-#
-# THE GOODS QUANTITIES AND THE BIN CAPACITIES BOTH x4 ON 2026-08-13, AND IT CHANGED NOTHING THIS CITY
-# DOES. adr/0094 took TICKS_PER_DAY from 8192 to 2048 and says the Goods quantities scale x4: a Day
-# holds a quarter as many firings, so a per-firing `amount` goes x4 to keep the rate in Goods per Day.
-# That is airtight and it is only half the edit -- the capacities had to follow, and they follow for a
-# DIFFERENT reason, which is the part worth reading.
-#
-# `amount` AND `capacity` ARE BOTH IN GOODS AND THEY ARE DENOMINATED DIFFERENTLY. `amount` is
-# Days-denominated: hold Goods per Day, so the number moves x4. `capacity` is TICKS-denominated: what
-# has to hold is FIRINGS HELD -- capacity / (amount x occupants) -- and firings x rate is a DURATION.
-# It is written in Goods, so keeping that duration still REQUIRES moving the number, and it moves x4
-# only because `amount` did. THE UNIT OF A QUANTITY IS NOT ITS DENOMINATION.
-#
-# WHAT KEEPING capacity = 12 WOULD HAVE DONE. The larder would have held ONE firing of `consume` where
-# it held four. In in-world time the two read identical -- 22.5 minutes of supply either way -- so
-# measured in Goods nothing is wrong. Measured in firings held, every Bin in the game shrank by four,
-# and a Bin that must be EXACTLY FULL for one `consume` to succeed is a knife edge. It fired
-# Invariant.WaiterIsBlockedByTheBinItNames and exposed a live defect in the wake path, filed unfixed as
-# plans/0003 queue item 8.
-#
-# IT IS BEHAVIOUR-NEUTRAL, MEASURED, AND THE COMMIT FIRST CLAIMED OTHERWISE. Running the pre-rescale
-# file and this one for 4,096 Ticks gives a BYTE-IDENTICAL 86-line census -- buildings 1,201 -> 642, the
-# Unplaced Pool, rule evaluations, Trips, every row. Only the State Hash moved, because Bin levels are
-# four times larger. The commit said "a dwelling now holds 90 in-world minutes where it held 22.5, which
-# is a change to the world": the digits are right and the comparison was never stated. The larder is
-# 4 firings x rate 32 = 128 TICKS, and it was 128 Ticks before the clock moved too. 90-vs-22.5 is HEAD
-# against the PRE-CLOCK world, which is adr/0094's cost arriving in one more place, not this edit's.
-# plans/0012 Cause 5: a number that is one half of a ratio says which half.
-#
-# NOTHING HERE CAME OUT OF PROPORTION, because everything in this file is denominated in FIRINGS.
-#
-# 48 IS A COST DIAL HERE, NOT A BALANCE DIAL, AND THAT IS MEASURED TOO. Swept at 24, 36, 48 and 96, NO
-# ROW OF THE CENSUS MOVES; only `rules due` and `rules evaluations` move, and they move UP with capacity
-# (20,134 -> 25,023 at the first reading, 48 -> 96), because a deeper larder gives `restock` more
-# space to keep working. A BIGGER BUFFER COSTS MORE, NOT LESS. The larder decides nothing because it
-# is DEEPER THAN THE BUILDING'S LIFESPAN: nothing in this file produces `repairs`, so `upkeep` condemns
-# every dwelling at 64 Ticks and a 128-Tick larder absorbs a shock that never arrives. Restoring 22.5
-# in-world minutes would need 2 firings held -- one above a known crash -- or `consume`'s rate quartered,
-# which adr/0094 refused on cost. And 22.5 WAS NEVER CHOSEN: it is `capacity = 12` in a file whose first
-# line says it models no city (adr/0070).
-#
-# THE STEADY STATE IS THE POINT, AND IT IS A SURPLUS ONE. Production outruns consumption, so the Bin
-# sits near its ceiling and `restock` is the Rule that fails: it sleeps on space, `consume` draws
-# and wakes it, it refills and sleeps again. Both Rules move for ever, nothing trends, and no Rule is
-# ever wrongly asleep. THE SHORTAGE REGIME IS NOT AVAILABLE AND THAT IS AN ENGINE PROPERTY RATHER THAN
-# A TASTE: a recorded shortfall is a deficit at the instant of failure and the wait list wakes on the
-# arriving quantity, so a consumer short of 3 is never woken by three arrivals of 1. Producing in a
-# quantum at least as large as any consumer's deficit is what makes this file's steady state honest.
-# See finding 41.
-#
-# WHY EVERY DWELLING FALLS DOWN, AND WHY THAT IS NOT A BALANCE MISTAKE. Slice 10 task 7 needs a
-# Building that is *continuously* starved, because failure pressure is a duration and a Rule that is
-# rescued resets it (adr/0053). Nothing in this file could supply one: the only Rule that fails here
-# is `restock`, and it fails on SPACE — the Bin is full, which is the healthy state of a producer
-# with nobody to sell to, and the amended adr/0053 reads only starvation. So `upkeep` was added, and
-# it draws on a Resource this file deliberately never produces. Every dwelling therefore declines,
-# which is total rather than selective because there is one kind and it has one behaviour. A city
-# where some Buildings thrive and others do not needs Buildings that differ, which needs content, and
-# content is what the first line of this file says it is not. The cycle it does produce is real: a
-# condemned dwelling is demolished, its Households go to the Unplaced Pool, its Lot goes vacant, and
-# the [[zone_rule]] below raises another — which is the first time anything in this project has both
-# built and unbuilt, and the first time slice 5 task 7's `slots` assertion has had a table that churns.
-#
-# It is deleted rather than grown when task 10b becomes possible.
+# ⚠ `gives_up_after_days` IS ALREADY HERE and is founded.toml's own, at 30 Days. It happens to
+# satisfy the refusal plans/0046 stage 3 added for a spawning Ruleset -- a Pool with a door and no
+# sink grows without bound, and internal generation is a door. The key was written for the
+# unpremised pool's bound and it covers both, which is a coincidence worth naming rather than a
+# design: adr/0144 has a Business share the Household's bound as a declared stand-in.
 
 [[resource]]
 name = "sundries"
@@ -287,7 +138,7 @@ family = "money"
 [[business]]
 name = "shop"
 
-# 5b-bis task 4, and the ratifier plans/0002 §D1 named for this key: the first Ruleset that grants
+# 5b-bis task 4, and the ratifier plans/0002 §D2 named for this key: the first Ruleset that grants
 # employment. HOW MANY CITIZENS THIS BUILDING EMPLOYS -- Citizens, never Households, because a job
 # has one holder (adr/0068 on a second axis).
 #
@@ -340,7 +191,7 @@ bins = [
 # and a 100,000-Tick run settled five-sixths homeless -- an equilibrium produced by a quantity this
 # file could not state. THREE keeps that populator's figure, which is S4 task 2's row ratio (360
 # Households against ~120 Buildings per 1,000 Citizens), so this line changes no world it did not
-# have to. It is UNRATIFIED and the ratifier is named in plans/0002 SS D1: the first long run in which
+# have to. It is UNRATIFIED and the ratifier is named in plans/0002 SS D2: the first long run in which
 # placement and eviction both run.
 #
 # It is a property of the RULESET rather than of the Building, so lowering it here reaches every
@@ -373,30 +224,6 @@ occupants = 4
 # does, waits a Household's wait, and either finds premises again or emigrates.
 business = "shop"
 
-
-# HOW MANY VEHICLES A DWELLING OF THIS KIND CAN PARK. adr/0009's supply, adr/0120's Car Park, and
-# `occupants`' rule on a third axis (adr/0068): an authored number keyed on the kind, derived from the
-# Ruleset in force rather than frozen when the Building was raised, so lowering it reaches every
-# Building standing. The overflow is DISMISSED rather than left to drain, which is `jobs`' side of
-# adr/0064's line -- a Bin is left to drain because it has a consumer, and a parked car has a HOLDER.
-#
-# EIGHT IS `jobs`' OWN DERIVATION AND NOT A SECOND GUESS, because both count CITIZENS: 1000/360 x 3
-# = 8.33, floored. That is deliberate rather than convenient. adr/0119 settled that a parking space is
-# held by the CITIZEN, and the reason is that World.ModeOf drives every MEMBER of a car-owning
-# Household -- so a Building of 3 Households puts ~8.3 cars on the road, not 3. Sizing this per
-# HOUSEHOLD would have under-provisioned by 2.8x and baked in the exact confusion that ADR corrected;
-# 01 §8 ledger #2's "every Household owning a car" is about WHO OWNS and was never about HOW MANY.
-#
-# ONE CAR PER RESIDENT, NOT PER DRIVER, IS WHAT THIS ACTUALLY BUYS. This file states no
-# `car_ownership_percent`, so nobody here drives at all and no Car Park is ever occupied -- the
-# provision is exercised at creation and demolition and nowhere else. congested.toml is where cars
-# exist, and it is where a full Car Park first means something.
-#
-# UNRATIFIED. The named ratifier is milestone 7 task 8's long run, on the shed radius's own machine,
-# and it needs the WORLD that row now names -- a sixth Ruleset in which parking is scarce, because a
-# generated city cannot vary parking occupancy: capacity is per kind and demand is per Citizen, both
-# sized by the generator from one population. THE SAME NUMBER SIZES BOTH THE DEMAND AND THE SUPPLY.
-parking = 8
 
 # Greedy, and with no inputs. An extraction step with its Layer read elided — 04 §1's Produce comes
 # from Fertility, which is one of slice 6's named holes — standing in for the delivery that becomes a
@@ -489,28 +316,53 @@ revisit_ticks = 2048
 # `candidates` IS 02 §5.3'S N AND IT IS THE ONE FREE NUMBER HERE. A family looks at this many
 # dwellings and takes the first with room. It is a BEHAVIOUR MODEL rather than a budget -- bounded
 # knowledge, not an optimiser being approximated -- and it is hash-bearing and UNRATIFIED
-# (plans/0002 §D1). Nothing can ratify it yet: with no rent, no commute and no tolerance every
+# (plans/0002 §D2). Nothing can ratify it yet: with no rent, no commute and no tolerance every
 # candidate with room scores identically, so today it is only a rate.
 [placement]
 interval      = 32
 revisit_ticks = 1024
 candidates    = 3
 
-# 🔴 THE POOL'S SINK, AND THE LOADER REFUSES THIS FILE WITHOUT IT. Until stage 3 the only door into
-# the Unplaced Pool was a gate kind, so gives_up_after_days was required of a gated Ruleset and
-# refused nowhere else. INTERNAL GENERATION IS A SECOND DOOR: `mature_family` sends its children into
-# the Pool, and a Pool with a door and no give-up rule grows without bound -- adr/0006, arriving at a
-# door that did not exist when the refusal was written.
+# ADDITION 3 OF 3 -- THE SINK, and the loader refuses this file without it. See the header: [founding]
+# is an inflow into the unpremised pool and nothing tenants a Business yet, so a bound is what keeps
+# adr/0006 satisfied. It is [placement]'s key because adr/0144 has a Business SHARE the Household's
+# bound as a declared stand-in rather than author a second one nothing can ratify.
+gives_up_after_days = 30
+
+# ADDITION 1 OF 3 -- THE TRADES. adr/0141's own example, and the same two tenanted.toml names. Two
+# rather than one because a single trade could not show that the choice is drawn at all.
 #
-# ⚠ THIS FILE HAS NO GATE, so nothing arrives from outside and everything in the Pool was BORN here.
-# That makes the give-up the one adr/0011 actually describes: "an unaffordable city fails to house
-# its own children and they become Departures -- you raised them and priced them out." The derived
-# metric it names is RETENTION, of the Households the city generated.
+# BOTH EMPLOY SOMEBODY AND THE LOADER REFUSES THIS FILE OTHERWISE. adr/0146: a founder becomes their
+# Business's first worker, which is the whole of the labour cost milestone 27 ships -- so a trade
+# nobody can work at is a trade nobody can found. The trade is drawn UNIFORMLY, so it is every
+# declared one rather than at least one.
 #
-# 60 Days is UNRATIFIED and chosen by taste. bordered.toml holds the designer's 120 for an arriving
-# Household; half of that is a guess that a child leaving home is quicker to give up on the city it
-# grew up in than a stranger is to give up on one it has never lived in. NOTHING MEASURES THAT.
-gives_up_after_days = 60
+# THE NUMBERS ARE THE DWELLING'S OWN AND ARE NOT A SECOND CLAIM. Eight is what `shop` above declares,
+# derived from the row ratios; the band 6-10 is the same ordinary spread of opening times. A founded
+# shop that employed a DIFFERENT number from the shop a dwelling comes with would be asserting
+# something about scale that nothing in this file measures.
+#
+# ⚠ THREE IS DELIBERATE ON `barber` and it is the one number here that is not a copy: a trade the city
+# founds and a trade the city is built out of do not have to be the same size, and a file in which
+# every trade employs eight could not show that the ceiling is read per trade at all.
+[[business]]
+name                      = "bakery"
+jobs                      = 8
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+[[business]]
+name                      = "barber"
+jobs                      = 3
+shift_start_earliest_hour = 9
+shift_start_latest_hour   = 9
+
+# ADDITION 2 OF 3 -- THE CHANNEL. adr/0145 and its amendment. There is no demand key here and that
+# absence IS the decision: a Household founds on its own MEANS and never on the city's NEED, so
+# nothing in this table reads shop count, vacancy or anything unsold.
+[founding]
+founding_band    = 400
+reconsider_ticks = 8192
 
 # The Map Layers, stated rather than defaulted. Slice 8 task 8 of plans/0015, and it is the slice's
 # externally-stated definition of done: adr/0015 says every tuning number lives in a file, and until
@@ -563,7 +415,9 @@ gives_up_after_days = 60
 # SEALING'S DECAY RATE IS NOT HERE, AND `sealing_decay_tau` IS REFUSED IF YOU WRITE IT. 02 §2.4 keys
 # it BY TERRAIN TYPE -- rock may never recover where floodplain recovers over hundreds of Days -- so
 # it is a key on each [[terrain]] table and there is no global one. A FILE WITH NO [[terrain]] HAS
-# GROUND THAT NEVER RECOVERS, which is what every shipped Ruleset said by writing 0 here.
+# GROUND THAT NEVER RECOVERS, which is what this file said by writing 0 here until the merge of
+# 2026-08-24 -- it was forked from minimal.toml before adr/0044's move landed, so the move never
+# reached it. The behaviour is unchanged; only the spelling of it is.
 
 # THE DESIRABILITY COMPOSITION -- SEVEN NUMBERS, EVERY ONE UNRATIFIED. adr/0122 deleted `w1`, because
 # land value drifting toward a target whose first term is land value made it a GAIN of 1/(1 - w1) on
@@ -593,11 +447,9 @@ gives_up_after_days = 60
 # quantity that would refute a weight comes from a consumer of land value, and there is no consumer
 # in src/ at all (adr/0125). Each owes TWO plans/0002 section D1 entries -- a reachable floor and an
 # owed real ratifier -- and the floor REFUTES and never confirms.
-# it by TERRAIN TYPE — rock may never recover, floodplain may recover over hundreds of Days — so it
-# is a `sealing_decay_tau` key on each [[terrain]] table and there is no global one. A file that
-# states no [[terrain]] heals NOWHERE, which is exactly what this file said by writing 0 here.
-# Milestone 24 task 4; the key is refused in [layers] rather than ignored, with a message naming
-# where it went.
+# terrain type; there is no terrain in Phase 1, so there is no key, so there is no rate to look up.
+# Zero is the conservative reading — Sealing only accumulates — and the bound is structural, because a
+# Cell cannot have more Tiles built on it than it has Tiles.
 [layers]
 noise_range_metres            = 300
 noise_intensity_percent       = 400
@@ -694,112 +546,6 @@ foot_path_capacity_per_hour    = 1000
 # LotTable, so a depth would be a hash-bearing world-creation number chosen for a consumer
 # nobody has designed. Lots hang on Segments and the rest of the block is interior.
 lots_per_segment = 5
-
-[parking]
-# HOW FAR A DRIVER WILL WALK FROM A CAR PARK, in metres. adr/0009's radius, milestone 7 task 2.
-#
-# The Parking Shed is the Car Parks within this reach of a Building's pedestrian Access Point,
-# nearest first; arrival takes the first with space and the walk from it is a Leg. So this decides
-# which Car Park a car takes, which decides the walk Leg, which counts against the Commute Budget,
-# which decides whether the Trip fails. HASH-BEARING BY FOUR STEPS, and unratified since the prose
-# that first described parking here.
-#
-# METRES RATHER THAN MINUTES, AND THAT WAS A DECISION RATHER THAN A HABIT. Minutes were the live
-# alternative: the shed's one stated bound is the Commute Budget's walk allowance, which is a time,
-# and a key in minutes would have made that bound a comparison instead of a conversion. It is
-# refused on two grounds. A key in minutes invites exactly the derivation adr/0083 forbids by name
-# -- five minutes at 5 km/h -- and it would make shed membership move whenever somebody retuned
-# [roads] walk_speed_kph, so a designer making people walk faster would silently shrink every
-# Building's parking. A RADIUS IN METRES IS THE SAME SET OF CAR PARKS HOWEVER FAST ANYBODY WALKS.
-#
-# ⚠ THE UPPER BOUND IS STATED HERE AND ENFORCED NOWHERE, AND A GUARD FOR IT WAS WRITTEN AND
-# WITHDRAWN. adr/0083 says a shed wider than the Commute Budget's walk allowance has outer Car Parks
-# that can never be taken. That is true and it is not a predicate: commute_budget_minutes is a
-# ceiling on a WHOLE JOURNEY and a parking walk is one LEG inside it, so the only non-arbitrary line
-# a loader could draw -- the whole Budget -- is far looser than the real constraint. Keep it below
-# the allowance when you tune it; nothing will stop you if you do not. At 5 km/h this radius is a
-# 4.8-minute walk against a 50-minute ceiling.
-#
-# ⚠ 400 IS S2 R5.6'S MEASURED RUNG AND IS NOT THE FIVE-MINUTE INTUITION, AND THE TWO NEARLY
-# COINCIDE -- WHICH IS THE TRAP RATHER THAN THE CORROBORATION. 400 is the rung whose cost this
-# project has actually measured. Five minutes at 5 km/h is 417 m. Those agree to within 4%, and
-# adr/0083 warns against the second one by name because it is exactly the sort of plausible figure
-# adr/0044 had to measure back out of three documents that cited it as settled. A NUMBER THAT
-# AGREES WITH A FORBIDDEN DERIVATION CANNOT ANNOUNCE ITSELF, so this comment is the only thing
-# standing between the measured rung and a later reader re-deriving it from the walk.
-#
-# ⚠ THIS COMMENT USED TO SAY "110 CAR PARKS FOUND AT 400 M AGAINST 596 AT 800 M, SO DOUBLING THE
-# RADIUS IS ROUGHLY 5X THE SHED". STRUCK 2026-08-19 BY MILESTONE 7 TASK 3, WHICH MEASURED IT.
-# On a generated city it is 132.8 in range at 400 m (min 35, median 135, max 166) and the gradient
-# is x3.81 from 400 to 800 and x4.23 from 200 to 400 -- not x5. A shed is an AREA, so the gradient
-# is an area ratio damped by the lattice, and x5 was never a number this geometry could produce.
-# The deeper error was the NOUN: S2 R5.6's ShedBuilder stored KeptBins = 8 and counted the rest in
-# a separate accumulator, so 110 was what its BALL ENCOUNTERED and 8 was what it KEPT. "Roughly 5x
-# the shed" was a claim about the ball wearing the word shed -- and of a capped shed it is false
-# outright, because a capped shed's size is CONSTANT. plans/0012 Cause 5: the digits travelled and
-# the clause stayed behind, and A NUMBER THAT IS ONE HALF OF A RATIO SAYS WHICH HALF.
-#
-# UNRATIFIED. The named ratifier is milestone 7 task 8's run reporting the walk-Leg length
-# distribution as shed occupancy approaches 1, AND IT NEEDS A WORLD THIS FILE IS NOT: capacity is
-# per building kind and demand is per Citizen, both sized by the generator from one population, so
-# occupancy here is flat at every population and never approaches anything. A sixth Ruleset is
-# owed, on congested.toml's precedent. The refuting readings are denominated in WALK LENGTH and
-# never in Trip failures -- a radius that never produces a walk longer than the shortest band is too
-# small, and one at which the distribution never moves as occupancy climbs is not being reached.
-#
-# NOTHING READS THIS YET. The shed is task 3 and the arrival that queries it is task 4, so today
-# this number is stated and inert. It is here rather than withheld because a file that states Car
-# Parks and no radius describes half a mechanism.
-radius_metres = 400
-
-# HOW MANY CAR PARKS A BUILDING'S PARKING SHED HOLDS -- the nearest 24 of them. Milestone 7 task 3.
-#
-# WHERE 24 CAME FROM, AND IT IS NOT A DERIVATION. The search for one was made and it failed, which
-# is a result rather than a silence (plans/0023 task 3). Every candidate reduces to picking a
-# number of Segments and multiplying by [lots] lots_per_segment = 5: adr/0009's own payoff sentence
-# "you parked three blocks away" gives about 15, and "your own Street plus everything one junction
-# away" is 7 Segments and gives about 35. 24 sits between them at roughly 4.8 Segments. Each of
-# those is a sentence chosen to justify a number rather than a number falling out of a mechanism.
-# SO THIS IS CHOSEN, NOT DERIVED, and it is written down that way so nobody re-derives it later and
-# believes the derivation.
-#
-# IT IS A DIFFERENT DIAL FROM radius_metres AND THEY ARE NOT REDUNDANT. The CAP BOUNDS THE WORK and
-# binds where supply is dense; the RADIUS BOUNDS THE WALK and binds where supply is sparse. That is
-# mechanical rather than rhetorical: with fewer than 24 Car Parks in reach the kept set never fills,
-# ParkingShed's early exit never fires, and the ball walks the whole radius. Measured on a generated
-# city at 400 m the MINIMUM over every Building is 35 in range, so THERE the cap binds at every door
-# and the radius binds nowhere. A player's thinly-built edge is the case where that reverses.
-#
-# WORLD-CREATION, AND IT MUST NOT BE HOT-RELOADED, on [layers] kernel_metres' precedent. A shed is
-# materialised per Building at a fixed width, so a reload that changed this would reallocate every
-# shed in the city.
-#
-# IT BELONGS IN [parking] AND NOT ON [[building]], AND THAT IS CORRECTNESS RATHER THAN TIDINESS. A
-# per-kind cap is a perfectly plausible design -- a shopping centre's shed reaching further than a
-# house's -- and it would sit on [[building]] next to `parking`, where it looks like it belongs.
-# CarParkTable.Capacity is (derived AND rebuilt) from the Ruleset in force (adr/0064, adr/0068), so
-# a key on the KIND moves the STANDING city's State Hash with no code change and no mechanism
-# reading it. Here it moves only this file's content hash. WHAT PROTECTS THE HASH IS THE KEY'S
-# LOCATION, NOT THE ABSENCE OF A READER.
-#
-# ⚠ HASH-BEARING ON A DELAY, WHICH IS WORSE THAN HASH-BEARING NOW. Today nothing reads the shed, so
-# adding this moves no per-tick State Hash and the re-record it forces is complete and covers
-# nothing. At task 4 the cap decides which Car Park a Traveller reaches, which writes CarParkTable
-# Occupied, which is Saved with Touch.PerTick and IS folded. adr/0100 says hash movement is free
-# because the commit that causes it explains it -- and that assumes the movement and the cause land
-# in the SAME commit. Here they cannot. The commit that introduces this number has a clean diff and
-# nothing to attribute, and the commit that moves every hash two tasks later will not contain it.
-#
-# UNRATIFIED, and its ratifier is NOT the radius's. adr/0052 as amended twice wants a machine, a
-# world and a QUANTITY. The world is the sixth Ruleset milestone 7 decision 3 already owes, because
-# a generated city cannot vary parking occupancy -- capacity is per kind and demand is per Citizen
-# and the generator sizes both from one population, so occupancy is flat at every population. The
-# quantity is EXHAUSTION and never walk length: a shed NEVER exhausted means 24 is larger than it
-# needs to be, and one routinely exhausted means it is too small. The radius is ratified on walk
-# length instead, and the two must not share a reading -- car_ownership_percent's refuting readings
-# were named against reach while its live consequence was congestion, so both fired and refuted the
-# wrong thing.
-shed_keeps = 24
 
 [trips]
 # What travelling costs, and what makes a journey fail. Two numbers, both hash-bearing, and they
@@ -916,7 +662,7 @@ commute_budget_minutes = 50
 # ADR predicted no numbers, the pass needed exactly these three, and the first of them shipped at a
 # value copied from a default that meant something else and left 45% of the housing stock empty.
 # This is the same shape of pass, so it is the same three keys, and all three are hash-bearing and
-# UNRATIFIED in plans/0002 §D1 with a named ratifier each.
+# UNRATIFIED in plans/0002 §D2 with a named ratifier each.
 #
 # `revisit_ticks` IS A DURATION AND THE SAMPLE IS DERIVED (adr/0059, a third time): it is how long
 # the pass takes to look at every Citizen once, and the engine derives
@@ -971,13 +717,54 @@ shift_hours_max = 10
 # everybody cutting it fine -- and is the control this can be run against.
 arrive_early_max_minutes = 15
 
-# ---------------------------------------------------------------------------------------------------
-# THE STAGE TABLE. adr/0011's five, in the order it lists them, with `next` AUTHORED rather than taken
-# from that order -- see the header for why the chain is not a line.
+# ===========================================================================================
+# ADDITION 1 OF 3 -- the money in the city. Nothing above this line moved.
+
+[households]
+# NOBODY DRIVES, which is minimal.toml's own state said out loud rather than by omission. The table
+# has to exist to carry the two keys below and car_ownership_percent is required inside it, so 0 is
+# the value that leaves this file behaving exactly as minimal.toml does. adr/0098: 0 is a legitimate
+# city -- one before the motor car -- and is not a placeholder.
+car_ownership_percent = 0
+
+# WHAT A HOUSEHOLD IS FOUNDED WITH, drawn uniformly per Household at creation and issued through
+# World.Endow. See the header for why this is fixture content rather than adr/0116's deferred
+# founding balance, and why it is a band.
 #
-# young -> family -> mature_family -> empty_nest -> (terminal)
-# childless: declared, unreachable until stage 3's fertility decision exists.
-# ---------------------------------------------------------------------------------------------------
+# THE FLOOR IS ZERO ON PURPOSE. A Household that opens with nothing is a Household the levy takes
+# nothing from and the rebate lifts, which is the first thing worth watching in this circuit -- and
+# it is what makes `floored to zero` read non-zero on the first sweep instead of being a counter
+# nobody has ever seen fire.
+opening_balance_min = 0
+opening_balance_max = 1000
+
+# ===========================================================================================
+# ADDITION 2 OF 3 -- the levy. DECLARED FIRST, and the order is load-bearing: a Policy acts where it
+# runs (there is no proposal and no settle), so the levy declared above the rebate funds it on the
+# same trigger. The same pair in the other order pays out of last Day's remainder.
+
+[[policy]]
+name = "household_levy"
+sweeps = "household"
+interval = 2048
+apply = { derived = "balance", percent = 10 }
+transfer = { from = "local", to = "global", resource = "money", amount = 1 }
+
+# ===========================================================================================
+# ADDITION 3 OF 3 -- the rebate. A FLAT amount, which CONTEXT -> Policy prefers against because a
+# flat amount goes stale as the economy grows. It is flat here anyway and the reason is that the
+# alternative is worse: a percentage paid OUT of a balance pays the rich most, which is a mechanic
+# nobody would author. What CONTEXT actually asks for -- a percentage of gross income below a line --
+# needs an income (milestone 15) and a poverty line (a hash-bearing number with no ratifier), and
+# adr/0070 says the answer to an unbuilt mechanism is to build it rather than to approximate it.
+
+[[policy]]
+name = "household_rebate"
+sweeps = "household"
+interval = 2048
+apply = { min = 100, max = 100 }
+transfer = { from = "global", to = "local", resource = "money", amount = 1 }
+
 # THE FERTILITY DECISION, and the band is the whole of it. adr/0011: "Decision: how many children,
 # possibly zero. Zero sends the Household to Childless; otherwise to Family."
 #

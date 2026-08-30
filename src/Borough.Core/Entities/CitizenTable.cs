@@ -466,13 +466,18 @@ public sealed class CitizenTable
     /// now, and no run of this simulation changes one.
     /// </para>
     /// <para>
-    /// ⚠ <b>ZERO MEANS CHILD, and it is the only marker of childhood there is.</b> The loader refuses
-    /// an adult band starting below 1 for exactly that reason, and <c>World.SpawnChildren</c> reads
-    /// this column to decide who leaves home. ⚠ <b>It also means <em>this world has no
-    /// demographics</em></b>: a Ruleset declaring no <c>[[life_stage]]</c> writes nothing here, which
-    /// is every shipped file but one. ***The two readings are told apart by the Ruleset and not by
-    /// the column***, which is a thing to know before reading a gate off it — <c>plans/0046</c>
-    /// stage 4.
+    /// 🔴 <b>ZERO MEANS CHILD, and it is the only marker of childhood there is.</b> The loader refuses
+    /// an adult band starting below 1 for exactly that reason. <c>World.SpawnChildren</c> reads it to
+    /// decide who leaves home, and <c>World.IsOfWorkingAge</c> reads it to decide who may hold a job
+    /// or found a Business — <c>plans/0046</c> stage 4.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>IT ALSO MEANS <em>THIS WORLD HAS NO DEMOGRAPHICS</em>, and never read the column without
+    /// asking the Ruleset which.</b> A file declaring no <c>[[life_stage]]</c> writes nothing here,
+    /// which is every shipped file but two — so a gate reading zero alone would make ***twenty
+    /// Rulesets into cities of children***, with nobody employed anywhere.
+    /// <see cref="Rules.Ruleset.DeclaresLifeStages"/> is what tells the two readings apart, and
+    /// <c>World.IsOfWorkingAge</c> is the one place that asks.
     /// </para>
     /// </remarks>
     public Column<ushort> Age { get; }

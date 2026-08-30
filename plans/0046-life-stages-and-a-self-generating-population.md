@@ -4,11 +4,12 @@
 
 ## Status
 
-🟡 **STAGES 0–3 BUILT — 2026-08-30.** ***The city generates its own population.*** `aged.toml` at
-2,000 Citizens: 720 Households seeded, all dead by Day 212, **234 standing at Day 400 and every one
-of them born here**. Replacement Rate **1.45 against 2.00**, which is the authored band's own mean of
-1.5 — the arithmetic works. Stage 4, the working-age gate, remains. **The estate goes to the
-treasury**; `World.Dissolve` carries the candidates it rejected.
+✅ **ALL FIVE STAGES BUILT — 2026-08-30.** ***The city generates its own population.*** `aged.toml`
+at 2,000 Citizens: 720 Households seeded, all dead by Day 212, **234 standing at Day 400 and every
+one born here**. Replacement Rate **1.45 against 2.00**, the authored band's own mean. The
+working-age gate costs that world **15% of its labour force** — 1,411 of 1,411 employed before it,
+1,200 of 1,411 after. **The estate goes to the treasury**; `World.Dissolve` carries the candidates it
+rejected.
 
 ⚠ **The queue calls this *"Ageing, birth, death — write `Citizens.Age`"* and that title is wrong in one
 word.** Nothing here makes a Citizen age. `CONTEXT.md`, [`adr/0010`](../docs/adr/0010-one-clock-and-demographics-by-sorting.md)
@@ -108,15 +109,15 @@ generation, and the city is allowed to die before it is allowed to breed.***
 | **1** | Stages advance | The five-stage table, scheduled transitions only. `LifeStage` gets its writer; `Citizens.Age` gets its draw | unchanged |
 | **2** | Dissolution | Childless and Empty Nest dissolve. **The estate question** below | **falls** |
 | **3** | Generation | ⚠ **TWO transitions and this row said one.** Young's exit is the *fertility decision* — a child count drawn, zero routing to Childless — and Mature Family's exit sends those children out as Young Households. Without the first, Replacement Rate is a restatement of the Ruleset and `childless` stays unreachable | **can rise** |
-| **4** | The working-age gate | Children stop taking jobs and founding businesses | unchanged |
+| **4** | The working-age gate | `World.IsOfWorkingAge`, read by both passes. ⚠ **Its guard on `DeclaresLifeStages` is the load-bearing half**: `Citizens.Age` is zero wherever no stages are declared, so a gate reading the column alone makes twenty Rulesets into cities of children | **falls 15%** |
 
 ⚠ **Stage 2 ends with an EMPTY city, and that is correct rather than unfinished** — a sink whose
 source is stage 3.
 
-⚠ **Stage 4 is separated from stage 3 deliberately.** It is hash-bearing, it moves the labour supply,
-and `[[business]] jobs = 8` was derived from *"1000/360 × 3 = 8.33 Citizens"* — a ratio that assumes
-**every Citizen works**. Landing it with generation would make two changes to employment on one day
-and leave neither attributable.
+✅ **Separating stage 4 from stage 3 paid**: the gate's cost was measurable *because* nothing else
+moved employment that day. ⚠ **`[[building]] jobs = 8` is now underived** — *"1000/360 × 3 = 8.33
+Citizens"* assumes **every Citizen works**, which stops holding once a world has children. Nothing
+has re-derived it.
 
 ---
 
@@ -147,15 +148,11 @@ in two places (`SyntheticCity.cs:283`, `:628`), correct only while the table has
 starts the pay clock on the day of hire and is the one door onto the Workplace handle, so no Citizen
 can reach a payday carrying it. `Age` and `SkillTier` still arrive zero and still have no writer.
 
-**5. There is no calendar and there must not be one.**
-`CONTEXT.md`'s banned vocabulary: *"'Year' / 'month' / 'season' — there is no calendar. Say Day."*
-Every stage duration is in Days. The precedent for anything that wants a longer unit is
-`[[business]] pay_period_days = 7`, which *"is a week because seven Days is a week, and `CONTEXT.md`
-needs no new noun."*
+**5. ✅ HELD — no calendar was invented.** Every duration is in Days, including the adult age band,
+whose `1..160` is a lifetime in this world rather than a human age.
 
-**6. A Household has no member-count column.**
-Composition is the member list's length. A stage table that states *adults + children* has to be
-read against that list rather than against a stored pair.
+**6. ✅ HELD — no member-count column was added.** Composition is the member list's length, and
+`World.SpawnChildren` walks it looking for age zero rather than reading a stored pair.
 
 ---
 

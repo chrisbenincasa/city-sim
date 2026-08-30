@@ -780,6 +780,15 @@ public sealed class PlacementEngine
                 continue;
             }
 
+            // plans/0046 stage 4, and it is here for adr/0146's own reason rather than by analogy
+            // with the employment pass: that ADR moved the subject of founding from the Household to
+            // the CITIZEN because "founding costs a person's labour". A child has none to spend, and
+            // the money it would spend is its parents'.
+            if (!_world.IsOfWorkingAge(slot))
+            {
+                continue;
+            }
+
             // UNEMPLOYED, and this is the predicate that makes founding a CHOICE rather than a second
             // unrelated mechanism (adr/0146). The employment pass and this one draw from the same
             // people, and whichever reaches a Citizen first takes them -- neither knows the other

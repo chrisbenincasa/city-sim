@@ -1852,11 +1852,12 @@ public sealed class World
     /// channel that survives the late game***.
     /// </para>
     /// <para>
-    /// ⚠ <b>A child is a Citizen in every other respect and that is currently a gap.</b> Nothing
-    /// reads <see cref="CitizenTable.Age"/> yet, so a child is drawn for a job by
-    /// <c>EmploymentEngine</c> and can found a Business, exactly as an adult can. <c>plans/0046</c>
-    /// stage 4 is the working-age gate and is kept separate on purpose: landing it here would make
-    /// two changes to the labour supply on one day and leave neither attributable.
+    /// ⚠ <b>A child is a Citizen in every other respect and only two doors are shut to it.</b>
+    /// <see cref="IsOfWorkingAge"/> keeps it out of the employment pass and the founding pass
+    /// (<c>plans/0046</c> stage 4); it is otherwise a member of its Household, counted in the
+    /// population, and retired with its parents. ⚠ <b>It has no Needs, no schooling and no
+    /// preferences</b> — <c>adr/0011</c> hangs six preference axes off the stage table and every one
+    /// of them is a reader that does not exist yet.
     /// </para>
     /// </remarks>
     public Handle<Citizen> Bear(Handle<Household> household) => AddMember(household, child: true);
@@ -1923,6 +1924,44 @@ public sealed class World
 
         return (ushort)(min + (long)(draw % span));
     }
+
+    /// <summary>
+    /// Whether this Citizen may hold a job or found a Business. <b><c>plans/0046</c> stage 4.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>ONE implementation with two callers, and that is the point rather than tidiness.</b>
+    /// <c>EmploymentEngine.Assign</c> and <c>PlacementEngine.Found</c> draw from the same people and
+    /// neither knows the other exists (<c>adr/0017</c>); a gate written into one of them would be a
+    /// gate the other forgets. ***A mechanism living inside another mechanism's caller is a mechanism
+    /// nobody built*** — <c>adr/0069</c>'s finding, which <see cref="Employ"/> and
+    /// <see cref="DestroyHousehold"/> both quote.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>THE GUARD ON <see cref="Ruleset.DeclaresLifeStages"/> IS LOAD-BEARING AND IT IS NOT A
+    /// FAST PATH.</b> <see cref="CitizenTable.Age"/> is written only by a world whose Ruleset
+    /// declares <c>[[life_stage]]</c>, which is one shipped file out of twenty-odd. In every other
+    /// world every Citizen carries zero — so without this clause ***nobody would work anywhere***,
+    /// and twenty Rulesets would quietly become cities of children. The column's zero means
+    /// <em>child</em> in one world and <em>this world has no demographics</em> in all the others, and
+    /// the Ruleset is the only thing that tells them apart.
+    /// </para>
+    /// <para>
+    /// <b>Zero rather than a threshold, and there is no <c>working_age_days</c> key.</b>
+    /// <c>adr/0164</c>'s test is <em>would a designer ever set this?</em> — and no Citizen exists
+    /// between zero and <c>adult_age_min_days</c>, which the loader refuses below 1. So every
+    /// threshold inside that gap behaves identically and the key would have exactly one meaningful
+    /// setting. ***A key with one meaningful value is not designer-facing***, and this belongs in the
+    /// instrument.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It gates the two passes and nothing else.</b> A child is still a member of its
+    /// Household, still counted in the population, still retired with its parents. What it may not do
+    /// is take one of the city's jobs or spend its family's savings on a shop.
+    /// </para>
+    /// </remarks>
+    public bool IsOfWorkingAge(int citizenSlot) =>
+        !Rules.DeclaresLifeStages || Citizens.Age[citizenSlot] != 0;
 
     /// <summary>Whether <paramref name="node"/> is already in <paramref name="owner"/>'s list.</summary>
     private static bool Lists(IndexList list, int owner, int node)

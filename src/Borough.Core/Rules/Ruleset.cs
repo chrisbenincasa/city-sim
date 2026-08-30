@@ -1045,11 +1045,11 @@ public readonly record struct LifeStageDefinition
     /// counter"***. ⚠ <b>So this number does not advance and no run makes anybody older.</b>
     /// </para>
     /// <para>
-    /// ⚠ <b>A child is age ZERO and that is the only marker of childhood there is.</b> Nothing reads
-    /// it yet — <c>plans/0046</c> stage 4 is the working-age gate — so ***a child currently takes a
-    /// job and founds a Business like anybody else***. That is a known gap kept separate on purpose:
-    /// landing it with generation would make two changes to employment on one day and leave neither
-    /// attributable.
+    /// ⚠ <b>A child is age ZERO and that is the only marker of childhood there is</b>, which is what
+    /// <c>World.IsOfWorkingAge</c> reads: <c>plans/0046</c> stage 4 stops a child taking a job or
+    /// founding a Business. ***It moved the labour supply by 15% on <c>aged.toml</c>*** — 1,411 of
+    /// 1,411 employed before the gate and 1,200 of 1,411 after — which is why that stage was kept
+    /// apart from generation rather than landed with it.
     /// </para>
     /// </remarks>
     public int AdultAgeMinDays { get; init; }

@@ -539,6 +539,168 @@ public sealed class LifeStageTests
         world.Invariants.RunEndOfRun(world);
     }
 
+    /// <summary>🔴 <b>No child holds a job. <c>plans/0046</c> stage 4.</b></summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Measured after 60 Days</b>, which is past <c>young</c>'s ceiling of 31 so the fertility
+    /// decision has fired and there are children to exclude. ⚠ <b>The population is checked to be
+    /// mixed first</b>: a run with no children in it would pass this assertion by vacuity, which is
+    /// the way a gate test quietly stops testing anything.
+    /// </para>
+    /// <para>
+    /// <b>What it costs the city is the point of the stage.</b> Measured on <c>aged.toml</c> at
+    /// 2,000 Citizens over 60 Days: <b>1,411 of 1,411 held a job before the gate and 1,200 of 1,411
+    /// after</b> — 211 children, 15% of the population, left the labour force. ***That is a change
+    /// to the labour supply and therefore to the city***, which is why <c>plans/0046</c> kept this
+    /// stage apart from generation: landing both together would have made two changes to employment
+    /// on one day and left neither attributable.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void No_child_holds_a_job()
+    {
+        (World world, Simulation simulation) = City(2_000);
+
+        Run(simulation, days: 60);
+
+        int children = 0;
+        int adults = 0;
+
+        for (int slot = 0; slot < world.Citizens.Rows.SlotCount; slot++)
+        {
+            if (!world.Citizens.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            if (world.Citizens.Age[slot] == 0)
+            {
+                children++;
+
+                Assert.False(
+                    world.Businesses.Rows.IsValid(world.Citizens.Workplace[slot]),
+                    $"Citizen {slot} is a child and holds a job.");
+            }
+            else
+            {
+                adults++;
+            }
+        }
+
+        // Neither half may be empty, or the assertion above is about nobody.
+        Assert.True(children > 0);
+        Assert.True(adults > 0);
+    }
+
+    /// <summary>
+    /// 🔴 <b>No child founds a Business — the gate's second caller, and the world that reaches it.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>rulesets/raised.toml</c> exists for this test.</b> The gate has two callers and no
+    /// shipped world could reach the second: <c>aged.toml</c> has demographics and no
+    /// <c>[founding]</c>, <c>founded.toml</c> has <c>[founding]</c> and no demographics. ***So the
+    /// founding half was correct and unobservable***, which is <c>plans/0034</c> <b>F17</b>'s shape —
+    /// a mechanism shipped right and unreachable for want of Ruleset content rather than code.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>It asserts on WORKERS and not on founders, and that is not a weaker claim.</b>
+    /// <c>adr/0146</c>: ***a founder becomes their Business's first worker***, which is the whole of
+    /// the labour cost milestone 27 ships. So a child that founded anything would be holding a job at
+    /// the thing it founded, and this catches it. Nothing stores a founder to assert on directly, and
+    /// adding a column to make a test easier would be storing state the city does not use.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The Business count is checked to be non-zero</b>, because a world where nobody founds
+    /// would pass by vacuity — and this file is <c>founded.toml</c> underneath precisely so that
+    /// Households hold the money to pass the means test.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void No_child_founds_a_business()
+    {
+        Ruleset rules = RulesetLoader.Load(
+                Path.Combine(AppContext.BaseDirectory, "Rulesets", "raised.toml")).Ruleset
+            ?? throw new InvalidOperationException("rulesets/raised.toml did not load.");
+
+        var key = WorldKey.FromSeed(0);
+        World world = new(2_000, rules, key);
+        Simulation simulation = new(world, key) { VerifyDecideWritesNothing = false };
+
+        SyntheticCity.PopulateInto(world, key, Ticks.Zero);
+        Run(simulation, days: 60);
+
+        int children = 0;
+
+        for (int slot = 0; slot < world.Citizens.Rows.SlotCount; slot++)
+        {
+            if (!world.Citizens.Rows.IsLive(slot) || world.Citizens.Age[slot] != 0)
+            {
+                continue;
+            }
+
+            children++;
+
+            Assert.False(
+                world.Businesses.Rows.IsValid(world.Citizens.Workplace[slot]),
+                $"Citizen {slot} is a child and works at a Business.");
+        }
+
+        Assert.True(children > 0, "no child existed, so the gate was never asked.");
+        Assert.True(world.Businesses.Rows.LiveCount > 0, "nothing was founded, so nothing was gated.");
+
+        world.Invariants.RunEndOfRun(world);
+    }
+
+    /// <summary>
+    /// 🔴 <b>A world with no stage table employs everybody, and this is the guard that matters most.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b><c>Citizens.Age</c> is zero in every Ruleset that declares no <c>[[life_stage]]</c></b>,
+    /// which is every shipped file but two — nothing writes the column there. So a working-age gate
+    /// reading the column alone would make ***twenty Rulesets into cities of children***, with nobody
+    /// employed anywhere and no test in the suite obviously naming why.
+    /// <c>World.IsOfWorkingAge</c> guards on <c>DeclaresLifeStages</c> for exactly this, and the
+    /// column's zero means <em>child</em> in one world and <em>this world has no demographics</em> in
+    /// all the others.
+    /// </remarks>
+    [Fact]
+    public void A_world_with_no_stage_table_employs_everybody()
+    {
+        Ruleset rules = RulesetLoader.Load(
+            Path.Combine(AppContext.BaseDirectory, "Rulesets", "minimal.toml")).Ruleset!;
+
+        var key = WorldKey.FromSeed(0);
+        World world = new(2_000, rules, key);
+        Simulation simulation = new(world, key) { VerifyDecideWritesNothing = false };
+
+        SyntheticCity.PopulateInto(world, key, Ticks.Zero);
+
+        Assert.False(rules.DeclaresLifeStages);
+
+        Run(simulation, days: 20);
+
+        int employed = 0;
+
+        for (int slot = 0; slot < world.Citizens.Rows.SlotCount; slot++)
+        {
+            if (world.Citizens.Rows.IsLive(slot)
+                && world.Businesses.Rows.IsValid(world.Citizens.Workplace[slot]))
+            {
+                employed++;
+            }
+
+            // Every Citizen here carries the zero that means "child" one world over.
+            if (world.Citizens.Rows.IsLive(slot))
+            {
+                Assert.Equal(0, world.Citizens.Age[slot]);
+            }
+        }
+
+        Assert.True(employed > 0, "nobody was employed, so the gate read the column without asking "
+            + "the Ruleset whether the column means anything.");
+    }
+
     /// <summary>The invariants hold across a whole chain's worth of transitions.</summary>
     [Fact]
     public void The_world_is_consistent_after_a_full_chain()
