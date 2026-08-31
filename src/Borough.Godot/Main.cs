@@ -55,8 +55,31 @@ public partial class Main : Node3D
     /// <summary>How wide the carriageway is drawn. A drawing width, and no Segment states one.</summary>
     private const float RoadWidthMetres = 8f;
 
-    /// <summary>How deep and wide a Building's box is drawn before its own jitter.</summary>
-    private const float BuildingFootprintMetres = 6f;
+    /// <summary>
+    /// How much of its own frontage a Building fills, leaving the rest as the gap to its neighbour.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>THIS REPLACED A FLAT 6 METRES, AND THE 6 WAS WRONG BY A FACTOR OF FOUR.</b> The shell
+    /// invented a footprint instead of deriving one, and the result was a Building NARROWER than the
+    /// 8-metre carriageway beside it — so a city of them read as a wide road network with specks
+    /// along it. ***The simulation had said how wide a Building is all along***:
+    /// <c>[roads] block_tiles</c> is how long a Segment is and <c>[lots] lots_per_segment</c> is how
+    /// many Buildings share it, which at the shipped 32 and 5 is <b>25.6 m of frontage each</b>
+    /// against a road three times narrower.
+    /// </remarks>
+    private const float FrontageFill = 0.85f;
+
+    /// <summary>
+    /// How deep a Building is drawn, as a share of its frontage. <b>Invented, and it has to be.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>A Lot has no depth and there is no depth key</b> (<c>adr/0078</c>) — a Lot is an address
+    /// point on a Segment, and how far back the building goes is a fact the city does not hold. So
+    /// this is the renderer inventing a thickness, exactly as the setback does, and it is labelled
+    /// as one so nobody promotes it to a Ruleset key. ⚠ <b>It must stay below 1</b>, or a Building
+    /// is deeper than it is wide and a row of them stops reading as a street.
+    /// </remarks>
+    private const float PlotDepthShare = 0.55f;
 
     /// <summary>How tall one storey is drawn. A drawing height, and no kind states one.</summary>
     private const float StoreyMetres = 3.5f;
@@ -114,15 +137,6 @@ public partial class Main : Node3D
     /// <summary>A Cell's side in the shell's metres, which is what one water quad covers.</summary>
     private const float CellMetres = CellGrid.TilesPerCell * MetresPerTile;
 
-    /// <summary>
-    /// How far off the Segment a Building stands — <b>derived, so the two boxes cannot overlap</b>.
-    /// </summary>
-    /// <remarks>
-    /// Half the carriageway plus half the footprint puts the Building's near face on the kerb. It is
-    /// not a Ruleset number and must not become one: <b>a Lot has no depth</b> and there is no depth
-    /// key (<c>adr/0078</c>), so this is the renderer inventing a thickness the city does not have.
-    /// </remarks>
-    private const float SetbackMetres = (RoadWidthMetres + BuildingFootprintMetres) * 0.5f;
 
     /// <summary>In-world seconds a Tick is worth, which is what turns a rung into a rate.</summary>
     private const double SecondsPerTick = 86_400.0 / Ticks.PerDay;
@@ -165,6 +179,8 @@ public partial class Main : Node3D
     private MultiMeshInstance3D _buildings = null!;
     private MultiMeshInstance3D _travellers = null!;
     private MultiMeshInstance3D _roads = null!;
+    private MultiMeshInstance3D _ground = null!;
+
     private MultiMeshInstance3D _water = null!;
     private MultiMeshInstance3D _flood = null!;
     private Label _readout = null!;
@@ -238,6 +254,14 @@ public partial class Main : Node3D
 
         // THE SEA FIRST AND THE FLOOD ON TOP OF IT, and the order is the draw order. A Hazard
         // Region Cell is dry ground that a flood reaches, so the two never cover the same Cell --
+        // 🔴 THE GROUND IS PAINTED FIRST AND IT IS NOT DECORATION. Without it dry land is the
+        // BACKGROUND -- the viewport's clear colour -- so a block's interior reads as a hole rather
+        // than as land, the only thing on screen with a surface is the carriageway, and an 8-metre
+        // Street beside a 128-metre block looks like the widest thing in the city. ***Two separate
+        // readings of this shell as broken traced back to the same absence***: a flood covering the
+        // frame read as the camera drifting out to sea, and a correctly-scaled Street read as huge.
+        _ground = Layer(new Color(0.16f, 0.17f, 0.14f), new Vector3(1f, 1f, 1f));
+
         // but they sit at almost the same height, and painting the standing water last is what makes
         // a rising tide read as arriving rather than as flickering.
         _water = Layer(new Color(0.10f, 0.22f, 0.42f), new Vector3(1f, 1f, 1f));
@@ -249,6 +273,7 @@ public partial class Main : Node3D
         _buildings = Layer(Standing, Vector3.One, perInstance: true);
         _travellers = Layer(new Color(1.0f, 0.45f, 0.15f), new Vector3(3f, 3f, 3f));
 
+        Ground();
         Flood();
         Pave();
         Sun();
@@ -520,7 +545,7 @@ public partial class Main : Node3D
     /// Ruleset declares a kind that holds thirty, the shell draws a tower without being told to.
     /// </para>
     /// <para>
-    /// <b>The jitter is <see cref="SetbackMetres"/>' class of thing and is labelled as one</b> — a
+    /// <b>The jitter is <see cref="PlotDepthShare"/>' class of thing and is labelled as one</b> — a
     /// thickness the city does not have, invented so the picture reads as a city rather than as a
     /// bar chart. It is keyed on the Building's monotonic row id, so a Building keeps its shape for
     /// as long as it stands and a rebuilt one on the same Lot is visibly a different building.
@@ -528,11 +553,43 @@ public partial class Main : Node3D
     /// decisions, and a shape nobody in the city can perceive is not one.
     /// </para>
     /// </remarks>
+    /// <summary>
+    /// How much of a Segment one Building gets, in metres — <b>derived from the Ruleset and never
+    /// chosen here</b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>CONTEXT.md</c> → Address: <em>five Buildings share a Segment</em>. A Segment is one block
+    /// edge, so its length is <c>[roads] block_tiles</c> and the Buildings on it are
+    /// <c>[lots] lots_per_segment</c> — and the frontage each one gets is the first divided by the
+    /// second. At the shipped 32 and 5 that is <b>25.6 m</b>.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Divided by ALL the Lots on the Segment and not by the ones on this side of it.</b> Lots
+    /// alternate kerbs (<c>Frontage.SideOf</c> — odd and even house numbering), so consecutive Lots
+    /// on one side sit twice this far apart and a Building could be drawn twice this wide. It is
+    /// not, for two reasons: the design's sentence is <em>five Buildings share a Segment</em> and
+    /// says nothing about sides, and Lots near a block's end are close to the next block's Lots, so
+    /// the doubled width overlaps across the junction. ***The narrower reading is both the honest
+    /// one and the one that does not intersect.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Falls back to one block's width when a Ruleset states no Lots</b>, which is a world with
+    /// no Buildings in it — so the value is never actually used, and a division by zero would be the
+    /// only thing anybody saw.
+    /// </para>
+    /// </remarks>
+    private static float Frontage(int blockTiles, int lotsPerSegment) =>
+        lotsPerSegment > 0
+            ? blockTiles * MetresPerTile / lotsPerSegment
+            : blockTiles * MetresPerTile;
+
     private System.Collections.Generic.IEnumerable<(Transform3D Where, Color What)> Buildings()
     {
         BuildingTable table = _world.Buildings;
         LotTable lots = _world.Lots;
         int block = _world.Roads.Streets.BlockTiles;
+        float frontage = Frontage(block, _world.Rules.Lots.LotsPerSegment);
 
         for (int slot = 0; slot < table.Rows.SlotCount; slot++)
         {
@@ -550,13 +607,19 @@ public partial class Main : Node3D
             // is puts the Building in the carriageway. Which kerb to step to is Side, read the way
             // LotSubdivider.BlockOf writes it: on a horizontal Street Left is the north side, on a
             // vertical one Right is the east side.
-            if (block > 0 && lots.North[lot].Raw % block == 0)
+            bool horizontal = block > 0 && lots.North[lot].Raw % block == 0;
+
+            // Half the carriageway plus half the building's own depth, so the near face clears the
+            // road by construction rather than by a constant that happened to be big enough.
+            float setback = (RoadWidthMetres * 0.5f) + (frontage * PlotDepthShare * 0.5f);
+
+            if (horizontal)
             {
-                north += side == StreetSide.Left ? SetbackMetres : -SetbackMetres;
+                north += side == StreetSide.Left ? setback : -setback;
             }
             else
             {
-                east += side == StreetSide.Right ? SetbackMetres : -SetbackMetres;
+                east += side == StreetSide.Right ? setback : -setback;
             }
 
             ulong shape = Scramble(table.Rows.IdAt(slot));
@@ -565,18 +628,63 @@ public partial class Main : Node3D
                 ? Math.Max(1, _world.Rules.Kind(kind).Occupants)
                 : 1;
 
-            // 0.55x to 1.85x on the height and 0.75x to 1.25x on the plan. Two draws off one
+            // 0.55x to 1.85x on the height, 0.85x to 1.15x on the plan. Three draws off one
             // scramble, taken from different bit ranges so a tall Building is not also a fat one.
             float tall = storeys * StoreyMetres * (0.55f + ((shape & 0xFFu) / 255f * 1.3f));
-            float wide = BuildingFootprintMetres
-                * (0.75f + (((shape >> 8) & 0xFFu) / 255f * 0.5f));
+            float along = frontage * FrontageFill
+                * (0.85f + (((shape >> 8) & 0xFFu) / 255f * 0.3f));
+            float deep = frontage * PlotDepthShare
+                * (0.85f + (((shape >> 16) & 0xFFu) / 255f * 0.3f));
+
+            // The long side runs ALONG the Street, which is what makes a row of them read as a
+            // street rather than as a field of blocks -- so the plan is swapped with the axis the
+            // setback above already had to know about.
+            Vector3 plan = horizontal
+                ? new Vector3(along, tall, deep)
+                : new Vector3(deep, tall, along);
 
             yield return (
-                new Transform3D(
-                    Basis.FromScale(new Vector3(wide, tall, wide)),
-                    new Vector3(east, tall * 0.5f, -north)),
+                new Transform3D(Basis.FromScale(plan), new Vector3(east, tall * 0.5f, -north)),
                 (table.IsAbandoned(slot) ? Derelict : Standing).SrgbToLinear());
         }
+    }
+
+    /// <summary>
+    /// One slab under the whole map, so that dry land is a surface rather than the absence of one.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>One instance, laid once, and it never changes</b> — the map is a fixed size
+    /// (<c>CellGrid.WorldTiles</c>), so this is a single box rather than a Cell grid. A per-Cell
+    /// ground would be 262,144 instances to say one thing.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It sits BELOW the water and below the carriageway</b>, at a depth chosen to clear both
+    /// without z-fighting: the sea is drawn at <see cref="WaterMetres"/> from zero and the roads at a
+    /// tenth of a metre, so the ground's top face is under the lower of the two.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It carries no terrain and must not be read as any.</b> <c>rulesets/varied.toml</c> is the
+    /// only shipped file that states <c>[[terrain]]</c>, and nothing here asks it — this is one flat
+    /// colour, and the day the ground means something it becomes a per-Cell layer that reads it.
+    /// </para>
+    /// </remarks>
+    private void Ground()
+    {
+        const float depth = 4f;
+        float side = CellGrid.WorldTiles * MetresPerTile;
+
+        _ground.Multimesh.InstanceCount = 1;
+        _ground.Multimesh.SetInstanceTransform(
+            0,
+            new Transform3D(
+                Basis.FromScale(new Vector3(side, depth, side)),
+                new Vector3(side * 0.5f, -depth * 0.5f, -side * 0.5f)));
+
+        // ⚠ WITHOUT THIS THE SLAB IS PLACED AND NOT DRAWN. A MultiMesh has a buffer size and a
+        // visible count, Layer leaves the second at zero, and Fill is what normally raises it -- so
+        // a layer written by hand rather than filled from an enumeration silently renders nothing.
+        _ground.Multimesh.VisibleInstanceCount = 1;
     }
 
     /// <summary>Every Cell a Disaster has under water right now.</summary>
