@@ -81,7 +81,7 @@ The rows below were found by asking the code what is missing instead.
 | 9 | **Needs, and the preference axes.** `Taste` **0 files**, `Preference` **0 files** in `Borough.Core`. `adr/0027` calls them *"the most load-bearing data in the design"*. Until they exist a Household wants nothing a Bin cannot express, and placement satisfices on **distance alone** | ◐ 30-08 |
 | 10 | **`Service` throws.** The civic swath — schools, health, safety. `School` is **0 files**. ⚠ **After 9, not before**: a service with no need to satisfy is a Building with a Bin | ✅ 30-08 |
 | 11a | **The eye.** Of `05 §2`'s three hot queries only `LayerCells` exists; **`VisibleAgents` and `ChunkAggregates` are nowhere in `src/`** and a **Traveller has no coordinate at all**. ⚠ **Day one of 11b either way** | ✅ 30-08 |
-| 11b | **The shell.** 🔴 **`src/Borough.Godot` DOES NOT EXIST** — `CLAUDE.md` lists five projects and there are four. ⚠ **Godot is not installed here and neither CI lane could build it**: blocked on a toolchain, not on 11a | |
+| 11b | **The shell.** `src/Borough.Godot` — Godot 4.7.2, a camera over the city, one MultiMesh per kind of thing, a speed ladder and a readout. ⚠ **Not in `Borough.slnx` and never will be**: that absence is what enforces *the headless runner never requires Godot* | ✅ 30-08 |
 | 12 | **Disasters.** `coastal.toml` carries a Hazard Region and **nothing fires on it** | |
 | 13 | The `0046` loose ends — the dwelling stock's missing sink, `aged.toml`'s narrow windows. ⚠ **Small on purpose and last on purpose**: `StageDumpTests` pins both with tests that assert the defect, so neither can be lost | |
 
@@ -171,6 +171,32 @@ ride the lattice. `alpha` therefore moves the walkers and cannot move the driver
 ✅ **Placement is total** — `placed` equals `travelling` on every frame of every world tried.
 
 ⚠ **A new Tick consumer with no `plans/0013` row** (`adr/0073`) — the corpus freeze is why.
+
+## What the shell found
+
+**`src/Borough.Godot` exists** — Godot 4.7.2, the `.NET` build, on `net10.0` against a `net10.0`
+core. A camera framed on the built extent, one `MultiMeshInstance3D` each for the Road Graph,
+the Buildings and the Travellers, a speed ladder on `space` and `1`–`4`, and a readout. **It is not
+in `Borough.slnx`**, so a root `dotnet build` still neither builds it nor needs Godot: ***the
+constraint that the headless runner never requires Godot stopped being vacuous and became a check.***
+
+🔴 **THE FIRST FRAME RENDERED HALF A ROAD NETWORK AND THE ASCII DUMP COULD NOT HAVE CAUGHT IT.**
+`Basis.Scaled` scales in the **parent** frame, so every east–west Segment was given 8 m of length
+and its own length of width, and the lattice drew as north–south lines with no cross-streets.
+⚠ ***The two viewers disagree because they ask different questions***: `--watch` rasterises the line
+itself and never asks for a transform, so a bug in the transform is invisible to it. **Two eyes on
+one mechanism is worth what it cost.**
+
+🔴 **THE WALKERS ARE FLOATING IN THE MIDDLE OF THE BLOCKS.** At Tick 751 — 08:48, the peak of the
+third burst, 63 people out — every Traveller sits off the network. That is `VisibleAgents`' own
+straight-line placement for a foot Leg, stated in its remarks and *believed*; seeing it is
+different. ***A shell is where an approximation you documented stops being a footnote.***
+
+⚠ **Confirmed the comb from the other side**: at Tick 402, 04:42, the readout says `travelling 0`
+against a fully built city. Nobody is outside before 05:00.
+
+⚠ **Godot loads the `Debug` assembly.** A tree built only in `Release` fails with *Cannot instantiate
+C# script*, which reads as a missing class and is a missing configuration.
 
 ## What the school run found
 

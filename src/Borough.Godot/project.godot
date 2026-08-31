@@ -1,0 +1,15 @@
+config_version=5
+
+[application]
+
+config/name="Borough"
+run/main_scene="res://Main.tscn"
+config/features=PackedStringArray("4.7", "C#", "Forward Plus")
+
+[dotnet]
+
+project/assembly_name="Borough.Godot"
+
+[rendering]
+
+renderer/rendering_method="forward_plus"

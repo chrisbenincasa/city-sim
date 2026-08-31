@@ -1,0 +1,15 @@
+<Project Sdk="Godot.NET.Sdk/4.7.2">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Borough.Shell</RootNamespace>
+    <!-- The analysers police the simulation's determinism rules and this project is not the
+         simulation: a shell holds a camera, a frame rate and a wall clock by definition. -->
+    <NoWarn>$(NoWarn)</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Borough.Core\Borough.Core.csproj" />
+    <ProjectReference Include="..\Borough.Formats\Borough.Formats.csproj" />
+  </ItemGroup>
+</Project>

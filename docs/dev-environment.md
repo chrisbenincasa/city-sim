@@ -139,9 +139,30 @@ a clearer starting point than a placeholder you will wonder about in three weeks
 rm src/Borough.Core/Class1.cs tests/Borough.Tests/UnitTest1.cs
 ```
 
-**Note what is deliberately absent: `Borough.Godot` is not in this solution yet, and not in this
-track at all.** It is added in Track B. Until then, the constraint that the headless runner never
-requires Godot is enforced by there being nothing to require.
+**Note what is deliberately absent: `Borough.Godot` is not in this solution and never will be.**
+✅ **It exists as of 2026-08-30** (`plans/0045` queue item 11b) — but it is built by its own
+toolchain, so `Borough.slnx` names four projects and a `dotnet build` at the root neither builds it
+nor needs Godot installed. ***That the shell is absent from the solution is what enforces the
+constraint***, and it is now a live check rather than a vacuous one.
+
+**Installing the engine** — the .NET build, because the shell is C#:
+
+```bash
+curl -sSL -o /tmp/godot.zip \
+  https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_mono_linux_x86_64.zip
+unzip -q /tmp/godot.zip -d ~/.local/opt/
+ln -sf ~/.local/opt/Godot_v4.7.2-stable_mono_linux_x86_64/Godot_v4.7.2-stable_mono_linux.x86_64 \
+  ~/.local/bin/godot
+dotnet build src/Borough.Godot/Borough.Godot.csproj   # Debug: Godot loads that assembly
+godot --path src/Borough.Godot
+```
+
+⚠ **Build `Debug` and not only `Release`.** Godot loads the assembly from
+`.godot/mono/temp/bin/Debug/`, and a tree with only a Release build fails at run time with
+*Cannot instantiate C# script* — which reads like a missing class and is a missing configuration.
+
+⚠ **`net10.0` works.** The risk recorded below is retired for 4.7.2: `Godot.NET.Sdk/4.7.2` accepts
+the override and the shell runs on Vulkan against a `net10.0` `Borough.Core`.
 
 **Check:**
 
