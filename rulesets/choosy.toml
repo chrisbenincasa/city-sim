@@ -20,7 +20,10 @@
 # The Pool is filled by Households LOSING A HOME, and minimal.toml stopped condemning anything at
 # milestone 17 (adr/0164). declining.toml is the smallest shipped world that condemns, so it is the
 # smallest one in which a family is ever rehoused -- and rehousing is precisely the moment a
-# preference is worth having. ⚠ THE SLOW PATH WOULD HAVE WORKED AND IS NOT A FIX: aged.toml's chain
+# preference is worth having. ⚠ THE STAGE NUMBERS BELOW ARE aged.toml'S PRE-2026-08-31 ONES, which
+# is why the arithmetic in the next sentence no longer matches that file: plans/0045 row 13 halved
+# its floors and doubled its spreads, and scoped the edit there.
+# ⚠ THE SLOW PATH WOULD HAVE WORKED AND IS NOT A FIX: the chain here
 # reaches `children_become` only after 24 + 48 + 48 = 120 Days, which is 245,760 Ticks, and a
 # demonstration nobody will sit through is not one.
 #

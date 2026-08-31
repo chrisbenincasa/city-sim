@@ -1,4 +1,9 @@
-# aged.toml -- minimal.toml with FIVE [[life_stage]] tables, and nothing else changed.
+# aged.toml -- minimal.toml with FIVE [[life_stage]] tables and the dwelling stock's own SINK.
+#
+# ⚠ THIS LINE SAID `and nothing else changed` UNTIL 2026-08-31. It now also states
+# `abandoned_when_empty_after_days` and `collapses_after_days` on the dwelling kind, and the
+# reason is below at length: a city whose population MOVES needs a way to lose a house, and this
+# is the only shipped world whose population moves.
 #
 # THE ONLY SHIPPED FILE IN WHICH THE CITY GENERATES ITS OWN POPULATION. `HouseholdTable.LifeStage` and
 # `CitizenTable.Age` were both saved, hashed columns written by NOTHING -- two of the three dead
@@ -18,24 +23,44 @@
 # here; raised.toml is the world that reaches it.
 #
 # MEASURED at 2,000 Citizens over 400 Days: 720 Households seeded, ALL OF THEM DEAD BY DAY 212, and
-# 234 standing at the end -- every one of which was born here. Replacement Rate 1.45 against the 2.00
-# that is exact replacement.
+# 538 standing at the end -- every one of which was born here. Replacement Rate 1.48.
 #
-# 🔴 THIS CITY DECLINES AND THAT IS THE BAND, NOT A DIAGNOSIS. `young` authors children_min = 0 and
-# children_max = 3, whose mean is 1.5, and two children per Household is exact Citizen replacement
-# (adr/0011, and the threshold falls out of conservation rather than being chosen). So the decline is
-# arithmetic on a number in this file. ***The fertility draw is UNCONDITIONED*** -- adr/0011 wants it
-# conditioned on housing cost, dwelling size and job security, and none of that machinery exists
-# (adr/0070: unbuilt, not refused) -- so nothing here is evidence about whether cities can afford
-# children.
+# 🔴 THIS CITY GROWS, AND THIS BLOCK SAID IT DECLINED FOR FIVE DAYS. The sentence that stood here was
+# "THIS CITY DECLINES AND THAT IS THE BAND": `young` draws 0..3 children with a mean of 1.5 against a
+# threshold of 2.00, so decline was arithmetic on a number in this file. ***THE THRESHOLD WAS WRONG BY
+# A FACTOR OF TWO.*** adr/0011 derives it as two children replacing two adults, which is airtight for a
+# Household of TWO adults -- and World.SpawnChildren gives EVERY CHILD ITS OWN HOUSEHOLD. Nothing in
+# the build pairs anybody, so every Household past the founding generation holds exactly one adult and
+# exact replacement is ONE child. `--stages` measures the column now rather than printing a constant,
+# and `working age` and the Household count come back EXACTLY EQUAL.
 #
-# 🔴 THE POPULATION OSCILLATES BETWEEN 156 AND 452 HOUSEHOLDS AND DOES NOT SETTLE, and that is the
-# finding this file was built to produce. adr/0011's `W` exists to smear the founding cohort so the
-# city does not breathe in lockstep; over 400 Days and three generations IT DOES NOT DAMP -- busiest
-# transition Day is 7.0x the mean, 116 of 400 Days see no transition at all, and INDIVIDUAL STAGES GO
-# COMPLETELY EMPTY AND REFILL (`mature_family` holds nobody at Day 160 and 155 at Day 242). ***So the
-# four windows below are too narrow***, and widening them is an edit to this file alone. Read it with
-# `--stages`.
+# ⚠ SO 1.48 IS 45% GROWTH A GENERATION. Over 1,200 Days the Households go 720 -> ~1,100 and settle,
+# bounded by the housing the lattice paved and by [placement] gives_up_after_days rather than by
+# fertility. ***A 400-DAY RUN READS AS DECLINE BECAUSE IT CATCHES THE FIRST TROUGH*** -- the founding
+# generation of two-adult Households being replaced by one-adult ones. ⚠ Whether children SHOULD pair
+# is design, adr/0011 plainly assumes they do, nothing says who pairs with whom, and it is queued in
+# plans/0045's `Owed when the freeze lifts`. ***The fertility draw is UNCONDITIONED*** either way --
+# adr/0011 wants it conditioned on housing cost, dwelling size and job security, and none of that
+# machinery exists (adr/0070: unbuilt, not refused) -- so nothing here is evidence about whether cities
+# can afford children.
+#
+# 🔴 THE FOUR WINDOWS BELOW WERE TOO NARROW AND ARE NOW AS WIDE AS THEIR OWN FLOORS. adr/0011's `W`
+# exists to smear the founding cohort so the city does not breathe in lockstep, and at 8-16 Days
+# against a ~160-Day life it did not: the busiest transition Day was 7.0x the mean, 116 of 400 Days saw
+# none at all, and individual stages went COMPLETELY EMPTY AND REFILLED. It now reads 3.3x with 19 Days
+# quiet.
+#
+# ⚠ THE WINDOW COULD NOT BE WIDENED ALONE, AND THE FLOORS PAID FOR IT. A wake is drawn uniform on
+# [floor, floor + width), so the MEAN life is floor + width/2 -- and this file's mean was already 188
+# Days against adr/0094's ~190 ceiling for a readable Replacement Rate. Widening at fixed floors would
+# have put it at 236. The floors are halved, the widths doubled, and the mean comes back to the 160
+# this header claims below -- which it had never actually had, because 160 is the FLOOR of the chain
+# and the argument is about the mean.
+#
+# ⚠ IT DAMPS THE ECHO AND DOES NOT REMOVE IT, AND 400 DAYS CANNOT SEE WHICH. Over 1,200 Days the
+# population swing falls 3.67x -> 2.55x -> 1.19x across three 400-Day thirds, where the old windows
+# were still swinging 2.47x in their last third. ***A 400-Day run holds two and a half generations and
+# cannot tell a damping echo from a standing one.*** Read it with `--stages`.
 #
 # ⚠ `childless` WAS DECLARED AND UNREACHABLE UNTIL STAGE 3, deliberately, and it is REACHABLE NOW:
 # `young`'s zero draw is what routes into it. It was declared before anything could reach it because
@@ -61,15 +86,22 @@
 # 562 Days means a Life Stage life longer than about 190 Days." A thousand-Day life puts LESS THAN
 # ONE GENERATION inside a whole campaign, so Replacement Rate -- the readout the entire mechanism
 # exists to produce -- could never be read by a player. adr/0094 wins because it reasons from what a
-# person can SEE and adr/0011 reasons from what a machine can AFFORD. 24+48+48+40 = 160 Days at the
-# floor, inside the ~190, giving roughly three generations to a 562-Day campaign.
+# person can SEE and adr/0011 reasons from what a machine can AFFORD.
+#
+# 🔴 ⚠ AND ~190 IS A CEILING ON THE MEAN, WHICH THIS FILE READ AS A CEILING ON THE FLOOR. The sentence
+# that stood here was "24+48+48+40 = 160 Days at the floor, inside the ~190". A stage's wake is drawn
+# uniform on [duration_days, duration_days + spread_days), so a life is floor + width/2 ON AVERAGE and
+# the old table's mean was 188 -- inside the ceiling by two Days rather than by thirty, and with NO
+# ROOM AT ALL to widen a window. ***A number that is one end of a distribution says which end.***
+# The chain is now 16+32+32+28 = 108 Days at the floor and 160 on the mean, which is what the argument
+# above always wanted and what the arithmetic beside it never delivered.
 #
 # ⚠ `spread_days` IS THE LOAD-BEARING HALF AND IT READS AS DECORATION. Without it every Household
 # created at Tick 0 leaves every stage on the same Day for the whole run, so the founding generation
 # stays one cohort and the city breathes in lockstep. ***That echo would read as a demographic
-# mechanism and is an artefact of world creation.*** Whether four windows of 8-16 Days are enough to
-# blur a cohort across 160 Days of life is NOT SETTLED BY THIS FILE and is the first number here that
-# will move -- it is what plans/0046's definition of done says to go and watch.
+# mechanism and is an artefact of world creation.*** ✅ EACH WINDOW IS NOW AS WIDE AS ITS OWN FLOOR,
+# measured rather than argued: `busiest ÷ mean` 7.0x -> 3.3x and Days with no transition at all
+# 116 -> 19, of 400. ⚠ WIDENING IT IS NOT FREE AND THE FLOORS PAID -- see the ceiling above.
 #
 # ⚠ ZERO IS ALLOWED FOR `spread_days` and means exactly that lockstep world. It is refused nowhere
 # because a file demonstrating the echo is a legitimate thing to author, and because a key whose zero
@@ -79,7 +111,9 @@
 # banned vocabulary names "Year", "month" and "season" outright; the precedent for anything wanting a
 # longer unit is [[business]] pay_period_days = 7, which is a week because seven Days is a week.
 #
-# ⚠ THE CHAIN'S LONGEST DRAW IS 63 DAYS (48 + 16 - 1) AND THE WHEEL REACHES 127. That is not a
+# ⚠ THE CHAIN'S LONGEST DRAW IS 63 DAYS (32 + 32 - 1) AND THE WHEEL REACHES 127. ⚠ It was 48 + 16 - 1
+# and is the SAME NUMBER by coincidence rather than by construction, which is worth saying out loud
+# before somebody reads the equality as a constraint holding. That is not a
 # coincidence: EventWheel.CoarseDays was DERIVED from this table -- plans/0036 decision 3 asked for a
 # bucket count and could not answer it, because the answer is the longest sleep a consumer takes and
 # there was no consumer. 64 is the derived floor and 128 is one doubling of headroom, taken because
@@ -350,6 +384,45 @@ bins = [
 # of tenant (adr/0147), and this kind now comes with a shop -- so four slots minus one trade is
 # the three Households this file has always housed, and `jobs` below still derives from three.
 occupants = 4
+
+# THE DWELLING STOCK'S SINK, AND IT IS NOT DECLINE. plans/0046 measured this world keeping every one
+# of its houses while it lost two thirds of its Households -- 0 Days of 400 saw the stock fall -- and
+# adr/0006 was GREEN the whole way, because the stock is bounded by peak demand and converges. What
+# is unbounded is the RATIO `jobs = 8` was derived against: 8 x dwellings / Citizens, a monotone
+# numerator over a denominator free to fall, which trends nowhere a collection check is looking.
+#
+# ⚠ THIS IS NOT `condemn_after_days` AND THE PROHIBITION ABOVE STILL STANDS. That key reads Failure
+# Pressure, so a kind stating it declines whether anybody wants it or not -- and on a file whose
+# `upkeep` can never be supplied, that is a fixed LIFESPAN and every dwelling in the city dies on the
+# same clock. This one reads OCCUPANCY. Only stock nobody lives in dies, so the sink is the demand
+# signal read from the other end: adr/0069 builds while the Unplaced Pool is non-empty, and this
+# gives up on a Building the Pool never came for. ***THE DIFFERENCE IS WHETHER THE CITY IS DYING OR
+# MERELY SHRINKING***, and only this file can tell them apart, because only this file has a
+# population that moves.
+#
+# ⚠ IT ABANDONS AND DOES NOT DEMOLISH, so adr/0091 is untouched -- clearing land is bought rather
+# than taken, and nothing here razes anything a player would have had to pay for. An empty house
+# becomes a SHELL on its Lot, exactly as a condemned one does, and `collapses_after_days` below is
+# the sink under both. What the city does is stop maintaining a house nobody lives in; what it never
+# does is send the bulldozer.
+#
+# 🔴 BOTH NUMBERS ARE PROVISIONAL, CHOSEN BY TASTE, NAMING NO RATIFIER -- plans/0045 standing order 4.
+# 20 Days is an eighth of a Household's ~160-Day life: long enough that a family looking for a home
+# has been past several times (the placement pass revisits every Day, and the loader refuses this key
+# below one revisit period), short enough that the trough of a demographic cycle is visible inside a
+# 400-Day run. 10 Days is how long the ruin stands, and it is a tenth of the life for no better
+# reason than that a shell nobody can see is a state the city has and the eye cannot find.
+#
+# ⚠ WHAT WOULD RATIFY EITHER IS A LAND MARKET AND THERE IS NONE. 02 §5.5 makes redevelopment the
+# preferred sink -- stock leaves when land value falls far enough to pencil -- and this is its FLOOR,
+# the case where nobody wants the land at any price. Until the price exists, how long a developer
+# holds an empty house is a number nothing can refute.
+abandoned_when_empty_after_days = 20
+
+# The sink for what the key above creates, and the loader requires it of any kind that can be
+# abandoned at all. See declining.toml for the same key doing the same job under the other threshold.
+collapses_after_days = 10
+
 # THE TRADE A DWELLING OF THIS KIND COMES WITH. adr/0148, and it is this file's oldest comment finally
 # being written down as a row rather than as an apology. `jobs = 8` used to sit here, under a paragraph
 # explaining that it was on the dwelling BECAUSE NO WORKPLACE KIND EXISTED -- "living above the shop is
@@ -996,8 +1069,8 @@ arrive_early_max_minutes = 15
 # UNRATIFIED, chosen by taste, no plans/0002 §D row. plans/0045 suspends adr/0052 to allow that.
 [[life_stage]]
 name          = "young"
-duration_days = 24
-spread_days   = 8
+duration_days = 16
+spread_days   = 16
 next          = "family"
 childless     = "childless"
 children_min  = 0
@@ -1019,8 +1092,8 @@ adult_age_max_days = 160
 
 [[life_stage]]
 name          = "family"
-duration_days = 48
-spread_days   = 16
+duration_days = 32
+spread_days   = 32
 next          = "mature_family"
 
 # adr/0011: "On exit the children become adults and form new Young Households, entering the Unplaced
@@ -1028,8 +1101,8 @@ next          = "mature_family"
 # stage 1 its exit is an ordinary scheduled transition and spawns nobody.
 [[life_stage]]
 name           = "mature_family"
-duration_days  = 48
-spread_days    = 16
+duration_days = 32
+spread_days   = 32
 next           = "empty_nest"
 children_become = "young"
 
@@ -1039,12 +1112,12 @@ children_become = "young"
 # because they are different diagnoses -- see the header.
 [[life_stage]]
 name          = "childless"
-duration_days = 40
-spread_days   = 16
+duration_days = 28
+spread_days   = 24
 
 # Adults whose children have left. Terminal under stage 1, which is why a long run of this file ends
 # with the whole city here. Dissolution is stage 2.
 [[life_stage]]
 name          = "empty_nest"
-duration_days = 40
-spread_days   = 16
+duration_days = 28
+spread_days   = 24

@@ -66,6 +66,7 @@ question, its type and its trigger, and never argues it.
 
 | Question | Type | Trigger to open it | Raised |
 |---|---|---|---|
+| **Should two children pair into one Household, or does each form its own?** `World.SpawnChildren` gives every child its own Household and nothing in the build pairs anybody, so a formed Household holds **one adult** and exact replacement is **one child** — where [`adr/0011`](../docs/adr/0011-household-life-stages-and-self-generating-population.md) derives the threshold as **two**, *"two children replacing two adults"*, which is airtight for a Household of two. ⚠ **The ADR is not wrong; it assumes a mechanism nobody built.** What is owed is the decision and not the arithmetic: ***who pairs with whom***, and whether the answer is a marriage market, a draw at formation, or nothing at all. ⚠ **The readout is already honest** — `--stages` measures `adults per Household` and takes the threshold from it — so nothing is blocked, and what is at stake is whether a Household is a person or a family. Goes to §C under `adr/0011` | *arguable* — no measurement says how many adults a Household ought to hold; the census already says how many it does | **A mechanism that treats two adults in one Household differently.** `plans/0046` decision 3 names exactly that as `Citizens.Age`'s revisit trigger, and it is the same trigger: ***until something can tell two adults apart, a pair and a single are the same row twice*** | 2026-08-31, the 1,200-Day run |
 | **What is the natural playing speed, and what does a player do at each rung?** Two sittings settled that ***slower rungs are necessary*** and nothing about where the natural one sits. What is owed is four things at once: the **phases** — early, mid, long — and whether they are a design claim or a description; the **cadences that have emerged** and which phase each belongs to; **which rung a player reaches for and when**; and whether *fun* and *legible* want the same rung. ⚠ ***A ladder is a list of speeds; this is a question about what a player is doing at each one.*** Goes to §C under `01-player-experience.md` | *arguable* — no number refutes *this is the speed the game is played at*, and `adr/0094`'s revisit trigger names **a person at the controls**, which is a sitting rather than a machine | **A game with phases in it.** Asking now answers from a city that has one phase, and ***a pacing question answered against a world with nothing to pace is a stopwatch reading rather than a design*** | 2026-08-31, the shell's second sitting |
 
 ---
@@ -104,7 +105,7 @@ The rows below were found by asking the code what is missing instead.
 | 11a | **The eye.** Of `05 §2`'s three hot queries only `LayerCells` exists; **`VisibleAgents` and `ChunkAggregates` are nowhere in `src/`** and a **Traveller has no coordinate at all**. ⚠ **Day one of 11b either way** | ✅ 30-08 |
 | 11b | **The shell.** `src/Borough.Godot` — Godot 4.7.2, a camera over the city, one MultiMesh per kind of thing, a speed ladder and a readout. ⚠ **Not in `Borough.slnx` and never will be**: that absence is what enforces *the headless runner never requires Godot* | ✅ 30-08 |
 | 12 | **Disasters.** `coastal.toml` carries a Hazard Region and **nothing fires on it** | ✅ 31-08 |
-| 13 | The `0046` loose ends — the dwelling stock's missing sink, `aged.toml`'s narrow windows. ⚠ **Small on purpose and last on purpose**: `StageDumpTests` pins both with tests that assert the defect, so neither can be lost | |
+| 13 | The `0046` loose ends — the dwelling stock's missing sink, `aged.toml`'s narrow windows. ⚠ **Small on purpose and last on purpose**: `StageDumpTests` pins both with tests that assert the defect, so neither can be lost | ✅ 31-08 |
 
 Items 2 and 3 cost one day and added no Ruleset key, number or ADR. They moved three golden
 baselines: a hashed column stopped being zero (`adr/0100`).
@@ -459,6 +460,68 @@ nothing on screen. ***The gap moved from the mechanism to the overlay.***
 
 ⚠ **A new Tick consumer with no `plans/0013` row** (`adr/0073`) — the corpus freeze is why. It is
 `O(footprint)` a Tick while a flood is live and unmeasured at a million Citizens.
+
+## What the loose ends found
+
+**The dwelling stock has a sink.** `[[building]] abandoned_when_empty_after_days` abandons a Building
+nobody has lived in for its kind's duration — `adr/0069`'s build predicate mirrored, and `02 §5.5`'s
+redevelopment floor, *the case where nobody wants the land*. ⚠ **It ABANDONS rather than demolishing,
+so `adr/0091` is untouched**: the city stops maintaining an empty house and never sends a bulldozer a
+player would have had to pay for. **`Days the stock fell` goes 0 → 141 of 400.**
+
+⚠ **It is not `condemn_after_days` and the difference is the whole point.** That key reads Failure
+Pressure, so a kind stating it declines whether anybody wants it or not — on `aged.toml`, whose
+`upkeep` can never be supplied, it would be a fixed **lifespan** and every dwelling would die on one
+clock. This reads occupancy. ***Only surplus stock dies, so the sink is the demand signal read from
+the other end.***
+
+🔴 **AND IT DOES NOT RESTORE `jobs = 8`, WHICH IS THE FINDING RATHER THAN A FAILED REPAIR.** Swept at
+5, 10, 20, 40 and 80 Days, `posts per Citizen` moves **1.61 → 1.98 across a sixteenfold range**,
+against 2.06 with no sink and a derived 0.96. ***A shrinking city does not consolidate***: placement
+takes the first Lot with room out of a draw of three and nothing biases it toward a fuller house, so
+the families left after a trough are spread **one per dwelling**. **Over a fifth of the housing
+capacity stands empty while a thirtieth of the houses do**, and a sink keyed on an empty house can
+only collect the tail of that. ⚠ **Neither half is a defect** — a family has no reason to prefer the
+house with neighbours in it, and steering the sample would be the optimiser `adr/0017` refuses. ***So
+`1000/360 × occupants` assumed every dwelling was FULL, which is a city under housing pressure, and a
+demographic city is under it half the time.***
+
+🔴 **THE EMPTY CLOCK'S FIRST SPELLING TOOK THE WRONG NEIGHBOUR'S ENCODING AND A FIXTURE CAUGHT IT.**
+`AbandonedSince` uses zero-as-sentinel and this column copied it — but a Building is empty **from the
+Tick it is raised**, so zero-as-sentinel loses every Building raised on **Tick 0**. That is not a
+corner: it is every fixture in the suite and every Building `SyntheticCity` lays. ⚠ **It was invisible
+on the shipped world** because the populator fills what it raises in the same call, and the remark
+above the line said the case was *unreachable*. ***A sentinel is a claim about which values cannot
+occur, and it was written by looking at the neighbour rather than at the mechanism.***
+
+**The stage windows are as wide as their own floors.** `busiest ÷ mean` **7.0× → 3.3×**, Days with no
+transition at all **116 → 19** of 400.
+
+🔴 **THE WINDOW COULD NOT BE WIDENED ALONE, AND A NUMBER IN THREE DOCUMENTS SAID OTHERWISE.** A wake
+is drawn uniform on `[N, N+W)`, so a life is `N + W/2` **on average** — and `aged.toml`'s mean was
+already **188 Days against `adr/0094`'s ~190**, where `plans/0046`, the file's own header and the
+`--stages` panel all called the chain **160**. ***160 is the FLOOR and the ceiling is about the
+MEAN***, so there was no room at all. Widening at fixed floors would have put the mean at 236. The
+floors are halved to pay for the widths and the mean is now exactly 160. ***A number that is one end
+of a distribution says which end*** — `plans/0012` **Cause 5**, on a distribution rather than on a
+ratio.
+
+⚠ **IT DAMPS THE ECHO AND DOES NOT REMOVE IT, AND 400 DAYS CANNOT SEE WHICH.** Over **1,200 Days**
+the widened city converges — the swing falls **3.67× → 2.55× → 1.19×** across three 400-Day thirds —
+where the narrow one is still swinging **2.47×** in its last third. ***`plans/0046`'s definition of
+done was answered on a run too short to answer it.***
+
+🔴 **AND THE LONG RUN FOUND THE REPLACEMENT THRESHOLD WRONG BY A FACTOR OF TWO.** `adr/0011` derives
+exact replacement as *two children replacing two adults* — airtight for a Household of **two** adults,
+and `World.SpawnChildren` gives **every child its own Household**. Nothing pairs anybody, so exact
+replacement is **one child**, and ***the census says so rather than the arithmetic***: `working age`
+and the Household count come back **exactly equal**. ⚠ **So 1.45 against 2.00 was a city growing 45% a
+generation reported as one in decline**, in the panel, in `plans/0046` and in `aged.toml`'s header at
+once. **720 → ~1,100 Households over 1,200 Days**, bounded by housing rather than by fertility. The
+panel now **measures** the threshold; the design question is queued in *Owed when the freeze lifts*.
+
+⚠ **A new saved column and no `plans/0013` row** (`adr/0073`) — the corpus freeze is why.
+
 
 ## What the preference found
 

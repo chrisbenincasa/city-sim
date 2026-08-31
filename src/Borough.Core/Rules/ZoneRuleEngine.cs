@@ -749,11 +749,12 @@ public sealed class ZoneRuleEngine
 
         ulong condemns = (ulong)definition.CondemnAfterTicks;
         ulong endsTenancy = (ulong)definition.TenancyEndsAfterTicks;
+        ulong empties = (ulong)definition.AbandonedWhenEmptyAfterTicks;
 
-        // ZERO MEANS NEVER for each, independently. A kind stating neither declines and evicts
-        // nobody, which is what every Ruleset written before decline existed meant and what most of
-        // the shipped files mean today.
-        if (condemns == 0 && endsTenancy == 0)
+        // ZERO MEANS NEVER for each, independently. A kind stating none of the three declines,
+        // evicts nobody and stands empty for ever, which is what every Ruleset written before
+        // decline existed meant and what most of the shipped files mean today.
+        if (condemns == 0 && endsTenancy == 0 && empties == 0)
         {
             return;
         }
@@ -799,6 +800,41 @@ public sealed class ZoneRuleEngine
             // Abandonment ends every tenancy in the Building, through EmptyPremises' own walk of the
             // occupant list. There is nothing left to end, and the shell holds nobody.
             return;
+        }
+
+        // THE DEMAND-SIDE SINK, and it runs AFTER the premises verdict on purpose. A Building can be
+        // both starving and empty -- Shed is what empties a failing one -- and the trail entry names
+        // ONE cause, so letting emptiness win would stop declining.toml's trail naming conditions the
+        // moment shedding took the last Occupant. The starvation diagnosis is the more specific one
+        // and it is taken first.
+        //
+        // ⚠ IT ABANDONS RATHER THAN DEMOLISHING, so adr/0091 is untouched: clearing land is bought
+        // rather than taken, and nothing here razes anything. The Building becomes a shell on its Lot
+        // exactly as a condemned one does and collapses_after_days is the sink under both -- which is
+        // why the loader requires that key alongside this one.
+        //
+        // ⚠ THE CONDITION IS None AND THERE IS NOTHING TO PUT THERE. A trail entry names the Rule
+        // condition behind a demolition, and no Rule failed here -- nobody came. That is the case
+        // Condemn's own remark already covers: an entry with no condition is kept, because a Building
+        // that vanished with no entry at all is the worse answer.
+        if (empties != 0 && _world.Occupants.IsEmpty(building))
+        {
+            // The comparison lives on the table, because the column is plus-one encoded so that a
+            // Building raised on Tick 0 has a clock at all -- which is every fixture in the suite and
+            // every Building SyntheticCity lays.
+            if (_world.Buildings.HasStoodEmptyFor(building, tick, empties))
+            {
+                _world.CondemnationTrail.Record(
+                    tick,
+                    _world.Lots.Rows.At(lot),
+                    kind,
+                    ConditionId.None);
+
+                _world.AbandonBuilding(_world.Buildings.Rows.At(building), tick);
+                _tickDemolished++;
+
+                return;
+            }
         }
 
         // THE FIRST THRESHOLD, and it runs here because the premises verdict above did not fire --

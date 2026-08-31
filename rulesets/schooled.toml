@@ -1,6 +1,11 @@
 # The school Ruleset. It models no city, and it exists to make ONE THING VISIBLE.
 #
-# `aged.toml` WITH `[needs]` AND ONE MORE `[[building]]`, and that diff is the whole content. The
+# `aged.toml` WITH `[needs]` AND ONE MORE `[[building]]`, and that diff was the whole content.
+# 🔴 ⚠ IT NO LONGER IS, AND THIS FILE IS THE OLDER aged.toml. On 2026-08-31 plans/0045 row 13 gave
+# that file a dwelling-stock sink and HALVED ITS STAGE FLOORS TO DOUBLE THEIR SPREADS; neither
+# change was propagated here, because plans/0046 scopes the window edit to aged.toml alone and
+# every measured figure in this header was taken against the table below. ***A derived file that
+# is not re-measured is not a derived file, so read this one as its own world.*** The
 # new kind states `serves = "education"`, which is what makes it a service Building -- and it is the
 # FIRST SHIPPED FILE IN WHICH THE PLAYER PLACES ANYTHING. Every other Building in every other world
 # arrives because a Zone Rule filled in a permission set; a school arrives because somebody issued

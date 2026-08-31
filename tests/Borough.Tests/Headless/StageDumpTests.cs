@@ -84,16 +84,24 @@ public sealed class StageDumpTests
     }
 
     /// <summary>
-    /// 🔴 <b>Replacement Rate is printed, and it is a reading rather than a restatement.</b>
+    /// 🔴 <b>Replacement Rate is printed, and BOTH SIDES of it are readings.</b>
     /// </summary>
     /// <remarks>
-    /// <b>The 2.00 is arithmetic and the rate beside it is the city</b> — <c>adr/0011</c>: two
-    /// children replace two adults, and ***"that threshold falls out of conservation rather than
-    /// being chosen"***. ⚠ <b>The rate itself is not asserted to a value</b>: it is a figure for a
-    /// document to quote, and pinning it would make an instrument out of an assertion. What is
-    /// asserted is that births and spawns are counted APART — a birth creates a Citizen and a spawn
-    /// moves one, and a readout summing them would report a population growing twice as fast as it
-    /// is.
+    /// <para>
+    /// <b>The threshold printed here was a flat <c>2.00</c> until 2026-08-31 and it was wrong by a
+    /// factor of two.</b> <c>adr/0011</c> derives it as two children replacing two adults, which is
+    /// airtight for a Household of two adults — and <c>World.SpawnChildren</c> gives every child its
+    /// own Household, so a formed one holds exactly one adult. ***A city reported as declining at
+    /// 1.45 against 2.00 grows 45% a generation.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Neither number is asserted to a value</b>: both are figures for a document to quote, and
+    /// pinning either would make an instrument out of an assertion. What is asserted is that the
+    /// threshold is <b>measured</b> — it must not read <c>2.00</c> again unless a pairing mechanism
+    /// lands — and that births and spawns are counted APART, since a birth creates a Citizen and a
+    /// spawn moves one, and a readout summing them would report a population growing twice as fast as
+    /// it is.
+    /// </para>
     /// </remarks>
     [Fact]
     public void The_replacement_rate_is_printed_against_its_threshold()
@@ -101,9 +109,32 @@ public sealed class StageDumpTests
         string report = Dump();
 
         Assert.Contains("Does the city replace itself?", report, StringComparison.Ordinal);
-        Assert.Contains("against 2.00 for exact", report, StringComparison.Ordinal);
+        Assert.Matches(@"REPLACEMENT RATE\s+[\d.]+\s+against [\d.]+ for exact", report);
         Assert.Matches(@"births\s+[1-9]", report);
         Assert.Matches(@"children left home\s+[1-9]", report);
+    }
+
+    /// <summary>
+    /// 🔴 <b>Every Household in this city holds exactly one adult, and the threshold follows it.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>The census is what says so and not the arithmetic.</b> <c>working age</c> and the Household
+    /// count come back exactly equal on any run past the founding generation, because
+    /// <c>World.SpawnChildren</c> forms one Household per child and nothing pairs anybody. ⚠ <b>This
+    /// test goes red the day a pairing mechanism lands</b>, and that failure is the design question
+    /// queued in <c>plans/0045</c>'s <i>Owed when the freeze lifts</i> being answered — not a
+    /// regression.
+    /// </remarks>
+    [Fact]
+    public void A_formed_household_holds_one_adult_so_exact_replacement_is_one_child()
+    {
+        string report = Dump();
+
+        double adults = Figure(report, @"adults per Household\s+([\d.]+)");
+        double threshold = Figure(report, @"against ([\d.]+) for exact");
+
+        Assert.Equal(1.00, adults, 2);
+        Assert.Equal(adults, threshold, 2);
     }
 
     /// <summary>The cohort blurs rather than moving in lockstep.</summary>
@@ -153,30 +184,68 @@ public sealed class StageDumpTests
     }
 
     /// <summary>
-    /// 🔴 <b>The finding <c>plans/0046</c> was reopened for: the dwelling stock never falls.</b>
+    /// ✅ <b>The finding <c>plans/0046</c> was reopened for, now repaired: the dwelling stock
+    /// falls.</b>
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b><c>adr/0069</c> builds while the Unplaced Pool is non-empty and this world condemns
-    /// nothing</b>, so the stock is monotone while the population oscillates — and
-    /// <c>posts per Citizen</c> is <c>8 × dwellings ÷ Citizens</c>. ⚠ <b>It is NOT
-    /// <c>adr/0006</c> violated</b>, which is why no long run has ever caught it: the stock is
-    /// bounded by peak demand and converges, so every collection check passes. What is unbounded is
-    /// the ratio, whose denominator is free to fall.
+    /// <b>This test asserted the OPPOSITE and its own remark said it would</b> — <em>"expected to go
+    /// red the day something demolishes, and that failure is the repair landing rather than a
+    /// regression"</em>. <c>plans/0045</c> row 13 is that day.
+    /// <c>[[building]] abandoned_when_empty_after_days</c> gives the stock a sink, and it is
+    /// <c>adr/0069</c>'s build predicate mirrored rather than decline: the developer builds while the
+    /// Unplaced Pool is non-empty and gives up on a Building the Pool never came for.
     /// </para>
     /// <para>
-    /// ⚠ <b>THIS TEST IS EXPECTED TO GO RED THE DAY SOMETHING DEMOLISHES</b>, and that failure is
-    /// the repair landing rather than a regression. It is pinned rather than left unwatched because
-    /// the quantity is invisible to every check the project already runs — a monotone numerator over
-    /// a falling denominator does not trend upward anywhere a collection test is looking.
+    /// ⚠ <b>Asserted as a shape and never as a count.</b> How many Days of 400 see a fall is a figure
+    /// for a document to quote, and pinning it would make an instrument out of an assertion. What is
+    /// asserted is that the number is not zero, which is the whole content of the old claim inverted.
     /// </para>
     /// </remarks>
     [Fact]
-    public void The_dwelling_stock_only_ever_rises()
+    public void The_dwelling_stock_now_falls()
     {
         string report = Dump();
 
-        Assert.Matches(@"Days the stock fell\s+0\b", report);
+        Assert.Matches(@"Days the stock fell\s+[1-9]", report);
+        Assert.DoesNotMatch(@"Days the stock fell\s+0\b", report);
+    }
+
+    /// <summary>
+    /// 🔴 <b>Why the sink does not restore <c>jobs = 8</c>: a shrinking city does not
+    /// consolidate.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>PlacementEngine.TryHouse</c> takes the first Lot with room out of a draw of three and
+    /// nothing biases it toward a fuller house</b> (<c>adr/0069</c>), so the Households left after a
+    /// demographic trough are spread ONE PER DWELLING instead of filling houses and vacating them.
+    /// ***Over half the housing capacity in the city is empty while under a tenth of its houses
+    /// are*** — and a sink keyed on an empty house can only collect the tail of that distribution,
+    /// which is why a sixteenfold sweep of the clock moves <c>posts per Citizen</c> by 0.4.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It asserts the GAP and not either number.</b> Both move with the run; what does not move
+    /// is that the share of empty slots is far larger than the share of empty houses, and that gap is
+    /// the finding. ⚠ <b>Neither is a defect</b>: a family choosing between two houses has no reason
+    /// to prefer the one with neighbours in it, and a placement that steered toward occupancy would
+    /// be the optimiser <c>adr/0017</c> refuses.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void Empty_housing_capacity_far_outruns_empty_houses()
+    {
+        string report = Dump();
+
+        double slotsFree = Figure(report, @"housing slots empty\s+([\d.]+)%");
+        double homesEmpty = Figure(report, @"homes housing nobody\s+([\d,]+)\s+of\s+([\d,]+)");
+        double standing = Figure(report, @"homes housing nobody\s+[\d,]+\s+of\s+([\d,]+)");
+
+        Assert.True(
+            slotsFree > 3 * (100.0 * homesEmpty / standing),
+            $"{slotsFree}% of housing slots stand empty against "
+            + $"{100.0 * homesEmpty / standing:N1}% of houses. The two converging means the city has "
+            + "started to consolidate, which nothing in the build does — read the panel.");
     }
 
     /// <summary>

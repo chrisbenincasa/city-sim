@@ -584,6 +584,45 @@ public readonly record struct KindDefinition(
     public int CollapsesAfterDays { get; init; }
 
     /// <summary>
+    /// How many Ticks a Building of this kind may house <b>nobody</b> before the city abandons it.
+    /// Zero means it stands empty for ever.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The stock's demand-side sink, and it is not a lifespan.</b>
+    /// <see cref="CondemnAfterTicks"/> reads Failure Pressure, so a kind stating it declines whether
+    /// anybody wants it or not; this reads occupancy, so only <em>surplus</em> stock dies. It is the
+    /// mirror of <c>adr/0069</c>'s build predicate — a developer builds while the Unplaced Pool is
+    /// non-empty, and gives up on a Building the Pool never came for — and it is what <c>02 §5.5</c>
+    /// calls redevelopment's floor, <i>the case where nobody wants the land</i>.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>The world it was built for is <c>rulesets/aged.toml</c>, where the finding was not a
+    /// leak.</b> A demographic city loses two thirds of its Households over 400 Days and keeps every
+    /// one of its houses: <c>adr/0006</c> is green throughout, because the stock is bounded by peak
+    /// demand and converges. ***What is unbounded is the RATIO whose denominator is free to fall*** —
+    /// <c>posts per Citizen</c>, which is what <c>[[building]] jobs</c> was derived against. A
+    /// monotone numerator over a falling denominator trends nowhere a collection check is looking.
+    /// </para>
+    /// <para>
+    /// <b>It ABANDONS rather than demolishing, and that is <c>adr/0091</c> untouched.</b> Clearing
+    /// land is bought rather than taken; nothing here razes anything. The Building becomes a shell on
+    /// its Lot exactly as a condemned one does, and <see cref="CollapsesAfterDays"/> is the sink under
+    /// both — which is why the loader requires that key alongside this one.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It counts Households and not tenants</b> — see
+    /// <see cref="Entities.BuildingTable.EmptySince"/>, which carries the reason and the trap.
+    /// </para>
+    /// <para>
+    /// <b>Ticks here and Days in the file</b>, on <see cref="CondemnAfterTicks"/>'s precedent, and
+    /// hash-bearing and <b>PROVISIONAL</b> — chosen by taste under <c>plans/0045</c> standing order 4,
+    /// naming no ratifier.
+    /// </para>
+    /// </remarks>
+    public int AbandonedWhenEmptyAfterTicks { get; init; }
+
+    /// <summary>
     /// How many Occupants a Building of this kind may hold. Zero means it houses nobody.
     /// </summary>
     /// <remarks>

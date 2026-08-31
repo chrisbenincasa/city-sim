@@ -1332,6 +1332,7 @@ public sealed class World
             buildingSlot);
 
         Occupants.InsertOrdered(buildingSlot, slot);
+        SomebodyLivesHere(buildingSlot);
 
         // The tenancy starts here, so the tenant's Bins and Rules do (adr/0141). It runs after the
         // occupant list is joined because FitOccupant reads the dwelling handle to find the kind
@@ -1635,6 +1636,7 @@ public sealed class World
         UnfitOccupant(household);
 
         Occupants.Remove(buildingSlot, slot);
+        NobodyLivesHere(buildingSlot);
         Households.Dwelling[slot] = default;
 
         // The write-site half of the Pool's density claim. The table needs the allocator to hand back
@@ -1892,6 +1894,7 @@ public sealed class World
             buildingSlot);
 
         Occupants.InsertOrdered(buildingSlot, slot);
+        SomebodyLivesHere(buildingSlot);
 
         // adr/0141: housing a Household is the start of a tenancy, and a tenancy is what its own Bins
         // and Rules hang off.
@@ -2702,6 +2705,7 @@ public sealed class World
         if (Buildings.Rows.TryResolve(Households.Dwelling[slot], out int buildingSlot))
         {
             Occupants.Remove(buildingSlot, slot);
+            NobodyLivesHere(buildingSlot);
         }
 
         // ⚠ HERE AND NOT IN World.Dissolve, and the distinction is the one this method's remark about
@@ -3426,6 +3430,13 @@ public sealed class World
             CellGrid.ToCellsClamped(Lots.East[lotSlot]),
             CellGrid.ToCellsClamped(Lots.North[lotSlot]),
             footprintTiles < 1 ? 1 : footprintTiles);
+
+        // adr/0069: construction houses NOBODY, so a Building is empty from the Tick it is raised and
+        // its clock starts here rather than the first time somebody leaves it. ***That is the half of
+        // `abandoned_when_empty_after_days` that makes it a demand signal rather than a lifespan***: a
+        // developer who builds into a Pool that never comes gives the Building up, and the duration is
+        // how long the bet is left standing.
+        Buildings.MarkEmpty(Buildings.Rows.Resolve(building), now);
 
         Fit(building, kind, now, key);
 
@@ -5425,6 +5436,41 @@ public sealed class World
     /// </remarks>
     public int Tenants(int buildingSlot) =>
         Occupants.Length(buildingSlot) + BuildingBusinesses.Length(buildingSlot);
+
+    /// <summary>
+    /// Stops this Building's empty clock, because a Household has moved in.
+    /// </summary>
+    /// <remarks>
+    /// <b>Unconditional rather than guarded on the list having been empty</b>, because the write is
+    /// one store against a branch and a predicate — and because the guarded form has a failure mode
+    /// this one cannot have: it reads the list <em>after</em> the join, so <c>was it empty before</c>
+    /// is already unanswerable there and every spelling of it is a second copy of the join's own
+    /// bookkeeping.
+    /// </remarks>
+    private void SomebodyLivesHere(int buildingSlot) => Buildings.MarkOccupied(buildingSlot);
+
+    /// <summary>
+    /// Starts this Building's empty clock if the Household that just left was the last one.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>At the write site and never on a sweep</b> — <c>ZoneRuleEngine.Condemn</c>'s own rule that
+    /// <i>sampling reads a duration and never produces it</i>. A clock started where the sample first
+    /// noticed would give an empty Building a lifetime drawn from the cadence rather than from the
+    /// Ruleset, which is the defect <c>adr/0059</c> exists to refuse one level up.
+    /// </para>
+    /// <para>
+    /// ⚠ <b><see cref="IndexList{T}.IsEmpty"/> and not <c>Length == 0</c></b>: the length walks the
+    /// list, and this runs on every eviction in the city.
+    /// </para>
+    /// </remarks>
+    private void NobodyLivesHere(int buildingSlot)
+    {
+        if (Occupants.IsEmpty(buildingSlot))
+        {
+            Buildings.MarkEmpty(buildingSlot, Tick);
+        }
+    }
 
     /// <summary>
     /// Evicts into the Unplaced Pool every Occupant a lowered ceiling has left over

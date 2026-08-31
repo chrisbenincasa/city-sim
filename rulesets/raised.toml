@@ -1,4 +1,9 @@
-# raised.toml -- founded.toml with the five [[life_stage]] tables, and nothing else changed.
+# raised.toml -- founded.toml with five [[life_stage]] tables, and nothing else changed.
+#
+# ⚠ THEY ARE aged.toml'S TABLES AS THEY STOOD BEFORE 2026-08-31 AND NOT AS THEY STAND NOW.
+# plans/0045 row 13 halved that file's stage floors to double their spreads, and the edit was
+# scoped there on purpose (plans/0046). The numbers below are not a second opinion about a life:
+# they are the old ones, unre-measured, and this file demonstrates founding rather than pacing.
 #
 # THE ONLY SHIPPED FILE IN WHICH A CITY BOTH GENERATES ITS OWN POPULATION AND FOUNDS BUSINESSES, and
 # it exists for one reason: plans/0046 stage 4's working-age gate has TWO callers and no world could

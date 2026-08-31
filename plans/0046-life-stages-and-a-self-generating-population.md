@@ -127,6 +127,27 @@ re-deriving it first would be
 [`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md)'s
 local workaround. `StageDumpTests` pins all three readings.
 
+✅ **THE SINK SHIPPED 2026-08-31** — [`plans/0045`](0045-amnesty.md) row 13 —
+**and `jobs` is STILL not re-derivable, for a reason nobody had named.**
+`[[building]] abandoned_when_empty_after_days` abandons a Building nobody has lived in for its kind's
+duration: `adr/0069`'s build predicate mirrored, and `02 §5.5`'s redevelopment floor, *the case where
+nobody wants the land*. **`Days the stock fell` goes 0 → 141 of 400** and the ratio's spread halves
+(highest 12.51 → 6.64). ⚠ **It abandons rather than demolishing, so `adr/0091` is untouched**: the
+city stops maintaining an empty house and never sends a bulldozer.
+
+🔴 **AND THE CLOCK IS NOT THE BINDING CONSTRAINT, WHICH IS THE FINDING.** Swept at 5, 10, 20, 40 and
+80 Days, `posts per Citizen` moves **1.61 → 1.98 across a sixteenfold range**, against 2.06 with no
+sink at all and a derived 0.96. ***A shrinking city does not consolidate***: `PlacementEngine.TryHouse`
+takes the first Lot with room out of a draw of three and nothing biases it toward a fuller house, so
+the families left after a trough are spread **one per dwelling** instead of filling houses and
+vacating them. **Over a fifth of the housing capacity stands empty while a thirtieth of the houses
+do** — and a sink keyed on an empty house can only collect the tail of that distribution. ⚠ **Neither
+half is a defect**: a family choosing between two houses has no reason to prefer the one with
+neighbours in it, and a placement that steered toward occupancy would be the optimiser `adr/0017`
+refuses. ***So the derivation `1000/360 × occupants` assumed every dwelling was FULL, which is true
+only of a city under housing pressure, and a demographic city is under it half the time.***
+`StageDumpTests.Empty_housing_capacity_far_outruns_empty_houses` pins the gap and never either share.
+
 ---
 
 ## The traps, in the order they will be met
@@ -204,10 +225,42 @@ stages go completely empty and refill*** — `mature_family` holds nobody at Day
 ⚠ **So `W` is too narrow**: four windows of 8–16 Days do not smear a cohort across a 160-Day life.
 Widening it is an edit to `aged.toml` alone, judged by `--stages`.
 
+✅ **WIDENED 2026-08-31** — [`plans/0045`](0045-amnesty.md) row 13. Each window is now as wide as its
+own floor and it reads **3.3×, with 19 of 400 Days quiet.**
+
+🔴 **THE WINDOW COULD NOT BE WIDENED ALONE, AND *THE NUMBERS* SECTION ABOVE IS WHY.** A wake is drawn
+uniform on `[N, N+W)`, so a life is `N + W/2` **on average** — and the table's mean was already
+**188 Days against `adr/0094`'s ~190**, not the 160 this document twice calls it. ***160 is the
+FLOOR of the chain and the ceiling is about the MEAN***, so there was no room to widen anything.
+Widening at fixed floors would have put the mean at **236**. The floors are halved, the widths
+doubled, and the chain is now **108 at the floor and 160 on the mean** — which is what the argument
+in decision 2 always wanted and what the arithmetic beside it never delivered. ***A number that is
+one end of a distribution says which end.***
+
+⚠ **IT DAMPS THE ECHO AND DOES NOT REMOVE IT, AND 400 DAYS CANNOT SEE WHICH.** Over **1,200 Days**
+the widened city converges — the population swing falls **3.67× → 2.55× → 1.19×** across three
+400-Day thirds — where the narrow one is still swinging **2.47×** in its last third. ***A 400-Day run
+holds two and a half generations and cannot tell a damping echo from a standing one***, so the
+definition of done above was answered on a run too short to answer it.
+
 **Replacement Rate is delivered**: children per fertility *decision*, zero draws included, against
 the 2.00 that falls out of conservation. ⚠ **The denominator is the trap** — dividing by the
 Households that bore *at least one* child reports the fertility of the fertile, and the stagnation
 spiral `adr/0011` describes would read as a healthy city.
+
+🔴 **AND THE 2.00 WAS WRONG BY A FACTOR OF TWO, FOUND 2026-08-31 BY THE 1,200-DAY RUN.**
+`adr/0011` derives exact replacement as *two children replacing two adults*, which is airtight for a
+Household of **two** adults — and `World.SpawnChildren` gives **every child its own Household**.
+Nothing in the build pairs anybody, so every Household past the founding generation holds exactly one
+adult and exact replacement is **one child**. ***The census is what says so***: `working age` and the
+Household count come back **exactly equal**, and `--stages` now measures the threshold rather than
+printing a constant. ⚠ **So 1.45 is a city growing 45% a generation and it was reported for five days
+as one in decline** — over 1,200 Days the Households go **720 → ~1,100 and settle**, bounded by the
+housing the lattice paved and by `[placement] gives_up_after_days`, not by fertility. ***A 400-Day run
+reads as decline because it catches the first trough***, which is the founding generation of two-adult
+Households being replaced by one-adult ones. ⚠ **Whether children SHOULD pair is design and is not
+settled here**: `adr/0011` plainly assumes they do, nothing says who pairs with whom, and it is queued
+in [`plans/0045`](0045-amnesty.md)'s *Owed when the freeze lifts*.
 
 ## What this does not do
 

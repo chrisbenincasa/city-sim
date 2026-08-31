@@ -1887,26 +1887,74 @@ public static class RulesetLoader
                 // value field peaking at zero, a divide-by-zero in the placement pass. A Ruleset that
                 // can author that is a Ruleset that can author adr/0006, so the refusal is here at
                 // the parse site (adr/0048) rather than in an invariant that fires at Tick 100,000.
+                // THE STOCK'S DEMAND-SIDE SINK, and it is deliberately NOT a second spelling of
+                // condemn_after_days. That key reads Failure Pressure, so a kind stating it declines
+                // whether anybody wants it or not; this one reads OCCUPANCY, so only surplus stock
+                // dies. It is adr/0069's build predicate mirrored -- a developer builds while the
+                // Unplaced Pool is non-empty and gives up on a Building the Pool never came for --
+                // and it is what 02 §5.5 calls redevelopment's floor, the case where nobody wants the
+                // land.
+                //
+                // ⚠ IT COUNTS HOUSEHOLDS AND NOT TENANTS. adr/0147 made `occupants` count tenants of
+                // any kind and adr/0148 gives a dwelling a trade at the moment it is raised, so a
+                // tenant-counting clock would never start in any world declaring `business` -- which
+                // is most of them, and all of the ones this key exists for. A shop is not a resident.
+                //
+                // Absent means a Building of this kind stands empty for ever, which is what every
+                // Ruleset written before this key meant and what all but one still mean.
+                int emptyAfterTicks = 0;
+
+                bool statesEmpty = TryInteger(
+                    table, "abandoned_when_empty_after_days", out long empties, required: false, name);
+
+                if (statesEmpty && empties <= 0)
+                {
+                    Refuse(
+                        LineOf((SyntaxNodeBase?)Find(table, "abandoned_when_empty_after_days") ?? table),
+                        name,
+                        $"abandoned_when_empty_after_days is {empties}. It is how many Days a Building "
+                        + "of this kind may house nobody before the city gives up on it, so it must "
+                        + "be positive -- zero would abandon every Building on the sweep after it was "
+                        + "raised, since adr/0069 has construction house nobody. Omit it for a kind "
+                        + "that stands empty for ever.");
+                    statesEmpty = false;
+                }
+                else if (statesEmpty)
+                {
+                    emptyAfterTicks = InTicks(empties);
+                }
+
                 int collapsesAfterDays = 0;
 
                 bool statesCollapse =
                     TryInteger(table, "collapses_after_days", out long stands, required: false, name);
 
-                if (condemnAfterTicks > 0 && !statesCollapse)
+                // ⚠ THE PAIR IS NOW A TRIPLE ON ONE SIDE AND STILL A PAIR ON THE OTHER. Two keys can
+                // abandon a Building and either of them leaves a shell, so the sink is owed if
+                // EITHER is stated; it is refused only when NEITHER is, because then nothing can
+                // abandon anything and the duration would never be read.
+                bool canBeAbandoned = condemnAfterTicks > 0 || emptyAfterTicks > 0;
+
+                if (canBeAbandoned && !statesCollapse)
                 {
-                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "condemn_after_days") ?? table), name,
-                        $"'{name}' states condemn_after_days and not collapses_after_days. A kind "
+                    Refuse(
+                        LineOf((SyntaxNodeBase?)Find(table, "condemn_after_days")
+                            ?? (SyntaxNodeBase?)Find(table, "abandoned_when_empty_after_days")
+                            ?? table),
+                        name,
+                        $"'{name}' can abandon a Building and states no collapses_after_days. A kind "
                         + "that can be abandoned accumulates standing shells, and a collection with "
                         + "an inflow and no sink is adr/0006 — so the duration a shell stands before "
                         + "it collapses is required here, in Days.");
                 }
 
-                if (condemnAfterTicks == 0 && statesCollapse)
+                if (!canBeAbandoned && statesCollapse)
                 {
                     Refuse(LineOf((SyntaxNodeBase?)Find(table, "collapses_after_days") ?? table), name,
-                        $"'{name}' states collapses_after_days and no condemn_after_days, so nothing "
-                        + "can ever abandon a Building of this kind and the duration would never be "
-                        + "read. Omit it, or state the threshold that makes it mean something.");
+                        $"'{name}' states collapses_after_days and neither condemn_after_days nor "
+                        + "abandoned_when_empty_after_days, so nothing can ever abandon a Building of "
+                        + "this kind and the duration would never be read. Omit it, or state a "
+                        + "threshold that makes it mean something.");
                 }
 
                 if (statesCollapse)
@@ -2097,6 +2145,7 @@ public static class RulesetLoader
                     TenancyEndsAfterTicks = tenancyEndsAfterTicks,
                     ShedsOccupantAfterTicks = shedsAfterTicks,
                     CollapsesAfterDays = collapsesAfterDays,
+                    AbandonedWhenEmptyAfterTicks = emptyAfterTicks,
                     Occupants = occupants,
                     FootprintTiles = footprintTiles,
                     Business = business,
@@ -4882,7 +4931,57 @@ public static class RulesetLoader
             int candidates = ReadCandidates();
             int givesUp = ReadGivesUpAfterDays(gated);
 
+            RefuseEmptyClockUnderTheRevisit(kinds, revisit);
+
             return new PlacementRuleset(interval, revisit, candidates, givesUp);
+        }
+
+        /// <summary>
+        /// Refuses a kind whose empty clock is shorter than the pass that would fill it.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b><c>abandoned_when_empty_after_days</c> against <c>[placement] revisit_ticks</c>, and
+        /// the relation is the whole check.</b> <c>adr/0069</c> has construction house nobody, so
+        /// every Building is empty from the Tick it is raised and the placement pass is the only
+        /// thing that fills one. <c>revisit_ticks</c> is authored as *how long that pass takes to
+        /// look at everybody waiting once* (<c>adr/0059</c>) — so a kind whose clock expires inside
+        /// one period is abandoning stock the pass has not yet had a chance to look at, and its
+        /// lifetime is drawn from the CADENCE rather than from the Ruleset.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>One period is a floor and not a comfortable margin.</b> The sample is drawn with
+        /// replacement, so about <c>1/e</c> of the Pool goes unlooked-at in any one period and a
+        /// clock set just over the line still abandons Buildings somebody would have taken. What the
+        /// loader can refuse is the case that is wrong *by construction*; how much headroom past it
+        /// is taste, and it is the author's.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>Here rather than in <c>ReadKinds</c>, because it is a property of the PAIR</b> — the
+        /// kind cannot see the cadence and the cadence cannot see the kind. It is
+        /// <c>RefuseUnpricedGoods</c>'s shape one table along.
+        /// </para>
+        /// </remarks>
+        private void RefuseEmptyClockUnderTheRevisit(KindDefinition[] kinds, int revisit)
+        {
+            for (int kind = 0; kind < kinds.Length; kind++)
+            {
+                int empties = kinds[kind].AbandonedWhenEmptyAfterTicks;
+
+                if (empties == 0 || empties > revisit)
+                {
+                    continue;
+                }
+
+                Refuse(LineOf(_placementTable!), null,
+                    $"a [[building]] states abandoned_when_empty_after_days worth {empties} Ticks "
+                    + $"against a [placement] revisit_ticks of {revisit}. Construction houses nobody "
+                    + "(adr/0069), so a Building is empty from the Tick it is raised and the "
+                    + "placement pass is the only thing that fills one -- and revisit_ticks is how "
+                    + "long that pass takes to look at everybody waiting once. A clock that expires "
+                    + "inside one period gives the Building a lifetime drawn from the cadence rather "
+                    + "than from this file. Lengthen the clock, or shorten the revisit period.");
+            }
         }
 
         /// <summary>

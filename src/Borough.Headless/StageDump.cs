@@ -125,7 +125,7 @@ internal static class StageDump
         output.WriteLine();
         Trajectory(days, advanced, dissolved, born, names, rules, output);
         output.WriteLine();
-        Echo(advanced, dissolved, born, bore, spawned, days, output);
+        Echo(advanced, dissolved, born, bore, spawned, days, labour[^1].Workers, output);
         Work(labour, output);
 
         return 0;
@@ -263,6 +263,7 @@ internal static class StageDump
         List<int> bore,
         List<int> spawned,
         List<int[]> days,
+        int adults,
         TextWriter output)
     {
         int moves = 0;
@@ -310,12 +311,43 @@ internal static class StageDump
         output.WriteLine(
             "  transition on one Day and none on the others, so the series is a train of spikes");
         output.WriteLine(
-            "  and `busiest ÷ mean` is large. adr/0011's spread_days exists to smear that; whether");
+            "  and `busiest ÷ mean` is large. adr/0011's spread_days exists to smear that.");
+        output.WriteLine();
         output.WriteLine(
-            "  it is enough is what plans/0046 says to come here and find out.");
+            "  ✅ ANSWERED 2026-08-31, AND THE ANSWER WAS NO UNTIL THE WINDOWS WERE WIDENED. aged.toml");
+        output.WriteLine(
+            "  authored four windows of 8-16 Days against a ~160-Day life and read 7.0x here, with 116");
+        output.WriteLine(
+            "  of 400 Days seeing no transition at all. Each window is now as wide as its own floor and");
+        output.WriteLine(
+            "  it reads 3.3x, with 19 Days of 400 quiet.");
+        output.WriteLine();
+        output.WriteLine(
+            "  🔴 THE WINDOW COULD NOT BE WIDENED ALONE, AND THAT IS THE FINDING. A stage's wake is drawn");
+        output.WriteLine(
+            "  uniform on [floor, floor + width), so a MEAN life is floor + width/2 — and aged.toml's");
+        output.WriteLine(
+            "  mean was already 188 Days against adr/0094's ~190 ceiling for a readable Replacement");
+        output.WriteLine(
+            "  Rate. Widening the windows at fixed floors would have put it at 236 and broken that");
+        output.WriteLine(
+            "  argument. ***The floors were halved to pay for the widths***, and the mean came back to");
+        output.WriteLine(
+            "  the 160 the file's own header always claimed and never had.");
+        output.WriteLine();
+        output.WriteLine(
+            "  ⚠ IT DAMPS THE ECHO AND DOES NOT REMOVE IT, AND 400 DAYS CANNOT SEE WHICH. Over 1,200");
+        output.WriteLine(
+            "  Days the widened city converges — the population swing falls 3.67x, 2.55x, 1.19x over");
+        output.WriteLine(
+            "  three 400-Day thirds — where the narrow one is still swinging 2.47x in its last third.");
+        output.WriteLine(
+            "  ***A 400-Day run holds two and a half generations and cannot tell a damping echo from a");
+        output.WriteLine(
+            "  standing one.***");
 
         Deaths(dissolved, days, output);
-        Replacement(born, bore, spawned, days, output);
+        Replacement(born, bore, spawned, days, adults, output);
     }
 
     /// <summary>
@@ -370,7 +402,11 @@ internal static class StageDump
         output.WriteLine(
             "  gave the sink a source, so read this panel against `births` below rather than on");
         output.WriteLine(
-            "  its own. A city that empties now is one whose fertility band sits under 2.0.");
+            "  its own. A city that empties now is one whose fertility band sits under the threshold");
+        output.WriteLine(
+            "  the next panel MEASURES — which is one child per adult here, and not the 2.00 this line");
+        output.WriteLine(
+            "  used to name.");
     }
 
     /// <summary>
@@ -397,7 +433,12 @@ internal static class StageDump
     /// </para>
     /// </remarks>
     private static void Replacement(
-        List<int> born, List<int> bore, List<int> spawned, List<int[]> days, TextWriter output)
+        List<int> born,
+        List<int> bore,
+        List<int> spawned,
+        List<int[]> days,
+        int adults,
+        TextWriter output)
     {
         int children = 0;
         int decisions = 0;
@@ -416,28 +457,73 @@ internal static class StageDump
         output.WriteLine(F($"  births                {children,8:N0}"));
         output.WriteLine(F($"  fertility decisions   {decisions,8:N0}"));
         output.WriteLine(F($"  children left home    {left,8:N0}"));
-        output.WriteLine(F($"  standing at the end   {Live(days[^1]),8:N0} Households"));
+        int households = Live(days[^1]);
+        double perHousehold = households == 0 ? 0 : adults / (double)households;
+
+        output.WriteLine(F($"  standing at the end   {households,8:N0} Households"));
+        output.WriteLine(F(
+            $"  adults per Household  {perHousehold,8:N2}   at the end of the run"));
 
         if (decisions > 0)
         {
             output.WriteLine();
+            double rate = children / (double)decisions;
+
             output.WriteLine(F(
-                $"  REPLACEMENT RATE      {children / (double)decisions,8:N2}  against 2.00 for exact"));
+                $"  REPLACEMENT RATE      {rate,8:N2}   against {perHousehold:N2} for exact"));
         }
 
         output.WriteLine();
         output.WriteLine(
-            "  Two children per Household replaces two adults with two, so 2.00 is exact");
+            "  🔴 THE THRESHOLD IS THE COLUMN ABOVE IT, AND IT READ A FLAT 2.00 UNTIL 2026-08-31.");
         output.WriteLine(
-            "  replacement and it falls out of conservation rather than being chosen (adr/0011).");
+            "  adr/0011 derives exact replacement as TWO children per Household — \"two children");
         output.WriteLine(
-            "  🔴 THE DRAW IS UNCONDITIONED: adr/0011 conditions fertility on housing cost,");
+            "  replacing two adults\" — and that is airtight for a Household of two adults. It is");
         output.WriteLine(
-            "  dwelling size and job security, and none of that machinery is built. So a rate");
+            "  wrong by a factor of two for this city, because World.SpawnChildren gives EVERY CHILD");
         output.WriteLine(
-            "  below 2.00 here is THE BAND THE RULESET AUTHORED, not a city that cannot afford");
+            "  ITS OWN HOUSEHOLD: nothing in the build pairs anybody, so a formed Household holds");
         output.WriteLine(
-            "  children. Read it as a check that the arithmetic works, never as a diagnosis.");
+            "  exactly one adult and exact replacement is ONE CHILD PER ADULT.");
+        output.WriteLine();
+        output.WriteLine(
+            "  ⚠ THE CENSUS IS WHAT SAYS SO RATHER THAN THE ARITHMETIC. `adults per Household` is");
+        output.WriteLine(
+            "  measured, not derived, and on any run past the founding generation it reads 1.00 —");
+        output.WriteLine(
+            "  `working age` and the Household count are EXACTLY EQUAL. Watch it move if a pairing");
+        output.WriteLine(
+            "  mechanism ever lands; the threshold follows it with no edit here.");
+        output.WriteLine();
+        output.WriteLine(
+            "  🔴 SO A RATE OF ~1.45 IS A CITY THAT GROWS 45% A GENERATION, and it was reported for");
+        output.WriteLine(
+            "  weeks as one in decline. Over 1,200 Days on aged.toml the Households go 720 -> ~1,100");
+        output.WriteLine(
+            "  and settle, bounded by the housing the lattice paved and by [placement]");
+        output.WriteLine(
+            "  gives_up_after_days, not by fertility. ***A 400-Day run reads as decline because it");
+        output.WriteLine(
+            "  catches the first trough***, which is the founding generation of TWO-adult Households");
+        output.WriteLine(
+            "  being replaced by one-adult ones.");
+        output.WriteLine();
+        output.WriteLine(
+            "  ⚠ WHETHER CHILDREN SHOULD PAIR IS DESIGN AND IT IS NOT SETTLED HERE. adr/0011 clearly");
+        output.WriteLine(
+            "  assumes they do; nothing says who pairs with whom, and this project has no marriage");
+        output.WriteLine(
+            "  market. It is queued in plans/0045's `Owed when the freeze lifts`.");
+        output.WriteLine();
+        output.WriteLine(
+            "  ⚠ AND THE DRAW IS UNCONDITIONED EITHER WAY: adr/0011 conditions fertility on housing");
+        output.WriteLine(
+            "  cost, dwelling size and job security, and none of that machinery is built. So a rate");
+        output.WriteLine(
+            "  either side of the threshold is THE BAND THE RULESET AUTHORED, never a city that can");
+        output.WriteLine(
+            "  or cannot afford children.");
     }
 
     /// <summary>One Day's labour market: who can work, and how many posts stand for them.</summary>
@@ -448,7 +534,8 @@ internal static class StageDump
     /// four. Storing the quotient would keep one reading and discard the other three.
     /// </remarks>
     private readonly record struct Labour(
-        int Workers, int Children, int Posts, int Filled, int Dwellings);
+        int Workers, int Children, int Posts, int Filled, int Dwellings,
+        int Housed, int Slots, int Empty);
 
     /// <summary>The labour market as it stands right now.</summary>
     /// <remarks>
@@ -505,7 +592,47 @@ internal static class StageDump
             filled += world.Workers.Length(slot);
         }
 
-        return new Labour(workers, children, posts, filled, world.Buildings.Rows.LiveCount);
+        // 🔴 THE SECOND FACTOR UNDER `posts per Citizen`, AND IT IS THE ONE THE SINK CANNOT REACH.
+        // `abandoned_when_empty_after_days` collects a dwelling that houses NOBODY, and a shrinking
+        // city does not produce many: placement takes the first Lot with room out of a draw of three
+        // and nothing biases it toward a fuller house, so the Households that remain are SPREAD one
+        // per dwelling rather than consolidated. Half the housing capacity in the city can be empty
+        // while almost no house is. These two columns are what say so.
+        int housed = 0;
+        int slots = 0;
+        int empty = 0;
+
+        for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
+        {
+            byte kind = world.Buildings.Kind[slot];
+
+            if (!world.Buildings.Rows.IsLive(slot)
+                || world.Buildings.IsAbandoned(slot)
+                || !world.Rules.Declares(kind))
+            {
+                continue;
+            }
+
+            int families = world.Occupants.Length(slot);
+
+            housed += families;
+
+            // ⚠ THE CAPACITY IS NOT `occupants` AND THE DIFFERENCE IS A WHOLE SLOT. adr/0147 made one
+            // ceiling count tenants of EVERY kind and adr/0148 gives a dwelling a trade, so a kind
+            // declaring 4 houses THREE families and rents the fourth slot to a shop. Printing the
+            // declared number as the denominator would report a third of the housing capacity in the
+            // city as empty when it is let.
+            slots += Math.Max(
+                0, world.Rules.Kind(kind).Occupants - world.BuildingBusinesses.Length(slot));
+
+            if (families == 0)
+            {
+                empty++;
+            }
+        }
+
+        return new Labour(
+            workers, children, posts, filled, world.Buildings.Rows.LiveCount, housed, slots, empty);
     }
 
     /// <summary>
@@ -605,6 +732,18 @@ internal static class StageDump
                 $"  Citizens per worker   {people / (double)workers,8:N2}   derived 1.00"));
             output.WriteLine(F(
                 $"  Days the stock fell   {stockFell,8:N0}   of {sampled}"));
+            output.WriteLine();
+            double perHome = last.Housed / (double)Math.Max(1, last.Dwellings);
+            double free = last.Slots == 0 ? 0 : 100.0 * (last.Slots - last.Housed) / last.Slots;
+
+            double perHomeSlots = last.Slots / (double)Math.Max(1, last.Dwellings);
+
+            output.WriteLine(F(
+                $"  Households per home   {perHome,8:N2}   of {perHomeSlots:N2} the trade leaves free"));
+            output.WriteLine(F(
+                $"  housing slots empty   {free,8:N0}%  {last.Slots - last.Housed:N0} of {last.Slots:N0}"));
+            output.WriteLine(F(
+                $"  homes housing nobody  {last.Empty,8:N0}   of {last.Dwellings:N0} standing"));
         }
 
         output.WriteLine();
@@ -624,40 +763,78 @@ internal static class StageDump
         output.WriteLine(
             "  It did not record the other, and the other is larger: `posts per Citizen` is");
         output.WriteLine(
-            "  8 x DWELLINGS / Citizens, adr/0069 builds while the Unplaced Pool is non-empty, and");
+            "  8 x DWELLINGS / Citizens, and this world used to have NO WAY AT ALL to lose a dwelling —");
         output.WriteLine(
-            "  NOTHING ON THIS WORLD CONDEMNS — so the stock only ever rises. `Days the stock fell` is");
+            "  adr/0069 builds while the Unplaced Pool is non-empty and nothing here ever condemned, so");
         output.WriteLine(
-            "  the claim stated as a number, and it is zero.");
+            "  the stock only ever rose and `Days the stock fell` read zero over 400 Days.");
         output.WriteLine();
         output.WriteLine(
-            "  ⚠ THAT IS NOT adr/0006 VIOLATED, WHICH IS WHY NO LONG RUN HAS EVER CAUGHT IT. The stock");
+            "  ⚠ THAT WAS NEVER adr/0006 VIOLATED, WHICH IS WHY NO LONG RUN CAUGHT IT. The stock is");
         output.WriteLine(
-            "  is BOUNDED — by peak demand — so the collection converges and every collection check");
+            "  BOUNDED — by peak demand — so the collection converges and every collection check passes.");
         output.WriteLine(
-            "  passes. What is unbounded is the RATIO, because its denominator is free to fall and on");
+            "  What is unbounded is the RATIO, because its denominator is free to fall and on a world");
         output.WriteLine(
-            "  a world with dissolution it does. A monotone numerator over a falling denominator is");
+            "  with dissolution it does. A monotone numerator over a falling denominator is invisible");
         output.WriteLine(
-            "  invisible to a test that watches the numerator.");
+            "  to a test that watches the numerator.");
         output.WriteLine();
         output.WriteLine(
-            "  ⚠ AND THE MISSING SINK IS NOT SIMPLY A BUG TO PATCH. adr/0091 makes demolish the sixth");
+            "  ✅ THE SINK NOW EXISTS AND IT IS NOT DECLINE. `[[building]] abandoned_when_empty_after_days`");
         output.WriteLine(
-            "  PLAYER verb — clearing land is bought rather than taken — so a city that razed its own");
+            "  gives up on a dwelling nobody has lived in for the stated number of Days — adr/0069's build");
         output.WriteLine(
-            "  empty dwellings would be taking a decision the design gives away. Whether a vacant");
+            "  predicate mirrored, and 02 §5.5's redevelopment floor, the case where nobody wants the land.");
         output.WriteLine(
-            "  dwelling decays on its own is a question adr/0011's stage table cannot answer either.");
+            "  It ABANDONS rather than demolishing, so adr/0091 is untouched: the city stops maintaining an");
+        output.WriteLine(
+            "  empty house and never sends a bulldozer a player would have had to pay for.");
         output.WriteLine();
         output.WriteLine(
-            "  ⚠ SO THERE IS NO VALUE OF `jobs` THAT RESTORES THE PROPERTY. The ratio it sets is not a");
+            "  🔴 AND IT DOES NOT RESTORE `jobs`, WHICH IS THE FINDING RATHER THAN A FAILED REPAIR. The two");
         output.WriteLine(
-            "  constant of this city, and a number re-derived against any one Day of this run is a");
+            "  columns above say why: a shrinking city DOES NOT CONSOLIDATE. Placement takes the first Lot");
         output.WriteLine(
-            "  reading of that Day. `jobs` is DOWNSTREAM of a stock that does not shrink; re-deriving");
+            "  with room out of a draw of three (adr/0069) and nothing biases it toward a fuller house, so");
         output.WriteLine(
-            "  it first would be adr/0073's local workaround for a cause that lives elsewhere.");
+            "  the families left over are spread ONE PER DWELLING instead of filling houses and vacating");
+        output.WriteLine(
+            "  them. Read the three columns together: the share of housing SLOTS standing empty runs");
+        output.WriteLine(
+            "  several times the share of HOUSES standing empty, whatever the run — so a sink keyed on");
+        output.WriteLine(
+            "  an empty house can only ever collect the tail of that distribution, however short its");
+        output.WriteLine(
+            "  clock. ⚠ Both shares move with the Ruleset's stage windows and the gap does not: quote");
+        output.WriteLine(
+            "  the ratio and never either figure on its own.");
+        output.WriteLine();
+        output.WriteLine(
+            "  ⚠ MEASURED, AND THE CLOCK IS NOT THE BINDING CONSTRAINT. Swept on aged.toml at 2,000");
+        output.WriteLine(
+            "  Citizens over 400 Days, at 5, 10, 20, 40 and 80 Days: `posts per Citizen` moves");
+        output.WriteLine(
+            "  1.61 -> 1.98 across a SIXTEENFOLD range, against 2.06 with no sink at all and a derived");
+        output.WriteLine(
+            "  0.96. ***Shortening the duration does not buy the property back***, so a number tuned");
+        output.WriteLine(
+            "  until this panel read 0.96 would be measuring the saturation of the wrong knob. ⚠ The");
+        output.WriteLine(
+            "  same sweep on the file's OLD narrow stage windows gave 1.60 -> 1.99, so the saturation");
+        output.WriteLine(
+            "  is a property of placement and not of the demography.");
+        output.WriteLine();
+        output.WriteLine(
+            "  ⚠ SO THERE IS STILL NO VALUE OF `jobs` THAT RESTORES THE PROPERTY, AND THE REASON IS NOW");
+        output.WriteLine(
+            "  SHARPER. It was derived as 1000/360 x OCCUPANTS, which assumes every dwelling is FULL — true");
+        output.WriteLine(
+            "  only of a city under housing pressure. A demographic city is under it half the time. The");
+        output.WriteLine(
+            "  ratio is not a constant of this city, and a number re-derived against any one Day is a");
+        output.WriteLine(
+            "  reading of that Day (adr/0073).");
     }
 
     private static int Live(int[] tally)
