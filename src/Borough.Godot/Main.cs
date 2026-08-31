@@ -37,6 +37,21 @@ public partial class Main : Node3D
     /// <summary>Metres per Tile, so the camera can be placed in something a human reads.</summary>
     private const float MetresPerTile = 4f;
 
+    /// <summary>
+    /// How far the eye is tipped above the ground — <b>the isometric angle, and it never moves.</b>
+    /// </summary>
+    /// <remarks>
+    /// <c>atan(1/sqrt(2))</c>, which is the angle at which a cube's three visible faces are drawn
+    /// equal. The camera is a perspective one, so this is the framing rather than the projection.
+    /// </remarks>
+    private const float PitchRadians = 0.61547971f;
+
+    /// <summary>A quarter turn of the compass, which is what one press of the rotate key is.</summary>
+    private const float YawStepRadians = Mathf.Pi * 0.25f;
+
+    /// <summary>What one notch of zoom in multiplies the eye's standoff by.</summary>
+    private const float DollyPerStep = 0.92f;
+
     /// <summary>How wide the carriageway is drawn. A drawing width, and no Segment states one.</summary>
     private const float RoadWidthMetres = 8f;
 
@@ -163,6 +178,15 @@ public partial class Main : Node3D
     private Camera3D _camera = null!;
     private float _span = 512f;
 
+    /// <summary>The ground point the eye orbits. A drag moves this and nothing else does.</summary>
+    private Vector3 _focus;
+
+    /// <summary>How far the eye stands off the focus, bounded by <see cref="Dolly"/>.</summary>
+    private float _distance = 512f;
+
+    /// <summary>Which corner the city is seen from, clockwise from due south in radians.</summary>
+    private float _yaw = YawStepRadians;
+
     public override void _Ready()
     {
         (_rulesetPath, int citizens, ulong startAt) = Arguments();
@@ -286,28 +310,49 @@ public partial class Main : Node3D
     {
         if (@event is InputEventMouseButton { Pressed: true } click)
         {
-            // Dollying along the camera's own forward axis rather than changing the field of view:
-            // a zoom that moves the eye keeps the perspective the picture was framed with.
             if (click.ButtonIndex == MouseButton.WheelUp)
             {
-                _camera.Position += _camera.Basis.Z * -_span * 0.08f;
+                Dolly(1f);
             }
             else if (click.ButtonIndex == MouseButton.WheelDown)
             {
-                _camera.Position += _camera.Basis.Z * _span * 0.08f;
+                Dolly(-1f);
             }
 
             return;
         }
 
+        // A trackpad reaches none of that. macOS turns a two-finger scroll into a pan gesture and a
+        // pinch into a magnify gesture, so the wheel branch above never sees a finger at all.
+        if (@event is InputEventPanGesture scroll)
+        {
+            // Delta is the wheel's own quantity negated by the platform, so up is negative here.
+            Dolly(-scroll.Delta.Y * 0.5f);
+
+            return;
+        }
+
+        if (@event is InputEventMagnifyGesture pinch)
+        {
+            // Factor is a ratio about 1, and a pinch arrives as many small ones rather than one big.
+            Dolly((pinch.Factor - 1f) * 8f);
+
+            return;
+        }
+
         // Dragging with any button held pans across the ground, never through it, so the city
-        // cannot be lost behind the camera by a careless drag.
+        // cannot be lost behind the camera by a careless drag. ⚠ It runs along the EYE's axes and
+        // not the world's, because a turn parts the two and a drag would then go off at an angle.
         if (@event is InputEventMouseMotion drag && drag.ButtonMask != 0)
         {
-            float reach = _span * 0.0016f;
+            // Scaled by the standoff rather than the city, so a close-up pans a street at a time.
+            float reach = _distance * 0.002f;
+            var right = new Vector3(Mathf.Cos(_yaw), 0f, -Mathf.Sin(_yaw));
+            var ahead = new Vector3(-Mathf.Sin(_yaw), 0f, -Mathf.Cos(_yaw));
 
-            _camera.Position += new Vector3(
-                -drag.Relative.X * reach, 0f, -drag.Relative.Y * reach);
+            _focus += (right * -drag.Relative.X + ahead * drag.Relative.Y) * reach;
+
+            Orbit();
 
             return;
         }
@@ -315,6 +360,32 @@ public partial class Main : Node3D
         if (@event is not InputEventKey { Pressed: true } key)
         {
             return;
+        }
+
+        // The camera's keys, which move the eye and never the clock, so they leave before the rung.
+        switch (key.Keycode)
+        {
+            case Key.Q:
+            case Key.E:
+                // Modulo rather than accumulation: a session is long and a yaw is an angle.
+                _yaw = (_yaw + (key.Keycode == Key.Q ? -YawStepRadians : YawStepRadians))
+                    % (Mathf.Pi * 2f);
+
+                Orbit();
+
+                return;
+
+            case Key.Equal:
+            case Key.KpAdd:
+                Dolly(4f);
+
+                return;
+
+            case Key.Minus:
+            case Key.KpSubtract:
+                Dolly(-4f);
+
+                return;
         }
 
         // Pause is a rung rather than a separate state (01 §1), so it remembers what it left.
@@ -335,6 +406,24 @@ public partial class Main : Node3D
         {
             _resume = _rung;
         }
+    }
+
+    /// <summary>
+    /// Change the eye's standoff rather than the field of view: a zoom that moves the eye keeps
+    /// the perspective the picture was framed with. One step is a wheel notch, and a gesture
+    /// arrives as a stream of fractions of one.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>A step is a RATIO and not a distance.</b> A fixed distance a notch is the same nudge
+    /// over the whole city as it is over one street, so the last notches in cross the ground and
+    /// come out underneath it — which is what the bounds here are for.
+    /// </remarks>
+    private void Dolly(float steps)
+    {
+        _distance = Mathf.Clamp(
+            _distance * Mathf.Pow(DollyPerStep, steps), Nearest(), Furthest());
+
+        Orbit();
     }
 
     /// <summary>
@@ -392,7 +481,7 @@ public partial class Main : Node3D
             + $"Citizens {_world.Citizens.Rows.LiveCount:N0}   Buildings {drawn:N0}   "
             + $"travelling {moving:N0}{Weather(under)}\n"
             + $"speed {Pace(_rung)}   "
-            + "[ ] speed, space pause, 1-4, drag pan, wheel zoom, esc quit";
+            + "[ ] speed, space pause, 1-4, drag pan, q/e turn, -/= or wheel zoom, esc quit";
     }
 
     /// <summary>
@@ -814,12 +903,38 @@ public partial class Main : Node3D
         var centre = new Vector3((east + eastEnd) * 0.5f, 0f, -(north + northEnd) * 0.5f);
 
         _span = span;
+        _focus = centre;
+        _distance = span * 0.95f;
         _camera = new Camera3D { Far = 200_000f, Fov = 60f };
 
         AddChild(_camera);
-        _camera.LookAtFromPosition(
-            centre + new Vector3(0f, span * 0.62f, span * 0.52f), centre, Vector3.Up);
+        Orbit();
     }
+
+    /// <summary>
+    /// Put the eye where the yaw, the pitch and the distance say, looking at the focus.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>The eye is derived from the orbit and never read back out of it.</b> Every verb moves
+    /// one of the three fields and calls this, so a rotation cannot drift the framing and a zoom
+    /// cannot leave the camera pointing somewhere a pan did not put it.
+    /// </remarks>
+    private void Orbit()
+    {
+        float flat = Mathf.Cos(PitchRadians) * _distance;
+
+        _camera.LookAtFromPosition(
+            _focus + new Vector3(
+                Mathf.Sin(_yaw) * flat, Mathf.Sin(PitchRadians) * _distance, Mathf.Cos(_yaw) * flat),
+            _focus,
+            Vector3.Up);
+    }
+
+    /// <summary>The nearest the eye may stand, which is close enough to read one Building.</summary>
+    private float Nearest() => Mathf.Max(32f, _span * 0.02f);
+
+    /// <summary>The furthest, which is the whole city and a margin, never the whole map.</summary>
+    private float Furthest() => _span * 3f;
 
     /// <summary>The panel, which is every string a human reads (<c>adr/0002</c>).</summary>
     private void Readout()
