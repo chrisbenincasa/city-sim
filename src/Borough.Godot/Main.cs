@@ -230,6 +230,21 @@ public partial class Main : Node3D
 
     /// <summary>Which Citizen each drawn Traveller is, in instance order.</summary>
     private readonly List<ulong> _travellerIds = [];
+
+    /// <summary>Lines that have arrived over the socket and not yet been applied.</summary>
+    private readonly System.Collections.Concurrent.BlockingCollection<string> _asked = [];
+
+    /// <summary>Replies waiting for the socket thread to send. One per line taken.</summary>
+    private readonly System.Collections.Concurrent.BlockingCollection<string> _answered = [];
+
+    /// <summary>The listening socket, or null when nobody is driving live.</summary>
+    private System.Net.Sockets.Socket? _listener;
+
+    /// <summary>Where every applied command is spelled back out, or null when nothing records.</summary>
+    private string? _record;
+
+    /// <summary>The socket's path, kept so it can be unlinked on the way out.</summary>
+    private string? _door;
     private Camera3D _camera = null!;
     private float _span = 512f;
 
@@ -244,9 +259,24 @@ public partial class Main : Node3D
 
     public override void _Ready()
     {
-        (_rulesetPath, int citizens, ulong startAt, string? drive, ulong quitAt) = Arguments();
+        (_rulesetPath, int citizens, ulong startAt, string? drive, ulong quitAt, string? listen,
+            string? record) = Arguments();
 
         if (!Driven(drive, quitAt))
+        {
+            Stop(2);
+
+            return;
+        }
+
+        if (record is not null)
+        {
+            _record = Globalize(record);
+
+            File.WriteAllText(_record, string.Empty);
+        }
+
+        if (listen is not null && !Listen(Globalize(listen)))
         {
             Stop(2);
 
@@ -373,6 +403,7 @@ public partial class Main : Node3D
 
         Draw(_alpha);
         Drive();
+        Answer();
     }
 
     /// <summary>Apply every command the world has reached, in file order.</summary>
@@ -540,6 +571,14 @@ public partial class Main : Node3D
         {
             _resume = _rung;
         }
+
+        // ⚠ RECORDED HERE AND NOWHERE ELSE, which is why a keyboard session records as readily as a
+        // socket one: every channel arrives at this method, so the log is complete by construction
+        // rather than by three call sites remembering.
+        if (_record is not null)
+        {
+            File.AppendAllText(_record, DriveScript.Spell(command) + "\n");
+        }
     }
 
     /// <summary>Write the frame, and the readout beside it under the same name.</summary>
@@ -601,6 +640,127 @@ public partial class Main : Node3D
     {
         Draw(_alpha);
         Write(path);
+    }
+
+    /// <summary>
+    /// Open the door a live driver knocks on. <b>One client, one line, one reply.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>A SOCKET IS A WALL-CLOCK CHANNEL INTO A SIMULATION WHOSE WHOLE DISCIPLINE IS
+    /// DETERMINISM, AND THE OBJECTION IS THE RIGHT ONE.</b> It is answered rather than accepted:
+    /// every arriving line is stamped with the Tick it landed on and spelled back out through
+    /// <c>--record</c>, so ***the log of an interactive session IS a drive script*** and what
+    /// somebody did by hand replays as a batch run.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Lines are applied on the main thread at a Tick boundary</b>, never where they arrive.
+    /// The socket thread only enqueues and then blocks for its reply, so nothing off the main thread
+    /// ever touches the world — which is the same rule the renderer already keeps.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The path is unlinked before binding.</b> A Unix socket outlives the process that made
+    /// it, so a shell that crashed leaves a file the next one cannot bind — and the failure reads as
+    /// *address in use* rather than as *the last run died*.
+    /// </para>
+    /// </remarks>
+    private bool Listen(string path)
+    {
+        try
+        {
+            File.Delete(path);
+
+            _listener = new System.Net.Sockets.Socket(
+                System.Net.Sockets.AddressFamily.Unix,
+                System.Net.Sockets.SocketType.Stream,
+                System.Net.Sockets.ProtocolType.Unspecified);
+
+            _listener.Bind(new System.Net.Sockets.UnixDomainSocketEndPoint(path));
+            _listener.Listen(1);
+        }
+        catch (Exception opening)
+        {
+            GD.PrintErr($"cannot listen on {path}: {opening.Message}");
+
+            return false;
+        }
+
+        _door = path;
+
+        new System.Threading.Thread(Serve) { IsBackground = true }.Start();
+        GD.Print($"listening on {path}");
+
+        return true;
+    }
+
+    /// <summary>Take a line, hand it to the main thread, wait for what it answers.</summary>
+    /// <remarks>
+    /// ⚠ <b>Strictly one reply per line, and the read blocks until it comes.</b> A driver can
+    /// therefore send and read in lock step without a clock of its own — which is the only way a
+    /// client can know that what it reads is the state <em>after</em> what it sent.
+    /// </remarks>
+    private void Serve()
+    {
+        while (_listener is not null)
+        {
+            try
+            {
+                using System.Net.Sockets.Socket client = _listener.Accept();
+                using var stream = new System.Net.Sockets.NetworkStream(client);
+                using var reader = new StreamReader(stream);
+                using var writer = new StreamWriter(stream) { AutoFlush = true };
+
+                while (reader.ReadLine() is { } line)
+                {
+                    _asked.Add(line);
+                    writer.WriteLine(_answered.Take());
+                }
+            }
+            catch (Exception)
+            {
+                // The listener closed under us, or a client left mid-sentence. Neither is this
+                // thread's business to report: the run is either ending or fine without a driver.
+                return;
+            }
+        }
+    }
+
+    /// <summary>Apply whatever arrived, then say what the city looks like now.</summary>
+    /// <remarks>
+    /// ⚠ <b>The readout is recomposed before the reply</b>, for <see cref="Caption"/>'s reason: it
+    /// was written by the <c>Draw</c> that ran before these commands did. ⚠ <b>An empty line is a
+    /// poll</b> — no commands, and the state comes back anyway, which is how a driver watches
+    /// without touching anything.
+    /// </remarks>
+    private void Answer()
+    {
+        if (_listener is null)
+        {
+            return;
+        }
+
+        while (_asked.TryTake(out string? line))
+        {
+            DriveScriptResult read = DriveScript.Line(line, _world.Tick.Raw);
+
+            if (read.Commands is null)
+            {
+                _answered.Add("refused\t" + read.Describe().Replace('\n', ' '));
+
+                continue;
+            }
+
+            foreach (DriveCommand command in read.Commands)
+            {
+                Apply(command);
+            }
+
+            Draw(_alpha);
+
+            _answered.Add(string.Create(
+                CultureInfo.InvariantCulture,
+                $"ok\t{_world.Tick.Raw}\t{_readout.Text.Replace('\n', '\t')}"));
+        }
     }
 
     /// <summary>
@@ -864,14 +1024,16 @@ public partial class Main : Node3D
     /// project's (<c>adr/0002</c>), and a bad one is reported rather than defaulted, because a
     /// silently-substituted world is a picture of somewhere else.
     /// </remarks>
-    private static (string Ruleset, int Citizens, ulong StartAt, string? Drive, ulong QuitAt)
-        Arguments()
+    private static (string Ruleset, int Citizens, ulong StartAt, string? Drive, ulong QuitAt,
+        string? Listen, string? Record) Arguments()
     {
         string ruleset = "rulesets/minimal.toml";
         int citizens = 1_000;
         ulong startAt = 0;
         string? drive = null;
         ulong quitAt = 0;
+        string? listen = null;
+        string? record = null;
         string[] given = OS.GetCmdlineUserArgs();
 
         for (int at = 0; at + 1 < given.Length; at++)
@@ -899,9 +1061,17 @@ public partial class Main : Node3D
             {
                 quitAt = until;
             }
+            else if (given[at] == "--listen")
+            {
+                listen = given[at + 1];
+            }
+            else if (given[at] == "--record")
+            {
+                record = given[at + 1];
+            }
         }
 
-        return (ruleset, citizens, startAt, drive, quitAt);
+        return (ruleset, citizens, startAt, drive, quitAt, listen, record);
     }
 
     /// <summary>
@@ -920,6 +1090,21 @@ public partial class Main : Node3D
         _stopping = true;
 
         GetTree().Quit(code);
+    }
+
+    /// <inheritdoc/>
+    public override void _ExitTree()
+    {
+        // The socket file outlives the process, so leaving it behind makes the NEXT run fail to
+        // bind and report an address in use -- a message about this run that reads as one about that
+        // one.
+        _listener?.Dispose();
+        _listener = null;
+
+        if (_door is not null)
+        {
+            File.Delete(_door);
+        }
     }
 
     /// <summary>A path as the operator typed it, resolved against the repository root.</summary>

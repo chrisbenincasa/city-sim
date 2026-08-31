@@ -157,6 +157,70 @@ public static class DriveScript
             : DriveScriptResult.Read(commands);
     }
 
+    /// <summary>
+    /// Read <b>one wire line</b> — a verb and its argument, with no Tick, landing at <c>at</c>.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>It prepends the Tick and calls <see cref="Parse"/> rather than parsing anything itself.</b>
+    /// A live command arrives with no Tick because its Tick is <em>now</em>, and that is the only
+    /// difference between the two channels — so there is one grammar, and a verb cannot come to mean
+    /// two things depending on how it was sent.
+    /// </remarks>
+    /// <param name="text">The line, as it came off the socket.</param>
+    /// <param name="at">The Tick it landed on.</param>
+    /// <returns>One command, or the reason there is none.</returns>
+    public static DriveScriptResult Line(string text, ulong at)
+    {
+        int comment = text.IndexOf('#', StringComparison.Ordinal);
+        string bare = (comment < 0 ? text : text[..comment]).Trim();
+
+        // 🔴 AN EMPTY LINE IS A POLL AND NOT A MISTAKE, and it had to be said here rather than left
+        // to Parse: prepending a Tick to nothing makes a lone Tick, which the grammar refuses by
+        // name. ***The doc comment claimed the poll before the code had it*** -- adr/0093 inside one
+        // method -- and it was found by sending a blank line at a running shell.
+        return bare.Length == 0
+            ? DriveScriptResult.Read([])
+            : Parse($"{at.ToString(CultureInfo.InvariantCulture)} {bare}", "<socket>");
+    }
+
+    /// <summary>
+    /// Write a command back out as the script line that would produce it.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>THIS IS WHAT MAKES A LIVE SESSION REPRODUCIBLE.</b> A socket is a wall-clock channel
+    /// into a simulation whose whole discipline is determinism, and the objection writes itself. The
+    /// answer is that every arriving command is stamped with the Tick it landed on and spelled back
+    /// out here — ***so the log of an interactive session IS a drive script***, and what somebody
+    /// did by hand replays as a batch run. The keyboard is recorded the same way, through the same
+    /// applier.
+    /// </remarks>
+    /// <param name="command">The command.</param>
+    /// <returns>A line <see cref="Parse"/> reads back as the same command.</returns>
+    public static string Spell(DriveCommand command)
+    {
+        string at = command.At.ToString(CultureInfo.InvariantCulture);
+        string amount = Math.Abs(command.Amount).ToString(CultureInfo.InvariantCulture);
+
+        return command.Verb switch
+        {
+            DriveVerb.Pause => $"{at} pause",
+            DriveVerb.Resume => $"{at} resume",
+            DriveVerb.Speed =>
+                $"{at} speed {command.Amount.ToString(CultureInfo.InvariantCulture)}",
+            DriveVerb.Roads => $"{at} roads {(command.Amount != 0 ? "on" : "off")}",
+            DriveVerb.Cells => $"{at} cells {(command.Amount != 0 ? "on" : "off")}",
+            DriveVerb.Turn => $"{at} turn {(command.Amount < 0 ? "left" : "right")}",
+
+            // ⚠ The notches are always written, never left to the default. A default that moved
+            // would silently re-aim every recorded session that had relied on it.
+            DriveVerb.Zoom => $"{at} zoom {(command.Amount < 0 ? "out" : "in")} {amount}",
+            DriveVerb.Shoot => $"{at} shoot {command.Path}",
+            DriveVerb.Readout => $"{at} readout {command.Path}",
+            DriveVerb.Draw => $"{at} draw {command.Path}",
+            _ => $"{at} quit",
+        };
+    }
+
     /// <summary>Whether the clock is stopped once every one of these has run.</summary>
     /// <remarks>
     /// <b>Exposed because <c>--quit-at</c> is appended after the parse</b> and a run that pauses at

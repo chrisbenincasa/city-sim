@@ -135,6 +135,68 @@ public sealed class DriveScriptTests
     }
 
     [Fact]
+    public void A_wire_line_is_the_same_grammar_with_the_Tick_supplied()
+    {
+        // The only difference between the two channels: a live command's Tick is 'now'.
+        DriveScriptResult read = DriveScript.Line("roads off", 6101);
+
+        Assert.Empty(read.Refusals);
+        Assert.Equal(
+            new DriveCommand(6101, DriveVerb.Roads, 0, null), Assert.Single(read.Commands!));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("# just looking")]
+    public void An_empty_wire_line_is_a_poll_rather_than_a_mistake(string line)
+    {
+        // A driver watching without touching anything sends nothing and reads the state back. It
+        // cannot go through Parse unhelped: a Tick with nothing after it is refused by name.
+        DriveScriptResult read = DriveScript.Line(line, 6101);
+
+        Assert.Empty(read.Refusals);
+        Assert.Empty(read.Commands!);
+    }
+
+    [Fact]
+    public void A_wire_line_is_refused_by_the_same_rules()
+    {
+        DriveScriptResult read = DriveScript.Line("dance", 10);
+
+        Assert.Null(read.Commands);
+        Assert.Contains("no verb 'dance'", Assert.Single(read.Refusals));
+    }
+
+    [Theory]
+    [InlineData("100 pause")]
+    [InlineData("100 resume")]
+    [InlineData("100 quit")]
+    [InlineData("100 speed 7")]
+    [InlineData("100 speed 0")]
+    [InlineData("100 roads on")]
+    [InlineData("100 roads off")]
+    [InlineData("100 cells on")]
+    [InlineData("100 turn left")]
+    [InlineData("100 turn right")]
+    [InlineData("100 zoom in 4")]
+    [InlineData("100 zoom out 9")]
+    [InlineData("100 shoot a/b.png")]
+    [InlineData("100 readout a/b.txt")]
+    [InlineData("100 draw a/b.tsv")]
+    public void A_command_spells_back_out_as_the_line_that_makes_it(string line)
+    {
+        // 🔴 THIS ROUND TRIP IS WHAT MAKES A LIVE SESSION REPRODUCIBLE. A socket stamps each
+        // arriving command with its Tick and spells it here, so the log of an interactive session
+        // IS a drive script -- and what somebody did by hand replays as a batch run.
+        DriveCommand read = Assert.Single(DriveScript.Parse(line, "x").Commands!);
+
+        Assert.Equal(line, DriveScript.Spell(read));
+        Assert.Equal(
+            read, Assert.Single(DriveScript.Parse(DriveScript.Spell(read), "x").Commands!));
+    }
+
+    [Fact]
     public void An_empty_script_is_read_rather_than_refused()
     {
         // A run driven by nothing is a run that just plays, which is what --quit-at alone asks for.

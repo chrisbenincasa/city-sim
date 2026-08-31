@@ -9,7 +9,7 @@ cannot be driven without a hand on the keyboard.
 
 ## Status
 
-🟢 **TIERS 1, 2 AND 3 LANDED 2026-08-31.** Tier 4 scoped, not started.
+🟢 **ALL FOUR TIERS LANDED 2026-08-31.**
 
 **Where tier 2 lives:** `Borough.Formats/DriveScript.cs` (the grammar), `Borough.Tests/Formats/
 DriveScriptTests.cs` (23 assertions), and `Main.Apply` / `Main.Drive` / `Main.Driven` /
@@ -75,7 +75,7 @@ Ordered. Each tier is usable on its own, and each is the fallback if the next pr
 | **1** | **The borrowed keyboard.** `xdotool` + `import` against the shipped shell. No code | ✅ **31-08** |
 | **2** | **`--drive`, the Tick-addressed script.** The reproducible channel | ✅ **31-08** |
 | **3** | **The draw-list dump.** What only the shell can answer, as data rather than pixels | ✅ **31-08** |
-| **4** | **The socket.** Live exploration, and its log is a tier-2 script | 🔴 |
+| **4** | **The socket.** Live exploration, and its log is a tier-2 script | ✅ **31-08** |
 
 ### Tier 2 — `--drive`
 
@@ -141,15 +141,31 @@ catches what no assertion names — lighting, occlusion, whether a thing is *leg
 | **F19** | ✅ **The Traveller rows carry real Citizens.** `minimal.toml` at Tick 752: **64 drawn against the readout's 64**, **64 distinct ids, none unresolved**, none outside the map. ⚠ **Finding the Tick took a scan** — a `readout` every 16 Ticks across the morning — because ***the Day is a comb***: the counts cluster near 496, 576, 656, 752 and 848, roughly 85 Ticks apart, which is one in-world hour. [`0045`](0045-amnesty.md) row 18 owns that, and this is a second instrument agreeing with it |
 | **F18** | ✅ **Two draw lists of one script are byte-identical**, so a row that moves is a renderer change. **F11** said this of the pixels; this says it of the geometry, which is the half a test can name |
 
-### Tier 4 — the socket
+### Tier 4 — the socket ✅
 
-A Unix domain socket, a line protocol, drained at a Tick boundary exactly as tier 2's script is.
+**`--listen PATH`** opens a Unix domain socket; **`--record FILE`** writes every applied command back
+out as a drive script. A wire line is the same grammar with the Tick supplied — `DriveScript.Line`
+prepends *now* and calls `Parse`, so a verb cannot come to mean two things depending on how it was
+sent.
 
-🔴 **THE PROPERTY THAT MAKES IT SAFE: THE SOCKET'S LOG IS A TIER-2 SCRIPT.** Every command that
-arrives is stamped with the Tick it landed on and appended in the tier-2 format, so ***an interactive
-session replays as a batch one***. A live channel into a deterministic simulation is otherwise a
-channel that cannot be reproduced, which is the objection, and this answers it rather than accepting
-it.
+```
+--listen /tmp/door --record session.drive
+```
+
+**One line in, one line out, and the read blocks until the reply comes**, so a driver sends and reads
+in lock step without a clock of its own. A reply is `ok<TAB>tick<TAB>readout` or
+`refused<TAB>reason`. **An empty line is a poll** — no commands, and the state comes back anyway.
+
+⚠ **Lines are applied on the main thread at a Tick boundary, never where they arrive.** The socket
+thread enqueues and blocks; nothing off the main thread touches the world.
+
+### What tier 4 found
+
+| | Finding |
+|---|---|
+| **F20** | 🔴 ✅ **AN INTERACTIVE SESSION REPLAYED AS A BATCH RUN AND PRODUCED A BYTE-IDENTICAL DRAW LIST.** Driven live over the socket — pause, `speed 8`, `roads off`, `draw`, `quit` — `--record` wrote `150 pause / 150 speed 8 / 184 roads off / 184 draw … / 186 quit`, and feeding that back through `--drive` reproduced the dump `cmp`-equal. ***This is what makes a wall-clock channel into a deterministic simulation defensible rather than merely tolerated***, and it is the reason the socket is last rather than first: it is worth nothing without tier 2 to replay into |
+| **F21** | 🔴 **THE DOC COMMENT CLAIMED THE POLL BEFORE THE CODE HAD IT.** *An empty line is a poll* was written into `Answer`'s remarks and the grammar refused a blank line by name — prepending a Tick to nothing makes a lone Tick. ⚠ **Found by sending one at a running shell**, which is [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md) inside a single method: ***the sentence was about the trigger and the trigger was the part that was wrong*** |
+| **F22** | ⚠ **`--record` covers the KEYBOARD too, and free.** It writes from `Apply`, which is the one surface every channel arrives at, so a session driven by hand at the desk records as readily as one driven down the socket. ***A log complete by construction rather than by three call sites remembering***. ✅ **Measured**: seven keystrokes at the window — `space g e ] 2 space esc` — recorded as `74 pause / 74 roads off / 74 turn right / 74 speed 1 / 74 speed 6 / 80 pause / 80 quit`, and that file **replays through `--drive` with no refusal**. ⚠ **The Ticks are the interesting column**: five keys landed on one Tick and two on another, so ***what a hand does in a second is a script with almost no time in it*** |
 
 ### What tier 2 found
 
@@ -171,7 +187,7 @@ Under the amnesty these are stamped and not ratified ([`0045`](0045-amnesty.md) 
 
 | | Decision |
 |---|---|
-| **D1** | **Does a driven command enter the Input Log?** The six verbs must, or a driven session is not replayable by `Borough.Headless`. **Speed, camera and layer toggles must not** — they are host-side and runtime-only, and an Input Log holding a camera pose is a save file holding a monitor |
+| **D1** | **Does a driven command enter the Input Log?** The six verbs must, or a driven session is not replayable by `Borough.Headless`. **Speed, camera and layer toggles must not** — they are host-side and runtime-only, and an Input Log holding a camera pose is a save file holding a monitor. ⚠ **STILL OPEN, and it has not bitten because the grammar has no city-changing verb in it at all** — every verb shipped moves the clock, the eye or a file. ***The day a `zone` or a `demolish` verb is added is the day this must be answered***, and `--record` is the thing that will make the gap obvious: it will spell a command the Input Log did not receive |
 | **D2** | ✅ **CLOSED: both, because they cost one column each.** The instance index diffs a row against the `MultiMesh`; the entity id diffs it across Ticks. ⚠ **The id is the monotonic never-reused one and not the `Handle`'s index**, for `05 §4`'s reason — a list keyed on a recycled slot names a different Citizen after a collection, which is the one thing a list meant for diffing must never do |
 | **D3** | ✅ **CLOSED: no.** `--drive` does not imply an end — a script a person is watching should keep running when it runs out of instructions. Wanting an end means writing `quit` or passing `--quit-at`, and **both arrive at the same applier as one more command**. ⚠ **`--quit-at` before the script's last command is refused**, and so is one after a `pause`, for **F7**'s reason |
 
