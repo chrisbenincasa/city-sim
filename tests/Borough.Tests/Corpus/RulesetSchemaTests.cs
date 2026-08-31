@@ -71,23 +71,40 @@ public sealed class RulesetSchemaTests
     /// The schema is associated with the Ruleset folder, or an editor never loads it.
     /// </summary>
     /// <remarks>
-    /// ⚠ <b>The association is in <c>.vscode/settings.json</c> and NOT in the Ruleset files.</b> The
-    /// other way to associate a schema is an <c>#:schema</c> line at the top of each file, and
-    /// <c>declining.toml</c> and <c>congested.toml</c> are golden-baseline artefacts whose recorded
-    /// <em>content hash</em> moves when they are edited at all, comments included. A settings entry
-    /// costs nothing and moves nothing.
+    /// <para>
+    /// 🔴 ⚠ <b>THE ASSOCIATION IS IN <c>.taplo.toml</c>, AND <c>.vscode/settings.json</c> WAS TRIED
+    /// FIRST AND SILENTLY DID NOTHING.</b> <c>evenBetterToml.schema.associations</c> documents
+    /// itself as matching <em>absolute document URIs</em> against <em>an absolute URI to the JSON
+    /// schema</em> — so a working entry names <c>/home/somebody</c>, which is not a thing a
+    /// repository may commit. The editor reported <em>no schema selected</em> and nothing else.
+    /// ***A configuration that fails by doing nothing is why this test exists.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is not an <c>#:schema</c> line in each Ruleset either.</b> <c>declining.toml</c> and
+    /// <c>congested.toml</c> are golden-baseline artefacts whose recorded <em>content hash</em>
+    /// moves when they are edited at all, comments included.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>This asserts the wiring and not the behaviour.</b> That Taplo loads the config, applies
+    /// the schema and enforces a type was verified out of band, with the <c>taplo</c> CLI against a
+    /// Ruleset with <c>occupants = "four"</c> in it — a check this test cannot make without putting
+    /// a network fetch in the suite.
+    /// </para>
     /// </remarks>
     [Fact]
     public void The_schema_is_associated_with_the_ruleset_folder()
     {
-        string settings = Path.Combine(RepoRoot(), ".vscode", "settings.json");
+        string config = Path.Combine(RepoRoot(), ".taplo.toml");
 
-        Assert.True(File.Exists(settings), $"{settings} is not there.");
+        Assert.True(
+            File.Exists(config),
+            $"{config} is not there, so no editor finds the schema and every Ruleset opens with "
+                + "no completion at all.");
 
-        string text = File.ReadAllText(settings);
+        string text = File.ReadAllText(config);
 
-        Assert.Contains("evenBetterToml.schema.associations", text, StringComparison.Ordinal);
-        Assert.Contains("ruleset.schema.json", text, StringComparison.Ordinal);
+        Assert.Contains("rulesets/*.toml", text, StringComparison.Ordinal);
+        Assert.Contains("rulesets/ruleset.schema.json", text, StringComparison.Ordinal);
     }
 
     private static string Describe(string what, List<string> names) =>

@@ -11,18 +11,14 @@
     //
     // .prettierignore carries the same refusal for Prettier run any other way. House style is
     // enforced by tests/Borough.Tests/Corpus/MarkdownStyleTests.cs.
-    // Ruleset autocomplete and type hints, via Even Better TOML (tamasfe.even-better-toml).
+
+    // Ruleset autocomplete and type hints live in .taplo.toml at the repository root, NOT here.
     //
-    // The schema is GENERATED from RulesetLoader -- `--schema` -- because the loader already
-    // derives its permitted key set from the readers, and a hand-written schema would be a second
-    // copy of it. RulesetSchemaTests fails when the committed file drifts.
-    //
-    // The association lives here rather than as an `#:schema` line in each Ruleset because
-    // declining.toml and congested.toml are golden-baseline artefacts whose recorded content hash
-    // moves when they are edited at all, comments included.
-    "evenBetterToml.schema.associations": {
-        "rulesets/.*\\.toml$": "./rulesets/ruleset.schema.json"
-    },
+    // `evenBetterToml.schema.associations` cannot do it portably: it documents itself as matching
+    // "absolute document URIs" against "an absolute URI to the JSON schema", so a working entry has
+    // to name /home/somebody. It was tried, it silently did nothing, and the editor reported
+    // "no schema selected". A Taplo config file takes paths relative to itself, and the extension
+    // discovers one by default (evenBetterToml.taplo.configFile.enabled).
 
     "[markdown]": {
         "editor.formatOnSave": false,

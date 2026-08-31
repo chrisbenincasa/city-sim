@@ -1,0 +1,27 @@
+# Ruleset autocomplete and type hints for Even Better TOML (tamasfe.even-better-toml) and the
+# `taplo` CLI.
+#
+# ⚠ THIS IS HERE RATHER THAN IN .vscode/settings.json BECAUSE THAT MECHANISM CANNOT BE PORTABLE.
+# `evenBetterToml.schema.associations` documents itself as matching "absolute document URIs" against
+# "an absolute URI to the JSON schema" -- so a working entry has to name /home/somebody, which is
+# not a thing a repository may commit. A Taplo config file takes paths relative to itself.
+#
+# The schema is GENERATED from RulesetLoader and must not be hand-edited:
+#
+#   dotnet run --project src/Borough.Headless -- --schema \
+#     --ruleset rulesets/minimal.toml > rulesets/ruleset.schema.json
+#
+# The loader derives its permitted key set from the readers that ask for each key, so it already
+# owns this and a hand-written schema would be a second copy. RulesetSchemaTests fails when the
+# committed file drifts from it.
+#
+# ⚠ The schema leaves unknown keys PERMITTED on purpose. The loader refuses them at the parse site
+# with a spelling suggestion and the full key list for that table, which is a better message than a
+# schema produces -- this is autocomplete, and the loader is the authority.
+
+[[rule]]
+include = ["rulesets/*.toml"]
+
+[rule.schema]
+path = "rulesets/ruleset.schema.json"
+enabled = true
