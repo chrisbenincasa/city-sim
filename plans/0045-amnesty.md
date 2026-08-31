@@ -100,7 +100,7 @@ The rows below were found by asking the code what is missing instead.
 | 10 | **`Service` throws.** The civic swath — schools, health, safety. `School` is **0 files**. ⚠ **After 9, not before**: a service with no need to satisfy is a Building with a Bin | ✅ 30-08 |
 | 11a | **The eye.** Of `05 §2`'s three hot queries only `LayerCells` exists; **`VisibleAgents` and `ChunkAggregates` are nowhere in `src/`** and a **Traveller has no coordinate at all**. ⚠ **Day one of 11b either way** | ✅ 30-08 |
 | 11b | **The shell.** `src/Borough.Godot` — Godot 4.7.2, a camera over the city, one MultiMesh per kind of thing, a speed ladder and a readout. ⚠ **Not in `Borough.slnx` and never will be**: that absence is what enforces *the headless runner never requires Godot* | ✅ 30-08 |
-| 12 | **Disasters.** `coastal.toml` carries a Hazard Region and **nothing fires on it** | |
+| 12 | **Disasters.** `coastal.toml` carries a Hazard Region and **nothing fires on it** | ✅ 31-08 |
 | 13 | The `0046` loose ends — the dwelling stock's missing sink, `aged.toml`'s narrow windows. ⚠ **Small on purpose and last on purpose**: `StageDumpTests` pins both with tests that assert the defect, so neither can be lost | |
 
 Items 2 and 3 cost one day and added no Ruleset key, number or ADR. They moved three golden
@@ -369,3 +369,90 @@ the loop delivers its rung, never a figure about the city.
 design, and it is not paid here.*** **It is queued in *Owed when the freeze lifts* above, which is
 where it is stated in full** — ⚠ **restating it here would be two copies of one question in one
 document**, which is `plans/0012` **Cause 1** written by hand.
+
+## What the flood found
+
+**A Flood ships.** `DisasterEngine` schedules one from the seed and the Tick over the Hazard Region,
+spreads it through the floodplain connected to its seed below a rising surge, recedes it to nothing,
+and takes what it finds — `rulesets/flooded.toml`, `--flood`, `DisasterTests`, and water on the map
+in the shell.
+
+**THREE DURATIONS AND NO SEVERITY KEY**, which is `01 §5.2`'s own sentence kept: *"No severity
+constant is authored anywhere; the only constants are a frequency interval and a spread rate, both
+durations, both scale-free."* How bad a flood is comes out of **where the world seeded it** —
+measured, and it is monotone:
+
+| seed depth | ruined | swept |
+|---|---|---|
+| 102 | 0 | 224 |
+| 378 | 38 | 185 |
+| 1,119 | 128 | 51 |
+| 1,800 | 235 | 5 |
+| 1,876–1,975 | 0 | 0 |
+
+A Hazard Region row holds *the flood level minus its ground*, so a large depth is **low** ground. The
+surge opens with the water at the seed's own ground and rises to the flood level; ground **below**
+the origin is swept away and its Lot vacates, ground at or above it is **ruined** and the shell
+stands. ***Both are existing verbs and the fork is one depth against another.*** A flood seeded high
+on the floodplain destroys the city; one seeded in the deepest hollow never reaches it.
+
+⚠ **5 of 9 floods touched nothing at all**, which is `01 §5.3` working: *"Riverside floodplain
+inundated — 0 Buildings affected"* is the game telling a player a siting decision was correct.
+
+🔴 **THE FIRST RUN REPORTED FOUR FLOODS AND ZERO BUILDINGS TOUCHED, AND THE MECHANISM WAS FINE.**
+`coastal.toml`'s lattice sits at the map's middle on high ground; **0 of 420 Lots were on floodplain
+at all.** The synthetic city is ~1.4 km across on a 65.5 km map, so it covers two ten-thousandths of
+the ground and *cannot meet a coast by accident* — `adr/0089` arriving where nobody expected it.
+`flooded.toml` therefore states a `[[lattice]]` **on the water's edge** and that siting is the whole
+demonstration: **240 of 420 Lots exposed.** ⚠ ***A world where a disaster cannot reach the city is
+not a demonstration of disasters***, and the dump now prints where the floodplain actually is so the
+next person is told in one line rather than after an afternoon.
+
+🔴 **THE FOOTPRINT LEAKED, AND ONLY ITS DEEP HALF.** The end-of-flood drain freed the Cells *below*
+the surge — and ground deeper than the seed is never below it, because the surge only climbs back to
+where it started. **5,140 Cells still standing after three floods had ended and a fourth had reached
+291.** ⚠ **The comment above the line had reasoned from the right fact to the opposite conclusion**:
+the deepest ground *is* the last to dry, which is exactly why the recession cannot be what takes it.
+`adr/0006`, caught by the dump's own last line rather than by a test — `DisasterTests` holds it now.
+
+🔴 **TWO PHOTOGRAPHS OF A FLOOD WERE TAKEN WITH NO CAPTION ON THEM.** `--start-at` fast-forwards in
+`_Ready`, so the world is already past `BOROUGH_SHOT_AT` when the **first** frame draws — and a
+`Control` added to a `CanvasLayer` that frame has not been laid out yet. ***The one thing in the
+frame that says which Tick it is, is the thing a first-frame capture drops.*** The trigger now waits
+for the third frame. ⚠ **This is the third defect `BOROUGH_SHOT` has had and all three were about
+*when* it fires**, never about what it draws.
+
+✅ **THE SHELL SHOWS WATER, AND THE FLOOD ARRIVING IN THE CITY.** One MultiMesh for the sea, laid
+once; one for the standing water, refilled every frame. **Buildings are sized from their kind** —
+`[[building]] occupants`, jittered per Building off its monotonic row id — and every shipped kind
+declares **3**, so *today the derivation buys nothing visible and the variation is all jitter*. It
+is there so that a kind holding thirty draws a tower without the renderer being told.
+
+🔴 **A RUIN LOOKED EXACTLY LIKE A HOUSE, AND THE FLOOD IS WHAT MADE THAT UNBEARABLE.** In the first
+frame at Tick 6,101 the water was unmistakable and **235 ruined Buildings standing in it were
+indistinguishable from the dry ones on the bank**. The readout said the number; the picture did not.
+***That is the same shape as the hexadecimal the Definition of done was amended over***, one level
+along — a state the city knows and the eye cannot find.
+
+✅ **FIXED, AND IT IS `IsAbandoned` RATHER THAN *FLOODED*.** The Buildings MultiMesh carries a colour
+per instance now. ⚠ **The wider predicate is deliberate**: a Building abandoned by `adr/0053`'s
+failure pressure and one ruined by a flood are the same state — `02 §4.3`'s derelict — and the
+renderer has no business knowing which verb put it there. **The visible consequence is that
+`declining.toml` now greys out as it decays**, which nobody asked for and is the point: ***one
+colour, every mechanism that reaches the state.*** Checked rather than asserted — at Tick 7,001 that
+city is a mix of pale standing Buildings and dark shells with no flood anywhere near it.
+
+🔴 ⚠ **AND THE FIRST SPELLING WASHED IT OUT, IN A WAY THAT LOOKS EXACTLY LIKE A BAD PALETTE.** A
+MultiMesh instance colour is multiplied into albedo in **linear** space, so sRGB values written
+straight through render far brighter than they read: standing came out near white and the contrast
+the change exists to create was most of the way gone. ***The colours were right and the space they
+were written in was not.*** `SrgbToLinear` at the write site. ⚠ **It cost a second screenshot to
+see, and no test could have caught it** — there is nothing in the build that asserts anything about
+a colour.
+
+⚠ **The Hazard Region is still not drawn**, so what `01 §5.3` calls the *posted price* — the thing
+that makes riverside land a decision rather than an ambush — exists as a number `--flood` prints and
+nothing on screen. ***The gap moved from the mechanism to the overlay.***
+
+⚠ **A new Tick consumer with no `plans/0013` row** (`adr/0073`) — the corpus freeze is why. It is
+`O(footprint)` a Tick while a flood is live and unmeasured at a million Citizens.

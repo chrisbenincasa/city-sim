@@ -40,11 +40,64 @@ public partial class Main : Node3D
     /// <summary>How wide the carriageway is drawn. A drawing width, and no Segment states one.</summary>
     private const float RoadWidthMetres = 8f;
 
-    /// <summary>How deep and wide a Building's box is drawn.</summary>
+    /// <summary>How deep and wide a Building's box is drawn before its own jitter.</summary>
     private const float BuildingFootprintMetres = 6f;
 
-    /// <summary>How tall a Building's box is drawn.</summary>
-    private const float BuildingHeightMetres = 10f;
+    /// <summary>How tall one storey is drawn. A drawing height, and no kind states one.</summary>
+    private const float StoreyMetres = 3.5f;
+
+    /// <summary>
+    /// The tallest a Building is drawn before jitter — <b>what the setback is derived against.</b>
+    /// </summary>
+    /// <remarks>
+    /// A shipped kind declares <c>occupants = 3</c>, so this is the height the shell was framed and
+    /// lit for. It is not a cap: a kind declaring more is drawn taller.
+    /// </remarks>
+    private const float BuildingHeightMetres = 3f * StoreyMetres;
+
+    /// <summary>What a Building in use is drawn as. Warm stone, and the shell's original.</summary>
+    private static readonly Color Standing = new(0.55f, 0.52f, 0.45f);
+
+    /// <summary>
+    /// What an <b>abandoned</b> Building is drawn as — <b>the state the picture could not show.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>A ruin looked exactly like a house until this landed, and a flood is what made that
+    /// unbearable.</b> In the frame at Tick 6,101 on <c>flooded.toml</c> the water is unmistakable
+    /// and the <b>235 ruined Buildings standing in it are indistinguishable from the dry ones on the
+    /// bank</b>. The readout said the number; the picture did not. ***That is the same shape as the
+    /// hexadecimal <c>CLAUDE.md</c>'s Definition of done was amended over*** — a state the city knows
+    /// and the eye cannot find.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is <see cref="BuildingTable.IsAbandoned"/> and not <em>flooded</em>, which is wider
+    /// than the thing that prompted it and deliberately so.</b> A Building abandoned by
+    /// <c>adr/0053</c>'s failure pressure and one ruined by a flood are the same state — <c>02
+    /// §4.3</c>'s derelict — and the renderer has no business knowing which verb put it there. The
+    /// visible consequence is that <c>declining.toml</c> now greys out as it decays, which nobody
+    /// asked for and is the point: ***one colour, every mechanism that reaches the state.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Desaturated as well as darkened.</b> Darker alone reads as shadow at this sun angle, and
+    /// the boxes are already lit from one side.
+    /// </para>
+    /// <para>
+    /// 🔴 ⚠ <b>Both colours are converted with <c>SrgbToLinear</c> at the write site, and the first
+    /// spelling was not.</b> A MultiMesh instance colour is multiplied into albedo in <b>linear</b>
+    /// space, so an sRGB value written straight through renders far brighter than it reads —
+    /// <see cref="Standing"/>'s warm stone came out near white and the contrast this exists to
+    /// create was most of the way washed out. ***The colours were right and the space they were
+    /// written in was not***, which looks in a screenshot exactly like a badly chosen palette.
+    /// </para>
+    /// </remarks>
+    private static readonly Color Derelict = new(0.20f, 0.19f, 0.18f);
+
+    /// <summary>How thick the water is drawn. Flat, and floating just clear of the ground.</summary>
+    private const float WaterMetres = 0.6f;
+
+    /// <summary>A Cell's side in the shell's metres, which is what one water quad covers.</summary>
+    private const float CellMetres = CellGrid.TilesPerCell * MetresPerTile;
 
     /// <summary>
     /// How far off the Segment a Building stands — <b>derived, so the two boxes cannot overlap</b>.
@@ -97,11 +150,14 @@ public partial class Main : Node3D
     private MultiMeshInstance3D _buildings = null!;
     private MultiMeshInstance3D _travellers = null!;
     private MultiMeshInstance3D _roads = null!;
+    private MultiMeshInstance3D _water = null!;
+    private MultiMeshInstance3D _flood = null!;
     private Label _readout = null!;
     private VisibleAgent[] _agents = new VisibleAgent[8192];
     private double _owed;
     private int _rung = DesignSpeed;
     private int _resume = DesignSpeed;
+    /// <summary>Frames drawn since the shell opened. Read only by the screenshot trigger.</summary>
     private int _frame;
     private string _rulesetPath = "rulesets/minimal.toml";
     private Camera3D _camera = null!;
@@ -109,7 +165,7 @@ public partial class Main : Node3D
 
     public override void _Ready()
     {
-        (_rulesetPath, int citizens) = Arguments();
+        (_rulesetPath, int citizens, ulong startAt) = Arguments();
 
         string path = Path.IsPathRooted(_rulesetPath)
             ? _rulesetPath
@@ -142,12 +198,34 @@ public partial class Main : Node3D
         _simulation = new Simulation(_world, key) { VerifyDecideWritesNothing = false };
         SyntheticCity.PopulateInto(_world, key, new Ticks(0));
 
+        // FAST-FORWARD BEFORE THE FIRST FRAME, and it is not a rung. The ladder is what a person
+        // watches at; this is how they get to the part worth watching. A flood on flooded.toml
+        // begins at Tick 4,096, which at the top rung is two and a half minutes of staring at a dry
+        // city -- and on a machine with no screen it is the difference between a photograph of a
+        // flood and a photograph of the coast.
+        //
+        // ⚠ IT STEPS THE SIMULATION AND SKIPS NOTHING. Every Tick runs, which is why it is slow and
+        // why it is correct: a world jumped to is a different world (adr/0003), and the whole point
+        // of a shell is to look at the one the headless runner would produce.
+        for (ulong tick = 0; tick < startAt; tick++)
+        {
+            _simulation.Step(default);
+        }
+
+        // THE SEA FIRST AND THE FLOOD ON TOP OF IT, and the order is the draw order. A Hazard
+        // Region Cell is dry ground that a flood reaches, so the two never cover the same Cell --
+        // but they sit at almost the same height, and painting the standing water last is what makes
+        // a rising tide read as arriving rather than as flickering.
+        _water = Layer(new Color(0.10f, 0.22f, 0.42f), new Vector3(1f, 1f, 1f));
+        _flood = Layer(new Color(0.20f, 0.48f, 0.78f), new Vector3(1f, 1f, 1f));
         _roads = Layer(new Color(0.30f, 0.30f, 0.33f), new Vector3(1f, 0.1f, 1f));
-        _buildings = Layer(
-            new Color(0.55f, 0.52f, 0.45f),
-            new Vector3(BuildingFootprintMetres, BuildingHeightMetres, BuildingFootprintMetres));
+
+        // A UNIT BOX, with the size composed per instance rather than baked into the mesh, which is
+        // what lets one draw call hold Buildings of different shapes.
+        _buildings = Layer(Standing, Vector3.One, perInstance: true);
         _travellers = Layer(new Color(1.0f, 0.45f, 0.15f), new Vector3(3f, 3f, 3f));
 
+        Flood();
         Pave();
         Sun();
         Look();
@@ -171,7 +249,15 @@ public partial class Main : Node3D
         // ⚠ TRIGGERED ON THE WORLD'S TICK AND NOT ON A FRAME COUNT, so two Rulesets photographed at
         // the same number are photographed at the same moment in the city rather than after the same
         // amount of the operator's patience.
+        // ⚠ AND ON THE THIRD FRAME AT THE EARLIEST, WHICH IS NOT PEDANTRY. --start-at does its
+        // fast-forwarding in _Ready, so with it the world is already past the trigger when the
+        // FIRST frame is drawn -- and a Control added to a CanvasLayer this frame has not been laid
+        // out yet, so the readout is absent from the picture. Two photographs of a flood were taken
+        // with no caption on them before anybody noticed the panel was missing rather than empty.
+        // ***The one thing in the frame that says which Tick it is, is the thing a first-frame
+        // capture drops.***
         if (System.Environment.GetEnvironmentVariable("BOROUGH_SHOT") is { } shot
+            && _frame++ >= 2
             && _world.Tick.Raw >= ulong.Parse(
                 System.Environment.GetEnvironmentVariable("BOROUGH_SHOT_AT") ?? "750"))
         {
@@ -252,17 +338,18 @@ public partial class Main : Node3D
     }
 
     /// <summary>
-    /// <c>--ruleset PATH</c> and <c>--citizens N</c>, after Godot's own <c>--</c>.
+    /// <c>--ruleset PATH</c>, <c>--citizens N</c> and <c>--start-at TICK</c>, after Godot's <c>--</c>.
     /// </summary>
     /// <remarks>
     /// ⚠ <b>A shell reads the command line and the core does not.</b> Every string here is this
     /// project's (<c>adr/0002</c>), and a bad one is reported rather than defaulted, because a
     /// silently-substituted world is a picture of somewhere else.
     /// </remarks>
-    private static (string Ruleset, int Citizens) Arguments()
+    private static (string Ruleset, int Citizens, ulong StartAt) Arguments()
     {
         string ruleset = "rulesets/minimal.toml";
         int citizens = 1_000;
+        ulong startAt = 0;
         string[] given = OS.GetCmdlineUserArgs();
 
         for (int at = 0; at + 1 < given.Length; at++)
@@ -276,9 +363,14 @@ public partial class Main : Node3D
             {
                 citizens = asked;
             }
+            else if (given[at] == "--start-at"
+                && ulong.TryParse(given[at + 1], out ulong from))
+            {
+                startAt = from;
+            }
         }
 
-        return (ruleset, citizens);
+        return (ruleset, citizens, startAt);
     }
 
     /// <summary>Reads the world into the two meshes that change, and writes the readout.</summary>
@@ -286,6 +378,7 @@ public partial class Main : Node3D
     {
         int drawn = Fill(_buildings, Buildings());
         int moving = VisibleAgents.In(_world, CellRect.World, alpha, _agents);
+        int under = Fill(_flood, Inundated());
 
         Fill(_travellers, Travellers(moving));
 
@@ -297,7 +390,7 @@ public partial class Main : Node3D
             + $"Day {tick / (ulong)Ticks.PerDay}   "
             + $"{ofDay * 24 / (ulong)Ticks.PerDay:00}:{ofDay * 1440 / (ulong)Ticks.PerDay % 60:00}\n"
             + $"Citizens {_world.Citizens.Rows.LiveCount:N0}   Buildings {drawn:N0}   "
-            + $"travelling {moving:N0}\n"
+            + $"travelling {moving:N0}{Weather(under)}\n"
             + $"speed {Pace(_rung)}   "
             + "[ ] speed, space pause, 1-4, drag pan, wheel zoom, esc quit";
     }
@@ -327,8 +420,26 @@ public partial class Main : Node3D
         return $"{Rungs[rung]} — a Day in {day}, {Ladder[rung] * SecondsPerTick:N0}x real time";
     }
 
-    /// <summary>Every standing Building, at its Lot.</summary>
-    private System.Collections.Generic.IEnumerable<Vector3> Buildings()
+    /// <summary>Every standing Building, at its Lot, at the size its kind implies.</summary>
+    /// <remarks>
+    /// <para>
+    /// ⚠ <b>THE HEIGHT IS DERIVED FROM THE KIND AND THE JITTER IS THE RENDERER'S.</b>
+    /// <c>[[building]] occupants</c> is how many Households a Building of that kind holds
+    /// (<c>adr/0068</c>), so it is the one thing the city already says about how big a Building is —
+    /// and every shipped kind declares <b>3</b>, so today the derivation buys nothing visible and
+    /// the variation you see is all jitter. ***That is the point of deriving it anyway***: the day a
+    /// Ruleset declares a kind that holds thirty, the shell draws a tower without being told to.
+    /// </para>
+    /// <para>
+    /// <b>The jitter is <see cref="SetbackMetres"/>' class of thing and is labelled as one</b> — a
+    /// thickness the city does not have, invented so the picture reads as a city rather than as a
+    /// bar chart. It is keyed on the Building's monotonic row id, so a Building keeps its shape for
+    /// as long as it stands and a rebuilt one on the same Lot is visibly a different building.
+    /// ⚠ <b>It draws on no <c>purpose_tag</c> and must not</b>: the simulation's stream is for
+    /// decisions, and a shape nobody in the city can perceive is not one.
+    /// </para>
+    /// </remarks>
+    private System.Collections.Generic.IEnumerable<(Transform3D Where, Color What)> Buildings()
     {
         BuildingTable table = _world.Buildings;
         LotTable lots = _world.Lots;
@@ -359,41 +470,202 @@ public partial class Main : Node3D
                 east += side == StreetSide.Right ? SetbackMetres : -SetbackMetres;
             }
 
-            yield return new Vector3(east, BuildingHeightMetres * 0.5f, -north);
+            ulong shape = Scramble(table.Rows.IdAt(slot));
+            byte kind = table.Kind[slot];
+            int storeys = _world.Rules.Declares(kind)
+                ? Math.Max(1, _world.Rules.Kind(kind).Occupants)
+                : 1;
+
+            // 0.55x to 1.85x on the height and 0.75x to 1.25x on the plan. Two draws off one
+            // scramble, taken from different bit ranges so a tall Building is not also a fat one.
+            float tall = storeys * StoreyMetres * (0.55f + ((shape & 0xFFu) / 255f * 1.3f));
+            float wide = BuildingFootprintMetres
+                * (0.75f + (((shape >> 8) & 0xFFu) / 255f * 0.5f));
+
+            yield return (
+                new Transform3D(
+                    Basis.FromScale(new Vector3(wide, tall, wide)),
+                    new Vector3(east, tall * 0.5f, -north)),
+                (table.IsAbandoned(slot) ? Derelict : Standing).SrgbToLinear());
         }
+    }
+
+    /// <summary>Every Cell a Disaster has under water right now.</summary>
+    /// <remarks>
+    /// <b>Refilled every frame, unlike <see cref="Flood"/>'s sea</b> — these rows are created as a
+    /// surge rises and freed as it recedes, which is the whole of what there is to watch.
+    /// </remarks>
+    private System.Collections.Generic.IEnumerable<Transform3D> Inundated()
+    {
+        InundationTable wet = _world.Inundations;
+
+        for (int slot = 0; slot < wet.Rows.SlotCount; slot++)
+        {
+            if (wet.Rows.IsLive(slot))
+            {
+                yield return Tile(wet.East[slot], wet.North[slot], WaterMetres * 1.4f);
+            }
+        }
+    }
+
+    /// <summary>One Cell-sized flat slab, centred on the Cell.</summary>
+    private static Transform3D Tile(Cells east, Cells north, float height) =>
+        new(
+            Basis.FromScale(new Vector3(CellMetres, height, CellMetres)),
+            new Vector3(
+                (east.Raw + 0.5f) * CellMetres,
+                height * 0.5f,
+                -(north.Raw + 0.5f) * CellMetres));
+
+    /// <summary>
+    /// A 64-bit mix, so that neighbouring row ids do not produce neighbouring shapes.
+    /// </summary>
+    /// <remarks>
+    /// <b>splitmix64's finaliser.</b> Row ids are allocated in sequence, and the low bits of a
+    /// counter are a terrible source of variety — a street of Buildings created one after another
+    /// would step through the jitter range in order and read as a ramp rather than as a city.
+    /// </remarks>
+    private static ulong Scramble(ulong id)
+    {
+        ulong mixed = id + 0x9E3779B97F4A7C15UL;
+
+        mixed = (mixed ^ (mixed >> 30)) * 0xBF58476D1CE4E5B9UL;
+        mixed = (mixed ^ (mixed >> 27)) * 0x94D049BB133111EBUL;
+
+        return mixed ^ (mixed >> 31);
     }
 
     /// <summary>Every Traveller the last query placed.</summary>
-    private System.Collections.Generic.IEnumerable<Vector3> Travellers(int found)
+    private System.Collections.Generic.IEnumerable<Transform3D> Travellers(int found)
     {
         for (int agent = 0; agent < found; agent++)
         {
-            yield return new Vector3(
-                _agents[agent].East.Raw * MetresPerTile / 65_536f,
-                4f,
-                -_agents[agent].North.Raw * MetresPerTile / 65_536f);
+            yield return new Transform3D(
+                Basis.Identity,
+                new Vector3(
+                    _agents[agent].East.Raw * MetresPerTile / 65_536f,
+                    4f,
+                    -_agents[agent].North.Raw * MetresPerTile / 65_536f));
         }
     }
 
-    /// <summary>Writes positions into a MultiMesh and returns how many there were.</summary>
+    /// <summary>Writes transforms into a MultiMesh and returns how many there were.</summary>
+    /// <remarks>
+    /// ⚠ <b>A whole transform and not a position, since Buildings vary in size.</b> The scale is
+    /// composed with <see cref="Basis.FromScale"/> in the instance's own frame — <c>Basis.Scaled</c>
+    /// scales in the PARENT frame, which is what drew the first road network as north–south lines
+    /// with no cross-streets.
+    /// </remarks>
     private static int Fill(
-        MultiMeshInstance3D into, System.Collections.Generic.IEnumerable<Vector3> places)
+        MultiMeshInstance3D into,
+        System.Collections.Generic.IEnumerable<(Transform3D Where, Color What)> places)
+    {
+        int painted = 0;
+
+        foreach ((Transform3D where, Color what) in places)
+        {
+            if (painted >= into.Multimesh.InstanceCount)
+            {
+                break;
+            }
+
+            into.Multimesh.SetInstanceTransform(painted, where);
+            into.Multimesh.SetInstanceColor(painted++, what);
+        }
+
+        into.Multimesh.VisibleInstanceCount = painted;
+
+        return painted;
+    }
+
+    /// <inheritdoc cref="Fill(MultiMeshInstance3D, System.Collections.Generic.IEnumerable{ValueTuple{Transform3D, Color}})"/>
+    /// <summary>The same, for a layer whose colour belongs to the layer rather than the box.</summary>
+    private static int Fill(
+        MultiMeshInstance3D into, System.Collections.Generic.IEnumerable<Transform3D> places)
     {
         int count = 0;
 
-        foreach (Vector3 place in places)
+        foreach (Transform3D place in places)
         {
             if (count >= into.Multimesh.InstanceCount)
             {
                 break;
             }
 
-            into.Multimesh.SetInstanceTransform(count++, new Transform3D(Basis.Identity, place));
+            into.Multimesh.SetInstanceTransform(count++, place);
         }
 
         into.Multimesh.VisibleInstanceCount = count;
 
         return count;
+    }
+
+    /// <summary>
+    /// The sea, laid once — <b>the first thing the shell has ever drawn that is not the city.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>adr/0157</c> makes the water graph generator output, computed from a height field that is
+    /// then thrown away, so a Water Body's Cells are written before the first Tick and never move.
+    /// ⚠ <b>Only <c>coastal.toml</c> and <c>flooded.toml</c> have any</b>; every other shipped world
+    /// is inland and this lays nothing.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The Hazard Region is NOT drawn, and that is a gap rather than a decision.</b>
+    /// <c>01 §5.3</c> wants the floodplain shown as an ordinary overlay from the first Tick — it is
+    /// the posted price that makes riverside land a decision rather than an ambush — and the shell
+    /// has no overlay machinery at all. So what you can see here is the water and the flood, and
+    /// <b>not the risk</b>. <c>--flood</c> prints the exposure as a number in the meantime.
+    /// </para>
+    /// </remarks>
+    private void Flood()
+    {
+        WaterCellTable cells = _world.WaterCells;
+        int drawn = 0;
+
+        for (int slot = 0;
+             slot < cells.Rows.SlotCount && drawn < _water.Multimesh.InstanceCount;
+             slot++)
+        {
+            if (cells.Rows.IsLive(slot))
+            {
+                _water.Multimesh.SetInstanceTransform(
+                    drawn++, Tile(cells.East[slot], cells.North[slot], WaterMetres));
+            }
+        }
+
+        _water.Multimesh.VisibleInstanceCount = drawn;
+    }
+
+    /// <summary>What the weather is doing, or nothing at all when it is doing nothing.</summary>
+    /// <remarks>
+    /// ⚠ <b>Silent on a world with no <c>[disasters]</c></b>, which is every shipped Ruleset but
+    /// <c>flooded.toml</c> — a readout that said <c>floods 0</c> for ever would be a permanent line
+    /// about an absent mechanism.
+    /// </remarks>
+    private string Weather(int under)
+    {
+        if (!_world.Rules.Disasters.Stated)
+        {
+            return string.Empty;
+        }
+
+        int live = _world.Disasters.Rows.LiveCount;
+        int ruined = 0;
+        int swept = 0;
+
+        for (int slot = 0; slot < _world.Disasters.Rows.SlotCount; slot++)
+        {
+            if (_world.Disasters.Rows.IsLive(slot))
+            {
+                ruined += _world.Disasters.Ruined[slot];
+                swept += _world.Disasters.Swept[slot];
+            }
+        }
+
+        return live == 0
+            ? "   no flood"
+            : $"   FLOOD — {under:N0} Cells under water, {ruined:N0} ruined, {swept:N0} swept";
     }
 
     /// <summary>The Road Graph, laid once — the lattice is generated before the first frame.</summary>
@@ -444,12 +716,21 @@ public partial class Main : Node3D
     }
 
     /// <summary>One MultiMesh of boxes, coloured, sized, and ready to be filled per frame.</summary>
-    private MultiMeshInstance3D Layer(Color colour, Vector3 size)
+    /// <remarks>
+    /// ⚠ <b><paramref name="perInstance"/> makes the layer's colour a property of each box rather
+    /// than of the layer</b>, which needs three things set together: the mesh's albedo goes to white
+    /// so the instance colour is not tinted by it, the material reads the instance colour as albedo,
+    /// and the MultiMesh is told to carry one. ⚠ <b><c>UseColors</c> is set BEFORE
+    /// <c>InstanceCount</c></b> — Godot allocates the instance buffer on the count, and a format
+    /// changed afterwards is a resize the engine declines to do.
+    /// </remarks>
+    private MultiMeshInstance3D Layer(Color colour, Vector3 size, bool perInstance = false)
     {
         var mesh = new BoxMesh { Size = size };
         var material = new StandardMaterial3D
         {
-            AlbedoColor = colour,
+            AlbedoColor = perInstance ? Colors.White : colour,
+            VertexColorUseAsAlbedo = perInstance,
             Roughness = 0.9f,
         };
 
@@ -458,10 +739,12 @@ public partial class Main : Node3D
         var multi = new MultiMesh
         {
             TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
-            Mesh = mesh,
-            InstanceCount = 65_536,
-            VisibleInstanceCount = 0,
+            UseColors = perInstance,
         };
+
+        multi.Mesh = mesh;
+        multi.InstanceCount = 65_536;
+        multi.VisibleInstanceCount = 0;
 
         var node = new MultiMeshInstance3D { Multimesh = multi };
 
