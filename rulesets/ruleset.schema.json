@@ -10,6 +10,9 @@
       "items": {
         "type": "object",
         "properties": {
+          "abandoned_when_empty_after_days": {
+            "type": "integer"
+          },
           "arrivals_per_day": {
             "type": "integer"
           },
