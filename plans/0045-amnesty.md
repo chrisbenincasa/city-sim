@@ -49,6 +49,24 @@ To break one, delete its test in a commit saying why — visible, not hard.
 
 ---
 
+## Owed when the freeze lifts
+
+🔴 **THE AMNESTY COULD REFUSE A QUESTION AND HAD NOWHERE TO RECORD REFUSING IT.** Standing order 2
+seals `plans/0002` §A–§F, which is *the* document for **what needs answering** — so a question raised
+under the freeze had a correct home it was barred from, and the only place left was a findings
+section nobody reads once the board stops pointing here. ***A freeze with no deferred list loses
+exactly the questions it was right to postpone.***
+
+**This list is that sink. Each row is filed in [`0002`](0002-open-questions.md) on the day standing
+order 2 expires, and struck from here.** ⚠ **It is a queue and not a discussion** — a row names the
+question, its type and its trigger, and never argues it.
+
+| Question | Type | Trigger to open it | Raised |
+|---|---|---|---|
+| **What is the natural playing speed, and what does a player do at each rung?** Two sittings settled that ***slower rungs are necessary*** and nothing about where the natural one sits. What is owed is four things at once: the **phases** — early, mid, long — and whether they are a design claim or a description; the **cadences that have emerged** and which phase each belongs to; **which rung a player reaches for and when**; and whether *fun* and *legible* want the same rung. ⚠ ***A ladder is a list of speeds; this is a question about what a player is doing at each one.*** Goes to §C under `01-player-experience.md` | *arguable* — no number refutes *this is the speed the game is played at*, and `adr/0094`'s revisit trigger names **a person at the controls**, which is a sitting rather than a machine | **A game with phases in it.** Asking now answers from a city that has one phase, and ***a pacing question answered against a world with nothing to pace is a stopwatch reading rather than a design*** | 2026-08-31, the shell's second sitting |
+
+---
+
 ## Definition of done, amended
 
 Hexadecimal was satisfying `CLAUDE.md`'s *"something to look at"*.
@@ -308,3 +326,46 @@ about the city, and no Ruleset says it.
 🔴 **A new Tick consumer with no `plans/0013` row** (`adr/0073`) — the corpus freeze is why. ⚠ **It starts
 every school Trip on ONE Tick**; a school day has no hours key to partition on, and the Event Wheel is
 the successor.
+
+## What the second sitting found
+
+🔴 **BUILDINGS WERE DRAWN IN THE MIDDLE OF THE ROAD, AND ONLY A PICTURE COULD SAY SO.** A Lot's
+`east`/`north` is its **address point on the Segment**, not a plot of ground beside it — Lots hang on
+Segments and have no depth (`adr/0078`) — and which kerb it belongs to lives in a **separate `side`
+column** the shell was discarding. Every hash, every census and every ASCII dump was correct
+throughout: they all ask *which Lot*, and none of them asks *where does it stand*. ***The one
+question a renderer asks is the one nothing else in the build had ever asked.***
+
+🔴 **A DAY TAKING 4m16s READ AS A STUCK `Day` COUNTER, AND THE READOUT'S OWN NUMBER IS WHY.** It
+printed `338x real time`, which is true — 8 Ticks/s × 42.19 s — and a person reading *338×* does not
+then expect to wait four and a quarter minutes for tomorrow. **The reassuring figure was the one on
+screen.** ⚠ ***A speed is a rate and a person waiting is holding a duration***, which is `adr/0059`'s
+*state the duration, derive the rate* arriving in a readout rather than in a Ruleset. The rung now
+prints **a Day in 4m16s** beside the multiple.
+
+⚠ **`BOROUGH_SHOT` did not work on a machine with no screen**, which is the only thing it is for: the
+viewport has no texture under `--headless`, so reaching through it threw before both the print and
+the quit. ***A run neither said it had arrived nor stopped***, and the timing attempt against it read
+its own `timeout` back as the answer.
+
+🔴 **AND THE SECOND ATTEMPT DID IT AGAIN AFTER THE GUARD LANDED, FOR AN UNRELATED REASON.** The
+pipeline was `godot | grep -m1`: **`grep` exits on its match and `godot` does not notice**, so the
+run continued to the `timeout` and the elapsed figure was the killer's, not the city's — **400s,
+then 600s, neither of them a measurement.** ⚠ **The second reading was nearly reported as evidence
+of a slowdown that does not exist.** ***A fire-once-and-quit trigger can only be asked "tell me when
+you pass N", and a stopwatch wrapped around it cannot tell arrival from being killed***; an
+instrument that prints as it goes distinguishes them by construction. `plans/0032`'s axis, arriving
+one level down: this was an **instrument** all along, and it was built in the shape of an assertion.
+
+✅ **MEASURED, ONCE THE INSTRUMENT REPORTED CONTINUOUSLY: 8.0 Ticks/s, FLAT.** 128 Ticks per 16 s
+across the run, frame time constant, and `_owed` **draining rather than filling** — the host is far
+ahead of the ladder, and a Tick costs ~3 ms in Debug at 4,000 Citizens against a top rung of 32
+Ticks/s. **So a Day is 4m16s by measurement and not only by arithmetic, and nothing degrades as the
+city fills.** ⚠ **Debug, headless, and not the reference machine** (`adr/0106`) — it is a check that
+the loop delivers its rung, never a figure about the city.
+
+🔴 **THE PACING QUESTION IS OPEN AND IS BIGGER THAN THE LADDER.** Watching motion settled that
+**slower rungs are necessary** and settled nothing about where the *natural* rung sits. ***That is
+design, and it is not paid here.*** **It is queued in *Owed when the freeze lifts* above, which is
+where it is stated in full** — ⚠ **restating it here would be two copies of one question in one
+document**, which is `plans/0012` **Cause 1** written by hand.

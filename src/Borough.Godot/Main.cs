@@ -176,8 +176,22 @@ public partial class Main : Node3D
                 System.Environment.GetEnvironmentVariable("BOROUGH_SHOT_AT") ?? "750"))
         {
             RenderingServer.ForceDraw();
-            GetViewport().GetTexture().GetImage().SavePng(shot);
-            GD.Print($"wrote {shot} at Tick {_world.Tick.Raw}");
+
+            // ⚠ THE VIEWPORT HAS NO TEXTURE UNDER --headless, and this block is the one thing in
+            // the shell written for a machine with no screen. Reaching through the null threw
+            // before the Print and before the Quit, so the run neither said it had arrived nor
+            // stopped -- it spewed a stack trace every frame until something killed it, and a
+            // timing run against it read the killer's timeout back as the answer.
+            if (GetViewport().GetTexture() is { } texture)
+            {
+                texture.GetImage().SavePng(shot);
+                GD.Print($"wrote {shot} at Tick {_world.Tick.Raw}");
+            }
+            else
+            {
+                GD.Print($"no viewport texture; no picture written at Tick {_world.Tick.Raw}");
+            }
+
             GetTree().Quit();
         }
     }
@@ -284,8 +298,33 @@ public partial class Main : Node3D
             + $"{ofDay * 24 / (ulong)Ticks.PerDay:00}:{ofDay * 1440 / (ulong)Ticks.PerDay % 60:00}\n"
             + $"Citizens {_world.Citizens.Rows.LiveCount:N0}   Buildings {drawn:N0}   "
             + $"travelling {moving:N0}\n"
-            + $"speed {Rungs[_rung]} — {Ladder[_rung] * SecondsPerTick:N0}x real time   "
+            + $"speed {Pace(_rung)}   "
             + "[ ] speed, space pause, 1-4, drag pan, wheel zoom, esc quit";
+    }
+
+    /// <summary>
+    /// What a rung is called, <b>how long it makes a Day</b>, and its multiple of real time.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>THE DAY'S LENGTH IS HERE BECAUSE THE MULTIPLE OF REAL TIME WAS MISLEADING ON ITS OWN.</b>
+    /// <c>1×</c> is 8 Ticks/s and reads as <em>338× real time</em>, which is correct and invites a
+    /// person to expect tomorrow shortly; a Day is 2048 Ticks and therefore <b>4m16s</b>, and the
+    /// reassuring number is the one that was on screen. It was read as the <c>Day</c> counter being
+    /// stuck. ***A speed is a rate and a person waiting is holding a duration***, which is
+    /// <c>adr/0059</c>'s *state the duration, derive the rate* arriving in a readout — and
+    /// <c>adr/0094</c>'s reason for a Day being a sampling rate rather than a length of life.
+    /// </remarks>
+    private static string Pace(int rung)
+    {
+        if (Ladder[rung] <= 0.0)
+        {
+            return Rungs[rung];
+        }
+
+        int seconds = (int)Math.Round(Ticks.PerDay / Ladder[rung]);
+        string day = seconds < 60 ? $"{seconds}s" : $"{seconds / 60}m{seconds % 60:00}s";
+
+        return $"{Rungs[rung]} — a Day in {day}, {Ladder[rung] * SecondsPerTick:N0}x real time";
     }
 
     /// <summary>Every standing Building, at its Lot.</summary>
