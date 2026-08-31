@@ -90,6 +90,29 @@ finds only the mechanisms that HAVE tests, and nothing unbuilt has one.** Every 
 something that already ran. ***This page was opened to build the simulation, not to finish it.***
 The rows below were found by asking the code what is missing instead.
 
+🔴 **AND IT HAPPENED A SECOND TIME ON 2026-08-31, WITH THE SAME CAUSE WEARING A DIFFERENT COAT.**
+Rows 15–18 were written and re-scoped within the hour. This time they were not repairs — every one
+named a mechanism that genuinely does not exist — but every one was ***named by a symbol***: a column
+with no reader, a call site that only ever fires one way, a remark quoting its own missing half.
+⚠ **A queue assembled from symbols finds only what fits in a `grep`, and a swath does not.** The first
+list found things with tests; the second found things with names. ***Neither question asks what the
+project is missing at the size of a milestone.*** Asking that one instead produced 15a–15e: the shell
+issues **no `Command` at all** — `Command`, `CommandKind` and `TickInput` are zero references in
+`Main.cs` — so all six player verbs are applied in `Simulation` and reachable only from an Input Log
+or a test.
+
+**The risk 15 retires:** *that the design's central claim has never been tested by a person.* Pillar 3
+is **govern, don't place**; nobody can govern, and nobody can place. Every pillar and every anti-goal
+in `00` is asserted in prose and unexercised, and a city nobody can act on is a simulation rather than
+a game. ⚠ **Three other swaths were sized and passed over**, each verified rather than assumed, and
+they are the next candidates: **traffic's second tier** (`Lane`, `Stress`, `Microscopic` are zero
+non-comment references in `Borough.Core`, and `RoadSegmentTable.Fidelity` is a `Derived` column
+`RoadGraph` sets to 0 and nothing ever raises — row 2's shape again); **the shopping occasion**
+(`TripPurpose.Shopping` is declared with a full `adr/0067` remark and ***nothing in `src/` starts
+one***, so every Commute Budget rung and congestion figure in the corpus is calibrated against a
+single generator); and **the eye's other half** (`ChunkAggregates` 0 references, `Notification` 0
+non-comment references, **19 headless dumps against a three-line on-screen readout**).
+
 | | Work | State |
 |---|---|---|
 | 1 | `CorpusBudgetTests`, this page, the `CLAUDE.md` pointer | ✅ 26-08 |
@@ -107,10 +130,16 @@ The rows below were found by asking the code what is missing instead.
 | 12 | **Disasters.** `coastal.toml` carries a Hazard Region and **nothing fires on it** | ✅ 31-08 |
 | 13 | The `0046` loose ends — the dwelling stock's missing sink, `aged.toml`'s narrow windows. ⚠ **Small on purpose and last on purpose**: `StageDumpTests` pins both with tests that assert the defect, so neither can be lost | ✅ 31-08 |
 | 14 | **The audit.** Walk this page for what it recorded as owed and never paid. ⚠ **A findings section is not a ledger**, and a debt written in a narrative paragraph is a debt nobody sums | ✅ 31-08 |
-| 15 | 🔴 **A Need has no consequence.** `Sustenance` and `Satisfaction` are saved, hashed, degraded on a duration and recovered on supply — and **the only thing in `src/` that reads either is `Evidence`**, which is a panel. ***A Household starves to the floor and nothing in the city is different.*** ⚠ **After 9 and 10 and because of them**: those built the reading, and a reading nothing acts on is an instrument rather than a mechanism | |
-| 16 | 🔴 **Nobody moves house.** Four call sites reach `World.Unplace` — over-capacity eviction, the premises emptying, the tenant's decline threshold, and shedding — and ***every one of them is the Household LOSING its home***. A housed Household can never re-enter the Unplaced Pool by choosing to. ⚠ **This is why `choosy.toml` had to be built on `declining.toml`**: a preference about where to live is unreachable for anybody already living somewhere, and `adr/0011` calls life stage *"one of the primary drivers of residential mobility"* against a build that has none | |
-| 17 | 🔴 **A dwelling costs nothing.** `PlacementEngine`'s own remark: *"acceptance needs rent, a commute and a tolerance; none exists, so any member would take any dwelling."* ⚠ **One of the three shipped** — `EmploymentEngine` says *"this is where the commute exists"* — so the sentence is now two thirds true rather than wholly. ***`rent` is `adr/0027`'s third preference axis and the thing that would make 16's move a decision instead of a shuffle*** | |
-| 18 | ⚠ **The Day is a comb, and two mechanisms cut the teeth.** `CommuteRoster.ShiftStartOf` sums two draws and halves them, then rounds the result to an **hour**; `ServiceEngine.Attend` returns unless `tick.Raw % Ticks.PerDay == 0`, so ***every school Trip in the city starts on one Tick of 2,048***. Measured on `minimal.toml` at 1,000 Citizens: **1,341 of 2,047 Ticks with nobody out at all**, longest empty run 486. ⚠ **Last, because it is the only row here that repairs something that already runs** | |
+| 15a | 🔴 **Picking.** A click becomes a Tile. The camera is an orbit, and **nothing in the shell converts a screen position to anything at all** — no ray, no ground-plane intersection, no Tile. ⚠ **Every row below is blocked on this one**, and it carries a hover readout of its own: ***a verb you cannot aim is a verb you cannot test***, so what you are pointing at has to be on screen before anything commits |  |
+| 15b | 🔴 **`Zone`, `Connect`, `Demolish` — the three that change the ground.** Paint a zone over Lots; lay a Street between two picked points; clear abandoned stock. ⚠ **`Demolish` is over abandoned stock ONLY** (`adr/0091` refuses to price a compulsory purchase), so the shell has to **refuse the occupied half legibly** rather than let `Simulation` throw |  |
+| 15c | 🔴 **`Govern` and `Service` — the two that change the rules.** The tuner already exists and already reloads a Ruleset, so `Govern` is a dial per `[[policy]]` that writes a **`Command`** instead of a file. ⚠ **`Service` is `01 §5`'s acknowledged placement exception** and the reason `schooled.toml`'s school is never built: a run with no `--schools` builds none, so ***the only world with an `education` Need has nothing that answers it*** |  |
+| 15d | 🔴 **The session is a log, and this is the row that makes the other three worth anything.** The shell writes `.borough` through `Borough.Formats` — ⚠ **using the codec and never implementing one** (`adr/0039`). ***A verb that is not in the log is a state change no replay reproduces and no State Hash divergence explains***, which is the sentence `Populate` and `Arrive` each already carry in their own remark. **The proof is the round trip**: a city played by hand in the shell, replayed in `Borough.Headless`, same State Hash |  |
+| 15e | ⚠ **A refusal reaches the player as a sentence.** Every verb's refusals are `InvalidOperationException` today, which is correct for a log and wrong for a person. ⚠ **`Core` returns ids and numbers, never strings**, so the shell owns every word, resolved through the Ruleset — ***which is the real leak vector `CLAUDE.md` names***: not `using Godot;`, but a method that returns a formatted string because a panel wanted one |  |
+| 15f | 🔴 **A CLASS WENT MISSING FROM THE COMMIT GATE AND NOTHING NOTICED.** `RulesetSchemaTests` — two tests — was absent from every lane run on 2026-08-31 until 16:49, including **the one that gated `c2e9ff3` while the class was already failing on that tree**. Ruled out: the `tier!=instrument` filter (the class runs and fails under it), a skip (0 in every run) and a missing file. ⚠ **The cause is UNKNOWN and this row is not the fix — it is the instrument.** ***Nothing in the suite asserts how many tests ran***: `TierBudgetTests` times them and `TierDeclarationTests` counts the instrument share, and neither would see a class disappear |  |
+| 16 | 🔴 **A Need has no consequence.** `Sustenance` and `Satisfaction` are saved, hashed, degraded on a duration and recovered on supply — and **the only thing in `src/` that reads either is `Evidence`**, which is a panel. ***A Household starves to the floor and nothing in the city is different.*** ⚠ **After 9 and 10 and because of them**: those built the reading, and a reading nothing acts on is an instrument rather than a mechanism |  |
+| 17 | 🔴 **Nobody moves house.** Four call sites reach `World.Unplace` — over-capacity eviction, the premises emptying, the tenant's decline threshold, and shedding — and ***every one of them is the Household LOSING its home***. A housed Household can never re-enter the Unplaced Pool by choosing to. ⚠ **This is why `choosy.toml` had to be built on `declining.toml`**: a preference about where to live is unreachable for anybody already living somewhere, and `adr/0011` calls life stage *"one of the primary drivers of residential mobility"* against a build that has none |  |
+| 18 | 🔴 **A dwelling costs nothing.** `PlacementEngine`'s own remark: *"acceptance needs rent, a commute and a tolerance; none exists, so any member would take any dwelling."* ⚠ **One of the three shipped** — `EmploymentEngine` says *"this is where the commute exists"* — so the sentence is now two thirds true rather than wholly. ***`rent` is `adr/0027`'s third preference axis and the thing that would make 17's move a decision instead of a shuffle*** |  |
+| 19 | ⚠ **The Day is a comb, and two mechanisms cut the teeth.** `CommuteRoster.ShiftStartOf` sums two draws and halves them, then rounds the result to an **hour**; `ServiceEngine.Attend` returns unless `tick.Raw % Ticks.PerDay == 0`, so ***every school Trip in the city starts on one Tick of 2,048***. Measured on `minimal.toml` at 1,000 Citizens: **1,341 of 2,047 Ticks with nobody out at all**, longest empty run 486. ⚠ **Last, because it is the only row here that repairs something that already runs** |  |
 
 Items 2 and 3 cost one day and added no Ruleset key, number or ADR. They moved three golden
 baselines: a hashed column stopped being zero (`adr/0100`).
@@ -659,3 +688,24 @@ hour-granular Shift start and a school pass that fires on one Tick in 2,048 — 
 key and a loader refusal, which is queue work rather than audit work. Re-measured live on
 `minimal.toml` at 1,000 Citizens: **1,341 of 2,047 Ticks with nobody travelling**, longest empty runs
 486, 341, 172. ***It is not stale.***
+
+🔴 **AND THE AUDIT'S OWN GATE HAD A HOLE IN IT, FOUND BY WALKING INTO IT.** `RulesetSchemaTests`
+went red on the first lane run after picking landed — *`building.abandoned_when_empty_after_days`
+read by the loader and absent from the schema*, which is **row 13's debt**: the key shipped and
+`rulesets/ruleset.schema.json` was never regenerated. ⚠ **The alarming half is not the stale file.**
+The class **fails on `c2e9ff3`'s own tree** — proven by stashing and running it — and the lane that
+gated that commit reported **`Failed: 0, Total: 2496`**. The lane now reports **2,498**, and the
+delta is exactly this class's two tests. ***It was not collected, and the run said everything
+passed.***
+
+⚠ **Three causes were ruled out and none of them was it**: the `tier!=instrument` filter (the class
+runs, and fails, under exactly that expression), a skip (`Skipped: 0` in every run today) and a
+missing file (the test asserts its existence separately, with its own message). 🔴 **The cause is
+still unknown, and saying so is the finding** — [`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md)'s
+discipline applied to a defect rather than a mechanism: *unexplained* is not *explained away*.
+
+🔴 **What it exposes is that the suite counts everything about itself except how much of itself
+ran.** `TierBudgetTests` times every test and fails a slow one; `TierDeclarationTests` refuses a
+third tier and holds the instrument share under a quarter. **Neither would notice a class vanishing
+from the run**, because both reason about the tests they were handed. ***A gate that cannot say how
+many tests it ran cannot tell a green run from a short one***, which is row 15f.

@@ -8,6 +8,7 @@ using Borough.Core.Movement;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
+using Borough.Core.Tables;
 using Borough.Formats;
 using Godot;
 
@@ -204,6 +205,10 @@ public partial class Main : Node3D
     private MultiMeshInstance3D _water = null!;
     private MultiMeshInstance3D _flood = null!;
     private MultiMeshInstance3D _hazard = null!;
+    private MultiMeshInstance3D _cursor = null!;
+
+    /// <summary>Every human-readable name in the Ruleset. <b>The shell owns these, not the core.</b></summary>
+    private RulesetNames _names = RulesetNames.None;
     private Label _readout = null!;
     private VisibleAgent[] _agents = new VisibleAgent[8192];
     private double _owed;
@@ -307,6 +312,7 @@ public partial class Main : Node3D
             return;
         }
 
+        _names = loaded.Names;
         _citizens = citizens;
         _seed = 0;
 
@@ -345,6 +351,12 @@ public partial class Main : Node3D
         // point of the height: the risk is a property of the GROUND, so a Street laid across a
         // floodplain must read as a Street on a floodplain and not as a floodplain interrupted.
         _hazard = Layer(new Color(0.34f, 0.25f, 0.17f), new Vector3(1f, 1f, 1f));
+
+        // WHAT THE CURSOR IS OVER, and it is a CELL rather than a Tile on purpose. A Tile is 4 m
+        // and vanishes at any zoom that shows a neighbourhood; a Cell is 128 m and is the box the
+        // pick actually resolves Buildings against (BuildingResidency.In). ***A marker that is not
+        // the thing the query used is a marker that lies at the edges.***
+        _cursor = Layer(new Color(0.95f, 0.80f, 0.25f), new Vector3(1f, 1f, 1f));
 
         // but they sit at almost the same height, and painting the standing water last is what makes
         // a rising tide read as arriving rather than as flickering.
@@ -400,6 +412,16 @@ public partial class Main : Node3D
         // Tick where the loop above used to guarantee it could not. An alpha over 1 would place a
         // Traveller past the Address it is walking to.
         _alpha = new Ratio((int)(Math.Min(_owed, 0.999_99) * 65_536));
+
+        // A MACHINE WITH NO HANDS HAS ITS CURSOR AT (0,0), which is the sky or a corner of the map,
+        // so every photograph would show the pick refusing rather than the pick working. Warping to
+        // the middle of the viewport is BOROUGH_SHOT's own bargain -- the shot exists because there
+        // is nobody to press the key -- and it is confined to the same env var, so a person's cursor
+        // is never moved out from under them.
+        if (System.Environment.GetEnvironmentVariable("BOROUGH_SHOT") is not null)
+        {
+            Input.WarpMouse(GetViewport().GetVisibleRect().Size * 0.5f);
+        }
 
         Draw(_alpha);
         Drive();
@@ -1124,6 +1146,7 @@ public partial class Main : Node3D
         int under = Fill(_flood, Anonymous(Inundated()));
 
         Fill(_travellers, Travellers(moving), _travellerIds);
+        Cursor();
 
         ulong tick = _world.Tick.Raw;
         ulong ofDay = tick % (ulong)Ticks.PerDay;
@@ -1135,7 +1158,8 @@ public partial class Main : Node3D
             + $"Citizens {_world.Citizens.Rows.LiveCount:N0}   Buildings {drawn:N0}   "
             + $"travelling {moving:N0}{Weather(under)}\n"
             + $"speed {Pace(_rung)}   "
-            + "[ ] speed, space pause, 1-4, drag pan, q/e turn, -/= zoom, g roads, c cells, tab tune, esc quit";
+            + "[ ] speed, space pause, 1-4, drag pan, q/e turn, -/= zoom, g roads, c cells, tab tune, esc quit\n"
+            + Pointing();
     }
 
     /// <summary>
@@ -1490,6 +1514,140 @@ public partial class Main : Node3D
         into.Multimesh.VisibleInstanceCount = count;
 
         return count;
+    }
+
+    // ---- picking ---------------------------------------------------------------------------------
+
+    /// <summary>
+    /// Where the cursor meets the ground, in Tiles — <b>the shell's first screen-to-world query, and
+    /// every player verb is blocked on it.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A ray against the ground plane and nothing more.</b> Godot's physics picking would want
+    /// collision shapes on 262,144 MultiMesh instances, which is a body per box for a question that
+    /// is one division — and <c>05 §2</c>'s boundary says the shell reads the world rather than
+    /// modelling it twice.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The horizon is REFUSED rather than clamped.</b> A ray that barely descends does meet the
+    /// plane, thousands of Tiles away and behind the visible city, so clamping would hand back a
+    /// confident answer about somewhere nobody is looking. ***A pick that cannot fail is a pick
+    /// nobody can trust***, which is why this returns null and the readout says so.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It answers in Tiles and the city is what resolves them.</b> The Building boxes on screen
+    /// are the renderer's own invention — a frontage and a depth composed here, from a Lot that has
+    /// neither (<c>adr/0078</c>) — so picking against the drawn geometry would pick the fiction.
+    /// <see cref="Pointing"/> takes the Tile to the Cell and asks
+    /// <see cref="BuildingResidency.In"/>, which is the query the simulation already uses.
+    /// </para>
+    /// </remarks>
+    /// <returns>The Tile under the cursor, or <c>null</c> for the sky and for off-map ground.</returns>
+    private (Tiles East, Tiles North)? Aim()
+    {
+        Vector2 at = GetViewport().GetMousePosition();
+        Vector3 from = _camera.ProjectRayOrigin(at);
+        Vector3 along = _camera.ProjectRayNormal(at);
+
+        if (along.Y > -0.001f)
+        {
+            return null;
+        }
+
+        float toGround = -from.Y / along.Y;
+        float east = (from.X + (along.X * toGround)) / MetresPerTile;
+        float north = -(from.Z + (along.Z * toGround)) / MetresPerTile;
+
+        if (east < 0f || north < 0f
+            || east >= CellGrid.WorldTiles || north >= CellGrid.WorldTiles)
+        {
+            return null;
+        }
+
+        return (new Tiles((int)east), new Tiles((int)north));
+    }
+
+    /// <summary>What stands where the cursor is, as a sentence a person reads.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Every string here is the shell's</b> (<c>adr/0002</c>): the core hands back a kind id and
+    /// this resolves it through <see cref="RulesetNames"/>. ***That is the leak vector
+    /// <c>CLAUDE.md</c> actually names*** — not <c>using Godot;</c>, but a core method that returns a
+    /// formatted string because a panel wanted one.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Nearest within the Cell, and the Cell is the whole search.</b> A Lot is a point on a
+    /// Segment rather than a plot of ground, so *containment* is not a question the city can answer —
+    /// what it can answer is which Buildings are resident in a Cell, which is
+    /// <see cref="BuildingResidency"/>'s own index. A Cell is 128 m and a block is 32 Tiles, so the
+    /// nearest Building in the picked Cell is the one the cursor is over at any zoom worth clicking
+    /// at, and the readout names the distance so a person can see when it is not.
+    /// </para>
+    /// </remarks>
+    private string Pointing()
+    {
+        if (Aim() is not { } at)
+        {
+            return "pointing off the map";
+        }
+
+        Cells east = CellGrid.ToCells(at.East);
+        Cells north = CellGrid.ToCells(at.North);
+        var where = $"Tile ({at.East.Raw:N0},{at.North.Raw:N0})  Cell ({east.Raw},{north.Raw})";
+
+        Span<int> found = stackalloc int[64];
+        int count = _world.BuildingsInCells.In(
+            CellRect.At(east, north), _world.Buildings, found);
+
+        LotTable lots = _world.Lots;
+        int nearest = Rows.NoSlot;
+        long best = long.MaxValue;
+
+        for (int seen = 0; seen < count; seen++)
+        {
+            if (!lots.Rows.TryResolve(_world.Buildings.Lot[found[seen]], out int lot))
+            {
+                continue;
+            }
+
+            long de = lots.East[lot].Raw - at.East.Raw;
+            long dn = lots.North[lot].Raw - at.North.Raw;
+            long away = (de * de) + (dn * dn);
+
+            if (away < best)
+            {
+                best = away;
+                nearest = found[seen];
+            }
+        }
+
+        if (nearest == Rows.NoSlot)
+        {
+            return $"{where}  —  open ground";
+        }
+
+        byte kind = _world.Buildings.Kind[nearest];
+        string named = _names.Kind(kind) ?? $"kind {kind}";
+        int held = _world.Occupants.Length(nearest);
+        string state = _world.Buildings.IsAbandoned(nearest) ? "abandoned" : $"{held} households";
+
+        return $"{where}  —  {named}, {state}, {Math.Sqrt(best):N0} Tiles off";
+    }
+
+    /// <summary>The Cell under the cursor, so a person can see what they are aiming at.</summary>
+    private void Cursor()
+    {
+        if (Aim() is not { } at)
+        {
+            _cursor.Multimesh.VisibleInstanceCount = 0;
+
+            return;
+        }
+
+        _cursor.Multimesh.SetInstanceTransform(
+            0, Tile(CellGrid.ToCells(at.East), CellGrid.ToCells(at.North), 0.03f));
+        _cursor.Multimesh.VisibleInstanceCount = 1;
     }
 
     /// <summary>
@@ -2167,6 +2325,7 @@ public partial class Main : Node3D
         }
 
         _toml = toml;
+        _names = loaded.Names;
         _citizens = citizens;
         _seed = seed;
 
