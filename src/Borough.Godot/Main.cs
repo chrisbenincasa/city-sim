@@ -41,34 +41,34 @@ public partial class Main : Node3D
     private const double SecondsPerTick = 86_400.0 / Ticks.PerDay;
 
     /// <summary>
-    /// The speed ladder, in Ticks a second. <b>1× is 16, and the four rungs below 0.5× are this
-    /// shell's rather than <c>01 §1</c>'s.</b>
+    /// The speed ladder, in Ticks a second. 🔴 <b>A PLAYTEST INSTRUMENT AND NOT A RATIFIED LADDER.</b>
     /// </summary>
     /// <remarks>
     /// <para>
-    /// 🔴 <b>THE SHIPPED LADDER'S SLOWEST RUNG IS TOO FAST TO WATCH A PERSON, BY A FACTOR OF ABOUT
-    /// SIXTEEN.</b> <c>TICKS_PER_DAY = 2048</c> makes a Tick 42.19 s of in-world time, so 1× runs the
-    /// world at <b>675× real time</b>: a 20-minute commute is <b>1.8 real seconds</b>, a walker
-    /// crosses a 128 m block in <b>0.14 s</b>, and a car crosses one in <b>0.014 s</b> — under a
-    /// frame at 60 Hz, at <em>every</em> rung <c>01 §1</c> offers.
+    /// ⚠ <b>This disagrees with <c>01 §1</c> on purpose, and <c>01 §1</c> is still the design.</b>
+    /// Every rung here is <b>half</b> that table's Ticks/s, so 1× is 8 rather than 16 and a Day is
+    /// 4m16s rather than 2m08s. The tick rate is host-side and runtime-only (<c>CLAUDE.md</c> →
+    /// Constants), so nothing here moves a hash or settles anything. ***It is a dial to play with,
+    /// and what it is for is producing the playtest <c>adr/0094</c>'s revisit trigger asks for.***
     /// </para>
     /// <para>
-    /// ⚠ <b><c>01 §1</c> says <em>traffic is visually truthful</em> at 0.5× and that is wrong by
-    /// 337×.</b> Truthfulness is by definition 1× <em>real</em> time, which is <b>0.0237 Ticks/s</b>
-    /// — 1/675 of the ladder's 1×. <c>§7</c> records a concession that an untouched speed control
-    /// shows traffic <em>"roughly twice as fast as its apparent size warrants"</em>; the figure is
-    /// 675. ***A two-minute Day and truthful traffic are 675× apart and no one ladder holds both.***
+    /// 🔴 <b>THE LADDER'S SLOWEST SHIPPED RUNG IS ~340× TOO FAST TO SEE A PERSON MOVE.</b> A Tick is
+    /// 42.19 s of in-world time, so <c>01 §1</c>'s 1× runs the world at <b>675× real time</b>: a
+    /// 20-minute commute is <b>1.8 real seconds</b> and a car crosses a 128 m block in <b>0.014 s</b>,
+    /// under a frame at 60 Hz. Visual truthfulness is 1× <em>real</em> time — <b>0.0237 Ticks/s</b>.
+    /// Filed against <c>01 §1</c> and <c>§7</c> in <c>plans/0012</c>.
     /// </para>
     /// <para>
     /// <b>1 Tick/s is the rung at which a walker is watchable</b> — a block in 2.2 s, a commute in
-    /// 28 s, a Day in 34 minutes. Below it a Day stops being a sitting.
+    /// 28 s, a Day in 34 minutes — and it is kept as <c>1/8×</c> because it is the one a person
+    /// actually looked at and liked.
     /// </para>
     /// </remarks>
-    private static readonly double[] Ladder = [0.0, 0.25, 1.0, 4.0, 8.0, 16.0, 32.0, 48.0, 64.0];
+    private static readonly double[] Ladder = [0.0, 0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 24.0, 32.0];
 
-    /// <summary>What each rung is called, against <c>01 §1</c>'s 1× of 16 Ticks a second.</summary>
+    /// <summary>What each rung is called. <c>1×</c> is this shell's, at half <c>01 §1</c>'s rate.</summary>
     private static readonly string[] Rungs =
-        ["paused", "1/64x", "1/16x", "1/4x", "0.5x", "1x", "2x", "3x", "4x"];
+        ["paused", "1/16x", "1/8x", "1/4x", "0.5x", "1x", "2x", "3x", "4x"];
 
     /// <summary>The rung <c>space</c> returns to, and the one a fresh shell opens at.</summary>
     private const int DesignSpeed = 5;
@@ -84,13 +84,30 @@ public partial class Main : Node3D
     private int _rung = DesignSpeed;
     private int _resume = DesignSpeed;
     private int _frame;
+    private string _rulesetPath = "rulesets/minimal.toml";
+    private Camera3D _camera = null!;
+    private float _span = 512f;
 
     public override void _Ready()
     {
-        int citizens = (int)(GetMeta("citizens", 1_000));
-        string path = ProjectSettings.GlobalizePath("res://../../rulesets/minimal.toml");
+        (_rulesetPath, int citizens) = Arguments();
 
-        RulesetLoadResult loaded = RulesetLoader.Parse(File.ReadAllText(path), "minimal.toml");
+        string path = Path.IsPathRooted(_rulesetPath)
+            ? _rulesetPath
+            : ProjectSettings.GlobalizePath($"res://../../{_rulesetPath}");
+
+        if (!File.Exists(path))
+        {
+            GD.PrintErr($"no Ruleset at {path}. Pass one after Godot's own --, as in:");
+            GD.PrintErr("  godot --path src/Borough.Godot -- --ruleset rulesets/congested.toml "
+                + "--citizens 4000");
+            GetTree().Quit(2);
+
+            return;
+        }
+
+        RulesetLoadResult loaded = RulesetLoader.Parse(
+            File.ReadAllText(path), Path.GetFileName(path));
 
         if (loaded.Ruleset is null)
         {
@@ -129,18 +146,51 @@ public partial class Main : Node3D
         Draw(new Ratio((int)(_owed * 65_536)));
 
         // A picture of the frame, for a machine with no screen. Nothing reads it back.
+        //
+        // ⚠ TRIGGERED ON THE WORLD'S TICK AND NOT ON A FRAME COUNT, so two Rulesets photographed at
+        // the same number are photographed at the same moment in the city rather than after the same
+        // amount of the operator's patience.
         if (System.Environment.GetEnvironmentVariable("BOROUGH_SHOT") is { } shot
-            && ++_frame == int.Parse(System.Environment.GetEnvironmentVariable("BOROUGH_SHOT_AT") ?? "120"))
+            && _world.Tick.Raw >= ulong.Parse(
+                System.Environment.GetEnvironmentVariable("BOROUGH_SHOT_AT") ?? "750"))
         {
             RenderingServer.ForceDraw();
             GetViewport().GetTexture().GetImage().SavePng(shot);
-            GD.Print($"wrote {shot}");
+            GD.Print($"wrote {shot} at Tick {_world.Tick.Raw}");
             GetTree().Quit();
         }
     }
 
     public override void _UnhandledInput(InputEvent @event)
     {
+        if (@event is InputEventMouseButton { Pressed: true } click)
+        {
+            // Dollying along the camera's own forward axis rather than changing the field of view:
+            // a zoom that moves the eye keeps the perspective the picture was framed with.
+            if (click.ButtonIndex == MouseButton.WheelUp)
+            {
+                _camera.Position += _camera.Basis.Z * -_span * 0.08f;
+            }
+            else if (click.ButtonIndex == MouseButton.WheelDown)
+            {
+                _camera.Position += _camera.Basis.Z * _span * 0.08f;
+            }
+
+            return;
+        }
+
+        // Dragging with any button held pans across the ground, never through it, so the city
+        // cannot be lost behind the camera by a careless drag.
+        if (@event is InputEventMouseMotion drag && drag.ButtonMask != 0)
+        {
+            float reach = _span * 0.0016f;
+
+            _camera.Position += new Vector3(
+                -drag.Relative.X * reach, 0f, -drag.Relative.Y * reach);
+
+            return;
+        }
+
         if (@event is not InputEventKey { Pressed: true } key)
         {
             return;
@@ -166,6 +216,36 @@ public partial class Main : Node3D
         }
     }
 
+    /// <summary>
+    /// <c>--ruleset PATH</c> and <c>--citizens N</c>, after Godot's own <c>--</c>.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>A shell reads the command line and the core does not.</b> Every string here is this
+    /// project's (<c>adr/0002</c>), and a bad one is reported rather than defaulted, because a
+    /// silently-substituted world is a picture of somewhere else.
+    /// </remarks>
+    private static (string Ruleset, int Citizens) Arguments()
+    {
+        string ruleset = "rulesets/minimal.toml";
+        int citizens = 1_000;
+        string[] given = OS.GetCmdlineUserArgs();
+
+        for (int at = 0; at + 1 < given.Length; at++)
+        {
+            if (given[at] == "--ruleset")
+            {
+                ruleset = given[at + 1];
+            }
+            else if (given[at] == "--citizens"
+                && int.TryParse(given[at + 1], out int asked) && asked > 0)
+            {
+                citizens = asked;
+            }
+        }
+
+        return (ruleset, citizens);
+    }
+
     /// <summary>Reads the world into the two meshes that change, and writes the readout.</summary>
     private void Draw(Ratio alpha)
     {
@@ -178,12 +258,13 @@ public partial class Main : Node3D
         ulong ofDay = tick % (ulong)Ticks.PerDay;
 
         _readout.Text =
-            $"Tick {tick:N0}   Day {tick / (ulong)Ticks.PerDay}   "
+            $"{System.IO.Path.GetFileName(_rulesetPath)}   Tick {tick:N0}   "
+            + $"Day {tick / (ulong)Ticks.PerDay}   "
             + $"{ofDay * 24 / (ulong)Ticks.PerDay:00}:{ofDay * 1440 / (ulong)Ticks.PerDay % 60:00}\n"
             + $"Citizens {_world.Citizens.Rows.LiveCount:N0}   Buildings {drawn:N0}   "
             + $"travelling {moving:N0}\n"
             + $"speed {Rungs[_rung]} — {Ladder[_rung] * SecondsPerTick:N0}x real time   "
-            + "[ ] slower/faster, space pause, 1-4, esc quit";
+            + "[ ] speed, space pause, 1-4, drag pan, wheel zoom, esc quit";
     }
 
     /// <summary>Every standing Building, at its Lot.</summary>
@@ -368,10 +449,11 @@ public partial class Main : Node3D
         float span = Mathf.Max(256f, Mathf.Max(eastEnd - east, northEnd - north));
         var centre = new Vector3((east + eastEnd) * 0.5f, 0f, -(north + northEnd) * 0.5f);
 
-        var camera = new Camera3D { Far = 20_000f, Fov = 60f };
+        _span = span;
+        _camera = new Camera3D { Far = 200_000f, Fov = 60f };
 
-        AddChild(camera);
-        camera.LookAtFromPosition(
+        AddChild(_camera);
+        _camera.LookAtFromPosition(
             centre + new Vector3(0f, span * 0.62f, span * 0.52f), centre, Vector3.Up);
     }
 

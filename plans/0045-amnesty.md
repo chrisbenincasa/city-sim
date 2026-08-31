@@ -228,9 +228,37 @@ shows traffic *"roughly twice as fast as its apparent size warrants"*; the figur
 window, and traffic that looks like traffic — and the document asserts both. Filed in `plans/0012`
 as a Cause 4 sighting; ***not paid here, because choosing what the ladder should be is design.***
 
-✅ **The shell added four rungs of its own below 0.5×**, down to 0.25 Ticks/s, and **prints the ×
-real-time figure beside the rung name** so the gap is on screen rather than in a table. **1 Tick/s
-is where a walker becomes watchable**: a block in 2.2 s, a commute in 28 s, a Day in 34 minutes.
+✅ **The shell added rungs of its own below 0.5×** and **prints the × real-time figure beside the
+rung name**, so the gap is on screen rather than in a table. **1 Tick/s is where a walker becomes
+watchable**: a block in 2.2 s, a commute in 28 s, a Day in 34 minutes.
+
+🔴 **THE WHOLE LADDER IS THEN HALVED, AS AN EXPERIMENT AND NOT AS A DECISION.** Every rung is half
+`01 §1`'s Ticks/s — 1× is **8** and a Day is **4m16s** — and 1 Tick/s is kept as `1/8×` because it is
+the rung a person actually looked at and liked. ⚠ **`01 §1` is still the design and this shell
+disagrees with it on purpose**: the tick rate is host-side and runtime-only, so nothing here moves a
+hash or settles anything. ***It exists to produce the playtest `adr/0094`'s own revisit trigger asks
+for***, which names a person at the controls as the only instrument that settles a pacing number.
+
+⚠ **`adr/0094`'s revisit trigger predicted the wrong direction.** It says *"Lower is expected to be
+the direction if it moves"* — a **faster** Day — and names *too fast* as the case where the
+`Observe → Diagnose → Intervene → Wait` loop will not close inside one. **The first sitting anybody
+ever watched pushed the other way, and for a reason the trigger does not contain**: the loop is
+about **events**, and what broke was **motion**. `01 §1` reasons entirely in events per real second
+and `§7` knows apparent speed scales with the tick rate. ***Each section holds half the argument and
+nobody wrote the sentence that puts them together.***
+
+✅ **The shell takes `--ruleset` and `--citizens`**, so worlds can be compared. 🔴 **The first
+comparison is a surprise: `congested.toml` at 4,000 Citizens has 43 Travellers on the network at
+Tick 749, against `minimal.toml` at 1,000 with 63.** Four times the population and a third fewer
+people out. ⚠ **The cause is that everybody drives there** — a car is ten times a walker's pace, so
+each journey occupies a tenth of the time and concurrency falls with it. ***A city where everyone
+drives looks emptier than a walking city a quarter its size***, which is a claim about what a
+renderer shows rather than about congestion, and no column would have raised it.
+
+⚠ **The camera frames the whole built extent, which is wrong for a two-centre world** —
+`twinned.toml`'s lattices each render as a postage stamp. Drag-pan and wheel-zoom were added rather
+than a cleverer framing rule, because which centre you want to look at is a question only the
+operator can answer.
 
 ⚠ **Nothing about the simulation changed.** The tick rate is host-side and runtime-only
 (`CLAUDE.md` → Constants), so a rung moves no hash and settles no design question.
