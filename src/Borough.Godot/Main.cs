@@ -37,6 +37,25 @@ public partial class Main : Node3D
     /// <summary>Metres per Tile, so the camera can be placed in something a human reads.</summary>
     private const float MetresPerTile = 4f;
 
+    /// <summary>How wide the carriageway is drawn. A drawing width, and no Segment states one.</summary>
+    private const float RoadWidthMetres = 8f;
+
+    /// <summary>How deep and wide a Building's box is drawn.</summary>
+    private const float BuildingFootprintMetres = 6f;
+
+    /// <summary>How tall a Building's box is drawn.</summary>
+    private const float BuildingHeightMetres = 10f;
+
+    /// <summary>
+    /// How far off the Segment a Building stands — <b>derived, so the two boxes cannot overlap</b>.
+    /// </summary>
+    /// <remarks>
+    /// Half the carriageway plus half the footprint puts the Building's near face on the kerb. It is
+    /// not a Ruleset number and must not become one: <b>a Lot has no depth</b> and there is no depth
+    /// key (<c>adr/0078</c>), so this is the renderer inventing a thickness the city does not have.
+    /// </remarks>
+    private const float SetbackMetres = (RoadWidthMetres + BuildingFootprintMetres) * 0.5f;
+
     /// <summary>In-world seconds a Tick is worth, which is what turns a rung into a rate.</summary>
     private const double SecondsPerTick = 86_400.0 / Ticks.PerDay;
 
@@ -124,7 +143,9 @@ public partial class Main : Node3D
         SyntheticCity.PopulateInto(_world, key, new Ticks(0));
 
         _roads = Layer(new Color(0.30f, 0.30f, 0.33f), new Vector3(1f, 0.1f, 1f));
-        _buildings = Layer(new Color(0.55f, 0.52f, 0.45f), new Vector3(6f, 10f, 6f));
+        _buildings = Layer(
+            new Color(0.55f, 0.52f, 0.45f),
+            new Vector3(BuildingFootprintMetres, BuildingHeightMetres, BuildingFootprintMetres));
         _travellers = Layer(new Color(1.0f, 0.45f, 0.15f), new Vector3(3f, 3f, 3f));
 
         Pave();
@@ -272,14 +293,34 @@ public partial class Main : Node3D
     {
         BuildingTable table = _world.Buildings;
         LotTable lots = _world.Lots;
+        int block = _world.Roads.Streets.BlockTiles;
 
         for (int slot = 0; slot < table.Rows.SlotCount; slot++)
         {
-            if (table.Rows.IsLive(slot) && lots.Rows.TryResolve(table.Lot[slot], out int lot))
+            if (!table.Rows.IsLive(slot) || !lots.Rows.TryResolve(table.Lot[slot], out int lot))
             {
-                yield return new Vector3(
-                    lots.East[lot].Raw * MetresPerTile, 0f, -lots.North[lot].Raw * MetresPerTile);
+                continue;
             }
+
+            float east = lots.East[lot].Raw * MetresPerTile;
+            float north = lots.North[lot].Raw * MetresPerTile;
+            var side = (StreetSide)lots.Side[lot];
+
+            // ⚠ A LOT'S COORDINATE IS A POINT ON THE SEGMENT, NOT A PLOT OF GROUND BESIDE IT.
+            // Lots hang on Segments and have no depth (adr/0078), so drawing one where it says it
+            // is puts the Building in the carriageway. Which kerb to step to is Side, read the way
+            // LotSubdivider.BlockOf writes it: on a horizontal Street Left is the north side, on a
+            // vertical one Right is the east side.
+            if (block > 0 && lots.North[lot].Raw % block == 0)
+            {
+                north += side == StreetSide.Left ? SetbackMetres : -SetbackMetres;
+            }
+            else
+            {
+                east += side == StreetSide.Right ? SetbackMetres : -SetbackMetres;
+            }
+
+            yield return new Vector3(east, BuildingHeightMetres * 0.5f, -north);
         }
     }
 
@@ -353,7 +394,8 @@ public partial class Main : Node3D
             // rasterises the line itself and never asks for a transform.
             var basis = new Basis(Quaternion.FromEuler(
                     new Vector3(0f, Mathf.Atan2(to.X - from.X, to.Z - from.Z), 0f)))
-                * Basis.FromScale(new Vector3(8f, 1f, from.DistanceTo(to)));
+                * Basis.FromScale(
+                    new Vector3(RoadWidthMetres, 1f, from.DistanceTo(to)));
 
             _roads.Multimesh.SetInstanceTransform(
                 drawn++, new Transform3D(basis, from.Lerp(to, 0.5f)));
