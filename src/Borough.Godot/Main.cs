@@ -263,6 +263,20 @@ public partial class Main : Node3D
     /// <summary>A Street was laid or bulldozed, so the Road Graph has to be re-drawn.</summary>
     private bool _repave;
 
+    /// <summary>
+    /// <b>The session, as the file that reproduces it.</b> Every <see cref="Command"/> the shell
+    /// issues is appended here at the Tick it applies.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b><c>Populate</c> IS THE FIRST ENTRY, and that is the whole of why this is not a
+    /// bolt-on.</b> The shell used to call <c>SyntheticCity.PopulateInto</c> directly, which put an
+    /// entire city into the world without going through <see cref="Simulation.Apply"/> — ***state
+    /// arriving by a door no log accounts for***, at Tick 0, before a player had touched anything.
+    /// <c>Borough.Headless</c> has recorded the population as a Command since slice 6 for exactly
+    /// this reason (<c>Session.Load</c>), and the shell simply did not.
+    /// </remarks>
+    private InputLogBuilder _log = null!;
+
     /// <summary>Why the last click did nothing, or empty. <b>Shown, never thrown.</b></summary>
     private string _refused = string.Empty;
     private Label _readout = null!;
@@ -379,7 +393,25 @@ public partial class Main : Node3D
 
         _world = new World(citizens, loaded.Ruleset, key);
         _simulation = new Simulation(_world, key) { VerifyDecideWritesNothing = false };
-        SyntheticCity.PopulateInto(_world, key, new Ticks(0));
+
+        _log = new InputLogBuilder(
+            _seed,
+            new WorldConfiguration(citizens),
+            RulesetFile.HashOfContent(System.Text.Encoding.UTF8.GetBytes(_toml)));
+
+        // 🔴 THE CITY ARRIVES THROUGH Simulation.Apply AND NOT BESIDE IT. This was
+        // SyntheticCity.PopulateInto called on the world directly, which is thousands of rows
+        // entering by a door the log does not account for -- and every hand-played session would
+        // therefore have replayed against an EMPTY world and diverged at Tick 0, with nothing in
+        // the file to explain it. Borough.Headless has recorded the population as a Command since
+        // slice 6 (Session.Load); the shell just did not.
+        //
+        // ⚠ IT COSTS ONE TICK, AND THAT IS THE HEADLESS RUNNER'S BEHAVIOUR RATHER THAN A CHARGE.
+        // A Command applies at the top of a Tick, so a world populated by one is populated during
+        // Tick 0 and the readout opens at Tick 1. A shell that opened at Tick 0 with a city in it
+        // would be one Tick ahead of the runner for the whole session.
+        _log.Append(Ticks.Zero, new Command(CommandKind.Populate, default, default));
+        _simulation.Step(new TickInput([new Command(CommandKind.Populate, default, default)], 0));
 
         // FAST-FORWARD BEFORE THE FIRST FRAME, and it is not a rung. The ladder is what a person
         // watches at; this is how they get to the part worth watching. A flood on flooded.toml
@@ -390,7 +422,10 @@ public partial class Main : Node3D
         // ⚠ IT STEPS THE SIMULATION AND SKIPS NOTHING. Every Tick runs, which is why it is slow and
         // why it is correct: a world jumped to is a different world (adr/0003), and the whole point
         // of a shell is to look at the one the headless runner would produce.
-        for (ulong tick = 0; tick < startAt; tick++)
+        // FROM ONE, because the Populate Command above already ran Tick 0. A loop from zero would
+        // put the shell one Tick past the runner on every --start-at, which is the class of
+        // off-by-one a State Hash comparison finds and a photograph never does.
+        for (ulong tick = 1; tick < startAt; tick++)
         {
             _simulation.Step(default);
         }
@@ -1161,6 +1196,11 @@ public partial class Main : Node3D
                 }
 
                 return;
+
+            case Key.W:
+                Record();
+
+                return;
         }
 
         // 🔴 A KEY TOGGLES AND A COMMAND IS ABSOLUTE, SO THE CURRENT STATE IS READ HERE AND NEVER
@@ -1461,7 +1501,7 @@ public partial class Main : Node3D
             + $"speed {Pace(_rung)}   "
             + $"mode {Holding()}   "
             + "[ ] speed, space pause, v look, z zone, x street, b demolish, s service, "
-            + "p policies, g roads, c cells, tab tune\n"
+            + "p policies, w write log, g roads, c cells, tab tune\n"
             + "click acts   right-drag or two-finger scroll pans   edge of screen pans   "
             + "pinch or -/= zooms   q/e turns";
 
@@ -1920,11 +1960,74 @@ public partial class Main : Node3D
             {
                 _repave = true;
             }
+
+            // ⚠ _world.Tick AND NOT _world.Tick + 1. Ordered() is evaluated as the argument to
+            // Step, so the Tick it names is the one about to run and the one these Commands apply
+            // at. Recording the Tick after would put every verb one Tick late in the replay -- a
+            // divergence that appears at the first command and looks like a simulation bug.
+            _log.Append(_world.Tick, command);
         }
 
         _queued.Clear();
 
         return new TickInput(raised, 0);
+    }
+
+    /// <summary>
+    /// Writes the session so far to a <c>.borough</c> file, and prints what would reproduce it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THIS IS THE ROW THAT MAKES THE OTHER THREE WORTH ANYTHING.</b> A verb that is not in
+    /// the log is a state change no replay reproduces and no State Hash divergence explains — the
+    /// sentence <c>Populate</c>, <c>Trip</c> and <c>Arrive</c> each already carry in their own
+    /// remark, and which nothing in the shell honoured until now.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It USES the codec and never implements one</b> (<c>adr/0039</c>).
+    /// <see cref="InputLogCodec"/> lives in <c>Borough.Formats</c>, which both shells reference and
+    /// neither may duplicate — a second writer is a second format the day one of them is fixed.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The State Hash goes to the console beside the path, and it is the whole point of the
+    /// line.</b> The round trip is <em>replay this file to this Tick and get this number</em>, so
+    /// printing the path alone would leave the operator to find the number themselves — and a
+    /// verification nobody can run is not one.
+    /// </para>
+    /// </remarks>
+    private void Record()
+    {
+        string path = Path.Combine(
+            System.Environment.CurrentDirectory,
+            $"session-{_world.Tick.Raw}{InputLogCodec.Extension}");
+
+        using (var writer = new StreamWriter(path))
+        {
+            InputLogCodec.Write(writer, _log.Build());
+        }
+
+        // 🔴 THE RULESET IN FORCE IS NOT ALWAYS THE FILE ON DISK, and a reproduce line that assumed
+        // it was would be wrong exactly when somebody had been experimenting. Regenerate() rebuilds
+        // the world from EDITED toml held in memory, so after a tuner pass the log names a content
+        // hash no file has -- and Replay.Start refuses a catalogue whose opening hash differs, which
+        // is the refusal working and an operator with no way to satisfy it. So the edited Ruleset is
+        // written out beside the log and the line points at THAT.
+        string rules = _rulesetPath;
+
+        if (RulesetFile.HashOfContent(System.Text.Encoding.UTF8.GetBytes(_toml))
+            != RulesetFile.HashOf(_rulesetPath))
+        {
+            rules = Path.ChangeExtension(path, ".toml");
+            File.WriteAllText(rules, _toml);
+            GD.Print($"the Ruleset in force is tuned and is not {_rulesetPath}; wrote {rules}");
+        }
+
+        GD.Print(
+            $"wrote {path} — {_log.Build().Count} commands over {_world.Tick.Raw} Ticks.\n"
+            + $"  State Hash 0x{_world.HashState():X16}\n"
+            + "  reproduce: dotnet run --project src/Borough.Headless -- "
+            + $"--log {path} --ruleset {rules} --ticks {_world.Tick.Raw} "
+            + $"--hash-every {_world.Tick.Raw}");
     }
 
     /// <summary>What the current verb is called, and for Zone which permission it paints.</summary>
@@ -2945,8 +3048,26 @@ public partial class Main : Node3D
         Tuner(layer);
     }
 
+    /// <summary>End the run, <b>writing the session first where <c>BOROUGH_LOG</c> asked</b>.</summary>
+    /// <remarks>
+    /// ⚠ <b>On <c>BOROUGH_SHOT</c>'s own bargain, and for a stronger reason than the photograph
+    /// has.</b> A machine with no hands cannot press <c>w</c>, so without this the round trip — play,
+    /// write, replay, compare — could only ever be run by a person, and ***a verification nobody can
+    /// run in a script is one nobody runs twice***.
+    /// <para>
+    /// ⚠ <b>It hangs on the end of the run rather than beside the shutter</b>, which is where it was
+    /// written: every ending arrives here, since <c>--quit-at</c> is a <c>quit</c> command on the end
+    /// of the script (<see cref="Driven"/>) and <c>esc</c> is the same command from a keyboard. A
+    /// driven run that never takes a picture still writes its log.
+    /// </para>
+    /// </remarks>
     private int Quit()
     {
+        if (System.Environment.GetEnvironmentVariable("BOROUGH_LOG") is not null)
+        {
+            Record();
+        }
+
         GetTree().Quit();
 
         return _rung;
@@ -3358,7 +3479,25 @@ public partial class Main : Node3D
 
         _world = new World(citizens, loaded.Ruleset, key);
         _simulation = new Simulation(_world, key) { VerifyDecideWritesNothing = false };
-        SyntheticCity.PopulateInto(_world, key, new Ticks(0));
+
+        _log = new InputLogBuilder(
+            _seed,
+            new WorldConfiguration(citizens),
+            RulesetFile.HashOfContent(System.Text.Encoding.UTF8.GetBytes(_toml)));
+
+        // 🔴 THE CITY ARRIVES THROUGH Simulation.Apply AND NOT BESIDE IT. This was
+        // SyntheticCity.PopulateInto called on the world directly, which is thousands of rows
+        // entering by a door the log does not account for -- and every hand-played session would
+        // therefore have replayed against an EMPTY world and diverged at Tick 0, with nothing in
+        // the file to explain it. Borough.Headless has recorded the population as a Command since
+        // slice 6 (Session.Load); the shell just did not.
+        //
+        // ⚠ IT COSTS ONE TICK, AND THAT IS THE HEADLESS RUNNER'S BEHAVIOUR RATHER THAN A CHARGE.
+        // A Command applies at the top of a Tick, so a world populated by one is populated during
+        // Tick 0 and the readout opens at Tick 1. A shell that opened at Tick 0 with a city in it
+        // would be one Tick ahead of the runner for the whole session.
+        _log.Append(Ticks.Zero, new Command(CommandKind.Populate, default, default));
+        _simulation.Step(new TickInput([new Command(CommandKind.Populate, default, default)], 0));
 
         // The four layers laid once rather than per frame. Ground is fixed to the map and would
         // survive, but it is re-laid with the others so that "what a rebuild redoes" is one list.

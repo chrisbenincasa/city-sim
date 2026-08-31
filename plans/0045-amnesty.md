@@ -133,7 +133,9 @@ non-comment references, **19 headless dumps against a three-line on-screen reado
 | 15a | 🔴 **Picking.** A click becomes a Tile. The camera is an orbit, and **nothing in the shell converts a screen position to anything at all** — no ray, no ground-plane intersection, no Tile. ⚠ **Every row below is blocked on this one**, and it carries a hover readout of its own: ***a verb you cannot aim is a verb you cannot test***, so what you are pointing at has to be on screen before anything commits |  |
 | 15b | **`Zone`, `Connect`, `Demolish` — the three that change the ground.** ⚠ **`Zone` SUBDIVIDES and does not paint** — found by building it. ⚠ **`Demolish` addresses the LOT's Tile and never the cursor's**, because `ApplyDemolish` matches exactly and refuses rather than substituting | ✅ 31-08 |
 | 15c | **`Govern` and `Service` — the two that change the rules.** A governing panel (`p`) per `[[policy]]`, and `s` places a `serves` kind. ⚠ **The panel is NOT the tuner** — one edits the world's premises, the other plays the game. ⚠ **`RulesetNames` had no Policy accessor**, so a panel could only have offered *policy 0, policy 1* | ✅ 31-08 |
-| 15d | 🔴 **The session is a log, and this is the row that makes the other three worth anything.** The shell writes `.borough` through `Borough.Formats` — ⚠ **using the codec and never implementing one** (`adr/0039`). ***A verb that is not in the log is a state change no replay reproduces and no State Hash divergence explains***, which is the sentence `Populate` and `Arrive` each already carry in their own remark. **The proof is the round trip**: a city played by hand in the shell, replayed in `Borough.Headless`, same State Hash |  |
+| 15d | **The session is a log.** `Populate` now enters through `Simulation.Apply`, every verb is appended at the Tick it applies, and `w` writes a `.borough`. ⚠ **The shell was putting a whole city in by a door the log does not account for**, so every hand-played session would have replayed against an **empty world** | ✅ 31-08 |
+| ~~15d~~ | ~~🔴 **The session is a log, and this is the row that makes the other three worth anything.** The shell writes `.borough` through `Borough.Formats` — ⚠ **using the codec and never implementing one** (`adr/0039`). ***A verb that is not in the log is a state change no replay reproduces and no State Hash divergence explains***, which is the sentence `Populate` and `Arrive` each already carry in their own remark. **The proof is the round trip**: a city played by hand in the shell, replayed in `Borough.Headless`, same State Hash~~ | ✅ |
+| 15g | ⚠ **Tool selection needs a UI, and the keyboard-only mode line is already unintuitive.** Raised by the player on 2026-08-31, unprompted, at five verbs — `z x b s p` plus two cycling sub-selections (`z` cycles zone rules, `s` cycles service kinds) reported through **one line of text**. ⚠ **It is a legibility row and not a mechanism row**: nothing new reaches `Simulation.Apply`, so ***the whole of it is shell*** and the standing no-test-host limitation covers all of it. Related to `15e` — a refusal a person can read and a tool they can see are the same complaint |  |
 | 15e | ⚠ **A refusal reaches the player as a sentence.** Every verb's refusals are `InvalidOperationException` today, which is correct for a log and wrong for a person. ⚠ **`Core` returns ids and numbers, never strings**, so the shell owns every word, resolved through the Ruleset — ***which is the real leak vector `CLAUDE.md` names***: not `using Godot;`, but a method that returns a formatted string because a panel wanted one |  |
 | 15f | 🔴 **A CLASS WENT MISSING FROM THE COMMIT GATE AND NOTHING NOTICED.** `RulesetSchemaTests` — two tests — was absent from every lane run on 2026-08-31 until 16:49, including **the one that gated `c2e9ff3` while the class was already failing on that tree**. Ruled out: the `tier!=instrument` filter (the class runs and fails under it), a skip (0 in every run) and a missing file. ⚠ **The cause is UNKNOWN and this row is not the fix — it is the instrument.** ***Nothing in the suite asserts how many tests ran***: `TierBudgetTests` times them and `TierDeclarationTests` counts the instrument share, and neither would see a class disappear |  |
 | 16 | 🔴 **A Need has no consequence.** `Sustenance` and `Satisfaction` are saved, hashed, degraded on a duration and recovered on supply — and **the only thing in `src/` that reads either is `Evidence`**, which is a panel. ***A Household starves to the floor and nothing in the city is different.*** ⚠ **After 9 and 10 and because of them**: those built the reading, and a reading nothing acts on is an instrument rather than a mechanism |  |
@@ -866,3 +868,40 @@ is the file whose Pool is under pressure**, and is a `plans/0012` **Cause 5** si
 ⚠ **`godot --path` did not pick up a `-c Release` build**, so the first verification photograph was
 of a stale assembly and showed the old readout. ***A screenshot is only evidence of the binary that
 took it*** — `dotnet build src/Borough.Godot` (Debug) before any shell capture.
+
+## What the session-as-a-log found
+
+🔴 **THE SHELL PUT A WHOLE CITY INTO THE WORLD BY A DOOR THE LOG DOES NOT ACCOUNT FOR.** It called
+`SyntheticCity.PopulateInto` directly at Tick 0 — thousands of rows, before a player had touched
+anything — so ***every hand-played session would have replayed against an EMPTY world and diverged at
+Tick 0***, with nothing in the file to explain it. `Borough.Headless` has recorded the population as
+a `Populate` **Command** since slice 6 (`Session.Load`, and its comment says why); the shell simply
+did not. ⚠ **It costs one Tick and that is the runner's behaviour rather than a charge** — a Command
+applies at the top of a Tick, so the readout now opens at Tick 1 and `--start-at` counts from 1.
+
+✅ **The round trip holds, measured twice.** `declining.toml` at Tick 400:
+**`0xAB863AB17C6FA56C`** from the shell and from `Borough.Headless --log`. `schooled.toml`:
+**`0xCFBF926025349931`** both sides.
+
+🔴 ⚠ **A ONE-TICK RECORDING SLIP IS INVISIBLE TO A STATE HASH, AND SO IS A SIXTY-FOUR-TICK ONE.**
+The first negative control was written against `declining.toml` with `Connect` and `Zone`, and a
+slip of **1, 2, 4, 8, 16, 31, 32, 33 and 64 Ticks was ABSORBED every time** — a Segment and a Lot
+***record no creation time***, so the city at Tick 400 is the same city whether the verb landed at
+100 or at 164. ***A round trip that only compares hashes cannot see when a verb happened, only
+whether it happened*** — which is a far weaker guarantee than the row assumed, and would have been
+recorded as a pass. The control now uses `Service`, because a raised Building stamps
+`BuildingTable.EmptySince`, and `schooled.toml` is the only shipped world declaring a kind that
+`serves`.
+
+⚠ **`SessionRoundTripTests` is in `Borough.Tests` and asserts the shell's ARITHMETIC rather than the
+shell.** `src/Borough.Godot` is still not in `Borough.slnx`. What is pinned is the contract
+`Ordered()` depends on — *a Command recorded at `world.Tick`, then handed to `Step`, replays to the
+same city* — in the one place a test host exists.
+
+⚠ **`BOROUGH_LOG` writes the log on `BOROUGH_SHOT`'s bargain**, and for a stronger reason than the
+photograph has: ***a verification nobody can run in a script is one nobody runs twice.***
+
+⚠ **A tuned Ruleset is written out beside the log.** `Regenerate` rebuilds the world from edited TOML
+held in memory, so after a tuner pass the log names a content hash **no file has** — and
+`Replay.Start` refuses a catalogue whose opening hash differs, which is the refusal working and an
+operator with no way to satisfy it.
