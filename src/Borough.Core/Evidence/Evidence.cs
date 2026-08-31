@@ -217,6 +217,15 @@ public static class Evidence
             ? world.Households.Sustenance[needSlot]
             : null;
 
+        // adr/0027's consequence: a Household's own preference, or an odd choice is inexplicable.
+        // Null on the same condition as the two above -- an unhoused Citizen has no Household row to
+        // ask, and the neutral value would say "wanted nothing in particular" about somebody nobody
+        // can ask at all.
+        int? taste = world.Households.Rows.TryResolve(household, out int tasteSlot)
+            ? world.Rules.CentralityTaste(
+                world.Key, world.Households.Rows.IdAt(tasteSlot), world.Households.LifeStage[tasteSlot])
+            : null;
+
         return new CitizenEvidence(
             citizen,
             household,
@@ -227,6 +236,7 @@ public static class Evidence
             world.Citizens.ReachFailures[slot],
             balance,
             sustenance,
+            taste,
             InFlightTrip(world, citizen),
             last);
     }

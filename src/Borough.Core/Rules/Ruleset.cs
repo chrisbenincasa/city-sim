@@ -1103,6 +1103,70 @@ public readonly record struct LifeStageDefinition
     /// <summary>The oldest a Citizen is when it becomes an adult in this stage, in Days, inclusive.</summary>
     public int AdultAgeMaxDays { get; init; }
 
+    /// <summary>
+    /// <c>B</c>: where this stage sits on the space-against-centrality axis, as a percent.
+    /// <b>0 wants room to breathe, 100 wants the middle of the city, 50 has no opinion.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is <c>adr/0027</c>'s <em>base</em>, and it is half a number.</b> The other half is
+    /// <see cref="CentralitySpreadPercent"/>, and the pair is deliberately the same shape as
+    /// <see cref="DurationDays"/> and <see cref="SpreadDays"/> one field up — a floor and a width,
+    /// authored per stage, drawn per Household. ***A stage supplies the range; it never supplies the
+    /// value.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>50 is the neutral value and it is the DEFAULT, so an author who says nothing gets the
+    /// city they already had.</b> A Household at 50 scores every candidate identically, which
+    /// collapses to the first-with-room accept that placement did before any of this existed. That
+    /// continuity is the point: the mechanism arrives as a widening rather than as a replacement,
+    /// and a world that declines to author it cannot be moved by it.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>PROVISIONAL wherever it is authored</b> — <c>plans/0045</c> standing order 4 suspends
+    /// <c>adr/0052</c>, so the shipped values are chosen by taste, name no ratifier and open no §D
+    /// row. ⚠ <b>What would ratify one is a city with a housing market in it</b>, because a
+    /// preference for the centre is only meaningful against something that makes the centre cost
+    /// more, and <c>rent</c> is unbuilt.
+    /// </para>
+    /// </remarks>
+    public int CentralityBasePercent { get; init; }
+
+    /// <summary>
+    /// <c>W</c>: how wide this stage's opinion is, as a percent added on top of the base.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THE SPREAD IS THE DESIGN AND THE BASE IS THE DETAIL, which is the opposite of how the
+    /// pair reads.</b> <c>adr/0027</c>: <em>"the spread encodes how much a stage agrees with
+    /// itself, and that is a real design lever rather than a tuning detail"</em>. Authoring a width
+    /// is authoring <b>how much a demographic is a demographic</b> — a narrow stage behaves
+    /// predictably in aggregate, a wide one produces divergent behaviour from identical
+    /// circumstances.
+    /// </para>
+    /// <para>
+    /// <b>The ADR's own worked example is the one to copy</b>: Empty Nest widest, because real
+    /// retirement choices genuinely diverge — some downsize into walkable centres and others leave
+    /// for somewhere quiet — and Family narrowest, because schools matter to nearly all of them.
+    /// ***The disagreement about which way retirees move was the evidence that this is a range and
+    /// not a value.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Zero is ALLOWED and means the stage agrees with itself completely</b> — every Household
+    /// in it draws the base exactly. It is refused nowhere, for <see cref="SpreadDays"/>'s reason: a
+    /// file demonstrating a monolithic demographic is a legitimate thing to author, and a key whose
+    /// zero is a real answer must not be defaulted into meaning something else.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The failure this key can cause is quiet, and <c>adr/0027</c> names it</b>: ranges so wide
+    /// that stages stop being distinguishable in aggregate. The point of a stage is that it produces
+    /// a <em>trend</em>; if Family and Empty Nest behave the same at the population level, the widths
+    /// have eaten the mechanism they were meant to soften. <b>The recovery is narrower ranges and
+    /// never constants.</b>
+    /// </para>
+    /// </remarks>
+    public int CentralitySpreadPercent { get; init; }
+
     /// <summary>Whether a Household leaving this stage draws a child count.</summary>
     public bool Bears => ChildlessStage != 0;
 
@@ -3506,6 +3570,111 @@ public sealed class Ruleset
         }
 
         return LifeStages[stage - 1];
+    }
+
+    /// <summary>
+    /// The taste of a Household that has no opinion — <b>the exact middle of the axis</b>, and the
+    /// value every Household carries in a world that authors none.
+    /// </summary>
+    /// <remarks>
+    /// <b>It is load-bearing that this is a real position on the axis and not a sentinel.</b> A
+    /// Household here scores every candidate dwelling identically, so placement falls through to the
+    /// first-with-room accept it made before <c>adr/0027</c> shipped. ***The neutral taste is what
+    /// makes the mechanism a widening of the old behaviour rather than a replacement for it***, and
+    /// it is why 27 of the 30 shipped Rulesets produce the same city, State Hash for State Hash,
+    /// with this code in the build.
+    /// </remarks>
+    public const int CentralityNeutral = 1 << (Fixed.FractionalBits - 1);
+
+    /// <summary>The percent that <see cref="CentralityNeutral"/> is written as in a Ruleset.</summary>
+    public const int CentralityNeutralPercent = 50;
+
+    /// <summary>
+    /// Whether any Life Stage in this Ruleset states an opinion about centrality.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The gate that keeps this mechanism out of every world that did not ask for it.</b>
+    /// Placement checks it once and takes the old path when it is false — ⚠ <b>and the reason is
+    /// the draw count rather than the score</b>. A scored accept looks at every candidate in the
+    /// budget; the old accept stops at the first with room. Running the scored loop over a city of
+    /// neutral Households would produce the same <em>choice</em> and a different <em>stream
+    /// position</em>, and a mechanism nobody authored would move every State Hash in the corpus.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A base of exactly <see cref="CentralityNeutralPercent"/> with a width of zero reads as
+    /// silence on purpose.</b> An author who states the neutral value explicitly gets the neutral
+    /// city, which is the same city as saying nothing — there is no third state where the key is
+    /// present and inert in some other way.
+    /// </para>
+    /// </remarks>
+    public bool CentralityVaries
+    {
+        get
+        {
+            for (int stage = 0; stage < LifeStages.Length; stage++)
+            {
+                if (LifeStages[stage].CentralitySpreadPercent != 0
+                    || LifeStages[stage].CentralityBasePercent != CentralityNeutralPercent)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Where this Household sits on the space-against-centrality axis, from <c>0</c> (wants room) to
+    /// <see cref="Fixed.One"/> (wants the middle), <b>fixed for the Household's whole life</b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>adr/0027</c> in one expression: the stage supplies a base and a width, the Household
+    /// supplies its position within them, and only the first of those three moves.</b> The position
+    /// comes from a <see cref="PurposeTag.CentralityTaste"/> draw at
+    /// <see cref="Quantities.Ticks.Zero"/> against the Household's monotonic id, so re-asking on any
+    /// later Tick, in any stage, after any save and reload, returns the same fraction of the same
+    /// range. ***Continuity of character costs no storage and cannot be forgotten by a writer.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Stage <c>0</c> answers <see cref="CentralityNeutral"/> rather than throwing</b>, unlike
+    /// <see cref="LifeStage(byte)"/> beside it, and the difference is deliberate. A world declaring
+    /// no <c>[[life_stage]]</c> leaves every Household at stage zero for ever
+    /// (<c>HouseholdTable.LifeStage</c>), and asking such a Household what it wants is an ordinary
+    /// question with an ordinary answer — <em>nothing in particular</em>. Throwing would make this
+    /// method unaskable in 27 of the 30 shipped worlds.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The result is a POSITION and not a weight, and the sign convention is only in the
+    /// consumer.</b> Nothing here knows that placement turns it into <c>2T − Fixed.One</c>; this
+    /// answers what the Household wants and never how strongly a scorer should act on it.
+    /// </para>
+    /// </remarks>
+    /// <param name="key">The world seed.</param>
+    /// <param name="entityId">The Household's monotonic id — never its slot, which is recycled.</param>
+    /// <param name="stage">The Household's current Life Stage; <c>0</c> when the world has none.</param>
+    public int CentralityTaste(WorldKey key, ulong entityId, byte stage)
+    {
+        if (stage == 0 || stage > LifeStages.Length)
+        {
+            return CentralityNeutral;
+        }
+
+        LifeStageDefinition definition = LifeStages[stage - 1];
+
+        // The position within the stage's range, on [0, Fixed.One). Drawn at Tick zero so it is a
+        // property of the Household rather than of the moment it was asked about.
+        ulong position = Randomness.Draw(key, entityId, Ticks.Zero, PurposeTag.CentralityTaste)
+            % (ulong)Fixed.One;
+
+        // (base + spread * position) as a percent in Q16.16, then percent to fraction. The loader
+        // refuses base + spread above 100, so this cannot exceed Fixed.One.
+        long scaled = ((long)definition.CentralityBasePercent * Fixed.One)
+            + ((long)definition.CentralitySpreadPercent * (long)position);
+
+        return (int)IntegerMath.FloorDiv(scaled, 100);
     }
 
     /// <summary>This Ruleset with different Map Layer data, and everything else shared.</summary>

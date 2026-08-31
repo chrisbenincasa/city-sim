@@ -2394,6 +2394,71 @@ public static class RulesetLoader
                     }
                 }
 
+                // adr/0027's base and width, and BOTH are optional with a neutral default -- which
+                // is the opposite of spread_days directly above, on purpose. W is required there
+                // because its zero is one of two real cities and a defaulted W would silently pick
+                // one. Here the neutral pair is not a city at all: it is the placement this build
+                // already had, so an author who says nothing is not being defaulted into a choice,
+                // they are declining to make one. ***A default is dangerous when zero is an answer
+                // and harmless when absence is.***
+                int centralityBase = Borough.Core.Rules.Ruleset.CentralityNeutralPercent;
+                int centralitySpread = 0;
+
+                if (TryInteger(table, "centrality_base_percent", out long centre, required: false, name))
+                {
+                    if (centre is < 0 or > 100)
+                    {
+                        Refuse(
+                            LineOf((SyntaxNodeBase?)Find(table, "centrality_base_percent") ?? table),
+                            name,
+                            $"centrality_base_percent is {centre}. It is where this stage sits on the "
+                            + "space-against-centrality axis, so it is a percent: 0 wants room, 100 "
+                            + "wants the middle of the city, and "
+                            + $"{Borough.Core.Rules.Ruleset.CentralityNeutralPercent} has no opinion "
+                            + "and is what a stage stating nothing gets.");
+                    }
+                    else
+                    {
+                        centralityBase = (int)centre;
+                    }
+                }
+
+                if (TryInteger(
+                    table, "centrality_spread_percent", out long width, required: false, name))
+                {
+                    if (width is < 0 or > 100)
+                    {
+                        Refuse(
+                            LineOf((SyntaxNodeBase?)Find(table, "centrality_spread_percent") ?? table),
+                            name,
+                            $"centrality_spread_percent is {width}. It is the width of the band this "
+                            + "stage's Households draw their own position from, so it is a percent. "
+                            + "Zero is allowed and means the stage agrees with itself completely -- "
+                            + "every Household in it draws the base exactly.");
+                    }
+                    else
+                    {
+                        centralitySpread = (int)width;
+                    }
+                }
+
+                // The band has to fit on the axis, and this is the only refusal of the pair that
+                // neither key can be checked for alone. Without it a base of 80 and a width of 40
+                // would put the top of the band at 120% -- a Household wanting the centre harder
+                // than the centre exists, which reads downstream as a saturated preference rather
+                // than as a Ruleset that does not add up.
+                if (centralityBase + centralitySpread > 100)
+                {
+                    Refuse(
+                        LineOf((SyntaxNodeBase?)Find(table, "centrality_spread_percent") ?? table),
+                        name,
+                        $"centrality_base_percent {centralityBase} and centrality_spread_percent "
+                        + $"{centralitySpread} put the top of this stage's band at "
+                        + $"{centralityBase + centralitySpread}%, past the end of the axis. The band "
+                        + "is [base, base + spread] and it has to fit in [0, 100]: lower the base, "
+                        + "or narrow the width.");
+                }
+
                 byte next = 0;
 
                 if (TryString(table, "next", out string? successor, required: false)
@@ -2533,6 +2598,8 @@ public static class RulesetLoader
                     ChildrenBecome = become,
                     AdultAgeMinDays = adultMin,
                     AdultAgeMaxDays = adultMax,
+                    CentralityBasePercent = centralityBase,
+                    CentralitySpreadPercent = centralitySpread,
                 };
             }
 

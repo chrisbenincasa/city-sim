@@ -33,8 +33,11 @@ Until the ratio is earned:
 1. **No new ADRs.** `CorpusBudgetTests` reddens the build if `docs/adr/` passes 169.
 2. **No new entries in `plans/0002` §A–§F.** Frozen at its 2026-08-26 size.
 3. **Prose grows only as fast as the simulation it describes.** `CorpusBudgetTests` caps the
-   **ratio** — all prose, doc-comments included, over non-comment `src/` lines — at **57**, so a
-   page written beside a mechanism is free and a page written alone is refused. ⚠ **This is not a
+   **ratio** — all prose, doc-comments included, over non-comment `src/` lines — at **55** as of
+   2026-08-31, so a page written beside a mechanism is free and a page written alone is refused.
+   ⚠ **It is a RATCHET and the number moves down**: it opened at 57, the flood put simulation in
+   the denominator, and the ceiling followed the measurement the same day. ***A ratchet not lowered
+   to the reading banks the gain as slack to spend on prose later.*** ⚠ **This is not a
    claim that a remark beside code is waste**: `adr/0093` asks for exactly that prose, and doc-
    comments are on the numerator only so that prose cannot escape `docs/` by relocating.
    🔴 **It replaced two absolute word ceilings on 2026-08-30**, which went red on all four commits
@@ -96,7 +99,7 @@ The rows below were found by asking the code what is missing instead.
 | 6 | ~~Wages~~ — `waged.toml`; arrears got a sink | ✅ 27-08 |
 | 7 | Life Stages and self-generation — [`0046`](0046-life-stages-and-a-self-generating-population.md) | ✅ 5/5 |
 | 8 | **`Govern` throws.** `PolicyEngine.Sweep` runs and a Ruleset can declare a `[[policy]]` — but the verb letting a **player** set one hits `InvalidOperationException` at `Simulation.cs:440`. ⚠ **Two of the six verbs are declared and unapplied**; this is the one with a whole mechanism already sitting under it | ✅ 30-08 |
-| 9 | **Needs, and the preference axes.** `Taste` **0 files**, `Preference` **0 files** in `Borough.Core`. `adr/0027` calls them *"the most load-bearing data in the design"*. Until they exist a Household wants nothing a Bin cannot express, and placement satisfices on **distance alone** | ◐ 30-08 |
+| 9 | **Needs, and the preference axes.** `Taste` **0 files**, `Preference` **0 files** in `Borough.Core`. `adr/0027` calls them *"the most load-bearing data in the design"*. ⚠ **This row said placement *satisficed on distance alone* and that was WRONG** — it did not satisfice at all, and `adr/0069` says so itself: *"no acceptance filter, no sampler bias, no scored choice, no `μ`"*. A Household had no preference **and** no mechanism that could have expressed one | ✅ 31-08 |
 | 10 | **`Service` throws.** The civic swath — schools, health, safety. `School` is **0 files**. ⚠ **After 9, not before**: a service with no need to satisfy is a Building with a Bin | ✅ 30-08 |
 | 11a | **The eye.** Of `05 §2`'s three hot queries only `LayerCells` exists; **`VisibleAgents` and `ChunkAggregates` are nowhere in `src/`** and a **Traveller has no coordinate at all**. ⚠ **Day one of 11b either way** | ✅ 30-08 |
 | 11b | **The shell.** `src/Borough.Godot` — Godot 4.7.2, a camera over the city, one MultiMesh per kind of thing, a speed ladder and a readout. ⚠ **Not in `Borough.slnx` and never will be**: that absence is what enforces *the headless runner never requires Godot* | ✅ 30-08 |
@@ -456,3 +459,80 @@ nothing on screen. ***The gap moved from the mechanism to the overlay.***
 
 ⚠ **A new Tick consumer with no `plans/0013` row** (`adr/0073`) — the corpus freeze is why. It is
 `O(footprint)` a Tick while a flood is live and unmeasured at a million Citizens.
+
+## What the preference found
+
+**A Household has a Taste and placement reads it.** `adr/0027` in one expression: a Life Stage
+supplies a **base** and a **width**, each Household draws its own **position** inside them, and only
+the range moves — so a stage transition slides the band under a fixed position and a family that
+always wanted room still wants room once it is an Empty Nest. `Ruleset.CentralityTaste`,
+`rulesets/choosy.toml`, `PlacementEngine.TryHouse`.
+
+🔴 **THE BOARD WAS WRONG ABOUT WHAT WAS MISSING, AND THE WRONG HALF WAS THE MECHANISM.** Row 9 said
+placement *satisficed on distance alone*. It did not satisfice at all: `TryHouse` drew three Lots and
+took the **first with room in it** — three boolean filters over a uniform draw, no score, no
+comparison, no second thought. `adr/0069` says so in its own words, *"no acceptance filter, no sampler
+bias, no scored choice, no `μ`"*. ***A row describing an absence can be wrong about which absence it
+is***, and this one understated the hole by a whole mechanism.
+
+🔴 **THE FIRST DEMONSTRATION RULESET DEMONSTRATED NOTHING, AND EVERY TEST OF IT PASSED.**
+`choosy.toml` was built as `aged.toml` plus ten keys, because `aged.toml` is the file with the Life
+Stages in it. The Ruleset loaded, `CentralityVaries` was true, the tastes spread correctly across
+their bands, and the file produced a State Hash **identical to `aged.toml`'s at every sample** over
+20,480 Ticks. The Unplaced Pool was **empty on every one of those Ticks**: `minimal.toml` stopped
+condemning anything at milestone 17 (`adr/0164`), so nobody ever lost a home, so `TryHouse` never
+ran. ***A preference about where to live is unreachable in a world where nobody is looking for
+somewhere to live.*** ⚠ **The three tests that passed were all asking the Ruleset and none was asking
+the city** — the one that found it asserts the Pool is non-empty on at least one Tick, which is a
+sentence nobody writes until they have been bitten. It is `flooded.toml`'s lattice origin arriving
+again, one row along: **the mechanism was right and the world could not exercise it.**
+
+The file is now `declining.toml` plus the stages, because the smallest shipped world that condemns is
+the smallest one in which anybody is ever **rehoused** — and rehousing is exactly the moment a
+preference is worth having. ⚠ **The slow path would have worked and is not a fix**: `aged.toml`'s
+chain reaches `children_become` after 24 + 48 + 48 = 120 Days, which is **245,760 Ticks**, and a
+demonstration nobody will sit through is not one.
+
+⚠ **THE LOADER CAUGHT THE `adr/0006` LEAK BEFORE THE RUN DID.** A `[[life_stage]]` stating
+`children_become` opens a second door into the Unplaced Pool, and `declining.toml` states no
+`[placement] gives_up_after_days` — so the file was **refused at load** with a sentence explaining
+that a Pool with a door and no give-up rule grows without bound. ***A bound a Ruleset can violate
+belongs in the loader***, and this is what that rule buys: the alternative was a slow leak over a
+hundred thousand Ticks that nothing was watching for.
+
+✅ **MEASURED, AND WITH A PLACEBO UNDER IT.** On `choosy.toml` at 2,000 Citizens over 20,480 Ticks,
+Households wanting the centre live **161–162 Tiles** from the nearest lattice origin and Households
+wanting room live **172–173** — stable across a 6× longer run, so it is a signal rather than noise.
+⚠ **Eleven Tiles in a city ~350 Tiles across is small enough to owe the reader a reason to believe
+it**, so the same Households are split again on a taste they **do not have**, drawn from an unrelated
+stream over the same ids on the same Tick. That sham split moves the mean by **1 Tile against the
+real preference's 11**. ***A signal that survives a sham grouping is a property of the map and not of
+the preference***, and this one does not survive it.
+
+⚠ **THE EFFECT IS BOUNDED BY THE SAMPLE AND NOT BY THE TASTE, WHICH IS `adr/0069` HOLDING.** A
+Household compares the **three** Lots it was shown and nothing biases which three it sees — so
+best-of-three is the ceiling on how central anybody can get, however hard they want it. It is also
+diluted by the founding population, which `SyntheticCity` places directly without ever calling
+`TryHouse`. ***Neither is a defect and both cap the number***: a preference that steered the sample
+would be an optimiser, and `adr/0017` refuses one.
+
+⚠ **The mechanism is a comparison and never a threshold.** Nothing refuses a dwelling — a family that
+dislikes all three still moves in. A preference that could refuse would fill the Pool for a reason no
+Ruleset authored, and on a file with no `gives_up_after_days` it would fill it for ever.
+
+✅ **29 of the 30 shipped worlds produce the same city, State Hash for State Hash.** The gate is
+`Ruleset.CentralityVaries` — *does any stage state an opinion* — and not the taste of the Household
+in hand, and the reason is the **draw count** rather than the score: a neutral Household would make
+the same choice and consume a different number of candidate draws getting there. ⚠ **A neutral taste
+weighs exactly zero and is not a special case anybody wrote**: placement scores `distance × (2T − 1)`,
+so `centrality_base_percent = 50` ties every candidate and falls through to the first-with-room accept
+the build already had. ***The mechanism is continuous with the behaviour it replaces at the midpoint
+of the axis.***
+
+🔴 **ONE AXIS OF THREE, AND THE OTHER TWO ARE UNBUILT RATHER THAN REFUSED** (`adr/0070`). Centrality
+shipped first because it is the only one the world can already measure — distance to the nearest
+`[[lattice]]` origin needs no new state. **Quiet** needs a pollution Layer that is zero on every
+shipped file but `fouled.toml`; **rent** needs a price a dwelling does not have. ⚠ **And no
+centrality number can be ratified until rent exists**: a preference for the centre is only meaningful
+against something that makes the centre cost more, so ***the numbers `choosy.toml` produces ratify
+nothing.***

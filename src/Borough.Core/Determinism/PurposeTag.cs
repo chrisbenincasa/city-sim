@@ -683,4 +683,35 @@ public enum PurposeTag : ulong
     /// </para>
     /// </remarks>
     DisasterSeed = 35,
+
+    /// <summary>
+    /// Where a Household sits on the space-against-centrality axis — <b>drawn once and kept for
+    /// life</b> (<c>adr/0027</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Drawn at <see cref="Quantities.Ticks.Zero"/>, which is <see cref="CarOwnership"/>'s reason
+    /// exactly</b>: this asks <em>what sort of Household is this</em> and not <em>what happens
+    /// now</em>. A tag keyed on the current Tick would re-answer the question every time it was
+    /// asked, and <c>adr/0027</c>'s whole argument is that a Household which chooses differently
+    /// each time is <b>noise wearing a name</b> rather than a character.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>THE PERSISTENCE IS FREE BECAUSE NOTHING IS STORED, AND THAT IS THE POINT OF DRAWING IT
+    /// HERE.</b> The Household's <em>position</em> within its stage's range is a pure function of
+    /// this stream and the Household's own monotonic id, so it cannot drift, cannot be missed by a
+    /// save and cannot be reset by a Life Stage transition. The stage's base and width are looked up
+    /// live, so a transition moves the range and leaves the position exactly where it was —
+    /// <c>adr/0027</c>'s <em>"someone who always valued quiet still values quiet once they have
+    /// children"</em>, delivered by the key rather than by a copy-forward nobody could forget.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Its own tag rather than a share of <see cref="CarOwnership"/>'s</b>, which is this
+    /// enum's standing rule and matters more here than usual. Both are standing properties of a
+    /// Household drawn at the same instant on the same id, so a shared tag would make <b>every
+    /// centrality-loving Household a car owner</b> — a correlation with no cause in the city,
+    /// arriving as a demographic pattern somebody would try to explain.
+    /// </para>
+    /// </remarks>
+    CentralityTaste = 36,
 }

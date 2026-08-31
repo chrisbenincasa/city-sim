@@ -67,8 +67,14 @@ public sealed class CorpusBudgetTests
     /// and <see cref="OpenQuestionsCeiling"/>, which are standing orders 1 and 2. An ADR is a
     /// decision rather than a description, and no amount of code buys one.
     /// </para>
+    /// <para>
+    /// ⚠ <b>TIGHTENED 57 → 55 on 2026-08-31, which is what a ratchet is for.</b> The flood put
+    /// simulation in the denominator and the figure fell on its own; leaving the ceiling where it
+    /// was would have banked the gain as slack to spend on prose later. <b>A ratchet is lowered to
+    /// the measurement on the day the measurement moves</b>, or it is a ceiling with a memory.
+    /// </para>
     /// </remarks>
-    private const int RatioCeiling = 57;
+    private const int RatioCeiling = 55;
 
     /// <summary>Words of prose per line of simulation at which the amnesty has done its job.</summary>
     /// <remarks>
@@ -79,8 +85,10 @@ public sealed class CorpusBudgetTests
     /// <para>
     /// <b>It replaces the expiry date, and the swap is the point.</b> 2026-10-07 would have arrived
     /// whether or not anything was built; this cannot. The amnesty was opened against a prose-to-code
-    /// ratio and <b>a date is not a measure of one</b>. At 2026-08-30 the figure is <b>59.5</b> — all
+    /// ratio and <b>a date is not a measure of one</b>. At 2026-08-31 the figure is <b>55</b> — all
     /// prose, doc-comments included, over non-comment <c>src/</c> lines — and 30 is roughly half.
+    /// ⚠ <b>Quote it with its date.</b> It read 59.5 on 08-30, and the fall to 55 is the flood's
+    /// simulation landing in the denominator rather than any prose being cut.
     /// </para>
     /// <para>
     /// ⚠ <b>It is earned by deleting prose as readily as by writing simulation, and that is

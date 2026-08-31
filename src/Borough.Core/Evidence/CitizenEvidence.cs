@@ -97,6 +97,7 @@ public readonly struct CitizenEvidence
         ushort reachFailures,
         Money? householdBalance,
         int? sustenance,
+        int? centralityTaste,
         TripEvidence? trip,
         PastTripEvidence? lastTrip)
     {
@@ -109,6 +110,7 @@ public readonly struct CitizenEvidence
         ReachFailures = reachFailures;
         HouseholdBalance = householdBalance;
         Sustenance = sustenance;
+        CentralityTaste = centralityTaste;
         Trip = trip;
         LastTrip = lastTrip;
     }
@@ -137,6 +139,37 @@ public readonly struct CitizenEvidence
     /// </para>
     /// </remarks>
     public int? Sustenance { get; }
+
+    /// <summary>
+    /// Where this Citizen's Household sits on the space-against-centrality axis — <c>0</c> wants
+    /// room, <see cref="Arithmetic.Fixed.One"/> wants the middle of the city,
+    /// <see cref="Rules.Ruleset.CentralityNeutral"/> has no opinion. <b>Null if unhoused.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>adr/0027</c>'s own consequence, and it is a requirement rather than a convenience</b>:
+    /// <em>"Evidence must expose a Household's own preferences, or an odd choice is
+    /// inexplicable."</em> ***A family that turned down the dwelling next door and took one across
+    /// the city is either a character or a bug, and this column is the entire difference.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is the Household's and not the Citizen's</b>, on
+    /// <see cref="Sustenance"/>'s reasoning — <c>adr/0005</c> puts taste on the Household, because
+    /// a dwelling is chosen once for everybody who lives in it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The same value on every Tick of this Household's life, by construction</b>, so a reader
+    /// watching it change has found a defect rather than a Household changing its mind. The
+    /// position is a pure function of the world seed and the Household's monotonic id; only the
+    /// stage's range moves, and a stage transition moves it under a fixed position.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Reads <see cref="Rules.Ruleset.CentralityNeutral"/> in the 29 shipped worlds that
+    /// author no opinion</b>, which is a real answer and not an absence — those Households want
+    /// nothing in particular, and placement gives them the first dwelling with room in it.
+    /// </para>
+    /// </remarks>
+    public int? CentralityTaste { get; }
 
 
     /// <summary>The Household they belong to.</summary>

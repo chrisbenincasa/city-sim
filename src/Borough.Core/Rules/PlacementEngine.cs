@@ -1,3 +1,4 @@
+using Borough.Core.Arithmetic;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Space;
@@ -379,6 +380,34 @@ public sealed class PlacementEngine
 
         int looks = 0;
 
+        // adr/0027's taste, turned into a direction and a strength in one expression.
+        //
+        // The Household's position on the axis runs 0 (wants room) to Fixed.One (wants the middle).
+        // `2T - One` re-centres that on zero, so the SIGN says which way this family leans and the
+        // MAGNITUDE says how hard. Scoring `distance * weight` and taking the smallest then does
+        // both jobs at once: a positive weight is minimised by a small distance, a negative one by a
+        // large distance, and the strength scales how much a difference in distance is worth.
+        //
+        // 🔴 A NEUTRAL HOUSEHOLD WEIGHS EXACTLY ZERO, AND THAT IS LOAD-BEARING RATHER THAN NEAT.
+        // Every candidate scores 0, the first one drawn stays `best`, and the family takes the same
+        // dwelling the unscored branch would have given it. ***The mechanism is continuous with the
+        // behaviour it replaces at the midpoint of the axis***, so `centrality_base_percent = 50` is
+        // not a special case anybody had to write -- it falls out of the arithmetic.
+        //
+        // ⚠ IT IS A COMPARISON AND NEVER A THRESHOLD. Nothing here refuses a dwelling; the family
+        // takes the best of what it was shown, which is adr/0017's satisficing and not an optimum.
+        // A Household that hates every candidate still moves in, because the alternative is a Pool
+        // that fills for a reason no Ruleset authored.
+        bool scored = _world.Rules.CentralityVaries;
+        long weight = scored
+            ? (2L * _world.Rules.CentralityTaste(
+                _key, _world.Households.Rows.IdAt(slot), _world.Households.LifeStage[slot]))
+                - Fixed.One
+            : 0L;
+
+        int best = Rows.NoSlot;
+        long bestScore = 0L;
+
         for (int draw = 0; draw < budget && looks < candidates; draw++)
         {
             // Keyed on the Household's monotonic id rather than its Pool position, so that who a
@@ -431,19 +460,103 @@ public sealed class PlacementEngine
                 continue;
             }
 
-            // Read BEFORE Place, which is the whole of the ordering constraint here: Place consumes
-            // the Pool membership, and UnplacedTable.Leave swaps the last member into the vacated
-            // position -- so a gate read afterwards is somebody else's origin, and the Trip it
-            // produced would be a legitimate journey between two real Addresses.
-            Handle<Building> gate = _world.UnplacedPool.GateAt(position);
+            // The old accept, and it is still the accept in 27 of the 30 shipped worlds: the first
+            // dwelling with room in it, taken without comparison. ⚠ THE EARLY RETURN IS THE PART
+            // THAT MATTERS, not the choice -- a Household with no opinion would pick this same
+            // Building by score, and would consume the rest of its candidate draws getting there.
+            // That is why the gate is CentralityVaries and not the taste of the Household in hand.
+            if (!scored)
+            {
+                // Read BEFORE Place, which is the whole of the ordering constraint here: Place
+                // consumes the Pool membership, and UnplacedTable.Leave swaps the last member into
+                // the vacated position -- so a gate read afterwards is somebody else's origin, and
+                // the Trip it produced would be a legitimate journey between two real Addresses.
+                Handle<Building> gate = _world.UnplacedPool.GateAt(position);
 
-            _world.Place(seeker, _world.Buildings.Rows.At(building));
-            MoveIn(slot, gate, building, tick);
+                _world.Place(seeker, _world.Buildings.Rows.At(building));
+                MoveIn(slot, gate, building, tick);
 
-            return true;
+                return true;
+            }
+
+            long score = Distance(lot) * weight;
+
+            if (best == Rows.NoSlot || score < bestScore)
+            {
+                best = building;
+                bestScore = score;
+            }
         }
 
-        return false;
+        if (best == Rows.NoSlot)
+        {
+            return false;
+        }
+
+        // Same ordering constraint as the unscored branch above, and the same reason.
+        Handle<Building> chosen = _world.UnplacedPool.GateAt(position);
+
+        _world.Place(seeker, _world.Buildings.Rows.At(best));
+        MoveIn(slot, chosen, best, tick);
+
+        return true;
+    }
+
+    /// <summary>
+    /// How far a Lot is from the nearest <c>[[lattice]]</c> origin, in Tiles, <b>walked rather than
+    /// flown</b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Manhattan and not Euclidean, and it is not an approximation to avoid a square root.</b> A
+    /// Household reaching the middle of the city goes along Streets, and on a lattice laid in blocks
+    /// the sum of the two legs <em>is</em> the trip. A straight-line distance would rate a diagonal
+    /// Lot better than the two Lots it is actually as far from the centre as.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The NEAREST origin, because a city may have more than one centre</b> —
+    /// <c>rulesets/twinned.toml</c> ships two, and <c>adr/0134</c>'s watershed exists because the
+    /// question <em>which centre is this nearer</em> has a real answer. A Household on the far
+    /// lattice measured against the first table would read as hopelessly peripheral in a place it
+    /// considers central.
+    /// </para>
+    /// <para>
+    /// 🔴 ⚠ <b>A Ruleset stating no <c>[[lattice]]</c> gets a centre at the map's CORNER, and that
+    /// is the branch the only shipped world with an opinion actually takes.</b>
+    /// <c>rulesets/choosy.toml</c> is <c>declining.toml</c> plus stages, and neither states
+    /// <c>[[lattice]]</c> — only <c>coastal.toml</c> and <c>twinned.toml</c> do — so every measured
+    /// number about this mechanism was taken against <c>(0,0)</c>. It matches the generator, which
+    /// lays a lattice there when none is authored, so the centre is where the city really is
+    /// centred; ***but a reader who assumes the interesting path is the loop below is reading the
+    /// wrong half of this method.***
+    /// </para>
+    /// </remarks>
+    private long Distance(int lot)
+    {
+        LatticeDefinition[] lattices = _world.Rules.Lattices;
+        long east = _world.Lots.East[lot].Raw;
+        long north = _world.Lots.North[lot].Raw;
+
+        if (lattices.Length == 0)
+        {
+            return (east < 0 ? -east : east) + (north < 0 ? -north : north);
+        }
+
+        long nearest = long.MaxValue;
+
+        for (int at = 0; at < lattices.Length; at++)
+        {
+            long sideways = east - lattices[at].OriginEastTiles;
+            long up = north - lattices[at].OriginNorthTiles;
+            long walked = (sideways < 0 ? -sideways : sideways) + (up < 0 ? -up : up);
+
+            if (walked < nearest)
+            {
+                nearest = walked;
+            }
+        }
+
+        return nearest;
     }
 
     /// <summary>
