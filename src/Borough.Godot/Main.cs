@@ -211,6 +211,18 @@ public partial class Main : Node3D
     /// <summary>Frames drawn since the shell opened. Read only by the screenshot trigger.</summary>
     private int _frame;
     private string _rulesetPath = "rulesets/minimal.toml";
+
+    /// <summary>The script this run is driven by, in Tick order. Empty when nobody is driving.</summary>
+    private DriveCommand[] _drive = [];
+
+    /// <summary>How far into <see cref="_drive"/> the run has got.</summary>
+    private int _next;
+
+    /// <summary>This frame's interpolation, kept so a written caption can be recomposed.</summary>
+    private Ratio _alpha;
+
+    /// <summary>Set once the run has been refused, so no frame draws a world nobody built.</summary>
+    private bool _stopping;
     private Camera3D _camera = null!;
     private float _span = 512f;
 
@@ -225,18 +237,23 @@ public partial class Main : Node3D
 
     public override void _Ready()
     {
-        (_rulesetPath, int citizens, ulong startAt) = Arguments();
+        (_rulesetPath, int citizens, ulong startAt, string? drive, ulong quitAt) = Arguments();
 
-        string path = Path.IsPathRooted(_rulesetPath)
-            ? _rulesetPath
-            : ProjectSettings.GlobalizePath($"res://../../{_rulesetPath}");
+        if (!Driven(drive, quitAt))
+        {
+            Stop(2);
+
+            return;
+        }
+
+        string path = Globalize(_rulesetPath);
 
         if (!File.Exists(path))
         {
             GD.PrintErr($"no Ruleset at {path}. Pass one after Godot's own --, as in:");
             GD.PrintErr("  godot --path src/Borough.Godot -- --ruleset rulesets/congested.toml "
                 + "--citizens 4000");
-            GetTree().Quit(2);
+            Stop(2);
 
             return;
         }
@@ -248,7 +265,7 @@ public partial class Main : Node3D
         if (loaded.Ruleset is null)
         {
             GD.PrintErr(loaded.Describe());
-            GetTree().Quit(2);
+            Stop(2);
 
             return;
         }
@@ -321,71 +338,262 @@ public partial class Main : Node3D
 
     public override void _Process(double delta)
     {
+        if (_stopping)
+        {
+            return;
+        }
+
         _owed += delta * Ladder[_rung];
 
-        while (_owed >= 1.0)
+        // 🔴 THE CLOCK IS CLAMPED AT THE NEXT COMMAND'S TICK, AND THAT IS WHAT MAKES A DRIVEN RUN
+        // REPRODUCIBLE. A frame steps as many Ticks as the rung and the frame time between them
+        // ask for, so a command drained on "the first frame at or past Tick T" lands on a
+        // different Tick on a different machine, at a different rung, or under a different load --
+        // which is plans/0048 F4, the defect tier 1 could not fix. Stepping no further than T
+        // makes the Tick a command lands on a property of the SCRIPT rather than of the host.
+        ulong until = _next < _drive.Length ? _drive[_next].At : ulong.MaxValue;
+
+        while (_owed >= 1.0 && _world.Tick.Raw < until)
         {
             _simulation.Step(default);
             _owed -= 1.0;
         }
 
-        Draw(new Ratio((int)(_owed * 65_536)));
+        // ⚠ CLAMPED, because holding the clock at a command's Tick lets the debt run past a whole
+        // Tick where the loop above used to guarantee it could not. An alpha over 1 would place a
+        // Traveller past the Address it is walking to.
+        _alpha = new Ratio((int)(Math.Min(_owed, 0.999_99) * 65_536));
 
-        // A picture of the frame, for a machine with no screen. Nothing reads it back.
-        //
-        // ⚠ TRIGGERED ON THE WORLD'S TICK AND NOT ON A FRAME COUNT, so two Rulesets photographed at
-        // the same number are photographed at the same moment in the city rather than after the same
-        // amount of the operator's patience.
-        // ⚠ AND ON THE THIRD FRAME AT THE EARLIEST, WHICH IS NOT PEDANTRY. --start-at does its
-        // fast-forwarding in _Ready, so with it the world is already past the trigger when the
-        // FIRST frame is drawn -- and a Control added to a CanvasLayer this frame has not been laid
-        // out yet, so the readout is absent from the picture. Two photographs of a flood were taken
-        // with no caption on them before anybody noticed the panel was missing rather than empty.
-        // ***The one thing in the frame that says which Tick it is, is the thing a first-frame
-        // capture drops.***
-        if (System.Environment.GetEnvironmentVariable("BOROUGH_SHOT") is { } shot
-            && _frame++ >= 2
-            && _world.Tick.Raw >= ulong.Parse(
-                System.Environment.GetEnvironmentVariable("BOROUGH_SHOT_AT") ?? "750"))
+        Draw(_alpha);
+        Drive();
+    }
+
+    /// <summary>Apply every command the world has reached, in file order.</summary>
+    /// <remarks>
+    /// ⚠ <b>Nothing runs before the third frame, and that is not pedantry.</b> A <c>Control</c>
+    /// added to a <c>CanvasLayer</c> has not been laid out in the frame it was added, so the
+    /// readout is absent from a picture taken too early -- and with <c>--start-at</c> the world is
+    /// already past the first command when the first frame draws. ***The one thing in a frame that
+    /// says which Tick it is, is the thing an early capture drops.*** Two photographs of a flood
+    /// were taken with no caption before anybody noticed the panel was missing rather than empty.
+    /// <b>Nothing is lost by waiting</b>: the clock is held at the command's Tick until it runs.
+    /// </remarks>
+    private void Drive()
+    {
+        if (_frame++ < 2)
         {
-            RenderingServer.ForceDraw();
+            return;
+        }
 
-            // ⚠ THE VIEWPORT HAS NO PICTURE UNDER --headless, and this block is the one thing in
-            // the shell written for a machine with no screen. Reaching through the null threw
-            // before the Print and before the Quit, so the run neither said it had arrived nor
-            // stopped -- it spewed a stack trace every frame until something killed it, and a
-            // timing run against it read the killer's timeout back as the answer.
-            //
-            // 🔴 AND THE GUARD BELOW WAS WRITTEN ONE LEVEL TOO HIGH, so the paragraph above went on
-            // describing a symptom the code beside it did not prevent -- found 2026-08-31 by running
-            // it. GetTexture() returns a ViewportTexture and it is NOT null under --headless; what is
-            // null is what the dummy renderer has behind its RID, which surfaces as an engine error
-            // ("Parameter \"t\" is null") and a null out of GetImage(). ***A guard checks the handle
-            // and the emptiness is in what the handle points at***, which is the same shape as
-            // FloodCells' depth reading backwards: the wrong end of an indirection.
-            //
-            // ⚠ AND THE DISPLAY SERVER IS ASKED FIRST rather than the viewport, because asking the
-            // dummy one for a picture is itself an engine error -- two red lines in a log whose
-            // whole job is to be read. A capability is checked where it is declared.
-            if (DisplayServer.GetName() == "headless")
-            {
-                GD.Print(
-                    $"no picture at Tick {_world.Tick.Raw}: --headless renders nothing. A "
-                    + "screenshot needs a real display.");
-            }
-            else if (GetViewport().GetTexture()?.GetImage() is { } picture)
-            {
-                picture.SavePng(shot);
-                GD.Print($"wrote {shot} at Tick {_world.Tick.Raw}");
-            }
-            else
-            {
-                GD.Print($"no picture at Tick {_world.Tick.Raw}: the viewport rendered nothing.");
-            }
-
-            GetTree().Quit();
+        while (_next < _drive.Length && _world.Tick.Raw >= _drive[_next].At)
+        {
+            Apply(_drive[_next++]);
         }
     }
+
+    /// <summary>
+    /// Read the drive script, and hang <c>--quit-at</c> off the end of it as one more command.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b><c>--quit-at</c> is a command and not a second mechanism</b>, which answers
+    /// <c>plans/0048</c> <b>D3</b>: <c>--drive</c> does NOT imply an end, because a script a person
+    /// is watching should keep running when it runs out of instructions. Wanting an end means
+    /// writing <c>quit</c> or passing the flag, and both arrive at the same applier.
+    /// </remarks>
+    private bool Driven(string? script, ulong quitAt)
+    {
+        List<DriveCommand> commands = [];
+
+        if (script is not null)
+        {
+            string path = Globalize(script);
+
+            if (!File.Exists(path))
+            {
+                GD.PrintErr($"no drive script at {path}.");
+
+                return false;
+            }
+
+            DriveScriptResult read = DriveScript.Parse(
+                File.ReadAllText(path), Path.GetFileName(path));
+
+            if (read.Commands is null)
+            {
+                GD.PrintErr(read.Describe());
+
+                return false;
+            }
+
+            commands.AddRange(read.Commands);
+        }
+
+        if (quitAt > 0)
+        {
+            if (commands.Count > 0 && commands[^1].At > quitAt)
+            {
+                GD.PrintErr($"--quit-at {quitAt:N0} is before the script's last command at Tick "
+                    + $"{commands[^1].At:N0}, so that command could never run.");
+
+                return false;
+            }
+
+            if (DriveScript.Stopped(commands) && commands.Count > 0 && quitAt > commands[^1].At)
+            {
+                GD.PrintErr($"the script stops the clock at Tick {commands[^1].At:N0}, so "
+                    + $"--quit-at {quitAt:N0} is never reached. Resume before the end.");
+
+                return false;
+            }
+
+            commands.Add(new DriveCommand(quitAt, DriveVerb.Quit, 0, null));
+        }
+
+        _drive = [.. commands];
+
+        return true;
+    }
+
+    /// <summary>
+    /// <b>The one control surface.</b> The keyboard and the script both arrive here.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Every verb is an ABSOLUTE and the keyboard is what toggles.</b> <c>g</c> reads the
+    /// carriageway's current visibility and asks for the opposite; a script says <c>roads off</c>
+    /// and means it whatever ran before. Two appliers would drift, and the one that drifted would
+    /// be the one nobody presses.
+    /// </remarks>
+    private void Apply(DriveCommand command)
+    {
+        switch (command.Verb)
+        {
+            case DriveVerb.Pause:
+                _rung = 0;
+
+                break;
+
+            case DriveVerb.Resume:
+                _rung = _resume;
+
+                break;
+
+            case DriveVerb.Speed:
+                // Clamped rather than refused: the ladder's length is the shell's own fact and the
+                // format cannot know it, so the parser checks the shape and this checks the range.
+                _rung = Math.Clamp(command.Amount, 0, Ladder.Length - 1);
+
+                break;
+
+            case DriveVerb.Roads:
+                _roads.Visible = command.Amount != 0;
+
+                break;
+
+            case DriveVerb.Cells:
+                _cells.Visible = command.Amount != 0;
+
+                break;
+
+            case DriveVerb.Turn:
+                // Modulo rather than accumulation: a session is long and a yaw is an angle.
+                _yaw = (_yaw + (command.Amount * YawStepRadians)) % (Mathf.Pi * 2f);
+
+                Orbit();
+
+                break;
+
+            case DriveVerb.Zoom:
+                Dolly(command.Amount);
+
+                break;
+
+            case DriveVerb.Shoot:
+                Shoot(command.Path!);
+
+                break;
+
+            case DriveVerb.Readout:
+                Caption(command.Path!);
+
+                break;
+
+            case DriveVerb.Quit:
+                Quit();
+
+                break;
+        }
+
+        // Pause is a rung rather than a separate state (01 §1), so it remembers what it left.
+        if (_rung != 0)
+        {
+            _resume = _rung;
+        }
+    }
+
+    /// <summary>Write the frame, and the readout beside it under the same name.</summary>
+    /// <remarks>
+    /// <para>
+    /// ⚠ <b>The picture and the caption are written in ONE act</b>, so they cannot disagree about
+    /// which Tick they are of. A frame filed beside a readout taken a moment later is a frame whose
+    /// numbers belong to a different city.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>THE VIEWPORT HAS NO PICTURE UNDER <c>--headless</c>.</b> <c>GetTexture()</c> is not null
+    /// there -- what is empty is what the dummy renderer has behind its RID, which surfaces as an
+    /// engine error and a null out of <c>GetImage()</c>. ***A guard that checks the handle misses an
+    /// emptiness that is in what the handle points at***, so the display server is asked first,
+    /// where the capability is actually declared. <b>The caption is still written</b>: a run with no
+    /// screen can still say what the city was doing.
+    /// </para>
+    /// </remarks>
+    private void Shoot(string path)
+    {
+        string full = Globalize(path);
+
+        // 🔴 REDRAWN BEFORE THE SHUTTER, BECAUSE Draw RAN BEFORE THIS FRAME'S COMMANDS DID. Found
+        // by running it: 'pause' then 'shoot' on one Tick wrote a caption reading "speed 1x", which
+        // is the rung the frame was composed with and not the one the picture was taken at.
+        // ***A caption written from a stale compose is a caption that disagrees with its own
+        // picture***, which is the one thing writing them in a single act was supposed to prevent.
+        Draw(_alpha);
+        RenderingServer.ForceDraw();
+
+        if (DisplayServer.GetName() == "headless")
+        {
+            GD.Print($"no picture at Tick {_world.Tick.Raw}: --headless renders nothing.");
+        }
+        else if (GetViewport().GetTexture()?.GetImage() is { } picture)
+        {
+            picture.SavePng(full);
+            GD.Print($"wrote {path} at Tick {_world.Tick.Raw}");
+        }
+        else
+        {
+            GD.Print($"no picture at Tick {_world.Tick.Raw}: the viewport rendered nothing.");
+        }
+
+        // Written rather than captioned: Draw has already run above, and a second compose would
+        // be a second reading of a world that has not moved.
+        Write(Path.ChangeExtension(path, ".txt"));
+    }
+
+    /// <summary>
+    /// Write the readout, which is <b>the whole of what a driven run returns without a picture</b>.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>The Tick is on its own first line rather than only inside the readout's prose.</b> The
+    /// readout is written to be read by a person at 18pt; this file is read by whatever is driving,
+    /// and a caller should not have to parse an em-dash to find out which Tick it got.
+    /// </remarks>
+    private void Caption(string path)
+    {
+        Draw(_alpha);
+        Write(path);
+    }
+
+    /// <summary>Put the readout on disk as it stands. Composed by the caller.</summary>
+    private void Write(string path) =>
+        File.WriteAllText(Globalize(path), $"tick {_world.Tick.Raw}\n{_readout.Text}\n");
 
     public override void _UnhandledInput(InputEvent @event)
     {
@@ -443,19 +651,10 @@ public partial class Main : Node3D
             return;
         }
 
-        // The camera's keys, which move the eye and never the clock, so they leave before the rung.
+        // The tuner's two keys, which are an editing UI rather than a view of the city and are
+        // therefore the only keys with no verb behind them. A script has no panel to open.
         switch (key.Keycode)
         {
-            case Key.Q:
-            case Key.E:
-                // Modulo rather than accumulation: a session is long and a yaw is an angle.
-                _yaw = (_yaw + (key.Keycode == Key.Q ? -YawStepRadians : YawStepRadians))
-                    % (Mathf.Pi * 2f);
-
-                Orbit();
-
-                return;
-
             case Key.Tab:
                 _tuner.Visible = !_tuner.Visible;
 
@@ -470,55 +669,42 @@ public partial class Main : Node3D
                 }
 
                 return;
-
-            case Key.G:
-                // ⚠ THE ROADS AND NOT THE LOTS. Hiding the carriageway is what answers "is that
-                // space empty, or is it covered by the thing I drew to find the space" -- and a
-                // dead block interior is exactly the question you cannot ask with the grid on top
-                // of it (adr/0078). It is a view and touches nothing in the city.
-                _roads.Visible = !_roads.Visible;
-
-                return;
-
-            case Key.C:
-                // The 128 m Cell lattice. A different question from G's: that one asks what is
-                // under the roads, this one asks how large a Cell is against a Building -- which is
-                // the scale every Map Layer, Stress reading and residency bucket is quoted at.
-                _cells.Visible = !_cells.Visible;
-
-                return;
-
-            case Key.Equal:
-            case Key.KpAdd:
-                Dolly(4f);
-
-                return;
-
-            case Key.Minus:
-            case Key.KpSubtract:
-                Dolly(-4f);
-
-                return;
         }
 
-        // Pause is a rung rather than a separate state (01 §1), so it remembers what it left.
-        _rung = key.Keycode switch
+        // 🔴 A KEY TOGGLES AND A COMMAND IS ABSOLUTE, SO THE CURRENT STATE IS READ HERE AND NEVER
+        // IN Apply. g asks for the opposite of what the carriageway is doing; space asks to resume
+        // if the clock is stopped. That reading is the whole difference between the two surfaces,
+        // and keeping it on this side is what leaves exactly one applier to go wrong.
+        //
+        // ⚠ The Tick is the world's rather than zero, and it is unused today. It is what tier 4
+        // needs: a socket that stamps each arriving command with the Tick it landed on writes a
+        // drive script, which is what makes an interactive session replayable as a batch one.
+        DriveCommand? command = key.Keycode switch
         {
-            Key.Space => _rung == 0 ? _resume : 0,
-            Key.Bracketleft => Math.Max(1, _rung - 1),
-            Key.Bracketright => Math.Min(Ladder.Length - 1, _rung + 1),
-            Key.Key1 => DesignSpeed,
-            Key.Key2 => DesignSpeed + 1,
-            Key.Key3 => DesignSpeed + 2,
-            Key.Key4 => DesignSpeed + 3,
-            Key.Escape => Quit(),
-            _ => _rung,
+            Key.Q => Made(DriveVerb.Turn, -1),
+            Key.E => Made(DriveVerb.Turn, 1),
+            Key.G => Made(DriveVerb.Roads, _roads.Visible ? 0 : 1),
+            Key.C => Made(DriveVerb.Cells, _cells.Visible ? 0 : 1),
+            Key.Equal or Key.KpAdd => Made(DriveVerb.Zoom, 4),
+            Key.Minus or Key.KpSubtract => Made(DriveVerb.Zoom, -4),
+            Key.Space => Made(_rung == 0 ? DriveVerb.Resume : DriveVerb.Pause),
+            Key.Bracketleft => Made(DriveVerb.Speed, Math.Max(1, _rung - 1)),
+            Key.Bracketright => Made(DriveVerb.Speed, Math.Min(Ladder.Length - 1, _rung + 1)),
+            Key.Key1 => Made(DriveVerb.Speed, DesignSpeed),
+            Key.Key2 => Made(DriveVerb.Speed, DesignSpeed + 1),
+            Key.Key3 => Made(DriveVerb.Speed, DesignSpeed + 2),
+            Key.Key4 => Made(DriveVerb.Speed, DesignSpeed + 3),
+            Key.Escape => Made(DriveVerb.Quit),
+            _ => null,
         };
 
-        if (_rung != 0)
+        if (command is not null)
         {
-            _resume = _rung;
+            Apply(command.Value);
         }
+
+        DriveCommand Made(DriveVerb verb, int amount = 0) =>
+            new(_world.Tick.Raw, verb, amount, null);
     }
 
     /// <summary>
@@ -547,11 +733,14 @@ public partial class Main : Node3D
     /// project's (<c>adr/0002</c>), and a bad one is reported rather than defaulted, because a
     /// silently-substituted world is a picture of somewhere else.
     /// </remarks>
-    private static (string Ruleset, int Citizens, ulong StartAt) Arguments()
+    private static (string Ruleset, int Citizens, ulong StartAt, string? Drive, ulong QuitAt)
+        Arguments()
     {
         string ruleset = "rulesets/minimal.toml";
         int citizens = 1_000;
         ulong startAt = 0;
+        string? drive = null;
+        ulong quitAt = 0;
         string[] given = OS.GetCmdlineUserArgs();
 
         for (int at = 0; at + 1 < given.Length; at++)
@@ -570,10 +759,46 @@ public partial class Main : Node3D
             {
                 startAt = from;
             }
+            else if (given[at] == "--drive")
+            {
+                drive = given[at + 1];
+            }
+            else if (given[at] == "--quit-at"
+                && ulong.TryParse(given[at + 1], out ulong until))
+            {
+                quitAt = until;
+            }
         }
 
-        return (ruleset, citizens, startAt);
+        return (ruleset, citizens, startAt, drive, quitAt);
     }
+
+    /// <summary>
+    /// Refuse to run, <b>and stop this frame as well as the next one</b>.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b><c>GetTree().Quit()</c> IS DEFERRED TO THE END OF THE FRAME, so <c>_Process</c> still
+    /// runs once against a world <c>_Ready</c> never built</b> — and the refusal a person is meant
+    /// to read scrolls past under a <c>NullReferenceException</c> and forty lines of Godot
+    /// backtrace. ⚠ <b>This was already true of both Ruleset refusals</b>; the drive script only
+    /// made it happen often enough to notice. ***A message printed above a stack trace is a message
+    /// nobody reads***, which is <c>adr/0015</c>'s standard for a refusal failing at the last step.
+    /// </remarks>
+    private void Stop(int code)
+    {
+        _stopping = true;
+
+        GetTree().Quit(code);
+    }
+
+    /// <summary>A path as the operator typed it, resolved against the repository root.</summary>
+    /// <remarks>
+    /// ⚠ <b>The shell's working directory is the Godot project and the operator's is the
+    /// repository</b>, which is why <c>--ruleset rulesets/minimal.toml</c> works at all. A written
+    /// file resolves the same way, so a script and its output land where they were asked for.
+    /// </remarks>
+    private static string Globalize(string path) =>
+        Path.IsPathRooted(path) ? path : ProjectSettings.GlobalizePath($"res://../../{path}");
 
     /// <summary>Reads the world into the two meshes that change, and writes the readout.</summary>
     private void Draw(Ratio alpha)
