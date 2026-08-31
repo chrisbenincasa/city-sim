@@ -824,3 +824,14 @@ is it.
 
 ⚠ **`--govern` opens the panel at start**, on `BOROUGH_SHOT`'s bargain: a machine with no hands
 cannot press `p`, and ***a panel nobody can photograph is a panel nobody reviews.***
+
+🔴 **A BINDING THAT DECIDES WHICH OF TWO THINGS YOU MEANT WILL DECIDE WRONG, AND 15a SHIPPED ONE.**
+Panning and every verb shared the left button, told apart by a **four-pixel slop test taken on
+release**. macOS tap-to-click and force-click both emit motion while the button is down, so the
+pointer drifted past four pixels before the release arrived — ***the verb was cancelled and that same
+drift panned the camera***. ⚠ **A larger slop radius is the same defect with a longer fuse**, which
+is why the test was deleted rather than tuned: a click now acts **on press** and the camera has its
+own buttons. Separately, `InputEventPanGesture` was wired to *zoom* while pinch was too, so a
+trackpad had two ways to zoom and no way to move. ⚠ **The dead zone over the panels asks each
+`Control` for `GetGlobalRect()` rather than guessing a corner** — a guess killed edge-scrolling
+north-west outright on the first attempt. Fixed in `4e56a7e`.
