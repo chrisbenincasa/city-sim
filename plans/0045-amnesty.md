@@ -214,6 +214,27 @@ against a fully built city. Nobody is outside before 05:00.
 ⚠ **Godot loads the `Debug` assembly.** A tree built only in `Release` fails with *Cannot instantiate
 C# script*, which reads as a missing class and is a missing configuration.
 
+## What watching it at 1× found
+
+🔴 **THE LADDER IS 675× TOO FAST TO WATCH A PERSON AND THE DOCUMENT SAYS OTHERWISE.** A Tick is
+42.19 s of in-world time, so `01 §1`'s **1× runs the world at 675× real time**: a 20-minute commute
+is **1.8 real seconds**, a walker crosses a 128 m block in **0.14 s**, and a car crosses one in
+**0.014 s** — ***sub-frame at 60 Hz on every rung the document offers.***
+
+🔴 **`01 §1` says *traffic is visually truthful* at 0.5×, and truthfulness is 1× REAL time — 0.0237
+Ticks/s, 1/675 of the ladder's 1×.** `§7`'s recorded concession says an untouched speed control
+shows traffic *"roughly twice as fast as its apparent size warrants"*; the figure is **675**.
+⚠ **Two requirements 675× apart are sharing one ladder** — a Day inside a two-minute observation
+window, and traffic that looks like traffic — and the document asserts both. Filed in `plans/0012`
+as a Cause 4 sighting; ***not paid here, because choosing what the ladder should be is design.***
+
+✅ **The shell added four rungs of its own below 0.5×**, down to 0.25 Ticks/s, and **prints the ×
+real-time figure beside the rung name** so the gap is on screen rather than in a table. **1 Tick/s
+is where a walker becomes watchable**: a block in 2.2 s, a commute in 28 s, a Day in 34 minutes.
+
+⚠ **Nothing about the simulation changed.** The tick rate is host-side and runtime-only
+(`CLAUDE.md` → Constants), so a rung moves no hash and settles no design question.
+
 ## What the school run found
 
 **`Service` is applied**, `Need` is complete at four, and `docs/deferred.md` named the exact trigger

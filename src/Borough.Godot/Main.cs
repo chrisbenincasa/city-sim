@@ -37,8 +37,41 @@ public partial class Main : Node3D
     /// <summary>Metres per Tile, so the camera can be placed in something a human reads.</summary>
     private const float MetresPerTile = 4f;
 
-    /// <summary>The reference tick rate — <c>CLAUDE.md</c>'s ladder at 1×.</summary>
-    private const double TicksPerSecond = 16.0;
+    /// <summary>In-world seconds a Tick is worth, which is what turns a rung into a rate.</summary>
+    private const double SecondsPerTick = 86_400.0 / Ticks.PerDay;
+
+    /// <summary>
+    /// The speed ladder, in Ticks a second. <b>1× is 16, and the four rungs below 0.5× are this
+    /// shell's rather than <c>01 §1</c>'s.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THE SHIPPED LADDER'S SLOWEST RUNG IS TOO FAST TO WATCH A PERSON, BY A FACTOR OF ABOUT
+    /// SIXTEEN.</b> <c>TICKS_PER_DAY = 2048</c> makes a Tick 42.19 s of in-world time, so 1× runs the
+    /// world at <b>675× real time</b>: a 20-minute commute is <b>1.8 real seconds</b>, a walker
+    /// crosses a 128 m block in <b>0.14 s</b>, and a car crosses one in <b>0.014 s</b> — under a
+    /// frame at 60 Hz, at <em>every</em> rung <c>01 §1</c> offers.
+    /// </para>
+    /// <para>
+    /// ⚠ <b><c>01 §1</c> says <em>traffic is visually truthful</em> at 0.5× and that is wrong by
+    /// 337×.</b> Truthfulness is by definition 1× <em>real</em> time, which is <b>0.0237 Ticks/s</b>
+    /// — 1/675 of the ladder's 1×. <c>§7</c> records a concession that an untouched speed control
+    /// shows traffic <em>"roughly twice as fast as its apparent size warrants"</em>; the figure is
+    /// 675. ***A two-minute Day and truthful traffic are 675× apart and no one ladder holds both.***
+    /// </para>
+    /// <para>
+    /// <b>1 Tick/s is the rung at which a walker is watchable</b> — a block in 2.2 s, a commute in
+    /// 28 s, a Day in 34 minutes. Below it a Day stops being a sitting.
+    /// </para>
+    /// </remarks>
+    private static readonly double[] Ladder = [0.0, 0.25, 1.0, 4.0, 8.0, 16.0, 32.0, 48.0, 64.0];
+
+    /// <summary>What each rung is called, against <c>01 §1</c>'s 1× of 16 Ticks a second.</summary>
+    private static readonly string[] Rungs =
+        ["paused", "1/64x", "1/16x", "1/4x", "0.5x", "1x", "2x", "3x", "4x"];
+
+    /// <summary>The rung <c>space</c> returns to, and the one a fresh shell opens at.</summary>
+    private const int DesignSpeed = 5;
 
     private Simulation _simulation = null!;
     private World _world = null!;
@@ -48,7 +81,8 @@ public partial class Main : Node3D
     private Label _readout = null!;
     private VisibleAgent[] _agents = new VisibleAgent[8192];
     private double _owed;
-    private int _speed = 1;
+    private int _rung = DesignSpeed;
+    private int _resume = DesignSpeed;
     private int _frame;
 
     public override void _Ready()
@@ -84,7 +118,7 @@ public partial class Main : Node3D
 
     public override void _Process(double delta)
     {
-        _owed += delta * TicksPerSecond * _speed;
+        _owed += delta * Ladder[_rung];
 
         while (_owed >= 1.0)
         {
@@ -112,17 +146,24 @@ public partial class Main : Node3D
             return;
         }
 
-        // The speed ladder, and pause is a rung of it rather than a separate state (01 §1).
-        _speed = key.Keycode switch
+        // Pause is a rung rather than a separate state (01 §1), so it remembers what it left.
+        _rung = key.Keycode switch
         {
-            Key.Space => _speed == 0 ? 1 : 0,
-            Key.Key1 => 1,
-            Key.Key2 => 2,
-            Key.Key3 => 3,
-            Key.Key4 => 4,
+            Key.Space => _rung == 0 ? _resume : 0,
+            Key.Bracketleft => Math.Max(1, _rung - 1),
+            Key.Bracketright => Math.Min(Ladder.Length - 1, _rung + 1),
+            Key.Key1 => DesignSpeed,
+            Key.Key2 => DesignSpeed + 1,
+            Key.Key3 => DesignSpeed + 2,
+            Key.Key4 => DesignSpeed + 3,
             Key.Escape => Quit(),
-            _ => _speed,
+            _ => _rung,
         };
+
+        if (_rung != 0)
+        {
+            _resume = _rung;
+        }
     }
 
     /// <summary>Reads the world into the two meshes that change, and writes the readout.</summary>
@@ -141,7 +182,8 @@ public partial class Main : Node3D
             + $"{ofDay * 24 / (ulong)Ticks.PerDay:00}:{ofDay * 1440 / (ulong)Ticks.PerDay % 60:00}\n"
             + $"Citizens {_world.Citizens.Rows.LiveCount:N0}   Buildings {drawn:N0}   "
             + $"travelling {moving:N0}\n"
-            + $"speed {(_speed == 0 ? "paused" : _speed + "x")}   space pause, 1-4 speed, esc quit";
+            + $"speed {Rungs[_rung]} — {Ladder[_rung] * SecondsPerTick:N0}x real time   "
+            + "[ ] slower/faster, space pause, 1-4, esc quit";
     }
 
     /// <summary>Every standing Building, at its Lot.</summary>
@@ -352,6 +394,6 @@ public partial class Main : Node3D
     {
         GetTree().Quit();
 
-        return _speed;
+        return _rung;
     }
 }

@@ -1940,6 +1940,41 @@ pointer to one.***
       terms above, so the next reader meets it at the symbol rather than in a plan.
 
 
+### 🔴 `docs/01 §1` says traffic is **visually truthful at 0.5×** and it is wrong by **337×** — Cause 4, on a number nobody had ever computed
+
+**Found by looking at the city**, 2026-08-30, the first sitting in which anybody watched it move
+(`plans/0045` item 11). ⚠ **`01 §7` defines the slowest rung as *the speed at which rendered traffic
+is visually truthful*** — a definition, and unobjectionable. **`01 §1`'s table then asserts that
+0.5× IS that rung**, and that assertion is arithmetic nobody did.
+
+`TICKS_PER_DAY = 2048` makes a Tick **42.19 s** of in-world time, so the ladder runs the world at:
+
+| Rung | Ticks/s | × real time | a walker crosses a 128 m block | a car does | a 20-minute commute |
+|---|---|---|---|---|---|
+| 4× | 64 | **2,700×** | 0.034 s | 0.0034 s | 0.4 s |
+| 1× | 16 | **675×** | 0.137 s | 0.0137 s | 1.8 s |
+| 0.5× | 8 | **337×** | 0.273 s | 0.0273 s | 3.6 s |
+
+***Visual truthfulness is by definition 1× REAL time***, which is **0.0237 Ticks/s** — **1/675 of the
+ladder's 1×** and 1/337 of its slowest rung. 🔴 **A car is SUB-FRAME at 60 Hz on every rung the
+document offers.** ⚠ **`§7` records a concession that an untouched speed control shows traffic
+*"roughly twice as fast as its apparent size warrants, forever"*; the figure is 675, not 2.**
+
+⚠ **This is not a rounding error, it is two requirements 675× apart sharing one ladder.** `01 §1`
+wants a Day inside the two-minute observation window `§1` opens with; `§7` wants traffic that looks
+like traffic. ***No single ladder holds both***, and the document asserts both without noticing.
+
+**What is owed:** `01 §1`'s *Traffic is visually truthful here* cell, and `§7`'s *roughly twice*
+concession. **Not paid here** — the amnesty suspends design writing, and choosing what the ladder
+should be is design. `src/Borough.Godot` has meanwhile added four rungs below 0.5× **as the shell's
+own**, down to 0.25 Ticks/s, and prints the × real-time figure beside the rung name so the gap is
+on screen rather than in a table. **1 Tick/s is where a walker becomes watchable** — a block in
+2.2 s, a commute in 28 s, a Day in 34 minutes.
+
+⚠ **Cause 4's own shape** — *a decision taken from a description of the code, and the description
+wrong about the trigger*. Here the description was wrong about a **magnitude**, and the trigger that
+exposed it was a renderer, which is the one instrument the corpus had never had.
+
 ### `PROCESS.md` → *Numbering* has no row for an ADR, and two branches proved it needs one
 
 **Found 2026-08-23, renumbering `0139`–`0142` and `plans/0038` after they collided with `main`.** The
