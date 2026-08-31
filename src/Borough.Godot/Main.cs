@@ -400,6 +400,15 @@ public partial class Main : Node3D
 
                 return;
 
+            case Key.G:
+                // ⚠ THE ROADS AND NOT THE LOTS. Hiding the carriageway is what answers "is that
+                // space empty, or is it covered by the thing I drew to find the space" -- and a
+                // dead block interior is exactly the question you cannot ask with the grid on top
+                // of it (adr/0078). It is a view and touches nothing in the city.
+                _roads.Visible = !_roads.Visible;
+
+                return;
+
             case Key.Equal:
             case Key.KpAdd:
                 Dolly(4f);
@@ -506,7 +515,7 @@ public partial class Main : Node3D
             + $"Citizens {_world.Citizens.Rows.LiveCount:N0}   Buildings {drawn:N0}   "
             + $"travelling {moving:N0}{Weather(under)}\n"
             + $"speed {Pace(_rung)}   "
-            + "[ ] speed, space pause, 1-4, drag pan, q/e turn, -/= or wheel zoom, esc quit";
+            + "[ ] speed, space pause, 1-4, drag pan, q/e turn, -/= zoom, g grid, esc quit";
     }
 
     /// <summary>
