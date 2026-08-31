@@ -31,6 +31,17 @@ internal enum Mode
     /// </summary>
     Watch,
 
+    /// <summary>
+    /// Write the Ruleset key surface out as a JSON Schema, for an editor to complete against.
+    /// </summary>
+    /// <remarks>
+    /// <b>The only mode that never makes a world.</b> Every other picture builds a city or steps
+    /// one; this one asks the loader what a Ruleset may say and writes the answer to stdout. It is
+    /// a dump of the <em>format</em> rather than of a run, which is why it wants no seed, no
+    /// population and no Ticks.
+    /// </remarks>
+    Schema,
+
     /// <summary>Build a synthetic city and print what is in it. Slice 4's artefact.</summary>
     Report,
 
@@ -496,6 +507,7 @@ internal sealed class Options
         int schools = DefaultSchools;
         bool watch = false;
         int frames = DefaultFrames;
+        bool schema = false;
         bool business = false;
         bool market = false;
         Layer? dump = null;
@@ -663,6 +675,12 @@ internal sealed class Options
 
                 // A run, for the same reason --census is: the guard is a property of stepping a world,
                 // and the report never steps one.
+                // NOT a session flag, and the only picture that is not: it reads files and never
+                // builds a world, so --ticks, --citizens and --seed mean nothing to it.
+                case "--schema":
+                    schema = true;
+                    continue;
+
                 case "--no-decide-guard":
                     decideGuard = false;
                     session = true;
@@ -1319,9 +1337,19 @@ internal sealed class Options
             return false;
         }
 
+        if (schema && rulesets.Count == 0)
+        {
+            complaint = "--schema needs --ruleset PATH, and it reads the whole FOLDER that path is "
+                      + "in. A reader only ever asks a table that exists, so one file describes "
+                      + "only the sections it happens to declare -- the surface is unioned across "
+                      + "every Ruleset beside it. Try --ruleset rulesets/minimal.toml.";
+            return false;
+        }
+
         options = new Options
         {
-            Mode = day ? Mode.Day
+            Mode = schema ? Mode.Schema
+                 : day ? Mode.Day
                  : watch ? Mode.Watch
                  : school ? Mode.School
                  : stages ? Mode.Stages
@@ -1469,6 +1497,16 @@ internal sealed class Options
                                 --zones already draws. Needs --ruleset with a [parking] and
                                 a [households] table, and runs a session because a car is
                                 parked somewhere only after somebody has driven there
+          --schema              write the Ruleset key surface to stdout as a JSON Schema, for
+                                an editor to complete against. THE ONLY MODE THAT NEVER
+                                MAKES A WORLD: it asks the loader what a Ruleset may say
+                                rather than running one, so --ticks, --citizens and --seed
+                                mean nothing to it. Needs --ruleset PATH and reads the whole
+                                FOLDER that path is in, because a reader only ever asks a
+                                table that exists and one file declares only the sections it
+                                happens to demonstrate. The loader stays the authority --
+                                the schema is autocomplete, and unknown keys stay permitted
+                                because a refusal at the parse site carries a better message
           --land-value          dump land value against the desirability it is chasing, and
                                 the gap: three grids, because a lag is a property of a pair
                                 and not of a value. Needs --ruleset whose Rules EMIT -- the

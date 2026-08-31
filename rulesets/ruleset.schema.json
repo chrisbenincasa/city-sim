@@ -1,0 +1,693 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/chrisbenincasa/city-sim/rulesets/ruleset.schema.json",
+  "title": "Borough Ruleset",
+  "description": "GENERATED from RulesetLoader by `--schema` -- do not edit; RulesetSchemaTests fails when this file drifts from the loader. The loader is the authority and this is autocomplete: unknown keys stay permitted here because the loader refuses them at the parse site with a spelling suggestion. A key listed with no `type` was asked for by a reader that never asserted one, and a few of those are keys the loader knows only in order to refuse them by name -- so a completion is not a promise that the key loads.",
+  "type": "object",
+  "properties": {
+    "building": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "arrivals_per_day": {
+            "type": "integer"
+          },
+          "bins": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "capacity": {
+                  "type": "integer"
+                },
+                "owner": {
+                  "type": "string"
+                },
+                "resource": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "business": {
+            "type": "string"
+          },
+          "collapses_after_days": {
+            "type": "integer"
+          },
+          "condemn_after": {},
+          "condemn_after_days": {
+            "type": "integer"
+          },
+          "footprint_tiles": {
+            "type": "integer"
+          },
+          "jobs": {},
+          "name": {
+            "type": "string"
+          },
+          "occupants": {
+            "type": "integer"
+          },
+          "parking": {
+            "type": "integer"
+          },
+          "serves": {
+            "type": "string"
+          },
+          "sheds_occupant_after_days": {
+            "type": "integer"
+          },
+          "shift_start_earliest_hour": {},
+          "shift_start_latest_hour": {},
+          "tenancy_ends_after_days": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "business": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "jobs": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "pay_period_days": {
+            "type": "integer"
+          },
+          "shift_start_earliest_hour": {
+            "type": "integer"
+          },
+          "shift_start_latest_hour": {
+            "type": "integer"
+          },
+          "wage": {},
+          "wage_per_day": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "disasters": {
+      "type": "object",
+      "properties": {
+        "flood_every_days": {
+          "type": "integer"
+        },
+        "flood_recedes_over_days": {
+          "type": "integer"
+        },
+        "flood_rises_over_days": {
+          "type": "integer"
+        }
+      }
+    },
+    "districts": {
+      "type": "object",
+      "properties": {
+        "hysteresis_percent": {
+          "type": "integer"
+        },
+        "migrate_cells": {
+          "type": "integer"
+        },
+        "prominence_percent": {
+          "type": "integer"
+        },
+        "revisit_ticks": {
+          "type": "integer"
+        }
+      }
+    },
+    "founding": {
+      "type": "object",
+      "properties": {
+        "founding_band": {
+          "type": "integer"
+        },
+        "reconsider_ticks": {
+          "type": "integer"
+        }
+      }
+    },
+    "hinterland": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "edge": {
+            "type": "string"
+          },
+          "emigrant_balance_max": {
+            "type": "integer"
+          },
+          "emigrant_balance_min": {
+            "type": "integer"
+          },
+          "prices": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "price": {
+                  "type": "integer"
+                },
+                "resource": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "households": {
+      "type": "object",
+      "properties": {
+        "car_ownership_percent": {
+          "type": "integer"
+        },
+        "opening_balance_max": {
+          "type": "integer"
+        },
+        "opening_balance_min": {
+          "type": "integer"
+        }
+      }
+    },
+    "jobs": {
+      "type": "object",
+      "properties": {
+        "arrive_early_max_minutes": {
+          "type": "integer"
+        },
+        "candidates": {
+          "type": "integer"
+        },
+        "interval": {
+          "type": "integer"
+        },
+        "revisit_ticks": {
+          "type": "integer"
+        },
+        "shift_hours_max": {
+          "type": "integer"
+        },
+        "shift_hours_min": {
+          "type": "integer"
+        }
+      }
+    },
+    "lattice": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "origin_east_tiles": {
+            "type": "integer"
+          },
+          "origin_north_tiles": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "layers": {
+      "type": "object",
+      "properties": {
+        "desirability_noise_percent": {
+          "type": "integer"
+        },
+        "desirability_pollution_percent": {
+          "type": "integer"
+        },
+        "desirability_shoreline_percent": {
+          "type": "integer"
+        },
+        "fertility_pollution_percent": {
+          "type": "integer"
+        },
+        "kernel_metres": {
+          "type": "integer"
+        },
+        "land_value_offset": {
+          "type": "integer"
+        },
+        "land_value_period": {
+          "type": "integer"
+        },
+        "land_value_tau": {
+          "type": "integer"
+        },
+        "noise_intensity_percent": {
+          "type": "integer"
+        },
+        "noise_range_metres": {
+          "type": "integer"
+        },
+        "pollution_decay_ticks": {
+          "type": "integer"
+        },
+        "pollution_offset": {
+          "type": "integer"
+        },
+        "pollution_period": {
+          "type": "integer"
+        },
+        "sealing_decay_offset": {
+          "type": "integer"
+        },
+        "sealing_decay_period": {
+          "type": "integer"
+        },
+        "sealing_decay_tau": {},
+        "shoreline_intensity_percent": {
+          "type": "integer"
+        },
+        "shoreline_range_metres": {
+          "type": "integer"
+        },
+        "woodland_regrowth_days": {
+          "type": "integer"
+        },
+        "woodland_regrowth_offset": {
+          "type": "integer"
+        },
+        "woodland_regrowth_period": {
+          "type": "integer"
+        }
+      }
+    },
+    "life_stage": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "adult_age_max_days": {
+            "type": "integer"
+          },
+          "adult_age_min_days": {
+            "type": "integer"
+          },
+          "centrality_base_percent": {
+            "type": "integer"
+          },
+          "centrality_spread_percent": {
+            "type": "integer"
+          },
+          "childless": {
+            "type": "string"
+          },
+          "children_become": {
+            "type": "string"
+          },
+          "children_max": {
+            "type": "integer"
+          },
+          "children_min": {
+            "type": "integer"
+          },
+          "duration_days": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "next": {
+            "type": "string"
+          },
+          "spread_days": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "lots": {
+      "type": "object",
+      "properties": {
+        "lots_per_segment": {
+          "type": "integer"
+        }
+      }
+    },
+    "market": {
+      "type": "object",
+      "properties": {
+        "decay_percent": {
+          "type": "integer"
+        },
+        "move_cap_percent": {
+          "type": "integer"
+        }
+      }
+    },
+    "needs": {
+      "type": "object",
+      "properties": {
+        "education_degrade": {
+          "type": "integer"
+        },
+        "education_recover": {
+          "type": "integer"
+        },
+        "floor": {
+          "type": "integer"
+        },
+        "health_degrade": {},
+        "health_recover": {},
+        "satisfaction_degrade": {
+          "type": "integer"
+        },
+        "satisfaction_recover": {
+          "type": "integer"
+        },
+        "sustenance_degrade": {
+          "type": "integer"
+        },
+        "sustenance_recover": {
+          "type": "integer"
+        }
+      }
+    },
+    "parking": {
+      "type": "object",
+      "properties": {
+        "radius_metres": {
+          "type": "integer"
+        },
+        "shed_keeps": {
+          "type": "integer"
+        }
+      }
+    },
+    "placement": {
+      "type": "object",
+      "properties": {
+        "candidates": {
+          "type": "integer"
+        },
+        "gives_up_after_days": {
+          "type": "integer"
+        },
+        "interval": {
+          "type": "integer"
+        },
+        "revisit_ticks": {
+          "type": "integer"
+        }
+      }
+    },
+    "policy": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "apply": {
+            "type": "object",
+            "properties": {
+              "derived": {
+                "type": "string"
+              },
+              "max": {
+                "type": "integer"
+              },
+              "min": {
+                "type": "integer"
+              },
+              "percent": {
+                "type": "integer"
+              }
+            }
+          },
+          "interval": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sweeps": {
+            "type": "string"
+          },
+          "transfer": {
+            "type": "object",
+            "properties": {
+              "amount": {
+                "type": "integer"
+              },
+              "from": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              },
+              "to": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "resource": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "family": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "need": {
+            "type": "string"
+          },
+          "storage": {}
+        }
+      }
+    },
+    "roads": {
+      "type": "object",
+      "properties": {
+        "arterial_capacity_per_hour": {
+          "type": "integer"
+        },
+        "arterial_count": {
+          "type": "integer"
+        },
+        "arterial_junction_tiles": {
+          "type": "integer"
+        },
+        "arterial_speed_kph": {
+          "type": "integer"
+        },
+        "block_tiles": {
+          "type": "integer"
+        },
+        "foot_crossing_every": {
+          "type": "integer"
+        },
+        "foot_path_capacity_per_hour": {
+          "type": "integer"
+        },
+        "foot_paths_per_thousand_blocks": {
+          "type": "integer"
+        },
+        "street_capacity_per_hour": {
+          "type": "integer"
+        },
+        "street_speed_kph": {
+          "type": "integer"
+        },
+        "walk_speed_kph": {
+          "type": "integer"
+        }
+      }
+    },
+    "rule": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "apply": {
+            "type": "object",
+            "properties": {
+              "derived": {
+                "type": "string"
+              },
+              "max": {
+                "type": "integer"
+              },
+              "min": {
+                "type": "integer"
+              },
+              "percent": {}
+            }
+          },
+          "fills": {
+            "type": "object"
+          },
+          "inputs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "amount": {
+                  "type": "integer"
+                },
+                "resource": {
+                  "type": "string"
+                },
+                "scope": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "on_fail": {
+            "type": "string"
+          },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "amount": {
+                  "type": "integer"
+                },
+                "layer": {
+                  "type": "string"
+                },
+                "resource": {
+                  "type": "string"
+                },
+                "scope": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "rate": {
+            "type": "integer"
+          },
+          "reports": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "terrain": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "base_fertility_percent": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sealing_decay_tau": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "traffic": {
+      "type": "object",
+      "properties": {
+        "alpha_percent": {
+          "type": "integer"
+        },
+        "beta": {
+          "type": "integer"
+        },
+        "clamp_percent": {
+          "type": "integer"
+        }
+      }
+    },
+    "trips": {
+      "type": "object",
+      "properties": {
+        "commute_budget_minutes": {
+          "type": "integer"
+        },
+        "commute_fast_minutes": {
+          "type": "integer"
+        },
+        "commute_moderate_minutes": {
+          "type": "integer"
+        },
+        "crossing_seconds": {
+          "type": "integer"
+        }
+      }
+    },
+    "water": {
+      "type": "object",
+      "properties": {
+        "capacity_per_cell": {
+          "type": "integer"
+        },
+        "carries": {
+          "type": "string"
+        },
+        "flood_level_percent": {
+          "type": "integer"
+        },
+        "outflow_per_exit_per_day": {
+          "type": "integer"
+        },
+        "runoff_per_sealed_cell_per_day": {
+          "type": "integer"
+        },
+        "sea_level_percent": {
+          "type": "integer"
+        }
+      }
+    },
+    "zone_rule": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "build_threshold_days": {
+            "type": "integer"
+          },
+          "cooldown_days": {
+            "type": "integer"
+          },
+          "interval": {
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "revisit_ticks": {
+            "type": "integer"
+          },
+          "sample": {},
+          "zone": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  }
+}

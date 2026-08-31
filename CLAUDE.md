@@ -218,6 +218,7 @@ dotnet run --project src/Borough.Headless -- --arrivals --ruleset rulesets/crowd
 dotnet run --project src/Borough.Headless -- --market --ruleset rulesets/provisioned.toml --citizens 2000 --ticks 24576
 dotnet run --project src/Borough.Headless -- --school --ruleset rulesets/schooled.toml --citizens 2000 --ticks 300000 --schools 4
 dotnet run --project src/Borough.Headless -- --flood --ruleset rulesets/flooded.toml --citizens 2000 --ticks 40960
+dotnet run --project src/Borough.Headless -- --schema --ruleset rulesets/minimal.toml > rulesets/ruleset.schema.json
 dotnet run --project src/Borough.Headless -- \
   --ruleset rulesets/minimal.toml --reload-at 200 --ruleset rulesets/minimal-tuned.toml --ticks 400
 ```

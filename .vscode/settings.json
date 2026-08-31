@@ -11,6 +11,19 @@
     //
     // .prettierignore carries the same refusal for Prettier run any other way. House style is
     // enforced by tests/Borough.Tests/Corpus/MarkdownStyleTests.cs.
+    // Ruleset autocomplete and type hints, via Even Better TOML (tamasfe.even-better-toml).
+    //
+    // The schema is GENERATED from RulesetLoader -- `--schema` -- because the loader already
+    // derives its permitted key set from the readers, and a hand-written schema would be a second
+    // copy of it. RulesetSchemaTests fails when the committed file drifts.
+    //
+    // The association lives here rather than as an `#:schema` line in each Ruleset because
+    // declining.toml and congested.toml are golden-baseline artefacts whose recorded content hash
+    // moves when they are edited at all, comments included.
+    "evenBetterToml.schema.associations": {
+        "rulesets/.*\\.toml$": "./rulesets/ruleset.schema.json"
+    },
+
     "[markdown]": {
         "editor.formatOnSave": false,
         "editor.defaultFormatter": null

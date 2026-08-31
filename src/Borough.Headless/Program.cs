@@ -99,6 +99,9 @@ internal static class Program
                 case Mode.Watch:
                     return Session.DumpWatch(options);
 
+                case Mode.Schema:
+                    return SchemaDump.Print(options);
+
                 case Mode.Report:
                 default:
                     return Report.Print(options);

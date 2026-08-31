@@ -47,6 +47,53 @@ public static class RulesetLoader
         return Parse(File.ReadAllText(path), path);
     }
 
+    /// <summary>
+    /// Every section this build reads, every key it reads there, and what shape it expects — keyed
+    /// the way the file writes it: <c>[layers]</c>, <c>[[building]]</c>, <c>[[rule]] inputs</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is the loader describing itself, and it exists so that nothing else has to.</b> The
+    /// permitted key set is already derived from the readers rather than authored beside them —
+    /// that is what <c>RefuseUnknownKeys</c> is built on — and an editor schema authored by hand
+    /// would be the first second copy of it. <c>plans/0012</c> <b>Cause 1</b>: ***every document
+    /// that stores what another document owns drifted.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The surface is bounded by what <paramref name="text"/> declares.</b> A reader only asks
+    /// a table that exists, so a section this file omits contributes nothing — the caller unions
+    /// across every shipped Ruleset, and even then a section no file demonstrates stays invisible.
+    /// ***A schema built from this must therefore permit unknown keys***, which costs nothing: the
+    /// loader refuses them at the parse site with a spelling suggestion, which is a better message
+    /// than a schema can produce.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It reads a refused file too.</b> <c>Read</c> stops adding refusals but every reader has
+    /// still run and recorded what it asked for, so the surface is complete either way — which
+    /// matters, because a caller generating a schema should not be stopped by one bad file.
+    /// </para>
+    /// </remarks>
+    public static IReadOnlyDictionary<string, IReadOnlyDictionary<string, RulesetKeyKind>> KeySurface(
+        string text, string fileName)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        ArgumentException.ThrowIfNullOrEmpty(fileName);
+
+        var reader = new Reader(text, fileName, frozen: null);
+
+        reader.Read();
+
+        var surface = new Dictionary<string, IReadOnlyDictionary<string, RulesetKeyKind>>(
+            StringComparer.Ordinal);
+
+        foreach (KeyValuePair<string, Dictionary<string, RulesetKeyKind>> section in reader.Surface())
+        {
+            surface[section.Key] = section.Value;
+        }
+
+        return surface;
+    }
+
     /// <summary>Loads a Ruleset from text, naming <paramref name="fileName"/> in every refusal.</summary>
     public static RulesetLoadResult Parse(string text, string fileName)
     {
@@ -128,6 +175,18 @@ public static class RulesetLoader
         private readonly Dictionary<SyntaxNode, HashSet<string>> _consulted =
             new(ReferenceEqualityComparer.Instance);
 
+        /// <summary>What each consulted key was expected to hold, where a reader said so.</summary>
+        /// <remarks>
+        /// <b>Deliberately parallel to <see cref="_consulted"/> rather than folded into it.</b> The
+        /// permitted set is what refuses an unknown key and it must stay exactly the set of names
+        /// asked for; this is a second, smaller thing — what shape the asking reader wanted — and it
+        /// exists for <see cref="RulesetLoader.KeySurface"/> to generate an editor schema from. ⚠
+        /// <b>Nothing in the loader reads it</b>, so a gap here refuses nothing and costs a
+        /// <c>type</c> line in a generated schema.
+        /// </remarks>
+        private readonly Dictionary<SyntaxNode, Dictionary<string, RulesetKeyKind>> _keyKinds =
+            new(ReferenceEqualityComparer.Instance);
+
         private readonly Dictionary<string, ushort> _resources = new(StringComparer.Ordinal);
 
         // Parallel to _resources by declaration order, which is what makes ResourceId.Raw - 1 index
@@ -185,9 +244,20 @@ public static class RulesetLoader
 
         private TableSyntaxBase? _needsTable;
 
+        /// <summary>The parsed document, kept only so <see cref="Surface"/> can walk it after.</summary>
+        /// <remarks>
+        /// ⚠ <b>A reference and not a second walk.</b> The key surface is wanted by one caller that
+        /// runs off the hot path, so building it eagerly would put a whole-document traversal into
+        /// every hot reload for nobody. Holding the reference costs the parse's own memory, which
+        /// the caller is holding anyway until <c>Read</c> returns.
+        /// </remarks>
+        private DocumentSyntax? _document;
+
         public RulesetLoadResult Read()
         {
             DocumentSyntax document = SyntaxParser.Parse(text, fileName, validate: true);
+
+            _document = document;
 
             foreach (DiagnosticMessage message in document.Diagnostics)
             {
@@ -1289,7 +1359,7 @@ public static class RulesetLoader
         private ApplyCount ReadApply(
             TableSyntaxBase table, string? rule, ReadoutScope scope = ReadoutScope.Building)
         {
-            KeyValueSyntax? entry = Find(table, "apply");
+            KeyValueSyntax? entry = Find(table, "apply", RulesetKeyKind.Table);
 
             if (entry is null)
             {
@@ -1419,7 +1489,7 @@ public static class RulesetLoader
         private bool TryReadFills(TableSyntaxBase table, string? rule, out BinRef fills)
         {
             fills = default;
-            KeyValueSyntax? entry = Find(table, "fills");
+            KeyValueSyntax? entry = Find(table, "fills", RulesetKeyKind.Table);
 
             if (entry is null)
             {
@@ -1456,7 +1526,7 @@ public static class RulesetLoader
             TableSyntaxBase table, string key, string? rule,
             List<Term> into, List<MapEmission>? emissions)
         {
-            KeyValueSyntax? entry = Find(table, key);
+            KeyValueSyntax? entry = Find(table, key, RulesetKeyKind.Array);
 
             if (entry is null)
             {
@@ -2956,7 +3026,7 @@ public static class RulesetLoader
 
         private void ReadBins(TableSyntaxBase table, string? kind, List<BinDeclaration> into)
         {
-            KeyValueSyntax? entry = Find(table, "bins");
+            KeyValueSyntax? entry = Find(table, "bins", RulesetKeyKind.Array);
 
             if (entry is null)
             {
@@ -3095,6 +3165,80 @@ public static class RulesetLoader
             }
 
             RefuseUnknownKeysIn(document, string.Empty, permitted);
+        }
+
+        /// <summary>
+        /// Every section this build can read, every key it reads there, and what shape it wants.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>The same walk <see cref="RefuseUnknownKeys"/> does, carrying the type as well as the
+        /// name.</b> It is a separate method rather than a widening of that one because the refusal
+        /// path must keep working on a file with refusals in it, and this must work on a file
+        /// <em>without</em> — it is called after <c>Read</c> has finished, for a caller that wants
+        /// to describe the format rather than to check a file.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>It describes what the READERS ask for, not what the file contains</b> — so a key the
+        /// shipped Rulesets never use is still reported, provided some file declares the section it
+        /// lives in. 🔴 <b>What it cannot report is a section no file declares at all</b>: a reader
+        /// only ever asks a table that exists, so a section nothing demonstrates is invisible here.
+        /// ***That is why the generator unions across every shipped Ruleset rather than reading
+        /// one*** — and why the schema it produces must leave unknown keys permitted.
+        /// </para>
+        /// </remarks>
+        public Dictionary<string, Dictionary<string, RulesetKeyKind>> Surface()
+        {
+            var surface = new Dictionary<string, Dictionary<string, RulesetKeyKind>>(
+                StringComparer.Ordinal);
+
+            if (_document is not null)
+            {
+                GatherSurface(_document, string.Empty, surface);
+            }
+
+            return surface;
+        }
+
+        private void GatherSurface(
+            SyntaxNode node, string context, Dictionary<string, Dictionary<string, RulesetKeyKind>> into)
+        {
+            string here = ContextOf(node, context);
+
+            if (_consulted.TryGetValue(node, out HashSet<string>? asked))
+            {
+                if (!into.TryGetValue(here, out Dictionary<string, RulesetKeyKind>? union))
+                {
+                    union = new Dictionary<string, RulesetKeyKind>(StringComparer.Ordinal);
+                    into[here] = union;
+                }
+
+                _keyKinds.TryGetValue(node, out Dictionary<string, RulesetKeyKind>? typed);
+
+                foreach (string key in Ordered(asked))
+                {
+                    RulesetKeyKind kind = typed is not null && typed.TryGetValue(key, out RulesetKeyKind found)
+                        ? found
+                        : RulesetKeyKind.Unknown;
+
+                    // One holder may be untyped where another was typed -- the same section appears
+                    // once per [[table]] in the file -- so a known kind is never lost to a later
+                    // Unknown.
+                    if (!union.TryGetValue(key, out RulesetKeyKind already)
+                        || already == RulesetKeyKind.Unknown)
+                    {
+                        union[key] = kind;
+                    }
+                }
+            }
+
+            for (int i = 0; i < node.ChildrenCount; i++)
+            {
+                if (node.GetChild(i) is SyntaxNode child)
+                {
+                    GatherSurface(child, here, into);
+                }
+            }
         }
 
         /// <summary>Unions what every holder of one section shape was asked for.</summary>
@@ -3642,7 +3786,7 @@ public static class RulesetLoader
             SyntaxNode holder, string key, out string? value, bool required, string? rule = null)
         {
             value = null;
-            KeyValueSyntax? entry = Find(holder, key);
+            KeyValueSyntax? entry = Find(holder, key, RulesetKeyKind.Quoted);
 
             if (entry is null)
             {
@@ -3668,7 +3812,7 @@ public static class RulesetLoader
             SyntaxNode holder, string key, out long value, bool required, string? rule = null)
         {
             value = 0;
-            KeyValueSyntax? entry = Find(holder, key);
+            KeyValueSyntax? entry = Find(holder, key, RulesetKeyKind.Whole);
 
             if (entry is null)
             {
@@ -4104,7 +4248,7 @@ public static class RulesetLoader
                 into.Add(Money.Zero);
             }
 
-            KeyValueSyntax? entry = Find(table, "prices");
+            KeyValueSyntax? entry = Find(table, "prices", RulesetKeyKind.Array);
 
             if (entry is null)
             {
@@ -6898,7 +7042,8 @@ public static class RulesetLoader
         /// 🔴 <b>It stopped being <c>static</c> for that recording and for nothing else.</b>
         /// </para>
         /// </remarks>
-        private KeyValueSyntax? Find(SyntaxNode holder, string key)
+        private KeyValueSyntax? Find(
+            SyntaxNode holder, string key, RulesetKeyKind kind = RulesetKeyKind.Unknown)
         {
             // A holder is null when the section is absent altogether, and a reader still asks: it
             // wants the key so that it can fall back to the default. There is no table to permit
@@ -6915,6 +7060,20 @@ public static class RulesetLoader
             }
 
             asked.Add(key);
+
+            // A key reached from a line-number helper records Unknown, and a later typed ask must
+            // not be overwritten by it -- so the first reader with an expectation wins and the
+            // untyped ones only ever add the name.
+            if (kind != RulesetKeyKind.Unknown)
+            {
+                if (!_keyKinds.TryGetValue(holder, out Dictionary<string, RulesetKeyKind>? typed))
+                {
+                    typed = new Dictionary<string, RulesetKeyKind>(StringComparer.Ordinal);
+                    _keyKinds[holder] = typed;
+                }
+
+                typed.TryAdd(key, kind);
+            }
 
             switch (holder)
             {
