@@ -132,7 +132,7 @@ non-comment references, **19 headless dumps against a three-line on-screen reado
 | 14 | **The audit.** Walk this page for what it recorded as owed and never paid. ⚠ **A findings section is not a ledger**, and a debt written in a narrative paragraph is a debt nobody sums | ✅ 31-08 |
 | 15a | 🔴 **Picking.** A click becomes a Tile. The camera is an orbit, and **nothing in the shell converts a screen position to anything at all** — no ray, no ground-plane intersection, no Tile. ⚠ **Every row below is blocked on this one**, and it carries a hover readout of its own: ***a verb you cannot aim is a verb you cannot test***, so what you are pointing at has to be on screen before anything commits |  |
 | 15b | **`Zone`, `Connect`, `Demolish` — the three that change the ground.** ⚠ **`Zone` SUBDIVIDES and does not paint** — found by building it. ⚠ **`Demolish` addresses the LOT's Tile and never the cursor's**, because `ApplyDemolish` matches exactly and refuses rather than substituting | ✅ 31-08 |
-| 15c | 🔴 **`Govern` and `Service` — the two that change the rules.** The tuner already exists and already reloads a Ruleset, so `Govern` is a dial per `[[policy]]` that writes a **`Command`** instead of a file. ⚠ **`Service` is `01 §5`'s acknowledged placement exception** and the reason `schooled.toml`'s school is never built: a run with no `--schools` builds none, so ***the only world with an `education` Need has nothing that answers it*** |  |
+| 15c | **`Govern` and `Service` — the two that change the rules.** A governing panel (`p`) per `[[policy]]`, and `s` places a `serves` kind. ⚠ **The panel is NOT the tuner** — one edits the world's premises, the other plays the game. ⚠ **`RulesetNames` had no Policy accessor**, so a panel could only have offered *policy 0, policy 1* | ✅ 31-08 |
 | 15d | 🔴 **The session is a log, and this is the row that makes the other three worth anything.** The shell writes `.borough` through `Borough.Formats` — ⚠ **using the codec and never implementing one** (`adr/0039`). ***A verb that is not in the log is a state change no replay reproduces and no State Hash divergence explains***, which is the sentence `Populate` and `Arrive` each already carry in their own remark. **The proof is the round trip**: a city played by hand in the shell, replayed in `Borough.Headless`, same State Hash |  |
 | 15e | ⚠ **A refusal reaches the player as a sentence.** Every verb's refusals are `InvalidOperationException` today, which is correct for a log and wrong for a person. ⚠ **`Core` returns ids and numbers, never strings**, so the shell owns every word, resolved through the Ruleset — ***which is the real leak vector `CLAUDE.md` names***: not `using Godot;`, but a method that returns a formatted string because a panel wanted one |  |
 | 15f | 🔴 **A CLASS WENT MISSING FROM THE COMMIT GATE AND NOTHING NOTICED.** `RulesetSchemaTests` — two tests — was absent from every lane run on 2026-08-31 until 16:49, including **the one that gated `c2e9ff3` while the class was already failing on that tree**. Ruled out: the `tier!=instrument` filter (the class runs and fails under it), a skip (0 in every run) and a missing file. ⚠ **The cause is UNKNOWN and this row is not the fix — it is the instrument.** ***Nothing in the suite asserts how many tests ran***: `TierBudgetTests` times them and `TierDeclarationTests` counts the instrument share, and neither would see a class disappear |  |
@@ -777,3 +777,50 @@ second says **AT FLOOD RISK**.
 
 ⚠ **The window opens at 1920×1080, maximised.** Godot's 1152×648 default is a third of a modern
 screen against a readout that is one long line and an orbit over a 65.5 km map.
+
+## What `Govern` and `Service` found
+
+✅ **The shell issues four of the five player verbs.** `p` opens a governing panel with a row per
+declared `[[policy]]`; `s` holds a `serves` kind and places it on the vacant Lot under the cursor.
+**`schooled.toml`'s school is placeable by hand for the first time** — its header's *nothing in the
+world places its school* was true of a run with no `--schools`, and the only world with an
+`education` Need now has something that answers it.
+
+🔴 **`RulesetNames` HAD NO POLICY ACCESSOR, so the panel could only have offered *policy 0, policy
+1, policy 2*.** `Ruleset.PolicyKeys` holds a **hash** — a name is the only thing that survives a
+renumbering, which is why saved state keys by it — and a person cannot read one. The loader had the
+string in hand and dropped it, which is the same absence `RulesetNames` was written to close for
+kinds and Rules. ⚠ **A list and not a map, and it is the one name here that is not inverted from an
+id table**: a Policy has no id, `Govern` addresses it by **declaration position**, so the position is
+the index.
+
+⚠ **An unnamed `[[policy]]` is SHOWN AND DISABLED rather than omitted, and that is the whole of
+`PolicyNameTests`' second assertion.** Omitting the row would shift every position below it, and
+`Govern` names a Policy by exactly that position — ***a gap in the middle has to be a gap and not a
+shortening***, or every command the panel issues below it addresses the wrong Policy.
+
+🔴 **THE FIELD IS THE TRANSFER AMOUNT AND NOT THE TAX RATE, AND A PANEL THAT DID NOT SAY SO WOULD
+MISLEAD.** On `levied.toml` all three rows read **1** — `transfer.amount` — while the levy that bites
+is `apply = { derived = "balance", percent = 10 }`. `Govern` writes `PolicyTable.Amount` and nothing
+else; `ApplyCount` is Ruleset data and is not governable. ***A person turning this dial expecting a
+rate would change the wrong number and watch nothing happen***, so the panel says which number it is
+in its own header.
+
+⚠ **The governing panel is deliberately NOT the tuner.** The tuner rewrites Ruleset text and
+regenerates a **new city**; this issues a `Govern` `Command` against the city that is running, at a
+Tick, through the door a replay reproduces. ***One edits the world's premises and the other plays the
+game***, and putting them on one key would blur exactly that line.
+
+⚠ **`Service` needs a vacant Lot and there is no Cell index over Lots.** `BuildingResidency` indexes
+Buildings; a Lot is a point on a Segment rather than ground. So the shell walks the Lot table — but
+**on a click and on a hover in this mode only**, never in the ordinary per-frame path, which is what
+keeps it off `plans/0013`'s `Main.Draw` row. It is still an unpriced walk.
+
+⚠ **Nothing new was added to `PlayerVerbTests`, and that is deliberate.** `ServiceTests` already
+covers the raising and all three refusals and `GovernTests` covers the amount, the table, both
+reloads and both refusals — ***the shell's contract was already pinned***, and a second copy of it
+would be `plans/0012` **Cause 1**. What did need a test is the new accessor, and `PolicyNameTests`
+is it.
+
+⚠ **`--govern` opens the panel at start**, on `BOROUGH_SHOT`'s bargain: a machine with no hands
+cannot press `p`, and ***a panel nobody can photograph is a panel nobody reviews.***

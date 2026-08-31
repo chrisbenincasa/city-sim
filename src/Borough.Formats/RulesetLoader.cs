@@ -220,6 +220,18 @@ public static class RulesetLoader
         private readonly List<TableSyntaxBase> _ruleTables = [];
         private readonly List<TableSyntaxBase> _zoneRuleTables = [];
         private readonly List<TableSyntaxBase> _policyTables = [];
+
+        /// <summary>
+        /// What each <c>[[policy]]</c> called itself, in declaration order. <b>For a panel, never
+        /// for the city.</b>
+        /// </summary>
+        /// <remarks>
+        /// ⚠ <b>The hash in <c>Ruleset.PolicyKeys</c> is the identity and this is not.</b> Saved
+        /// state points at the hash; this is the string a person reads beside a dial, and
+        /// <c>05 §1</c> has the shell resolving every such string through the Ruleset. An unnamed
+        /// table stays <c>null</c> here, which is the same fact its zero key states.
+        /// </remarks>
+        private readonly List<string?> _policyNames = [];
         private readonly List<TableSyntaxBase> _hinterlandTables = [];
         private readonly List<TableSyntaxBase> _latticeTables = [];
         private readonly List<TableSyntaxBase> _terrainTables = [];
@@ -365,7 +377,7 @@ public static class RulesetLoader
             // and dropped, and the resolution path the architecture assumes had no implementation.
             // See RulesetNames.
             var names = new RulesetNames(
-                _kinds, _businessKinds, _conditions, _resources, _rules, _lifeStages);
+                _kinds, _businessKinds, _conditions, _resources, _rules, _lifeStages, _policyNames);
 
             return RulesetLoadResult.Accepted(new Ruleset(
                     [.. _families], rules, kinds, inputs, outputs, emissions, bins, kindRules,
@@ -3965,6 +3977,8 @@ public static class RulesetLoader
                 names[definitions.Count] = name is null
                     ? 0
                     : ContentHash.Of(Encoding.UTF8.GetBytes(name));
+
+                _policyNames.Add(name);
 
                 PolicySubject subject = ReadSubject(table, name);
                 uint interval = ReadInterval(table, name);

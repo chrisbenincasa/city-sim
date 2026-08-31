@@ -221,6 +221,21 @@ public partial class Main : Node3D
     /// <summary>Which declared <c>[[zone_rule]]</c> the <see cref="Verb.Zone"/> brush paints for.</summary>
     private int _zoneChoice;
 
+    /// <summary>Which <c>serves</c> kind <see cref="Verb.Service"/> would raise.</summary>
+    private byte _serviceKind;
+
+    /// <summary>Whether the governing panel is open.</summary>
+    private bool _governing;
+
+    /// <summary>The governing panel — one row per declared <c>[[policy]]</c>.</summary>
+    private PanelContainer _policyPanel = null!;
+
+    /// <summary>The amount field for each Policy, by declaration position.</summary>
+    private LineEdit[] _policyFields = [];
+
+    /// <summary>What the panel says about the last governing act.</summary>
+    private Label _policyStatus = null!;
+
     /// <summary>
     /// Commands raised this frame, drained into the next <c>Step</c>.
     /// </summary>
@@ -296,8 +311,8 @@ public partial class Main : Node3D
 
     public override void _Ready()
     {
-        (_rulesetPath, int citizens, ulong startAt, string? drive, ulong quitAt, string? listen,
-            string? record) = Arguments();
+        (_rulesetPath, int citizens, ulong startAt, bool govern, string? drive, ulong quitAt,
+            string? listen, string? record) = Arguments();
 
         if (!Driven(drive, quitAt))
         {
@@ -415,6 +430,16 @@ public partial class Main : Node3D
         Look();
         Cells();
         Readout();
+
+        // ⚠ AFTER Readout(), which is what builds the panel. Opening it from the command line is the
+        // same bargain BOROUGH_SHOT strikes -- a machine with no hands cannot press `p`, and a panel
+        // nobody can photograph is a panel nobody reviews.
+        if (govern)
+        {
+            _governing = true;
+            _policyPanel.Visible = true;
+            ShowPolicies();
+        }
     }
 
     public override void _Process(double delta)
@@ -1088,6 +1113,31 @@ public partial class Main : Node3D
                 _refused = string.Empty;
 
                 return;
+
+            case Key.S:
+                // ⚠ CYCLES ON REPEAT, exactly as Z does, because a Ruleset may declare more than one
+                // `serves` kind and there is no second key to spend on choosing between them.
+                _serviceKind = NextService(_verb == Verb.Service ? _serviceKind : (byte)0);
+                _verb = Verb.Service;
+                _refused = string.Empty;
+
+                return;
+
+            case Key.P:
+                // THE GOVERNING PANEL, and it is deliberately NOT the tuner. The tuner regenerates a
+                // world from Ruleset text -- world-creation, a NEW city -- while this sets a declared
+                // Policy's amount on the city that is running, through a Command, at a Tick, in the
+                // order a replay reproduces. ***One panel edits the world's premises and the other
+                // plays the game***, and putting them on one key would blur exactly that line.
+                _governing = !_governing;
+                _policyPanel.Visible = _governing;
+
+                if (_governing)
+                {
+                    ShowPolicies();
+                }
+
+                return;
         }
 
         // 🔴 A KEY TOGGLES AND A COMMAND IS ABSOLUTE, SO THE CURRENT STATE IS READ HERE AND NEVER
@@ -1145,15 +1195,17 @@ public partial class Main : Node3D
     }
 
     /// <summary>
-    /// <c>--ruleset PATH</c>, <c>--citizens N</c> and <c>--start-at TICK</c>, after Godot's <c>--</c>.
+    /// <c>--ruleset PATH</c>, <c>--citizens N</c>, <c>--start-at TICK</c>, <c>--govern</c>,
+    /// <c>--drive PATH</c>, <c>--quit-at TICK</c>, <c>--listen PATH</c> and <c>--record PATH</c>,
+    /// after Godot's <c>--</c>.
     /// </summary>
     /// <remarks>
     /// ⚠ <b>A shell reads the command line and the core does not.</b> Every string here is this
     /// project's (<c>adr/0002</c>), and a bad one is reported rather than defaulted, because a
     /// silently-substituted world is a picture of somewhere else.
     /// </remarks>
-    private static (string Ruleset, int Citizens, ulong StartAt, string? Drive, ulong QuitAt,
-        string? Listen, string? Record) Arguments()
+    private static (string Ruleset, int Citizens, ulong StartAt, bool Govern, string? Drive,
+        ulong QuitAt, string? Listen, string? Record) Arguments()
     {
         string ruleset = "rulesets/minimal.toml";
         int citizens = 1_000;
@@ -1163,6 +1215,10 @@ public partial class Main : Node3D
         string? listen = null;
         string? record = null;
         string[] given = OS.GetCmdlineUserArgs();
+
+        // ⚠ A FLAG AND NOT A PAIR, so it is read over the whole array rather than inside the loop
+        // below, which stops one short to read a value after each name.
+        bool govern = Array.IndexOf(given, "--govern") >= 0;
 
         for (int at = 0; at + 1 < given.Length; at++)
         {
@@ -1199,7 +1255,7 @@ public partial class Main : Node3D
             }
         }
 
-        return (ruleset, citizens, startAt, drive, quitAt, listen, record);
+        return (ruleset, citizens, startAt, govern, drive, quitAt, listen, record);
     }
 
     /// <summary>
@@ -1265,7 +1321,8 @@ public partial class Main : Node3D
             + $"travelling {moving:N0}{Weather(under)}\n"
             + $"speed {Pace(_rung)}   "
             + $"mode {Holding()}   "
-            + "[ ] speed, space pause, v look, z zone, x street, b demolish, g roads, c cells, tab tune";
+            + "[ ] speed, space pause, v look, z zone, x street, b demolish, s service, "
+            + "p policies, g roads, c cells, tab tune";
 
         _hover.Text = Pointing();
     }
@@ -1660,6 +1717,9 @@ public partial class Main : Node3D
             : "SUBDIVIDE — no [[zone_rule]] declared",
         Verb.Connect => "STREET (shift-click bulldozes)",
         Verb.Demolish => "DEMOLISH — abandoned only",
+        Verb.Service => _serviceKind != 0
+            ? $"SERVICE {_names.Kind(_serviceKind) ?? _serviceKind.ToString()} (s cycles)"
+            : "SERVICE — no kind declares `serves`",
         _ => "look",
     };
 
@@ -1732,6 +1792,10 @@ public partial class Main : Node3D
                 Clear(at);
                 break;
 
+            case Verb.Service:
+                Raise(at);
+                break;
+
             default:
                 break;
         }
@@ -1799,6 +1863,103 @@ public partial class Main : Node3D
 
         _queued.Add(new Command(
             CommandKind.Demolish, _world.Lots.East[lot], _world.Lots.North[lot]));
+    }
+
+    /// <summary>Raises the held service kind on the vacant Lot nearest the cursor in its Cell.</summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>An O(Lots) walk, and it is the shell's second one.</b> There is no Cell index over Lots
+    /// — <c>BuildingResidency</c> indexes Buildings, and a Lot is a point on a Segment rather than
+    /// ground — so finding a vacant one near a Tile means walking the table. ⚠ <b>It runs on a CLICK
+    /// and on a hover in this mode only</b>, never in the ordinary per-frame path, which is the one
+    /// thing that keeps it off the same list as <c>Main.Draw</c>'s three whole-table walks
+    /// (<c>plans/0013</c>). ***It is still an unpriced walk and the row says so.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The command names the LOT's Tile</b>, on <see cref="Clear"/>'s reasoning and
+    /// <c>ApplyService</c>'s own: <em>"a school landing on a neighbour's plot because the click
+    /// resolved to the first is worse than a refusal."</em>
+    /// </para>
+    /// </remarks>
+    private void Raise((Tiles East, Tiles North) at)
+    {
+        if (_serviceKind == 0)
+        {
+            _refused = "this Ruleset declares no kind with a `serves` key, so there is no service to place.";
+
+            return;
+        }
+
+        int lot = VacantNear(at);
+
+        if (lot == Rows.NoSlot)
+        {
+            _refused =
+                "no vacant Lot in this Cell. A Lot holding a Building — standing or an abandoned "
+                + "shell — is not vacant; demolish first.";
+
+            return;
+        }
+
+        // THE FACTORY AND NOT THE CONSTRUCTOR, for the reason Command.Govern's own remark gives:
+        // the packing is named in one place rather than spelled at each call site.
+        _queued.Add(Command.Service(
+            _world.Lots.East[lot], _world.Lots.North[lot], _serviceKind));
+    }
+
+    /// <summary>The vacant Lot nearest a Tile within its own Cell, or <see cref="Rows.NoSlot"/>.</summary>
+    private int VacantNear((Tiles East, Tiles North) at)
+    {
+        LotTable lots = _world.Lots;
+        Cells east = CellGrid.ToCells(at.East);
+        Cells north = CellGrid.ToCells(at.North);
+        int nearest = Rows.NoSlot;
+        long best = long.MaxValue;
+
+        for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
+        {
+            if (!lots.Rows.IsLive(slot) || !lots.IsVacant(slot)
+                || CellGrid.ToCells(lots.East[slot]) != east
+                || CellGrid.ToCells(lots.North[slot]) != north)
+            {
+                continue;
+            }
+
+            long de = lots.East[slot].Raw - at.East.Raw;
+            long dn = lots.North[slot].Raw - at.North.Raw;
+            long away = (de * de) + (dn * dn);
+
+            if (away < best)
+            {
+                best = away;
+                nearest = slot;
+            }
+        }
+
+        return nearest;
+    }
+
+    /// <summary>The first declared kind that serves a Need, or zero when the file declares none.</summary>
+    /// <remarks>
+    /// ⚠ <b>Ids run <c>1..KindCount</c></b> (<c>Ruleset.KindCount</c>), so zero is <em>none</em> and
+    /// not the first kind — the same encoding <c>ApplyService</c> reads when it refuses an id nothing
+    /// declares.
+    /// </remarks>
+    private byte NextService(byte after)
+    {
+        int count = _world.Rules.KindCount;
+
+        for (int step = 1; step <= count; step++)
+        {
+            var kind = (byte)(((after + step - 1) % count) + 1);
+
+            if (_world.Rules.Declares(kind) && _world.Rules.Kind(kind).Serves != Need.None)
+            {
+                return kind;
+            }
+        }
+
+        return 0;
     }
 
     // ---- picking ---------------------------------------------------------------------------------
@@ -1906,6 +2067,16 @@ public partial class Main : Node3D
         if (_verb == Verb.Zone)
         {
             Virgin(said, at);
+        }
+
+        if (_verb == Verb.Service)
+        {
+            int lot = VacantNear(at);
+
+            said.Add(lot == Rows.NoSlot
+                ? "no vacant Lot in this Cell — a shell is not vacant, demolish first"
+                : $"would raise on Lot {_world.Lots.Rows.IdAt(lot):N0} at "
+                    + $"({_world.Lots.East[lot].Raw:N0}, {_world.Lots.North[lot].Raw:N0})");
         }
 
         if (_refused.Length > 0)
@@ -2739,6 +2910,140 @@ public partial class Main : Node3D
 
         _tuner.AddChild(box);
         layer.AddChild(_tuner);
+        Governing(layer);
+    }
+
+    /// <summary>
+    /// The governing panel: every declared <c>[[policy]]</c>, its amount, and a way to set it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>NOT the tuner, and the separation is the decision.</b> The tuner rewrites Ruleset text
+    /// and regenerates a <em>new city</em>; this issues a <c>Govern</c> <see cref="Command"/> against
+    /// the city that is running, at a Tick, through the door a replay reproduces. ***One edits the
+    /// world's premises and the other plays the game.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>An unnamed <c>[[policy]]</c> is shown and disabled rather than omitted.</b> Its
+    /// <c>Ruleset.PolicyKeys</c> entry is zero and <c>ApplyGovern</c> refuses it — a governed amount
+    /// is saved state and a name is the only thing that survives a renumbering. ***Omitting the row
+    /// would shift every position below it***, and <c>Govern</c> addresses a Policy by exactly that
+    /// position.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The amount is <c>Command.East</c></b>, which is a field whose name says <em>where</em>.
+    /// <c>Command.Govern</c> is the factory that says so; the struct is twelve fully-defined bytes
+    /// and widening it would re-spell every committed Input Log.
+    /// </para>
+    /// </remarks>
+    private void Governing(CanvasLayer layer)
+    {
+        var backing = new StyleBoxFlat
+        {
+            BgColor = new Color(0.05f, 0.06f, 0.08f, 0.92f),
+            ContentMarginLeft = 14f,
+            ContentMarginRight = 14f,
+            ContentMarginTop = 10f,
+            ContentMarginBottom = 10f,
+        };
+
+        _policyPanel = new PanelContainer { Visible = false, Position = new Vector2(14f, 108f) };
+
+        _policyPanel.AddThemeStyleboxOverride("panel", backing);
+
+        var box = new VBoxContainer();
+
+        box.AddChild(new Label { Text = "GOVERN — p closes. enter sets the amount." });
+
+        // 🔴 THE FIELD IS THE TRANSFER AMOUNT AND NOT THE TAX RATE, and a panel that did not say so
+        // would be actively misleading: on levied.toml every row reads `1` while the levy that
+        // actually bites is `percent = 10` in the apply rule. Govern writes PolicyTable.Amount and
+        // nothing else -- ApplyCount is Ruleset data and is not governable -- so a person turning
+        // this dial expecting a rate would change the wrong number and watch nothing happen.
+        box.AddChild(new Label
+        {
+            Text = "what ONE application moves. how many and what share is the [[policy]]'s"
+                + " apply rule, which is not governable.",
+        });
+
+        PolicyDefinition[] declared = _world.Rules.Policies;
+
+        _policyFields = new LineEdit[declared.Length];
+
+        for (int at = 0; at < declared.Length; at++)
+        {
+            var row = new HBoxContainer();
+            bool governable = _world.Rules.PolicyKey(at) != 0;
+            string named = _names.Policy(at) ?? "unnamed";
+
+            row.AddChild(new Label
+            {
+                Text = governable
+                    ? $"{named} — sweeps {declared[at].Subject.ToString().ToLowerInvariant()} "
+                        + $"every {declared[at].Interval:N0}"
+                    : $"{named} (no name — ungovernable)",
+                CustomMinimumSize = new Vector2(340f, 0f),
+            });
+
+            var field = new LineEdit
+            {
+                Text = _world.Policies.AmountOf(at, declared[at]).ToString(),
+                Editable = governable,
+                CustomMinimumSize = new Vector2(110f, 0f),
+            };
+
+            int position = at;
+
+            field.TextSubmitted += _ => Govern(position);
+            _policyFields[at] = field;
+            row.AddChild(field);
+            box.AddChild(row);
+        }
+
+        if (declared.Length == 0)
+        {
+            box.AddChild(new Label { Text = "this Ruleset declares no [[policy]]." });
+        }
+
+        _policyStatus = new Label { Text = "a governed amount is saved state and survives a reload." };
+
+        box.AddChild(_policyStatus);
+        _policyPanel.AddChild(box);
+        layer.AddChild(_policyPanel);
+    }
+
+    /// <summary>Re-reads every field off the world, so an open panel shows what is in force.</summary>
+    private void ShowPolicies()
+    {
+        PolicyDefinition[] declared = _world.Rules.Policies;
+
+        for (int at = 0; at < _policyFields.Length && at < declared.Length; at++)
+        {
+            _policyFields[at].Text = _world.Policies.AmountOf(at, declared[at]).ToString();
+        }
+    }
+
+    /// <summary>Queues a <c>Govern</c> for one Policy, or says why it cannot.</summary>
+    private void Govern(int position)
+    {
+        if (!int.TryParse(_policyFields[position].Text, out int amount))
+        {
+            _policyStatus.Text = "that is not a whole number.";
+
+            return;
+        }
+
+        if (_world.Rules.PolicyKey(position) == 0)
+        {
+            _policyStatus.Text = "that [[policy]] states no name, so its amount cannot be saved.";
+
+            return;
+        }
+
+        _queued.Add(Command.Govern(position, amount));
+        _policyStatus.Text =
+            $"{_names.Policy(position) ?? $"policy {position}"} set to {amount:N0} "
+            + $"on Tick {_world.Tick.Raw + 1:N0}.";
     }
 
     /// <summary>The current value of a field the shell owns rather than the Ruleset.</summary>
@@ -2875,4 +3180,15 @@ internal enum Verb : byte
 
     /// <summary>Clear abandoned stock, and only that.</summary>
     Demolish = 3,
+
+    /// <summary>
+    /// Raise one service Building on the vacant Lot under the cursor.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b><c>01 §5</c>'s ONE placement exception, and the only verb here that puts a Building on
+    /// the ground.</b> Every other kind arrives through a Zone Rule filling in a permission set the
+    /// player painted; <c>Simulation.ApplyService</c> refuses a kind declaring no <c>serves</c> by
+    /// name, which is what stops the exception becoming a general <em>place anything</em> verb.
+    /// </remarks>
+    Service = 4,
 }

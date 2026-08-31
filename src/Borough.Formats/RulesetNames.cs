@@ -55,6 +55,7 @@ public sealed class RulesetNames
     private readonly string[] _resources;
     private readonly string[] _rules;
     private readonly string[] _lifeStages;
+    private readonly string?[] _policies;
 
     internal RulesetNames(
         IReadOnlyDictionary<string, byte> kinds,
@@ -62,7 +63,8 @@ public sealed class RulesetNames
         IReadOnlyDictionary<string, ushort> conditions,
         IReadOnlyDictionary<string, ushort> resources,
         IReadOnlyDictionary<string, ushort> rules,
-        IReadOnlyDictionary<string, byte> lifeStages)
+        IReadOnlyDictionary<string, byte> lifeStages,
+        IReadOnlyList<string?> policies)
     {
         _kinds = Invert(kinds);
         _businessKinds = Invert(businessKinds);
@@ -70,6 +72,11 @@ public sealed class RulesetNames
         _resources = Invert(resources);
         _rules = Invert(rules);
         _lifeStages = Invert(lifeStages);
+
+        // ⚠ A LIST AND NOT A MAP, which is the one name here that is not inverted from an id table.
+        // A Policy has no id: Govern addresses it by DECLARATION POSITION and the Ruleset keys it by
+        // a hash of this string, so the position IS the index and inverting anything would lose it.
+        _policies = [.. policies];
     }
 
     private RulesetNames()
@@ -80,6 +87,7 @@ public sealed class RulesetNames
         _resources = Nothing;
         _rules = Nothing;
         _lifeStages = Nothing;
+        _policies = [];
     }
 
     /// <summary>A Ruleset whose names were not kept. Every lookup returns null.</summary>
@@ -92,6 +100,19 @@ public sealed class RulesetNames
 
     /// <summary>What the file called a Building kind, or null.</summary>
     public string? Kind(byte id) => At(_kinds, id);
+
+    /// <summary>
+    /// What the <c>[[policy]]</c> at this declaration position called itself, or null.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Null means the table stated no <c>name</c>, and such a Policy is UNGOVERNABLE</b> — its
+    /// <c>Ruleset.PolicyKeys</c> entry is zero and <c>Simulation.ApplyGovern</c> refuses it, because
+    /// a governed amount is saved state and a name is the only thing that survives a renumbering.
+    /// ***A panel showing such a row has to show it as unavailable rather than omit it***, or the
+    /// positions a person counts down stop matching the ones <c>Govern</c> addresses.
+    /// </remarks>
+    public string? Policy(int position) =>
+        position >= 0 && position < _policies.Length ? _policies[position] : null;
 
     /// <summary>What the file called a Business kind, or null.</summary>
     /// <remarks>
