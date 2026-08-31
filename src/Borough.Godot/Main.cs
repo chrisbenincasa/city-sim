@@ -76,10 +76,11 @@ public partial class Main : Node3D
     /// <b>A Lot has no depth and there is no depth key</b> (<c>adr/0078</c>) — a Lot is an address
     /// point on a Segment, and how far back the building goes is a fact the city does not hold. So
     /// this is the renderer inventing a thickness, exactly as the setback does, and it is labelled
-    /// as one so nobody promotes it to a Ruleset key. ⚠ <b>It must stay below 1</b>, or a Building
-    /// is deeper than it is wide and a row of them stops reading as a street.
+    /// as one so nobody promotes it to a Ruleset key. ⚠ <b>It is metres and NOT a share of the
+    /// frontage</b>, which is what it was until it was found to make every density look the same —
+    /// see <see cref="Depth"/>.
     /// </remarks>
-    private const float PlotDepthShare = 0.55f;
+    private const float PlotDepthMetres = 12f;
 
     /// <summary>How tall one storey is drawn. A drawing height, and no kind states one.</summary>
     private const float StoreyMetres = 3.5f;
@@ -192,6 +193,11 @@ public partial class Main : Node3D
 
     private ulong _seed;
 
+    private MultiMeshInstance3D _cells = null!;
+
+    /// <summary>The ground the city actually stands on, in metres, from the last framing.</summary>
+    private Rect2 _laid;
+
     private MultiMeshInstance3D _ground = null!;
 
     private MultiMeshInstance3D _water = null!;
@@ -285,6 +291,12 @@ public partial class Main : Node3D
         _flood = Layer(new Color(0.20f, 0.48f, 0.78f), new Vector3(1f, 1f, 1f));
         _roads = Layer(new Color(0.30f, 0.30f, 0.33f), new Vector3(1f, 0.1f, 1f));
 
+        // OFF by default. It is an instrument rather than scenery -- it answers "how big is a Cell
+        // against this Building", and a person who has not asked that question does not want a
+        // 128-metre lattice drawn over their city.
+        _cells = Layer(new Color(0.55f, 0.45f, 0.25f), new Vector3(1f, 0.1f, 1f));
+        _cells.Visible = false;
+
         // A UNIT BOX, with the size composed per instance rather than baked into the mesh, which is
         // what lets one draw call hold Buildings of different shapes.
         _buildings = Layer(Standing, Vector3.One, perInstance: true);
@@ -295,6 +307,7 @@ public partial class Main : Node3D
         Pave();
         Sun();
         Look();
+        Cells();
         Readout();
     }
 
@@ -441,6 +454,14 @@ public partial class Main : Node3D
 
                 return;
 
+            case Key.C:
+                // The 128 m Cell lattice. A different question from G's: that one asks what is
+                // under the roads, this one asks how large a Cell is against a Building -- which is
+                // the scale every Map Layer, Stress reading and residency bucket is quoted at.
+                _cells.Visible = !_cells.Visible;
+
+                return;
+
             case Key.Equal:
             case Key.KpAdd:
                 Dolly(4f);
@@ -547,7 +568,7 @@ public partial class Main : Node3D
             + $"Citizens {_world.Citizens.Rows.LiveCount:N0}   Buildings {drawn:N0}   "
             + $"travelling {moving:N0}{Weather(under)}\n"
             + $"speed {Pace(_rung)}   "
-            + "[ ] speed, space pause, 1-4, drag pan, q/e turn, -/= zoom, g grid, tab tune, esc quit";
+            + "[ ] speed, space pause, 1-4, drag pan, q/e turn, -/= zoom, g roads, c cells, tab tune, esc quit";
     }
 
     /// <summary>
@@ -576,24 +597,33 @@ public partial class Main : Node3D
     }
 
     /// <summary>
-    /// How much of a Segment one Building gets, in metres — <b>derived from the Ruleset and never
-    /// chosen here</b>.
+    /// How much kerb one Lot commands, in metres, <b>on its own side of the Street</b>.
     /// </summary>
     /// <remarks>
     /// <para>
     /// <c>CONTEXT.md</c> → Address: <em>five Buildings share a Segment</em>. A Segment is one block
     /// edge, so its length is <c>[roads] block_tiles</c> and the Buildings on it are
-    /// <c>[lots] lots_per_segment</c> — and the frontage each one gets is the first divided by the
-    /// second. At the shipped 32 and 5 that is <b>25.6 m</b>.
+    /// <c>[lots] lots_per_segment</c>. 🔴 ⚠ <b>BUT THEY DO NOT ALL STAND ON THE SAME SIDE, AND
+    /// DIVIDING BY ALL OF THEM IS WHAT MADE THE CITY LOOK SILLY.</b> <c>Frontage.SideOf</c> sends
+    /// them to <i>strictly</i> alternating kerbs — <c>(index &amp; 1)</c> — so consecutive Lots are
+    /// never neighbours, and along either kerb the spacing is <b>twice</b>
+    /// <c>block_tiles ÷ lots_per_segment</c>. A Building drawn to fill one of those instead of two
+    /// left a gap exactly as wide as itself beside every house.
     /// </para>
     /// <para>
-    /// ⚠ <b>Divided by ALL the Lots on the Segment and not by the ones on this side of it.</b> Lots
-    /// alternate kerbs (<c>Frontage.SideOf</c> — odd and even house numbering), so consecutive Lots
-    /// on one side sit twice this far apart and a Building could be drawn twice this wide. It is
-    /// not, for two reasons: the design's sentence is <em>five Buildings share a Segment</em> and
-    /// says nothing about sides, and Lots near a block's end are close to the next block's Lots, so
-    /// the doubled width overlaps across the junction. ***The narrower reading is both the honest
-    /// one and the one that does not intersect.***
+    /// ⚠ <b>It was not a tuning error and no constant could have fixed it.</b> The gap was one
+    /// frontage wide at every <c>block_tiles</c> and every <c>lots_per_segment</c>, because both
+    /// cancel out of the ratio — which is why the city looked equally sparse at every density it
+    /// was asked for, and why turning the dials in the tuner never helped.
+    /// </para>
+    /// <para>
+    /// 🔴 ⚠ <b>THE PREVIOUS VERSION OF THIS COMMENT ARGUED AGAINST THE DOUBLING AND ITS SECOND
+    /// REASON WAS CORRECT.</b> <c>Frontage.OffsetOf</c> puts the outermost Lots
+    /// <c>block ÷ (2 × lots)</c> from each end — 12.8 m at the shipped numbers — so a Building
+    /// filling the doubled width would run <em>through</em> the junction and into the cross street.
+    /// That is a reason to clamp against the Segment's end and not a reason to halve every Building
+    /// in the city: see <see cref="Buildings"/>, where the width is the lesser of this and the room
+    /// actually left. ***The corner plots come out narrow, which is what corner plots are.***
     /// </para>
     /// <para>
     /// ⚠ <b>Falls back to one block's width when a Ruleset states no Lots</b>, which is a world with
@@ -603,8 +633,32 @@ public partial class Main : Node3D
     /// </remarks>
     private static float Frontage(int blockTiles, int lotsPerSegment) =>
         lotsPerSegment > 0
-            ? blockTiles * MetresPerTile / lotsPerSegment
+            ? 2f * blockTiles * MetresPerTile / lotsPerSegment
             : blockTiles * MetresPerTile;
+
+    /// <summary>How far back from the kerb a Building reaches, in metres.</summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 ⚠ <b>THIS USED TO BE A SHARE OF THE FRONTAGE AND THAT WAS THE DEFECT.</b> Tying depth to
+    /// width fixes a Building's <i>shape</i>, so narrowing the Lots shrank every building instead
+    /// of terracing them — a street of ten narrow houses came out as ten small sheds with the same
+    /// gaps between them, and the city looked identical at every density it was asked for. ***A
+    /// real terrace house is 6 m wide and 12 m deep***; the two are independent and the renderer
+    /// now says so.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is the shell's invention and the city holds no such number</b> — a Lot has no depth
+    /// and there is no depth key (<c>adr/0078</c>). What it must not do is reach the Building on
+    /// the block's far face, so it is capped against the block rather than trusted.
+    /// </para>
+    /// </remarks>
+    private static float Depth(int blockTiles, ulong shape)
+    {
+        float wanted = PlotDepthMetres * (0.8f + (((shape >> 16) & 0xFFu) / 255f * 0.6f));
+        float room = ((blockTiles * MetresPerTile) - RoadWidthMetres) * 0.5f;
+
+        return room > 4f ? Mathf.Min(wanted, room * 0.8f) : wanted;
+    }
 
     /// <summary>Every standing Building, at its Lot, at the size its kind implies.</summary>
     /// <remarks>
@@ -620,7 +674,7 @@ public partial class Main : Node3D
     /// thirty, the shell draws a tower without being told to.
     /// </para>
     /// <para>
-    /// <b>The jitter is <see cref="PlotDepthShare"/>' class of thing and is labelled as one</b> — a
+    /// <b>The jitter is <see cref="PlotDepthMetres"/>' class of thing and is labelled as one</b> — a
     /// thickness the city does not have, invented so the picture reads as a city rather than as a
     /// bar chart. It is keyed on the Building's monotonic row id, so a Building keeps its shape for
     /// as long as it stands and a rebuilt one on the same Lot is visibly a different building.
@@ -653,9 +707,12 @@ public partial class Main : Node3D
             // vertical one Right is the east side.
             bool horizontal = block > 0 && lots.North[lot].Raw % block == 0;
 
+            ulong shape = Scramble(table.Rows.IdAt(slot));
+            float deep = Depth(block, shape);
+
             // Half the carriageway plus half the building's own depth, so the near face clears the
             // road by construction rather than by a constant that happened to be big enough.
-            float setback = (RoadWidthMetres * 0.5f) + (frontage * PlotDepthShare * 0.5f);
+            float setback = (RoadWidthMetres * 0.5f) + (deep * 0.5f);
 
             if (horizontal)
             {
@@ -666,19 +723,23 @@ public partial class Main : Node3D
                 east += side == StreetSide.Right ? setback : -setback;
             }
 
-            ulong shape = Scramble(table.Rows.IdAt(slot));
             byte kind = table.Kind[slot];
             int storeys = _world.Rules.Declares(kind)
                 ? Math.Max(1, _world.Rules.Kind(kind).Occupants)
                 : 1;
 
-            // 0.55x to 1.85x on the height, 0.85x to 1.15x on the plan. Three draws off one
-            // scramble, taken from different bit ranges so a tall Building is not also a fat one.
+            // 0.55x to 1.85x on the height, 0.85x to 1.15x on the frontage. Each draw takes its
+            // own bit range off the one scramble, so a tall Building is not also a fat one.
             float tall = storeys * StoreyMetres * (0.55f + ((shape & 0xFFu) / 255f * 1.3f));
-            float along = frontage * FrontageFill
-                * (0.85f + (((shape >> 8) & 0xFFu) / 255f * 0.3f));
-            float deep = frontage * PlotDepthShare
-                * (0.85f + (((shape >> 16) & 0xFFu) / 255f * 0.3f));
+            // ⚠ CLAMPED AGAINST THE SEGMENT'S OWN END, WHICH IS WHAT LETS THE FRONTAGE DOUBLE.
+            // Frontage.OffsetOf leaves the outermost Lots half a spacing from the junction, so a
+            // Building filling its whole kerb would run into the cross street. Taking the lesser of
+            // the two gives wide plots mid-block and narrow ones on the corners.
+            int alongTiles = (horizontal ? lots.East[lot].Raw : lots.North[lot].Raw) % block;
+            float toEnd = Mathf.Min(alongTiles, block - alongTiles) * MetresPerTile;
+            float room = 2f * Mathf.Max(2f, toEnd - (RoadWidthMetres * 0.5f));
+            float along = Mathf.Min(
+                frontage * FrontageFill * (0.85f + (((shape >> 8) & 0xFFu) / 255f * 0.3f)), room);
 
             // The long side runs ALONG the Street, which is what makes a row of them read as a
             // street rather than as a field of blocks -- so the plan is swapped with the axis the
@@ -956,6 +1017,64 @@ public partial class Main : Node3D
         _roads.Multimesh.VisibleInstanceCount = drawn;
     }
 
+    /// <summary>The Cell lattice, drawn over the ground the city stands on.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A Cell is 32×32 Tiles — 128 m — and it is the unit nearly every derived quantity in the
+    /// simulation is denominated in</b>: a Map Layer holds one value per Cell, Stress is per Cell,
+    /// the residency index buckets per Cell. So this is the answer to <i>how much of the city does
+    /// one number cover?</i>, which is a question you cannot ask a street.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is deliberately NOT the street lattice</b>, and the two are easy to confuse because
+    /// at the shipped <c>block_tiles = 32</c> they coincide exactly. Turn <c>block_tiles</c> to 16
+    /// in the tuner and they part company — four blocks to a Cell — which is the clearest available
+    /// demonstration that the road generator and the Cell grid have nothing to do with each other.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It spans the Lots and not the map.</b> The map is 512 Cells a side, so a full lattice
+    /// would be 1,026 lines for a city that occupies eleven of them.
+    /// </para>
+    /// </remarks>
+    private void Cells()
+    {
+        const float width = 2f;
+        const float above = 0.2f;
+
+        int first = Mathf.FloorToInt(_laid.Position.X / CellMetres);
+        int last = Mathf.CeilToInt(_laid.End.X / CellMetres);
+        int lowest = Mathf.FloorToInt(_laid.Position.Y / CellMetres);
+        int highest = Mathf.CeilToInt(_laid.End.Y / CellMetres);
+
+        float left = first * CellMetres;
+        float right = last * CellMetres;
+        float bottom = lowest * CellMetres;
+        float top = highest * CellMetres;
+
+        int drawn = 0;
+
+        for (int column = first; column <= last && drawn + 1 < _cells.Multimesh.InstanceCount;
+             column++)
+        {
+            _cells.Multimesh.SetInstanceTransform(
+                drawn++,
+                new Transform3D(
+                    Basis.FromScale(new Vector3(width, 1f, top - bottom)),
+                    new Vector3(column * CellMetres, above, -(bottom + top) * 0.5f)));
+        }
+
+        for (int row = lowest; row <= highest && drawn + 1 < _cells.Multimesh.InstanceCount; row++)
+        {
+            _cells.Multimesh.SetInstanceTransform(
+                drawn++,
+                new Transform3D(
+                    Basis.FromScale(new Vector3(right - left, 1f, width)),
+                    new Vector3((left + right) * 0.5f, above, -row * CellMetres)));
+        }
+
+        _cells.Multimesh.VisibleInstanceCount = drawn;
+    }
+
     /// <summary>One MultiMesh of boxes, coloured, sized, and ready to be filled per frame.</summary>
     /// <remarks>
     /// ⚠ <b><paramref name="perInstance"/> makes the layer's colour a property of each box rather
@@ -1057,6 +1176,7 @@ public partial class Main : Node3D
         _span = span;
         _focus = centre;
         _distance = span * 0.95f;
+        _laid = new Rect2(east, north, eastEnd - east, northEnd - north);
     }
 
     /// <summary>
@@ -1401,6 +1521,7 @@ public partial class Main : Node3D
         Flood();
         Pave();
         Frame();
+        Cells();
         Orbit();
 
         _owed = 0d;
