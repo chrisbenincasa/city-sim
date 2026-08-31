@@ -39,6 +39,9 @@ public enum DriveVerb
     /// <summary>Write the readout to <c>Path</c>. Needs no display.</summary>
     Readout,
 
+    /// <summary>Write the draw list to <c>Path</c> — every instance on screen, as data.</summary>
+    Draw,
+
     /// <summary>End the run.</summary>
     Quit,
 }
@@ -290,17 +293,26 @@ public static class DriveScript
 
             case "shoot":
             case "readout":
+            case "draw":
                 if (!Arity(1))
                 {
                     return null;
                 }
 
                 return new DriveCommand(
-                    tick, verb == "shoot" ? DriveVerb.Shoot : DriveVerb.Readout, 0, argument);
+                    tick,
+                    verb switch
+                    {
+                        "shoot" => DriveVerb.Shoot,
+                        "readout" => DriveVerb.Readout,
+                        _ => DriveVerb.Draw,
+                    },
+                    0,
+                    argument);
 
             default:
                 refusals.Add($"{file}:{line}: no verb '{verb}'. There is pause, resume, speed, "
-                    + "roads, cells, turn, zoom, shoot, readout and quit.");
+                    + "roads, cells, turn, zoom, shoot, readout, draw and quit.");
 
                 return null;
         }

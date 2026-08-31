@@ -29,6 +29,7 @@ public sealed class DriveScriptTests
             4300 zoom out 9
             6101 shoot frames/flood.png
             6101 readout frames/flood.txt
+            6101 draw frames/flood.tsv
             6400 resume
             8192 quit
             """,
@@ -48,6 +49,7 @@ public sealed class DriveScriptTests
                 new DriveCommand(4300, DriveVerb.Zoom, -9, null),
                 new DriveCommand(6101, DriveVerb.Shoot, 0, "frames/flood.png"),
                 new DriveCommand(6101, DriveVerb.Readout, 0, "frames/flood.txt"),
+                new DriveCommand(6101, DriveVerb.Draw, 0, "frames/flood.tsv"),
                 new DriveCommand(6400, DriveVerb.Resume, 0, null),
                 new DriveCommand(8192, DriveVerb.Quit, 0, null),
             ],
@@ -111,6 +113,7 @@ public sealed class DriveScriptTests
     [InlineData("10 zoom sideways", "takes 'in' or 'out'")]
     [InlineData("10 zoom in lots", "takes notches")]
     [InlineData("10 shoot", "takes 1 argument")]
+    [InlineData("10 draw", "takes 1 argument")]
     public void A_line_that_is_not_a_command_is_refused_by_name(string script, string reason)
     {
         DriveScriptResult read = DriveScript.Parse(script, "x");

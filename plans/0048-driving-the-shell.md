@@ -9,7 +9,7 @@ cannot be driven without a hand on the keyboard.
 
 ## Status
 
-🟢 **TIERS 1 AND 2 LANDED 2026-08-31.** Tiers 3 and 4 scoped, not started.
+🟢 **TIERS 1, 2 AND 3 LANDED 2026-08-31.** Tier 4 scoped, not started.
 
 **Where tier 2 lives:** `Borough.Formats/DriveScript.cs` (the grammar), `Borough.Tests/Formats/
 DriveScriptTests.cs` (23 assertions), and `Main.Apply` / `Main.Drive` / `Main.Driven` /
@@ -74,7 +74,7 @@ Ordered. Each tier is usable on its own, and each is the fallback if the next pr
 |---|---|---|
 | **1** | **The borrowed keyboard.** `xdotool` + `import` against the shipped shell. No code | ✅ **31-08** |
 | **2** | **`--drive`, the Tick-addressed script.** The reproducible channel | ✅ **31-08** |
-| **3** | **The draw-list dump.** What only the shell can answer, as data rather than pixels | 🔴 |
+| **3** | **The draw-list dump.** What only the shell can answer, as data rather than pixels | ✅ **31-08** |
 | **4** | **The socket.** Live exploration, and its log is a tier-2 script | 🔴 |
 
 ### Tier 2 — `--drive`
@@ -107,16 +107,39 @@ godot --path src/Borough.Godot -- --ruleset rulesets/flooded.toml --citizens 200
 6400 readout /tmp/run/c.txt   # no picture, no display needed
 ```
 
-### Tier 3 — the draw list
+### Tier 3 — the draw list ✅
 
-**`--draw TICK=path`, and it is the tier that pays for the other two.** One row per drawn instance:
-kind, entity id, transform, colour. **Then a renderer defect is a `grep`**, and the assertions that
-were unwritable become ordinary: *every Segment's drawn length is its Tile length*; *every abandoned
-Building draws `Derelict` and no standing one does*; *every Traveller sits within the map*.
+**The `draw <path>` verb**, and it is the tier that pays for the other two. A TSV: a `layer` line per
+layer with **instances against capacity and whether it is visible**, then one `row` per drawn
+instance — layer, index, id, origin, scale, yaw, colour.
+
+🔴 **THE GEOMETRY IS READ BACK OFF THE `MultiMesh` AND NOT FROM THE ITERATOR THAT FILLED IT.** A dump
+built by walking the tables a second time would be a second derivation, free to agree with the world
+while disagreeing with the picture — ***which is the entire class of defect this exists to catch.***
+The mesh is what the GPU is handed, so the mesh is what is asked.
+
+⚠ **Identity comes the other way, from the fill**, because a `MultiMesh` knows only an instance index
+and an index is a recycled slot rather than a name. `Fill` records the id of what it painted; the
+Traveller's is **resolved** rather than read off the `Handle`, whose index is `internal` to the core
+precisely because a slot is not identity. Two layers know an entity and the six that draw ground
+say `-`.
 
 ⚠ **This is where the image stops being the instrument and becomes the spot check.** A picture still
-catches what no assertion names — lighting, occlusion, whether a thing is *legible* — and it should
-be taken for that and not for counting.
+catches what no assertion names — lighting, occlusion, whether a thing is *legible*.
+
+### What tier 3 found, in its first dump
+
+`flooded.toml`, 2,000 Citizens, Tick 6,101, 21,516 rows.
+
+| | Finding |
+|---|---|
+| **F13** | ✅ **THE ASSERTION THAT WOULD HAVE CAUGHT `Basis.Scaled` NOW PASSES MECHANICALLY.** Every Street draws **8 × 128 m** — `[roads] block_tiles` 32 × 4 m a Tile — where the defect drew each one 8 long and 128 wide. ***It is one `awk` over a column***, where before it was half a road network missing from a picture |
+| **F14** | ✅ **The renderer drops nothing.** 149 Segments drawn against **149 in the graph**, cross-checked against `Borough.Headless --roads` at the same population. ⚠ **The comparison had to be re-taken at 2,000 Citizens**: the first read 149 against 627, because ***a lattice paves what its population needs*** and the runner defaults to 10,000 |
+| **F15** | ✅ **235 derelict boxes against 121 standing, and the readout says `235 ruined`.** Exactly two distinct colours in the layer, and the dark one's count equals the city's own. ***The picture and the census agree, and now that is a number rather than an impression*** |
+| **F16** | 🔴 **A FOOTPATH IS DRAWN AT CARRIAGEWAY WIDTH.** Five of the 149 Segments came back at **8 × 181.019 m and 135°** — 128√2, the diagonal cut-throughs — and `--roads` confirms **5 FootPaths** at that population. `RoadWidthMetres` is applied to every Segment whatever its kind, so a path carrying **24,000 Vehicles/Day at 5 km/h draws as wide as a Street carrying 86,400 at 50**. ⚠ **Found by a column of numbers and not by looking**: at this zoom five diagonals in a lattice read as scenery. ***Unfiled — the shell owns no plan of its own yet*** |
+| **F17** | 🔴 **UNDER `--headless` EVERY TRANSFORM READS BACK AS THE IDENTITY, AND THE FILE STILL LOOKS RIGHT.** The counts are CPU-side and stay true, so the first headless dump had the correct layers, the correct row count and **21,504 lines of zeros** — ***structurally valid and silently wrong***, the one failure that survives being eyeballed. ⚠ **Same shape as the screenshot's headless defect [`0045`](0045-amnesty.md) records twice**: the handle is fine and the emptiness is in what it points at. **The rows are now withheld and the reason is written into the file**, because a file that exists is a file somebody parses |
+| **F19** | ✅ **The Traveller rows carry real Citizens.** `minimal.toml` at Tick 752: **64 drawn against the readout's 64**, **64 distinct ids, none unresolved**, none outside the map. ⚠ **Finding the Tick took a scan** — a `readout` every 16 Ticks across the morning — because ***the Day is a comb***: the counts cluster near 496, 576, 656, 752 and 848, roughly 85 Ticks apart, which is one in-world hour. [`0045`](0045-amnesty.md) row 18 owns that, and this is a second instrument agreeing with it |
+| **F18** | ✅ **Two draw lists of one script are byte-identical**, so a row that moves is a renderer change. **F11** said this of the pixels; this says it of the geometry, which is the half a test can name |
 
 ### Tier 4 — the socket
 
@@ -149,7 +172,7 @@ Under the amnesty these are stamped and not ratified ([`0045`](0045-amnesty.md) 
 | | Decision |
 |---|---|
 | **D1** | **Does a driven command enter the Input Log?** The six verbs must, or a driven session is not replayable by `Borough.Headless`. **Speed, camera and layer toggles must not** — they are host-side and runtime-only, and an Input Log holding a camera pose is a save file holding a monitor |
-| **D2** | **What does the draw list key on?** An entity id makes a row diffable across Ticks; an instance index makes it diffable against the `MultiMesh` itself. ⚠ **They answer different questions** and the choice decides whether tier 3 catches *the wrong thing drawn* or *the thing drawn wrong* |
+| **D2** | ✅ **CLOSED: both, because they cost one column each.** The instance index diffs a row against the `MultiMesh`; the entity id diffs it across Ticks. ⚠ **The id is the monotonic never-reused one and not the `Handle`'s index**, for `05 §4`'s reason — a list keyed on a recycled slot names a different Citizen after a collection, which is the one thing a list meant for diffing must never do |
 | **D3** | ✅ **CLOSED: no.** `--drive` does not imply an end — a script a person is watching should keep running when it runs out of instructions. Wanting an end means writing `quit` or passing `--quit-at`, and **both arrive at the same applier as one more command**. ⚠ **`--quit-at` before the script's last command is refused**, and so is one after a `pause`, for **F7**'s reason |
 
 ---

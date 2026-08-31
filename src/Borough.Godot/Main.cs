@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using Borough.Core;
 using Borough.Core.Determinism;
@@ -223,6 +224,12 @@ public partial class Main : Node3D
 
     /// <summary>Set once the run has been refused, so no frame draws a world nobody built.</summary>
     private bool _stopping;
+
+    /// <summary>Which Building each drawn instance is, in instance order. See <see cref="DrawList"/>.</summary>
+    private readonly List<ulong> _buildingIds = [];
+
+    /// <summary>Which Citizen each drawn Traveller is, in instance order.</summary>
+    private readonly List<ulong> _travellerIds = [];
     private Camera3D _camera = null!;
     private float _span = 512f;
 
@@ -517,6 +524,11 @@ public partial class Main : Node3D
 
                 break;
 
+            case DriveVerb.Draw:
+                DrawList(command.Path!);
+
+                break;
+
             case DriveVerb.Quit:
                 Quit();
 
@@ -590,6 +602,125 @@ public partial class Main : Node3D
         Draw(_alpha);
         Write(path);
     }
+
+    /// <summary>
+    /// Write <b>everything on screen, as data</b> — one row per drawn instance.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THIS IS THE ONLY QUESTION THE SHELL CAN ANSWER THAT THE HEADLESS RUNNER CANNOT.</b>
+    /// Every number in the readout comes from the core — <c>VisibleAgents.In</c> and the tables
+    /// under it — so a driven shell reporting world state reports what <c>Borough.Headless</c>
+    /// already reports. ***What only exists here is the DERIVATION***: the transform and the colour
+    /// this shell decided on. <c>plans/0045</c> holds the defect that makes the case:
+    /// <c>Basis.Scaled</c> scales in the parent frame, so every east–west Segment drew 8 m long and
+    /// its own length wide, and <b>half the road network was missing in a picture nobody could
+    /// assert on</b>. A row saying a Segment is 8 long and 128 wide fails a test.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The geometry is read back off the <c>MultiMesh</c> and not from the iterator that filled
+    /// it.</b> A dump built by walking the tables a second time would be a second derivation, free
+    /// to agree with the world while disagreeing with the picture — which is the entire class of
+    /// defect this exists to catch. ***The mesh is what the GPU is handed, so the mesh is what is
+    /// asked.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Identity comes the other way, from the fill</b>, because a <c>MultiMesh</c> knows only
+    /// an instance index and an index is a recycled slot rather than a name. Two layers know an
+    /// entity; the rest draw ground and honestly say <c>-</c>.
+    /// </para>
+    /// <para>
+    /// ⚠ <b><c>instances</c> against <c>capacity</c> is not bookkeeping.</b> A layer at capacity has
+    /// silently dropped whatever did not fit, and the picture shows a smaller city with nothing to
+    /// say so — the one failure a screenshot renders as success.
+    /// </para>
+    /// </remarks>
+    private void DrawList(string path)
+    {
+        // Recomposed for Caption's reason: Draw ran before this frame's commands did.
+        Draw(_alpha);
+
+        var text = new System.Text.StringBuilder();
+
+        text.Append(CultureInfo.InvariantCulture, $"tick\t{_world.Tick.Raw}\n");
+        text.Append(
+            CultureInfo.InvariantCulture,
+            $"ruleset\t{Path.GetFileName(_rulesetPath)}\n");
+        text.Append("# layer\tname\tinstances\tcapacity\tvisible\n");
+
+        foreach ((string name, MultiMeshInstance3D layer, bool _, List<ulong>? _) in Layers())
+        {
+            text.Append(
+                CultureInfo.InvariantCulture,
+                $"layer\t{name}\t{layer.Multimesh.VisibleInstanceCount}\t"
+                    + $"{layer.Multimesh.InstanceCount}\t{(layer.Visible ? 1 : 0)}\n");
+        }
+
+        // 🔴 UNDER --headless EVERY TRANSFORM READS BACK AS THE IDENTITY, AND THE FILE STILL LOOKS
+        // RIGHT. The counts above are CPU-side and stay true, so a headless dump came out with the
+        // correct number of rows, the correct layers and 21,504 lines of zeros -- ***structurally
+        // valid and silently wrong***, which is the one failure that survives being eyeballed.
+        // ⚠ It is the same shape as the screenshot's headless defect that plans/0045 records twice:
+        // the handle is fine and the emptiness is in what the handle points at. So the rows are
+        // WITHHELD rather than written, because a file that exists is a file somebody parses.
+        if (DisplayServer.GetName() == "headless")
+        {
+            text.Append(
+                "# rows withheld: --headless renders nothing, and a MultiMesh under the dummy "
+                    + "renderer returns the identity for every instance. The counts above are "
+                    + "CPU-side and are true. A draw list needs a real display.\n");
+
+            File.WriteAllText(Globalize(path), text.ToString());
+            GD.Print($"wrote {path} at Tick {_world.Tick.Raw}, counts only: --headless has no geometry.");
+
+            return;
+        }
+
+        text.Append("# row\tlayer\tindex\tid\tx\ty\tz\tsx\tsy\tsz\tyaw\tr\tg\tb\n");
+
+        foreach ((string name, MultiMeshInstance3D layer, bool colours, List<ulong>? ids)
+            in Layers())
+        {
+            MultiMesh mesh = layer.Multimesh;
+
+            for (int at = 0; at < mesh.VisibleInstanceCount; at++)
+            {
+                Transform3D where = mesh.GetInstanceTransform(at);
+                Vector3 size = where.Basis.Scale;
+                Color paint = colours ? mesh.GetInstanceColor(at) : default;
+
+                text.Append(
+                    CultureInfo.InvariantCulture,
+                    $"row\t{name}\t{at}\t{(ids is not null && at < ids.Count ? ids[at].ToString(CultureInfo.InvariantCulture) : "-")}\t"
+                        + $"{Figure(where.Origin.X)}\t{Figure(where.Origin.Y)}\t{Figure(where.Origin.Z)}\t"
+                        + $"{Figure(size.X)}\t{Figure(size.Y)}\t{Figure(size.Z)}\t"
+                        + $"{Figure(where.Basis.GetEuler().Y)}\t"
+                        + $"{(colours ? $"{Figure(paint.R)}\t{Figure(paint.G)}\t{Figure(paint.B)}" : "-\t-\t-")}\n");
+            }
+        }
+
+        File.WriteAllText(Globalize(path), text.ToString());
+        GD.Print($"wrote {path} at Tick {_world.Tick.Raw}");
+    }
+
+    /// <summary>Every layer, in draw order, with whether it paints per instance and who it is.</summary>
+    private (string Name, MultiMeshInstance3D Layer, bool Colours, List<ulong>? Ids)[] Layers() =>
+    [
+        ("ground", _ground, false, null),
+        ("hazard", _hazard, false, null),
+        ("water", _water, false, null),
+        ("flood", _flood, false, null),
+        ("road", _roads, false, null),
+        ("cell", _cells, false, null),
+        ("building", _buildings, true, _buildingIds),
+        ("traveller", _travellers, false, _travellerIds),
+    ];
+
+    /// <summary>
+    /// A number in a row. <b>Fixed, invariant and rounded</b>, so two runs diff rather than differ.
+    /// </summary>
+    private static string Figure(float value) =>
+        value.ToString("0.###", CultureInfo.InvariantCulture);
 
     /// <summary>Put the readout on disk as it stands. Composed by the caller.</summary>
     private void Write(string path) =>
@@ -803,11 +934,11 @@ public partial class Main : Node3D
     /// <summary>Reads the world into the two meshes that change, and writes the readout.</summary>
     private void Draw(Ratio alpha)
     {
-        int drawn = Fill(_buildings, Buildings());
+        int drawn = Fill(_buildings, Buildings(), _buildingIds);
         int moving = VisibleAgents.In(_world, CellRect.World, alpha, _agents);
-        int under = Fill(_flood, Inundated());
+        int under = Fill(_flood, Anonymous(Inundated()));
 
-        Fill(_travellers, Travellers(moving));
+        Fill(_travellers, Travellers(moving), _travellerIds);
 
         ulong tick = _world.Tick.Raw;
         ulong ofDay = tick % (ulong)Ticks.PerDay;
@@ -933,7 +1064,8 @@ public partial class Main : Node3D
     /// decisions, and a shape nobody in the city can perceive is not one.
     /// </para>
     /// </remarks>
-    private System.Collections.Generic.IEnumerable<(Transform3D Where, Color What)> Buildings()
+    private System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where, Color What)>
+        Buildings()
     {
         BuildingTable table = _world.Buildings;
         LotTable lots = _world.Lots;
@@ -958,7 +1090,8 @@ public partial class Main : Node3D
             // vertical one Right is the east side.
             bool horizontal = block > 0 && lots.North[lot].Raw % block == 0;
 
-            ulong shape = Scramble(table.Rows.IdAt(slot));
+            ulong id = table.Rows.IdAt(slot);
+            ulong shape = Scramble(id);
             float deep = Depth(block, shape);
 
             // Half the carriageway plus half the building's own depth, so the near face clears the
@@ -1000,6 +1133,7 @@ public partial class Main : Node3D
                 : new Vector3(deep, tall, along);
 
             yield return (
+                id,
                 new Transform3D(Basis.FromScale(plan), new Vector3(east, tall * 0.5f, -north)),
                 (table.IsAbandoned(slot) ? Derelict : Standing).SrgbToLinear());
         }
@@ -1089,16 +1223,27 @@ public partial class Main : Node3D
     }
 
     /// <summary>Every Traveller the last query placed.</summary>
-    private System.Collections.Generic.IEnumerable<Transform3D> Travellers(int found)
+    private System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where)> Travellers(
+        int found)
     {
         for (int agent = 0; agent < found; agent++)
         {
-            yield return new Transform3D(
+            // ⚠ RESOLVED RATHER THAN READ. A Handle's index is internal to the core on purpose --
+            // it is a recycled slot, and 05 §4 folds the monotonic id precisely because the slot
+            // is not identity. A draw list keyed on a slot would name a different Citizen after a
+            // collection, which is the one thing a list meant for diffing must never do.
+            ulong id = _world.Citizens.Rows.TryResolve(_agents[agent].Citizen, out int slot)
+                ? _world.Citizens.Rows.IdAt(slot)
+                : 0UL;
+
+            yield return (
+                id,
+                new Transform3D(
                 Basis.Identity,
                 new Vector3(
                     _agents[agent].East.Raw * MetresPerTile / 65_536f,
                     4f,
-                    -_agents[agent].North.Raw * MetresPerTile / 65_536f));
+                    -_agents[agent].North.Raw * MetresPerTile / 65_536f)));
         }
     }
 
@@ -1111,17 +1256,21 @@ public partial class Main : Node3D
     /// </remarks>
     private static int Fill(
         MultiMeshInstance3D into,
-        System.Collections.Generic.IEnumerable<(Transform3D Where, Color What)> places)
+        System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where, Color What)> places,
+        List<ulong>? ids = null)
     {
         int painted = 0;
 
-        foreach ((Transform3D where, Color what) in places)
+        ids?.Clear();
+
+        foreach ((ulong id, Transform3D where, Color what) in places)
         {
             if (painted >= into.Multimesh.InstanceCount)
             {
                 break;
             }
 
+            ids?.Add(id);
             into.Multimesh.SetInstanceTransform(painted, where);
             into.Multimesh.SetInstanceColor(painted++, what);
         }
@@ -1134,17 +1283,22 @@ public partial class Main : Node3D
     /// <inheritdoc cref="Fill(MultiMeshInstance3D, System.Collections.Generic.IEnumerable{ValueTuple{Transform3D, Color}})"/>
     /// <summary>The same, for a layer whose colour belongs to the layer rather than the box.</summary>
     private static int Fill(
-        MultiMeshInstance3D into, System.Collections.Generic.IEnumerable<Transform3D> places)
+        MultiMeshInstance3D into,
+        System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where)> places,
+        List<ulong>? ids = null)
     {
         int count = 0;
 
-        foreach (Transform3D place in places)
+        ids?.Clear();
+
+        foreach ((ulong id, Transform3D place) in places)
         {
             if (count >= into.Multimesh.InstanceCount)
             {
                 break;
             }
 
+            ids?.Add(id);
             into.Multimesh.SetInstanceTransform(count++, place);
         }
 
@@ -1189,7 +1343,25 @@ public partial class Main : Node3D
     /// measured worlds sit at 3–9%.
     /// </para>
     /// </remarks>
-    private void Hazard() => Fill(_hazard, AtRisk());
+    private void Hazard() => Fill(_hazard, Anonymous(AtRisk()));
+
+    /// <summary>
+    /// Give a run of placements no identity, for the layers that draw <b>ground</b> rather than
+    /// entities.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>A flooded Cell and a Hazard Region Cell are not rows in a table</b> — they are painted
+    /// from a grid, and the honest key for one is where it is, which the row already carries. So
+    /// the id column is <c>-</c> for them rather than a number invented to fill it.
+    /// </remarks>
+    private static System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where)> Anonymous(
+        System.Collections.Generic.IEnumerable<Transform3D> places)
+    {
+        foreach (Transform3D place in places)
+        {
+            yield return (0UL, place);
+        }
+    }
 
     /// <summary>Every Cell a flood could reach, whether or not one ever does.</summary>
     private System.Collections.Generic.IEnumerable<Transform3D> AtRisk()
