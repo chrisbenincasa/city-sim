@@ -130,6 +130,96 @@ public sealed class VisibleAgentsTests
         }
     }
 
+    /// <summary>
+    /// 🔴 <b>A Traveller stands on the Road Graph and not in the middle of a block.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The walkers used to be drawn on a straight line between their Leg's two Addresses</b>, and
+    /// the remark saying so was read by everybody and minded by nobody until the shell drew them
+    /// floating over the blocks. A walk Leg now records its route like a drive, so a walker has a
+    /// place rather than a pair of endpoints.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The tolerance is a Segment's own half-width and not zero.</b> A position is placed on the
+    /// line between two Nodes, and a Node's coordinates are whole Tiles, so the arithmetic lands
+    /// within a Tile of the centreline rather than on it.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_traveller_stands_on_a_segment()
+    {
+        (Simulation simulation, World world) = Rush();
+
+        var into = new VisibleAgent[4_096];
+        int checked_ = 0;
+
+        for (int tick = 0; tick < Ticks.PerDay; tick++)
+        {
+            simulation.Step(default);
+
+            int found = VisibleAgents.In(world, CellRect.World, Ratio.Zero, into);
+
+            for (int agent = 0; agent < found; agent++)
+            {
+                Assert.True(
+                    OnAStreet(world, into[agent]),
+                    $"a Traveller at ({into[agent].East.ToTilesFloor().Raw}, "
+                    + $"{into[agent].North.ToTilesFloor().Raw}) is on no Segment — it was placed in "
+                    + "the middle of a block, which is the straight-line placement returning.");
+
+                checked_++;
+            }
+        }
+
+        Assert.True(checked_ > 0, "no Traveller was in flight all Day, so nothing was checked");
+    }
+
+    /// <summary>Whether a placed agent lies within a Tile of some Segment's centreline.</summary>
+    private static bool OnAStreet(World world, VisibleAgent agent)
+    {
+        RoadSegmentTable segments = world.Roads.Segments;
+        RoadNodeTable nodes = world.Roads.Nodes;
+        int east = agent.East.ToTilesFloor().Raw;
+        int north = agent.North.ToTilesFloor().Raw;
+
+        for (int slot = 0; slot < segments.Rows.SlotCount; slot++)
+        {
+            if (!segments.Rows.IsLive(slot)
+                || !nodes.Rows.TryResolve(segments.NodeA[slot], out int a)
+                || !nodes.Rows.TryResolve(segments.NodeB[slot], out int b))
+            {
+                continue;
+            }
+
+            int aEast = nodes.East[a].Raw;
+            int aNorth = nodes.North[a].Raw;
+            int bEast = nodes.East[b].Raw;
+            int bNorth = nodes.North[b].Raw;
+
+            if (east < Math.Min(aEast, bEast) - 1 || east > Math.Max(aEast, bEast) + 1
+                || north < Math.Min(aNorth, bNorth) - 1 || north > Math.Max(aNorth, bNorth) + 1)
+            {
+                continue;
+            }
+
+            // Twice the triangle's area over the base is its height: the point's distance from the
+            // line through the two Nodes, without a square root and without a divide by zero.
+            long area = Math.Abs(
+                ((long)(bEast - aEast) * (aNorth - north))
+                - ((long)(aEast - east) * (bNorth - aNorth)));
+            long baseSquared = ((long)(bEast - aEast) * (bEast - aEast))
+                + ((long)(bNorth - aNorth) * (bNorth - aNorth));
+
+            if (baseSquared > 0 && area * area <= 4 * baseSquared)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>A walking city, stepped to where its Citizens have jobs to walk to.</summary>
     private static (Simulation Simulation, World World) Rush()
     {

@@ -226,9 +226,15 @@ public sealed class TripEngine
         {
             bool driving = modes[i] == TravelMode.Car;
 
+            // ⚠ THE PATH IS RECORDED FOR A WALK TOO, AND adr/0041 IS UNTOUCHED BY IT. That ADR
+            // decides who is attributed VOLUME, and a pedestrian still is not: BeginLeg tests the
+            // mode before it looks at RouteHead, so a walk is still priced once and its hops are
+            // never entered or left. What the route buys is that a walking Traveller HAS A PLACE --
+            // without it the only thing stored about one is that it left one Address for another,
+            // and VisibleAgents drew it on a straight line through the middle of the blocks.
             TravelTime step = WalkRouting.Cost(
                 _world.Roads, modes[i], waypoints[i], waypoints[i + 1], rules.CrossingCost, _walk,
-                recordPath: driving);
+                recordPath: true);
 
             // Eagerly, per adr/0075: every Leg of a Trip is created at Trip creation, which is what
             // makes mean-Legs-per-Trip countable at all. The impassable one is created too, because
@@ -239,17 +245,18 @@ public sealed class TripEngine
 
             _world.Trips.Append(_world.Legs, tripSlot, legSlot);
 
+            // Read immediately, because _walk is one reusable scratch and the next iteration
+            // overwrites it. adr/0041 needs this route every Tick a vehicle is moving, which is why
+            // it goes into a saved table rather than being looked up again later; a walk's is read
+            // by the shell rather than by the Tick, and is stored for the same reason.
+            if (!step.IsImpassable)
+            {
+                RecordRoute(legSlot, waypoints[i], waypoints[i + 1]);
+            }
+
             if (driving)
             {
                 _tickDriveLegs++;
-
-                // Read immediately, because _walk is one reusable scratch and the next iteration
-                // overwrites it. adr/0041 needs this route every Tick the Traveller is moving, which
-                // is why it goes into a saved table rather than being looked up again later.
-                if (!step.IsImpassable)
-                {
-                    RecordRoute(legSlot, waypoints[i], waypoints[i + 1]);
-                }
             }
             else
             {

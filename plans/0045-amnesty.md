@@ -187,10 +187,26 @@ and its own length of width, and the lattice drew as north–south lines with no
 itself and never asks for a transform, so a bug in the transform is invisible to it. **Two eyes on
 one mechanism is worth what it cost.**
 
-🔴 **THE WALKERS ARE FLOATING IN THE MIDDLE OF THE BLOCKS.** At Tick 751 — 08:48, the peak of the
-third burst, 63 people out — every Traveller sits off the network. That is `VisibleAgents`' own
-straight-line placement for a foot Leg, stated in its remarks and *believed*; seeing it is
+🔴 **THE WALKERS WERE FLOATING IN THE MIDDLE OF THE BLOCKS.** At Tick 751 — 08:48, the peak of the
+third burst, 63 people out — every Traveller sat off the network. That was `VisibleAgents`'
+straight-line placement for a foot Leg, stated in its own remarks and *believed*; seeing it is
 different. ***A shell is where an approximation you documented stops being a footnote.***
+
+✅ **FIXED, AND THE FIX IS A MECHANISM RATHER THAN A SNAP.** `TripEngine.Plan` passed
+`recordPath: driving`, so a walk computed its path and **threw it away** — the search runs either
+way and only the `_via` bookkeeping was conditional. It now records for both, and a walker is placed
+at the share of its route's *length* that its elapsed time has bought. ⚠ **`adr/0041` is untouched**:
+that ADR decides who is attributed **volume**, and `BeginLeg` tests the mode before it looks at
+`RouteHead`, so a walk is still priced once and its hops are never entered or left. **Same Tick,
+same 63 people, all of them on a street.** `VisibleAgentsTests.A_traveller_stands_on_a_segment`
+holds it, and fails on the old placement at the first Traveller it meets.
+
+⚠ **It moves the State Hash** — a walk's hops are saved state — so all three golden traces were
+re-baselined (`adr/0100`: that costs nothing while nobody carries a save). 🔴 **The Tick cost is
+BELOW THIS MACHINE'S NOISE FLOOR and is therefore unmeasured rather than small**: 4,000 Citizens
+over 4,096 Ticks reads **3.27–5.77 s before against 3.38–4.25 s after**, two runs each, which
+separates nothing. ***What it costs at a million Citizens is unknown***, and it owes `plans/0013` a
+row (`adr/0073`) that the corpus freeze is why it does not have.
 
 ⚠ **Confirmed the comb from the other side**: at Tick 402, 04:42, the readout says `travelling 0`
 against a fully built city. Nobody is outside before 05:00.
