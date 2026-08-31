@@ -2,8 +2,10 @@ using System;
 using System.Globalization;
 using System.IO;
 using Borough.Core;
+using Borough.Core.Arithmetic;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
+using Borough.Core.Input;
 using Borough.Core.Movement;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
@@ -209,6 +211,36 @@ public partial class Main : Node3D
 
     /// <summary>Every human-readable name in the Ruleset. <b>The shell owns these, not the core.</b></summary>
     private RulesetNames _names = RulesetNames.None;
+
+    /// <summary>What is under the cursor, stacked most specific first.</summary>
+    private Label _hover = null!;
+
+    /// <summary>Which verb the next click issues. <b><c>01 §2</c>'s, and never an instrument's.</b></summary>
+    private Verb _verb = Verb.Look;
+
+    /// <summary>Which declared <c>[[zone_rule]]</c> the <see cref="Verb.Zone"/> brush paints for.</summary>
+    private int _zoneChoice;
+
+    /// <summary>
+    /// Commands raised this frame, drained into the next <c>Step</c>.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>A verb NEVER touches the world directly, and this list is what enforces it.</b>
+    /// <c>Simulation.Apply</c> is the single door every state change goes through, so a shell that
+    /// called <c>World</c> for a click would produce a city no replay reproduces and no State Hash
+    /// divergence explains. ***That is the sentence <c>Populate</c> and <c>Arrive</c> each already
+    /// carry in their own remark***, arriving on the player's side of it.
+    /// </remarks>
+    private readonly System.Collections.Generic.List<Command> _queued = [];
+
+    /// <summary>Where the left button went down, so a drag can be told from a click.</summary>
+    private Vector2 _pressedAt;
+
+    /// <summary>Whether the pointer has stayed still enough since the press for this to be a click.</summary>
+    private bool _mayAct;
+
+    /// <summary>Why the last click did nothing, or empty. <b>Shown, never thrown.</b></summary>
+    private string _refused = string.Empty;
     private Label _readout = null!;
     private VisibleAgent[] _agents = new VisibleAgent[8192];
     private double _owed;
@@ -394,6 +426,17 @@ public partial class Main : Node3D
 
         _owed += delta * Ladder[_rung];
 
+        // 🔴 A QUEUED COMMAND BUYS ONE TICK, EVEN PAUSED, and that is a decision rather than a slip.
+        // A Command applies at the top of a Tick because Simulation.Apply is the single door, so a
+        // verb pressed at rung 0 would otherwise sit and look broken until somebody started the
+        // clock. ***Every reference builder lets you edit while paused***, and the cost is that
+        // acting is the one input that moves a paused world -- by exactly one Tick, and the readout
+        // says which Tick it is.
+        if (_queued.Count > 0 && _owed < 1.0)
+        {
+            _owed = 1.0;
+        }
+
         // 🔴 THE CLOCK IS CLAMPED AT THE NEXT COMMAND'S TICK, AND THAT IS WHAT MAKES A DRIVEN RUN
         // REPRODUCIBLE. A frame steps as many Ticks as the rung and the frame time between them
         // ask for, so a command drained on "the first frame at or past Tick T" lands on a
@@ -404,7 +447,7 @@ public partial class Main : Node3D
 
         while (_owed >= 1.0 && _world.Tick.Raw < until)
         {
-            _simulation.Step(default);
+            _simulation.Step(Ordered());
             _owed -= 1.0;
         }
 
@@ -910,15 +953,37 @@ public partial class Main : Node3D
 
     public override void _UnhandledInput(InputEvent @event)
     {
-        if (@event is InputEventMouseButton { Pressed: true } click)
+        if (@event is InputEventMouseButton button)
         {
-            if (click.ButtonIndex == MouseButton.WheelUp)
+            if (button is { Pressed: true, ButtonIndex: MouseButton.WheelUp })
             {
                 Dolly(1f);
+
+                return;
             }
-            else if (click.ButtonIndex == MouseButton.WheelDown)
+
+            if (button is { Pressed: true, ButtonIndex: MouseButton.WheelDown })
             {
                 Dolly(-1f);
+
+                return;
+            }
+
+            // ⚠ ON RELEASE AND NOT ON PRESS, because ANY held button pans. A verb bound to the press
+            // would fire at the start of every drag across the city, which is the one input a person
+            // makes constantly and never means as an edit. ***The difference between a click and a
+            // drag is not knowable until the button comes back up.***
+            if (button.ButtonIndex == MouseButton.Left)
+            {
+                if (button.Pressed)
+                {
+                    _pressedAt = button.Position;
+                    _mayAct = true;
+                }
+                else if (_mayAct)
+                {
+                    Act(button.ShiftPressed);
+                }
             }
 
             return;
@@ -947,6 +1012,13 @@ public partial class Main : Node3D
         // not the world's, because a turn parts the two and a drag would then go off at an angle.
         if (@event is InputEventMouseMotion drag && drag.ButtonMask != 0)
         {
+            // Four pixels of slop, because a hand on a trackpad moves a little on every click and a
+            // zero tolerance would make the verbs unusable for the people most likely to be testing.
+            if (_mayAct && drag.Position.DistanceTo(_pressedAt) > 4f)
+            {
+                _mayAct = false;
+            }
+
             // Scaled by the standoff rather than the city, so a close-up pans a street at a time.
             float reach = _distance * 0.002f;
             var right = new Vector3(Mathf.Cos(_yaw), 0f, -Mathf.Sin(_yaw));
@@ -964,8 +1036,11 @@ public partial class Main : Node3D
             return;
         }
 
-        // The tuner's two keys, which are an editing UI rather than a view of the city and are
-        // therefore the only keys with no verb behind them. A script has no panel to open.
+        // The keys with no DriveVerb behind them, which is what puts them ahead of the command
+        // switch rather than in it. The tuner's two are an editing UI rather than a view of the
+        // city, and a script has no panel to open. The four verb keys choose what the next click
+        // will mean, which is a state of the shell -- pressing one moves nothing in the world, so
+        // there is nothing for a recorded session to replay.
         switch (key.Keycode)
         {
             case Key.Tab:
@@ -980,6 +1055,37 @@ public partial class Main : Node3D
                 {
                     Regenerate();
                 }
+
+                return;
+
+            case Key.V:
+                _verb = Verb.Look;
+                _refused = string.Empty;
+
+                return;
+
+            case Key.Z:
+                // ⚠ PRESSING IT AGAIN CYCLES THE ZONE rather than doing nothing, which is what makes
+                // a Ruleset with two [[zone_rule]]s reachable without a second key. A zone word is a
+                // BITMASK of which rules may build (ZoneRuleDefinition.Admits), so what the brush
+                // paints is one rule's permission and never a category the city knows about.
+                _zoneChoice = _verb == Verb.Zone && _world.Rules.ZoneRules.Length > 0
+                    ? (_zoneChoice + 1) % _world.Rules.ZoneRules.Length
+                    : 0;
+                _verb = Verb.Zone;
+                _refused = string.Empty;
+
+                return;
+
+            case Key.X:
+                _verb = Verb.Connect;
+                _refused = string.Empty;
+
+                return;
+
+            case Key.B:
+                _verb = Verb.Demolish;
+                _refused = string.Empty;
 
                 return;
         }
@@ -1158,8 +1264,10 @@ public partial class Main : Node3D
             + $"Citizens {_world.Citizens.Rows.LiveCount:N0}   Buildings {drawn:N0}   "
             + $"travelling {moving:N0}{Weather(under)}\n"
             + $"speed {Pace(_rung)}   "
-            + "[ ] speed, space pause, 1-4, drag pan, q/e turn, -/= zoom, g roads, c cells, tab tune, esc quit\n"
-            + Pointing();
+            + $"mode {Holding()}   "
+            + "[ ] speed, space pause, v look, z zone, x street, b demolish, g roads, c cells, tab tune";
+
+        _hover.Text = Pointing();
     }
 
     /// <summary>
@@ -1516,6 +1624,183 @@ public partial class Main : Node3D
         return count;
     }
 
+    /// <summary>
+    /// This Tick's input: whatever the player raised since the last one, and then nothing.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>The queue is CLEARED here and not after the step</b>, because a command that threw would
+    /// otherwise be re-sent on the next frame for ever. ⚠ <b>The Ruleset hash is zero, which is what
+    /// <c>Step(default)</c> already passed</b> — a non-zero one is a reload instruction
+    /// (<c>Simulation</c> compares it against what is in force), and the tuner owns reloads by its
+    /// own path.
+    /// </remarks>
+    private TickInput Ordered()
+    {
+        if (_queued.Count == 0)
+        {
+            return default;
+        }
+
+        Command[] raised = [.. _queued];
+
+        _queued.Clear();
+
+        return new TickInput(raised, 0);
+    }
+
+    /// <summary>What the current verb is called, and for Zone which permission it paints.</summary>
+    private string Holding() => _verb switch
+    {
+        // ⚠ "SUBDIVIDE" AND NOT "ZONE", because the verb is not a brush. LotSubdivider.Face returns
+        // zero on a frontage Frontage has already claimed, so this creates Lots on virgin ground and
+        // can never repaint an existing block. ***A label that promised a brush would make the
+        // commonest misuse -- clicking a block that already has Lots -- look like a bug.***
+        Verb.Zone => _world.Rules.ZoneRules.Length > 0
+            ? $"SUBDIVIDE 0x{_world.Rules.ZoneRules[_zoneChoice].Admits:X4} (z cycles)"
+            : "SUBDIVIDE — no [[zone_rule]] declared",
+        Verb.Connect => "STREET (shift-click bulldozes)",
+        Verb.Demolish => "DEMOLISH — abandoned only",
+        _ => "look",
+    };
+
+    // ---- the verbs -------------------------------------------------------------------------------
+
+    /// <summary>
+    /// Turns the click into a <see cref="Command"/> and queues it. <b>Nothing here touches the
+    /// world.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>Three guards, and each one reads the SAME datum the core reads rather than restating a
+    /// rule.</b> A shell that re-implemented <c>Simulation</c>'s refusals would be
+    /// <c>plans/0012</c> <b>Cause 1</b> by construction — two places storing one rule, and the copy
+    /// is the one that drifts. So <c>Demolish</c> asks <see cref="BuildingTable.IsAbandoned"/>, which
+    /// is the field <c>ApplyDemolish</c> asks, and <c>Connect</c> asks <c>block_tiles</c>, which is
+    /// the field <c>ApplyConnect</c> asks. ***The shell declines to SEND what the core would
+    /// refuse***, and the refusal itself stays in one place.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Why declining rather than catching:</b> commands are applied at the top of a Tick, so an
+    /// exception out of <c>Apply</c> aborts <c>Step</c> half way and leaves a world no invariant
+    /// covers. ***A crash is not the worst outcome of an unguarded click; a half-stepped world
+    /// is.*** <c>15e</c> is what turns these into a player's sentences rather than a disabled click.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Zone has no guard and needs none.</b> A block with no Street on any face yields no Lots,
+    /// which is <c>02 §2.2</c>'s third rule and the mechanism by which a bad street layout punishes
+    /// the player — ***it is an outcome and not a refusal***, and a shell that greyed it out would be
+    /// hiding the lesson.
+    /// </para>
+    /// </remarks>
+    /// <param name="inverted">Whether shift was held, which turns <c>Connect</c> into a bulldoze.</param>
+    private void Act(bool inverted)
+    {
+        _mayAct = false;
+        _refused = string.Empty;
+
+        if (_verb == Verb.Look)
+        {
+            return;
+        }
+
+        if (Aim() is not { } at)
+        {
+            _refused = "that is not on the map.";
+
+            return;
+        }
+
+        switch (_verb)
+        {
+            case Verb.Zone when _world.Rules.ZoneRules.Length > 0:
+                _queued.Add(new Command(
+                    CommandKind.Zone,
+                    at.East,
+                    at.North,
+                    _world.Rules.ZoneRules[_zoneChoice].Admits));
+                break;
+
+            case Verb.Zone:
+                _refused = "this Ruleset declares no [[zone_rule]], so there is no permission to paint.";
+                break;
+
+            case Verb.Connect:
+                Lay(at, inverted);
+                break;
+
+            case Verb.Demolish:
+                Clear(at);
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    /// <summary>One Street on the lattice edge leaving the intersection nearest the cursor.</summary>
+    /// <remarks>
+    /// ⚠ <b>The AXIS is chosen from where inside the block the cursor sits</b>, which is the only
+    /// thing a single click can say about a choice between two edges. <c>adr/0077</c> makes a Connect
+    /// exactly one Segment on the lattice, so the question is never <em>which route</em> — it is
+    /// which of the two edges leaving one corner, and the cursor's own offset answers it.
+    /// </remarks>
+    private void Lay((Tiles East, Tiles North) at, bool bulldoze)
+    {
+        int block = _world.Roads.Streets.BlockTiles;
+
+        if (block <= 0)
+        {
+            _refused = "this Ruleset states no [roads] block_tiles, so it has no lattice to edit.";
+
+            return;
+        }
+
+        int alongEast = ((at.East.Raw % block) + block) % block;
+        int alongNorth = ((at.North.Raw % block) + block) % block;
+
+        var payload = new ConnectPayload(
+            alongEast >= alongNorth ? StreetAxis.East : StreetAxis.North,
+            bulldoze ? ConnectAction.Bulldoze : ConnectAction.Lay,
+            RoadKind.Street);
+
+        _queued.Add(new Command(CommandKind.Connect, at.East, at.North, payload.Encode()));
+    }
+
+    /// <summary>Clears the abandoned Building nearest the cursor, at its own Lot's Tile.</summary>
+    /// <remarks>
+    /// 🔴 <b>The command names the LOT's Tile and never the cursor's, and that is not a convenience.</b>
+    /// <c>Simulation.BuildingOn</c> matches a Lot's coordinate exactly and
+    /// <c>ApplyDemolish</c> refuses rather than clearing the nearest — <em>"a mistyped command must
+    /// not be indistinguishable from the demolition somebody meant"</em>. A cursor lands on a Tile
+    /// that is almost never a Lot's own, so the shell resolves the click to a Building, shows which
+    /// one in the hover, and then sends <b>that Building's address</b>. ***The refusal stays exact
+    /// and the aim becomes possible.***
+    /// </remarks>
+    private void Clear((Tiles East, Tiles North) at)
+    {
+        (int building, int lot, _) =
+            NearestIn(at, CellGrid.ToCells(at.East), CellGrid.ToCells(at.North));
+
+        if (building == Rows.NoSlot)
+        {
+            _refused = "no Building stands in this Cell.";
+
+            return;
+        }
+
+        if (!_world.Buildings.IsAbandoned(building))
+        {
+            _refused =
+                "that Building is still occupied. Clearing occupied ground is a compulsory purchase "
+                + "(adr/0091) and its price is not built, so only abandoned stock can be cleared.";
+
+            return;
+        }
+
+        _queued.Add(new Command(
+            CommandKind.Demolish, _world.Lots.East[lot], _world.Lots.North[lot]));
+    }
+
     // ---- picking ---------------------------------------------------------------------------------
 
     /// <summary>
@@ -1568,7 +1853,9 @@ public partial class Main : Node3D
         return (new Tiles((int)east), new Tiles((int)north));
     }
 
-    /// <summary>What stands where the cursor is, as a sentence a person reads.</summary>
+    /// <summary>
+    /// Everything the city knows about the Tile under the cursor, <b>stacked most specific first.</b>
+    /// </summary>
     /// <remarks>
     /// <para>
     /// <b>Every string here is the shell's</b> (<c>adr/0002</c>): the core hands back a kind id and
@@ -1577,31 +1864,78 @@ public partial class Main : Node3D
     /// formatted string because a panel wanted one.
     /// </para>
     /// <para>
+    /// 🔴 <b>A LINE IS OMITTED WHEN THE THING IT WOULD DESCRIBE HAS NO ROW, AND THAT IS THE WHOLE
+    /// DESIGN OF THIS PANEL.</b> Nine of the shipped worlds have no Layer row anywhere, no District
+    /// and no water, so a fixed template would print <c>pollution 0 · land value 0 · district 0</c>
+    /// over every Tile of every one of them. ***Zero and absent are different answers, and a panel
+    /// that renders them identically teaches a city has a quantity when it has no mechanism.***
+    /// A Cell with no Layer row says nothing about pollution rather than saying none.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Terrain is the one exception and it is stated rather than hidden.</b>
+    /// <see cref="TerrainCellTable"/> is dense — one byte a Cell, on every world — so a file with no
+    /// <c>[[terrain]]</c> reads <c>ordinary</c> everywhere truthfully. It is a uniform answer and not
+    /// a missing one.
+    /// </para>
+    /// <para>
     /// ⚠ <b>Nearest within the Cell, and the Cell is the whole search.</b> A Lot is a point on a
     /// Segment rather than a plot of ground, so *containment* is not a question the city can answer —
     /// what it can answer is which Buildings are resident in a Cell, which is
-    /// <see cref="BuildingResidency"/>'s own index. A Cell is 128 m and a block is 32 Tiles, so the
-    /// nearest Building in the picked Cell is the one the cursor is over at any zoom worth clicking
-    /// at, and the readout names the distance so a person can see when it is not.
+    /// <see cref="BuildingResidency"/>'s own index. 🔴 <b>A Cell is 128 m and covers about four
+    /// frontages</b>, so this is honest for a hover and too coarse for a verb that names one
+    /// Building: the distance is printed so a person can see when the answer is a neighbour's.
     /// </para>
     /// </remarks>
     private string Pointing()
     {
         if (Aim() is not { } at)
         {
-            return "pointing off the map";
+            return "— pointing off the map —";
         }
 
         Cells east = CellGrid.ToCells(at.East);
         Cells north = CellGrid.ToCells(at.North);
-        var where = $"Tile ({at.East.Raw:N0},{at.North.Raw:N0})  Cell ({east.Raw},{north.Raw})";
+        var said = new System.Collections.Generic.List<string>
+        {
+            $"Tile ({at.East.Raw:N0}, {at.North.Raw:N0})    Cell ({east.Raw}, {north.Raw})",
+        };
 
+        Built(said, at, east, north);
+        Underfoot(said, east, north);
+
+        if (_verb == Verb.Zone)
+        {
+            Virgin(said, at);
+        }
+
+        if (_refused.Length > 0)
+        {
+            said.Add($"REFUSED — {_refused}");
+        }
+
+        return string.Join('\n', said);
+    }
+
+    /// <summary>
+    /// The Building nearest a Tile within its own Cell, with the Lot it stands on and the square of
+    /// the distance.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>Shared by the hover and by <see cref="Act"/>, and that sharing is the point.</b> A verb
+    /// must act on the thing the panel named — <c>Demolish</c>'s own refusal says
+    /// <em>"a mistyped command must not be indistinguishable from the demolition somebody meant"</em>
+    /// — so the two must not resolve a click twice and risk disagreeing.
+    /// </remarks>
+    private (int Building, int Lot, long Away) NearestIn(
+        (Tiles East, Tiles North) at, Cells east, Cells north)
+    {
         Span<int> found = stackalloc int[64];
         int count = _world.BuildingsInCells.In(
             CellRect.At(east, north), _world.Buildings, found);
 
         LotTable lots = _world.Lots;
         int nearest = Rows.NoSlot;
+        int onLot = Rows.NoSlot;
         long best = long.MaxValue;
 
         for (int seen = 0; seen < count; seen++)
@@ -1619,20 +1953,158 @@ public partial class Main : Node3D
             {
                 best = away;
                 nearest = found[seen];
+                onLot = lot;
             }
         }
 
+        return (nearest, onLot, best);
+    }
+
+    /// <summary>The Building nearest the cursor inside its Cell, its tenants and its trades.</summary>
+    private void Built(
+        System.Collections.Generic.List<string> said,
+        (Tiles East, Tiles North) at,
+        Cells east,
+        Cells north)
+    {
+        (int nearest, int onLot, long best) = NearestIn(at, east, north);
+        LotTable lots = _world.Lots;
+
         if (nearest == Rows.NoSlot)
         {
-            return $"{where}  —  open ground";
+            said.Add("open ground — no Building in this Cell");
+
+            return;
         }
 
         byte kind = _world.Buildings.Kind[nearest];
         string named = _names.Kind(kind) ?? $"kind {kind}";
+        int room = _world.Rules.Declares(kind) ? _world.Rules.Kind(kind).Occupants : 0;
         int held = _world.Occupants.Length(nearest);
-        string state = _world.Buildings.IsAbandoned(nearest) ? "abandoned" : $"{held} households";
+        int trades = _world.BuildingBusinesses.Length(nearest);
 
-        return $"{where}  —  {named}, {state}, {Math.Sqrt(best):N0} Tiles off";
+        // ⚠ THE CEILING COUNTS TENANTS OF ANY KIND (adr/0147), so a shop occupies one of the
+        // declared occupants and the households line must not be read against the whole number.
+        said.Add(_world.Buildings.IsAbandoned(nearest)
+            ? $"{named} — ABANDONED, a shell standing on its collapse clock"
+            : $"{named} — {held} of {room} occupied, {Math.Sqrt(best):N0} Tiles off");
+
+        for (int business = _world.BuildingBusinesses.PeekFront(nearest);
+             business != Rows.NoSlot && trades > 0;
+             business = _world.Businesses.BuildingNext[business] - 1)
+        {
+            byte trade = _world.Businesses.Kind[business];
+
+            said.Add($"    {_names.BusinessKind(trade) ?? $"trade {trade}"}");
+
+            if (--trades == 0)
+            {
+                break;
+            }
+        }
+
+        said.Add($"Lot {lots.Rows.IdAt(onLot):N0}, zone 0x{lots.Zone[onLot]:X4}");
+    }
+
+    /// <summary>What the ground under the cursor is, and only what it actually has a row for.</summary>
+    private void Underfoot(
+        System.Collections.Generic.List<string> said, Cells east, Cells north)
+    {
+        said.Add($"ground: {_world.Layers.Terrain.At(east, north).ToString().ToLowerInvariant()}");
+
+        if (_world.WaterInCells.IsWet(east, north))
+        {
+            said.Add("under a Water Body");
+        }
+
+        int risk = _world.FloodInCells.DepthAt(_world.Flood, east, north);
+
+        if (risk > 0)
+        {
+            // ⚠ A DEPTH IS THE FLOOD LEVEL MINUS THE GROUND, so a LARGE one is LOW ground. Saying
+            // "below the flood line" rather than printing the number keeps the polarity legible.
+            // ⚠ NOT THE SAME FACT AS THE TERRAIN LINE ABOVE, however alike they read.
+            // TerrainKind.Floodplain is a quantile of a noise field (TerrainGenerator); this is the
+            // Hazard Region, which is the water generator's flood level against the height field.
+            // ***Two mechanisms that share a word***, so the wording has to separate them.
+            said.Add($"AT FLOOD RISK — {risk:N0} below the flood line");
+        }
+
+        int layer = _world.Layers.Residency.Slot(east, north);
+
+        if (layer != CellResidency.NotResident)
+        {
+            LayerCellTable cells = _world.Layers.Cells;
+
+            said.Add(
+                $"pollution {cells.Pollution[layer]:N0}    "
+                + $"land value {cells.LandValue[layer]:N0}    "
+                + $"sealing {cells.Sealing[layer]:N0}");
+        }
+
+        int district = _world.DistrictsInCells.Slot(east, north);
+
+        if (district != DistrictResidency.NotResident)
+        {
+            said.Add($"District {_world.Districts.Rows.IdAt(district):N0}");
+        }
+    }
+
+    /// <summary>
+    /// How much of the block under the cursor is still virgin frontage. <b>Whether a click would do
+    /// anything.</b>
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b><c>Zone</c>'s commonest misuse is silent, which is why this line exists.</b> A block
+    /// whose four faces are all claimed accepts the command, creates nothing and reports nothing —
+    /// so the panel counts the faces that are present <em>and</em> unclaimed, which is exactly what
+    /// <c>LotSubdivider.Face</c> tests. ***The alternative was a refusal, and a refusal would be
+    /// wrong***: subdividing three of four faces is a real edit, and only the zero case is a no-op.
+    /// </remarks>
+    private void Virgin(System.Collections.Generic.List<string> said, (Tiles East, Tiles North) at)
+    {
+        StreetGrid streets = _world.Roads.Streets;
+
+        if (streets.BlockTiles <= 0)
+        {
+            said.Add("no Street lattice in this world");
+
+            return;
+        }
+
+        int column = IntegerMath.FloorDiv(at.East.Raw, streets.BlockTiles);
+        int row = IntegerMath.FloorDiv(at.North.Raw, streets.BlockTiles);
+        int free = 0;
+        int faces = 0;
+
+        // The four faces and the side of each that belongs to THIS block, which is
+        // LotSubdivider.SubdivideBlock's own four constants rather than a second derivation.
+        ReadOnlySpan<(int Segment, StreetSide Side)> around =
+        [
+            (streets.Horizontal(column, row), StreetSide.Left),
+            (streets.Horizontal(column, row + 1), StreetSide.Right),
+            (streets.Vertical(column, row), StreetSide.Right),
+            (streets.Vertical(column + 1, row), StreetSide.Left),
+        ];
+
+        foreach ((int segment, StreetSide side) in around)
+        {
+            if (segment == Rows.NoSlot)
+            {
+                continue;
+            }
+
+            faces++;
+
+            if (!_world.Frontage.Claimed(segment, side))
+            {
+                free++;
+            }
+        }
+
+        said.Add(free > 0
+            ? $"block ({column}, {row}) — {free} of {faces} faces still to subdivide"
+            : $"block ({column}, {row}) — nothing to subdivide, a click does nothing");
     }
 
     /// <summary>The Cell under the cursor, so a person can see what they are aiming at.</summary>
@@ -2047,9 +2519,30 @@ public partial class Main : Node3D
             LabelSettings = new LabelSettings { FontSize = 18 },
         };
 
+        // BOTTOM LEFT AND GROWING UPWARD, which is what the anchors are for. The stack's LENGTH
+        // varies with what is under the cursor -- a built Lot on a floodplain in a District says six
+        // lines and open ground says two -- and a top-anchored panel would make every line move
+        // whenever the one above it appeared. ***A readout that reflows as you sweep is unreadable
+        // even when every line in it is right.***
+        _hover = new Label
+        {
+            AnchorTop = 1f,
+            AnchorBottom = 1f,
+            GrowVertical = Control.GrowDirection.Begin,
+
+            // ⚠ OFFSETS AND NOT Position, WHICH IS WHAT CLIPPED THE LAST LINE. On an anchored
+            // Control, Position writes OffsetLeft/OffsetTop -- so setting it pinned the panel's TOP
+            // to the window's bottom edge and every line grew off the screen. The bottom edge is the
+            // one that has to be pinned when the stack grows upward.
+            OffsetLeft = 16f,
+            OffsetBottom = -16f,
+            LabelSettings = new LabelSettings { FontSize = 16 },
+        };
+
         var layer = new CanvasLayer();
 
         layer.AddChild(_readout);
+        layer.AddChild(_hover);
         AddChild(layer);
         Tuner(layer);
     }
@@ -2350,4 +2843,36 @@ public partial class Main : Node3D
             $"new city: {citizens:N0} Citizens, seed {seed}, {_world.Lots.Rows.LiveCount:N0} Lots.";
     }
 
+}
+
+/// <summary>
+/// What a click does. <b><c>01 §2</c>'s player verbs, and deliberately not the instruments.</b>
+/// </summary>
+/// <remarks>
+/// <c>Populate</c>, <c>Trip</c> and <c>Arrive</c> are <see cref="CommandKind"/> members and are
+/// <em>not</em> here: each says in its own remark that it is <b>an instrument rather than one of
+/// <c>01 §2</c>'s five</b> and that it is expected to be deleted. ***A verb list assembled from the
+/// enum would have handed the player three doors the design intends to close.***
+/// </remarks>
+internal enum Verb : byte
+{
+    /// <summary>Read the city and change nothing. The default, and where every mode returns to.</summary>
+    Look = 0,
+
+    /// <summary>
+    /// Subdivide the block under the cursor into Lots admitting one <c>[[zone_rule]]</c>.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>SUBDIVIDE and not paint, however the verb is named in <c>01 §2</c>.</b>
+    /// <c>LotSubdivider.Face</c> returns zero on frontage <c>World.Frontage</c> has already claimed,
+    /// so this works on virgin faces and can never repaint a block that has Lots.
+    /// <c>PlayerVerbTests.Zoning_ground_that_is_already_subdivided_changes_nothing</c> holds it.
+    /// </remarks>
+    Zone = 1,
+
+    /// <summary>Lay or bulldoze one Street on the lattice edge leaving the nearest intersection.</summary>
+    Connect = 2,
+
+    /// <summary>Clear abandoned stock, and only that.</summary>
+    Demolish = 3,
 }

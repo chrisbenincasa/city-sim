@@ -131,7 +131,7 @@ non-comment references, **19 headless dumps against a three-line on-screen reado
 | 13 | The `0046` loose ends — the dwelling stock's missing sink, `aged.toml`'s narrow windows. ⚠ **Small on purpose and last on purpose**: `StageDumpTests` pins both with tests that assert the defect, so neither can be lost | ✅ 31-08 |
 | 14 | **The audit.** Walk this page for what it recorded as owed and never paid. ⚠ **A findings section is not a ledger**, and a debt written in a narrative paragraph is a debt nobody sums | ✅ 31-08 |
 | 15a | 🔴 **Picking.** A click becomes a Tile. The camera is an orbit, and **nothing in the shell converts a screen position to anything at all** — no ray, no ground-plane intersection, no Tile. ⚠ **Every row below is blocked on this one**, and it carries a hover readout of its own: ***a verb you cannot aim is a verb you cannot test***, so what you are pointing at has to be on screen before anything commits |  |
-| 15b | 🔴 **`Zone`, `Connect`, `Demolish` — the three that change the ground.** Paint a zone over Lots; lay a Street between two picked points; clear abandoned stock. ⚠ **`Demolish` is over abandoned stock ONLY** (`adr/0091` refuses to price a compulsory purchase), so the shell has to **refuse the occupied half legibly** rather than let `Simulation` throw |  |
+| 15b | **`Zone`, `Connect`, `Demolish` — the three that change the ground.** ⚠ **`Zone` SUBDIVIDES and does not paint** — found by building it. ⚠ **`Demolish` addresses the LOT's Tile and never the cursor's**, because `ApplyDemolish` matches exactly and refuses rather than substituting | ✅ 31-08 |
 | 15c | 🔴 **`Govern` and `Service` — the two that change the rules.** The tuner already exists and already reloads a Ruleset, so `Govern` is a dial per `[[policy]]` that writes a **`Command`** instead of a file. ⚠ **`Service` is `01 §5`'s acknowledged placement exception** and the reason `schooled.toml`'s school is never built: a run with no `--schools` builds none, so ***the only world with an `education` Need has nothing that answers it*** |  |
 | 15d | 🔴 **The session is a log, and this is the row that makes the other three worth anything.** The shell writes `.borough` through `Borough.Formats` — ⚠ **using the codec and never implementing one** (`adr/0039`). ***A verb that is not in the log is a state change no replay reproduces and no State Hash divergence explains***, which is the sentence `Populate` and `Arrive` each already carry in their own remark. **The proof is the round trip**: a city played by hand in the shell, replayed in `Borough.Headless`, same State Hash |  |
 | 15e | ⚠ **A refusal reaches the player as a sentence.** Every verb's refusals are `InvalidOperationException` today, which is correct for a log and wrong for a person. ⚠ **`Core` returns ids and numbers, never strings**, so the shell owns every word, resolved through the Ruleset — ***which is the real leak vector `CLAUDE.md` names***: not `using Godot;`, but a method that returns a formatted string because a panel wanted one |  |
@@ -709,3 +709,71 @@ ran.** `TierBudgetTests` times every test and fails a slow one; `TierDeclaration
 third tier and holds the instrument share under a quarter. **Neither would notice a class vanishing
 from the run**, because both reason about the tests they were handed. ***A gate that cannot say how
 many tests it ran cannot tell a green run from a short one***, which is row 15f.
+
+## What the player's hands found
+
+**15a and 15b, and the shell now issues `Command`s.** `v` looks, `z` subdivides, `x` lays a Street,
+`b` demolishes; a left click acts and a left drag still pans, told apart **on release** because any
+held button pans and the difference is not knowable until the button comes up.
+
+🔴 **`Zone` IS NOT A BRUSH, AND THE VERB'S NAME SAYS OTHERWISE.** `LotSubdivider.Face` returns zero
+on a frontage `World.Frontage` has already claimed, so the verb **creates Lots on virgin faces and
+can never repaint a block that has them**. ⚠ **The first test of it zoned a block `SyntheticCity`
+had already carved and reported the verb broken** — 102 live Lots, zones `1` and `2`, and the brush's
+`0x0008` on none of them. ***The commonest misuse of this verb is silent***: the command is accepted,
+creates nothing and reports nothing. The panel now counts the block's unclaimed faces and says
+*a click does nothing* before the click, and the mode reads **SUBDIVIDE**.
+
+⚠ **The player's loop is Street THEN zoning, and that is what `PlayerVerbTests` asserts** — lay a
+Segment on lattice ground the city never paved, subdivide the block, and Lots appear admitting the
+Zone Rule that asked for them. **A Lot's `Zone` is a bitmask** (`ZoneRuleDefinition.Admits`), so a
+brush painting the rule's *index* would make Lots that read as zoned and that nothing ever builds on
+— ***a city that silently never grows.***
+
+🔴 **`Demolish` is addressed at the LOT's Tile and never the cursor's.** `Simulation.BuildingOn`
+matches a Lot's coordinate exactly and `ApplyDemolish` refuses rather than clearing the nearest —
+*"a mistyped command must not be indistinguishable from the demolition somebody meant"*. A cursor
+lands on a Tile that is almost never a Lot's own, so the shell resolves the click to a Building,
+names it in the hover, and sends **that Building's address**. ***The refusal stays exact and the aim
+becomes possible.***
+
+⚠ **The shell DECLINES rather than catching, and the reason is not tidiness.** Commands apply at the
+top of a Tick, so an exception out of `Apply` aborts `Step` half way and leaves a world no invariant
+covers — ***a crash is not the worst outcome of an unguarded click; a half-stepped world is.*** Each
+guard reads the **same field** the core reads, so no rule is restated: `Demolish` asks
+`IsAbandoned`, `Connect` asks `block_tiles`. `15e` is what turns a disabled click into a player's
+sentence.
+
+🔴 **A QUEUED COMMAND BUYS ONE TICK, EVEN PAUSED, and that is a decision.** A verb pressed at rung 0
+would otherwise sit until somebody started the clock and look broken. Every reference builder lets
+you edit while paused; the cost is that acting is the one input that moves a paused world, by
+exactly one Tick.
+
+⚠ **`src/Borough.Godot` is not in `Borough.slnx` and cannot be tested**, so `PlayerVerbTests` pins
+the **core's half** of each of the shell's three translations — the brush word, the lattice snap and
+the address. ***A shell built on a misreading of the core goes red there rather than being wrong on
+screen where nothing watches.*** ⚠ **`Demolish` is deliberately absent from it**: `DemolishVerbTests`
+already owns the verb, and `Demolishing_empty_ground_is_refused` is the assertion the Lot-addressing
+exists to satisfy.
+
+⚠ **Two of those tests failed first and each failure was the fixture rather than the city.** A world's
+constructor lays no roads, so both `Connect` arms bulldozed edges that were not there, two no-ops
+hashed the same, and the *two axes differ* assertion **failed by agreeing** — the answer a
+difference-assertion gives when neither side did anything. And an A/B on a command that sampled the
+hash before and after `Order` was comparing two **different Ticks**, with every clock and cadence in
+the world moved; ***an A/B on a command has to hold the Tick count equal on both arms.***
+
+✅ **The hover is a stack, and a line is OMITTED when the thing it would describe has no row.** Nine
+of the shipped worlds have no Layer row, no District and no water, so a fixed template would print
+`pollution 0 · land value 0 · district 0` over every Tile of every one of them. ***Zero and absent
+are different answers***, and a panel rendering them identically teaches that a city has a quantity
+where it has no mechanism. ⚠ **Terrain is the one exception and is stated rather than hidden** — the
+table is dense, so `ordinary` everywhere is a uniform answer and not a missing one.
+
+⚠ **`TerrainKind.Floodplain` and the Hazard Region share a word and are two mechanisms.** The first
+is a quantile of `TerrainGenerator`'s noise field; the second is the water generator's flood level
+against the height field. The panel printed both and read as if it were repeating itself, so the
+second says **AT FLOOD RISK**.
+
+⚠ **The window opens at 1920×1080, maximised.** Godot's 1152×648 default is a third of a modern
+screen against a readout that is one long line and an orbit over a 65.5 km map.
