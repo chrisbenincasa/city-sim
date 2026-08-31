@@ -136,6 +136,17 @@ public partial class Main : Node3D
     /// </remarks>
     private static readonly Color Derelict = new(0.20f, 0.19f, 0.18f);
 
+    /// <summary>How near an edge the pointer has to be, in pixels, before the camera follows.</summary>
+    /// <remarks>
+    /// ⚠ <b>Pixels and not a share of the window</b>, because it is sized by how accurately a hand
+    /// parks a cursor rather than by how big the screen is — a share would make the band enormous on
+    /// the 1920-wide default and unusable on a small window.
+    /// </remarks>
+    private const float EdgeMarginPixels = 72f;
+
+    /// <summary>How fast the edge scroll pans, in drag-pixels a second at full push.</summary>
+    private const float EdgePixelsPerSecond = 900f;
+
     /// <summary>How thick the water is drawn. Flat, and floating just clear of the ground.</summary>
     private const float WaterMetres = 0.6f;
 
@@ -247,12 +258,6 @@ public partial class Main : Node3D
     /// carry in their own remark***, arriving on the player's side of it.
     /// </remarks>
     private readonly System.Collections.Generic.List<Command> _queued = [];
-
-    /// <summary>Where the left button went down, so a drag can be told from a click.</summary>
-    private Vector2 _pressedAt;
-
-    /// <summary>Whether the pointer has stayed still enough since the press for this to be a click.</summary>
-    private bool _mayAct;
 
     /// <summary>Why the last click did nothing, or empty. <b>Shown, never thrown.</b></summary>
     private string _refused = string.Empty;
@@ -490,6 +495,8 @@ public partial class Main : Node3D
         {
             Input.WarpMouse(GetViewport().GetVisibleRect().Size * 0.5f);
         }
+
+        Edge(delta);
 
         Draw(_alpha);
         Drive();
@@ -994,21 +1001,17 @@ public partial class Main : Node3D
                 return;
             }
 
-            // ⚠ ON RELEASE AND NOT ON PRESS, because ANY held button pans. A verb bound to the press
-            // would fire at the start of every drag across the city, which is the one input a person
-            // makes constantly and never means as an edit. ***The difference between a click and a
-            // drag is not knowable until the button comes back up.***
-            if (button.ButtonIndex == MouseButton.Left)
+            // 🔴 ON PRESS, AND THE LEFT BUTTON DOES NOTHING ELSE. It used to act on RELEASE, with a
+            // four-pixel slop test to tell a click from a drag, because panning was bound to the same
+            // button -- and on a macOS trackpad that combination ate the click and panned instead.
+            // Tap-to-click and force-click both emit motion while the button is down, so the pointer
+            // drifts past four pixels before the release arrives: _mayAct was cleared, Act never ran,
+            // and the same drift moved the camera. ***A conditional binding on one button is what
+            // made the input feel unreliable***, so the condition is gone rather than widened -- a
+            // larger slop radius would have been the same defect with a longer fuse.
+            if (button is { Pressed: true, ButtonIndex: MouseButton.Left })
             {
-                if (button.Pressed)
-                {
-                    _pressedAt = button.Position;
-                    _mayAct = true;
-                }
-                else if (_mayAct)
-                {
-                    Act(button.ShiftPressed);
-                }
+                Act(button.ShiftPressed);
             }
 
             return;
@@ -1016,10 +1019,17 @@ public partial class Main : Node3D
 
         // A trackpad reaches none of that. macOS turns a two-finger scroll into a pan gesture and a
         // pinch into a magnify gesture, so the wheel branch above never sees a finger at all.
+        //
+        // 🔴 IT PANS, AND IT USED TO ZOOM. A two-finger scroll was wired to Dolly while the pinch
+        // gesture below was ALSO wired to Dolly -- so a trackpad had two ways to zoom and no way to
+        // move, which is the native mapping of both gestures exactly inverted. ***A gesture named
+        // PanGesture doing something other than panning is a mapping nobody can learn***, and for a
+        // trackpad this alone is the whole camera.
         if (@event is InputEventPanGesture scroll)
         {
-            // Delta is the wheel's own quantity negated by the platform, so up is negative here.
-            Dolly(-scroll.Delta.Y * 0.5f);
+            // Negated on both axes: the platform reports where the CONTENT went, and the camera is
+            // the thing that moves here, so following the sign would send the city the wrong way.
+            Pan(-scroll.Delta * 12f);
 
             return;
         }
@@ -1032,26 +1042,14 @@ public partial class Main : Node3D
             return;
         }
 
-        // Dragging with any button held pans across the ground, never through it, so the city
-        // cannot be lost behind the camera by a careless drag. ⚠ It runs along the EYE's axes and
-        // not the world's, because a turn parts the two and a drag would then go off at an angle.
-        if (@event is InputEventMouseMotion drag && drag.ButtonMask != 0)
+        // 🔴 RIGHT OR MIDDLE, NEVER LEFT. Panning shared the left button with every verb until
+        // 2026-08-31, which is what made a trackpad click unusable -- see the button branch above.
+        // A two-finger click-drag is the native pan on a Mac trackpad and middle-drag is the mouse's,
+        // so the two masks here are one gesture on two devices rather than a preference.
+        if (@event is InputEventMouseMotion drag
+            && (drag.ButtonMask & (MouseButtonMask.Right | MouseButtonMask.Middle)) != 0)
         {
-            // Four pixels of slop, because a hand on a trackpad moves a little on every click and a
-            // zero tolerance would make the verbs unusable for the people most likely to be testing.
-            if (_mayAct && drag.Position.DistanceTo(_pressedAt) > 4f)
-            {
-                _mayAct = false;
-            }
-
-            // Scaled by the standoff rather than the city, so a close-up pans a street at a time.
-            float reach = _distance * 0.002f;
-            var right = new Vector3(Mathf.Cos(_yaw), 0f, -Mathf.Sin(_yaw));
-            var ahead = new Vector3(-Mathf.Sin(_yaw), 0f, -Mathf.Cos(_yaw));
-
-            _focus += (right * -drag.Relative.X + ahead * drag.Relative.Y) * reach;
-
-            Orbit();
+            Pan(drag.Relative);
 
             return;
         }
@@ -1174,6 +1172,120 @@ public partial class Main : Node3D
 
         DriveCommand Made(DriveVerb verb, int amount = 0) =>
             new(_world.Tick.Raw, verb, amount, null);
+    }
+
+    /// <summary>
+    /// Slides the eye across the ground by a screen-space delta. <b>The one place panning happens.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// ⚠ <b>It runs along the EYE's axes and not the world's</b>, because a turn parts the two and a
+    /// drag would then go off at an angle. ⚠ <b>Across the ground and never through it</b>, so the
+    /// city cannot be lost behind the camera by a careless sweep.
+    /// </para>
+    /// <para>
+    /// <b>Scaled by the standoff rather than by the city</b>, so a close-up pans a street at a time
+    /// and a wide shot crosses a district. ***Three callers share it*** — a right-drag, a trackpad
+    /// pan gesture and the edge scroll — and they differ only in where the delta comes from.
+    /// </para>
+    /// </remarks>
+    /// <param name="by">Screen-space movement, in pixels, of the kind a drag reports.</param>
+    private void Pan(Vector2 by)
+    {
+        float reach = _distance * 0.002f;
+        var right = new Vector3(Mathf.Cos(_yaw), 0f, -Mathf.Sin(_yaw));
+        var ahead = new Vector3(-Mathf.Sin(_yaw), 0f, -Mathf.Cos(_yaw));
+
+        _focus += ((right * -by.X) + (ahead * by.Y)) * reach;
+
+        Orbit();
+    }
+
+    /// <summary>
+    /// Pans while the pointer rests near an edge of the window. <b>The camera control that needs no
+    /// button at all.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Every verb holds the left button, so a person mid-edit has no hand free to move the
+    /// city.</b> Edge scrolling is the affordance that costs no button, which is why every builder
+    /// in the reference set has it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The speed RAMPS with depth into the margin</b> rather than switching on, so resting a
+    /// cursor just inside the boundary creeps and pushing it to the frame's edge moves properly.
+    /// ***A binary edge scroll is unusable at both settings***: fast enough to cross the map is too
+    /// fast to stop on a street.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>THE TWO PANELS ARE EXCLUDED, AND BY THEIR OWN RECTANGLES RATHER THAN BY A CONSTANT.</b>
+    /// The readout is top-left and the hover bottom-left, both inside the margin, so reading either
+    /// would otherwise creep the camera the whole time somebody looked at it — ***the one place a
+    /// person deliberately parks the cursor is the one place this must not fire.*** ⚠ <b>The first
+    /// spelling guessed a 560×200 corner</b> and killed edge-scrolling north-west entirely, which is
+    /// a real direction to want; asking the <c>Control</c> for <c>GetGlobalRect</c> makes the dead
+    /// zone exactly the size of the text and no larger, and it cannot drift when a panel grows a line.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is skipped while a panel is open</b>, because the tuner and the governing panel are
+    /// full of fields somebody is aiming at.
+    /// </para>
+    /// </remarks>
+    /// <param name="delta">Seconds since the last frame, so the pan is a rate and not a per-frame step.</param>
+    private void Edge(double delta)
+    {
+        if (_governing || _tuner.Visible)
+        {
+            return;
+        }
+
+        Rect2 frame = GetViewport().GetVisibleRect();
+        Vector2 at = GetViewport().GetMousePosition();
+
+        // Outside the window entirely: a pointer that has left is not pointing at an edge, and
+        // following it would pan for as long as the cursor was somewhere else.
+        if (!frame.HasPoint(at))
+        {
+            return;
+        }
+
+        // Over a panel: reading is not an instruction to move.
+        if (_readout.GetGlobalRect().HasPoint(at) || _hover.GetGlobalRect().HasPoint(at))
+        {
+            return;
+        }
+
+        float push = 0f;
+        var by = Vector2.Zero;
+
+        Ramp(at.X, frame.Size.X, ref by, ref push, Vector2.Right);
+        Ramp(at.Y, frame.Size.Y, ref by, ref push, Vector2.Down);
+
+        if (push > 0f)
+        {
+            // A rate in pixels a second, converted to the delta Pan wants.
+            Pan(by * (float)delta * EdgePixelsPerSecond);
+        }
+    }
+
+    /// <summary>One axis of the edge ramp: how far into the margin, and which way that points.</summary>
+    private static void Ramp(
+        float at, float span, ref Vector2 by, ref float push, Vector2 axis)
+    {
+        if (at < EdgeMarginPixels)
+        {
+            float depth = (EdgeMarginPixels - at) / EdgeMarginPixels;
+
+            by += axis * depth;
+            push += depth;
+        }
+        else if (at > span - EdgeMarginPixels)
+        {
+            float depth = (at - (span - EdgeMarginPixels)) / EdgeMarginPixels;
+
+            by -= axis * depth;
+            push += depth;
+        }
     }
 
     /// <summary>
@@ -1322,7 +1434,9 @@ public partial class Main : Node3D
             + $"speed {Pace(_rung)}   "
             + $"mode {Holding()}   "
             + "[ ] speed, space pause, v look, z zone, x street, b demolish, s service, "
-            + "p policies, g roads, c cells, tab tune";
+            + "p policies, g roads, c cells, tab tune\n"
+            + "click acts   right-drag or two-finger scroll pans   edge of screen pans   "
+            + "pinch or -/= zooms   q/e turns";
 
         _hover.Text = Pointing();
     }
@@ -1755,7 +1869,6 @@ public partial class Main : Node3D
     /// <param name="inverted">Whether shift was held, which turns <c>Connect</c> into a bulldoze.</param>
     private void Act(bool inverted)
     {
-        _mayAct = false;
         _refused = string.Empty;
 
         if (_verb == Verb.Look)
@@ -2688,6 +2801,11 @@ public partial class Main : Node3D
         {
             Position = new Vector2(16f, 12f),
             LabelSettings = new LabelSettings { FontSize = 18 },
+
+            // ⚠ STATED RATHER THAN INHERITED. A Label defaults to Ignore, so this changes nothing
+            // today -- and a verb that stopped working because somebody set a theme's mouse filter
+            // would be indistinguishable from the trackpad defect this file just fixed.
+            MouseFilter = Control.MouseFilterEnum.Ignore,
         };
 
         // BOTTOM LEFT AND GROWING UPWARD, which is what the anchors are for. The stack's LENGTH
@@ -2708,6 +2826,7 @@ public partial class Main : Node3D
             OffsetLeft = 16f,
             OffsetBottom = -16f,
             LabelSettings = new LabelSettings { FontSize = 16 },
+            MouseFilter = Control.MouseFilterEnum.Ignore,
         };
 
         var layer = new CanvasLayer();
