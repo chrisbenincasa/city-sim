@@ -195,6 +195,7 @@ public partial class Main : Node3D
     private MultiMeshInstance3D _buildings = null!;
     private MultiMeshInstance3D _travellers = null!;
     private MultiMeshInstance3D _roads = null!;
+    private MultiMeshInstance3D _plots = null!;
     private PanelContainer _tuner = null!;
 
     private LineEdit[] _fields = [];
@@ -259,6 +260,9 @@ public partial class Main : Node3D
     /// </remarks>
     private readonly System.Collections.Generic.List<Command> _queued = [];
 
+    /// <summary>A Street was laid or bulldozed, so the Road Graph has to be re-drawn.</summary>
+    private bool _repave;
+
     /// <summary>Why the last click did nothing, or empty. <b>Shown, never thrown.</b></summary>
     private string _refused = string.Empty;
     private Label _readout = null!;
@@ -287,6 +291,9 @@ public partial class Main : Node3D
 
     /// <summary>Which Citizen each drawn Traveller is, in instance order.</summary>
     private readonly List<ulong> _travellerIds = [];
+
+    /// <summary>Which vacant Lot each drawn pad is, in instance order.</summary>
+    private readonly List<ulong> _plotIds = [];
 
     /// <summary>Lines that have arrived over the socket and not yet been applied.</summary>
     private readonly System.Collections.Concurrent.BlockingCollection<string> _asked = [];
@@ -416,6 +423,13 @@ public partial class Main : Node3D
         _flood = Layer(new Color(0.20f, 0.48f, 0.78f), new Vector3(1f, 1f, 1f));
         _roads = Layer(new Color(0.30f, 0.30f, 0.33f), new Vector3(1f, 0.1f, 1f));
 
+        // 🔴 A VACANT LOT DREW NOTHING AT ALL, so Zone -- which creates Lots and never a Building --
+        // had NO visible result on any world. Buildings() walks the Building table, and a Lot with
+        // nothing on it is not in it. ***The subdivision is the thing the verb does***, and until
+        // this layer existed the only way to see one was to wait for the simulation to build on it,
+        // which on a world with an empty Unplaced Pool never happens.
+        _plots = Layer(new Color(0.42f, 0.52f, 0.30f), Vector3.One, perInstance: true);
+
         // OFF by default. It is an instrument rather than scenery -- it answers "how big is a Cell
         // against this Building", and a person who has not asked that question does not want a
         // 128-metre lattice drawn over their city.
@@ -485,6 +499,16 @@ public partial class Main : Node3D
         // Tick where the loop above used to guarantee it could not. An alpha over 1 would place a
         // Traveller past the Address it is walking to.
         _alpha = new Ratio((int)(Math.Min(_owed, 0.999_99) * 65_536));
+
+        // AFTER the loop and not inside it, because a frame that steps many Ticks may lay many
+        // Streets and the Road Graph only has to be correct once a frame. Pave() is O(Segments) and
+        // bordered.toml has 535,817 of them, so this is a walk worth doing on the frames that
+        // earned it rather than on all of them.
+        if (_repave)
+        {
+            Pave();
+            _repave = false;
+        }
 
         // A MACHINE WITH NO HANDS HAS ITS CURSOR AT (0,0), which is the sky or a corner of the map,
         // so every photograph would show the pick refusing rather than the pick working. Warping to
@@ -969,6 +993,7 @@ public partial class Main : Node3D
         ("flood", _flood, false, null),
         ("road", _roads, false, null),
         ("cell", _cells, false, null),
+        ("plot", _plots, true, _plotIds),
         ("building", _buildings, true, _buildingIds),
         ("traveller", _travellers, false, _travellerIds),
     ];
@@ -1416,6 +1441,7 @@ public partial class Main : Node3D
     private void Draw(Ratio alpha)
     {
         int drawn = Fill(_buildings, Buildings(), _buildingIds);
+        int vacant = Fill(_plots, Plots(), _plotIds);
         int moving = VisibleAgents.In(_world, CellRect.World, alpha, _agents);
         int under = Fill(_flood, Anonymous(Inundated()));
 
@@ -1430,6 +1456,7 @@ public partial class Main : Node3D
             + $"Day {tick / (ulong)Ticks.PerDay}   "
             + $"{ofDay * 24 / (ulong)Ticks.PerDay:00}:{ofDay * 1440 / (ulong)Ticks.PerDay % 60:00}\n"
             + $"Citizens {_world.Citizens.Rows.LiveCount:N0}   Buildings {drawn:N0}   "
+            + $"vacant Lots {vacant:N0}   "
             + $"travelling {moving:N0}{Weather(under)}\n"
             + $"speed {Pace(_rung)}   "
             + $"mode {Holding()}   "
@@ -1628,6 +1655,73 @@ public partial class Main : Node3D
     }
 
     /// <summary>
+    /// Every <b>vacant</b> Lot, as a flat pad on the kerb. <b>What <c>Zone</c> actually produces.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>Zone creates Lots and never a Building</b> (<c>adr/0069</c> — construction houses
+    /// nobody, and <c>02 §2.2</c> — Lots are generated rather than painted), so before this layer
+    /// existed the verb's entire visible result was <em>nothing</em>. On a world whose Unplaced Pool
+    /// is empty — which is every shipped file that condemns nothing — the simulation never builds on
+    /// a new Lot either, so the nothing was permanent. ***A verb whose success and whose failure
+    /// look identical cannot be learned.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Vacant only, and that is the informative half.</b> An occupied Lot already has a
+    /// Building standing on it; drawing a pad under one would be a marker nobody can see saying
+    /// something the Building already says.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It steps to the kerb exactly as <see cref="Buildings"/> does and for the same reason</b>
+    /// — a Lot's coordinate is a point on the Segment (<c>adr/0078</c>), so a pad drawn where the
+    /// Lot says it is lies in the carriageway. The setback here is half the carriageway plus half
+    /// the pad, so the two layers agree about which side of the road a Lot is on.
+    /// </para>
+    /// </remarks>
+    private System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where, Color What)>
+        Plots()
+    {
+        LotTable lots = _world.Lots;
+        int block = _world.Roads.Streets.BlockTiles;
+        float frontage = Frontage(block, _world.Rules.Lots.LotsPerSegment);
+        float pad = frontage * FrontageFill;
+        float setback = (RoadWidthMetres * 0.5f) + (pad * 0.5f);
+
+        for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
+        {
+            if (!lots.Rows.IsLive(slot) || !lots.IsVacant(slot))
+            {
+                continue;
+            }
+
+            float east = lots.East[slot].Raw * MetresPerTile;
+            float north = lots.North[slot].Raw * MetresPerTile;
+            var side = (StreetSide)lots.Side[slot];
+            bool horizontal = block > 0 && lots.North[slot].Raw % block == 0;
+
+            if (horizontal)
+            {
+                north += side == StreetSide.Left ? setback : -setback;
+            }
+            else
+            {
+                east += side == StreetSide.Right ? setback : -setback;
+            }
+
+            // A hand's breadth off the ground -- above the carriageway at 0.1 m so a pad on a kerb
+            // is not hidden by the road it hangs on, and far below anything that stands up.
+            Vector3 plan = horizontal
+                ? new Vector3(pad, 0.4f, pad * 0.5f)
+                : new Vector3(pad * 0.5f, 0.4f, pad);
+
+            yield return (
+                lots.Rows.IdAt(slot),
+                new Transform3D(Basis.FromScale(plan), new Vector3(east, 0.2f, -north)),
+                new Color(0.42f, 0.52f, 0.30f).SrgbToLinear());
+        }
+    }
+
+    /// <summary>
     /// One slab under the whole map, so that dry land is a surface rather than the absence of one.
     /// </summary>
     /// <remarks>
@@ -1813,6 +1907,20 @@ public partial class Main : Node3D
         }
 
         Command[] raised = [.. _queued];
+
+        // 🔴 THE ROAD GRAPH IS LAID ONCE AND A PLAYER CAN CHANGE IT, WHICH IS THE WHOLE DEFECT.
+        // Pave() ran in _Ready and on a tuner rebuild and nowhere else, so a Street laid by Connect
+        // existed in the world, routed Trips, carried Lots -- and was never drawn. ***The verb
+        // looked broken while working perfectly***, which is the worst way for a verb to fail.
+        // Flagged rather than re-paved here because nothing has stepped yet: the Command applies at
+        // the top of the next Tick, so the Segment does not exist until Step returns.
+        foreach (Command command in raised)
+        {
+            if (command.Kind == CommandKind.Connect)
+            {
+                _repave = true;
+            }
+        }
 
         _queued.Clear();
 

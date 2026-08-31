@@ -835,3 +835,34 @@ own buttons. Separately, `InputEventPanGesture` was wired to *zoom* while pinch 
 trackpad had two ways to zoom and no way to move. ⚠ **The dead zone over the panels asks each
 `Control` for `GetGlobalRect()` rather than guessing a corner** — a guess killed edge-scrolling
 north-west outright on the first attempt. Fixed in `4e56a7e`.
+
+## What LOOKING at it found, which is the point of the amended Definition of done
+
+🔴 **TWO OF THE FIVE VERBS WERE INVISIBLE, AND BOTH WERE WORKING PERFECTLY.** `PlayerVerbTests` is
+green and proves the Core half of `Connect` and `Zone` in four assertions; the shell drew neither
+result. ***A verb whose success and whose failure look identical cannot be learned***, and no test in
+this repository can fail on that.
+
+🔴 **`Pave()` RAN AT `_Ready` AND ON A TUNER REBUILD AND NOWHERE ELSE.** A Street laid by `Connect`
+entered the world, routed Trips and carried Lots, and **was never drawn**. Its own doc-comment said
+so in the first line — *the Road Graph, laid once* — and that sentence was true when it was written
+and became a defect the day 15a gave a player the verb. ⚠ **The re-draw is flagged in `Ordered` and
+run after the step loop**, because the Command applies at the top of the *next* Tick and `Pave()` is
+`O(Segments)` against `bordered.toml`'s **535,817**.
+
+🔴 **A VACANT LOT DREW NOTHING AT ALL**, so `Zone` — which creates Lots and never a Building
+(`adr/0069`) — had no visible result on any world. `Buildings()` walks the **Building** table and an
+empty Lot is not in it. Now a `_plots` layer draws the vacant ones on the kerb and the readout counts
+them.
+
+🔴 ⚠ **AND THE DEFAULT RULESET MAKES THE VERB POINTLESS EVEN ONCE IT IS VISIBLE.** `adr/0069` builds
+only while the Unplaced Pool is non-empty. Measured at 2,000 Citizens over 8,192 Ticks:
+`minimal.toml` **0 raised, 0 in the Pool**; `declining.toml` **22 raised, 598 in the Pool**;
+`crowded.toml` **0 raised, 0 in the Pool** — ⚠ **which contradicts the repository map's claim that it
+is the file whose Pool is under pressure**, and is a `plans/0012` **Cause 5** sighting to chase.
+***The shell opens on the one world where zoning can never do anything***, which is the same shape as
+`choosy.toml`'s finding: a decision about housing is unreachable where nobody needs a house.
+
+⚠ **`godot --path` did not pick up a `-c Release` build**, so the first verification photograph was
+of a stale assembly and showed the old readout. ***A screenshot is only evidence of the binary that
+took it*** — `dotnet build src/Borough.Godot` (Debug) before any shell capture.
