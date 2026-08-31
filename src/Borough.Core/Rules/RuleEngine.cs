@@ -883,8 +883,9 @@ public sealed class RuleEngine
     /// </para>
     /// <para>
     /// ⚠ <b>An O(n) staggered pass</b> (<c>02 §10</c>'s shape, <c>RecomputeDemand</c>'s precedent),
-    /// returning on line one where a Ruleset states no <c>[needs]</c>. ***Owed a <c>plans/0013</c>
-    /// row*** (<c>adr/0073</c>); the corpus freeze is why it has none.
+    /// returning on line one where a Ruleset states no <c>[needs]</c>. <b><c>plans/0013</c> carries
+    /// a row for it as of 2026-08-31</b> (<c>adr/0073</c>), and the row says <em>unmeasured</em> —
+    /// which is the ledger doing its job rather than a figure arriving.
     /// </para>
     /// </remarks>
     /// <param name="tick">The Tick now being stepped.</param>

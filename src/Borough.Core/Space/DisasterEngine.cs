@@ -77,8 +77,10 @@ public readonly record struct DisasterReading(
 /// the top of every sweep that has anything to do, so there is no cross-Tick cache for a load to
 /// disagree with and <c>CLAUDE.md</c>'s <em>a structure that lives outside the world is not derived
 /// state</em> does not bite. 🔴 <b>The cost is <c>O(footprint)</c> a Tick while a flood is
-/// live</b> and is unmeasured at a million Citizens; it owes <c>plans/0013</c> a row
-/// (<c>adr/0073</c>) that the corpus freeze is why it does not have.
+/// live</b> and is unmeasured at a million Citizens. <b><c>plans/0013</c> carries a row for it as of
+/// 2026-08-31</b> (<c>adr/0073</c>), and that row's point is the one this paragraph cannot make on its
+/// own: <em>the footprint is ground, so this is the only consumer whose multiplicand does not fall when
+/// the population does.</em>
 /// </para>
 /// </remarks>
 public sealed class DisasterEngine

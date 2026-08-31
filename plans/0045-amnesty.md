@@ -106,6 +106,11 @@ The rows below were found by asking the code what is missing instead.
 | 11b | **The shell.** `src/Borough.Godot` — Godot 4.7.2, a camera over the city, one MultiMesh per kind of thing, a speed ladder and a readout. ⚠ **Not in `Borough.slnx` and never will be**: that absence is what enforces *the headless runner never requires Godot* | ✅ 30-08 |
 | 12 | **Disasters.** `coastal.toml` carries a Hazard Region and **nothing fires on it** | ✅ 31-08 |
 | 13 | The `0046` loose ends — the dwelling stock's missing sink, `aged.toml`'s narrow windows. ⚠ **Small on purpose and last on purpose**: `StageDumpTests` pins both with tests that assert the defect, so neither can be lost | ✅ 31-08 |
+| 14 | **The audit.** Walk this page for what it recorded as owed and never paid. ⚠ **A findings section is not a ledger**, and a debt written in a narrative paragraph is a debt nobody sums | ✅ 31-08 |
+| 15 | 🔴 **A Need has no consequence.** `Sustenance` and `Satisfaction` are saved, hashed, degraded on a duration and recovered on supply — and **the only thing in `src/` that reads either is `Evidence`**, which is a panel. ***A Household starves to the floor and nothing in the city is different.*** ⚠ **After 9 and 10 and because of them**: those built the reading, and a reading nothing acts on is an instrument rather than a mechanism | |
+| 16 | 🔴 **Nobody moves house.** Four call sites reach `World.Unplace` — over-capacity eviction, the premises emptying, the tenant's decline threshold, and shedding — and ***every one of them is the Household LOSING its home***. A housed Household can never re-enter the Unplaced Pool by choosing to. ⚠ **This is why `choosy.toml` had to be built on `declining.toml`**: a preference about where to live is unreachable for anybody already living somewhere, and `adr/0011` calls life stage *"one of the primary drivers of residential mobility"* against a build that has none | |
+| 17 | 🔴 **A dwelling costs nothing.** `PlacementEngine`'s own remark: *"acceptance needs rent, a commute and a tolerance; none exists, so any member would take any dwelling."* ⚠ **One of the three shipped** — `EmploymentEngine` says *"this is where the commute exists"* — so the sentence is now two thirds true rather than wholly. ***`rent` is `adr/0027`'s third preference axis and the thing that would make 16's move a decision instead of a shuffle*** | |
+| 18 | ⚠ **The Day is a comb, and two mechanisms cut the teeth.** `CommuteRoster.ShiftStartOf` sums two draws and halves them, then rounds the result to an **hour**; `ServiceEngine.Attend` returns unless `tick.Raw % Ticks.PerDay == 0`, so ***every school Trip in the city starts on one Tick of 2,048***. Measured on `minimal.toml` at 1,000 Citizens: **1,341 of 2,047 Ticks with nobody out at all**, longest empty run 486. ⚠ **Last, because it is the only row here that repairs something that already runs** | |
 
 Items 2 and 3 cost one day and added no Ruleset key, number or ADR. They moved three golden
 baselines: a hashed column stopped being zero (`adr/0100`).
@@ -227,8 +232,8 @@ holds it, and fails on the old placement at the first Traveller it meets.
 re-baselined (`adr/0100`: that costs nothing while nobody carries a save). 🔴 **The Tick cost is
 BELOW THIS MACHINE'S NOISE FLOOR and is therefore unmeasured rather than small**: 4,000 Citizens
 over 4,096 Ticks reads **3.27–5.77 s before against 3.38–4.25 s after**, two runs each, which
-separates nothing. ***What it costs at a million Citizens is unknown***, and it owes `plans/0013` a
-row (`adr/0073`) that the corpus freeze is why it does not have.
+separates nothing. ***What it costs at a million Citizens is unknown***, ~~and it owes `plans/0013` a
+row~~ ✅ **and `plans/0013` carries the row as of 2026-08-31**, saying exactly that.
 
 ⚠ **Confirmed the comb from the other side**: at Tick 402, 04:42, the readout says `travelling 0`
 against a fully built city. Nobody is outside before 05:00.
@@ -454,12 +459,18 @@ were written in was not.*** `SrgbToLinear` at the write site. ⚠ **It cost a se
 see, and no test could have caught it** — there is nothing in the build that asserts anything about
 a colour.
 
-⚠ **The Hazard Region is still not drawn**, so what `01 §5.3` calls the *posted price* — the thing
-that makes riverside land a decision rather than an ambush — exists as a number `--flood` prints and
-nothing on screen. ***The gap moved from the mechanism to the overlay.***
+~~⚠ **The Hazard Region is still not drawn**~~ ✅ **DRAWN 2026-08-31**, by the audit pass below —
+`Main.Hazard`, one flat colour laid once under the roads and under the sea. What `01 §5.3` calls the
+*posted price* is now on screen from the first frame instead of being a number `--flood` prints.
+⚠ **The DEPTH is deliberately not drawn**: a Hazard Region row holds *the flood level minus the
+ground*, so a shade ramp on it would read backwards — the polarity that made this file's
+worst-looking seed the one that ruined nothing.
 
-⚠ **A new Tick consumer with no `plans/0013` row** (`adr/0073`) — the corpus freeze is why. It is
-`O(footprint)` a Tick while a flood is live and unmeasured at a million Citizens.
+~~⚠ **A new Tick consumer with no `plans/0013` row**~~ ✅ **FILED 2026-08-31.** It is `O(footprint)`
+a Tick while a flood is live and still unmeasured at a million Citizens, but the ledger now carries
+the row and says so — and the row makes a point the engine's own remark could not: ***the footprint
+is ground, so this is the only consumer in the ledger whose multiplicand does not fall when the
+population does.***
 
 ## What the loose ends found
 
@@ -599,3 +610,52 @@ shipped file but `fouled.toml`; **rent** needs a price a dwelling does not have.
 centrality number can be ratified until rent exists**: a preference for the centre is only meaningful
 against something that makes the centre cost more, so ***the numbers `choosy.toml` produces ratify
 nothing.***
+
+## What the audit found
+
+**Row 14 read this page for its own unpaid debts rather than for a mechanism**, which is the one kind
+of sitting the queue's opening warning does not cover: a debt written into a narrative paragraph is a
+debt nobody sums. Six were standing. Five are paid below and one became row 18.
+
+✅ **`plans/0013` has the five rows it was owed** — `ServiceEngine.Attend`, `RuleEngine.SweepNeeds`,
+`DisasterEngine.Sweep`, a walk's recorded path, and the shell's per-frame world walk — plus a note on
+the Zone Rules row saying its unit was measured before the empty-clock verdict existed.
+⚠ **Every one says UNMEASURED**, and that is the ledger working rather than failing: `adr/0073`'s rule
+is that a cost reaches the document on the day it is found, not on the day somebody has a number.
+🔴 **Three source remarks said *the corpus freeze is why it has none*, and all three were wrong by the
+time anybody read them** — the freeze caps a **ratio**, and a row filed beside the mechanism it prices
+costs the ratio nothing. ***An excuse written into a comment outlives the thing it was excusing.***
+
+✅ **THE HAZARD REGION IS DRAWN.** `Main.Hazard`, `FloodCells` as one flat colour laid once, at 0.02 m
+— **under** the roads at 0.1 m and under the sea at 0.6 m, because the risk is a property of the
+*ground* and a Street across a floodplain must read as a Street on a floodplain rather than as a
+floodplain with a hole in it. ⚠ **The depth is deliberately not shaded**: a row's depth is *the flood
+level minus the ground*, so a ramp on it reads backwards — ***a shade ramp on a quantity that reads
+backwards teaches the wrong thing faster than no ramp at all.***
+
+🔴 **AND LOOKING AT IT IS WHAT MADE THE NUMBER MEAN ANYTHING.** *240 of 420 Lots exposed* has been in
+`flooded.toml`'s header and in `CLAUDE.md` for days. On screen it is **the whole northern half of the
+city sitting on rust-coloured ground**, with the boundary running diagonally through blocks so that
+one side of a Street is exposed and the other is not. ⚠ **The floodplain is far larger than the
+water** — 11,063 Cells at risk, 4% of the map, against a sea that is a strip along one edge of the
+frame — because five percentage points between `sea_level_percent` and `flood_level_percent` buy a
+great deal of flat coastal ground. ***That is the posted price `01 §5.3` asks for, and it is not a
+thing a dump can print.***
+
+🔴 **`BOROUGH_SHOT` HAS A FOURTH DEFECT AND IT IS THE FIRST ONE ABOUT WHETHER IT CAN DRAW AT ALL.**
+The three before it were about *when* it fires. This one: the guard was `GetViewport().GetTexture() is
+{ } texture`, and under `--headless` that is **not null** — Godot returns a `ViewportTexture` whose
+RID the dummy renderer has nothing behind. So `GetImage()` returned null, `SavePng` threw, and the run
+neither wrote a picture nor stopped: **41,350 error lines in two minutes, killed by a timeout.**
+⚠ **The comment above the guard described that exact symptom, in the past tense, as something already
+prevented.** ***A guard checks the handle and the emptiness is in what the handle points at*** — the
+same shape as a flood depth reading backwards, the wrong end of an indirection. It now asks
+`DisplayServer.GetName()` first, because asking the dummy renderer for a picture is itself two red
+lines in a log whose whole job is to be read: **zero errors, exit 0, and a sentence saying a
+screenshot needs a real display.**
+
+⚠ **The one debt that could not be paid here became row 18.** The comb is two mechanisms — an
+hour-granular Shift start and a school pass that fires on one Tick in 2,048 — and both need a Ruleset
+key and a loader refusal, which is queue work rather than audit work. Re-measured live on
+`minimal.toml` at 1,000 Citizens: **1,341 of 2,047 Ticks with nobody travelling**, longest empty runs
+486, 341, 172. ***It is not stale.***

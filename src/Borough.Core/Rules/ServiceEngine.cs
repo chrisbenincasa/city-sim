@@ -38,8 +38,9 @@ using Borough.Core.Tables;
 /// precedent. ***It starts every school Trip in the city on one Tick***, and that spike is real:
 /// <c>CommuteEngine</c> avoids the equivalent by partitioning on a Shift start hour
 /// (<c>adr/0101</c>), and a school day has no hours key to partition on. The successor is the Event
-/// Wheel, which is what carries an occasion whose next firing genuinely varies. ***Owed a
-/// <c>plans/0013</c> row*** (<c>adr/0073</c>); the corpus freeze is why it has none.
+/// Wheel, which is what carries an occasion whose next firing genuinely varies. <b><c>plans/0013</c>
+/// carries a row for it as of 2026-08-31</b> (<c>adr/0073</c>), filed against the <em>spike</em> rather
+/// than the pass — ***a mean over the Day is the wrong denominator for a cost paid inside one Tick.***
 /// </para>
 /// </remarks>
 public sealed class ServiceEngine

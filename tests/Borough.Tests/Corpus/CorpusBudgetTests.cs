@@ -73,8 +73,14 @@ public sealed class CorpusBudgetTests
     /// was would have banked the gain as slack to spend on prose later. <b>A ratchet is lowered to
     /// the measurement on the day the measurement moves</b>, or it is a ceiling with a memory.
     /// </para>
+    /// <para>
+    /// ⚠ <b>AND 55 → 54 the same day</b>, by the rule in the paragraph above and for no other
+    /// reason: the dwelling stock's sink and the Hazard Region overlay put simulation in the
+    /// denominator again. ***The rule is applied on the day it bites, including when the sitting
+    /// that lowers it is the sitting that also wrote prose.***
+    /// </para>
     /// </remarks>
-    private const int RatioCeiling = 55;
+    private const int RatioCeiling = 54;
 
     /// <summary>Words of prose per line of simulation at which the amnesty has done its job.</summary>
     /// <remarks>

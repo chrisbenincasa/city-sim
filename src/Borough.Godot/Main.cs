@@ -202,6 +202,7 @@ public partial class Main : Node3D
 
     private MultiMeshInstance3D _water = null!;
     private MultiMeshInstance3D _flood = null!;
+    private MultiMeshInstance3D _hazard = null!;
     private Label _readout = null!;
     private VisibleAgent[] _agents = new VisibleAgent[8192];
     private double _owed;
@@ -285,6 +286,12 @@ public partial class Main : Node3D
         // frame read as the camera drifting out to sea, and a correctly-scaled Street read as huge.
         _ground = Layer(new Color(0.16f, 0.17f, 0.14f), new Vector3(1f, 1f, 1f));
 
+        // 01 §5.3'S POSTED PRICE, and it is drawn UNDER everything the city puts on top of it --
+        // under the roads at a tenth of a metre and under the sea at WaterMetres. That is the whole
+        // point of the height: the risk is a property of the GROUND, so a Street laid across a
+        // floodplain must read as a Street on a floodplain and not as a floodplain interrupted.
+        _hazard = Layer(new Color(0.34f, 0.25f, 0.17f), new Vector3(1f, 1f, 1f));
+
         // but they sit at almost the same height, and painting the standing water last is what makes
         // a rising tide read as arriving rather than as flickering.
         _water = Layer(new Color(0.10f, 0.22f, 0.42f), new Vector3(1f, 1f, 1f));
@@ -303,6 +310,7 @@ public partial class Main : Node3D
         _travellers = Layer(new Color(1.0f, 0.45f, 0.15f), new Vector3(3f, 3f, 3f));
 
         Ground();
+        Hazard();
         Flood();
         Pave();
         Sun();
@@ -342,19 +350,37 @@ public partial class Main : Node3D
         {
             RenderingServer.ForceDraw();
 
-            // ⚠ THE VIEWPORT HAS NO TEXTURE UNDER --headless, and this block is the one thing in
+            // ⚠ THE VIEWPORT HAS NO PICTURE UNDER --headless, and this block is the one thing in
             // the shell written for a machine with no screen. Reaching through the null threw
             // before the Print and before the Quit, so the run neither said it had arrived nor
             // stopped -- it spewed a stack trace every frame until something killed it, and a
             // timing run against it read the killer's timeout back as the answer.
-            if (GetViewport().GetTexture() is { } texture)
+            //
+            // 🔴 AND THE GUARD BELOW WAS WRITTEN ONE LEVEL TOO HIGH, so the paragraph above went on
+            // describing a symptom the code beside it did not prevent -- found 2026-08-31 by running
+            // it. GetTexture() returns a ViewportTexture and it is NOT null under --headless; what is
+            // null is what the dummy renderer has behind its RID, which surfaces as an engine error
+            // ("Parameter \"t\" is null") and a null out of GetImage(). ***A guard checks the handle
+            // and the emptiness is in what the handle points at***, which is the same shape as
+            // FloodCells' depth reading backwards: the wrong end of an indirection.
+            //
+            // ⚠ AND THE DISPLAY SERVER IS ASKED FIRST rather than the viewport, because asking the
+            // dummy one for a picture is itself an engine error -- two red lines in a log whose
+            // whole job is to be read. A capability is checked where it is declared.
+            if (DisplayServer.GetName() == "headless")
             {
-                texture.GetImage().SavePng(shot);
+                GD.Print(
+                    $"no picture at Tick {_world.Tick.Raw}: --headless renders nothing. A "
+                    + "screenshot needs a real display.");
+            }
+            else if (GetViewport().GetTexture()?.GetImage() is { } picture)
+            {
+                picture.SavePng(shot);
                 GD.Print($"wrote {shot} at Tick {_world.Tick.Raw}");
             }
             else
             {
-                GD.Print($"no viewport texture; no picture written at Tick {_world.Tick.Raw}");
+                GD.Print($"no picture at Tick {_world.Tick.Raw}: the viewport rendered nothing.");
             }
 
             GetTree().Quit();
@@ -903,6 +929,61 @@ public partial class Main : Node3D
     }
 
     /// <summary>
+    /// The Hazard Region, laid once — <b><c>01 §5.3</c>'s posted price, and the shell's first
+    /// overlay of a thing that has not happened.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>Everything else this shell draws is a thing that exists; this is a thing that MIGHT.</b>
+    /// <c>01 §5.3</c> asks for the floodplain to be visible from the first Tick, so that riverside
+    /// land is a decision the player made rather than an ambush the world sprang — ***a price
+    /// somebody paid without being shown it is not a price, it is a surprise.*** The paragraph on
+    /// <see cref="Flood"/> called this a gap for as long as it was one.
+    /// </para>
+    /// <para>
+    /// <b>Laid once, for <see cref="Flood"/>'s reason and the same one.</b>
+    /// <see cref="FloodCellTable"/> is generator output under <c>adr/0157</c> — written before the
+    /// first Tick from a height field that is then thrown away — so a Cell's depth never moves and a
+    /// per-frame refill would be the same rows every frame for ever. ⚠ <b>Re-laid on a rebuild</b>
+    /// (<c>n</c>, in the tuner), because a new seed is a new coastline.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The DEPTH is not drawn and that is a decision rather than an omission.</b> A
+    /// <see cref="FloodCellTable"/> row's depth is <em>the flood level minus the ground</em>, so a
+    /// large one is LOW ground — the polarity that made <c>flooded.toml</c>'s worst-looking seed the
+    /// one that ruined nothing. ***A shade ramp on a quantity that reads backwards teaches the wrong
+    /// thing faster than no ramp at all***, so this is one flat colour saying <em>at risk</em>, and
+    /// <c>--flood</c> keeps the numbers.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Only <c>coastal.toml</c> and <c>flooded.toml</c> have any</b>, and on every other shipped
+    /// world this lays nothing. ⚠ <b>It is bounded by <see cref="Layer"/>'s buffer</b> — 65,536 Cells
+    /// against a 262,144-Cell map, so a world with more than a quarter of its ground at risk would
+    /// truncate. <see cref="Fill(MultiMeshInstance3D, System.Collections.Generic.IEnumerable{Transform3D})"/>
+    /// stops rather than throwing, which is <see cref="MapLayers.LayerCells"/>' disposition, and the
+    /// measured worlds sit at 3–9%.
+    /// </para>
+    /// </remarks>
+    private void Hazard() => Fill(_hazard, AtRisk());
+
+    /// <summary>Every Cell a flood could reach, whether or not one ever does.</summary>
+    private System.Collections.Generic.IEnumerable<Transform3D> AtRisk()
+    {
+        FloodCellTable plain = _world.Flood;
+
+        for (int slot = 0; slot < plain.Rows.SlotCount; slot++)
+        {
+            if (plain.Rows.IsLive(slot))
+            {
+                // A FIFTH of a road's height, so the overlay sits on the ground rather than on top of
+                // the city. Anything at or above 0.1f swallows the carriageway and the floodplain
+                // reads as a hole in the road network.
+                yield return Tile(plain.East[slot], plain.North[slot], 0.02f);
+            }
+        }
+    }
+
+    /// <summary>
     /// The sea, laid once — <b>the first thing the shell has ever drawn that is not the city.</b>
     /// </summary>
     /// <remarks>
@@ -913,11 +994,9 @@ public partial class Main : Node3D
     /// is inland and this lays nothing.
     /// </para>
     /// <para>
-    /// ⚠ <b>The Hazard Region is NOT drawn, and that is a gap rather than a decision.</b>
-    /// <c>01 §5.3</c> wants the floodplain shown as an ordinary overlay from the first Tick — it is
-    /// the posted price that makes riverside land a decision rather than an ambush — and the shell
-    /// has no overlay machinery at all. So what you can see here is the water and the flood, and
-    /// <b>not the risk</b>. <c>--flood</c> prints the exposure as a number in the meantime.
+    /// ⚠ <b>This is the water and not the risk.</b> The floodplain is <see cref="Hazard"/>'s, laid
+    /// on the same occasion and under this — the two are separate layers because they are separate
+    /// claims: ground that <em>is</em> wet, and ground that <em>can be</em>.
     /// </para>
     /// </remarks>
     private void Flood()
@@ -1515,9 +1594,10 @@ public partial class Main : Node3D
         _simulation = new Simulation(_world, key) { VerifyDecideWritesNothing = false };
         SyntheticCity.PopulateInto(_world, key, new Ticks(0));
 
-        // The three layers laid once rather than per frame. Ground is fixed to the map and would
+        // The four layers laid once rather than per frame. Ground is fixed to the map and would
         // survive, but it is re-laid with the others so that "what a rebuild redoes" is one list.
         Ground();
+        Hazard();
         Flood();
         Pave();
         Frame();
