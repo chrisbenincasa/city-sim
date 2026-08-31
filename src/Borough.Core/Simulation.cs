@@ -47,6 +47,8 @@ public sealed class Simulation
     private PayrollReading _lastPayroll;
     private readonly LifeStageEngine _lifeStages;
     private LifeStageReading _lastLifeStages;
+    private readonly DisasterEngine _disasters;
+    private DisasterReading _lastDisasters;
     private readonly PlacementEngine _placement;
     private readonly EmploymentEngine _employment;
     private readonly TripEngine _trips;
@@ -121,6 +123,7 @@ public sealed class Simulation
         // Ahead of the Trip engine until milestone 11 task 6, and moved here because placement now
         // starts the move-in Trip. Construction order is not composition order -- the State Hash
         // folds World._tables, which nothing here touches.
+        _disasters = new DisasterEngine(world, key);
         _placement = new PlacementEngine(world, key, _trips);
         _commutes = new CommuteEngine(world, _trips);
         _services = new ServiceEngine(world, _trips);
@@ -215,6 +218,9 @@ public sealed class Simulation
 
     /// <summary>What the last Life Stage sweep did. Zero on any Tick but a Day's first.</summary>
     public LifeStageReading LastLifeStages => _lastLifeStages;
+
+    /// <summary>What the last Tick's Disaster sweep did. Every field is a delta, not a total.</summary>
+    public DisasterReading LastDisasters => _lastDisasters;
 
     /// <summary>Tick phase 4, and the Trip Fate counters the Census drains.</summary>
     public TripEngine Trips => _trips;
@@ -1230,6 +1236,18 @@ public sealed class Simulation
         //
         // ⚠ It is silent on nine of the shipped Rulesets: no trade there declares wage_per_day, so
         // the walk finds no employer with a rate and moves nothing.
+        // FIRST IN THE PHASE, AHEAD OF EVERYTHING, and the order is the decision rather than the
+        // presence. A Disaster is world-scheduled -- it owes nothing to the city and nothing the city
+        // does can move it (01 §5.3) -- so running it before the four passes that follow means each of
+        // them responds to the ground as it is now rather than to the ground as it was at midnight. A
+        // Household unhoused by a flood on this line reaches the Unplaced Pool in time for placement
+        // to rehouse it on the same Tick, and a Lot the water vacated is a Lot the Zone Rules can
+        // build on. Behind them instead, every one of those would lag by a Tick.
+        //
+        // ⚠ It is silent on every shipped Ruleset but flooded.toml, which is the only one declaring
+        // [disasters] -- the sweep returns before it looks at a row.
+        _lastDisasters = _disasters.Sweep(tick);
+
         _lastPayroll = _wages.Sweep(tick);
 
         // AHEAD OF PLACEMENT and behind payroll, and only the first half is a decision. A stage

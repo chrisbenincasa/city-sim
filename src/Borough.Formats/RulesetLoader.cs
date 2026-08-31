@@ -178,6 +178,7 @@ public static class RulesetLoader
         private TableSyntaxBase? _parkingTable;
 
         private TableSyntaxBase? _waterTable;
+        private TableSyntaxBase? _disastersTable;
         private TableSyntaxBase? _districtsTable;
 
         private TableSyntaxBase? _marketTable;
@@ -234,6 +235,7 @@ public static class RulesetLoader
             ParkingRuleset parking = ReadParking();
             TerrainRuleset terrain = ReadTerrain();
             WaterRuleset water = ReadWater();
+            DisasterRuleset disasters = ReadDisasters(water);
             DistrictRuleset districts = ReadDistricts();
             MarketRuleset market = ReadMarket();
 
@@ -315,6 +317,7 @@ public static class RulesetLoader
                     Parking = parking,
                     Terrain = terrain,
                     Water = water,
+                    Disasters = disasters,
                     Districts = districts,
                     Market = market,
                     Needs = needs,
@@ -592,6 +595,23 @@ public static class RulesetLoader
                         }
 
                         _waterTable = table;
+                        break;
+
+                    case "disasters":
+                        // Singular and optional, on [water]'s reasoning one rung along. There is one
+                        // Acts of God interval (01 §5.4), so two tables stating it is ambiguous
+                        // rather than additive. ⚠ PLURAL IN THE KEY AND SINGULAR AS A TABLE, like
+                        // [districts]: it configures the whole class of them and authors none, because
+                        // a Disaster is scheduled by the world rather than declared by a designer.
+                        if (_disastersTable is not null)
+                        {
+                            Refuse(LineOf(table), null,
+                                "a second [disasters] is declared. There is one Acts of God interval, "
+                                + "so two tables of numbers for it is ambiguous rather than additive.");
+                            break;
+                        }
+
+                        _disastersTable = table;
                         break;
 
                     case "districts":
@@ -5637,6 +5657,78 @@ public static class RulesetLoader
 
             return water.WithBin(resource, (int)capacity, (int)outflow, (int)runoff);
         }
+
+        /// <summary>Reads <c>[disasters]</c>, or answers that nothing ever happens to the ground.</summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Three durations, all required together.</b> <c>01 §5.2</c>: <em>"No severity constant
+        /// is authored anywhere; the only constants are a frequency interval and a spread rate, both
+        /// durations, both scale-free."</em> A partial table describes half a mechanism — a flood
+        /// with no interval never fires, one with no rise inundates its whole reach on a single
+        /// Tick, one with no recession never leaves — and none of those is what an author omitting a
+        /// key would have meant. <c>adr/0123</c>: the absence of the <em>table</em> is the spelling
+        /// for a world with no Disasters in it, and a partial table is not a second spelling of it.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>Refused without <c>[water] flood_level_percent</c>, and the pairing is one-way.</b>
+        /// The Hazard Region is generated from that key alone, so a schedule without it is an event
+        /// with nowhere to happen — a table that reads as a decision and derives nothing. The
+        /// converse is a world: <c>coastal.toml</c> has the floodplain and no schedule over it, which
+        /// is <c>01 §5.3</c>'s posted price before the first Act of God.
+        /// </para>
+        /// </remarks>
+        private DisasterRuleset ReadDisasters(WaterRuleset water)
+        {
+            if (_disastersTable is null)
+            {
+                return DisasterRuleset.None;
+            }
+
+            if (!water.HasFloodplain)
+            {
+                Refuse(LineOfDisasters("flood_every_days"), null,
+                    "[disasters] is stated and [water] flood_level_percent is not. A flood happens "
+                    + "on the Hazard Region, which is generated from that key alone -- so this table "
+                    + "schedules an event with nowhere to occur. State a flood level, or delete this "
+                    + "table for a world where nothing happens to the ground.");
+
+                return DisasterRuleset.None;
+            }
+
+            if (!TryInteger(_disastersTable, "flood_every_days", out long every, required: true)
+                | !TryInteger(_disastersTable, "flood_rises_over_days", out long rises, required: true)
+                | !TryInteger(
+                    _disastersTable, "flood_recedes_over_days", out long recedes, required: true))
+            {
+                // Non-shortcutting on purpose, so an author missing two keys is told about both. The
+                // three stand or fall together, so reporting them one run at a time is three runs.
+                return DisasterRuleset.None;
+            }
+
+            if (every <= 0 || rises <= 0 || recedes <= 0)
+            {
+                Refuse(LineOfDisasters("flood_every_days"), null,
+                    $"[disasters] states flood_every_days {every}, flood_rises_over_days {rises} and "
+                    + $"flood_recedes_over_days {recedes}. All three are durations in Days and must "
+                    + "be positive. Zero is not a spelling for 'never' here -- delete the table.");
+
+                return DisasterRuleset.None;
+            }
+
+            if (rises + recedes > every)
+            {
+                // NOT REFUSED, and this is the one thing here a designer might mean. A lifetime longer
+                // than the interval is overlapping floods, which is a world -- the table holds rows
+                // and DisasterEngine advances each -- so the loader says nothing about it. Recorded
+                // here because the first reading of this code will wonder whether it was checked.
+            }
+
+            return DisasterRuleset.From((int)every, (int)rises, (int)recedes);
+        }
+
+        /// <summary>The line a <c>[disasters]</c> key is on, or the table's.</summary>
+        private int LineOfDisasters(string key) =>
+            LineOf((SyntaxNodeBase?)Find(_disastersTable!, key) ?? _disastersTable!);
 
         /// <summary>The line a <c>[water]</c> key is on, or the table's.</summary>
         private int LineOfWater(string key) =>

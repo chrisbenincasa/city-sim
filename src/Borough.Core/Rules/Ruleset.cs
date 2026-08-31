@@ -3072,6 +3072,19 @@ public sealed class Ruleset
     public WaterRuleset Water { get; init; } = WaterRuleset.None;
 
     /// <summary>
+    /// How often the ground floods — <c>[disasters]</c>, or <see cref="DisasterRuleset.None"/>.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Separable from <see cref="Water"/> in one direction only.</b> A world may have a
+    /// floodplain and never flood — <c>coastal.toml</c> is one, and a hazard overlay with nothing
+    /// behind it is exactly what <c>01 §5.3</c>'s posted price looks like before the first Act of
+    /// God. A world that floods with no floodplain is refused at the parse site, because the Hazard
+    /// Region is generated from <c>[water] flood_level_percent</c> and there would be nowhere for it
+    /// to happen.
+    /// </remarks>
+    public DisasterRuleset Disasters { get; init; } = DisasterRuleset.None;
+
+    /// <summary>
     /// <b>What a Segment costs to drive when other people are on it</b> — the <c>[traffic]</c> table
     /// (5c task 6).
     /// </summary>
@@ -3544,6 +3557,7 @@ public sealed class Ruleset
             Parking = Parking,
             Terrain = Terrain,
             Water = Water,
+            Disasters = Disasters,
             Policies = Policies,
             Hinterlands = Hinterlands,
             HinterlandPrices = HinterlandPrices,

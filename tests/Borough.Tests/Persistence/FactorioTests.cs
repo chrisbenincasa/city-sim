@@ -196,6 +196,18 @@ public sealed class FactorioTests(ITestOutputHelper output)
         // later, so nobody is turned out before 6,144.
         Scan(Stepped(GoldenFixtures.DecliningRules(), GoldenFixtures.Population, 8_192).World, reached, []);
 
+        // 🔴 The TENTH, plans/0045 row 12, and it is the seventh's reason one key further on.
+        // `disaster` and `inundation` have rows only while a flood is in progress, and a flood is
+        // scheduled only by [disasters] -- which coastal.toml does not state, because a world with a
+        // floodplain and no floods is a world. So both tables were empty in every fixture above and
+        // all EIGHTEEN of their saved columns were unreachable the day they landed.
+        //
+        // ⚠ 4,200 Ticks is derived and not chosen: flooded.toml states flood_every_days = 2, and
+        // Begin refuses Tick 0, so the first flood in that world starts at Tick 4,096. A run that
+        // stopped at 4,095 would leave both tables empty and this whole comment would be about
+        // fixtures rather than about a mechanism.
+        Scan(WithFloods(4_200), reached, []);
+
         List<string> unreachable = [.. every.Where(name => !reached.Contains(name))];
 
         _output.WriteLine($"{reached.Count} of {every.Count} columns corrupted and observed");
@@ -464,6 +476,17 @@ public sealed class FactorioTests(ITestOutputHelper output)
     /// </remarks>
     private static World WithWater(int ticks) =>
         Stepped(Shipped("coastal.toml"), GoldenFixtures.Population, ticks).World;
+
+    /// <summary>A world with a flood in progress, so the Disaster tables have rows to corrupt.</summary>
+    /// <remarks>
+    /// <b>A tenth fixture, gated on a Ruleset key</b> — <see cref="WithWater"/>'s shape one key on —
+    /// and <c>flooded.toml</c> is the only shipped file stating <c>[disasters]</c> at all. ⚠ <b>The
+    /// rows exist only while water is standing</b>, unlike <see cref="WithPolicies"/>'s: a Disaster
+    /// is created by the schedule and freed when it has finished receding, so a run that stops
+    /// between two floods leaves both tables empty and this fixture buys nothing.
+    /// </remarks>
+    private static World WithFloods(int ticks) =>
+        Stepped(Shipped("flooded.toml"), GoldenFixtures.Population, ticks).World;
 
     /// <summary>A world that declares Policies, so the governed table has rows to corrupt.</summary>
     /// <remarks>

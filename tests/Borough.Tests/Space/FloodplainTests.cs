@@ -30,10 +30,11 @@ namespace Borough.Tests.Space;
 /// would make a re-baseline out of every future change to the noise.
 /// </para>
 /// <para>
-/// ⚠ <b>Nothing fires on a Hazard Region and no test here pretends otherwise.</b> Disasters are behind
-/// milestone 15 (<c>plans/0042</c>), so this is a generator output with no consumer — taken
-/// deliberately, on the milestone's stated grounds that *deriving where something could happen is the
-/// terrain milestone's.*
+/// ✅ <b>Something fires on a Hazard Region as of <c>plans/0045</c> row 12</b>, and this paragraph
+/// said the opposite from milestone 24 until then. What is asserted here is still only the
+/// DERIVATION — where a flood could go — and the mechanism that goes there lives in
+/// <see cref="DisasterTests"/>. ⚠ <b>The split is worth keeping</b>: a test that generated a world
+/// AND ran a flood over it would fail for two unrelated reasons and name neither.
 /// </para>
 /// </remarks>
 public sealed class FloodplainTests

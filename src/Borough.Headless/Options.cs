@@ -185,6 +185,9 @@ internal enum Mode
     /// </remarks>
     Arrivals,
 
+    /// <summary>The floods, printed — what the Hazard Region's first consumer did.</summary>
+    Flood,
+
     /// <summary>
     /// The economic actor: how many there are, where they got them, what they hold, who works in
     /// them, and what read one. Milestone 27's.
@@ -487,6 +490,7 @@ internal sealed class Options
         bool parking = false;
         bool landValue = false;
         bool arrivals = false;
+        bool flood = false;
         bool stages = false;
         bool school = false;
         int schools = DefaultSchools;
@@ -606,6 +610,13 @@ internal sealed class Options
                 // asked. This mode drives the gates itself.
                 case "--arrivals":
                     arrivals = true;
+                    session = true;
+                    continue;
+
+                // A session flag on --arrivals' reasoning: a flood over a world that has not run is
+                // a flood over an empty map, and the whole question is what it reaches.
+                case "--flood":
+                    flood = true;
                     session = true;
                     continue;
 
@@ -1316,6 +1327,7 @@ internal sealed class Options
                  : stages ? Mode.Stages
                  : market ? Mode.Market
                  : business ? Mode.Business
+                 : flood ? Mode.Flood
                  : arrivals ? Mode.Arrivals
                  : money ? Mode.Money
                  : landValue ? Mode.LandValue
@@ -1472,6 +1484,15 @@ internal sealed class Options
                                 so it knocks on every gate once a Day, asking for more
                                 than the door can take, and what is admitted is the
                                 file's ceiling rather than a rate chosen by the runner
+          --flood               dump the floods: where the world seeded each one, how far it
+                                got, and how many Buildings it ruined and swept. Needs
+                                --ruleset stating [disasters], which rulesets/flooded.toml
+                                is the only shipped file to do. A flood that touched
+                                nothing is printed like one that took a district -- 01
+                                §5.3, and it is the game telling a player that a siting
+                                decision was right. Prints where the floodplain actually
+                                is, because a city that is not sited on one never meets a
+                                flood and the run looks like a broken mechanism
           --business            dump the economic actor: how many Businesses there are and
                                 where, what created them, what they hold, who works in
                                 them, and what read one. Needs --ruleset in which a

@@ -235,6 +235,17 @@ public sealed class World
         Flood = new Space.FloodCellTable(
             IntegerMath.FloorDiv(Space.CellGrid.WorldCellCount, 64));
 
+        // The Disasters in progress, and the ground each one is standing on. plans/0045 row 12.
+        //
+        // ⚠ THE CAPACITY IS A HINT AND THE FOOTPRINT IS NOT BOUNDED BY IT. A flood's reach is the
+        // connected component of the Hazard Region below its surge, which is a property of the
+        // terrain and of where the world seeded it -- so the honest opening size is small and the
+        // rows grow to whatever the ground turns out to hold. Sizing this from the Hazard Region
+        // would be asserting that a flood covers all of it, which is the largest flood rather than a
+        // typical one.
+        Disasters = new Space.DisasterTable(4);
+        Inundations = new Space.InundationTable(1024, Disasters.Rows);
+
         // The three Movement tables, and their capacity is deliberately NOT a function of population.
         //
         // plans/0021 -> "Decisions this slice must close" 3 is explicit about why: adr/0008 says the
@@ -394,6 +405,12 @@ public sealed class World
             // (CONTEXT.md -> Hazard Region), and saved because a load does not re-run the generator.
             Flood.Rows,
 
+            // And the Disasters over it, plans/0045 row 12 -- the schedule and the water standing on
+            // the ground right now. Appended, which is the one edit to this list that moves no row
+            // relative to another (adr/0100).
+            Disasters.Rows,
+            Inundations.Rows,
+
             // And the governed Policies, milestone 28. Appended, which is the one edit to this list
             // that moves no row relative to another -- see the note above it. adr/0100: this moves
             // every committed State Hash baseline, which costs nothing while nobody carries a save.
@@ -552,6 +569,16 @@ public sealed class World
     /// </remarks>
     public BuildingResidency BuildingsInCells { get; } = new();
 
+    /// <summary>Which Cells are in the Hazard Region, and how deep a flood stands on each.</summary>
+    /// <remarks>
+    /// <b><c>(derived AND rebuilt)</c> from <see cref="Flood"/>'s own saved coordinates</b>, on
+    /// <see cref="BuildingsInCells"/>' grounds exactly: it holds nothing the rows do not, so a table
+    /// of its own would fold an allocator into the State Hash. ⚠ <b>Its rows never change after
+    /// generation</b> — the Hazard Region is where a flood <em>could</em> reach and is never written
+    /// in a Tick — so unlike every other index here it is built once and only ever rebuilt by a load.
+    /// </remarks>
+    public Space.FloodResidency FloodInCells { get; } = new();
+
     /// <summary>
     /// Which live Lots admit a given use — the draw space a seeker's candidates come from.
     /// </summary>
@@ -652,12 +679,30 @@ public sealed class World
     /// </summary>
     /// <remarks>
     /// <c>CONTEXT.md</c> → Hazard Region: ground where a Disaster can occur, derived from terrain at
-    /// world generation and <b>never read during a Tick</b>, so <c>adr/0021</c> holds. ⚠ <b>Nothing
-    /// fires on it and that is by design, not by omission</b> — <c>plans/0042</c> puts Disasters
-    /// behind milestone 15's fire-service reachability, and *deriving where something could happen is
-    /// the terrain milestone's; scheduling it is the milestone that has something to schedule.*
+    /// world generation and <b>never WRITTEN during a Tick</b>, so <c>adr/0021</c> holds. ✅ <b>It
+    /// acquired a reader in <c>plans/0045</c> row 12</b> — <see cref="Disasters"/> is scheduled over
+    /// it — and this remark said <em>nothing fires on it and that is by design</em> from milestone 24
+    /// until then. ⚠ <b>The <em>never read</em> half of that sentence was already wrong about what it
+    /// was protecting</b>: <c>adr/0021</c> is about a Tick not depending on terrain the generator can
+    /// change, and a table nothing writes can be read all day.
     /// </remarks>
     public Space.FloodCellTable Flood { get; }
+
+    /// <summary>The Disasters in progress — <b>what is happening to the ground right now.</b></summary>
+    /// <remarks>
+    /// <c>CONTEXT.md</c> → Disaster, <c>01 §5.2</c>, <c>plans/0045</c> row 12. <b>World-scheduled
+    /// from the seed and the Tick over <see cref="Flood"/></b>, which had stood since milestone 24
+    /// as a table nothing fired on. Empty on every shipped Ruleset but <c>flooded.toml</c>.
+    /// </remarks>
+    public Space.DisasterTable Disasters { get; }
+
+    /// <summary>Which Cells are under water, and which Disaster put them there.</summary>
+    /// <remarks>
+    /// ⚠ <b><see cref="Flood"/> is where water <em>could</em> reach and this is where it
+    /// <em>has</em>.</b> The first is generator output and never moves; these rows are created as a
+    /// surge rises and freed as it recedes, which is the sink <c>adr/0006</c> asks of any collection.
+    /// </remarks>
+    public Space.InundationTable Inundations { get; }
 
     /// <summary>Which Car Parks sit on which Segment — the Parking Shed query's supply index.</summary>
     /// <remarks>
@@ -3115,6 +3160,11 @@ public sealed class World
         // clears its own arrays and CellNext rather than being cleared with the block at the top,
         // because its head and tail are not columns and the block above is a list of columns.
         BuildingsInCells.Rebuild(Buildings, Lots);
+
+        // The Hazard Region's index, from the Flood rows' own saved coordinates. A load does not
+        // re-run the generator (FloodCellTable's own remark on why it is Saved), so this is the one
+        // path that ever rebuilds it after world creation. plans/0045 row 12.
+        FloodInCells.Rebuild(Flood);
 
         // The zoned draw space, from the Lots' own saved Zones. A counting sort in slot order, so a
         // load reproduces the runs exactly rather than plausibly -- which is what makes a candidate

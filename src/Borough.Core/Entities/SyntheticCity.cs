@@ -216,6 +216,13 @@ public static class SyntheticCity
             world.Rules.Water,
             key);
 
+        // The Hazard Region's index, from the rows that pass just wrote. Rebuilt rather than filled
+        // as the rows are made, unlike WaterInCells above -- the floodplain pass is a single walk of
+        // the height field with no handles to thread, and threading an index through it to save one
+        // O(rows) pass on a Ruleset that mostly declares no water would be structure with nothing
+        // behind it. plans/0045 row 12.
+        world.FloodInCells.Rebuild(world.Flood);
+
         // The Bins, once the bodies exist -- FitDistrictPools' rule, and the constructor cannot do it
         // because a world under construction has no Water Bodies. milestone 24 task 6b, adr/0161.
         world.FitWaterBins();

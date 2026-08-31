@@ -13,8 +13,9 @@ public readonly struct FloodCell;
 /// <remarks>
 /// <para>
 /// <c>CONTEXT.md</c> → Hazard Region, <c>01 §5.2</c>, milestone 24 task 9. <b>Ground where a Disaster
-/// can occur, derived from terrain at world generation and never read during a Tick</b>, so
-/// <c>adr/0021</c> holds. Its purpose is to make risky land <em>a decision with a posted price rather
+/// can occur, derived from terrain at world generation and never WRITTEN during a Tick</b>, so
+/// <c>adr/0021</c> holds — ✅ <b>and read during one since <c>plans/0045</c> row 12</b>, by
+/// <see cref="DisasterEngine"/>. Its purpose is to make risky land <em>a decision with a posted price rather
 /// than an ambush</em>, which needs it visible from Tick zero and needs it to owe nothing to what is
 /// standing there.
 /// </para>
@@ -26,11 +27,14 @@ public readonly struct FloodCell;
 /// precisely so that no height column has to ship.
 /// </para>
 /// <para>
-/// ⚠ <b>There is no residency index beside it, unlike <see cref="WaterCellTable"/>, and that is a
-/// deliberate absence rather than an oversight.</b> The index exists to answer *what is at this Cell*
-/// in <c>O(1)</c>, and the only caller that would ask is the overlay, which is unbuilt
-/// (<c>adr/0070</c>). ***The task that builds the overlay adds the index***; adding it now would be a
-/// fourth copy of <see cref="CellResidency"/> serving nobody.
+/// ✅ <b>There is a residency index beside it now — <see cref="FloodResidency"/>, added by
+/// <c>plans/0045</c> row 12.</b> This paragraph used to say the absence was deliberate and that
+/// ***the task that builds the overlay adds the index***. 🔴 <b>The overlay is STILL unbuilt and the
+/// index shipped anyway</b>, because the caller that arrived first was not the one the sentence
+/// predicted: a flood spreads by asking each neighbouring Cell <em>are you floodplain, and how
+/// deep</em>, which is this question at every step of the walk. ⚠ <b>The prediction named the right
+/// mechanism for the wrong reason</b>, which is <c>adr/0093</c>'s failure mode exactly — a sentence
+/// about the build was wrong about the <em>trigger</em> and right about everything else.
 /// </para>
 /// <para>
 /// <b>Saved rather than derived, on <see cref="TerrainCellTable"/>'s forced grounds</b>: it is a

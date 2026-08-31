@@ -165,14 +165,18 @@ public sealed class TwinLatticeTests
 
             int authored = Shipped(file).Lattices.Length;
 
-            if (file == "coastal.toml")
+            if (file is "coastal.toml" or "flooded.toml")
             {
                 Assert.True(
                     authored == 1,
-                    $"coastal.toml authors {authored} lattices and the exemption is for exactly one. "
-                    + "It states an origin at all only because the default (0, 0) puts the city on "
-                    + "the map's edge, where water leaves the world and runoff reads zero — see its "
-                    + "own [[lattice]] header and plans/0042 F17.");
+                    $"{file} authors {authored} lattices and the exemption is for exactly one. "
+                    + "coastal.toml states an origin at all only because the default (0, 0) puts the "
+                    + "city on the map's edge, where water leaves the world and runoff reads zero — "
+                    + "see its own [[lattice]] header and plans/0042 F17. flooded.toml states one "
+                    + "for a different reason and it is the whole demonstration: the synthetic city "
+                    + "is ~1.4 km across on a 65.5 km map, so a city that is not DELIBERATELY sited "
+                    + "on the floodplain never meets a flood — measured at 0 of 420 Lots exposed "
+                    + "before its origin moved, and 240 of 420 after.");
 
                 continue;
             }

@@ -664,4 +664,23 @@ public enum PurposeTag : ulong
     /// mechanism this design refuses by name.
     /// </remarks>
     CitizenAge = 34,
+
+    /// <summary>Which Cell of the Hazard Region a Disaster is seeded on.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Keyed on the Tick and on entity zero, which is the only draw here that has no entity at
+    /// all.</b> <c>01 §5.3</c> makes a Disaster <em>world-scheduled</em> — its timing and place are a
+    /// function of seed and Tick with no reference to what is standing there — so there is no subject
+    /// whose id could enter the coordinate. ⚠ <b>Passing a Building or a Lot id would be the
+    /// city-scheduled version that ADR refuses</b>, and it would be invisible: the draw would still
+    /// be deterministic and the overlay would still be drawn, and the only wrong thing would be that
+    /// riverside land had become cheap-until-you-use-it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>One tag for the place because there is no second decision.</b> The <em>when</em> is a
+    /// modulus on the Ruleset's interval rather than a draw, and how far the flood reaches is derived
+    /// from the seed Cell's own depth — so a flood asks the stream exactly one question.
+    /// </para>
+    /// </remarks>
+    DisasterSeed = 35,
 }
