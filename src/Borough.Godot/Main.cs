@@ -119,6 +119,18 @@ public partial class Main : Node3D
     /// </remarks>
     private const float PlotDepthMetres = 26f;
 
+    /// <summary>
+    /// The narrowest run of kerb worth standing a Building on, in metres.
+    /// </summary>
+    /// <remarks>
+    /// <b>A terrace house is about 6 m wide</b>, so below this there is no Building to draw — the
+    /// face has given its ground to the two faces that took the corners and has none left. ⚠ <b>It
+    /// is a drawing floor and not a rule about the city</b>: the Lot is still there, still
+    /// subdivided and still countable, and what the gap says is that the block was subdivided on
+    /// four faces when it has room for two.
+    /// </remarks>
+    private const float MinFrontageMetres = 6f;
+
     /// <summary>How tall one storey is drawn. A drawing height, and no kind states one.</summary>
     private const float StoreyMetres = 3.5f;
 
@@ -1798,7 +1810,8 @@ public partial class Main : Node3D
     /// arithmetic and a second copy in the renderer is <c>plans/0012</c> <b>Cause 1</b>.
     /// </para>
     /// </remarks>
-    private static (float From, float To) Kerb(int alongTiles, int lots, int block)
+    private static (float From, float To) Kerb(
+        int alongTiles, int lots, int block, bool horizontal)
     {
         float span = block * MetresPerTile;
         float clear = RoadWidthMetres * 0.5f;
@@ -1815,22 +1828,94 @@ public partial class Main : Node3D
         }
 
         // Not a lattice Lot at all -- a hand-placed one, or a Ruleset whose offsets this build does
-        // not generate. It gets the block, which is what the flat frontage always gave it.
+        // not generate. It gets the block, which is what the flat frontage always gave it. ⚠ IT
+        // STILL GIVES UP THE CORNER: an early return here skipped the reserve below and put every
+        // such Lot back into the cross street's ground.
         if (index < 0)
         {
-            return (clear, span - clear);
+            return PastTheCorner(clear, span - clear, span, clear, block, horizontal);
         }
 
         float here = alongTiles * MetresPerTile;
+        float from = index >= 2
+            ? (here + (Frontage.OffsetOf(index - 2, lots, block).Raw * MetresPerTile)) * 0.5f
+            : clear;
+        float to = index + 2 < lots
+            ? (here + (Frontage.OffsetOf(index + 2, lots, block).Raw * MetresPerTile)) * 0.5f
+            : span - clear;
 
-        return (
-            index >= 2
-                ? (here + (Frontage.OffsetOf(index - 2, lots, block).Raw * MetresPerTile)) * 0.5f
-                : clear,
-            index + 2 < lots
-                ? (here + (Frontage.OffsetOf(index + 2, lots, block).Raw * MetresPerTile)) * 0.5f
-                : span - clear);
+        return PastTheCorner(from, to, span, clear, block, horizontal);
     }
+
+    /// <summary>The stretch of kerb left after the cross street's Buildings have taken the corner.</summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THE CORNER IS CLAIMED BY FOUR FACES INDEPENDENTLY AND THEREFORE CLAIMED TWICE.</b> A
+    /// Building steps back from its own kerb, so the ground within a depth of a cross street is
+    /// already spoken for by a Building on <i>that</i> street. Nothing in the city arbitrates it: a
+    /// Lot is an <b>address</b> and owns no ground (<c>adr/0078</c>), so the parcel is the shell's
+    /// own invention and four inventions land on one patch.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>THE FIX IS ALLOCATION AND NOT GEOMETRY</b>, which is what every other city builder
+    /// does — a SimCity 4 lot is a rectangle of tiles and a tile belongs to exactly one lot; a
+    /// Cities: Skylines block is 8 m zoning cells, each claimed by exactly one road's strip. So
+    /// <b>two faces take the corners and two give them up</b>: the horizontal pair runs the block's
+    /// whole length, the vertical pair starts a depth in from each end. <b>Which is what a real
+    /// corner does</b> — the corner building belongs to one street and the cross street's terrace
+    /// begins after it. Four rectangles, no overlap, no hole, at every block size.
+    /// <para>
+    /// ⚠ <b>NOTHING IS CUT ON A DIAGONAL AND NO BUILDING IS A TRAPEZOID.</b> Four mitred trapezoids
+    /// tile a square frame exactly, and that is the arithmetic that <i>refuted</i> the claim that a
+    /// full square block is impossible — it is not the drawing. The drawing is boxes. This method
+    /// was called <c>Mitre</c> for one commit and the name described a building nobody would build.
+    /// </para>
+    /// </para>
+    /// <para>
+    /// 🔴 ⚠ <b>THE RESERVE IS THE DEEPEST A NEIGHBOUR CAN BE AND NOT THIS BUILDING'S OWN DEPTH.</b>
+    /// The first version reserved the caller's <c>deep</c>, which is jittered per Building — so a
+    /// shallow Lot held back a shallow distance and the deeper Building on the cross street reached
+    /// straight through it. It cut the overlap without closing it: <b>28 pairs and 2,610 m² still
+    /// stood, 26 of them perpendicular</b>. What has to be reserved is the worst case, because the
+    /// neighbour's draw is not knowable from here.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It degrades into Manhattan on its own</b>, which is the point. As the block narrows
+    /// toward twice a Building's depth the reserved run shrinks to nothing and the end faces stop
+    /// carrying Buildings at all — long faces holding the frontage, short ends holding none,
+    /// arrived at as a <i>consequence</i> rather than chosen as a look (<c>plans/0049</c> F18, F21).
+    /// </para>
+    /// </remarks>
+    private static (float From, float To) PastTheCorner(
+        float from, float to, float span, float clear, int blockTiles, bool horizontal)
+    {
+        if (horizontal)
+        {
+            return (from, to);
+        }
+
+        float guard = clear + Deepest(blockTiles);
+
+        from = Math.Max(from, guard);
+        to = Math.Max(from, Math.Min(to, span - guard));
+
+        return (from, to);
+    }
+
+    /// <summary>The deepest a Building on this block can be drawn, in metres.</summary>
+    /// <remarks>
+    /// <b><see cref="Depth"/>'s jitter at its top, capped the same way</b> — the one number a face
+    /// can reserve against a neighbour whose own draw it cannot see.
+    /// </remarks>
+    private static float Deepest(int blockTiles)
+    {
+        float room = ((blockTiles * MetresPerTile) - RoadWidthMetres) * 0.5f;
+
+        return room > 4f
+            ? Mathf.Min(PlotDepthMetres * 1.4f, room * 0.95f)
+            : PlotDepthMetres * 1.4f;
+    }
+
 
     /// <summary>How far back from the kerb a Building reaches, in metres.</summary>
     /// <remarks>
@@ -1940,8 +2025,21 @@ public partial class Main : Node3D
             // the camera this game is played at; the band below is a terrace beside a house.
             float fill = BuildingFillLow
                 + (((shape >> 8) & 0xFFu) / 255f * (BuildingFillHigh - BuildingFillLow));
-            (float from, float to) = Kerb(alongTiles, _world.Rules.Lots.LotsPerSegment, block);
+            (float from, float to) = Kerb(
+                alongTiles, _world.Rules.Lots.LotsPerSegment, block, horizontal);
             float along = (to - from) * fill;
+
+            // ⚠ A FACE THAT GAVE ITS CORNERS UP CAN HAVE NOTHING LEFT, and that is the geometry
+            // reporting rather than failing: on a block only twice a Building deep the end faces
+            // have no ground, so their Lots are ADDRESSES WITH NOWHERE TO STAND. Drawing a sliver
+            // would be drawing a Building the block cannot hold; the honest picture is the empty
+            // end, and what it says is that the Ruleset has subdivided four faces of a block that
+            // fits two (plans/0049 F21).
+            if (along < MinFrontageMetres)
+            {
+                continue;
+            }
+
 
             // ⚠ CENTRED ON THE STRETCH AND NOT ON THE LOT'S OWN POINT. The two differ wherever the
             // neighbours are unevenly spaced, which at the shipped offsets is every corner Lot --
@@ -2052,8 +2150,14 @@ public partial class Main : Node3D
             // reason -- a pad drawn at the flat frontage overhung the cross street on every corner
             // Lot, which is a subdivision the city has not made.
             int alongTiles = (horizontal ? lots.East[slot].Raw : lots.North[slot].Raw) % block;
-            (float from, float to) = Kerb(alongTiles, perSegment, block);
+            (float from, float to) = Kerb(alongTiles, perSegment, block, horizontal);
             float pad = to - from;
+
+            if (pad < MinFrontageMetres)
+            {
+                continue;
+            }
+
             float setback = (RoadWidthMetres * 0.5f) + (pad * 0.25f);
             float slide = ((from + to) * 0.5f) - (alongTiles * MetresPerTile);
 
@@ -3177,7 +3281,20 @@ public partial class Main : Node3D
             : $"block ({column}, {row}) — nothing to subdivide, a click does nothing");
     }
 
-    /// <summary>The Cell under the cursor, so a person can see what they are aiming at.</summary>
+    /// <summary>The block under the cursor, so a person can see what they are aiming at.</summary>
+    /// <remarks>
+    /// 🔴 <b>THIS DREW A CELL UNTIL 2026-09-01 AND LOOKED CORRECT FOR AS LONG AS A CELL WAS A
+    /// BLOCK.</b> A Cell is 32 Tiles by design and never moves; <c>block_tiles</c> is Ruleset data
+    /// and does. They were the same number in every shipped file, so a highlight denominated in the
+    /// wrong unit sat exactly on the thing a click acts on and nobody could tell. The moment
+    /// <c>block_tiles</c> went to 16 the box covered four blocks.
+    /// <para>
+    /// ⚠ <b>What a click acts on is the BLOCK</b> — <see cref="Virgin"/> and
+    /// <c>LotSubdivider.SubdivideBlock</c> both take <c>FloorDiv(tile, BlockTiles)</c> — so that is
+    /// what the box has to be. A world with no lattice keeps the Cell, because there is no block to
+    /// draw and the Cell is still an honest unit of ground.
+    /// </para>
+    /// </remarks>
     private void Cursor()
     {
         if (Aim() is not { } at)
@@ -3187,9 +3304,26 @@ public partial class Main : Node3D
             return;
         }
 
+        int block = _world.Roads.Streets.BlockTiles;
+
         _cursor.Multimesh.SetInstanceTransform(
-            0, Tile(CellGrid.ToCells(at.East), CellGrid.ToCells(at.North), 0.03f));
+            0,
+            block > 0
+                ? Block(at, block, 0.03f)
+                : Tile(CellGrid.ToCells(at.East), CellGrid.ToCells(at.North), 0.03f));
         _cursor.Multimesh.VisibleInstanceCount = 1;
+    }
+
+    /// <summary>One block-sized flat slab, centred on the block the point falls in.</summary>
+    private static Transform3D Block((Tiles East, Tiles North) at, int blockTiles, float height)
+    {
+        float span = blockTiles * MetresPerTile;
+        int column = IntegerMath.FloorDiv(at.East.Raw, blockTiles);
+        int row = IntegerMath.FloorDiv(at.North.Raw, blockTiles);
+
+        return new Transform3D(
+            Basis.FromScale(new Vector3(span, height, span)),
+            new Vector3((column + 0.5f) * span, height * 0.5f, -(row + 0.5f) * span));
     }
 
     /// <summary>
