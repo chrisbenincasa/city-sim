@@ -151,10 +151,18 @@ public sealed class ParkingDumpTests
     }
 
     /// <summary>The other half, and it is a different sentence because it is a different absence.</summary>
+    /// <remarks>
+    /// ⚠ <b>It named <c>monetised.toml</c> until 2026-09-01</b>, which was retired by
+    /// <c>plans/0050</c>: that file's whole content had become <c>minimal.toml</c> <em>minus</em>
+    /// this table, so the only thing it still demonstrated was the absence this test needs. ***A
+    /// world whose only distinguishing property is what a test wants from it is a fixture, not a
+    /// demonstration.*** <c>taxed.toml</c> states no <c>[parking]</c> either and has a
+    /// demonstration of its own.
+    /// </remarks>
     [Fact]
     public void A_ruleset_with_no_parking_table_is_refused()
     {
-        (int code, string report) = Run(Ruleset("monetised.toml"));
+        (int code, string report) = Run(Ruleset("taxed.toml"));
 
         Assert.Equal(3, code);
         Assert.Contains("no [parking] radius_metres", report, StringComparison.Ordinal);

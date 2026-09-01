@@ -123,11 +123,21 @@ internal static class ZoneDump
             "A shed Occupant is CONTEXT.md → Failure Pressure's first threshold — the Building keeps "
             + "standing and its Lot stays occupied, which is what makes it different from the "
             + "condemnation beside it. Read the two together (plans/0045 F9).");
+        // 🔴 THIS SENTENCE SAID THE OPPOSITE UNTIL 2026-09-01, AND IT WAS WRONG TWICE OVER. It read
+        // "a Zone Rule rehouses one Household per Building it raises, because a Building has no
+        // declared occupancy yet (plans/0014 task 10)". adr/0068 gave a kind an `occupants` count and
+        // adr/0069 took the housing OUT of construction -- ZoneRuleEngine.Create's own remark says
+        // "construction houses NOBODY" and names the line it deleted. Both records shipped and this
+        // line, which an operator reads on every --zones run, went on describing the build they
+        // replaced. ⚠ It is adr/0093 exactly: the sentence was wrong about the TRIGGER, and the fix
+        // is to name the symbol rather than to restate the mechanism. Found by plans/0050 while
+        // running the demonstration the sweep required.
         output.WriteLine(
             $"{world.UnplacedPool.Count} Households are in the Unplaced Pool, waiting for somewhere "
-            + "to live. A demolition evicts a Building's whole occupancy; a Zone Rule rehouses one "
-            + "Household per Building it raises, because a Building has no declared occupancy yet "
-            + "(plans/0014 task 10).");
+            + "to live. A demolition evicts a Building's whole occupancy and construction houses "
+            + "NOBODY (adr/0069) -- a raised Building stands empty and PlacementEngine fills it over "
+            + "the following Days, so the Pool above is the RESIDUAL placement could not house "
+            + "rather than a queue this sweep drains.");
 
         return 0;
     }

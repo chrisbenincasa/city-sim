@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/chrisbenincasa/city-sim/rulesets/ruleset.schema.json",
   "title": "Borough Ruleset",
-  "description": "GENERATED from RulesetLoader by `--schema` -- do not edit; RulesetSchemaTests fails when this file drifts from the loader. The loader is the authority and this is autocomplete: unknown keys stay permitted here because the loader refuses them at the parse site with a spelling suggestion. A key listed with no `type` was asked for by a reader that never asserted one, and a few of those are keys the loader knows only in order to refuse them by name -- so a completion is not a promise that the key loads.",
+  "description": "GENERATED from RulesetLoader by `--schema` -- do not edit; RulesetSchemaTests fails when this file drifts from the loader. The loader is the authority and this is autocomplete: unknown keys stay permitted here because the loader refuses them at the parse site with a spelling suggestion. A key listed with no `type` was asked for by a reader that never asserted one. Keys the loader knows ONLY in order to refuse them by name are not here at all: they stay permitted so that writing one gets the sentence saying where the key went, and they are not offered, because a completion that always refuses the file is worse than no completion.",
   "type": "object",
   "properties": {
     "building": {
@@ -39,14 +39,12 @@
           "collapses_after_days": {
             "type": "integer"
           },
-          "condemn_after": {},
           "condemn_after_days": {
             "type": "integer"
           },
           "footprint_tiles": {
             "type": "integer"
           },
-          "jobs": {},
           "name": {
             "type": "string"
           },
@@ -62,8 +60,6 @@
           "sheds_occupant_after_days": {
             "type": "integer"
           },
-          "shift_start_earliest_hour": {},
-          "shift_start_latest_hour": {},
           "tenancy_ends_after_days": {
             "type": "integer"
           }
@@ -90,7 +86,6 @@
           "shift_start_latest_hour": {
             "type": "integer"
           },
-          "wage": {},
           "wage_per_day": {
             "type": "integer"
           }
@@ -269,7 +264,6 @@
         "sealing_decay_period": {
           "type": "integer"
         },
-        "sealing_decay_tau": {},
         "shoreline_intensity_percent": {
           "type": "integer"
         },
@@ -470,8 +464,7 @@
           },
           "need": {
             "type": "string"
-          },
-          "storage": {}
+          }
         }
       }
     },
@@ -685,7 +678,6 @@
           "revisit_ticks": {
             "type": "integer"
           },
-          "sample": {},
           "zone": {
             "type": "integer"
           }

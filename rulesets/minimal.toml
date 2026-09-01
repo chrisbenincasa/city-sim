@@ -364,6 +364,20 @@ outputs = []
 # above is 8–32 Ticks, so a Day is comfortably the coarser scale. It is written down for [layers]'s
 # reason: a designer cannot tune a number they cannot find.
 #
+# `interval` IS THE DELIVERY GRAIN AND STATING IT IS NOT CHOOSING IT (adr/0164's third row). Every
+# pass in this file that surveys a population states the same three keys, and only one of them is a
+# design number: `revisit_ticks` is the DURATION a designer has an opinion about, `candidates` is
+# 02 §5.3's bounded knowledge, and `interval` is how finely that duration is chopped into wakes. It
+# divides out of the formula above -- halve it and the sample halves, and the same share of the
+# population is looked at over the same period -- so what it buys is smoothness against per-trigger
+# cost, and nothing a player watches moves with it.
+#
+# ⚠ IT IS STILL HASH-BEARING, BECAUSE THE SAMPLE IS A `ceil`. The rounding and the wake schedule both
+# move, so two worlds differing only in `interval` diverge; what does not move is the DESIGN. It is
+# 32 in all three tables and in every file that has ever shipped, and no author has diverged on it,
+# which is the shape milestone 17 went looking for -- a constant wearing a key's clothes. It stays a
+# key because deleting it would put a cadence in the binary that adr/0015 says belongs in a file.
+#
 # `zone = 0` is a bit INDEX, not a mask; SyntheticCity paints every Lot with bit 0. And under adr/0055
 # that bit scopes only what this Rule may BUILD: it condemns without consulting it, so repainting a
 # Lot cannot make the Building standing on it immortal.
@@ -392,6 +406,8 @@ revisit_ticks = 2048
 # would house a fixed number of families a Day however many were queueing, so the fraction of the
 # queue cleared per cycle would shrink as the queue grew -- in the one collection whose growth is the
 # thing being fixed.
+#
+# `interval` IS THE DELIVERY GRAIN, and the [[zone_rule]] block above carries the argument once.
 #
 # `candidates` IS 02 §5.3'S N AND IT IS THE ONE FREE NUMBER HERE. A family looks at this many
 # dwellings and takes the first with room. It is a BEHAVIOUR MODEL rather than a budget -- bounded
@@ -815,6 +831,8 @@ commute_budget_minutes = 50
 # Day, unlike a [[zone_rule]]'s, because a Day is derived from the scale a `rate` is denominated in
 # and nothing here is denominated in anything -- how often somebody out of work looks for some is a
 # feel decision with no derivation behind it.
+#
+# `interval` IS THE DELIVERY GRAIN, and the [[zone_rule]] block above carries the argument once.
 #
 # 1024 IS [placement]'S, AND THE COPY IS AN ARGUMENT RATHER THAN A CONVENIENCE: a person without a
 # job and a family without a home are looking at the same rate for the same reason, and nothing in

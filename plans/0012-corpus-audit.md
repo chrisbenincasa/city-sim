@@ -4196,7 +4196,7 @@ true of the trade rule and stays false of the housing rule**, which is tier 0 by
 consequences — so ***the correction is to say which rule it is describing***, and that is owed with 26's
 first code task rather than now.
 
-### 🔴 The Ruleset keys have never been asked *would a designer ever set this*, and the answer is not always yes
+### ✅ ~~The Ruleset keys have never been asked *would a designer ever set this*, and the answer is not always yes~~
 
 **Raised by the user on 2026-08-25, in session W, unprompted and against the session's own
 proposal** — *"it seems like some keys we're defining for rulesets will only ever be applicable in the
@@ -4241,6 +4241,22 @@ authoring a key nobody would ever set.***
 same afternoon and nothing has been checked against it yet. **It wants a session or a milestone task of
 its own**, and the first thing it should produce is a count: how many keys, how many hits, and how many
 of the hits are the third row rather than the first two.
+
+✅ ~~**STRUCK 2026-09-01 — the sweep ran**~~, and [`0050`](0050-the-ruleset-sweep.md) owns its count and
+its verdicts. **169 leaf keys, 150 of them set by some shipped file.** 🔴 **The hits were a FOURTH shape
+this row did not predict, and none of the three above.** Eight keys — `condemn_after`, `jobs`,
+`shift_start_earliest_hour`, `shift_start_latest_hour`, `wage`, `sealing_decay_tau`, `storage`,
+`sample` — are refused **by name** at load, and the editor schema, which is generated from the key
+surface `RulesetLoader` *asks* for rather than from what it *accepts*, advertised all eight as valid
+completions. ⚠ **`.taplo.toml` points a designer's editor at that file**, so the one artefact a designer
+actually sees offered eight keys that refuse their Ruleset. ***The corpus was not wrong anywhere and the
+tooling was***, which is this row's own *a document offers a control nobody would use* arriving in a
+generated document rather than an authored one.
+
+⚠ **The sweep found NOT ONE key read only by `SyntheticCity`**, so session W's near-miss shape above is
+the reason to believe in others and is not itself evidence of any — the key it nearly authored was never
+committed. **And nothing was deleted**: the eight are still refused by name with their sentences intact,
+and what changed is that the schema no longer offers them.
 
 ---
 

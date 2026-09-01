@@ -107,6 +107,99 @@ public sealed class RulesetSchemaTests
         Assert.Contains("rulesets/ruleset.schema.json", text, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// 🔴 <b>A key the loader refuses BY NAME is never offered as a completion.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Eight keys were in the committed schema whose only behaviour is to refuse the file.</b>
+    /// <c>plans/0050</c>, the <c>adr/0164</c> sweep. The surface is derived from what a reader
+    /// <em>asks</em> for, and a reader asks for a retired key in order to refuse it — so
+    /// <c>condemn_after</c>, <c>sample</c>, <c>wage</c>, <c>storage</c>, <c>[layers]
+    /// sealing_decay_tau</c> and the three <c>adr/0148</c> moved to <c>[[business]]</c> were
+    /// published to every editor as the way to do a thing the loader will not let you do. ***That is
+    /// <c>adr/0164</c>'s own Cause — a document offering a control nobody would use — arriving in
+    /// the one artefact a designer actually looks at.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Each case writes the violation into a real Ruleset and watches it fire</b>, which is
+    /// <c>CLAUDE.md</c>'s rule for a diagnostic. The file is <c>minimal.toml</c> with one key
+    /// injected, so <b>exactly one</b> refusal is expected: a case that starts producing two is a
+    /// case whose injection stopped landing where it was aimed.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>What this cannot see is a NINTH retirement nobody added a row for.</b> The list below
+    /// is authored and the loader's is derived, which is the asymmetry <c>plans/0012</c>
+    /// <b>Cause 1</b> is about — stated rather than hidden. What holds the two together is that
+    /// retiring a key and subtracting it from the surface are <em>one call</em>
+    /// (<c>RulesetLoader.RefuseRetired</c>): a retirement written any other way is the thing to
+    /// look for.
+    /// </para>
+    /// </remarks>
+    [Theory]
+    [InlineData("[[building]]", "condemn_after = 4")]
+    [InlineData("[[building]]", "jobs = 8")]
+    [InlineData("[[building]]", "shift_start_earliest_hour = 6")]
+    [InlineData("[[building]]", "shift_start_latest_hour = 10")]
+    [InlineData("[[business]]", "wage = 100")]
+    [InlineData("[layers]", "sealing_decay_tau = 0")]
+    [InlineData("[[resource]]", "storage = 0")]
+    [InlineData("[[zone_rule]]", "sample = 64")]
+    public void A_key_the_loader_refuses_by_name_is_not_offered(string section, string statement)
+    {
+        string key = statement.Split('=')[0].Trim();
+        string text = Inject(
+            File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", "minimal.toml")),
+            section,
+            statement);
+
+        RulesetLoadResult result = RulesetLoader.Parse(text, "retired.toml");
+
+        Assert.False(
+            result.Ok,
+            $"{section} {statement} loaded. This test exists because the loader refuses that key by "
+                + "name; if it no longer does, the key is not retired and its row here is stale.");
+
+        Assert.True(
+            result.Refusals.Count == 1,
+            $"{section} {statement} produced {result.Refusals.Count} refusals rather than one:\n  "
+                + string.Join("\n  ", result.Refusals.Select(r => $"line {r.Line}: {r.Reason}")));
+
+        // The whole value of a named refusal is the sentence saying where the key went. A generic
+        // unknown-key message would satisfy "it was refused" and help nobody.
+        Assert.Contains(key, result.Refusals[0].Reason, StringComparison.Ordinal);
+
+        IReadOnlyDictionary<string, IReadOnlyDictionary<string, RulesetKeyKind>> surface =
+            RulesetLoader.KeySurface(text, "retired.toml");
+
+        foreach (KeyValuePair<string, IReadOnlyDictionary<string, RulesetKeyKind>> at in surface)
+        {
+            Assert.False(
+                at.Key.Contains(section, StringComparison.Ordinal) && at.Value.ContainsKey(key),
+                $"the key surface offers {section} {key}, which the loader refuses by name. A "
+                    + "completion that always refuses the file is worse than no completion -- "
+                    + "retire it through RulesetLoader.RefuseRetired so it stays permitted and "
+                    + "stops being advertised. See plans/0050-the-ruleset-sweep.md.");
+        }
+    }
+
+    /// <summary>Puts one statement inside the first table of a section, comments and all.</summary>
+    private static string Inject(string toml, string section, string statement)
+    {
+        string[] lines = toml.Split('\n');
+
+        for (int at = 0; at < lines.Length; at++)
+        {
+            if (lines[at].Trim() == section)
+            {
+                return string.Join('\n', lines[..(at + 1)].Append(statement).Concat(lines[(at + 1)..]));
+            }
+        }
+
+        throw new InvalidOperationException(
+            $"minimal.toml declares no {section}, so this case has nowhere to inject into.");
+    }
+
     private static string Describe(string what, List<string> names) =>
         names.Count == 0 ? string.Empty : $"\n  {what}:\n    " + string.Join("\n    ", names) + "\n";
 

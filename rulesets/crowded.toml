@@ -35,6 +35,9 @@
 # dwelling with room and refuses nothing. The Pool grows because construction is slower than the
 # door, which is one cause of a housing shortage and not the interesting one.
 #
+# The keys below are minimal.toml's and its comments carry their arguments -- read them there.
+# What is commented HERE is what this file changes and why.
+
 [[resource]]
 name = "sundries"
 family = "good"
@@ -46,7 +49,6 @@ family = "good"
 [[resource]]
 name = "money"
 family = "money"
-
 # `owner = "occupant"` is adr/0141's line -- the larder goes with the family, the roof does not -- so
 # `sundries` is one Bin per Household and `repairs` is one per Building. The premises still declare
 # the ceiling. minimal.toml's dwelling carries the argument and what it changes about the city.
@@ -62,9 +64,7 @@ family = "money"
 # ---------------------------------------------------------------------------------------------------
 [[business]]
 name = "shop"
-
 jobs = 8
-
 shift_start_earliest_hour = 6
 shift_start_latest_hour   = 10
 
@@ -74,34 +74,8 @@ bins = [
     { resource = "sundries", capacity = 48, owner = "occupant" },
     { resource = "repairs",  capacity = 4 },
 ]
-# adr/0148 MOVED THIS FROM 3 TO 4, AND WHAT IT MEANS DID NOT MOVE. One ceiling counts both kinds
-# of tenant (adr/0147), and this kind now comes with a shop -- so four slots minus one trade is
-# the three Households this file has always housed, and `jobs` below still derives from three.
 occupants = 4
-# THE TRADE A DWELLING OF THIS KIND COMES WITH. adr/0148, and it is this file's oldest comment finally
-# being written down as a row rather than as an apology. `jobs = 8` used to sit here, under a paragraph
-# explaining that it was on the dwelling BECAUSE NO WORKPLACE KIND EXISTED -- "living above the shop is
-# the smallest arrangement in which the assignment pass has somewhere to send anybody." The shop was
-# always in this kind. It had no name, no row and no balance, so nothing could point at it.
-#
-# NOW IT HAS ONE. Raising a Building of this kind instantiates a Business of this trade, already
-# premised, holding one of the `occupants` slots above. THE CITY IS THE SAME CITY -- the same Citizens
-# take the same jobs at the same hours -- and what changed is that a Citizen's employer is a thing you
-# can open a panel on.
-#
-# IT IS DRAWN FROM NO POOL, which is the whole of why this is not adr/0069's "construction houses
-# nobody". That rule protects a DEMAND SIGNAL: creation must not drain the Pool that authorised it, or
-# the Pool stops being the residual. Nothing here is taken out of the Unplaced Pool and nothing out of
-# the unpremised one. The trade is MADE, at the same instant and by the same call as this kind's Bins
-# and its Rule Instances, and construction has always instantiated what a kind declares.
-#
-# IT CARRIES NO FOUNDER AND NO CAPITAL, and that is not a second class of Business. adr/0146 governs
-# FOUNDING -- a Citizen's labour and a Household's money -- and nobody founded this. Condemn its
-# premises and it lands in the unpremised pool with adr/0144's empty balance exactly as a founded shop
-# does, waits a Household's wait, and either finds premises again or emigrates.
 business = "shop"
-
-
 parking = 8
 
 [[building]]
@@ -168,7 +142,6 @@ revisit_ticks = 2048
 interval      = 32
 revisit_ticks = 1024
 candidates    = 3
-
 # CUT FROM bordered.toml's 120 Days, and the cut is the whole reason this file exists.
 # 🔴 ⚠ IT IS NOT A SECOND OPINION ABOUT HOW LONG A FAMILY WOULD LOOK. bordered.toml's 120 Days is
 # the designer's number and the one plans/0002 §D1 carries; two Days is a COMPRESSION, chosen so
@@ -212,22 +185,18 @@ car_ownership_percent = 100
 
 [parking]
 radius_metres = 400
-
 shed_keeps = 24
 
 [trips]
 crossing_seconds = 30
 commute_fast_minutes = 20
 commute_moderate_minutes = 40
-
 commute_budget_minutes = 50
 
 [jobs]
 interval      = 32
 revisit_ticks = 1024
 candidates    = 3
-
 shift_hours_min = 6
 shift_hours_max = 10
-
 arrive_early_max_minutes = 15

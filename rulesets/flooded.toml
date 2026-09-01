@@ -6,9 +6,16 @@
 # NOTHING FIRED ON IT for as long as it has existed -- CONTEXT.md said so in as many words, and so did
 # World.Flood's own remark. This file is what reads it.
 #
-# WHAT IT ADDS TO coastal.toml, AND IT IS ONE TABLE. `[disasters]`, with three keys. Everything else
-# below is coastal.toml unchanged, and its reasoning lives there rather than being copied here -- a
-# copied comment is a second copy that drifts, which is plans/0012 Cause 1 by construction.
+# WHAT IT ADDS TO coastal.toml. `[disasters]`, with three keys -- AND IT MOVES THE CITY, which is the
+# second half and is the one that took the measurement. Everything else below is coastal.toml
+# unchanged, and its reasoning lives there rather than being copied here -- a copied comment is a
+# second copy that drifts, which is plans/0012 Cause 1 by construction.
+#
+# 🔴 THIS HEADER SAID "AND IT IS ONE TABLE" UNTIL 2026-09-01 AND THE DIFF WAS ALWAYS TWO. The
+# `[[lattice]]` origin below is 11520/4800 against coastal.toml's 8192/8192, and it is the change
+# WITHOUT WHICH THE FILE DEMONSTRATES NOTHING: measured at 0 of 420 Lots exposed before the origin
+# moved and 240 of 420 after. A file whose header undercounts its own diff by the load-bearing half
+# is what a reader trusts instead of running the diff, and this one was believed for a week.
 #
 # ⚠ THREE DURATIONS AND NO MAGNITUDE, WHICH IS 01 §5.2 TAKEN LITERALLY: "No severity constant is
 # authored anywhere; the only constants are a frequency interval and a spread rate, both durations,
@@ -153,6 +160,15 @@ carries = "sewage"
 capacity_per_cell = 1000
 outflow_per_exit_per_day = 100
 runoff_per_sealed_cell_per_day = 50
+# THE ORIGIN IS AIMED AT THE MECHANISM AND NOT AT A CITY, and it has two readers so it cannot simply
+# move into the instrument (adr/0164's third row). SyntheticCity decides where to build from it, and
+# PlacementEngine.Distance measures a Household's taste for the centre against it -- a real
+# designer-facing consumer. But NEITHER shipped origin was a designer's: coastal.toml sits at the
+# map's middle so runoff does not drain off the world, and this one sits on the water's edge because
+# the synthetic city is ~1.4 km across on a 65.5 km map and cannot meet a coast by accident
+# (adr/0089 arriving where nobody expected it). ⚠ SO STATING IT HERE IS AIMING A DEMONSTRATION, NOT
+# CHOOSING WHERE A CITY STANDS. Read it as the instrument's setting; the taste reader is why the key
+# stays a key. plans/0050.
 [[lattice]]
 origin_east_tiles  = 11520
 origin_north_tiles = 4800

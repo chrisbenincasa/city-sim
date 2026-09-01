@@ -198,9 +198,11 @@ internal static class SchemaDump
                 + "fails when this file drifts from the loader. The loader is the authority and "
                 + "this is autocomplete: unknown keys stay permitted here because the loader "
                 + "refuses them at the parse site with a spelling suggestion. A key listed with no "
-                + "`type` was asked for by a reader that never asserted one, and a few of those "
-                + "are keys the loader knows only in order to refuse them by name -- so a "
-                + "completion is not a promise that the key loads.");
+                + "`type` was asked for by a reader that never asserted one. Keys the loader knows "
+                + "ONLY in order to refuse them by name are not here at all: they stay permitted "
+                + "so that writing one gets the sentence saying where the key went, and they are "
+                + "not offered, because a completion that always refuses the file is worse than "
+                + "no completion.");
             writer.WriteString("type", "object");
             WriteProperties(writer, root);
             writer.WriteEndObject();

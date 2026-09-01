@@ -187,6 +187,34 @@ public static class RulesetLoader
         private readonly Dictionary<SyntaxNode, Dictionary<string, RulesetKeyKind>> _keyKinds =
             new(ReferenceEqualityComparer.Instance);
 
+        /// <summary>Keys a reader asks for only in order to refuse them.</summary>
+        /// <remarks>
+        /// <para>
+        /// 🔴 <b>A retired key is PERMITTED and must never be OFFERED, and one set was doing both
+        /// jobs.</b> <see cref="_consulted"/> is the permitted set and it is also what
+        /// <see cref="RulesetLoader.KeySurface"/> publishes as an editor schema — so
+        /// <c>condemn_after</c>, <c>sample</c>, <c>wage</c>, <c>storage</c> and the three keys
+        /// <c>adr/0148</c> moved to <c>[[business]]</c> arrived in
+        /// <c>rulesets/ruleset.schema.json</c> as valid completions. ***Eight keys whose only
+        /// behaviour is to refuse the file were advertised as the way to do the thing the loader
+        /// will not let you do.***
+        /// </para>
+        /// <para>
+        /// ⚠ <b>The refusals are right and the advertisement was wrong.</b> An author writing
+        /// <c>condemn_after</c> is told the key was renamed <em>and that its units changed</em>,
+        /// which no unknown-key message could carry — so the name stays permitted, stays consulted,
+        /// and is subtracted from the surface alone.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>Written only by <see cref="RefuseRetired"/></b>, which is also the only thing that
+        /// refuses one. ***A retirement and its refusal are one edit or they drift***, which is
+        /// <c>plans/0012</c> <b>Cause 1</b> and the reason this is not a hand-authored list of
+        /// eight names.
+        /// </para>
+        /// </remarks>
+        private readonly Dictionary<SyntaxNode, HashSet<string>> _retired =
+            new(ReferenceEqualityComparer.Instance);
+
         private readonly Dictionary<string, ushort> _resources = new(StringComparer.Ordinal);
 
         // Parallel to _resources by declaration order, which is what makes ResourceId.Raw - 1 index
@@ -1332,12 +1360,7 @@ public static class RulesetLoader
         /// </remarks>
         private void RefuseStorage(TableSyntaxBase table)
         {
-            if (Find(table, "storage") is not KeyValueSyntax entry)
-            {
-                return;
-            }
-
-            Refuse(LineOf(entry), "storage",
+            RefuseRetired(table, "storage", "storage",
                 "storage is not implemented. It is CONTEXT → Resource's second parameter — whether a "
                 + "Bin carries over between periods, zero for Power and filling for Waste — and "
                 + "nothing reads it yet, so accepting it would silently give every Resource the "
@@ -1791,15 +1814,12 @@ public static class RulesetLoader
                 // and decline SIXTEEN TIMES too slowly, which is a change nobody would attribute to
                 // a rename. A silent unit change is plans/0012 Cause 5 arriving in content rather
                 // than in prose, so the parse site says so out loud (adr/0048).
-                if (Find(table, "condemn_after") is not null)
-                {
-                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "condemn_after") ?? table), name,
-                        $"'{name}' states condemn_after, which was renamed to condemn_after_days in "
-                        + "milestone 17 AND CHANGED UNITS. It counted firings a starved Rule may "
-                        + "miss; it is now how many Days a Rule may starve continuously. Four missed "
-                        + "firings of a rate-16 Rule was 64 Ticks — 45 in-world minutes — so the old "
-                        + "value does not carry over. Choose the duration you meant.");
-                }
+                RefuseRetired(table, "condemn_after", name,
+                    $"'{name}' states condemn_after, which was renamed to condemn_after_days in "
+                    + "milestone 17 AND CHANGED UNITS. It counted firings a starved Rule may "
+                    + "miss; it is now how many Days a Rule may starve continuously. Four missed "
+                    + "firings of a rate-16 Rule was 64 Ticks — 45 in-world minutes — so the old "
+                    + "value does not carry over. Choose the duration you meant.");
 
                 // The premises' threshold, in Days (adr/0059, adr/0130). Optional, and absent means
                 // this kind never declines — which is what every Ruleset written before decline
@@ -2062,15 +2082,12 @@ public static class RulesetLoader
                 // looking for a typo.
                 foreach (string moved in EmploymentKeysThatMoved)
                 {
-                    if (Find(table, moved) is not null)
-                    {
-                        Refuse(LineOf((SyntaxNodeBase?)Find(table, moved) ?? table), name,
-                            $"{moved} is stated on a [[building]] kind. Employment belongs to the "
-                            + "TRADE and not to the premises (adr/0141), so it moved to [[business]] "
-                            + "at milestone 27 -- state it there, and name the trade on this kind "
-                            + "with `business = \"<name>\"` so a Building of it comes with one "
-                            + "(adr/0148). A Building employs nobody.");
-                    }
+                    RefuseRetired(table, moved, name,
+                        $"{moved} is stated on a [[building]] kind. Employment belongs to the "
+                    + "TRADE and not to the premises (adr/0141), so it moved to [[business]] "
+                    + "at milestone 27 -- state it there, and name the trade on this kind "
+                    + "with `business = \"<name>\"` so a Building of it comes with one "
+                    + "(adr/0148). A Building employs nobody.");
                 }
 
                 // adr/0068's rule applied to parking (adr/0120, milestone 7 task 1). Optional and
@@ -2331,15 +2348,12 @@ public static class RulesetLoader
                 // saying where it went***, and a general check cannot know that. The gap this
                 // comment used to describe (plans/0041 G31) closed 2026-08-25; what did not change
                 // is that nine keys are worth naming individually.
-                if (Find(table, "wage") is not null)
-                {
-                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "wage") ?? table), name,
-                        "this trade states a wage. adr/0141 does give the trade `jobs`, shift hours "
-                        + "AND the wage -- and adr/0026's wage is not a declared number, it MOVES: "
-                        + "each Business posts one and adjusts it by its own fill rate. That is "
-                        + "still unbuilt. What exists is `wage_per_day`, a flat rate per Day worked, "
-                        + "paired with `pay_period_days` -- write those two.");
-                }
+                RefuseRetired(table, "wage", name,
+                    "this trade states a wage. adr/0141 does give the trade `jobs`, shift hours "
+                    + "AND the wage -- and adr/0026's wage is not a declared number, it MOVES: "
+                    + "each Business posts one and adjusts it by its own fill rate. That is "
+                    + "still unbuilt. What exists is `wage_per_day`, a flat rate per Day worked, "
+                    + "paired with `pay_period_days` -- write those two.");
 
                 (int shiftFrom, int shiftTo) = ReadShiftStartBand(table, name, jobs);
                 (int wagePerDay, int payPeriodDays) = ReadWage(table, name, jobs);
@@ -2957,15 +2971,12 @@ public static class RulesetLoader
             // Refusal 10 — the key adr/0059 retired. Checked first, because an author who wrote a
             // sample has not written a revisit period, and refusal 8 would otherwise fire on the
             // default and say something confusing about a key they never touched.
-            if (Find(table, "sample") is { } retired)
-            {
-                Refuse(LineOf(retired), name,
-                    "sample was replaced by revisit_ticks (adr/0059) and is no longer read. It was an "
-                    + "absolute count of Lots per trigger, so the fraction of the city a Zone Rule "
-                    + "covered per cycle shrank as the city grew -- at 1,000,000 Citizens a Lot was "
-                    + $"visited once per 117 Days. Write revisit_ticks = {Ticks.PerDay} (one Day, the "
-                    + "default) for how long the development industry takes to look at every Lot once.");
-            }
+            RefuseRetired(table, "sample", name,
+                "sample was replaced by revisit_ticks (adr/0059) and is no longer read. It was an "
+                + "absolute count of Lots per trigger, so the fraction of the city a Zone Rule "
+                + "covered per cycle shrank as the city grew -- at 1,000,000 Citizens a Lot was "
+                + $"visited once per 117 Days. Write revisit_ticks = {Ticks.PerDay} (one Day, the "
+                + "default) for how long the development industry takes to look at every Lot once.");
 
             long revisit = Ticks.PerDay;
 
@@ -3289,9 +3300,18 @@ public static class RulesetLoader
                 }
 
                 _keyKinds.TryGetValue(node, out Dictionary<string, RulesetKeyKind>? typed);
+                _retired.TryGetValue(node, out HashSet<string>? gone);
 
                 foreach (string key in Ordered(asked))
                 {
+                    // A retired key is permitted and is not on offer. It stays in `asked`, so
+                    // RefuseUnknownKeys still lets an author write it and still gets the sentence
+                    // saying where it went -- and it leaves here, so no editor completes it.
+                    if (gone is not null && gone.Contains(key))
+                    {
+                        continue;
+                    }
+
                     RulesetKeyKind kind = typed is not null && typed.TryGetValue(key, out RulesetKeyKind found)
                         ? found
                         : RulesetKeyKind.Unknown;
@@ -4753,15 +4773,12 @@ public static class RulesetLoader
             // The key MOVED and is refused where it used to be, rather than ignored. A file carrying
             // it means something by it, and silently reading nothing would leave a designer's stated
             // rate doing nothing with no way to tell. Milestone 24 task 4, adr/0044.
-            if (Find(_layersTable!, "sealing_decay_tau") is not null)
-            {
-                Refuse(LineOf("sealing_decay_tau"), null,
-                    "sealing_decay_tau has moved out of [layers]. It is keyed BY TERRAIN TYPE "
-                    + "(02 section 2.4: rock may never recover, floodplain may recover over hundreds "
-                    + "of Days), so it is now a key on each [[terrain]] table and there is no global "
-                    + "one. A file with no [[terrain]] has ground that never recovers, which is what "
-                    + "every shipped Ruleset said by writing 0 here.");
-            }
+            RefuseRetired(_layersTable, "sealing_decay_tau", null,
+                "sealing_decay_tau has moved out of [layers]. It is keyed BY TERRAIN TYPE "
+                + "(02 section 2.4: rock may never recover, floodplain may recover over hundreds "
+                + "of Days), so it is now a key on each [[terrain]] table and there is no global "
+                + "one. A file with no [[terrain]] has ground that never recovers, which is what "
+                + "every shipped Ruleset said by writing 0 here.");
 
             // The desirability composition's numbers. All authored as PERCENTS or METRES rather
             // than as Q16.16, because 02 §2.5 question 2 says author in domain units and because the
@@ -7246,6 +7263,43 @@ public static class RulesetLoader
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Refuses a key this build has retired, and records that it is not on offer.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>It records the retirement whether or not the key is present</b>, for
+        /// <see cref="Find"/>'s reason exactly: the surface describes what the readers ask for
+        /// rather than what a file contains, and no shipped Ruleset states any of these — so a
+        /// retirement recorded only when the key appears would never be recorded at all.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>It consults through <see cref="Find"/> rather than around it</b>, so the name stays
+        /// in the permitted set and <c>RefuseUnknownKeys</c> is untouched. The retirement is
+        /// recorded <em>on top of</em> the consult and subtracted from the schema alone.
+        /// </para>
+        /// </remarks>
+        private void RefuseRetired(SyntaxNode? holder, string key, string? name, string reason)
+        {
+            if (holder is null)
+            {
+                return;
+            }
+
+            if (!_retired.TryGetValue(holder, out HashSet<string>? gone))
+            {
+                gone = new HashSet<string>(StringComparer.Ordinal);
+                _retired[holder] = gone;
+            }
+
+            gone.Add(key);
+
+            if (Find(holder, key) is { } stated)
+            {
+                Refuse(LineOf(stated), name, reason);
+            }
         }
 
         private void Refuse(int line, string? rule, string reason) =>

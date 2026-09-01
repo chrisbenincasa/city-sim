@@ -201,6 +201,9 @@
 # new Good for exactly that reason: `sundries` is what the shop sells and it is already priced below.
 # ---------------------------------------------------------------------------------------------------
 
+# The keys below are minimal.toml's and its comments carry their arguments -- read them there.
+# What is commented HERE is what this file changes and why.
+
 [[resource]]
 name = "sundries"
 family = "good"
@@ -212,7 +215,6 @@ family = "good"
 [[resource]]
 name = "money"
 family = "money"
-
 # `owner = "occupant"` is adr/0141's line -- the larder goes with the family, the roof does not -- so
 # `sundries` is one Bin per Household and `repairs` is one per Building. The premises still declare
 # the ceiling. minimal.toml's dwelling carries the argument and what it changes about the city.
@@ -228,12 +230,9 @@ family = "money"
 # ---------------------------------------------------------------------------------------------------
 [[business]]
 name = "shop"
-
 jobs = 8
-
 shift_start_earliest_hour = 6
 shift_start_latest_hour   = 10
-
 # ---------------------------------------------------------------------------------------------------
 # THE PROVIDER'S TRADE. Milestone 26 task 3, and it is a SECOND trade rather than a second use of
 # `shop` above, because that one comes with a dwelling (adr/0148) and is a shopkeeper living over the
@@ -248,19 +247,15 @@ shift_start_latest_hour   = 10
 # ---------------------------------------------------------------------------------------------------
 [[business]]
 name = "grocer"
-
 jobs = 3
-
 # plans/0045 item 6. The header is the whole story; these two keys are the whole diff.
 wage_per_day    = 4096
 pay_period_days = 7
-
 shift_start_earliest_hour = 6
 shift_start_latest_hour   = 10
 
 [[building]]
 name = "dwelling"
-
 # 🔴 MIGRATED FROM `condemn_after = 4` BY MILESTONE 17 (adr/0168), AND UNLIKE THE `shopfront` KIND
 # BELOW ***THE QUANTITY DID NOT SURVIVE***. That key had no header defending it here: it stood at 4
 # in all eighteen shipped files and no author ever set it, which is adr/0164's `would a designer ever
@@ -291,37 +286,9 @@ bins = [
     { resource = "sundries", capacity = 48, owner = "occupant" },
     { resource = "repairs",  capacity = 4 },
 ]
-
-# adr/0148 MOVED THIS FROM 3 TO 4, AND WHAT IT MEANS DID NOT MOVE. One ceiling counts both kinds
-# of tenant (adr/0147), and this kind now comes with a shop -- so four slots minus one trade is
-# the three Households this file has always housed, and `jobs` below still derives from three.
 occupants = 4
-# THE TRADE A DWELLING OF THIS KIND COMES WITH. adr/0148, and it is this file's oldest comment finally
-# being written down as a row rather than as an apology. `jobs = 8` used to sit here, under a paragraph
-# explaining that it was on the dwelling BECAUSE NO WORKPLACE KIND EXISTED -- "living above the shop is
-# the smallest arrangement in which the assignment pass has somewhere to send anybody." The shop was
-# always in this kind. It had no name, no row and no balance, so nothing could point at it.
-#
-# NOW IT HAS ONE. Raising a Building of this kind instantiates a Business of this trade, already
-# premised, holding one of the `occupants` slots above. THE CITY IS THE SAME CITY -- the same Citizens
-# take the same jobs at the same hours -- and what changed is that a Citizen's employer is a thing you
-# can open a panel on.
-#
-# IT IS DRAWN FROM NO POOL, which is the whole of why this is not adr/0069's "construction houses
-# nobody". That rule protects a DEMAND SIGNAL: creation must not drain the Pool that authorised it, or
-# the Pool stops being the residual. Nothing here is taken out of the Unplaced Pool and nothing out of
-# the unpremised one. The trade is MADE, at the same instant and by the same call as this kind's Bins
-# and its Rule Instances, and construction has always instantiated what a kind declares.
-#
-# IT CARRIES NO FOUNDER AND NO CAPITAL, and that is not a second class of Business. adr/0146 governs
-# FOUNDING -- a Citizen's labour and a Household's money -- and nobody founded this. Condemn its
-# premises and it lands in the unpremised pool with adr/0144's empty balance exactly as a founded shop
-# does, waits a Household's wait, and either finds premises again or emigrates.
 business = "shop"
-
-
 parking = 8
-
 # ---------------------------------------------------------------------------------------------------
 # THE PROVIDER'S PREMISES. Milestone 26 task 3.
 #
@@ -354,7 +321,6 @@ bins = [
     { resource = "repairs",  capacity = 4 },
     { resource = "money",    owner = "business" },
 ]
-
 # THE ROPE, MIGRATED FROM `condemn_after = 4` BY MILESTONE 17 (adr/0168), AND THE QUANTITY SURVIVED
 # THE UNIT CHANGE. `rates` fires every 1,024 Ticks, so four missed firings was 4,096 Ticks and 4,096
 # Ticks is two Days. The number below buys the same rope the `rates` header reasons for; only the
@@ -370,10 +336,8 @@ bins = [
 # block on `Space` alone, and RuleEngine.Stop CLEARS the pressure clock on every reason but supply.
 # ***A premises threshold on this kind would arm on nothing.***
 tenancy_ends_after_days = 2
-
 occupants = 1
 business = "grocer"
-
 # ---------------------------------------------------------------------------------------------------
 # 🔴 THE ONE EDIT, AND IT IS THE WHOLE MILESTONE. On every other shipped file `restock` is
 # `inputs = []` -- four sundries a firing, drawn from nothing. Here the larder is filled by BUYING,
@@ -411,7 +375,6 @@ rate    = 16
 apply   = { min = 1, max = 1 }
 inputs  = [ { scope = "local", resource = "repairs", amount = 4 } ]
 outputs = []
-
 # ---------------------------------------------------------------------------------------------------
 # WHAT FILLS THE SELLER'S OWN BIN. `inputs = []` for the header's reason: nothing in this build
 # produces sundries, so a shop that bought them would starve on a Pool nobody supplies. This is a
@@ -431,7 +394,6 @@ rate    = 8
 apply   = { min = 1, max = 4 }
 inputs  = []
 outputs = [ { scope = "local", resource = "sundries", amount = 8 } ]
-
 # ---------------------------------------------------------------------------------------------------
 # 🔴 THE DECLINE HALF, AND IT IS A RECURRING COST RATHER THAN A FAILURE TO SELL.
 #
@@ -548,7 +510,6 @@ kind          = "dwelling"
 zone          = 0
 interval      = 32
 revisit_ticks = 2048
-
 # ---------------------------------------------------------------------------------------------------
 # THE SECOND ZONE RULE, AND `zone = 1` IS THE TRADE BIT. adr/0165 makes a Zone a permission set over
 # Building kinds and paints bit 1 on one block in TradeBlockStride; ZoneRuleDefinition.Admits is
@@ -611,26 +572,21 @@ lots_per_segment = 5
 
 [parking]
 radius_metres = 400
-
 shed_keeps = 24
 
 [trips]
 crossing_seconds = 30
 commute_fast_minutes = 20
 commute_moderate_minutes = 40
-
 commute_budget_minutes = 50
 
 [jobs]
 interval      = 32
 revisit_ticks = 1024
 candidates    = 3
-
 shift_hours_min = 6
 shift_hours_max = 10
-
 arrive_early_max_minutes = 15
-
 # ---------------------------------------------------------------------------------------------------
 # 🔴 THE BUYER'S MONEY. Milestone 26 task 4, and without it THIS FILE'S ONE POINT DOES NOT HAPPEN.
 #
@@ -670,7 +626,6 @@ arrive_early_max_minutes = 15
 # ---------------------------------------------------------------------------------------------------
 [households]
 car_ownership_percent = 0
-
 opening_balance_min = 0
 opening_balance_max = 25600
 
@@ -681,31 +636,26 @@ origin_north_tiles = 0
 [[lattice]]
 origin_east_tiles  = 2048
 origin_north_tiles = 0
-
 # adr/0134's four keys, and NOT ONE OF THEM IS CONSULTED ON THIS WORLD. See the header: the field is
 # flat, so no peak ever dies at a saddle and no boundary is ever contested. Every value the loader
 # admits gives the same two Districts here. plans/0002 §D1 carries all three unratified rows and names
 # milestone 15 -- the first world with a density GRADIENT in it -- as what would ratify or refute them.
 [districts]
-
 # How far a concentration must stand above the saddle joining it to a taller one, as a percentage OF
 # ITS OWN HEIGHT, before it is a centre of its own. Relative and not a Building count, because an
 # absolute threshold would be tied without saying so to `[lots] lots_per_segment`. A midpoint of the
 # range the loader admits and nothing more.
 prominence_percent = 50
-
 # How often the extent is re-derived. ⚠ NOT A MAP LAYER CADENCE and must not be moved to `[layers]` by
 # resemblance -- adr/0044 owns that one, it is read in a different phase and it is about a different
 # field. 2,048 Ticks is ONE DAY, and it is chosen for the reason a Day is chosen anywhere here: it is
 # the shortest period over which a city's shape could plausibly have changed, and a boundary that
 # redrew faster than a person could notice would be a boundary nobody could be told about.
 revisit_ticks = 2048
-
 # How decisively the field must favour a new District before a Cell changes, as a percentage of the
 # level its own basin reaches it at. adr/0134: "a Cell changes District only when the field difference
 # clears a band, NEVER ON A TIE." 50 is the midpoint again.
 hysteresis_percent = 50
-
 # The most Cells that may change District in one re-evaluation. ⚠ IT BOUNDS HOW FAR THE BOUNDARY MOVES
 # AND NOT HOW MUCH WORK THE EVALUATION DOES -- a work bound would be a profiler's number, and sizing a
 # District from a profiler is what plans/0037 forbids by name. ⚠ 16 IS A GUESS WITH A RATIFIER AND NOT
@@ -713,7 +663,6 @@ hysteresis_percent = 50
 # Day -- each Cell being 32x32 Tiles, about 128 m a side -- which is slow enough that a player watching
 # one move could say what moved and why. Nothing measured it; milestone 15 is what would.
 migrate_cells = 16
-
 # ---------------------------------------------------------------------------------------------------
 # TWO HINTERLANDS, AND THEY EXIST TO PUT A CEILING UNDER THE POOL PRICE RATHER THAN A DOOR IN THE MAP.
 # Milestone 12 task 6, adr/0135. THIS FILE DECLARES NO GATE KIND, so nothing ever arrives through
@@ -759,7 +708,6 @@ prices = [
   { resource = "sundries", price = 120 },
   { resource = "repairs",  price = 200 },
 ]
-
 # ---------------------------------------------------------------------------------------------------
 # THE MARKET'S DAMPING, AND NEITHER KEY IS A PRICE. Milestone 12 task 6, adr/0135. A Pool price is
 # never authored: it opens at the import ceiling above and moves from there by a damped tâtonnement,
@@ -780,7 +728,6 @@ prices = [
 # kind sells into the Pool and a consumer draws out of it. plans/0002 §D1 carries a row each and names
 # milestone 12's own acceptance run.
 [market]
-
 # How much of the standing consumption rate survives one Day, as a percentage; the rest of the weight
 # goes to the Day just ended. ZERO IS ALLOWED and means no smoothing at all -- the rate is the Day's
 # own draw, which is a real and rather twitchy market. 100 is refused, because a rate that never takes
@@ -788,7 +735,6 @@ prices = [
 # appears to be damping it. 50 is the midpoint of the admitted range and nothing more, which is this
 # file's habit for a number with no measurement behind it.
 decay_percent = 50
-
 # The furthest a price may travel in one recompute, as a percentage of the import ceiling. At 10 a
 # price needs ten Days to cross its whole range, which is the property this number is chosen for: slow
 # enough that a player watching a price move could say what moved it. ⚠ IT IS WHAT STOPS 04 §4's
