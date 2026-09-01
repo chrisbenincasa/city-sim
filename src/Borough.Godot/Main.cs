@@ -1853,7 +1853,12 @@ public partial class Main : Node3D
         float wanted = PlotDepthMetres * (0.8f + (((shape >> 16) & 0xFFu) / 255f * 0.6f));
         float room = ((blockTiles * MetresPerTile) - RoadWidthMetres) * 0.5f;
 
-        return room > 4f ? Mathf.Min(wanted, room * 0.8f) : wanted;
+        // 🔴 0.95 AND NOT 0.8, AND THE DIFFERENCE ONLY SHOWS ON A SMALL BLOCK. At the shipped
+        // block_tiles = 32 the room is 60 m and the wanted depth is 21-36, so the cap never bites;
+        // at 16 it is 28 m and the cap IS the depth. Holding a fifth back there left a 21 m strip
+        // down the middle of a 64 m block, which is the one geometry a real city does not have --
+        // Manhattan's 61 m block is exactly two 30 m Lots and they meet. See plans/0049 F18.
+        return room > 4f ? Mathf.Min(wanted, room * 0.95f) : wanted;
     }
 
     /// <summary>Every standing Building, at its Lot, at the size its kind implies.</summary>
