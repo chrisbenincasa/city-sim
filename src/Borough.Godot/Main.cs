@@ -81,10 +81,52 @@ public partial class Main : Node3D
     /// no roof. A silhouette is all that reads at a high-level camera, so this is the cheapest
     /// variety in the drawing and the one that costs the simulation nothing at all.
     /// </remarks>
-    private const float RoofRiseLow = 0.30f;
+    /// <remarks>
+    /// ⚠ <b>It is a share of the span the roof CROSSES, so the band is an ANGLE.</b> A gable rises
+    /// over half its span, so a share <c>s</c> is <c>atan(2s)</c> off the horizontal and
+    /// 0.18–0.45 is <b>20° to 42°</b> — a low pantile at one end and a steep slate at the other,
+    /// which is the band English streets are actually built in. 🔴 <b>It was 0.30–0.75 and the
+    /// band was never the reason every roof looked alike</b>: the roof was cut flush with its own
+    /// wall, so there was no eave line for the eye to measure an angle against. See
+    /// <see cref="EavesMetres"/> — <i>widening a band that nothing renders is not a change.</i>
+    /// </remarks>
+    private const float RoofRiseLow = 0.18f;
 
     /// <inheritdoc cref="RoofRiseLow"/>
-    private const float RoofRiseHigh = 0.75f;
+    private const float RoofRiseHigh = 0.45f;
+
+    /// <summary>The tallest a gable rises, whatever its span. <b>A cap and not a band.</b></summary>
+    /// <remarks>
+    /// 🔴 <b>A SHARE OF THE SPAN ALONE PUT A MOUNTAIN ON A DEEP BUILDING.</b> The share is an
+    /// angle, and an angle held over a 36 m span is a 16 m roof — taller than the house under it.
+    /// Real buildings do not solve this by flattening the pitch; they stop using one ridge and
+    /// break the roof up, which is geometry this shell does not have. So the pitch is held and the
+    /// rise is clamped, which reads as the shallow roof a deep building actually has.
+    /// </remarks>
+    private const float RoofRiseCeilingMetres = 7.5f;
+
+    /// <summary>How far a roof oversails its wall. <b>What makes a pitch legible.</b></summary>
+    /// <remarks>
+    /// <see cref="PlotDepthMetres"/>' class of thing and labelled as one — the city holds no eaves.
+    /// A real overhang is 300–600 mm; this is larger because the camera is fifty metres up and a
+    /// half-metre line is a pixel. What it buys is a <b>shadow at the wall head</b>, which is the
+    /// edge a roof's angle is actually read against.
+    /// </remarks>
+    private const float EavesMetres = 0.9f;
+
+    /// <summary>The two roofing tones a Building draws between, in sRGB.</summary>
+    /// <remarks>
+    /// ⚠ <b>Two tones and a jitter, rather than one colour</b> — a terrace roofed in exactly one
+    /// red reads as moulded plastic, and the variation costs a draw off the same scramble the
+    /// massing already took. <b>Neither is a state</b>: an abandoned Building is painted
+    /// <see cref="Derelict"/> over the top of whichever it drew, because a shell that kept a warm
+    /// roof would be the liveliest thing on the street.
+    /// </remarks>
+    private static readonly Color[] Roofs =
+    [
+        new(0.55f, 0.33f, 0.26f),   // clay tile, and the shell's original
+        new(0.36f, 0.34f, 0.36f),   // slate
+    ];
 
     /// <summary>How much of a Cell's Woodland becomes a drawn tree, at most.</summary>
     /// <remarks>
@@ -144,7 +186,25 @@ public partial class Main : Node3D
     private const float BuildingHeightMetres = 3f * StoreyMetres;
 
     /// <summary>What a Building in use is drawn as. Warm stone, and the shell's original.</summary>
+    /// <remarks>
+    /// ⚠ <b>It is the CENTRE of a band and no longer the whole of it</b> — see
+    /// <see cref="Rendered"/>. The value is unchanged, so a Building that draws the middle of the
+    /// band is painted exactly what every Building was painted before.
+    /// </remarks>
     private static readonly Color Standing = new(0.55f, 0.52f, 0.45f);
+
+    /// <summary>How far a wall wanders off <see cref="Standing"/>, each way.</summary>
+    /// <remarks>
+    /// 🔴 <b>A TERRACE IN ONE COLOUR IS ONE EXTRUDED SLAB, whatever its silhouette does.</b> Five
+    /// Buildings share a Segment (<c>adr/0078</c>) and stand shoulder to shoulder, so the only
+    /// thing separating two of them in the picture was a shadow — and a shadow between two
+    /// surfaces of identical albedo reads as a crease in one surface rather than as a gap between
+    /// two. ⚠ <b>Narrow on purpose</b>: it must never approach <see cref="Derelict"/>, because
+    /// abandonment is the one thing a Building's colour is allowed to MEAN. At ±10% of value a
+    /// standing wall is 0.24–0.29 in linear and a shell is 0.033, which is the gap the wall
+    /// shader's own ruin test sits in.
+    /// </remarks>
+    private const float RenderedSpread = 0.10f;
 
     /// <summary>
     /// What an <b>abandoned</b> Building is drawn as — <b>the state the picture could not show.</b>
@@ -182,7 +242,7 @@ public partial class Main : Node3D
     private static readonly Color Derelict = new(0.20f, 0.19f, 0.18f);
 
     /// <summary>A pitched roof, warm against the wall so the silhouette has an edge.</summary>
-    private static readonly Color Roofing = new(0.55f, 0.33f, 0.26f);
+    private static readonly Color Roofing = Roofs[0];
 
     /// <summary>What the five <see cref="TerrainKind"/>s look like, in sRGB.</summary>
     /// <remarks>
@@ -584,42 +644,50 @@ public partial class Main : Node3D
         // Street beside a 128-metre block looks like the widest thing in the city. ***Two separate
         // readings of this shell as broken traced back to the same absence***: a flood covering the
         // frame read as the camera drifting out to sea, and a correctly-scaled Street read as huge.
-        _ground = Layer(new Color(0.16f, 0.17f, 0.14f), new Vector3(1f, 1f, 1f));
+        _ground = Layer(new Color(0.16f, 0.17f, 0.14f), new Vector3(1f, 1f, 1f), casts: false);
 
         // 01 §5.3'S POSTED PRICE, and it is drawn UNDER everything the city puts on top of it --
         // under the roads at a tenth of a metre and under the sea at WaterMetres. That is the whole
         // point of the height: the risk is a property of the GROUND, so a Street laid across a
         // floodplain must read as a Street on a floodplain and not as a floodplain interrupted.
-        _hazard = Layer(new Color(0.34f, 0.25f, 0.17f), new Vector3(1f, 1f, 1f));
+        _hazard = Layer(new Color(0.34f, 0.25f, 0.17f), new Vector3(1f, 1f, 1f), casts: false);
 
         // WHAT THE CURSOR IS OVER, and it is a CELL rather than a Tile on purpose. A Tile is 4 m
         // and vanishes at any zoom that shows a neighbourhood; a Cell is 128 m and is the box the
         // pick actually resolves Buildings against (BuildingResidency.In). ***A marker that is not
         // the thing the query used is a marker that lies at the edges.***
-        _cursor = Layer(new Color(0.95f, 0.80f, 0.25f), new Vector3(1f, 1f, 1f));
+        _cursor = Layer(new Color(0.95f, 0.80f, 0.25f), new Vector3(1f, 1f, 1f), casts: false);
 
         // but they sit at almost the same height, and painting the standing water last is what makes
         // a rising tide read as arriving rather than as flickering.
-        _water = Layer(new Color(0.10f, 0.22f, 0.42f), new Vector3(1f, 1f, 1f));
-        _flood = Layer(new Color(0.20f, 0.48f, 0.78f), new Vector3(1f, 1f, 1f));
-        _roads = Layer(new Color(0.30f, 0.30f, 0.33f), new Vector3(1f, 0.1f, 1f));
+        _water = Layer(new Color(0.10f, 0.22f, 0.42f), new Vector3(1f, 1f, 1f), casts: false);
+        _flood = Layer(new Color(0.20f, 0.48f, 0.78f), new Vector3(1f, 1f, 1f), casts: false);
+        _roads = Layer(new Color(0.30f, 0.30f, 0.33f), new Vector3(1f, 0.1f, 1f), casts: false);
 
         // 🔴 A VACANT LOT DREW NOTHING AT ALL, so Zone -- which creates Lots and never a Building --
         // had NO visible result on any world. Buildings() walks the Building table, and a Lot with
         // nothing on it is not in it. ***The subdivision is the thing the verb does***, and until
         // this layer existed the only way to see one was to wait for the simulation to build on it,
         // which on a world with an empty Unplaced Pool never happens.
-        _plots = Layer(new Color(0.42f, 0.52f, 0.30f), Vector3.One, perInstance: true);
+        _plots = Layer(new Color(0.42f, 0.52f, 0.30f), Vector3.One, perInstance: true, casts: false);
 
         // OFF by default. It is an instrument rather than scenery -- it answers "how big is a Cell
         // against this Building", and a person who has not asked that question does not want a
         // 128-metre lattice drawn over their city.
-        _cells = Layer(new Color(0.55f, 0.45f, 0.25f), new Vector3(1f, 0.1f, 1f));
+        _cells = Layer(new Color(0.55f, 0.45f, 0.25f), new Vector3(1f, 0.1f, 1f), casts: false);
         _cells.Visible = false;
 
         // A UNIT BOX, with the size composed per instance rather than baked into the mesh, which is
         // what lets one draw call hold Buildings of different shapes.
-        _buildings = Layer(Standing, Vector3.One, perInstance: true);
+        //
+        // ⚠ THE OPENINGS ARE PAINTED ON AND NOT MODELLED, which is the only way 65,536 of them fit
+        // in one draw call. buildings.gdshader recovers the box's metres from the instance
+        // transform, so a Building drawn taller gets more storeys without anybody counting them --
+        // and it reads two things the CITY knows out of the fourth per-instance channel: which
+        // kerb the Lot steps to, which is where the front door goes (adr/0074), and how much of
+        // the kind's declared room is occupied, which is how many openings are shuttered.
+        _buildings = Layer(
+            Standing, new BoxMesh { Size = Vector3.One }, true, "res://buildings.gdshader");
 
         // A SECOND MESH AND NOT A SECOND BOX. A roof is the only part of a Building that is not a
         // cuboid, and a silhouette is what reads at the camera this game is played at -- so the
@@ -1946,6 +2014,39 @@ public partial class Main : Node3D
         return room > 4f ? Mathf.Min(wanted, room * 0.95f) : wanted;
     }
 
+    /// <summary>What one Building's walls are, which is <see cref="Standing"/> and a wander.</summary>
+    /// <remarks>
+    /// ⚠ <b>Value and warmth, and not hue.</b> Moving the hue gives a painted street; moving how
+    /// light a wall is and how warm gives a street of the same stone weathered differently, which
+    /// is what a terrace is. Both draws come off the same scramble the massing took, so a Building
+    /// keeps its colour for as long as it stands and a rebuilt one on the same Lot is visibly new.
+    /// </remarks>
+    private static Color Rendered(ulong shape)
+    {
+        float shade = 1f + ((((shape >> 44) & 0xFu) / 15f) - 0.5f) * (RenderedSpread * 2f);
+        float warm = 1f + ((((shape >> 37) & 7u) / 7f) - 0.5f) * 0.09f;
+
+        return new Color(
+            Mathf.Min(Standing.R * shade * warm, 1f),
+            Standing.G * shade,
+            Standing.B * shade / warm);
+    }
+
+    /// <summary>What one Building's roof is covered in — a tone, and a jitter on it.</summary>
+    /// <remarks>
+    /// ⚠ <b>Weighted, and the weighting is the whole point.</b> A fair coin between two tones
+    /// gives a chequerboard; one roofing in five puts a slate roof in a street of tile, which is
+    /// what a street of them looks like. It is <see cref="PlotDepthMetres"/>' class of thing and
+    /// draws on no <c>purpose_tag</c>.
+    /// </remarks>
+    private static Color Slate(ulong shape)
+    {
+        Color tone = Roofs[((shape >> 24) & 7u) == 0u ? 1 : 0];
+        float shade = 0.86f + (((shape >> 28) & 0xFu) / 15f * 0.28f);
+
+        return new Color(tone.R * shade, tone.G * shade, tone.B * shade);
+    }
+
     /// <summary>Every standing Building, at its Lot, at the size its kind implies.</summary>
     /// <remarks>
     /// <para>
@@ -2066,9 +2167,32 @@ public partial class Main : Node3D
             // scales an already-turned box on the wrong axes, which is Fill's own warning one
             // transform up.
             bool pitched = ((shape >> 32) & 3u) != 0u && tall <= PitchCeilingMetres;
-            float rise = deep
-                * (RoofRiseLow + (((shape >> 40) & 0xFFu) / 255f * (RoofRiseHigh - RoofRiseLow)));
-            Basis cap = Basis.FromScale(new Vector3(deep, rise, along));
+
+            // ⚠ WHICH WAY THE RIDGE RUNS IS A DRAW, and it is the one roof variation that changes
+            // the SILHOUETTE rather than the slope. A ridge along the Street is what makes a
+            // terrace read as a terrace, so it stays the common case; a minority turn the gable to
+            // face the kerb, which is what a row of them actually looks like. It is refused on a
+            // Building much wider than it is deep, because turning that gable puts the ridge over
+            // a fifty-metre span and the roof ends up taller than the house.
+            bool crossed = ((shape >> 34) & 7u) == 0u && along <= deep * 1.2f;
+            float slope = crossed ? along : deep;
+            float ridge = crossed ? deep : along;
+
+            // ⚠ THE RISE IS A SHARE OF THE SPAN THE ROOF CROSSES AND NOT OF THE DEPTH, which is
+            // what makes the band an ANGLE rather than a height: 0.25 to 0.85 of a half-span is
+            // 27° to 60° off the horizontal, and it has to be measured against the span the ridge
+            // is actually turned across or a cross-gabled roof reads at the wrong pitch entirely.
+            float rise = Mathf.Min(
+                slope * (RoofRiseLow
+                    + (((shape >> 40) & 0xFFu) / 255f * (RoofRiseHigh - RoofRiseLow))),
+                RoofRiseCeilingMetres);
+
+            // 🔴 THE EAVES ARE WHY A PITCH READS AT ALL. A roof cut flush with its own wall meets
+            // it as a colour change and nothing else, so every slope looked like the same slope
+            // from the camera this game is played at. An overhang puts a line and a shadow at the
+            // junction, and the line is the thing the eye measures the angle against.
+            Basis cap = Basis.FromScale(
+                new Vector3(slope + (EavesMetres * 2f), rise, ridge + (EavesMetres * 2f)));
 
             // THE OUTBUILDING, standing further from the Street than its Building is. `back` is
             // which way that is -- the same sign the setback above already chose, kept rather than
@@ -2085,19 +2209,46 @@ public partial class Main : Node3D
                 ? new Vector3(wide, shed * 0.8f, shed)
                 : new Vector3(shed, shed * 0.8f, wide);
 
+            // ⚠ THE TURN IS AN EXCLUSIVE OR AND THAT IS NOT A TRICK. A PrismMesh slopes across its
+            // own X and runs its ridge along its own Z, so the quarter turn is owed whenever the
+            // ridge is supposed to run east–west — which is a Building on a horizontal Street with
+            // its ridge along the kerb, OR one on a vertical Street with its gable turned to face
+            // the kerb, and not both at once.
+            Basis capped = horizontal != crossed ? Quarter * cap : cap;
+
+            // WHICH KERB THE BUILDING FACES, as the outward normal of its own street face, which
+            // is Side read one more time rather than re-derived. `back` is already the direction
+            // AWAY from the Street, so the frontage is its negation. ⚠ It goes into the drawing in
+            // WORLD axes and not the Lot's, because that is the frame the shader meets it in --
+            // and world +Z is SOUTH, since a position is composed with -north.
+            float faceEast = horizontal ? 0f : -back;
+            float faceSouth = horizontal ? back : 0f;
+
+            // HOW MUCH OF THE KIND'S ROOM IS TAKEN, which the panel already prints as "3 of 4
+            // occupied" and which nothing in the picture has ever said. ⚠ The ceiling counts
+            // tenants of any kind (adr/0147), so a shop takes one of them.
+            int room = _world.Rules.Declares(kind) ? _world.Rules.Kind(kind).Occupants : 0;
+            float taken = room > 0
+                ? Mathf.Clamp(_world.Occupants.Length(slot) / (float)room, 0f, 1f)
+                : 1f;
+
             yield return new Massing(
                 id,
                 new Transform3D(Basis.FromScale(plan), new Vector3(east, tall * 0.5f, -north)),
-                new Transform3D(
-                    horizontal ? Quarter * cap : cap,
-                    new Vector3(east, tall + (rise * 0.5f), -north)),
+                new Transform3D(capped, new Vector3(east, tall + (rise * 0.5f), -north)),
                 new Transform3D(
                     Basis.FromScale(hut),
                     new Vector3(
                         east + (horizontal ? 0f : back * off),
                         shed * 0.4f,
                         -(north + (horizontal ? back * off : 0f)))),
-                (table.IsAbandoned(slot) ? Derelict : Standing).SrgbToLinear(),
+                (table.IsAbandoned(slot) ? Derelict : Rendered(shape)).SrgbToLinear(),
+                Slate(shape).SrgbToLinear(),
+                new Color(
+                    (faceEast + 1f) * 0.5f,
+                    (faceSouth + 1f) * 0.5f,
+                    table.IsAbandoned(slot) ? 0f : taken,
+                    ((shape >> 56) & 0xFFu) / 255f),
                 pitched,
                 outhoused);
         }
@@ -2299,12 +2450,25 @@ public partial class Main : Node3D
     /// and the gable share a setback, a footprint and a scramble, and a second walk deriving them
     /// again is <c>plans/0012</c> <b>Cause 1</b> with a frame between the copies.
     /// </remarks>
+    /// <param name="Slate">
+    /// What the roof is covered in, <b>before the shell's paint is allowed to overrule it</b>.
+    /// </param>
+    /// <param name="Reads">
+    /// <b>The four per-instance channels the wall shader reads</b>, and two of them are the city's:
+    /// <c>r</c> and <c>g</c> are the street face's outward normal remapped from −1…1, which is the
+    /// Lot's Side and therefore where the front door goes; <c>b</c> is occupancy as a share of the
+    /// kind's declared room; <c>a</c> is the Building's own draw so two identical boxes are not
+    /// identically fenestrated. ⚠ <b>It is a <see cref="Color"/> because that is the type
+    /// <c>MultiMesh</c> takes, and not one of them is a colour.</b>
+    /// </param>
     private readonly record struct Massing(
         ulong Id,
         Transform3D Body,
         Transform3D Roof,
         Transform3D Yard,
         Color Paint,
+        Color Slate,
+        Color Reads,
         bool Pitched,
         bool Outhoused);
 
@@ -2333,7 +2497,8 @@ public partial class Main : Node3D
 
             _buildingIds.Add(one.Id);
             _buildings.Multimesh.SetInstanceTransform(bodies, one.Body);
-            _buildings.Multimesh.SetInstanceColor(bodies++, one.Paint);
+            _buildings.Multimesh.SetInstanceColor(bodies, one.Paint);
+            _buildings.Multimesh.SetInstanceCustomData(bodies++, one.Reads);
 
             if (one.Outhoused && yards < _yards.Multimesh.InstanceCount)
             {
@@ -2355,7 +2520,7 @@ public partial class Main : Node3D
             // ⚠ THE ROOF OF A SHELL IS THE SHELL'S COLOUR AND NOT THE ROOFING. An abandoned
             // Building that kept a warm red roof would read as the liveliest thing on the street.
             _roofs.Multimesh.SetInstanceColor(
-                roofs++, one.Paint == Derelict.SrgbToLinear() ? one.Paint : Roofing.SrgbToLinear());
+                roofs++, one.Paint == Derelict.SrgbToLinear() ? one.Paint : one.Slate);
         }
 
         _buildings.Multimesh.VisibleInstanceCount = bodies;
@@ -3715,6 +3880,14 @@ public partial class Main : Node3D
                 },
             },
             Position = new Vector3(side * 0.5f, 0.01f, -side * 0.5f),
+
+            // 🔴 THE ONE CASTER THAT PUT THE WHOLE MAP IN SHADOW. A 65.5 km plane at y = 0.01
+            // casts onto the ground it IS, and the only thing keeping that off the screen is the
+            // depth bias — which is denominated in shadow-map texels, and a cascade stretched over
+            // kilometres has texels metres wide. ***So it looked right at a street and turned the
+            // entire city black from a kilometre up***, which is a lighting bug that reads exactly
+            // like the sun having gone out. A flat plane cannot shadow anything but itself.
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
         };
 
         AddChild(_land);
@@ -3865,19 +4038,52 @@ public partial class Main : Node3D
     /// <c>InstanceCount</c></b> — Godot allocates the instance buffer on the count, and a format
     /// changed afterwards is a resize the engine declines to do.
     /// </remarks>
-    private MultiMeshInstance3D Layer(Color colour, Vector3 size, bool perInstance = false) =>
-        Layer(colour, new BoxMesh { Size = size }, perInstance);
+    private MultiMeshInstance3D Layer(
+        Color colour, Vector3 size, bool perInstance = false, bool casts = true) =>
+        Layer(colour, new BoxMesh { Size = size }, perInstance, casts: casts);
 
     /// <inheritdoc cref="Layer(Color, Vector3, bool)"/>
     /// <summary>The same, for a layer whose instances are not boxes.</summary>
-    private MultiMeshInstance3D Layer(Color colour, PrimitiveMesh mesh, bool perInstance = false)
+    /// <remarks>
+    /// ⚠ <b><paramref name="painted"/> is a SHADER and not a colour, and it brings the fourth
+    /// per-instance channel with it.</b> A <c>MultiMesh</c>'s custom data costs nothing until
+    /// something declares it, and nothing but the Buildings has anything to put there — so it is
+    /// switched on by the same argument that switches on the shader rather than by a flag of its
+    /// own, and a layer drawn by the stock material cannot be handed data no material will read.
+    /// </remarks>
+    /// <param name="casts">
+    /// 🔴 <b>Whether the layer is in the SHADOW PASS, and a flat one must not be.</b> Everything
+    /// lying on the ground — the ground, the water, the flood, the Hazard Region, the
+    /// carriageway, a vacant Lot's pad, the Cell lattice, the cursor — is a slab a fraction of a
+    /// metre thick, casting a shadow onto the surface it is already covering. It is invisible and
+    /// it is not free: a cascaded directional shadow rasterises every caster once per split, and
+    /// on <c>bordered.toml</c> that is <b>535,817</b> Segments drawn four extra times a frame to
+    /// produce nothing. ⚠ <b>It is stated per layer rather than inferred from the mesh</b>,
+    /// because the flat ones are unit boxes squashed by their instance transforms and the mesh
+    /// does not know.
+    /// </param>
+    private MultiMeshInstance3D Layer(
+        Color colour,
+        PrimitiveMesh mesh,
+        bool perInstance = false,
+        string? painted = null,
+        bool casts = true)
     {
-        var material = new StandardMaterial3D
+        Material material;
+
+        if (painted is null)
         {
-            AlbedoColor = perInstance ? Colors.White : colour,
-            VertexColorUseAsAlbedo = perInstance,
-            Roughness = 0.9f,
-        };
+            material = new StandardMaterial3D
+            {
+                AlbedoColor = perInstance ? Colors.White : colour,
+                VertexColorUseAsAlbedo = perInstance,
+                Roughness = 0.9f,
+            };
+        }
+        else
+        {
+            material = new ShaderMaterial { Shader = GD.Load<Shader>(painted) };
+        }
 
         mesh.Material = material;
 
@@ -3885,6 +4091,7 @@ public partial class Main : Node3D
         {
             TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
             UseColors = perInstance,
+            UseCustomData = painted is not null,
         };
 
         multi.Mesh = mesh;
@@ -3893,29 +4100,108 @@ public partial class Main : Node3D
 
         var node = new MultiMeshInstance3D { Multimesh = multi };
 
+        if (!casts)
+        {
+            node.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
+        }
+
         AddChild(node);
 
         return node;
     }
 
     /// <summary>A light, so the boxes have faces rather than silhouettes.</summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THE SUN CAST NOTHING UNTIL 2026-09-01, AND A CITY WITHOUT SHADOWS HAS NO GROUND.</b>
+    /// Every Building met the grass at a hard seam, so a box read as a sprite pasted over the map
+    /// rather than as a thing standing on it — and a roof's pitch, which is entirely a matter of
+    /// two planes catching the light differently, was being read off a colour change alone.
+    /// ***The lighting was correct and there was nothing under it***, which in a screenshot looks
+    /// exactly like flat art.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The split distances are set against the CITY and not against the map.</b> A directional
+    /// shadow fits its cascades into <c>DirectionalShadowMaxDistance</c>, and the default 100 m
+    /// puts every cascade inside one block — so at the standoff this game is played at the shadows
+    /// would simply stop a few metres from the eye. The map is 65.5 km and framing the whole of it
+    /// would spend every cascade on empty ground, so the distance is the neighbourhood a person
+    /// actually looks at.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The sky is a gradient rather than a colour, and it is the ambient source.</b> A flat
+    /// background makes the map's edge read as the end of the world; a horizon puts the edge
+    /// somewhere. Taking ambient from the same sky is what makes a north wall blue and a roof
+    /// bright, which is the second thing a pitch is read by.
+    /// </para>
+    /// </remarks>
     private void Sun()
     {
-        var light = new DirectionalLight3D { LightEnergy = 1.1f };
+        var light = new DirectionalLight3D
+        {
+            LightEnergy = 1.25f,
+            LightColor = new Color(1.0f, 0.96f, 0.88f),
+            ShadowEnabled = true,
+            DirectionalShadowMode = DirectionalLight3D.ShadowMode.Parallel4Splits,
+            // ⚠ THE CASCADES ARE FITTED ROUND THE CAMERA AND A LONG RANGE IS NOT A FREE ONE. The
+            // engine's default 100 m puts every split inside one block; the map is 65.5 km and
+            // framing it would spend the whole atlas on empty ground and give the city texels
+            // metres wide. This is the neighbourhood a person looks at, and past the fade a
+            // distant city is unshadowed rather than wrong.
+            DirectionalShadowMaxDistance = 1_600f,
+            DirectionalShadowFadeStart = 0.85f,
+            DirectionalShadowSplit1 = 0.06f,
+            DirectionalShadowSplit2 = 0.16f,
+            DirectionalShadowSplit3 = 0.44f,
+            ShadowBlur = 1.1f,
+        };
 
-        light.RotateX(-1.1f);
-        light.RotateY(-0.6f);
+        // ⚠ NOT NOON. A sun overhead lights every roof identically and leaves no wall in shadow,
+        // which is the one lighting angle at which a pitched roof and a flat one look the same.
+        light.RotateX(-0.78f);
+        light.RotateY(-0.62f);
+        light.SetParam(Light3D.Param.ShadowNormalBias, 1.6f);
+        light.SetParam(Light3D.Param.ShadowBias, 0.06f);
         AddChild(light);
+
+        var above = new ProceduralSkyMaterial
+        {
+            SkyTopColor = new Color(0.28f, 0.42f, 0.66f),
+            SkyHorizonColor = new Color(0.63f, 0.70f, 0.78f),
+            // ⚠ THE LOWER HEMISPHERE IS WHAT THE FRAME IS FULL OF, and that is the camera rather
+            // than a mistake: the eye is tipped 35° down and never moves, so the horizon sits
+            // above the top of the picture at every zoom the city is looked at from. What stands
+            // behind the map's edge is therefore always this, and a dark ground colour reads as
+            // the world having a hole cut round it. Haze instead.
+            GroundBottomColor = new Color(0.50f, 0.56f, 0.62f),
+            GroundHorizonColor = new Color(0.58f, 0.65f, 0.71f),
+            SunAngleMax = 12f,
+            SunCurve = 0.2f,
+        };
 
         var sky = new WorldEnvironment
         {
             Environment = new Godot.Environment
             {
-                BackgroundMode = Godot.Environment.BGMode.Color,
-                BackgroundColor = new Color(0.09f, 0.10f, 0.13f),
-                AmbientLightSource = Godot.Environment.AmbientSource.Color,
-                AmbientLightColor = new Color(0.35f, 0.38f, 0.45f),
-                AmbientLightEnergy = 0.9f,
+                BackgroundMode = Godot.Environment.BGMode.Sky,
+                Sky = new Sky { SkyMaterial = above },
+                AmbientLightSource = Godot.Environment.AmbientSource.Sky,
+                AmbientLightSkyContribution = 1f,
+                AmbientLightEnergy = 1.05f,
+
+                // ⚠ AN INSTRUMENT AS MUCH AS A LOOK. Occlusion is what puts a Building's own
+                // shadow in the corner where it meets the ground and in the gap between two of
+                // them, so a terrace reads as a terrace and a detached pair reads as two houses.
+                // The radius is a metre and a half, which is the gap the fill factor leaves.
+                SsaoEnabled = true,
+                SsaoRadius = 2.2f,
+                SsaoIntensity = 1.6f,
+                SsaoPower = 1.8f,
+
+                // The sun off a wall at this hour is bright enough to clip, and a clipped wall
+                // loses exactly the shading the openings are drawn against.
+                TonemapMode = Godot.Environment.ToneMapper.Filmic,
+                TonemapWhite = 2.2f,
             },
         };
 
