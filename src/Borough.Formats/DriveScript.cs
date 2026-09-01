@@ -75,6 +75,18 @@ public enum DriveVerb
     /// </remarks>
     Click,
 
+    /// <summary>
+    /// Put the camera over a Tile. <c>East</c> and <c>North</c> are the Tile;
+    /// <c>Amount</c> is an optional distance in metres, or 0 to keep the one it has.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>The only verb that moves the EYE rather than the world or the hand</b>, and the reason
+    /// it exists is that the zoom is clamped to the CITY's span — so nothing a script could do would
+    /// look at the other 64 kilometres of map. ***A landscape nobody can point a camera at cannot be
+    /// reviewed.***
+    /// </remarks>
+    Focus,
+
     /// <summary>End the run.</summary>
     Quit,
 }
@@ -257,6 +269,9 @@ public static class DriveScript
             // would silently re-aim every recorded session that had relied on it.
             DriveVerb.Hold =>
                 $"{at} hold {command.Path} {command.Amount.ToString(CultureInfo.InvariantCulture)}",
+            DriveVerb.Focus => command.Amount > 0
+                ? $"{at} focus {command.East} {command.North} {command.Amount}"
+                : $"{at} focus {command.East} {command.North}",
             DriveVerb.Click =>
                 $"{at} click {command.East.ToString(CultureInfo.InvariantCulture)} "
                 + $"{command.North.ToString(CultureInfo.InvariantCulture)}"
@@ -448,6 +463,38 @@ public static class DriveScript
                 return new DriveCommand(
                     tick, DriveVerb.Click, word.Length == 5 ? 1 : 0, null, east, north);
 
+            case "focus":
+                if (word.Length is < 4 or > 5)
+                {
+                    refusals.Add($"{file}:{line}: 'focus' takes an east Tile and a north Tile, and "
+                        + "optionally a distance in metres.");
+
+                    return null;
+                }
+
+                if (!int.TryParse(word[2], NumberStyles.None, CultureInfo.InvariantCulture, out int to)
+                    || !int.TryParse(word[3], NumberStyles.None, CultureInfo.InvariantCulture, out int up))
+                {
+                    refusals.Add($"{file}:{line}: 'focus' takes two Tile coordinates, not "
+                        + $"'{word[2]} {word[3]}'.");
+
+                    return null;
+                }
+
+                int away = 0;
+
+                if (word.Length == 5
+                    && (!int.TryParse(word[4], NumberStyles.None, CultureInfo.InvariantCulture, out away)
+                        || away <= 0))
+                {
+                    refusals.Add($"{file}:{line}: 'focus' takes a distance in metres above zero, "
+                        + $"not '{word[4]}'.");
+
+                    return null;
+                }
+
+                return new DriveCommand(tick, DriveVerb.Focus, away, null, to, up);
+
             case "shoot":
             case "readout":
             case "draw":
@@ -469,7 +516,7 @@ public static class DriveScript
 
             default:
                 refusals.Add($"{file}:{line}: no verb '{verb}'. There is pause, resume, speed, "
-                    + "roads, cells, turn, zoom, hold, click, shoot, readout, draw and quit.");
+                    + "roads, cells, turn, zoom, hold, click, focus, shoot, readout, draw and quit.");
 
                 return null;
         }

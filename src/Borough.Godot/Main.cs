@@ -155,6 +155,37 @@ public partial class Main : Node3D
     /// <summary>A pitched roof, warm against the wall so the silhouette has an edge.</summary>
     private static readonly Color Roofing = new(0.38f, 0.28f, 0.24f);
 
+    /// <summary>What the five <see cref="TerrainKind"/>s look like, in sRGB.</summary>
+    /// <remarks>
+    /// ⚠ <b>Indexed by the enum's own value</b>, which <c>TerrainKind</c>'s remarks call a
+    /// re-baseline to renumber — so this array is ordered by that numbering rather than by taste,
+    /// and a sixth kind lands at the end or not at all.
+    /// </remarks>
+    private static readonly Color[] Land =
+    [
+        new(0.36f, 0.44f, 0.24f),   // Ordinary   — pasture
+        new(0.47f, 0.45f, 0.41f),   // Rock       — bare stone
+        new(0.44f, 0.47f, 0.27f),   // Floodplain — silt, greener than pasture
+        new(0.27f, 0.35f, 0.28f),   // Marsh      — standing water in the grass
+        new(0.55f, 0.52f, 0.34f),   // ThinSoil   — dry, sandy
+    ];
+
+    /// <summary>Woodland, which the land is blended toward by how much of a Cell is wooded.</summary>
+    private static readonly Color Forest = new(0.16f, 0.29f, 0.15f);
+
+    /// <summary>Water, in the ground's own skin. <b>The bed and not the surface</b>.</summary>
+    private static readonly Color Shallows = new(0.13f, 0.26f, 0.36f);
+
+    /// <summary>Ground a flood can reach, which is a tint on whatever is already there.</summary>
+    /// <remarks>
+    /// ⚠ <b>A TINT AND NOT A COLOUR, because a floodplain is a claim ABOUT ground rather than a kind
+    /// of it</b> — a wooded floodplain and a rocky one must still read as wood and rock.
+    /// </remarks>
+    private static readonly Color Silt = new(0.38f, 0.33f, 0.24f);
+
+    /// <inheritdoc cref="Silt"/>
+    private const float SiltShare = 0.28f;
+
     /// <summary>A quarter turn about the vertical, for the gable whose ridge runs east-west.</summary>
     private static readonly Basis Quarter = Basis.FromEuler(new Vector3(0f, Mathf.Pi * 0.5f, 0f));
 
@@ -238,6 +269,8 @@ public partial class Main : Node3D
     private Rect2 _laid;
 
     private MultiMeshInstance3D _ground = null!;
+    private MeshInstance3D _land = null!;
+    private ImageTexture _skin = null!;
 
     private MultiMeshInstance3D _water = null!;
     private MultiMeshInstance3D _flood = null!;
@@ -553,6 +586,7 @@ public partial class Main : Node3D
 
         Ground();
         Hazard();
+        Surface();
         Flood();
         Pave();
         Sun();
@@ -808,6 +842,23 @@ public partial class Main : Node3D
 
             case DriveVerb.Hold:
                 Hold(command.Path!, command.Amount);
+
+                break;
+
+            case DriveVerb.Focus:
+                // ⚠ THE DISTANCE IS NOT CLAMPED AND A HAND'S ZOOM IS. Nearest/Furthest are derived
+                // from the CITY's span, which is the right leash for a mouse wheel and the wrong one
+                // for a review: it stops three kilometres out on a 65-kilometre map. A script is not
+                // a hand, and this is the one way to look at the other sixty-two.
+                _focus = new Vector3(
+                    command.East * MetresPerTile, 0f, -command.North * MetresPerTile);
+
+                if (command.Amount > 0)
+                {
+                    _distance = command.Amount;
+                }
+
+                Orbit();
 
                 break;
 
@@ -3089,7 +3140,14 @@ public partial class Main : Node3D
     /// measured worlds sit at 3–9%.
     /// </para>
     /// </remarks>
-    private void Hazard() => Fill(_hazard, Anonymous(AtRisk()));
+    private void Hazard()
+    {
+        Fill(_hazard, Anonymous(AtRisk()));
+
+        // OFF, on `_cells`' own bargain: it is an instrument rather than scenery, and since the
+        // skin carries the floodplain the box layer's only remaining reader is `draw`.
+        _hazard.Visible = false;
+    }
 
     /// <summary>
     /// Give a run of placements no identity, for the layers that draw <b>ground</b> rather than
@@ -3159,6 +3217,166 @@ public partial class Main : Node3D
         }
 
         _water.Multimesh.VisibleInstanceCount = drawn;
+    }
+
+    /// <summary>
+    /// Lays the ground's own skin: one texel a Cell, terrain blended toward Woodland.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>A TEXTURE AND NOT 262,144 COLOURED SQUARES, AND THE REASON IS THE FILTER.</b> The world
+    /// holds one <see cref="TerrainKind"/> and one Woodland count per <b>Cell</b>, which is 128 m —
+    /// so an instance apiece would draw the map as a chequerboard of hard 128 m tiles. A texel apiece
+    /// on one quad costs one draw call and gets <b>bilinear blending for free</b>, which is what a
+    /// shoreline and a field edge want. ⚠ <b>It is a smoothing of the DRAWING and not of the data</b>:
+    /// the hover still reads the Cell, and a Rule still gets the step.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Written in sRGB and NOT converted</b>, unlike every instance colour in this file — an
+    /// albedo texture is sRGB by contract and <see cref="Color.SrgbToLinear"/> here would wash the
+    /// whole map out. <see cref="Image.CreateFromData"/> rather than <c>SetPixel</c>, because a
+    /// quarter of a million interop calls at world creation is a visible pause.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Both tables are on EVERY world.</b> <c>TerrainGenerator</c> and <c>WoodlandGenerator</c>
+    /// run from the <c>WorldKey</c> alone — <em>"a file that states no <c>[terrain]</c> still gets
+    /// forest"</em> — so this is not a <c>varied.toml</c> feature. ***Every shipped Ruleset has had a
+    /// landscape since milestone 24 and not one of them has ever shown it.***
+    /// </para>
+    /// </remarks>
+    private void Skin()
+    {
+        const int side = CellGrid.WorldCells;
+        TerrainCellTable ground = _world.Layers.Terrain;
+        WoodlandCellTable trees = _world.Layers.Woodland;
+        byte[] texels = new byte[side * side * 3];
+
+        for (int north = 0; north < side; north++)
+        {
+            // The image's first row is the map's NORTH edge, because a texture's V runs down and the
+            // world's north runs up. Getting this wrong mirrors the landscape against the city.
+            int row = (side - 1 - north) * side * 3;
+
+            for (int east = 0; east < side; east++)
+            {
+                var where = new Cells(east);
+                var up = new Cells(north);
+                int kind = (int)ground.At(where, up);
+                Color paint = Land[kind >= 0 && kind < Land.Length ? kind : 0].Lerp(
+                    Forest,
+                    Mathf.Clamp(trees.At(where, up) / (float)CellGrid.TilesInCell, 0f, 1f));
+
+                texels[row + (east * 3)] = (byte)(paint.R * 255f);
+                texels[row + (east * 3) + 1] = (byte)(paint.G * 255f);
+                texels[row + (east * 3) + 2] = (byte)(paint.B * 255f);
+            }
+        }
+
+        // ⚠ THE FLOODPLAIN IS GROUND AND GOES IN THE GROUND, UNDER the sea so water wins a Cell
+        // that is both. Drawn as 11,063 boxes a fifth of a metre up it STRIPED at map distance --
+        // depth precision at 30 km against a 0.02 m lift -- and read as corrupted terrain rather
+        // than as risk. ⚠ The box layer SURVIVES and is hidden, because `plans/0048`'s answer is the
+        // draw list and a texture is invisible to one: `draw` still counts the Cells.
+        FloodCellTable plain = _world.Flood;
+
+        for (int slot = 0; slot < plain.Rows.SlotCount; slot++)
+        {
+            if (!plain.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            int at = Texel(plain.East[slot].Raw, plain.North[slot].Raw, side);
+
+            if (at < 0)
+            {
+                continue;
+            }
+
+            var wet = new Color(texels[at] / 255f, texels[at + 1] / 255f, texels[at + 2] / 255f)
+                .Lerp(Silt, SiltShare);
+
+            texels[at] = (byte)(wet.R * 255f);
+            texels[at + 1] = (byte)(wet.G * 255f);
+            texels[at + 2] = (byte)(wet.B * 255f);
+        }
+
+        // 🔴 THE SEA GOES IN THE SKIN AND NOT ONLY IN ITS OWN LAYER. A Water Body is 5,058 Cells on
+        // `coastal.toml` and a bigger one would pass the 65,536 an instance buffer holds -- and a
+        // box per Cell gives a STEPPED shoreline, which is the one edge on the map anybody looks at.
+        // The raised surface stays; this is what makes it read from three kilometres up.
+        WaterCellTable sea = _world.WaterCells;
+
+        for (int slot = 0; slot < sea.Rows.SlotCount; slot++)
+        {
+            if (!sea.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            int wet = Texel(sea.East[slot].Raw, sea.North[slot].Raw, side);
+
+            if (wet < 0)
+            {
+                continue;
+            }
+
+            texels[wet] = (byte)(Shallows.R * 255f);
+            texels[wet + 1] = (byte)(Shallows.G * 255f);
+            texels[wet + 2] = (byte)(Shallows.B * 255f);
+        }
+
+        Image image = Image.CreateFromData(side, side, false, Image.Format.Rgb8, texels);
+
+        if (_skin is null)
+        {
+            _skin = ImageTexture.CreateFromImage(image);
+        }
+        else
+        {
+            _skin.Update(image);
+        }
+    }
+
+    /// <summary>Where a Cell's three bytes start in the skin, or <c>-1</c> if it is off the map.</summary>
+    /// <remarks>
+    /// ⚠ <b>The image's first row is the map's NORTH edge</b>, because a texture's V runs down and
+    /// the world's north runs up. Getting this wrong mirrors the landscape against the city, which
+    /// is a defect that looks like a plausible different world.
+    /// </remarks>
+    private static int Texel(int east, int north, int side) =>
+        east >= 0 && east < side && north >= 0 && north < side
+            ? ((side - 1 - north) * side * 3) + (east * 3)
+            : -1;
+
+    /// <summary>The lit surface of the world, one quad carrying <see cref="Skin"/>.</summary>
+    /// <remarks>
+    /// ⚠ <b>A <c>PlaneMesh</c> and not the ground slab's box</b>, because a plane's UV runs 0..1
+    /// across it and a box's is an atlas over six faces. The slab stays underneath as the map's
+    /// visible thickness; this is the metre of it anybody looks at.
+    /// </remarks>
+    private void Surface()
+    {
+        float side = CellGrid.WorldTiles * MetresPerTile;
+
+        Skin();
+
+        _land = new MeshInstance3D
+        {
+            Mesh = new PlaneMesh
+            {
+                Size = new Vector2(side, side),
+                Material = new StandardMaterial3D
+                {
+                    AlbedoTexture = _skin,
+                    Roughness = 1f,
+                    TextureFilter = BaseMaterial3D.TextureFilterEnum.Linear,
+                },
+            },
+            Position = new Vector3(side * 0.5f, 0.01f, -side * 0.5f),
+        };
+
+        AddChild(_land);
     }
 
     /// <summary>What the weather is doing, or nothing at all when it is doing nothing.</summary>
@@ -4234,6 +4452,7 @@ public partial class Main : Node3D
         // The four layers laid once rather than per frame. Ground is fixed to the map and would
         // survive, but it is re-laid with the others so that "what a rebuild redoes" is one list.
         Ground();
+        Skin();
         Hazard();
         Flood();
         Pave();

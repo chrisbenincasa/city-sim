@@ -103,6 +103,10 @@ public sealed class DriveScriptTests
 
     [Theory]
     [InlineData("10 dance", "no verb 'dance'")]
+    [InlineData("10 focus", "an east Tile and a north Tile")]
+    [InlineData("10 focus 4096", "an east Tile and a north Tile")]
+    [InlineData("10 focus here 8192", "two Tile coordinates")]
+    [InlineData("10 focus 4096 8192 0", "a distance in metres above zero")]
     [InlineData("10", "with no verb after it")]
     [InlineData("tomorrow pause", "is not a Tick")]
     [InlineData("10 pause now", "takes 0 arguments")]
@@ -194,6 +198,8 @@ public sealed class DriveScriptTests
     [InlineData("100 hold zone 2")]
     [InlineData("100 click 4096 8192")]
     [InlineData("100 click 4096 8192 shift")]
+    [InlineData("100 focus 4096 8192")]
+    [InlineData("100 focus 4096 8192 30000")]
     public void A_command_spells_back_out_as_the_line_that_makes_it(string line)
     {
         // 🔴 THIS ROUND TRIP IS WHAT MAKES A LIVE SESSION REPRODUCIBLE. A socket stamps each
