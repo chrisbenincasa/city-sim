@@ -86,6 +86,23 @@ public partial class Main : Node3D
     /// <inheritdoc cref="RoofRiseLow"/>
     private const float RoofRiseHigh = 0.75f;
 
+    /// <summary>How much of a Cell's Woodland becomes a drawn tree, at most.</summary>
+    /// <remarks>
+    /// ⚠ <b>A drawing density and not the city's.</b> A Cell holds up to
+    /// <see cref="CellGrid.TilesInCell"/> = 1,024 wooded Tiles and drawing one crown per Tile would
+    /// be a quarter of a million trees around a small town. This is the count a <em>fully</em> wooded
+    /// Cell gets, and the Cell's own share scales it.
+    /// </remarks>
+    private const int CrownsPerCell = 22;
+
+    /// <summary>How far into a block a scattered thing must be to count as being in the yard.</summary>
+    /// <remarks>
+    /// 🔴 <b>Derived from the deepest Building rather than chosen</b> — half a carriageway, plus
+    /// <see cref="PlotDepthMetres"/> at its jitter's top, plus a metre. A tree inside this band would
+    /// stand in somebody's front room.
+    /// </remarks>
+    private const float YardMarginMetres = (RoadWidthMetres * 0.5f) + (PlotDepthMetres * 1.4f) + 1f;
+
     /// <summary>Above this, a Building gets a flat roof. <b>Tall things are not gabled.</b></summary>
     private const float PitchCeilingMetres = 24f;
 
@@ -100,7 +117,7 @@ public partial class Main : Node3D
     /// frontage</b>, which is what it was until it was found to make every density look the same —
     /// see <see cref="Depth"/>.
     /// </remarks>
-    private const float PlotDepthMetres = 12f;
+    private const float PlotDepthMetres = 26f;
 
     /// <summary>How tall one storey is drawn. A drawing height, and no kind states one.</summary>
     private const float StoreyMetres = 3.5f;
@@ -153,7 +170,7 @@ public partial class Main : Node3D
     private static readonly Color Derelict = new(0.20f, 0.19f, 0.18f);
 
     /// <summary>A pitched roof, warm against the wall so the silhouette has an edge.</summary>
-    private static readonly Color Roofing = new(0.38f, 0.28f, 0.24f);
+    private static readonly Color Roofing = new(0.55f, 0.33f, 0.26f);
 
     /// <summary>What the five <see cref="TerrainKind"/>s look like, in sRGB.</summary>
     /// <remarks>
@@ -185,6 +202,15 @@ public partial class Main : Node3D
 
     /// <inheritdoc cref="Silt"/>
     private const float SiltShare = 0.28f;
+
+    /// <summary>A tree's crown, and an outbuilding's walls.</summary>
+    private static readonly Color Crown = new(0.20f, 0.34f, 0.17f);
+
+    /// <inheritdoc cref="Crown"/>
+    private static readonly Color Outbuilding = new(0.42f, 0.39f, 0.34f);
+
+    /// <summary>A boulder, on the ground that has them.</summary>
+    private static readonly Color Boulder = new(0.44f, 0.42f, 0.40f);
 
     /// <summary>A quarter turn about the vertical, for the gable whose ridge runs east-west.</summary>
     private static readonly Basis Quarter = Basis.FromEuler(new Vector3(0f, Mathf.Pi * 0.5f, 0f));
@@ -247,6 +273,9 @@ public partial class Main : Node3D
     private World _world = null!;
     private MultiMeshInstance3D _buildings = null!;
     private MultiMeshInstance3D _roofs = null!;
+    private MultiMeshInstance3D _yards = null!;
+    private MultiMeshInstance3D _trees = null!;
+    private MultiMeshInstance3D _rocks = null!;
     private MultiMeshInstance3D _travellers = null!;
     private MultiMeshInstance3D _roads = null!;
     private MultiMeshInstance3D _plots = null!;
@@ -405,6 +434,8 @@ public partial class Main : Node3D
     private readonly List<ulong> _buildingIds = [];
 
     private readonly List<ulong> _roofIds = [];
+
+    private readonly List<ulong> _yardIds = [];
 
     /// <summary>Which Citizen each drawn Traveller is, in instance order.</summary>
     private readonly List<ulong> _travellerIds = [];
@@ -582,11 +613,20 @@ public partial class Main : Node3D
         // cuboid, and a silhouette is what reads at the camera this game is played at -- so the
         // gable is a PrismMesh off the shelf (adr/0018) rather than geometry anybody wrote.
         _roofs = Layer(Roofing, new PrismMesh { Size = Vector3.One }, perInstance: true);
+
+        // THE COURTYARD. A block's middle cannot hold a Lot (adr/0078) and these are not Lots: an
+        // outbuilding belongs to the Building in front of it and is drawn from its scramble, which
+        // is PlotDepthMetres' own bargain -- geometry the city does not have, invented so the
+        // picture reads as a city, and labelled so nobody promotes it to a Ruleset key.
+        _yards = Layer(Outbuilding, Vector3.One, perInstance: true);
+        _trees = Layer(Crown, new SphereMesh { Radius = 0.5f, Height = 1f, RadialSegments = 6, Rings = 3 });
+        _rocks = Layer(Boulder, Vector3.One);
         _travellers = Layer(new Color(1.0f, 0.45f, 0.15f), new Vector3(3f, 3f, 3f));
 
         Ground();
         Hazard();
         Surface();
+        Scatter();
         Flood();
         Pave();
         Sun();
@@ -1211,6 +1251,9 @@ public partial class Main : Node3D
         ("plot", _plots, true, _plotIds),
         ("building", _buildings, true, _buildingIds),
         ("roof", _roofs, true, _roofIds),
+        ("yard", _yards, true, _yardIds),
+        ("tree", _trees, false, null),
+        ("rock", _rocks, false, null),
         ("traveller", _travellers, false, _travellerIds),
     ];
 
@@ -1924,14 +1967,36 @@ public partial class Main : Node3D
                 * (RoofRiseLow + (((shape >> 40) & 0xFFu) / 255f * (RoofRiseHigh - RoofRiseLow)));
             Basis cap = Basis.FromScale(new Vector3(deep, rise, along));
 
+            // THE OUTBUILDING, standing further from the Street than its Building is. `back` is
+            // which way that is -- the same sign the setback above already chose, kept rather than
+            // re-derived. ⚠ It is a SHED and not an address: nothing in the city knows it is here,
+            // and a Rule can no more reach it than it can reach the roof.
+            float back = horizontal
+                ? (side == StreetSide.Left ? 1f : -1f)
+                : (side == StreetSide.Right ? 1f : -1f);
+            bool outhoused = ((shape >> 48) & 3u) != 0u;
+            float shed = 4f + (((shape >> 52) & 0xFu) / 15f * 5f);
+            float wide = Mathf.Min(along * 0.45f, 14f);
+            float off = (deep * 0.5f) + 5f + (shed * 0.5f);
+            Vector3 hut = horizontal
+                ? new Vector3(wide, shed * 0.8f, shed)
+                : new Vector3(shed, shed * 0.8f, wide);
+
             yield return new Massing(
                 id,
                 new Transform3D(Basis.FromScale(plan), new Vector3(east, tall * 0.5f, -north)),
                 new Transform3D(
                     horizontal ? Quarter * cap : cap,
                     new Vector3(east, tall + (rise * 0.5f), -north)),
+                new Transform3D(
+                    Basis.FromScale(hut),
+                    new Vector3(
+                        east + (horizontal ? 0f : back * off),
+                        shed * 0.4f,
+                        -(north + (horizontal ? back * off : 0f)))),
                 (table.IsAbandoned(slot) ? Derelict : Standing).SrgbToLinear(),
-                pitched);
+                pitched,
+                outhoused);
         }
     }
 
@@ -2126,7 +2191,13 @@ public partial class Main : Node3D
     /// again is <c>plans/0012</c> <b>Cause 1</b> with a frame between the copies.
     /// </remarks>
     private readonly record struct Massing(
-        ulong Id, Transform3D Body, Transform3D Roof, Color Paint, bool Pitched);
+        ulong Id,
+        Transform3D Body,
+        Transform3D Roof,
+        Transform3D Yard,
+        Color Paint,
+        bool Pitched,
+        bool Outhoused);
 
     /// <summary>Fills the body layer and the roof layer from one walk. Returns the Buildings.</summary>
     /// <remarks>
@@ -2138,9 +2209,11 @@ public partial class Main : Node3D
     {
         int bodies = 0;
         int roofs = 0;
+        int yards = 0;
 
         _buildingIds.Clear();
         _roofIds.Clear();
+        _yardIds.Clear();
 
         foreach (Massing one in massing)
         {
@@ -2152,6 +2225,15 @@ public partial class Main : Node3D
             _buildingIds.Add(one.Id);
             _buildings.Multimesh.SetInstanceTransform(bodies, one.Body);
             _buildings.Multimesh.SetInstanceColor(bodies++, one.Paint);
+
+            if (one.Outhoused && yards < _yards.Multimesh.InstanceCount)
+            {
+                _yardIds.Add(one.Id);
+                _yards.Multimesh.SetInstanceTransform(yards, one.Yard);
+                _yards.Multimesh.SetInstanceColor(
+                    yards++,
+                    one.Paint == Derelict.SrgbToLinear() ? one.Paint : Outbuilding.SrgbToLinear());
+            }
 
             if (!one.Pitched || roofs >= _roofs.Multimesh.InstanceCount)
             {
@@ -2169,6 +2251,7 @@ public partial class Main : Node3D
 
         _buildings.Multimesh.VisibleInstanceCount = bodies;
         _roofs.Multimesh.VisibleInstanceCount = roofs;
+        _yards.Multimesh.VisibleInstanceCount = yards;
 
         return bodies;
     }
@@ -3338,6 +3421,125 @@ public partial class Main : Node3D
         }
     }
 
+    /// <summary>
+    /// Trees and boulders, scattered over the Cells around the city.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THE BLOCK INTERIOR IS WHERE THESE LAND, AND THAT IS THE POINT.</b> A Lot is an address —
+    /// a distance along a Segment and a side — so nothing in the city can name a point in the middle
+    /// of a block (<c>adr/0078</c>), and at the shipped <c>block_tiles = 32</c> that middle is most
+    /// of the block. ***It is the one large surface the renderer may dress without lying***, and
+    /// bare it read as countryside that had been fenced off.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The count comes from the world and the positions do not.</b> Woodland is
+    /// <c>(saved AND hashed)</c>, one count a Cell, and <see cref="MapLayers.Seal"/> takes it back as
+    /// ground is built on — so a Cell's tree count is the city's own number and a built Cell thins
+    /// out by itself. Where each crown stands is <see cref="Scramble"/>'s, which is the shell's
+    /// stream and <b>never a <c>purpose_tag</c></b>: a shape nobody in the city can perceive is not a
+    /// decision.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Inside the laid city a crown must clear <see cref="YardMarginMetres"/> of every block
+    /// edge</b>, which is what keeps one out of the carriageway and out of somebody's front room.
+    /// Outside it there is no lattice to avoid and the test is not applied — ***a regular gap in open
+    /// country would draw the road grid where there are no roads.***
+    /// </para>
+    /// </remarks>
+    private void Scatter()
+    {
+        int block = _world.Roads.Streets.BlockTiles;
+        float reach = Mathf.Max(_span * 1.6f, 2_048f);
+        Rect2 window = _laid.Grow(reach);
+
+        // ⚠ THE YARD TEST FOLLOWS THE PAVING AND NOT THE LOTS. `SyntheticCity` lays a lattice larger
+        // than it subdivides (`plans/0049` F8), so a rectangle drawn round the Lots leaves paved
+        // blocks outside it -- and a crown scattered freely there stands in a carriageway.
+        Rect2 paved = _laid.Grow(_span * 0.5f);
+        WoodlandCellTable trees = _world.Layers.Woodland;
+        TerrainCellTable ground = _world.Layers.Terrain;
+        int crowns = 0;
+        int stones = 0;
+
+        int fromEast = Mathf.Max(0, (int)(window.Position.X / CellGrid.MetresPerCell));
+        int fromNorth = Mathf.Max(0, (int)(window.Position.Y / CellGrid.MetresPerCell));
+        int toEast = Mathf.Min(CellGrid.WorldCells - 1, (int)(window.End.X / CellGrid.MetresPerCell));
+        int toNorth = Mathf.Min(CellGrid.WorldCells - 1, (int)(window.End.Y / CellGrid.MetresPerCell));
+
+        for (int north = fromNorth; north <= toNorth; north++)
+        {
+            for (int east = fromEast; east <= toEast; east++)
+            {
+                var at = new Cells(east);
+                var up = new Cells(north);
+                ulong key = Scramble(((ulong)(uint)north << 20) | (uint)east);
+                int wooded = trees.At(at, up);
+                int wants = wooded * CrownsPerCell / CellGrid.TilesInCell;
+                TerrainKind kind = ground.At(at, up);
+                int rocky = kind is TerrainKind.Rock or TerrainKind.ThinSoil ? 3 : 0;
+
+                for (int i = 0; i < wants + rocky; i++)
+                {
+                    ulong draw = Scramble(key + (ulong)i);
+                    float x = (east * CellGrid.MetresPerCell) + ((draw & 0xFFFu) / 4095f * CellGrid.MetresPerCell);
+                    float z = (north * CellGrid.MetresPerCell) + (((draw >> 12) & 0xFFFu) / 4095f * CellGrid.MetresPerCell);
+
+                    if (paved.HasPoint(new Vector2(x, z)) && !InAYard(x, z, block))
+                    {
+                        continue;
+                    }
+
+                    if (i < wants)
+                    {
+                        if (crowns >= _trees.Multimesh.InstanceCount)
+                        {
+                            continue;
+                        }
+
+                        float tall = 7f + (((draw >> 24) & 0xFFu) / 255f * 9f);
+                        float broad = tall * (0.45f + (((draw >> 32) & 0x3Fu) / 63f * 0.3f));
+
+                        _trees.Multimesh.SetInstanceTransform(
+                            crowns++,
+                            new Transform3D(
+                                Basis.FromScale(new Vector3(broad, tall, broad)),
+                                new Vector3(x, tall * 0.42f, -z)));
+                    }
+                    else if (stones < _rocks.Multimesh.InstanceCount)
+                    {
+                        float lump = 1.6f + (((draw >> 24) & 0xFFu) / 255f * 3.4f);
+
+                        _rocks.Multimesh.SetInstanceTransform(
+                            stones++,
+                            new Transform3D(
+                                Basis.FromScale(new Vector3(lump, lump * 0.6f, lump * 0.8f)),
+                                new Vector3(x, lump * 0.3f, -z)));
+                    }
+                }
+            }
+        }
+
+        _trees.Multimesh.VisibleInstanceCount = crowns;
+        _rocks.Multimesh.VisibleInstanceCount = stones;
+    }
+
+    /// <summary>Whether a point stands far enough into a block to be behind the Buildings.</summary>
+    private static bool InAYard(float east, float north, int block)
+    {
+        if (block <= 0)
+        {
+            return true;
+        }
+
+        float span = block * MetresPerTile;
+        float alongEast = Mathf.PosMod(east, span);
+        float alongNorth = Mathf.PosMod(north, span);
+
+        return alongEast > YardMarginMetres && alongEast < span - YardMarginMetres
+            && alongNorth > YardMarginMetres && alongNorth < span - YardMarginMetres;
+    }
+
     /// <summary>Where a Cell's three bytes start in the skin, or <c>-1</c> if it is off the map.</summary>
     /// <remarks>
     /// ⚠ <b>The image's first row is the map's NORTH edge</b>, because a texture's V runs down and
@@ -3574,7 +3776,7 @@ public partial class Main : Node3D
                 BackgroundColor = new Color(0.09f, 0.10f, 0.13f),
                 AmbientLightSource = Godot.Environment.AmbientSource.Color,
                 AmbientLightColor = new Color(0.35f, 0.38f, 0.45f),
-                AmbientLightEnergy = 0.7f,
+                AmbientLightEnergy = 0.9f,
             },
         };
 
@@ -4453,6 +4655,7 @@ public partial class Main : Node3D
         // survive, but it is re-laid with the others so that "what a rebuild redoes" is one list.
         Ground();
         Skin();
+        Scatter();
         Hazard();
         Flood();
         Pave();
