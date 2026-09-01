@@ -4435,7 +4435,7 @@ public sealed class World
     /// <see cref="BinOwnerKind.District"/>'s constraint arriving at a seventh owner. The table is 14
     /// to 64 rows on a measured world, so the walk is not worth an index.
     /// </remarks>
-    private long WaterCapacityOf(int binSlot)
+    internal long WaterCapacityOf(int binSlot)
     {
         for (int body = 0; body < Water.Rows.SlotCount; body++)
         {
