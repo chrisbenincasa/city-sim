@@ -60,20 +60,6 @@ public partial class Main : Node3D
     private const float RoadWidthMetres = 8f;
 
     /// <summary>
-    /// How much of its own frontage a Building fills, leaving the rest as the gap to its neighbour.
-    /// </summary>
-    /// <remarks>
-    /// 🔴 <b>THIS REPLACED A FLAT 6 METRES, AND THE 6 WAS WRONG BY A FACTOR OF FOUR.</b> The shell
-    /// invented a footprint instead of deriving one, and the result was a Building NARROWER than the
-    /// 8-metre carriageway beside it — so a city of them read as a wide road network with specks
-    /// along it. ***The simulation had said how wide a Building is all along***:
-    /// <c>[roads] block_tiles</c> is how long a Segment is and <c>[lots] lots_per_segment</c> is how
-    /// many Buildings share it, which at the shipped 32 and 5 is <b>25.6 m of frontage each</b>
-    /// against a road three times narrower.
-    /// </remarks>
-    private const float FrontageFill = 0.85f;
-
-    /// <summary>
     /// The band a Building fills of its Lot's frontage. <b>Wide on purpose.</b>
     /// </summary>
     /// <remarks>
@@ -1699,77 +1685,57 @@ public partial class Main : Node3D
     }
 
     /// <summary>
-    /// How much kerb one Lot commands, in metres, <b>on its own side of the Street</b>.
+    /// The stretch of kerb a Lot has to itself, as a span along the block in metres.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <c>CONTEXT.md</c> → Address: <em>five Buildings share a Segment</em>. A Segment is one block
-    /// edge, so its length is <c>[roads] block_tiles</c> and the Buildings on it are
-    /// <c>[lots] lots_per_segment</c>. 🔴 ⚠ <b>BUT THEY DO NOT ALL STAND ON THE SAME SIDE, AND
-    /// DIVIDING BY ALL OF THEM IS WHAT MADE THE CITY LOOK SILLY.</b> <c>Frontage.SideOf</c> sends
-    /// them to <i>strictly</i> alternating kerbs — <c>(index &amp; 1)</c> — so consecutive Lots are
-    /// never neighbours, and along either kerb the spacing is <b>twice</b>
-    /// <c>block_tiles ÷ lots_per_segment</c>. A Building drawn to fill one of those instead of two
-    /// left a gap exactly as wide as itself beside every house.
+    /// 🔴 <b>THE FLAT 51.2 m FRONTAGE WAS RIGHT ON AVERAGE AND WRONG ON EVERY KERB.</b>
+    /// <c>Frontage.SideOf</c> is <b>odd-and-even house numbering</b> — indices 0, 2, 4 to the left
+    /// and 1, 3 to the right — so a Segment's five Lots split <b>three and two</b>. Three Lots of
+    /// 51.2 m want <b>153.6 m</b> of a 128 m kerb and two want <b>102.4 m</b>: the first side
+    /// over-subscribed by a fifth and the second short by a fifth. ⚠ <b>The over-subscribed side
+    /// INTERPENETRATED once the corner Lots stopped being cut</b> — 64 overlapping pairs, measured —
+    /// and the short side had a fifth of its kerb that no Lot could ever reach.
     /// </para>
     /// <para>
-    /// ⚠ <b>It was not a tuning error and no constant could have fixed it.</b> The gap was one
-    /// frontage wide at every <c>block_tiles</c> and every <c>lots_per_segment</c>, because both
-    /// cancel out of the ratio — which is why the city looked equally sparse at every density it
-    /// was asked for, and why turning the dials in the tuner never helped.
-    /// </para>
-    /// <para>
-    /// 🔴 ⚠ <b>THE PREVIOUS VERSION OF THIS COMMENT ARGUED AGAINST THE DOUBLING AND ITS SECOND
-    /// REASON WAS CORRECT.</b> <c>Frontage.OffsetOf</c> puts the outermost Lots
-    /// <c>block ÷ (2 × lots)</c> from each end — 12.8 m at the shipped numbers — so a Building
-    /// filling the doubled width would run <em>through</em> the junction and into the cross street.
-    /// That is a reason to clamp against the Segment's end and not a reason to halve every Building
-    /// in the city: see <see cref="Buildings"/>, where the width is the lesser of this and the room
-    /// actually left. ***The corner plots come out narrow, which is what corner plots are.***
-    /// </para>
-    /// <para>
-    /// ⚠ <b>Falls back to one block's width when a Ruleset states no Lots</b>, which is a world with
-    /// no Buildings in it — so the value is never actually used, and a division by zero would be the
-    /// only thing anybody saw.
+    /// ✅ <b>So a Lot's frontage is the half-way line to its neighbours ON ITS OWN SIDE</b>, which
+    /// tiles each kerb exactly, needs no new data, and is asymmetric where the offsets are.
+    /// ⚠ <b>It calls <c>Frontage</c> rather than restating it</b> — the offsets are the city's own
+    /// arithmetic and a second copy in the renderer is <c>plans/0012</c> <b>Cause 1</b>.
     /// </para>
     /// </remarks>
-    private static float Frontage(int blockTiles, int lotsPerSegment) =>
-        lotsPerSegment > 0
-            ? 2f * blockTiles * MetresPerTile / lotsPerSegment
-            : blockTiles * MetresPerTile;
-
-    /// <summary>
-    /// How wide a Building is drawn along its kerb, and how far it slides to fit.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// 🔴 <b>IT SHIFTS BEFORE IT SHRINKS, AND SHRINKING WAS THE DEFECT.</b> A Segment's Lots
-    /// alternate sides, so one kerb carries two or three of them at <b>51.2 m</b> spacing — and
-    /// <c>Frontage.OffsetOf</c> leaves the outermost half a spacing from the junction, which put a
-    /// full-width Building <b>12.8 m into the cross street</b>. The old rule took the lesser of the
-    /// wanted width and the room, so a corner Lot was cut from 51.2 m to <b>16 m</b>: a 69% cut on
-    /// three Lots in every ten, and the largest single reason a block face read as gappy.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>A terrace on a corner does not get narrower, it gets pushed off the junction</b> — so
-    /// the width is kept and the centre moves, and only a Building too wide for the whole block is
-    /// cut. Measured on <c>schooled.toml</c>: <b>59% of a kerb built before, 72% after</b>, and 78% once the band's floor followed
-    /// (<c>plans/0049</c> <b>F7</b>).
-    /// </para>
-    /// </remarks>
-    private static float Sited(int alongTiles, int block, float want, out float shift)
+    private static (float From, float To) Kerb(int alongTiles, int lots, int block)
     {
         float span = block * MetresPerTile;
         float clear = RoadWidthMetres * 0.5f;
-        float along = Mathf.Min(want, span - (2f * clear));
-        float at = alongTiles * MetresPerTile;
+        int index = -1;
 
-        // Exactly one of these can be positive, since the Building already fits between the two
-        // junctions -- so the sum is the slide rather than a fight between two corrections.
-        shift = Mathf.Max(0f, clear + (along * 0.5f) - at)
-            - Mathf.Max(0f, at + (along * 0.5f) - (span - clear));
+        for (int at = 0; at < lots; at++)
+        {
+            if (Frontage.OffsetOf(at, lots, block).Raw == alongTiles)
+            {
+                index = at;
 
-        return along;
+                break;
+            }
+        }
+
+        // Not a lattice Lot at all -- a hand-placed one, or a Ruleset whose offsets this build does
+        // not generate. It gets the block, which is what the flat frontage always gave it.
+        if (index < 0)
+        {
+            return (clear, span - clear);
+        }
+
+        float here = alongTiles * MetresPerTile;
+
+        return (
+            index >= 2
+                ? (here + (Frontage.OffsetOf(index - 2, lots, block).Raw * MetresPerTile)) * 0.5f
+                : clear,
+            index + 2 < lots
+                ? (here + (Frontage.OffsetOf(index + 2, lots, block).Raw * MetresPerTile)) * 0.5f
+                : span - clear);
     }
 
     /// <summary>How far back from the kerb a Building reaches, in metres.</summary>
@@ -1823,7 +1789,6 @@ public partial class Main : Node3D
         BuildingTable table = _world.Buildings;
         LotTable lots = _world.Lots;
         int block = _world.Roads.Streets.BlockTiles;
-        float frontage = Frontage(block, _world.Rules.Lots.LotsPerSegment);
 
         for (int slot = 0; slot < table.Rows.SlotCount; slot++)
         {
@@ -1876,15 +1841,19 @@ public partial class Main : Node3D
             // the camera this game is played at; the band below is a terrace beside a house.
             float fill = BuildingFillLow
                 + (((shape >> 8) & 0xFFu) / 255f * (BuildingFillHigh - BuildingFillLow));
-            float along = Sited(alongTiles, block, frontage * fill, out float shift);
+            (float from, float to) = Kerb(alongTiles, _world.Rules.Lots.LotsPerSegment, block);
+            float along = (to - from) * fill;
 
+            // ⚠ CENTRED ON THE STRETCH AND NOT ON THE LOT'S OWN POINT. The two differ wherever the
+            // neighbours are unevenly spaced, which at the shipped offsets is every corner Lot --
+            // and centring on the point is what walked a full-width Building into the cross street.
             if (horizontal)
             {
-                east += shift;
+                east += ((from + to) * 0.5f) - (alongTiles * MetresPerTile);
             }
             else
             {
-                north += shift;
+                north += ((from + to) * 0.5f) - (alongTiles * MetresPerTile);
             }
 
             // The long side runs ALONG the Street, which is what makes a row of them read as a
@@ -1944,9 +1913,7 @@ public partial class Main : Node3D
     {
         LotTable lots = _world.Lots;
         int block = _world.Roads.Streets.BlockTiles;
-        float frontage = Frontage(block, _world.Rules.Lots.LotsPerSegment);
-        float pad = frontage * FrontageFill;
-        float setback = (RoadWidthMetres * 0.5f) + (pad * 0.5f);
+        int perSegment = _world.Rules.Lots.LotsPerSegment;
 
         for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
         {
@@ -1960,13 +1927,24 @@ public partial class Main : Node3D
             var side = (StreetSide)lots.Side[slot];
             bool horizontal = block > 0 && lots.North[slot].Raw % block == 0;
 
+            // ⚠ THE PAD IS THE LOT'S OWN STRETCH OF KERB, on Buildings()' rule and for the same
+            // reason -- a pad drawn at the flat frontage overhung the cross street on every corner
+            // Lot, which is a subdivision the city has not made.
+            int alongTiles = (horizontal ? lots.East[slot].Raw : lots.North[slot].Raw) % block;
+            (float from, float to) = Kerb(alongTiles, perSegment, block);
+            float pad = to - from;
+            float setback = (RoadWidthMetres * 0.5f) + (pad * 0.25f);
+            float slide = ((from + to) * 0.5f) - (alongTiles * MetresPerTile);
+
             if (horizontal)
             {
                 north += side == StreetSide.Left ? setback : -setback;
+                east += slide;
             }
             else
             {
                 east += side == StreetSide.Right ? setback : -setback;
+                north += slide;
             }
 
             // A hand's breadth off the ground -- above the carriageway at 0.1 m so a pad on a kerb
