@@ -75,6 +75,8 @@ the shell already and is the trap anybody picking a palette will hit first.
 | **F4** | ⚠ **ROW 4 GOES STALE ON A DOZEN HEADERS THE DAY IT LANDS.** Raising `occupants` houses the same population in fewer Buildings, so the Pool drains faster and fewer Lots are consumed; every census figure quoted in the Ruleset headers and in `CLAUDE.md` — the *602 built, 385 abandoned, 387 vacant* line and the decline shares — is measured against the old value. ***That is a documentation refresh and not a reason to defer*** ([`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)) |
 | **F5** | ✅ **ROW 1, AND THE BAND DID MORE THAN THE ROOF DID.** `BuildingFillLow`/`High` **0.42–1.0** puts a terrace beside a house with a yard where there were two slabs; **150 of 241** Buildings take a gable, the rest being over `PitchCeilingMetres` or drawn flat by the scramble. ⚠ **The gable is a `PrismMesh` off the shelf** ([`adr/0018`](../docs/adr/0018-prefer-off-the-shelf-infrastructure.md)) on a second MultiMesh, and **one derivation feeds both layers** — a second walk over the Building table re-deriving the same setback and footprint is `plans/0012` **Cause 1** with a frame between the copies |
 | **F6** | ✅ **THE ROOF WAS CHECKED AGAINST ITS BUILDING RATHER THAN LOOKED AT.** A gable is a prism extruded along its own Z, so the east–west case turns a quarter — and ***a 90° error is the easiest thing in this row to commit and the hardest to see.*** `draw` dumps both layers with a yaw column; joined by id, **all 150 roofs match their body's footprint and centre to 0.01 m**. ⚠ **That is `plans/0048`'s thesis arriving** — the answer is the draw list and not the frame |
+| **F7** | 🔴 **THE BLOCKS LOOKED HALF-EMPTY BECAUSE A CORNER LOT WAS CUT BY 69%, AND THE FIX IS TO SLIDE IT RATHER THAN SHRINK IT.** Measured off the `draw` dump, counting each **kerb** — one side of one 128 m Segment — separately: **59% of a kerb was built**, two or three Buildings on it, median gap **16.3 m** and the biggest **52.6 m**. ⚠ **A Segment's five Lots ALTERNATE SIDES**, so one kerb carries 2–3 of them at 51.2 m spacing, and `Frontage.OffsetOf` leaves the outermost half a spacing from the junction — which put a full-width Building **12.8 m into the cross street**. The old rule took the lesser of the wanted width and the room and cut a 51.2 m Lot to **16 m**. ✅ **`Sited` keeps the width and moves the centre**, cutting only a Building too wide for the whole block: **59% → 72%**, and **→ 78%** once `BuildingFillLow` followed to 0.55, with the median gap at **9.2 m** and the biggest at **25.6 m**. ⚠ **0.65 reaches 83% and was not taken** — it narrows the width range to 1.5× and the wall comes back |
+| **F8** | ⚠ **THE BARE GRID IS THE LATTICE AND NOT A DEFECT.** `schooled.toml` at 2,000 Citizens paves **8×8 blocks of 128 m** — 144 Segments over 1,024 m square — and subdivides Lots into about **28 of the 81 block cells**, in raster order rather than outward from a centre. Every cell that has any has **exactly 10** (Buildings plus vacant Lots), so ***the built part is full and the empty part has no Lots at all***. 🔴 **A city that grows in reading order rather than from its middle is a finding about `SyntheticCity` and not about the drawing**, and it is the thing to look at before row 4 moves any density number |
 
 ---
 
@@ -119,3 +121,25 @@ which is where the night look lives.
 the decision is *arguable* rather than *measurable* so [`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)
 does not reach it either. ***It is decided here, in this section, and filed properly when the ratio
 is earned.***
+
+### What voxel would cost, filed so the question is not re-opened from scratch
+
+🔴 **IT IS THE ONLY CANDIDATE THAT CHANGES THE ARCHITECTURE, AND THAT IS THE WHOLE OF THE DECISION.**
+Everything the shell draws today is **one MultiMesh per kind of thing** with a per-instance transform
+and colour, which is why 241 Buildings and 150 gables cost two draw calls and why a million of them
+is arguable at all.
+
+⚠ **A voxel ground cannot be instances.** Surface voxels over the map are far past what an instance
+buffer holds, so it wants **greedy meshing into chunk meshes** — a different pipeline beside the one
+that exists rather than a setting on it. Under
+[`adr/0018`](../docs/adr/0018-prefer-off-the-shelf-infrastructure.md) that is a **bespoke component
+needing a written exception naming the property no library provides**, unless an addon carries it.
+
+✅ **The mitigating fact, and it is large: the built area is ~1.4 km across, not the map's 65.5 km.**
+`plans/0042` **F17** and the `flooded.toml` header both turn on the same number. ***The volume is a
+small fraction of what the map size suggests***, so the argument against is about the pipeline and
+never about the extent.
+
+⚠ **A hybrid keeps both** — voxel ground, instanced Buildings — because the two questions are
+separable: the ground is one surface with depth, and the Buildings are a hundred thousand small
+objects. **Nothing decided.**

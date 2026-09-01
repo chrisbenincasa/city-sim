@@ -84,7 +84,7 @@ public partial class Main : Node3D
     /// is not the lever</b> — <c>lots_per_segment</c> is <c>CONTEXT.md</c> → Address's own <i>five
     /// Buildings share a Segment</i>. This is, and it costs nothing.
     /// </remarks>
-    private const float BuildingFillLow = 0.42f;
+    private const float BuildingFillLow = 0.55f;
 
     /// <inheritdoc cref="BuildingFillLow"/>
     private const float BuildingFillHigh = 1.0f;
@@ -1738,6 +1738,40 @@ public partial class Main : Node3D
             ? 2f * blockTiles * MetresPerTile / lotsPerSegment
             : blockTiles * MetresPerTile;
 
+    /// <summary>
+    /// How wide a Building is drawn along its kerb, and how far it slides to fit.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>IT SHIFTS BEFORE IT SHRINKS, AND SHRINKING WAS THE DEFECT.</b> A Segment's Lots
+    /// alternate sides, so one kerb carries two or three of them at <b>51.2 m</b> spacing — and
+    /// <c>Frontage.OffsetOf</c> leaves the outermost half a spacing from the junction, which put a
+    /// full-width Building <b>12.8 m into the cross street</b>. The old rule took the lesser of the
+    /// wanted width and the room, so a corner Lot was cut from 51.2 m to <b>16 m</b>: a 69% cut on
+    /// three Lots in every ten, and the largest single reason a block face read as gappy.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A terrace on a corner does not get narrower, it gets pushed off the junction</b> — so
+    /// the width is kept and the centre moves, and only a Building too wide for the whole block is
+    /// cut. Measured on <c>schooled.toml</c>: <b>59% of a kerb built before, 72% after</b>, and 78% once the band's floor followed
+    /// (<c>plans/0049</c> <b>F7</b>).
+    /// </para>
+    /// </remarks>
+    private static float Sited(int alongTiles, int block, float want, out float shift)
+    {
+        float span = block * MetresPerTile;
+        float clear = RoadWidthMetres * 0.5f;
+        float along = Mathf.Min(want, span - (2f * clear));
+        float at = alongTiles * MetresPerTile;
+
+        // Exactly one of these can be positive, since the Building already fits between the two
+        // junctions -- so the sum is the slide rather than a fight between two corrections.
+        shift = Mathf.Max(0f, clear + (along * 0.5f) - at)
+            - Mathf.Max(0f, at + (along * 0.5f) - (span - clear));
+
+        return along;
+    }
+
     /// <summary>How far back from the kerb a Building reaches, in metres.</summary>
     /// <remarks>
     /// <para>
@@ -1834,19 +1868,24 @@ public partial class Main : Node3D
             // 0.55x to 1.85x on the height, 0.85x to 1.15x on the frontage. Each draw takes its
             // own bit range off the one scramble, so a tall Building is not also a fat one.
             float tall = storeys * StoreyMetres * (0.55f + ((shape & 0xFFu) / 255f * 1.3f));
-            // ⚠ CLAMPED AGAINST THE SEGMENT'S OWN END, WHICH IS WHAT LETS THE FRONTAGE DOUBLE.
-            // Frontage.OffsetOf leaves the outermost Lots half a spacing from the junction, so a
-            // Building filling its whole kerb would run into the cross street. Taking the lesser of
-            // the two gives wide plots mid-block and narrow ones on the corners.
+            // The Lot's own place along the block, which Sited needs in order to know whether the
+            // Building it is about to size runs into the cross street.
             int alongTiles = (horizontal ? lots.East[lot].Raw : lots.North[lot].Raw) % block;
-            float toEnd = Mathf.Min(alongTiles, block - alongTiles) * MetresPerTile;
-            float room = 2f * Mathf.Max(2f, toEnd - (RoadWidthMetres * 0.5f));
             // 🔴 THE BAND IS WIDE AND THE OLD ONE WAS THE REASON A BLOCK FACE READ AS TWO SLABS.
             // 0.72-0.98 of a 51.2 m frontage is a 37-50 m building with a gap nobody can see from
-            // the camera this game is played at; 0.42-1.0 is a terrace next to a house with a yard.
+            // the camera this game is played at; the band below is a terrace beside a house.
             float fill = BuildingFillLow
                 + (((shape >> 8) & 0xFFu) / 255f * (BuildingFillHigh - BuildingFillLow));
-            float along = Mathf.Min(frontage * fill, room);
+            float along = Sited(alongTiles, block, frontage * fill, out float shift);
+
+            if (horizontal)
+            {
+                east += shift;
+            }
+            else
+            {
+                north += shift;
+            }
 
             // The long side runs ALONG the Street, which is what makes a row of them read as a
             // street rather than as a field of blocks -- so the plan is swapped with the axis the
