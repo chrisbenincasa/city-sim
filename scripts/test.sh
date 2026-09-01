@@ -16,6 +16,14 @@
 #   scripts/test.sh ... -- <args>   # anything after -- goes to `dotnet test`
 #
 # Exit status is `dotnet test`'s own, so this is safe in a gate.
+#
+# It also names the TREE it gated and counts what it collected, which is
+# plans/0045 row 15f. A green run is a claim about a tree, and a run that does
+# not say which tree cannot be checked against the one that was pushed -- 15f's
+# incident was a rebase producing a tree neither parent's gate had ever run on.
+# The count lives here rather than in Borough.Tests on purpose: a test cannot
+# report that it did not run, because the report would not have been collected
+# either. Only something outside the run can count the run.
 
 set -uo pipefail
 
@@ -49,7 +57,22 @@ args=(test -c Release)
 [ -n "$filter" ] && args+=(--filter "$filter")
 args+=("${passthrough[@]+"${passthrough[@]}"}")
 
+# The tree this run is a claim about. A rebase replays your work onto a parent
+# you never gated, so a green with no tree on it cannot be matched to the commit
+# that was actually pushed -- which is exactly how row 15f's red tree got there.
+# Dirty is reported bluntly rather than cleverly: filtering it down to "paths
+# that could have affected this lane" is a guess, and a wrong guess here says
+# "clean" about a tree that was not.
+tree="$(git -C "$root" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+[ -n "$(git -C "$root" status --porcelain 2>/dev/null)" ] && tree="$tree-dirty"
+branch="$(git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)"
+
+# Per-clone, inside .git, so it is never committed and never becomes a corpus
+# artefact somebody has to keep true.
+ledger="$(git -C "$root" rev-parse --git-dir 2>/dev/null)/borough-test-lanes"
+
 echo "lane:   ${filter:-<everything>}"
+echo "tree:   $tree on $branch"
 echo "log:    $log"
 echo
 
@@ -59,6 +82,40 @@ status=${PIPESTATUS[0]}
 echo
 echo "───────────────────────────────────────────────────────────"
 echo "full output: $log"
+echo "tree:        $tree on $branch"
+
+# How much of the suite ran. `TierBudgetTests` times the tests it was handed and
+# `TierDeclarationTests` counts the instrument share among them; neither can see
+# a class that was never handed over, because both reason about the tests they
+# got. This compares the collected total against the last run of the SAME lane
+# expression, so a narrowed run is compared with narrowed runs and never with
+# the whole lane.
+key="${filter:-<everything>}"
+collected="$(grep -oE 'Total: *[0-9,]+' "$log" | tail -1 | tr -cd '0-9')"
+
+if [ -n "$collected" ]; then
+  echo "collected:   $collected tests"
+
+  before="$(awk -F'\t' -v k="$key" '$4 == k { c = $1; t = $2; d = $3 } END { if (c != "") print c "\t" t "\t" d }' "$ledger" 2>/dev/null)"
+  was="$(printf '%s' "$before" | cut -f1)"
+  wastree="$(printf '%s' "$before" | cut -f2)"
+  wasdate="$(printf '%s' "$before" | cut -f3)"
+
+  if [ -n "$was" ] && [ "$collected" -lt "$was" ]; then
+    echo
+    echo "FEWER TESTS RAN THAN LAST TIME ON THIS LANE:"
+    echo "  $collected now on $tree"
+    echo "  $was on $wastree at $wasdate"
+    echo
+    echo "A green run over fewer tests is not the same green. Either tests were"
+    echo "deleted -- in which case this is the record of it -- or a class did not"
+    echo "reach the assembly, and nothing inside the run can tell you which."
+  fi
+
+  # Appended rather than rewritten: the file is the history of a lane, and a
+  # count that fell and came back is the shape worth being able to see.
+  printf '%s\t%s\t%s\t%s\n' "$collected" "$tree" "$stamp" "$key" >> "$ledger" 2>/dev/null || true
+fi
 
 # xUnit's VSTest logger prints one `  Failed <fully.qualified.name> [N ms]` line
 # per failure. That is the list, deduped -- theory cases keep their arguments so

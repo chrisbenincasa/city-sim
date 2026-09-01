@@ -101,16 +101,45 @@ issues **no `Command` at all** — `Command`, `CommandKind` and `TickInput` are 
 `Main.cs` — so all six player verbs are applied in `Simulation` and reachable only from an Input Log
 or a test.
 
+🔴 **AND THE RE-SCOPE NEVER HAPPENED TO THE OTHER FOUR. THEY WERE RENUMBERED.** The sentence
+above says *rows 15–18 were written and re-scoped within the hour*, and the first half is true.
+`69e53fe`'s queue read **15** *a Need has no consequence*, **16** *nobody moves house*, **17** *a
+dwelling costs nothing*, **18** *the Day is a comb* — and today's rows 16–19 are those four
+**word for word**, diffed on 2026-09-01, the only changes being one whitespace in an empty cell and
+one internal cross-reference bumped. ***The re-scope consisted of inserting a properly sized row 15
+in front and shifting the old list down one place.*** ⚠ **The paragraph explaining that a
+symbol-derived queue is too narrow was written in the SAME COMMIT as the rows it describes**, and the
+rows outlived it. ✅ **Paid on 2026-09-01**, and the repair is a **grammar** rather than a
+rewrite: 15a–15g name *capabilities* — a click becomes a Tile, the session is a log —
+and 16–19 named *absences*. ***An absence is one symbol wide by construction and a capability is
+not***, which is why the two sets read as different sizes in one document by one author on one day.
+
+⚠ **A NUMBER HERE IS AN IDENTITY AND THE TABLE'S POSITION IS THE ORDER.** The shift above broke
+two cross-references — *became row 18* appears twice below and meant the comb, which by then was
+19 — and the done rows already sit out of numeric order (`15g` above `15e`). ***So nothing is
+renumbered again***: a merged row keeps the lowest number, a folded one stays as a struck tombstone,
+and a new row takes the next number wherever it belongs in the order.
+
 **The risk 15 retires:** *that the design's central claim has never been tested by a person.* Pillar 3
 is **govern, don't place**; nobody can govern, and nobody can place. Every pillar and every anti-goal
 in `00` is asserted in prose and unexercised, and a city nobody can act on is a simulation rather than
-a game. ⚠ **Three other swaths were sized and passed over**, each verified rather than assumed, and
+a game.
+
+**The risk 16 retires:** *that a Household's circumstances have never changed what it does.* Every
+move in this city is something done **to** a Household — evicted, starved out, condemned over — so
+`adr/0027`'s preferences, `adr/0011`'s life stages and `adr/0069`'s placement are all wired to a
+population that never chooses. ***A simulation of people who only ever react is not the pillar.***
+
+**The risk 20 retires:** *that one Trip generator has been standing in for a city's whole day.* The
+Commute Budget's three rungs, the volume-delay function's calibration and every congestion figure in
+the corpus were measured on the commute alone, and ***a number measured against one generator is a
+property of that generator until a second one exists.*** ⚠ **Three other swaths were sized and passed over**, each verified rather than assumed, and
 they are the next candidates: **traffic's second tier** (`Lane`, `Stress`, `Microscopic` are zero
 non-comment references in `Borough.Core`, and `RoadSegmentTable.Fidelity` is a `Derived` column
-`RoadGraph` sets to 0 and nothing ever raises — row 2's shape again); **the shopping occasion**
-(`TripPurpose.Shopping` is declared with a full `adr/0067` remark and ***nothing in `src/` starts
-one***, so every Commute Budget rung and congestion figure in the corpus is calibrated against a
-single generator); and **the eye's other half** (`ChunkAggregates` 0 references, `Notification` 0
+`RoadGraph` sets to 0 and nothing ever raises — row 2's shape again); ~~**the shopping occasion**~~
+✅ **PROMOTED TO ROW 20 on 2026-09-01**, which is the point: it was sized and verified here and
+then sat in a paragraph for a day, and ***a row in a paragraph is a row nobody picks up***; and
+**the eye's other half** (`ChunkAggregates` 0 references, `Notification` 0
 non-comment references, **19 headless dumps against a three-line on-screen readout**).
 
 | | Work | State |
@@ -137,11 +166,15 @@ non-comment references, **19 headless dumps against a three-line on-screen reado
 | ~~15d~~ | ~~🔴 **The session is a log, and this is the row that makes the other three worth anything.** The shell writes `.borough` through `Borough.Formats` — ⚠ **using the codec and never implementing one** (`adr/0039`). ***A verb that is not in the log is a state change no replay reproduces and no State Hash divergence explains***, which is the sentence `Populate` and `Arrive` each already carry in their own remark. **The proof is the round trip**: a city played by hand in the shell, replayed in `Borough.Headless`, same State Hash~~ | ✅ |
 | 15g | ⚠ **Tool selection needs a UI, and the keyboard-only mode line is already unintuitive.** Raised by the player on 2026-08-31, unprompted, at five verbs — `z x b s p` plus two cycling sub-selections (`z` cycles zone rules, `s` cycles service kinds) reported through **one line of text**. ⚠ **It is a legibility row and not a mechanism row**: nothing new reaches `Simulation.Apply`, so ***the whole of it is shell*** and the standing no-test-host limitation covers all of it. Related to `15e` — a refusal a person can read and a tool they can see are the same complaint | ✅ 31-08 |
 | 15e | **A refusal reaches the player as a sentence.** `Simulation.Refuses` answers off the applier's own predicate and returns a **number**; the shell owns every word. ⚠ **The shell had guarded THREE of the ten that belong to the five verbs it issues**, by restating the rule in its own words. ⚠ **The grammar gained `hold` and `click`**, because a refusal nobody can make happen is a refusal nobody has seen | ✅ 31-08 |
-| 15f | 🔴 **A CLASS WENT MISSING FROM THE COMMIT GATE AND NOTHING NOTICED.** `RulesetSchemaTests` — two tests — was absent from every lane run on 2026-08-31 until 16:49, including **the one that gated `c2e9ff3` while the class was already failing on that tree**. Ruled out: the `tier!=instrument` filter (the class runs and fails under it), a skip (0 in every run) and a missing file. ⚠ **A CANDIDATE CAUSE ARRIVED FROM OUTSIDE THE TREE on 2026-08-31**: the player reports the class was authored on **another host**, so a bad merge is the likely explanation and this is probably not a lane defect at all. **Unconfirmed, and the row stays open on the weaker claim** — ⚠ **the class runs and passes under the gate's own filter today**, which makes the disappearance *intermittent* rather than settled, and an intermittent absence is worse than a permanent one. ***Nothing in the suite asserts how many tests ran***: `TierBudgetTests` times them and `TierDeclarationTests` counts the instrument share, and neither would see a class disappear. ⚠ **Two lane runs on 08-31 both reported 2,582**, which is a number no instrument checks |  |
-| 16 | 🔴 **A Need has no consequence.** `Sustenance` and `Satisfaction` are saved, hashed, degraded on a duration and recovered on supply — and **the only thing in `src/` that reads either is `Evidence`**, which is a panel. ***A Household starves to the floor and nothing in the city is different.*** ⚠ **After 9 and 10 and because of them**: those built the reading, and a reading nothing acts on is an instrument rather than a mechanism |  |
-| 17 | 🔴 **Nobody moves house.** Four call sites reach `World.Unplace` — over-capacity eviction, the premises emptying, the tenant's decline threshold, and shedding — and ***every one of them is the Household LOSING its home***. A housed Household can never re-enter the Unplaced Pool by choosing to. ⚠ **This is why `choosy.toml` had to be built on `declining.toml`**: a preference about where to live is unreachable for anybody already living somewhere, and `adr/0011` calls life stage *"one of the primary drivers of residential mobility"* against a build that has none |  |
-| 18 | 🔴 **A dwelling costs nothing.** `PlacementEngine`'s own remark: *"acceptance needs rent, a commute and a tolerance; none exists, so any member would take any dwelling."* ⚠ **One of the three shipped** — `EmploymentEngine` says *"this is where the commute exists"* — so the sentence is now two thirds true rather than wholly. ***`rent` is `adr/0027`'s third preference axis and the thing that would make 17's move a decision instead of a shuffle*** |  |
-| 19 | ⚠ **The Day is a comb, and two mechanisms cut the teeth.** `CommuteRoster.ShiftStartOf` sums two draws and halves them, then rounds the result to an **hour**; `ServiceEngine.Attend` returns unless `tick.Raw % Ticks.PerDay == 0`, so ***every school Trip in the city starts on one Tick of 2,048***. Measured on `minimal.toml` at 1,000 Citizens: **1,341 of 2,047 Ticks with nobody out at all**, longest empty run 486. ⚠ **Last, because it is the only row here that repairs something that already runs** |  |
+| 15f | 🔴 **A CLASS WENT MISSING FROM THE COMMIT GATE AND NOTHING NOTICED — AND BOTH HALVES OF THAT SENTENCE WERE WRONG.** ***Nothing went missing; it had not arrived.*** `c2e9ff3`'s tree holds **zero** `RulesetSchemaTests` — `git ls-tree` says so — so its `Total: 2496` was a complete run of the tests that existed, and the class was authored **19 minutes later** in `4e902cb`. ***And something did notice***: the push lane went red on the pushed tree at 20:39 UTC, `Failed: 1, Passed: 2497, Total: 2498`, naming this class, and `63bb181` fixed it six minutes later. ⚠ **The cause is a REBASE, which is the candidate nobody listed because it is not a property of the run at all**: the work was replayed onto `4e902cb` as `1c24c05` at 16:39, and that tree carries a new loader key **and** the test that checks the schema for it. ***Each parent was green on its own tree; the child was red and no local gate ever ran on it.*** ✅ **What survives is paid in `scripts/test.sh`** — a run now names the **tree** it gated and counts what it **collected**, comparing against the last run of the same lane — ⚠ **outside the suite on purpose, because a test cannot report that it did not run**: the report would not have been collected either | ✅ 01-09 |
+| 16 | 🔴 **A HOUSEHOLD LEAVES A HOME IT CAN DO BETTER THAN.** ⚠ **This is rows 16, 17 and 18 as they stood, merged on 2026-09-01, and the merge is the finding rather than a tidy-up.** Each was written as an **absence** — *a Need has no consequence*, *nobody moves house*, *a dwelling costs nothing* — and ***each is inert without the other two***: a reason to leave with no door, a door with no criterion, a price nobody can act on. ⚠ **The page already contained the sentence that joins them and listed three rows anyway** — the *dwelling costs nothing* row's own *`rent` is the thing that would make [the] move a decision instead of a shuffle.* ***Three absences at one symbol each was a milestone cut into three parts too small to start.*** | |
+| 16a | **A dwelling has a price and a Household can be short of it.** `adr/0027`'s **third preference axis**, and the only one of the three that needs no new world: `taxed.toml` already puts money in Households, where `minimal.toml` holds every one at exactly zero. `PlacementEngine`'s own remark names the hole — *"acceptance needs rent, a commute and a tolerance; none exists, so any member would take any dwelling."* ⚠ **One of the three has shipped since that remark was written** — `EmploymentEngine` says *"this is where the commute exists"* — so it is two thirds true rather than wholly. ⚠ **First, because the other two have no criterion without it**, and because it is what makes `choosy.toml`'s centrality numbers ratifiable at all: ***a preference for the centre means nothing until the centre costs more*** | |
+| 16b | **A housed Household enters the Unplaced Pool by choosing to.** Four call sites reach `World.Unplace` — over-capacity eviction, the premises emptying, the tenant's decline threshold, and shedding — and ***every one of them is the Household LOSING its home***. ⚠ **`choosy.toml` had to be built on `declining.toml` for exactly this reason**: a preference about where to live is unreachable for anybody already living somewhere, and `adr/0011` calls life stage *"one of the primary drivers of residential mobility"* against a build that has none. ⚠ **A second door into the Pool needs a sink and the loader already knows it** — `[placement] gives_up_after_days`, refused today for any file declaring `children_become` without one (`adr/0006`) | |
+| 16c | **A Household that goes short does something about it.** `Sustenance` and `Satisfaction` are saved, hashed, degraded on a duration and recovered on supply — and **the only thing in `src/` that reads either is `Evidence`**, which is a panel. ***A Household starves to the floor and nothing in the city is different.*** ⚠ **Last of the three, because a consequence needs somewhere to go**: after 16a and 16b, going short is a reason to move and the move has a price to compare against; before them it is a number somebody has to invent a use for. ⚠ **After 9 and 10 and because of them** — those built the reading, and a reading nothing acts on is an instrument rather than a mechanism | |
+| ~~17~~ | ~~🔴 **Nobody moves house.**~~ **Folded into 16b, 2026-09-01.** ⚠ **The number stays as a tombstone rather than closing the gap**: two cross-references below already broke when this queue last shifted, and a struck row costs a line where a renumber costs a citation | — |
+| ~~18~~ | ~~🔴 **A dwelling costs nothing.**~~ **Folded into 16a, 2026-09-01**, for 17's reason | — |
+| 20 | 🔴 **A CITIZEN GOES SHOPPING.** `TripPurpose.Shopping` is declared with a full `adr/0067` remark and **`Shopping = 1` is its only non-comment reference in the whole of `src/`** — counted 2026-09-01. Nothing starts one. ⚠ **So every Commute Budget rung, every congestion figure and every Trip cost in this corpus is calibrated against a SINGLE generator**, which is the largest unexamined claim the amnesty has written down. ⚠ **It is also what makes `provisioned.toml`'s seller a shop rather than a Bin**: `adr/0171` gave the market a price that moves and ***no Citizen has ever walked to one***. 🔴 **It was sized, verified and left in a PARAGRAPH** — the preamble's passed-over swaths — and a row in a paragraph is a row nobody picks up, which is the same shape as `plans/0012` **Cause 1** for work rather than for status. **Before 19, because it is a mechanism and 19 is a repair** | |
+| 19 | ⚠ **THE CITY HAS SOMEBODY OUTSIDE AT EVERY HOUR IT IS AWAKE.** Today the Day is a **comb** and two mechanisms cut the teeth: `CommuteRoster.ShiftStartOf` sums two draws, halves them and rounds the result to an **hour**; `ServiceEngine.Attend` returns unless `tick.Raw % Ticks.PerDay == 0`, so ***every school Trip in the city starts on one Tick of 2,048***. Measured on `minimal.toml` at 1,000 Citizens: **1,341 of 2,047 Ticks with nobody out at all**, longest empty run 486. ⚠ **Last, because it is the only row here that repairs something that already runs** — and ⚠ **20 lands in front of it for a second reason**: a second Trip generator changes what the comb's teeth are made of, so measuring the Day before shopping exists measures one generator's shape | |
 
 Items 2 and 3 cost one day and added no Ruleset key, number or ADR. They moved three golden
 baselines: a hashed column stopped being zero (`adr/0100`).
@@ -646,7 +679,7 @@ nothing.***
 
 **Row 14 read this page for its own unpaid debts rather than for a mechanism**, which is the one kind
 of sitting the queue's opening warning does not cover: a debt written into a narrative paragraph is a
-debt nobody sums. Six were standing. Five are paid below and one became row 18.
+debt nobody sums. Six were standing. Five are paid below and one became row 19.
 
 ✅ **`plans/0013` has the five rows it was owed** — `ServiceEngine.Attend`, `RuleEngine.SweepNeeds`,
 `DisasterEngine.Sweep`, a walk's recorded path, and the shell's per-frame world walk — plus a note on
@@ -685,7 +718,7 @@ same shape as a flood depth reading backwards, the wrong end of an indirection. 
 lines in a log whose whole job is to be read: **zero errors, exit 0, and a sentence saying a
 screenshot needs a real display.**
 
-⚠ **The one debt that could not be paid here became row 18.** The comb is two mechanisms — an
+⚠ **The one debt that could not be paid here became row 19** — it was written as row 18 and the queue shifted under it, which is the sighting the preamble now carries. The comb is two mechanisms — an
 hour-granular Shift start and a school pass that fires on one Tick in 2,048 — and both need a Ruleset
 key and a loader refusal, which is queue work rather than audit work. Re-measured live on
 `minimal.toml` at 1,000 Citizens: **1,341 of 2,047 Ticks with nobody travelling**, longest empty runs
@@ -702,15 +735,18 @@ passed.***
 
 ⚠ **Three causes were ruled out and none of them was it**: the `tier!=instrument` filter (the class
 runs, and fails, under exactly that expression), a skip (`Skipped: 0` in every run today) and a
-missing file (the test asserts its existence separately, with its own message). 🔴 **The cause is
-still unknown, and saying so is the finding** — [`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md)'s
-discipline applied to a defect rather than a mechanism: *unexplained* is not *explained away*.
+missing file (the test asserts its existence separately, with its own message). ~~🔴 **The cause is
+still unknown, and saying so is the finding**~~ ✅ **KNOWN 2026-09-01, and it was the fourth candidate
+nobody listed: a REBASE.** See *What the missing class found* below — ***the class had not gone
+missing, it had not yet arrived***, and the paragraph above is wrong in its first sentence.
 
 🔴 **What it exposes is that the suite counts everything about itself except how much of itself
 ran.** `TierBudgetTests` times every test and fails a slow one; `TierDeclarationTests` refuses a
 third tier and holds the instrument share under a quarter. **Neither would notice a class vanishing
 from the run**, because both reason about the tests they were handed. ***A gate that cannot say how
-many tests it ran cannot tell a green run from a short one***, which is row 15f.
+many tests it ran cannot tell a green run from a short one***, which is row 15f. ⚠ **That sentence
+survives the correction below and its target moves**: nothing counts the lane, and the counter cannot
+be a test.
 
 ## What the player's hands found
 
@@ -1032,3 +1068,49 @@ education` chip, and the caption agreeing with the picture. `provisioned.toml` u
 two chips, `housing 0x0001` unlit and `trade 0x0002` lit, with SERVICE and POLICIES dimmed and
 carrying their reasons — ***the same screen tells you what you may do and why you may not do the
 rest.***
+
+## What the missing class found
+
+🔴 **NOTHING WENT MISSING. THE CLASS HAD NOT ARRIVED, AND THE ROW SPENT A DAY LOOKING FOR A DEFECT
+IN THE ONE PLACE IT COULD NOT BE.** `git ls-tree -r c2e9ff3` holds **zero** `RulesetSchemaTests`;
+the class was authored **nineteen minutes later**, in `4e902cb` at 16:31. So `Total: 2496` was a
+complete run of every test that existed on that tree, and the gate was telling the truth.
+***The three candidates that were ruled out were all properties of the run, and the cause was not a
+property of the run at all.***
+
+**The cause is a rebase.** `c2e9ff3` is not an ancestor of `main`: the same work was replayed as
+`1c24c05` at 16:39, on top of `4e902cb`, which had brought the class. That tree carries a **new
+loader key** — `building.abandoned_when_empty_after_days` — and the **test that checks the schema
+against the loader's key surface**, and it does not touch `rulesets/ruleset.schema.json`, which was
+regenerated only later in `63bb181`. ⚠ ***Each parent was green on its own tree. The child was red,
+and no local gate ever ran on it.*** A rebase is not a merge conflict and git reports nothing,
+because neither side edited a line the other touched — the collision is between a key and a test
+that had never met.
+
+🔴 **AND SOMETHING DID NOTICE, WHICH IS THE HALF THE ROW GOT MOST WRONG.** The push lane ran on the
+pushed tree — `69e53fe`, with `1c24c05` under it — and reported **`Failed: 1, Passed: 2497,
+Skipped: 0, Total: 2498`**, naming `RulesetSchemaTests.The_committed_schema_is_the_loaders_own_key_surface`.
+⚠ **It was also useless, and the timing says why**: the failing run finished at 20:45:33 UTC and the
+fix was pushed at **20:45:39**, six seconds later. ***A lane that takes five and a half minutes
+cannot tell you anything you found in four***, which is [`adr/0121`](../docs/adr/0121-the-commit-gate-is-the-assertion-tier-and-a-long-test-runs-post-submit-on-a-machine-that-is-not-yours.md)
+working exactly as designed and not a backstop anybody should plan around.
+
+⚠ **`adr/0121` names three lanes and none of them is the tree a rebase produces.** What you run
+while working, what gates a commit, and what a runner does afterwards — the first two gate *the tree
+you have*, and a rebase substitutes a different one between the second and the push. ***The gate is
+a claim about a tree and the claim does not travel with the work.*** That is the same shape as the
+rule about quotation this project already has: a caveat does not travel with a number, and a green
+does not travel with a rebase.
+
+✅ **PAID IN `scripts/test.sh`, AND OUTSIDE THE SUITE ON PURPOSE.** A run now prints the **tree** it
+gated — short hash, branch, and a blunt `-dirty` — and the number of tests it **collected**, compared
+against the last run of the *same lane expression* and shouted about when it falls. ⚠ **The ledger
+is one line per run in `.git/`**, so it is per-clone, uncommitted, and can never become a corpus
+artefact somebody has to keep true.
+
+🔴 ⚠ **AND THE ROW'S OWN PROPOSED REPAIR WOULD NOT HAVE WORKED, WHICH IS WORTH MORE THAN THE FIX.**
+*The suite counts everything about itself except how much of itself ran* is true, and the counter
+**cannot be a test**: a class that is not collected takes the check that would have counted it with
+it. ***A test cannot report that it did not run.*** `TierBudgetTests` and `TierDeclarationTests` are
+not merely incomplete here — they are the wrong kind of thing, and so is any third class beside
+them. Only something outside the run can count the run.
