@@ -474,9 +474,288 @@ public sealed class Simulation
 
             case CommandKind.None:
             default:
-                throw new InvalidOperationException(
-                    $"command kind {(ushort)command.Kind} is declared but not applied in this slice.");
+                throw new InvalidOperationException(Explain(Refusal.VerbNotApplied, command));
         }
+    }
+
+    /// <summary>
+    /// <b>Why this command would not apply, as a number</b> — <see cref="Refusal.None"/> when it
+    /// would.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>The applier and this answer are ONE predicate, and that is the whole of the design.</b>
+    /// Each verb's checks moved into a <c>Refuse*</c> method that returns a code and hands back what
+    /// it resolved on the way; <see cref="Apply"/> throws on a non-zero code and this returns it. A
+    /// front end asking <em>would this be refused</em> is therefore asking the code that refuses,
+    /// rather than a paraphrase of it that is free to drift — <c>plans/0012</c> <b>Cause 1</b>, which
+    /// the shell had already committed three times over.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is a query and writes nothing</b>, so a caller may ask it every frame; and it is
+    /// <c>O(Lots)</c> for <c>Trip</c>, <c>Demolish</c> and <c>Service</c>, because resolving a Tile
+    /// to what stands on it is a scan and there is no index over Lots. ***That is the applier's own
+    /// cost paid twice rather than a new one***, and it is paid per click.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>An answer of <see cref="Refusal.None"/> is good for exactly as long as the world stands
+    /// still.</b> A command applies at the top of a Tick, so a caller that asks, steps, and then
+    /// sends is asking about a city that no longer exists. The shell asks and queues in one act, and
+    /// nothing steps in between.
+    /// </para>
+    /// <para>
+    /// ⚠ <b><c>Zone</c> and <c>Populate</c> can be refused by nothing and that is not an oversight.</b>
+    /// A block with no Street on any face yields no Lots — <c>02 §2.2</c>'s third rule, and the
+    /// mechanism by which a bad street layout punishes the player. ***It is an outcome and not a
+    /// refusal***, and a front end that greyed the click out would be hiding the lesson.
+    /// </para>
+    /// </remarks>
+    public Refusal Refuses(Command command) => command.Kind switch
+    {
+        CommandKind.Zone or CommandKind.Populate => Refusal.None,
+        CommandKind.Connect => RefuseConnect(command, out _),
+        CommandKind.Trip => RefuseTrip(command, out _, out _, out _),
+        CommandKind.Arrive => RefuseArrive(command, out _),
+        CommandKind.Govern => RefuseGovern(command),
+        CommandKind.Demolish => RefuseDemolish(command, out _),
+        CommandKind.Service => RefuseService(command, out _, out _),
+        _ => Refusal.VerbNotApplied,
+    };
+
+    /// <inheritdoc cref="ApplyConnect"/>
+    private Refusal RefuseConnect(Command command, out ConnectPayload payload)
+    {
+        payload = ConnectPayload.Decode(command.Zone);
+
+        return payload.Kind != RoadKind.Street ? Refusal.ConnectRoadKindIsNotStreet
+            : _world.Roads.Streets.BlockTiles <= 0 ? Refusal.ConnectWorldHasNoLattice
+            : Refusal.None;
+    }
+
+    /// <inheritdoc cref="ApplyTrip"/>
+    private Refusal RefuseTrip(Command command, out int origin, out int destination, out int citizen)
+    {
+        origin = -1;
+        destination = -1;
+        citizen = -1;
+
+        if (!_world.Rules.Trips.Runs)
+        {
+            return Refusal.TripRulesetStatesNoTrips;
+        }
+
+        int block = _world.Roads.Streets.BlockTiles;
+
+        if (block <= 0)
+        {
+            return Refusal.TripWorldHasNoLattice;
+        }
+
+        TripPayload payload = TripPayload.Decode(command.Zone);
+        int column = IntegerMath.FloorDiv(command.East.Raw, block);
+        int row = IntegerMath.FloorDiv(command.North.Raw, block);
+
+        origin = OccupiedBuildingIn(column, row);
+        destination = OccupiedBuildingIn(column + payload.BlocksEast, row + payload.BlocksNorth);
+
+        if (origin < 0 || destination < 0)
+        {
+            return Refusal.TripBlockHoldsNobody;
+        }
+
+        if (origin == destination)
+        {
+            return Refusal.TripEndpointsAreOneBuilding;
+        }
+
+        citizen = FirstResidentOf(origin);
+
+        return citizen < 0 ? Refusal.TripOriginHoldsNoCitizen : Refusal.None;
+    }
+
+    /// <inheritdoc cref="ApplyArrive"/>
+    private Refusal RefuseArrive(Command command, out int gate)
+    {
+        gate = GateOn(command.East, command.North);
+
+        return gate < 0 ? Refusal.ArriveNoGateOnThatTile : Refusal.None;
+    }
+
+    /// <inheritdoc cref="ApplyGovern"/>
+    private Refusal RefuseGovern(Command command)
+    {
+        int policy = command.Zone;
+
+        return policy >= _world.Rules.Policies.Length ? Refusal.GovernNoSuchPolicy
+            : policy >= _world.Policies.Rows.SlotCount ? Refusal.GovernPolicyNotInThisWorld
+            : _world.Policies.Key[policy] == 0 ? Refusal.GovernPolicyHasNoName
+            : Refusal.None;
+    }
+
+    /// <inheritdoc cref="ApplyDemolish"/>
+    private Refusal RefuseDemolish(Command command, out int building)
+    {
+        building = BuildingOn(command.East, command.North);
+
+        return building < 0 ? Refusal.DemolishNoBuildingOnThatTile
+            : !_world.Buildings.IsAbandoned(building) ? Refusal.DemolishBuildingIsOccupied
+            : Refusal.None;
+    }
+
+    /// <inheritdoc cref="ApplyService"/>
+    private Refusal RefuseService(Command command, out byte kind, out int lot)
+    {
+        kind = (byte)command.Zone;
+        lot = -1;
+
+        if (!_world.Rules.Declares(kind))
+        {
+            return Refusal.ServiceKindNotDeclared;
+        }
+
+        if (_world.Rules.Kind(kind).Serves == Need.None)
+        {
+            return Refusal.ServiceKindServesNothing;
+        }
+
+        lot = VacantLotOn(command.East, command.North);
+
+        return lot < 0 ? Refusal.ServiceNoVacantLotOnThatTile : Refusal.None;
+    }
+
+    /// <summary>The refusal as a sentence for a <b>crash artefact</b>, which is a different reader.</summary>
+    /// <remarks>
+    /// <para>
+    /// ⚠ <b>This is not the leak <c>CLAUDE.md</c> names and the distinction is the whole point.</b>
+    /// That rule is about a method returning <em>a formatted string because a panel wanted one</em>;
+    /// nothing here is returned. These compose the message of an exception that ends the run, whose
+    /// reader is whoever is holding the log — so it names the ADR, the successor mechanism and the
+    /// Ruleset key, none of which belongs on a player's screen. ***A player's sentence is the shell's
+    /// and is built from <see cref="Refusal"/>*** (<see cref="Refuses"/>).
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Every word below was already in this file</b>, moved rather than written. What changed is
+    /// that the message is now selected by the same code the guard reads, so the two cannot describe
+    /// different rules.
+    /// </para>
+    /// </remarks>
+    private string Explain(Refusal refusal, Command command) => refusal switch
+    {
+        Refusal.VerbNotApplied =>
+            $"command kind {(ushort)command.Kind} is declared but not applied in this slice.",
+
+        Refusal.ConnectRoadKindIsNotStreet =>
+            $"connect names road kind {(int)ConnectPayload.Decode(command.Zone).Kind}, and only "
+            + "Street is applied. adr/0077 defers Arterials and Junction pieces by name: an Arterial "
+            + "is a spline with many control points and is not one command, and a Junction piece "
+            + "needs the authored library adr/0014 calls content. Neither is missing by oversight.",
+
+        Refusal.ConnectWorldHasNoLattice =>
+            "connect names a Street lattice this world does not have. The spacing comes from "
+            + "the Ruleset's [roads] block_tiles, and a Ruleset that declares no [roads] is a "
+            + "world with no road network to edit.",
+
+        Refusal.TripRulesetStatesNoTrips =>
+            "trip is commanded against a Ruleset that declares no [trips] table, so what a "
+            + "crossing costs and where the Commute Budget falls are both unauthored. The verb "
+            + "refuses rather than costing the journey at zero, because zero is a legitimate "
+            + "crossing cost -- a city where the shop opposite is the shop next door -- and a "
+            + "placeholder inside the range of legitimate answers cannot announce itself.",
+
+        Refusal.TripWorldHasNoLattice =>
+            "trip names a Street lattice this world does not have. A Building's Access Point is "
+            + "derived through its Lot, a Lot is carved out of a block, and the spacing comes from "
+            + "the Ruleset's [roads] block_tiles -- so a Ruleset declaring no [roads] is a world "
+            + "in which nobody has an address to travel between.",
+
+        Refusal.TripBlockHoldsNobody => TripBlocks(command),
+
+        Refusal.TripEndpointsAreOneBuilding =>
+            "trip names one Building as both endpoints. A Trip to where you already are is not a "
+            + "degenerate Trip, it is a command with a wrong payload -- the block delta is zero, or "
+            + "both blocks resolved to the same Building because only one is occupied.",
+
+        Refusal.TripOriginHoldsNoCitizen =>
+            "trip names an origin Building with no Citizen in it. A Traveller is a cursor over a "
+            + "Citizen's journey (adr/0075) and there is nobody here to be one.",
+
+        Refusal.ArriveNoGateOnThatTile =>
+            $"arrive names Tile ({command.East.Raw}, {command.North.Raw}), where no Outside "
+            + "Connection stands. The verb refuses rather than admitting anybody through the "
+            + "nearest gate, because the edge a Household entered by selects its Hinterland "
+            + "(adr/0088) -- so a substituted gate does not misplace an arrival, it changes "
+            + "which market it came from.",
+
+        Refusal.GovernNoSuchPolicy =>
+            $"Govern names Policy {command.Zone} and this Ruleset declares "
+            + $"{_world.Rules.Policies.Length}. A Policy is named by its position in declaration "
+            + "order, and the Ruleset in force at the Tick a command is applied is what that "
+            + "position is resolved against.",
+
+        Refusal.GovernPolicyNotInThisWorld =>
+            $"Govern names Policy {command.Zone} and this world holds "
+            + $"{_world.Policies.Rows.SlotCount} governable row(s). The table is sized at world "
+            + "creation and PolicyTable.Adopt never resizes it, so a Policy that arrived on a "
+            + "reload which grew the set cannot be governed in this world.",
+
+        Refusal.GovernPolicyHasNoName =>
+            $"Govern names Policy {command.Zone} and that [[policy]] table states no name. A governed "
+            + "amount is saved state that has to survive a reload, and a name is the only thing "
+            + "that survives a renumbering — see Ruleset.PolicyKeys. Name the table to govern it.",
+
+        Refusal.DemolishNoBuildingOnThatTile =>
+            $"demolish names Tile ({command.East.Raw}, {command.North.Raw}), where no Building "
+            + "stands. The verb refuses rather than clearing the nearest one, because "
+            + "[lots] lots_per_segment is five and a substituted target is somebody else's "
+            + "house -- a mistyped command must not be indistinguishable from the demolition "
+            + "somebody meant.",
+
+        Refusal.DemolishBuildingIsOccupied =>
+            $"demolish names Tile ({command.East.Raw}, {command.North.Raw}), where a Building "
+            + "still stands occupied. adr/0091 makes clearing occupied ground a COMPULSORY "
+            + "PURCHASE paid at market value from the land value Map Layer to whoever is "
+            + "displaced, and refuses to compose that price -- so the successor is named and "
+            + "unbuilt rather than missing, and it is blocked on the land value target. "
+            + "Abandoned stock is the half that needs no compensation, because there is nobody "
+            + "left in it to compensate.",
+
+        Refusal.ServiceKindNotDeclared =>
+            $"service names Building kind {(byte)command.Zone}, which this Ruleset does not declare. "
+            + "The kind is the verb's whole payload beside the Tile, so an id nothing declares is a "
+            + "command with no subject rather than a placement to fall back from.",
+
+        Refusal.ServiceKindServesNothing =>
+            $"service names Building kind {(byte)command.Zone}, which declares no `serves` key and is "
+            + "therefore not a service Building. 01 section 5 makes this verb the design's ONE "
+            + "placement exception -- the player places service Buildings and only those -- so "
+            + "an ordinary kind is refused here rather than placed. Every other kind reaches the "
+            + "ground through a Zone Rule, which is the city filling in a permission set the "
+            + "player painted.",
+
+        Refusal.ServiceNoVacantLotOnThatTile =>
+            $"service names Tile ({command.East.Raw}, {command.North.Raw}), where there is no "
+            + "vacant Lot. The Tile is matched exactly rather than resolved to the block, on "
+            + "demolish's reasoning: [lots] lots_per_segment is five, so `the Lot in this block` "
+            + "names up to twenty of them, and a school landing on a neighbour's plot because "
+            + "the click resolved to the first is worse than a refusal. A Lot holding a Building "
+            + "-- a standing one or an adr/0091 shell -- is not vacant; demolish first.",
+
+        _ => $"command kind {(ushort)command.Kind} was refused with reason {(ushort)refusal}, which "
+            + "this build has no diagnosis for.",
+    };
+
+    /// <summary>The two block coordinates a refused <c>Trip</c> named, spelled out.</summary>
+    private string TripBlocks(Command command)
+    {
+        int block = _world.Roads.Streets.BlockTiles;
+        TripPayload payload = TripPayload.Decode(command.Zone);
+        int column = IntegerMath.FloorDiv(command.East.Raw, block);
+        int row = IntegerMath.FloorDiv(command.North.Raw, block);
+
+        return $"trip from block ({column}, {row}) to block ({column + payload.BlocksEast}, "
+            + $"{row + payload.BlocksNorth}) names a block with no occupied Building in it. The "
+            + "verb refuses rather than substituting a nearby one, because a substituted endpoint "
+            + "makes a mistyped command indistinguishable from the Trip somebody meant.";
     }
 
     /// <summary>
@@ -504,26 +783,14 @@ public sealed class Simulation
     /// </remarks>
     private void ApplyConnect(Command command)
     {
-        ConnectPayload payload = ConnectPayload.Decode(command.Zone);
+        Refusal refusal = RefuseConnect(command, out ConnectPayload payload);
 
-        if (payload.Kind != RoadKind.Street)
+        if (refusal != Refusal.None)
         {
-            throw new InvalidOperationException(
-                $"connect names road kind {(int)payload.Kind}, and only Street is applied. "
-                + "adr/0077 defers Arterials and Junction pieces by name: an Arterial is a spline "
-                + "with many control points and is not one command, and a Junction piece needs the "
-                + "authored library adr/0014 calls content. Neither is missing by oversight.");
+            throw new InvalidOperationException(Explain(refusal, command));
         }
 
         int block = _world.Roads.Streets.BlockTiles;
-
-        if (block <= 0)
-        {
-            throw new InvalidOperationException(
-                "connect names a Street lattice this world does not have. The spacing comes from "
-                + "the Ruleset's [roads] block_tiles, and a Ruleset that declares no [roads] is a "
-                + "world with no road network to edit.");
-        }
 
         // Snapped down to the lattice, which is what adr/0014's "Streets snap to the grid" means once
         // the graph is nodes at intersections rather than Tiles: the player names a place and the
@@ -592,61 +859,11 @@ public sealed class Simulation
     /// </remarks>
     private void ApplyTrip(Command command, Ticks tick)
     {
-        TripPayload payload = TripPayload.Decode(command.Zone);
+        Refusal refusal = RefuseTrip(command, out int origin, out int destination, out int citizen);
 
-        TripRuleset trips = _world.Rules.Trips;
-
-        if (!trips.Runs)
+        if (refusal != Refusal.None)
         {
-            throw new InvalidOperationException(
-                "trip is commanded against a Ruleset that declares no [trips] table, so what a "
-                + "crossing costs and where the Commute Budget falls are both unauthored. The verb "
-                + "refuses rather than costing the journey at zero, because zero is a legitimate "
-                + "crossing cost -- a city where the shop opposite is the shop next door -- and a "
-                + "placeholder inside the range of legitimate answers cannot announce itself.");
-        }
-
-        int block = _world.Roads.Streets.BlockTiles;
-
-        if (block <= 0)
-        {
-            throw new InvalidOperationException(
-                "trip names a Street lattice this world does not have. A Building's Access Point is "
-                + "derived through its Lot, a Lot is carved out of a block, and the spacing comes from "
-                + "the Ruleset's [roads] block_tiles -- so a Ruleset declaring no [roads] is a world "
-                + "in which nobody has an address to travel between.");
-        }
-
-        int column = IntegerMath.FloorDiv(command.East.Raw, block);
-        int row = IntegerMath.FloorDiv(command.North.Raw, block);
-
-        int origin = OccupiedBuildingIn(column, row);
-        int destination = OccupiedBuildingIn(column + payload.BlocksEast, row + payload.BlocksNorth);
-
-        if (origin < 0 || destination < 0)
-        {
-            throw new InvalidOperationException(
-                $"trip from block ({column}, {row}) to block ({column + payload.BlocksEast}, "
-                + $"{row + payload.BlocksNorth}) names a block with no occupied Building in it. The "
-                + "verb refuses rather than substituting a nearby one, because a substituted endpoint "
-                + "makes a mistyped command indistinguishable from the Trip somebody meant.");
-        }
-
-        if (origin == destination)
-        {
-            throw new InvalidOperationException(
-                "trip names one Building as both endpoints. A Trip to where you already are is not a "
-                + "degenerate Trip, it is a command with a wrong payload -- the block delta is zero, or "
-                + "both blocks resolved to the same Building because only one is occupied.");
-        }
-
-        int citizen = FirstResidentOf(origin);
-
-        if (citizen < 0)
-        {
-            throw new InvalidOperationException(
-                "trip names an origin Building with no Citizen in it. A Traveller is a cursor over a "
-                + "Citizen's journey (adr/0075) and there is nobody here to be one.");
+            throw new InvalidOperationException(Explain(refusal, command));
         }
 
         // The Citizen's own mode, not a walk. adr/0080 demotes this command to a test affordance
@@ -736,16 +953,11 @@ public sealed class Simulation
     {
         ArrivePayload payload = ArrivePayload.Decode(command.Zone);
 
-        int gate = GateOn(command.East, command.North);
+        Refusal refusal = RefuseArrive(command, out int gate);
 
-        if (gate < 0)
+        if (refusal != Refusal.None)
         {
-            throw new InvalidOperationException(
-                $"arrive names Tile ({command.East.Raw}, {command.North.Raw}), where no Outside "
-                + "Connection stands. The verb refuses rather than admitting anybody through the "
-                + "nearest gate, because the edge a Household entered by selects its Hinterland "
-                + "(adr/0088) -- so a substituted gate does not misplace an arrival, it changes "
-                + "which market it came from.");
+            throw new InvalidOperationException(Explain(refusal, command));
         }
 
         Handle<Building> handle = _world.Buildings.Rows.At(gate);
@@ -783,35 +995,14 @@ public sealed class Simulation
     /// </remarks>
     private void ApplyGovern(Command command)
     {
-        int policy = command.Zone;
-        PolicyDefinition[] policies = _world.Rules.Policies;
+        Refusal refusal = RefuseGovern(command);
 
-        if (policy >= policies.Length)
+        if (refusal != Refusal.None)
         {
-            throw new InvalidOperationException(
-                $"Govern names Policy {policy} and this Ruleset declares {policies.Length}. A Policy "
-                + "is named by its position in declaration order, and the Ruleset in force at the "
-                + "Tick a command is applied is what that position is resolved against.");
+            throw new InvalidOperationException(Explain(refusal, command));
         }
 
-        if (policy >= _world.Policies.Rows.SlotCount)
-        {
-            throw new InvalidOperationException(
-                $"Govern names Policy {policy} and this world holds "
-                + $"{_world.Policies.Rows.SlotCount} governable row(s). The table is sized at world "
-                + "creation and PolicyTable.Adopt never resizes it, so a Policy that arrived on a "
-                + "reload which grew the set cannot be governed in this world.");
-        }
-
-        if (_world.Policies.Key[policy] == 0)
-        {
-            throw new InvalidOperationException(
-                $"Govern names Policy {policy} and that [[policy]] table states no name. A governed "
-                + "amount is saved state that has to survive a reload, and a name is the only thing "
-                + "that survives a renumbering — see Ruleset.PolicyKeys. Name the table to govern it.");
-        }
-
-        _world.Policies.Govern(policy, command.East.Raw);
+        _world.Policies.Govern(command.Zone, command.East.Raw);
     }
 
     /// <summary>
@@ -856,28 +1047,11 @@ public sealed class Simulation
     /// </remarks>
     private void ApplyDemolish(Command command, Ticks tick)
     {
-        int building = BuildingOn(command.East, command.North);
+        Refusal refusal = RefuseDemolish(command, out int building);
 
-        if (building < 0)
+        if (refusal != Refusal.None)
         {
-            throw new InvalidOperationException(
-                $"demolish names Tile ({command.East.Raw}, {command.North.Raw}), where no Building "
-                + "stands. The verb refuses rather than clearing the nearest one, because "
-                + "[lots] lots_per_segment is five and a substituted target is somebody else's "
-                + "house -- a mistyped command must not be indistinguishable from the demolition "
-                + "somebody meant.");
-        }
-
-        if (!_world.Buildings.IsAbandoned(building))
-        {
-            throw new InvalidOperationException(
-                $"demolish names Tile ({command.East.Raw}, {command.North.Raw}), where a Building "
-                + "still stands occupied. adr/0091 makes clearing occupied ground a COMPULSORY "
-                + "PURCHASE paid at market value from the land value Map Layer to whoever is "
-                + "displaced, and refuses to compose that price -- so the successor is named and "
-                + "unbuilt rather than missing, and it is blocked on the land value target. "
-                + "Abandoned stock is the half that needs no compensation, because there is nobody "
-                + "left in it to compensate.");
+            throw new InvalidOperationException(Explain(refusal, command));
         }
 
         _world.DestroyBuilding(_world.Buildings.Rows.At(building), tick);
@@ -910,40 +1084,11 @@ public sealed class Simulation
     /// </remarks>
     private void ApplyService(Command command, Ticks tick)
     {
-        var kind = (byte)command.Zone;
+        Refusal refusal = RefuseService(command, out byte kind, out int lot);
 
-        if (!_world.Rules.Declares(kind))
+        if (refusal != Refusal.None)
         {
-            throw new InvalidOperationException(
-                $"service names Building kind {kind}, which this Ruleset does not declare. The kind "
-                + "is the verb's whole payload beside the Tile, so an id nothing declares is a "
-                + "command with no subject rather than a placement to fall back from.");
-        }
-
-        Need serves = _world.Rules.Kind(kind).Serves;
-
-        if (serves == Need.None)
-        {
-            throw new InvalidOperationException(
-                $"service names Building kind {kind}, which declares no `serves` key and is "
-                + "therefore not a service Building. 01 section 5 makes this verb the design's ONE "
-                + "placement exception -- the player places service Buildings and only those -- so "
-                + "an ordinary kind is refused here rather than placed. Every other kind reaches the "
-                + "ground through a Zone Rule, which is the city filling in a permission set the "
-                + "player painted.");
-        }
-
-        int lot = VacantLotOn(command.East, command.North);
-
-        if (lot < 0)
-        {
-            throw new InvalidOperationException(
-                $"service names Tile ({command.East.Raw}, {command.North.Raw}), where there is no "
-                + "vacant Lot. The Tile is matched exactly rather than resolved to the block, on "
-                + "demolish's reasoning: [lots] lots_per_segment is five, so `the Lot in this block` "
-                + "names up to twenty of them, and a school landing on a neighbour's plot because "
-                + "the click resolved to the first is worse than a refusal. A Lot holding a Building "
-                + "-- a standing one or an adr/0091 shell -- is not vacant; demolish first.");
+            throw new InvalidOperationException(Explain(refusal, command));
         }
 
         _world.CreateBuilding(_world.Lots.Rows.At(lot), kind, tick, _key);

@@ -42,6 +42,39 @@ public enum DriveVerb
     /// <summary>Write the draw list to <c>Path</c> — every instance on screen, as data.</summary>
     Draw,
 
+    /// <summary>
+    /// Choose what the next <see cref="Click"/> means. <c>Path</c> names the tool.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b><c>Amount</c> chooses WHICH one, where a tool has more than one</b> — a Zone Rule by
+    /// declaration position, a service by its kind id — which is what makes the verb an absolute
+    /// rather than a cycle. ***The keyboard is what cycles***: <c>z</c> reads what is held and asks
+    /// for the next one, so a recorded session replays the choice rather than the keypress.
+    /// </remarks>
+    /// <remarks>
+    /// 🔴 <b>The tool is a WORD and not an index, and that is deliberate.</b> Which verbs a shell
+    /// offers is the shell's own fact — <c>Borough.Formats</c> knows nothing about looking, zoning or
+    /// demolishing, and an ordinal here would be a second copy of an enum in <c>Borough.Godot</c>
+    /// that no test can reach. ***The grammar carries the name and the shell resolves it***, so an
+    /// unknown tool is a refusal a person reads rather than a click that quietly meant something
+    /// else.
+    /// </remarks>
+    Hold,
+
+    /// <summary>
+    /// Act at a Tile with the held tool. <c>East</c> and <c>North</c> are the Tile;
+    /// <c>Amount</c> is 1 when shift was held, which is what turns <c>street</c> into a bulldoze.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>THE FIRST DRIVE VERB THAT CHANGES THE CITY, which is <c>plans/0048</c> <b>D1</b>
+    /// arriving.</b> Every verb above it moves the clock, the eye or a file, and D1 was left open
+    /// because none of them could reach the world. It is answered by where a click already goes:
+    /// the shell turns it into a <c>Command</c> and queues it, and <c>Ordered()</c> — the one drain
+    /// — appends every queued Command to the Input Log. ***So a driven click enters the log by the
+    /// same door a hand's does***, and neither the tool nor the aim is a second channel.
+    /// </remarks>
+    Click,
+
     /// <summary>End the run.</summary>
     Quit,
 }
@@ -51,7 +84,10 @@ public enum DriveVerb
 /// <param name="Verb">What to do.</param>
 /// <param name="Amount">The verb's quantity, or 0 where it takes none.</param>
 /// <param name="Path">Where to write, for the two verbs that produce a file.</param>
-public readonly record struct DriveCommand(ulong At, DriveVerb Verb, int Amount, string? Path);
+/// <param name="East">The Tile a <see cref="DriveVerb.Click"/> lands on, east.</param>
+/// <param name="North">And north. Both are zero for every verb that does not aim.</param>
+public readonly record struct DriveCommand(
+    ulong At, DriveVerb Verb, int Amount, string? Path, int East = 0, int North = 0);
 
 /// <summary>
 /// A drive script: <c>&lt;tick&gt; &lt;verb&gt; [argument]</c>, one per line, <c>#</c> comments.
@@ -217,6 +253,14 @@ public static class DriveScript
             DriveVerb.Shoot => $"{at} shoot {command.Path}",
             DriveVerb.Readout => $"{at} readout {command.Path}",
             DriveVerb.Draw => $"{at} draw {command.Path}",
+            // ⚠ The choice is always written, on the zoom notch's reasoning: a default that moved
+            // would silently re-aim every recorded session that had relied on it.
+            DriveVerb.Hold =>
+                $"{at} hold {command.Path} {command.Amount.ToString(CultureInfo.InvariantCulture)}",
+            DriveVerb.Click =>
+                $"{at} click {command.East.ToString(CultureInfo.InvariantCulture)} "
+                + $"{command.North.ToString(CultureInfo.InvariantCulture)}"
+                + (command.Amount != 0 ? " shift" : string.Empty),
             _ => $"{at} quit",
         };
     }
@@ -355,6 +399,55 @@ public static class DriveScript
 
                 return Made(DriveVerb.Zoom, argument == "in" ? steps : -steps);
 
+            case "hold":
+                if (word.Length is < 3 or > 4)
+                {
+                    refusals.Add($"{file}:{line}: 'hold' takes a tool, and optionally which one of "
+                        + "it — 'hold zone 1', 'hold service 2'.");
+
+                    return null;
+                }
+
+                int choice = 0;
+
+                if (word.Length == 4
+                    && !int.TryParse(word[3], NumberStyles.None, CultureInfo.InvariantCulture, out choice))
+                {
+                    refusals.Add($"{file}:{line}: 'hold {argument}' takes a number, not '{word[3]}'.");
+
+                    return null;
+                }
+
+                return new DriveCommand(tick, DriveVerb.Hold, choice, argument);
+
+            case "click":
+                if (word.Length is < 4 or > 5)
+                {
+                    refusals.Add($"{file}:{line}: 'click' takes an east Tile and a north Tile, and "
+                        + "optionally 'shift'.");
+
+                    return null;
+                }
+
+                if (!int.TryParse(word[2], NumberStyles.None, CultureInfo.InvariantCulture, out int east)
+                    || !int.TryParse(word[3], NumberStyles.None, CultureInfo.InvariantCulture, out int north))
+                {
+                    refusals.Add($"{file}:{line}: 'click' takes two Tile coordinates, not "
+                        + $"'{word[2]} {word[3]}'.");
+
+                    return null;
+                }
+
+                if (word.Length == 5 && word[4] != "shift")
+                {
+                    refusals.Add($"{file}:{line}: 'click' takes 'shift' or nothing, not '{word[4]}'.");
+
+                    return null;
+                }
+
+                return new DriveCommand(
+                    tick, DriveVerb.Click, word.Length == 5 ? 1 : 0, null, east, north);
+
             case "shoot":
             case "readout":
             case "draw":
@@ -376,7 +469,7 @@ public static class DriveScript
 
             default:
                 refusals.Add($"{file}:{line}: no verb '{verb}'. There is pause, resume, speed, "
-                    + "roads, cells, turn, zoom, shoot, readout, draw and quit.");
+                    + "roads, cells, turn, zoom, hold, click, shoot, readout, draw and quit.");
 
                 return null;
         }

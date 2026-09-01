@@ -9,7 +9,8 @@ cannot be driven without a hand on the keyboard.
 
 ## Status
 
-🟢 **ALL FOUR TIERS LANDED 2026-08-31.**
+🟢 **ALL FIVE TIERS LANDED 2026-08-31.** Tier 5 — `hold` and `click` — was added the same day, by
+`plans/0045` row **15e**: a refusal nobody can make happen is a refusal nobody has looked at.
 
 **Where tier 2 lives:** `Borough.Formats/DriveScript.cs` (the grammar), `Borough.Tests/Formats/
 DriveScriptTests.cs` (23 assertions), and `Main.Apply` / `Main.Drive` / `Main.Driven` /
@@ -76,12 +77,13 @@ Ordered. Each tier is usable on its own, and each is the fallback if the next pr
 | **2** | **`--drive`, the Tick-addressed script.** The reproducible channel | ✅ **31-08** |
 | **3** | **The draw-list dump.** What only the shell can answer, as data rather than pixels | ✅ **31-08** |
 | **4** | **The socket.** Live exploration, and its log is a tier-2 script | ✅ **31-08** |
+| **5** | **The player's verbs.** `hold` and `click`, so a driven run can act on the city | ✅ **31-08** |
 
 ### Tier 2 — `--drive`
 
 | | Task |
 |---|---|
-| **2a** | ✅ **The grammar and its parser, in `Borough.Formats`.** `<tick> <verb> [argument]`, `#` comments. Ten verbs: `pause`, `resume`, `speed`, `roads`, `cells`, `turn`, `zoom`, `shoot`, `readout`, `quit` |
+| **2a** | ✅ **The grammar and its parser, in `Borough.Formats`.** `<tick> <verb> [argument]`, `#` comments. ⚠ **Count them in `DriveVerb` rather than here** — this cell said *ten* and tier 3 and tier 5 have added three since |
 | **2b** | ✅ **One control surface.** `Main.Apply(DriveCommand)`. The keyboard builds a command and calls it; so does the script |
 | **2c** | ✅ **`--drive FILE`**, and 🔴 **the clock is CLAMPED at the next command's Tick** — see **F6** |
 | **2d** | ✅ **`shoot <path>`** writes the frame and the readout together, and 🔴 **redraws first** — see **F8** |
@@ -141,6 +143,26 @@ catches what no assertion names — lighting, occlusion, whether a thing is *leg
 | **F19** | ✅ **The Traveller rows carry real Citizens.** `minimal.toml` at Tick 752: **64 drawn against the readout's 64**, **64 distinct ids, none unresolved**, none outside the map. ⚠ **Finding the Tick took a scan** — a `readout` every 16 Ticks across the morning — because ***the Day is a comb***: the counts cluster near 496, 576, 656, 752 and 848, roughly 85 Ticks apart, which is one in-world hour. [`0045`](0045-amnesty.md) row 18 owns that, and this is a second instrument agreeing with it |
 | **F18** | ✅ **Two draw lists of one script are byte-identical**, so a row that moves is a renderer change. **F11** said this of the pixels; this says it of the geometry, which is the half a test can name |
 
+### Tier 5 — `hold` and `click` ✅
+
+**`hold <tool> [which]`** chooses what the next click means; **`click <east> <north> [shift]`** acts
+at a Tile.
+
+⚠ **The tool is a WORD and the Tile is a Tile.** Which verbs a shell offers is the shell's own fact,
+so `Borough.Formats` carries the name and `Main.Hold` is the only thing that knows what the names
+are — an ordinal here would be a second copy of an enum no test can reach. And a click names a
+**Tile** rather than a pixel, for **F4**'s reason arriving in space: a screen position is a property
+of the camera.
+
+⚠ **`hold` carries WHICH one, so the verb is an absolute and the keyboard is what cycles.** `z` reads
+what is held and asks for the next Zone Rule; the script says `hold zone 1` and means it.
+
+| | Finding |
+|---|---|
+| **F23** | 🔴 **THE DRIVEN AIM SKIPS THE RAY THAT USED TO CHECK THE MAP'S BOUNDS.** `Aim()` clamps a cursor on its way out of the projection and a script meets none of that, so the bounds are checked in `Apply` — a click past the edge would otherwise reach `Simulation` with a coordinate no ground has |
+| **F24** | ⚠ **The aim PERSISTS after the click and a hand's motion takes it back.** A driven run has no mouse, so an aim that lasted one call would leave every picture of a driven click pointing at the corner of the map; and a person at the desk during a socket session must not find the pointer dead |
+| **F25** | ✅ **Four refusals watched happening, byte-identical across two runs**, and the picture carries the sentence at the top of the screen. `plans/0045` *What the refusals found* owns them |
+
 ### Tier 4 — the socket ✅
 
 **`--listen PATH`** opens a Unix domain socket; **`--record FILE`** writes every applied command back
@@ -171,7 +193,7 @@ thread enqueues and blocks; nothing off the main thread touches the world.
 
 | | Finding |
 |---|---|
-| **F6** | ✅ **A COMMAND LANDS ON THE TICK IT NAMES, AND THAT IS THE WHOLE POINT.** `_Process` steps no further than the next command's Tick, so the Tick a command lands on is a property of the **script** and not of the frame rate, the rung or the machine's load. Measured: two `shoot`s and a `readout` landed on Ticks 6,101, 6,101 and 6,400 exactly. ***This is **F4** repaired*** |
+| **F6** | ✅ **A COMMAND LANDS ON THE TICK IT NAMES, AND THAT IS THE WHOLE POINT.** `_Process` steps no further than the next command's Tick, so the Tick a command lands on is a property of the **script** and not of the frame rate, the rung or the machine's load. Measured: two `shoot`s and a `readout` landed on Ticks 6,101, 6,101 and 6,400 exactly. ***This is **F4** repaired***. ⚠ **The clock is clamped and never hurried** — a run still advances at the rung's wall-clock rate, so a script whose first command is at Tick 2,000 waits **250 s** at rung 1. `--start-at` is how a late Tick is reached and `speed` is how a long stretch is crossed; ***a Tick number in a script is not a fast-forward*** |
 | **F7** | 🔴 **A PAUSED SCRIPT DEADLOCKS, AND IT IS REFUSED AT PARSE RATHER THAN DISCOVERED AT RUN.** `pause` stops the clock, and a clock that is stopped never reaches a later Tick — so the first script written against this hung until a timeout killed it, **having already written every file it was going to write**. ⚠ **A hang is the worst refusal because it looks like work.** The check is `DriveScript.Stopped`, and it caught the example script inside this plan's own test class on the first run |
 | **F8** | 🔴 **THE CAPTION WAS COMPOSED BEFORE THE COMMANDS IT DESCRIBES.** `Draw` runs before `Drive` in a frame, so `pause` then `shoot` on one Tick wrote a caption reading `speed 1x` over a picture of a stopped city. ***A caption written from a stale compose disagrees with its own picture***, which is the one thing writing them in a single act was meant to prevent. `Shoot` and `Caption` now recompose first |
 | **F9** | 🔴 **`GetTree().Quit()` IS DEFERRED TO THE END OF THE FRAME, so a refused run drew one frame against a world `_Ready` never built** — and the refusal a person is meant to read scrolled past under a `NullReferenceException` and forty lines of backtrace. ⚠ **This was already true of BOTH Ruleset refusals and predates this work**; the drive script only made it happen often enough to notice. `Main.Stop` sets a flag `_Process` checks. ***A message printed above a stack trace is a message nobody reads*** |
@@ -187,7 +209,7 @@ Under the amnesty these are stamped and not ratified ([`0045`](0045-amnesty.md) 
 
 | | Decision |
 |---|---|
-| **D1** | **Does a driven command enter the Input Log?** The six verbs must, or a driven session is not replayable by `Borough.Headless`. **Speed, camera and layer toggles must not** — they are host-side and runtime-only, and an Input Log holding a camera pose is a save file holding a monitor. ⚠ **STILL OPEN, and it has not bitten because the grammar has no city-changing verb in it at all** — every verb shipped moves the clock, the eye or a file. ***The day a `zone` or a `demolish` verb is added is the day this must be answered***, and `--record` is the thing that will make the gap obvious: it will spell a command the Input Log did not receive |
+| **D1** | ✅ **CLOSED 31-08: yes, and by where a click already goes rather than by a second rule.** `click` reaches `Main.Act`, which turns it into a `Command` and queues it, and `Ordered()` — the one drain — appends every queued `Command` to the Input Log. ***So a driven click enters the log by the same door a hand's does.*** Speed, camera and layer verbs still do not, which is the other half unchanged. 🔴 **What the answer cost was the OTHER log**: the four verb keys were not recorded at all, on the ground that holding a tool changes nothing in the world — true, and it made a recorded session replay as a **different verb**, because a click means whatever is held. `hold` is a `DriveVerb` for that reason and the keyboard now goes through it |
 | **D2** | ✅ **CLOSED: both, because they cost one column each.** The instance index diffs a row against the `MultiMesh`; the entity id diffs it across Ticks. ⚠ **The id is the monotonic never-reused one and not the `Handle`'s index**, for `05 §4`'s reason — a list keyed on a recycled slot names a different Citizen after a collection, which is the one thing a list meant for diffing must never do |
 | **D3** | ✅ **CLOSED: no.** `--drive` does not imply an end — a script a person is watching should keep running when it runs out of instructions. Wanting an end means writing `quit` or passing `--quit-at`, and **both arrive at the same applier as one more command**. ⚠ **`--quit-at` before the script's last command is refused**, and so is one after a `pause`, for **F7**'s reason |
 

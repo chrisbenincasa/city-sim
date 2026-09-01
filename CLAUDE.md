@@ -7,7 +7,7 @@ Guidance for Claude Code working in this repository.
 🔴 **AMNESTY IN FORCE. READ [`plans/0045-amnesty.md`](plans/0045-amnesty.md) AND NOTHING ELSE ON A
 COLD START.** It is one page, it is the only thing in flight, and it supersedes *Where to look* below
 for the duration. **Do not read the board.** ⚠ **It ends at a RATIO and not on a date** — 30 words of
-prose per line of simulation, **55 on 2026-08-31** — so no calendar lifts it and
+prose per line of simulation, **52 on 2026-08-31** — so no calendar lifts it and
 `CorpusBudgetTests.The_amnesty_has_not_yet_earned_its_end` is what reports it earned. ⚠ **The cap is a RATIO and not a word count** — prose
 written beside new simulation is free, prose written alone is refused, and doc-comments count on
 the numerator so that nothing escapes `docs/` by relocating. No new ADRs may be written, and

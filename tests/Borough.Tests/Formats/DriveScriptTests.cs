@@ -114,6 +114,12 @@ public sealed class DriveScriptTests
     [InlineData("10 zoom in lots", "takes notches")]
     [InlineData("10 shoot", "takes 1 argument")]
     [InlineData("10 draw", "takes 1 argument")]
+    [InlineData("10 hold", "takes a tool")]
+    [InlineData("10 hold zone one", "takes a number")]
+    [InlineData("10 click", "takes an east Tile")]
+    [InlineData("10 click 8", "takes an east Tile")]
+    [InlineData("10 click here there", "takes two Tile coordinates")]
+    [InlineData("10 click 8 9 hard", "takes 'shift' or nothing")]
     public void A_line_that_is_not_a_command_is_refused_by_name(string script, string reason)
     {
         DriveScriptResult read = DriveScript.Parse(script, "x");
@@ -184,6 +190,10 @@ public sealed class DriveScriptTests
     [InlineData("100 shoot a/b.png")]
     [InlineData("100 readout a/b.txt")]
     [InlineData("100 draw a/b.tsv")]
+    [InlineData("100 hold demolish 0")]
+    [InlineData("100 hold zone 2")]
+    [InlineData("100 click 4096 8192")]
+    [InlineData("100 click 4096 8192 shift")]
     public void A_command_spells_back_out_as_the_line_that_makes_it(string line)
     {
         // 🔴 THIS ROUND TRIP IS WHAT MAKES A LIVE SESSION REPRODUCIBLE. A socket stamps each

@@ -279,6 +279,17 @@ public partial class Main : Node3D
 
     /// <summary>Why the last click did nothing, or empty. <b>Shown, never thrown.</b></summary>
     private string _refused = string.Empty;
+
+    /// <summary>
+    /// Where a driven run is pointing, or null when the mouse is. <b>A hand's motion clears it.</b>
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>It PERSISTS after the click rather than being cleared with it</b>, so that the hover, the
+    /// cursor marker and any <c>shoot</c> afterwards all describe the Tile the script named. A driven
+    /// run has no mouse, and an aim that lasted one call would leave every picture of a driven click
+    /// pointing at the corner of the map.
+    /// </remarks>
+    private (Tiles East, Tiles North)? _aimed;
     private Label _readout = null!;
     private VisibleAgent[] _agents = new VisibleAgent[8192];
     private double _owed;
@@ -716,6 +727,30 @@ public partial class Main : Node3D
 
                 break;
 
+            case DriveVerb.Hold:
+                Hold(command.Path!, command.Amount);
+
+                break;
+
+            case DriveVerb.Click:
+                // 🔴 THE BOUNDS ARE CHECKED HERE BECAUSE THE DRIVEN AIM SKIPS THE RAY THAT USED TO
+                // CHECK THEM. Aim() clamps a cursor to the map on its way out of the projection; a
+                // script names a Tile and meets none of that, so a click past the edge would have
+                // reached Simulation with a coordinate no ground has.
+                if (command.East < 0 || command.North < 0
+                    || command.East >= CellGrid.WorldTiles || command.North >= CellGrid.WorldTiles)
+                {
+                    _refused = "that is not on the map.";
+
+                    break;
+                }
+
+                _aimed = (new Tiles(command.East), new Tiles(command.North));
+
+                Act(command.Amount != 0);
+
+                break;
+
             case DriveVerb.Quit:
                 Quit();
 
@@ -1071,7 +1106,23 @@ public partial class Main : Node3D
             // larger slop radius would have been the same defect with a longer fuse.
             if (button is { Pressed: true, ButtonIndex: MouseButton.Left })
             {
-                Act(button.ShiftPressed);
+                // ⚠ THROUGH Apply, so --record spells the click out as the Tile it resolved to.
+                // A recording holding a screen position would be a recording of a camera, and a
+                // camera is not an input (adr/0007). _aimed is null here, so Aim() casts the ray.
+                if (Aim() is { } at)
+                {
+                    Apply(new DriveCommand(
+                        _world.Tick.Raw,
+                        DriveVerb.Click,
+                        button.ShiftPressed ? 1 : 0,
+                        null,
+                        at.East.Raw,
+                        at.North.Raw));
+                }
+                else
+                {
+                    _refused = "that is not on the map.";
+                }
             }
 
             return;
@@ -1102,6 +1153,12 @@ public partial class Main : Node3D
             return;
         }
 
+        // A hand that moves the mouse is pointing again, and takes the aim back off the script.
+        if (@event is InputEventMouseMotion)
+        {
+            _aimed = null;
+        }
+
         // 🔴 RIGHT OR MIDDLE, NEVER LEFT. Panning shared the left button with every verb until
         // 2026-08-31, which is what made a trackpad click unusable -- see the button branch above.
         // A two-finger click-drag is the native pan on a Mac trackpad and middle-drag is the mouse's,
@@ -1121,9 +1178,13 @@ public partial class Main : Node3D
 
         // The keys with no DriveVerb behind them, which is what puts them ahead of the command
         // switch rather than in it. The tuner's two are an editing UI rather than a view of the
-        // city, and a script has no panel to open. The four verb keys choose what the next click
-        // will mean, which is a state of the shell -- pressing one moves nothing in the world, so
-        // there is nothing for a recorded session to replay.
+        // city, and a script has no panel to open.
+        //
+        // 🔴 THE FOUR VERB KEYS USED TO BE AMONG THEM, ON THE GROUND THAT HOLDING A TOOL MOVES
+        // NOTHING IN THE WORLD. That was true and it made a recorded session UNREPLAYABLE: a click
+        // means whatever is held, so a session recording the click and not the choice replays as a
+        // different verb. ***What a recording needs is not everything that changed the city, it is
+        // everything a replay has to know*** -- and the tool is the second half of every click.
         switch (key.Keycode)
         {
             case Key.Tab:
@@ -1142,8 +1203,7 @@ public partial class Main : Node3D
                 return;
 
             case Key.V:
-                _verb = Verb.Look;
-                _refused = string.Empty;
+                Apply(Held("look", 0));
 
                 return;
 
@@ -1152,32 +1212,29 @@ public partial class Main : Node3D
                 // a Ruleset with two [[zone_rule]]s reachable without a second key. A zone word is a
                 // BITMASK of which rules may build (ZoneRuleDefinition.Admits), so what the brush
                 // paints is one rule's permission and never a category the city knows about.
-                _zoneChoice = _verb == Verb.Zone && _world.Rules.ZoneRules.Length > 0
-                    ? (_zoneChoice + 1) % _world.Rules.ZoneRules.Length
-                    : 0;
-                _verb = Verb.Zone;
-                _refused = string.Empty;
+                Apply(Held(
+                    "zone",
+                    _verb == Verb.Zone && _world.Rules.ZoneRules.Length > 0
+                        ? (_zoneChoice + 1) % _world.Rules.ZoneRules.Length
+                        : 0));
 
                 return;
 
             case Key.X:
-                _verb = Verb.Connect;
-                _refused = string.Empty;
+                Apply(Held("street", 0));
 
                 return;
 
             case Key.B:
-                _verb = Verb.Demolish;
-                _refused = string.Empty;
+                Apply(Held("demolish", 0));
 
                 return;
 
             case Key.S:
                 // ⚠ CYCLES ON REPEAT, exactly as Z does, because a Ruleset may declare more than one
                 // `serves` kind and there is no second key to spend on choosing between them.
-                _serviceKind = NextService(_verb == Verb.Service ? _serviceKind : (byte)0);
-                _verb = Verb.Service;
-                _refused = string.Empty;
+                Apply(Held(
+                    "service", NextService(_verb == Verb.Service ? _serviceKind : (byte)0)));
 
                 return;
 
@@ -1503,7 +1560,8 @@ public partial class Main : Node3D
             + "[ ] speed, space pause, v look, z zone, x street, b demolish, s service, "
             + "p policies, w write log, g roads, c cells, tab tune\n"
             + "click acts   right-drag or two-finger scroll pans   edge of screen pans   "
-            + "pinch or -/= zooms   q/e turns";
+            + "pinch or -/= zooms   q/e turns"
+            + (_refused.Length > 0 ? $"\nREFUSED — {_refused}" : string.Empty);
 
         _hover.Text = Pointing();
     }
@@ -2056,36 +2114,47 @@ public partial class Main : Node3D
     /// </summary>
     /// <remarks>
     /// <para>
-    /// 🔴 <b>Three guards, and each one reads the SAME datum the core reads rather than restating a
-    /// rule.</b> A shell that re-implemented <c>Simulation</c>'s refusals would be
-    /// <c>plans/0012</c> <b>Cause 1</b> by construction — two places storing one rule, and the copy
-    /// is the one that drifts. So <c>Demolish</c> asks <see cref="BuildingTable.IsAbandoned"/>, which
-    /// is the field <c>ApplyDemolish</c> asks, and <c>Connect</c> asks <c>block_tiles</c>, which is
-    /// the field <c>ApplyConnect</c> asks. ***The shell declines to SEND what the core would
-    /// refuse***, and the refusal itself stays in one place.
+    /// 🔴 <b>THE SHELL ASKS THE CORE WHETHER A COMMAND WOULD BE REFUSED AND NO LONGER RESTATES A
+    /// RULE.</b> It used to guard three refusals by re-implementing them —
+    /// <c>plans/0012</c> <b>Cause 1</b> by construction, two places storing one rule and the copy is
+    /// the one that drifts — and <b>ten</b> belong to the five verbs it issues.
+    /// <see cref="Simulation.Refuses"/> answers off the predicate the applier uses, so ***the shell
+    /// declines to SEND what the core would refuse***, on the core's own finding rather than on a
+    /// paraphrase of it.
     /// </para>
     /// <para>
     /// ⚠ <b>Why declining rather than catching:</b> commands are applied at the top of a Tick, so an
     /// exception out of <c>Apply</c> aborts <c>Step</c> half way and leaves a world no invariant
     /// covers. ***A crash is not the worst outcome of an unguarded click; a half-stepped world
-    /// is.*** <c>15e</c> is what turns these into a player's sentences rather than a disabled click.
+    /// is.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>What stays the shell's is AIMING, and it is a different question.</b> <em>No Building
+    /// stands in this Cell</em> and <em>that is not on the map</em> are the shell failing to resolve
+    /// a cursor into an address; the core is never asked, because there is no command to ask about.
+    /// ***A rule belongs to the city and an aim belongs to the hand.***
     /// </para>
     /// <para>
     /// ⚠ <b>Zone has no guard and needs none.</b> A block with no Street on any face yields no Lots,
     /// which is <c>02 §2.2</c>'s third rule and the mechanism by which a bad street layout punishes
     /// the player — ***it is an outcome and not a refusal***, and a shell that greyed it out would be
-    /// hiding the lesson.
+    /// hiding the lesson. <see cref="Simulation.Refuses"/> says so too.
     /// </para>
     /// </remarks>
     /// <param name="inverted">Whether shift was held, which turns <c>Connect</c> into a bulldoze.</param>
     private void Act(bool inverted)
     {
-        _refused = string.Empty;
-
+        // 🔴 CLEARED AFTER THE LOOK CHECK AND NOT BEFORE IT, which was found by driving a script
+        // with a misspelt tool in it. `hold plough` disarms the hand and says so; clearing first
+        // meant the very next click wiped that sentence before anybody could read it, and the run
+        // reported nothing wrong at all. ***A refusal a later click erases is a refusal nobody
+        // sees***, and looking is the one verb that changes nothing and should erase nothing.
         if (_verb == Verb.Look)
         {
             return;
         }
+
+        _refused = string.Empty;
 
         if (Aim() is not { } at)
         {
@@ -2097,7 +2166,7 @@ public partial class Main : Node3D
         switch (_verb)
         {
             case Verb.Zone when _world.Rules.ZoneRules.Length > 0:
-                _queued.Add(new Command(
+                Send(new Command(
                     CommandKind.Zone,
                     at.East,
                     at.North,
@@ -2125,6 +2194,181 @@ public partial class Main : Node3D
         }
     }
 
+    /// <summary>Choose what the next click means, and which one of the tool.</summary>
+    /// <remarks>
+    /// <para>
+    /// ⚠ <b>The tool is resolved from its NAME here and nowhere else.</b> Which verbs this shell
+    /// offers is not something <c>Borough.Formats</c> can know, so the grammar carries the word and
+    /// this is the only place that knows what the words are — see <see cref="DriveVerb.Hold"/>.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>An unknown tool is a refusal a person reads rather than a silent <c>look</c>.</b> A
+    /// script that misspells its tool would otherwise click five times with nothing held and report
+    /// a city that ignored it.
+    /// </para>
+    /// </remarks>
+    private void Hold(string tool, int choice)
+    {
+        _refused = string.Empty;
+
+        switch (tool)
+        {
+            case "look":
+                _verb = Verb.Look;
+
+                break;
+
+            case "zone":
+                _verb = Verb.Zone;
+                _zoneChoice = _world.Rules.ZoneRules.Length > 0
+                    ? Math.Clamp(choice, 0, _world.Rules.ZoneRules.Length - 1)
+                    : 0;
+
+                break;
+
+            case "street":
+                _verb = Verb.Connect;
+
+                break;
+
+            case "demolish":
+                _verb = Verb.Demolish;
+
+                break;
+
+            case "service":
+                _verb = Verb.Service;
+
+                // Zero means "the first kind that serves anything", which is what the s key sends
+                // the first time it is pressed. A kind id is 1-based (Ruleset.KindCount).
+                _serviceKind = choice > 0 && choice <= byte.MaxValue
+                    ? (byte)choice
+                    : NextService(0);
+
+                break;
+
+            default:
+                // 🔴 DISARMED RATHER THAN LEFT AS IT WAS, and this was found by running it: a
+                // misspelt tool left the PREVIOUS one held, so the next click acted with a verb
+                // the script had not asked for. ***An unrecognised instruction must not leave a
+                // loaded hand*** -- looking is the one verb that cannot do damage.
+                _verb = Verb.Look;
+                _refused = $"there is no tool called '{tool}'. There is look, zone, street, "
+                    + "demolish and service.";
+
+                break;
+        }
+    }
+
+    /// <summary>The keyboard's own <c>hold</c>, so a hand's choice records exactly as a script's.</summary>
+    private DriveCommand Held(string tool, int choice) =>
+        new(_world.Tick.Raw, DriveVerb.Hold, choice, tool);
+
+    /// <summary>
+    /// Queues a command the city would accept, or <b>says in words why it would not.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b><c>plans/0045</c> row 15e, and the whole of it is here.</b> Every verb's refusals were
+    /// an <c>InvalidOperationException</c> out of Phase 0 — the right artefact for a log, which must
+    /// stop rather than diverge from the session it describes, and the wrong one for a person. This
+    /// is the one place a <see cref="Command"/> reaches <see cref="_queued"/> from a click, so it is
+    /// the one place that has to ask.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The answer is good for exactly as long as the world stands still, and it does.</b>
+    /// <see cref="Ordered"/> drains the queue as the argument to <c>Step</c>, so nothing runs between
+    /// the question and the command applying. ***A shell that asked, stepped, and then sent would be
+    /// guarding a city that no longer exists.***
+    /// </para>
+    /// </remarks>
+    private bool Send(Command command)
+    {
+        Refusal refusal = _simulation.Refuses(command);
+
+        if (refusal == Refusal.None)
+        {
+            _queued.Add(command);
+
+            return true;
+        }
+
+        _refused = Sentence(refusal, command);
+
+        return false;
+    }
+
+    /// <summary>
+    /// A <see cref="Refusal"/> in the player's words — <b>and the shell owns every one of them.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>The core hands back a number and this is where it becomes a sentence</b>, which is
+    /// <c>CLAUDE.md</c>'s leak vector stated as a design rather than as a warning: <em>"the real leak
+    /// vector is not <c>using Godot;</c> — it is a method that returns a formatted string because a
+    /// panel wanted one."</em> A second front end may word these differently or in another language,
+    /// and neither is the city's business.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>They are not the exception messages and must not be.</b>
+    /// <c>Simulation.Explain</c> writes for whoever is holding a crash artefact and names the ADR,
+    /// the successor mechanism and the Ruleset key; these are for somebody who has just clicked and
+    /// wants to know why nothing happened. ***Same rule, two readers, two registers.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The unmapped arm names the number rather than saying nothing.</b>
+    /// <c>src/Borough.Godot</c> is not in <c>Borough.slnx</c>, so no test can assert this table is
+    /// complete — and a silent fallback would make a missing sentence look like a click that
+    /// worked. <see cref="Borough.Tests"/> has no reach here; the screen is the only reviewer.
+    /// </para>
+    /// </remarks>
+    private string Sentence(Refusal refusal, Command command) => refusal switch
+    {
+        Refusal.ConnectRoadKindIsNotStreet =>
+            "only a Street can be laid by hand — an Arterial is a route rather than one click.",
+
+        Refusal.ConnectWorldHasNoLattice =>
+            "this Ruleset states no [roads] block_tiles, so it has no lattice to edit.",
+
+        Refusal.DemolishNoBuildingOnThatTile =>
+            "nothing stands on that plot to clear.",
+
+        Refusal.DemolishBuildingIsOccupied =>
+            "somebody still lives there. Clearing occupied ground is a compulsory purchase and its "
+            + "price is not built, so only abandoned buildings can be cleared.",
+
+        Refusal.ServiceKindNotDeclared =>
+            "this Ruleset declares no such building.",
+
+        Refusal.ServiceKindServesNothing =>
+            $"{_names.Kind((byte)command.Zone) ?? "that building"} serves nobody, and only a service "
+            + "building is placed by hand — everything else is built by the city on land you zone.",
+
+        Refusal.ServiceNoVacantLotOnThatTile =>
+            "that plot is taken. A standing building and an abandoned shell both hold one; demolish "
+            + "first.",
+
+        Refusal.GovernNoSuchPolicy or Refusal.GovernPolicyNotInThisWorld =>
+            "this city has no such policy to govern.",
+
+        Refusal.GovernPolicyHasNoName =>
+            "that [[policy]] states no name, and a governed amount is saved against its name — so "
+            + "there would be nothing to restore it to after a reload.",
+
+        Refusal.TripRulesetStatesNoTrips or Refusal.TripWorldHasNoLattice
+            or Refusal.TripBlockHoldsNobody or Refusal.TripEndpointsAreOneBuilding
+            or Refusal.TripOriginHoldsNoCitizen =>
+            "nobody can make that journey.",
+
+        Refusal.ArriveNoGateOnThatTile =>
+            "no gate stands there, so nobody can arrive through it.",
+
+        Refusal.VerbNotApplied =>
+            "that verb is not built yet.",
+
+        _ => $"refused for reason {(ushort)refusal}, which this shell has no sentence for.",
+    };
+
     /// <summary>One Street on the lattice edge leaving the intersection nearest the cursor.</summary>
     /// <remarks>
     /// ⚠ <b>The AXIS is chosen from where inside the block the cursor sits</b>, which is the only
@@ -2134,11 +2378,14 @@ public partial class Main : Node3D
     /// </remarks>
     private void Lay((Tiles East, Tiles North) at, bool bulldoze)
     {
+        // ⚠ A world with no lattice has block 0, and the axis below would divide by it. The CORE
+        // refuses that world by name (Refusal.ConnectWorldHasNoLattice) and Send is what reports it
+        // -- so this is arithmetic the shell cannot do rather than a rule it is restating.
         int block = _world.Roads.Streets.BlockTiles;
 
         if (block <= 0)
         {
-            _refused = "this Ruleset states no [roads] block_tiles, so it has no lattice to edit.";
+            Send(new Command(CommandKind.Connect, at.East, at.North, default));
 
             return;
         }
@@ -2151,7 +2398,7 @@ public partial class Main : Node3D
             bulldoze ? ConnectAction.Bulldoze : ConnectAction.Lay,
             RoadKind.Street);
 
-        _queued.Add(new Command(CommandKind.Connect, at.East, at.North, payload.Encode()));
+        Send(new Command(CommandKind.Connect, at.East, at.North, payload.Encode()));
     }
 
     /// <summary>Clears the abandoned Building nearest the cursor, at its own Lot's Tile.</summary>
@@ -2176,17 +2423,7 @@ public partial class Main : Node3D
             return;
         }
 
-        if (!_world.Buildings.IsAbandoned(building))
-        {
-            _refused =
-                "that Building is still occupied. Clearing occupied ground is a compulsory purchase "
-                + "(adr/0091) and its price is not built, so only abandoned stock can be cleared.";
-
-            return;
-        }
-
-        _queued.Add(new Command(
-            CommandKind.Demolish, _world.Lots.East[lot], _world.Lots.North[lot]));
+        Send(new Command(CommandKind.Demolish, _world.Lots.East[lot], _world.Lots.North[lot]));
     }
 
     /// <summary>Raises the held service kind on the vacant Lot nearest the cursor in its Cell.</summary>
@@ -2227,8 +2464,7 @@ public partial class Main : Node3D
 
         // THE FACTORY AND NOT THE CONSTRUCTOR, for the reason Command.Govern's own remark gives:
         // the packing is named in one place rather than spelled at each call site.
-        _queued.Add(Command.Service(
-            _world.Lots.East[lot], _world.Lots.North[lot], _serviceKind));
+        Send(Command.Service(_world.Lots.East[lot], _world.Lots.North[lot], _serviceKind));
     }
 
     /// <summary>The vacant Lot nearest a Tile within its own Cell, or <see cref="Rows.NoSlot"/>.</summary>
@@ -2316,6 +2552,14 @@ public partial class Main : Node3D
     /// <returns>The Tile under the cursor, or <c>null</c> for the sky and for off-map ground.</returns>
     private (Tiles East, Tiles North)? Aim()
     {
+        // A driven run names a Tile rather than a pixel, so there is no ray to cast: plans/0048's
+        // whole finding is that a wall-clock channel addresses moments and the city is addressed in
+        // Ticks, and the same is true of a place -- a screen position is a property of the camera.
+        if (_aimed is { } driven)
+        {
+            return driven;
+        }
+
         Vector2 at = GetViewport().GetMousePosition();
         Vector3 from = _camera.ProjectRayOrigin(at);
         Vector3 along = _camera.ProjectRayNormal(at);
@@ -2401,11 +2645,6 @@ public partial class Main : Node3D
                 ? "no vacant Lot in this Cell — a shell is not vacant, demolish first"
                 : $"would raise on Lot {_world.Lots.Rows.IdAt(lot):N0} at "
                     + $"({_world.Lots.East[lot].Raw:N0}, {_world.Lots.North[lot].Raw:N0})");
-        }
-
-        if (_refused.Length > 0)
-        {
-            said.Add($"REFUSED — {_refused}");
         }
 
         return string.Join('\n', said);
@@ -3381,14 +3620,17 @@ public partial class Main : Node3D
             return;
         }
 
-        if (_world.Rules.PolicyKey(position) == 0)
+        // ⚠ THE PANEL RESTATED ONE OF Govern'S THREE REFUSALS AND COULD NOT SEE THE OTHER TWO.
+        // Simulation.Refuses answers all three off the applier's own predicate, and the panel says
+        // whichever one it gave -- so a Policy this world holds no row for is now a sentence rather
+        // than a half-stepped Tick.
+        if (!Send(Command.Govern(position, amount)))
         {
-            _policyStatus.Text = "that [[policy]] states no name, so its amount cannot be saved.";
+            _policyStatus.Text = _refused;
 
             return;
         }
 
-        _queued.Add(Command.Govern(position, amount));
         _policyStatus.Text =
             $"{_names.Policy(position) ?? $"policy {position}"} set to {amount:N0} "
             + $"on Tick {_world.Tick.Raw + 1:N0}.";

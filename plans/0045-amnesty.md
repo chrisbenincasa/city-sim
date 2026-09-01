@@ -3,7 +3,7 @@
 **Read this, not the board. The only thing in flight.**
 
 Opened 2026-08-26. **Ends at a ratio, not on a date: 30 words of prose per line of simulation.**
-**57 at 2026-08-30.** `CorpusBudgetTests.The_amnesty_has_not_yet_earned_its_end` goes red the day
+**52 at 2026-08-31.** `CorpusBudgetTests.The_amnesty_has_not_yet_earned_its_end` goes red the day
 it is earned, and that red is the report. One page, and it stays one page.
 
 
@@ -33,7 +33,7 @@ Until the ratio is earned:
 1. **No new ADRs.** `CorpusBudgetTests` reddens the build if `docs/adr/` passes 169.
 2. **No new entries in `plans/0002` §A–§F.** Frozen at its 2026-08-26 size.
 3. **Prose grows only as fast as the simulation it describes.** `CorpusBudgetTests` caps the
-   **ratio** — all prose, doc-comments included, over non-comment `src/` lines — at **55** as of
+   **ratio** — all prose, doc-comments included, over non-comment `src/` lines — at **52** as of
    2026-08-31, so a page written beside a mechanism is free and a page written alone is refused.
    ⚠ **It is a RATCHET and the number moves down**: it opened at 57, the flood put simulation in
    the denominator, and the ceiling followed the measurement the same day. ***A ratchet not lowered
@@ -136,7 +136,7 @@ non-comment references, **19 headless dumps against a three-line on-screen reado
 | 15d | **The session is a log.** `Populate` now enters through `Simulation.Apply`, every verb is appended at the Tick it applies, and `w` writes a `.borough`. ⚠ **The shell was putting a whole city in by a door the log does not account for**, so every hand-played session would have replayed against an **empty world** | ✅ 31-08 |
 | ~~15d~~ | ~~🔴 **The session is a log, and this is the row that makes the other three worth anything.** The shell writes `.borough` through `Borough.Formats` — ⚠ **using the codec and never implementing one** (`adr/0039`). ***A verb that is not in the log is a state change no replay reproduces and no State Hash divergence explains***, which is the sentence `Populate` and `Arrive` each already carry in their own remark. **The proof is the round trip**: a city played by hand in the shell, replayed in `Borough.Headless`, same State Hash~~ | ✅ |
 | 15g | ⚠ **Tool selection needs a UI, and the keyboard-only mode line is already unintuitive.** Raised by the player on 2026-08-31, unprompted, at five verbs — `z x b s p` plus two cycling sub-selections (`z` cycles zone rules, `s` cycles service kinds) reported through **one line of text**. ⚠ **It is a legibility row and not a mechanism row**: nothing new reaches `Simulation.Apply`, so ***the whole of it is shell*** and the standing no-test-host limitation covers all of it. Related to `15e` — a refusal a person can read and a tool they can see are the same complaint |  |
-| 15e | ⚠ **A refusal reaches the player as a sentence.** Every verb's refusals are `InvalidOperationException` today, which is correct for a log and wrong for a person. ⚠ **`Core` returns ids and numbers, never strings**, so the shell owns every word, resolved through the Ruleset — ***which is the real leak vector `CLAUDE.md` names***: not `using Godot;`, but a method that returns a formatted string because a panel wanted one |  |
+| 15e | **A refusal reaches the player as a sentence.** `Simulation.Refuses` answers off the applier's own predicate and returns a **number**; the shell owns every word. ⚠ **The shell had guarded THREE of the ten that belong to the five verbs it issues**, by restating the rule in its own words. ⚠ **The grammar gained `hold` and `click`**, because a refusal nobody can make happen is a refusal nobody has seen | ✅ 31-08 |
 | 15f | 🔴 **A CLASS WENT MISSING FROM THE COMMIT GATE AND NOTHING NOTICED.** `RulesetSchemaTests` — two tests — was absent from every lane run on 2026-08-31 until 16:49, including **the one that gated `c2e9ff3` while the class was already failing on that tree**. Ruled out: the `tier!=instrument` filter (the class runs and fails under it), a skip (0 in every run) and a missing file. ⚠ **The cause is UNKNOWN and this row is not the fix — it is the instrument.** ***Nothing in the suite asserts how many tests ran***: `TierBudgetTests` times them and `TierDeclarationTests` counts the instrument share, and neither would see a class disappear |  |
 | 16 | 🔴 **A Need has no consequence.** `Sustenance` and `Satisfaction` are saved, hashed, degraded on a duration and recovered on supply — and **the only thing in `src/` that reads either is `Evidence`**, which is a panel. ***A Household starves to the floor and nothing in the city is different.*** ⚠ **After 9 and 10 and because of them**: those built the reading, and a reading nothing acts on is an instrument rather than a mechanism |  |
 | 17 | 🔴 **Nobody moves house.** Four call sites reach `World.Unplace` — over-capacity eviction, the premises emptying, the tenant's decline threshold, and shedding — and ***every one of them is the Household LOSING its home***. A housed Household can never re-enter the Unplaced Pool by choosing to. ⚠ **This is why `choosy.toml` had to be built on `declining.toml`**: a preference about where to live is unreachable for anybody already living somewhere, and `adr/0011` calls life stage *"one of the primary drivers of residential mobility"* against a build that has none |  |
@@ -905,3 +905,72 @@ photograph has: ***a verification nobody can run in a script is one nobody runs 
 held in memory, so after a tuner pass the log names a content hash **no file has** — and
 `Replay.Start` refuses a catalogue whose opening hash differs, which is the refusal working and an
 operator with no way to satisfy it.
+
+## What the refusals found
+
+**15e, and the shape of it is one predicate with two consumers.** Each verb's checks moved into a
+`Refuse*` method returning a `Refusal` code; `Simulation.Apply` throws on a non-zero one and
+`Simulation.Refuses` returns it. `RefusalTests` drives its theory off `Enum.GetValues<Refusal>()`, so
+***a member with no case reddens the suite*** — the registry enumerates itself rather than relying on
+somebody remembering to add a row.
+
+🔴 **THE SHELL GUARDED THREE OF THE TEN THAT BELONG TO ITS OWN VERBS, AND EACH OF THE THREE WAS A
+SECOND COPY OF A RULE.** `plans/0012` **Cause 1** by construction — seventeen exist in all, and the
+other seven belong to verbs only an operator sends. The seven it could not see included
+`Govern`'s *this world holds no row for that Policy* — reachable through the governing panel, and it
+would have arrived as a **half-stepped Tick** rather than as a sentence. ⚠ **The panel restated the
+one it did know about** (*states no name*) and had no way to ask about the other two.
+
+🔴 **THE ONE REFUSAL THE SHELL ALREADY HAD THAT COULD ONLY HAPPEN OFF THE MAP WAS THE ONE IT COULD
+NOT SHOW.** `REFUSED — …` was composed inside `Pointing()`, which returns *— pointing off the map —*
+before it ever reaches the line, so *that is not on the map.* was set on every such click and
+displayed on none of them. ⚠ **It moved to the readout for a second and larger reason**: `readout`,
+`shoot` and the socket's reply all carry `_readout.Text` and none carries the hover, so ***a refusal
+in the hover is a refusal no driven run can observe.***
+
+⚠ **What stays the shell's is AIMING, and it is a different question from a rule.** *No Building
+stands in this Cell* is the shell failing to resolve a cursor into an address — there is no command
+to ask the core about. ***A rule belongs to the city and an aim belongs to the hand***, and both
+reach the same line of the readout.
+
+⚠ **A player's sentence and an exception's message are two registers for two readers.**
+`Simulation.Explain` names the ADR, the successor mechanism and the Ruleset key, because its reader
+is holding a crash artefact; `Main.Sentence` says *somebody still lives there*. **Every word of the
+first was moved rather than written**, and it is now selected by the same code the guard reads.
+
+⚠ **`Borough.Godot` is still not in `Borough.slnx`, so nothing asserts the sentence table is
+complete.** The unmapped arm prints the reason **number** rather than falling silent — a missing
+sentence has to look wrong on screen, because the screen is the only reviewer.
+
+### What driving the verbs found
+
+**`hold <tool> [which]` and `click <east> <north> [shift]`**, in the drive grammar — `plans/0048`
+tier 5, and its **D1** answered by where a click already goes. ***A refusal nobody can make happen is
+a refusal nobody has looked at***, and every verb the grammar shipped with moves the clock, the eye
+or a file.
+
+🔴 **THE FOUR VERB KEYS WERE NOT RECORDED, AND THAT MADE A RECORDED SESSION UNREPLAYABLE.** They were
+excluded on the ground that holding a tool changes nothing in the world, which is true — but a click
+means whatever is held, so a recording carrying the click and not the choice replays as a **different
+verb**. ***What a recording needs is not everything that changed the city; it is everything a replay
+has to know.*** `--record` now spells `hold` and `click` and the file replays through `--drive`.
+
+🔴 **A MISSPELT TOOL LEFT THE PREVIOUS ONE HELD, AND THE NEXT CLICK ACTED WITH IT.** Found by putting
+`hold plough` after a `hold service` in a script: the unknown-tool sentence was written, the next
+click **cleared it and acted as SERVICE**, and the readout came back reading exactly as the previous
+one had. ⚠ **The misspelling was invisible twice over** — once because the sentence was erased, and
+once because what replaced it looked like the same complaint. ***A script that misspells its tool
+must not be a script that quietly does the last thing again.*** **Two repairs and both are about
+erasure**: an unknown tool now disarms to `look`, and `Act` clears the standing refusal **after** the
+look check rather than before it — ***looking is the one verb that changes nothing and should erase
+nothing.***
+
+⚠ **A driven `hold service 200` can put the shell in a state the keyboard cannot**, because the `s`
+key only cycles kinds the Ruleset declares. That is the demonstration rather than a hole: the core
+refuses the id and the shell says *this Ruleset declares no such building*, which is the whole of
+15e in one line.
+
+✅ **Measured, `minimal.toml` at 2,000 Citizens.** A demolish over an occupied dwelling, a service of
+an undeclared kind, a misspelt tool and a Street that was accepted — four readouts, **byte-identical
+across two independent runs**, and the picture at Tick 200 carries the sentence at the top of the
+screen and the aimed Tile at the bottom.

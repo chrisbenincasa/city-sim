@@ -79,8 +79,13 @@ public sealed class CorpusBudgetTests
     /// denominator again. ***The rule is applied on the day it bites, including when the sitting
     /// that lowers it is the sitting that also wrote prose.***
     /// </para>
+    /// <para>
+    /// ⚠ <b>AND 54 → 52, still the same day</b>, on <c>plans/0045</c> row <b>15e</b>: the refusal
+    /// predicate, the drive grammar's two new verbs and their tests. <b>1,906,965 words over 36,063
+    /// lines.</b>
+    /// </para>
     /// </remarks>
-    private const int RatioCeiling = 54;
+    private const int RatioCeiling = 52;
 
     /// <summary>Words of prose per line of simulation at which the amnesty has done its job.</summary>
     /// <remarks>
@@ -91,9 +96,9 @@ public sealed class CorpusBudgetTests
     /// <para>
     /// <b>It replaces the expiry date, and the swap is the point.</b> 2026-10-07 would have arrived
     /// whether or not anything was built; this cannot. The amnesty was opened against a prose-to-code
-    /// ratio and <b>a date is not a measure of one</b>. At 2026-08-31 the figure is <b>55</b> — all
-    /// prose, doc-comments included, over non-comment <c>src/</c> lines — and 30 is roughly half.
-    /// ⚠ <b>Quote it with its date.</b> It read 59.5 on 08-30, and the fall to 55 is the flood's
+    /// ratio and <b>a date is not a measure of one</b>. At 2026-08-31 the figure is <b>52</b> — all
+    /// prose, doc-comments included, over non-comment <c>src/</c> lines — and 30 is well under half.
+    /// ⚠ <b>Quote it with its date.</b> It read 59.5 on 08-30, and every fall since has been
     /// simulation landing in the denominator rather than any prose being cut.
     /// </para>
     /// <para>
