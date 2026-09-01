@@ -62,6 +62,53 @@ public static class LotSubdivider
     }
 
     /// <summary>
+    /// How much of a Segment's length at each junction belongs to the cross street, in Tiles.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THE FOUR FACES OF A BLOCK USED TO CLAIM THE CORNER GROUND FOUR TIMES.</b> A Lot is an
+    /// <b>address</b> and owns no ground (<c>adr/0078</c>), so nothing here noticed: the face at the
+    /// south and the face at the west both laid a Lot beside the same junction, both were legal, and
+    /// both were correct as <i>addresses</i>. What has no answer is ***which of them the LAND under
+    /// that junction belongs to***, and a shell that has to put a Building somewhere has to invent
+    /// one. Two inventions landed on one patch (<c>plans/0049</c> <b>F21</b>).
+    /// </para>
+    /// <para>
+    /// ⚠ <b>SO ONE PAIR OF FACES TAKES THE CORNERS AND THE OTHER YIELDS</b>, which is what a real
+    /// corner does — the corner building belongs to one street, and the cross street's terrace begins
+    /// after it. <b>East–west keeps, north–south yields.</b> The choice of pair is arbitrary and is
+    /// recorded as arbitrary; what is not arbitrary is that <i>some</i> rule must exist, because a
+    /// patch of ground cannot carry two Buildings.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>THE RESERVATION IS ONE LOT'S FRONTAGE AND IT IS NOT A DEPTH.</b> A depth is what the
+    /// corner is really made of, and this class has none to offer — <c>adr/0078</c> refused the key
+    /// and the refusal stands. <b>A Lot's width is the only length the city knows about a Lot</b>
+    /// (<c>CONTEXT.md</c> → Address: five Buildings share a Segment), so that is what is spent.
+    /// ***Where it disagrees with the shell's drawn depth, the shell is the one inventing*** — at the
+    /// shipped 32 Tiles and 5 Lots this reserves 6 Tiles against a drawn 9, and the three surviving
+    /// Lots clear the shell's own guard with room to spare.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The quarter-block cap is what keeps a coarse Ruleset from yielding its whole face.</b> At
+    /// <c>lots_per_segment = 1</c> a Lot's frontage <i>is</i> the block, and without the cap the
+    /// north–south faces would carry nothing at all.
+    /// </para>
+    /// </remarks>
+    internal static int CornerTiles(int blockTiles, int lotsPerSegment)
+    {
+        if (lotsPerSegment <= 0)
+        {
+            return 0;
+        }
+
+        int frontage = Arithmetic.IntegerMath.FloorDiv(blockTiles, lotsPerSegment);
+        int quarter = Arithmetic.IntegerMath.FloorDiv(blockTiles, 4);
+
+        return frontage < quarter ? frontage : quarter;
+    }
+
+    /// <summary>
     /// Subdivides one block of the lattice against its four faces.
     /// </summary>
     /// <remarks>
@@ -113,6 +160,7 @@ public static class LotSubdivider
 
         int block = world.Roads.Streets.BlockTiles;
         int perSegment = world.Rules.Lots.LotsPerSegment;
+        int corner = CornerTiles(block, perSegment);
         int created = 0;
 
         for (int index = 0; index < perSegment; index++)
@@ -123,6 +171,13 @@ public static class LotSubdivider
             }
 
             Tiles offset = Frontage.OffsetOf(index, perSegment, block);
+
+            // THE CORNER BELONGS TO ONE FACE, and the north-south pair is the one that yields.
+            if (axis == StreetAxis.North
+                && (offset.Raw < corner || offset.Raw > block - corner))
+            {
+                continue;
+            }
 
             (Tiles east, Tiles north) = axis == StreetAxis.East
                 ? (new Tiles((column * block) + offset.Raw), new Tiles(row * block))

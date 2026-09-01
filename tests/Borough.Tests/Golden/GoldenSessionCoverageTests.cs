@@ -101,7 +101,7 @@ public sealed class GoldenSessionCoverageTests
         int carved = At(session, Applied).Lots.Rows.LiveCount
             - At(PopulateOnly(session), Applied).Lots.Rows.LiveCount;
 
-        // Eleven ordinary blocks at ten Lots each, plus Edited's seven, plus Stripped's nothing.
+        // Eleven ordinary blocks at eight Lots each, plus Edited's five, plus Stripped's nothing.
         int expected = ((zoneCommands - 2) * LotsPerBlock) + (LotsPerBlock - 3);
 
         Assert.True(
@@ -426,7 +426,7 @@ public sealed class GoldenSessionCoverageTests
     }
 
     /// <summary>How many Lots one block of the lattice carries when all four of its faces are Streets.</summary>
-    private const int LotsPerBlock = 10;
+    private const int LotsPerBlock = 8;
 
     /// <summary>
     /// The Tick every command has been applied by, and no further.
@@ -438,6 +438,7 @@ public sealed class GoldenSessionCoverageTests
     private static Ticks Applied => new(402);
 
     /// <summary><paramref name="session"/>'s world, run to <paramref name="tick"/> and no further.</summary>
+
     private static World At(InputLog session, Ticks tick)
     {
         Simulation simulation = Replay.Start(session, GoldenFixtures.Catalogue());

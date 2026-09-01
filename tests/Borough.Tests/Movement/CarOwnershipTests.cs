@@ -35,6 +35,15 @@ namespace Borough.Tests.Movement;
 public sealed class CarOwnershipTests
 {
     private const int Population = 4_000;
+
+    /// <summary>A population at which the Commute Budget actually refuses somebody a job.</summary>
+    /// <remarks>
+    /// <b>16,000 and not <see cref="Population"/>'s 4,000</b>, because the driver advantage this
+    /// class exists to demonstrate is <b>zero</b> at 4,000 — the city fits inside a walk. Measured
+    /// drivers minus walkers: <b>−1, +41, +1,070</b> at 4,000, 16,000 and 64,000. 16,000 is the
+    /// cheapest rung that is unambiguously positive.
+    /// </remarks>
+    private const int BudgetBinds = 16_000;
     private const int Ticks = 2_048;
     private const int HashEvery = 64;
 
@@ -371,23 +380,44 @@ public sealed class CarOwnershipTests
     /// ⚠ <b>A driver is judged for a job on the clock they actually travel on.</b>
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <c>adr/0008</c>, not a refinement. Session F refused a per-mode weight on the Commute Budget
     /// precisely so a walk and a drive are compared on <em>one</em> clock — which only works if the
     /// clock is read in the mode the journey is made in. The visible consequence is that a city of
     /// drivers employs more people from the same housing stock, because the same Budget reaches
     /// further. <b>A driver judged on walking time would refuse jobs they can reach in ten minutes,
     /// and the shortfall would read as a labour-market finding.</b>
+    /// </para>
+    /// <para>
+    /// 🔴 ⚠ <b>THIS RAN AT 4,000 CITIZENS UNTIL 2026-09-01 AND THE ADVANTAGE THERE IS EXACTLY
+    /// ZERO.</b> Measured, drivers minus walkers: <b>4,000 → −1, 16,000 → +41, 64,000 → +1,070</b>.
+    /// At 4,000 the city is small enough that every job is inside the Budget on foot, so the mode
+    /// cannot matter and the assertion was <c>&gt;=</c> being satisfied by a <b>tie</b>. ***A
+    /// comparison run on a city where the mechanism under comparison is inert measures the city***
+    /// — the sentence <c>CarRouteLengthTests</c> already carried, arriving here one test late.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The −1 at 4,000 is the CUT-THROUGHS and not noise</b>, which is worth knowing because it
+    /// makes the tie look like a walker advantage. At <c>foot_paths_per_thousand_blocks = 0</c> the
+    /// two read <b>3,398 and 3,398</b>; at the shipped 40 a walker can use a FootPath a driver
+    /// cannot, and one job changes hands.
+    /// </para>
     /// </remarks>
+
+
     [Fact]
     public void A_city_of_drivers_employs_more_people_than_a_city_of_walkers()
     {
-        long walking = Run(GoldenFixtures.Rules()).Employment.Drain().Employed.Sum;
-        long driving = Run(WithOwnership(100)).Employment.Drain().Employed.Sum;
+        long walking = Run(GoldenFixtures.Rules(), BudgetBinds).Employment.Drain().Employed.Sum;
+        long driving = Run(WithOwnership(100), BudgetBinds).Employment.Drain().Employed.Sum;
 
         Assert.True(walking > 0, "nobody was employed at all, so the comparison is empty.");
         Assert.True(
-            driving >= walking,
-            $"a city of drivers employed {driving} against a city of walkers' {walking}.");
+            driving > walking,
+            $"a city of drivers employed {driving} against a city of walkers' {walking} at "
+            + $"{BudgetBinds} Citizens. A tie here means the Commute Budget has stopped binding at "
+            + "this size -- re-sweep the population rather than lowering this to >=, which is what "
+            + "hid the inert fixture for as long as it did.");
     }
 
     /// <summary>Every employed Citizen's home and workplace Addresses, in the given mode.</summary>

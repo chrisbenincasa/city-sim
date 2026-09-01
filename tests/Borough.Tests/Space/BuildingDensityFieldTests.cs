@@ -40,15 +40,33 @@ public sealed class BuildingDensityFieldTests
 {
     private static readonly WorldKey Key = WorldKey.FromSeed(1);
 
-    /// <summary>The population below which <c>twinned.toml</c>'s two lattices are not yet two plateaus.</summary>
+    /// <summary>Buildings an interior Cell holds once the generator has filled around it.</summary>
     /// <remarks>
-    /// <b>Measured, and stated in <c>rulesets/twinned.toml</c>'s header for the same reason it is
-    /// here.</b> At 1,000 Citizens each lattice holds ~61 Buildings over ~11 Cells and does not fill
-    /// its own ground, so its edge is ragged and the ragged edge carries maxima of its own — four
-    /// components rather than two. ***A demonstration world has a size below which it demonstrates
-    /// something else***, and the number is cheap to state and expensive to rediscover.
+    /// 🔴 <b>EIGHT AND NOT TEN SINCE THE CORNER GOT AN OWNER</b>
+    /// (<see cref="Borough.Core.Entities.LotSubdivider.CornerTiles"/>). Four faces at
+    /// <c>lots_per_segment = 5</c> split by parity gives ten, and two of the ten stood on ground a
+    /// perpendicular face had already claimed. ⚠ <b>The field is still FLAT</b> — every interior
+    /// Cell moved together — which is what this test is actually about, and it is why this is one
+    /// constant rather than a table of exceptions.
     /// </remarks>
-    private const int TwoPlateauFloor = 2_000;
+    private const int BlockDensity = 8;
+
+    /// <summary>A population inside the band where each lattice's edge is still ragged.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Measured, and stated in <c>rulesets/twinned.toml</c>'s header for the same reason it is
+    /// here.</b> A lattice that has not filled its own ground has a ragged edge, and a ragged edge
+    /// carries maxima of its own — more components than there are centres. ***A demonstration world
+    /// has a size at which it demonstrates something else***, and the number is cheap to state and
+    /// expensive to rediscover.
+    /// </para>
+    /// <para>
+    /// <b>600 rather than the band's edge on purpose.</b> The sweep reads 4 at 500 and 2 at 1,000,
+    /// so a test sited at either end is one small change away from measuring the boundary instead
+    /// of the effect.
+    /// </para>
+    /// </remarks>
+    private const int RaggedBandCitizens = 600;
 
     private static World Populated(string file, int citizens)
     {
@@ -355,9 +373,9 @@ public sealed class BuildingDensityFieldTests
                 interior++;
 
                 Assert.True(
-                    Density(world, e, n) == 10,
-                    $"Cell ({e}, {n}) holds {Density(world, e, n)} Buildings where every other "
-                    + "interior Cell holds 10. The generator has stopped laying Lots uniformly, so "
+                    Density(world, e, n) == BlockDensity,
+                    $"Cell ({e}, {n}) holds {Density(world, e, n)} Buildings where an interior Cell "
+                    + $"should hold {BlockDensity}. The generator has stopped laying Lots uniformly, so "
                     + "the density field now has a GRADIENT in it -- which is a better world and "
                     + "invalidates the argument that smoothing buys nothing (plans/0037 F8). "
                     + "Re-take that decision rather than lowering this.");
@@ -381,9 +399,16 @@ public sealed class BuildingDensityFieldTests
     public void A_one_lattice_world_has_one_concentration(int citizens) =>
         Assert.Equal(1, Plateaus(Populated("minimal.toml", citizens)));
 
-    /// <summary>🔴 <b>A two-lattice world has TWO concentrations</b>, from the stated floor upward.</summary>
+    /// <summary>
+    /// 🔴 <b>A two-lattice world has TWO concentrations</b>, above the ragged band and below it.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>The low rung is 400 and not the old 2,000 floor</b>: the band is a window rather than a
+    /// minimum (see <see cref="RaggedBandCitizens"/>), so a city too SMALL to have a ragged edge
+    /// reads two just as a filled one does, and both sides of the window are worth pinning.
+    /// </remarks>
     [Theory]
-    [InlineData(TwoPlateauFloor)]
+    [InlineData(400)]
     [InlineData(4_000)]
     [InlineData(16_000)]
     [InlineData(64_000)]
@@ -391,27 +416,41 @@ public sealed class BuildingDensityFieldTests
         Assert.Equal(2, Plateaus(Populated("twinned.toml", citizens)));
 
     /// <summary>
-    /// ⚠ <b>And below the floor it does not</b> — `twinned.toml` at 1,000 Citizens is four plateaus.
+    /// ⚠ <b>And inside the ragged band it does not</b> — <c>twinned.toml</c> at 600 Citizens is
+    /// three plateaus.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>Committed as a fact rather than left in prose, because it is the reading that would be
     /// mistaken for a defect.</b> Each lattice holds ~61 Buildings over ~11 Cells at that size and
     /// does not fill its own ground, so its ragged edge carries maxima of its own. ⚠ **The watershed
     /// would still find two**, because prominence is what discards a plateau whose saddle to a higher
     /// one is barely below it — ***this counts candidate centres and the watershed counts accepted
     /// ones***, and the gap between those two numbers is exactly what the prominence threshold is for.
-    /// **If this ever reads 2, the floor has moved and the file's header is now wrong.**
+    /// <b>If this ever reads 2, the band has moved and the file's header is now wrong.</b>
+    /// </para>
+    /// <para>
+    /// 🔴 ⚠ <b>IT IS A BAND AND NOT A FLOOR, AND IT SAID <i>FLOOR</i> UNTIL 2026-09-01.</b> Giving
+    /// the block's corner an owner drops a block from ten Lots to eight
+    /// (<see cref="Borough.Core.Entities.LotSubdivider.CornerTiles"/>), which moved the reading at
+    /// 1,000 Citizens from 4 to <b>2</b> and sent somebody to sweep the whole range. The count is
+    /// <b>NOT MONOTONIC</b>: 200 → 2, 300 → 2, 400 → 2, <b>500 → 4, 600 → 3, 800 → 3</b>, 1,000 → 2,
+    /// and 2 at every size above. ***A city too small to have a ragged edge reads the same as a city
+    /// that has filled its own ground***, so a single threshold could never have described this and
+    /// the old name asserted one. What the extra maxima need is a lattice large enough to be ragged
+    /// and too small to be full, which is a window rather than a minimum.
+    /// </para>
     /// </remarks>
     [Fact]
-    public void Below_the_floor_the_two_lattices_are_not_yet_two_plateaus()
+    public void Inside_the_ragged_band_the_two_lattices_are_not_yet_two_plateaus()
     {
-        int plateaus = Plateaus(Populated("twinned.toml", 1_000));
+        int plateaus = Plateaus(Populated("twinned.toml", RaggedBandCitizens));
 
         Assert.True(
             plateaus > 2,
-            $"twinned.toml at 1,000 Citizens now has {plateaus} plateaus where it measured 4. The "
-            + $"floor of {TwoPlateauFloor} stated in that file's header and in this class has moved "
-            + "-- update both rather than deleting this.");
+            $"twinned.toml at {RaggedBandCitizens} Citizens now has {plateaus} plateaus where it "
+            + "measured 3. The band has moved -- re-sweep it and update this and twinned.toml's "
+            + "header rather than deleting this.");
     }
 
     /// <summary>

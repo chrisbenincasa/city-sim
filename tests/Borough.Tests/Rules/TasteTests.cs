@@ -15,6 +15,29 @@ public sealed class TasteTests
 {
     private const int Citizens = 2_000;
 
+    /// <summary>A population at which a preference about where to live is measurable at all.</summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 ⚠ <b>THIS RAN AT 2,000 CITIZENS UNTIL 2026-09-01, WHERE THE EFFECT IS NOISE.</b> The gap
+    /// between the two groups, swept over five seeds at 2,000: <b>−11, +2, +10, −5, −1</b>. It is
+    /// centred on zero, and the committed reading of −11 was <i>one draw from it</i>. ***The test
+    /// passed because seed 0 was lucky***, and a change to the Lot supply moved which seed was.
+    /// </para>
+    /// <para>
+    /// ✅ <b>The effect is real and it needs a bigger city.</b> Swept over three seeds:
+    /// <b>2,000 → +4, +3, −4; 8,000 → −27, −8, −5; 20,000 → −12, −29, −4</b>. Every reading at
+    /// 8,000 and above has the sign the design predicts. ⚠ <b>The reason is the SAMPLE and not the
+    /// taste</b> — a Household compares the three Lots it was shown (<c>adr/0017</c> refusing an
+    /// optimiser), and in a city a kilometre across three Lots barely differ in centrality. The
+    /// preference has to have something to prefer.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The 161-against-172 in <c>rulesets/choosy.toml</c>'s header was taken at 2,000</b> and is
+    /// one sample from the zero-centred distribution above. It is not a measurement of the taste.
+    /// </para>
+    /// </remarks>
+    private const int TasteIsMeasurable = 8_000;
+
     private static readonly WorldKey Key = WorldKey.FromSeed(0);
 
     [Fact]
@@ -82,7 +105,7 @@ public sealed class TasteTests
     [Fact]
     public void A_household_that_wants_the_centre_ends_up_nearer_it()
     {
-        (World world, _) = Run("choosy.toml", 20_480);
+        (World world, _) = Run("choosy.toml", 20_480, TasteIsMeasurable);
         Ruleset rules = world.Rules;
 
         long centreWalk = 0;
@@ -132,8 +155,10 @@ public sealed class TasteTests
         Assert.True(
             centreMean < roomMean,
             $"Households wanting the centre live {centreMean} Tiles from it on average and "
-                + $"Households wanting room live {roomMean}. The preference is not reaching "
-                + "placement.");
+                + $"Households wanting room live {roomMean} at {TasteIsMeasurable} Citizens. The "
+                + "preference is not reaching placement. ⚠ Do NOT re-site this at a smaller city to "
+                + "make it pass -- at 2,000 the gap is noise centred on zero and a lucky seed is "
+                + "what this test used to be.");
 
         // 🔴 THE PLACEBO, AND IT IS THE HALF OF THIS TEST THAT CAN FAIL FOR AN INTERESTING REASON.
         //

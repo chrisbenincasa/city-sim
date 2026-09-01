@@ -18,14 +18,19 @@ public sealed class SimulationTests
     private const int Population = 64;
 
     /// <summary>
-    /// Lots one block yields on a lattice with all four faces — four faces at two or three each.
+    /// How many Lots one <c>zone</c> command carves out of one block.
     /// </summary>
     /// <remarks>
-    /// Arithmetic rather than a constant to keep in step: <c>lots_per_segment</c> is 5, split by
-    /// parity between the two blocks sharing a Segment, so a block takes 3 from two of its faces and
-    /// 2 from the other two (<c>adr/0078</c>).
+    /// 🔴 <b>EIGHT AND NOT TEN SINCE THE CORNER GOT AN OWNER.</b> Four faces at
+    /// <c>lots_per_segment = 5</c> split by parity gives ten — three from one face, two from the
+    /// next — and that was the number for as long as the four faces claimed the corner GROUND four
+    /// times over. The north–south pair now yields a Lot's frontage at each junction
+    /// (<see cref="Borough.Core.Entities.LotSubdivider.CornerTiles"/>), which costs this block the
+    /// first and last Lot of its east face. ⚠ <b>The supply barely moves</b>: the generator sizes
+    /// the lattice by housing need, so a block carrying fewer Lots is answered with more blocks —
+    /// <c>declining.toml</c> at 2,000 Citizens went <b>276 Lots to 280</b>.
     /// </remarks>
-    private const int LotsPerBlock = 10;
+    private const int LotsPerBlock = 8;
 
     [Fact]
     public void A_new_simulation_starts_at_tick_zero() =>
@@ -101,10 +106,12 @@ public sealed class SimulationTests
     /// Lot at the command's coordinates, which was honest while there was no Street network to carve
     /// against and became a fiction the moment there was.
     /// <para>
-    /// <b>Ten Lots, and the number is arithmetic rather than a magic constant.</b> A block has four
-    /// faces; a Segment carries <c>lots_per_segment = 5</c> split between the two blocks that share
-    /// it by parity, so each block takes three from one face and two from the next, alternating —
-    /// which is odd-and-even house numbering (<c>adr/0078</c>).
+    /// <b>Eight Lots, and the number is arithmetic rather than a magic constant.</b> A block has
+    /// four faces; a Segment carries <c>lots_per_segment = 5</c> split between the two blocks that
+    /// share it by parity, so each block takes three from one face and two from the next,
+    /// alternating — which is odd-and-even house numbering (<c>adr/0078</c>). <b>That gives ten, and
+    /// two of the ten stood on ground another face had already claimed</b>: see
+    /// <see cref="LotsPerBlock"/>.
     /// </para>
     /// </remarks>
     [Fact]

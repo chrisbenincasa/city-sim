@@ -47,9 +47,18 @@ public sealed class CarRouteLengthTests(ITestOutputHelper output)
 
     private readonly ITestOutputHelper _output = output;
 
-    private static Ruleset WithOwnership(int percent)
+    private static Ruleset WithOwnership(int percent, int footPaths = -1)
     {
         string toml = File.ReadAllText(GoldenFixtures.RulesetPath);
+
+        if (footPaths >= 0)
+        {
+            toml = toml.Replace(
+                "foot_paths_per_thousand_blocks = 40",
+                $"foot_paths_per_thousand_blocks = {footPaths}",
+                StringComparison.Ordinal);
+        }
+
         RulesetLoadResult result = RulesetLoader.Parse(
             $"{toml}\n[households]\ncar_ownership_percent = {percent}\n", "test.toml");
 
@@ -185,16 +194,34 @@ public sealed class CarRouteLengthTests(ITestOutputHelper output)
     /// city it is run on</b>.
     /// </para>
     /// <para>
+    /// 🔴 ⚠ <b>THE ARTERIAL IS NOT THE ONLY MODE MASK AND THIS COMMENT SAID IT WAS.</b> A FootPath is
+    /// the mirror case — it carries pedestrians and not cars — and
+    /// <c>foot_paths_per_thousand_blocks = 40</c> puts five of them on the shipped fixture. So the
+    /// two subgraphs have <b>never</b> been identical, and this test passed only for as long as no
+    /// route profitably used a cut-through. Giving the block's corner an owner
+    /// (<see cref="Borough.Core.Entities.LotSubdivider.CornerTiles"/>) moved the built area and one
+    /// did. ***A description of the build is wrong about the TRIGGER***, which is
+    /// <c>adr/0093</c>'s own failure mode.
+    /// </para>
+    /// <para>
+    /// ✅ <b>So the claim is now isolated rather than hoped for</b>: the equality is asserted with the
+    /// cut-throughs <i>removed</i>, and their effect is asserted separately. Measured at 4,000
+    /// Citizens — <b>drive 16,513 against walk 16,513 with none, and 16,513 against 16,463 with the
+    /// shipped forty</b>. The second half is what would have gone red on the day a cut-through first
+    /// mattered, instead of this one going red for a reason nobody had written down.
+    /// </para>
+    /// <para>
     /// ***A comparison run on a fixture that lacks the mechanism under comparison measures the
     /// fixture.*** It is recorded because the number will change the moment a player lays an Arterial
     /// — which <c>adr/0090</c> says is the only way one can now exist — and somebody will otherwise
     /// read today's agreement as evidence the two are the same.
     /// </para>
     /// </remarks>
+
     [Fact]
     public void A_drive_and_a_walk_take_the_same_streets_on_a_city_with_no_arterials()
     {
-        World world = Run(WithOwnership(100), 4_000).World;
+        World world = Run(WithOwnership(100, footPaths: 0), 4_000).World;
 
         Assert.Equal(0, world.Roads.Ruleset.ArterialCount);
 
@@ -213,5 +240,30 @@ public sealed class CarRouteLengthTests(ITestOutputHelper output)
         // is free to settle either. The claim is about the *distribution*, which is what a route store
         // would be sized against.
         Assert.Equal(walking.Sum(), driving.Sum());
+    }
+
+    /// <summary>
+    /// ⚠ <b>And a cut-through IS a mode mask</b>, which is the half the paragraph above missed.
+    /// </summary>
+    /// <remarks>
+    /// <b>The same city with the shipped <c>foot_paths_per_thousand_blocks = 40</c>.</b> A FootPath
+    /// carries pedestrians and not cars, so a walk can be strictly shorter than the drive beside it
+    /// — and it is, by 50 Segments over 3,398 routes. ***This is the assertion that should have gone
+    /// red the day a cut-through first mattered***, rather than the equality above going red for a
+    /// reason nobody had written down.
+    /// </remarks>
+    [Fact]
+    public void A_walk_takes_a_cut_through_a_drive_cannot()
+    {
+        World world = Run(WithOwnership(100), 4_000).World;
+
+        List<int> driving = RouteLengths(world, TravelMode.Car, out _);
+        List<int> walking = RouteLengths(world, TravelMode.Foot, out _);
+
+        Assert.True(
+            walking.Sum() < driving.Sum(),
+            $"walking summed {walking.Sum()} Segments against driving's {driving.Sum()} on a city "
+            + "with cut-throughs in it. Either the FootPaths stopped being laid, or nothing routes "
+            + "over them -- both of which make the equality beside this one vacuous.");
     }
 }

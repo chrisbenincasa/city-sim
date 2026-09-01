@@ -205,6 +205,16 @@ internal static class GoldenFixtures
     /// full of no-ops is a baseline that covers nothing while every hash in it still moves.
     /// </para>
     /// <para>
+    /// ⚠ <b>THE LAST COMMAND LEFT ROW 5 ON 2026-09-01, for the same reason and one turn later.</b>
+    /// Giving the block's corner an owner drops a block from ten Lots to eight
+    /// (<see cref="Borough.Core.Entities.LotSubdivider.CornerTiles"/>), so the populator reaches
+    /// further again to find the land it wants and reached into <c>(9, 5)</c> — which held
+    /// <b>8 Lots before the session ran a single command</b>. It moved to <c>(5, 9)</c>.
+    /// ***That is twice this has happened now, and the pattern is that ANY change to what a block
+    /// yields moves the populator's frontier*** — so a command near it is a no-op waiting to happen,
+    /// and the row this test guards is the only thing that reports it.
+    /// </para>
+    /// <para>
     /// ⚠ <b>THREE COMMANDS MOVED OUT OF ROW 5 ON 2026-08-25, and the populator is why.</b>
     /// <c>adr/0165</c>'s land-use split leaves one block in <c>SyntheticCity.TradeBlockStride</c>
     /// permitted to a trade rather than to dwellings, and those blocks are carved but **not counted
@@ -245,7 +255,7 @@ internal static class GoldenFixtures
         Append(builder, tick: 17, block: (3, 7), zone: 1);
         Append(builder, tick: 17, block: (4, 7), zone: 1);
         Append(builder, tick: 33, block: (8, 8), zone: 4);
-        Append(builder, tick: 64, block: (9, 5), zone: 2);
+        Append(builder, tick: 64, block: (5, 9), zone: 2);
         Append(builder, tick: 65, block: (0, 9), zone: 3);
         Append(builder, tick: 97, block: (9, 9), zone: 5);
 
