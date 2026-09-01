@@ -74,6 +74,36 @@ public partial class Main : Node3D
     private const float FrontageFill = 0.85f;
 
     /// <summary>
+    /// The band a Building fills of its Lot's frontage. <b>Wide on purpose.</b>
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>IT WAS 0.72–0.98 AND THAT IS WHY A BLOCK FACE READ AS TWO SLABS.</b> At the shipped
+    /// <c>block_tiles = 32</c> and <c>lots_per_segment = 5</c> a Lot has <b>51.2 m</b> of frontage
+    /// (<c>plans/0049</c> <b>F1</b>), so the old band put a 37–50 m building on it and left a gap
+    /// too narrow to see from the camera this game is played at. ⚠ <b>The Lot width is DERIVED and
+    /// is not the lever</b> — <c>lots_per_segment</c> is <c>CONTEXT.md</c> → Address's own <i>five
+    /// Buildings share a Segment</i>. This is, and it costs nothing.
+    /// </remarks>
+    private const float BuildingFillLow = 0.42f;
+
+    /// <inheritdoc cref="BuildingFillLow"/>
+    private const float BuildingFillHigh = 1.0f;
+
+    /// <summary>How far a pitched roof rises, as a share of the Building's depth.</summary>
+    /// <remarks>
+    /// ⚠ <b><see cref="PlotDepthMetres"/>' class of thing and labelled as one</b> — the city holds
+    /// no roof. A silhouette is all that reads at a high-level camera, so this is the cheapest
+    /// variety in the drawing and the one that costs the simulation nothing at all.
+    /// </remarks>
+    private const float RoofRiseLow = 0.30f;
+
+    /// <inheritdoc cref="RoofRiseLow"/>
+    private const float RoofRiseHigh = 0.75f;
+
+    /// <summary>Above this, a Building gets a flat roof. <b>Tall things are not gabled.</b></summary>
+    private const float PitchCeilingMetres = 24f;
+
+    /// <summary>
     /// How deep a Building is drawn, as a share of its frontage. <b>Invented, and it has to be.</b>
     /// </summary>
     /// <remarks>
@@ -136,6 +166,12 @@ public partial class Main : Node3D
     /// </remarks>
     private static readonly Color Derelict = new(0.20f, 0.19f, 0.18f);
 
+    /// <summary>A pitched roof, warm against the wall so the silhouette has an edge.</summary>
+    private static readonly Color Roofing = new(0.38f, 0.28f, 0.24f);
+
+    /// <summary>A quarter turn about the vertical, for the gable whose ridge runs east-west.</summary>
+    private static readonly Basis Quarter = Basis.FromEuler(new Vector3(0f, Mathf.Pi * 0.5f, 0f));
+
     /// <summary>How near an edge the pointer has to be, in pixels, before the camera follows.</summary>
     /// <remarks>
     /// ⚠ <b>Pixels and not a share of the window</b>, because it is sized by how accurately a hand
@@ -193,6 +229,7 @@ public partial class Main : Node3D
     private Simulation _simulation = null!;
     private World _world = null!;
     private MultiMeshInstance3D _buildings = null!;
+    private MultiMeshInstance3D _roofs = null!;
     private MultiMeshInstance3D _travellers = null!;
     private MultiMeshInstance3D _roads = null!;
     private MultiMeshInstance3D _plots = null!;
@@ -347,6 +384,8 @@ public partial class Main : Node3D
 
     /// <summary>Which Building each drawn instance is, in instance order. See <see cref="DrawList"/>.</summary>
     private readonly List<ulong> _buildingIds = [];
+
+    private readonly List<ulong> _roofIds = [];
 
     /// <summary>Which Citizen each drawn Traveller is, in instance order.</summary>
     private readonly List<ulong> _travellerIds = [];
@@ -519,6 +558,11 @@ public partial class Main : Node3D
         // A UNIT BOX, with the size composed per instance rather than baked into the mesh, which is
         // what lets one draw call hold Buildings of different shapes.
         _buildings = Layer(Standing, Vector3.One, perInstance: true);
+
+        // A SECOND MESH AND NOT A SECOND BOX. A roof is the only part of a Building that is not a
+        // cuboid, and a silhouette is what reads at the camera this game is played at -- so the
+        // gable is a PrismMesh off the shelf (adr/0018) rather than geometry anybody wrote.
+        _roofs = Layer(Roofing, new PrismMesh { Size = Vector3.One }, perInstance: true);
         _travellers = Layer(new Color(1.0f, 0.45f, 0.15f), new Vector3(3f, 3f, 3f));
 
         Ground();
@@ -1129,6 +1173,7 @@ public partial class Main : Node3D
         ("cell", _cells, false, null),
         ("plot", _plots, true, _plotIds),
         ("building", _buildings, true, _buildingIds),
+        ("roof", _roofs, true, _roofIds),
         ("traveller", _travellers, false, _travellerIds),
     ];
 
@@ -1600,7 +1645,7 @@ public partial class Main : Node3D
     /// <summary>Reads the world into the two meshes that change, and writes the readout.</summary>
     private void Draw(Ratio alpha)
     {
-        int drawn = Fill(_buildings, Buildings(), _buildingIds);
+        int drawn = Massings(Buildings());
         int vacant = Fill(_plots, Plots(), _plotIds);
         int moving = VisibleAgents.In(_world, CellRect.World, alpha, _agents);
         int under = Fill(_flood, Anonymous(Inundated()));
@@ -1739,8 +1784,7 @@ public partial class Main : Node3D
     /// decisions, and a shape nobody in the city can perceive is not one.
     /// </para>
     /// </remarks>
-    private System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where, Color What)>
-        Buildings()
+    private System.Collections.Generic.IEnumerable<Massing> Buildings()
     {
         BuildingTable table = _world.Buildings;
         LotTable lots = _world.Lots;
@@ -1797,8 +1841,12 @@ public partial class Main : Node3D
             int alongTiles = (horizontal ? lots.East[lot].Raw : lots.North[lot].Raw) % block;
             float toEnd = Mathf.Min(alongTiles, block - alongTiles) * MetresPerTile;
             float room = 2f * Mathf.Max(2f, toEnd - (RoadWidthMetres * 0.5f));
-            float along = Mathf.Min(
-                frontage * FrontageFill * (0.85f + (((shape >> 8) & 0xFFu) / 255f * 0.3f)), room);
+            // 🔴 THE BAND IS WIDE AND THE OLD ONE WAS THE REASON A BLOCK FACE READ AS TWO SLABS.
+            // 0.72-0.98 of a 51.2 m frontage is a 37-50 m building with a gap nobody can see from
+            // the camera this game is played at; 0.42-1.0 is a terrace next to a house with a yard.
+            float fill = BuildingFillLow
+                + (((shape >> 8) & 0xFFu) / 255f * (BuildingFillHigh - BuildingFillLow));
+            float along = Mathf.Min(frontage * fill, room);
 
             // The long side runs ALONG the Street, which is what makes a row of them read as a
             // street rather than as a field of blocks -- so the plan is swapped with the axis the
@@ -1807,10 +1855,24 @@ public partial class Main : Node3D
                 ? new Vector3(along, tall, deep)
                 : new Vector3(deep, tall, along);
 
-            yield return (
+            // ⚠ A GABLE IS A PRISM EXTRUDED ALONG ITS OWN Z, so the ridge runs north-south as
+            // authored and the horizontal case is the one that turns. Rotation composed on the LEFT
+            // of the scale, because R*S scales first and then turns the result -- the other order
+            // scales an already-turned box on the wrong axes, which is Fill's own warning one
+            // transform up.
+            bool pitched = ((shape >> 32) & 3u) != 0u && tall <= PitchCeilingMetres;
+            float rise = deep
+                * (RoofRiseLow + (((shape >> 40) & 0xFFu) / 255f * (RoofRiseHigh - RoofRiseLow)));
+            Basis cap = Basis.FromScale(new Vector3(deep, rise, along));
+
+            yield return new Massing(
                 id,
                 new Transform3D(Basis.FromScale(plan), new Vector3(east, tall * 0.5f, -north)),
-                (table.IsAbandoned(slot) ? Derelict : Standing).SrgbToLinear());
+                new Transform3D(
+                    horizontal ? Quarter * cap : cap,
+                    new Vector3(east, tall + (rise * 0.5f), -north)),
+                (table.IsAbandoned(slot) ? Derelict : Standing).SrgbToLinear(),
+                pitched);
         }
     }
 
@@ -1987,6 +2049,60 @@ public partial class Main : Node3D
                     4f,
                     -_agents[agent].North.Raw * MetresPerTile / 65_536f)));
         }
+    }
+
+    /// <summary>One Building's drawing: a body, a roof it may not have, and the paint for both.</summary>
+    /// <remarks>
+    /// ⚠ <b>One derivation and two meshes, rather than two iterators over one table.</b> The body
+    /// and the gable share a setback, a footprint and a scramble, and a second walk deriving them
+    /// again is <c>plans/0012</c> <b>Cause 1</b> with a frame between the copies.
+    /// </remarks>
+    private readonly record struct Massing(
+        ulong Id, Transform3D Body, Transform3D Roof, Color Paint, bool Pitched);
+
+    /// <summary>Fills the body layer and the roof layer from one walk. Returns the Buildings.</summary>
+    /// <remarks>
+    /// ⚠ <b>The two counts are not the same number and the return is the BODY's</b> — a flat-roofed
+    /// Building writes no roof instance, so the readout's <c>Buildings</c> figure would otherwise
+    /// count gables.
+    /// </remarks>
+    private int Massings(System.Collections.Generic.IEnumerable<Massing> massing)
+    {
+        int bodies = 0;
+        int roofs = 0;
+
+        _buildingIds.Clear();
+        _roofIds.Clear();
+
+        foreach (Massing one in massing)
+        {
+            if (bodies >= _buildings.Multimesh.InstanceCount)
+            {
+                break;
+            }
+
+            _buildingIds.Add(one.Id);
+            _buildings.Multimesh.SetInstanceTransform(bodies, one.Body);
+            _buildings.Multimesh.SetInstanceColor(bodies++, one.Paint);
+
+            if (!one.Pitched || roofs >= _roofs.Multimesh.InstanceCount)
+            {
+                continue;
+            }
+
+            _roofIds.Add(one.Id);
+            _roofs.Multimesh.SetInstanceTransform(roofs, one.Roof);
+
+            // ⚠ THE ROOF OF A SHELL IS THE SHELL'S COLOUR AND NOT THE ROOFING. An abandoned
+            // Building that kept a warm red roof would read as the liveliest thing on the street.
+            _roofs.Multimesh.SetInstanceColor(
+                roofs++, one.Paint == Derelict.SrgbToLinear() ? one.Paint : Roofing.SrgbToLinear());
+        }
+
+        _buildings.Multimesh.VisibleInstanceCount = bodies;
+        _roofs.Multimesh.VisibleInstanceCount = roofs;
+
+        return bodies;
     }
 
     /// <summary>Writes transforms into a MultiMesh and returns how many there were.</summary>
@@ -3173,9 +3289,13 @@ public partial class Main : Node3D
     /// <c>InstanceCount</c></b> — Godot allocates the instance buffer on the count, and a format
     /// changed afterwards is a resize the engine declines to do.
     /// </remarks>
-    private MultiMeshInstance3D Layer(Color colour, Vector3 size, bool perInstance = false)
+    private MultiMeshInstance3D Layer(Color colour, Vector3 size, bool perInstance = false) =>
+        Layer(colour, new BoxMesh { Size = size }, perInstance);
+
+    /// <inheritdoc cref="Layer(Color, Vector3, bool)"/>
+    /// <summary>The same, for a layer whose instances are not boxes.</summary>
+    private MultiMeshInstance3D Layer(Color colour, PrimitiveMesh mesh, bool perInstance = false)
     {
-        var mesh = new BoxMesh { Size = size };
         var material = new StandardMaterial3D
         {
             AlbedoColor = perInstance ? Colors.White : colour,
