@@ -729,8 +729,12 @@ public sealed class DistrictWatershedTests
             // waged.toml IS provisioned.toml with two [[business]] keys added, so it inherits
             // [districts] for that file's reason and not for one of its own -- oversupplied.toml's
             // note above, arriving a second time. Its header says the same.
+            // pictured.toml states [districts] because it states everything -- plans/0051 row 1 is
+            // a world to photograph rather than a demonstration, and TwinLatticeTests carries the
+            // whole argument for exempting it. It ratifies nothing, so there is no figure here for
+            // the exemption to protect.
             bool expected = file is "twinned.toml" or "provisioned.toml" or "oversupplied.toml"
-                or "waged.toml";
+                or "waged.toml" or "pictured.toml";
 
             Assert.Equal(expected, states);
         }

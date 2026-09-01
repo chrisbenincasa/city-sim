@@ -64,6 +64,7 @@ are still open, so do not write implementation code beyond the current slice unl
 | `docs/04-economy-and-goods.md` | The five Goods, chains, Office |
 | `docs/05-technical-architecture.md` | Project layout, sim/render boundary, data layout, threading, saves |
 | `docs/06-roadmap.md` | **The phase model, the four pacing rules, and the risk each milestone retires. Nothing else** — it sequences work and never describes the simulation (`adr/0042`). Also names the mechanisms with no milestone yet |
+| `docs/07-the-drawing.md` | **What the city LOOKS like, and how the picture gets made.** The four pillars of the drawing, the three asset pipelines and the recommendation, the reference games, and what a screenshot actually costs. ⚠ **It owns the look and nothing else** — a sentence here about a mechanism is `06`'s or `02`'s and belongs there. 🔴 **Its §5 holds an open question that belongs in `plans/0002`** and is parked here because that file is at its word ceiling |
 | `docs/movement-primer.md` | **Orientation only, and it owns nothing.** Movement and routing rebuilt from first principles, for paging the subsystem back in. Stores no status and almost no numbers, which is what keeps it from drifting. `03`, `CONTEXT.md` and the ADRs win against it always |
 | `docs/adr/` | The decision records, numbered from `0001`. `0028` is reserved and unwritten. **Count them rather than quoting a total** — a count in prose is a fact that drifts |
 | `docs/deferred.md` | What is deliberately not being built, with retrofit costs and revisit triggers |

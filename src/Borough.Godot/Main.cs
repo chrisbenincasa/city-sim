@@ -369,6 +369,20 @@ public partial class Main : Node3D
     /// <summary>The ground the city actually stands on, in metres, from the last framing.</summary>
     private Rect2 _laid;
 
+    /// <summary>
+    /// The ground the Road Graph covers, in metres, from the last framing. <b>Larger than
+    /// <see cref="_laid"/> and not by a knowable factor.</b>
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>It is measured off the Nodes rather than guessed from the city's size, and the guess it
+    /// replaces was <c>_laid.Grow(_span * 0.5f)</c>.</b> That margin scaled with the city, so the
+    /// larger a city grew the further it pushed the woodland away from itself — and at 20,000
+    /// Citizens on <c>rulesets/pictured.toml</c> ***there was not one tree anywhere near the town***
+    /// (<c>plans/0051</c> <b>F7</b>). A paved rectangle is a fact the Road Graph already holds, so
+    /// asking it costs one walk of the Nodes on a framing and nothing at all per frame.
+    /// </remarks>
+    private Rect2 _paved;
+
     private MultiMeshInstance3D _ground = null!;
     private MeshInstance3D _land = null!;
     private ImageTexture _skin = null!;
@@ -3760,7 +3774,12 @@ public partial class Main : Node3D
         // ⚠ THE YARD TEST FOLLOWS THE PAVING AND NOT THE LOTS. `SyntheticCity` lays a lattice larger
         // than it subdivides (`plans/0049` F8), so a rectangle drawn round the Lots leaves paved
         // blocks outside it -- and a crown scattered freely there stands in a carriageway.
-        Rect2 paved = _laid.Grow(_span * 0.5f);
+        //
+        // 🔴 IT IS THE ROAD GRAPH'S OWN EXTENT AND NO LONGER A MARGIN PROPORTIONAL TO THE CITY.
+        // `_laid.Grow(_span * 0.5f)` suppressed a city-width of countryside in every direction, so
+        // the bigger the city the barer its surroundings -- plans/0051 F7. One block of slack is
+        // kept because a Node is a centreline and a carriageway has width.
+        Rect2 paved = _paved.Grow(block * MetresPerTile);
         WoodlandCellTable trees = _world.Layers.Woodland;
         TerrainCellTable ground = _world.Layers.Terrain;
         int crowns = 0;
@@ -4248,6 +4267,38 @@ public partial class Main : Node3D
         _focus = centre;
         _distance = span * 0.95f;
         _laid = new Rect2(east, north, eastEnd - east, northEnd - north);
+        _paved = Paved(_laid);
+    }
+
+    /// <summary>The rectangle the Road Graph's Nodes span, in metres — the ground that is paved.</summary>
+    /// <remarks>
+    /// ⚠ <b>It falls back to the Lots rather than to nothing</b>, because a Ruleset stating no
+    /// <c>[roads]</c> has no Nodes at all and the caller would otherwise get an empty rectangle that
+    /// suppresses nothing — which is the same defect as suppressing everything, pointing the other
+    /// way.
+    /// </remarks>
+    private Rect2 Paved(Rect2 fallback)
+    {
+        RoadNodeTable nodes = _world.Roads.Nodes;
+        float east = float.MaxValue;
+        float north = float.MaxValue;
+        float eastEnd = float.MinValue;
+        float northEnd = float.MinValue;
+
+        for (int slot = 0; slot < nodes.Rows.SlotCount; slot++)
+        {
+            if (!nodes.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            east = Mathf.Min(east, nodes.East[slot].Raw * MetresPerTile);
+            north = Mathf.Min(north, nodes.North[slot].Raw * MetresPerTile);
+            eastEnd = Mathf.Max(eastEnd, nodes.East[slot].Raw * MetresPerTile);
+            northEnd = Mathf.Max(northEnd, nodes.North[slot].Raw * MetresPerTile);
+        }
+
+        return east > eastEnd ? fallback : new Rect2(east, north, eastEnd - east, northEnd - north);
     }
 
     /// <summary>
