@@ -232,6 +232,17 @@ public static class RulesetLoader
         /// table stays <c>null</c> here, which is the same fact its zero key states.
         /// </remarks>
         private readonly List<string?> _policyNames = [];
+
+        /// <summary>What each <c>[[zone_rule]]</c> called itself, in declaration order.</summary>
+        /// <remarks>
+        /// ⚠ <b>Carried for the same reason <see cref="_policyNames"/> is, and it was missing for the
+        /// same reason.</b> Nothing inside a Ruleset refers to a Zone Rule, so it needs no id and the
+        /// loader had no reason to keep the string — and then a panel offering a player a choice of
+        /// brush could only say <em>zone rule 0, zone rule 1</em>. ***A name is needed by the person
+        /// and not by the file.*** An unnamed table stays <c>null</c>; unlike a Policy that is not a
+        /// refusal, because a brush is addressed by its permission word rather than by its name.
+        /// </remarks>
+        private readonly List<string?> _zoneRuleNames = [];
         private readonly List<TableSyntaxBase> _hinterlandTables = [];
         private readonly List<TableSyntaxBase> _latticeTables = [];
         private readonly List<TableSyntaxBase> _terrainTables = [];
@@ -377,7 +388,8 @@ public static class RulesetLoader
             // and dropped, and the resolution path the architecture assumes had no implementation.
             // See RulesetNames.
             var names = new RulesetNames(
-                _kinds, _businessKinds, _conditions, _resources, _rules, _lifeStages, _policyNames);
+                _kinds, _businessKinds, _conditions, _resources, _rules, _lifeStages, _policyNames,
+                _zoneRuleNames);
 
             return RulesetLoadResult.Accepted(new Ruleset(
                     [.. _families], rules, kinds, inputs, outputs, emissions, bins, kindRules,
@@ -2765,6 +2777,8 @@ public static class RulesetLoader
                 string? name = TryString(table, "name", out string? found, required: false)
                     ? found
                     : null;
+
+                _zoneRuleNames.Add(name);
 
                 // Refusal 6 — a kind the Ruleset does not declare. The same two-sided check the rest
                 // of the loader makes: the loader refuses an unknown name, the interpreter refuses an

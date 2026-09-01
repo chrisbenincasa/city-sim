@@ -242,6 +242,20 @@ public partial class Main : Node3D
     /// <summary>The governing panel — one row per declared <c>[[policy]]</c>.</summary>
     private PanelContainer _policyPanel = null!;
 
+    /// <summary>The tool palette: what a click will do, and which one of it.</summary>
+    /// <remarks>
+    /// 🔴 <b><c>plans/0045</c> row 15g, raised by the player unprompted.</b> Five verbs and two
+    /// cycling sub-selections were reported through <b>one line of text</b>, and a cycle is the least
+    /// discoverable control there is — ***you cannot see what you are not holding***, so a Ruleset's
+    /// second Zone Rule existed only for somebody who pressed <c>z</c> twice on the chance.
+    /// </remarks>
+    private PanelContainer _palette = null!;
+
+    private HBoxContainer _tools = null!;
+    private HBoxContainer _choices = null!;
+    private Button _policiesButton = null!;
+    private CanvasLayer _hud = null!;
+
     /// <summary>The amount field for each Policy, by declaration position.</summary>
     private LineEdit[] _policyFields = [];
 
@@ -310,6 +324,26 @@ public partial class Main : Node3D
 
     /// <summary>Set once the run has been refused, so no frame draws a world nobody built.</summary>
     private bool _stopping;
+
+    /// <summary>A picture asked for and not yet taken, because the frame it wants is not drawn.</summary>
+    /// <remarks>
+    /// 🔴 <b>THE PICTURE WAS A WHOLE FRAME BEHIND ITS OWN CAPTION, and <c>plans/0048</c> <b>F8</b>
+    /// recorded that as fixed.</b> <c>Drive</c> runs AFTER <c>Draw</c> in a frame, so F8 had
+    /// <see cref="Shoot"/> recompose before the shutter — which repaired the caption and could not
+    /// repair the picture, because a <c>Control</c>'s new text is not submitted to the renderer until
+    /// the engine draws the frame, and that happens after <c>_Process</c> returns.
+    /// <c>RenderingServer.ForceDraw</c> does not bring it forward; two of them do not either.
+    /// ***The half that was still stale was the half nobody could read a Tick off.***
+    /// </remarks>
+    private string? _pendingShot;
+
+    /// <summary>Whether the run ends as soon as that picture is taken.</summary>
+    /// <remarks>
+    /// ⚠ <b><c>GetTree().Quit()</c> is deferred to the end of the frame, so there is no next frame
+    /// after a <c>quit</c>.</b> A <c>shoot</c> and a <c>quit</c> on one Tick would therefore lose the
+    /// picture outright — so the quit waits for the shutter rather than the shutter racing the quit.
+    /// </remarks>
+    private bool _quitAfterShot;
 
     /// <summary>Which Building each drawn instance is, in instance order. See <see cref="DrawList"/>.</summary>
     private readonly List<ulong> _buildingIds = [];
@@ -509,6 +543,21 @@ public partial class Main : Node3D
 
     public override void _Process(double delta)
     {
+        // FIRST, AND ABOVE THE STOPPING CHECK. The frame this picture wants has now been drawn, and
+        // a run ending on the same Tick it photographed must still get its photograph.
+        if (_pendingShot is not null)
+        {
+            Capture(_pendingShot);
+            _pendingShot = null;
+
+            if (_quitAfterShot)
+            {
+                Quit();
+
+                return;
+            }
+        }
+
         if (_stopping)
         {
             return;
@@ -790,33 +839,48 @@ public partial class Main : Node3D
     /// </remarks>
     private void Shoot(string path)
     {
-        string full = Globalize(path);
-
-        // 🔴 REDRAWN BEFORE THE SHUTTER, BECAUSE Draw RAN BEFORE THIS FRAME'S COMMANDS DID. Found
-        // by running it: 'pause' then 'shoot' on one Tick wrote a caption reading "speed 1x", which
-        // is the rung the frame was composed with and not the one the picture was taken at.
-        // ***A caption written from a stale compose is a caption that disagrees with its own
-        // picture***, which is the one thing writing them in a single act was supposed to prevent.
+        // 🔴 RECOMPOSED BEFORE THE SHUTTER, BECAUSE Draw RAN BEFORE THIS FRAME'S COMMANDS DID.
+        // Found by running it: 'pause' then 'shoot' on one Tick wrote a caption reading "speed 1x",
+        // which is the rung the frame was composed with and not the one the picture was taken at.
         Draw(_alpha);
-        RenderingServer.ForceDraw();
 
+        // 🔴 AND THE PICTURE IS TAKEN NEXT FRAME, because recomposing repairs the CAPTION and cannot
+        // repair the FRAME: a Control's new text reaches the renderer when the engine draws, which
+        // is after _Process returns. Two ForceDraws do not bring it forward. ***The caption said
+        // Tick 140 over a picture of Tick 139 for as long as shoot has existed***, and it was
+        // invisible because a city one Tick apart looks identical -- it took a tool palette, whose
+        // whole content changes on one command, to make the lag legible. See _pendingShot.
+        _pendingShot = path;
+
+        // Written now rather than with the picture: this frame's compose is the one the picture will
+        // carry, and holding the caption over would be a second reading of a world that has moved.
+        Write(Path.ChangeExtension(path, ".txt"));
+    }
+
+    /// <summary>Save the frame the engine has just drawn.</summary>
+    /// <remarks>
+    /// ⚠ <b>THE VIEWPORT HAS NO PICTURE UNDER <c>--headless</c>.</b> <c>GetTexture()</c> is not null
+    /// there — what is empty is what the dummy renderer has behind its RID, which surfaces as an
+    /// engine error and a null out of <c>GetImage()</c>. ***A guard that checks the handle misses an
+    /// emptiness that is in what the handle points at***, so the display server is asked first, where
+    /// the capability is actually declared. <b>The caption is already written</b>: a run with no
+    /// screen still says what the city was doing.
+    /// </remarks>
+    private void Capture(string path)
+    {
         if (DisplayServer.GetName() == "headless")
         {
             GD.Print($"no picture at Tick {_world.Tick.Raw}: --headless renders nothing.");
         }
         else if (GetViewport().GetTexture()?.GetImage() is { } picture)
         {
-            picture.SavePng(full);
+            picture.SavePng(Globalize(path));
             GD.Print($"wrote {path} at Tick {_world.Tick.Raw}");
         }
         else
         {
             GD.Print($"no picture at Tick {_world.Tick.Raw}: the viewport rendered nothing.");
         }
-
-        // Written rather than captioned: Draw has already run above, and a second compose would
-        // be a second reading of a world that has not moved.
-        Write(Path.ChangeExtension(path, ".txt"));
     }
 
     /// <summary>
@@ -1244,13 +1308,7 @@ public partial class Main : Node3D
                 // Policy's amount on the city that is running, through a Command, at a Tick, in the
                 // order a replay reproduces. ***One panel edits the world's premises and the other
                 // plays the game***, and putting them on one key would blur exactly that line.
-                _governing = !_governing;
-                _policyPanel.Visible = _governing;
-
-                if (_governing)
-                {
-                    ShowPolicies();
-                }
+                Govern();
 
                 return;
 
@@ -1371,8 +1429,13 @@ public partial class Main : Node3D
             return;
         }
 
-        // Over a panel: reading is not an instruction to move.
-        if (_readout.GetGlobalRect().HasPoint(at) || _hover.GetGlobalRect().HasPoint(at))
+        // Over a panel: reading is not an instruction to move. ⚠ EVERY Control's own rect is asked
+        // rather than a guessed corner -- a guess killed edge-scrolling north-west outright on the
+        // first attempt -- and the palette is the third, sitting on the bottom edge where the pan
+        // would otherwise fight the buttons.
+        if (_readout.GetGlobalRect().HasPoint(at)
+            || _hover.GetGlobalRect().HasPoint(at)
+            || _palette.GetGlobalRect().HasPoint(at))
         {
             return;
         }
@@ -1557,8 +1620,7 @@ public partial class Main : Node3D
             + $"travelling {moving:N0}{Weather(under)}\n"
             + $"speed {Pace(_rung)}   "
             + $"mode {Holding()}   "
-            + "[ ] speed, space pause, v look, z zone, x street, b demolish, s service, "
-            + "p policies, w write log, g roads, c cells, tab tune\n"
+            + "[ ] speed, space pause, w write log, g roads, c cells, tab tune\n"
             + "click acts   right-drag or two-finger scroll pans   edge of screen pans   "
             + "pinch or -/= zooms   q/e turns"
             + (_refused.Length > 0 ? $"\nREFUSED — {_refused}" : string.Empty);
@@ -2258,6 +2320,8 @@ public partial class Main : Node3D
 
                 break;
         }
+
+        ShowTools();
     }
 
     /// <summary>The keyboard's own <c>hold</c>, so a hand's choice records exactly as a script's.</summary>
@@ -3279,12 +3343,53 @@ public partial class Main : Node3D
             MouseFilter = Control.MouseFilterEnum.Ignore,
         };
 
-        var layer = new CanvasLayer();
+        _hud = new CanvasLayer();
 
-        layer.AddChild(_readout);
-        layer.AddChild(_hover);
-        AddChild(layer);
-        Tuner(layer);
+        _hud.AddChild(_readout);
+        _hud.AddChild(_hover);
+        AddChild(_hud);
+        Tuner(_hud);
+        Panels();
+    }
+
+    /// <summary>
+    /// Builds the two panels that are <b>a reading of the Ruleset</b>, and rebuilds them on a tune.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>THE GOVERNING PANEL WAS BUILT ONCE AND A TUNE MAKES A NEW CITY.</b> Its rows are one per
+    /// declared <c>[[policy]]</c>, read at <c>_Ready</c>; <see cref="Regenerate"/> replaces the World
+    /// and the Ruleset and left the rows where they were, so a tune that changed the policy set left
+    /// a panel addressing positions the new city does not have. ⚠ <b>Since row 15e that is a sentence
+    /// rather than a half-stepped Tick</b> — <c>Simulation.Refuses</c> catches it — ***but a panel
+    /// showing a Policy the city has not got is still a panel lying about the city.*** The palette
+    /// would have acquired the same defect the moment it listed a Zone Rule, so both are built here.
+    /// </remarks>
+    private void Panels()
+    {
+        _policyPanel?.QueueFree();
+        _palette?.QueueFree();
+
+        Governing(_hud);
+        Palette(_hud);
+    }
+
+    /// <summary>A backing panel in the shell's one panel style.</summary>
+    private static PanelContainer Backed(Vector2 at)
+    {
+        var backing = new StyleBoxFlat
+        {
+            BgColor = new Color(0.05f, 0.06f, 0.08f, 0.92f),
+            ContentMarginLeft = 14f,
+            ContentMarginRight = 14f,
+            ContentMarginTop = 10f,
+            ContentMarginBottom = 10f,
+        };
+
+        var panel = new PanelContainer { Position = at };
+
+        panel.AddThemeStyleboxOverride("panel", backing);
+
+        return panel;
     }
 
     /// <summary>End the run, <b>writing the session first where <c>BOROUGH_LOG</c> asked</b>.</summary>
@@ -3302,6 +3407,16 @@ public partial class Main : Node3D
     /// </remarks>
     private int Quit()
     {
+        // ⚠ THE SHUTTER FIRST. A shoot on this Tick has not been taken yet -- the frame it wants is
+        // drawn after this method returns -- and GetTree().Quit() is deferred to the end of the
+        // frame, so there would be no next _Process to take it in.
+        if (_pendingShot is not null)
+        {
+            _quitAfterShot = true;
+
+            return _rung;
+        }
+
         if (System.Environment.GetEnvironmentVariable("BOROUGH_LOG") is not null)
         {
             Record();
@@ -3497,7 +3612,6 @@ public partial class Main : Node3D
 
         _tuner.AddChild(box);
         layer.AddChild(_tuner);
-        Governing(layer);
     }
 
     /// <summary>
@@ -3525,18 +3639,8 @@ public partial class Main : Node3D
     /// </remarks>
     private void Governing(CanvasLayer layer)
     {
-        var backing = new StyleBoxFlat
-        {
-            BgColor = new Color(0.05f, 0.06f, 0.08f, 0.92f),
-            ContentMarginLeft = 14f,
-            ContentMarginRight = 14f,
-            ContentMarginTop = 10f,
-            ContentMarginBottom = 10f,
-        };
-
-        _policyPanel = new PanelContainer { Visible = false, Position = new Vector2(14f, 108f) };
-
-        _policyPanel.AddThemeStyleboxOverride("panel", backing);
+        _policyPanel = Backed(new Vector2(14f, 108f));
+        _policyPanel.Visible = _governing;
 
         var box = new VBoxContainer();
 
@@ -3598,6 +3702,255 @@ public partial class Main : Node3D
         _policyPanel.AddChild(box);
         layer.AddChild(_policyPanel);
     }
+
+    /// <summary>
+    /// The tool palette — <b>every verb on screen at once, and the one you are holding lit up.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b><c>plans/0045</c> row 15g, and the complaint was the player's.</b> Five verbs and two
+    /// <em>cycling</em> sub-selections were reported through one line of text. ***A cycle is the
+    /// least discoverable control there is***: you cannot see what you are not holding, so a second
+    /// <c>[[zone_rule]]</c> was reachable only by somebody who pressed <c>z</c> twice on spec, and a
+    /// world's second <c>serves</c> kind the same way.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A button is the KEY and not a second channel.</b> Every one of them calls
+    /// <see cref="Apply(DriveCommand)"/> with the same <c>hold</c> a keypress builds, so a session
+    /// driven by the palette records and replays exactly as one driven by the keyboard — which is the
+    /// property row 15e's <c>--record</c> repair bought and which a second applier would spend again.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>An unavailable tool is SHOWN AND DISABLED, with the reason in its own label.</b> That is
+    /// the governing panel's rule (<c>an unnamed [[policy]] is shown and disabled rather than
+    /// omitted</c>) applied to a different list, and for a related reason: ***omitting a verb teaches
+    /// that the game has not got it, where the truth is that this Ruleset has not declared for it.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The keys stay on the buttons.</b> The readout's key list shrank to what the palette does
+    /// not show, and <c>mode</c> stayed on it — a <c>Control</c> is invisible to <c>readout</c>,
+    /// <c>shoot</c> and the socket's reply, all of which carry <c>_readout.Text</c>, so ***a driven
+    /// run can only check the palette against a line of the readout.***
+    /// </para>
+    /// </remarks>
+    private void Palette(CanvasLayer layer)
+    {
+        // BOTTOM CENTRE, which is the one edge nothing else claims: the readout is top-left, the
+        // hover bottom-left and the two panels open at (14, 108).
+        _palette = Backed(Vector2.Zero);
+        _palette.AnchorLeft = 0.5f;
+        _palette.AnchorRight = 0.5f;
+        _palette.AnchorTop = 1f;
+        _palette.AnchorBottom = 1f;
+        _palette.GrowHorizontal = Control.GrowDirection.Both;
+        _palette.GrowVertical = Control.GrowDirection.Begin;
+        _palette.OffsetBottom = -16f;
+
+        var box = new VBoxContainer();
+
+        _tools = new HBoxContainer();
+        _choices = new HBoxContainer();
+
+        box.AddChild(_tools);
+        box.AddChild(_choices);
+
+        foreach ((string key, string tool, string label) in Tools)
+        {
+            (bool available, string why) = Offers(tool);
+
+            var button = new Button
+            {
+                Text = available ? $"{label}  ({key})" : $"{label} — {why}",
+                Disabled = !available,
+                ToggleMode = true,
+                CustomMinimumSize = new Vector2(0f, 34f),
+            };
+
+            string held = tool;
+
+            // ⚠ Pressed and not Toggled: ShowTools writes ButtonPressed off the world every frame a
+            // tool changes, and Toggled fires on a programmatic write as well as a click -- which
+            // would make the refresh issue the command it is describing.
+            button.Pressed += () => Choose(held);
+            _tools.AddChild(button);
+        }
+
+        _policiesButton = new Button
+        {
+            Text = _world.Rules.Policies.Length > 0
+                ? "POLICIES  (p)"
+                : "POLICIES — no [[policy]] declared",
+            Disabled = _world.Rules.Policies.Length == 0,
+            ToggleMode = true,
+            ButtonPressed = _governing,
+            CustomMinimumSize = new Vector2(0f, 34f),
+        };
+
+        // ⚠ NOT a hold: it opens a panel rather than choosing what a click means, so it is the one
+        // button here that is not a verb. It sits in the row because the player counted it among the
+        // five they could not see.
+        _policiesButton.Pressed += Govern;
+
+        _tools.AddChild(_policiesButton);
+        _palette.AddChild(box);
+        layer.AddChild(_palette);
+
+        ShowTools();
+    }
+
+    /// <summary>Open or close the governing panel. <b>The key and the palette button share it.</b></summary>
+    private void Govern()
+    {
+        _governing = !_governing;
+        _policyPanel.Visible = _governing;
+        _policiesButton.ButtonPressed = _governing;
+
+        if (_governing)
+        {
+            ShowPolicies();
+        }
+    }
+
+    /// <summary>A palette button, taking the keyboard's own path so the two cannot part company.</summary>
+    private void Choose(string tool)
+    {
+        // The cycle is preserved for the KEY and never for the button: clicking `zone` while holding
+        // `zone` must not advance to the next Zone Rule, because the choices are on screen and
+        // clicking one of them is how you pick. A button is an absolute; the key is what cycles.
+        Apply(Held(
+            tool,
+            tool switch
+            {
+                "zone" => _zoneChoice,
+                "service" => _serviceKind,
+                _ => 0,
+            }));
+    }
+
+    /// <summary>Whether this Ruleset can supply the tool, and what to say when it cannot.</summary>
+    /// <remarks>
+    /// ⚠ <b>Read off the Ruleset rather than restated</b>, on row 15e's rule: <c>zone</c> asks the
+    /// declared <c>[[zone_rule]]</c> set and <c>service</c> asks <see cref="NextService"/>, which are
+    /// the same two facts <see cref="Act"/> tests before it sends anything.
+    /// </remarks>
+    private (bool Available, string Why) Offers(string tool) => tool switch
+    {
+        "zone" => (_world.Rules.ZoneRules.Length > 0, "no [[zone_rule]] declared"),
+        "service" => (NextService(0) != 0, "no kind declares `serves`"),
+        _ => (true, string.Empty),
+    };
+
+    /// <summary>
+    /// Lights the held tool and lays out its choices. <b>Called whenever a tool is held.</b>
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>The second row is rebuilt rather than hidden</b>, because what it holds is a different
+    /// list for each tool — Zone Rules for one, service kinds for another, and a sentence for the
+    /// three that have no choice to make. A row of hidden children would need one child per choice
+    /// of every tool at once, sized by whichever Ruleset is loaded.
+    /// </remarks>
+    private void ShowTools()
+    {
+        string holding = _verb switch
+        {
+            Verb.Zone => "zone",
+            Verb.Connect => "street",
+            Verb.Demolish => "demolish",
+            Verb.Service => "service",
+            _ => "look",
+        };
+
+        for (int at = 0; at < Tools.Length && at < _tools.GetChildCount(); at++)
+        {
+            ((Button)_tools.GetChild(at)).ButtonPressed = Tools[at].Tool == holding;
+        }
+
+        foreach (Node gone in _choices.GetChildren())
+        {
+            gone.QueueFree();
+            _choices.RemoveChild(gone);
+        }
+
+        switch (_verb)
+        {
+            case Verb.Zone when _world.Rules.ZoneRules.Length > 0:
+                for (int at = 0; at < _world.Rules.ZoneRules.Length; at++)
+                {
+                    // ⚠ THE NAME AND THE PERMISSION WORD BOTH. The word is what a Lot stores and what
+                    // decides whether anything is ever built there (ZoneRuleDefinition.Admits), so a
+                    // panel showing only a name would hide the one number a misconfigured Ruleset
+                    // goes wrong in.
+                    Chip(
+                        $"{_names.ZoneRule(at) ?? $"zone rule {at}"}  0x"
+                            + $"{_world.Rules.ZoneRules[at].Admits:X4}",
+                        at == _zoneChoice,
+                        "zone",
+                        at);
+                }
+
+                break;
+
+            case Verb.Service when NextService(0) != 0:
+                for (byte kind = 1; kind <= _world.Rules.KindCount; kind++)
+                {
+                    if (_world.Rules.Declares(kind) && _world.Rules.Kind(kind).Serves != Need.None)
+                    {
+                        Chip(
+                            $"{_names.Kind(kind) ?? kind.ToString()}  "
+                                + $"{_world.Rules.Kind(kind).Serves.ToString().ToLowerInvariant()}",
+                            kind == _serviceKind,
+                            "service",
+                            kind);
+                    }
+                }
+
+                break;
+
+            default:
+                _choices.AddChild(new Label { Text = Doing() });
+
+                break;
+        }
+    }
+
+    /// <summary>One selectable choice under the held tool.</summary>
+    private void Chip(string text, bool held, string tool, int choice)
+    {
+        var button = new Button { Text = text, ToggleMode = true, ButtonPressed = held };
+
+        button.Pressed += () => Apply(Held(tool, choice));
+        _choices.AddChild(button);
+    }
+
+    /// <summary>What the held tool does, for the tools that have nothing to choose between.</summary>
+    /// <remarks>
+    /// ⚠ <b>It says what the verb DOES and not what its key is</b>, which is the half the mode line
+    /// never had room for. <c>SUBDIVIDE</c> is the standing example — the readout could say the word
+    /// and never that clicking a block which already has Lots does nothing at all.
+    /// </remarks>
+    private string Doing() => _verb switch
+    {
+        Verb.Zone => "no [[zone_rule]] declared, so there is no permission to paint",
+        Verb.Connect => "click lays one Street on the lattice; shift-click bulldozes it",
+        Verb.Demolish => "clears an abandoned shell and frees its Lot; occupied ground is refused",
+        Verb.Service => "no kind declares `serves`, so there is no service to place",
+        _ => "reads the city and changes nothing",
+    };
+
+    /// <summary>The five verbs a click can carry, with the key that holds each.</summary>
+    /// <remarks>
+    /// ⚠ <b>The tool words are the drive grammar's</b> (<see cref="Hold"/>), so the palette, the
+    /// keyboard and a script all name a verb the same way and there is one vocabulary rather than
+    /// three.
+    /// </remarks>
+    private static readonly (string Key, string Tool, string Label)[] Tools =
+    [
+        ("v", "look", "LOOK"),
+        ("z", "zone", "SUBDIVIDE"),
+        ("x", "street", "STREET"),
+        ("b", "demolish", "DEMOLISH"),
+        ("s", "service", "SERVICE"),
+    ];
 
     /// <summary>Re-reads every field off the world, so an open panel shows what is in force.</summary>
     private void ShowPolicies()
@@ -3750,6 +4103,11 @@ public partial class Main : Node3D
         Frame();
         Cells();
         Orbit();
+
+        // 🔴 REBUILT, BECAUSE BOTH PANELS ARE A READING OF THE RULESET AND THIS IS A NEW ONE. The
+        // governing panel had one row per declared [[policy]] from _Ready and was never redone, so a
+        // tune that changed the policy set left it addressing positions the new city has not got.
+        Panels();
 
         _owed = 0d;
         _tunerStatus.Text =

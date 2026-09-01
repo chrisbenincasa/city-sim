@@ -56,6 +56,7 @@ public sealed class RulesetNames
     private readonly string[] _rules;
     private readonly string[] _lifeStages;
     private readonly string?[] _policies;
+    private readonly string?[] _zoneRules;
 
     internal RulesetNames(
         IReadOnlyDictionary<string, byte> kinds,
@@ -64,7 +65,8 @@ public sealed class RulesetNames
         IReadOnlyDictionary<string, ushort> resources,
         IReadOnlyDictionary<string, ushort> rules,
         IReadOnlyDictionary<string, byte> lifeStages,
-        IReadOnlyList<string?> policies)
+        IReadOnlyList<string?> policies,
+        IReadOnlyList<string?> zoneRules)
     {
         _kinds = Invert(kinds);
         _businessKinds = Invert(businessKinds);
@@ -77,6 +79,10 @@ public sealed class RulesetNames
         // A Policy has no id: Govern addresses it by DECLARATION POSITION and the Ruleset keys it by
         // a hash of this string, so the position IS the index and inverting anything would lose it.
         _policies = [.. policies];
+
+        // A list for the Policy's reason: a Zone Rule has no id either, and what addresses it in a
+        // panel is its position in declaration order.
+        _zoneRules = [.. zoneRules];
     }
 
     private RulesetNames()
@@ -88,6 +94,7 @@ public sealed class RulesetNames
         _rules = Nothing;
         _lifeStages = Nothing;
         _policies = [];
+        _zoneRules = [];
     }
 
     /// <summary>A Ruleset whose names were not kept. Every lookup returns null.</summary>
@@ -113,6 +120,18 @@ public sealed class RulesetNames
     /// </remarks>
     public string? Policy(int position) =>
         position >= 0 && position < _policies.Length ? _policies[position] : null;
+
+    /// <summary>
+    /// What the <c>[[zone_rule]]</c> at this declaration position called itself, or null.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Null is not a refusal here, unlike <see cref="Policy"/>.</b> A Zone Rule is addressed by
+    /// the permission word it admits (<c>ZoneRuleDefinition.Admits</c>) rather than by its name, so a
+    /// nameless one is paintable and merely unlabelled. ***A panel spells its own fallback***, which
+    /// is this type's standing rule about what to show for a thing nobody named.
+    /// </remarks>
+    public string? ZoneRule(int position) =>
+        position >= 0 && position < _zoneRules.Length ? _zoneRules[position] : null;
 
     /// <summary>What the file called a Business kind, or null.</summary>
     /// <remarks>

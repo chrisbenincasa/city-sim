@@ -130,14 +130,14 @@ non-comment references, **19 headless dumps against a three-line on-screen reado
 | 12 | **Disasters.** `coastal.toml` carries a Hazard Region and **nothing fires on it** | ✅ 31-08 |
 | 13 | The `0046` loose ends — the dwelling stock's missing sink, `aged.toml`'s narrow windows. ⚠ **Small on purpose and last on purpose**: `StageDumpTests` pins both with tests that assert the defect, so neither can be lost | ✅ 31-08 |
 | 14 | **The audit.** Walk this page for what it recorded as owed and never paid. ⚠ **A findings section is not a ledger**, and a debt written in a narrative paragraph is a debt nobody sums | ✅ 31-08 |
-| 15a | 🔴 **Picking.** A click becomes a Tile. The camera is an orbit, and **nothing in the shell converts a screen position to anything at all** — no ray, no ground-plane intersection, no Tile. ⚠ **Every row below is blocked on this one**, and it carries a hover readout of its own: ***a verb you cannot aim is a verb you cannot test***, so what you are pointing at has to be on screen before anything commits |  |
+| 15a | 🔴 **Picking.** A click becomes a Tile. The camera is an orbit, and **nothing in the shell converts a screen position to anything at all** — no ray, no ground-plane intersection, no Tile. ⚠ **Every row below is blocked on this one**, and it carries a hover readout of its own: ***a verb you cannot aim is a verb you cannot test***, so what you are pointing at has to be on screen before anything commits | ✅ 31-08 |
 | 15b | **`Zone`, `Connect`, `Demolish` — the three that change the ground.** ⚠ **`Zone` SUBDIVIDES and does not paint** — found by building it. ⚠ **`Demolish` addresses the LOT's Tile and never the cursor's**, because `ApplyDemolish` matches exactly and refuses rather than substituting | ✅ 31-08 |
 | 15c | **`Govern` and `Service` — the two that change the rules.** A governing panel (`p`) per `[[policy]]`, and `s` places a `serves` kind. ⚠ **The panel is NOT the tuner** — one edits the world's premises, the other plays the game. ⚠ **`RulesetNames` had no Policy accessor**, so a panel could only have offered *policy 0, policy 1* | ✅ 31-08 |
 | 15d | **The session is a log.** `Populate` now enters through `Simulation.Apply`, every verb is appended at the Tick it applies, and `w` writes a `.borough`. ⚠ **The shell was putting a whole city in by a door the log does not account for**, so every hand-played session would have replayed against an **empty world** | ✅ 31-08 |
 | ~~15d~~ | ~~🔴 **The session is a log, and this is the row that makes the other three worth anything.** The shell writes `.borough` through `Borough.Formats` — ⚠ **using the codec and never implementing one** (`adr/0039`). ***A verb that is not in the log is a state change no replay reproduces and no State Hash divergence explains***, which is the sentence `Populate` and `Arrive` each already carry in their own remark. **The proof is the round trip**: a city played by hand in the shell, replayed in `Borough.Headless`, same State Hash~~ | ✅ |
-| 15g | ⚠ **Tool selection needs a UI, and the keyboard-only mode line is already unintuitive.** Raised by the player on 2026-08-31, unprompted, at five verbs — `z x b s p` plus two cycling sub-selections (`z` cycles zone rules, `s` cycles service kinds) reported through **one line of text**. ⚠ **It is a legibility row and not a mechanism row**: nothing new reaches `Simulation.Apply`, so ***the whole of it is shell*** and the standing no-test-host limitation covers all of it. Related to `15e` — a refusal a person can read and a tool they can see are the same complaint |  |
+| 15g | ⚠ **Tool selection needs a UI, and the keyboard-only mode line is already unintuitive.** Raised by the player on 2026-08-31, unprompted, at five verbs — `z x b s p` plus two cycling sub-selections (`z` cycles zone rules, `s` cycles service kinds) reported through **one line of text**. ⚠ **It is a legibility row and not a mechanism row**: nothing new reaches `Simulation.Apply`, so ***the whole of it is shell*** and the standing no-test-host limitation covers all of it. Related to `15e` — a refusal a person can read and a tool they can see are the same complaint | ✅ 31-08 |
 | 15e | **A refusal reaches the player as a sentence.** `Simulation.Refuses` answers off the applier's own predicate and returns a **number**; the shell owns every word. ⚠ **The shell had guarded THREE of the ten that belong to the five verbs it issues**, by restating the rule in its own words. ⚠ **The grammar gained `hold` and `click`**, because a refusal nobody can make happen is a refusal nobody has seen | ✅ 31-08 |
-| 15f | 🔴 **A CLASS WENT MISSING FROM THE COMMIT GATE AND NOTHING NOTICED.** `RulesetSchemaTests` — two tests — was absent from every lane run on 2026-08-31 until 16:49, including **the one that gated `c2e9ff3` while the class was already failing on that tree**. Ruled out: the `tier!=instrument` filter (the class runs and fails under it), a skip (0 in every run) and a missing file. ⚠ **The cause is UNKNOWN and this row is not the fix — it is the instrument.** ***Nothing in the suite asserts how many tests ran***: `TierBudgetTests` times them and `TierDeclarationTests` counts the instrument share, and neither would see a class disappear |  |
+| 15f | 🔴 **A CLASS WENT MISSING FROM THE COMMIT GATE AND NOTHING NOTICED.** `RulesetSchemaTests` — two tests — was absent from every lane run on 2026-08-31 until 16:49, including **the one that gated `c2e9ff3` while the class was already failing on that tree**. Ruled out: the `tier!=instrument` filter (the class runs and fails under it), a skip (0 in every run) and a missing file. ⚠ **A CANDIDATE CAUSE ARRIVED FROM OUTSIDE THE TREE on 2026-08-31**: the player reports the class was authored on **another host**, so a bad merge is the likely explanation and this is probably not a lane defect at all. **Unconfirmed, and the row stays open on the weaker claim** — ⚠ **the class runs and passes under the gate's own filter today**, which makes the disappearance *intermittent* rather than settled, and an intermittent absence is worse than a permanent one. ***Nothing in the suite asserts how many tests ran***: `TierBudgetTests` times them and `TierDeclarationTests` counts the instrument share, and neither would see a class disappear. ⚠ **Two lane runs on 08-31 both reported 2,582**, which is a number no instrument checks |  |
 | 16 | 🔴 **A Need has no consequence.** `Sustenance` and `Satisfaction` are saved, hashed, degraded on a duration and recovered on supply — and **the only thing in `src/` that reads either is `Evidence`**, which is a panel. ***A Household starves to the floor and nothing in the city is different.*** ⚠ **After 9 and 10 and because of them**: those built the reading, and a reading nothing acts on is an instrument rather than a mechanism |  |
 | 17 | 🔴 **Nobody moves house.** Four call sites reach `World.Unplace` — over-capacity eviction, the premises emptying, the tenant's decline threshold, and shedding — and ***every one of them is the Household LOSING its home***. A housed Household can never re-enter the Unplaced Pool by choosing to. ⚠ **This is why `choosy.toml` had to be built on `declining.toml`**: a preference about where to live is unreachable for anybody already living somewhere, and `adr/0011` calls life stage *"one of the primary drivers of residential mobility"* against a build that has none |  |
 | 18 | 🔴 **A dwelling costs nothing.** `PlacementEngine`'s own remark: *"acceptance needs rent, a commute and a tolerance; none exists, so any member would take any dwelling."* ⚠ **One of the three shipped** — `EmploymentEngine` says *"this is where the commute exists"* — so the sentence is now two thirds true rather than wholly. ***`rent` is `adr/0027`'s third preference axis and the thing that would make 17's move a decision instead of a shuffle*** |  |
@@ -974,3 +974,61 @@ refuses the id and the shell says *this Ruleset declares no such building*, whic
 an undeclared kind, a misspelt tool and a Street that was accepted — four readouts, **byte-identical
 across two independent runs**, and the picture at Tick 200 carries the sentence at the top of the
 screen and the aimed Tile at the bottom.
+
+### What the palette found
+
+**15g, and the palette is a third caller rather than a second path.** Every button — a tool, a Zone
+Rule chip, a service kind — calls `Apply(Held(tool, choice))`, which is the command the `z` key
+builds and the command `hold` parses. ***One applier and one vocabulary, entered three ways***: the
+tool words in `Tools` are the drive grammar's own, so a script, a keypress and a click cannot name a
+verb differently.
+
+🔴 **THE GOVERNING PANEL WAS BUILT ONCE AT `_Ready` AND `Regenerate` NEVER REBUILT IT.** Found by
+asking whether the palette would acquire the same defect the moment it listed a Zone Rule, and it
+would have. A tuner pass replaces the World **and** the Ruleset, so a tune that changed the
+`[[policy]]` set left a panel addressing positions the new city has not got. ⚠ **Since 15e that
+arrives as a sentence rather than as a half-stepped Tick** — `Simulation.Refuses` catches
+`GovernPolicyNotInThisWorld` — ***but a panel showing a Policy the city has not got is still a panel
+lying about the city.*** Both Ruleset-shaped panels now rebuild through `Panels()`.
+
+⚠ **A tool this Ruleset cannot supply is DISABLED WITH ITS REASON, and the reason is read rather than
+restated.** `Offers` asks `Rules.ZoneRules.Length` and `NextService(0)` — the same two facts `Act`
+tests before it sends anything — so `SERVICE — no kind declares 'serves'` is 15e's rule arriving
+**before** the click instead of after it. ***The five verbs are not five verbs in every world, and
+the mode line could only ever say what was held.***
+
+⚠ **`Pressed` and not `Toggled`.** `ShowTools` writes `ButtonPressed` off the world every time a tool
+changes, and `Toggled` fires on a programmatic write as well as on a click — so the refresh would
+have issued the command it was describing. ***A control that reports state must not be wired to the
+signal that state-writing raises.***
+
+⚠ **The choice row is REBUILT rather than hidden**, because it holds a different list per tool and
+the lists are sized by whichever Ruleset is loaded. The three tools with nothing to choose get a
+sentence saying what the verb **does**: `SUBDIVIDE` could say the word for ever and never that
+clicking a block which already has Lots does nothing at all.
+
+⚠ **`RulesetNames` had no Zone Rule accessor, which is exactly the absence 15c found for Policies.**
+The chips would have read *zone rule 0*. ⚠ **A chip names the Zone Rule AND its permission word**
+(`housing 0x0001`), because the word is what a Lot stores and what decides whether anything is ever
+built there — a panel showing only the name would hide the one number a misconfigured Ruleset goes
+wrong in.
+
+⚠ **A click over the palette costs nothing and an edge-pan under it did.** Clicks reach the world
+through `_UnhandledInput`, so a `Button` consumes one before the world sees it; the edge-scroll reads
+the raw pointer in `_Process` and had to be told about the new rect. ***Two input paths, and only one
+of them gets Godot's own guard for free.***
+
+🔴 **`shoot`'S PICTURE WAS ONE WHOLE FRAME BEHIND ITS CAPTION, AND `plans/0048` **F8** RECORDED THAT
+FIXED WHEN ONLY THE CAPTION WAS.** The caption at Tick 140 read `SERVICE` while the picture showed
+`SUBDIVIDE` — the previous command's world. ⚠ **It has been wrong since `shoot` existed and was
+only legible once the palette was on screen**, because the palette is the first thing whose whole
+content changes on one command; a map two Ticks apart looks the same. Two `RenderingServer.ForceDraw`
+calls made no difference. The capture is now deferred to the top of the next `_Process`, with
+`_quitAfterShot` so a `shoot` and a `quit` on one Tick still gets its picture. ***A description of
+the build is wrong about the trigger*** ([`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)).
+
+✅ **Watched, driven, on two Rulesets.** `schooled.toml` at Tick 140: SERVICE lit, one `school
+education` chip, and the caption agreeing with the picture. `provisioned.toml` under `hold zone 1`:
+two chips, `housing 0x0001` unlit and `trade 0x0002` lit, with SERVICE and POLICIES dimmed and
+carrying their reasons — ***the same screen tells you what you may do and why you may not do the
+rest.***
