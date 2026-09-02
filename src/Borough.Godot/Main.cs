@@ -4264,41 +4264,15 @@ public partial class Main : Node3D
             DirectionalShadowSplit2 = 0.16f,
             DirectionalShadowSplit3 = 0.44f,
 
-            // 🔴 ⚠ 1.1 AND NOT 3.0, AND THE 3.0 THAT STOOD HERE WAS ARGUED FROM A MEASUREMENT
-            // THAT WAS NOT OF WHAT IT SAID. Reported from the chair as *weird during movement,
-            // and more pronounced at slower speeds*, then, of the blur, *the blur is not the
-            // fix.* It was not. The whole case for widening it rested on a pair of differenced
-            // frames taken while project.godot's atlas key carried a duplicated section prefix
-            // and was therefore INERT -- so every one of those readings was taken at Godot's
-            // default 4096 while the file said 8192, and blur was being asked to hide a
-            // staircase that a working atlas setting does not produce.
+            // ⚠ THE OPENING VALUE ONLY. Daylight() sets this every frame from how high the sun is
+            // standing, because the artifact it exists to hide is a function of that and of
+            // nothing else -- see the comment there, which carries the measurement and the three
+            // things that were tried instead and did not work.
             //
-            // What the edge actually does was found by shooting twenty-four frames one Tick
-            // apart at half a Tick a second -- slow enough that the leftover sub-Tick sun in
-            // each shot is a fiftieth of a Tick rather than a whole one -- and magnifying the
-            // same ninety pixels of it. ***The edge is not blurred at all and never was***: it
-            // is a hard binary staircase whose tread was five to six screen pixels, and as the
-            // sun turns the treads redistribute, so individual steps pop rather than slide.
-            // Measured on the position of one edge: it should advance +3.4 px a Tick, and it
-            // advanced between -2.4 and +9.5, GOING BACKWARDS ON SIX OF TWENTY-THREE FRAMES.
-            // ***That reversal is the thing that cannot be described from the chair***, and slow
-            // motion is what separates the pops far enough apart to be seen one at a time.
-            //
-            // With the atlas key repaired and the range tied to the standoff in Orbit(), the
-            // same burst gives a residual span of 2.9 px against 8.6 and NOT ONE BACKWARD STEP.
-            // The blur stays where it was.
-            //
-            // ⚠ What was tried and REMOVED AGAIN, because a setting whose effect cannot be shown
-            // is a setting kept on an argument: ShadowNormalBias 4.0, which IS applied from code
-            // here and moved 1.7% of the crop against 1.6% -- noise. ⚠ And what was tried, showed
-            // nothing, and TURNED OUT NEVER TO HAVE RUN, all of it written into project.godot with
-            // the same duplicated prefix: TAA, FXAA, 2× supersampling, and probably the 32-bit
-            // shadow depth the previous sitting recorded as making no difference.
-            // ***Those are unmeasured rather than refused***, and a reading of a setting that was
-            // never applied is worse than no reading, because it closes the question. ⚠ And the faint concentric MOIRÉ over open ground is real and is NOT
-            // this: it is one quantisation level, 1/255, and ShadowBias 1.0 erases it. Not
-            // taken, because a bias that large detaches a shadow from its own wall to cure
-            // something nobody has reported seeing.
+            // ⚠ And the faint concentric MOIRÉ over open ground is a different thing and is real:
+            // it is one quantisation level, 1/255, and ShadowBias 1.0 erases it. Not taken,
+            // because a bias that large detaches a shadow from its own wall to cure something
+            // nobody has reported seeing.
             ShadowBlur = 1.1f,
         };
 
@@ -4449,6 +4423,34 @@ public partial class Main : Node3D
         float down = Mathf.SmoothStep(0f, 0.10f, -height);
 
         _light.LookAtFromPosition(height > 0f ? sunward : -sunward, Vector3.Zero, Vector3.Up);
+
+        // 🔴 THE SOFTNESS RIDES THE SUN'S HEIGHT, AND A CONSTANT ONE CANNOT BE RIGHT AT ANY HOUR.
+        // A shadow edge is drawn one screen pixel at a time, so a SHALLOW edge holds its row for
+        // several pixels before it steps down and the eye reads a comb. How shallow it lies is set
+        // by how low the sun is: measured at a 40 m standoff, the tread is four to seven pixels at
+        // 08:00 and the comb is invisible by midday. ***That is why the artifact was reported as
+        // going away later in the day.***
+        //
+        // ⚠ A staircase is hidden when the SOFTNESS EXCEEDS THE TREAD, and nothing else hides it.
+        // Measured against the same frame, and this is the finding rather than a preference: FXAA
+        // moves nothing, PCF filter quality Ultra moves nothing, and 2× supersampling moves
+        // nothing -- all three leave the same two-pixel riser, because none of them changes the
+        // edge's SLOPE and the slope is what sets the tread. ⚠ Blur is the only lever that
+        // reaches it, which is worth stating plainly because blur was tried and rejected once: a
+        // FIXED blur is not the fix, and it was measured with the range fixed too, so its screen
+        // width swung wildly with the zoom.
+        //
+        // So it is spent where it is needed and nowhere else. ⚠ THE LAW IS SQUARED AND A LINEAR
+        // ONE WAS TRIED FIRST AND MEASURED SHORT: 0.9/height reaches only 2.2 at 08:00, where the
+        // sun stands at 0.41, and 2.2 leaves the same two-pixel riser the unblurred edge has. The
+        // sun's own height is capped at sin(0.95) = 0.81 here, so the whole usable range is narrow
+        // and a gentle curve cannot cross it. Squared, it sits at the 3.5 ceiling through the
+        // morning and the evening and eases to 1.1 only around midday, where the edge is steep
+        // enough that blur would buy nothing and cost sharpness. The floor on the divisor stops it
+        // running away as the sun sets.
+        float raking = Mathf.Max(Mathf.Abs(height), 0.30f);
+
+        _light.ShadowBlur = Mathf.Clamp(0.73f / (raking * raking), 1.1f, 3.5f);
 
         // A raking sun is BRIGHTER than a high one and not dimmer -- it is the same disc through
         // more air, and what the air takes is the blue end. The energy peak sits at the horizon for
@@ -4654,6 +4656,14 @@ public partial class Main : Node3D
         //
         // ⚠ The floor exists because a very close orbit must still shadow the whole block, and the
         // ceiling because past it the cascades are coarse again and nothing is gained.
+        //
+        // ⚠ HOW THE CRAWL WAS MEASURED, because it is not a thing a still can show: twenty-four
+        // frames one Tick apart at half a Tick a second -- slow enough that the sub-Tick sun left
+        // over in each shot is a fiftieth of a Tick rather than a whole one -- tracking one edge.
+        // It should advance +3.4 px a Tick. Before the atlas key was repaired and the range tied
+        // here, it advanced between -2.4 and +9.5 and WENT BACKWARDS ON SIX OF TWENTY-THREE
+        // FRAMES; after, the residual span is 2.9 px against 8.6 and not one step reverses.
+        // ***A shadow edge that reverses is what could not be described from the chair.***
         _light.DirectionalShadowMaxDistance = Mathf.Clamp(_distance * 3f, 400f, 3_000f);
 
         // The focus plane rides the standoff, so a zoom or a tilt cannot leave the subject blurred.
