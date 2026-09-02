@@ -247,6 +247,8 @@ public static class RulesetLoader
         private readonly List<TableSyntaxBase> _lifeStageTables = [];
         private readonly List<TableSyntaxBase> _ruleTables = [];
         private readonly List<TableSyntaxBase> _zoneRuleTables = [];
+
+        private readonly List<TableSyntaxBase> _bandTables = [];
         private readonly List<TableSyntaxBase> _policyTables = [];
 
         /// <summary>
@@ -339,6 +341,7 @@ public static class RulesetLoader
             BusinessKindDefinition[] businessKinds = ReadBusinessKinds();
             LifeStageDefinition[] lifeStages = ReadLifeStages();
             ZoneRuleDefinition[] zoneRules = ReadZoneRules();
+            BandDefinition[] bands = ReadBands();
             PolicyDefinition[] policies = ReadPolicies(out ulong[] policyKeys);
             HinterlandDefinition[] hinterlands = ReadHinterlands(out Money[] hinterlandPrices);
             LayerRuleset layers = ReadLayers();
@@ -428,6 +431,7 @@ public static class RulesetLoader
                     Roads = roads,
                     Lattices = lattices,
                     Lots = lots,
+                    Bands = bands,
                     Trips = trips,
                     Jobs = jobs,
                     Households = households,
@@ -550,6 +554,14 @@ public static class RulesetLoader
                         // Zone Rule, so it needs no id. The name is carried for refusal messages
                         // only, which is why a duplicate one is not an ambiguity here.
                         _zoneRuleTables.Add(table);
+                        break;
+
+                    case "band":
+                        // Not registered into a name table, for [[zone_rule]]'s reason: nothing in a
+                        // Ruleset refers to a band by name. A band's identity is its POSITION, which
+                        // is what a block's byte carries -- so the name is for refusal messages and
+                        // for the person reading the file, and a duplicate name is not an ambiguity.
+                        _bandTables.Add(table);
                         break;
 
                     case "layers":
@@ -2761,6 +2773,121 @@ public static class RulesetLoader
             }
 
             return definitions;
+        }
+
+        // ---- bands ----------------------------------------------------------------------------
+
+        /// <summary>
+        /// Reads the <c>[[band]]</c> tables — <c>adr/0025</c>'s density bands, in declaration order.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>A band admits ZONE BITS and its identity is its position in the file, counted from 1.</b>
+        /// The bit is the same integer a <c>[[zone_rule]]</c>'s <c>zone</c> key names, because a Lot's
+        /// permission set and a band's are the same sixteen bits meaning the same thing — which is
+        /// <c>adr/0025</c>'s own mechanism: <em>"a band expresses itself as which kinds a Lot
+        /// permits"</em>.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>An empty <c>admits</c> is REFUSED rather than read as <em>nothing may build</em>.</b>
+        /// A band is a cap, and a cap that admits nothing is land nobody can ever develop — expressible
+        /// already by not zoning it, and reachable here only by writing a key that looks like it does
+        /// something. That is the shape refusals 6 to 10 exist to stop: a file that loads clean and
+        /// does nothing.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>A duplicate bit inside one band is refused for the same reason</b> — the second one
+        /// changes nothing, so it is either a typo for another bit or a misunderstanding of what the
+        /// key means, and both are worth a line number.
+        /// </para>
+        /// </remarks>
+        private BandDefinition[] ReadBands()
+        {
+            var definitions = new List<BandDefinition>(_bandTables.Count);
+
+            foreach (TableSyntaxBase table in _bandTables)
+            {
+                string? name = TryString(table, "name", out string? declared, required: false)
+                    ? declared
+                    : null;
+
+                KeyValueSyntax? entry = Find(table, "admits", RulesetKeyKind.Numbers);
+
+                if (entry is null)
+                {
+                    Refuse(LineOf(table), name,
+                        "a [[band]] states no admits. A band is adr/0025's CAP -- the set of zone "
+                        + "bits it lets a Lot keep -- and a band with no set is not a permissive "
+                        + "band, it is a table with no content.");
+                    continue;
+                }
+
+                if (entry.Value is not ArraySyntax array)
+                {
+                    Refuse(LineOf(entry), name, "admits must be an array of zone bits.");
+                    continue;
+                }
+
+                ushort admits = 0;
+                bool refused = false;
+
+                foreach (ArrayItemSyntax item in array.Items)
+                {
+                    if (item.Value is not IntegerValueSyntax integer)
+                    {
+                        Refuse(LineOf(item), name,
+                            "every entry of admits is a zone bit, which is the same integer a "
+                            + "[[zone_rule]]'s `zone` key names.");
+                        refused = true;
+                        continue;
+                    }
+
+                    long bit = integer.Value;
+
+                    if (bit < 0 || bit >= LotTable.ZoneBits)
+                    {
+                        Refuse(LineOf(item), name,
+                            $"zone bit {bit} is outside 0..{LotTable.ZoneBits - 1}. A Lot's "
+                            + $"permission set is {LotTable.ZoneBits} bits wide, so no zone command "
+                            + "can paint this bit and admitting it would let this band cap nothing.");
+                        refused = true;
+                        continue;
+                    }
+
+                    ushort mask = (ushort)(1 << (int)bit);
+
+                    if ((admits & mask) != 0)
+                    {
+                        Refuse(LineOf(item), name,
+                            $"zone bit {bit} is admitted twice by one band. The second one changes "
+                            + "nothing, so it is either a typo for another bit or a misreading of "
+                            + "what admits means.");
+                        refused = true;
+                        continue;
+                    }
+
+                    admits |= mask;
+                }
+
+                if (refused)
+                {
+                    continue;
+                }
+
+                if (admits == 0)
+                {
+                    Refuse(LineOf(entry), name,
+                        "a band admits no zone bit at all. Land nothing may ever build on is land "
+                        + "the player did not zone, and it is already expressible that way -- so "
+                        + "this key loads clean and does nothing, which is what refusals 6 to 10 "
+                        + "exist to stop.");
+                    continue;
+                }
+
+                definitions.Add(new BandDefinition { Admits = admits });
+            }
+
+            return [.. definitions];
         }
 
         // ---- zone rules -----------------------------------------------------------------------

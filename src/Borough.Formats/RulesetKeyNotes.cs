@@ -248,6 +248,15 @@ public static class RulesetKeyNotes
             + "raise another — what damps the response to the demand signal. Requires "
             + "build_threshold_days, since a Rule reading no demand has nothing to damp.",
 
+        // ---- [[band]] -------------------------------------------------------------------------
+        ["[[band]] name"] =
+            "What this density band is called.",
+        ["[[band]] admits"] =
+            "Which permission bits a Lot in this band may keep -- a list of bit indices, not a mask. "
+            + "It is a CAP applied by intersection against the Lot's own permission set, so a band "
+            + "can only ever take a permission away. Bands are ordered by declaration, least intense "
+            + "first, and a band nobody declared admits everything.",
+
         // ---- [[life_stage]] -------------------------------------------------------------------
         ["[[life_stage]] name"] =
             "What this stage of a Household's life is called. next, childless and children_become "

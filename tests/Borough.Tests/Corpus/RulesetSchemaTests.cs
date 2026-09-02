@@ -260,6 +260,7 @@ public sealed class RulesetSchemaTests
         RulesetKeyKind.Quoted => "string",
         RulesetKeyKind.Table => "object",
         RulesetKeyKind.Array => "array",
+        RulesetKeyKind.Numbers => "array",
         _ => "any",
     };
 

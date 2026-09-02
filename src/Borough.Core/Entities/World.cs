@@ -3308,11 +3308,67 @@ public sealed class World
     /// <returns>The Block's slot, or <see cref="Rows.NoSlot"/> if the square is off the lattice.</returns>
     public int ZoneBlock(int column, int row, ushort zone)
     {
+        int slot = EnsureBlock(column, row);
+
+        if (slot == Rows.NoSlot)
+        {
+            return Rows.NoSlot;
+        }
+
+        Blocks.Zone[slot] = zone;
+
+        return slot;
+    }
+
+    /// <summary>
+    /// Records that a lattice square carries density band <paramref name="band"/>, creating its row
+    /// if it has none.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>adr/0025</c>'s cap, and it is a separate act from zoning because the player makes it
+    /// separately.</b> Banding land nobody has zoned is coherent — it is a ceiling on what may ever be
+    /// built there — so this allocates a row on <see cref="ZoneBlock"/>'s terms rather than requiring
+    /// one.
+    /// </para>
+    /// <para>
+    /// 🔴 ⚠ <b>NOTHING IN A TICK MAY CALL THIS.</b> <c>adr/0025</c> rejects the road-derived cap
+    /// specifically — <em>"a road-derived cap would pre-empt the lesson the engine exists to
+    /// teach"</em> — and deriving a band from land value instead of road tier does not change the
+    /// objection. ***A generator painting an initial value is the same act as a generator zoning land;
+    /// a Rule writing this column would be the rejected design arriving by the back door.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Band <c>0</c> means NO BAND and is the permissive state</b>, not the restrictive one — see
+    /// <see cref="Rules.Ruleset.Band"/>. It is what every block in a world with no <c>[[band]]</c>
+    /// holds, and it admits everything, because the mechanism is subtractive.
+    /// </para>
+    /// </remarks>
+    /// <returns>The Block's slot, or <see cref="Rows.NoSlot"/> if the square is off the lattice.</returns>
+    public int BandBlock(int column, int row, byte band)
+    {
+        int slot = EnsureBlock(column, row);
+
+        if (slot != Rows.NoSlot)
+        {
+            Blocks.Band[slot] = band;
+        }
+
+        return slot;
+    }
+
+    /// <summary>The Block's slot at a lattice square, allocating a row if there is none.</summary>
+    /// <remarks>
+    /// <b>Shared by <see cref="ZoneBlock"/> and <see cref="BandBlock"/>, which are two player acts on
+    /// one square</b> — so a block zoned and then banded has one row and not two, which is what
+    /// <see cref="Space.BlockResidency.Occupy"/> refuses outright rather than allowing silently.
+    /// </remarks>
+    private int EnsureBlock(int column, int row)
+    {
         // The lattice's extent is not known until there are roads, and it becomes known DURING
         // generation -- RoadGenerator.LayInto and then LotSubdivider, with no RebuildDerived between
         // them. So the index re-derives itself the moment the lattice it indexes changes shape,
-        // which is a thing derived state is allowed to do and saved state is not. The comparison is
-        // two integers on a path that runs once per zoned block.
+        // which is a thing derived state is allowed to do and saved state is not.
         if (BlockIndex.Span != Roads.Streets.Span)
         {
             RebuildBlockIndex();
@@ -3325,20 +3381,21 @@ public sealed class World
 
         int slot = BlockIndex.Slot(column, row);
 
-        if (slot == BlockResidency.NotResident)
+        if (slot != Space.BlockResidency.NotResident)
         {
-            slot = Blocks.Rows.Resolve(Blocks.Rows.Allocate());
-
-            Blocks.LatticeColumn[slot] = column;
-            Blocks.LatticeRow[slot] = row;
-
-            BlockIndex.Occupy(column, row, slot);
+            return slot;
         }
 
-        Blocks.Zone[slot] = zone;
+        slot = Blocks.Rows.Resolve(Blocks.Rows.Allocate());
+
+        Blocks.LatticeColumn[slot] = column;
+        Blocks.LatticeRow[slot] = row;
+
+        BlockIndex.Occupy(column, row, slot);
 
         return slot;
     }
+
 
     /// <summary>The Households living in each Building.</summary>
     /// <remarks>

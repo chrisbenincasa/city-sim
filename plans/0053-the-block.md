@@ -50,7 +50,7 @@ before adding bands produces a uniform city made of a different shape.**
 | # | Step | Hash | What it unblocks |
 |---|---|---|---|
 | **1** | **A Block is a row.** `BlockTable`, keyed by lattice position. Saved: zone, band, **and the pattern it was carved with**. `zone` writes the block rather than the Lots | yes | Somewhere for a per-block decision to live. Discharges `Relot`'s named limitation |
-| **2** | **Bands ship.** `adr/0025`'s cap becomes a real value on the block. ⚠ **The generator paints them** — see *The two calls* | yes | More than one of anything |
+| **2** | 🟡 **Bands ship** — *half done, 2026-09-02*. `adr/0025`'s cap is a real value on the block and **nothing reads it yet**. ⚠ **The generator paints them** — see *The two calls*; what is left is in *What step 2 shipped* | no, so far | More than one of anything |
 | **3** | **A pattern is a partition function**, and the set is open. Three to start | yes | (a), (b) and (c) all become expressible, and none is privileged |
 | **4** | **Carve and re-carve.** Selection at carve time from local conditions; frozen while occupied; re-carved when vacant | yes | ***The city stops being uniform*** |
 | **5** | **The parcel, then the footprint** — [`0052`](0052-the-parcel.md) in full | yes | Sealing, Fertility, Woodland, `adr/0025`'s Land axis, and F21 becoming impossible |
@@ -185,6 +185,47 @@ its leftover ground without weakening the test that kills the dead interior ever
 
 ---
 
+## What step 2 shipped, and the half it did not
+
+**Shipped 2026-09-02.** A `[[band]]` table in the Ruleset, a `Band` on every carved block, and a
+generator that paints rings. `rulesets/banded.toml` is the one shipped file that declares any, and its
+header says so.
+
+🔴 **Nothing reads `admits`.** The band is recorded and the cap is parsed and the two have not met —
+`ZoneRuleEngine`'s admission is still `Lots.Zone[lot] & definition.Admits` with no band term in it.
+***So the city is exactly as uniform today as it was yesterday***, and that is worth stating plainly
+rather than letting a green suite imply otherwise. What changed is that the value now exists to be
+read, which step 3 needs and step 4 spends. The remaining half is a derived `LotTable.BlockSlot`
+column and one `&` in the admission predicate.
+
+⚠ **The State Hash did not move**, and it should not have. `Band` was allocated in step 1, and the
+only world that paints a non-zero one is a file no golden run uses.
+
+### Three things the corpus caught that the compiler did not
+
+Recording these because each is a guard earning its cost, and none of the three was on the checklist:
+
+- **`Ruleset.WithLayers` did not carry `Bands`.** A hot-reload would have returned a Ruleset with its
+  bands silently at their defaults. `RulesetWithLayersTests` names the property and the second site.
+- **`adr/0048`'s refusal count went 217 → 223**, and `RefusalCountTests` reads the loader rather than
+  trusting the ADR. Six new refusals, enumerated there.
+- **A doc comment orphaned itself.** Inserting `ReadBands` above `ReadZoneRules` left the latter's
+  documentation bound to the former. `DocCommentAttachmentTests`, third time this session.
+
+### ⚠ A new key kind, which is a shape this Ruleset had never had
+
+`admits = [0, 1]` is **a bare array of whole numbers**, and every other array key in the Ruleset —
+`inputs`, `bins`, `prices` — is an array of *inline tables*. The loader had one `Array` kind meaning
+the second, so the generated schema published `admits` as an array of objects and the key reference
+printed *array of inline tables*. ***Both artefacts were wrong in the same way and neither would have
+failed a test***, because the generators and the checks read the same enum.
+
+`RulesetKeyKind.Numbers` is the repair. ⚠ **The alternative was to bend the file to the loader** —
+`admits = [ { zone = 0 } ]` — and that is the wrong direction: a set of bit indices has no field to
+name.
+
+---
+
 ## What this does to [`0052`](0052-the-parcel.md)
 
 ✅ **Nothing in it is withdrawn.** G1–G8 stand, the Sealing measurements stand, Q3's answer stands, and
@@ -213,16 +254,41 @@ question with one answer.
 
 ### Q6 — what a `BlockTable` costs, and why it is not a new pattern
 
-At `CellGrid.WorldCells = 512` and a 32-Tile block the lattice is **512² = 262,144 blocks**.
+🔴 ⚠ **THE FIRST ANSWER WRITTEN HERE WAS WRONG AND IT IS `plans/0012` CAUSE 5, COMMITTED IN THIS
+DOCUMENT.** It read *"the lattice is 512²"* as though that were a property of the map. It is not.
+**The lattice is `(WorldTiles / block_tiles + 1)²`**, and `block_tiles` is **tuning Ruleset data whose
+loader floor is 1** (`RulesetLoader.cs:5197`). The `lots_per_segment ≤ block_tiles` refusal constrains
+`lots_per_segment` **from above**, not `block_tiles` from below — so a 1-Tile block is a legal world.
+
+| `block_tiles` | Span | Lattice | Dense `int[]` index |
+|---|---|---|---|
+| **32** — shipped | 513 | 263,169 | **1.05 MB** |
+| 8 | 2,049 | 4.2 M | 16.8 MB |
+| 5 | 3,278 | 10.7 M | 43 MB |
+| **1** — the loader's floor | 16,385 | **268 M** | 🔴 **1.07 GB** |
+
+🔴 ***A `BlockResidency` is unlike all five existing residencies, and this is the one thing about step 1
+that is genuinely new.*** `CellResidency`, `BuildingResidency`, `DistrictResidency`, `FloodResidency`
+and `WaterResidency` every one index **`CellGrid`, a design constant that never moves**. This one
+indexes a lattice **sized by a tuning key**. ***The house pattern does not transfer unexamined, and
+the sentence below that said it did was the error.***
+
+- ✅ **Size the index lazily from `StreetGrid.Span` at world creation.** Correct at every block size,
+  and `Span` is already known there. **The exposure is then named rather than allocated silently.**
+- ⚠ **`block_tiles`' floor of 1 is separately suspect** and is not this plan's to fix: a 1-Tile block
+  is a world where **every Tile is a Street**, which is not a city. Owed to
+  [`0012`](0012-corpus-audit.md) as its own filing rather than folded in here.
+
+**The costs below stand at the shipped block size and nowhere else.**
 
 | Shape | Cost | Standing |
 |---|---|---|
-| **Dense table** — a row per lattice block | **~5.2 MB**, allocated whether the city reaches them or not (16 bytes of `Rows` identity per row before any column) | Wasteful, and it sizes the world by the **map** rather than by the **city** |
-| ✅ **Sparse — a `BlockResidency` plus a table** | **~1 MB** fixed for the index, **plus ~20 bytes per ZONED block**. A 10,000-block city is **~1.2 MB** | **Taken.** ⚠ **Not an invention: there are already FIVE of these** — `CellResidency`, `BuildingResidency`, `DistrictResidency`, `FloodResidency`, `WaterResidency`, each a dense `int[]` over the map with a sparse table behind it (`CellResidency.cs:41`) |
+| **Dense table** — a row per lattice block | **~5.2 MB** at `block_tiles = 32`, allocated whether the city reaches them or not (16 bytes of `Rows` identity per row before any column) | Wasteful, and it sizes the world by the **map** rather than by the **city** |
+| ✅ **Sparse — a lazily-sized `BlockResidency` plus a table** | **~1 MB** for the index at the shipped block size, **plus ~20 bytes per ZONED block**. A 10,000-block city is **~1.2 MB** | **Taken**, with the index sized from `Span` rather than from a constant |
 
 ⚠ **`adr/0006` is not reached either way and saying it was would be wrong.** That ADR forbids a
-collection that **grows with elapsed time**; a map-sized array is fixed at world creation and grows
-with nothing. The sparse form is taken because it is **4× cheaper and already the house pattern**, not
+collection that **grows with elapsed time**; a lattice-sized array is fixed at world creation and grows
+with nothing. The sparse form is taken because it is **4× cheaper at the shipped block size**, not
 because the dense one was a violation.
 
 🔴 ⚠ **AND DO NOT COLLAPSE A BLOCK ONTO A CELL.** At shipped figures `block_tiles = 32` and

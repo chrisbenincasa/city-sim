@@ -866,6 +866,12 @@ public static class SyntheticCity
                 continue;
             }
 
+            // plans/0053 step 2. The generator paints the band the way it paints the Zone, which is
+            // adr/0025's "the player sets a ceiling" with the generator standing in for the player --
+            // NOT a cap derived from conditions, which that ADR rejects by name. In a Ruleset with no
+            // [[band]] this is 0 on every block and nothing anywhere reads it.
+            world.BandBlock(column, row, BandAt(world, column, row, firstColumn, firstRow, span));
+
             // adr/0165's split, at the loop that already had `column` and `row` in hand -- the ADR's
             // own words are that the change is WHAT THAT VALUE IS and not where it comes from.
             if (IsTradeBlock(column, row))
@@ -883,6 +889,67 @@ public static class SyntheticCity
 
         return made;
     }
+
+    /// <summary>
+    /// Which density band the generator paints on a lattice square — <b>concentric rings, densest at
+    /// the middle</b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The generator standing in for the player, which is what <c>adr/0025</c> asks for</b>: the
+    /// player sets a ceiling, and a player would set a high one in the middle. ⚠ <b>It is NOT a cap
+    /// derived from conditions</b> — that ADR rejects the road-derived cap by name, and reading land
+    /// value here instead of road tier would not change the objection. This reads only the lattice's
+    /// own geometry, which is the same thing <see cref="IsTradeBlock"/> reads.
+    /// </para>
+    /// <para>
+    /// ✅ <b>It introduces no tuning number, and that is why the rings are equal.</b> The ring count is
+    /// the Ruleset's band count and the ring width falls out of the lattice's half-span, so there is
+    /// no boundary anybody chose and nothing here to ratify under <c>adr/0052</c>. ***A layout with a
+    /// authored radius would have been a hash-bearing number invented by a fixture.***
+    /// </para>
+    /// <para>
+    /// <b>Chebyshev rather than Euclidean</b>, matching <c>ZoneRuleEngine.Score</c>'s centrality term
+    /// one subsystem over — square rings on a square lattice, and no distance to take a root of.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Zero when the Ruleset declares no band</b>, which is every shipped file but the one that
+    /// demonstrates this. Band 0 is <em>no band</em> and admits everything.
+    /// </para>
+    /// </remarks>
+    private static byte BandAt(World world, int column, int row, int firstColumn, int firstRow, int span)
+    {
+        int bands = world.Rules.Bands.Length;
+
+        if (bands <= 0)
+        {
+            return 0;
+        }
+
+        int half = IntegerMath.FloorDiv(span, 2);
+        int centreColumn = firstColumn + half;
+        int centreRow = firstRow + half;
+
+        int acrossEast = column > centreColumn ? column - centreColumn : centreColumn - column;
+        int acrossNorth = row > centreRow ? row - centreRow : centreRow - row;
+        int reach = acrossEast > acrossNorth ? acrossEast : acrossNorth;
+
+        // The +1 is a fencepost and not a fudge: a lattice of span 1 has a half-span of 0, and every
+        // square in it is the centre -- so the denominator has to be the number of rings there ARE
+        // rather than the distance to the last one.
+        int ring = IntegerMath.FloorDiv(reach * bands, half + 1);
+
+        if (ring >= bands)
+        {
+            ring = bands - 1;
+        }
+
+        // Counted from 1, and inverted so that ring 0 -- the middle -- takes the LAST band declared.
+        // Declaration order is intensity order, lowest first (BandDefinition), so the densest band is
+        // the one written last and it lands where a player would have painted it.
+        return (byte)(bands - ring);
+    }
+
 
     /// <summary>
     /// Raises one Outside Connection on every map edge the lattice actually reaches

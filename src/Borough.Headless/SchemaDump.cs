@@ -279,6 +279,16 @@ internal static class SchemaDump
                     writer.WriteString("type", "string");
                     break;
 
+                case RulesetKeyKind.Numbers:
+                    // A bare list of whole numbers, which no other key in this Ruleset is. It heads
+                    // no section, so the array is written here rather than through the Repeats path
+                    // that array-of-tables keys take.
+                    writer.WriteString("type", "array");
+                    writer.WriteStartObject("items");
+                    writer.WriteString("type", "integer");
+                    writer.WriteEndObject();
+                    break;
+
                 default:
                     // Asked for by a reader that wanted only a line number, so nothing is known
                     // about the shape. An empty schema completes the key and validates anything.

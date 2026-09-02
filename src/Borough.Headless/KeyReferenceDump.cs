@@ -271,6 +271,7 @@ internal static class KeyReferenceDump
         RulesetKeyKind.Quoted => "quoted string",
         RulesetKeyKind.Table => "inline table",
         RulesetKeyKind.Array => "array of inline tables",
+        RulesetKeyKind.Numbers => "array of whole numbers",
         _ => "unasserted",
     };
 }

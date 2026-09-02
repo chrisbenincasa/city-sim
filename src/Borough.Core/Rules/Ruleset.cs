@@ -2340,6 +2340,52 @@ public readonly record struct LotRuleset(int LotsPerSegment)
 }
 
 /// <summary>
+/// One <c>[[band]]</c> — a <b>density band</b>, which is <c>adr/0025</c>'s cap.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b><c>adr/0025</c>: <em>"The player sets a ceiling, never a floor."</em></b> A band is permission
+/// and never instruction — <em>"a high band on land nothing wants to build on grows nothing, and that
+/// is information rather than a bug"</em> — and it is <b>capacity rather than quality</b>: a
+/// high-density slum and a high-density tower are the same band.
+/// </para>
+/// <para>
+/// <b>It is a permission set over kinds, and that is the ADR's own mechanism rather than a second
+/// one.</b> <c>adr/0025</c> is explicit, in a pointer it added because the sentence had twice been
+/// recorded as absent: <em>"a band expresses itself as which kinds a Lot permits (<c>adr/0055</c>),
+/// and a kind declares its occupancy — so how many Occupants a Lot may carry is discharged through
+/// the permission set rather than by a second mechanism."</em> So this carries the same sixteen bits
+/// <see cref="Entities.LotTable.Zone"/> carries, meaning the same thing.
+/// </para>
+/// <para>
+/// 🔴 <b>THE ZONE AND THE BAND ARE INTERSECTED AND NEVER UNIONED</b>, which is the whole of *cap*.
+/// A Zone says what <em>uses</em> are allowed here; a band says at what <em>intensity</em>. Taking the
+/// union would let a band <em>grant</em> a permission the player never painted, which is a floor
+/// wearing a ceiling's name.
+/// </para>
+/// <para>
+/// <b>A band's identity is its position in the file, counted from 1</b>, which is the convention every
+/// <c>[[building]]</c> kind already follows. <b>Zero means <em>no band</em></b> — the state of every
+/// block in every world written before bands existed — and a world with no <c>[[band]]</c> at all
+/// behaves exactly as it did, which is what keeps this from being a change to twelve shipped
+/// Rulesets.
+/// </para>
+/// <para>
+/// ⚠ <b>DECLARATION ORDER IS INTENSITY ORDER, lowest first</b>, and that is authored rather than
+/// derived — nothing in the file states a density. It is what the generator reads to lay bands out,
+/// and reordering a file's <c>[[band]]</c> tables is therefore a change to the city rather than a
+/// tidy-up. ⚠ <b>Nothing checks it</b>, because <em>intensity</em> is not a quantity this type
+/// carries; a band admitting more occupants than the one below it is a property of the kinds it
+/// names, and the loader cannot see an ordering the author did not state.
+/// </para>
+/// </remarks>
+public readonly record struct BandDefinition
+{
+    /// <summary>Which kinds this band admits — <b>one bit per kind</b>, as a Zone is.</summary>
+    public ushort Admits { get; init; }
+}
+
+/// <summary>
 /// The <c>[trips]</c> table — <b>what a Ruleset says about travelling</b>: what a crossing costs
 /// (<c>adr/0074</c>) and where the Commute Budget's three rungs fall (<c>adr/0095</c>).
 /// </summary>
@@ -3106,6 +3152,42 @@ public sealed class Ruleset
     public LotRuleset Lots { get; init; } = LotRuleset.None;
 
     /// <summary>
+    /// The <c>[[band]]</c> tables in declaration order — <b>the density bands</b> (<c>adr/0025</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>An init property defaulting to empty</b>, on <see cref="Layers"/>' rule: a file with no
+    /// <c>[[band]]</c> is a complete Ruleset and behaves exactly as it did before bands existed. That
+    /// is what keeps <c>plans/0053</c> step 2 from being an edit to every shipped file.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Read a band through <see cref="Band"/> rather than indexing this</b>, because the index a
+    /// block carries is <b>one-based</b> — zero is <em>no band</em> and is the value every block in a
+    /// bandless world holds.
+    /// </para>
+    /// </remarks>
+    public BandDefinition[] Bands { get; init; } = [];
+
+    /// <summary>Whether this Ruleset declares any density band at all.</summary>
+    public bool HasBands => Bands.Length > 0;
+
+    /// <summary>
+    /// The band an index names, or one admitting <b>everything</b> where there is none.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>An absent band admits EVERYTHING and does not refuse.</b> A band is a <em>cap</em>, and
+    /// the intersection that applies it has to be the identity when no cap was painted — otherwise a
+    /// world with no <c>[[band]]</c> would have every Lot admitting nothing and would build no city at
+    /// all. ***The permissive answer is the correct one here precisely because the mechanism is
+    /// subtractive***, which is the opposite of how most absences in this Ruleset read.
+    /// </remarks>
+    /// <param name="index">A one-based band index; <c>0</c> means the block carries no band.</param>
+    public BandDefinition Band(int index) =>
+        index >= 1 && index <= Bands.Length
+            ? Bands[index - 1]
+            : new BandDefinition { Admits = ushort.MaxValue };
+
+    /// <summary>
     /// The <c>[trips]</c> table in force — the crossing cost and the Commute Budget (5b-bis task 3).
     /// </summary>
     /// <remarks>
@@ -3758,6 +3840,7 @@ public sealed class Ruleset
             Lattices = Lattices,
             Districts = Districts,
             Lots = Lots,
+            Bands = Bands,
             Trips = Trips,
             Jobs = Jobs,
             Households = Households,

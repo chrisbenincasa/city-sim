@@ -5,6 +5,25 @@
   "description": "GENERATED from RulesetLoader by `--schema` -- do not edit; RulesetSchemaTests fails when this file drifts from the loader. The loader is the authority and this is autocomplete: unknown keys stay permitted here because the loader refuses them at the parse site with a spelling suggestion. A key listed with no `type` was asked for by a reader that never asserted one. Keys the loader knows ONLY in order to refuse them by name are not here at all: they stay permitted so that writing one gets the sentence saying where the key went, and they are not offered, because a completion that always refuses the file is worse than no completion.",
   "type": "object",
   "properties": {
+    "band": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "admits": {
+            "description": "Which permission bits a Lot in this band may keep -- a list of bit indices, not a mask. It is a CAP applied by intersection against the Lot's own permission set, so a band can only ever take a permission away. Bands are ordered by declaration, least intense first, and a band nobody declared admits everything.",
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "name": {
+            "description": "What this density band is called.",
+            "type": "string"
+          }
+        }
+      }
+    },
     "building": {
       "type": "array",
       "items": {

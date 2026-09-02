@@ -39,4 +39,17 @@ public enum RulesetKeyKind
 
     /// <summary>An array of inline tables, as <c>inputs</c>, <c>bins</c> and <c>prices</c> are.</summary>
     Array = 4,
+
+    /// <summary>
+    /// An array of whole numbers, as <c>[[band]] admits</c> is — <b>the one shape in this Ruleset
+    /// that is a bare list rather than a list of tables</b>.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>It is distinct from <see cref="Array"/> because the two emit different schemas</b>, and
+    /// before it existed <c>admits</c> was documented as <em>an array of inline tables</em> by a
+    /// generator that had no other answer. A set of bit indices has no field to name, so wrapping
+    /// each entry in a table to reuse the existing kind would have been the file bending to the
+    /// loader.
+    /// </remarks>
+    Numbers = 5,
 }

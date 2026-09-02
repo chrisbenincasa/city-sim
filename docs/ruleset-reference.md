@@ -25,8 +25,9 @@ dotnet run --project src/Borough.Headless -- \
 
 ## The sections
 
-32 sections, 168 keys.
+33 sections, 170 keys.
 
+- [`[[band]]`](#band) — 2 keys
 - [`[[building]]`](#building) — 13 keys
 - [`[[building]] bins`](#building-bins) — 3 keys
 - [`[[business]]`](#business) — 6 keys
@@ -59,6 +60,20 @@ dotnet run --project src/Borough.Headless -- \
 - [`[traffic]`](#traffic) — 3 keys
 - [`[trips]`](#trips) — 4 keys
 - [`[water]`](#water) — 6 keys
+
+---
+
+## `[[band]]`
+
+*An array of tables — a file may declare this more than once.*
+
+**`admits`** · *array of whole numbers*
+
+Which permission bits a Lot in this band may keep -- a list of bit indices, not a mask. It is a CAP applied by intersection against the Lot's own permission set, so a band can only ever take a permission away. Bands are ordered by declaration, least intense first, and a band nobody declared admits everything.
+
+**`name`** · *quoted string*
+
+What this density band is called.
 
 ---
 

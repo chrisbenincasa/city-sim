@@ -155,6 +155,108 @@ public sealed class BlockTests
         Assert.Equal(before, world.Blocks.Rows.LiveCount);
     }
 
+    /// <summary><b>A world whose Ruleset declares no band carries band 0 everywhere.</b></summary>
+    /// <remarks>
+    /// <b>Which is the state of every shipped file but one</b>, and it is what keeps <c>plans/0053</c>
+    /// step 2 from being an edit to twelve Rulesets. Band 0 is <em>no band</em> and admits everything.
+    /// </remarks>
+    [Fact]
+    public void A_bandless_world_carries_no_band_on_any_block()
+    {
+        World world = Populated();
+
+        Assert.False(world.Rules.HasBands);
+
+        for (int slot = 0; slot < world.Blocks.Rows.SlotCount; slot++)
+        {
+            if (world.Blocks.Rows.IsLive(slot))
+            {
+                Assert.Equal(0, world.Blocks.Band[slot]);
+            }
+        }
+    }
+
+    /// <summary>
+    /// 🔴 <b>The generator paints bands as concentric rings, densest at the middle.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is the assertion that makes bands more than a parsed table.</b> It checks the two things
+    /// that would each be silently true of a broken layout: that every band declared actually appears
+    /// somewhere, and that <b>the middle is denser than the edge</b> — a generator painting one band on
+    /// everything would pass a count check and fail this.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It asserts an ORDERING and never a boundary.</b> Where a ring falls is derived from the
+    /// lattice's half-span and the band count, so a figure here would be a number nobody chose and
+    /// nothing could ratify — see <c>SyntheticCity.BandAt</c>.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_generator_paints_the_densest_band_in_the_middle()
+    {
+        World world = Populated("banded.toml", 4_000);
+
+        Assert.True(world.Rules.HasBands);
+
+        // Every live block, by band. The generator raster-scans and stops once it has land enough,
+        // so the window it painted is not the whole lattice -- which is why nothing below reads a
+        // lattice coordinate directly.
+        var byBand = new Dictionary<byte, List<(int Column, int Row)>>();
+
+        for (int slot = 0; slot < world.Blocks.Rows.SlotCount; slot++)
+        {
+            if (!world.Blocks.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            byte band = world.Blocks.Band[slot];
+
+            if (!byBand.TryGetValue(band, out List<(int Column, int Row)>? found))
+            {
+                found = [];
+                byBand[band] = found;
+            }
+
+            found.Add((world.Blocks.LatticeColumn[slot], world.Blocks.LatticeRow[slot]));
+        }
+
+        // Every declared band appears. A layout that collapsed to one band would still have carved
+        // blocks and still have recorded a value, and only this notices.
+        Assert.Equal(world.Rules.Bands.Length, byBand.Count);
+
+        // And nothing carries band 0, because this Ruleset declares bands and the generator paints
+        // one on every block it carves.
+        Assert.DoesNotContain((byte)0, byBand.Keys);
+
+        byte densest = byBand.Keys.Max();
+        List<(int Column, int Row)> middle = byBand[densest];
+
+        // The centre is taken from the densest band's own blocks rather than from the lattice, so
+        // this asserts the SHAPE and never reproduces the generator's arithmetic. A test that
+        // recomputed firstColumn and the half-span would pass against a copy of the bug.
+        int centreColumn = (int)middle.Average(block => block.Column);
+        int centreRow = (int)middle.Average(block => block.Row);
+
+        double Reach(byte band) => byBand[band].Average(block =>
+            Math.Max(
+                Math.Abs(block.Column - centreColumn),
+                Math.Abs(block.Row - centreRow)));
+
+        // The ORDERING, which is the whole claim: a sparser band sits further out than the band
+        // above it. ⚠ A distance is never asserted -- where a ring falls is derived from the
+        // lattice's half-span and the band count, so a figure here would be a number nobody chose
+        // and nothing could ratify. See SyntheticCity.BandAt.
+        for (byte band = densest; band > 1; band--)
+        {
+            Assert.True(
+                Reach((byte)(band - 1)) > Reach(band),
+                $"band {band - 1} sits at a mean reach of {Reach((byte)(band - 1)):F2} and band "
+                + $"{band} at {Reach(band):F2}, so the rings are not densest at the middle.");
+        }
+    }
+
     /// <summary>
     /// 🔴 <b><c>RebuildDerived</c> reproduces the index exactly</b>, which is what makes it derived.
     /// </summary>
