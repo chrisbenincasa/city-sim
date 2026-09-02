@@ -3358,6 +3358,39 @@ public sealed class World
     }
 
     /// <summary>
+    /// Records that a lattice square is subdivided by <paramref name="pattern"/>, creating its row if
+    /// it has none.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THE PATTERN IS SAVED AND NOT DERIVED, AND THAT IS THE SUBTLE PART OF
+    /// <c>plans/0053</c>.</b> ***It is a historical fact about conditions that are gone.*** A block
+    /// was carved back-to-back when land value here was high; it is not high now; <b>the pattern
+    /// cannot be recomputed</b>, and a load that tried would produce a different city from the one
+    /// that was saved. The parcels behind it <em>are</em> derived — a pure function of this byte and
+    /// the lattice — which is the split that makes the ground cost nothing to store.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Re-carving is a separate act and is not this.</b> Writing a pattern here changes what the
+    /// <em>next</em> carve of this block yields; it moves no Lot that already stands. <c>02 §2.2</c>
+    /// preserves occupied land, so a block re-patterned under standing Buildings keeps them and the
+    /// new shape arrives as the old one empties.
+    /// </para>
+    /// </remarks>
+    /// <returns>The Block's slot, or <see cref="Rows.NoSlot"/> if the square is off the lattice.</returns>
+    public int PatternBlock(int column, int row, Space.BlockPattern pattern)
+    {
+        int slot = EnsureBlock(column, row);
+
+        if (slot != Rows.NoSlot)
+        {
+            Blocks.Pattern[slot] = (byte)pattern;
+        }
+
+        return slot;
+    }
+
+    /// <summary>
     /// Which zone bits the density band over a Lot lets it keep — <c>adr/0025</c>'s cap, read.
     /// </summary>
     /// <remarks>

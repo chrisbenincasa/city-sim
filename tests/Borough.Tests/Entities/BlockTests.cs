@@ -258,6 +258,118 @@ public sealed class BlockTests
     }
 
     /// <summary>
+    /// 🔴 <b>The block's pattern decides what the subdivider carves on it.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>plans/0053</c> step 3, read through the subdivider rather than around it.</b>
+    /// <c>BlockPatternTests</c> asserts that the partition function partitions; this asserts that
+    /// anything calls it. ***A partition function nothing carves through is a geometry library.***
+    /// </para>
+    /// <para>
+    /// <b>The claim is that the two differ, not by how much.</b> How many Lots a face carries falls
+    /// out of <c>lots_per_segment</c> and the parity split, so a count here would be a fixture's
+    /// number pinned in a test — and the thing under test is that the pattern reached the carve at
+    /// all.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_blocks_pattern_changes_what_the_subdivider_carves()
+    {
+        World detached = Populated();
+        World terrace = Populated();
+
+        // A block that HAS Streets on its faces and that the generator has not carved yet -- it
+        // stops as soon as it has land enough for the population, so there is always one.
+        (int column, int row) = Uncarved(detached);
+
+        // Back-to-back turns its gable ends to the cross streets, so it carries no Address on them.
+        Assert.NotEqual(Rows.NoSlot, terrace.PatternBlock(column, row, BlockPattern.BackToBack));
+
+        int carvedDetached = LotSubdivider.SubdivideBlock(detached, column, row, LotTable.Housing);
+        int carvedTerrace = LotSubdivider.SubdivideBlock(terrace, column, row, LotTable.Housing);
+
+        Assert.True(carvedDetached > 0, "the detached block carved nothing, so this compares nothing.");
+        Assert.True(
+            carvedTerrace < carvedDetached,
+            $"back-to-back carved {carvedTerrace} Lots and detached carved {carvedDetached}, so "
+            + "the pattern did not reach the carve.");
+
+        // And what it did carve is on the two faces it keeps. A Lot's Side plus its position is what
+        // Frontage.BlockOf inverts, so this reads the face the same way the world does.
+        for (int lot = 0; lot < terrace.Lots.Rows.SlotCount; lot++)
+        {
+            if (!terrace.Lots.Rows.IsLive(lot)
+                || !Frontage.BlockOf(
+                    terrace.Roads.Streets, terrace.Lots.East[lot], terrace.Lots.North[lot],
+                    (StreetSide)terrace.Lots.Side[lot], out int at, out int on)
+                || at != column || on != row)
+            {
+                continue;
+            }
+
+            // A horizontal face sits exactly on a lattice row line; a vertical one does not.
+            Assert.Equal(
+                0,
+                terrace.Lots.North[lot].Raw % terrace.Roads.Streets.BlockTiles);
+        }
+    }
+
+    /// <summary>The first lattice square with Streets on it that nothing has claimed a face of.</summary>
+    private static (int Column, int Row) Uncarved(World world)
+    {
+        StreetGrid streets = world.Roads.Streets;
+
+        for (int row = 0; row < streets.Blocks; row++)
+        {
+            for (int column = 0; column < streets.Blocks; column++)
+            {
+                int south = streets.Horizontal(column, row);
+                int north = streets.Horizontal(column, row + 1);
+
+                if (south == Rows.NoSlot || north == Rows.NoSlot
+                    || world.Frontage.Claimed(south, StreetSide.Left)
+                    || world.Frontage.Claimed(north, StreetSide.Right))
+                {
+                    continue;
+                }
+
+                return (column, row);
+            }
+        }
+
+        throw new InvalidOperationException("every block with Streets on it is already carved.");
+    }
+
+    /// <summary>
+    /// <b>A block nobody patterned is Detached</b>, which is the shape the subdivider had before
+    /// patterns existed.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>This is why step 3 moved no State Hash.</b> Zero is <see cref="BlockPattern.Detached"/>
+    /// and zero is what a fresh row holds, so a world that never chooses a pattern carves exactly what
+    /// it carved yesterday — Lot for Lot and in the same order.
+    /// </remarks>
+    [Fact]
+    public void An_unpatterned_block_is_detached()
+    {
+        World world = Populated();
+
+        int live = 0;
+
+        for (int slot = 0; slot < world.Blocks.Rows.SlotCount; slot++)
+        {
+            if (world.Blocks.Rows.IsLive(slot))
+            {
+                Assert.Equal((byte)BlockPattern.Detached, world.Blocks.Pattern[slot]);
+                live++;
+            }
+        }
+
+        Assert.NotEqual(0, live);
+    }
+
+    /// <summary>
     /// 🔴 <b><c>RebuildDerived</c> reproduces the index exactly</b>, which is what makes it derived.
     /// </summary>
     /// <remarks>

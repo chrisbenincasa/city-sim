@@ -1979,6 +1979,18 @@ somebody rendered a block and looked at it.
 - [ ] ⚠ **Do not restate the interior as a defect.** It is a *residue*, and
       [`plans/0052`](0052-the-parcel.md) is where it acquires a lever.
 
+✅ **THE LEVER ARRIVED 2026-09-02 AND IT IS NOT WHERE THIS ENTRY SAID TO LOOK.**
+[`plans/0053`](0053-the-block.md) **step 3** ships three subdivision patterns, and **two of the three
+tile their block exactly**. So the interior is no longer a property of *a block*; it is a property of
+**`BlockPattern.Detached`**, where it is *correct* — back gardens do not meet, and there is scrub
+between them. ***The constant became a consequence of a choice, which is what this entry said was
+missing.***
+
+⚠ **The three checkboxes above still stand and are not discharged by that.** The sentences in
+`02 §2.2` and `adr/0078` are still written unconditionally, and they are now wrong in a **second** way:
+not merely *this is not a punishment* but *this does not happen on most blocks*. `LotSubdivider`'s own
+class comment has been amended at the symbol; the two documents have not.
+
 
 ### 🔴 `adr/0078` says **nothing reads land area**, and `Borough.Core` has read it since `footprint_tiles` shipped — Cause 2 with the write running the other way
 

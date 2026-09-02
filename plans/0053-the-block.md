@@ -51,7 +51,7 @@ before adding bands produces a uniform city made of a different shape.**
 |---|---|---|---|
 | **1** | **A Block is a row.** `BlockTable`, keyed by lattice position. Saved: zone, band, **and the pattern it was carved with**. `zone` writes the block rather than the Lots | yes | Somewhere for a per-block decision to live. Discharges `Relot`'s named limitation |
 | **2** | ✅ **Bands ship** — *2026-09-02*. `adr/0025`'s cap is a real value on the block **and the Zone Rule reads it**. ⚠ **The generator paints them** — see *The two calls* | no, and that is a finding | More than one of anything |
-| **3** | **A pattern is a partition function**, and the set is open. Three to start | yes | (a), (b) and (c) all become expressible, and none is privileged |
+| **3** | ✅ **A pattern is a partition function** — *2026-09-02*. Three to start, the set open | no, and that is a finding | (a), (b) and (c) all become expressible, and none is privileged |
 | **4** | **Carve and re-carve.** Selection at carve time from local conditions; frozen while occupied; re-carved when vacant | yes | ***The city stops being uniform*** |
 | **5** | **The parcel, then the footprint** — [`0052`](0052-the-parcel.md) in full | yes | Sealing, Fertility, Woodland, `adr/0025`'s Land axis, and F21 becoming impossible |
 
@@ -234,7 +234,7 @@ The column is the right answer the day something wants this in bulk. Nothing doe
 a clear on every `RebuildDerived` — [`0052`](0052-the-parcel.md)'s Q3 measured that pass as
 `O(capacity)` and dominated by its clears — to save ten operations on a sample of three.
 
-### Three things the corpus caught that the compiler did not
+### Three things the corpus caught that the compiler did not, in step 2
 
 Recording these because each is a guard earning its cost, and none of the three was on the checklist:
 
@@ -259,6 +259,85 @@ name.
 
 ---
 
+## What step 3 shipped
+
+**Shipped 2026-09-02.** `BlockPattern` — three of them — and `BlockPatterns.Carve`, which is the
+partition function. `LotSubdivider` no longer knows the shape of a block: it reads the block's saved
+pattern, walks the parcels that pattern yields, and turns each into an Address.
+
+⚠ **The four faces used to be four calls with their sides written out as constants**, which is a
+partition with one shape compiled into it. That is why this is a rewrite of the carve rather than a
+branch inside it.
+
+| Pattern | Faces | Depth | Exhaustive |
+|---|---|---|---|
+| **Detached** | all four | the strip | 🔴 no, and the leftover is the point |
+| **Back-to-back** | the winning pair only | half the block | ✅ yes |
+| **Perimeter** | all four | strip on the winner, half-block on the loser | ✅ yes |
+
+**The State Hash did not move.** `Detached` is `0`, `0` is what a fresh row holds, and `Detached`
+reproduces the old carve Lot for Lot and in the same order — face order is `BlockFace`'s order, which
+is the order the four hard-coded calls were in.
+
+### ✅ Q1 answered, and the answer was already in the code wearing another name
+
+**The perimeter pattern is exhaustive for any winner-depth**, which is what made the depth a free
+number and Q1 a real question. ***It is not free: `LotSubdivider.CornerTiles` was already computing
+it.***
+
+That method reserved ground at each end of the north–south faces so the corner belongs to one face,
+and **its own doc comment said the reservation was standing in for a depth the class had none of**:
+
+> ⚠ **THE RESERVATION IS ONE LOT'S FRONTAGE AND IT IS NOT A DEPTH.** A depth is what the corner is
+> really made of, and this class has none to offer.
+
+It *is* the depth. A corner reservation and a parcel's depth are one quantity seen from two
+directions, so the formula moved to `BlockPatterns.StripTiles` and `CornerTiles` delegates —
+**written apart they would have drifted.**
+
+Both its terms are derived. `block_tiles ÷ lots_per_segment` is one Lot's frontage, so a strip that
+deep makes a square-ish plot — **a plot is about as deep as it is wide**, which is the only shape
+claim in the file. `block_tiles ÷ 4` caps it so the middle band never closes.
+
+⚠ **`adr/0078` is untouched.** What it refused is an **authored** depth key, and there still is not
+one: this is a consequence of two keys that already existed.
+
+### 🔴 The dead block interior stopped being a property of every block
+
+`plans/0012` had already filed the unconditional version as **Cause 4** — ***a response identical
+whatever the player does is a constant, not a punishment*** — and said the lever would arrive in
+[`0052`](0052-the-parcel.md). **It arrived here instead.** Two of the three patterns tile their block
+exactly; the interior is now a property of `Detached`, where it is *correct*.
+
+⚠ **At the shipped 32 Tiles and 5 Lots the strip is 6 deep, so a detached block is 39% scrub** — 400
+Tiles of 1,024. That is large for a suburb. ***It is a consequence of the shipped block size rather
+than a number anybody chose***, so the test reports it and asserts only the shape: the leftover is the
+interior square and nothing else.
+
+The entry in `0012` is amended rather than struck — the sentences in `02 §2.2` and `adr/0078` are now
+wrong in a **second** way, and neither document has been touched.
+
+### ⚠ An exhaustive pattern is not exhaustive when a face carries no Address
+
+**Found by the range sweep, and it is Q5's first hard evidence.** A Segment's Lots alternate sides by
+parity, so at `lots_per_segment = 1` one parity takes the only Lot and **the opposite side of every
+face gets none**. An exhaustive pattern then leaves that face's ground unclaimed and its claim is
+false on that block.
+
+***A pattern's exhaustiveness is conditional on a Ruleset it does not own.*** The test asserts the
+failure rather than skipping it, so the day the limit is fixed the test says so by name.
+
+⚠ **Everything else holds across the range**: `block_tiles` 4–64 against `lots_per_segment` 2–8, all
+three patterns, no Tile claimed twice and nothing left over by a pattern that claims to tile.
+
+### What is still notional
+
+**A parcel's ground is computed and dropped.** Nothing reads it — the footprint that will is step 5 —
+and it is computed at the carve anyway because the Address and the ground behind it have to come out
+of one function or they can disagree.
+
+---
+
 ## What this does to [`0052`](0052-the-parcel.md)
 
 ✅ **Nothing in it is withdrawn.** G1–G8 stand, the Sealing measurements stand, Q3's answer stands, and
@@ -278,11 +357,11 @@ question with one answer.
 
 | # | Question | Type |
 |---|---|---|
-| **Q1** | **What are the perimeter pattern's two depths?** Exhaustive for any winner-depth, so the number is free and something must choose it. ⚠ **Equal parcel area is a candidate derivation and it is circular** — the Lot counts depend on the depths through the corner filter | *arguable* |
+| **Q1** | ✅ **ANSWERED, 2026-09-02, and the answer was already in the code under another name.** See *What step 3 shipped* | *arguable* |
 | **Q2** | **What does a pattern read at carve time, and in what order?** Band and zone are certain; land value and Building density are available and would supply the continuous variation. **More inputs is not better** — each one is a coupling | *arguable* |
 | **Q3** | 🔴 **What stops carve/re-carve oscillating?** `adr/0006`. Hysteresis, or a one-directional trigger, or a bound on re-carves per block | *arguable*, and it gates step 4 |
 | **Q4** | **May land value condemn a healthy Building?** *Undesigned* under `adr/0070`. It is the difference between this and SC4's redevelopment, and it is not a constraint on this plan | *arguable* |
-| **Q5** | **Does `lots_per_segment` survive as a world number?** [`0052`](0052-the-parcel.md) Q4 asked this of stage 2; **it is really a per-pattern question** and belongs here | *arguable* |
+| **Q5** | 🟡 **Does `lots_per_segment` survive as a world number?** [`0052`](0052-the-parcel.md) Q4 asked this of stage 2; **it is really a per-pattern question** and belongs here. ⚠ **Step 3 produced evidence**: at `lots_per_segment = 1` an exhaustive pattern is not exhaustive | *arguable*, with evidence |
 | **Q6** | ✅ **ANSWERED, 2026-09-02, and the answer is an existing idiom.** See below | *measurable* |
 
 ### Q6 — what a `BlockTable` costs, and why it is not a new pattern

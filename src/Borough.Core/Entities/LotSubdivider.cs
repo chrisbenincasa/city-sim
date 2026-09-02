@@ -24,11 +24,18 @@ namespace Borough.Core.Entities;
 /// undevelopable"</i>, and the one the tests are written against.
 /// </para>
 /// <para>
-/// <b>Lots hang on Segments rather than filling a block, so there is no depth parameter</b>
-/// (<c>adr/0078</c>). Everything not on a block face is interior and stays unlotted <em>structurally</em>
-/// — not because a depth ran out — so a large block has a proportionally larger dead interior with no
-/// number governing it. That is <c>02 §2.2</c>'s <i>"punish the player <b>mechanically</b> rather than
-/// through a penalty number"</i> taken at its word.
+/// 🔴 <b>THE DEAD INTERIOR IS NOW A PROPERTY OF ONE PATTERN AND NOT OF EVERY BLOCK.</b> This
+/// paragraph read <em>"a large block has a proportionally larger dead interior with no number
+/// governing it"</em>, unconditionally, and <c>plans/0012</c> had already filed that as Cause 4: ***a
+/// response identical whatever the player does is a constant, not a punishment.*** <c>plans/0053</c>
+/// step 3 gives it a lever. <see cref="BlockPattern.Detached"/> keeps the leftover ground, where it is
+/// <em>correct</em> — back gardens do not meet — and the other two tile their block exactly.
+/// </para>
+/// <para>
+/// <b><c>adr/0078</c> is untouched and Lots still hang on Segments.</b> What it refused is an
+/// <b>authored</b> depth key, and there still is not one: a parcel's depth is derived from
+/// <c>block_tiles</c> and <c>lots_per_segment</c> by <see cref="BlockPatterns.StripTiles"/>, which are
+/// two keys that were already there.
 /// </para>
 /// <para>
 /// <b>A Segment's Lots are split between the two blocks that share it by parity</b>, which is
@@ -81,13 +88,13 @@ public static class LotSubdivider
     /// patch of ground cannot carry two Buildings.
     /// </para>
     /// <para>
-    /// ⚠ <b>THE RESERVATION IS ONE LOT'S FRONTAGE AND IT IS NOT A DEPTH.</b> A depth is what the
-    /// corner is really made of, and this class has none to offer — <c>adr/0078</c> refused the key
-    /// and the refusal stands. <b>A Lot's width is the only length the city knows about a Lot</b>
-    /// (<c>CONTEXT.md</c> → Address: five Buildings share a Segment), so that is what is spent.
-    /// ***Where it disagrees with the shell's drawn depth, the shell is the one inventing*** — at the
-    /// shipped 32 Tiles and 5 Lots this reserves 6 Tiles against a drawn 9, and the three surviving
-    /// Lots clear the shell's own guard with room to spare.
+    /// 🔴 ⚠ <b>THIS SAID THE RESERVATION WAS NOT A DEPTH, AND <c>plans/0053</c> STEP 3 FOUND THAT IT
+    /// IS.</b> The paragraph read <em>"a depth is what the corner is really made of, and this class has
+    /// none to offer"</em> — and the quantity it was standing in for was the same quantity all along.
+    /// The formula now lives in <see cref="BlockPatterns.StripTiles"/> and this delegates, because a
+    /// corner reservation and a parcel's depth written apart are two things that drift.
+    /// <c>adr/0078</c> is untouched: what it refused is an <b>authored</b> depth, and this is a
+    /// consequence of two keys that already exist.
     /// </para>
     /// <para>
     /// ⚠ <b>The quarter-block cap is what keeps a coarse Ruleset from yielding its whole face.</b> At
@@ -95,18 +102,8 @@ public static class LotSubdivider
     /// north–south faces would carry nothing at all.
     /// </para>
     /// </remarks>
-    internal static int CornerTiles(int blockTiles, int lotsPerSegment)
-    {
-        if (lotsPerSegment <= 0)
-        {
-            return 0;
-        }
-
-        int frontage = Arithmetic.IntegerMath.FloorDiv(blockTiles, lotsPerSegment);
-        int quarter = Arithmetic.IntegerMath.FloorDiv(blockTiles, 4);
-
-        return frontage < quarter ? frontage : quarter;
-    }
+    internal static int CornerTiles(int blockTiles, int lotsPerSegment) =>
+        BlockPatterns.StripTiles(blockTiles, lotsPerSegment);
 
     /// <summary>
     /// Subdivides one block of the lattice against its four faces.
@@ -136,59 +133,88 @@ public static class LotSubdivider
         // recording it here is that the intent survives that -- so a Street laid later finds land that
         // knows what it was painted for. Zoning land the network cannot reach is no longer a command
         // the world forgets.
-        world.ZoneBlock(column, row, zone);
+        int blockSlot = world.ZoneBlock(column, row, zone);
 
-        int created = 0;
+        // plans/0053 step 3. The block's own pattern, and Detached where there is no row to read one
+        // off -- which is the shape the subdivider had hard-coded before patterns existed, so a world
+        // that never chooses one carves exactly what it carved yesterday.
+        BlockPattern pattern = blockSlot == Rows.NoSlot
+            ? BlockPattern.Detached
+            : (BlockPattern)world.Blocks.Pattern[blockSlot];
 
-        created += Face(world, streets.Horizontal(column, row), column, row, StreetAxis.East, StreetSide.Left, zone);
-        created += Face(world, streets.Horizontal(column, row + 1), column, row + 1, StreetAxis.East, StreetSide.Right, zone);
-        created += Face(world, streets.Vertical(column, row), column, row, StreetAxis.North, StreetSide.Right, zone);
-        created += Face(world, streets.Vertical(column + 1, row), column + 1, row, StreetAxis.North, StreetSide.Left, zone);
-
-        return created;
+        return Carve(world, pattern, column, row, zone);
     }
 
     /// <summary>
-    /// Lays one block face's Lots — the Lots on <paramref name="side"/> of one Segment.
+    /// Lays every Lot one pattern yields on one block, skipping face-sides that already carry Lots.
     /// </summary>
     /// <remarks>
-    /// <b>A claimed side is skipped rather than re-laid</b>, which is what makes re-subdivision
-    /// preserve what already stands. The claim is per <c>(Segment, side)</c> and is derived from the
-    /// Lots themselves, so a side whose Lots were deleted is free again with nothing having to
-    /// remember to release it.
+    /// <para>
+    /// <b><c>plans/0053</c> step 3, and it is a rewrite rather than a branch.</b> The four faces used
+    /// to be four calls with their sides written out as constants, which is a partition with one shape
+    /// compiled into it. <see cref="BlockPatterns.Carve"/> is the partition now; this walks what it
+    /// produced and turns each parcel into an Address.
+    /// </para>
+    /// <para>
+    /// <b>The per-<c>(Segment, side)</c> claim is unchanged and is still what makes re-subdivision
+    /// preserve what stands.</b> It is tested once per face, before that face's first parcel, because
+    /// a claim is a property of the face and not of a Lot.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A parcel's ground is computed and then dropped.</b> Nothing reads it yet — the footprint
+    /// that will is step 5 — and it is computed here anyway because the Address and the ground behind
+    /// it have to come out of one function or they can disagree.
+    /// </para>
     /// </remarks>
-    private static int Face(
-        World world, int segment, int column, int row, StreetAxis axis, StreetSide side, ushort zone)
+    private static int Carve(World world, BlockPattern pattern, int column, int row, ushort zone)
     {
-        if (segment == Rows.NoSlot || world.Frontage.Claimed(segment, side))
+        StreetGrid streets = world.Roads.Streets;
+
+        int blockTiles = streets.BlockTiles;
+        int perSegment = world.Rules.Lots.LotsPerSegment;
+        int ceiling = BlockPatterns.Ceiling(perSegment);
+
+        if (ceiling <= 0)
         {
             return 0;
         }
 
-        int block = world.Roads.Streets.BlockTiles;
-        int perSegment = world.Rules.Lots.LotsPerSegment;
-        int corner = CornerTiles(block, perSegment);
+        // TripEngine's idiom, and for its reason: lots_per_segment is Ruleset data bounded only by
+        // block_tiles, so a coarse world must not put an unbounded frame on the stack.
+        Span<Parcel> parcels = ceiling <= 64 ? stackalloc Parcel[64] : new Parcel[ceiling];
+
+        int count = BlockPatterns.Carve(pattern, column, row, blockTiles, perSegment, parcels);
         int created = 0;
 
-        for (int index = 0; index < perSegment; index++)
+        // The face being laid, and whether this carve has put anything on it. Carve returns parcels
+        // in face order, so a change of face is the boundary at which the previous one is closed.
+        var face = (BlockFace)byte.MaxValue;
+        StreetSide side = StreetSide.Left;
+        int segment = Rows.NoSlot;
+        bool skipping = true;
+        int onFace = 0;
+
+        for (int i = 0; i < count; i++)
         {
-            if (Frontage.SideOf(index) != side)
+            Parcel parcel = parcels[i];
+
+            if (parcel.Face != face)
+            {
+                Close(world, segment, side, onFace);
+
+                face = parcel.Face;
+                side = parcel.Side;
+                segment = SegmentOf(streets, face, column, row);
+                skipping = segment == Rows.NoSlot || world.Frontage.Claimed(segment, side);
+                onFace = 0;
+            }
+
+            if (skipping)
             {
                 continue;
             }
 
-            Tiles offset = Frontage.OffsetOf(index, perSegment, block);
-
-            // THE CORNER BELONGS TO ONE FACE, and the north-south pair is the one that yields.
-            if (axis == StreetAxis.North
-                && (offset.Raw < corner || offset.Raw > block - corner))
-            {
-                continue;
-            }
-
-            (Tiles east, Tiles north) = axis == StreetAxis.East
-                ? (new Tiles((column * block) + offset.Raw), new Tiles(row * block))
-                : (new Tiles(column * block), new Tiles((row * block) + offset.Raw));
+            (Tiles east, Tiles north) = parcel.Address(column, row, blockTiles);
 
             Handle<Lot> lot = world.Lots.Create(east, north, zone, side);
             int slot = world.Lots.Rows.Resolve(lot);
@@ -196,22 +222,40 @@ public static class LotSubdivider
             // The derived frontage, written at the site that knows the Segment. World.RebuildDerived
             // recomputes exactly this from the saved position, and a test holds the two to agreement.
             world.Lots.FrontageSlot[slot] = segment + 1;
-            world.Lots.FrontageOffset[slot] = offset;
+            world.Lots.FrontageOffset[slot] = parcel.Offset;
 
             created++;
+            onFace++;
         }
 
-        if (created > 0)
-        {
-            world.Frontage.Claim(segment, side);
-
-            // Once per run rather than once per Lot: the zoned draw space is rebuilt whole, so what
-            // a writer owes it is a flag and never a maintenance step.
-            world.LotsAdmitting.Invalidate();
-        }
+        Close(world, segment, side, onFace);
 
         return created;
     }
+
+    /// <summary>Records that a face's side now carries Lots, if this carve put any there.</summary>
+    private static void Close(World world, int segment, StreetSide side, int onFace)
+    {
+        if (onFace <= 0 || segment == Rows.NoSlot)
+        {
+            return;
+        }
+
+        world.Frontage.Claim(segment, side);
+
+        // Once per face rather than once per Lot: the zoned draw space is rebuilt whole, so what a
+        // writer owes it is a flag and never a maintenance step.
+        world.LotsAdmitting.Invalidate();
+    }
+
+    /// <summary>Which Segment a block's face is, or <see cref="Rows.NoSlot"/> if there is none.</summary>
+    private static int SegmentOf(StreetGrid streets, BlockFace face, int column, int row) => face switch
+    {
+        BlockFace.South => streets.Horizontal(column, row),
+        BlockFace.North => streets.Horizontal(column, row + 1),
+        BlockFace.West => streets.Vertical(column, row),
+        _ => streets.Vertical(column + 1, row),
+    };
 
     /// <summary>
     /// Re-parcels every block the Street network can now reach, preserving everything that stands.
