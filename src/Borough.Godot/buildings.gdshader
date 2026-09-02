@@ -27,6 +27,13 @@ const float PLINTH = 0.9;
 const float NEAR_FADE = 500.0;
 const float FAR_FADE = 1100.0;
 
+// How dark it is outside: 0 in full day, 1 in the middle of the night. Set from the clock by
+// Main.Daylight, which is the same place the sun's angle comes from.
+//
+// 🔴 IT IS THE ONLY THING IN THIS FILE THAT COMES FROM OUTSIDE THE INSTANCE, and it has to be:
+// every other input here is a property of the Building, and the hour is a property of the world.
+uniform float night = 0.0;
+
 varying vec3 v_local;
 varying vec3 v_size;
 varying vec3 v_face;
@@ -164,4 +171,26 @@ void fragment() {
     // a shell***, which is the physical fact the material was not being told.
     ROUGHNESS = mix(0.9, mix(0.28, 0.85, max(shut, ruin)), glazed);
     SPECULAR = mix(0.5, 0.68, glazed * (1.0 - shut) * (1.0 - ruin));
+
+    // 🔴 THE LIT WINDOW IS THE OCCUPANCY SAYING SOMETHING A DAYTIME PICTURE CANNOT. By day a shut
+    // opening and an open one differ by a shade of grey nobody reads at street distance; at night
+    // the same number is the difference between a black wall and a lamp. ***So this is the same
+    // fact drawn twice, and the second drawing is the legible one*** -- a half-empty quarter reads
+    // as half-empty from a kilometre up, which no overlay has ever managed.
+    //
+    // ⚠ NOT EVERY OCCUPIED WINDOW. `shut` already spends the occupancy share; a second, independent
+    // draw decides which of what is left has a light on at this hour, because a household with the
+    // lights off in one room is not a household that has moved out. ⚠ AND A RUIN LIGHTS NOTHING,
+    // for the reason it shutters nothing.
+    float lamp = draw(vec3(bayAt, floorAt, 13.0 + (v_custom.a * 57.0)));
+    float burning = step(lamp, 0.62) * (1.0 - shut) * (1.0 - ruin) * upright;
+
+    // ⚠ THE SECOND TERM IS WHAT SURVIVES THE FADE, and without it a city goes BLACK from exactly
+    // the distance at which its lights would be the whole picture: `glazed` carries the far fade,
+    // so a window past FAR_FADE contributes nothing. This is the same warmth spread over the wall
+    // instead of the pane, keyed on occupancy alone -- the per-window hash is noise at that range,
+    // and noise that flickers is worse than no lights at all.
+    float haze = (1.0 - far) * upright * v_custom.b * (1.0 - ruin) * 0.16;
+
+    EMISSION = vec3(1.0, 0.74, 0.40) * night * ((glazed * burning * 2.6) + haze);
 }

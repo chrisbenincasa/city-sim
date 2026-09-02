@@ -50,6 +50,23 @@ public partial class Main : Node3D
     /// </remarks>
     private const float PitchRadians = 0.61547971f;
 
+    /// <summary>The lowest the eye may be tipped, in radians — <b>4°.</b></summary>
+    /// <remarks>
+    /// ⚠ <b>Not zero, and the reason is the ground rather than taste.</b> The terrain is one
+    /// <c>PlaneMesh</c> 65.5 km across at <c>y = 0.01</c>; at a horizontal eye it is edge-on, the
+    /// far half of the map converges into a single row of pixels, and what fills the frame is the
+    /// sky's ground colour. A few degrees is enough to keep a surface under the city.
+    /// </remarks>
+    private const float LowestRadians = 0.0698f;
+
+    /// <summary>The highest — <b>85°, and deliberately not 90.</b></summary>
+    /// <remarks>
+    /// ⚠ <b>Straight down would make <see cref="Orbit"/>'s up-vector degenerate</b>, and a
+    /// <c>LookAt</c> whose forward is parallel to its up produces a basis with no defined yaw — so
+    /// the city would spin on the last frame before the top. The five degrees are the guard.
+    /// </remarks>
+    private const float HighestRadians = 1.4835f;
+
     /// <summary>A quarter turn of the compass, which is what one press of the rotate key is.</summary>
     private const float YawStepRadians = Mathf.Pi * 0.25f;
 
@@ -366,6 +383,15 @@ public partial class Main : Node3D
 
     private MultiMeshInstance3D _cells = null!;
 
+    /// <summary>The sun, kept because it follows the clock (<c>plans/0051</c> row 2).</summary>
+    private DirectionalLight3D _light = null!;
+
+    /// <summary>The sky, kept for the same reason: its colours are the hour's.</summary>
+    private ProceduralSkyMaterial _above = null!;
+
+    /// <summary>The environment, kept because ambient light is the hour's too.</summary>
+    private Godot.Environment _air = null!;
+
     /// <summary>The ground the city actually stands on, in metres, from the last framing.</summary>
     private Rect2 _laid;
 
@@ -554,6 +580,27 @@ public partial class Main : Node3D
 
     /// <summary>Which corner the city is seen from, clockwise from due south in radians.</summary>
     private float _yaw = YawStepRadians;
+
+    /// <summary>
+    /// How far the eye is tipped above the ground. <b>Opens at the isometric angle and moves.</b>
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>It was a <c>const</c> until <c>plans/0051</c> row 3.</b> Every picture this shell had
+    /// ever produced was taken from the same 35.26°, which is a drawing convention rather than a
+    /// camera — and a city seen only from one angle is a diagram of itself. ***What a low eye buys
+    /// is the SKYLINE***: a roof line against the sky is the one thing a plan view cannot show, and
+    /// it is what a person photographs.
+    /// </remarks>
+    private float _pitch = PitchRadians;
+
+    /// <summary>The lens, kept because its focus plane rides the orbit's standoff.</summary>
+    private CameraAttributesPractical _lens = null!;
+
+    /// <summary>Whether the lens is on. <b>Read by <see cref="Orbit"/> and nothing else.</b></summary>
+    private bool _photographing;
+
+    /// <summary>The Buildings' shader, kept because the hour is a uniform on it.</summary>
+    private ShaderMaterial? _paint;
 
     public override void _Ready()
     {
@@ -815,6 +862,7 @@ public partial class Main : Node3D
 
         Edge(delta);
 
+        Daylight();
         Draw(_alpha);
         Drive();
         Answer();
@@ -976,6 +1024,22 @@ public partial class Main : Node3D
 
             case DriveVerb.Hold:
                 Hold(command.Path!, command.Amount);
+
+                break;
+
+            case DriveVerb.Lens:
+                Lens(command.Amount != 0);
+
+                break;
+
+            case DriveVerb.Tilt:
+                // Degrees in, radians held. The clamp lives here rather than in the grammar because
+                // the bounds are the SHELL's -- they come from the ground mesh and from LookAt's
+                // up-vector, neither of which Borough.Formats knows anything about.
+                _pitch = Mathf.Clamp(
+                    Mathf.DegToRad(command.Amount), LowestRadians, HighestRadians);
+
+                Orbit();
 
                 break;
 
@@ -1549,6 +1613,14 @@ public partial class Main : Node3D
         {
             Key.Q => Made(DriveVerb.Turn, -1),
             Key.E => Made(DriveVerb.Turn, 1),
+
+            // ⚠ THE KEYBOARD STEPS AND THE VERB IS STILL ABSOLUTE, which is this file's rule for
+            // every toggle: read what is held, work out where it goes, and ask for that. So a
+            // recorded session replays the ANGLE and not the keypress, and a step size changed
+            // later cannot re-aim somebody's old script.
+            Key.R => Made(DriveVerb.Tilt, Tipped(5)),
+            Key.F => Made(DriveVerb.Tilt, Tipped(-5)),
+            Key.L => Made(DriveVerb.Lens, _photographing ? 0 : 1),
             Key.G => Made(DriveVerb.Roads, _roads.Visible ? 0 : 1),
             Key.C => Made(DriveVerb.Cells, _cells.Visible ? 0 : 1),
             Key.Equal or Key.KpAdd => Made(DriveVerb.Zoom, 4),
@@ -1841,7 +1913,7 @@ public partial class Main : Node3D
             + $"mode {Holding()}   "
             + "[ ] speed, space pause, w write log, g roads, c cells, tab tune\n"
             + "click acts   right-drag or two-finger scroll pans   edge of screen pans   "
-            + "pinch or -/= zooms   q/e turns"
+            + "pinch or -/= zooms   q/e turns   r/f tilts   l lens"
             + (_refused.Length > 0 ? $"\nREFUSED — {_refused}" : string.Empty);
 
         _hover.Text = Pointing();
@@ -3395,11 +3467,18 @@ public partial class Main : Node3D
                 + $"sealing {cells.Sealing[layer]:N0}");
         }
 
-        int district = _world.DistrictsInCells.Slot(east, north);
+        // 🔴 THROUGH `Of` AND NOT THROUGH `Slot`, AND THE TWO RETURN SLOTS IN DIFFERENT TABLES.
+        // DistrictResidency.Slot answers with a row of the MEMBERSHIP table -- one row per Cell in
+        // a District, of which there are thousands -- and this line was handing it to the DISTRICT
+        // table, of which there are two. It threw IndexOutOfRangeException on the first frame the
+        // cursor rested on a District Cell, once a frame, for ever. ⚠ NO WORLD COULD REACH IT until
+        // rulesets/pictured.toml: a Ruleset must state [districts] for the index to hold anything,
+        // three shipped files do, and nobody had pointed the shell at one of them.
+        Handle<District> district = _world.DistrictsInCells.Of(_world.DistrictCells, east, north);
 
-        if (district != DistrictResidency.NotResident)
+        if (_world.Districts.Rows.TryResolve(district, out int seat))
         {
-            said.Add($"District {_world.Districts.Rows.IdAt(district):N0}");
+            said.Add($"District {_world.Districts.Rows.IdAt(seat):N0}");
         }
     }
 
@@ -4101,7 +4180,11 @@ public partial class Main : Node3D
         }
         else
         {
-            material = new ShaderMaterial { Shader = GD.Load<Shader>(painted) };
+            // Kept because the hour is a uniform on it. It is one layer -- the Buildings -- and a
+            // second painted layer would need a list rather than a field; there is no second one,
+            // and inventing the list before there is would be a guess about what it holds.
+            _paint = new ShaderMaterial { Shader = GD.Load<Shader>(painted) };
+            material = _paint;
         }
 
         mesh.Material = material;
@@ -4156,7 +4239,7 @@ public partial class Main : Node3D
     /// </remarks>
     private void Sun()
     {
-        var light = new DirectionalLight3D
+        _light = new DirectionalLight3D
         {
             LightEnergy = 1.25f,
             LightColor = new Color(1.0f, 0.96f, 0.88f),
@@ -4175,15 +4258,19 @@ public partial class Main : Node3D
             ShadowBlur = 1.1f,
         };
 
-        // ⚠ NOT NOON. A sun overhead lights every roof identically and leaves no wall in shadow,
-        // which is the one lighting angle at which a pitched roof and a flat one look the same.
-        light.RotateX(-0.78f);
-        light.RotateY(-0.62f);
-        light.SetParam(Light3D.Param.ShadowNormalBias, 1.6f);
-        light.SetParam(Light3D.Param.ShadowBias, 0.06f);
-        AddChild(light);
+        // ⚠ NOT NOON, AND SINCE plans/0051 ROW 2 NOT A CONSTANT EITHER. The angle set here is the
+        // one the first frame is drawn at before Daylight has run; every frame after it comes from
+        // the clock. A sun overhead lights every roof identically and leaves no wall in shadow,
+        // which is the one lighting angle at which a pitched roof and a flat one look the same --
+        // so the arc below is capped well short of the zenith rather than being astronomically
+        // right.
+        _light.RotateX(-0.78f);
+        _light.RotateY(-0.62f);
+        _light.SetParam(Light3D.Param.ShadowNormalBias, 1.6f);
+        _light.SetParam(Light3D.Param.ShadowBias, 0.06f);
+        AddChild(_light);
 
-        var above = new ProceduralSkyMaterial
+        _above = new ProceduralSkyMaterial
         {
             SkyTopColor = new Color(0.28f, 0.42f, 0.66f),
             SkyHorizonColor = new Color(0.63f, 0.70f, 0.78f),
@@ -4198,12 +4285,10 @@ public partial class Main : Node3D
             SunCurve = 0.2f,
         };
 
-        var sky = new WorldEnvironment
+        _air = new Godot.Environment
         {
-            Environment = new Godot.Environment
-            {
                 BackgroundMode = Godot.Environment.BGMode.Sky,
-                Sky = new Sky { SkyMaterial = above },
+                Sky = new Sky { SkyMaterial = _above },
                 AmbientLightSource = Godot.Environment.AmbientSource.Sky,
                 AmbientLightSkyContribution = 1f,
                 AmbientLightEnergy = 1.05f,
@@ -4221,10 +4306,125 @@ public partial class Main : Node3D
                 // loses exactly the shading the openings are drawn against.
                 TonemapMode = Godot.Environment.ToneMapper.Filmic,
                 TonemapWhite = 2.2f,
-            },
         };
 
-        AddChild(sky);
+        AddChild(new WorldEnvironment { Environment = _air });
+        Daylight();
+    }
+
+    /// <summary>How high the sun climbs at noon, in radians — <b>54°, and short of the zenith.</b></summary>
+    /// <remarks>
+    /// ⚠ <b>It is a look and not a latitude.</b> A sun overhead lights every roof identically and
+    /// leaves no wall in shadow, which is the one angle at which a pitched roof and a flat one are
+    /// indistinguishable — and the pitch is what <c>plans/0049</c> spent a session varying. So the
+    /// arc is capped where walls still catch light, and nowhere in this file is a claim about where
+    /// on Earth the city is.
+    /// </remarks>
+    private const float NoonRadians = 0.95f;
+
+    /// <summary>Where the sun stands at this Tick, as a unit vector from the city towards it.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The whole of the model.</b> <c>t</c> is the hour angle, zero at noon, and the sun rides a
+    /// circle through due east and due west tilted so that its high point is due south at
+    /// <see cref="NoonRadians"/>. At <c>t = ±π/2</c> it is on the horizon at the two ends of that
+    /// circle; at <c>t = π</c> it is as far below the horizon as it was above it. ⚠ <b>The vector
+    /// is a unit vector by construction</b> — <c>sin²t + cos²t(sin²m + cos²m)</c> — so nothing here
+    /// needs normalising and a rounding error cannot make the day longer.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>+Z is SOUTH in this shell and not north.</b> Every position is built as
+    /// <c>(east, height, −north)</c>, so the sun's noon component is <c>+Z</c> and getting that sign
+    /// wrong puts the light behind the camera all day, which reads as an overcast world rather than
+    /// as a bug.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>Tick 0 is MIDNIGHT</b> (<c>adr/0101</c>), so a run opened with no <c>--start-at</c>
+    /// opens in the dark. That is the clock the city keeps and not something to correct here.
+    /// </para>
+    /// </remarks>
+    private static Vector3 Sunward(ulong tick)
+    {
+        float t = (((tick % (ulong)Ticks.PerDay) / (float)Ticks.PerDay) - 0.5f) * Mathf.Tau;
+
+        return new Vector3(
+            -Mathf.Sin(t),
+            Mathf.Sin(NoonRadians) * Mathf.Cos(t),
+            Mathf.Cos(NoonRadians) * Mathf.Cos(t));
+    }
+
+    /// <summary>Points the sun, colours the sky and sets the ambient — all from the clock.</summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THE LIGHT BECOMES THE MOON BELOW THE HORIZON, AND IT IS THE SAME LIGHT.</b> One
+    /// <see cref="DirectionalLight3D"/> is aimed from the sun while the sun is up and from the sun's
+    /// antipode while it is down — which is a full moon every single night, and is a fib. It is told
+    /// here rather than hidden because the alternative is a city nobody can see for half of a
+    /// <b>two-minute</b> Day, and because ***a second light would have to be dimmed to nothing at
+    /// dawn anyway***, which is this one line spent twice.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Both ramps start at exactly zero height, which is what stops the swap from popping.</b>
+    /// The sun's energy reaches zero as it touches the horizon and the moon's leaves zero from the
+    /// same instant, so the 180° flip happens while the light contributes nothing. An earlier
+    /// spelling ramped the sun in from below the horizon and the swap was a visible lurch at every
+    /// dawn and every dusk. ***What carries the twilight is the AMBIENT and the sky, not the
+    /// directional light*** — which is also what happens outdoors.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The dusk tint is keyed on <c>|height|</c> and therefore paints dawn as well.</b> They are
+    /// the same geometry and the shell has no reason to tell them apart.
+    /// </para>
+    /// </remarks>
+    private void Daylight()
+    {
+        Vector3 sunward = Sunward(_world.Tick.Raw);
+        float height = sunward.Y;
+        float up = Mathf.SmoothStep(0f, 0.12f, height);
+        float down = Mathf.SmoothStep(0f, 0.10f, -height);
+
+        _light.LookAtFromPosition(height > 0f ? sunward : -sunward, Vector3.Zero, Vector3.Up);
+
+        // A raking sun is BRIGHTER than a high one and not dimmer -- it is the same disc through
+        // more air, and what the air takes is the blue end. The energy peak sits at the horizon for
+        // that reason and the colour goes with it.
+        float low = 1f - Mathf.SmoothStep(0.02f, 0.30f, height);
+
+        _light.LightEnergy = height > 0f ? Mathf.Lerp(0f, Mathf.Lerp(1.25f, 1.4f, low), up) : down * 0.18f;
+        _light.LightColor = height > 0f
+            ? new Color(1.0f, 0.96f, 0.88f).Lerp(new Color(1.0f, 0.71f, 0.44f), low)
+            : new Color(0.60f, 0.72f, 1.0f);
+
+        // Twilight is wider than the sun's own ramp on purpose: the sky is still lit for a good
+        // while after the disc has gone, and an ambient that fell with the sun would black the city
+        // out the instant it touched the horizon.
+        float lit = Mathf.SmoothStep(-0.26f, 0.22f, height);
+        float dusk = 1f - Mathf.SmoothStep(0.02f, 0.40f, Mathf.Abs(height));
+
+        // ⚠ AMBIENT IS THE SKY HERE -- AmbientSource.Sky at full contribution -- so the four colours
+        // below are not a backdrop, they are the fill light on every wall the sun is not on. That is
+        // why the dusk tint is worth having at all: it puts warm light INTO the shadows, which is
+        // the half of golden hour a directional light cannot do.
+        _air.AmbientLightEnergy = Mathf.Lerp(0.26f, 1.05f, lit);
+
+        // ⚠ THE LAMPS COME ON BEFORE THE SUN IS DOWN AND GO OFF AFTER IT IS UP, which is why this is
+        // its own ramp and not `1 - lit`. A window lit at the moment the disc touches the horizon is
+        // what dusk looks like; a city that switched on at astronomical midnight would never be seen
+        // switching on at all.
+        _paint?.SetShaderParameter(
+            "night", 1f - Mathf.SmoothStep(-0.04f, 0.20f, height));
+
+        _above.SkyTopColor = new Color(0.03f, 0.04f, 0.11f)
+            .Lerp(new Color(0.28f, 0.42f, 0.66f), lit)
+            .Lerp(new Color(0.24f, 0.26f, 0.52f), dusk * 0.85f);
+        _above.SkyHorizonColor = new Color(0.06f, 0.08f, 0.17f)
+            .Lerp(new Color(0.63f, 0.70f, 0.78f), lit)
+            .Lerp(new Color(1.00f, 0.56f, 0.28f), dusk);
+        _above.GroundBottomColor = new Color(0.04f, 0.05f, 0.09f)
+            .Lerp(new Color(0.50f, 0.56f, 0.62f), lit);
+        _above.GroundHorizonColor = new Color(0.05f, 0.07f, 0.13f)
+            .Lerp(new Color(0.58f, 0.65f, 0.71f), lit)
+            .Lerp(new Color(0.62f, 0.42f, 0.34f), dusk);
     }
 
     /// <summary>Fits the eye's orbit to the city that is actually standing.</summary>
@@ -4310,10 +4510,54 @@ public partial class Main : Node3D
     {
         Frame();
 
-        _camera = new Camera3D { Far = 200_000f, Fov = 60f };
+        _lens = new CameraAttributesPractical();
+        _camera = new Camera3D { Far = 200_000f, Fov = 60f, Attributes = _lens };
 
         AddChild(_camera);
         Orbit();
+    }
+
+    /// <summary>Puts the lens on or takes it off — the HUD and the depth of field together.</summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THE HUD IS THE HALF THAT MATTERS AND THE CURSOR IS THE WORST OF IT.</b> The pick marker
+    /// is a Cell-sized quad — 128 m — so at the framings a person would photograph from it is a
+    /// sixth of the picture in flat yellow. It is exactly right as an instrument and ruinous as a
+    /// subject, which is the whole shape of this verb: ***nothing here is wrong, it is just not what
+    /// a photograph is of.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The focus distance is the ORBIT's and not a number.</b> The eye is always exactly
+    /// <see cref="_distance"/> from what it is looking at, so the plane in focus is known for free
+    /// and no key has to be authored for it. The near and far bounds are fractions of that, which is
+    /// what makes the effect scale: at 300 m it is a tilt-shift over a few streets, and at 3 km it
+    /// is a haze over the far half of the city.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It re-applies on every zoom and every tilt</b> — <see cref="Orbit"/> calls it — because
+    /// a focus plane pinned to a distance the camera has since left is a blur over the subject.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The Cell lattice goes off and does NOT come back</b>, which is the one place this verb
+    /// is not its own inverse. Turning it back on would override a person who had switched it off
+    /// themselves, and the alternative — remembering what it was — is a second piece of state for a
+    /// grid one keypress restores. ***Asymmetric on purpose, and small.***
+    /// </para>
+    /// </remarks>
+    private void Lens(bool on)
+    {
+        _photographing = on;
+        _hud.Visible = !on;
+        _cursor.Visible = !on;
+        _cells.Visible = _cells.Visible && !on;
+
+        _lens.DofBlurNearEnabled = on;
+        _lens.DofBlurFarEnabled = on;
+        _lens.DofBlurAmount = 0.12f;
+        _lens.DofBlurNearDistance = _distance * 0.62f;
+        _lens.DofBlurNearTransition = _distance * 0.34f;
+        _lens.DofBlurFarDistance = _distance * 1.34f;
+        _lens.DofBlurFarTransition = _distance * 0.7f;
     }
 
     /// <summary>
@@ -4326,14 +4570,32 @@ public partial class Main : Node3D
     /// </remarks>
     private void Orbit()
     {
-        float flat = Mathf.Cos(PitchRadians) * _distance;
+        float flat = Mathf.Cos(_pitch) * _distance;
 
         _camera.LookAtFromPosition(
             _focus + new Vector3(
-                Mathf.Sin(_yaw) * flat, Mathf.Sin(PitchRadians) * _distance, Mathf.Cos(_yaw) * flat),
+                Mathf.Sin(_yaw) * flat, Mathf.Sin(_pitch) * _distance, Mathf.Cos(_yaw) * flat),
             _focus,
             Vector3.Up);
+
+        // The focus plane rides the standoff, so a zoom or a tilt cannot leave the subject blurred.
+        if (_photographing)
+        {
+            Lens(true);
+        }
     }
+
+    /// <summary>Where a step of the tilt key lands, in whole degrees, already clamped.</summary>
+    /// <remarks>
+    /// ⚠ <b>It rounds before it steps, so the ladder is the same going up and coming back down.</b>
+    /// Stepping the radian and converting afterwards would leave 35.26° at 40.26°, 45.26° and so on
+    /// — a ladder whose rungs depend on where it was started, which is exactly what an absolute
+    /// verb exists to avoid.
+    /// </remarks>
+    private int Tipped(int degrees) => Mathf.Clamp(
+        (int)Mathf.Round(Mathf.RadToDeg(_pitch)) + degrees,
+        (int)Mathf.Round(Mathf.RadToDeg(LowestRadians)),
+        (int)Mathf.Round(Mathf.RadToDeg(HighestRadians)));
 
     /// <summary>The nearest the eye may stand, which is close enough to read one Building.</summary>
     private float Nearest() => Mathf.Max(32f, _span * 0.02f);

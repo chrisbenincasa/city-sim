@@ -83,7 +83,7 @@ Ordered. Each tier is usable on its own, and each is the fallback if the next pr
 
 | | Task |
 |---|---|
-| **2a** | ✅ **The grammar and its parser, in `Borough.Formats`.** `<tick> <verb> [argument]`, `#` comments. ⚠ **Count them in `DriveVerb` rather than here** — this cell said *ten* and tier 3 and tier 5 have added three since |
+| **2a** | ✅ **The grammar and its parser, in `Borough.Formats`.** `<tick> <verb> [argument]`, `#` comments. ⚠ **Count them in `DriveVerb` rather than here** — this cell said *ten*, tier 3 and tier 5 added three, and [`0051`](0051-the-four-pillars-and-a-city-to-photograph.md) rows 3 and 4 added `tilt` and `lens` |
 | **2b** | ✅ **One control surface.** `Main.Apply(DriveCommand)`. The keyboard builds a command and calls it; so does the script |
 | **2c** | ✅ **`--drive FILE`**, and 🔴 **the clock is CLAMPED at the next command's Tick** — see **F6** |
 | **2d** | ✅ **`shoot <path>`** writes the frame and the readout together, and 🔴 **the picture is taken on the NEXT frame** rather than this one — see **F8**, which said *redraws first* and was half right |

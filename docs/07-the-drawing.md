@@ -178,8 +178,15 @@ derived from the current four:
 - [`plans/0049`](../plans/0049-visuals.md) justifies skipping façade detail with *you can meet people;
   that is not the point of the game*. If a player photographs the city from close and low, that
   premise no longer supports its conclusion.
-- The camera's pitch is `atan(1/√2)` and *never moves*, which is correct framing for reading a city
-  and wrong for composing a picture of one.
+- ~~The camera's pitch is `atan(1/√2)` and *never moves*~~ 🔴 **UNTRUE AS OF 2026-09-01** — it is
+  bounded at 4° and 85° and carries a `tilt` verb ([`plans/0051`](../plans/0051-the-four-pillars-and-a-city-to-photograph.md)
+  row 3). The observation that a fixed pitch is *correct framing for reading a city and wrong for
+  composing a picture of one* stands; what has changed is that both are now available.
+- ✅ **The four cheap pillars were built and the answer came back yes.** A moving sun, a free pitch, a
+  lens and lit windows — four evenings, no meshes, no pipeline commitment — and the result is a
+  photograph of a coastal town at sunset. ⚠ **The question this section asks is NOT thereby settled**:
+  what was tested is whether the cheap half is worth doing, and it is. Whether *beauty* joins
+  [`00 §Pillars`](00-vision.md) is still a vision-level decision nobody has taken.
 - ⚠ **It does not collide with [`adr/0007`](adr/0007-stress-driven-simulation-detail.md)**, and it is
   worth saying so before somebody assumes it does: a camera is a **reading**, Fidelity is a property
   of place, and a free camera changes neither.
@@ -280,5 +287,13 @@ pipeline.***
 | **5. The frame with no HUD** | Trivial, and `shoot` exists |
 | **6. Then assets** | |
 
-⚠ **Items 1–4 are what [`plans/0051`](../plans/0051-the-four-pillars-and-a-city-to-photograph.md)
+⚠ **Items 1–5 are what [`plans/0051`](../plans/0051-the-four-pillars-and-a-city-to-photograph.md)
 takes on**, and none of them commits the project to a pipeline.
+
+🔴 ✅ **ALL FIVE LANDED 2026-09-01, AND THE RANKING WAS WRONG IN ONE WAY WORTH RECORDING: THEY ARE
+NOT SEPARABLE.** This table prices each row as an independent win, and each one alone is worth much
+less than its line suggests — a low sun over a plan-view camera is a diagram with long shadows, a low
+camera at noon is a wall of flat boxes, a lens over a HUD photographs the HUD. ***The effect is in
+the combination***, so the honest reading of the table is not *do these in order* but **do all five
+before judging any of them**. What survives intact is the headline: it took no meshes, no pipeline
+decision and no asset budget, which is what item 6 is still waiting behind.

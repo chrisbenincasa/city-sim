@@ -57,6 +57,48 @@ public sealed class DriveScriptTests
     }
 
     [Fact]
+    public void A_tilt_is_an_angle_in_degrees_and_the_grammar_does_not_clamp_it()
+    {
+        // 🔴 THE BOUNDS ARE THE SHELL'S AND NOT THE GRAMMAR'S, and that split is the point of this
+        // test. Borough.Formats knows nothing about the ground mesh being edge-on at zero or about
+        // LookAt's up-vector going degenerate at ninety -- both are facts of Borough.Godot -- so a
+        // number outside the band parses here and is clamped there. ***A grammar that refused 200
+        // would be a second copy of a constant no test in this assembly can reach.***
+        DriveScriptResult read = DriveScript.Parse(
+            """
+            0 tilt 35
+            1 tilt 4
+            2 tilt 200
+            """,
+            "tilt.drive");
+
+        Assert.Empty(read.Refusals);
+        Assert.Equal(
+            [
+                new DriveCommand(0, DriveVerb.Tilt, 35, null),
+                new DriveCommand(1, DriveVerb.Tilt, 4, null),
+                new DriveCommand(2, DriveVerb.Tilt, 200, null),
+            ],
+            read.Commands);
+    }
+
+    [Theory]
+    [InlineData("0 tilt", "takes one angle")]
+    [InlineData("0 tilt 20 30", "takes one angle")]
+    [InlineData("0 tilt low", "takes one angle")]
+    [InlineData("0 tilt -5", "takes one angle")]
+    public void A_tilt_that_is_not_one_number_is_refused_by_name(string script, string reason)
+    {
+        // ⚠ `-5` IS REFUSED BY THE PARSE AND NOT BY A RANGE CHECK: NumberStyles.None admits no
+        // sign, which is the same reason every other count in this grammar carries its direction as
+        // a word. A negative pitch is the camera underground, so nothing is lost.
+        DriveScriptResult read = DriveScript.Parse(script, "x.drive");
+
+        Assert.Null(read.Commands);
+        Assert.Contains(reason, Assert.Single(read.Refusals), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void An_on_or_off_is_an_absolute_and_never_a_toggle()
     {
         // The point of the format: 'roads off' twice is 'roads off', where g twice is nothing at
@@ -200,6 +242,8 @@ public sealed class DriveScriptTests
     [InlineData("100 click 4096 8192 shift")]
     [InlineData("100 focus 4096 8192")]
     [InlineData("100 focus 4096 8192 30000")]
+    [InlineData("100 tilt 35")]
+    [InlineData("100 tilt 5")]
     public void A_command_spells_back_out_as_the_line_that_makes_it(string line)
     {
         // 🔴 THIS ROUND TRIP IS WHAT MAKES A LIVE SESSION REPRODUCIBLE. A socket stamps each

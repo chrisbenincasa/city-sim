@@ -87,6 +87,30 @@ public enum DriveVerb
     /// </remarks>
     Focus,
 
+    /// <summary>
+    /// Tip the eye. <c>Amount</c> is degrees above the horizon, and the shell clamps.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Degrees and not radians, because a drive script is written by a person.</b> Every other
+    /// number in this grammar is one a human would say out loud — a Tile, a notch, a rung — and a
+    /// pitch in radians would be the one that needed a calculator. ⚠ <b>Absolute like every verb
+    /// here</b>: <c>tilt 12</c> means the same thing whatever ran before it, and the keyboard is
+    /// what steps.
+    /// </remarks>
+    Tilt,
+
+    /// <summary>Put a lens on the eye, or take it off. <c>Amount</c> is 1 or 0.</summary>
+    /// <remarks>
+    /// 🔴 <b>It is two things at once and they belong together: the HUD goes, and the depth of field
+    /// arrives.</b> A photograph of a city has neither a readout nor a tool bar nor a 128-metre
+    /// yellow quad under the cursor, and what makes a small model read as a small model is a shallow
+    /// focus. ⚠ <b><c>shoot</c> does NOT imply it</b>, deliberately: the caption in the frame is
+    /// what says which Tick a picture is of, and <c>plans/0048</c> already lost two photographs of a
+    /// flood to a missing panel. ***A picture for a person and a picture for a record are different
+    /// pictures***, and this verb is which one you asked for.
+    /// </remarks>
+    Lens,
+
     /// <summary>End the run.</summary>
     Quit,
 }
@@ -269,6 +293,9 @@ public static class DriveScript
             // would silently re-aim every recorded session that had relied on it.
             DriveVerb.Hold =>
                 $"{at} hold {command.Path} {command.Amount.ToString(CultureInfo.InvariantCulture)}",
+            DriveVerb.Lens => $"{at} lens {(command.Amount != 0 ? "on" : "off")}",
+            DriveVerb.Tilt =>
+                $"{at} tilt {command.Amount.ToString(CultureInfo.InvariantCulture)}",
             DriveVerb.Focus => command.Amount > 0
                 ? $"{at} focus {command.East} {command.North} {command.Amount}"
                 : $"{at} focus {command.East} {command.North}",
@@ -357,6 +384,7 @@ public static class DriveScript
 
             case "roads":
             case "cells":
+            case "lens":
                 if (!Arity(1))
                 {
                     return null;
@@ -370,7 +398,13 @@ public static class DriveScript
                 }
 
                 return Made(
-                    verb == "roads" ? DriveVerb.Roads : DriveVerb.Cells, argument == "on" ? 1 : 0);
+                    verb switch
+                    {
+                        "roads" => DriveVerb.Roads,
+                        "cells" => DriveVerb.Cells,
+                        _ => DriveVerb.Lens,
+                    },
+                    argument == "on" ? 1 : 0);
 
             case "turn":
                 if (!Arity(1))
@@ -462,6 +496,20 @@ public static class DriveScript
 
                 return new DriveCommand(
                     tick, DriveVerb.Click, word.Length == 5 ? 1 : 0, null, east, north);
+
+            case "tilt":
+                if (word.Length != 3
+                    || !int.TryParse(
+                        word[2], NumberStyles.None, CultureInfo.InvariantCulture, out int above))
+                {
+                    refusals.Add($"{file}:{line}: 'tilt' takes one angle in degrees above the "
+                        + "horizon, from 4 to 85. The shell clamps, so a number outside that is a "
+                        + "typo rather than a refusal here.");
+
+                    return null;
+                }
+
+                return new DriveCommand(tick, DriveVerb.Tilt, above, null, 0, 0);
 
             case "focus":
                 if (word.Length is < 4 or > 5)
