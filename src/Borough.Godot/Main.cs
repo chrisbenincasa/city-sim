@@ -301,6 +301,73 @@ public partial class Main : Node3D
     /// <summary>A boulder, on the ground that has them.</summary>
     private static readonly Color Boulder = new(0.44f, 0.42f, 0.40f);
 
+    /// <summary>Which Map Layer the map is tinted by, or none of them.</summary>
+    /// <remarks>
+    /// 🔴 <b>AN OVERLAY IS A SECOND RENDER PATH AND NOT A MATERIAL</b>
+    /// (<c>docs/07 §3.1</c>): the city drops to an unlit base and the layer owns all the colour.
+    /// A tint over the ordinary picture would be read against a sunset, a roof colour and a wall
+    /// band, none of which is data — ***and the one thing an instrument may not do is compete
+    /// with the scene for the eye.***
+    /// </remarks>
+    private enum Wash
+    {
+        /// <summary>The city, drawn as a city.</summary>
+        None,
+
+        /// <summary>Air pollution, the one Layer a Rule may emit into.</summary>
+        Pollution,
+
+        /// <summary>Land value, the stored column that chases desirability.</summary>
+        Value,
+
+        /// <summary>Sealing — how much of a Cell is under paving and roof.</summary>
+        Sealed,
+    }
+
+    /// <summary>
+    /// The ramp an overlay is drawn with, dark to bright. <b>Perceptual and not a rainbow.</b>
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Monotone in lightness on purpose.</b> A hue-cycling ramp reads as categories rather
+    /// than as a quantity — a person picks out the green band and the red band and stops seeing
+    /// the gradient between them — and it is the standard way a map of one number is made to lie.
+    /// This one only ever gets lighter and warmer, so a brighter Cell is a larger number at every
+    /// point on it and nothing has to be looked up.
+    /// </remarks>
+    private static readonly Color[] Bands =
+    [
+        new(0.06f, 0.09f, 0.16f),
+        new(0.13f, 0.20f, 0.36f),
+        new(0.20f, 0.36f, 0.45f),
+        new(0.31f, 0.52f, 0.42f),
+        new(0.58f, 0.65f, 0.32f),
+        new(0.85f, 0.66f, 0.24f),
+        new(0.93f, 0.44f, 0.20f),
+        new(0.94f, 0.24f, 0.26f),
+    ];
+
+    /// <summary>Ground with no Cell row at all, which is not the same as a Cell reading zero.</summary>
+    /// <remarks>
+    /// 🔴 <b>THE DISTINCTION IS THE WHOLE HONESTY OF THE PICTURE.</b> The only thing in the
+    /// build that gives a Cell a row is a pollution emission, so on a world whose Rules emit
+    /// nothing <em>every</em> Cell is unmeasured — and an overlay that painted those at the ramp's
+    /// bottom would report a clean city where it should report <em>no reading</em>. ⚠ It is
+    /// deliberately DARKER and greyer than <see cref="Bands"/>'s first entry, which is a measured
+    /// zero, and the two must never be confused by eye.
+    /// </remarks>
+    private static readonly Color Unmeasured = new(0.045f, 0.045f, 0.05f);
+
+    /// <summary>What the city is painted while an overlay is up.</summary>
+    /// <remarks>
+    /// 🔴 <b>DARKER THAN EVERY BAND OF THE RAMP, AND THE FIRST TRY WAS BRIGHTER THAN MOST OF
+    /// THEM.</b> An overlay is read from above, where roofs cover most of the ground — so a base
+    /// grey at 0.17 put the CITY at the top of the picture's contrast range and left the field
+    /// showing through the gaps between buildings. ***The thing being measured came second to the
+    /// thing it was measured over.*** The base is a silhouette: enough to say where the streets and
+    /// the massing are, and never enough to compete with a reading.
+    /// </remarks>
+    private static readonly Color Muted = new(0.055f, 0.055f, 0.062f);
+
     /// <summary>A quarter turn about the vertical, for the gable whose ridge runs east-west.</summary>
     private static readonly Basis Quarter = Basis.FromEuler(new Vector3(0f, Mathf.Pi * 0.5f, 0f));
 
@@ -412,6 +479,44 @@ public partial class Main : Node3D
     private MultiMeshInstance3D _ground = null!;
     private MeshInstance3D _land = null!;
     private ImageTexture _skin = null!;
+
+    /// <summary>The overlay in force, the texture it is drawn into, and what it read.</summary>
+    /// <remarks>
+    /// ⚠ <b>A SECOND TEXTURE RATHER THAN A REWRITE OF <see cref="_skin"/>.</b> The skin is the
+    /// terrain, the woodland, the floodplain and the sea folded together over a quarter of a
+    /// million Cells; rebuilding it to leave an overlay would cost that walk on every switch, and
+    /// swapping which texture the ground plane wears costs a field assignment.
+    /// </remarks>
+    private ImageTexture? _wash;
+
+    /// <inheritdoc cref="_wash"/>
+    private Wash _washing = Wash.None;
+
+    /// <inheritdoc cref="_wash"/>
+    private StandardMaterial3D? _instrument;
+
+    /// <inheritdoc cref="_wash"/>
+    private StandardMaterial3D? _muted;
+
+    /// <summary>The ground's ordinary material, kept so an overlay can be taken off again.</summary>
+    private StandardMaterial3D _skinned = null!;
+
+    /// <summary>The Tick the wash was last built from, and the reading that anchors its ramp.</summary>
+    /// <remarks>
+    /// 🔴 <b>THE PEAK IS PART OF THE PICTURE AND NOT A DETAIL OF IT.</b> A ramp normalised
+    /// to whatever the largest Cell happens to hold is a picture that looks identical on a filthy
+    /// city and a clean one — ***a relative scale hides the only thing the player wanted to
+    /// know*** — so the number the top of the ramp stands for goes in the readout beside it. That
+    /// is <c>01 §7</c>'s <em>an overlay must never be sharper than the simulation underneath it</em>
+    /// spent on the axis rather than on the resolution.
+    /// </remarks>
+    private ulong _washedAt;
+
+    /// <inheritdoc cref="_washedAt"/>
+    private int _washPeak;
+
+    /// <inheritdoc cref="_washedAt"/>
+    private int _washCells;
 
     private MultiMeshInstance3D _water = null!;
     private MultiMeshInstance3D _flood = null!;
@@ -1032,6 +1137,11 @@ public partial class Main : Node3D
 
                 break;
 
+            case DriveVerb.Overlay:
+                Washing(command.Path!);
+
+                break;
+
             case DriveVerb.Tilt:
                 // Degrees in, radians held. The clamp lives here rather than in the grammar because
                 // the bounds are the SHELL's -- they come from the ground mesh and from LookAt's
@@ -1623,6 +1733,11 @@ public partial class Main : Node3D
             Key.L => Made(DriveVerb.Lens, _photographing ? 0 : 1),
             Key.G => Made(DriveVerb.Roads, _roads.Visible ? 0 : 1),
             Key.C => Made(DriveVerb.Cells, _cells.Visible ? 0 : 1),
+
+            // ⚠ THE KEY CYCLES AND THE VERB IS ABSOLUTE, which is this file's rule for every
+            // toggle. `o` asks for the next overlay by NAME, so a recorded session replays the
+            // layer somebody was looking at and not the number of times they pressed a key.
+            Key.O => new DriveCommand(_world.Tick.Raw, DriveVerb.Overlay, 0, Next()),
             Key.Equal or Key.KpAdd => Made(DriveVerb.Zoom, 4),
             Key.Minus or Key.KpSubtract => Made(DriveVerb.Zoom, -4),
             Key.Space => Made(_rung == 0 ? DriveVerb.Resume : DriveVerb.Pause),
@@ -1643,6 +1758,14 @@ public partial class Main : Node3D
 
         DriveCommand Made(DriveVerb verb, int amount = 0) =>
             new(_world.Tick.Raw, verb, amount, null);
+
+        string Next() => _washing switch
+        {
+            Wash.None => "pollution",
+            Wash.Pollution => "value",
+            Wash.Value => "sealing",
+            _ => "off",
+        };
     }
 
     /// <summary>
@@ -1901,6 +2024,20 @@ public partial class Main : Node3D
 
         ulong tick = _world.Tick.Raw;
 
+        // 🔴 THE OVERLAY IS REBUILT ON THE LAYER'S OWN CADENCE AND NOT PER FRAME. A Map Layer moves
+        // when its diffusion pass runs -- every 64 Ticks for pollution and 256 for land value, the
+        // designer's numbers rather than the profiler's (adr/0044) -- so a texture rebuilt every
+        // frame would re-upload an unchanged image sixty times a second. ***The instrument reads
+        // the same schedule the city does***, which is also what stops the picture claiming a
+        // resolution the simulation underneath does not have (01 §7).
+        //
+        // ⚠ It is the layer's period and not a constant here, so a Ruleset that slows its
+        // diffusion slows the picture with it rather than the two drifting apart.
+        if (_washing != Wash.None && tick - _washedAt >= (ulong)Math.Max(1, Cadence()))
+        {
+            Rewash();
+        }
+
         // ⚠ THE MINUTE COMES FROM Ticks AND IS NO LONGER DERIVED HERE. A Day begins at 05:00, so
         // `ofDay * 24 / PerDay` is off by five hours -- and this was one of four copies of that
         // expression, which is exactly why it now lives in one place.
@@ -1917,7 +2054,8 @@ public partial class Main : Node3D
             + $"mode {Holding()}   "
             + "[ ] speed, space pause, w write log, g roads, c cells, tab tune\n"
             + "click acts   right-drag or two-finger scroll pans   edge of screen pans   "
-            + "pinch or -/= zooms   q/e turns   r/f tilts   l lens"
+            + "pinch or -/= zooms   q/e turns   r/f tilts   l lens   o overlay"
+            + Legend()
             + (_refused.Length > 0 ? $"\nREFUSED — {_refused}" : string.Empty);
 
         _hover.Text = Pointing();
@@ -3957,6 +4095,248 @@ public partial class Main : Node3D
             ? ((side - 1 - north) * side * 3) + (east * 3)
             : -1;
 
+    /// <summary>Paint the map by a Map Layer, or stop and give the city back.</summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THE CITY DROPS TO AN UNLIT BASE AND THE LAYER OWNS ALL THE COLOUR</b>
+    /// (<c>docs/07 §3.1</c>). Every other layer takes a shared flat grey through
+    /// <c>MaterialOverride</c> and the ground goes <b>unshaded</b> — which is the half a person
+    /// forgets, and the important half: ***a field lit by a raking sunset is a field multiplied by
+    /// the time of day***, and an instrument that reads differently at 18:00 than at noon is not an
+    /// instrument. The sun keeps moving; nothing in the frame answers to it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is a VIEW.</b> Nothing here reaches the world (<c>adr/0007</c>, <c>05 §4</c>) and
+    /// two runs differing only in what was tinted produce the same State Hash.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>An unknown name is a refusal a person reads</b>, on <see cref="Hold"/>'s reasoning —
+    /// a script that misspells its layer would otherwise turn the overlay off and report a city
+    /// with nothing in it.
+    /// </para>
+    /// </remarks>
+    /// <param name="layer">The layer's name, or <c>off</c>.</param>
+    private void Washing(string layer)
+    {
+        _refused = string.Empty;
+
+        Wash want = layer switch
+        {
+            "off" or "none" => Wash.None,
+            "pollution" => Wash.Pollution,
+            "value" or "land" or "land-value" => Wash.Value,
+            "sealing" or "sealed" => Wash.Sealed,
+            _ => Wash.None,
+        };
+
+        if (want == Wash.None && layer is not ("off" or "none"))
+        {
+            _refused = $"there is no overlay called '{layer}'. There is off, pollution, value "
+                + "and sealing.";
+        }
+
+        _washing = want;
+
+        // Forces the next Draw to rebuild rather than trusting a cadence that has not come round.
+        _washedAt = 0;
+
+        _instrument ??= new StandardMaterial3D
+        {
+            // 🔴 UNSHADED, AND THIS IS THE LINE THE OVERLAY EXISTS FOR. See the remarks.
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            TextureFilter = BaseMaterial3D.TextureFilterEnum.Linear,
+        };
+
+        _muted ??= new StandardMaterial3D
+        {
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            AlbedoColor = Muted,
+        };
+
+        foreach ((string _, MultiMeshInstance3D over, bool _, List<ulong>? _) in Layers())
+        {
+            over.MaterialOverride = _washing == Wash.None ? null : _muted;
+        }
+
+        _cursor.MaterialOverride = _washing == Wash.None ? null : _muted;
+
+        if (_washing == Wash.None)
+        {
+            ((PlaneMesh)_land.Mesh).Material = _skinned;
+
+            return;
+        }
+
+        Rewash();
+
+        _instrument.AlbedoTexture = _wash;
+        ((PlaneMesh)_land.Mesh).Material = _instrument;
+    }
+
+    /// <summary>Write the layer in force into <see cref="_wash"/>, one texel a Cell.</summary>
+    /// <remarks>
+    /// <para>
+    /// ⚠ <b>It walks the RESIDENT ROWS and not the grid.</b> A Cell gets a row when something
+    /// happens on it, so on a 20,000-Citizen world there are about a thousand of them against the
+    /// map's 262,144 — and the loop that matters is over the thousand. The clear is a
+    /// <c>byte[]</c> fill, which is a memset.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>MAGNITUDE, AND LAND VALUE IS THE REASON.</b> Desirability has no positive term until
+    /// amenity exists (<c>adr/0123</c>), so the whole field is at or below zero and the interesting
+    /// quantity is how far below. The readout says so rather than leaving a person to read
+    /// <em>bright means good</em> off a ramp that means the opposite.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Normalised against the peak, and the peak is PRINTED.</b> A ramp fitted to whatever
+    /// the worst Cell holds looks identical on a filthy city and a clean one; the number the top
+    /// of the ramp stands for is what makes the picture a measurement.
+    /// </para>
+    /// </remarks>
+    private void Rewash()
+    {
+        const int side = CellGrid.WorldCells;
+        LayerCellTable cells = _world.Layers.Cells;
+        byte[] texels = new byte[side * side * 3];
+
+        for (int at = 0; at < texels.Length; at += 3)
+        {
+            texels[at] = (byte)(Unmeasured.R * 255f);
+            texels[at + 1] = (byte)(Unmeasured.G * 255f);
+            texels[at + 2] = (byte)(Unmeasured.B * 255f);
+        }
+
+        _washPeak = 0;
+        _washCells = 0;
+
+        for (int slot = 0; slot < cells.Rows.SlotCount; slot++)
+        {
+            if (!cells.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            _washCells++;
+            _washPeak = Math.Max(_washPeak, Math.Abs(Reading(cells, slot)));
+        }
+
+        for (int slot = 0; slot < cells.Rows.SlotCount; slot++)
+        {
+            if (!cells.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            int at = Texel(cells.East[slot].Raw, cells.North[slot].Raw, side);
+
+            if (at < 0)
+            {
+                continue;
+            }
+
+            // ⚠ A MEASURED ZERO IS THE RAMP'S BOTTOM AND NOT `Unmeasured`. The two are different
+            // claims -- "this Cell is clean" against "nothing has ever been read here" -- and the
+            // whole reason the background is a separate colour is that they must not merge.
+            float share = _washPeak == 0
+                ? 0f
+                : Math.Abs(Reading(cells, slot)) / (float)_washPeak;
+
+            Color paint = Shade(share);
+
+            texels[at] = (byte)(paint.R * 255f);
+            texels[at + 1] = (byte)(paint.G * 255f);
+            texels[at + 2] = (byte)(paint.B * 255f);
+        }
+
+        Image image = Image.CreateFromData(side, side, false, Image.Format.Rgb8, texels);
+
+        if (_wash is null)
+        {
+            _wash = ImageTexture.CreateFromImage(image);
+        }
+        else
+        {
+            _wash.Update(image);
+        }
+
+        _washedAt = _world.Tick.Raw;
+    }
+
+    /// <summary>How often the layer in force actually moves, in Ticks.</summary>
+    /// <remarks>
+    /// ⚠ <b>Sealing has no diffusion pass of its own</b> — it is a count of built Tiles, written at
+    /// the footprint (<c>02 §2.4</c>) — so it is redrawn on the pollution cadence rather than being
+    /// given a number of its own, which would be a schedule this file invented.
+    /// </remarks>
+    private int Cadence()
+    {
+        LayerSchedule when = _world.Layers.Schedule;
+
+        return _washing == Wash.Value
+            ? when.LandValue.Period
+            : when.IndustrialPollution.Period;
+    }
+
+    /// <summary>The number the overlay in force is drawing, for one Cell row.</summary>
+    /// <remarks>
+    /// 🔴 <b>THE STORED COLUMN IS NOT THE NUMBER, AND THE FIRST VERSION OF THIS PRINTED THE
+    /// STORAGE.</b> Pollution is held in <em>kernel units</em> — pre-normalised, which is what buys
+    /// exact superposition — and the single stated rounding of the whole scheme happens at the
+    /// point of use, which is here. Land value is <b>Q16.16</b>. Read raw they came out as
+    /// <b>1,955,195</b> and <b>17,642,822</b>, which are 5 and 269, and ***a number printed in its
+    /// storage units is the disqualifier registry's own shape*** — digits that look like a
+    /// quantity, carrying none of the clause that says what they are.
+    /// </remarks>
+    private int Reading(LayerCellTable cells, int slot) => _washing switch
+    {
+        Wash.Pollution => _world.Layers.PollutionKernel.Normalise(cells.Pollution[slot]),
+        Wash.Value => cells.LandValue[slot],
+        Wash.Sealed => cells.Sealing[slot],
+        _ => 0,
+    };
+
+    /// <summary>A Q16.16 value as whole units and hundredths, which is what a reader compares.</summary>
+    private static string Whole(int fixedValue)
+    {
+        int whole = fixedValue >> 16;
+        int hundredths = ((fixedValue & 0xFFFF) * 100) >> 16;
+
+        return string.Create(CultureInfo.InvariantCulture, $"{whole}.{hundredths:00}");
+    }
+
+    /// <summary>A share of the peak, as a colour off <see cref="Bands"/>, blended between stops.</summary>
+    /// <remarks>
+    /// ⚠ <b>Blended rather than stepped</b>, because eight bands on a 128 m grid is a contour map
+    /// and a contour is a claim about a threshold that nothing in the city holds.
+    /// </remarks>
+    private static Color Shade(float share)
+    {
+        float along = Mathf.Clamp(share, 0f, 1f) * (Bands.Length - 1);
+        int stop = Mathf.Clamp((int)along, 0, Bands.Length - 2);
+
+        return Bands[stop].Lerp(Bands[stop + 1], along - stop);
+    }
+
+    /// <summary>What the overlay is saying, for the readout. Empty when there is none.</summary>
+    /// <remarks>
+    /// 🔴 <b>THE LEGEND IS NOT DECORATION.</b> A map tinted by a number nobody names is the fastest
+    /// way in the genre to make somebody confident and wrong — <c>01 §7</c> ranks overlays as a
+    /// primary view for exactly the reason they must carry their axis. This names the layer, what
+    /// the bright end is worth, and how many Cells have a reading at all.
+    /// </remarks>
+    private string Legend() => _washing switch
+    {
+        Wash.None => string.Empty,
+        Wash.Pollution =>
+            $"\nOVERLAY pollution — dark 0 to bright {_washPeak:N0}, {_washCells:N0} Cells read",
+        Wash.Value =>
+            $"\nOVERLAY land value — MAGNITUDE, bright is WORSE: 0 to {Whole(_washPeak)}. "
+            + $"Desirability has no positive term yet (adr/0123), so every Cell is at or below "
+            + $"zero. {_washCells:N0} Cells read",
+        _ => $"\nOVERLAY sealing — dark 0 to bright {_washPeak:N0} Tiles a Cell, "
+            + $"{_washCells:N0} Cells read",
+    };
+
     /// <summary>The lit surface of the world, one quad carrying <see cref="Skin"/>.</summary>
     /// <remarks>
     /// ⚠ <b>A <c>PlaneMesh</c> and not the ground slab's box</b>, because a plane's UV runs 0..1
@@ -3969,17 +4349,22 @@ public partial class Main : Node3D
 
         Skin();
 
+        // ⚠ HELD IN A FIELD BECAUSE AN OVERLAY TAKES THE GROUND AND HAS TO GIVE IT BACK. The
+        // instrument swaps the plane's material for an unshaded one carrying the layer; this is
+        // what it swaps back to, and rebuilding it on the way out would lose the texture with it.
+        _skinned = new StandardMaterial3D
+        {
+            AlbedoTexture = _skin,
+            Roughness = 1f,
+            TextureFilter = BaseMaterial3D.TextureFilterEnum.Linear,
+        };
+
         _land = new MeshInstance3D
         {
             Mesh = new PlaneMesh
             {
                 Size = new Vector2(side, side),
-                Material = new StandardMaterial3D
-                {
-                    AlbedoTexture = _skin,
-                    Roughness = 1f,
-                    TextureFilter = BaseMaterial3D.TextureFilterEnum.Linear,
-                },
+                Material = _skinned,
             },
             Position = new Vector3(side * 0.5f, 0.01f, -side * 0.5f),
 

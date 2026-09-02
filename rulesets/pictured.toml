@@ -184,6 +184,36 @@ apply   = { min = 1, max = 1 }
 inputs  = [ { scope = "local",  resource = "money", amount = 8192 } ]
 outputs = [ { scope = "global", resource = "money", amount = 8192 } ]
 
+# 🔴 THE ONE RULE IN THIS FILE THAT EXISTS FOR THE PICTURE, and it is here because an overlay of
+# nothing is a blank screen. `scope = "map"` is the only write-only scope `02 §4.1` grants, pollution
+# is the only emittable Layer, and THE ONLY THING IN THE BUILD THAT GIVES A CELL A ROW AT ALL IS AN
+# EMISSION -- so a world with no emitter has no resident Cells, and pollution, land value and Sealing
+# are not zero on it, they are ABSENT. `--land-value` refuses to run against such a file by name.
+#
+# ⚠ IT IS ON THE SHOPFRONT AND NOT ON THE DWELLING, WHICH IS WHERE `fouled.toml` PUT IT, and the
+# reason is the picture rather than the content. That file emits from every dwelling and says at
+# length that it would rather not have had to -- a dwelling is not industry. What it gets is a
+# BLANKET: every Cell of the built area emits equally, the field is flat over the city and falls off
+# only at the edge, and ***an overlay of a constant is an overlay that shows nothing***. Shops are
+# raised by a tier-1 trade rule at a handful of sites, so they are POINT SOURCES with a 1,024 m tent
+# over each -- which is `02 §2.4`'s own shape, and the only arrangement in which a land-value map has
+# anywhere for the value to be high.
+#
+# ⚠ A SHOP IS STILL NOT A FACTORY. Deliveries and refrigeration are the defensible reading and they
+# are a reading; industry is unbuilt (`adr/0070`), and when it exists this Rule moves to it. Like
+# `fouled.toml`'s it takes no inputs, because a Rule that consumed a Good would starve, stop firing,
+# and let the field this exists to fill decay back to the nothing it started as.
+#
+# 🔴 THE TWO NUMBERS ARE A PICTURE'S AND RATIFY NOTHING, which is this file's whole standing.
+
+[[rule]]
+name    = "deliveries"
+kind    = "shopfront"
+rate    = 32
+apply   = { min = 1, max = 1 }
+inputs  = []
+outputs = [ { scope = "map", layer = "pollution", amount = 256 } ]
+
 # --- What gets built --------------------------------------------------------------------------
 # ⚠ TIER 1, WITH BOTH KEYS. `oversupplied.toml` deletes them to demonstrate bankruptcy; a city being
 # photographed wants the shops it can support and not a shopfront on every trade Lot (adr/0170).

@@ -1940,6 +1940,33 @@ pointer to one.***
       terms above, so the next reader meets it at the symbol rather than in a plan.
 
 
+### `rulesets/fouled.toml`'s comment says its emitter fires **twice a Day** and the Rule says **sixteen times** — Cause 1, in a file
+
+**NEW 2026-09-02, found while copying that Rule into `pictured.toml` for
+[`plans/0049`](0049-visuals.md) row 7** (**F40**). The paragraph above `smoke` reads *"rate 1024 is
+twice a Day at this file's own TICKS_PER_DAY, and amount 1 is the smallest a Rule can emit. Together
+they were the pair that put the two terms within an order of magnitude of each other."* The Rule
+three lines below it states **`rate = 128`**.
+
+⚠ **It is Cause 1 with the two copies four lines apart** — a number stored in a comment and in the
+key it describes — and the comment is the copy that drifted, which is the direction this ledger
+records every time. ***A tuning number quoted in the prose beside it is a second copy of that
+number***, and the file is the only demonstration of the pollution Layer, so its comment is where
+anybody sizing an emission goes to read.
+
+🔴 **Which of the two moved is not established here, and that is the judgement this entry is filed
+for.** If the *rate* was retuned then the comment's arithmetic is stale and the sentence about the
+two terms being within an order of magnitude was measured against a different world; if the
+*comment* was written for an intended value the Rule never took, then the reading `FouledRulesetTests`
+records was taken at a rate nobody chose. **Neither is a correction somebody passing through may
+make**, because both are hash-bearing and one of them is a measurement.
+
+- [ ] Establish which of the two moved, from `FouledRulesetTests`' recorded reading rather than from
+      the arithmetic — ***quote the census, never the arithmetic*** (`plans/0042` **F12**).
+- [ ] Correct the losing copy, and delete the derivation from the comment rather than restating it:
+      a comment that recomputes a key is the second copy this entry is about.
+
+
 ### 🔴 `docs/01 §1` says traffic is **visually truthful at 0.5×** and it is wrong by **337×** — Cause 4, on a number nobody had ever computed
 
 **Found by looking at the city**, 2026-08-30, the first sitting in which anybody watched it move
