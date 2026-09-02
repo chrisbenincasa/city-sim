@@ -4259,7 +4259,28 @@ public partial class Main : Node3D
             DirectionalShadowSplit1 = 0.06f,
             DirectionalShadowSplit2 = 0.16f,
             DirectionalShadowSplit3 = 0.44f,
-            ShadowBlur = 1.1f,
+
+            // 🔴 ⚠ 3.0 AND NOT 1.1, AND IT IS A FIX FOR SOMETHING THAT ONLY EXISTS IN MOTION.
+            // Reported from the chair as *weird during movement, and more pronounced at slower
+            // speeds*, which is the wrong way round for anything caused by the sun's speed. Two
+            // frames one Tick apart, differenced, said what it is: with ShadowEnabled false NOT ONE
+            // PIXEL of the ground changes, so the whole of it is the shadow map; the change that
+            // survives is a hard band along every shadow EDGE. A shadow edge is quantised to the
+            // shadow map's texel grid, a roof's silhouette is a diagonal, and a diagonal on a grid
+            // is a staircase -- so as the sun turns the staircase MARCHES, one texel at a time.
+            // ***A step you can count is a step you can see, and slow motion is what lets you count
+            // it.*** Blur spreads the edge over enough texels that no single one of them is an
+            // event. Chosen by looking: the staircase is gone from a close orbit and the wide view
+            // is soft rather than mushy, with shadows still meeting their walls.
+            //
+            // ⚠ What was tried against the same two frames and REMOVED AGAIN, because a setting
+            // whose effect cannot be shown is a setting kept on an argument: 32-bit shadow depth
+            // (no change), ShadowNormalBias 4.0 (1.7% of the crop changing, against 1.6% -- noise).
+            // ⚠ And the faint concentric MOIRÉ over open ground, which the difference image shows
+            // beautifully, is real and is NOT this: it is one quantisation level, 1/255, and
+            // ShadowBias 1.0 erases it. Not taken, because a bias that large detaches a shadow from
+            // its own wall to cure something nobody has reported seeing.
+            ShadowBlur = 3.0f,
         };
 
         // ⚠ NOT NOON, AND SINCE plans/0051 ROW 2 NOT A CONSTANT EITHER. The angle set here is the
