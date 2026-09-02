@@ -50,7 +50,7 @@ before adding bands produces a uniform city made of a different shape.**
 | # | Step | Hash | What it unblocks |
 |---|---|---|---|
 | **1** | **A Block is a row.** `BlockTable`, keyed by lattice position. Saved: zone, band, **and the pattern it was carved with**. `zone` writes the block rather than the Lots | yes | Somewhere for a per-block decision to live. Discharges `Relot`'s named limitation |
-| **2** | 🟡 **Bands ship** — *half done, 2026-09-02*. `adr/0025`'s cap is a real value on the block and **nothing reads it yet**. ⚠ **The generator paints them** — see *The two calls*; what is left is in *What step 2 shipped* | no, so far | More than one of anything |
+| **2** | ✅ **Bands ship** — *2026-09-02*. `adr/0025`'s cap is a real value on the block **and the Zone Rule reads it**. ⚠ **The generator paints them** — see *The two calls* | no, and that is a finding | More than one of anything |
 | **3** | **A pattern is a partition function**, and the set is open. Three to start | yes | (a), (b) and (c) all become expressible, and none is privileged |
 | **4** | **Carve and re-carve.** Selection at carve time from local conditions; frozen while occupied; re-carved when vacant | yes | ***The city stops being uniform*** |
 | **5** | **The parcel, then the footprint** — [`0052`](0052-the-parcel.md) in full | yes | Sealing, Fertility, Woodland, `adr/0025`'s Land axis, and F21 becoming impossible |
@@ -185,21 +185,54 @@ its leftover ground without weakening the test that kills the dead interior ever
 
 ---
 
-## What step 2 shipped, and the half it did not
+## What step 2 shipped
 
-**Shipped 2026-09-02.** A `[[band]]` table in the Ruleset, a `Band` on every carved block, and a
-generator that paints rings. `rulesets/banded.toml` is the one shipped file that declares any, and its
-header says so.
+**Shipped 2026-09-02**, in two commits. A `[[band]]` table in the Ruleset, a `Band` on every carved
+block, a generator that paints rings, and **one `&` in `ZoneRuleEngine.Admits`**.
 
-🔴 **Nothing reads `admits`.** The band is recorded and the cap is parsed and the two have not met —
-`ZoneRuleEngine`'s admission is still `Lots.Zone[lot] & definition.Admits` with no band term in it.
-***So the city is exactly as uniform today as it was yesterday***, and that is worth stating plainly
-rather than letting a green suite imply otherwise. What changed is that the value now exists to be
-read, which step 3 needs and step 4 spends. The remaining half is a derived `LotTable.BlockSlot`
-column and one `&` in the admission predicate.
+```
+(_world.Lots.Zone[lot] & definition.Admits & _world.BandAdmitting(lot)) != 0
+```
 
-⚠ **The State Hash did not move**, and it should not have. `Band` was allocated in step 1, and the
-only world that paints a non-zero one is a file no golden run uses.
+***That third term is the whole of `adr/0025`'s cap.*** A band is applied by intersection, so it joins
+the expression that was already there rather than becoming a predicate of its own, and it can only
+ever take a permission away.
+
+⚠ **The State Hash did not move, and that is a finding rather than an accident.** Every absence
+answers all-bits-set — a Lot off the lattice, a block with no row, band `0`, a Ruleset with no
+`[[band]]` — so a bandless world computes *exactly* the expression this replaced. `adr/0025`'s cap
+therefore arrives with no migration and no baseline to re-record. **The restrictive reading would have
+given every Lot in every bandless world a permission set of zero and built no city at all.**
+
+### 🔴 The case the demonstration had to show, and did not at first
+
+`banded.toml` shipped in the first commit as `minimal.toml` plus two `[[band]]` tables — and
+`minimal.toml` has **one** Zone Rule, on bit 0, which **both** bands admit. ***So the cap was wired in
+and refused nothing***, and the suite was green because there was nothing for it to be green about.
+
+**A demonstration Ruleset that cannot express the thing it demonstrates is a fixture, not a
+demonstration.** The repair is a second kind — `shopfront`, deliberately the smallest one that loads —
+and a Zone Rule on bit 1, so that `suburban` admitting `[0]` has something to withhold.
+
+⚠ **The case worth asserting is a Lot that CARRIES the trade bit and is refused anyway.** Land refused
+because nobody zoned it proves nothing, because nothing zoned it. `BandAdmissionTests` asserts **both**
+directions in one world — some Lots refused, some kept — because a `BandAdmitting` hard-wired to zero
+would satisfy the first half alone.
+
+### ⚠ The `LotTable.BlockSlot` column in the table above was not built
+
+The step table says *a Lot's parcel is derived*; this plan also proposed a derived `BlockSlot` column
+to get from a Lot to its block. **`Frontage.BlockOf` is that, computed** — ten integer operations off
+the Lot's saved position and side, reading nothing derived.
+
+🔴 **A position alone cannot answer it, and the side is what closes it.** Two blocks share every face
+line: the Segment at lattice row `r` is the north block's south face and the south block's north face,
+and **both lay Lots along it**. Which block a Lot belongs to is therefore a property of *which side of
+the street it stands on*, which is exactly what `adr/0074` says an Address is for.
+
+The column is the right answer the day something wants this in bulk. Nothing does: a column would cost
+a clear on every `RebuildDerived` — [`0052`](0052-the-parcel.md)'s Q3 measured that pass as
+`O(capacity)` and dominated by its clears — to save ten operations on a sample of three.
 
 ### Three things the corpus caught that the compiler did not
 

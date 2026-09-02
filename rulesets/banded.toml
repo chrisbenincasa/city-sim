@@ -1,17 +1,21 @@
 # ===================================================================================================
-# banded.toml -- `minimal.toml` PLUS TWO [[band]] TABLES, and the two tables are the whole diff.
+# banded.toml -- `minimal.toml` PLUS TWO [[band]] TABLES AND THE SECOND KIND THEY DIVIDE.
 #
-# WHAT IT EXISTS TO SHOW: **that a city can hold more than one density band at once.** plans/0053
-# step 2, and adr/0025's cap arriving as a real value on a real row for the first time. Before this
-# there was no band anywhere in Borough.Core, though adr/0025 decided in 2026 that bands exist and
-# that "Lot subdivision must vary by band" -- a sentence that had been written down and undischarged
-# ever since.
+# WHAT IT EXISTS TO SHOW: **that a density band takes a permission away.** plans/0053 step 2, and
+# adr/0025's cap arriving as a real value on a real row for the first time. Before this there was no
+# band anywhere in Borough.Core, though adr/0025 decided that bands exist and that "Lot subdivision
+# must vary by band" -- a sentence that had been written down and undischarged ever since.
 #
-# 🔴 WHAT IT MUST NOT BE READ AS. **Nothing reads `admits` yet.** The bands parse, the generator
-# paints one on every block it carves, and BlockTable.Band records it -- and no Zone Rule consults
-# it, so this file builds exactly the city `minimal.toml` builds, Lot for Lot and hash apart. It is
-# a demonstration that the quantity EXISTS and is laid out plausibly, and it is not a demonstration
-# that it does anything. The step that makes a band bite is the one after this.
+# THE CASE IT SHOWS IS THE ONE WORTH SHOWING: a Lot that CARRIES the trade bit, on a block whose
+# band does not run to trade, refused by the intersection with its zone bit untouched. Land refused
+# because nobody zoned it would prove nothing, because nothing zoned it. Both cases exist in the
+# generated city and BandAdmissionTests asserts that both do -- a cap that refuses everywhere is not
+# a cap either.
+#
+# ⚠ WHAT IT MUST NOT BE READ AS. **`shopfront` is not a model of trade.** It is the smallest second
+# kind that loads -- one Bin, one Rule that fills it, one that empties it -- and it exists so that
+# `admits` has something to refuse. `provisioned.toml` is the file that models a shop; read that one
+# for anything about trade, and read nothing about the economy out of this one.
 #
 # THE LAYOUT IS THE GENERATOR'S AND NOT THIS FILE'S. SyntheticCity paints concentric rings, densest
 # at the middle, with the ring count taken from how many bands are declared here and the ring width
@@ -23,10 +27,10 @@
 # nothing in a [[band]] states a density. The last one declared is the one the generator puts in the
 # middle. Reordering these two tables is a change to the city and not a tidy-up.
 #
-# WHY TWO AND NOT THREE. Two is the fewest that makes "more than one" true, and `minimal.toml`
-# declares exactly two zone bits to divide between them -- `housing` at bit 0 by its [[zone_rule]],
-# and bit 1, which SyntheticCity paints on one block in eight for trade and which this file has no
-# Rule for. A third band would have had to repeat one of the two sets, which demonstrates nothing.
+# WHY TWO AND NOT THREE. Two is the fewest that makes "more than one" true, and there are exactly
+# two zone bits to divide between them -- bit 0, which the generator paints on every block, and bit
+# 1, which it paints on one block in eight. A third band would have had to repeat one of the two
+# sets, which demonstrates nothing.
 # ===================================================================================================
 
 # The minimal Ruleset. It models no city, and it is not the beginning of one.
@@ -149,6 +153,34 @@ occupants = 4
 business = "shop"
 parking = 8
 
+# ---------------------------------------------------------------------------------------------
+# The kind the band exists to withhold. It is deliberately the SMALLEST second kind that loads:
+# one Bin, one Rule that fills it and one that empties it, so the chain terminates and nothing
+# grows with elapsed time. It models no trade -- `provisioned.toml` is the file that does -- and
+# it is here so that `admits` has something to refuse.
+[[building]]
+name = "shopfront"
+bins = [
+    { resource = "sundries", capacity = 32, owner = "occupant" },
+]
+occupants = 1
+
+[[rule]]
+name    = "stock"
+kind    = "shopfront"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = []
+outputs = [ { scope = "local", resource = "sundries", amount = 8 } ]
+
+[[rule]]
+name    = "sell"
+kind    = "shopfront"
+rate    = 16
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "sundries", amount = 8 } ]
+outputs = []
+
 [[rule]]
 name    = "restock"
 kind    = "dwelling"
@@ -180,6 +212,17 @@ kind          = "dwelling"
 # (adr/0059); `interval` is only the grain it is delivered in. 2048 is TICKS_PER_DAY -- stating it
 # is not choosing it.
 zone          = 0
+interval      = 32
+revisit_ticks = 2048
+
+# Bit 1 is the bit SyntheticCity paints on one block in eight, and until now this file had no Rule
+# for it. With one, the two bands differ in what they let stand: `suburban` admits bit 0 only, so a
+# shopfront on an outer block is refused by the CAP rather than by the zone -- the Lot carries the
+# permission and the band takes it away. That is the whole demonstration.
+[[zone_rule]]
+name          = "trade"
+kind          = "shopfront"
+zone          = 1
 interval      = 32
 revisit_ticks = 2048
 

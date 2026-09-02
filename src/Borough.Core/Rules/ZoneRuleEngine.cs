@@ -273,7 +273,7 @@ public sealed class ZoneRuleEngine
                         continue;
                     }
 
-                    if ((_world.Lots.Zone[into[i]] & definition.Admits) == 0)
+                    if (!Admits(definition, into[i]))
                     {
                         continue;
                     }
@@ -558,6 +558,32 @@ public sealed class ZoneRuleEngine
 
         return DistrictMarkets.NoRow;
     }
+    /// <summary>
+    /// Whether this Rule may raise its kind on this Lot — <b>the Lot's permission set, the Rule's,
+    /// and the density band over it, intersected</b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>plans/0053</c> step 2.</b> Before the band term this was one <c>&amp;</c>, and
+    /// <c>adr/0025</c>'s <em>"Lot subdivision must vary by band"</em> had been decided and undischarged
+    /// since the ADR was written. A band is <b>a cap applied by intersection</b>, which is why it
+    /// joins the expression that was already here rather than becoming a predicate of its own.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It cannot make a bandless world stricter.</b> <see cref="Entities.World.BandAdmitting"/>
+    /// answers all-bits-set for every absence, so a Ruleset with no <c>[[band]]</c> computes exactly
+    /// the expression this replaced. That is the whole of why step 2 moves no State Hash.
+    /// </para>
+    /// <para>
+    /// <b>Called at both sites and not only at <see cref="Create"/>.</b> The choke point would be
+    /// enough for correctness, and would let a best-of-N draw spend its trigger scoring Lots the band
+    /// is going to refuse — <b>a Rule that picks a winner it may not build on builds nothing that
+    /// Tick</b>, and the sample would silently be worth less in the very bands that need it most.
+    /// </para>
+    /// </remarks>
+    private bool Admits(ZoneRuleDefinition definition, int lot) =>
+        (_world.Lots.Zone[lot] & definition.Admits & _world.BandAdmitting(lot)) != 0;
+
 
     /// <summary>
     /// The create predicate: <b>vacant AND permitted AND somebody in the Pool would take it</b>.
@@ -591,7 +617,7 @@ public sealed class ZoneRuleEngine
     /// </remarks>
     private void Create(ZoneRuleDefinition definition, int lot, Ticks tick)
     {
-        if ((_world.Lots.Zone[lot] & definition.Admits) == 0)
+        if (!Admits(definition, lot))
         {
             return;
         }

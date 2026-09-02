@@ -3357,6 +3357,53 @@ public sealed class World
         return slot;
     }
 
+    /// <summary>
+    /// Which zone bits the density band over a Lot lets it keep — <c>adr/0025</c>'s cap, read.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A band expresses itself as which kinds a Lot permits</b>, which is
+    /// <c>adr/0025</c>'s own sentence, so the cap is a mask intersected with the Lot's permission set
+    /// and never a separate predicate. ***A band can only ever take a permission away.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Every absence is permissive here and every one of them is a different absence.</b> A Lot
+    /// off the lattice, a Lot on a square with no Block row, a block carrying band <c>0</c>, and a
+    /// Ruleset declaring no <c>[[band]]</c> at all each return all-bits-set. They agree because a cap
+    /// applied by intersection has all-bits-set as its identity — <b>the restrictive reading would
+    /// give every Lot in every bandless world a permission set of zero and build no city at all.</b>
+    /// </para>
+    /// <para>
+    /// <b>It allocates nothing</b>, unlike <see cref="ZoneBlock"/> and <see cref="BandBlock"/>. This
+    /// is called from inside a Tick and a read must not create a row.
+    /// </para>
+    /// </remarks>
+    public ushort BandAdmitting(int lot)
+    {
+        if (!Lots.Rows.IsLive(lot))
+        {
+            return ushort.MaxValue;
+        }
+
+        if (!Space.Frontage.BlockOf(
+                Roads.Streets, Lots.East[lot], Lots.North[lot], (Space.StreetSide)Lots.Side[lot],
+                out int column, out int row))
+        {
+            return ushort.MaxValue;
+        }
+
+        if (!BlockIndex.Contains(column, row))
+        {
+            return ushort.MaxValue;
+        }
+
+        int slot = BlockIndex.Slot(column, row);
+
+        return slot == Space.BlockResidency.NotResident
+            ? ushort.MaxValue
+            : Rules.Band(Blocks.Band[slot]).Admits;
+    }
+
     /// <summary>The Block's slot at a lattice square, allocating a row if there is none.</summary>
     /// <remarks>
     /// <b>Shared by <see cref="ZoneBlock"/> and <see cref="BandBlock"/>, which are two player acts on

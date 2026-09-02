@@ -173,5 +173,81 @@ public sealed class Frontage
         return Rows.NoSlot;
     }
 
+    /// <summary>
+    /// Which lattice block a Lot belongs to — <b>the inverse of <see cref="LotSubdivider"/>'s four
+    /// faces</b>, and a pure function of state the Lot already saves.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>A POSITION ALONE CANNOT ANSWER THIS, and the side is what closes it.</b> Two blocks share
+    /// every face line: the Segment at lattice row <c>r</c> is the north block's south face and the
+    /// south block's north face, and both lay Lots along it. So a Lot at <c>north = r × block</c>
+    /// belongs to block row <c>r</c> or to <c>r − 1</c> depending on <b>which side of the Street it
+    /// stands on</b>, which is exactly what <c>adr/0074</c> says an Address is for.
+    /// </para>
+    /// <para>
+    /// <b>The four constants are <see cref="LotSubdivider.SubdivideBlock"/>'s, read backwards.</b> A
+    /// horizontal Segment runs eastward so Left is its north side, and a block takes Left of its
+    /// <em>south</em> face — therefore a Left Lot on the Segment at row <c>r</c> is block row <c>r</c>,
+    /// and a Right one is block row <c>r − 1</c>. A vertical Segment runs northward so Left is its
+    /// west side, and a block takes Right of its <em>west</em> face — so the columns invert the other
+    /// way round.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It reads no derived state and rebuilds nothing</b>, which is why <c>plans/0053</c> step 2
+    /// ships without the <c>LotTable.BlockSlot</c> column that plan proposed. A column would cost a
+    /// clear on every <c>RebuildDerived</c> — <c>FrontageRebuildCostTests</c> measured that pass as
+    /// <c>O(capacity)</c> and dominated by its clears — to save ten integer operations on a sample of
+    /// three. ***The column is the right answer the day something wants this in bulk, and nothing
+    /// does.***
+    /// </para>
+    /// </remarks>
+    /// <returns><c>true</c> when the Lot fronts a lattice Segment at all.</returns>
+    public static bool BlockOf(
+        StreetGrid streets, Tiles east, Tiles north, StreetSide side, out int column, out int row)
+    {
+        ArgumentNullException.ThrowIfNull(streets);
+
+        column = 0;
+        row = 0;
+
+        int block = streets.BlockTiles;
+
+        if (block <= 0 || east.Raw < 0 || north.Raw < 0)
+        {
+            return false;
+        }
+
+        column = IntegerMath.FloorDiv(east.Raw, block);
+        row = IntegerMath.FloorDiv(north.Raw, block);
+
+        int alongEast = east.Raw - (column * block);
+        int alongNorth = north.Raw - (row * block);
+
+        // A horizontal face. The same test Locate makes, and for the same reason: a position exactly
+        // on an intersection fronts nothing and belongs to no face.
+        if (alongNorth == 0 && alongEast != 0)
+        {
+            if (side == StreetSide.Right)
+            {
+                row--;
+            }
+
+            return row >= 0;
+        }
+
+        if (alongEast == 0 && alongNorth != 0)
+        {
+            if (side == StreetSide.Left)
+            {
+                column--;
+            }
+
+            return column >= 0;
+        }
+
+        return false;
+    }
+
     private static byte Bit(StreetSide side) => (byte)(side == StreetSide.Left ? 1 : 2);
 }
