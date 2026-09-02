@@ -623,7 +623,7 @@ internal static class StageDump
             // declared number as the denominator would report a third of the housing capacity in the
             // city as empty when it is let.
             slots += Math.Max(
-                0, world.Rules.Kind(kind).Occupants - world.BuildingBusinesses.Length(slot));
+                0, world.DeclaredOccupancy(slot) - world.BuildingBusinesses.Length(slot));
 
             if (families == 0)
             {
@@ -636,16 +636,24 @@ internal static class StageDump
     }
 
     /// <summary>
-    /// 🔴 <c>plans/0046</c>'s loose end: whether <c>[[building]] jobs = 8</c> still buys what it was
+    /// 🔴 <c>plans/0046</c>'s loose end: whether the posts a city grants still buy what they were
     /// derived to buy.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>The number was derived as <c>1000/360 × 3 = 8.33</c>, floored</b> — the world generator's
-    /// Citizens-per-Household ratio through the dwelling kind's <c>occupants = 3</c> — and
-    /// <c>plans/0023</c> recorded what the flooring bought: <em>"full employment is out of reach by
-    /// construction and the shortage flow is never trivially zero, which was the point"</em>. ⚠
-    /// <b>Every term in that derivation counts CITIZENS, and it assumes every Citizen works.</b>
+    /// 🔴 <b>THE NUMBER THIS PANEL WAS BUILT AROUND NO LONGER EXISTS.</b> Posts were
+    /// <c>[[building]] jobs = 8</c>, derived as <c>1000/360 × 3 = 8.33</c> floored — the generator's
+    /// Citizens-per-Household ratio through the dwelling kind's <c>occupants = 3</c>. Both keys are
+    /// retired: employment is a Building's <b>floor area over <c>[capacity] floor_tiles_per_job</c></b>
+    /// as of <c>plans/0053</c> step 3, so posts vary Building by Building and no single number is
+    /// there to check. <c>plans/0023</c> recorded what the old flooring bought — <em>"full employment
+    /// is out of reach by construction and the shortage flow is never trivially zero, which was the
+    /// point"</em> — and ⚠ <b>that property is now a consequence of the RATES rather than of a
+    /// floor</b>, so it holds or fails per world and this panel is the only thing that would say
+    /// which.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Every term in the old derivation counted CITIZENS and assumed every Citizen works.</b>
     /// That assumption is what <c>plans/0046</c> stage 4 retired.
     /// </para>
     /// <para>
@@ -748,22 +756,32 @@ internal static class StageDump
 
         output.WriteLine();
         output.WriteLine(
-            "  `jobs = 8` is the floor of 1000/360 x 3 — the generator's Citizens per Household");
+            "  🔴 POSTS ARE DERIVED FROM THE GROUND NOW and `jobs = 8` is retired (plans/0053 step 3).");
+        output.WriteLine(
+            "  A Building employs its floor area over [capacity] floor_tiles_per_job, so the count");
+        output.WriteLine(
+            "  varies Building by Building and the ratio below is a reading rather than an identity.");
+        output.WriteLine(
+            "  The old 8 was the floor of 1000/360 x 3 — the generator's Citizens per Household");
         output.WriteLine(
             "  through the dwelling kind's occupants — and plans/0023 recorded what the flooring");
         output.WriteLine(
-            "  bought: 0.96 posts per resident, so full employment is out of reach BY CONSTRUCTION");
+            "  bought: 0.96 posts per resident, so full employment was out of reach BY CONSTRUCTION.");
         output.WriteLine(
-            "  and the shortage is never trivially zero.");
+            "  ⚠ NOTHING GUARANTEES THAT NOW. It is a property of the two rates in the file, and this");
+        output.WriteLine(
+            "  panel is what would say a world had lost it.");
         output.WriteLine();
         output.WriteLine(
             "  🔴 BOTH FACTORS HAVE MOVED AND THE BIGGER ONE IS NOT ABOUT CHILDREN. plans/0046 recorded");
         output.WriteLine(
             "  that `Citizens per worker` left 1.00 when stage 4 stopped counting children as labour.");
         output.WriteLine(
-            "  It did not record the other, and the other is larger: `posts per Citizen` is");
+            "  It did not record the other, and the other is larger: `posts per Citizen` is the");
         output.WriteLine(
-            "  8 x DWELLINGS / Citizens, and this world used to have NO WAY AT ALL to lose a dwelling —");
+            "  standing stock's POSTS over Citizens, and this world used to have NO WAY AT ALL to");
+        output.WriteLine(
+            "  lose a dwelling —");
         output.WriteLine(
             "  adr/0069 builds while the Unplaced Pool is non-empty and nothing here ever condemned, so");
         output.WriteLine(

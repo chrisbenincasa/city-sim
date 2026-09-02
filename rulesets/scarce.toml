@@ -1,7 +1,8 @@
 # The Scarce Parking Ruleset -- minimal.toml with cars, and one space for every eight that want one.
 #
 # Everything from the next line to the banner near the end of this file is minimal.toml's own header
-# and content, kept verbatim except for ONE number (`parking`, 8 -> 1). That banner says what this
+# and content, kept verbatim except for ONE number (`floor_tiles_per_parking_space`, 12 -> 96). That
+# banner says what this
 # file is and why it exists; read that one. Nothing between here and there was written for this file.
 #
 # The minimal Ruleset. It models no city, and it is not the beginning of one.
@@ -111,7 +112,6 @@ family = "money"
 
 [[business]]
 name = "shop"
-jobs = 8
 shift_start_earliest_hour = 6
 shift_start_latest_hour   = 10
 
@@ -121,9 +121,10 @@ bins = [
     { resource = "sundries", capacity = 48, owner = "occupant" },
     { resource = "repairs",  capacity = 4 },
 ]
-occupants = 4
+tenanted = true
+# Whether it parks at all -- the count is floor area over [capacity] floor_tiles_per_parking_space.
+parked = true
 business = "shop"
-parking = 1
 
 [[rule]]
 name    = "restock"
@@ -192,6 +193,19 @@ lots_per_segment = 5
 # The most ground a Building leaves on each side of its parcel. A LENGTH and not a fraction, so
 # coverage rises with the parcel -- see minimal.toml, which carries the argument.
 setback_tiles = 2
+
+[capacity]
+# How much floor one tenancy, job or parking space takes, in Tiles -- see minimal.toml, which carries
+# the argument and the measurement. A kind says WHETHER it houses; the count derives from the ground,
+# and the three rates are what the standing city already said about a detached building, divided.
+floor_tiles_per_occupant      = 25
+floor_tiles_per_job           = 3
+# THE ONE NUMBER THIS FILE CHANGES, and it moved tables at plans/0053. It was `[[building]]
+# parking`, 8 -> 1: a count on the dwelling kind. It is the city's parking minimum now -- how much
+# floor a Building must have per space it is given -- and 96 against minimal.toml's 12 is the same
+# scarcity said the way a planning code says it. ⚠ THE RATIO IS WHAT THIS FILE MEANS, not the digits:
+# eight times the floor per space, so a dwelling that parked eight parks one.
+floor_tiles_per_parking_space = 96
 
 [parking]
 radius_metres = 400

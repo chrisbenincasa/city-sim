@@ -196,8 +196,10 @@ public partial class Main : Node3D
     /// The tallest a Building is drawn before jitter — <b>what the setback is derived against.</b>
     /// </summary>
     /// <remarks>
-    /// A shipped kind declares <c>occupants = 3</c>, so this is the height the shell was framed and
-    /// lit for. It is not a cap: a kind declaring more is drawn taller.
+    /// Three storeys is the height the shell was framed and lit for. It is not a cap: a Lot whose
+    /// pattern gives it more is drawn taller, and <c>plans/0053</c>'s ladder runs well past three.
+    /// ⚠ <b>This sentence named <c>[[building]] occupants = 3</c> until step 3 retired the key</b>;
+    /// the framing did not move, so the number is kept and its false derivation is gone.
     /// </remarks>
     private const float BuildingHeightMetres = 3f * StoreyMetres;
 
@@ -2121,15 +2123,16 @@ public partial class Main : Node3D
     /// <summary>Every standing Building, at its Lot, at the size its kind implies.</summary>
     /// <remarks>
     /// <para>
-    /// ⚠ <b>THE HEIGHT IS DERIVED FROM THE KIND AND THE JITTER IS THE RENDERER'S.</b>
-    /// <c>[[building]] occupants</c> is how many Households a Building of that kind holds
-    /// (<c>adr/0068</c>), so it is the one thing the city already says about how big a Building is.
-    /// 🔴 ⚠ <b>THIS SAID "every shipped kind declares 3" AND THAT WAS WRONG</b> — the tuner read the
-    /// files and found <b>4</b> in 28 declarations, 3 in three and 1 in three, so the derivation
-    /// already varies the picture and <c>CLAUDE.md</c>'s constants table is wrong by the same 3.
-    /// ***A number quoted from memory about a file nobody re-read***, which is what the panel was
-    /// built to stop. The derivation stands either way: the day a Ruleset declares a kind that holds
-    /// thirty, the shell draws a tower without being told to.
+    /// ⚠ <b>THE HEIGHT IS THE LOT'S STOREY COUNT AND THE JITTER IS THE RENDERER'S.</b> The block's
+    /// pattern states how tall to build (<c>plans/0053</c>), so the shell reads a number the city
+    /// already holds rather than inferring one. 🔴 <b>IT READ <c>[[building]] occupants</c> UNTIL
+    /// step 3 RETIRED THAT KEY</b>, and the read did not fail — <c>BuildingKindDefinition</c> simply
+    /// stopped being written and every kind answered <b>zero</b>, so the whole city would have drawn
+    /// one storey tall. ***A dead read returns a plausible number***, which is why the member was
+    /// deleted rather than left defaulting. ⚠ <b>The earlier correction here is kept because its
+    /// lesson outlived its subject</b>: this remark once said *every shipped kind declares 3* and the
+    /// files said <b>4</b> in 28 declarations, 3 in three and 1 in three — ***a number quoted from
+    /// memory about a file nobody re-read.***
     /// </para>
     /// <para>
     /// <b>The jitter is <see cref="DepthFillLow"/>' class of thing and is labelled as one</b> — a
@@ -2208,9 +2211,19 @@ public partial class Main : Node3D
             ulong shape = Scramble(id);
 
             byte kind = table.Kind[slot];
-            int storeys = _world.Rules.Declares(kind)
-                ? Math.Max(1, _world.Rules.Kind(kind).Occupants)
-                : 1;
+
+            // 🔴 THE HEIGHT IS THE LOT'S OWN STOREY COUNT NOW, AND IT WAS THE KIND'S OCCUPANCY
+            // (plans/0053 step 3). That derivation had the shell reading a Ruleset number to guess
+            // at a shape; the block's pattern states the storeys directly, and a Building's floor
+            // area -- the thing its occupancy is now DERIVED from -- is this number times the
+            // footprint. So the picture and the capacity are the same two multiplicands rather than
+            // two guesses that happened to agree. 🔴 AND THE SHELL DID NOT COMPILE UNTIL THIS EDIT:
+            // step 3 deleted `BuildingKindDefinition.Occupants` outright, so the three reads of it
+            // in this file were a build error nobody saw. Borough.Godot is NOT IN THE SOLUTION, so
+            // `dotnet build` and the whole 2,679-test lane were green over a shell that could not
+            // start. ***A project outside the build is a project outside every gate*** -- see the
+            // `drive` skill's F26, which is this failure arriving through a stale binary instead.
+            int storeys = Math.Max(1, (int)lots.Storeys[lot]);
 
             // 0.55x to 1.85x on the height.
             float tall = storeys * StoreyMetres * (0.55f + ((shape & 0xFFu) / 255f * 1.3f));
@@ -2288,7 +2301,7 @@ public partial class Main : Node3D
             // HOW MUCH OF THE KIND'S ROOM IS TAKEN, which the panel already prints as "3 of 4
             // occupied" and which nothing in the picture has ever said. ⚠ The ceiling counts
             // tenants of any kind (adr/0147), so a shop takes one of them.
-            int room = _world.Rules.Declares(kind) ? _world.Rules.Kind(kind).Occupants : 0;
+            int room = _world.DeclaredOccupancy(slot);
             float taken = room > 0
                 ? Mathf.Clamp(_world.Occupants.Length(slot) / (float)room, 0f, 1f)
                 : 1f;
@@ -3371,7 +3384,7 @@ public partial class Main : Node3D
 
         byte kind = _world.Buildings.Kind[nearest];
         string named = _names.Kind(kind) ?? $"kind {kind}";
-        int room = _world.Rules.Declares(kind) ? _world.Rules.Kind(kind).Occupants : 0;
+        int room = _world.DeclaredOccupancy(nearest);
         int held = _world.Occupants.Length(nearest);
         int trades = _world.BuildingBusinesses.Length(nearest);
 

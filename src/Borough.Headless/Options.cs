@@ -1126,16 +1126,17 @@ internal sealed class Options
         }
 
         // --zones' refusal for --zones' reason, and one more of its own. Employment is content twice
-        // over: [jobs] states the cadence and [[building]] jobs states the posts, so a Ruleset that
-        // declares neither produces a city in which nobody can ever be employed -- and a grid of
+        // over: [jobs] states the cadence and [capacity] floor_tiles_per_job states how much floor
+        // one post takes, so a Ruleset that declares neither produces a city in which nobody can ever
+        // be employed -- and a grid of
         // unemployment would read as a broken assignment pass rather than as a file that grants no
         // work.
         if (commute && rulesets.Count == 0)
         {
             complaint = "--commute needs --ruleset PATH. Employment is content: [jobs] states how "
-                      + "often the assignment pass looks and [[building]] jobs states how many "
-                      + "posts a Building has, and neither has a default. A city with no jobs is a "
-                      + "picture of nothing.";
+                      + "often the assignment pass looks and [capacity] floor_tiles_per_job states "
+                      + "how much floor one post takes, and neither has a default. A city with no "
+                      + "jobs is a picture of nothing.";
             return false;
         }
 

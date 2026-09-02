@@ -74,13 +74,9 @@
             "description": "What this kind of Building is called. [[zone_rule]] kind and [[rule]] kind refer to it by this name.",
             "type": "string"
           },
-          "occupants": {
-            "description": "How many tenants one Building of this kind holds — Households and Businesses share the one ceiling. Absent means the kind houses nobody, which is what most kinds are. Lowering it below what a standing Building already holds evicts the overflow.",
-            "type": "integer"
-          },
-          "parking": {
-            "description": "How many Vehicles a Building of this kind can park. Zero is meaningful and is the same as omitting the key — a tower with no parking is a real building.",
-            "type": "integer"
+          "parked": {
+            "description": "Whether Buildings of this kind carry parking at all. Whether, and never how many: the count is the Building's floor area over [capacity] floor_tiles_per_parking_space. It exists so that a detached house may carry a driveway where a tower may not — a parking minimum is a property of the city, and an exemption from it is a property of the kind. Absent means the kind provides none.",
+            "type": "boolean"
           },
           "serves": {
             "description": "Which Attended Need a Household travelling here satisfies — education or health. Stating it is what makes the kind a service Building; absence means it is not one.",
@@ -93,6 +89,10 @@
           "tenancy_ends_after_days": {
             "description": "How many Days a tenant's own Rules may starve continuously before the tenancy ends and the tenant is put out. Independent of the premises' threshold: a kind may state either, both or neither. Absent means tenancies here never end.",
             "type": "integer"
+          },
+          "tenanted": {
+            "description": "Whether Buildings of this kind take tenants at all — Households and Businesses share the one ceiling. It says whether and never how many: the count is the Building's own floor area over [capacity] floor_tiles_per_occupant, so two Buildings of one kind on differently-sized ground hold different numbers. Absent means the kind houses nobody, which is what most kinds are.",
+            "type": "boolean"
           }
         }
       }
@@ -102,10 +102,6 @@
       "items": {
         "type": "object",
         "properties": {
-          "jobs": {
-            "description": "How many Citizens a Business of this trade employs. It counts Citizens and never Households. Absent means the trade employs nobody, which is a coherent thing to declare.",
-            "type": "integer"
-          },
           "name": {
             "description": "What this trade is called. [[building]] business names it.",
             "type": "string"
@@ -126,6 +122,23 @@
             "description": "What one job at this trade pays for one Day worked, as a flat rate. Paired with pay_period_days: each is half a mechanism alone. Absent means the trade pays nothing.",
             "type": "integer"
           }
+        }
+      }
+    },
+    "capacity": {
+      "type": "object",
+      "properties": {
+        "floor_tiles_per_job": {
+          "description": "How much floor one job takes, in Tiles. A Business employs its share of its premises' floor area divided by this, its share being one of the Building's tenancies — so one trade employs differently in a terrace and in a slab. Absent means nobody in this city is employed anywhere.",
+          "type": "integer"
+        },
+        "floor_tiles_per_occupant": {
+          "description": "How much floor one tenancy takes, in Tiles. A Building's occupancy is its floor area — its footprint on every storey — divided by this, so it varies with the ground the Building stands on rather than with its kind. Omitting the whole [capacity] table means no Building in the city holds anybody.",
+          "type": "integer"
+        },
+        "floor_tiles_per_parking_space": {
+          "description": "How much floor a Building must have per parking space it is given, in Tiles. It is a parking minimum, which is a property of a city rather than of a building. Absent means the city has no parking at all.",
+          "type": "integer"
         }
       }
     },

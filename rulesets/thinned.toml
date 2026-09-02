@@ -84,7 +84,6 @@ family = "money"
 
 [[business]]
 name = "shop"
-jobs = 8
 shift_start_earliest_hour = 6
 shift_start_latest_hour   = 10
 
@@ -97,9 +96,10 @@ bins = [
 condemn_after_days = 8
 sheds_occupant_after_days = 1
 collapses_after_days = 1
-occupants = 4
+tenanted = true
+# Whether it parks at all -- the count is floor area over [capacity] floor_tiles_per_parking_space.
+parked = true
 business = "shop"
-parking = 8
 
 [[rule]]
 name    = "restock"
@@ -168,6 +168,14 @@ lots_per_segment = 5
 # The most ground a Building leaves on each side of its parcel. A LENGTH and not a fraction, so
 # coverage rises with the parcel -- see minimal.toml, which carries the argument.
 setback_tiles = 2
+
+[capacity]
+# How much floor one tenancy, job or parking space takes, in Tiles -- see minimal.toml, which carries
+# the argument and the measurement. A kind says WHETHER it houses; the count derives from the ground,
+# and the three rates are what the standing city already said about a detached building, divided.
+floor_tiles_per_occupant      = 25
+floor_tiles_per_job           = 3
+floor_tiles_per_parking_space = 12
 
 [parking]
 radius_metres = 400

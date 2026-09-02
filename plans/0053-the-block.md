@@ -636,6 +636,176 @@ gardens between the houses, and a courtyard block with trees standing in the cou
 
 ---
 
+## What capacity shipped — *2026-09-02*
+
+🔴 **A BUILDING'S OCCUPANCY STOPPED BEING A NUMBER SOMEBODY WROTE DOWN AND BECAME A PROPERTY OF THE
+GROUND IT STANDS ON.** `[[building]] occupants`, `jobs` and `parking` are retired. What a Building
+holds is its **floor area** — footprint × storeys — over a rate in the new `[capacity]` table:
+`floor_tiles_per_occupant`, `floor_tiles_per_job`, `floor_tiles_per_parking_space`. What a *kind*
+declares now is **whether it does the thing at all**: `[[building]] tenanted` and `parked`, two truth
+keys, a shape this loader had never had. ***Capacity is geometry; behaviour is content.***
+
+**The evidence was in `rulesets/` the whole time.** Thirty-nine `occupants` declarations across the
+shipped files carried **two** distinct kinds and **three** distinct values; thirty-two `jobs`
+declarations carried two. ***A number repeated thirty times is not thirty decisions*** — and a game
+whose cities are meant to run to a million people cannot ask an author to write one down for every
+combination of form and use. That was the argument the user made when this step was authorised, and
+it is the one the files turned out to have been making already.
+
+### 🔴 Every rate is a division and not a choice
+
+**The anchor is the city that already stood.** A Building on a Detached parcel at the shipped lattice
+— `block_tiles = 32`, `lots_per_segment = 5` — has a 78-Tile parcel, a **51-Tile footprint** and two
+storeys, so **102 Tiles of floor**. That Building is the one 28 of the 34 shipped kinds described, and
+what they said about it was 4 occupants, 8 jobs, 8 parking spaces. So `102 / 4 = 25`, `25 / 8 = 3`
+(one tenancy's share, because a Business occupies one tenancy — `adr/0141`), `102 / 8 = 12`.
+
+⚠ **So the suburb is the city it was and everything denser is new.** The same three rates give a
+perimeter block **11**, a back-to-back **24**, a courtyard **35** and a slab **107**, and nobody wrote
+one of those down. Measured on the standing generator: `minimal.toml` at 2,000 Citizens produces
+Buildings holding **1 to 10** (`1×26 2×54 3×51 4×31 5×25 6×27 7×13 8×6 9×8 10×4`), and
+`platted.toml` at 10,000 produces **thirty-four distinct occupancies from 1 to 35**. ***A number
+nobody authored, varying because the ground varies, is what this step was for.***
+
+### 🔴 The daylight bound, which a superblock demanded
+
+`BuildingPlan.DaylightTiles = 4`, and it is a **design constant like the Cell rather than Ruleset
+data**. Without it a pattern with a large parcel produces one enormous Building: `severance.toml` at
+`block_tiles = 256` gave a Detached parcel of **48×48**, whose floor divided by 25 held about **150
+Households**, so 400 people lived in **two Buildings** and the file stopped severing anything.
+
+**The bound is daylight and the derivation is a room's.** A habitable room reaches about 7 m from a
+window, so a plan two rooms deep is about 16 m — **4 Tiles**. `HabitableTiles` therefore hollows out
+any rectangle deeper than that on both axes and counts the ring. ⚠ **It changes the shipped lattice
+only for slabs**: 16×16 keeps 192 of 256, and every smaller footprint is entirely within reach of a
+wall already. ***A capacity derived from area needs a bound that area does not carry.***
+
+### 🔴 Three places had silently written the old fixed 4, and only varying it found them
+
+`rulesets/maintained.toml` abandoned **31 of 263 Buildings** the first time occupancy varied. The
+cause was three separate copies of the retired constant: a consumer Rule scaled its draw by
+`derived = "occupancy"`, a producer Rule's `max` was 4, and the Bin between them had `capacity = 4`.
+⚠ ***A consumer whose draw derives from the ground, feeding out of a store that does not, is
+unsatisfiable by construction*** — and the Bin was the copy nobody thought of as a copy. All three
+reverted to fixed applies, and the file's header now says the diff against `declining.toml` is
+**exactly one rule** rather than describing a mechanism it no longer has.
+
+### 🔴 An estimate of a floored quantity left 23 of 360 Households homeless
+
+`SyntheticCity.WantedBuildings` estimated `households / typical` and subdivided that many blocks.
+`CapacityRuleset.Holds` **floors**, so the estimate was systematically short and the difference queued
+in the Unplaced Pool for ever — `adr/0006`'s shape produced by arithmetic rather than by a missing
+sink, which is the second time this generator has done exactly that. ***The repair is to stop
+estimating***: `Subdivide` now counts the room it has actually carved, Lot by Lot, and stops when it
+has enough. `WantedBuildings` and `TypicalOccupancy` are deleted.
+
+⚠ **Vacancy is now a DERIVED property of the generator rather than an accident of the estimate.** The
+pass finishes the block it was crossing when it reached the population and then lays **one more whole
+block**. A city built to exactly its population accepts no arrival and founds no Business, so the
+slack has to be there — and it has to be a *rule* rather than a margin somebody picked.
+
+### 🔴 A derived ceiling of 1 met `adr/0147`, and seven Households were evicted on arrival
+
+`adr/0147` has **one ceiling count both kinds of tenant**, so a Building holding a Business has one
+fewer tenancy for Households. On small ground the derived ceiling is **1**, and `Holds` floors at 1
+for any positive floor — so the Building took a Household beside its Business and `EvictOverflow`
+removed it the same Tick. **Two repairs, and both are about a distinction that did not exist while
+the number was authored**: `Room`/`RoomOn` now tell *undeclared* from *a real zero* rather than
+flooring both to 1, and `World.CreateBuilding` only gives a kind its own trade where the ceiling is
+**above 1**. ⚠ **The mechanism that reported this was written for an occasion nobody had ever
+staged** — a designer lowering a Ruleset number — and `adr/0068` carries a banner saying so.
+
+### 🔴 The floor areas are about 4× a real Building's, and the parcels are right
+
+⚠ **`[capacity] floor_tiles_per_occupant = 25` is not what a dwelling measures.** A Tile is 16 m², so
+a real 96 m² dwelling is **6 Tiles** and this is four of them. The rate is absorbing a defect one
+layer down: `[lots] setback_tiles` is a **LENGTH**, so an 8 m margin is negligible against a 48 m-deep
+parcel and a Detached Building covers **65%** of its plot where a real one covers a fifth to a third.
+
+***Anchoring on the standing city is what keeps the occupancies right while the footprint is wrong***
+— the two errors are reciprocal and their product is the city that already worked. ⚠ **So the two
+numbers must move together or not at all.** A `floor_tiles_per_occupant` of about 3 would be the real
+figure, and adopting it against today's footprints would put about eight times the population in the
+same Buildings. **This is filed rather than worked around**, per
+[`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md),
+and `rulesets/minimal.toml`'s own header states it in the file where the rate is authored.
+
+### 🔴 `Borough.Godot` DID NOT COMPILE, and 2,679 green tests said nothing
+
+The step deleted `BuildingKindDefinition.Occupants`. **Three sites in `Main.cs` read it** — the
+Building height, the massing's occupancy tint and the click readout — so the shell was a build error
+for the length of the step. ⚠ **`Borough.Godot` is not in the solution**, so `dotnet build`, the
+assertion lane and the full suite were all green over a shell that could not start. ***A project
+outside the build is a project outside every gate.*** The `drive` skill's **F26** already names the
+neighbouring failure — a stale binary starting anyway and drawing an old city — and this is the same
+hole reached from the other side.
+
+✅ **The repair improves the drawing rather than restoring it.** The height now reads
+**`LotTable.Storeys`** — the block pattern's own number — instead of inferring a shape from a
+Ruleset's occupancy count. So the picture's height and the Building's capacity are the *same two
+multiplicands*, footprint and storeys, rather than two guesses that happened to agree.
+
+### ⚠ Two markets stopped differing, and the fixture moved rather than the assertion
+
+`MarketDumpTests` asserts the **difference** between `provisioned.toml` and `oversupplied.toml`: one
+under a Day's cover and flat at the ceiling, the other glutted and falling. At 2,000 Citizens the
+glutted world came under cover too — **652 of stock against a draw of 699** — and printed the scarce
+world's column. Swept at the shipped horizon, the band is **3,000 upward**; the fixture sits at
+**4,000**, where the cover ratios are 1.75× and 0.16×.
+
+🔴 **Time separates these two worlds as well, and that is why the horizon was not the lever.** Run
+either at 98,304 Ticks and it gluts — `provisioned.toml` reaches **100 → 21**, because stock
+accumulates while the draw decays. ***A contrast that only holds at one moment is not a contrast
+between the files.***
+
+⚠ **And a District with NO DRAW AT ALL is a third state the dump was reading as the first.** Cover is
+stock over a daily draw, so `Held > Rate` calls a row glutted the instant it holds anything and
+nobody buys. `provisioned.toml` grew exactly such a row — 2 sellers, 188 sundries, a rate of nothing —
+and `--market` printed a **defect report about a defect that had been fixed**. The dump now counts
+and names it separately. ***A degenerate denominator is named, never quietly asserted against.***
+
+### ⚠ The wage-period spread is a FINDING and it is not explained
+
+`WageTests` compares what a city pays over a fixed run at pay periods of 14, 7 and 1 Day. The reading
+was **2,701,864 / 2,809,328 / 2,950,152** — a 9% spread the remark attributed to a fixed-length run
+catching a different amount of the last part-period. It now reads **6,946,816 / 8,007,680 /
+9,352,912**: **35%**, same direction. ⚠ **The run was moved to 56 Days, a whole number of every period
+under test, so the part-period is eliminated by construction and the spread survives it.** The old
+explanation was never checked and is wrong.
+
+**Two candidates are named and neither is asserted** ([`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)):
+a longer period presents a **larger lump** against the employer's balance, which `adr/0142` makes the
+source of every wage — and this step made Businesses fewer and larger, which would amplify exactly
+that; or entitlement is lost when a job ends between paydays, which the population's churn would also
+amplify. The band is **widened to bound the order** rather than tightened around a number nobody has
+explained.
+
+### What it cost, and what it bought
+
+**122 files: 34 Rulesets, 62 test files, the loader, the generator, the world, the shell and five
+golden artefacts.** The State Hash moves because occupancy moves, which is a design change under
+`05 §4` and is the point.
+
+⚠ **All five golden artefacts were re-recorded, which is the widest re-baseline that directory
+records** — every shipped Ruleset gained `[capacity]`, so all three baseline content hashes moved at
+once. The Ruleset hashes had to be moved **before** the traces could be regenerated: a session log
+records what it opens on and what it reloads into, and the runner refuses a replay whose Ruleset does
+not match. ***The refusal is the feature; the ordering is what it costs.*** `world-hash.txt` moved on
+its hash and on **none of its five counts**, which is this change's honest signature — the fixture
+places its Buildings by hand, so what moved is what each row *means*.
+
+⚠ **`adr/0048`'s count of record is UNCHANGED at 223, and three refusals went out while three came
+in.** ***The first recount where the number is right and every reason behind it moved.*** Out:
+`occupants`, `jobs`, `parking`, all three into `RefuseRetired`. In: a second `[capacity]` table, one
+shared range check over the three rates, and one over the two truth keys.
+
+🔴 **`adr/0068`'s title is half-falsified** — occupancy is no longer declared by a kind — **and its
+eviction clause is stronger than when it was written.** The document carries a banner and
+[`plans/0012`](0012-corpus-audit.md) carries the correction owed, which cannot be paid while
+[`plans/0045`](0045-amnesty.md) forbids a new number and `PROCESS.md` puts the claim in the filename.
+
+---
+
 ## What this does to [`0052`](0052-the-parcel.md)
 
 ✅ **Nothing in it is withdrawn.** G1–G8 stand, the Sealing measurements stand, Q3's answer stands, and

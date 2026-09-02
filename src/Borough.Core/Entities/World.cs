@@ -3001,7 +3001,17 @@ public sealed class World
         // plans/0052 stage 1. After the block index, because it looks a Lot's block up in it; after
         // Frontage.Rebuild, because a Lot with no Address has no parcel and this reads that decision
         // rather than making it again.
-        RebuildParcels();
+        // 🔴 RebuildParcels IS NOT CALLED HERE ANY MORE, and the columns it writes are SAVED
+        // (plans/0053). A parcel is the partition the player's block produced, not a partition the
+        // lattice would produce now -- which is adr/0079's shape one table over: a Lot standing on
+        // ground its lattice no longer explains keeps the ground, exactly as a Building keeps an
+        // Address it can no longer reach. The carve site writes it; a re-plat rewrites it; a load
+        // restores it.
+        //
+        // ⚠ WHAT FORCED THE MOVE was a Lot with no frontage. Frontage is the input the derivation
+        // runs on, so an unfronted Lot's ground cannot be recomputed at all -- and once occupancy
+        // divided that ground, a rebuild that cleared it was DELETING state rather than recomputing
+        // it. DerivedRebuildAuditTests said so on the day, which is what it is for.
 
         // The Lot's reverse index. Not ordered like the four lists below it — a Lot holds at most one
         // Building, so there is nothing to insert in order, and a second Building naming the same Lot
@@ -3297,10 +3307,28 @@ public sealed class World
         int atColumn = int.MinValue;
         int atRow = int.MinValue;
         int count = 0;
+        int atStoreys = 0;
 
         for (int slot = 0; slot < Lots.Rows.SlotCount; slot++)
         {
             if (!Lots.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            // 🔴 AN UNFRONTED LOT IS LEFT ALONE RATHER THAN CLEARED, and the distinction is the
+            // whole of why this test sits before the zeroing rather than after it. Frontage is the
+            // input this derivation runs on -- no frontage, no block, no parcel -- so a walk that
+            // zeroed first would not be *recomputing* such a Lot's ground, it would be *deleting*
+            // it, which is the opposite of what a rebuild is for. A Lot with frontage and no
+            // matching parcel still clears below, because there the derivation ran and answered
+            // nothing.
+            //
+            // ⚠ WHAT THIS COSTS IS HONEST AND SMALL: these columns are Derived, so an unfronted
+            // Lot's ground does not survive a save -- exactly as its Address does not (adr/0079).
+            // The subdivider never makes one; LotTable.Create does, for fixtures, and plans/0053
+            // gave that ground a consumer when occupancy started dividing it.
+            if (ceiling <= 0 || !Lots.HasFrontage(slot))
             {
                 continue;
             }
@@ -3313,10 +3341,9 @@ public sealed class World
             Lots.FootprintNorth[slot] = Quantities.Tiles.Zero;
             Lots.FootprintWide[slot] = Quantities.Tiles.Zero;
             Lots.FootprintDeep[slot] = Quantities.Tiles.Zero;
+            Lots.Storeys[slot] = 0;
 
-            if (ceiling <= 0
-                || !Lots.HasFrontage(slot)
-                || !Space.Frontage.BlockOf(
+            if (!Space.Frontage.BlockOf(
                     Roads.Streets, Lots.East[slot], Lots.North[slot], (Space.StreetSide)Lots.Side[slot],
                     out int column, out int row, out Space.BlockFace face)
                 || !BlockIndex.Contains(column, row))
@@ -3328,11 +3355,16 @@ public sealed class World
             {
                 int blockSlot = BlockIndex.Slot(column, row);
 
+                Space.BlockPattern pattern = blockSlot == Space.BlockResidency.NotResident
+                    ? Space.BlockPattern.Detached
+                    : PatternOf(blockSlot, out _);
+
                 count = blockSlot == Space.BlockResidency.NotResident
                     ? 0
                     : Space.BlockPatterns.Carve(
-                        PatternOf(blockSlot, out _), column, row, blockTiles, perSegment, parcels);
+                        pattern, column, row, blockTiles, perSegment, parcels);
 
+                atStoreys = Space.BlockPatterns.Storeys(pattern, blockTiles, perSegment);
                 atColumn = column;
                 atRow = row;
             }
@@ -3360,6 +3392,8 @@ public sealed class World
                 Lots.FootprintNorth[slot] = north;
                 Lots.FootprintWide[slot] = wide;
                 Lots.FootprintDeep[slot] = deep;
+                Lots.Storeys[slot] = Borough.Core.Rules.LotRuleset.StoreysOn(
+                    Key, parcels[i].East, parcels[i].North, atStoreys);
 
                 break;
             }
@@ -3962,7 +3996,7 @@ public sealed class World
         // is permanently full rather than a Building that has none, and the two read differently in
         // every diagnosis adr/0009 exists to give.
         if (!Buildings.HasCarPark(buildingSlot)
-            && TryDeclaredParking(kind, out int spaces)
+            && TryDeclaredParking(kind, buildingSlot, out int spaces)
             && spaces > 0)
         {
             CreateCarPark(building, spaces);
@@ -3981,7 +4015,22 @@ public sealed class World
         int armed = 0;
         byte trade = Rules.Kind(kind).Business;
 
-        if (trade != 0 && !HoldsOwnTrade(buildingSlot))
+        // 🔴 AND ONLY WHERE THE GROUND LEAVES ROOM TO LIVE BESIDE IT (plans/0053). The trade takes a
+        // tenancy exactly as a Household does, so on the smallest parcels -- the ones whose floor
+        // divides into ONE tenancy -- it took the only one and the dwelling housed nobody. That is
+        // not a dwelling with a shop in it, it is a shop wearing a dwelling's kind; and in a file
+        // stating `condemn_after_days` the empty shell then became a ruin, which is how this was
+        // found: `maintained.toml`, whose whole claim is that a maintained city loses nothing, was
+        // generating 35 of its 263 Buildings pre-derelict.
+        //
+        // ⚠ AN UNDECLARED CEILING KEEPS THE OLD BEHAVIOUR, and the asymmetry is the same one Room
+        // draws: a world with no [capacity] has no ceiling to be over, so nothing here may refuse on
+        // one. ***A ceiling that counts both kinds of tenant (adr/0147) has to be consulted by both
+        // of the things that take one***, and this site was the half that never asked.
+        bool roomBeside =
+            !TryDeclaredOccupancy(kind, buildingSlot, out int ceiling) || ceiling > 1;
+
+        if (trade != 0 && roomBeside && !HoldsOwnTrade(buildingSlot))
         {
             // The origin is written here rather than inside CreateBusiness, because this is the one
             // caller that has premises to claim. A founded Business is created unpremised and a
@@ -5698,7 +5747,7 @@ public sealed class World
             // says *the Ruleset no longer describes this*, which is a statement about a file rather
             // than about the city (CONTEXT.md -> Dereliction).
             if (Buildings.Rows.TryResolve(CarParks.Owner[slot], out int buildingSlot)
-                && TryDeclaredParking(Buildings.Kind[buildingSlot], out int spaces))
+                && TryDeclaredParking(Buildings.Kind[buildingSlot], buildingSlot, out int spaces))
             {
                 CarParks.SetCapacity(slot, spaces);
             }
@@ -5712,7 +5761,7 @@ public sealed class World
     /// <remarks>
     /// <para>
     /// <b>The two negative cases are different and must stay so</b> (<c>adr/0068</c>). A declared
-    /// kind holding <c>occupants = 0</c> houses nobody, which is what a factory means. A kind the
+    /// kind stating <c>tenanted = false</c> houses nobody, which is what a factory means. A kind the
     /// Ruleset does not mention is <b>derelict</b> (<c>02 §4.3</c>), and it has no ceiling: it keeps
     /// the Occupants it has and admits nobody new. Collapsing them would make a designer deleting a
     /// paragraph evict a District — the loudest possible consequence for the quietest possible edit.
@@ -5727,7 +5776,7 @@ public sealed class World
     /// away — which is the thing <c>adr/0064</c> was about.
     /// </para>
     /// </remarks>
-    internal bool TryDeclaredOccupancy(byte kind, out int occupants)
+    internal bool TryDeclaredOccupancy(byte kind, int buildingSlot, out int occupants)
     {
         if (!Rules.Declares(kind))
         {
@@ -5735,8 +5784,36 @@ public sealed class World
             return false;
         }
 
-        occupants = Rules.Kind(kind).Occupants;
+        // 🔴 THE KIND SAYS WHETHER, THE GROUND SAYS HOW MANY. `occupants = 4` was a number on the
+        // kind, so every dwelling in the world held four Households whatever it stood on -- and the
+        // shell drew them all four storeys tall for the same reason. What the Ruleset declares now is
+        // that the kind takes tenants at all; the count is floor area over a rate.
+        occupants = Rules.Kind(kind).Tenanted
+            ? CapacityRuleset.Holds(FloorTilesOf(buildingSlot), Rules.Capacity.FloorTilesPerOccupant)
+            : 0;
+
         return true;
+    }
+
+    /// <summary>
+    /// <b>How much floor a Building has</b>, in Tiles — its footprint on every storey.
+    /// </summary>
+    /// <remarks>
+    /// <b>The one quantity every capacity divides</b>, so occupancy, employment and parking move
+    /// together when the ground moves. ⚠ <b>Zero where the Building's Lot is gone or unfronted</b>,
+    /// which is <c>adr/0079</c>'s Building standing on an Address it no longer has — and a Building
+    /// with no ground under it holds nobody rather than holding a default.
+    /// </remarks>
+    internal int FloorTilesOf(int buildingSlot)
+    {
+        if (buildingSlot < 0 || !Buildings.Rows.IsLive(buildingSlot))
+        {
+            return 0;
+        }
+
+        return Lots.Rows.TryResolve(Buildings.Lot[buildingSlot], out int lotSlot)
+            ? Lots.FloorTiles(lotSlot)
+            : 0;
     }
 
     /// <summary>
@@ -5746,9 +5823,12 @@ public sealed class World
     /// <remarks>
     /// <para>
     /// <b><see cref="TryDeclaredOccupancy"/> minus the trade the kind comes with</b>
-    /// (<c>adr/0148</c>). One ceiling counts both kinds of tenant (<c>adr/0147</c>), so a kind
-    /// declaring <c>occupants = 4</c> and a trade holds <b>three</b> families — and ***the two
-    /// questions stopped having the same answer on the day a premises could come with a shop.***
+    /// (<c>adr/0148</c>). One ceiling counts both kinds of tenant (<c>adr/0147</c>), so a Building
+    /// whose ground gives it four and whose kind comes with a trade holds <b>three</b> families —
+    /// and ***the two questions stopped having the same answer on the day a premises could come with
+    /// a shop.*** ⚠ <b>The ceiling is derived now</b> (<c>plans/0053</c> step 3), so this subtraction
+    /// meets a <b>1</b> on small ground where it used to meet a constant — see
+    /// <see cref="CreateBuilding"/>, which is where that turned into an eviction.
     /// </para>
     /// <para>
     /// 🔴 <b>Anything sizing a city must ask THIS one</b>, and a caller that asks the other builds
@@ -5763,9 +5843,9 @@ public sealed class World
     /// the live question is <see cref="HasRoom"/>, which counts what is actually there.
     /// </para>
     /// </remarks>
-    internal bool TryDeclaredHousing(byte kind, out int households)
+    internal bool TryDeclaredHousing(byte kind, int buildingSlot, out int households)
     {
-        if (!TryDeclaredOccupancy(kind, out int occupants))
+        if (!TryDeclaredOccupancy(kind, buildingSlot, out int occupants))
         {
             households = 0;
             return false;
@@ -5861,7 +5941,7 @@ public sealed class World
     /// </remarks>
     public bool HasRoom(int buildingSlot) =>
         !Buildings.IsAbandoned(buildingSlot)
-        && TryDeclaredOccupancy(Buildings.Kind[buildingSlot], out int occupants)
+        && TryDeclaredOccupancy(Buildings.Kind[buildingSlot], buildingSlot, out int occupants)
         && Tenants(buildingSlot) < occupants;
 
     /// <summary>
@@ -5960,7 +6040,7 @@ public sealed class World
 
             byte kind = Buildings.Kind[slot];
 
-            if (TryDeclaredOccupancy(kind, out int allowed))
+            if (TryDeclaredOccupancy(kind, slot, out int allowed))
             {
                 // adr/0147: the ceiling counts tenants of any kind, so the loop drains until the SUM
                 // fits and the draw ranges over both lists. adr/0141's own words -- "an over-capacity
@@ -5998,7 +6078,7 @@ public sealed class World
                 continue;
             }
 
-            if (TryDeclaredJobs(Businesses.Kind[slot], out int posts))
+            if (TryDeclaredJobs(Businesses.Kind[slot], slot, out int posts))
             {
                 while (Workers.Length(slot) > posts)
                 {
@@ -6120,7 +6200,7 @@ public sealed class World
     /// occupancy — it is read at a guard, and the Building already carries its
     /// <see cref="BuildingTable.Kind"/>.
     /// </remarks>
-    internal bool TryDeclaredJobs(byte kind, out int jobs)
+    internal bool TryDeclaredJobs(byte kind, int businessSlot, out int jobs)
     {
         // ⚠ The BUSINESS kind as of milestone 27 task 7 (adr/0141): a Citizen is employed by a trade
         // and not by premises, so the ceiling is declared by the trade. The derelict rule below is
@@ -6133,7 +6213,25 @@ public sealed class World
             return false;
         }
 
-        jobs = Rules.BusinessKind(kind).Jobs;
+        // 🔴 A TRADE'S SHARE OF ITS PREMISES' FLOOR, and not a number on the trade. A Business takes
+        // ONE of the Building's tenancies (adr/0141), so its share is the floor divided by how many
+        // tenancies the Building has -- which is why this divides twice and neither divisor is
+        // authored per trade. ⚠ An UNPREMISED Business has no floor and therefore no jobs, which is
+        // the honest answer: nobody works somewhere that does not exist yet.
+        int floor = businessSlot >= 0 && Businesses.Rows.IsLive(businessSlot)
+                && Buildings.Rows.TryResolve(Businesses.Building[businessSlot], out int premises)
+            ? FloorTilesOf(premises)
+            : 0;
+
+        int tenancies = floor <= 0
+            ? 0
+            : CapacityRuleset.Holds(floor, Rules.Capacity.FloorTilesPerOccupant);
+
+        jobs = tenancies <= 0
+            ? 0
+            : CapacityRuleset.Holds(
+                Arithmetic.IntegerMath.FloorDiv(floor, tenancies), Rules.Capacity.FloorTilesPerJob);
+
         return true;
     }
 
@@ -6146,7 +6244,7 @@ public sealed class World
     /// not be treated as a kind that declares no parking. Dereliction must not evict a city's cars any
     /// more than it may sack a District.
     /// </remarks>
-    internal bool TryDeclaredParking(byte kind, out int spaces)
+    internal bool TryDeclaredParking(byte kind, int buildingSlot, out int spaces)
     {
         if (!Rules.Declares(kind))
         {
@@ -6154,7 +6252,17 @@ public sealed class World
             return false;
         }
 
-        spaces = Rules.Kind(kind).Parking;
+        // 🔴 A PARKING MINIMUM IS A PROPERTY OF A CITY AND NOT OF A BUILDING, which is where it sits
+        // in every real planning code and is a better home than the per-kind count it replaces. The
+        // kind is still read TWICE, for two different reasons: a kind the Ruleset does not declare
+        // is DERELICT and keeps its cars -- dereliction must not evict a city's cars any more than
+        // it may sack a District -- and a kind that says `parked = false` is EXEMPT, which is
+        // adr/0009's "a tower may not [carry a driveway]" and is the half a rate alone cannot say.
+        spaces = Rules.Kind(kind).Parked
+            ? CapacityRuleset.Holds(
+                FloorTilesOf(buildingSlot), Rules.Capacity.FloorTilesPerParkingSpace)
+            : 0;
+
         return true;
     }
 
@@ -6231,9 +6339,12 @@ public sealed class World
     /// </para>
     /// <para>
     /// ⚠ <b><see cref="Parking.CarParkTable.SpaceAt"/> may read negative and the test is therefore
-    /// <c>&gt; 0</c> rather than <c>!= 0</c>.</b> A lowered <c>[[building]] parking</c> lands the
-    /// derived ceiling under the standing occupancy until the overflow is dismissed, and a
-    /// <c>!= 0</c> test would read that as room.
+    /// <c>&gt; 0</c> rather than <c>!= 0</c>.</b> A <em>raised</em>
+    /// <c>[capacity] floor_tiles_per_parking_space</c> — or a Building re-platted onto less ground —
+    /// lands the derived ceiling under the standing occupancy until the overflow is dismissed, and a
+    /// <c>!= 0</c> test would read that as room. ⚠ <b>The lever used to be a per-kind count and is a
+    /// RATE now</b> (<c>plans/0053</c> step 3), so it moves in the opposite direction: more floor per
+    /// car is fewer cars.
     /// </para>
     /// </remarks>
     internal bool TryTakeParking(
@@ -6377,25 +6488,46 @@ public sealed class World
     }
 
     /// <summary>
-    /// How many posts <paramref name="businessSlot"/>'s trade declares, or zero if it declares none.
+    /// How many tenants <paramref name="buildingSlot"/> may hold. Zero where the kind is derelict.
+    /// </summary>
+    /// <remarks>
+    /// <b>The public face of the derived ceiling</b>, for the shell and the dumps. ⚠ <b>It is the
+    /// BUILDING's and not the kind's</b> — two dwellings on differently-sized parcels hold different
+    /// numbers, which is the whole of what <c>plans/0053</c> changed about occupancy, and a caller
+    /// that cached one answer for a kind would be back to the number this replaced.
+    /// </remarks>
+    public int DeclaredOccupancy(int buildingSlot) =>
+        TryDeclaredOccupancy(Buildings.Kind[buildingSlot], buildingSlot, out int occupants)
+            ? occupants
+            : 0;
+
+    /// <summary>
+    /// How many posts <paramref name="businessSlot"/> has, or zero if it has none.
     /// </summary>
     /// <remarks>
     /// <para>
     /// <b>The labour SUPPLY side of the same pair <see cref="HasJob"/> asks about</b>, exposed
     /// because a reader outside this assembly cannot reach <c>TryDeclaredJobs</c> and the ratio
-    /// <em>posts per working-age Citizen</em> is the quantity <c>[[building]] jobs</c> actually
-    /// sets. ⚠ <b>A predicate cannot be summed</b>: <see cref="HasJob"/> answers <em>is there room
+    /// <em>posts per working-age Citizen</em> is the quantity the employment rate actually sets.
+    /// ⚠ <b>A predicate cannot be summed</b>: <see cref="HasJob"/> answers <em>is there room
     /// here</em>, and an instrument asking how tight the labour market is needs the capacity rather
     /// than the vacancy.
     /// </para>
     /// <para>
-    /// ⚠ <b>Zero means the trade declares no <c>jobs</c> key, NOT that its posts are full.</b> The
-    /// two are told apart by <see cref="Workers"/>, and an instrument that conflated them would
-    /// report a city with no employers and a city whose employers are all full as the same city.
+    /// ⚠ <b>Zero means this city employs nobody or these premises have no floor, NOT that the posts
+    /// are full.</b> The two are told apart by <see cref="Workers"/>, and an instrument that
+    /// conflated them would report a city with no employers and a city whose employers are all full
+    /// as the same city.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is the BUSINESS's and not the trade's</b> (<c>plans/0053</c>). A Business employs its
+    /// share of its premises' floor over <c>[capacity] floor_tiles_per_job</c>, so one trade employs
+    /// differently in a terrace and in a slab — and an unpremised one employs nobody, which is the
+    /// honest answer rather than a hole.
     /// </para>
     /// </remarks>
     public int DeclaredJobs(int businessSlot) =>
-        TryDeclaredJobs(Businesses.Kind[businessSlot], out int jobs) ? jobs : 0;
+        TryDeclaredJobs(Businesses.Kind[businessSlot], businessSlot, out int jobs) ? jobs : 0;
 
     /// <summary>
     /// Whether <paramref name="buildingSlot"/> has a job nobody holds.
@@ -6406,7 +6538,7 @@ public sealed class World
     /// fault, so this is where the cost of asking is paid and there is no invariant behind it.
     /// </remarks>
     public bool HasJob(int businessSlot) =>
-        TryDeclaredJobs(Businesses.Kind[businessSlot], out int jobs)
+        TryDeclaredJobs(Businesses.Kind[businessSlot], businessSlot, out int jobs)
         && Workers.Length(businessSlot) < jobs;
 
     /// <summary>

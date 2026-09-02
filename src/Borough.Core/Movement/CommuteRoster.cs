@@ -192,7 +192,12 @@ public sealed class CommuteRoster
 
         BusinessKindDefinition definition = rules.BusinessKind(kind);
 
-        if (definition.Jobs <= 0)
+        // ⚠ THE WORLD'S RATE AND NO LONGER THE TRADE'S COUNT. `jobs` was a number on the [[business]];
+        // employment now divides the premises' floor area, so *nobody is employed anywhere* is a
+        // property of the Ruleset rather than of one trade -- which is what a Ruleset stating no
+        // [capacity] floor_tiles_per_job means. The per-Building ceiling is World.HasJob's, and this
+        // is the cheap guard in front of it.
+        if (rules.Capacity.FloorTilesPerJob <= 0)
         {
             return false;
         }

@@ -488,6 +488,28 @@ public static class BlockPatterns
         }
     }
 
+    /// <summary>
+    /// <b>How many storeys a Building on a block of this pattern stands</b>, before the per-parcel
+    /// draw.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The rung plus two, and there is no table.</b> Two is the floor — a building with no upper
+    /// floor is a shed — and the rest is <see cref="Rung"/>, so ***height rises with density because
+    /// it is the same quantity***, not because anybody wrote a height beside each pattern. At the
+    /// shipped lattice that is a two-storey suburb, a three-storey perimeter block, a four-storey
+    /// terrace, a five-storey courtyard block and a six-storey slab.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It follows the ladder and therefore follows the lattice.</b> The rungs reorder at
+    /// <c>lots_per_segment = 4</c> — see <see cref="Ladder"/> — so on such a world the courtyard
+    /// block is the shorter of the two. That is the ladder being honest rather than this being
+    /// wrong: whichever form gives one door less ground is the taller one.
+    /// </para>
+    /// </remarks>
+    public static int Storeys(BlockPattern pattern, int blockTiles, int lotsPerSegment) =>
+        Rung(pattern, blockTiles, lotsPerSegment) + 2;
+
     /// <summary>Where one pattern sits on this lattice's <see cref="Ladder"/>.</summary>
     /// <remarks>
     /// 🔴 <b>THIS IS WHAT THE RE-CARVE RATCHET COMPARES</b>, and what <see cref="ForBand"/> indexes

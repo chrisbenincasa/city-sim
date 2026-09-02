@@ -63,18 +63,18 @@ public sealed class CarParkTests
 
         [[building]]
         name = "dwelling"
-        occupants = 3
-        parking = PARKS
+        tenanted = true
+        parked = true
         bins = [
             { resource = "sundries", capacity = 12 },
         ]
 
         [[building]]
         name = "depot"
-        occupants = 1
+        tenanted = true
         """;
 
-    /// <summary>The same file with the <c>parking</c> key removed rather than zeroed.</summary>
+    /// <summary>The same file with no <c>[capacity]</c> table: a city with no parking in it.</summary>
     private const string Unstated = """
         [[resource]]
         name = "sundries"
@@ -82,14 +82,15 @@ public sealed class CarParkTests
 
         [[building]]
         name = "dwelling"
-        occupants = 3
+        tenanted = true
+        parked = true
         bins = [
             { resource = "sundries", capacity = 12 },
         ]
 
         [[building]]
         name = "depot"
-        occupants = 1
+        tenanted = true
         """;
 
     /// <summary>The same file with no <c>[[building]]</c> at all: every Building is derelict.</summary>
@@ -99,11 +100,29 @@ public sealed class CarParkTests
         family = "good"
         """;
 
-    /// <summary>A dwelling parking <paramref name="spaces"/> Vehicles.</summary>
-    private static string Parking(int spaces) => Template.Replace(
-        "PARKS",
-        spaces.ToString(CultureInfo.InvariantCulture),
-        StringComparison.Ordinal);
+    /// <summary>
+    /// How much ground every dwelling in this class stands on, in Tiles of floor.
+    /// </summary>
+    /// <remarks>
+    /// <b>Fixed, so that retuning the provision has to move the RATE</b> (<c>plans/0053</c>). A
+    /// Building's parking is its floor area over <c>[capacity] floor_tiles_per_parking_space</c>, so
+    /// the number of spaces has two authors — the ground and the rate — and only one of them is a
+    /// designer's edit. ⚠ <b>24 because it divides</b>: every space count these tests ask for is a
+    /// divisor of it, which is what lets each test still name the count it means.
+    /// </remarks>
+    private const int Ground = 24;
+
+    /// <summary>A city whose dwellings park <paramref name="spaces"/> Vehicles each.</summary>
+    /// <remarks>
+    /// ⚠ <b>It states a rate and the count comes out of the division</b>, so a caller passing a
+    /// number that does not divide <see cref="Ground"/> gets a different city than it named. Zero
+    /// omits the table, which is the only spelling for a city with no parking now that the key a
+    /// kind used to state is retired.
+    /// </remarks>
+    private static string Parking(int spaces) => spaces <= 0
+        ? Template
+        : Template + "\n\n[capacity]\nfloor_tiles_per_parking_space = "
+            + (Ground / spaces).ToString(CultureInfo.InvariantCulture) + "\n";
 
     /// <summary>
     /// <c>rulesets/minimal.toml</c>'s <c>[roads]</c> values, for the two tests that need a Street.
@@ -148,7 +167,8 @@ public sealed class CarParkTests
     {
         var world = new World(1_000, Load(toml));
 
-        Handle<Lot> lot = world.Lots.Create(new Tiles(0), new Tiles(0), zone: 1);
+        Handle<Lot> lot = world.Lots.Create(
+            new Tiles(0), new Tiles(0), zone: 1, wide: new Tiles(Ground), deep: new Tiles(1));
         world.CreateBuilding(lot, Dwelling, Ticks.Zero, Key);
 
         return world;
@@ -227,17 +247,19 @@ public sealed class CarParkTests
     /// <remarks>
     /// The Parking Shed walks rows, so an empty row would be a Car Park that is <em>permanently
     /// full</em> where a Building that provides none has nothing to find — and the two read
-    /// differently in every diagnosis <c>adr/0009</c> exists to give. Asserted for both spellings,
-    /// because <em>absent</em> and <em>declared zero</em> mean the same thing here and that is itself
-    /// a decision (<c>Ruleset.KindDefinition.Parking</c>): a kind saying nothing about parking
-    /// provides none, where <c>occupants</c> and <c>jobs</c> have to keep the two apart.
+    /// differently in every diagnosis <c>adr/0009</c> exists to give.
+    /// <para>
+    /// 🔴 <b>This was two cases and is one</b> (<c>plans/0053</c>). It asserted <em>absent</em> and
+    /// <em>declared zero</em> separately, because a kind used to state <c>parking</c> and the loader
+    /// had to decide that the two meant the same thing. There is no count to state now — a parking
+    /// minimum is a property of the city — and <c>[capacity]</c> refuses a stated zero outright, so
+    /// ***the second spelling stopped existing rather than stopping being tested.***
+    /// </para>
     /// </remarks>
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void A_kind_that_parks_nothing_gets_no_row(bool stated)
+    [Fact]
+    public void A_kind_that_parks_nothing_gets_no_row()
     {
-        World world = stated ? City(spaces: 0) : Housing(Unstated);
+        World world = Housing(Unstated);
 
         Assert.Equal(0, world.CarParks.Rows.LiveCount);
         Assert.False(world.Buildings.HasCarPark(0));
@@ -258,7 +280,8 @@ public sealed class CarParkTests
     {
         World world = City(spaces: 6);
 
-        Handle<Lot> lot = world.Lots.Create(new Tiles(64), new Tiles(0), zone: 1);
+        Handle<Lot> lot = world.Lots.Create(
+            new Tiles(64), new Tiles(0), zone: 1, wide: new Tiles(Ground), deep: new Tiles(1));
         world.CreateBuilding(lot, Depot, Ticks.Zero, Key);
 
         Assert.Equal(0, world.Buildings.CarParkOf(0));
@@ -279,8 +302,8 @@ public sealed class CarParkTests
     {
         World world = City(spaces: 6);
 
-        world.Adopt(Load(Parking(9)), HashB, new Ticks(64), Key);
-        world.Adopt(Load(Parking(9)), HashB, new Ticks(65), Key);
+        world.Adopt(Load(Parking(8)), HashB, new Ticks(64), Key);
+        world.Adopt(Load(Parking(8)), HashB, new Ticks(65), Key);
 
         Assert.Equal(1, world.CarParks.Rows.LiveCount);
     }
@@ -379,7 +402,7 @@ public sealed class CarParkTests
     /// </remarks>
     [Theory]
     [InlineData(2)]
-    [InlineData(11)]
+    [InlineData(12)]
     public void Retuning_the_provision_reaches_buildings_already_standing(int spaces)
     {
         World world = City(spaces: 6);
@@ -394,8 +417,9 @@ public sealed class CarParkTests
     /// <b>A Building whose kind the incoming Ruleset dropped keeps its parking.</b>
     /// </summary>
     /// <remarks>
-    /// <c>World.TryDeclaredParking</c> keeps <em>declares no parking</em> and <em>is not declared at
-    /// all</em> apart, which is <c>TryDeclaredJobs</c>' shape and its reason: a derelict Building
+    /// <c>World.TryDeclaredParking</c> keeps <em>the city provides no parking</em> and <em>this
+    /// kind is not declared at all</em> apart, which is <c>TryDeclaredJobs</c>' shape and its
+    /// reason: a derelict Building
     /// <em>still stands and still occupies its Lot</em> (<c>CONTEXT</c> → Derelict Building), and
     /// dereliction must not evict a city's cars any more than it may sack a District. The failure
     /// collapsing them would produce is the loudest possible consequence for the quietest possible

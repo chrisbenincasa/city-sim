@@ -44,13 +44,19 @@ public sealed class UnplacedPoolTests
     private static Ruleset Housing(int occupants) => new(
         resources: [ResourceFamily.Money],
         rules: [],
-        kinds: [new KindDefinition(0, 0, 0, 0) { Occupants = occupants }],
+        kinds: [new KindDefinition(0, 0, 0, 0) { Tenanted = occupants > 0 }],
         inputs: [],
         outputs: [],
         emissions: [],
         bins: [],
         kindRules: [],
-        zoneRules: []);
+        zoneRules: [])
+    {
+        // ONE TILE PER TENANCY, so a Lot's width is its Building's ceiling (plans/0053). The count a
+        // kind used to declare is derived from the ground now, and holding the rate at one is what
+        // lets `occupants` below still read as the number of families it means.
+        Capacity = new CapacityRuleset(1, 0, 0),
+    };
 
     private static World Built(int households = 8, int occupants = 2)
     {
@@ -58,7 +64,8 @@ public sealed class UnplacedPoolTests
 
         for (int i = 0; i < households; i++)
         {
-            Handle<Lot> lot = world.Lots.Create(new Tiles(i), new Tiles(0), zone: 1);
+            Handle<Lot> lot = world.Lots.Create(
+                new Tiles(i), new Tiles(0), zone: 1, wide: new Tiles(occupants), deep: new Tiles(1));
             Handle<Building> building = world.CreateBuilding(lot, kind: 1, Ticks.Zero, default);
 
             world.CreateHousehold(building, lifeStage: 0);

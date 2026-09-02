@@ -219,8 +219,7 @@ public sealed class PopulatorDoorTests
             """
             [[building]]
             name = "dwelling"
-            occupants = 3
-
+            tenanted = true
             [roads]
             block_tiles = 32
             arterial_count = 0
@@ -237,6 +236,11 @@ public sealed class PopulatorDoorTests
             [lots]
             lots_per_segment = 5
             setback_tiles = 2
+
+            [capacity]
+            floor_tiles_per_occupant      = 6
+            floor_tiles_per_job           = 1
+            floor_tiles_per_parking_space = 6
             """,
             "populator-door.toml");
 

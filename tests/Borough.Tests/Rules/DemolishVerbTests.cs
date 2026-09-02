@@ -65,7 +65,7 @@ public sealed class DemolishVerbTests
             [
                 new KindDefinition(0, 1, 0, 1)
                 {
-                    CondemnAfterTicks = 4 * (int)Rate, CollapsesAfterDays = 1, Occupants = 1,
+                    CondemnAfterTicks = 4 * (int)Rate, CollapsesAfterDays = 1, Tenanted = true,
                 },
             ],
             inputs: [new Term(new BinRef(Scope.Local, Repairs), 1)],

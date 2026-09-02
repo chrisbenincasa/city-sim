@@ -317,7 +317,7 @@ public sealed class LastTripFateTests
         Ruleset ruleset = new(
             resources: [],
             rules: [],
-            kinds: [new KindDefinition(0, 0, 0, 0) { Occupants = 1 }],
+            kinds: [new KindDefinition(0, 0, 0, 0) { Tenanted = 1 > 0 }],
             inputs: [],
             outputs: [],
             emissions: [],

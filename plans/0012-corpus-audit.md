@@ -1905,6 +1905,32 @@ Unambiguous factual errors, no judgement required.
 
 ## Filed — needs judgement, or a task that has not run
 
+### 🔴 `adr/0068`'s TITLE is falsified and its decision is not — the first entry here owed against a *filename*
+
+**NEW 2026-09-02, found by building [`plans/0053`](0053-the-block.md) step 3.**
+[`adr/0068`](../docs/adr/0068-a-buildings-occupancy-is-declared-by-its-kind-and-an-over-capacity-building-evicts.md)
+is titled *A Building's occupancy is declared by its kind, and an over-capacity Building evicts*, and
+occupancy is no longer declared by a kind at all: it is **derived from the ground the Building stands
+on**, its floor area over `[capacity] floor_tiles_per_occupant`. `[[building]] occupants` is retired.
+
+⚠ **The second half of the title is not only intact, it is stronger than when it was written.** The
+eviction was designed against a designer lowering a Ruleset number, an occasion nobody had ever
+staged; it now fires whenever the **rate** moves, and it fired during step 3's own build.
+
+🔴 **This is a shape this ledger has not carried before, and it is why the entry is filed rather than
+paid.** [`PROCESS.md`](../PROCESS.md) → *Conventions* makes an ADR's **filename the claim**, so a
+falsified half-title cannot be struck the way a sentence can — striking it means a new number, and
+[`plans/0045`](0045-amnesty.md) forbids new ADRs. ***A convention that puts the claim in the filename
+buys a corpus you can grep and pays for it in what a partial retraction costs.*** The banner on the
+document is the record in the meantime, and it says which half went.
+
+- [ ] Decide, **when the amnesty lifts**, between a superseding record and an in-place title
+      amendment. ⚠ **Do not decide it now** — the choice turns on whether any *other* ADR title has
+      gone half-false by then, and one instance is not a policy.
+- [x] `adr/0068` carries a banner naming the falsified half, the surviving half and the reason the
+      document stays.
+
+
 ### ~~`plans/0037` task 4 called the migration bound a *work bound*~~ — **PAID in the sitting that found it**
 
 **NEW 2026-08-22, found by reading `adr/0134` before the plan while implementing milestone 12 task 4, and

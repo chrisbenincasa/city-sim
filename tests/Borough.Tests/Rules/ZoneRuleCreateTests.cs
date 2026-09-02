@@ -52,7 +52,7 @@ public sealed class ZoneRuleCreateTests
         PlacementRuleset placement, params ZoneRuleDefinition[] zoneRules) => new(
         resources: [],
         rules: [],
-        kinds: [new KindDefinition(0, 0, 0, 0) { Occupants = 1 }],
+        kinds: [new KindDefinition(0, 0, 0, 0) { Tenanted = 1 > 0 }],
         inputs: [],
         outputs: [],
         emissions: [],
@@ -61,7 +61,16 @@ public sealed class ZoneRuleCreateTests
         zoneRules: zoneRules)
     {
         Placement = placement,
+        Capacity = new CapacityRuleset(FloorPerOccupant, 0, 0),
     };
+
+    /// <summary>One Tile of floor houses one Household, so a one-Tile Lot holds exactly one.</summary>
+    /// <remarks>
+    /// <b>The rate is the fixture's whole occupancy declaration</b> (<c>plans/0053</c>). A kind says
+    /// <em>whether</em> it houses; how many derives from the ground, so the smallest world that
+    /// houses anybody is the one whose rate is one Tile and whose Lots are one Tile square.
+    /// </remarks>
+    private const int FloorPerOccupant = 1;
 
     /// <summary>A placement pass that looks at everybody waiting, every trigger.</summary>
     /// <remarks>

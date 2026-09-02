@@ -344,9 +344,22 @@ public sealed class DistrictWatershedTests
 
     /// <summary>The two Districts are about the same size, because the two lattices are.</summary>
     /// <remarks>
-    /// <b>Within one Cell</b>, and the tolerance is the generator's own: the population share is
-    /// <c>floor(total / lattices)</c> plus one to the earlier lattices, so an odd Building count puts
-    /// the extra Building in the west and it may or may not open a Cell.
+    /// <para>
+    /// 🔴 <b>Within one Cell UNTIL <c>plans/0053</c>, and that tolerance rested on a premise that is
+    /// gone.</b> It was the generator's own: <c>Share</c> splits <c>floor(total / lattices)</c> plus
+    /// one to the earlier lattices, so the two sides differed by at most one <em>Building</em> and
+    /// therefore by at most one Cell. What <c>Share</c> splits is now the <b>population</b>, and how
+    /// many Buildings over how many Cells that takes is a property of the ground each lattice was
+    /// carved on — the two sit at different distances from their own origins, so <c>BandAt</c> paints
+    /// them differently. ***An equal split of people is not an equal split of Cells once Buildings
+    /// differ in size.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The band is 5% and it is still about the WATERSHED rather than about the generator.</b>
+    /// What this test exists to catch is a basin swallowing part of its neighbour, which is a gross
+    /// failure — the eastern lattice's whole extent, not three Cells of it. <b>Measured 2026-09-02:
+    /// 162 and 165</b>, a difference of 3 in 327.
+    /// </para>
     /// </remarks>
     [Fact]
     public void The_two_districts_hold_about_the_same_number_of_cells()
@@ -356,11 +369,16 @@ public sealed class DistrictWatershedTests
         List<int> extents = [.. Extents(world).Values];
 
         Assert.Equal(2, extents.Count);
+
+        int larger = Math.Max(extents[0], extents[1]);
+        int smaller = Math.Min(extents[0], extents[1]);
+
         Assert.True(
-            Math.Abs(extents[0] - extents[1]) <= 1,
+            larger - smaller <= (larger / 20) + 1,
             $"the two Districts hold {extents[0]} and {extents[1]} Cells. The two lattices carry an "
-            + "equal share of the population by construction, so a difference of more than one Cell "
-            + "means the watershed has put part of one lattice into the other's District.");
+            + "equal share of the POPULATION by construction and a near-equal share of the ground, "
+            + "so a difference beyond 5% means the watershed has put part of one lattice into the "
+            + "other's District.");
     }
 
     // ---- the partition ---------------------------------------------------------------------------

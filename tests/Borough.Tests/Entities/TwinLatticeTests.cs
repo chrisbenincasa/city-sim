@@ -220,13 +220,27 @@ public sealed class TwinLatticeTests
     }
 
     /// <summary>
-    /// <b>Both lattices are built on, in equal numbers</b> — which is what makes each one a centre.
+    /// <b>Both lattices are built on, and neither is a hamlet beside the other</b> — which is what
+    /// makes each one a centre.
     /// </summary>
     /// <remarks>
-    /// <b>Equal because the shares are derived and not authored</b>
+    /// <para>
+    /// <b>Comparable because the shares are derived and not authored</b>
     /// (<c>SyntheticCity.Share</c>). Two concentrations of the same height both clear any prominence
     /// threshold a sane person would pick, so this world demonstrates the derivation rather than
     /// calibrating it — and the threshold is task 3's, not this task's.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>It counted BUILDINGS and differed by at most one, and that premise died at
+    /// <c>plans/0053</c>.</b> <c>Share</c> splits the thing the generator is given, and what it is
+    /// given is now the <em>population</em> — so each lattice houses half the people, and how many
+    /// Buildings that takes is a property of the ground each one was carved on. The two lattices sit
+    /// at different distances from their own origins, so <c>BandAt</c> paints them differently and a
+    /// denser band houses the same people in fewer Buildings. ***An equal split of people is not an
+    /// equal split of Buildings once Buildings differ in size***, which is the whole of what step 3
+    /// changed. What survives is the claim the test is named for: neither lattice is a rounding error
+    /// beside the other.
+    /// </para>
     /// </remarks>
     [Fact]
     public void Both_lattices_carry_half_the_buildings()
@@ -242,10 +256,15 @@ public sealed class TwinLatticeTests
             $"the Buildings are all in one lattice: {west} west of {boundary} and {east} east of it. "
             + "A lattice with nothing on it is not a centre, and the density field has one peak.");
 
+        int larger = west > east ? west : east;
+        int smaller = west > east ? east : west;
+
         Assert.True(
-            west - east <= 1 && east - west <= 1,
-            $"{west} Buildings west and {east} east. The shares are an equal split with the "
-            + "remainder to the first lattice, so they differ by at most one.");
+            larger <= smaller * 2,
+            $"{west} Buildings west and {east} east. The population is split equally, so the "
+            + "Buildings differ only by how densely each lattice was banded -- and a factor beyond "
+            + "two is a lattice that took the whole city rather than one that housed it more "
+            + "compactly.");
     }
 
     /// <summary>
@@ -313,6 +332,13 @@ public sealed class TwinLatticeTests
     /// <summary>
     /// <b>Everybody is still housed</b> — the split divides the city, it does not shrink it.
     /// </summary>
+    /// <remarks>
+    /// 🔴 <b>The Building counts are NOT compared any more</b> (<c>plans/0053</c>). They were equal
+    /// while every Building held what its kind declared, so the count was a stand-in for the
+    /// population; occupancy divides the ground now, and the two worlds carve different ground. The
+    /// claim this test is named for is about <em>people</em>, so it asks about people — and it asks
+    /// the sharper question the count was standing in for: <b>nobody is left in the Pool</b>.
+    /// </remarks>
     [Fact]
     public void Splitting_the_city_houses_the_same_people()
     {
@@ -321,7 +347,9 @@ public sealed class TwinLatticeTests
 
         Assert.Equal(single.Citizens.Rows.LiveCount, twinned.Citizens.Rows.LiveCount);
         Assert.Equal(single.Households.Rows.LiveCount, twinned.Households.Rows.LiveCount);
-        Assert.Equal(single.Buildings.Rows.LiveCount, twinned.Buildings.Rows.LiveCount);
+
+        Assert.Equal(0, single.UnplacedPool.Count);
+        Assert.Equal(0, twinned.UnplacedPool.Count);
     }
 
     // ---- the refusals --------------------------------------------------------------------------

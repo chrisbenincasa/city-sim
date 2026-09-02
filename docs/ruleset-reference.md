@@ -25,12 +25,12 @@ dotnet run --project src/Borough.Headless -- \
 
 ## The sections
 
-33 sections, 170 keys.
+34 sections, 172 keys.
 
 - [`[[band]]`](#band) — 2 keys
 - [`[[building]]`](#building) — 12 keys
 - [`[[building]] bins`](#building-bins) — 3 keys
-- [`[[business]]`](#business) — 6 keys
+- [`[[business]]`](#business) — 5 keys
 - [`[[hinterland]]`](#hinterland) — 4 keys
 - [`[[hinterland]] prices`](#hinterland-prices) — 2 keys
 - [`[[lattice]]`](#lattice) — 2 keys
@@ -45,6 +45,7 @@ dotnet run --project src/Borough.Headless -- \
 - [`[[rule]] outputs`](#rule-outputs) — 4 keys
 - [`[[terrain]]`](#terrain) — 3 keys
 - [`[[zone_rule]]`](#zone_rule) — 7 keys
+- [`[capacity]`](#capacity) — 3 keys
 - [`[disasters]`](#disasters) — 3 keys
 - [`[districts]`](#districts) — 4 keys
 - [`[founding]`](#founding) — 2 keys
@@ -109,13 +110,9 @@ How many Days the premises' own Rules may starve continuously before the Buildin
 
 What this kind of Building is called. [[zone_rule]] kind and [[rule]] kind refer to it by this name.
 
-**`occupants`** · *whole number*
+**`parked`** · *true or false*
 
-How many tenants one Building of this kind holds — Households and Businesses share the one ceiling. Absent means the kind houses nobody, which is what most kinds are. Lowering it below what a standing Building already holds evicts the overflow.
-
-**`parking`** · *whole number*
-
-How many Vehicles a Building of this kind can park. Zero is meaningful and is the same as omitting the key — a tower with no parking is a real building.
+Whether Buildings of this kind carry parking at all. Whether, and never how many: the count is the Building's floor area over [capacity] floor_tiles_per_parking_space. It exists so that a detached house may carry a driveway where a tower may not — a parking minimum is a property of the city, and an exemption from it is a property of the kind. Absent means the kind provides none.
 
 **`serves`** · *quoted string*
 
@@ -128,6 +125,10 @@ How many Days the premises may starve before the Building sheds one Occupant —
 **`tenancy_ends_after_days`** · *whole number*
 
 How many Days a tenant's own Rules may starve continuously before the tenancy ends and the tenant is put out. Independent of the premises' threshold: a kind may state either, both or neither. Absent means tenancies here never end.
+
+**`tenanted`** · *true or false*
+
+Whether Buildings of this kind take tenants at all — Households and Businesses share the one ceiling. It says whether and never how many: the count is the Building's own floor area over [capacity] floor_tiles_per_occupant, so two Buildings of one kind on differently-sized ground hold different numbers. Absent means the kind houses nobody, which is what most kinds are.
 
 ---
 
@@ -152,10 +153,6 @@ Which Resource this Bin holds, naming a [[resource]]. One Bin per Resource per k
 ## `[[business]]`
 
 *An array of tables — a file may declare this more than once.*
-
-**`jobs`** · *whole number*
-
-How many Citizens a Business of this trade employs. It counts Citizens and never Households. Absent means the trade employs nobody, which is a coherent thing to declare.
 
 **`name`** · *quoted string*
 
@@ -524,6 +521,22 @@ How long this Rule takes to look at every Lot once, in Ticks. The sample per tri
 **`zone`** · *whole number*
 
 Which permission bit a Lot must carry for this Rule to build on it — a bit index, not a mask. A bit no zone command can paint is refused, because the Rule would sample Lots for ever and build nothing.
+
+---
+
+## `[capacity]`
+
+**`floor_tiles_per_job`** · *whole number*
+
+How much floor one job takes, in Tiles. A Business employs its share of its premises' floor area divided by this, its share being one of the Building's tenancies — so one trade employs differently in a terrace and in a slab. Absent means nobody in this city is employed anywhere.
+
+**`floor_tiles_per_occupant`** · *whole number*
+
+How much floor one tenancy takes, in Tiles. A Building's occupancy is its floor area — its footprint on every storey — divided by this, so it varies with the ground the Building stands on rather than with its kind. Omitting the whole [capacity] table means no Building in the city holds anybody.
+
+**`floor_tiles_per_parking_space`** · *whole number*
+
+How much floor a Building must have per parking space it is given, in Tiles. It is a parking minimum, which is a property of a city rather than of a building. Absent means the city has no parking at all.
 
 ---
 

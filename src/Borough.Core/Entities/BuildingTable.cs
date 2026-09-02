@@ -153,7 +153,9 @@ public sealed class BuildingTable
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>One rather than a list</b>, because <c>[[building]] parking</c> is one number per kind. A
+    /// <b>One rather than a list</b>, because a Building has one derived parking ceiling, however it
+    /// is arrived at — <c>[capacity] floor_tiles_per_parking_space</c> now, a per-kind count before
+    /// <c>plans/0053</c> step 3, and one Car Park either way. A
     /// Segment-held Car Park (<c>adr/0120</c>, not built) has no Building at all and would be found
     /// spatially rather than through here, so this column does not have to grow for it.
     /// </para>

@@ -58,6 +58,18 @@ public sealed class TenancyEndsTests
     private const int Occupants = 3;
 
     /// <summary>
+    /// How much floor one tenancy takes here — <b>one Tile</b>, so a Lot's width is its ceiling.
+    /// </summary>
+    /// <remarks>
+    /// <b><c>plans/0053</c>: how many a Building holds is DERIVED from the ground it stands on</b>,
+    /// so a fixture that wants a ceiling of <c>Occupants</c> states the ground rather than the count.
+    /// One Tile per tenancy is the rate that makes the two read as the same sentence — the Lot is
+    /// <c>Occupants</c> Tiles wide and one deep, on one storey.
+    /// </remarks>
+    private const int FloorPerOccupant = 1;
+
+
+    /// <summary>
     /// A dwelling whose <b>tenants</b> starve and whose <b>premises</b> cannot.
     /// </summary>
     /// <remarks>
@@ -105,7 +117,7 @@ public sealed class TenancyEndsTests
                 {
                     CondemnAfterTicks = CondemnTicks,
                     TenancyEndsAfterTicks = CondemnTicks,
-                    Occupants = Occupants,
+                    Tenanted = true,
                 },
             ],
             inputs: [new Term(new BinRef(Scope.Local, Food), 1)],
@@ -117,7 +129,10 @@ public sealed class TenancyEndsTests
                 new BinDeclaration(Food, BinCapacity.Of(10), BinTenancy.Occupant),
             ],
             kindRules: [new RuleId(1), new RuleId(2)],
-            zoneRules: zones);
+            zoneRules: zones)
+        {
+            Capacity = new CapacityRuleset(FloorPerOccupant, 0, 0),
+        };
 
     /// <summary>
     /// A Zone Rule that condemns and never builds, so a live-Building count means something.
@@ -138,7 +153,8 @@ public sealed class TenancyEndsTests
 
         for (int i = 0; i < houses; i++)
         {
-            Handle<Lot> lot = world.Lots.Create(new Tiles(i), new Tiles(0), Housing);
+            Handle<Lot> lot = world.Lots.Create(
+                new Tiles(i), new Tiles(0), Housing, wide: new Tiles(Occupants), deep: new Tiles(1));
             Handle<Building> building = world.CreateBuilding(
                 lot, House, Ticks.Zero, simulation.Key);
 

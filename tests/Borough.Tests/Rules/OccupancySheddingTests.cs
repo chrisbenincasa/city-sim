@@ -49,6 +49,18 @@ public sealed class OccupancySheddingTests
     private const int Occupants = 4;
 
     /// <summary>
+    /// How much floor one tenancy takes here — <b>one Tile</b>, so a Lot's width is its ceiling.
+    /// </summary>
+    /// <remarks>
+    /// <b><c>plans/0053</c>: how many a Building holds is DERIVED from the ground it stands on</b>,
+    /// so a fixture that wants a ceiling of <c>Occupants</c> states the ground rather than the count.
+    /// One Tile per tenancy is the rate that makes the two read as the same sentence — the Lot is
+    /// <c>Occupants</c> Tiles wide and one deep, on one storey.
+    /// </remarks>
+    private const int FloorPerOccupant = 1;
+
+
+    /// <summary>
     /// A kind whose one Rule draws on a Bin nothing fills, so the premises always starve, and whose
     /// demand is <b>derived from occupancy</b> so that shedding changes it.
     /// </summary>
@@ -76,7 +88,7 @@ public sealed class OccupancySheddingTests
                     CondemnAfterTicks = condemnsAfter,
                     ShedsOccupantAfterTicks = shedsAfter,
                     CollapsesAfterDays = 1,
-                    Occupants = Occupants,
+                    Tenanted = true,
                 },
             ],
             inputs: [new Term(new BinRef(Scope.Local, Repairs), 1)],
@@ -87,7 +99,10 @@ public sealed class OccupancySheddingTests
 
             // A Zone Rule that judges and never builds -- otherwise it raises a replacement on every
             // Lot this empties and the counts below say nothing.
-            zoneRules: [new ZoneRuleDefinition(House, 1, 4, 4)]);
+            zoneRules: [new ZoneRuleDefinition(House, 1, 4, 4)])
+        {
+            Capacity = new CapacityRuleset(FloorPerOccupant, 0, 0),
+        };
 
     private static (World World, Simulation Simulation) Built(
         int shedsAfter, int condemnsAfter, int houses = 1)
@@ -102,7 +117,8 @@ public sealed class OccupancySheddingTests
 
         for (int i = 0; i < houses; i++)
         {
-            Handle<Lot> lot = world.Lots.Create(new Tiles(i), new Tiles(0), Housing);
+            Handle<Lot> lot = world.Lots.Create(
+                new Tiles(i), new Tiles(0), Housing, wide: new Tiles(Occupants), deep: new Tiles(1));
             Handle<Building> building = world.CreateBuilding(lot, House, Ticks.Zero, simulation.Key);
 
             for (int held = 0; held < Occupants; held++)

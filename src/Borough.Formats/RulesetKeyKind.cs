@@ -34,6 +34,15 @@ public enum RulesetKeyKind
     /// </summary>
     Quoted = 2,
 
+    /// <summary>
+    /// <b><c>true</c> or <c>false</c></b> — <c>TryBoolean</c>. ⚠ <b>The newest shape in this surface
+    /// and the only one that is a PREDICATE</b>: every other key answers <em>how much</em>, and this
+    /// one answers <em>whether</em>. It arrived with <c>[[building]] tenanted</c>, when the count a
+    /// kind used to declare became a quantity derived from the ground and what was left of the key
+    /// was the question of whether the kind takes tenants at all.
+    /// </summary>
+    Truth = 6,
+
     /// <summary>An inline table, as <c>apply</c> and <c>fills</c> are.</summary>
     Table = 3,
 

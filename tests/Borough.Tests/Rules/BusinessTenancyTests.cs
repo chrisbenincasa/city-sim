@@ -49,6 +49,18 @@ public sealed class BusinessTenancyTests
     private const int Occupants = 3;
 
     /// <summary>
+    /// How much floor one tenancy takes here — <b>one Tile</b>, so a Lot's width is its ceiling.
+    /// </summary>
+    /// <remarks>
+    /// <b><c>plans/0053</c>: how many a Building holds is DERIVED from the ground it stands on</b>,
+    /// so a fixture that wants a ceiling of <c>Occupants</c> states the ground rather than the count.
+    /// One Tile per tenancy is the rate that makes the two read as the same sentence — the Lot is
+    /// <c>Occupants</c> Tiles wide and one deep, on one storey.
+    /// </remarks>
+    private const int FloorPerOccupant = 1;
+
+
+    /// <summary>
     /// A premises with three tenancies in it: the landlord's roof, a family's larder, and a trade's
     /// stock.
     /// </summary>
@@ -90,7 +102,7 @@ public sealed class BusinessTenancyTests
             ],
             kinds:
             [
-                new KindDefinition(0, 4, 0, 3) { Occupants = Occupants, Business = Trade },
+                new KindDefinition(0, 4, 0, 3) { Tenanted = true, Business = Trade },
             ],
             inputs:
             [
@@ -107,7 +119,10 @@ public sealed class BusinessTenancyTests
                 new BinDeclaration(Money, BinCapacity.Unbounded, BinTenancy.Business),
             ],
             kindRules: [new RuleId(1), new RuleId(2), new RuleId(3)],
-            zoneRules: []);
+            zoneRules: [])
+        {
+            Capacity = new CapacityRuleset(FloorPerOccupant, 0, 0),
+        };
 
     /// <summary>One premises, one family in it, and the trade the kind comes with.</summary>
     private static (World World, Simulation Simulation, Handle<Building> Premises) Built()
@@ -118,7 +133,8 @@ public sealed class BusinessTenancyTests
             VerifyDecideWritesNothing = true,
         };
 
-        Handle<Lot> lot = world.Lots.Create(new Tiles(0), new Tiles(0), AnyZone);
+        Handle<Lot> lot = world.Lots.Create(
+            new Tiles(0), new Tiles(0), AnyZone, wide: new Tiles(Occupants), deep: new Tiles(1));
         Handle<Building> premises = world.CreateBuilding(
             lot, Shopfront, Ticks.Zero, simulation.Key);
 

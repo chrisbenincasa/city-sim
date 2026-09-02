@@ -352,8 +352,12 @@ public sealed class ReachFailureTests
         ("commute_budget_minutes = 50", $"commute_budget_minutes = {ceiling}"));
 
     /// <summary>The shipped Ruleset with every post deleted, and the Shift band with them.</summary>
+    /// <remarks>
+    /// ⚠ <b>Deleting the rate is how a city has no jobs</b> (<c>plans/0053</c>) — employment derives
+    /// from floor area against one city-wide rate, so there is no per-kind count left to zero.
+    /// </remarks>
     private static Ruleset WithoutPosts() => Edit(
-        ("jobs = 8", "jobs = 0"),
+        ("floor_tiles_per_job           = 3\n", ""),
         ("shift_start_earliest_hour = 6", ""),
         ("shift_start_latest_hour   = 10", ""));
 
@@ -384,7 +388,7 @@ public sealed class ReachFailureTests
 
             [[building]]
             name = "dwelling"
-            occupants = 3
+            tenanted = true
             bins = [
                 { resource = "sundries", capacity = 12 },
             ]

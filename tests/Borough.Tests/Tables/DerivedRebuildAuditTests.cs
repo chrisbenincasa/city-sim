@@ -212,7 +212,22 @@ public sealed class DerivedRebuildAuditTests
         // plans/0053. The part of the parcel with a wall on it, which is what Sealing takes and what
         // the shell draws -- and which had been TWO different rectangles, the core sealing the whole
         // holding and the shell drawing about half of it.
-        Assert.Equal(49, all.Length);
+        //
+        // 🔴 49 -> 41: ALL NINE LOT-GROUND COLUMNS WENT BACK TO SAVED, and this audit is what said
+        // they had to (plans/0053). The four parcel columns came here in stage 1 on a good argument
+        // -- the ground is a function of the block's pattern and the lattice, so a saved copy would
+        // be a second fact free to disagree. What that argument missed is that the FUNCTION HAS AN
+        // INPUT A LOT MAY NOT HAVE: frontage. An unfronted Lot -- LotTable.Create makes them, and so
+        // does SyntheticCity's degenerate branch -- has no block, so its ground cannot be recomputed
+        // from anything, and a rebuild that cleared it was DELETING state rather than recomputing it.
+        //
+        // ⚠ It went unnoticed for exactly as long as nothing read the ground. Occupancy divides it
+        // now, so the failure is a Building that quietly holds nobody after a reload -- and THIS TEST
+        // named it the same afternoon, by the mechanism it was written for: clear, rebuild, compare.
+        // ***A column is derived when the derivation's inputs are always present, and never merely
+        // when a derivation exists.*** adr/0079's shape one table over: a Lot keeps ground its
+        // lattice no longer explains, exactly as a Building keeps an Address it can no longer reach.
+        Assert.Equal(41, all.Length);
         Assert.Single(ScratchColumns(Stepped(0)));
     }
 

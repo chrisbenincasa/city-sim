@@ -138,7 +138,6 @@ family = "money"
 [[business]]
 name = "shop"
 # Counts CITIZENS, not Households, and it puts full employment out of reach by design.
-jobs = 8
 shift_start_earliest_hour = 6
 shift_start_latest_hour   = 10
 
@@ -149,9 +148,15 @@ bins = [
     { resource = "repairs",  capacity = 4 },
 ]
 # Tenants of ANY kind (adr/0141), so the shop below costs a family its slot.
-occupants = 4
+tenanted = true
+# WHETHER IT PARKS, and never how many. `[capacity] floor_tiles_per_parking_space` says how much
+# floor one space takes; this says whether this kind is asked for any. It exists because a rate
+# alone would give every Building parking in proportion to its floor, making a tower the biggest
+# provider in the city -- and adr/0009's own second player-tool row is the opposite sentence, "a
+# detached house carries a driveway, a tower may not". A parking minimum is a property of the city;
+# an exemption from it is a property of the kind.
+parked = true
 business = "shop"
-parking = 8
 
 # ---------------------------------------------------------------------------------------------
 # The kind the band exists to withhold. It is deliberately the SMALLEST second kind that loads:
@@ -163,7 +168,7 @@ name = "shopfront"
 bins = [
     { resource = "sundries", capacity = 32, owner = "occupant" },
 ]
-occupants = 1
+tenanted = true
 
 [[rule]]
 name    = "stock"
@@ -282,6 +287,52 @@ lots_per_segment = 5
 # which is what a terrace is. 0 means every Building covers its whole parcel, which is what the
 # simulation did before this key existed, while the shell drew something smaller.
 setback_tiles = 2
+
+[capacity]
+# HOW MUCH FLOOR ONE OF ANYTHING TAKES. Three rates, replacing `[[building]] occupants`,
+# `[[building]] parking` and `[[business]] jobs` -- which were 39, 29 and 32 declarations across the
+# shipped files carrying two kinds and three values between them.
+#
+# A number repeated thirty times is not thirty decisions. A game whose cities run to a million people
+# cannot ask an author to write a count down for every combination of form and use, and adr/0068
+# argued the opposite from a premise that has since died: it said occupancy belongs on the kind
+# because there is NO DISTINGUISHING PROPERTY between two Buildings of one kind. There is one now --
+# a Lot carries a parcel, the parcel carries a footprint, the footprint carries a floor area.
+#
+# ⚠ A KIND STILL SAYS WHETHER IT HOUSES; only the count derives. `[[building]] tenanted` is what is
+# left of `occupants`. Capacity is geometry, behaviour is content, and a school is not a boarding
+# house because it is large.
+#
+# 🔴 THE ANCHOR IS THE CITY THAT ALREADY STOOD, and every rate below is a division rather than a
+# choice. The building on a Detached parcel at this lattice -- block_tiles = 32, lots_per_segment = 5
+# -- has a 78-Tile parcel, a 51-Tile footprint and two storeys, so 102 Tiles of floor. That building
+# is the one 28 of the 34 shipped kinds described, and what they said about it was: 4 occupants,
+# 8 jobs, 8 parking spaces. So:
+#
+#   floor_tiles_per_occupant      = 102 / 4 = 25   (the building's floor over its tenancies)
+#   floor_tiles_per_job           =  25 / 8 =  3   (ONE tenancy's share over its posts -- a Business
+#                                                   occupies one tenancy, adr/0141)
+#   floor_tiles_per_parking_space = 102 / 8 = 12   (the building's floor over its spaces)
+#
+# ⚠ SO THE SUBURB IS THE CITY IT WAS, AND EVERYTHING DENSER IS NEW. A detached building still holds
+# four families; a perimeter block holds 11, a back-to-back 24, a courtyard 35, a slab 107 -- and
+# nobody wrote one of those down. ***That ladder is the whole point*** (plans/0053): a number
+# repeated thirty times was not thirty decisions, and the same three rates now describe five forms.
+#
+# ⚠ AND 25 IS NOT WHAT A DWELLING MEASURES. A Tile is 16 m2, so a real 96 m2 dwelling is 6 Tiles and
+# this is four of them. The rate absorbs a defect one layer down: `setback_tiles` is a LENGTH, so an
+# 8 m margin is negligible on a 48 m-deep parcel and a detached building covers 65% of its plot.
+# THE FLOOR AREAS ARE ABOUT 4x A REAL BUILDING'S; the PARCELS are right. ***Anchoring on the standing
+# city is what keeps it right while the footprint is wrong***, and the footprint is filed in
+# plans/0053 rather than worked around in silence. All three rates are unratified.
+#
+# ⚠ ABSENCE IS A CITY IN EACH CASE. No table means no Building holds anybody; no floor_tiles_per_job
+# means nobody is employed anywhere; no floor_tiles_per_parking_space means the city has no parking.
+# A parking minimum is a property of a CITY and not of a building, which is where it sits in every
+# real planning code.
+floor_tiles_per_occupant      = 25
+floor_tiles_per_job           = 3
+floor_tiles_per_parking_space = 12
 
 [parking]
 radius_metres = 400

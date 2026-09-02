@@ -114,19 +114,36 @@ public sealed class BusinessLongRunTests(Xunit.Abstractions.ITestOutputHelper ou
         long early = tail[half].Slots - tail[0].Slots;
         long late = tail[^1].Slots - tail[half].Slots;
 
-        Assert.True(
-            early > 0,
-            $"the business table gained no slots at all over the first half of the tail ({early}), so "
-            + "the comparison below is against zero and says nothing. Either the city stopped "
-            + "founding before the transient ended or the settle window is now too long.");
-
-        Assert.True(
-            late * 2 <= early,
-            $"the business table gained {early} slots over the first half of the tail and {late} over "
-            + "the second. adr/0006: nothing grows with elapsed time. This city has no sink that "
-            + "fires -- the give-up bound never does, because placement re-premises a pooled Business "
-            + "first -- so what bounds it is founding running out of Households that can afford one. "
-            + "A second half growing as fast as the first means that source has stopped drying up.");
+        // 🔴 A FLAT TABLE USED TO BE REFUSED AS VACUOUS AND IT IS THE STRONGEST FORM OF THE CLAIM.
+        // The guard here read `early > 0` -- growth to compare against -- because the ratio below
+        // says nothing when its denominator is zero. But `early == 0 AND late == 0` is not the
+        // ratio failing to apply, it is the table having PLATEAUED before the tail began, which is
+        // exactly what adr/0006 asks for. ***A vacuity guard must refuse the world where nothing
+        // happened, not the world where everything settled.*** The two are told apart by `late`.
+        //
+        // ⚠ It went flat at plans/0053, when occupancy started dividing the ground: the city reaches
+        // its business count sooner, and this run's tail now reads 195 slots at every reading with
+        // live oscillating 146 to 195. The vacuity this guard is really for is caught above --
+        // `tail[0].Live > 0` and `tail[^1].Pool > 0` refuse a world with no Business in it at all.
+        if (early == 0)
+        {
+            Assert.True(
+                late == 0,
+                $"the business table was flat over the first half of the tail and gained {late} slots "
+                + "over the second. That is growth with elapsed time arriving late rather than a "
+                + "plateau -- adr/0006, and a settled series does not start moving again.");
+        }
+        else
+        {
+            Assert.True(
+                late * 2 <= early,
+                $"the business table gained {early} slots over the first half of the tail and {late} "
+                + "over the second. adr/0006: nothing grows with elapsed time. This city has no sink "
+                + "that fires -- the give-up bound never does, because placement re-premises a pooled "
+                + "Business first -- so what bounds it is founding running out of Households that can "
+                + "afford one. A second half growing as fast as the first means that source has "
+                + "stopped drying up.");
+        }
 
         // The Bins go with the rows. A Business opens a balance Bin at creation and DestroyBusiness
         // frees it, so a bin table that grows while the business table does not is the freeing not

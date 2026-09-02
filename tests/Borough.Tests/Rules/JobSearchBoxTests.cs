@@ -215,9 +215,11 @@ public sealed class JobSearchBoxTests
     /// quiet machine, as an instrument.
     /// </para>
     /// <para>
-    /// Isolated with <c>[[building]] jobs = 0</c>: no candidate ever has a vacancy, so <c>TryEmploy</c>
-    /// walks the box and never routes, and nobody is employed at either ceiling — which is what holds
-    /// the seeker count equal across the two arms and makes them comparable at all.
+    /// Isolated with <b>no <c>[capacity] floor_tiles_per_job</c></b>: no candidate ever has a vacancy,
+    /// so <c>TryEmploy</c> walks the box and never routes, and nobody is employed at either ceiling —
+    /// which is what holds the seeker count equal across the two arms and makes them comparable at all.
+    /// ⚠ <b>The isolation was <c>[[building]] jobs = 0</c> until <c>plans/0053</c> step 3</b>; it is
+    /// now the absence of a rate rather than a stated zero, because a stated zero is refused.
     /// </para>
     /// <para>
     /// ⚠ <b>Two confounds were found in the timing version and are kept here because they are about
@@ -444,12 +446,17 @@ public sealed class JobSearchBoxTests
     /// <remarks>
     /// ⚠ <b>The Shift-start band has to go with the posts</b>, because <c>adr/0101</c>'s loader
     /// refusal is two-way: a kind that employs nobody must not state when its jobs begin. Deleting
-    /// only the <c>jobs</c> line refuses at the door, which is the pairing working rather than an
-    /// awkwardness — the band and the ceiling are one declaration in two lines.
+    /// only the rate refuses at the door, which is the pairing working rather than an awkwardness —
+    /// the band and the ceiling are one declaration in two places.
+    /// <para>
+    /// ⚠ <b>The rate is a CITY-WIDE one now</b> (<c>plans/0053</c>), so a world with no jobs in it
+    /// is a world with no <c>floor_tiles_per_job</c> — the count derives from the ground, and there
+    /// is no per-kind number left to zero.
+    /// </para>
     /// </remarks>
     private static Ruleset WithoutJobs(int ceiling) => Edit(
         ceiling,
-        ("jobs = 8", "jobs = 0"),
+        ("floor_tiles_per_job           = 3\n", string.Empty),
         ("shift_start_earliest_hour = 6\nshift_start_latest_hour   = 10", string.Empty));
 
     private static Ruleset Edit(int ceiling, params (string Key, string Replacement)[] extra)

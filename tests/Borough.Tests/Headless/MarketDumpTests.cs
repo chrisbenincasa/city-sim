@@ -32,7 +32,37 @@ namespace Borough.Tests.Headless;
 /// </remarks>
 public sealed class MarketDumpTests
 {
-    private const string Population = "2000";
+    /// <summary>
+    /// Four thousand Citizens, and the figure is the SEPARATION between the two worlds rather than
+    /// a city size.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>TWO THOUSAND UNTIL <c>plans/0053</c>, WHERE THE TWO WORLDS MET AND STOPPED DIFFERING.</b>
+    /// <see cref="The_price_moves_where_there_is_a_glut_and_holds_at_the_ceiling_where_there_is_not"/>
+    /// asserts a DIFFERENCE, so it needs a population at which one world is over a Day's cover and the
+    /// other is under it. Occupancy started deriving from the ground and 2,000 became the crossing
+    /// point: the glutted world read <b>652 of stock against a draw of 699</b> — under cover by 7% —
+    /// and printed the scarce world's flat column.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Swept rather than nudged, at the shipped <see cref="Ticks"/>.</b> Stock against draw in
+    /// District 1, over-supplied then provisioned: <b>1,000</b> → 656/239 and 92/129 (both glutted
+    /// somewhere, so the scarce half fails); <b>2,000</b> → 652/699 and 188/622 (both flat);
+    /// <b>3,000</b> → 1,612/880 and 284/982; <b>4,000</b> → 3,024/1,725 and 284/1,830;
+    /// <b>6,000</b> → 4,708/2,186 and 376/4,037; <b>8,000</b> → 5,068/3,010 and 568/4,795.
+    /// ***The band is 3,000 upward and 4,000 sits inside it with the widest margin on both sides***
+    /// — 1.75× cover in the glut, 0.16× in the scarcity, and eight price moves rather than four.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Time separates these two worlds as well, and that is why the horizon is NOT the lever.</b>
+    /// Run either at 98,304 Ticks and it gluts — the provisioned city reaches 100 → 21 — because
+    /// stock accumulates while the draw decays. ***A contrast that only holds at one moment is not a
+    /// contrast between the files***, so the fixture moves the population, which is a property of the
+    /// city, and leaves the clock where <see cref="Ticks"/> argues it belongs.
+    /// </para>
+    /// </remarks>
+    private const string Population = "4000";
 
     /// <summary>
     /// Twelve Days, and the horizon is set by how late the seller arrives rather than by the price.
@@ -81,9 +111,11 @@ public sealed class MarketDumpTests
     /// <para>
     /// <b>Two worlds, because the finding is the DIFFERENCE and neither half means anything alone.</b>
     /// <c>rulesets/oversupplied.toml</c> is <c>rulesets/provisioned.toml</c> with two tier-1 keys
-    /// deleted (<c>adr/0170</c> condition 4), so it raises 10 sellers a District where the other raises
-    /// 2 — and ***the diff between the files is the whole demonstration***, for the price exactly as
-    /// for the shop's life.
+    /// deleted (<c>adr/0170</c> condition 4), so it raises <b>32 sellers a District where the other
+    /// raises 3</b> at <see cref="Population"/> — and ***the diff between the files is the whole
+    /// demonstration***, for the price exactly as for the shop's life. ⚠ <b>Those two counts are a
+    /// reading and not a property of the files</b>; they were 10 against 2 before occupancy derived
+    /// from the ground, and they move with the population and the generator both.
     /// </para>
     /// <para>
     /// ⚠ <b>The scarce half asserts the CAUSE and not merely the flatness.</b> Every row holds no more
@@ -92,21 +124,51 @@ public sealed class MarketDumpTests
     /// go red on — a test that asserted flatness alone would have passed both before and after
     /// <c>adr/0171</c>.
     /// </para>
+    /// <para>
+    /// 🔴 <b>A ROW WITH NO DRAW IS SKIPPED AND COUNTED, added at <c>plans/0053</c>.</b> The cover
+    /// assertion divides by a demand, and a District can hold sellers and no consumers — this one
+    /// grew such a row the moment occupancy started dividing the ground, District 3 standing with
+    /// 2 sellers, 188 sundries and a rate of nothing. ⚠ <b>On a zero draw the sentence
+    /// <c>stock ≤ rate/Day</c> stops meaning "under a Day's cover" and starts meaning "the stock is
+    /// zero"</b>, which is a different claim and a false one. ***A degenerate denominator is named,
+    /// never quietly asserted against*** — and the count is asserted positive afterwards, because a
+    /// skip that could take every row is a vacuous test wearing a green tick.
+    /// </para>
     /// </remarks>
     [Fact]
     public void The_price_moves_where_there_is_a_glut_and_holds_at_the_ceiling_where_there_is_not()
     {
         string scarce = Dump("provisioned.toml");
+        int drawn = 0;
 
         foreach (string row in Rows(scarce, "Where the market is"))
         {
             string[] cells = Cells(row);
+
+            // 🔴 A ROW WITH NO DRAW HAS NO DAY'S COVER, and the comparison below is not defined on it
+            // (plans/0053). `stock <= rate/Day` reads "less than one Day of demand"; where the demand
+            // is ZERO that sentence becomes "the stock is zero", which is a different claim and a
+            // false one -- a District can hold sellers and no consumers, and provisioned.toml grew
+            // exactly such a row when occupancy started dividing the ground: District 3 stands with
+            // 2 sellers, 188 sundries and a draw of nothing. ***A degenerate denominator is skipped
+            // and counted, never quietly asserted against.***
+            if (Number(cells[^1]) <= 0)
+            {
+                continue;
+            }
+
+            drawn++;
 
             Assert.True(
                 Number(cells[^3]) <= Number(cells[^1]),
                 $"'{row}' holds more than a Day's cover and the price is still flat, which is the "
                 + "cover being taken from the wrong Bin again (adr/0171).");
         }
+
+        Assert.True(
+            drawn > 0,
+            "no row in this market has a draw at all, so the cover assertion above ran on nothing "
+            + "and this half of the test is vacuous. The scarce world has stopped consuming.");
 
         foreach (string row in Rows(scarce, "What the price did"))
         {

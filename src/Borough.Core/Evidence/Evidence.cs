@@ -53,7 +53,7 @@ public static class Evidence
         byte kind = world.Buildings.Kind[slot];
 
         bool declared = world.Rules.Declares(kind);
-        int occupancy = declared ? world.Rules.Kind(kind).Occupants : 0;
+        int occupancy = declared && world.TryDeclaredOccupancy(kind, slot, out int held) ? held : 0;
 
         // ⚠ SUMMED OVER THE TENANTS, because premises declare no jobs any more (adr/0141). A
         // Building's employment is whatever the trades inside it declare between them, so a Building
@@ -64,7 +64,7 @@ public static class Evidence
         {
             if (world.Rules.DeclaresBusiness(world.Businesses.Kind[tenant]))
             {
-                jobs += world.Rules.BusinessKind(world.Businesses.Kind[tenant]).Jobs;
+                jobs += world.DeclaredJobs(tenant);
             }
         }
 

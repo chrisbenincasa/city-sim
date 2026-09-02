@@ -51,6 +51,21 @@ public sealed class BusinessKindLoadTests
         family = "good"
         """;
 
+    /// <summary>
+    /// A world that employs anybody, which is what a Shift band is now owed by.
+    /// </summary>
+    /// <remarks>
+    /// <b><c>plans/0053</c>: employment is a property of the WORLD rather than of the trade.</b>
+    /// <c>jobs</c> used to sit on the <c>[[business]]</c>, so the pairing that owes a Shift band was
+    /// a property of the same table. It divides floor area now, so the question
+    /// <c>ReadShiftStartBand</c> asks — <em>does anybody work here</em> — is answered one level up,
+    /// and every band test needs this table beside it.
+    /// </remarks>
+    private const string Employing = """
+        [capacity]
+        floor_tiles_per_job = 1
+        """;
+
     private static Ruleset Accepted(string toml)
     {
         RulesetLoadResult result = RulesetLoader.Parse(toml, "test.toml");
@@ -435,35 +450,33 @@ public sealed class BusinessKindLoadTests
 
     /// <summary>A trade's declaration survives the loader and reads back off the Ruleset.</summary>
     [Fact]
-    public void A_trade_declares_jobs_and_a_shift_band()
+    public void A_trade_declares_a_shift_band()
     {
         Ruleset rules = Accepted($"""
             {Nothing}
 
             [[business]]
             name = "bakery"
-            jobs = 8
             shift_start_earliest_hour = 6
             shift_start_latest_hour = 10
 
             [[business]]
             name = "barber"
-            jobs = 3
             shift_start_earliest_hour = 9
             shift_start_latest_hour = 9
+
+            {Employing}
             """);
 
         BusinessKindDefinition bakery = rules.BusinessKind(1);
         BusinessKindDefinition barber = rules.BusinessKind(2);
 
-        Assert.Equal(8, bakery.Jobs);
         Assert.Equal(6, bakery.ShiftStartEarliestHour);
         Assert.Equal(10, bakery.ShiftStartLatestHour);
 
         // Equal bounds are allowed and mean a trade whose Shifts all start together. Asserted rather
         // than assumed because ReadShiftStartBand refuses `to < from`, and equality sits exactly on
         // the boundary of that comparison.
-        Assert.Equal(3, barber.Jobs);
         Assert.Equal(9, barber.ShiftStartEarliestHour);
         Assert.Equal(9, barber.ShiftStartLatestHour);
     }
@@ -479,37 +492,51 @@ public sealed class BusinessKindLoadTests
             name = "bakery"
             """);
 
-        Assert.Equal(0, rules.BusinessKind(1).Jobs);
         Assert.Equal(0, rules.BusinessKind(1).ShiftStartEarliestHour);
     }
 
-    /// <summary>Negative <c>jobs</c> reads as <em>sack everybody</em> and is refused.</summary>
+    /// <summary>The retired <c>jobs</c> key is refused, and told what replaced it.</summary>
+    /// <remarks>
+    /// <b><c>plans/0053</c>, and the message is the point rather than the refusal.</b> A trade
+    /// employs its share of its premises' floor over <c>[capacity] floor_tiles_per_job</c> — which
+    /// makes a shop in a slab a bigger employer than the same trade in a terrace, without anybody
+    /// declaring two trades to say so. An author writing <c>jobs</c> is copying a file that predates
+    /// that, so a bare <em>unknown key</em> would send them looking for a typo.
+    /// </remarks>
     [Fact]
-    public void A_trade_cannot_employ_a_negative_number()
+    public void The_retired_jobs_key_is_refused_and_names_what_replaced_it()
     {
         RulesetRefusal refusal = Refused($"""
             {Nothing}
 
             [[business]]
             name = "bakery"
-            jobs = -1
+            jobs = 8
             """);
 
-        Assert.Contains("cannot be negative", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("floor_tiles_per_job", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("DERIVED", refusal.Reason, StringComparison.Ordinal);
     }
 
     /// <summary>
-    /// The Shift band is paired with <c>jobs</c> in both directions, and both halves are asserted.
+    /// The Shift band is paired with employment in both directions, and both halves are asserted.
     /// </summary>
     /// <remarks>
-    /// <b>Two assertions rather than one, because the pairing is two refusals.</b> A band without
-    /// <c>jobs</c> is a band that means nothing; <c>jobs</c> without a band would default to hour 0,
-    /// and <b>midnight is a real answer</b> — so the defaulted value could not announce itself as a
-    /// placeholder (<c>adr/0101</c>). ⚠ <b>These messages are <c>ReadShiftStartBand</c>'s own</b>,
-    /// reused rather than mirrored, which is why this pass added no refusal site at all.
+    /// <b>Two assertions rather than one, because the pairing is two refusals.</b> A band in a city
+    /// that employs nobody is a band that means nothing; employment without a band would default to
+    /// hour 0, and <b>midnight is a real answer</b> — so the defaulted value could not announce
+    /// itself as a placeholder (<c>adr/0101</c>). ⚠ <b>These messages are
+    /// <c>ReadShiftStartBand</c>'s own</b>, reused rather than mirrored.
+    /// <para>
+    /// ⚠ <b>What moved under this test is which table asks the question</b> (<c>plans/0053</c>). It
+    /// was <c>[[business]] jobs</c> — a property of the trade, so both halves were writable on one
+    /// table. It is <c>[capacity] floor_tiles_per_job</c> now, a property of the world, so the pair
+    /// straddles two tables and the refusal a designer meets is one table away from the key they
+    /// wrote. The messages carry that, and this test is what holds them to it.
+    /// </para>
     /// </remarks>
     [Fact]
-    public void The_shift_band_and_jobs_require_each_other()
+    public void The_shift_band_and_employment_require_each_other()
     {
         RulesetRefusal bandAlone = Refused($"""
             {Nothing}
@@ -522,15 +549,16 @@ public sealed class BusinessKindLoadTests
 
         Assert.Contains("employs nobody", bandAlone.Reason, StringComparison.Ordinal);
 
-        RulesetRefusal jobsAlone = Refused($"""
+        RulesetRefusal employmentAlone = Refused($"""
             {Nothing}
 
             [[business]]
             name = "bakery"
-            jobs = 8
+
+            {Employing}
             """);
 
-        Assert.Contains("states no Shift-start band", jobsAlone.Reason, StringComparison.Ordinal);
+        Assert.Contains("states no Shift-start band", employmentAlone.Reason, StringComparison.Ordinal);
     }
 
     /// <summary>An hour outside the Day is refused, on both bounds.</summary>
@@ -542,9 +570,10 @@ public sealed class BusinessKindLoadTests
 
             [[business]]
             name = "bakery"
-            jobs = 8
             shift_start_earliest_hour = 24
             shift_start_latest_hour = 24
+
+            {Employing}
             """).Reason, StringComparison.Ordinal);
 
         // A band running backwards is the case a single range check would miss.
@@ -553,9 +582,10 @@ public sealed class BusinessKindLoadTests
 
             [[business]]
             name = "bakery"
-            jobs = 8
             shift_start_earliest_hour = 10
             shift_start_latest_hour = 6
+
+            {Employing}
             """).Reason, StringComparison.Ordinal);
     }
 
@@ -577,10 +607,11 @@ public sealed class BusinessKindLoadTests
 
             [[business]]
             name = "bakery"
-            jobs = 8
             shift_start_earliest_hour = 6
             shift_start_latest_hour = 10
             wage = 100
+
+            {Employing}
             """);
 
         Assert.Contains("wage", refusal.Reason, StringComparison.Ordinal);

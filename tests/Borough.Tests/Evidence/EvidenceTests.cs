@@ -794,7 +794,7 @@ public sealed class EvidenceTests
         Ruleset ruleset = new(
             resources: [],
             rules: [],
-            kinds: [new KindDefinition(0, 0, 0, 0) { Occupants = 1 }],
+            kinds: [new KindDefinition(0, 0, 0, 0) { Tenanted = 1 > 0 }],
             inputs: [],
             outputs: [],
             emissions: [],
@@ -850,7 +850,7 @@ public sealed class EvidenceTests
                 new RuleDefinition(House, FastRate, ApplyCount.Band(1, 1), RuleId.None,
                     false, default, ConditionId.None, 1, 1, 0, 0, 0, 0),
             ],
-            kinds: [new KindDefinition(0, 2, 0, 2) { Occupants = 1 }],
+            kinds: [new KindDefinition(0, 2, 0, 2) { Tenanted = 1 > 0 }],
             inputs:
             [
                 new Term(new BinRef(Scope.Local, Repairs), 1),

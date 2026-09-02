@@ -37,7 +37,17 @@ public sealed class ParkingHoldTests
     private static readonly WorldKey Key = WorldKey.FromSeed(0x7000_0004UL);
 
     /// <summary>
-    /// One dwelling kind parking <c>PARKS</c> Vehicles, on a Street, with a shed that reaches.
+    /// How much ground the dwelling in this fixture stands on, in Tiles of floor.
+    /// </summary>
+    /// <remarks>
+    /// <b>Fixed, so that a space count is a rate</b> (<c>plans/0053</c>). 4 because every count this
+    /// class asks for — one space and four — divides it.
+    /// </remarks>
+    private const int Ground = 4;
+
+    /// <summary>
+    /// One dwelling kind whose parking is <c>Ground</c> over <c>RATE</c>, on a Street, with a shed
+    /// that reaches.
     /// </summary>
     /// <remarks>
     /// <b>The <c>[parking]</c> table is present and that is load-bearing</b> — <c>ParkingRuleset.Runs</c>
@@ -51,11 +61,14 @@ public sealed class ParkingHoldTests
 
         [[building]]
         name = "dwelling"
-        occupants = 3
-        parking = PARKS
+        tenanted = true
+        parked = true
         bins = [
             { resource = "sundries", capacity = 12 },
         ]
+
+        [capacity]
+        floor_tiles_per_parking_space = RATE
 
         [parking]
         radius_metres = 400
@@ -342,7 +355,8 @@ public sealed class ParkingHoldTests
         {
             var world = new World(1_000, Load(spaces));
 
-            Handle<Lot> lot = world.Lots.Create(new Tiles(0), new Tiles(0), zone: 1);
+            Handle<Lot> lot = world.Lots.Create(
+                new Tiles(0), new Tiles(0), zone: 1, wide: new Tiles(Ground), deep: new Tiles(1));
 
             GiveFrontage(world, world.Lots.Rows.Resolve(lot));
 
@@ -388,12 +402,21 @@ public sealed class ParkingHoldTests
             world.Lots.Side[lotSlot] = (byte)StreetSide.Right;
         }
 
+        /// <summary>
+        /// A dwelling parking <paramref name="spaces"/> Vehicles.
+        /// </summary>
+        /// <remarks>
+        /// ⚠ <b>It states a RATE and the count comes out of the division</b> (<c>plans/0053</c>):
+        /// a Building parks its floor area over <c>[capacity] floor_tiles_per_parking_space</c>, so
+        /// the ground is fixed at <see cref="Ground"/> and the rate is what varies. Every count these
+        /// tests ask for divides it.
+        /// </remarks>
         private static Ruleset Load(int spaces)
         {
             RulesetLoadResult result = RulesetLoader.Parse(
                 Template.Replace(
-                    "PARKS",
-                    spaces.ToString(CultureInfo.InvariantCulture),
+                    "RATE",
+                    (Ground / spaces).ToString(CultureInfo.InvariantCulture),
                     StringComparison.Ordinal),
                 "test.toml");
 

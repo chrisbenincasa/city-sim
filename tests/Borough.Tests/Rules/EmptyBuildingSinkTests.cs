@@ -40,8 +40,19 @@ public sealed class EmptyBuildingSinkTests
     private const byte House = 1;
     private const ushort Housing = 1;
 
-    /// <summary>How many Households the kind declares room for.</summary>
+    /// <summary>How many Households the Building has room for.</summary>
     private const int Occupants = 4;
+
+    /// <summary>
+    /// How much floor one tenancy takes here — <b>one Tile</b>, so a Lot's width is its ceiling.
+    /// </summary>
+    /// <remarks>
+    /// <b><c>plans/0053</c>: how many a Building holds is DERIVED from the ground it stands on</b>,
+    /// so a fixture that wants a ceiling of <c>Occupants</c> states the ground rather than the count.
+    /// One Tile per tenancy is the rate that makes the two read as the same sentence — the Lot is
+    /// <c>Occupants</c> Tiles wide and one deep, on one storey.
+    /// </remarks>
+    private const int FloorPerOccupant = 1;
 
     /// <summary>
     /// A kind with <b>no Rules</b>, so nothing can starve and the only verdict available is this one.
@@ -58,7 +69,7 @@ public sealed class EmptyBuildingSinkTests
                 {
                     AbandonedWhenEmptyAfterTicks = emptiesAfter,
                     CollapsesAfterDays = standsFor,
-                    Occupants = Occupants,
+                    Tenanted = true,
                 },
             ],
             inputs: [],
@@ -70,7 +81,10 @@ public sealed class EmptyBuildingSinkTests
             // A Zone Rule that judges and never builds. It has no Unplaced Pool to build against
             // either — nothing here creates one — but stating the intent is what keeps the counts
             // below readable if that ever changes.
-            zoneRules: [new ZoneRuleDefinition(House, 1, 4, 4)]);
+            zoneRules: [new ZoneRuleDefinition(House, 1, 4, 4)])
+        {
+            Capacity = new CapacityRuleset(FloorPerOccupant, 0, 0),
+        };
 
     private static (World World, Simulation Simulation) Built(
         int emptiesAfter, int households, int standsFor = 1)
@@ -83,7 +97,8 @@ public sealed class EmptyBuildingSinkTests
             VerifyDecideWritesNothing = false,
         };
 
-        Handle<Lot> lot = world.Lots.Create(new Tiles(0), new Tiles(0), Housing);
+        Handle<Lot> lot = world.Lots.Create(
+            new Tiles(0), new Tiles(0), Housing, wide: new Tiles(Occupants), deep: new Tiles(1));
         Handle<Building> building = world.CreateBuilding(lot, House, Ticks.Zero, simulation.Key);
 
         for (int held = 0; held < households; held++)

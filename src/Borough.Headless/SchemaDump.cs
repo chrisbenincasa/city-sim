@@ -279,6 +279,10 @@ internal static class SchemaDump
                     writer.WriteString("type", "string");
                     break;
 
+                case RulesetKeyKind.Truth:
+                    writer.WriteString("type", "boolean");
+                    break;
+
                 case RulesetKeyKind.Numbers:
                     // A bare list of whole numbers, which no other key in this Ruleset is. It heads
                     // no section, so the array is written here rather than through the Repeats path

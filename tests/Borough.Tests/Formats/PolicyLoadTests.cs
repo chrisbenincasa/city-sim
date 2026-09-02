@@ -43,7 +43,7 @@ public sealed class PolicyLoadTests
 
         [[building]]
         name = "dwelling"
-        occupants = 3
+        tenanted = true
         bins = [ { resource = "sundries", capacity = 48 } ]
         """;
 
@@ -352,7 +352,7 @@ public sealed class PolicyLoadTests
 
             [[building]]
             name = "dwelling"
-            occupants = 3
+            tenanted = true
             bins = [ { resource = "sundries", capacity = 48 } ]
 
             [households]

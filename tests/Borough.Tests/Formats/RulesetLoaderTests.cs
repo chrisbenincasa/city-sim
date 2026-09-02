@@ -559,7 +559,7 @@ public sealed class RulesetLoaderTests
 
             [[building]]
             name = "bakery"
-            occupants = 3
+            tenanted = true
             bins = [ { resource = "flour", capacity = 60 } ]
 
             [[building]]
@@ -1469,63 +1469,105 @@ public sealed class RulesetLoaderTests
         Assert.Contains("[[zone_rule]]", refusal.Reason, StringComparison.Ordinal);
     }
 
-    // ---- occupancy, adr/0068 --------------------------------------------------------------------
+    // ---- tenancy, adr/0068 as plans/0053 left it -------------------------------------------------
 
     /// <summary>
-    /// A kind that declares no <c>occupants</c> houses nobody, which is what almost every kind means.
+    /// A kind that says nothing about tenancy houses nobody, which is what almost every kind means.
     /// </summary>
     /// <remarks>
-    /// <b>The default is the load-bearing half of this pair.</b> Every Ruleset written before
-    /// occupancy existed omits the key, and all of them meant *this kind is not a home* — a bakery,
-    /// a factory, a farm. Making the absent case zero is what let <c>adr/0068</c> ship without
-    /// touching a single existing declaration.
+    /// <b>The default is the load-bearing half of this pair</b>, and it survived the key changing
+    /// shape: every Ruleset written before occupancy existed omitted <c>occupants</c> and meant
+    /// *this kind is not a home* — a bakery, a factory, a farm. <c>tenanted</c> inherits that, and
+    /// inherits it more cleanly, because an absent predicate is simply <em>no</em> where an absent
+    /// count had to be argued into meaning zero.
     /// </remarks>
     [Fact]
-    public void A_kind_that_declares_no_occupants_houses_nobody()
+    public void A_kind_that_says_nothing_about_tenancy_houses_nobody()
     {
         Ruleset ruleset = Accepted(Bakery);
 
-        Assert.Equal(0, ruleset.Kind(1).Occupants);
+        Assert.False(ruleset.Kind(1).Tenanted);
     }
 
-    /// <summary>A kind that declares <c>occupants</c> carries the number through to the core.</summary>
+    /// <summary>A kind that declares <c>tenanted</c> takes tenants, and the count is not here.</summary>
+    /// <remarks>
+    /// <b>This is the whole of what a kind still says about housing</b> (<c>plans/0053</c>). How
+    /// many is floor area over <c>[capacity] floor_tiles_per_occupant</c>, so it differs Building by
+    /// Building with the ground each stands on — and the thing a kind knows, which no arithmetic
+    /// could derive, is whether it is a home at all.
+    /// </remarks>
     [Fact]
-    public void A_kind_that_declares_occupants_carries_the_number()
+    public void A_kind_that_declares_tenanted_takes_tenants()
     {
         Ruleset ruleset = Accepted(Bakery.Replace(
             "name = \"bakery\"\n",
-            "name = \"bakery\"\noccupants = 5\n",
+            "name = \"bakery\"\ntenanted = true\n",
             StringComparison.Ordinal));
 
-        Assert.Equal(5, ruleset.Kind(1).Occupants);
+        Assert.True(ruleset.Kind(1).Tenanted);
     }
 
     /// <summary>
-    /// A negative <c>occupants</c> is refused rather than clamped.
+    /// A stated <c>tenanted = false</c> is the same city as saying nothing.
     /// </summary>
     /// <remarks>
-    /// <b>Written because the last thing this loader gained was a guard with no test</b>
-    /// (<c>plans/0018</c> → tasks 3 and 4's implementation record, finding 1): the duplicate
-    /// <c>(kind, Resource)</c> refusal had existed since slice 7 and <c>adr/0064</c> recorded it as
-    /// absent, because this file is where a reader looks to find out what the loader refuses and it
-    /// did not say so. The refusal being obvious is not a reason to skip it — that was exactly the
-    /// reasoning that produced the hole.
-    /// <para>
-    /// Clamping to zero would be worse than the negative: it reads as *evict everybody*, and a
-    /// Ruleset that emptied every Building it declared is a sentence somebody meant to write and
-    /// nobody would guess from the symptom.
-    /// </para>
+    /// <b>Which is what makes writing the word optional rather than ceremonial.</b> The count key
+    /// this replaced could not have this property — <c>occupants = 0</c> and no <c>occupants</c> had
+    /// to stay apart, because a kind the Ruleset dropped is <em>derelict</em> and must not read as
+    /// one declaring none. A predicate carries no such second meaning.
     /// </remarks>
     [Fact]
-    public void A_negative_occupants_is_refused()
+    public void A_stated_false_tenancy_is_the_same_as_none()
+    {
+        Ruleset ruleset = Accepted(Bakery.Replace(
+            "name = \"bakery\"\n",
+            "name = \"bakery\"\ntenanted = false\n",
+            StringComparison.Ordinal));
+
+        Assert.False(ruleset.Kind(1).Tenanted);
+    }
+
+    /// <summary><c>tenanted</c> must be true or false rather than a number.</summary>
+    /// <remarks>
+    /// <b>The likeliest wrong value is the key it replaced.</b> An author reaching for
+    /// <c>tenanted = 4</c> is somebody who half-remembers <c>occupants</c>, and TOML would otherwise
+    /// hand the loader an integer where it asked a question.
+    /// </remarks>
+    [Fact]
+    public void A_numeric_tenancy_is_refused()
     {
         RulesetRefusal refusal = Refused(Bakery.Replace(
             "name = \"bakery\"\n",
-            "name = \"bakery\"\noccupants = -1\n",
+            "name = \"bakery\"\ntenanted = 4\n",
             StringComparison.Ordinal));
 
-        Assert.Contains("occupants is -1", refusal.Reason, StringComparison.Ordinal);
-        Assert.Contains("houses nobody", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("must be true or false", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The two retired capacity counts are refused on a <c>[[building]]</c>, and told where they
+    /// went.
+    /// </summary>
+    /// <remarks>
+    /// <b>The message is the point rather than the refusal</b> — <c>adr/0148</c>'s reasoning on a
+    /// third axis. These keys were legal in every shipped Ruleset until <c>plans/0053</c>, so the
+    /// author most likely to write one is copying a file that predates the move, and a bare *unknown
+    /// key* would send them looking for a typo. ⚠ <b>Each refusal names <c>[capacity]</c> and says
+    /// the quantity is DERIVED</b>, because the reader's next question is not *where did it go* but
+    /// *then what decides it*.
+    /// </remarks>
+    [Theory]
+    [InlineData("occupants = 5", "floor_tiles_per_occupant")]
+    [InlineData("parking = 24", "floor_tiles_per_parking_space")]
+    public void A_retired_capacity_count_is_refused_and_names_what_replaced_it(string key, string went)
+    {
+        RulesetRefusal refusal = Refused(Bakery.Replace(
+            "name = \"bakery\"\n",
+            $"name = \"bakery\"\n{key}\n",
+            StringComparison.Ordinal));
+
+        Assert.Contains(went, refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("DERIVED", refusal.Reason, StringComparison.Ordinal);
     }
 
     // ---- employment, adr/0068's rule on a second axis (5b-bis task 2) ---------------------------
@@ -1591,104 +1633,104 @@ public sealed class RulesetLoaderTests
         Assert.Contains("employs nobody", refusal.Reason, StringComparison.Ordinal);
     }
 
-    /// <summary>
-    /// A kind declares occupancy and employment independently, and one does not default from
-    /// the other.
-    /// </summary>
+    // ---- [capacity] (plans/0053) -----------------------------------------------------------------
+
+    /// <summary>A Ruleset with no <c>[capacity]</c> holds nobody, employs nobody, parks nothing.</summary>
     /// <remarks>
-    /// <b>The case a single shared number could not express</b>, and the one that says why this is a
-    /// fourth key rather than a reading of the third: a workplace houses nobody and employs a
-    /// hundred, a dwelling the reverse, and a mixed-use Building both. Reaching for occupancy where
-    /// employment was meant is the kind of collapse a test notices and a reviewer does not.
+    /// <b>Absence is a city in each case, and they are three different cities.</b> No table means no
+    /// Building holds anybody; no <c>floor_tiles_per_job</c> means nobody is employed anywhere; no
+    /// <c>floor_tiles_per_parking_space</c> means the city has no parking. That is <c>[placement]</c>'s
+    /// polarity rather than <c>[layers]</c>'s — a defaulted rate would put three hash-bearing numbers
+    /// into the binary with nobody having authored them.
     /// </remarks>
     [Fact]
-    public void Occupancy_and_employment_are_declared_independently()
-    {
-        Ruleset ruleset = Accepted(Bakery.Replace(
-            "name = \"bakery\"\n",
-            "name = \"bakery\"\noccupants = 0\nparking = 9\n",
-            StringComparison.Ordinal));
-
-        Assert.Equal(0, ruleset.Kind(1).Occupants);
-        Assert.Equal(9, ruleset.Kind(1).Parking);
-    }
-    // ---- [[building]] parking (adr/0120) ---------------------------------------------------------
-
-    /// <summary>A kind that declares no <c>parking</c> parks nothing.</summary>
-    /// <remarks>
-    /// <b>Absence means what zero means here, and that is the decision rather than a default.</b>
-    /// <c>occupants</c> and <c>jobs</c> both have to keep <em>declared zero</em> and <em>not declared
-    /// at all</em> apart, because a kind the Ruleset dropped is <em>derelict</em> and must not be
-    /// treated as one declaring none. That distinction lives in <c>World.TryDeclaredParking</c>, on
-    /// whether the <em>kind</em> is declared — not on this key, which a kind either states or does
-    /// not. A kind saying nothing about parking provides none.
-    /// </remarks>
-    [Fact]
-    public void A_kind_that_declares_no_parking_parks_nothing()
+    public void A_ruleset_with_no_capacity_table_derives_nothing()
     {
         Ruleset ruleset = Accepted(Bakery);
 
-        Assert.Equal(0, ruleset.Kind(1).Parking);
+        Assert.Equal(0, ruleset.Capacity.FloorTilesPerOccupant);
+        Assert.Equal(0, ruleset.Capacity.FloorTilesPerJob);
+        Assert.Equal(0, ruleset.Capacity.FloorTilesPerParkingSpace);
     }
 
-    /// <summary>A kind that declares <c>parking</c> carries the number through to the core.</summary>
-    /// <remarks>
-    /// <b>It counts Vehicles, never Citizens and never Households</b> (<c>adr/0119</c>):
-    /// <c>World.ModeOf</c> drives every member of a car-owning Household, so the three quantities
-    /// differ by construction and a Car Park sized in people would be sized in the wrong currency.
-    /// </remarks>
+    /// <summary>The three rates reach the Ruleset.</summary>
     [Fact]
-    public void A_kind_that_declares_parking_carries_the_number()
+    public void The_capacity_rates_reach_the_ruleset()
     {
-        Ruleset ruleset = Accepted(Bakery.Replace(
-            "name = \"bakery\"\n",
-            "name = \"bakery\"\nparking = 24\n",
-            StringComparison.Ordinal));
+        Ruleset ruleset = Accepted(Bakery + """
 
-        Assert.Equal(24, ruleset.Kind(1).Parking);
+            [capacity]
+            floor_tiles_per_occupant      = 6
+            floor_tiles_per_job           = 1
+            floor_tiles_per_parking_space = 6
+            """);
+
+        Assert.Equal(6, ruleset.Capacity.FloorTilesPerOccupant);
+        Assert.Equal(1, ruleset.Capacity.FloorTilesPerJob);
+        Assert.Equal(6, ruleset.Capacity.FloorTilesPerParkingSpace);
     }
 
-    /// <summary>
-    /// A negative <c>parking</c> is refused rather than clamped.
-    /// </summary>
+    /// <summary>Each rate is independent, and one does not default from another.</summary>
     /// <remarks>
-    /// <c>jobs</c>' reasoning exactly: clamped to zero it reads as <em>remove spaces that are not
-    /// there</em>, which is not a sentence anybody meant to write, and the symptom — a District whose
-    /// cars have nowhere to go — names neither the file nor the key. Written rather than inherited,
-    /// because a guard with no test is invisible to the next reader (<c>adr/0064</c>).
+    /// <b>The case a single shared number could not express</b>, and the one that says why these are
+    /// three keys rather than one: a workplace houses nobody and employs a hundred, a dwelling the
+    /// reverse, and a mixed-use Building both. The <em>form</em> is shared — all three divide the same
+    /// floor area — and what differs is how much of it one of the thing takes.
     /// </remarks>
     [Fact]
-    public void A_negative_parking_is_refused()
+    public void The_capacity_rates_are_stated_independently()
     {
-        RulesetRefusal refusal = Refused(Bakery.Replace(
-            "name = \"bakery\"\n",
-            "name = \"bakery\"\nparking = -1\n",
-            StringComparison.Ordinal));
+        Ruleset ruleset = Accepted(Bakery + """
 
-        Assert.Contains("parking is -1", refusal.Reason, StringComparison.Ordinal);
-        Assert.Contains("parks none", refusal.Reason, StringComparison.Ordinal);
+            [capacity]
+            floor_tiles_per_job = 1
+            """);
+
+        Assert.Equal(0, ruleset.Capacity.FloorTilesPerOccupant);
+        Assert.Equal(1, ruleset.Capacity.FloorTilesPerJob);
+        Assert.Equal(0, ruleset.Capacity.FloorTilesPerParkingSpace);
     }
 
-    /// <summary>
-    /// <b>Zero parking is a real declaration, and it is the value this key exists to make
-    /// authorable.</b>
-    /// </summary>
+    /// <summary>A stated zero is refused, and absence is how <em>none</em> is meant.</summary>
     /// <remarks>
-    /// <b>The one of the three ceilings where zero is the interesting value.</b> A tower with no
-    /// parking is <c>adr/0009</c>'s own second player-tool row — <em>a detached house carries a
-    /// driveway, a tower may not</em> — where a dwelling employing nobody is merely the common case.
-    /// So the three are declared independently and none defaults from another.
+    /// <b>A rate of zero would divide by nothing</b>, and a key written to mean <em>none</em> reads
+    /// as an author who thought they were setting a quantity. The refusal says which spelling they
+    /// wanted, because the symptom — a city that employs nobody — names neither the file nor the key.
+    /// </remarks>
+    [Theory]
+    [InlineData("floor_tiles_per_occupant")]
+    [InlineData("floor_tiles_per_job")]
+    [InlineData("floor_tiles_per_parking_space")]
+    public void A_zero_capacity_rate_is_refused(string key)
+    {
+        RulesetRefusal refusal = Refused(Bakery + $"""
+
+            [capacity]
+            {key} = 0
+            """);
+
+        Assert.Contains("out of range", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("Omit the key", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>A rate larger than a Cell is refused.</summary>
+    /// <remarks>
+    /// <b>1,024 Tiles is 16,384 m²</b>, and a rate past that is a quantity nothing in any city could
+    /// satisfy — every Building would hold one of whatever it is, which is the floor
+    /// <c>CapacityRuleset.Holds</c> already gives. So the key would be inert rather than extreme,
+    /// which is the failure mode this corpus refuses by name.
     /// </remarks>
     [Fact]
-    public void Occupancy_employment_and_parking_are_declared_independently()
+    public void A_capacity_rate_larger_than_a_cell_is_refused()
     {
-        Ruleset ruleset = Accepted(Bakery.Replace(
-            "name = \"bakery\"\n",
-            "name = \"bakery\"\noccupants = 40\nparking = 0\n",
-            StringComparison.Ordinal));
+        RulesetRefusal refusal = Refused(Bakery + """
 
-        Assert.Equal(40, ruleset.Kind(1).Occupants);
-        Assert.Equal(0, ruleset.Kind(1).Parking);
+            [capacity]
+            floor_tiles_per_occupant = 1025
+            """);
+
+        Assert.Contains("out of range", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("at most a Cell", refusal.Reason, StringComparison.Ordinal);
     }
 
     // ---- [placement] (adr/0069) --------------------------------------------------------------------

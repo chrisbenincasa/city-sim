@@ -376,7 +376,8 @@ public sealed class FoundingTests(Xunit.Abstractions.ITestOutputHelper output)
             }
 
             Assert.True(
-                world.TryDeclaredOccupancy(world.Buildings.Kind[building], out int allowed)
+                world.TryDeclaredOccupancy(
+                    world.Buildings.Kind[building], building, out int allowed)
                 && world.Tenants(building) <= allowed,
                 $"Building {building} holds more tenants than its kind admits.");
         }

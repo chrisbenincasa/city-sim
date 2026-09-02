@@ -1,5 +1,28 @@
 # A Building's occupancy is declared by its kind, and an over-capacity Building evicts
 
+> 🔴 **THE TITLE'S FIRST HALF IS FALSIFIED AS OF 2026-09-02, AND ITS SECOND HALF IS THE REASON THIS
+> DOCUMENT STAYS.** [`plans/0053`](../../plans/0053-the-block.md) step 3 makes a Building's occupancy
+> **derived from the ground it stands on** — its floor area over `[capacity] floor_tiles_per_occupant`
+> — so `[[building]] occupants` is retired and no kind declares a count any more. ⚠ **What a kind
+> declares now is WHETHER it takes tenants at all**, `[[building]] tenanted`, which is behaviour
+> rather than capacity.
+>
+> ⚠ **Every consequence below survives the change and one of them is now load-bearing rather than
+> hypothetical.** *An over-capacity Building evicts the overflow into the Unplaced Pool* was written
+> against a designer lowering a number in a Ruleset, which nobody had ever done; it now fires whenever
+> the **rate** moves, and it fired during step 3's own build — a Building whose derived ceiling came
+> out at 1 took a Household beside its Business and `EvictOverflow` removed it the same Tick, because
+> `adr/0147` has one ceiling count both tenants. ***A mechanism written for an occasion that never
+> arrived was the thing that reported the defect.***
+>
+> ⚠ **And the amendment above still holds, for its own reason rather than by inheritance.** There is
+> no occupancy column: the ceiling is computed at the guard that needs it, from the Lot's footprint
+> and storeys and the Ruleset in force. The `adr/0064` argument that put it there is unchanged — what
+> moved is which fact it reads, not where the fact lives. **No new ADR, per
+> [`plans/0045`](../../plans/0045-amnesty.md); this banner is the record, and
+> [`plans/0012`](../../plans/0012-corpus-audit.md) carries the correction owed to the title.**
+
+
 > **⚠ AMENDED BY BUILDING IT, 2026-08-10. This ADR said `derived AND rebuilt`, by analogy with a Bin's
 > ceiling, and there is no column at all.** The decision is unchanged and the implementation is *more*
 > of what the decision says, not less: occupancy is read straight off the kind at the one guard that

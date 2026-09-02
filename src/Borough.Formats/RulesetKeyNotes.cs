@@ -81,13 +81,18 @@ public static class RulesetKeyNotes
         ["[[building]] name"] =
             "What this kind of Building is called. [[zone_rule]] kind and [[rule]] kind refer to it "
             + "by this name.",
-        ["[[building]] occupants"] =
-            "How many tenants one Building of this kind holds — Households and Businesses share the "
-            + "one ceiling. Absent means the kind houses nobody, which is what most kinds are. "
-            + "Lowering it below what a standing Building already holds evicts the overflow.",
-        ["[[building]] parking"] =
-            "How many Vehicles a Building of this kind can park. Zero is meaningful and is the "
-            + "same as omitting the key — a tower with no parking is a real building.",
+        ["[[building]] tenanted"] =
+            "Whether Buildings of this kind take tenants at all — Households and Businesses share "
+            + "the one ceiling. It says whether and never how many: the count is the Building's own "
+            + "floor area over [capacity] floor_tiles_per_occupant, so two Buildings of one kind on "
+            + "differently-sized ground hold different numbers. Absent means the kind houses "
+            + "nobody, which is what most kinds are.",
+        ["[[building]] parked"] =
+            "Whether Buildings of this kind carry parking at all. Whether, and never how many: the "
+            + "count is the Building's floor area over [capacity] floor_tiles_per_parking_space. It "
+            + "exists so that a detached house may carry a driveway where a tower may not — a "
+            + "parking minimum is a property of the city, and an exemption from it is a property of "
+            + "the kind. Absent means the kind provides none.",
         ["[[building]] arrivals_per_day"] =
             "How many Households a Building of this kind admits from the Outside each Day. Stating "
             + "this is what makes the kind an Outside Connection, so absence means the kind is not "
@@ -137,10 +142,6 @@ public static class RulesetKeyNotes
         // ---- [[business]] ---------------------------------------------------------------------
         ["[[business]] name"] =
             "What this trade is called. [[building]] business names it.",
-        ["[[business]] jobs"] =
-            "How many Citizens a Business of this trade employs. It counts Citizens and never "
-            + "Households. Absent means the trade employs nobody, which is a coherent thing to "
-            + "declare.",
         ["[[business]] shift_start_earliest_hour"] =
             "The earliest hour of the Day a Business of this trade may open, as a whole in-world "
             + "hour. A Workplace draws one start hour and its whole staff share it, so a Citizen "
@@ -518,6 +519,22 @@ public static class RulesetKeyNotes
             "The same for an Arterial.",
         ["[roads] foot_path_capacity_per_hour"] =
             "The same for a foot path.",
+
+        // ---- [capacity] -----------------------------------------------------------------------
+        ["[capacity] floor_tiles_per_occupant"] =
+            "How much floor one tenancy takes, in Tiles. A Building's occupancy is its floor area — "
+            + "its footprint on every storey — divided by this, so it varies with the ground the "
+            + "Building stands on rather than with its kind. Omitting the whole [capacity] table "
+            + "means no Building in the city holds anybody.",
+        ["[capacity] floor_tiles_per_job"] =
+            "How much floor one job takes, in Tiles. A Business employs its share of its premises' "
+            + "floor area divided by this, its share being one of the Building's tenancies — so one "
+            + "trade employs differently in a terrace and in a slab. Absent means nobody in this "
+            + "city is employed anywhere.",
+        ["[capacity] floor_tiles_per_parking_space"] =
+            "How much floor a Building must have per parking space it is given, in Tiles. It is a "
+            + "parking minimum, which is a property of a city rather than of a building. Absent "
+            + "means the city has no parking at all.",
 
         // ---- [lots] ---------------------------------------------------------------------------
         ["[lots] lots_per_segment"] =

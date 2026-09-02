@@ -597,3 +597,25 @@ than trusting a number here — **and none of the claims under them moved**: `de
 `collapses_after_days` and nothing else, so every *absent* table those sentences turn on — no
 `[households]`, no `[[business]]`, no `[[terrain]]` — is absent from it too. The dated slice notes
 still say `minimal.toml` and are left saying it, because they record what ran on the day.
+**`plans/0053` step 3 re-recorded ALL FIVE artefacts, which is the widest re-baseline this file
+records, and the reason is one line of arithmetic.** A Building's occupancy stopped being
+`[[building]] occupants` and started being **derived from the ground it stands on** — floor Tiles
+divided by `[capacity] floor_tiles_per_occupant` — so every shipped Ruleset gained a `[capacity]`
+table and **all three baseline Ruleset content hashes moved at once**: `declining.toml`
+`0x4CD6B2023272BAF0 → 0x5F875DEF2524FC89`, `declining-tuned.toml`
+`0xB714BF56348D18B8 → 0xF511DE99E083B4C6`, `congested.toml`
+`0xB34480C00E65D436 → 0x9489A8159B5F454D`. Four literals in two `.borough` files and three in
+`GoldenFixtures`, then both traces, then `world-hash.txt`.
+
+⚠ **The Ruleset hashes had to be moved BEFORE the traces could be regenerated, and that ordering is
+not a convenience.** A session log records the content hash of what it opens on and of what it
+reloads into, and the runner refuses a replay whose Ruleset does not match rather than quietly
+running a different city — so a re-record attempted in the other order does not produce a wrong
+trace, it produces no trace at all. ***The refusal is the feature; the ordering is what it costs.***
+
+⚠ **`world-hash.txt` moved on its HASH and on nothing else** — `population 4000`, `lots 6`,
+`buildings 4`, `households 7`, `citizens 18` are all unchanged. That is the honest signature of this
+change: `GoldenFixtures.Build()` places its Buildings and its Households by hand, so the *count* of
+what it holds cannot move; what moved is what each row now says about how many people its Building
+could hold. ***A row-count baseline is blind to a change in what a row means***, which is why the
+hash is folded beside the counts rather than the counts being the baseline.

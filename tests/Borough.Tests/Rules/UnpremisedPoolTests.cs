@@ -55,7 +55,7 @@ public sealed class UnpremisedPoolTests
         new(
             resources: [ResourceFamily.Money],
             rules: [],
-            kinds: [new KindDefinition(0, 0, 0, 0) { Occupants = 1 }],
+            kinds: [new KindDefinition(0, 0, 0, 0) { Tenanted = 1 > 0 }],
             inputs: [], outputs: [], emissions: [], bins: [], kindRules: [], zoneRules: [])
         {
             Placement = new PlacementRuleset(

@@ -23,7 +23,8 @@ public readonly struct CarPark;
 /// → Supply and Space reserves the <c>Bin</c> type for Goods and Money by name — using <em>a full
 /// Parking Shed</em> as its own worked example of a ceiling that is not a Bin. <c>adr/0068</c>'s test
 /// is what separates them: <b>a Bin has a consumer and a parked car has a holder</b>, which puts this
-/// on <c>[[building]] jobs</c>' side of the line and makes its over-capacity rule a <b>dismissal</b>.
+/// on employment's side of the line — <c>[capacity] floor_tiles_per_job</c> — and makes its
+/// over-capacity rule a <b>dismissal</b>.
 /// </para>
 /// <para>
 /// <b>There is no wait list and that is the saving, not an omission.</b> A car whose nearest Car Park
@@ -98,10 +99,13 @@ public sealed class CarParkTable
     /// </summary>
     /// <remarks>
     /// <b>Derived and rebuilt, never saved and hashed</b> (<c>adr/0068</c>, <c>adr/0064</c>,
-    /// <c>adr/0120</c>). It is a pure function of the Building's kind against the Ruleset in force —
-    /// <c>[[building]] parking</c> — so it is rebuilt at world load and at every Ruleset swap, and a
-    /// retuned provision therefore reaches every Building standing rather than only the next one
-    /// raised. <see cref="World.RebuildCapacities"/> is the one writer.
+    /// <c>adr/0120</c>). It is a pure function of the Building's <b>floor area</b> and the Ruleset in
+    /// force — <c>[capacity] floor_tiles_per_parking_space</c>, on a kind that states
+    /// <c>parked</c> — so it is rebuilt at world load and at every Ruleset swap, and a retuned
+    /// provision therefore reaches every Building standing rather than only the next one raised.
+    /// <see cref="World.RebuildCapacities"/> is the one writer. ⚠ <b>The second multiplicand is new
+    /// as of <c>plans/0053</c> step 3</b>: this was a per-kind count, so every Building of a kind
+    /// parked the same number of cars whatever it stood on.
     /// </remarks>
     public Column<int> Capacity { get; }
 

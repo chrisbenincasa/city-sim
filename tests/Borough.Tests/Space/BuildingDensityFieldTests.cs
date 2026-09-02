@@ -61,7 +61,7 @@ public sealed class BuildingDensityFieldTests
     /// expensive to rediscover.
     /// </para>
     /// <para>
-    /// <b>600 rather than the band's edge on purpose.</b> The sweep reads 4 at 500 and 2 at 1,000,
+    /// <b>600 rather than the band's edge on purpose.</b> The sweep reads 2 at 200 and 2 at 1,000,
     /// so a test sited at either end is one small change away from measuring the boundary instead
     /// of the effect.
     /// </para>
@@ -403,12 +403,18 @@ public sealed class BuildingDensityFieldTests
     /// 🔴 <b>A two-lattice world has TWO concentrations</b>, above the ragged band and below it.
     /// </summary>
     /// <remarks>
-    /// ⚠ <b>The low rung is 400 and not the old 2,000 floor</b>: the band is a window rather than a
+    /// ⚠ <b>The low rung is 200 and not the old 2,000 floor</b>: the band is a window rather than a
     /// minimum (see <see cref="RaggedBandCitizens"/>), so a city too SMALL to have a ragged edge
     /// reads two just as a filled one does, and both sides of the window are worth pinning.
+    /// <para>
+    /// 🔴 <b>It was 400, and 400 is INSIDE the band as of <c>plans/0053</c>.</b> Occupancy divides
+    /// the ground, so a city of a given population takes a different number of Buildings and the
+    /// band moved down and widened: it now runs <b>300–800</b> where it ran 500–800. The low rung
+    /// moved to the nearest size still below it rather than the assertion being loosened.
+    /// </para>
     /// </remarks>
     [Theory]
-    [InlineData(400)]
+    [InlineData(200)]
     [InlineData(4_000)]
     [InlineData(16_000)]
     [InlineData(64_000)]
@@ -434,8 +440,9 @@ public sealed class BuildingDensityFieldTests
     /// the block's corner an owner drops a block from ten Lots to eight
     /// (<see cref="Borough.Core.Entities.LotSubdivider.CornerTiles"/>), which moved the reading at
     /// 1,000 Citizens from 4 to <b>2</b> and sent somebody to sweep the whole range. The count is
-    /// <b>NOT MONOTONIC</b>: 200 → 2, 300 → 2, 400 → 2, <b>500 → 4, 600 → 3, 800 → 3</b>, 1,000 → 2,
-    /// and 2 at every size above. ***A city too small to have a ragged edge reads the same as a city
+    /// <b>NOT MONOTONIC</b>: 200 → 2, <b>300 → 3, 400 → 4, 500 → 3, 600 → 3, 800 → 3</b>, 1,000 → 2,
+    /// and 2 at every size above (re-swept at <c>plans/0053</c>, which moved the band's lower edge
+    /// from 500 to 300 by changing how many Buildings a population takes). ***A city too small to have a ragged edge reads the same as a city
     /// that has filled its own ground***, so a single threshold could never have described this and
     /// the old name asserted one. What the extra maxima need is a lattice large enough to be ragged
     /// and too small to be full, which is a window rather than a minimum.

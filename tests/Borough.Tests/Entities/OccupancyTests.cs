@@ -55,7 +55,7 @@ public sealed class OccupancyTests
 
         [[building]]
         name = "dwelling"
-        occupants = HOLDS
+        tenanted = true
         bins = [
             { resource = "sundries", capacity = 12 },
         ]
@@ -77,11 +77,60 @@ public sealed class OccupancyTests
         outputs = []
         """;
 
+    /// <summary>
+    /// How much ground every dwelling in this class stands on, in Tiles of floor.
+    /// </summary>
+    /// <remarks>
+    /// <b>Fixed, so that retuning the ceiling has to move the RATE</b> (<c>plans/0053</c>). A
+    /// Building's occupancy is its floor area over <c>[capacity] floor_tiles_per_occupant</c>, so
+    /// the ceiling has two authors — the ground and the rate — and only the second is a designer's
+    /// edit. ⚠ <b>36 because it divides</b>: every ceiling these tests ask for is a divisor of it,
+    /// which is what lets each test still name the number of Households it means.
+    /// </remarks>
+    private const int Ground = 36;
+
     /// <summary>A dwelling holding <paramref name="occupants"/> Households.</summary>
-    private static string Housing(int occupants) => Template.Replace(
-        "HOLDS",
-        occupants.ToString(CultureInfo.InvariantCulture),
-        StringComparison.Ordinal);
+    /// <remarks>
+    /// ⚠ <b>It states a rate and the ceiling comes out of the division</b>, against
+    /// <see cref="Ground"/>. Zero omits the table, which is the only spelling for a city where
+    /// nothing houses anybody now that the count a kind used to state is retired — and it is a
+    /// different city from a rate so coarse that a Building holds one, because
+    /// <c>CapacityRuleset.Holds</c> floors at one for a Building that exists at all.
+    /// </remarks>
+    private static string Housing(int occupants) => occupants <= 0
+        ? Template
+        : Template + "\n\n[capacity]\nfloor_tiles_per_occupant = "
+            + (Ground / occupants).ToString(CultureInfo.InvariantCulture) + "\n";
+
+    /// <summary>
+    /// <c>minimal.toml</c>'s <c>[roads]</c> and <c>[lots]</c>, for the populator test alone.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>The populator needs a lattice now, and it did not before</b> (<c>plans/0053</c>). Its
+    /// roadless path lays Lots one Tile apart, so each has one Tile of ground — and a one-Tile
+    /// Building holds exactly one Household at every rate, because <c>Holds</c> floors at one. ***A
+    /// world with no Streets in it can no longer express a ceiling***, which is the honest cost of
+    /// occupancy deriving from ground: a fixture that wants a ceiling has to lay the ground.
+    /// </remarks>
+    private const string Streets = """
+
+        [roads]
+        block_tiles                    = 32
+        arterial_count                 = 0
+        arterial_junction_tiles        = 512
+        foot_crossing_every            = 4
+        foot_paths_per_thousand_blocks = 40
+        street_speed_kph               = 50
+        arterial_speed_kph             = 90
+        walk_speed_kph                 = 5
+        street_capacity_per_hour       = 3600
+        arterial_capacity_per_hour     = 12000
+        foot_path_capacity_per_hour    = 1000
+
+        [lots]
+        lots_per_segment = 5
+        setback_tiles    = 2
+        """;
 
     /// <summary>The same file with no <c>[[building]]</c> at all: every Building is derelict.</summary>
     private const string NoKinds = """
@@ -107,7 +156,8 @@ public sealed class OccupancyTests
     {
         var world = new World(1_000, Load(Housing(occupants)));
 
-        Handle<Lot> lot = world.Lots.Create(new Tiles(0), new Tiles(0), zone: 1);
+        Handle<Lot> lot = world.Lots.Create(
+            new Tiles(0), new Tiles(0), zone: 1, wide: new Tiles(Ground), deep: new Tiles(1));
         Handle<Building> building = world.CreateBuilding(lot, Dwelling, Ticks.Zero, key ?? Key);
 
         for (int i = 0; i < households; i++)
@@ -292,36 +342,65 @@ public sealed class OccupancyTests
     // ---- the populator ---------------------------------------------------------------------------
 
     /// <summary>
-    /// <b>The populator takes its Households-per-Building from the Ruleset.</b>
+    /// <b>The populator houses everybody it makes, inside the ceiling the ground gives.</b>
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>This is the disagreement <c>0002</c> §B recorded, closed at one of its two ends.</b>
     /// <c>SyntheticCity</c> held <c>HouseholdsPerBuilding = 3</c> as a <c>const</c> while a Zone Rule
     /// housed <c>1</c>, and nothing could reconcile them because the quantity was not expressible.
-    /// Both now read the same declaration.
+    /// Both read the same declaration.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>What it asserts changed shape at <c>plans/0053</c>, and the reason is the point.</b> It
+    /// checked <c>buildings == households / occupants + 1</c> — one arithmetic identity, because
+    /// every Building in the city held the same number. Occupancy divides the ground now, so
+    /// ***there is no single ceiling to divide by***: Buildings differ, and the identity is replaced
+    /// by the two things that were actually being asked. Nobody is queued, and no Building is over
+    /// its own ceiling.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The parameter is a RATE and it is asserted to bind</b>, which is the half a per-Building
+    /// check alone would not catch: a coarser rate must house fewer people per Building, or the
+    /// division is not reaching the populator at all.
+    /// </para>
     /// </remarks>
     [Theory]
     [InlineData(1)]
     [InlineData(3)]
     [InlineData(6)]
-    public void The_populator_houses_what_the_ruleset_declares(int occupants)
+    public void The_populator_houses_everybody_inside_the_ceiling_the_ground_gives(int occupants)
     {
-        var world = new World(1_000, Load(Housing(occupants)));
+        var world = new World(1_000, Load(Housing(occupants) + Streets));
 
         SyntheticCity.PopulateInto(world, Key, Ticks.Zero);
 
-        int households = world.Households.Rows.LiveCount;
         int buildings = world.Buildings.Rows.LiveCount;
+        int capacity = 0;
 
-        Assert.Equal((households / occupants) + 1, buildings);
-
-        for (int slot = 0; slot < buildings; slot++)
+        for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
         {
+            if (!world.Buildings.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            int ceiling = world.DeclaredOccupancy(slot);
+
+            capacity += ceiling;
+
             Assert.True(
-                world.Occupants.Length(slot) <= occupants,
-                $"Building {slot} holds {world.Occupants.Length(slot)} of {occupants}.");
+                world.Occupants.Length(slot) <= ceiling,
+                $"Building {slot} holds {world.Occupants.Length(slot)} of {ceiling}.");
         }
 
         Assert.Equal(0, world.UnplacedPool.Count);
+        Assert.True(
+            world.Households.Rows.LiveCount <= capacity,
+            $"{world.Households.Rows.LiveCount} Households against {capacity} places.");
+
+        // The rate binds: a Building at this rate holds no more than the rate allows of the ground
+        // it stands on, and a coarser rate would need more Buildings for the same population.
+        Assert.True(buildings > 0);
     }
 }

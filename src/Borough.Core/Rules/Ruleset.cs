@@ -536,7 +536,7 @@ public readonly record struct KindDefinition(
     /// shed one and reset the clock — was refused**: it also resets progress toward
     /// <see cref="CondemnAfterTicks"/>, so a kind stating both would shed for ever and never be
     /// condemned, and the second threshold would become dead code in every world that used the first.
-    /// ⚠ <b>A column recording the last shed was refused for <see cref="Occupants"/>' reason</b> — it
+    /// ⚠ <b>A column recording the last shed was refused for <see cref="Tenanted"/>' reason</b> — it
     /// would be live state pointed at by nothing, where the same fact is already derivable from
     /// <c>StarvedSince</c>.
     /// </para>
@@ -623,32 +623,32 @@ public readonly record struct KindDefinition(
     public int AbandonedWhenEmptyAfterTicks { get; init; }
 
     /// <summary>
-    /// How many Occupants a Building of this kind may hold. Zero means it houses nobody.
+    /// Whether a Building of this kind takes tenants at all. <b>Whether, never how many.</b>
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>A property of the Ruleset in force rather than of the Building</b> (<c>adr/0068</c>), which
-    /// is <c>adr/0064</c> applied a second time: it is an authored number keyed on the kind, read at
-    /// a write site, pointed at by no live state — the same three properties that said a Bin's
-    /// ceiling should not be a saved column either. **There is no column at all here**, because the
-    /// Building already carries its kind and the only read is a guard that runs once per placement;
-    /// a Bin needed one because <c>SpaceAt</c> is on the hot path and would have paid an owner
-    /// resolve and a walk on every check.
+    /// 🔴 <b>THIS REPLACED <c>occupants</c>, AND THE TWO ARE NOT THE SAME QUESTION ASKED DIFFERENTLY.</b>
+    /// A count on the kind made every dwelling in the world hold the same number whatever ground it
+    /// stood on; how many a Building holds is <b>derived</b> now, from its floor area over
+    /// <c>[capacity] floor_tiles_per_occupant</c> (<c>plans/0053</c> step 3). ***The kind says what
+    /// it does and the ground says how much of it.*** <c>adr/0068</c> carries a banner saying which
+    /// half of its title went.
     /// </para>
     /// <para>
-    /// <b>Zero rather than absent, and most kinds mean it.</b> A factory declaring nothing houses
-    /// nobody, which is the common case and wants no ceremony. The failure it could hide is a
-    /// dwelling kind whose author forgot the line, and that surfaces immediately and loudly: nobody
-    /// can move in and the Unplaced Pool stops draining, which is the opposite of the silent
+    /// <b><c>false</c> and an absent key are the same city, which is what a truth key buys.</b> A
+    /// factory houses nobody and wants no ceremony for it. ⚠ <b>The failure this could hide is a
+    /// dwelling kind whose author forgot the line, and it surfaces immediately and loudly</b>:
+    /// nobody can move in and the Unplaced Pool stops draining — the opposite of the silent
     /// narrowing <c>02 §4.3</c>'s <c>apply</c> defect was.
     /// </para>
     /// <para>
-    /// <b>A kind the Ruleset does not declare at all is a different thing from one declaring zero</b>
-    /// — see <see cref="Entities.World.TryDeclaredOccupancy"/>. Dereliction must not evict, and the
-    /// two cases would be indistinguishable if this number were the only answer.
+    /// <b>A kind the Ruleset does not declare at all is a different thing from one declaring
+    /// <c>false</c></b> — see <see cref="Entities.World.TryDeclaredOccupancy"/>. Dereliction must not
+    /// evict, so a derelict kind keeps the Occupants it has and admits nobody new, where a kind
+    /// stating <c>tenanted = false</c> has a real ceiling of zero.
     /// </para>
     /// </remarks>
-    public int Occupants { get; init; }
+    public bool Tenanted { get; init; }
 
     /// <summary>
     /// The Business kind a Building of this kind comes with, or <c>0</c> for none.
@@ -657,7 +657,8 @@ public readonly record struct KindDefinition(
     /// <para>
     /// <b><c>adr/0148</c>: a premises kind may declare its trade, and construction instantiates it.</b>
     /// A Zone Rule raising a Building of this kind creates a <see cref="Entities.Business"/> of this
-    /// trade, already premised, taking one of <see cref="Occupants"/>' slots. ***It is drawn from no
+    /// trade, already premised, taking one of the Building's tenancies — <see cref="Tenanted"/>, of
+    /// which there are as many as its floor area divides into. ***It is drawn from no
     /// pool***, which is why this does not reach
     /// <c>adr/0069</c>'s <em>construction houses nobody</em>: nothing is taken out of the Unplaced Pool
     /// and nothing out of the unpremised one, so no demand signal is drained.
@@ -677,37 +678,27 @@ public readonly record struct KindDefinition(
     /// </remarks>
     public byte Business { get; init; }
 
-
     /// <summary>
-    /// How many Vehicles a Building of this kind can park. Zero means it provides no parking.
+    /// Whether a Building of this kind parks Vehicles at all. <b>Whether, and never how many.</b>
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b><see cref="Occupants"/>'s rule a third time</b> (<c>adr/0068</c>, <c>adr/0120</c>,
-    /// milestone 7 task 1), and it transplants for the reason the others did rather than by analogy:
-    /// an authored number keyed on the kind, read at a write site, pointed at by no live state — so
-    /// it is a property of the Ruleset in force, and lowering it reaches every Building already
-    /// standing. The overflow is <b>dismissed</b> rather than left to drain, on <see cref="Occupants"/>'
-    /// side of <c>adr/0064</c>'s line: a Bin is left to drain because it has a consumer, and a parked
-    /// car has a <em>holder</em> and no consumer exactly as a job does, so nothing would ever spend a
-    /// Building's surplus parking down.
+    /// <b><see cref="Tenanted"/>'s shape on the second axis</b> (<c>plans/0053</c>): capacity is
+    /// geometry and behaviour is content, so the count divides floor area — <c>[capacity]
+    /// floor_tiles_per_parking_space</c> — and what a kind knows, which no arithmetic could derive,
+    /// is whether it carries parking at all.
     /// </para>
     /// <para>
-    /// <b>Zero rather than absent, and it is the one of these three where zero is the interesting
-    /// value.</b> A tower with no parking is a real building and a real balance decision — it is the
-    /// second row of <c>adr/0009</c>'s own player-tool table, <em>a detached house carries a
-    /// driveway, a tower may not</em> — where a dwelling employing nobody is merely the common case.
-    /// So this key needs no <em>unset</em> spelling: every value in range means something, and
-    /// absence means the same as zero because a kind that says nothing about parking provides none.
-    /// </para>
-    /// <para>
-    /// <b>It counts Vehicles, never Citizens and never Households.</b> That is not pedantry about
-    /// units: <see cref="Entities.World.ModeOf"/> drives every member of a car-owning Household, so
-    /// the three quantities differ by construction and a Car Park sized in people would be sized in
-    /// the wrong currency (<c>adr/0119</c>).
+    /// 🔴 <b>This key exists because a city-wide rate alone could not express <c>adr/0009</c>'s own
+    /// second player-tool row</b> — <em>a detached house carries a driveway, a tower may not</em>.
+    /// A rate with no predicate beside it gives every Building parking in proportion to its floor,
+    /// which makes the tower the biggest provider in the city and says the reverse of what that ADR
+    /// wants sayable. ***A parking minimum is a property of the city; an exemption from it is a
+    /// property of the kind.***
     /// </para>
     /// </remarks>
-    public int Parking { get; init; }
+    public bool Parked { get; init; }
+
 
     /// <summary>
     /// How many Households a Building of this kind admits from the Outside per Day. Zero means this
@@ -787,12 +778,12 @@ public readonly record struct KindDefinition(
     /// </para>
     /// <para>
     /// ⚠ <b>A service kind is still an ordinary Building in every other respect.</b> It stands on a
-    /// Lot, seals its footprint, may declare <see cref="Occupants"/> and <c>jobs</c>, and can be
+    /// Lot, seals its footprint, may declare <see cref="Tenanted"/>, and can be
     /// condemned. What <c>adr/0026</c> adds and this build does not have is that its staffing is
     /// <em>demand-determined by catchment</em> — ***you cannot fix unemployment by hiring everyone as
     /// a teacher, because the number of teachers is set by the number of children*** — and that is
-    /// <c>adr/0070</c> <em>unbuilt</em>: a school here employs whatever <c>jobs</c> says, like any
-    /// other kind.
+    /// <c>adr/0070</c> <em>unbuilt</em>: a school here employs whatever its floor area divides into,
+    /// like any other kind.
     /// </para>
     /// </remarks>
     public Need Serves { get; init; }
@@ -840,26 +831,13 @@ public readonly record struct KindDefinition(
 public readonly record struct BusinessKindDefinition
 {
     /// <summary>
-    /// How many Citizens a Business of this trade employs. Zero means it employs nobody.
-    /// </summary>
-    /// <remarks>
-    /// <b>Counts Citizens and never Households</b>, for the reason employment always had: a job has
-    /// one holder, that holder is a
-    /// <see cref="Entities.Citizen"/>, and a Household with two adults working different sides of the
-    /// city is what a per-Household count could not express. ⚠ <b>Optional, and refused negative</b> —
-    /// a negative reads as <em>sack everybody</em>, which is not a sentence anybody meant to write.
-    /// </remarks>
-    public int Jobs { get; init; }
-
-    /// <summary>
     /// The earliest in-world hour a job of this trade starts at. Paired with
-    /// <see cref="ShiftStartLatestHour"/> and with <see cref="Jobs"/>.
+    /// <see cref="ShiftStartLatestHour"/>.
     /// </summary>
     /// <remarks>
     /// <b><c>adr/0101</c>'s Shift band, on the trade rather than the premises</b>, which is that ADR's
     /// own word arriving where it pointed: a Shift start hour belongs to the <em>Workplace</em>, and a
-    /// Workplace is where you are employed. ⚠ <b>Paired with <see cref="Jobs"/> in both directions</b>
-    /// — a workplace with no hours and an hour with no workplace are each half a mechanism — and the
+    /// Workplace is where you are employed. ⚠ <b>A trade with no hours is half a mechanism</b>, and the
     /// defaulted <c>0</c> is refused rather than defaulted because <b>midnight is a real answer</b>
     /// and would be a placeholder that could not announce itself.
     /// </remarks>
@@ -2281,6 +2259,76 @@ public readonly record struct MarketRuleset(int DecayPercent, int MoveCapPercent
 }
 
 /// <summary>
+/// The <c>[capacity]</c> table — <b>how much floor one of anything takes</b>.
+/// </summary>
+/// <remarks>
+/// <para>
+/// 🔴 <b>IT EXISTS BECAUSE ENUMERATING CAPACITY PER KIND DOES NOT SCALE, AND THE EVIDENCE WAS IN
+/// <c>rulesets/</c> THE WHOLE TIME.</b> Thirty-nine <c>[[building]] occupants</c> declarations across
+/// the shipped files carried exactly <b>two</b> distinct kinds and <b>three</b> distinct values, and
+/// thirty-two <c>[[business]] jobs</c> declarations carried two. ***A number repeated thirty times is
+/// not thirty decisions***, and a game whose cities are meant to run to a million people cannot ask an
+/// author to write one down for every combination of form and use.
+/// </para>
+/// <para>
+/// 🔴 <b><c>adr/0068</c> DECIDED THE OPPOSITE AND ITS PREMISE IS GONE.</b> That record argues from
+/// <c>adr/0064</c> that occupancy belongs on the kind because <em>there is no distinguishing
+/// property</em> — no two Buildings of one kind differed in any way the engine could read. <b>There is
+/// one now.</b> A Lot carries a parcel, the parcel carries a footprint and the footprint carries a
+/// floor area, and those differ Building by Building. ***The decision was right on the day and its
+/// reason expired two commits before this one.*** ⚠ <b>No ADR records the change</b>, because
+/// <c>plans/0045</c>'s amnesty forbids writing one; <c>adr/0068</c> is annotated and the argument is in
+/// <c>plans/0053</c>.
+/// </para>
+/// <para>
+/// <b>Three rates, and each has a source outside this repository.</b> A Tile is 16 m². A dwelling of
+/// about 96 m² is <b>6</b> Tiles; an office worker at about 16 m² is <b>1</b>; a parking minimum of one
+/// space per dwelling is <b>6</b> again. ⚠ <b>They are still chosen and still unratified</b> — what
+/// changed is that there are three of them instead of thirty-nine, and that each is a quantity somebody
+/// outside this project has measured.
+/// </para>
+/// <para>
+/// ⚠ <b>A kind still says WHETHER it houses; only the count derives.</b>
+/// <see cref="KindDefinition.Tenanted"/> is the whole of what <c>occupants</c> became — capacity is
+/// geometry and behaviour is content, and a school is not a boarding house because it is large.
+/// </para>
+/// <para>
+/// ⚠ <b>Absence is a city in each case.</b> No <c>[capacity]</c> table means no Building holds anybody;
+/// no <c>floor_tiles_per_job</c> means nobody is employed anywhere; no
+/// <c>floor_tiles_per_parking_space</c> means the city has no parking. <b>A parking minimum is a
+/// property of a city and not of a building</b>, which is where it sits in every real planning code and
+/// is a better home than the per-kind key it replaces.
+/// </para>
+/// </remarks>
+/// <param name="FloorTilesPerOccupant">How much floor one tenancy takes. Zero means nobody is housed.</param>
+/// <param name="FloorTilesPerJob">How much floor one job takes. Zero means nobody is employed.</param>
+/// <param name="FloorTilesPerParkingSpace">How much floor one parking space is owed. Zero means none.</param>
+public readonly record struct CapacityRuleset(
+    int FloorTilesPerOccupant, int FloorTilesPerJob, int FloorTilesPerParkingSpace)
+{
+    /// <summary>A Ruleset in which nothing holds anybody.</summary>
+    public static CapacityRuleset None => default;
+
+    /// <summary>How many of something a floor area holds, at a rate. Zero rate means none.</summary>
+    /// <remarks>
+    /// <b>At least one where the rate is stated and any floor exists</b>, which is the one place this
+    /// rounds rather than truncating. ***A Building with a wall on it holds somebody***; a footprint
+    /// smaller than one dwelling is a small dwelling and not an empty lot.
+    /// </remarks>
+    public static int Holds(int floorTiles, int rate)
+    {
+        if (rate <= 0 || floorTiles <= 0)
+        {
+            return 0;
+        }
+
+        int held = Arithmetic.IntegerMath.FloorDiv(floorTiles, rate);
+
+        return held < 1 ? 1 : held;
+    }
+}
+
+/// <summary>
 /// The <c>[lots]</c> table — <b>how zoned land is carved into parcels</b> (<c>adr/0078</c>).
 /// </summary>
 /// <remarks>
@@ -2384,6 +2432,29 @@ public readonly record struct LotRuleset(int LotsPerSegment, int SetbackTiles)
             new Quantities.Tiles(north.Raw + southerly),
             new Quantities.Tiles(wide.Raw - west - easterly),
             new Quantities.Tiles(deep.Raw - southerly - northerly));
+    }
+
+    /// <summary>
+    /// <b>How many storeys a Building on this parcel stands</b> — the pattern's height, plus a draw
+    /// of one.
+    /// </summary>
+    /// <remarks>
+    /// <b>One storey of variation and no more</b>, drawn on the parcel's corner like the setbacks.
+    /// ⚠ <b>It is what stops a block reading as a wall</b>, and it is deliberately small: two
+    /// storeys of jitter would blur the ladder, which is the thing the height is supposed to say.
+    /// The tag is <see cref="Determinism.PurposeTag.BuildingFootprint"/>'s and the bit range is its
+    /// own, so a tall Building is not also a deep one.
+    /// </remarks>
+    public static byte StoreysOn(
+        WorldKey key, Quantities.Tiles east, Quantities.Tiles north, int patternStoreys)
+    {
+        ulong patch = ((ulong)(uint)east.Raw << 32) | (uint)north.Raw;
+        ulong draw = Determinism.Randomness.Draw(
+            key, patch, Quantities.Ticks.Zero, Determinism.PurposeTag.BuildingFootprint);
+
+        int storeys = patternStoreys + (int)((draw >> 32) & 1);
+
+        return (byte)(storeys < 1 ? 1 : storeys > 255 ? 255 : storeys);
     }
 
     /// <summary>Shrinks two setbacks until they leave at least one Tile between them.</summary>
@@ -3215,6 +3286,9 @@ public sealed class Ruleset
     /// </summary>
     public LotRuleset Lots { get; init; } = LotRuleset.None;
 
+    /// <summary>The <c>[capacity]</c> table — how much floor one tenancy, job or car takes.</summary>
+    public CapacityRuleset Capacity { get; init; } = CapacityRuleset.None;
+
     /// <summary>
     /// The <c>[[band]]</c> tables in declaration order — <b>the density bands</b> (<c>adr/0025</c>).
     /// </summary>
@@ -3289,10 +3363,10 @@ public sealed class Ruleset
     /// <remarks>
     /// <see cref="ParkingRuleset.None"/> when the file states no <c>[parking]</c>, and that is a city
     /// with no Parking Shed rather than one whose sheds are empty — <see cref="Jobs"/>' polarity, for
-    /// <see cref="Jobs"/>' reason. ⚠ <b>It is independent of <c>[[building]] parking</c></b>, which is
-    /// the <em>supply</em>: a file may state Car Parks and no radius, which is a city whose parking
-    /// exists and cannot be reached, and the two are separate keys because a designer retunes them for
-    /// separate reasons.
+    /// <see cref="Jobs"/>' reason. ⚠ <b>It is independent of <see cref="Capacity"/>'s
+    /// <c>floor_tiles_per_parking_space</c></b>, which is the <em>supply</em>: a file may state a rate
+    /// and no radius, which is a city whose parking exists and cannot be reached, and the two are
+    /// separate keys because a designer retunes them for separate reasons.
     /// </remarks>
     public ParkingRuleset Parking { get; init; } = ParkingRuleset.None;
 
@@ -3904,6 +3978,7 @@ public sealed class Ruleset
             Lattices = Lattices,
             Districts = Districts,
             Lots = Lots,
+            Capacity = Capacity,
             Bands = Bands,
             Trips = Trips,
             Jobs = Jobs,

@@ -149,8 +149,24 @@ public sealed class LandValueLongRunTests(LandValueLongRun run) : IClassFixture<
     /// <b>Decision 5's floor, reading 1: the field varies across Cells.</b>
     /// </summary>
     /// <remarks>
+    /// <para>
     /// A <c>w₂</c> small enough rounds every Cell onto the same value, and ***a uniform field is
     /// visibly working while carrying no information***.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A FIFTH, AND IT WAS A QUARTER UNTIL <c>plans/0053</c> — re-swept rather than nudged.</b>
+    /// The settled tail now reads between <b>43 and 53 distinct values over 175 Cells</b> (24.6% to
+    /// 30.3%), so a floor at a quarter ran through the middle of the distribution and failed on the
+    /// low Days alone. ***A threshold inside the spread of the thing it bounds is a coin toss wearing
+    /// an assertion's clothes.*** A fifth sits below the whole measured range with room, and it still
+    /// refuses the failure this exists for by a wide margin: a field rounded onto one value reads 1.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>What moved it was occupancy dividing the ground.</b> One of the field's two terms is the
+    /// Building density, and the city's Buildings now differ in how many people they hold — so the
+    /// same population produces a different arrangement of Cells. The count is a reading about THIS
+    /// city and it moves whenever the generator does.
+    /// </para>
     /// </remarks>
     [Fact]
     public void Floor_reading_one_the_field_varies_across_cells()
@@ -158,7 +174,7 @@ public sealed class LandValueLongRunTests(LandValueLongRun run) : IClassFixture<
         foreach (LandValueLongRun.Reading reading in run.Readings[12..])
         {
             Assert.True(
-                reading.Distinct * 4 > reading.Cells,
+                reading.Distinct * 5 > reading.Cells,
                 $"on Day {reading.Day} only {reading.Distinct} of {reading.Cells} Cells hold "
                 + "distinct land values, so the field is nearly uniform and carries almost no "
                 + "information even though it is visibly working");

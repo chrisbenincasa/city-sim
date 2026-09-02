@@ -57,13 +57,14 @@ public sealed class EmploymentTests
 
         [[building]]
         name = "workplace"
+        tenanted = true
         bins = [
             { resource = "sundries", capacity = 12 },
         ]
 
         [[business]]
         name = "workplace"
-        jobs = POSTS
+        POSTS
 
         [[rule]]
         name    = "restock"
@@ -74,19 +75,51 @@ public sealed class EmploymentTests
         outputs = [ { scope = "local", resource = "sundries", amount = 1 } ]
         """;
 
+    /// <summary>
+    /// How much floor the workplace in this class stands on, in Tiles.
+    /// </summary>
+    /// <remarks>
+    /// <b>Fixed, so that a job count is a rate</b> (<c>plans/0053</c>). A Business employs its share
+    /// of its premises' floor over <c>[capacity] floor_tiles_per_job</c>, and its share is one of the
+    /// Building's tenancies — so <c>floor_tiles_per_occupant</c> is set to this same figure, making
+    /// the Building hold exactly one tenancy and the trade's share the whole floor. ⚠ <b>24 because
+    /// it divides</b>: every job count these tests ask for is a divisor of it.
+    /// </remarks>
+    private const int Ground = 48;
+
+    /// <summary>
+    /// How much floor one tenancy takes here, in Tiles — <b>half the ground, so the Building holds
+    /// two</b>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Two because this fixture's Building holds two kinds of tenant</b>: the Household its
+    /// workers live in, and the Business that employs them. One ceiling counts both
+    /// (<c>adr/0147</c>), so a Building with room for one would evict whichever arrived second — and
+    /// a Business with no premises has no floor and therefore no jobs, which reads in the assertions
+    /// as <em>everybody was sacked</em> rather than as <em>the fixture was too small</em>.
+    /// </remarks>
+    private const int PerTenancy = Ground / 2;
+
     /// <summary>A workplace employing <paramref name="jobs"/> Citizens.</summary>
     /// <remarks>
-    /// ⚠ <b>The Shift-start band appears only when the kind employs somebody</b>, because
-    /// <c>adr/0101</c>'s loader refusal is two-way: a kind with <c>jobs &gt; 0</c> must state one and a
-    /// kind with <c>jobs = 0</c> must not. This fixture is called with zero, so it has to honour both
-    /// halves — which is the pairing working as designed rather than an awkwardness in the test.
+    /// ⚠ <b>The Shift-start band appears only where somebody is employed</b>, because
+    /// <c>adr/0101</c>'s loader refusal is two-way: a band with no employment means nothing, and
+    /// employment with no band would default to midnight, which is a real answer and could not
+    /// announce itself as a placeholder. ⚠ <b>What asks the question moved tables</b>
+    /// (<c>plans/0053</c>): it was <c>[[business]] jobs</c> and it is <c>[capacity]
+    /// floor_tiles_per_job</c>, a property of the world — so employing nobody is spelled by omitting
+    /// the key rather than by writing a zero.
     /// </remarks>
     private static string Employing(int jobs) => Template.Replace(
         "POSTS",
         jobs > 0
-            ? jobs.ToString(CultureInfo.InvariantCulture)
-                + "\nshift_start_earliest_hour = 6\nshift_start_latest_hour = 10"
-            : jobs.ToString(CultureInfo.InvariantCulture),
+            ? "shift_start_earliest_hour = 6\nshift_start_latest_hour = 10\n\n[capacity]\n"
+                + "floor_tiles_per_occupant = "
+                + PerTenancy.ToString(CultureInfo.InvariantCulture)
+                + "\nfloor_tiles_per_job = "
+                + (PerTenancy / jobs).ToString(CultureInfo.InvariantCulture)
+            : "\n[capacity]\nfloor_tiles_per_occupant = "
+                + PerTenancy.ToString(CultureInfo.InvariantCulture),
         StringComparison.Ordinal);
 
     /// <summary>
@@ -122,13 +155,14 @@ public sealed class EmploymentTests
     private static World CityThatCameWithItsTrade(int workers, int jobs, WorldKey? key = null)
     {
         string toml = Employing(jobs).Replace(
-            "name = \"workplace\"\nbins = [",
-            "name = \"workplace\"\noccupants = 2\nbusiness = \"workplace\"\nbins = [",
+            "name = \"workplace\"\ntenanted = true\nbins = [",
+            "name = \"workplace\"\ntenanted = true\nbusiness = \"workplace\"\nbins = [",
             StringComparison.Ordinal);
 
         var world = new World(1_000, Load(toml));
 
-        Handle<Lot> lot = world.Lots.Create(new Tiles(0), new Tiles(0), zone: 1);
+        Handle<Lot> lot = world.Lots.Create(
+            new Tiles(0), new Tiles(0), zone: 1, wide: new Tiles(Ground), deep: new Tiles(1));
         Handle<Building> building = world.CreateBuilding(lot, Workplace, Ticks.Zero, key ?? Key);
         Handle<Household> household = world.CreateHousehold(building, lifeStage: 0);
         Handle<Business> employer = world.Businesses.Rows.At(0);
@@ -154,7 +188,8 @@ public sealed class EmploymentTests
     {
         var world = new World(1_000, Load(Employing(jobs)));
 
-        Handle<Lot> lot = world.Lots.Create(new Tiles(0), new Tiles(0), zone: 1);
+        Handle<Lot> lot = world.Lots.Create(
+            new Tiles(0), new Tiles(0), zone: 1, wide: new Tiles(Ground), deep: new Tiles(1));
         Handle<Building> building = world.CreateBuilding(lot, Workplace, Ticks.Zero, key ?? Key);
         Handle<Household> household = world.CreateHousehold(building, lifeStage: 0);
 
@@ -192,7 +227,8 @@ public sealed class EmploymentTests
 
         var world = new World(1_000, Load(toml));
 
-        Handle<Lot> lot = world.Lots.Create(new Tiles(0), new Tiles(0), zone: 1);
+        Handle<Lot> lot = world.Lots.Create(
+            new Tiles(0), new Tiles(0), zone: 1, wide: new Tiles(Ground), deep: new Tiles(1));
         Handle<Building> building = world.CreateBuilding(lot, Workplace, Ticks.Zero, Key);
         Handle<Household> household = world.CreateHousehold(building, lifeStage: 0);
         Handle<Business> employer = world.CreateBusiness(building, Trade);
@@ -369,7 +405,8 @@ public sealed class EmploymentTests
     {
         World world = City(workers: 1, jobs: 4);
 
-        Handle<Lot> second = world.Lots.Create(new Tiles(64), new Tiles(0), zone: 1);
+        Handle<Lot> second = world.Lots.Create(
+            new Tiles(64), new Tiles(0), zone: 1, wide: new Tiles(Ground), deep: new Tiles(1));
         Handle<Building> premises = world.CreateBuilding(second, Workplace, Ticks.Zero, Key);
 
         // A second employer, and it needs its own premises rather than only its own row: two

@@ -61,13 +61,22 @@ using LotEvidence = Borough.Core.Evidence.LotEvidence;
 /// </remarks>
 public sealed class EvidenceLongRunTests(ITestOutputHelper output)
 {
-    /// <summary>Forty-nine whole Days, which is the first multiple of the Day above 100,000 Ticks.</summary>
+    /// <summary>Sixty-five whole Days — the settle window doubled and the tail kept its length.</summary>
     /// <remarks>
+    /// <para>
     /// <b>Whole Days rather than a round 100,000</b>, on <c>TrafficLongRunTests</c>' correction: the
     /// commute empties and refills the city once a Day, so a window that is not a whole number of them
     /// reads two different cities at its two ends.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>FORTY-NINE UNTIL <c>plans/0053</c>, and it moved because <see cref="SettleDays"/> did.</b>
+    /// The tail is what the flatness band is computed over, and halving it would have widened the
+    /// band by making each half's variance noisier — ***a longer transient must not be paid for out
+    /// of the assertion's strength.*** Thirty-three Days of tail remain, which is what remained at
+    /// 49 and 16.
+    /// </para>
     /// </remarks>
-    private const int Days = 49;
+    private const int Days = 65;
 
     /// <summary>The golden fixture's population.</summary>
     private const int Population = 4_000;
@@ -86,14 +95,27 @@ public sealed class EvidenceLongRunTests(ITestOutputHelper output)
     /// the tail</em>, not the city changing under the instrument.
     /// </para>
     /// <para>
-    /// ⚠ <b>16 is taken from an independent measurement and not fitted to this test.</b> The blight
-    /// census on <c>declining.toml</c> converges between 32,768 and 65,536 Ticks (41% then 39% of
-    /// stock derelict), and 32,768 Ticks is sixteen Days. Choosing the number from the shape of
+    /// ⚠ <b>It is taken from an independent measurement and not fitted to this test.</b> The blight
+    /// census on <c>declining.toml</c> is the measurement; choosing the number from the shape of
     /// <em>this</em> statistic would be picking a window because the data has that shape, which is
     /// the one thing a tripwire must not do. Thirty-three Days of tail remain.
     /// </para>
+    /// <para>
+    /// 🔴 <b>SIXTEEN UNTIL <c>plans/0053</c>, AND IT WAS RE-TAKEN RATHER THAN NUDGED.</b> The census
+    /// read 41% then 39% of stock derelict at 32,768 and 65,536 Ticks, so it had converged by
+    /// sixteen Days. Re-run 2026-09-02 on the same file and the same command it now reads
+    /// <b>27% at 32,768, 30% at 65,536 and 29% at 131,072</b> — ***still climbing at the old
+    /// window*** and settled by the next one, because occupancy divides the ground: a city whose
+    /// Buildings hold different numbers rehouses a demolition's occupants over more Days than one
+    /// where every Building held four. 65,536 Ticks is thirty-two Days.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The reach-failure carrier count is what reported it</b>, at a rise of 34.6 against a
+    /// 3-sigma band of 29.0 — which is the transient being sampled as the tail, exactly as the
+    /// paragraph above this one describes it happening the last time.
+    /// </para>
     /// </remarks>
-    private const int SettleDays = 16;
+    private const int SettleDays = 32;
 
     /// <summary>How far above the first half of the tail the second may read, in standard errors.</summary>
     /// <remarks>

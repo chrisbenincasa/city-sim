@@ -1020,7 +1020,14 @@ public sealed class ZoneRuleEngine
         // huge target because `sheds` is non-zero and `elapsed >= sheds` -- Worst returned an
         // instance, which is that test.
         long gone = IntegerMath.FloorDiv((long)elapsed, (long)sheds);
-        long target = definition.Occupants - gone;
+        // The Building's own ceiling and not the kind's, because occupancy derives from the ground
+        // now -- so two dwellings on differently-sized parcels shed from different starting counts,
+        // which is what shedding a share of a Building has always meant.
+        long ceiling = _world.TryDeclaredOccupancy(_world.Buildings.Kind[building], building, out int held)
+            ? held
+            : 0;
+
+        long target = ceiling - gone;
 
         if (target < 0)
         {

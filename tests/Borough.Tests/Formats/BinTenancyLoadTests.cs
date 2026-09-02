@@ -29,7 +29,7 @@ public sealed class BinTenancyLoadTests
 
         [[building]]
         name = "dwelling"
-        occupants = 3
+        tenanted = true
         bins = [
           { resource = "sundries", capacity = 48, owner = "occupant" },
           { resource = "repairs",  capacity = 4 },
@@ -204,7 +204,7 @@ public sealed class BinTenancyLoadTests
 
         [[building]]
         name = "shopfront"
-        occupants = 3
+        tenanted = true
         business = "shop"
         bins = [
           { resource = "stock",   capacity = 96, owner = "business" },

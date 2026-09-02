@@ -261,6 +261,7 @@ public sealed class RulesetSchemaTests
         RulesetKeyKind.Table => "object",
         RulesetKeyKind.Array => "array",
         RulesetKeyKind.Numbers => "array",
+        RulesetKeyKind.Truth => "boolean",
         _ => "any",
     };
 

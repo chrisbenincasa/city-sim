@@ -134,6 +134,30 @@ public sealed class ConnectedCityCongestionTests(ITestOutputHelper output)
     /// </remarks>
     private static Plan Small => new(2);
 
+    /// <summary>The rung the corridor COMPARISON is read at, which is not <see cref="Small"/>.</summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>The two claims in this file want opposite cities, and at <c>plans/0053</c> they stopped
+    /// fitting in one.</b> The flat rung needs a peak <em>under</em> the knee, so it wants the city
+    /// small; this comparison needs the corridor's peak to be <em>distinguishable</em> from the
+    /// lattice's, so it wants the city big enough that a peak is not one Vehicle either way.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>What broke was quantisation and not the claim.</b> Occupancy divides the ground now, so
+    /// the same population employs fewer people on a Connect-laid world — <b>531 against the previous
+    /// run's figure</b> at 2×2 — and both networks peaked at <b>32.6%</b>, which is three Vehicles
+    /// against a capacity of 9.2. ***Two readings that tie because the quantity has three values are
+    /// not a measurement of the thing that differs***, and the thing that differs was still plainly
+    /// there underneath: <b>1,599 Vehicle-Ticks over the corridor against the lattice's 750</b>.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>3 and not 4, because 3 is the first rung where the peaks separate.</b> At 3×3 the flat
+    /// rung reads 76.0% and would be past <see cref="BelowTheKnee"/>, which is why that claim keeps
+    /// <see cref="Small"/> — ***the fixture splits rather than either claim being relaxed.***
+    /// </para>
+    /// </remarks>
+    private static Plan Crossing => new(3);
+
     /// <summary>
     /// How far below capacity <see cref="Small"/> must sit for its equality to mean anything.
     /// </summary>
@@ -175,8 +199,8 @@ public sealed class ConnectedCityCongestionTests(ITestOutputHelper output)
     [Fact]
     public void A_corridor_carries_a_load_a_generated_lattice_never_reaches()
     {
-        Reading corridor = Run(Small, Connected(), connected: true, "connect-laid dumbbell");
-        Reading lattice = Run(Small, Connected(), connected: false, "generated lattice");
+        Reading corridor = Run(Crossing, Connected(), connected: true, "connect-laid dumbbell");
+        Reading lattice = Run(Crossing, Connected(), connected: false, "generated lattice");
 
         Assert.True(corridor.VehicleTicks > 0, "nobody drove at all, so there is nothing to compare.");
         Assert.True(lattice.VehicleTicks > 0, "the control had no traffic, so it is not a control.");

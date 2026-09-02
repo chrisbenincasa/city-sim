@@ -324,12 +324,31 @@ internal static class MarketDump
         // scarcity after it, and the two print identical digits -- so the dump derives which it is
         // looking at rather than asserting one. A row holding MORE than a Day's cover and still
         // sitting at its ceiling is the old defect returning, and nothing else would say so.
+        //
+        // 🔴 THERE IS A THIRD STATE AND IT WAS BEING COUNTED AS THE FIRST (plans/0053). Cover is
+        // stock DIVIDED BY draw, so a row whose draw is ZERO has no cover at all -- and `Held >
+        // Rate` reads such a row as glutted the instant it holds one unit. provisioned.toml grew
+        // exactly that row when occupancy started dividing the ground: a District with 2 sellers,
+        // 188 sundries and nobody buying, which printed a defect report about a defect that had
+        // been fixed. A District with no draw is not a glut; it is a shop with no street.
         int glutted = 0;
+        int undrawn = 0;
 
         for (int row = 0; row < world.DistrictPools.Rows.SlotCount; row++)
         {
-            if (Live(world, row, out _, out _)
-                && world.Markets.Stock(world, row).Held > world.DistrictPools.Rate[row])
+            if (!Live(world, row, out _, out _))
+            {
+                continue;
+            }
+
+            long held = world.Markets.Stock(world, row).Held;
+            long rate = world.DistrictPools.Rate[row];
+
+            if (rate <= 0)
+            {
+                undrawn += held > 0 ? 1 : 0;
+            }
+            else if (held > rate)
             {
                 glutted++;
             }
@@ -372,6 +391,21 @@ internal static class MarketDump
             "  Bin, which adr/0139 had emptied — and the defect printed these same digits.");
         output.WriteLine(
             "  For a glut, run rulesets/oversupplied.toml: the same file with two keys deleted.");
+
+        if (undrawn > 0)
+        {
+            output.WriteLine();
+            output.WriteLine(F(
+                $"  ⚠ {undrawn:N0} of {printed:N0} rows hold stock against a draw of NOTHING, and those"));
+            output.WriteLine(
+                "  are neither scarce nor glutted — they have no cover, because cover is stock over a");
+            output.WriteLine(
+                "  daily draw and this District has no consumer of that Good in it at all. The price");
+            output.WriteLine(
+                "  sits at the ceiling for want of anything to compare against. Read it as a fact");
+            output.WriteLine(
+                "  about where the city put its Buildings, never as a fact about the market.");
+        }
     }
 
     /// <summary>Panel 3 — who could not afford it, which is the point of the dump.</summary>

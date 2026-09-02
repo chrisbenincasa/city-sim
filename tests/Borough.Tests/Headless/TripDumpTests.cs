@@ -29,6 +29,29 @@ public sealed class TripDumpTests
     private const string Population = "400";
 
     /// <summary>
+    /// The population <c>severance.toml</c> is read at, which is <b>not</b>
+    /// <see cref="Population"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>Severance on that file is a BAND, and 400 fell out of the bottom of it at
+    /// <c>plans/0053</c>.</b> Its block is 256 Tiles rather than 32, so its parcels are eight times
+    /// across what the shipped lattice's are — and once occupancy divides floor area, one Building
+    /// on one of those parcels holds dozens of Households. At 400 Citizens the whole city was
+    /// <b>two Buildings</b>, and two Buildings are one pair: ***a city with nothing in it cannot be
+    /// severed***, and the instrument correctly reported no unreachable pair.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Measured 2026-09-02, and it is a window at both ends</b>: 1,000 → 5 Buildings and 0
+    /// unreachable pairs; <b>2,000 → 8 and 16 of 28</b>; <b>4,000 → 16 and 73 of 120</b>; <b>8,000 →
+    /// 25 and 175 of 300</b>; 16,000 → 52 and <b>0</b>, because by then the cut-throughs have joined
+    /// the city up. <b>4,000 is the middle of the window on purpose</b>, so a test here is not one
+    /// small change away from measuring an edge.
+    /// </para>
+    /// </remarks>
+    private const string SeveredPopulation = "4000";
+
+    /// <summary>
     /// <b><c>rulesets/severance.toml</c> is a city people cannot walk across, and the dump says so.</b>
     /// </summary>
     /// <remarks>
@@ -130,7 +153,7 @@ public sealed class TripDumpTests
 
         try
         {
-            File.WriteAllText(path, shipped[..roads]);
+            File.WriteAllText(path, shipped[..roads] + Capacity(shipped));
 
             Assert.True(
                 Options.TryParse(
@@ -149,6 +172,33 @@ public sealed class TripDumpTests
         {
             File.Delete(path);
         }
+    }
+
+    /// <summary>
+    /// <c>minimal.toml</c>'s <c>[capacity]</c> table, sliced out of the shipped text.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>A truncated Ruleset has to keep this</b> (<c>plans/0053</c>). Employment derives from
+    /// floor area against <c>floor_tiles_per_job</c>, and <c>adr/0101</c>'s pairing is two-way — a
+    /// kind that employs nobody must not state when its Shift begins — so a file cut above
+    /// <c>[capacity]</c> keeps a <c>[[business]]</c> Shift band with nothing to employ and is
+    /// <em>refused at load</em>. That refusal is the loader working, and it would reach this test as
+    /// an exit code that looks like the absence under test. ⚠ <b>Sliced rather than retyped</b>: a
+    /// second copy of the rates here would be a number free to disagree with the shipped one.
+    /// </remarks>
+    private static string Capacity(string shipped)
+    {
+        int start = shipped.IndexOf("\n[capacity]", StringComparison.Ordinal);
+
+        Assert.True(start > 0, "minimal.toml no longer declares [capacity]; this fixture is stale.");
+
+        int end = shipped.IndexOf("\n[parking]", start, StringComparison.Ordinal);
+
+        Assert.True(end > start, "[capacity] is no longer followed by [parking]; fixture is stale.");
+
+        // ⚠ The table headers are found at a LINE START, because both names also appear inside the
+        // comments between them -- a match on the bare token cut the slice mid-line.
+        return shipped[start..end] + "\n";
     }
 
     /// <summary>
@@ -246,12 +296,17 @@ public sealed class TripDumpTests
             System.Globalization.CultureInfo.InvariantCulture);
     }
 
+    /// <summary>
+    /// ⚠ <b>The population is chosen by the RULESET</b> — see <see cref="SeveredPopulation"/>, which
+    /// records why <c>severance.toml</c> needs a bigger city than the others to have anything to say.
+    /// </summary>
     private static string Dump(string ruleset)
     {
         Assert.True(
             Options.TryParse(
                 ["--trips", "--ruleset", Path.Combine(AppContext.BaseDirectory, "Rulesets", ruleset),
-                 "--citizens", Population],
+                 "--citizens",
+                 ruleset == "severance.toml" ? SeveredPopulation : Population],
                 out Options? options,
                 out string? complaint),
             complaint);

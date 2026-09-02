@@ -390,7 +390,7 @@ public sealed class RefusalTests
 
         [[building]]
         name = "dwelling"
-        occupants = 4
+        tenanted = true
         bins = [ { resource = "sundries", capacity = 48 } ]
 
         [[building]]
@@ -442,6 +442,11 @@ public sealed class RefusalTests
         [lots]
         lots_per_segment = 5
         setback_tiles = 2
+
+        [capacity]
+        floor_tiles_per_occupant      = 6
+        floor_tiles_per_job           = 1
+        floor_tiles_per_parking_space = 6
         """;
 
     private const string Travelled = """

@@ -72,14 +72,15 @@ public sealed class LotTable
         BuildingSlot = _rows.Derived<int>("building_slot");
         FrontageSlot = _rows.Derived<int>("frontage_slot");
         FrontageOffset = _rows.Derived<Tiles>("frontage_offset");
-        ParcelEast = _rows.Derived<Tiles>("parcel_east");
-        ParcelNorth = _rows.Derived<Tiles>("parcel_north");
-        ParcelWide = _rows.Derived<Tiles>("parcel_wide");
-        ParcelDeep = _rows.Derived<Tiles>("parcel_deep");
-        FootprintEast = _rows.Derived<Tiles>("footprint_east");
-        FootprintNorth = _rows.Derived<Tiles>("footprint_north");
-        FootprintWide = _rows.Derived<Tiles>("footprint_wide");
-        FootprintDeep = _rows.Derived<Tiles>("footprint_deep");
+        ParcelEast = _rows.Saved<Tiles>("parcel_east");
+        ParcelNorth = _rows.Saved<Tiles>("parcel_north");
+        ParcelWide = _rows.Saved<Tiles>("parcel_wide");
+        ParcelDeep = _rows.Saved<Tiles>("parcel_deep");
+        FootprintEast = _rows.Saved<Tiles>("footprint_east");
+        FootprintNorth = _rows.Saved<Tiles>("footprint_north");
+        FootprintWide = _rows.Saved<Tiles>("footprint_wide");
+        FootprintDeep = _rows.Saved<Tiles>("footprint_deep");
+        Storeys = _rows.Saved<byte>("storeys");
 
         _rows.Seal();
     }
@@ -157,6 +158,33 @@ public sealed class LotTable
     public Column<Tiles> FootprintDeep { get; }
 
     /// <summary>
+    /// <b>How many floors a Building here stands</b>, derived from the block's pattern.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>A HEIGHT THE CITY OWNS, WHICH IT HAD NEVER HAD.</b> The shell drew a Building
+    /// <c>occupants</c> storeys tall and jittered it — so height was a function of a Ruleset key
+    /// about <em>tenancies</em>, invented in the renderer, and every kind that housed four
+    /// Households was four storeys everywhere in the world. ***A city drawn from one number is a
+    /// city with one skyline.***
+    /// </para>
+    /// <para>
+    /// <b>It is the block's rung plus two, plus a draw of one.</b> The two is the floor — a building
+    /// with no upper floor is a shed — and the rung is <c>BlockPatterns.Ladder</c>'s own ordering, so
+    /// height rises with density <b>because it is the same quantity</b> and not because anybody
+    /// tabulated a height per pattern. ⚠ <b>The draw is what stops a block being a wall</b>: one
+    /// storey of variation, on the parcel's corner, so neighbours differ and the ladder still reads
+    /// from the air.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>IT IS CAPACITY AND NOT DECORATION.</b> A Building's floor area is its footprint times
+    /// this, and how many tenants, jobs and parking spaces it holds all divide that — see
+    /// <c>World.FloorTiles</c>. Changing it is a change to the city and not to the picture.
+    /// </para>
+    /// </remarks>
+    public Column<byte> Storeys { get; }
+
+    /// <summary>
     /// How much ground a Lot holds, in Tiles — <b>and therefore how much its Building Seals</b>.
     /// </summary>
     /// <remarks>
@@ -184,6 +212,26 @@ public sealed class LotTable
 
     /// <summary>How many Tiles the Building on this Lot covers. Zero where there is no parcel.</summary>
     public int FootprintTiles(int slot) => FootprintWide[slot].Raw * FootprintDeep[slot].Raw;
+
+    /// <summary>
+    /// <b>How much floor a Building here has</b>, in Tiles — its <em>habitable</em> plan on every
+    /// storey.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The one quantity every capacity divides.</b> Occupancy, employment and parking are all
+    /// floor area over a rate, so they move together when the ground moves and none of them is
+    /// authored per kind. ⚠ <b>Zero where there is no parcel</b>, which is a Lot with no Address
+    /// (<c>adr/0079</c>) or one no subdivider carved.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>It is not the footprint any more</b> — see <see cref="BuildingPlan"/>. A plan deeper
+    /// than daylight reaches keeps a perimeter and loses its middle, which is what stopped a
+    /// 256-Tile block housing four hundred people in two Buildings.
+    /// </para>
+    /// </remarks>
+    public int FloorTiles(int slot) =>
+        BuildingPlan.HabitableTiles(FootprintWide[slot], FootprintDeep[slot]) * Storeys[slot];
 
     /// <summary>Position along the east axis, in whole Tiles.</summary>
     public Column<Tiles> East { get; }
@@ -328,9 +376,11 @@ public sealed class LotTable
     public void Vacate(int slot) => BuildingSlot[slot] = 0;
 
     /// <summary>
-    /// Allocates a Lot at a position, on a given side of the Street it fronts.
+    /// Allocates a Lot at a position, on a given side of the Street it fronts, standing on
+    /// <paramref name="wide"/> × <paramref name="deep"/> Tiles of ground.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>The subdivider is the intended caller and the tests are the other one</b> (<c>02 §2.2</c>:
     /// <i>Lots are generated, not painted</i>). It does not set the frontage columns, because it does
     /// not know the Segment — the subdivider does, and writes them at the same site, exactly as
@@ -338,8 +388,31 @@ public sealed class LotTable
     /// <see cref="World.RebuildDerived"/> also recomputes. <b>Two producers of a derived column is the
     /// established pattern here rather than a hazard</b>: the write site keeps it cheap, the rebuild
     /// keeps it recoverable, and a test that the two agree is what stops them drifting.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>The ground is a parameter because capacity divides it</b> (<c>plans/0053</c>). Until
+    /// occupancy derived from floor area, a Lot made here could carry no parcel at all and nothing
+    /// noticed — the count lived on the kind. It does not now, so ***a Lot with no ground is a
+    /// Building that holds nobody***, and every hand-built fixture would have gone silently empty.
+    /// ⚠ <b>The default is ONE Tile on ONE storey rather than none</b>, which is the smallest honest
+    /// parcel rather than a convenient one: a Lot exists, so it stands somewhere. A fixture wanting a
+    /// Building that holds four says how much ground four takes.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The footprint is the whole parcel here</b>, where <c>LotRuleset.Footprint</c> would set
+    /// it back from the boundary. A setback is a property of the Ruleset in force and this call
+    /// takes none — so the honest thing is to seal what was asked for, and a caller wanting a
+    /// setback is a caller who should be going through the subdivider.
+    /// </para>
     /// </remarks>
-    public Handle<Lot> Create(Tiles east, Tiles north, ushort zone, StreetSide side = StreetSide.Left)
+    public Handle<Lot> Create(
+        Tiles east,
+        Tiles north,
+        ushort zone,
+        StreetSide side = StreetSide.Left,
+        Tiles wide = default,
+        Tiles deep = default,
+        byte storeys = 1)
     {
         Handle<Lot> handle = _rows.Allocate();
         int slot = _rows.Resolve(handle);
@@ -348,6 +421,21 @@ public sealed class LotTable
         North[slot] = north;
         Zone[slot] = zone;
         Side[slot] = (byte)side;
+
+        Tiles across = wide.Raw > 0 ? wide : new Tiles(1);
+        Tiles along = deep.Raw > 0 ? deep : new Tiles(1);
+
+        ParcelEast[slot] = east;
+        ParcelNorth[slot] = north;
+        ParcelWide[slot] = across;
+        ParcelDeep[slot] = along;
+
+        FootprintEast[slot] = east;
+        FootprintNorth[slot] = north;
+        FootprintWide[slot] = across;
+        FootprintDeep[slot] = along;
+
+        Storeys[slot] = storeys < 1 ? (byte)1 : storeys;
 
         return handle;
     }

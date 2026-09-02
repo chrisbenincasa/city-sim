@@ -175,9 +175,12 @@ public sealed class CommuteDumpTests
     /// </summary>
     /// <remarks>
     /// Every picture's refusal. The complaint names <em>both</em> halves of what makes employment
-    /// content — the cadence in <c>[jobs]</c> and the posts in <c>[[building]] jobs</c> — because a
-    /// reader who supplies one and not the other gets the refusal above instead, and the two messages
-    /// have to lead to the same place.
+    /// content — the cadence in <c>[jobs]</c> and the floor a post takes in
+    /// <c>[capacity] floor_tiles_per_job</c> — because a reader who supplies one and not the other
+    /// gets the refusal above instead, and the two messages have to lead to the same place.
+    /// ⚠ <b>The second half was <c>[[building]] jobs</c> until <c>plans/0053</c> step 3</b>, and this
+    /// assertion is what noticed the refusal still naming a retired key: ***a message that names a
+    /// key nobody can write is a refusal that cannot be acted on.***
     /// </remarks>
     [Fact]
     public void It_refuses_without_a_ruleset()
@@ -186,7 +189,7 @@ public sealed class CommuteDumpTests
             Options.TryParse(["--commute"], out Options _, out string? complaint));
 
         Assert.Contains("--commute needs --ruleset", complaint, StringComparison.Ordinal);
-        Assert.Contains("[[building]] jobs", complaint, StringComparison.Ordinal);
+        Assert.Contains("[capacity] floor_tiles_per_job", complaint, StringComparison.Ordinal);
     }
 
     /// <summary>

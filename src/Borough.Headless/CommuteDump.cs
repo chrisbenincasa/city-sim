@@ -289,8 +289,10 @@ internal static class CommuteDump
     /// </para>
     /// <para>
     /// ⚠ <b>The <em>works at home</em> line is here because task 6 saw it and refused to change it
-    /// mid-instrumentation.</b> <c>[[building]] jobs</c> sits on the <c>dwelling</c> kind, so a Citizen
-    /// can be employed in the Building they sleep in and the generator makes that a Trip of no length.
+    /// mid-instrumentation.</b> Employment sits on the <c>dwelling</c> kind — <c>[[building]] jobs</c>
+    /// until <c>plans/0053</c> step 3, its floor area over <c>[capacity] floor_tiles_per_job</c> since —
+    /// so a Citizen can be employed in the Building they sleep in and the generator makes that a Trip
+    /// of no length.
     /// It is not obviously wrong — living above the shop is the arrangement task 4 chose on purpose —
     /// but it is invisible in every other reading, so this is where it gets counted.
     /// </para>
@@ -429,7 +431,7 @@ internal static class CommuteDump
         {
             if (world.Businesses.Rows.IsLive(slot))
             {
-                total += world.Rules.BusinessKind(world.Businesses.Kind[slot]).Jobs;
+                total += world.DeclaredJobs(slot);
             }
         }
 

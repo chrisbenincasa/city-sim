@@ -272,6 +272,7 @@ internal static class KeyReferenceDump
         RulesetKeyKind.Table => "inline table",
         RulesetKeyKind.Array => "array of inline tables",
         RulesetKeyKind.Numbers => "array of whole numbers",
+        RulesetKeyKind.Truth => "true or false",
         _ => "unasserted",
     };
 }

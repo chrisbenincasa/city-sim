@@ -283,6 +283,7 @@ public static class RulesetLoader
 
         private TableSyntaxBase? _roadsTable;
         private TableSyntaxBase? _lotsTable;
+        private TableSyntaxBase? _capacityTable;
         private TableSyntaxBase? _tripsTable;
         private TableSyntaxBase? _jobsTable;
         private TableSyntaxBase? _householdsTable;
@@ -334,11 +335,15 @@ public static class RulesetLoader
             // provisional one -- no Readouts are declared, so none can be named.
             Enumerate(document);
 
+            // FIRST, because ReadBusinessKinds asks it whether this Ruleset employs anybody before
+            // it decides whether a shift band and a wage are owed. It reads no other table.
+            CapacityRuleset capacity = ReadCapacity();
+
             RuleDefinition[] rules = ReadRules(out Term[] inputs, out Term[] outputs,
                 out MapEmission[] emissions);
             KindDefinition[] kinds = ReadKinds(rules, inputs, outputs, out BinDeclaration[] bins,
                 out RuleId[] kindRules);
-            BusinessKindDefinition[] businessKinds = ReadBusinessKinds();
+            BusinessKindDefinition[] businessKinds = ReadBusinessKinds(capacity);
             LifeStageDefinition[] lifeStages = ReadLifeStages();
             ZoneRuleDefinition[] zoneRules = ReadZoneRules();
             BandDefinition[] bands = ReadBands();
@@ -369,7 +374,7 @@ public static class RulesetLoader
             NeedRuleset needs = ReadNeeds(kinds);
             // After ReadPlacement, because the founding pass rides its trigger and the refusal for a
             // file stating [founding] with no [placement] is a property of the pair.
-            FoundingRuleset founding = ReadFounding(placement, businessKinds);
+            FoundingRuleset founding = ReadFounding(placement, businessKinds, capacity);
 
             // After both, because it is a property of the pair: a file with Districts in it has a
             // Pool to price, and adr/0050's anchor is the only thing bounding what that price
@@ -431,6 +436,7 @@ public static class RulesetLoader
                     Roads = roads,
                     Lattices = lattices,
                     Lots = lots,
+                    Capacity = capacity,
                     Bands = bands,
                     Trips = trips,
                     Jobs = jobs,
@@ -606,6 +612,20 @@ public static class RulesetLoader
                         }
 
                         _roadsTable = table;
+                        break;
+
+                    case "capacity":
+                        // Singular and optional, on [lots]'s reasoning exactly. A city holds one set
+                        // of rates, so two tables of them is ambiguous rather than additive.
+                        if (_capacityTable is not null)
+                        {
+                            Refuse(LineOf(table), null,
+                                "a second [capacity] is declared. A city holds one set of rates, so "
+                                + "two tables of them is ambiguous rather than additive.");
+                            break;
+                        }
+
+                        _capacityTable = table;
                         break;
 
                     case "lots":
@@ -2035,21 +2055,24 @@ public static class RulesetLoader
                 // condemn_after's reasoning: it reads as "evict everybody", and a Ruleset that
                 // emptied every Building it declared would be a sentence somebody meant to write and
                 // nobody would guess from the symptom.
-                int occupants = 0;
+                // plans/0053: `occupants` is RETIRED and what replaced it is a BOOLEAN. Thirty-nine
+                // declarations across the shipped files carried two kinds and three values, and a
+                // game meant to run to a million people cannot ask an author to write a count down
+                // for every combination of form and use. The count is floor area over a rate now --
+                // [capacity] floor_tiles_per_occupant -- and what a kind still declares is WHETHER it
+                // takes tenants at all. Capacity is geometry; behaviour is content.
+                RefuseRetired(table, "occupants", name,
+                    "occupants is stated on a [[building]] kind. How many tenants a Building holds "
+                    + "is DERIVED now -- its floor area over [capacity] floor_tiles_per_occupant -- "
+                    + "so it differs Building by Building with the ground each stands on "
+                    + "(plans/0053). Write `tenanted = true` for a kind that takes tenants at all, "
+                    + "and make a Building hold more by drawing bigger blocks.");
 
-                if (TryInteger(table, "occupants", out long holds, required: false, name))
+                bool tenanted = false;
+
+                if (TryBoolean(table, "tenanted", out bool takes, name))
                 {
-                    if (holds < 0)
-                    {
-                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "occupants") ?? table), name,
-                            $"occupants is {holds}. It counts Households a Building of this kind may "
-                            + "hold, so it cannot be negative; omit it for a kind that houses "
-                            + "nobody.");
-                    }
-                    else
-                    {
-                        occupants = holds > int.MaxValue ? int.MaxValue : (int)holds;
-                    }
+                    tenanted = takes;
                 }
 
                 // plans/0052 stage 1: footprint_tiles is RETIRED and the ground it named is now
@@ -2091,21 +2114,25 @@ public static class RulesetLoader
                 // A tower with no parking is adr/0009's own second player-tool row -- "a detached
                 // house carries a driveway, a tower may not" -- so every value in range means
                 // something and absence means what zero means.
-                int parking = 0;
+                // plans/0053: `parking` is RETIRED for `occupants`' reason and one of its own. A
+                // PARKING MINIMUM IS A PROPERTY OF A CITY AND NOT OF A BUILDING -- it is where the
+                // quantity sits in every real planning code -- so it is [capacity]
+                // floor_tiles_per_parking_space, stated once, and the spaces a Building gets divide
+                // its own floor area.
+                bool parked = false;
 
-                if (TryInteger(table, "parking", out long parks, required: false, name))
+                if (TryBoolean(table, "parked", out bool parks, name))
                 {
-                    if (parks < 0)
-                    {
-                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "parking") ?? table), name,
-                            $"parking is {parks}. It counts Vehicles a Building of this kind can "
-                            + "park, so it cannot be negative; omit it for a kind that parks none.");
-                    }
-                    else
-                    {
-                        parking = parks > int.MaxValue ? int.MaxValue : (int)parks;
-                    }
+                    parked = parks;
                 }
+
+                RefuseRetired(table, "parking", name,
+                    "parking is stated on a [[building]] kind. How many Vehicles a Building can park "
+                    + "is DERIVED now -- its floor area over [capacity] "
+                    + "floor_tiles_per_parking_space -- because a parking minimum is a property of a "
+                    + "city rather than of a building (plans/0053). Write `parked = true` for a "
+                    + "kind that carries parking at all, and omit the whole [capacity] key for a "
+                    + "city with no parking.");
 
                 // adr/0088's throughput ceiling, and it is the key that makes the kind an Outside
                 // Connection (milestone 11 task 1). Optional, because almost no kind is a gate.
@@ -2158,16 +2185,18 @@ public static class RulesetLoader
                             + "kind naming a trade nothing declares would raise Buildings that come "
                             + "with nothing, which loads clean and employs nobody.");
                     }
-                    else if (occupants <= 0)
+                    else if (!tenanted)
                     {
                         // A premises with no room for the shop it comes with is half a sentence.
                         // adr/0147 counts one ceiling over both kinds of tenant, so a declared trade
-                        // needs a slot to sit in exactly as a Household does.
+                        // needs a slot to sit in exactly as a Household does. ⚠ The COUNT is derived
+                        // now and cannot be checked here -- it depends on ground no Ruleset has seen
+                        // -- so what is checkable is that the kind takes tenants at all.
                         Refuse(LineOf((SyntaxNodeBase?)Find(table, "business") ?? table), name,
-                            $"business is \"{trade}\" and occupants is {occupants}. A Building of "
-                            + "this kind comes with a trade and has no room to hold it -- one "
-                            + "ceiling counts both kinds of tenant (adr/0147), so declare at least "
-                            + "one occupant, or drop the trade.");
+                            $"business is \"{trade}\" and this kind is not tenanted. A Building of "
+                            + "this kind comes with a trade and has nowhere to hold it -- one "
+                            + "ceiling counts both kinds of tenant (adr/0147), so write "
+                            + "`tenanted = true`, or drop the trade.");
                     }
                 }
 
@@ -2179,9 +2208,9 @@ public static class RulesetLoader
                     ShedsOccupantAfterTicks = shedsAfterTicks,
                     CollapsesAfterDays = collapsesAfterDays,
                     AbandonedWhenEmptyAfterTicks = emptyAfterTicks,
-                    Occupants = occupants,
+                    Tenanted = tenanted,
+                    Parked = parked,
                     Business = business,
-                    Parking = parking,
                     ArrivalsPerDay = arrivalsPerDay,
                     Serves = serves,
                 };
@@ -2294,7 +2323,7 @@ public static class RulesetLoader
         /// this pass adds exactly <b>two</b>, the negative <c>jobs</c> and the wage.
         /// </para>
         /// </remarks>
-        private BusinessKindDefinition[] ReadBusinessKinds()
+        private BusinessKindDefinition[] ReadBusinessKinds(CapacityRuleset capacity)
         {
             var definitions = new BusinessKindDefinition[_businessKindTables.Count];
 
@@ -2308,22 +2337,16 @@ public static class RulesetLoader
                 // KindDefinition.Jobs' rule unchanged (adr/0068 by way of milestone 5b-bis task 2):
                 // optional, because a trade employing nobody is a coherent thing to declare, and
                 // refused negative because it reads as "sack everybody".
-                int jobs = 0;
-
-                if (TryInteger(table, "jobs", out long employs, required: false, name))
-                {
-                    if (employs < 0)
-                    {
-                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "jobs") ?? table), name,
-                            $"jobs is {employs}. It counts Citizens a Business of this trade "
-                            + "employs, so it cannot be negative; omit it for a trade that employs "
-                            + "nobody.");
-                    }
-                    else
-                    {
-                        jobs = employs > int.MaxValue ? int.MaxValue : (int)employs;
-                    }
-                }
+                // plans/0053: `jobs` is RETIRED. A Business takes one of its premises' tenancies
+                // (adr/0141), so what it employs is that share of the floor over [capacity]
+                // floor_tiles_per_job -- which makes a shop in a slab a bigger employer than the same
+                // trade in a terrace, without anybody declaring two trades to say so.
+                RefuseRetired(table, "jobs", name,
+                    "jobs is stated on a [[business]]. How many Citizens a Business employs is "
+                    + "DERIVED now -- its share of its premises' floor area over [capacity] "
+                    + "floor_tiles_per_job -- so one trade employs differently in a terrace and in a "
+                    + "slab (plans/0053). Omit the whole [capacity] key for a city that employs "
+                    + "nobody.");
 
                 // adr/0141's third Declares member, refused by NAME because it is the one key a
                 // designer has positive reason to write. That ADR tells them the trade declares the
@@ -2346,12 +2369,17 @@ public static class RulesetLoader
                     + "still unbuilt. What exists is `wage_per_day`, a flat rate per Day worked, "
                     + "paired with `pay_period_days` -- write those two.");
 
-                (int shiftFrom, int shiftTo) = ReadShiftStartBand(table, name, jobs);
-                (int wagePerDay, int payPeriodDays) = ReadWage(table, name, jobs);
+                // The two readers took `jobs` to ask "does this trade employ anybody" before
+                // deciding whether a shift band and a wage were owed. Employment is a property of the
+                // WORLD now -- [capacity] floor_tiles_per_job -- so the question they were really
+                // asking is whether this Ruleset employs anybody at all.
+                int employs = capacity.FloorTilesPerJob > 0 ? 1 : 0;
+
+                (int shiftFrom, int shiftTo) = ReadShiftStartBand(table, name, employs);
+                (int wagePerDay, int payPeriodDays) = ReadWage(table, name, employs);
 
                 definitions[i] = new BusinessKindDefinition
                 {
-                    Jobs = jobs,
                     ShiftStartEarliestHour = shiftFrom,
                     ShiftStartLatestHour = shiftTo,
                     WagePerDay = wagePerDay,
@@ -4009,6 +4037,34 @@ public static class RulesetLoader
             return true;
         }
 
+        /// <summary>Reads a <c>true</c>/<c>false</c> key, absent meaning <c>false</c>.</summary>
+        /// <remarks>
+        /// <b>The one predicate in this surface</b>, and it takes no <c>required</c> parameter for
+        /// that reason: every other key answers <em>how much</em> and can be missing in a way that
+        /// means something else, where an absent predicate is simply <em>no</em>. ⚠ <b>A stated
+        /// <c>false</c> and an absent key are the same city</b>, which is what makes writing the
+        /// word optional rather than ceremonial.
+        /// </remarks>
+        private bool TryBoolean(SyntaxNode holder, string key, out bool value, string? rule = null)
+        {
+            value = false;
+            KeyValueSyntax? entry = Find(holder, key, RulesetKeyKind.Truth);
+
+            if (entry is null)
+            {
+                return false;
+            }
+
+            if (entry.Value is not BooleanValueSyntax truth)
+            {
+                Refuse(LineOf(entry), rule, $"{key} must be true or false.");
+                return false;
+            }
+
+            value = truth.Value;
+            return true;
+        }
+
         private bool TryInteger(
             SyntaxNode holder, string key, out long value, bool required, string? rule = null)
         {
@@ -5430,6 +5486,56 @@ public static class RulesetLoader
             return new LotRuleset((int)value, (int)setback);
         }
 
+        /// <summary>Reads <c>[capacity]</c> — how much floor one tenancy, job or car takes.</summary>
+        /// <remarks>
+        /// <b>Three rates and no counts.</b> Absence of the table is a city in which nothing holds
+        /// anybody; absence of a key within it is a city with none of that thing. ⚠ <b>A stated zero
+        /// is refused</b> and absence is how you mean it — a rate of zero would divide by nothing,
+        /// and a key written to mean <em>none</em> reads as an author who thought they were setting a
+        /// quantity.
+        /// </remarks>
+        private CapacityRuleset ReadCapacity()
+        {
+            if (_capacityTable is null)
+            {
+                return CapacityRuleset.None;
+            }
+
+            int occupant = Rate("floor_tiles_per_occupant", "one tenancy");
+            int job = Rate("floor_tiles_per_job", "one job");
+            int space = Rate("floor_tiles_per_parking_space", "one parking space");
+
+            return new CapacityRuleset(occupant, job, space);
+
+            int Rate(string key, string what)
+            {
+                if (!TryInteger(_capacityTable, key, out long value, required: false))
+                {
+                    return 0;
+                }
+
+                // The ceiling is a Cell: 1,024 Tiles is 16,384 m2, and a rate past that is a
+                // quantity nothing in any city could satisfy -- every Building would hold one of
+                // whatever it is, which is the floor Holds already gives.
+                if (value < 1 || value > CellGrid.TilesInCell)
+                {
+                    Refuse(LineOfCapacity(key), null,
+                        $"{key} = {value} is out of range. It is how much floor {what} takes, in "
+                        + $"Tiles, so it is at least 1 and at most a Cell ({CellGrid.TilesInCell}). "
+                        + "Omit the key for a city that has none of that thing — a stated zero "
+                        + "reads as somebody setting a quantity when they meant an absence.");
+
+                    return 0;
+                }
+
+                return (int)value;
+            }
+        }
+
+        /// <summary>The line a <c>[capacity]</c> key is on, or the table's.</summary>
+        private int LineOfCapacity(string key) =>
+            LineOf((SyntaxNodeBase?)Find(_capacityTable!, key) ?? _capacityTable!);
+
         /// <summary>The line a <c>[lots]</c> key is on, or the table's.</summary>
         private int LineOfLot(string key) =>
             LineOf((SyntaxNodeBase?)Find(_lotsTable!, key) ?? _lotsTable!);
@@ -5933,7 +6039,8 @@ public static class RulesetLoader
             }
 
             // Refused at zero rather than defaulted, because zero is not "no parking" here -- the
-            // supply is [[building]] parking and this is the reach. A shed of zero metres is a city
+            // supply is a kind's `parked` against [capacity] floor_tiles_per_parking_space, and this
+            // is the reach. A shed of zero metres is a city
             // whose Car Parks all exist and none can be walked to from anywhere, which is a sentence
             // nobody meant to write and whose symptom names neither this key nor that one.
             if (metres < 1)
@@ -6634,7 +6741,8 @@ public static class RulesetLoader
         /// </para>
         /// </remarks>
         private FoundingRuleset ReadFounding(
-            PlacementRuleset placement, BusinessKindDefinition[] businessKinds)
+            PlacementRuleset placement, BusinessKindDefinition[] businessKinds,
+            CapacityRuleset capacity)
         {
             if (_foundingTable is null)
             {
@@ -6711,21 +6819,19 @@ public static class RulesetLoader
             // EvictOverflow would sack them on the next sweep. ⚠ It is conditional on [founding]
             // exactly as gives_up_after_days is conditional on a gate -- a trade nobody founds may
             // employ nobody, and several shipped files have one.
-            for (int i = 0; i < businessKinds.Length; i++)
+            // ⚠ IT WAS A LOOP OVER TRADES AND IT IS ONE QUESTION NOW. `jobs` was declared per
+            // [[business]], so a jobless trade was a property of one paragraph; employment divides
+            // floor area now, so "this Ruleset employs nobody" is one fact about the file and the
+            // loop below reports it against the first trade rather than against all of them.
+            if (capacity.FloorTilesPerJob <= 0 && businessKinds.Length > 0)
             {
-                if (businessKinds[i].Jobs > 0)
-                {
-                    continue;
-                }
+                TryString(_businessKindTables[0], "name", out string? trade, required: false);
 
-                TryString(_businessKindTables[i], "name", out string? trade, required: false);
-
-                Refuse(LineOf(_businessKindTables[i]), trade,
-                    "this Ruleset states [founding] and this [[business]] declares no jobs. A "
-                    + "founder becomes their Business's first worker (adr/0146), so a trade nobody "
-                    + "can work at is one nobody can found -- and the trade is drawn uniformly, so "
-                    + "every declared one has to be foundable. State jobs and a Shift band on it, or "
-                    + "remove [founding].");
+                Refuse(LineOf(_businessKindTables[0]), trade,
+                    "this Ruleset states [founding] and states no [capacity] floor_tiles_per_job, so "
+                    + "nobody in this city is employed anywhere. A founder becomes their Business's "
+                    + "first worker (adr/0146), so a trade nobody can work at is one nobody can "
+                    + "found. State the rate, or remove [founding].");
 
                 return FoundingRuleset.None;
             }

@@ -224,13 +224,16 @@ public sealed class JobAssignmentTests
         Simulation simulation = Run(GoldenFixtures.Rules());
         World world = simulation.World;
 
-        // Over Businesses rather than Buildings since adr/0141: the ceiling is declared by the trade
-        // and the worker list hangs off the Business, so a walk over Buildings here would be asking
-        // the premises a question only the tenant can answer.
+        // Over Businesses rather than Buildings since adr/0141: the worker list hangs off the
+        // Business, so a walk over Buildings here would be asking the premises a question only the
+        // tenant can answer. ⚠ The CEILING moved again at plans/0053 -- it is the Business's share
+        // of its premises' floor area over [capacity] floor_tiles_per_job -- so the ceiling now
+        // needs the Business's slot rather than only its kind, and one trade employs differently in
+        // a terrace and in a slab.
         for (int slot = 0; slot < world.Businesses.Rows.SlotCount; slot++)
         {
             if (!world.Businesses.Rows.IsLive(slot)
-                || !world.TryDeclaredJobs(world.Businesses.Kind[slot], out int jobs))
+                || !world.TryDeclaredJobs(world.Businesses.Kind[slot], slot, out int jobs))
             {
                 continue;
             }

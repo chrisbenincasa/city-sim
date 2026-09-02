@@ -289,7 +289,14 @@ public static class SyntheticCity
 
         int population = world.Citizens.Rows.Capacity;
         int households = Households(world);
-        int buildings = WantedBuildings(world);
+
+        // 🔴 NO BUILDING COUNT IS COMPUTED HERE ANY MORE (plans/0053). It was WantedBuildings, the
+        // population over the one ceiling every Building shared. Occupancy divides the ground now, so
+        // there is no shared ceiling to divide by -- and the count could not be recovered here even
+        // in principle, because the room a Building adds depends on which Lot it lands on and only
+        // RaiseDwellings knows that. It is passed the POPULATION and raises until the ground it has
+        // taken holds them. WantedBuildings survives one caller: PopulateLand, sizing the land before
+        // any of it exists.
 
         // The populator must house what it creates, so the Building count follows the land that
         // actually stands rather than the other way round. On the shipped [roads] a generated map
@@ -329,11 +336,6 @@ public static class SyntheticCity
         // taken, the loop below walks exactly the Lots it always did and no State Hash moves.
         int gates = RaiseGates(world, now, key);
 
-        if (lots - gates < buildings)
-        {
-            buildings = lots - gates;
-        }
-
         // ONE LATTICE AT A TIME, and the box is what makes the second one a CENTRE rather than an
         // overflow. The Lots are carved lattice by lattice and a block overshoots the share it was
         // asked for, so a single slot-ordered walk would fill the first lattice's spare Lots before
@@ -350,7 +352,7 @@ public static class SyntheticCity
                 world,
                 now,
                 key,
-                Share(buildings, lattices.Length, lattice),
+                Share(households, lattices.Length, lattice),
                 lattices[lattice],
                 extentTiles);
         }
@@ -368,9 +370,23 @@ public static class SyntheticCity
                 + "origins are the ones the Streets were laid from.");
         }
 
-        buildings = raised;
+        int buildings = raised;
 
         HouseholdRuleset rules = world.Rules.Households;
+
+        // 🔴 A CURSOR AND NO LONGER A ROUND ROBIN (plans/0053). `i % buildings` was sound for exactly
+        // as long as every Building held the same number: WantedBuildings sized the loop against that
+        // one ceiling, so dealing Households out in turn could not overfill anybody. Occupancy divides
+        // the GROUND now -- a slab's parcel holds several times a detached plot's -- so a flat deal
+        // overfills the small Buildings and leaves the large ones half empty, which is not a smaller
+        // version of the old behaviour but a different city.
+        //
+        // ⚠ IT FILLS RATHER THAN SPREADS, and that is the honest reading of what this fixture is.
+        // A populator is a world-creation pass and not a housing market: PlacementEngine is what
+        // chooses WHERE somebody lives, against a Pool and a look (adr/0069), and a fixture that
+        // spread its population artfully would be simulating that pass badly rather than standing
+        // out of its way. What this owes is that nobody is over a ceiling and nobody is left over.
+        int cursor = 0;
 
         for (int i = 0; i < households; i++)
         {
@@ -389,8 +405,32 @@ public static class SyntheticCity
                 ? (byte)(1 + (i % world.Rules.LifeStageCount))
                 : (byte)0;
 
+            // Walk to the next Building with room. It cannot run off the end while WantedBuildings
+            // and the Building loop agree about how much room the city has -- and where they do not,
+            // the last Building takes the remainder and the whole-world occupancy invariant reports
+            // it, which is louder and more diagnosable than a silent wrap.
+            while (cursor < buildings - 1
+                && world.Occupants.Length(world.Buildings.Rows.Resolve(Dwelling(world, cursor, gates)))
+                    >= Room(world, Dwelling(world, cursor, gates)))
+            {
+                cursor++;
+            }
+
             Handle<Household> household =
-                world.CreateHousehold(Dwelling(world, i % buildings, gates), lifeStage: stage);
+                world.CreateHousehold(Dwelling(world, cursor, gates), lifeStage: stage);
+
+            // 🔴 THE GROUND CAN RUN OUT, AND THE POOL IS WHERE THE SURPLUS GOES (plans/0053). It
+            // could not before: the Building count was the population divided by one shared ceiling,
+            // so the room always fitted by arithmetic. Room is a property of the ground now, and a
+            // world whose Lots are all zoned away, boxed out or built on has less of it than its
+            // population needs. ***Cramming would be a lie the occupancy invariant then reports as a
+            // defect in the city rather than in the fixture***, where the Unplaced Pool is what a
+            // shortage of housing IS in this design (adr/0069: the Pool is the demand signal).
+            if (world.Occupants.Length(world.Buildings.Rows.Resolve(Dwelling(world, cursor, gates)))
+                > Room(world, Dwelling(world, cursor, gates)))
+            {
+                world.Unplace(household);
+            }
 
             // THE ONLY PRODUCTION ISSUANCE OF MONEY IN THE BUILD, and it is here rather than
             // anywhere a player can reach. adr/0024 makes the Outside Connection money's only source
@@ -499,8 +539,56 @@ public static class SyntheticCity
 
         int raised = 0;
 
-        for (int slot = 0; slot < world.Lots.Rows.SlotCount && raised < wanted; slot++)
+        int room = 0;
+        int blockTiles = world.Rules.Roads.BlockTiles;
+        int crossed = int.MinValue;
+        int spare = int.MinValue;
+
+        for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
         {
+            // The block this Lot stands on, packed into one comparable int. Zero everywhere on a
+            // world with no lattice, which makes the two tests below inert and builds every row --
+            // the degenerate path, where a Lot is one Tile and there are no blocks to finish.
+            int here = blockTiles > 0
+                ? (IntegerMath.FloorDiv(world.Lots.East[slot].Raw, blockTiles) * CellGrid.WorldCells)
+                    + IntegerMath.FloorDiv(world.Lots.North[slot].Raw, blockTiles)
+                : 0;
+
+            // 🔴 THE POPULATION IS HOUSED, THEN ONE MORE STREET GOES UP (plans/0053). Two rules, and
+            // the second is where the city's VACANCY comes from.
+            //
+            // ⚠ The first is that `wanted` is a POPULATION and this loop raises BUILDINGS, which are
+            // no longer the same quantity: occupancy divides the ground, so how many Buildings house
+            // a Household count is a property of the Lots this walk meets and only the walk that
+            // raises them knows it. A Building count marched the shipped world's dwellings out to the
+            // map edge on a Ruleset with a door, because it paved for one Household each and spread.
+            //
+            // ⚠ The second is that a generator does not stop mid-street. It finishes the block that
+            // houses the last Household and then lays the next one out too -- which is how a
+            // subdivision is actually built, the plat recorded ahead of the houses sold. ***Those
+            // spare places are not slack in the fixture: they are where a later arrival moves in and
+            // where a founded Business takes premises*** (adr/0069, adr/0147). A city built to
+            // exactly its own population accepts nobody, and ArrivalTests and FoundingTests are what
+            // say so on the day -- ***vacancy is a property of a city and not an accident of one.***
+            if (room >= wanted)
+            {
+                if (crossed == int.MinValue)
+                {
+                    crossed = here;
+                }
+                else if (here != crossed)
+                {
+                    if (spare == int.MinValue)
+                    {
+                        spare = here;
+                    }
+                    else if (here != spare)
+                    {
+                        break;
+                    }
+                }
+            }
+
             // Vacancy rather than `slot < buildings`, because a gate may have taken this one -- and
             // now because a lattice laid before this one may have. With no gates and one lattice the
             // two are the same walk: the Lot table started empty, so the nth Lot is slot n and none
@@ -534,11 +622,15 @@ public static class SyntheticCity
                 continue;
             }
 
+
             // Through World's door rather than the table's, so the Building arrives with its kind's
             // Bins and its chain heads armed. Before this the populator built bare Buildings and the
             // Ruleset described a shape nothing constructed.
-            world.CreateBuilding(world.Lots.Rows.At(slot), DwellingKind, now, key);
+            Handle<Building> raisedHere =
+                world.CreateBuilding(world.Lots.Rows.At(slot), DwellingKind, now, key);
+
             raised++;
+            room += Room(world, raisedHere);
         }
 
         return raised;
@@ -579,7 +671,14 @@ public static class SyntheticCity
 
         RoadGenerator.LayInto(world.Roads, key, lattices, extentTiles, world.Layers);
 
-        int wanted = WantedBuildings(world);
+        // 🔴 THE POPULATION AND NOT A BUILDING COUNT (plans/0053), which is the same correction
+        // RaiseDwellings took and for the same reason. Occupancy divides the ground now, so a Lot
+        // count is no longer a proxy for room -- and the count this used to compute was
+        // `households / typical`, where `typical` had to be estimated from a lattice with no Lots on
+        // it yet. ***An estimate of a floored quantity is short by whatever every floor threw away***,
+        // and on the shipped lattice at a coarse rate it left 23 Households of 360 with nowhere to
+        // live. Subdivide counts the room it carves and stops when the room covers the people.
+        int wanted = Households(world);
 
         // Carved lattice by lattice rather than in one map-wide walk, and the two are the same walk
         // wherever there is one lattice -- blocks outside it hold no Segments, so SubdivideBlock
@@ -648,29 +747,6 @@ public static class SyntheticCity
     /// </summary>
     private static int Households(World world) =>
         IntegerMath.FloorDiv(world.Citizens.Rows.Capacity * 360, 1_000);
-
-    /// <summary>
-    /// Buildings those Households want, before the standing land clamps it.
-    /// </summary>
-    /// <remarks>
-    /// adr/0068: the occupancy figure is the Ruleset's, and this is the site that used to hold the
-    /// other half of a disagreement nothing could reconcile. A declared zero is treated as undeclared
-    /// rather than refused, because it would mean a populator that houses nobody and reports success
-    /// — and the honest floor is one per Building, not an empty city.
-    /// </remarks>
-    private static int WantedBuildings(World world)
-    {
-        // TryDeclaredHousing and NOT TryDeclaredOccupancy, and the difference is a quarter of the
-        // city's homes (adr/0148). `occupants` is one ceiling over both kinds of tenant, so a kind
-        // that comes with a trade spends one slot on it -- and a generator sizing the world by the
-        // ceiling would build too few Buildings and queue the difference for ever.
-        int occupancy =
-            world.TryDeclaredHousing(DwellingKind, out int declared) && declared > 0
-                ? declared
-                : UndeclaredOccupancy;
-
-        return IntegerMath.FloorDiv(Households(world), occupancy) + 1;
-    }
 
     /// <summary>
     /// How far the Street lattice reaches from the origin corner, in Tiles: enough ground to carry
@@ -801,7 +877,7 @@ public static class SyntheticCity
     private static bool ReachesTheBoundary(World world) => TryGateKind(world, out _);
 
     /// <summary>
-    /// Carves enough zoned land to hold <paramref name="wanted"/> Buildings, block by block.
+    /// Carves enough zoned land to hold <paramref name="wanted"/> Households, block by block.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -816,6 +892,19 @@ public static class SyntheticCity
     /// <em>opposite</em> sides of the Segment they share, so walking in order costs nothing — a block
     /// never finds its faces already taken by its neighbour.
     /// </para>
+    /// <para>
+    /// 🔴 <b>It counts ROOM and no longer Lots</b> (<c>plans/0053</c>), which is
+    /// <see cref="RaiseDwellings"/>'s change arriving one pass earlier and for the same reason. A Lot
+    /// count was a proxy for room while every Building held what its kind declared; occupancy divides
+    /// the ground now, so <em>Lots differ</em> — and a target of <c>households ÷ typical</c>
+    /// under-paved by however much the floor in <c>Holds</c> threw away, Lot by Lot. ***Only the pass
+    /// that carves the ground knows how much room it carved.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The new rows are the ones above the old slot count</b>, and that is safe here rather than
+    /// generally: this runs at world creation on a table nothing has freed a row from, so no slot is
+    /// recycled underneath the walk.
+    /// </para>
     /// </remarks>
     private static int Subdivide(
         World world, LatticeDefinition lattice, int extentTiles, int wanted)
@@ -829,6 +918,8 @@ public static class SyntheticCity
         // rows would answer the sizing question with an empty world and report success. So it lays
         // rows with no frontage and no Address, which is what they are: storage for measuring a
         // table's footprint, and not a city. Nothing that reads frontage will find any here.
+        // A one-Tile row holds exactly one Household at every rate, because `Holds` floors at one --
+        // so on this path a Household target and a Lot target are the same number.
         if (blocks <= 0 || !world.Rules.Lots.Runs)
         {
             for (int i = 0; i < wanted; i++)
@@ -854,9 +945,14 @@ public static class SyntheticCity
         // a Segment has two sides.***
         int span = IntegerMath.FloorDiv(extentTiles, block) + 1;
 
-        int made = 0;
+        int rate = world.Rules.Capacity.FloorTilesPerOccupant;
+        bool trades = world.Rules.Declares(DwellingKind)
+            && world.Rules.Kind(DwellingKind).Business != 0;
 
-        for (int b = 0; b < span * span && made < wanted; b++)
+        int made = 0;
+        int room = 0;
+
+        for (int b = 0; b < span * span && room < wanted; b++)
         {
             int column = firstColumn + (b % span);
             int row = firstRow + IntegerMath.FloorDiv(b, span);
@@ -884,10 +980,57 @@ public static class SyntheticCity
                 continue;
             }
 
+            int before = world.Lots.Rows.SlotCount;
+
             made += LotSubdivider.SubdivideBlock(world, column, row, Housing);
+
+            for (int slot = before; slot < world.Lots.Rows.SlotCount; slot++)
+            {
+                room += RoomOn(world, slot, rate, trades);
+            }
         }
 
         return made;
+    }
+
+    /// <summary>How many Households one carved Lot has room for.</summary>
+    /// <remarks>
+    /// ⚠ <b>A dwelling that comes with a trade spends one of its places on it</b> (<c>adr/0148</c>):
+    /// one ceiling counts both kinds of tenant, so a pass sizing the city by the ceiling would build
+    /// too few and queue the difference for ever. ⚠ <b>Taken off a one-place Building too</b>, which
+    /// leaves zero — the ground is what it is, and a Building whose single tenancy is the trade
+    /// houses nobody. See <see cref="Room"/>, where reading that zero as one overfilled seven
+    /// Buildings.
+    /// </remarks>
+    private static int RoomOn(World world, int slot, int rate, bool trades)
+    {
+        if (!world.Lots.Rows.IsLive(slot))
+        {
+            return 0;
+        }
+
+        int floor = world.Lots.FloorTiles(slot);
+
+        if (floor <= 0)
+        {
+            return 0;
+        }
+
+        // No rate is not a rate of nothing -- see Room, which draws the same distinction one pass
+        // later. A world with no [capacity] holds one Household per Building.
+        if (rate <= 0)
+        {
+            return UndeclaredOccupancy;
+        }
+
+        int holds = Rules.CapacityRuleset.Holds(floor, rate);
+
+        if (trades)
+        {
+            holds--;
+        }
+
+        return holds > 0 ? holds : 0;
     }
 
     /// <summary>
@@ -1153,4 +1296,43 @@ public static class SyntheticCity
     /// </remarks>
     private static Handle<Building> Dwelling(World world, int index, int gates) =>
         world.Buildings.Rows.At(gates + index);
+
+    /// <summary>How many Households one Building has room for, on the ground it stands on.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>World.DeclaredHousing</c>'s question asked of a Building rather than of a kind</b>
+    /// (<c>plans/0053</c>), which is where it has to be asked now that the ceiling divides floor
+    /// area. It is HOUSING and not TENANCY, so a Building that came with a trade has one place
+    /// fewer (<c>adr/0148</c>) — the mistake that once left the Unplaced Pool climbing 6.5% a
+    /// reading, arriving here as an ordinary call rather than as arithmetic to get wrong again.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>ZERO IS A REAL ANSWER AND THIS RETURNED ONE.</b> A floor of one read as <em>every
+    /// Building houses somebody</em>, and on the smallest parcels it is false: a Building whose
+    /// ground divides into a single tenancy, with a trade already in it, houses <b>nobody</b>. The
+    /// populator filled seven such Buildings on <c>bordered.toml</c> and nothing failed, because
+    /// <c>World.EvictOverflow</c> only runs on a Ruleset swap — so the overfill sat there until
+    /// <c>ArrivalTests</c> adopted a file and watched seven Households fall into the Pool.
+    /// ***A ceiling counts tenants of any kind (<c>adr/0147</c>), so a generator that counts only
+    /// Households is measuring a different quantity from the one that evicts.***
+    /// </para>
+    /// </remarks>
+    private static int Room(World world, Handle<Building> building)
+    {
+        int slot = world.Buildings.Rows.Resolve(building);
+
+        // ⚠ UNDECLARED IS NOT ZERO, and collapsing the two emptied a city. A world that states no
+        // [capacity] -- `Ruleset.Empty`, and every fixture standing on it -- declares no ceiling at
+        // all, and the honest answer there is one per Building rather than nobody anywhere
+        // (UndeclaredOccupancy). ***A DECLARED ceiling of one already spent on a trade is a real
+        // zero***, and only the second of those may be returned as one.
+        if (!world.TryDeclaredOccupancy(world.Buildings.Kind[slot], slot, out int allowed))
+        {
+            return UndeclaredOccupancy;
+        }
+
+        int housing = allowed - world.BuildingBusinesses.Length(slot);
+
+        return housing > 0 ? housing : 0;
+    }
 }

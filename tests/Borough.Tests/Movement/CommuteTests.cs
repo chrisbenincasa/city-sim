@@ -316,7 +316,6 @@ public sealed class CommuteTests
         // TOML is a fixture asserting about a kind that cannot exist.
         BusinessKindDefinition kind = new()
         {
-            Jobs = 1,
             ShiftStartEarliestHour = 0,
             ShiftStartLatestHour = 23,
         };

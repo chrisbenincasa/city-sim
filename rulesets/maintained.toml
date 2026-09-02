@@ -1,8 +1,30 @@
 # declining.toml with a REPAIR SUPPLY. It models no city, and it is not the beginning of one.
 #
-# THE DIFF AGAINST declining.toml IS ONE RULE AND TWO EDITS TO ANOTHER, and that diff is the whole
-# demonstration. `maintain` gives `repairs` a producer, and `upkeep` scales with occupancy instead of
-# firing once. Everything else is byte-identical.
+# THE DIFF AGAINST declining.toml IS EXACTLY ONE RULE, and that diff is the whole demonstration.
+# `maintain` gives `repairs` a producer. Everything else is byte-identical.
+#
+# 🔴 !! IT WAS "ONE RULE AND TWO EDITS TO ANOTHER" UNTIL 2026-09-02, AND THE TWO EDITS BROKE THIS FILE
+# THE DAY OCCUPANCY STARTED DIVIDING THE GROUND. `upkeep` had `apply = { derived = "occupancy" }` with
+# `amount = 1`, which was the same draw as declining's `{ min = 1, max = 1 }` with `amount = 4` for
+# exactly as long as EVERY DWELLING HELD FOUR -- because a kind DECLARED how many it held. Three
+# separate places in this file were quietly writing that same 4 down: the consumer's scaling, the
+# producer's `max`, and the `repairs` Bin's `capacity`. plans/0053 made occupancy a function of the
+# parcel, so a dwelling now holds anything from 1 to 13 here; `upkeep` began drawing up to 13 against
+# a Bin that holds 4, WHICH CAN NEVER BE FILLED, and THIS FILE STARTED CONDEMNING BUILDINGS -- 31 of
+# 228 at 2,000 Citizens over 8,192 Ticks.
+#
+# ⚠ IT IS THE PARAGRAPH BELOW ARRIVING, WORD FOR WORD: *"a run of this file that DID condemn
+# something would be a defect and is worth looking at, because it would mean the producer had stopped
+# keeping up."* It stopped keeping up, and the instrument that said so was
+# `MaintainedRulesetTests` on the day.
+#
+# ⚠ WHY THE REPAIR IS TO DROP THE SCALING RATHER THAN TO SCALE THE OTHER TWO. A Bin's `capacity` is
+# authored per KIND, so a file cannot state a larder that covers a ceiling it does not know -- the
+# ground decides that, and the ground is not in this file. ***A consumer whose draw derives from the
+# ground, feeding out of a store that does not, is unsatisfiable by construction on the largest
+# parcels.*** So this file stops depending on occupancy at all, which is what its first line already
+# says it wants: it models no city, and its point is the PRESENCE of one Rule. A per-occupant Bin
+# capacity is the real fix and it is filed in plans/0053 rather than invented here.
 #
 # !! WHAT IT EXISTS TO SHOW: A BUILDING THAT STARVES AND THEN RECOVERS. On declining.toml `upkeep`
 # draws on a Bin nothing fills, so it starves from its first firing and never stops -- every dwelling
@@ -75,16 +97,21 @@
 # ---------------------------------------------------------------------------------------------------
 # !! HOW THE PRESSURE ACTUALLY OSCILLATES, which is the thing to watch in --evidence.
 #
-# `maintain` puts 4 repairs in every 32 Ticks. `upkeep` takes 1 PER HOUSEHOLD every 16 -- so a full
-# dwelling of three wants 6 per 32 against a supply of 4. It runs dry, upkeep fails on Supply,
-# StarvedSince is stamped, and the Rule SUBSCRIBES rather than retrying (adr/0045). The next
-# `maintain` writes the Bin, that write wakes it, it succeeds, and the clock goes back to zero.
+# `maintain` puts 4 repairs in every 32 Ticks. `upkeep` takes 4 every 16 -- twice as often as they
+# arrive -- so the Bin runs dry, upkeep fails on Supply, StarvedSince is stamped, and the Rule
+# SUBSCRIBES rather than retrying (adr/0045). The next `maintain` writes the Bin, that write wakes it,
+# it succeeds, and the clock goes back to zero.
 #
-# !! SO PRESSURE IS SAWTOOTHED RATHER THAN MONOTONIC, and the threshold is never approached. An
-# emptier dwelling never starves at all: at one Household upkeep wants 2 per 32 against 4 and the Bin
-# sits full. ***OCCUPANCY IS THE ONLY THING IN THIS WORLD THAT VARIES BETWEEN BUILDINGS***, which is
-# why upkeep was moved onto the `occupancy` Readout -- and that Readout had been declared, resolving
-# and CALLED BY NOTHING since milestone 25 took its only caller away.
+# !! SO PRESSURE IS SAWTOOTHED RATHER THAN MONOTONIC, and the threshold is never approached.
+#
+# 🔴 !! THIS PARAGRAPH SAID *PER HOUSEHOLD* UNTIL 2026-09-02 and it was the same sentence the top of
+# this file has now withdrawn. Its claim -- ***occupancy is the only thing in this world that varies
+# between buildings*** -- was true when it was written and is the exact thing plans/0053 changed: a
+# dwelling's ceiling is now its parcel's floor area over a rate, so the variation is still there and
+# it comes from the GROUND rather than from the tenancy count. What the `occupancy` Readout could not
+# survive was being read by a consumer whose store does not scale with it. ⚠ THE READOUT IS ONCE
+# AGAIN DECLARED AND CALLED BY NOTHING, which is where milestone 25 left it and where this file found
+# it; that is filed rather than papered over with a caller invented to justify it.
 #
 # !! THE THREE RATE NUMBERS ARE STOPWATCH SETTINGS AND NOT DESIGN CLAIMS. 4 per 32 against 1 per 16 is
 # chosen so a full dwelling oscillates visibly and an empty one does not, on a file whose whole job is
@@ -198,7 +225,6 @@ family = "money"
 
 [[business]]
 name = "shop"
-jobs = 8
 shift_start_earliest_hour = 6
 shift_start_latest_hour   = 10
 
@@ -210,9 +236,10 @@ bins = [
 ]
 condemn_after_days = 2
 collapses_after_days = 1
-occupants = 4
+tenanted = true
+# Whether it parks at all -- the count is floor area over [capacity] floor_tiles_per_parking_space.
+parked = true
 business = "shop"
-parking = 8
 
 [[rule]]
 name    = "restock"
@@ -242,8 +269,8 @@ outputs = [ { scope = "local", resource = "repairs", amount = 1 } ]
 name    = "upkeep"
 kind    = "dwelling"
 rate    = 16
-apply   = { derived = "occupancy" }
-inputs  = [ { scope = "local", resource = "repairs", amount = 1 } ]
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "repairs", amount = 4 } ]
 outputs = []
 
 [[zone_rule]]
@@ -289,6 +316,14 @@ lots_per_segment = 5
 # The most ground a Building leaves on each side of its parcel. A LENGTH and not a fraction, so
 # coverage rises with the parcel -- see minimal.toml, which carries the argument.
 setback_tiles = 2
+
+[capacity]
+# How much floor one tenancy, job or parking space takes, in Tiles -- see minimal.toml, which carries
+# the argument and the measurement. A kind says WHETHER it houses; the count derives from the ground,
+# and the three rates are what the standing city already said about a detached building, divided.
+floor_tiles_per_occupant      = 25
+floor_tiles_per_job           = 3
+floor_tiles_per_parking_space = 12
 
 [parking]
 radius_metres = 400

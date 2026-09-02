@@ -530,7 +530,6 @@ public sealed class CommuteLongRunTests(ITestOutputHelper output)
 
             [[business]]
             name = "workshop_trade"
-            jobs = 8
             shift_start_earliest_hour = {{earliestHour}}
             shift_start_latest_hour   = {{latestHour}}
 
@@ -540,7 +539,7 @@ public sealed class CommuteLongRunTests(ITestOutputHelper output)
                 { resource = "sundries", capacity = 48 },
                 { resource = "repairs",  capacity = 4 },
             ]
-            occupants = 4
+            tenanted = true
             business = "workshop_trade"
             condemn_after_days   = 2
             collapses_after_days = 1

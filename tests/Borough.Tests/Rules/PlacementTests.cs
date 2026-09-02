@@ -35,11 +35,20 @@ public sealed class PlacementTests
 
     private static readonly WorldKey Key = WorldKey.FromSeed(0xB0A0_0C6E_A7E0_0002UL);
 
-    /// <summary>A Ruleset that houses <paramref name="occupants"/> per Building and no Zone Rules.</summary>
+    /// <summary>
+    /// A Ruleset that houses <paramref name="occupants"/> per Building and has no Zone Rules.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>The count is not in the Ruleset any more</b> (<c>plans/0053</c>). A kind says only
+    /// <em>whether</em> it takes tenants; how many is floor area over
+    /// <c>floor_tiles_per_occupant</c>, and this class holds that rate at ONE Tile per tenancy so
+    /// that a Lot's width is its ceiling and each caller's <c>occupants</c> still reads as the
+    /// number it means. <see cref="City"/> is where the ground is laid.
+    /// </remarks>
     private static Ruleset Housing(int occupants, PlacementRuleset placement) => new(
         resources: [],
         rules: [],
-        kinds: [new KindDefinition(0, 0, 0, 0) { Occupants = occupants }],
+        kinds: [new KindDefinition(0, 0, 0, 0) { Tenanted = occupants > 0 }],
         inputs: [],
         outputs: [],
         emissions: [],
@@ -48,7 +57,11 @@ public sealed class PlacementTests
         zoneRules: [])
     {
         Placement = placement,
+        Capacity = new CapacityRuleset(FloorPerOccupant, 0, 0),
     };
+
+    /// <summary>How much floor one tenancy takes here — <b>one Tile</b>.</summary>
+    private const int FloorPerOccupant = 1;
 
     /// <summary>A pass that looks at everybody waiting every trigger.</summary>
     private static PlacementRuleset Placing(
@@ -65,12 +78,20 @@ public sealed class PlacementTests
     /// caller asked for.
     /// </remarks>
     private static (World World, Simulation Simulation) City(
-        Ruleset ruleset, int buildings, int seeking)
+        Ruleset ruleset, int buildings, int seeking, int occupants = 1)
     {
         var world = new World(1_000, ruleset);
         var simulation = new Simulation(world, Key);
 
-        Handle<Lot> seed = world.Lots.Create(new Tiles(0), new Tiles(0), zone: 1);
+        // Wide enough to hold every seeker at once. They are housed here and then unplaced, which
+        // is the only way into the Pool -- and since plans/0053 a Building's ceiling is its ground,
+        // so a one-Tile shelter would fire BuildingHasRoomForTheHousehold on the second seeder.
+        Handle<Lot> seed = world.Lots.Create(
+            new Tiles(0),
+            new Tiles(0),
+            zone: 1,
+            wide: new Tiles(seeking > 0 ? seeking : 1),
+            deep: new Tiles(1));
         Handle<Building> shelter = world.CreateBuilding(seed, House, Ticks.Zero, Key);
 
         for (int i = 0; i < seeking; i++)
@@ -82,7 +103,8 @@ public sealed class PlacementTests
 
         for (int i = 0; i < buildings; i++)
         {
-            Handle<Lot> lot = world.Lots.Create(new Tiles(i), new Tiles(1), zone: 1);
+            Handle<Lot> lot = world.Lots.Create(
+                new Tiles(i), new Tiles(1), zone: 1, wide: new Tiles(occupants), deep: new Tiles(1));
 
             world.CreateBuilding(lot, House, Ticks.Zero, Key);
         }
@@ -129,7 +151,7 @@ public sealed class PlacementTests
     public void The_pool_drains_into_buildings_that_already_stand()
     {
         (World world, Simulation simulation) = City(
-            Housing(2, Placing()), buildings: 8, seeking: 6);
+            Housing(2, Placing()), buildings: 8, seeking: 6, occupants: 2);
 
         PlacementActivity activity = Run(simulation, 64);
 
@@ -148,7 +170,7 @@ public sealed class PlacementTests
     public void Placement_stops_at_the_declared_ceiling()
     {
         (World world, Simulation simulation) = City(
-            Housing(2, Placing()), buildings: 3, seeking: 20);
+            Housing(2, Placing()), buildings: 3, seeking: 20, occupants: 2);
 
         Run(simulation, 256);
 
@@ -175,7 +197,7 @@ public sealed class PlacementTests
     public void A_ruleset_with_no_placement_table_houses_nobody()
     {
         (World world, Simulation simulation) = City(
-            Housing(2, PlacementRuleset.None), buildings: 8, seeking: 6);
+            Housing(2, PlacementRuleset.None), buildings: 8, seeking: 6, occupants: 2);
 
         PlacementActivity activity = Run(simulation, 256);
 
@@ -189,7 +211,7 @@ public sealed class PlacementTests
     public void The_pass_runs_on_its_interval()
     {
         (_, Simulation simulation) = City(
-            Housing(1, Placing(interval: 16)), buildings: 64, seeking: 64);
+            Housing(1, Placing(interval: 16)), buildings: 64, seeking: 64, occupants: 1);
 
         // 64 Ticks is four triggers, and the sample is the whole Pool each time -- but the Pool
         // shrinks as it drains, so what is asserted is the trigger count rather than the sum.
@@ -229,7 +251,8 @@ public sealed class PlacementTests
     [Fact]
     public void An_empty_pool_is_not_sampled()
     {
-        (_, Simulation simulation) = City(Housing(2, Placing()), buildings: 8, seeking: 0);
+        (_, Simulation simulation) = City(
+            Housing(2, Placing()), buildings: 8, seeking: 0, occupants: 2);
 
         Assert.Equal(0, Run(simulation, 64).Considered.Sum);
     }
@@ -256,13 +279,16 @@ public sealed class PlacementTests
         (World world, Simulation simulation) = City(
             new Ruleset(
                 resources: [], rules: [],
-                kinds: [new KindDefinition(0, 0, 0, 0) { Occupants = 1 }],
+                kinds: [new KindDefinition(0, 0, 0, 0) { Tenanted = 1 > 0 }],
                 inputs: [], outputs: [], emissions: [], bins: [], kindRules: [], zoneRules: [])
             {
-                Placement = new PlacementRuleset(Interval: 4, RevisitTicks: 128, Candidates: 64, GivesUpAfterDays: 0),
+                Placement = new PlacementRuleset(
+                    Interval: 4, RevisitTicks: 128, Candidates: 64, GivesUpAfterDays: 0),
+                Capacity = new CapacityRuleset(FloorPerOccupant, 0, 0),
             },
             buildings: 64,
-            seeking: 32);
+            seeking: 32,
+            occupants: 1);
 
         var queue = new List<int>();
 
@@ -299,9 +325,9 @@ public sealed class PlacementTests
     public void A_wider_look_houses_more_of_the_queue()
     {
         (World narrow, Simulation narrowRun) = City(
-            Housing(1, Placing(candidates: 1)), buildings: 64, seeking: 32);
+            Housing(1, Placing(candidates: 1)), buildings: 64, seeking: 32, occupants: 1);
         (World wide, Simulation wideRun) = City(
-            Housing(1, Placing(candidates: 16)), buildings: 64, seeking: 32);
+            Housing(1, Placing(candidates: 16)), buildings: 64, seeking: 32, occupants: 1);
 
         Run(narrowRun, 4);
         Run(wideRun, 4);
@@ -357,9 +383,9 @@ public sealed class PlacementTests
     public void Placement_is_reproducible()
     {
         (World first, Simulation firstRun) = City(
-            Housing(2, Placing()), buildings: 8, seeking: 12);
+            Housing(2, Placing()), buildings: 8, seeking: 12, occupants: 2);
         (World second, Simulation secondRun) = City(
-            Housing(2, Placing()), buildings: 8, seeking: 12);
+            Housing(2, Placing()), buildings: 8, seeking: 12, occupants: 2);
 
         Assert.Equal(Run(firstRun, 64), Run(secondRun, 64));
         Assert.Equal(first.HashState(), second.HashState());
@@ -379,7 +405,7 @@ public sealed class PlacementTests
     public void The_two_flows_reach_the_census()
     {
         (World world, Simulation simulation) = City(
-            Housing(2, Placing()), buildings: 8, seeking: 6);
+            Housing(2, Placing()), buildings: 8, seeking: 6, occupants: 2);
 
         var census = new Census(world);
 
@@ -413,7 +439,7 @@ public sealed class PlacementTests
     public void A_placed_city_passes_the_end_of_run_invariants()
     {
         (World world, Simulation simulation) = City(
-            Housing(3, Placing()), buildings: 8, seeking: 20);
+            Housing(3, Placing()), buildings: 8, seeking: 20, occupants: 3);
 
         Run(simulation, 256);
 

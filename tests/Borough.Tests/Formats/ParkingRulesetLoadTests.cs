@@ -156,10 +156,12 @@ public sealed class ParkingRulesetLoadTests
     /// </summary>
     /// <remarks>
     /// <b>Zero means something different here from what it means one key over</b>, and that is why it
-    /// cannot be a default. <c>[[building]] parking = 0</c> is a real declaration — a tower with no
+    /// cannot be a default. A kind omitting <c>parked</c> is a real declaration — a tower with no
     /// parking, <c>adr/0009</c>'s own second player-tool row — where <c>radius_metres = 0</c> is a
     /// city whose Car Parks all exist and none can be walked to from anywhere. One is a balance
-    /// decision and the other is a sentence nobody meant to write.
+    /// decision and the other is a sentence nobody meant to write. ⚠ <b>The neighbour used to be
+    /// <c>[[building]] parking = 0</c></b>; <c>plans/0053</c> step 3 split it into a truth key and a
+    /// rate, and the asymmetry this remark is about survived the split intact.
     /// </remarks>
     [Theory]
     [InlineData(0)]
@@ -375,7 +377,8 @@ public sealed class ParkingRulesetLoadTests
     /// other.</b>
     /// </summary>
     /// <remarks>
-    /// <c>[[building]] parking</c> is how many Vehicles a Building holds; <c>[parking]
+    /// <c>[capacity] floor_tiles_per_parking_space</c> is how many Vehicles a Building holds — how
+    /// much floor one space takes, divided into the floor a Building has; <c>[parking]
     /// radius_metres</c> is how far somebody will walk from one. A file with supply and no radius is a
     /// city whose parking exists and cannot be reached, and a file with a radius and no supply is a
     /// shed with nothing in it. <b>Both load</b>, because a designer retunes them for separate reasons
@@ -391,12 +394,14 @@ public sealed class ParkingRulesetLoadTests
 
             [[building]]
             name = "dwelling"
-            parking = 8
+
+            [capacity]
+            floor_tiles_per_parking_space = 6
             """;
 
         Ruleset supplyOnly = Accepted(Housing);
 
-        Assert.Equal(8, supplyOnly.Kind(1).Parking);
+        Assert.Equal(6, supplyOnly.Capacity.FloorTilesPerParkingSpace);
         Assert.False(supplyOnly.Parking.Runs);
 
         Ruleset reachOnly = Accepted(With("radius_metres = 400"));
