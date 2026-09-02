@@ -93,7 +93,15 @@ public sealed class RecarveTests
         return found;
     }
 
-    /// <summary>Carves a block Detached and then bands it for the pattern above.</summary>
+    /// <summary>Carves a block Detached and then bands it up to the top of the ladder.</summary>
+    /// <remarks>
+    /// ⚠ <b><c>banded.toml</c> declares TWO bands against five rungs, so its two are the two ENDS</b>
+    /// — <see cref="BlockPattern.Detached"/> and <see cref="BlockPattern.Slab"/>, with nothing
+    /// between. <b>That is not this file's business to fix</b>: its header argues why it has two
+    /// bands and the argument is about <c>admits</c> rather than about patterns, so
+    /// <c>rulesets/platted.toml</c> is where the whole ladder is walked. ***What this class asserts is
+    /// the gable end***, which the slab has for the same reason the terrace does.
+    /// </remarks>
     private static (int Column, int Row) Upzoned(World world)
     {
         (int column, int row) = Uncarved(world);
@@ -104,7 +112,7 @@ public sealed class RecarveTests
 
         Assert.Equal(BlockPattern.Detached, PatternOn(world, column, row));
 
-        // And now the player paints the band above it, which is the upzone.
+        // And now the player paints a denser band on it, which is the upzone.
         world.BandBlock(column, row, 2);
 
         return (column, row);
@@ -137,9 +145,9 @@ public sealed class RecarveTests
         int created = LotSubdivider.RecarveBlock(world, column, row);
 
         Assert.True(created > 0, "the re-plat laid no Lots.");
-        Assert.Equal(BlockPattern.BackToBack, PatternOn(world, column, row));
+        Assert.Equal(BlockPattern.Slab, PatternOn(world, column, row));
 
-        // Back-to-back turns its gable ends to the cross streets, so it lays fewer Addresses on more
+        // A slab turns its gable ends to the cross streets, so it lays fewer Addresses on more
         // ground. The count is not asserted -- see BlockPatternTests -- but the face set is.
         foreach (int lot in LotsOn(world, column, row))
         {
@@ -183,8 +191,11 @@ public sealed class RecarveTests
     /// <remarks>
     /// <para>
     /// <b>This is the termination argument as an assertion.</b> Downzoning a re-platted block asks for
-    /// <see cref="BlockPattern.Detached"/>, which claims less ground than the terrace standing on it,
-    /// and the re-plat refuses.
+    /// <see cref="BlockPattern.Detached"/>, which sits below the terrace standing on it, and the
+    /// re-plat refuses. ⚠ <b>Below on the LADDER and no longer by ground claimed</b> — see
+    /// <c>BlockPatterns.Ladder</c>, where a pattern with a courtyard in it claims less than one it is
+    /// denser than and the area proxy inverts. <b>The slab is the block standing here</b>, because two
+    /// declared bands are the two ends of a five-rung ladder.
     /// </para>
     /// <para>
     /// <b>It is also what a real city does.</b> Re-platting is an intensification — a block re-divided
@@ -201,13 +212,13 @@ public sealed class RecarveTests
         (int column, int row) = Upzoned(world);
 
         Assert.True(LotSubdivider.RecarveBlock(world, column, row) > 0);
-        Assert.Equal(BlockPattern.BackToBack, PatternOn(world, column, row));
+        Assert.Equal(BlockPattern.Slab, PatternOn(world, column, row));
 
         // Down again. The band moves; the ground does not.
         world.BandBlock(column, row, 1);
 
         Assert.Equal(0, LotSubdivider.RecarveBlock(world, column, row));
-        Assert.Equal(BlockPattern.BackToBack, PatternOn(world, column, row));
+        Assert.Equal(BlockPattern.Slab, PatternOn(world, column, row));
     }
 
     /// <summary>
@@ -259,7 +270,7 @@ public sealed class RecarveTests
         // And when it is carved, it takes the band's pattern straight away rather than needing a
         // re-plat to get there.
         Assert.True(LotSubdivider.SubdivideBlock(world, column, row, LotTable.Housing) > 0);
-        Assert.Equal(BlockPattern.BackToBack, PatternOn(world, column, row));
+        Assert.Equal(BlockPattern.Slab, PatternOn(world, column, row));
     }
 
     /// <summary>

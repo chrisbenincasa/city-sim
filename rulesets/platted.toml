@@ -1,0 +1,326 @@
+# ===================================================================================================
+# platted.toml -- `banded.toml`'s WORLD WITH FIVE BANDS, SO THAT EVERY BLOCK PATTERN IS DRAWN.
+#
+# WHAT IT EXISTS TO SHOW: **the block pattern ladder, end to end, in one city.** BlockPatterns.Ladder
+# orders five patterns by ground per Address and BlockPatterns.ForBand puts a band on each rung, and
+# until this file existed ***no Ruleset that could be written selected more than two of them***. The
+# generator paints one concentric ring per declared band, so a run of this file is the ladder laid
+# out from the edge inward: detached at the rim, then perimeter, terrace, courtyard, and a slab in
+# the middle.
+#
+# WHY FIVE. Because there are five rungs. It is not a chosen number and it does not survive the set
+# growing -- add a sixth pattern and this file wants a sixth band, which is the coupling being
+# visible rather than the coupling being new.
+#
+# ⚠ WHY IT IS NOT `banded.toml` WITH THREE MORE TABLES. That file's header argues why it declares
+# two, and the argument is about `admits`: there are exactly two zone bits, so a third band there
+# would have had to repeat a set and demonstrate nothing ABOUT ADMISSION. **This file repeats the
+# set on purpose.** Every band here admits both bits, so admission is held constant and the only
+# thing that varies between the rings is the pattern. ***Two files, two variables, one held still in
+# each*** -- read `banded.toml` for what a band refuses and this one for what a band shapes.
+#
+# ⚠ WHAT IT MUST NOT BE READ AS. **Not a model of how a real city's density falls off.** The rings
+# are equal-width squares because the generator has no tuning number to make them anything else, and
+# a real city's is neither square nor equal. It is a test card for the patterns, and the only claim
+# it makes is that all five of them get drawn.
+#
+# ⚠ AND NOT A SOURCE OF ANY NUMBER. No figure out of a run of this file ratifies anything. The band
+# count is derived from the pattern count and the ring geometry is the generator's; nothing here was
+# chosen against evidence, because nothing here needed to be.
+# ===================================================================================================
+
+# ===================================================================================================
+
+# The minimal Ruleset. It models no city, and it is not the beginning of one.
+#
+# Slice 7 task 10a of plans/0011-rule-engine-bins-and-rules.md. Its whole job is to be the smallest
+# content that makes Bins move, so that the wiring underneath it — a Ruleset reaching a World, a
+# Building given its kind's Bins and Rule Instances when it is built, an arming stagger — is exercised
+# by a running city rather than by a test that builds the same shape by hand.
+#
+# WHY IT NAMES NO GOOD. 04 §1's five Goods are Produce, Food, Timber, Materials and Consumer Goods,
+# and every one of them is produced by one Building and consumed by another. That crosses an ownership
+# boundary, which is the `pool` scope, which is a named hole that throws until Phase 2 brings roads,
+# Districts and connectivity. So a Ruleset that could run today and also name a Good would be claiming
+# a chain it cannot express. `sundries` is deliberately a word for goods too unimportant to name:
+# nothing in this file should be read as a decision about content. Choosing the Goods is decision
+# owed 4, and it belongs to task 10b with the chain it is for.
+#
+# WHY THERE IS NO on_fail CHAIN. A link rescues by relieving the Bin the head failed on, from a source
+# the head could not reach. Every source available today is the Building's own Bins, so a chain here
+# would be a Rule rescuing itself. adr/0045's ladder starts at the District Pool, and that is task 10b.
+#
+# WHY IT EMITS NO POLLUTION. Not because it would be unbounded — adr/0051's decay is built, so a `map`
+# term is now a stock the environment absorbs and settles at a level proportional to the emission rate.
+# It emits nothing because a dwelling is not industry. `02 §2.4` gives industrial pollution point
+# sources, and inventing a smokestack here to exercise a code path would be this file claiming
+# something about content, which its first line says it does not. The Rule engine's `map` output is
+# covered by `RuleEvaluationTests`, and the absorption by `LayerFieldsTests` and `LayerLongRunTests`.
+#
+# THE GOODS QUANTITIES AND THE BIN CAPACITIES BOTH x4 ON 2026-08-13, AND IT CHANGED NOTHING THIS CITY
+# DOES. adr/0094 took TICKS_PER_DAY from 8192 to 2048 and says the Goods quantities scale x4: a Day
+# holds a quarter as many firings, so a per-firing `amount` goes x4 to keep the rate in Goods per Day.
+# That is airtight and it is only half the edit -- the capacities had to follow, and they follow for a
+# DIFFERENT reason, which is the part worth reading.
+#
+# `amount` AND `capacity` ARE BOTH IN GOODS AND THEY ARE DENOMINATED DIFFERENTLY. `amount` is
+# Days-denominated: hold Goods per Day, so the number moves x4. `capacity` is TICKS-denominated: what
+# has to hold is FIRINGS HELD -- capacity / (amount x occupants) -- and firings x rate is a DURATION.
+# It is written in Goods, so keeping that duration still REQUIRES moving the number, and it moves x4
+# only because `amount` did. THE UNIT OF A QUANTITY IS NOT ITS DENOMINATION.
+#
+# WHAT KEEPING capacity = 12 WOULD HAVE DONE. The larder would have held ONE firing of `consume` where
+# it held four. In in-world time the two read identical -- 22.5 minutes of supply either way -- so
+# measured in Goods nothing is wrong. Measured in firings held, every Bin in the game shrank by four,
+# and a Bin that must be EXACTLY FULL for one `consume` to succeed is a knife edge. It fired
+# Invariant.WaiterIsBlockedByTheBinItNames and exposed a live defect in the wake path, filed unfixed as
+# plans/0003 queue item 8.
+#
+# IT IS BEHAVIOUR-NEUTRAL, MEASURED, AND THE COMMIT FIRST CLAIMED OTHERWISE. Running the pre-rescale
+# file and this one for 4,096 Ticks gives a BYTE-IDENTICAL 86-line census -- buildings 1,201 -> 642, the
+# Unplaced Pool, rule evaluations, Trips, every row. Only the State Hash moved, because Bin levels are
+# four times larger. The commit said "a dwelling now holds 90 in-world minutes where it held 22.5, which
+# is a change to the world": the digits are right and the comparison was never stated. The larder is
+# 4 firings x rate 32 = 128 TICKS, and it was 128 Ticks before the clock moved too. 90-vs-22.5 is HEAD
+# against the PRE-CLOCK world, which is adr/0094's cost arriving in one more place, not this edit's.
+# plans/0012 Cause 5: a number that is one half of a ratio says which half.
+#
+# NOTHING HERE CAME OUT OF PROPORTION, because everything in this file is denominated in FIRINGS.
+#
+# 48 IS A COST DIAL HERE, NOT A BALANCE DIAL, AND THAT IS MEASURED TOO. Swept at 24, 36, 48 and 96, NO
+# ROW OF THE CENSUS MOVES; only `rules due` and `rules evaluations` move, and they move UP with capacity
+# (20,134 -> 25,023 at the first reading, 48 -> 96), because a deeper larder gives `restock` more
+# space to keep working. A BIGGER BUFFER COSTS MORE, NOT LESS. The larder decides nothing because it
+# is DEEPER THAN THE BUILDING'S LIFESPAN: nothing in this file produces `repairs`, so `upkeep` condemns
+# every dwelling at 64 Ticks and a 128-Tick larder absorbs a shock that never arrives. Restoring 22.5
+# in-world minutes would need 2 firings held -- one above a known crash -- or `consume`'s rate quartered,
+# which adr/0094 refused on cost. And 22.5 WAS NEVER CHOSEN: it is `capacity = 12` in a file whose first
+# line says it models no city (adr/0070).
+#
+# THE STEADY STATE IS THE POINT, AND IT IS A SURPLUS ONE. Production outruns consumption, so the Bin
+# sits near its ceiling and `restock` is the Rule that fails: it sleeps on space, `consume` draws
+# and wakes it, it refills and sleeps again. Both Rules move for ever, nothing trends, and no Rule is
+# ever wrongly asleep. THE SHORTAGE REGIME IS NOT AVAILABLE AND THAT IS AN ENGINE PROPERTY RATHER THAN
+# A TASTE: a recorded shortfall is a deficit at the instant of failure and the wait list wakes on the
+# arriving quantity, so a consumer short of 3 is never woken by three arrivals of 1. Producing in a
+# quantum at least as large as any consumer's deficit is what makes this file's steady state honest.
+# See finding 41.
+#
+# WHY EVERY DWELLING FALLS DOWN, AND WHY THAT IS NOT A BALANCE MISTAKE. Slice 10 task 7 needs a
+# Building that is *continuously* starved, because failure pressure is a duration and a Rule that is
+# rescued resets it (adr/0053). Nothing in this file could supply one: the only Rule that fails here
+# is `restock`, and it fails on SPACE — the Bin is full, which is the healthy state of a producer
+# with nobody to sell to, and the amended adr/0053 reads only starvation. So `upkeep` was added, and
+# it draws on a Resource this file deliberately never produces. Every dwelling therefore declines,
+# which is total rather than selective because there is one kind and it has one behaviour. A city
+# where some Buildings thrive and others do not needs Buildings that differ, which needs content, and
+# content is what the first line of this file says it is not. The cycle it does produce is real: a
+# condemned dwelling is demolished, its Households go to the Unplaced Pool, its Lot goes vacant, and
+# the [[zone_rule]] below raises another — which is the first time anything in this project has both
+# built and unbuilt, and the first time slice 5 task 7's `slots` assertion has had a table that churns.
+#
+# It is deleted rather than grown when task 10b becomes possible.
+
+[[resource]]
+name = "sundries"
+family = "good"
+
+[[resource]]
+name = "repairs"
+family = "good"
+
+[[resource]]
+name = "money"
+family = "money"
+
+[[business]]
+name = "shop"
+# Counts CITIZENS, not Households, and it puts full employment out of reach by design.
+jobs = 8
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+[[building]]
+name = "dwelling"
+bins = [
+    { resource = "sundries", capacity = 48, owner = "occupant" },
+    { resource = "repairs",  capacity = 4 },
+]
+# Tenants of ANY kind (adr/0141), so the shop below costs a family its slot.
+occupants = 4
+business = "shop"
+parking = 8
+
+# ---------------------------------------------------------------------------------------------
+# The kind the band exists to withhold. It is deliberately the SMALLEST second kind that loads:
+# one Bin, one Rule that fills it and one that empties it, so the chain terminates and nothing
+# grows with elapsed time. It models no trade -- `provisioned.toml` is the file that does -- and
+# it is here so that `admits` has something to refuse.
+[[building]]
+name = "shopfront"
+bins = [
+    { resource = "sundries", capacity = 32, owner = "occupant" },
+]
+occupants = 1
+
+[[rule]]
+name    = "stock"
+kind    = "shopfront"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = []
+outputs = [ { scope = "local", resource = "sundries", amount = 8 } ]
+
+[[rule]]
+name    = "sell"
+kind    = "shopfront"
+rate    = 16
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "sundries", amount = 8 } ]
+outputs = []
+
+[[rule]]
+name    = "restock"
+kind    = "dwelling"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = []
+outputs = [ { scope = "local", resource = "sundries", amount = 4 } ]
+
+[[rule]]
+name    = "consume"
+kind    = "dwelling"
+rate    = 32
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "sundries", amount = 4 } ]
+outputs = []
+
+[[rule]]
+name    = "upkeep"
+kind    = "dwelling"
+rate    = 16
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "repairs", amount = 4 } ]
+outputs = []
+
+[[zone_rule]]
+name          = "housing"
+kind          = "dwelling"
+# `zone` is a bit INDEX, not a mask. `revisit_ticks` is a DURATION and the sample derives from it
+# (adr/0059); `interval` is only the grain it is delivered in. 2048 is TICKS_PER_DAY -- stating it
+# is not choosing it.
+zone          = 0
+interval      = 32
+revisit_ticks = 2048
+
+# Bit 1 is the bit SyntheticCity paints on one block in eight, and until now this file had no Rule
+# for it. With one, the two bands differ in what they let stand: `suburban` admits bit 0 only, so a
+# shopfront on an outer block is refused by the CAP rather than by the zone -- the Lot carries the
+# permission and the band takes it away. That is the whole demonstration.
+[[zone_rule]]
+name          = "trade"
+kind          = "shopfront"
+zone          = 1
+interval      = 32
+revisit_ticks = 2048
+
+[placement]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+
+# Every number here is 02 §2.4's own, written down because a designer cannot tune what they cannot
+# find. The cadence is the designer's and not the profiler's (adr/0044). `kernel_metres` is
+# world-creation and is refused on RELOAD. There is no `sealing_decay_tau` here: it is keyed by
+# terrain type, so it lives on each [[terrain]] table and a file with none heals nowhere.
+[layers]
+noise_range_metres            = 300
+noise_intensity_percent       = 400
+desirability_pollution_percent = 100
+desirability_noise_percent     = 100
+pollution_period      = 64
+pollution_offset      = 0
+land_value_period     = 256
+land_value_offset     = 16
+kernel_metres         = 1024
+pollution_decay_ticks = 2048
+land_value_tau        = 8
+
+[roads]
+block_tiles                    = 32
+# 0 because an Arterial is a player tool and does not belong in a generator (adr/0164). The four
+# arterial keys below are inert at this lattice rather than unset.
+arterial_count                 = 0
+arterial_junction_tiles        = 512
+foot_crossing_every            = 4
+foot_paths_per_thousand_blocks = 40
+street_speed_kph               = 50
+arterial_speed_kph             = 90
+walk_speed_kph                 = 5
+street_capacity_per_hour       = 3600
+arterial_capacity_per_hour     = 12000
+foot_path_capacity_per_hour    = 1000
+
+[lots]
+# DERIVED, not chosen: CONTEXT.md -> Address's own "five Buildings share a Segment". A Lot has no
+# depth and there is no depth key.
+lots_per_segment = 5
+
+[parking]
+radius_metres = 400
+shed_keeps = 24
+
+[trips]
+crossing_seconds = 30
+commute_fast_minutes = 20
+commute_moderate_minutes = 40
+commute_budget_minutes = 50
+
+[jobs]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+shift_hours_min = 6
+shift_hours_max = 10
+arrive_early_max_minutes = 15
+
+
+# ===================================================================================================
+# THE DIFF. Everything above this line is `minimal.toml` unchanged.
+# ===================================================================================================
+
+# FIVE BANDS, ONE PER RUNG OF THE PATTERN LADDER, least intense first -- declaration order is
+# intensity order and the last one declared is the one the generator paints in the middle.
+#
+# ⚠ EVERY ONE OF THEM ADMITS BOTH BITS, AND THAT IS THE EXPERIMENT RATHER THAN AN OVERSIGHT. A band
+# is adr/0025's CAP, intersected with the Lot's Zone, so admitting everything caps nothing -- see
+# `banded.toml` for a band that refuses. Holding admission still is what leaves the pattern as the
+# only difference between one ring and the next.
+#
+# ⚠ THE NAMES ARE LABELS AND NOT A MAPPING. Nothing in a [[band]] names a pattern; the rung comes
+# from the band's POSITION, so renaming these changes nothing and reordering them changes nothing
+# either. They are written to match what BlockPatterns.Ladder puts on each rung at the shipped
+# lattice -- 32 Tiles a block, 5 Lots a Segment -- and ***at another lattice the middle three come
+# out in a different order and these names go stale***. That is the ladder being a function of the
+# two keys, which is BlockPatterns.Ladder's own finding.
+
+[[band]]
+name   = "outer"
+admits = [0, 1]
+
+[[band]]
+name   = "perimeter"
+admits = [0, 1]
+
+[[band]]
+name   = "terraced"
+admits = [0, 1]
+
+[[band]]
+name   = "courtyard"
+admits = [0, 1]
+
+# The middle, and the top of the ladder: the whole block behind two Addresses.
+[[band]]
+name   = "slab"
+admits = [0, 1]

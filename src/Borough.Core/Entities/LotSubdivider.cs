@@ -144,7 +144,11 @@ public static class LotSubdivider
 
         if (!chosen && blockSlot != Rows.NoSlot)
         {
-            pattern = BlockPatterns.ForBand(world.Blocks.Band[blockSlot], world.Rules.Bands.Length);
+            pattern = BlockPatterns.ForBand(
+                world.Blocks.Band[blockSlot],
+                world.Rules.Bands.Length,
+                world.Roads.Streets.BlockTiles,
+                world.Rules.Lots.LotsPerSegment);
 
             world.PatternBlock(column, row, pattern);
         }
@@ -286,13 +290,30 @@ public static class LotSubdivider
     /// </para>
     /// <para>
     /// 🔴 <b><c>plans/0053</c> Q3 — what stops carve and re-carve oscillating — ANSWERED HERE, and the
-    /// answer is a ratchet rather than hysteresis.</b> A pattern may only be replaced by one that
-    /// claims <b>strictly more of the block's ground</b>. That is monotone, it is bounded above by the
-    /// block's own area, and so it terminates in at most as many steps as there are distinct claims —
-    /// ***a block cannot re-plat more times than it has ground to give***. ⚠ <b>Hysteresis was the
-    /// obvious answer and it was refused</b>: a hysteresis band is a width, a width is a number, and a
-    /// hash-bearing number invented to damp a mechanism is exactly what <c>adr/0052</c> asks for a
-    /// ratifier for and nobody could name one.
+    /// answer is a ratchet rather than hysteresis.</b> A pattern may only be replaced by one
+    /// <b>further up the ladder</b>. That is monotone, it is bounded above by the ladder's length, and
+    /// so it terminates in at most <c>BlockPatterns.Count</c> steps.
+    /// ⚠ <b>Hysteresis was the obvious answer and it was refused</b>: a hysteresis band is a width, a
+    /// width is a number, and a hash-bearing number invented to damp a mechanism is exactly what
+    /// <c>adr/0052</c> asks for a ratifier for and nobody could name one.
+    /// </para>
+    /// <para>
+    /// 🔴 ⚠ <b>IT RATCHETED ON GROUND CLAIMED AND THAT PROXY BROKE THE DAY THE SET GREW.</b> Claimed
+    /// ground is monotone across the first three rungs by luck rather than by construction, and the
+    /// two coarse patterns are the counter-example: <see cref="BlockPattern.Courtyard"/> claims
+    /// <b>880</b> Tiles of a 32-Tile block against <see cref="BlockPattern.BackToBack"/>'s
+    /// <b>1,024</b>, because its middle third is a courtyard — ***so the denser form claimed less and
+    /// the ratchet would have refused every intensification into it.*** ⚠ <b>The ladder itself is what
+    /// the ratchet always meant</b>, and reading it through <see cref="BlockPatterns.Rung"/> removes a
+    /// proxy rather than replacing one: it is still monotone, still bounded, and it no longer depends
+    /// on a coincidence about areas.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>THE RATCHET AND THE SELECTION READ ONE FUNCTION AND THAT IS THE POINT OF IT BEING A
+    /// FUNCTION.</b> <see cref="BlockPatterns.ForBand"/> indexes the ladder and this compares
+    /// positions on it, so the two cannot disagree about which way is up — ***the disagreement that
+    /// would look like upzoning a block and watching nothing happen is now unwriteable rather than
+    /// merely tested for.***
     /// </para>
     /// <para>
     /// <b>It is also what a real city does.</b> Re-platting is an intensification: a block is
@@ -301,12 +322,13 @@ public static class LotSubdivider
     /// a different mechanism with a different name.
     /// </para>
     /// <para>
-    /// ⚠ <b>THE CONSEQUENCE IS THAT TWO PATTERNS CLAIMING THE SAME GROUND CANNOT REPLACE EACH OTHER,
-    /// EVER.</b> <see cref="BlockPattern.BackToBack"/> and <see cref="BlockPattern.Perimeter"/> both
-    /// tile their block, so a terrace never becomes a perimeter block and the reverse never happens
-    /// either. <b>That is a real limit and it is the ratchet working rather than failing</b> — the two
-    /// are alternatives at the same intensity, and choosing between them again later would be choosing
-    /// again rather than intensifying.
+    /// ⚠ <b>THE CONSEQUENCE IS THAT A BLOCK NEVER MOVES BACK DOWN THE LADDER.</b> A slab never
+    /// returns to a terrace and a terrace never returns to a suburb. <b>That is a real limit and it is
+    /// the ratchet working rather than failing</b> — land that stops being wanted is <em>abandoned</em>,
+    /// not re-surveyed into bigger lots, and abandonment is a different mechanism with a different
+    /// name. ⚠ <b>It is also now strictly weaker than what stood here</b>: two patterns at the same
+    /// intensity could never replace each other under either rule, and under this one two patterns at
+    /// the same <em>area</em> can, provided the ladder separates them.
     /// </para>
     /// <para>
     /// 🔴 <b>NOTHING CALLS THIS ON THE OCCASION THAT MATTERS YET.</b> It runs from
@@ -342,21 +364,22 @@ public static class LotSubdivider
             return 0;
         }
 
-        BlockPattern wanted =
-            BlockPatterns.ForBand(world.Blocks.Band[blockSlot], world.Rules.Bands.Length);
+        int blockTiles = streets.BlockTiles;
+        int perSegment = world.Rules.Lots.LotsPerSegment;
+
+        BlockPattern wanted = BlockPatterns.ForBand(
+            world.Blocks.Band[blockSlot], world.Rules.Bands.Length, blockTiles, perSegment);
 
         if (wanted == carved)
         {
             return 0;
         }
 
-        int blockTiles = streets.BlockTiles;
-        int perSegment = world.Rules.Lots.LotsPerSegment;
-
-        // The ratchet. Strictly greater, so a pattern claiming the same ground is not a re-plat and a
-        // pattern claiming less is refused outright.
-        if (BlockPatterns.ClaimedTiles(wanted, blockTiles, perSegment)
-            <= BlockPatterns.ClaimedTiles(carved, blockTiles, perSegment))
+        // The ratchet, and it reads the ladder rather than the area -- see the remarks, which carry
+        // the counter-example that retired the area. Strictly greater, so a sideways move is not a
+        // re-plat and a move down the ladder is refused outright.
+        if (BlockPatterns.Rung(wanted, blockTiles, perSegment)
+            <= BlockPatterns.Rung(carved, blockTiles, perSegment))
         {
             return 0;
         }

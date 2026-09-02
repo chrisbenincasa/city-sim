@@ -57,7 +57,8 @@ public enum BlockPattern : byte
     /// <b>Plots on all four faces, ground left over between the back fences.</b> A suburban block.
     /// </summary>
     /// <remarks>
-    /// 🔴 <b>NOT EXHAUSTIVE, DELIBERATELY, and it is the only one of the three that is not.</b> The
+    /// 🔴 <b>NOT EXHAUSTIVE, DELIBERATELY, and it is one of two that are not.</b> The other is
+    /// <see cref="Courtyard"/>, whose hole is a courtyard rather than scrub. The
     /// leftover ground is <em>correct</em> here: back gardens do not meet, and there is scrub between
     /// them. ⚠ <b>This is what the subdivider did before patterns existed</b>, so it is the default
     /// and a world that never chooses a pattern is the world that was there yesterday.
@@ -73,18 +74,51 @@ public enum BlockPattern : byte
     /// them — so they carry no Address at all, which is the one place in this set where a face with a
     /// Street on it yields nothing.
     /// </remarks>
-    BackToBack = 1,
+    Perimeter = 1,
 
     /// <summary>
-    /// <b>All four faces; the winning pair takes a shallow strip and the losing pair splits the middle
-    /// band down the centre.</b> Barcelona, Paris, Berlin.
+    /// <b>One pair of streets takes the whole block; plots meet along the centre line.</b> A British
+    /// terrace, a Portland 200 ft block, Manhattan.
     /// </summary>
     /// <remarks>
-    /// ✅ <b>Exhaustive for ANY winner-depth</b>, which is what made the depth a free number and
-    /// <c>plans/0053</c> <b>Q1</b> a real question. It is derived rather than chosen — see
-    /// <see cref="BlockPatterns.StripTiles"/>.
+    /// ✅ <b>Exhaustive.</b> The cross streets get <b>gable ends</b> — the terrace's end wall faces
+    /// them — so they carry no Address at all, which is the one place in this set where a face with a
+    /// Street on it yields nothing.
     /// </remarks>
-    Perimeter = 2,
+    BackToBack = 2,
+
+    /// <summary>
+    /// <b>Four buildings round a hole.</b> One parcel a face, a third of the block deep, and the
+    /// middle third left open. A Vienna Hof, a Berlin Blockrand, a London mansion block.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THE FIRST PATTERN THAT IS NOT A ROW OF PLOTS.</b> Every rung below it divides a face
+    /// among the Addresses on that face; this one gives the <b>whole face to one Address</b>. See
+    /// <see cref="BlockPatterns.ParcelsPerFace"/> — until it existed the carve laid
+    /// <c>lots_per_segment</c> parcels a face whatever the pattern, so ***every pattern produced the
+    /// same number of buildings and only their depth differed.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>NOT exhaustive, and for the opposite reason to <see cref="Detached"/>.</b> Detached's
+    /// leftover is scrub between back fences; this one's is a <b>courtyard</b>, which is the point of
+    /// the form. Both are holes and neither is a defect, which is why the test asks each pattern
+    /// against its own claim.
+    /// </para>
+    /// </remarks>
+    Courtyard = 3,
+
+    /// <summary>
+    /// <b>The block is two buildings.</b> One pair of streets, one parcel each, meeting along the
+    /// centre line. A tower slab, a superblock, a mill.
+    /// </summary>
+    /// <remarks>
+    /// ✅ <b>Exhaustive, and the coarsest partition the set can express</b> — half a block behind one
+    /// Address. It is <see cref="BackToBack"/>'s faces and depths with
+    /// <see cref="BlockPatterns.ParcelsPerFace"/> of one, which is what says the coarsening is a
+    /// property of its own and not a fifth geometry.
+    /// </remarks>
+    Slab = 4,
 }
 
 /// <summary>
@@ -174,7 +208,8 @@ public static class BlockPatterns
     /// the point of the third</b>. A single rule would have had to pick one of those and would have
     /// been wrong about the other two.
     /// </remarks>
-    public static bool Exhaustive(BlockPattern pattern) => pattern != BlockPattern.Detached;
+    public static bool Exhaustive(BlockPattern pattern) =>
+        pattern is BlockPattern.BackToBack or BlockPattern.Perimeter or BlockPattern.Slab;
 
     /// <summary>
     /// <b>How deep a shallow strip is, in Tiles</b> — the one authored-looking number in this file,
@@ -216,6 +251,34 @@ public static class BlockPatterns
         return frontage < quarter ? frontage : quarter;
     }
 
+    /// <summary>
+    /// <b>How many parcels one carried face is divided into</b>, or <c>0</c> for one per Address.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THE THING THE PATTERN SET COULD NOT SAY, AND THE REASON EVERY BLOCK LOOKED THE SAME
+    /// SIZE.</b> <see cref="Carve"/> used to walk <c>index &lt; lotsPerSegment</c> on every face of
+    /// every pattern, so a pattern could vary <em>which faces carry</em> and <em>how deep they
+    /// reach</em> and never <em>how many</em>. ***At the shipped 32 and 5 that made every block in
+    /// every pattern carry the same eight parcels***, and a block holding two large buildings was not
+    /// expressible — not because nobody wrote it down, but because the count was pinned to
+    /// <c>lots_per_segment</c>, which is one number for the whole world.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>THE ADDRESSES DO NOT MOVE; FEWER OF THEM ARE KEPT.</b> A parcel still carries a real
+    /// Address at a real <c>Frontage</c> offset, so <c>adr/0074</c>'s side-of-street and the door on
+    /// the drawing are untouched. What a coarse pattern does is give one Address the ground that
+    /// several would have divided — which is <c>adr/0025</c>'s <b>Amalgamation</b> route, arriving as
+    /// geometry rather than as a verb.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is a CEILING and not a promise.</b> A face carrying fewer Addresses than this asks for
+    /// gets one parcel each; the coarsening can only ever join, never split.
+    /// </para>
+    /// </remarks>
+    public static int ParcelsPerFace(BlockPattern pattern) =>
+        pattern is BlockPattern.Courtyard or BlockPattern.Slab ? 1 : 0;
+
     /// <summary>Whether a pattern lays Addresses on this face at all.</summary>
     /// <remarks>
     /// <b><see cref="BlockPattern.BackToBack"/> is the only one that refuses a face</b>, and it refuses
@@ -224,7 +287,8 @@ public static class BlockPatterns
     /// own pattern — a Segment's two sides are subdivided independently and always were.
     /// </remarks>
     public static bool Carries(BlockPattern pattern, BlockFace face) =>
-        pattern != BlockPattern.BackToBack || face is BlockFace.South or BlockFace.North;
+        pattern is not (BlockPattern.BackToBack or BlockPattern.Slab)
+        || face is BlockFace.South or BlockFace.North;
 
     /// <summary>
     /// <b>How deep the ground behind a face runs, in Tiles.</b>
@@ -252,10 +316,16 @@ public static class BlockPatterns
         return pattern switch
         {
             BlockPattern.Detached => StripTiles(blockTiles, lotsPerSegment),
-            BlockPattern.BackToBack => face == BlockFace.South ? half : far,
+            BlockPattern.BackToBack or BlockPattern.Slab => face == BlockFace.South ? half : far,
             BlockPattern.Perimeter => face is BlockFace.South or BlockFace.North
                 ? StripTiles(blockTiles, lotsPerSegment)
                 : face == BlockFace.West ? half : far,
+
+            // A THIRD, so the hole is a third of the block across and the frame is a third each
+            // side. It is the same class of statement as StripTiles' quarter cap -- a fraction of
+            // what the player drew, not a length -- and it is what makes the form a COURTYARD block
+            // rather than a deep-plan one: at a half the frame closes and the hole is gone.
+            BlockPattern.Courtyard => IntegerMath.FloorDiv(blockTiles, 3),
             _ => StripTiles(blockTiles, lotsPerSegment),
         };
     }
@@ -263,9 +333,10 @@ public static class BlockPatterns
     /// <summary>How much of a block one pattern claims, in Tiles.</summary>
     /// <remarks>
     /// <b>Carved rather than derived from a formula, because the formula would be the partition
-    /// written twice.</b> ⚠ <b>It is the ONE quantity the re-carve ratchet compares</b> — see
-    /// <c>LotSubdivider.RecarveBlock</c> — so it has to be what the carve actually produces and not
-    /// what the geometry says it should.
+    /// written twice.</b> It has to be what the carve actually produces and not what the geometry says
+    /// it should. ⚠ <b>It is HALF of <see cref="Ladder"/>'s quantity and was once the whole of it</b> —
+    /// the ratchet compared claimed ground until a pattern with a hole in it claimed less than the
+    /// pattern it was denser than.
     /// </remarks>
     public static int ClaimedTiles(BlockPattern pattern, int blockTiles, int lotsPerSegment)
     {
@@ -291,8 +362,9 @@ public static class BlockPatterns
 
     /// <summary>How many Addresses one pattern lays on a block.</summary>
     /// <remarks>
-    /// <b>The ratchet's tie-break, and it only ever breaks one tie.</b> Two patterns that both tile
-    /// their block claim the same ground, and what separates them is how finely they divide it.
+    /// <b>The other half of <see cref="Ladder"/>'s quantity, and the half that carries the coarse
+    /// patterns.</b> Two patterns that both tile their block claim the same ground, and what separates
+    /// them is how finely they divide it — which is the whole difference between a terrace and a slab.
     /// </remarks>
     public static int AddressCount(BlockPattern pattern, int blockTiles, int lotsPerSegment)
     {
@@ -315,19 +387,20 @@ public static class BlockPatterns
     /// <remarks>
     /// <para>
     /// <b>POSITIONAL, and that is what keeps it free of an authored number.</b> Bands are declared
-    /// least intense first and the pattern ladder is ordered least intense first, so the mapping is
-    /// two ordinals against each other. A Ruleset declaring two bands gets the bottom and the top of
-    /// the ladder; one declaring three gets all of it; one declaring none gets
-    /// <see cref="BlockPattern.Detached"/> everywhere, which is the city that was there yesterday.
+    /// least intense first and <see cref="Ladder"/> puts the patterns in the same order, so the
+    /// mapping is two ordinals against each other. A Ruleset declaring one band gets the top rung;
+    /// two get both ends; five get every rung; none gets <see cref="BlockPattern.Detached"/>
+    /// everywhere, which is the city that was there yesterday.
     /// </para>
     /// <para>
-    /// 🔴 <b>THE LADDER IS THE ENUM ORDER AND IT IS DERIVED RATHER THAN ASSERTED.</b> Sort the three
-    /// by ground claimed, then by Address count, both ascending: <see cref="BlockPattern.Detached"/>
-    /// claims least because its interior is scrub; the other two both tile their block and are
-    /// separated by how finely — <see cref="BlockPattern.BackToBack"/> gives up its cross streets and
-    /// <see cref="BlockPattern.Perimeter"/> keeps them. <b>The order holds at every block size</b>, and
-    /// <c>BlockPatternTests</c> re-derives it across the Ruleset's range rather than trusting this
-    /// paragraph.
+    /// 🔴 <b>BOTH ENDS OF THE LADDER ARE REACHABLE AT EVERY BAND COUNT, and that is a fix rather than
+    /// a restatement.</b> The scaling was <c>(band-1) × Count / bandCount</c>, which lands the top
+    /// band one rung short of the top — at the shipped four bands of <c>banded.toml</c> it reached
+    /// rungs 0, 1, 2 and 3 of five and ***the coarsest pattern in the set was unreachable by every
+    /// Ruleset that could be written***. It divides by <c>bandCount - 1</c> now, so the last band is
+    /// the last rung by construction. ⚠ <b>A single declared band takes the TOP</b>: band <c>0</c>
+    /// already holds the bottom, so a Ruleset naming exactly one band is naming the thing that is not
+    /// the default, and giving it rung 0 would make the declaration inert.
     /// </para>
     /// <para>
     /// 🔴 ⚠ <b>WHAT THIS DOES NOT READ IS THE POINT OF <c>plans/0053</c> <b>Q2</b>.</b> That plan wants
@@ -339,22 +412,131 @@ public static class BlockPatterns
     /// not the end state.
     /// </para>
     /// </remarks>
-    public static BlockPattern ForBand(byte band, int bandCount)
+    public static BlockPattern ForBand(byte band, int bandCount, int blockTiles, int lotsPerSegment)
     {
         if (band == 0 || bandCount <= 0)
         {
             return BlockPattern.Detached;
         }
 
-        // Bands are one-based. The rung is the band's position on the declared ladder scaled onto the
-        // pattern ladder, so neither ladder has to be as long as the other.
-        int rung = IntegerMath.FloorDiv((band - 1) * Count, bandCount);
+        // Bands are one-based, and both ladders are indexed from their TOP end down rather than from
+        // their bottom up -- which is what makes the last band the last rung whatever the two lengths
+        // are. A single declared band divides by nothing and takes the top; see the remarks.
+        int rung = bandCount <= 1
+            ? Count - 1
+            : IntegerMath.FloorDiv((band - 1) * (Count - 1), bandCount - 1);
 
-        return rung >= Count ? (BlockPattern)(Count - 1) : (BlockPattern)rung;
+        Span<BlockPattern> ladder = stackalloc BlockPattern[Count];
+
+        Ladder(blockTiles, lotsPerSegment, ladder);
+
+        return ladder[rung >= Count ? Count - 1 : rung];
+    }
+
+    /// <summary>
+    /// <b>The pattern ladder for one world's lattice</b>, least intense first.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THE LADDER IS A FUNCTION OF THE TWO RULESET KEYS AND IT IS NOT THE ENUM ORDER.</b> It was
+    /// the enum order, derived by sorting on ground claimed and asserted to hold at every block size,
+    /// and ***that held by luck across three patterns and broke the day the set grew to five***. Two
+    /// counter-examples, both measured rather than argued: <see cref="BlockPattern.Courtyard"/> claims
+    /// <b>880</b> Tiles of a 32-Tile block against <see cref="BlockPattern.BackToBack"/>'s
+    /// <b>1,024</b>, because its middle third is a courtyard — so claimed ground ranks the denser form
+    /// lower. And <b>21 of the 73 reachable lattices invert</b> under ground-per-Address too: at
+    /// <c>lots_per_segment = 4</c> a terrace and a courtyard block carry four Addresses each, so the
+    /// comparison collapses back onto area and the courtyard sorts below.
+    /// </para>
+    /// <para>
+    /// <b>The quantity is GROUND PER ADDRESS, ascending — how much land stands behind one door.</b> It
+    /// is derived rather than chosen and it needs no cut point. ⚠ <b>What changed is not the
+    /// quantity but where it is read</b>: the ladder is now computed for the lattice in hand instead
+    /// of being fixed once and asserted to be lattice-independent, which it is not. <c>block_tiles</c>
+    /// and <c>lots_per_segment</c> are world-creation keys, so within a world this is a constant and
+    /// the ratchet in <c>LotSubdivider.RecarveBlock</c> still compares two positions on one ladder.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Ties fall back to the enum order, and the sort is stable so that they do.</b> On a lattice
+    /// where two patterns are genuinely indistinguishable — <c>block_tiles = 4</c> puts
+    /// <see cref="BlockPattern.BackToBack"/> and <see cref="BlockPattern.Slab"/> at 8 Tiles a door
+    /// each — an unstable sort would order them by whatever the comparison happened to visit first.
+    /// ***A tie is not a reason to invent a difference***, and the declaration order is the one
+    /// arbitrary thing already in the file.
+    /// </para>
+    /// </remarks>
+    public static void Ladder(int blockTiles, int lotsPerSegment, Span<BlockPattern> into)
+    {
+        Span<int> claimed = stackalloc int[Count];
+        Span<int> addresses = stackalloc int[Count];
+
+        for (int i = 0; i < Count; i++)
+        {
+            into[i] = (BlockPattern)i;
+            claimed[i] = ClaimedTiles((BlockPattern)i, blockTiles, lotsPerSegment);
+            addresses[i] = AddressCount((BlockPattern)i, blockTiles, lotsPerSegment);
+        }
+
+        // Insertion sort over five elements, and stable because the comparison is strict -- an equal
+        // pair never swaps, so the enum order survives a tie.
+        for (int i = 1; i < Count; i++)
+        {
+            for (int j = i; j > 0 && Sparser(into[j], into[j - 1], claimed, addresses); j--)
+            {
+                (into[j], into[j - 1]) = (into[j - 1], into[j]);
+            }
+        }
+    }
+
+    /// <summary>Where one pattern sits on this lattice's <see cref="Ladder"/>.</summary>
+    /// <remarks>
+    /// 🔴 <b>THIS IS WHAT THE RE-CARVE RATCHET COMPARES</b>, and what <see cref="ForBand"/> indexes
+    /// into. They read one function, so a selection that could go <em>down</em> as the band goes up is
+    /// not merely tested against — it is unwriteable.
+    /// </remarks>
+    public static int Rung(BlockPattern pattern, int blockTiles, int lotsPerSegment)
+    {
+        Span<BlockPattern> ladder = stackalloc BlockPattern[Count];
+
+        Ladder(blockTiles, lotsPerSegment, ladder);
+
+        for (int i = 0; i < Count; i++)
+        {
+            if (ladder[i] == pattern)
+            {
+                return i;
+            }
+        }
+
+        return 0;
+    }
+
+    /// <summary>Whether <paramref name="left"/> gives one Address MORE ground than <paramref name="right"/> does.</summary>
+    /// <remarks>
+    /// <b>Cross-multiplied rather than divided</b>, so the comparison is exact at every lattice and
+    /// there is no rounding to argue about — and it stays inside <c>adr/0003</c> without reaching for
+    /// <c>Borough.Core.Arithmetic</c> at all. ⚠ <b>A pattern laying NO Address sorts to the top</b>,
+    /// where nothing selects it, rather than to the bottom where a band of 1 would.
+    /// </remarks>
+    private static bool Sparser(
+        BlockPattern left, BlockPattern right, ReadOnlySpan<int> claimed, ReadOnlySpan<int> addresses)
+    {
+        int leftAddresses = addresses[(int)left];
+        int rightAddresses = addresses[(int)right];
+
+        if (leftAddresses == 0 || rightAddresses == 0)
+        {
+            return rightAddresses == 0 && leftAddresses != 0;
+        }
+
+        long lhs = (long)claimed[(int)left] * rightAddresses;
+        long rhs = (long)claimed[(int)right] * leftAddresses;
+
+        return lhs != rhs ? lhs < rhs : claimed[(int)left] < claimed[(int)right];
     }
 
     /// <summary>How many patterns there are. <b>Open by construction</b> — see <see cref="BlockPattern"/>.</summary>
-    public const int Count = 3;
+    public const int Count = 5;
 
     /// <summary>Which side of a face's Segment the block behind it stands on.</summary>
     /// <remarks>
@@ -438,7 +620,13 @@ public static class BlockPatterns
 
             int depth = DepthTiles(pattern, face, blockTiles, lotsPerSegment);
             int reach = high - low;
+
+            // How many parcels this face is actually cut into. A coarse pattern joins Addresses; it
+            // can never split one, so the ask is capped by what the face carries.
+            int wanted = ParcelsPerFace(pattern);
+            int groups = wanted <= 0 || wanted >= count ? count : wanted;
             int placed = 0;
+            int last = -1;
 
             for (int index = 0; index < lotsPerSegment; index++)
             {
@@ -449,14 +637,30 @@ public static class BlockPatterns
                     continue;
                 }
 
+                // Which parcel this Address falls in. At groups == count it is one each, which is
+                // the arithmetic the three original patterns had and reproduces them exactly.
+                int group = IntegerMath.FloorDiv(placed * groups, count);
+
+                placed++;
+
+                // ⚠ ONLY THE FIRST ADDRESS OF A GROUP LAYS THE PARCEL, and the ones behind it are
+                // simply not kept -- there is no Lot, so there is no Address with nowhere to stand.
+                // The parcel takes the WHOLE group's slice, which is what makes it bigger rather
+                // than merely fewer.
+                if (group == last)
+                {
+                    continue;
+                }
+
+                last = group;
+
                 // FloorDiv on both edges rather than a width times an index: the slices then abut
                 // exactly and the last one absorbs the remainder, so a reach that does not divide by
                 // the count still tiles.
-                int from = low + IntegerMath.FloorDiv(placed * reach, count);
-                int to = low + IntegerMath.FloorDiv((placed + 1) * reach, count);
+                int from = low + IntegerMath.FloorDiv(group * reach, groups);
+                int to = low + IntegerMath.FloorDiv((group + 1) * reach, groups);
 
                 into[written++] = Rectangle(face, column, row, blockTiles, side, offset, from, to - from, depth);
-                placed++;
             }
         }
 
@@ -526,7 +730,13 @@ public static class BlockPatterns
             return (0, blockTiles);
         }
 
-        int corner = StripTiles(blockTiles, lotsPerSegment);
+        // 🔴 THE RESERVATION IS THE SOUTH FACE'S OWN DEPTH AND NO LONGER StripTiles. They were the
+        // same number for all three original patterns, which is why the coupling was invisible --
+        // Detached and Perimeter both take a strip on the east-west pair. Courtyard does not: it
+        // reaches a THIRD of the block, and a reservation still set to the strip let the north and
+        // south parcels run under the east and west ones. ***Two rectangles overlapped by 16 Tiles a
+        // block, and the partition test is what would have caught it.***
+        int corner = DepthTiles(pattern, BlockFace.South, blockTiles, lotsPerSegment);
 
         return (corner, blockTiles - corner);
     }

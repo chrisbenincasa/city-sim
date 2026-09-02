@@ -27,7 +27,10 @@ public sealed class BlockPatternTests
     private const int ShippedLotsPerSegment = 5;
 
     private static readonly BlockPattern[] All =
-        [BlockPattern.Detached, BlockPattern.BackToBack, BlockPattern.Perimeter];
+    [
+        BlockPattern.Detached, BlockPattern.Perimeter, BlockPattern.BackToBack,
+        BlockPattern.Courtyard, BlockPattern.Slab,
+    ];
 
     /// <summary>Every parcel one pattern yields for one block.</summary>
     private static Parcel[] Carve(BlockPattern pattern, int blockTiles, int lotsPerSegment,
@@ -100,8 +103,10 @@ public sealed class BlockPatternTests
     /// </remarks>
     [Theory]
     [InlineData(BlockPattern.Detached)]
-    [InlineData(BlockPattern.BackToBack)]
     [InlineData(BlockPattern.Perimeter)]
+    [InlineData(BlockPattern.BackToBack)]
+    [InlineData(BlockPattern.Courtyard)]
+    [InlineData(BlockPattern.Slab)]
     public void No_tile_is_claimed_twice(BlockPattern pattern)
     {
         int[,] claims = Paint(
@@ -133,8 +138,10 @@ public sealed class BlockPatternTests
     /// </remarks>
     [Theory]
     [InlineData(BlockPattern.Detached)]
-    [InlineData(BlockPattern.BackToBack)]
     [InlineData(BlockPattern.Perimeter)]
+    [InlineData(BlockPattern.BackToBack)]
+    [InlineData(BlockPattern.Courtyard)]
+    [InlineData(BlockPattern.Slab)]
     public void An_exhaustive_pattern_leaves_no_ground(BlockPattern pattern)
     {
         int[,] claims = Paint(
@@ -273,8 +280,10 @@ public sealed class BlockPatternTests
     /// </remarks>
     [Theory]
     [InlineData(BlockPattern.Detached)]
-    [InlineData(BlockPattern.BackToBack)]
     [InlineData(BlockPattern.Perimeter)]
+    [InlineData(BlockPattern.BackToBack)]
+    [InlineData(BlockPattern.Courtyard)]
+    [InlineData(BlockPattern.Slab)]
     public void An_address_falls_inside_its_own_parcel(BlockPattern pattern)
     {
         foreach (Parcel parcel in Carve(pattern, ShippedBlockTiles, ShippedLotsPerSegment))
@@ -308,7 +317,7 @@ public sealed class BlockPatternTests
     /// with 3 Lots a Segment the reservation is 3 deep, the offsets are 2, 6 and 10, and <b>the east
     /// face's parity holds only 2 and 10 — both outside the reach</b>. ***So the case is a property of
     /// the interaction between parity and the corner filter, not of a degenerate key value***, and
-    /// <see cref="The_enum_order_is_the_derived_intensity_order"/> found it by inverting.
+    /// <see cref="The_ladder_is_ground_per_address_ascending"/> found it by inverting.
     /// </para>
     /// <para>
     /// ⚠ <b>This is <c>plans/0053</c> <b>Q5</b>'s evidence</b> — <em>does <c>lots_per_segment</c>
@@ -346,28 +355,34 @@ public sealed class BlockPatternTests
     }
 
     /// <summary>
-    /// 🔴 <b>THE LADDER IS THE ENUM ORDER, AND THIS DERIVES IT RATHER THAN ASSERTING IT.</b>
+    /// 🔴 <b>THE LADDER IS DERIVED PER LATTICE, AND THIS IS WHERE THAT STOPPED BEING THE ENUM
+    /// ORDER.</b>
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b><c>BlockPatterns.ForBand</c> maps a band's position onto the pattern's position</b>, so the
-    /// enum order has to BE the intensity order or the mapping is nonsense. ***The enum order is a
-    /// declaration and an intensity order is a fact***, and this is what holds the two together.
+    /// <b>The quantity is ground per Address, ascending — how much land stands behind one door.</b>
+    /// <c>BlockPatterns.Ladder</c> sorts on it and <c>ForBand</c> indexes the result, so this asserts
+    /// the sort is a real total order rather than asserting any particular order came out.
     /// </para>
     /// <para>
-    /// <b>Sort by ground claimed, then by Address count, both ascending.</b>
-    /// <see cref="BlockPattern.Detached"/> claims least because its interior is scrub; the other two
-    /// both tile their block and are separated by how finely they divide it —
-    /// <see cref="BlockPattern.BackToBack"/> gives up its cross streets and
-    /// <see cref="BlockPattern.Perimeter"/> keeps them.
+    /// 🔴 <b>WHAT THIS TEST USED TO SAY WAS THAT THE ENUM ORDER <em>IS</em> THE INTENSITY ORDER AT
+    /// EVERY BLOCK SIZE, AND THAT IS FALSE.</b> It held across three patterns and broke at five.
+    /// <b>21 of the 73 reachable lattices invert</b>, and they are not a fringe: every one of them is
+    /// <c>lots_per_segment = 4</c>, where <see cref="BlockPattern.BackToBack"/> and
+    /// <see cref="BlockPattern.Courtyard"/> carry four Addresses each — so the comparison collapses
+    /// onto claimed area and the courtyard, which has a hole in it by design, sorts below the terrace
+    /// it is denser than. ***A property asserted to be lattice-independent turned out to be a function
+    /// of the lattice***, and the repair was to compute it per lattice rather than to narrow the
+    /// claim.
     /// </para>
     /// <para>
-    /// ⚠ <b>Across the Ruleset's range and not at the shipped pair</b>, because the ordering is what
-    /// the ratchet in <c>LotSubdivider.RecarveBlock</c> compares and a world may be tuned.
+    /// ⚠ <b>It still checks the shipped lattice separately</b>, because that one order is what every
+    /// picture of this city is drawn from and a silent change to it is a change to what the player
+    /// sees.
     /// </para>
     /// </remarks>
     [Fact]
-    public void The_enum_order_is_the_derived_intensity_order()
+    public void The_ladder_is_ground_per_address_ascending()
     {
         int swept = 0;
 
@@ -380,27 +395,37 @@ public sealed class BlockPatternTests
                     continue;
                 }
 
-                // 🔴 The same exclusion the range sweep takes, and it is load-bearing here rather
-                // than tidy. At block 12 with 3 Lots a Segment the east face loses both its offsets to
-                // the corner reservation, Perimeter drops that half-band, and it claims 108 Tiles
-                // against BackToBack's 144 -- SO THE LADDER INVERTS. The ordering is a property of
-                // patterns that fill their faces, and where they cannot the selection is choosing
-                // between shapes that are not what they say they are.
-                if (All.Any(pattern => !FillsEveryFace(pattern, blockTiles, lotsPerSegment)))
+                var ladder = new BlockPattern[BlockPatterns.Count];
+
+                BlockPatterns.Ladder(blockTiles, lotsPerSegment, ladder);
+
+                // A permutation: every pattern appears once, so no rung is unreachable and no pattern
+                // is unselectable. That is what ForBand's indexing rests on.
+                Assert.Equal(All.OrderBy(pattern => pattern), ladder.OrderBy(pattern => pattern));
+
+                for (int rung = 0; rung < BlockPatterns.Count; rung++)
                 {
-                    continue;
+                    Assert.Equal(rung, BlockPatterns.Rung(ladder[rung], blockTiles, lotsPerSegment));
                 }
 
-                BlockPattern[] derived = [.. All
-                    .OrderBy(pattern => BlockPatterns.ClaimedTiles(pattern, blockTiles, lotsPerSegment))
-                    .ThenBy(pattern => BlockPatterns.AddressCount(pattern, blockTiles, lotsPerSegment))];
+                // And it is sorted on the quantity it says it is, cross-multiplied so the check does
+                // not round where the sort did not.
+                for (int rung = 1; rung < BlockPatterns.Count; rung++)
+                {
+                    (int below, int belowDoors) = Ground(ladder[rung - 1], blockTiles, lotsPerSegment);
+                    (int above, int aboveDoors) = Ground(ladder[rung], blockTiles, lotsPerSegment);
 
-                Assert.True(
-                    All.SequenceEqual(derived),
-                    $"at block {blockTiles}, {lotsPerSegment} per Segment the derived order is "
-                    + string.Join(", ", derived.Select(pattern =>
-                        $"{pattern} ({BlockPatterns.ClaimedTiles(pattern, blockTiles, lotsPerSegment)} "
-                        + $"tiles, {BlockPatterns.AddressCount(pattern, blockTiles, lotsPerSegment)} addresses)")));
+                    if (belowDoors == 0 || aboveDoors == 0)
+                    {
+                        continue;
+                    }
+
+                    Assert.True(
+                        (long)below * aboveDoors <= (long)above * belowDoors,
+                        $"at block {blockTiles}, {lotsPerSegment} per Segment {ladder[rung - 1]} gives "
+                        + $"{below}/{belowDoors} a door and sits below {ladder[rung]}'s "
+                        + $"{above}/{aboveDoors}.");
+                }
 
                 swept++;
             }
@@ -410,13 +435,47 @@ public sealed class BlockPatternTests
     }
 
     /// <summary>
+    /// <b>The shipped lattice's ladder, written out</b> — the one order every picture of this city is
+    /// drawn from.
+    /// </summary>
+    /// <remarks>
+    /// <b>Ground per Address at 32 Tiles and 5 Lots a Segment</b>: Detached 78, Perimeter 128,
+    /// BackToBack 204, Courtyard 220, Slab 512. ⚠ <b>The figures are this lattice's and travel
+    /// nowhere</b> — see <see cref="The_ladder_is_ground_per_address_ascending"/>, where a third of
+    /// the range puts the middle pair the other way round.
+    /// </remarks>
+    [Fact]
+    public void The_shipped_lattice_climbs_from_a_suburb_to_a_slab()
+    {
+        var ladder = new BlockPattern[BlockPatterns.Count];
+
+        BlockPatterns.Ladder(ShippedBlockTiles, ShippedLotsPerSegment, ladder);
+
+        Assert.Equal(
+            [
+                BlockPattern.Detached, BlockPattern.Perimeter, BlockPattern.BackToBack,
+                BlockPattern.Courtyard, BlockPattern.Slab,
+            ],
+            ladder);
+    }
+
+    /// <summary>Ground claimed and Addresses laid, for one pattern on one lattice.</summary>
+    private static (int Claimed, int Addresses) Ground(
+        BlockPattern pattern, int blockTiles, int lotsPerSegment) =>
+        (BlockPatterns.ClaimedTiles(pattern, blockTiles, lotsPerSegment),
+            BlockPatterns.AddressCount(pattern, blockTiles, lotsPerSegment));
+
+    /// <summary>
     /// <b>A band's position picks a pattern's position</b>, and there is no number in between.
     /// </summary>
     /// <remarks>
     /// <para>
     /// <b>Two ordinals against each other</b>, which is what keeps <c>plans/0053</c> step 4's
-    /// selection free of an authored cut point. A Ruleset declaring two bands gets the bottom and the
-    /// top of the ladder; one declaring three gets all of it.
+    /// selection free of an authored cut point. ⚠ <b>Both ENDS are reachable at every band count</b>,
+    /// which is what the scaling was changed to guarantee — it divided by <c>bandCount</c> and
+    /// therefore stopped one rung short of the top, so at the four bands
+    /// <c>rulesets/banded.toml</c> declares ***the coarsest pattern in the set could not be selected
+    /// by any Ruleset that could be written.***
     /// </para>
     /// <para>
     /// ⚠ <b>Band <c>0</c> is NO BAND and takes <see cref="BlockPattern.Detached"/></b>, which is the
@@ -427,21 +486,37 @@ public sealed class BlockPatternTests
     [Fact]
     public void A_bands_position_picks_a_patterns_position()
     {
+        var ladder = new BlockPattern[BlockPatterns.Count];
+
+        BlockPatterns.Ladder(ShippedBlockTiles, ShippedLotsPerSegment, ladder);
+
+        BlockPattern For(byte band, int bandCount) =>
+            BlockPatterns.ForBand(band, bandCount, ShippedBlockTiles, ShippedLotsPerSegment);
+
         // No band at all, however many are declared.
-        Assert.Equal(BlockPattern.Detached, BlockPatterns.ForBand(0, 0));
-        Assert.Equal(BlockPattern.Detached, BlockPatterns.ForBand(0, 3));
+        Assert.Equal(BlockPattern.Detached, For(0, 0));
+        Assert.Equal(BlockPattern.Detached, For(0, 3));
 
-        // Two bands take the two ends of the ladder.
-        Assert.Equal(BlockPattern.Detached, BlockPatterns.ForBand(1, 2));
-        Assert.Equal(BlockPattern.BackToBack, BlockPatterns.ForBand(2, 2));
+        // One band takes the top: band 0 already holds the bottom, so a lone declaration that landed
+        // on rung 0 would be a band that changes nothing.
+        Assert.Equal(ladder[^1], For(1, 1));
 
-        // Three take all of it.
-        Assert.Equal(BlockPattern.Detached, BlockPatterns.ForBand(1, 3));
-        Assert.Equal(BlockPattern.BackToBack, BlockPatterns.ForBand(2, 3));
-        Assert.Equal(BlockPattern.Perimeter, BlockPatterns.ForBand(3, 3));
+        // Two bands take the two ends.
+        Assert.Equal(ladder[0], For(1, 2));
+        Assert.Equal(ladder[^1], For(2, 2));
+
+        // Five take every rung, in order.
+        for (byte band = 1; band <= BlockPatterns.Count; band++)
+        {
+            Assert.Equal(ladder[band - 1], For(band, BlockPatterns.Count));
+        }
+
+        // The shipped four reach both ends and skip one in the middle.
+        Assert.Equal(ladder[0], For(1, 4));
+        Assert.Equal(ladder[^1], For(4, 4));
 
         // And a band past the end of what was declared cannot fall off the ladder.
-        Assert.Equal(BlockPattern.Perimeter, BlockPatterns.ForBand(9, 3));
+        Assert.Equal(ladder[^1], For(9, 3));
     }
 
     /// <summary>
@@ -458,17 +533,19 @@ public sealed class BlockPatternTests
     {
         for (int bandCount = 1; bandCount <= 12; bandCount++)
         {
-            var last = BlockPattern.Detached;
+            int last = -1;
 
             for (byte band = 1; band <= bandCount; band++)
             {
-                BlockPattern here = BlockPatterns.ForBand(band, bandCount);
+                BlockPattern here =
+                    BlockPatterns.ForBand(band, bandCount, ShippedBlockTiles, ShippedLotsPerSegment);
+                int rung = BlockPatterns.Rung(here, ShippedBlockTiles, ShippedLotsPerSegment);
 
                 Assert.True(
-                    here >= last,
-                    $"band {band} of {bandCount} gets {here} where band {band - 1} got {last}.");
+                    rung >= last,
+                    $"band {band} of {bandCount} gets {here} at rung {rung}, below rung {last}.");
 
-                last = here;
+                last = rung;
             }
         }
     }

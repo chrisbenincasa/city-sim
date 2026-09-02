@@ -508,6 +508,76 @@ Definition of done that is exactly the clause that is not satisfied.
 
 ---
 
+## What the coarse patterns shipped — *2026-09-02*
+
+🔴 **A pattern now declares HOW MANY parcels a face is cut into, and until it could the set could not
+express a block holding two large buildings.** `Carve` walked `index < lots_per_segment` on every face
+of every pattern, so a pattern could vary *which faces carry* and *how deep they reach* and never *how
+many* — ***at the shipped 32 and 5 every block in every pattern carried the same eight parcels.***
+`BlockPatterns.ParcelsPerFace` is the ceiling; a face with fewer Addresses than it asks for gets one
+each, so the coarsening can only join and never split. **The Addresses do not move — fewer of them are
+kept**, so `adr/0074`'s side-of-street and the door on the drawing are untouched, and what a coarse
+pattern does is give one Address the ground several would have divided. That is `adr/0025`'s
+**Amalgamation** arriving as geometry rather than as a verb.
+
+**Two patterns use it.** `Courtyard` — four buildings round a hole, one parcel a face, a third of the
+block deep — and `Slab`, which is `BackToBack`'s faces and depths with one parcel each. ⚠ **The
+coarsening is a property of its own and not a fifth geometry**, which is why `Slab` adds no case to
+`DepthTiles`.
+
+### 🔴 The corner reservation was coupled to the strip and nothing said so
+
+**It read `StripTiles` while every face read `DepthTiles`**, and those were the same number for all
+three original patterns — Detached and Perimeter both take a strip on the east–west pair — so the
+coupling was invisible. `Courtyard` reaches a **third** of the block, and a reservation still set to
+the strip let the north and south parcels run under the east and west ones: ***two rectangles
+overlapping by 16 Tiles a block.*** The reservation is now the south face's own `DepthTiles`.
+**`No_two_parcels_in_the_city_overlap` is what would have caught it** and the reason it was written.
+
+### 🔴 The ladder is a function of the two Ruleset keys, and Q3's answer is corrected
+
+⚠ **THIS DOCUMENT SAID Q3 WAS ANSWERED BY *a ratchet on ground claimed*, AND GROUND CLAIMED WAS A
+PROXY THAT BROKE THE DAY THE SET GREW.** `Courtyard` claims **880** Tiles of a 32-Tile block against
+`BackToBack`'s **1,024**, because its middle third is a courtyard — so the denser form claimed less and
+the ratchet would have refused every intensification into it. ***The ratchet always meant the ladder***,
+and it reads `BlockPatterns.Rung` now.
+
+🔴 **AND THE LADDER IS NOT THE ENUM ORDER, WHICH THIS PLAN ALSO ASSERTED.** The quantity is **ground per
+Address, ascending** — how much land stands behind one door — and at the shipped lattice that is
+Detached 78, Perimeter 128, BackToBack 204, Courtyard 220, Slab 512. ⚠ **21 of the 73 reachable
+lattices invert it**, and they are not a fringe: ***every one of them is `lots_per_segment = 4***`,
+where a terrace and a courtyard block carry four Addresses each, so the comparison collapses back onto
+area and the courtyard sorts below the terrace it is denser than. **A property asserted to be
+lattice-independent turned out to be a function of the lattice.** `BlockPatterns.Ladder` computes it
+for the lattice in hand; both keys are world-creation, so within a world it is still a constant and the
+ratchet still compares two positions on one ladder. ⚠ **This is Q5's second piece of hard evidence** and
+it is stronger than the first — `lots_per_segment` does not merely degrade a pattern at 1, it
+**reorders the set** at 4.
+
+### 🔴 Both ends of the ladder were unreachable, and no test could have said so
+
+`ForBand` scaled `(band-1) × Count / bandCount`, which lands the top band **one rung short of the top**.
+At three patterns nobody noticed; at five it means ***the coarsest pattern in the set could not be
+selected by any Ruleset that could be written.*** It divides by `bandCount - 1` now, so the last band is
+the last rung by construction. ⚠ **A single declared band takes the TOP**, because band 0 already holds
+the bottom and a lone declaration landing on rung 0 would be inert.
+
+### `rulesets/platted.toml`, because `banded.toml` cannot walk the ladder
+
+**`banded.toml` declares two bands and its header argues why** — there are exactly two zone bits, so a
+third band there would repeat a set and demonstrate nothing *about admission*. Under the fixed scaling
+its two bands are the two **ends**, Detached and Slab with nothing between. **`platted.toml` repeats the
+`admits` set on purpose**: five bands, every one admitting both bits, so admission is held constant and
+the pattern is the only thing that varies between one ring and the next. ***Two files, two variables,
+one held still in each.***
+
+✅ **And it was looked at.** Five concentric rings at 40,000 Citizens, and the courtyard blocks read as
+courtyards from the air — four buildings round a green hole — while the core is long slabs. ⚠ **What is
+still uniform is HEIGHT**: every building is about four storeys whatever its footprint, which is what
+capacity-from-ground and massing are for.
+
+---
+
 ## What this does to [`0052`](0052-the-parcel.md)
 
 ✅ **Nothing in it is withdrawn.** G1–G8 stand, the Sealing measurements stand, Q3's answer stands, and
@@ -529,9 +599,9 @@ question with one answer.
 |---|---|---|
 | **Q1** | ✅ **ANSWERED, 2026-09-02, and the answer was already in the code under another name.** See *What step 3 shipped* | *arguable* |
 | **Q2** | 🔴 **What does a pattern read at carve time, and in what order?** Band and zone are certain; land value and Building density are available and would supply the continuous variation. **More inputs is not better** — each one is a coupling. ⚠ **Step 4 shipped with the BAND ALONE**, and this is now the gap between a banded city and a varied one | *arguable*, and it is the one that still matters |
-| **Q3** | ✅ **ANSWERED, 2026-09-02: a ratchet on ground claimed.** See *What step 4 shipped* | *arguable* |
+| **Q3** | ✅ **ANSWERED, 2026-09-02: a ratchet.** ⚠ **The answer was AMENDED the same day** — it ratcheted on *ground claimed*, which a pattern with a hole in it inverts. It reads the ladder. See *What the coarse patterns shipped* | *arguable* |
 | **Q4** | **May land value condemn a healthy Building?** *Undesigned* under `adr/0070`. It is the difference between this and SC4's redevelopment, and it is not a constraint on this plan | *arguable* |
-| **Q5** | 🟡 **Does `lots_per_segment` survive as a world number?** [`0052`](0052-the-parcel.md) Q4 asked this of stage 2; **it is really a per-pattern question** and belongs here. ⚠ **Step 3 produced evidence**: at `lots_per_segment = 1` an exhaustive pattern is not exhaustive | *arguable*, with evidence |
+| **Q5** | 🔴 **Does `lots_per_segment` survive as a world number?** [`0052`](0052-the-parcel.md) Q4 asked this of stage 2; **it is really a per-pattern question** and belongs here. ⚠ **Two pieces of evidence and the second is much stronger**: at `1` an exhaustive pattern is not exhaustive, and at **`4` the intensity ladder REORDERS** — see *What the coarse patterns shipped* | *arguable*, with evidence |
 | **Q6** | ✅ **ANSWERED, 2026-09-02, and the answer is an existing idiom.** See below | *measurable* |
 
 ### Q6 — what a `BlockTable` costs, and why it is not a new pattern
