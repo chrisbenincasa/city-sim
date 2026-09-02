@@ -111,6 +111,24 @@ public enum DriveVerb
     /// </remarks>
     Lens,
 
+    /// <summary>
+    /// Tint the map by a Map Layer, or stop. <c>Path</c> names the layer; <c>Amount</c> is unused.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// ⚠ <b>The layer is a NAME and not an index</b>, on <see cref="Hold"/>'s reasoning: which
+    /// layers a shell offers is not something this assembly can know, so the grammar carries the
+    /// word and the shell is the only thing that knows what the words are. An unknown one is a
+    /// refusal a person reads rather than a silent <c>off</c>.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is a VIEW and changes nothing about the city</b> — <c>adr/0007</c>, and the rule
+    /// that a frame is a reading. Two runs differing only in what was tinted produce the same
+    /// State Hash.
+    /// </para>
+    /// </remarks>
+    Overlay,
+
     /// <summary>End the run.</summary>
     Quit,
 }
@@ -294,6 +312,7 @@ public static class DriveScript
             DriveVerb.Hold =>
                 $"{at} hold {command.Path} {command.Amount.ToString(CultureInfo.InvariantCulture)}",
             DriveVerb.Lens => $"{at} lens {(command.Amount != 0 ? "on" : "off")}",
+            DriveVerb.Overlay => $"{at} overlay {command.Path}",
             DriveVerb.Tilt =>
                 $"{at} tilt {command.Amount.ToString(CultureInfo.InvariantCulture)}",
             DriveVerb.Focus => command.Amount > 0
@@ -405,6 +424,18 @@ public static class DriveScript
                         _ => DriveVerb.Lens,
                     },
                     argument == "on" ? 1 : 0);
+
+            case "overlay":
+                if (!Arity(1))
+                {
+                    return null;
+                }
+
+                // ⚠ THE NAME IS NOT CHECKED HERE AND THAT IS `hold`'s RULE, NOT A LOOSE END. Which
+                // Map Layers this shell can draw is the shell's own fact; a list kept here would be
+                // a second copy of it, and the copy is the one that would go stale when a layer
+                // landed. The shell refuses an unknown name out loud.
+                return new DriveCommand(tick, DriveVerb.Overlay, 0, argument);
 
             case "turn":
                 if (!Arity(1))

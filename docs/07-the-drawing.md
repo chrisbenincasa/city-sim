@@ -209,7 +209,7 @@ ends up with assets for a system nobody built.
 
 | | |
 |---|---|
-| **The overlays** | Pollution and land value produce numbers and **no overlay exists at all**. The instrument the pitch rests on |
+| **The overlays** | ✅ **DRAWN as of [`plans/0049`](../plans/0049-visuals.md) row 7** — pollution, land value and Sealing, on the `o` key and the `overlay` drive verb. §3.1's *takes over rather than tints* as written: the city goes to an unlit silhouette and the ground carries the ramp. ⚠ **What is still missing is the REGION half** — `01 §5` wants an overlay to follow the camera and tint **Settlements** when the Cells are too small to see, and it tints Cells at every zoom |
 | **Zone** | A Lot carries one and only vacant Lots show anything |
 | **Kind identity** | `serves` and `[[business]]` both exist; a school, a shop and a house are one box |
 | **The street** | One flat slab. No junction, kerb, footway or crossing, and no Arterial/Street distinction — though `foot_crossing_every` and `foot_paths_per_thousand_blocks` are Ruleset keys |
