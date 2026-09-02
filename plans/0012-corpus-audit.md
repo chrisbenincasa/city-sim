@@ -1940,6 +1940,98 @@ pointer to one.***
       terms above, so the next reader meets it at the symbol rather than in a plan.
 
 
+### 🔴 `docs/02 §2.2` calls the dead block interior a **punishment** and it fires unconditionally — Cause 4, on a mechanism that does not exist
+
+**NEW 2026-09-02, found while scoping [`plans/0052`](0052-the-parcel.md).** `02 §2.2` reads *"Land
+that cannot be given frontage stays unlotted and undevelopable — this is how bad street layouts
+punish the player **mechanically** rather than through a penalty number"*, and
+[`adr/0078`](../docs/adr/0078-frontage-is-derived-on-the-epoch-and-a-lots-width-is-the-segments-own-building-count.md)
+folds the block interior in beside it — *"a larger block has a proportionally larger dead interior
+with no number governing it… the mechanism has no number in it at all"* — and treats the absence of a
+number as a virtue.
+
+⚠ **Two different mechanisms are stated in one breath and only one of them exists.** *Land the
+network cannot reach* is **conditional**: a block with no Street on any face yields no Lots,
+`LotSubdivider.SubdivideBlock` returns 0, and laying a Street to that face is the remedy. ✅ **That
+half works and nothing here disputes it.** *The interior of every block* is **unconditional** — it
+occurs on every block of every world ever run.
+
+🔴 **The interior has no player lever, and this is checkable rather than arguable.**
+`Simulation.ApplyConnect` snaps the click **down to the lattice** (`FloorDiv(east, block_tiles)`,
+`Simulation.cs:797-799`), which is `adr/0014`'s *"Streets snap to the grid"* — ***so a player cannot
+lay a Street inside a block***. `zone` subdivides the block a Tile falls in; `demolish` acts on one
+Lot; **no verb changes a block's size**, and `[roads] block_tiles` is world-creation data refused on
+reload. ***A response identical whatever the player does is a constant, not a punishment*** — and
+without parcels there is no way to build in a block's middle at any block size, so the supposed lesson
+has no answering move either.
+
+⚠ **It is Cause 4 with the description one level up from the code**: the sentence is right about the
+*trigger it names* (no frontage) and wrong about the *thing it points at* (the interior), which is
+[`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)'s
+failure mode in a design document rather than a doc comment. It stood from `02 §2.2`'s writing until
+somebody rendered a block and looked at it.
+
+- [ ] Split the sentence in `02 §2.2` so the conditional half keeps its claim and the interior stops
+      borrowing it.
+- [ ] Annotate `adr/0078`'s *"the mechanism has no number in it at all"* paragraph rather than
+      deleting it — the ADR's own *What would trigger revisiting* section is what this is collected
+      under, so it reads as the process working rather than as an oversight.
+- [ ] ⚠ **Do not restate the interior as a defect.** It is a *residue*, and
+      [`plans/0052`](0052-the-parcel.md) is where it acquires a lever.
+
+
+### 🔴 `adr/0078` says **nothing reads land area**, and `Borough.Core` has read it since `footprint_tiles` shipped — Cause 2 with the write running the other way
+
+**NEW 2026-09-02, found in the grill of [`plans/0052`](0052-the-parcel.md) (finding **G4**).**
+[`adr/0078`](../docs/adr/0078-frontage-is-derived-on-the-epoch-and-a-lots-width-is-the-segments-own-building-count.md)
+refuses a Lot a depth on the premise that *nothing reads land area*, and names the density bands as
+the consumer whose arrival would reopen it. **A consumer arrived that is not the bands and nobody
+carried the news back.**
+
+`KindDefinition.FootprintTiles` (`src/Borough.Core/Rules/Ruleset.cs:681`) — *"How many Tiles a
+Building of this kind covers, and therefore how many it Seals"* — is read at `World.cs:3425` on the
+path to `MapLayers.Seal`. It is **in the simulation**, it is **hash-bearing**, and Sealing runs on to
+Fertility (`base × Sealing / 1024`) and to Woodland
+([`adr/0159`](../docs/adr/0159-woodland-is-a-tile-count-per-cell-bounded-by-sealing-because-the-ground-has-one-budget-and-not-two.md)).
+
+🔴 ⚠ **The workaround cites the decision it works around, in its own doc comment**, which is what
+makes this a filing rather than a difference of opinion:
+
+> A Lot stores a position and no extent, and **`adr/0078` refused it a depth on purpose** — so the
+> footprint cannot be derived from geometry and has to be declared.
+
+***That is [`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md)
+exactly*** — the cause lay in code the author did not own, they worked around it competently, and the
+finding was never routed. **The author knew. The corpus did not.**
+
+⚠ **It is Cause 2 with the direction reversed.** Cause 2 is *an ADR issues writes to other documents
+and the writes do not all land*. Here the **code** issued a write to an ADR — it falsified a premise —
+and nothing carried it. ***Whether that is Cause 2 or an eighth Cause is for whoever next collects***;
+it is filed here rather than typed, because inventing a Cause to hold one sighting is how this ledger
+would start describing itself.
+
+**What it cost:** `SealingMeasurementTests` at 4,000 Citizens — Buildings are **4%** of all Sealing on
+`minimal.toml` and round to **0%** on `severance.toml`; the **peak Cell is 11.2% sealed**, so the most
+built-up Cell in a generated city keeps **89% of its farmland**. ⚠ **Those shares were taken on a dirty
+tree that paves ~1.8× `main`'s area and are UPPER BOUNDS on the road share** — re-take them clean
+before quoting. The Building arithmetic needs no run: 8 Lots per block × 1 Tile against a 1,024-Tile
+block.
+
+- [ ] Amend `adr/0078`'s *nothing reads land area* premise, naming `FootprintTiles` as the consumer
+      that arrived. ⚠ **Annotate, do not delete** — the ADR's own *What would trigger revisiting*
+      section is what this is collected under.
+- [ ] ⚠ **Do not fix this by retuning `footprint_tiles`.** It is an authored constant standing where
+      `adr/0025` says *"arithmetic over what the player drew"* belongs; the repair is
+      [`plans/0052`](0052-the-parcel.md) stage 1, which deletes the key.
+- [ ] ⚠ **Held, not owed:** `CONTEXT.md` → Sealing reads *"the count of Tiles in a Cell **ever built
+      on**"*, and a garden is developed rather than built on. **That sentence is correct today** and
+      becomes wrong only if `plans/0052` stage 1 lands with footprint = parcel area. **Do not edit it
+      now** — this line exists so the edit is not discovered late.
+- [ ] `adr/0078`'s second trigger, *a Street Segment that is not a block face*, is **also live** and
+      also uncollected — `StreetGrid.OffLatticeCount`, populated by Arterials. Filed here for
+      visibility; it is `plans/0052` **Q5** and needs no corpus edit until that question is answered.
+
+
 ### `rulesets/fouled.toml`'s comment says its emitter fires **twice a Day** and the Rule says **sixteen times** — Cause 1, in a file
 
 **NEW 2026-09-02, found while copying that Rule into `pictured.toml` for
