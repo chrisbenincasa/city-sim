@@ -373,15 +373,32 @@ Stated because each is a thing somebody will reasonably fear.
 | | Estimate | Standing |
 |---|---|---|
 | Memory | ⚠ **4 × `int` per Lot, not 2.** The corner allocation moves the start of the vertical pair's run inward, so a parcel's origin is **not** the Lot's `East`/`North` and has to be stored beside the extent. **~3.6 MB** at `World`'s 225,000-Lot sizing for 1M Citizens | arithmetic, not measured |
-| `RebuildDerived` cost | Wholesale, on the Epoch. `adr/0078` already names *"frontage becoming expensive to rebuild"* as a revisit trigger and notes the Epoch **already carries the per-Segment granularity an incremental rebuild would need** | 🔴 **unmeasured, and nothing has ever measured the existing frontage rebuild either** |
+| `RebuildDerived` cost | Wholesale, on the Epoch. `adr/0078` already names *"frontage becoming expensive to rebuild"* as a revisit trigger and notes the Epoch **already carries the per-Segment granularity an incremental rebuild would need** | ✅ **BASELINE TAKEN — `FrontageRebuildCostTests`.** Frontage is **0.3%–2.0%** of a whole rebuild; the whole rebuild is **O(capacity), not O(live)**, so the marginal cost of the parcel is its column clear rather than its walk. **Q3's gate is cleared.** ⚠ Not on the reference machine, so the *shares* travel and the *milliseconds* do not |
 | Sealing saturation | A block is one Cell; parcels plus carriageway may exceed 1,024 Tiles and `MapLayers.Seal` clamps. No correctness break; a saturated Cell has Fertility 0 and stops discriminating | 🔴 **unmeasured. Take the peak before and after** |
 | Stage 1 golden re-record | Sealing is saved, so every hash-bearing fixture moves. `rulesets/pictured.toml` and `schooled.toml` lose their `footprint_tiles = 4` | expected; `adr/0100` says attribution, not scheduling |
 | Stage 1 test cost | The shell's geometry gains a core owner, so it gains core tests. F21's overlap check moves from a shell probe to an invariant | not estimated |
 
-🔴 **The one number in this plan that would change the design if it were wrong is the rebuild cost**,
-and it is unmeasured on both sides. ***Measure the existing frontage rebuild before stage 1, so the
-new figure has a baseline to be compared against*** — otherwise stage 1 produces a cost with nothing
-to say whether it is new.
+✅ **THE REBUILD COST WAS THE ONE NUMBER THAT COULD HAVE CHANGED THE DESIGN, AND IT IS TAKEN.**
+`FrontageRebuildCostTests`, `minimal.toml`, best of 32, Release:
+
+```
+citizens     lots  fronted   frontage    whole    share
+    1000      132      132     0.005ms   1.935ms    0.3%
+    4000      538      538     0.022ms   2.184ms    1.0%
+   16000     2184     2184     0.045ms   2.228ms    2.0%
+   64000     8788     8788     0.044ms   3.324ms    1.3%
+```
+
+🔴 **The finding is not the share, it is the shape.** `RebuildDerived` goes **1.935ms → 2.228ms** —
+15% — while the Lots go **132 → 2,184**, sixteenfold. ***The whole pass is O(capacity) and not
+O(live)***, because it opens by clearing thirty-odd whole columns whatever fraction of them holds
+anything. **So a parcel's marginal cost is its column clear and not its walk**, and its clear is the
+same shape as the three `LotTable` columns already in that block.
+
+⚠ **Taken on this machine and not the reference one, so the SHARES travel and the MILLISECONDS do
+not** ([`adr/0106`](../docs/adr/0106-a-wall-clock-budget-names-a-machine-class-and-a-thread-count-or-it-is-not-a-budget.md)).
+⚠ **And read the per-Lot marginal off the large rows only** — `Frontage.Rebuild` opens with
+`Array.Clear(_claimed)`, which is O(Segment slots), so the 1,000-Citizen row is mostly that clear.
 
 ---
 
@@ -435,7 +452,7 @@ Owed to [`0002`](0002-open-questions.md) when this leaves planning.
 |---|---|---|
 | **Q1** | **What is a parcel's depth derived FROM at stage 1?** Half the block minus the carriageway is the only answer that fills the frame exactly, and it makes every parcel in a world the same depth — which is **G3**, and which is the uniformity this plan is meant to end | *arguable* |
 | **Q2** | 🔴 **When two OPPOSING faces both reach the interior, what arbitrates?** `PastTheCorner` arbitrates perpendicular faces only. ⚠ **Narrowed by G5** — whether the interior becomes a Lot is settled by `adr/0079` and is no longer part of this question | *arguable* |
-| **Q3** | **What does the rebuild cost, before and after?** | *measurable*, and it is the gate on stage 1 |
+| **Q3** | ✅ **ANSWERED on the *before* half, 2026-09-02.** Frontage is **0.3%–2.0%** of `RebuildDerived`, and the whole pass is **O(capacity) not O(live)** — so the parcel's marginal cost is a column clear. `FrontageRebuildCostTests`. **The gate on stage 1 is cleared**; take the *after* half with the same instrument | *measurable* |
 | **Q4** | **Does `lots_per_segment` survive as a world number through stage 2?** Merged stage 2 says no, and `adr/0078` predicts it: *"at that point `lots_per_segment` also stops being one number and becomes one per band"* | *arguable* |
 | **Q5** | 🔴 **What happens to a partitioned block that an off-lattice Segment crosses?** **G6.** Out of scope here and it must not be discovered during stage 2 | *arguable* |
 | **Q6** | **Does Sealing saturate once the footprint is the parcel, and does Fertility stop discriminating?** | *measurable*, and cheap — `SealingMeasurementTests` already prints the peak |
