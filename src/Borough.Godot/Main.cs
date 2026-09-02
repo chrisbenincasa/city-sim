@@ -4254,33 +4254,52 @@ public partial class Main : Node3D
             // framing it would spend the whole atlas on empty ground and give the city texels
             // metres wide. This is the neighbourhood a person looks at, and past the fade a
             // distant city is unshadowed rather than wrong.
+            //
+            // ⚠ THE VALUE HERE IS ONLY THE OPENING ONE. Orbit() overwrites it on every camera
+            // move, because how much range is worth spending depends on how far away the eye is
+            // standing -- see the comment there, which carries the measurement.
             DirectionalShadowMaxDistance = 1_600f,
             DirectionalShadowFadeStart = 0.85f,
             DirectionalShadowSplit1 = 0.06f,
             DirectionalShadowSplit2 = 0.16f,
             DirectionalShadowSplit3 = 0.44f,
 
-            // 🔴 ⚠ 3.0 AND NOT 1.1, AND IT IS A FIX FOR SOMETHING THAT ONLY EXISTS IN MOTION.
-            // Reported from the chair as *weird during movement, and more pronounced at slower
-            // speeds*, which is the wrong way round for anything caused by the sun's speed. Two
-            // frames one Tick apart, differenced, said what it is: with ShadowEnabled false NOT ONE
-            // PIXEL of the ground changes, so the whole of it is the shadow map; the change that
-            // survives is a hard band along every shadow EDGE. A shadow edge is quantised to the
-            // shadow map's texel grid, a roof's silhouette is a diagonal, and a diagonal on a grid
-            // is a staircase -- so as the sun turns the staircase MARCHES, one texel at a time.
-            // ***A step you can count is a step you can see, and slow motion is what lets you count
-            // it.*** Blur spreads the edge over enough texels that no single one of them is an
-            // event. Chosen by looking: the staircase is gone from a close orbit and the wide view
-            // is soft rather than mushy, with shadows still meeting their walls.
+            // 🔴 ⚠ 1.1 AND NOT 3.0, AND THE 3.0 THAT STOOD HERE WAS ARGUED FROM A MEASUREMENT
+            // THAT WAS NOT OF WHAT IT SAID. Reported from the chair as *weird during movement,
+            // and more pronounced at slower speeds*, then, of the blur, *the blur is not the
+            // fix.* It was not. The whole case for widening it rested on a pair of differenced
+            // frames taken while project.godot's atlas key carried a duplicated section prefix
+            // and was therefore INERT -- so every one of those readings was taken at Godot's
+            // default 4096 while the file said 8192, and blur was being asked to hide a
+            // staircase that a working atlas setting does not produce.
             //
-            // ⚠ What was tried against the same two frames and REMOVED AGAIN, because a setting
-            // whose effect cannot be shown is a setting kept on an argument: 32-bit shadow depth
-            // (no change), ShadowNormalBias 4.0 (1.7% of the crop changing, against 1.6% -- noise).
-            // ⚠ And the faint concentric MOIRÉ over open ground, which the difference image shows
-            // beautifully, is real and is NOT this: it is one quantisation level, 1/255, and
-            // ShadowBias 1.0 erases it. Not taken, because a bias that large detaches a shadow from
-            // its own wall to cure something nobody has reported seeing.
-            ShadowBlur = 3.0f,
+            // What the edge actually does was found by shooting twenty-four frames one Tick
+            // apart at half a Tick a second -- slow enough that the leftover sub-Tick sun in
+            // each shot is a fiftieth of a Tick rather than a whole one -- and magnifying the
+            // same ninety pixels of it. ***The edge is not blurred at all and never was***: it
+            // is a hard binary staircase whose tread was five to six screen pixels, and as the
+            // sun turns the treads redistribute, so individual steps pop rather than slide.
+            // Measured on the position of one edge: it should advance +3.4 px a Tick, and it
+            // advanced between -2.4 and +9.5, GOING BACKWARDS ON SIX OF TWENTY-THREE FRAMES.
+            // ***That reversal is the thing that cannot be described from the chair***, and slow
+            // motion is what separates the pops far enough apart to be seen one at a time.
+            //
+            // With the atlas key repaired and the range tied to the standoff in Orbit(), the
+            // same burst gives a residual span of 2.9 px against 8.6 and NOT ONE BACKWARD STEP.
+            // The blur stays where it was.
+            //
+            // ⚠ What was tried and REMOVED AGAIN, because a setting whose effect cannot be shown
+            // is a setting kept on an argument: ShadowNormalBias 4.0, which IS applied from code
+            // here and moved 1.7% of the crop against 1.6% -- noise. ⚠ And what was tried, showed
+            // nothing, and TURNED OUT NEVER TO HAVE RUN, all of it written into project.godot with
+            // the same duplicated prefix: TAA, FXAA, 2× supersampling, and probably the 32-bit
+            // shadow depth the previous sitting recorded as making no difference.
+            // ***Those are unmeasured rather than refused***, and a reading of a setting that was
+            // never applied is worse than no reading, because it closes the question. ⚠ And the faint concentric MOIRÉ over open ground is real and is NOT
+            // this: it is one quantisation level, 1/255, and ShadowBias 1.0 erases it. Not
+            // taken, because a bias that large detaches a shadow from its own wall to cure
+            // something nobody has reported seeing.
+            ShadowBlur = 1.1f,
         };
 
         // ⚠ NOT NOON, AND SINCE plans/0051 ROW 2 NOT A CONSTANT EITHER. The angle set here is the
@@ -4623,6 +4642,19 @@ public partial class Main : Node3D
                 Mathf.Sin(_yaw) * flat, Mathf.Sin(_pitch) * _distance, Mathf.Cos(_yaw) * flat),
             _focus,
             Vector3.Up);
+
+        // 🔴 THE SHADOW RANGE RIDES THE STANDOFF TOO, and it is the second half of the fix for a
+        // crawling shadow edge. A cascade is a fixed count of texels spread over whatever distance
+        // it is told to cover, so a range set for the widest shot spends most of its resolution on
+        // ground the eye is nowhere near — and at a close orbit the edge under the nose is
+        // quantised to texels several screen pixels across. Measured against the same burst: at a
+        // 140 m standoff, 1,600 m leaves a fuzzy two-to-three-pixel serration and 400 m leaves a
+        // clean line. Tying the two keeps both ends: near work gets tight cascades, and a wide
+        // shot still has shadows out to the horizon it can see.
+        //
+        // ⚠ The floor exists because a very close orbit must still shadow the whole block, and the
+        // ceiling because past it the cascades are coarse again and nothing is gained.
+        _light.DirectionalShadowMaxDistance = Mathf.Clamp(_distance * 3f, 400f, 3_000f);
 
         // The focus plane rides the standoff, so a zoom or a tilt cannot leave the subject blurred.
         if (_photographing)
