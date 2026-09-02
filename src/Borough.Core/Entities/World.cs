@@ -3384,10 +3384,28 @@ public sealed class World
 
         if (slot != Rows.NoSlot)
         {
-            Blocks.Pattern[slot] = (byte)pattern;
+            Blocks.Pattern[slot] = (byte)((byte)pattern + 1);
         }
 
         return slot;
+    }
+
+    /// <summary>
+    /// Which pattern a block was carved with, and whether it has been carved at all.
+    /// </summary>
+    /// <remarks>
+    /// <b>The column is one-based, so <c>0</c> is <em>not yet carved</em> rather than
+    /// <see cref="Space.BlockPattern.Detached"/>.</b> A caller that only wants the shape can ignore
+    /// <paramref name="chosen"/>; <c>LotSubdivider</c> cannot, because selecting at the first carve
+    /// and keeping the choice afterwards is what makes the pattern a historical fact.
+    /// </remarks>
+    public Space.BlockPattern PatternOf(int blockSlot, out bool chosen)
+    {
+        byte stored = blockSlot == Rows.NoSlot ? (byte)0 : Blocks.Pattern[blockSlot];
+
+        chosen = stored != 0;
+
+        return chosen ? (Space.BlockPattern)(stored - 1) : Space.BlockPattern.Detached;
     }
 
     /// <summary>

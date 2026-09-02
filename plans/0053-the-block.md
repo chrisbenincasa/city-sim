@@ -52,7 +52,7 @@ before adding bands produces a uniform city made of a different shape.**
 | **1** | **A Block is a row.** `BlockTable`, keyed by lattice position. Saved: zone, band, **and the pattern it was carved with**. `zone` writes the block rather than the Lots | yes | Somewhere for a per-block decision to live. Discharges `Relot`'s named limitation |
 | **2** | ✅ **Bands ship** — *2026-09-02*. `adr/0025`'s cap is a real value on the block **and the Zone Rule reads it**. ⚠ **The generator paints them** — see *The two calls* | no, and that is a finding | More than one of anything |
 | **3** | ✅ **A pattern is a partition function** — *2026-09-02*. Three to start, the set open | no, and that is a finding | (a), (b) and (c) all become expressible, and none is privileged |
-| **4** | **Carve and re-carve.** Selection at carve time from local conditions; frozen while occupied; re-carved when vacant | yes | ***The city stops being uniform*** |
+| **4** | 🟡 **Carve and re-carve** — *2026-09-02*. Selection at carve time, frozen while occupied, re-platted when vacant. ⚠ **Selection reads the band and nothing else**, so the city is banded rather than varied | yes, and it is an ENCODING move | ***The city stops being uniform*** — partly |
 | **5** | **The parcel, then the footprint** — [`0052`](0052-the-parcel.md) in full | yes | Sealing, Fertility, Woodland, `adr/0025`'s Land axis, and F21 becoming impossible |
 
 ⚠ **Steps 1–2 are the trunk and neither is in [`0052`](0052-the-parcel.md).** That plan is not wrong;
@@ -324,6 +324,13 @@ parity, so at `lots_per_segment = 1` one parity takes the only Lot and **the opp
 face gets none**. An exhaustive pattern then leaves that face's ground unclaimed and its claim is
 false on that block.
 
+🔴 ⚠ **CORRECTED IN STEP 4: IT IS NOT CONFINED TO ONE LOT A SEGMENT, AND THE SENTENCE ABOVE IS
+UNDERSTATED.** The **corner reservation** reaches it too. At `block_tiles = 12` with 3 Lots a Segment
+the reservation is 3 deep, the offsets are 2, 6 and 10, and **the east face's parity holds only 2 and
+10 — both outside the reach**. So Perimeter drops that half-band and claims 108 Tiles where
+back-to-back claims 144. ***The case is a property of the interaction between parity and the corner
+filter, not of a degenerate key value.*** Step 4's ladder test found it by inverting.
+
 ***A pattern's exhaustiveness is conditional on a Ruleset it does not own.*** The test asserts the
 failure rather than skipping it, so the day the limit is fixed the test says so by name.
 
@@ -335,6 +342,81 @@ three patterns, no Tile claimed twice and nothing left over by a pattern that cl
 **A parcel's ground is computed and dropped.** Nothing reads it — the footprint that will is step 5 —
 and it is computed at the carve anyway because the Address and the ground behind it have to come out
 of one function or they can disagree.
+
+---
+
+## What step 4 shipped
+
+**Shipped 2026-09-02.** Selection at the first carve, and a re-plat with a ratchet.
+
+- **`BlockPatterns.ForBand`** — the band's position picks the pattern's position. Two ordinals against
+  each other, and no number in between.
+- **`BlockTable.Pattern` is one-based**: `0` is *nobody has decided*, not `Detached`.
+- **`LotSubdivider.SubdivideBlock` selects on the first carve and never again.** A block that has been
+  carved keeps what it was carved with, whatever its band says now.
+- **`LotSubdivider.RecarveBlock`** — the re-plat, with two gates.
+
+### ✅ Q3 answered: a ratchet, not hysteresis
+
+**A pattern may only be replaced by one claiming strictly more of the block's ground.** That is
+monotone, it is bounded above by the block's own area, and so it terminates: ***a block cannot re-plat
+more times than it has ground to give.***
+
+⚠ **Hysteresis was the obvious answer and it was refused.** A hysteresis band is a width, a width is a
+number, and a hash-bearing number invented to damp a mechanism is exactly what `adr/0052` wants a
+ratifier for — and nobody could name one.
+
+**It is also what a real city does.** Re-platting is an intensification: a block is re-divided to get
+more out of it. ***Nobody re-plats a block in order to use less of it*** — land that stops being wanted
+is abandoned, not re-surveyed into bigger lots, and abandonment is a different mechanism with a
+different name.
+
+⚠ **The consequence is that two patterns claiming the same ground can never replace each other.**
+Back-to-back and perimeter both tile their block, so a terrace never becomes a perimeter block and the
+reverse never happens either. **That is the ratchet working rather than failing** — the two are
+alternatives at one intensity, and choosing between them again later would be *choosing again* rather
+than intensifying.
+
+### The two gates, and what each answers
+
+| Gate | Question | Source |
+|---|---|---|
+| **Vacancy** | *May it?* | `02 §2.2` — *only vacant land re-parcels*. One standing Building refuses the whole block |
+| **The ratchet** | *Does it terminate?* | Above |
+
+**And that is `adr/0025`'s redevelopment endgame end to end**: paint a denser band on a built block,
+nothing happens, the block empties, and the re-plat lays the pattern the new band asks for. *"Upzoning
+a built block does nothing until its Buildings go, which is how redevelopment becomes a real endgame
+activity rather than a formality."*
+
+### 🔴 The State Hash moved, and it is an ENCODING move
+
+`Pattern` went one-based, so every carved block's byte went `0` → `1`. **The carve itself is
+unchanged** — `GoldenSessionCoverageTests` asserts exact carved-Lot counts and passed untouched, and
+`ForBand` returns `Detached` for every block of every bandless world. Three golden traces re-recorded;
+`world-hash.txt` did not move.
+
+### 🔴 Nothing calls the re-plat on the occasion that matters
+
+It runs from `Resubdivide`, so **a road edit is the trigger**. The occasion that ought to trigger it is
+**the block's last Building going**, which happens inside a Tick at `ZoneRuleEngine.Condemn` and has no
+hook. ***So redevelopment is available and is not scheduled.*** Named here rather than left to be
+discovered.
+
+### 🔴 Q2 is now the gap, and it is the one that still matters
+
+**Selection reads the band and stops.** So the city is **banded**: concentric rings of pattern, uniform
+within a ring. That is an improvement on one pattern everywhere and ***it is not the varied city this
+plan set out to build.***
+
+⚠ **Every candidate rule for reading the continuous fields needs cut points nobody has derived.** Land
+value and Building density both vary smoothly; turning either into a choice among three patterns takes
+two thresholds, and a threshold invented here is a hash-bearing number with no ratifier.
+
+**One derivation was explored and does not close yet.** A pattern's own *claimed-ground share* is a
+natural cut point — pick the pattern whose share is the smallest one at or above what is already built
+around the block — which needs **built ground**, and built ground is the footprint, which is step 5.
+***So Q2 is not blocked on an argument; it is blocked on step 5.***
 
 ---
 
@@ -358,8 +440,8 @@ question with one answer.
 | # | Question | Type |
 |---|---|---|
 | **Q1** | ✅ **ANSWERED, 2026-09-02, and the answer was already in the code under another name.** See *What step 3 shipped* | *arguable* |
-| **Q2** | **What does a pattern read at carve time, and in what order?** Band and zone are certain; land value and Building density are available and would supply the continuous variation. **More inputs is not better** — each one is a coupling | *arguable* |
-| **Q3** | 🔴 **What stops carve/re-carve oscillating?** `adr/0006`. Hysteresis, or a one-directional trigger, or a bound on re-carves per block | *arguable*, and it gates step 4 |
+| **Q2** | 🔴 **What does a pattern read at carve time, and in what order?** Band and zone are certain; land value and Building density are available and would supply the continuous variation. **More inputs is not better** — each one is a coupling. ⚠ **Step 4 shipped with the BAND ALONE**, and this is now the gap between a banded city and a varied one | *arguable*, and it is the one that still matters |
+| **Q3** | ✅ **ANSWERED, 2026-09-02: a ratchet on ground claimed.** See *What step 4 shipped* | *arguable* |
 | **Q4** | **May land value condemn a healthy Building?** *Undesigned* under `adr/0070`. It is the difference between this and SC4's redevelopment, and it is not a constraint on this plan | *arguable* |
 | **Q5** | 🟡 **Does `lots_per_segment` survive as a world number?** [`0052`](0052-the-parcel.md) Q4 asked this of stage 2; **it is really a per-pattern question** and belongs here. ⚠ **Step 3 produced evidence**: at `lots_per_segment = 1` an exhaustive pattern is not exhaustive | *arguable*, with evidence |
 | **Q6** | ✅ **ANSWERED, 2026-09-02, and the answer is an existing idiom.** See below | *measurable* |

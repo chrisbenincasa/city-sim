@@ -260,6 +260,102 @@ public static class BlockPatterns
         };
     }
 
+    /// <summary>How much of a block one pattern claims, in Tiles.</summary>
+    /// <remarks>
+    /// <b>Carved rather than derived from a formula, because the formula would be the partition
+    /// written twice.</b> ⚠ <b>It is the ONE quantity the re-carve ratchet compares</b> — see
+    /// <c>LotSubdivider.RecarveBlock</c> — so it has to be what the carve actually produces and not
+    /// what the geometry says it should.
+    /// </remarks>
+    public static int ClaimedTiles(BlockPattern pattern, int blockTiles, int lotsPerSegment)
+    {
+        int ceiling = Ceiling(lotsPerSegment);
+
+        if (ceiling <= 0)
+        {
+            return 0;
+        }
+
+        Span<Parcel> parcels = ceiling <= 64 ? stackalloc Parcel[64] : new Parcel[ceiling];
+
+        int count = Carve(pattern, 0, 0, blockTiles, lotsPerSegment, parcels);
+        int claimed = 0;
+
+        for (int i = 0; i < count; i++)
+        {
+            claimed += parcels[i].AreaTiles;
+        }
+
+        return claimed;
+    }
+
+    /// <summary>How many Addresses one pattern lays on a block.</summary>
+    /// <remarks>
+    /// <b>The ratchet's tie-break, and it only ever breaks one tie.</b> Two patterns that both tile
+    /// their block claim the same ground, and what separates them is how finely they divide it.
+    /// </remarks>
+    public static int AddressCount(BlockPattern pattern, int blockTiles, int lotsPerSegment)
+    {
+        int ceiling = Ceiling(lotsPerSegment);
+
+        if (ceiling <= 0)
+        {
+            return 0;
+        }
+
+        Span<Parcel> parcels = ceiling <= 64 ? stackalloc Parcel[64] : new Parcel[ceiling];
+
+        return Carve(pattern, 0, 0, blockTiles, lotsPerSegment, parcels);
+    }
+
+    /// <summary>
+    /// <b>Which pattern a density band gets</b> — <c>plans/0053</c> step 4's selection, and the whole
+    /// of it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>POSITIONAL, and that is what keeps it free of an authored number.</b> Bands are declared
+    /// least intense first and the pattern ladder is ordered least intense first, so the mapping is
+    /// two ordinals against each other. A Ruleset declaring two bands gets the bottom and the top of
+    /// the ladder; one declaring three gets all of it; one declaring none gets
+    /// <see cref="BlockPattern.Detached"/> everywhere, which is the city that was there yesterday.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>THE LADDER IS THE ENUM ORDER AND IT IS DERIVED RATHER THAN ASSERTED.</b> Sort the three
+    /// by ground claimed, then by Address count, both ascending: <see cref="BlockPattern.Detached"/>
+    /// claims least because its interior is scrub; the other two both tile their block and are
+    /// separated by how finely — <see cref="BlockPattern.BackToBack"/> gives up its cross streets and
+    /// <see cref="BlockPattern.Perimeter"/> keeps them. <b>The order holds at every block size</b>, and
+    /// <c>BlockPatternTests</c> re-derives it across the Ruleset's range rather than trusting this
+    /// paragraph.
+    /// </para>
+    /// <para>
+    /// 🔴 ⚠ <b>WHAT THIS DOES NOT READ IS THE POINT OF <c>plans/0053</c> <b>Q2</b>.</b> That plan wants
+    /// selection to see <em>"the land value and Building density already standing around it"</em>,
+    /// which is what would break a band's ring into something continuous. ***Every candidate rule for
+    /// reading them needs cut points nobody has derived***, and a cut point invented here would be a
+    /// hash-bearing number with no ratifier. <b>So this reads the band and stops</b>, and the city it
+    /// makes is banded rather than varied. That is an improvement on one pattern everywhere and it is
+    /// not the end state.
+    /// </para>
+    /// </remarks>
+    public static BlockPattern ForBand(byte band, int bandCount)
+    {
+        if (band == 0 || bandCount <= 0)
+        {
+            return BlockPattern.Detached;
+        }
+
+        // Bands are one-based. The rung is the band's position on the declared ladder scaled onto the
+        // pattern ladder, so neither ladder has to be as long as the other.
+        int rung = IntegerMath.FloorDiv((band - 1) * Count, bandCount);
+
+        return rung >= Count ? (BlockPattern)(Count - 1) : (BlockPattern)rung;
+    }
+
+    /// <summary>How many patterns there are. <b>Open by construction</b> — see <see cref="BlockPattern"/>.</summary>
+    public const int Count = 3;
+
     /// <summary>Which side of a face's Segment the block behind it stands on.</summary>
     /// <remarks>
     /// <b>Four constants, and they need no geometry.</b> A horizontal Segment runs A→B eastward, so

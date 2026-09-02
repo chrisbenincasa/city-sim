@@ -135,12 +135,19 @@ public static class LotSubdivider
         // the world forgets.
         int blockSlot = world.ZoneBlock(column, row, zone);
 
-        // plans/0053 step 3. The block's own pattern, and Detached where there is no row to read one
-        // off -- which is the shape the subdivider had hard-coded before patterns existed, so a world
-        // that never chooses one carves exactly what it carved yesterday.
-        BlockPattern pattern = blockSlot == Rows.NoSlot
-            ? BlockPattern.Detached
-            : (BlockPattern)world.Blocks.Pattern[blockSlot];
+        // plans/0053 steps 3 and 4. SELECTION HAPPENS AT THE FIRST CARVE AND NEVER AGAIN: a block
+        // that has been carved keeps what it was carved with, whatever its band says now, because the
+        // pattern is a historical fact about conditions that are gone. A block that has not takes what
+        // its band asks for. In a Ruleset with no [[band]] that is Detached on every block, which is
+        // the shape the subdivider had hard-coded before patterns existed.
+        BlockPattern pattern = world.PatternOf(blockSlot, out bool chosen);
+
+        if (!chosen && blockSlot != Rows.NoSlot)
+        {
+            pattern = BlockPatterns.ForBand(world.Blocks.Band[blockSlot], world.Rules.Bands.Length);
+
+            world.PatternBlock(column, row, pattern);
+        }
 
         return Carve(world, pattern, column, row, zone);
     }
@@ -258,6 +265,154 @@ public static class LotSubdivider
     };
 
     /// <summary>
+    /// <b>Re-plats one block onto the pattern its band now asks for</b> — <c>adr/0025</c>'s
+    /// redevelopment, and <c>plans/0053</c> step 4.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Two gates, and each answers a different question.</b> <b>Vacancy is the PERMISSION</b>:
+    /// <c>02 §2.2</c> says <em>"only vacant land re-parcels"</em>, so a single standing Building stops
+    /// the whole block — which is <c>adr/0025</c>'s <em>"upzoning a built block does nothing until its
+    /// Buildings go, which is how redevelopment becomes a real endgame activity rather than a
+    /// formality"</em>. <b>The ratchet is the TERMINATION</b>: see below.
+    /// </para>
+    /// <para>
+    /// 🔴 <b><c>plans/0053</c> Q3 — what stops carve and re-carve oscillating — ANSWERED HERE, and the
+    /// answer is a ratchet rather than hysteresis.</b> A pattern may only be replaced by one that
+    /// claims <b>strictly more of the block's ground</b>. That is monotone, it is bounded above by the
+    /// block's own area, and so it terminates in at most as many steps as there are distinct claims —
+    /// ***a block cannot re-plat more times than it has ground to give***. ⚠ <b>Hysteresis was the
+    /// obvious answer and it was refused</b>: a hysteresis band is a width, a width is a number, and a
+    /// hash-bearing number invented to damp a mechanism is exactly what <c>adr/0052</c> asks for a
+    /// ratifier for and nobody could name one.
+    /// </para>
+    /// <para>
+    /// <b>It is also what a real city does.</b> Re-platting is an intensification: a block is
+    /// re-divided to get more out of it. ***Nobody re-plats a block in order to use less of it*** —
+    /// land that stops being wanted is abandoned, not re-surveyed into bigger lots, and abandonment is
+    /// a different mechanism with a different name.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>THE CONSEQUENCE IS THAT TWO PATTERNS CLAIMING THE SAME GROUND CANNOT REPLACE EACH OTHER,
+    /// EVER.</b> <see cref="BlockPattern.BackToBack"/> and <see cref="BlockPattern.Perimeter"/> both
+    /// tile their block, so a terrace never becomes a perimeter block and the reverse never happens
+    /// either. <b>That is a real limit and it is the ratchet working rather than failing</b> — the two
+    /// are alternatives at the same intensity, and choosing between them again later would be choosing
+    /// again rather than intensifying.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>NOTHING CALLS THIS ON THE OCCASION THAT MATTERS YET.</b> It runs from
+    /// <see cref="Resubdivide"/>, so a road edit is the trigger; the occasion that ought to trigger it
+    /// is <b>the block's last Building going</b>, which happens inside a Tick at
+    /// <c>ZoneRuleEngine.Condemn</c> and has no hook. ***So redevelopment is available and is not
+    /// scheduled***, and that is named here rather than left to be discovered.
+    /// </para>
+    /// </remarks>
+    /// <returns>How many Lots the re-plat created. Zero means nothing was re-platted.</returns>
+    public static int RecarveBlock(World world, int column, int row)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+
+        StreetGrid streets = world.Roads.Streets;
+
+        if (streets.Blocks <= 0 || !world.BlockIndex.Contains(column, row))
+        {
+            return 0;
+        }
+
+        int blockSlot = world.BlockIndex.Slot(column, row);
+
+        if (blockSlot == Space.BlockResidency.NotResident)
+        {
+            return 0;
+        }
+
+        BlockPattern carved = world.PatternOf(blockSlot, out bool chosen);
+
+        if (!chosen)
+        {
+            return 0;
+        }
+
+        BlockPattern wanted =
+            BlockPatterns.ForBand(world.Blocks.Band[blockSlot], world.Rules.Bands.Length);
+
+        if (wanted == carved)
+        {
+            return 0;
+        }
+
+        int blockTiles = streets.BlockTiles;
+        int perSegment = world.Rules.Lots.LotsPerSegment;
+
+        // The ratchet. Strictly greater, so a pattern claiming the same ground is not a re-plat and a
+        // pattern claiming less is refused outright.
+        if (BlockPatterns.ClaimedTiles(wanted, blockTiles, perSegment)
+            <= BlockPatterns.ClaimedTiles(carved, blockTiles, perSegment))
+        {
+            return 0;
+        }
+
+        // 02 §2.2's permission, and it is the whole block rather than the Lot: a re-plat moves every
+        // boundary on the block, so one standing Building refuses all of it.
+        if (!Vacant(world, column, row))
+        {
+            return 0;
+        }
+
+        Clear(world, column, row);
+
+        world.PatternBlock(column, row, wanted);
+
+        // The claim mask is derived from the Lots, so it has to be recomputed before anything reads it
+        // to decide what to lay -- otherwise the faces this just emptied still read as claimed.
+        world.Frontage.Rebuild(world.Lots, world.Roads.Streets);
+        world.LotsAdmitting.Invalidate();
+
+        return SubdivideBlock(world, column, row, world.Blocks.Zone[blockSlot]);
+    }
+
+    /// <summary>Whether every Lot on a block is vacant, which is what lets it re-plat.</summary>
+    private static bool Vacant(World world, int column, int row)
+    {
+        for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
+        {
+            if (world.Lots.Rows.IsLive(slot)
+                && !world.Lots.IsVacant(slot)
+                && Frontage.BlockOf(
+                    world.Roads.Streets, world.Lots.East[slot], world.Lots.North[slot],
+                    (StreetSide)world.Lots.Side[slot], out int at, out int on)
+                && at == column && on == row)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>Frees every Lot on a block, which a re-plat does before it lays new ones.</summary>
+    /// <remarks>
+    /// <b>Every Lot, not every vacant one.</b> <see cref="Vacant"/> has already refused the block if
+    /// anything stands on it, so this cannot destroy an Address a Building is on — and freeing only
+    /// the vacant ones would leave the old boundaries half in place, which is neither pattern.
+    /// </remarks>
+    private static void Clear(World world, int column, int row)
+    {
+        for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
+        {
+            if (world.Lots.Rows.IsLive(slot)
+                && Frontage.BlockOf(
+                    world.Roads.Streets, world.Lots.East[slot], world.Lots.North[slot],
+                    (StreetSide)world.Lots.Side[slot], out int at, out int on)
+                && at == column && on == row)
+            {
+                world.Lots.Rows.Free(world.Lots.Rows.At(slot));
+            }
+        }
+    }
+
+    /// <summary>
     /// Re-parcels every block the Street network can now reach, preserving everything that stands.
     /// </summary>
     /// <remarks>
@@ -312,15 +467,23 @@ public static class LotSubdivider
     }
 
     /// <summary>
-    /// Re-lays every zoned block face that now has a Street and no Lots.
+    /// Re-lays every zoned block face that now has a Street and no Lots, and re-plats the blocks
+    /// entitled to it.
     /// </summary>
     /// <remarks>
-    /// <b>A block's Zone is read off the Lots that survived on it</b>, because land does not carry a
-    /// permission set of its own — <c>02 §2.2</c> puts the Zone on the Lot. So a block that was zoned
-    /// and then lost <em>every</em> Lot has forgotten it was zoned, and a Street run back through it
-    /// yields nothing until the player zones again. That is a real limitation and it is named here
-    /// rather than hidden: the fix is a per-Tile zone layer, which is <c>02 §2.1</c>'s <i>Tile: zone
-    /// designation</i> and which nothing has ever built.
+    /// <para>
+    /// ✅ <b>THE LIMITATION THIS PARAGRAPH USED TO NAME IS DISCHARGED.</b> It read: <em>"a block's
+    /// Zone is read off the Lots that survived on it… so a block that was zoned and then lost every
+    /// Lot has forgotten it was zoned"</em>, and pointed at a per-Tile zone layer as the fix.
+    /// <c>plans/0053</c> step 1 took the cheaper one — <b>a per-block row</b>, which is the unit the
+    /// verb already acts on — and this walks those rows.
+    /// </para>
+    /// <para>
+    /// <b><see cref="RecarveBlock"/> runs first, and the order carries the reason.</b> A re-plat frees
+    /// a block's Lots and lays new ones, so a re-lay of the same block afterwards would find its faces
+    /// claimed and do nothing. ⚠ <b>A road edit is the only occasion that reaches this</b>, and it is
+    /// not the occasion redevelopment wants — see <see cref="RecarveBlock"/>'s last paragraph.
+    /// </para>
     /// </remarks>
     private static int Relot(World world)
     {
@@ -346,11 +509,14 @@ public static class LotSubdivider
                 continue;
             }
 
-            created += SubdivideBlock(
-                world,
-                world.Blocks.LatticeColumn[slot],
-                world.Blocks.LatticeRow[slot],
-                world.Blocks.Zone[slot]);
+            int column = world.Blocks.LatticeColumn[slot];
+            int row = world.Blocks.LatticeRow[slot];
+
+            // plans/0053 step 4. A re-plat that fires lays the block's whole set, so the re-lay below
+            // finds every face claimed and adds nothing -- which is why the two compose rather than
+            // needing an either-or.
+            created += RecarveBlock(world, column, row);
+            created += SubdivideBlock(world, column, row, world.Blocks.Zone[slot]);
         }
 
         return created;

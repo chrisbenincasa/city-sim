@@ -342,16 +342,25 @@ public sealed class BlockTests
     }
 
     /// <summary>
-    /// <b>A block nobody patterned is Detached</b>, which is the shape the subdivider had before
-    /// patterns existed.
+    /// <b>A block in a bandless world is carved Detached</b>, which is the shape the subdivider had
+    /// before patterns existed.
     /// </summary>
     /// <remarks>
-    /// ⚠ <b>This is why step 3 moved no State Hash.</b> Zero is <see cref="BlockPattern.Detached"/>
-    /// and zero is what a fresh row holds, so a world that never chooses a pattern carves exactly what
-    /// it carved yesterday — Lot for Lot and in the same order.
+    /// <para>
+    /// <b>Selection happens at the first carve</b> (<c>plans/0053</c> step 4), and with no
+    /// <c>[[band]]</c> declared it selects <see cref="BlockPattern.Detached"/> on every block — so a
+    /// world that declares no band carves exactly what it carved before patterns existed, Lot for Lot
+    /// and in the same order.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>Every carved block reads as CHOSEN, and that is the distinction the column is one-based
+    /// for.</b> Zero means <em>nobody has decided</em> rather than <em>Detached</em>. Without it,
+    /// upzoning a built block would silently re-plat it, because a block that had been carved and one
+    /// that had not would hold the same byte.
+    /// </para>
     /// </remarks>
     [Fact]
-    public void An_unpatterned_block_is_detached()
+    public void A_bandless_worlds_blocks_are_carved_detached()
     {
         World world = Populated();
 
@@ -359,11 +368,15 @@ public sealed class BlockTests
 
         for (int slot = 0; slot < world.Blocks.Rows.SlotCount; slot++)
         {
-            if (world.Blocks.Rows.IsLive(slot))
+            if (!world.Blocks.Rows.IsLive(slot))
             {
-                Assert.Equal((byte)BlockPattern.Detached, world.Blocks.Pattern[slot]);
-                live++;
+                continue;
             }
+
+            Assert.Equal(BlockPattern.Detached, world.PatternOf(slot, out bool chosen));
+            Assert.True(chosen, "a carved block reads as unchosen, so a re-plat could not tell them apart.");
+
+            live++;
         }
 
         Assert.NotEqual(0, live);

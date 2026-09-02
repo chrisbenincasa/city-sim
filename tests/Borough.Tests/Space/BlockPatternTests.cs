@@ -68,6 +68,28 @@ public sealed class BlockPatternTests
     }
 
     /// <summary>
+    /// Whether every face this pattern carries actually got an Address on this block.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>THE ONE PRECONDITION EVERY EXHAUSTIVENESS CLAIM HERE IS CONDITIONAL ON.</b> A Segment's
+    /// Lots alternate sides by parity and the corner reservation then filters by offset, so <b>one
+    /// parity can lose every offset it had</b> — and a face with no Address has nothing to give its
+    /// ground to. ⚠ <b>It is not confined to <c>lots_per_segment = 1</c></b>, which is what
+    /// <c>plans/0053</c> step 3 first recorded: at <c>block_tiles = 12</c> with 3 Lots a Segment the
+    /// reservation is 3 deep, the offsets are 2, 6 and 10, and the east face's parity holds only 2 and
+    /// 10 — both outside the reach. See <see cref="A_face_with_no_address_breaks_an_exhaustive_pattern"/>.
+    /// </remarks>
+    private static bool FillsEveryFace(BlockPattern pattern, int blockTiles, int lotsPerSegment)
+    {
+        int carried = BlockPatterns.Carries(pattern, BlockFace.West) ? 4 : 2;
+
+        return Carve(pattern, blockTiles, lotsPerSegment)
+            .Select(parcel => parcel.Face)
+            .Distinct()
+            .Count() == carried;
+    }
+
+    /// <summary>
     /// 🔴 <b>NO TILE IS CLAIMED TWICE, BY ANY PATTERN.</b>
     /// </summary>
     /// <remarks>
@@ -281,6 +303,14 @@ public sealed class BlockPatternTests
     /// that face unclaimed, and the claim it makes is false <em>on that block</em>.
     /// </para>
     /// <para>
+    /// 🔴 ⚠ <b>AND IT IS NOT CONFINED TO ONE LOT A SEGMENT, WHICH IS HOW <c>plans/0053</c> STEP 3
+    /// FIRST RECORDED IT.</b> The <b>corner reservation</b> reaches it too: at <c>block_tiles = 12</c>
+    /// with 3 Lots a Segment the reservation is 3 deep, the offsets are 2, 6 and 10, and <b>the east
+    /// face's parity holds only 2 and 10 — both outside the reach</b>. ***So the case is a property of
+    /// the interaction between parity and the corner filter, not of a degenerate key value***, and
+    /// <see cref="The_enum_order_is_the_derived_intensity_order"/> found it by inverting.
+    /// </para>
+    /// <para>
     /// ⚠ <b>This is <c>plans/0053</c> <b>Q5</b>'s evidence</b> — <em>does <c>lots_per_segment</c>
     /// survive as a world number?</em> — and the answer it points at is that a pattern's exhaustiveness
     /// is conditional on a Ruleset it does not own. ***The finding is recorded here because the test
@@ -316,6 +346,134 @@ public sealed class BlockPatternTests
     }
 
     /// <summary>
+    /// 🔴 <b>THE LADDER IS THE ENUM ORDER, AND THIS DERIVES IT RATHER THAN ASSERTING IT.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>BlockPatterns.ForBand</c> maps a band's position onto the pattern's position</b>, so the
+    /// enum order has to BE the intensity order or the mapping is nonsense. ***The enum order is a
+    /// declaration and an intensity order is a fact***, and this is what holds the two together.
+    /// </para>
+    /// <para>
+    /// <b>Sort by ground claimed, then by Address count, both ascending.</b>
+    /// <see cref="BlockPattern.Detached"/> claims least because its interior is scrub; the other two
+    /// both tile their block and are separated by how finely they divide it —
+    /// <see cref="BlockPattern.BackToBack"/> gives up its cross streets and
+    /// <see cref="BlockPattern.Perimeter"/> keeps them.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Across the Ruleset's range and not at the shipped pair</b>, because the ordering is what
+    /// the ratchet in <c>LotSubdivider.RecarveBlock</c> compares and a world may be tuned.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_enum_order_is_the_derived_intensity_order()
+    {
+        int swept = 0;
+
+        for (int blockTiles = 4; blockTiles <= 64; blockTiles += 4)
+        {
+            for (int lotsPerSegment = 2; lotsPerSegment <= 8; lotsPerSegment++)
+            {
+                if (lotsPerSegment > blockTiles)
+                {
+                    continue;
+                }
+
+                // 🔴 The same exclusion the range sweep takes, and it is load-bearing here rather
+                // than tidy. At block 12 with 3 Lots a Segment the east face loses both its offsets to
+                // the corner reservation, Perimeter drops that half-band, and it claims 108 Tiles
+                // against BackToBack's 144 -- SO THE LADDER INVERTS. The ordering is a property of
+                // patterns that fill their faces, and where they cannot the selection is choosing
+                // between shapes that are not what they say they are.
+                if (All.Any(pattern => !FillsEveryFace(pattern, blockTiles, lotsPerSegment)))
+                {
+                    continue;
+                }
+
+                BlockPattern[] derived = [.. All
+                    .OrderBy(pattern => BlockPatterns.ClaimedTiles(pattern, blockTiles, lotsPerSegment))
+                    .ThenBy(pattern => BlockPatterns.AddressCount(pattern, blockTiles, lotsPerSegment))];
+
+                Assert.True(
+                    All.SequenceEqual(derived),
+                    $"at block {blockTiles}, {lotsPerSegment} per Segment the derived order is "
+                    + string.Join(", ", derived.Select(pattern =>
+                        $"{pattern} ({BlockPatterns.ClaimedTiles(pattern, blockTiles, lotsPerSegment)} "
+                        + $"tiles, {BlockPatterns.AddressCount(pattern, blockTiles, lotsPerSegment)} addresses)")));
+
+                swept++;
+            }
+        }
+
+        Assert.True(swept > 50, $"only {swept} combinations were reachable, so this swept nothing.");
+    }
+
+    /// <summary>
+    /// <b>A band's position picks a pattern's position</b>, and there is no number in between.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Two ordinals against each other</b>, which is what keeps <c>plans/0053</c> step 4's
+    /// selection free of an authored cut point. A Ruleset declaring two bands gets the bottom and the
+    /// top of the ladder; one declaring three gets all of it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Band <c>0</c> is NO BAND and takes <see cref="BlockPattern.Detached"/></b>, which is the
+    /// city that was there before patterns existed and is what every shipped Ruleset but one still
+    /// builds.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_bands_position_picks_a_patterns_position()
+    {
+        // No band at all, however many are declared.
+        Assert.Equal(BlockPattern.Detached, BlockPatterns.ForBand(0, 0));
+        Assert.Equal(BlockPattern.Detached, BlockPatterns.ForBand(0, 3));
+
+        // Two bands take the two ends of the ladder.
+        Assert.Equal(BlockPattern.Detached, BlockPatterns.ForBand(1, 2));
+        Assert.Equal(BlockPattern.BackToBack, BlockPatterns.ForBand(2, 2));
+
+        // Three take all of it.
+        Assert.Equal(BlockPattern.Detached, BlockPatterns.ForBand(1, 3));
+        Assert.Equal(BlockPattern.BackToBack, BlockPatterns.ForBand(2, 3));
+        Assert.Equal(BlockPattern.Perimeter, BlockPatterns.ForBand(3, 3));
+
+        // And a band past the end of what was declared cannot fall off the ladder.
+        Assert.Equal(BlockPattern.Perimeter, BlockPatterns.ForBand(9, 3));
+    }
+
+    /// <summary>
+    /// <b>A denser band never gets a less intense pattern</b>, whatever the two ladder lengths are.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>This is what the re-carve ratchet rests on.</b> <c>LotSubdivider.RecarveBlock</c> re-plats
+    /// only onto a pattern claiming strictly more ground, so a selection that could go <em>down</em> as
+    /// the band goes up would make upzoning a block a no-op that looked like a bug. ***The ratchet and
+    /// the selection have to agree about which way is up, and only this checks that they do.***
+    /// </remarks>
+    [Fact]
+    public void A_denser_band_never_gets_a_less_intense_pattern()
+    {
+        for (int bandCount = 1; bandCount <= 12; bandCount++)
+        {
+            var last = BlockPattern.Detached;
+
+            for (byte band = 1; band <= bandCount; band++)
+            {
+                BlockPattern here = BlockPatterns.ForBand(band, bandCount);
+
+                Assert.True(
+                    here >= last,
+                    $"band {band} of {bandCount} gets {here} where band {band - 1} got {last}.");
+
+                last = here;
+            }
+        }
+    }
+
+    /// <summary>
     /// <b>The partition holds across the Ruleset's whole range, not only at the shipped numbers.</b>
     /// </summary>
     /// <remarks>
@@ -344,10 +502,7 @@ public sealed class BlockPatternTests
 
                     // A face nothing fronts cannot be tiled, and that is the limit above rather than
                     // a defect in the partition.
-                    int faces = parcels.Select(parcel => parcel.Face).Distinct().Count();
-                    int carried = BlockPatterns.Carries(pattern, BlockFace.West) ? 4 : 2;
-
-                    if (faces != carried)
+                    if (!FillsEveryFace(pattern, blockTiles, lotsPerSegment))
                     {
                         continue;
                     }

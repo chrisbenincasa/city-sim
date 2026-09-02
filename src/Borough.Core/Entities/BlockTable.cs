@@ -111,6 +111,15 @@ public sealed class BlockTable
     /// <em>"only vacant land re-parcels"</em> — freezes it while the block is occupied. ***A city that
     /// grew over time into changing conditions looks like one.***
     /// </para>
+    /// <para>
+    /// 🔴 <b>ONE-BASED: <c>0</c> IS <em>NOT YET CARVED</em> AND IS NOT A PATTERN.</b> The slot-plus-one
+    /// idiom this table's index already uses, and here it carries a distinction the whole of
+    /// <c>plans/0053</c> step 4 turns on. <b>A block that has never been carved has no historical fact
+    /// to record</b>, so it takes the pattern its band asks for at its first carve; a block that HAS
+    /// been carved keeps what it was carved with, whatever the band says now. ***Without the
+    /// distinction, <see cref="BlockPattern.Detached"/> and "nobody has decided" are the same byte***,
+    /// and upzoning a built block would silently re-plat it.
+    /// </para>
     /// </remarks>
     public Column<byte> Pattern { get; }
 }
