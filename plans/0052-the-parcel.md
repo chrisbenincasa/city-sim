@@ -7,6 +7,20 @@ Grilled 2026-09-02; findings **G1**–**G8** below, and the design is the post-g
 document only. The amnesty's rule stands everywhere else, and the relief is for *planning* — the
 ADR this plan names is written when the shape below is agreed, not now.
 
+🔴 ⚠ **RE-SCOPED 2026-09-02. THIS IS STEP 5 OF [`0053`](0053-the-block.md), NOT THE FIRST MOVE.**
+Everything below stands — **G1**–**G8**, the Sealing measurements, Q3's answer — and none of it is
+withdrawn. What was wrong is the **scope claim**: this document reads as though the parcel is where the
+work starts, and it is where it finishes. ***A block is not represented anywhere in `Borough.Core`***,
+so there is nowhere for a per-block subdivision decision to live and every parcel proposal in this
+document collapses into a world constant. `plans/0053` is the trunk — a Block becomes a row, bands
+ship, patterns become a set — and **its steps 1 and 2 must land before anything here can.**
+
+⚠ **Two questions below are answered there rather than here.** **Q1** — *what depth* — was mis-posed:
+there is no single depth, because there is no single pattern. **Q2** — opposing-face arbitration — is a
+property of each pattern rather than a question with one answer. ⚠ **The `Depth = block/2` and mitre
+geometries explored below were both refused**, the second because *buildings are not built that way*
+and a real corner is one street winning; `plans/0053` records that refusal in full.
+
 ---
 
 ## The claim
