@@ -76,7 +76,46 @@ public sealed class WalkScratch
     /// one won before it can walk the predecessors back. A walk never asks; a vehicle does, because
     /// the Segment it arrives on decides which side of the road it parks.
     /// </remarks>
+    /// <remarks>
+    /// 🔴 ⚠ <b>It is the one thing on this scratch that no generation stamp protects, and it is why
+    /// <see cref="Forget"/> exists.</b> Every other reader here — <see cref="CostTo"/>,
+    /// <see cref="PathTo"/>, <see cref="ArcsTo"/> — is guarded by <c>_stamp[node] == _generation</c>,
+    /// so a query that runs reads nothing an older query wrote. This is a scalar with no node to stamp,
+    /// and <see cref="Begin"/> is not where it is cleared, because <b>the failure is a query that never
+    /// calls <see cref="Begin"/> at all</b>.
+    /// </remarks>
     public int Arrived { get; private set; } = NoNode;
+
+    /// <summary>
+    /// Discards the last search's <see cref="Arrived"/>, so a caller that does not search reads
+    /// <see cref="NoNode"/> rather than somebody else's destination.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>This closes a defect in which a vehicle drove a route belonging to a different
+    /// Traveller.</b> <see cref="WalkRouting.Cost"/> answers five cases without searching — the two
+    /// Addresses share a Segment, either Segment is gone, either refuses the mode, or the two sit in
+    /// different components — and <see cref="TripEngine"/> reads <see cref="Arrived"/> straight
+    /// afterwards to record the drive route. On those five paths it was reading <b>the previous
+    /// journey's</b>, and the route it wrote was a real route to the wrong place, complete with the
+    /// per-Segment volume that <c>adr/0041</c> attributes along it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It presented as a save/reload divergence and is not one.</b> A reloaded world gets a fresh
+    /// engine, whose scratch has never searched, so it read <see cref="NoNode"/> and took the correct
+    /// branch while the world that had been running took the stale one — which
+    /// <c>FactorioTests</c> reported as <c>05 §4</c> invariant 6 failing. ***The simulation was not a
+    /// function of the World***, and the save was innocent. The same two-line diagnosis is
+    /// <c>plans/0003</c>'s.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A generation stamp on <see cref="Arrived"/> would NOT have fixed it</b>, which is why this
+    /// is a call the caller makes rather than a guard this type can enforce alone: the generation is
+    /// bumped by <see cref="Begin"/>, and the whole defect is the path where <see cref="Begin"/> is
+    /// never reached, so the stale value and the stale generation would agree.
+    /// </para>
+    /// </remarks>
+    public void Forget() => Arrived = NoNode;
 
     /// <summary>
     /// Clears the state for a graph of <paramref name="nodeCount"/> nodes.

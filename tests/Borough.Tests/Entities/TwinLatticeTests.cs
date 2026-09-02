@@ -157,7 +157,17 @@ public sealed class TwinLatticeTests
             // waged.toml IS provisioned.toml with two [[business]] keys added -- wages on the one
             // trade that earns -- so it inherits both lattices for that file's reason. Its header
             // says so, and everything below that header is provisioned.toml unchanged.
-            if (file is "provisioned.toml" or "oversupplied.toml" or "waged.toml")
+            // 🔴 pictured.toml IS THE ONE FILE THAT IS NOT A DEMONSTRATION, and it is exempt from
+            // every exclusivity test in this suite for one reason rather than a reason of its own.
+            // plans/0051 row 1 asked for a world with everything in it at once, because a
+            // photograph of a place is a picture of things coexisting -- so it authors two lattices
+            // AND terrain AND water AND a [districts] table, and a census taken from it can
+            // attribute an outcome to none of them. ⚠ Its two centres are 1,024 Tiles apart and not
+            // twinned.toml's 2,048: at that gap Main.Frame fits the eye to 8.2 km of mostly ground
+            // and the two towns are smudges (plans/0051 F4). ***It ratifies nothing and must never
+            // be cited for a number***, which is what makes exempting it cheap: there is no figure
+            // in it for an exemption to protect.
+            if (file is "provisioned.toml" or "oversupplied.toml" or "waged.toml" or "pictured.toml")
             {
                 Assert.Equal(2, Shipped(file).Lattices.Length);
                 continue;
@@ -184,7 +194,7 @@ public sealed class TwinLatticeTests
             Assert.True(
                 authored == 0,
                 $"{file} authors a [[lattice]]. Every world but twinned.toml, provisioned.toml, "
-                + "oversupplied.toml and coastal.toml is one "
+                + "oversupplied.toml, pictured.toml and coastal.toml is one "
                 + "lattice at the origin corner, and authoring one moves that file's State Hash. If "
                 + "this is deliberate, say why in the file's header and add it to the exemptions "
                 + "above rather than widening the test.");

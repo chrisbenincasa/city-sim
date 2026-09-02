@@ -158,28 +158,42 @@ public sealed class SegmentVolumeTests(ITestOutputHelper output)
     /// <c>adr/0006</c>'s collection rule applied to a quantity rather than a table: a volume that
     /// settles above zero is a vehicle that entered a Segment and never left, and it presents to a
     /// player as a road that is busy forever with nothing on it.
+    /// <para>
+    /// 🔴 ⚠ <b>Asked of every Tick of two Days rather than of one chosen Tick, and the rewrite is
+    /// what the remark above always meant.</b> This used to step 1,156 Ticks and assert the road was
+    /// empty <em>there</em> — a Tick picked because it fell in a quiet stretch of a Day that began at
+    /// midnight. On 2026-09-01 the Day began at 05:00 instead (<c>adr/0101</c>, amended), the same
+    /// count landed at 13:33 inside the evening return, and the test failed on a city with nothing
+    /// wrong with it. ***A test that samples one Tick is asserting something about the calendar as
+    /// well as about the road***, and only one of those was the subject. The implication below —
+    /// <em>nobody driving means nothing on any Segment</em> — is the actual claim, it holds at every
+    /// hour, and it is strictly stronger than the instant it replaces.
+    /// </para>
     /// </remarks>
     [Fact]
     public void A_city_that_has_stopped_travelling_has_no_traffic_on_it()
     {
         Simulation simulation = Start(Rules(100, congestion: true), 1_000);
         World world = simulation.World;
+        int quiet = 0;
 
-        for (int tick = 0; tick < 256; tick++)
+        for (int tick = 0; tick < 2 * Ticks.PerDay; tick++)
         {
             simulation.Step(new TickInput([], rulesetHash: 0));
+
+            if (Driving(world) != 0)
+            {
+                continue;
+            }
+
+            quiet++;
+
+            Assert.Equal(0, TotalVolume(world));
         }
 
-        // Long enough for every commute armed in the window above to finish, and not so long that the
-        // next Day's departures have begun -- CommuteRoster spreads departures over TICKS_PER_DAY
-        // divided by the peak factor, so the quiet stretch is the rest of the Day.
-        for (int tick = 0; tick < 900; tick++)
-        {
-            simulation.Step(new TickInput([], rulesetHash: 0));
-        }
-
-        Assert.Equal(0, Driving(world));
-        Assert.Equal(0, TotalVolume(world));
+        // Not vacuous: a run in which somebody is always driving would satisfy the loop above by
+        // never entering it, which is the failure this class already guards against one test up.
+        Assert.True(quiet > 0, "somebody was driving on every Tick of two Days, so nothing was asked.");
     }
 
     /// <summary>

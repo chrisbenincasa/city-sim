@@ -217,8 +217,9 @@ internal static class LandValueDump
         TextWriter output, Options options, Ruleset rules, World world, CellRect window)
     {
         ulong tick = options.Ticks;
-        ulong intoDay = tick % Ticks.PerDay;
-        int minutes = (int)IntegerMath.FloorDiv((long)intoDay * 24 * 60, (long)Ticks.PerDay);
+
+        // A Day begins at 05:00, so this reads the wall clock through Ticks rather than deriving it.
+        int minutes = Ticks.MinuteOfDay(tick);
 
         output.WriteLine("# Borough land value dump — the target, the lag, and the gap");
         output.WriteLine(

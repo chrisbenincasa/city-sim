@@ -832,6 +832,48 @@ because `GoldenFixtures.Build()` holds **no Bins at all**. Three of the four ite
 two committed baselines, and the same one each time. The file that exists to cover what a session cannot
 reach covers the four slice-4 tables and, on the evidence, very little that arrived after them.
 
+> ✅ **ITEM 10 SHIPPED 2026-09-01 — the Day begins at 05:00, and it found a defect that was not the
+> clock's.** `Ticks.DayBeginsAtHour = 5`, reached through a new `Ticks.AtClock` that stands beside
+> `Ticks.AtHour` rather than replacing it: **one of those spellings means a time of day and the other
+> means a number of hours, and one function was serving both.** There was exactly one time-of-day caller
+> — `CommuteRoster` — and three duration callers in the Ruleset loader, so the split is what makes the
+> phase movable at all. ⚠ **A phase and not a length**: a Day is still 2048 Ticks and 24 hours. A Shift
+> starting at 06:00 begins at Tick **85** where it began at Tick **512**, so every commute in every world
+> moves within the Day and all three golden baselines re-record. [`adr/0101`](../docs/adr/0101-a-commute-is-two-journeys-and-the-days-shape-is-a-property-of-the-job.md)
+> is amended in place, because the *argument* it makes — that the anchor is a convention rather than a
+> tuning number and is spent by the first document that uses it — is untouched by the hour changing.
+>
+> 🔴 **The reason it moved is that the sun does.** Under the moving daylight built for `plans/0051`, a run
+> opened with no start Tick begins at Tick 0, so ***every fresh run opened in the dark***; and a Day
+> boundary at midnight cuts the night in half, so the quiet hours belong to two Day numbers and no readout
+> of *a Day* ever shows one whole. **Five and not six or four**: before the earliest `shift_start_earliest_hour`
+> any shipped file declares, after the middle of the night, and just before sunrise. Any hour in that band
+> is the same world, so there is nothing for `adr/0052` to ratify.
+>
+> 🔴 ⚠ **AND IT TURNED `FactorioTests` RED, WHICH WAS A REAL DEFECT AND HAD NOTHING TO DO WITH THE CLOCK.**
+> `A_congested_world_reloads_and_runs_on_identically(256, 256)` diverged 61 Ticks after the reload. The
+> cause is `WalkScratch.Arrived` — the one value on that scratch **no generation stamp protects** —
+> surviving a query that never searched. `WalkRouting.Cost` answers five cases without searching (the two
+> Addresses share a Segment; either Segment is gone; either refuses the mode; the two sit in different
+> components), and `TripEngine.RecordRoute` reads `Arrived` straight afterwards to write a drive Leg's
+> route. On those five paths **it was writing the previous Traveller's route**, complete with the
+> per-Segment volume `adr/0041` attributes along it. The fix is `WalkScratch.Forget`, called at the top of
+> `Cost`; two tests in `WalkRoutingTests` write the violation and were watched to fire.
+>
+> ⚠ **The save was innocent, and the discriminator is worth keeping.** Handing the **same `World` object**
+> to a **fresh `Simulation`** — no save, no load — diverged identically. ***The simulation was not a
+> function of the World***, and a reload is merely the cheapest way to get a fresh engine. A save/reload
+> test can only ever report that as a symptom.
+>
+> 🔴 ⚠ **`FactorioTests` had been saving a world with nobody in it, and its own docstring said it covered
+> Trips, Legs, Travellers and the volume-delay function.** Under midnight, Tick 256 fell in the dead of
+> night: shifts began at Tick 512, so the congested fixture saved a city where no Traveller was in flight
+> and no drive route existed to get wrong. Moving the Day's start put Tick 256 inside the morning peak and
+> the test found the bug on its first run. ***A fixture that exercises a mechanism at a Tick where the
+> mechanism is asleep covers nothing, and nothing says so*** — the tick a fixture stops at is a coverage
+> decision and was never written down as one. It is the same shape as `plans/0032`'s *what would you do on
+> the day it failed*, one level down: **what would you have to move for it to fail at all?**
+
 ---
 
 ## Why this order, and where it departs from `06`

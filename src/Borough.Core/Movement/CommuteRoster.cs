@@ -118,7 +118,11 @@ public sealed class CommuteRoster
 
         int hours = (int)(first % (ulong)(uint)span) + (int)(second % (ulong)(uint)span);
 
-        return Ticks.AtHour(kind.ShiftStartEarliestHour + IntegerMath.RoundDiv(hours, 2));
+        // ⚠ AtClock AND NOT AtHour: a Shift START is a time of day, and a Day begins at 05:00. The
+        // three other callers of AtHour are LENGTHS -- a Shift's hours, a punctuality margin, a whole
+        // Day -- and must not be phased. This is the only site in the build where the two meanings
+        // had to be told apart.
+        return Ticks.AtClock(kind.ShiftStartEarliestHour + IntegerMath.RoundDiv(hours, 2));
     }
 
     /// <summary>

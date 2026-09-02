@@ -1,0 +1,483 @@
+# ===================================================================================================
+# pictured.toml -- THE ONLY SHIPPED FILE THAT IS A CITY RATHER THAN A DEMONSTRATION, and the whole
+# point of it is that it turns everything on at once.
+#
+# WHAT IT EXISTS TO SHOW: **a frame worth photographing.** plans/0051 row 1. Every other Ruleset in
+# this tree isolates one mechanism so that a figure taken from it names one cause; this one is the
+# exact opposite, because a picture of a place is a picture of things COEXISTING. A coast and shops
+# and a school and traffic and ruins, in one frame, at one time of day.
+#
+# 🔴 ⚠ THEREFORE IT RATIFIES NOTHING, MEASURES NOTHING, AND MUST NEVER BE CITED FOR A NUMBER. A
+# census taken here has every mechanism in the world as a candidate cause and can attribute an
+# outcome to none of them. ***What makes it useless as an instrument is exactly what makes it useful
+# as a subject.*** Any test that loads it asserts a SHAPE -- that it parses, that it builds, that
+# the tables are non-empty -- and never a quantity. If you want a number, take it from the file that
+# demonstrates the one mechanism you are asking about.
+#
+# ⚠ IT IS ASSEMBLED FROM THE DEMONSTRATIONS AND OWNS ALMOST NOTHING. The lineage, table by table:
+#   [[resource]] [[business]] [[building]] [[rule]] [[zone_rule]] [market] [districts]  oversupplied
+#   [[hinterland]] prices (the `port` kind was REFUSED -- see below)                    bordered
+#   [[terrain]] and the two [layers] keys that come with it                             varied
+#   [water]                                                                             coastal
+#   [disasters]                                                                         flooded
+#   [traffic] and car ownership                                                         congested
+#   [[life_stage]]                                                                      choosy
+#   [needs] and the `school` kind                                                       schooled
+#   [[policy]]                                                                          levied
+#   [founding]                                                                          founded
+# ***Read the source file's header before reading anything into what a mechanism does here***, and
+# expect the interaction to be different: none of those headers was written about a world with the
+# other nine turned on.
+#
+# 🔴 ⚠ THE LATTICE IS SITED ON THE WATER AND THAT IS NOT DECORATION. `coastal.toml`'s header carries
+# the finding -- the synthetic city is ~1.4 km across on a 65.5 km map, so it CANNOT MEET A COAST BY
+# ACCIDENT, and 0 of 420 Lots were exposed until the origin moved. A city to photograph that is not
+# on its water is a city with the water off-screen. The two origins here are `flooded.toml`'s.
+#
+# ⚠ TWO LATTICES, BECAUSE ONE CENTRE IS A TOWN AND TWO IS A CITY. It is also what [districts] needs
+# in order to have more than one row (adr/0134's watershed), and the second centre is what puts a
+# skyline behind the first one from a low camera.
+#
+# ⚠ EVERY NUMBER IN THIS FILE CAME FROM THE FILE IT WAS LIFTED FROM, unratified there and unratified
+# here. plans/0002 §D holds the rows. Nothing in this file was tuned against a measurement, because
+# there is no measurement this file could take.
+# ===================================================================================================
+
+# --- What moves -------------------------------------------------------------------------------
+# Two Goods and a money family, which is oversupplied.toml's set unchanged. `sundries` is what a
+# Household eats and a shop sells; `repairs` is what keeps a Building standing.
+
+[[resource]]
+name = "sundries"
+family = "good"
+
+[[resource]]
+name = "repairs"
+family = "good"
+
+[[resource]]
+name = "money"
+family = "money"
+
+# ⚠ WHAT THE WATER CARRIES, and it must be declared here before `[water] carries` may name it -- a
+# Water Body holds a Resource the Ruleset declared, not a name it invented. `utility` rather than
+# `good`, because nobody buys it.
+[[resource]]
+name = "sewage"
+family = "utility"
+
+# --- Who trades -------------------------------------------------------------------------------
+# The second kind namespace (adr/0141). A trade is a tenant; the premises hold the capacity.
+
+[[business]]
+name = "shop"
+jobs = 8
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+[[business]]
+name = "grocer"
+jobs = 3
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+# --- What stands ------------------------------------------------------------------------------
+# ⚠ THE DECLINE CLOCKS ARE LOOSER THAN `oversupplied.toml`'s, and this is the one place this file
+# deliberately diverges from its source. That file sets all three to 1 Day because it is trying to
+# make failure happen inside a test's patience. A city photographed at 40% derelict is a photograph
+# of a ruin, and a city that never declines has nothing in it to find -- so the clocks are set where
+# a walk down the street shows A FEW shells and not a field of them. 🔴 THAT IS A COMPOSITION
+# CHOICE AND NOT A BALANCE ONE, and it is exactly the kind of number this file may not be quoted for.
+
+[[building]]
+name = "dwelling"
+condemn_after_days      = 12
+tenancy_ends_after_days = 8
+collapses_after_days    = 30
+bins = [
+    { resource = "sundries", capacity = 48, owner = "occupant" },
+    { resource = "repairs",  capacity = 4 },
+]
+occupants = 4
+business = "shop"
+parking = 8
+
+[[building]]
+name = "shopfront"
+bins = [
+    { resource = "sundries", capacity = 96, owner = "business" },
+    { resource = "repairs",  capacity = 4 },
+    { resource = "money",    owner = "business" },
+]
+tenancy_ends_after_days = 8
+occupants = 1
+business = "grocer"
+
+# ⚠ NOTHING IN THE WORLD PLACES THIS. `Service` is 01 §5's placement exception, so a run with no
+# `--schools` builds none and every child's Education falls at the declared rate for ever. Pass
+# `--schools 4` when photographing this file, or the school is a kind that never appears.
+[[building]]
+name = "school"
+footprint_tiles = 4
+serves = "education"
+
+# 🔴 THERE IS NO GATE IN THIS FILE AND THAT IS A REFUSAL RATHER THAN AN OVERSIGHT. A `port` kind was
+# written here and the loader threw it out: a gate stands on a map edge, so a world with a door paves
+# the lattice to the boundary, which leaves nowhere for a second lattice and no gap between them --
+# and the gap is the whole reason a file states [[lattice]] twice. ⚠ THE TWO CENTRES WON, because a
+# skyline needs two things to stand between and an arrival needs nothing visible at all: a gate is a
+# shed 30 km from the city, and paving to the boundary turns 61 Segments into 535,817 of empty grid.
+# ⚠ [[hinterland]] STAYS. A Hinterland is a market and not a door -- `twinned.toml` declares two of
+# them with nothing to arrive through -- and [districts] is refused without one.
+
+# --- What they do -----------------------------------------------------------------------------
+
+[[rule]]
+name    = "restock"
+kind    = "dwelling"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = [ { scope = "pool", resource = "sundries", amount = 4 } ]
+outputs = [ { scope = "local", resource = "sundries", amount = 4 } ]
+
+[[rule]]
+name    = "consume"
+kind    = "dwelling"
+rate    = 32
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "sundries", amount = 4 } ]
+outputs = []
+
+[[rule]]
+name    = "upkeep"
+kind    = "dwelling"
+rate    = 16
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "repairs", amount = 4 } ]
+outputs = []
+
+# `maintained.toml`'s one Rule, and it is here because it is the difference between a city that
+# loses half its stock and one that loses none. ⚠ IT IS GREEDY ON PURPOSE -- a producer writing
+# exactly the Bin's capacity can only fire on an empty Bin, which deadlocked `maintained.toml` for a
+# run. `apply.max` above 1 is what avoids that.
+[[rule]]
+name    = "maintain"
+kind    = "dwelling"
+rate    = 24
+apply   = { min = 1, max = 2 }
+inputs  = []
+outputs = [ { scope = "local", resource = "repairs", amount = 2 } ]
+
+[[rule]]
+name    = "stock"
+kind    = "shopfront"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = []
+outputs = [ { scope = "local", resource = "sundries", amount = 8 } ]
+
+[[rule]]
+name    = "rates"
+kind    = "shopfront"
+rate    = 1024
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local",  resource = "money", amount = 8192 } ]
+outputs = [ { scope = "global", resource = "money", amount = 8192 } ]
+
+# --- What gets built --------------------------------------------------------------------------
+# ⚠ TIER 1, WITH BOTH KEYS. `oversupplied.toml` deletes them to demonstrate bankruptcy; a city being
+# photographed wants the shops it can support and not a shopfront on every trade Lot (adr/0170).
+
+[[zone_rule]]
+name          = "housing"
+kind          = "dwelling"
+zone          = 0
+interval      = 32
+revisit_ticks = 2048
+
+[[zone_rule]]
+name                 = "trade"
+kind                 = "shopfront"
+zone                 = 1
+interval             = 32
+revisit_ticks        = 2048
+build_threshold_days = 4
+cooldown_days        = 8
+
+[placement]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+gives_up_after_days = 120
+
+# --- Who lives here ---------------------------------------------------------------------------
+# ⚠ FIVE STAGES, AND THE ONLY THING A STAGE MOVES IS THE RANGE. A Household draws its own position
+# inside the band and keeps it, so a transition slides the band under a fixed taste (adr/0027).
+# `children_become` opens a second door into the Unplaced Pool, which is the other reason
+# `gives_up_after_days` is required above.
+
+[[life_stage]]
+name          = "young"
+duration_days = 24
+spread_days   = 8
+centrality_base_percent   = 60
+centrality_spread_percent = 30
+next          = "family"
+childless     = "childless"
+children_min  = 0
+children_max  = 3
+# ⚠ STATED HERE BECAUSE THIS IS THE STAGE CHILDREN BECOME ADULTS IN, and the loader refuses a
+# `children_become` target without it. An age is DRAWN on formation and never advances (adr/0011),
+# so there is no default that is not a guess about a population. ⚠ 1..160 is the length of a life in
+# this file and not a human age -- a full chain is ~160 Days at the floor. ⚠ Zero is not in the band
+# and cannot be: zero is what a CHILD carries, and it is the only marker of childhood there is.
+adult_age_min_days = 1
+adult_age_max_days = 160
+
+[[life_stage]]
+name          = "family"
+duration_days = 48
+spread_days   = 16
+centrality_base_percent   = 30
+centrality_spread_percent = 10
+next          = "mature_family"
+
+[[life_stage]]
+name           = "mature_family"
+duration_days  = 48
+spread_days    = 16
+centrality_base_percent   = 25
+centrality_spread_percent = 15
+next           = "empty_nest"
+children_become = "young"
+
+[[life_stage]]
+name          = "childless"
+duration_days = 40
+spread_days   = 16
+centrality_base_percent   = 65
+centrality_spread_percent = 25
+
+[[life_stage]]
+name          = "empty_nest"
+duration_days = 40
+spread_days   = 16
+centrality_base_percent   = 30
+centrality_spread_percent = 60
+
+[needs]
+sustenance_degrade   = 4
+sustenance_recover   = 1
+satisfaction_degrade = 1
+satisfaction_recover = 1
+education_degrade    = 2
+education_recover    = 2
+floor = -1000
+
+[households]
+# ⚠ 100%, which is `congested.toml`'s. A Citizen drives everywhere or walks everywhere (adr/0098),
+# and a city with no cars in it has no traffic to photograph.
+car_ownership_percent = 100
+opening_balance_min = 0
+opening_balance_max = 25600
+
+# --- Money ------------------------------------------------------------------------------------
+
+[founding]
+founding_band    = 400
+reconsider_ticks = 8192
+
+[[policy]]
+name = "household_levy"
+sweeps = "household"
+interval = 2048
+apply = { derived = "balance", percent = 10 }
+transfer = { from = "local", to = "global", resource = "money", amount = 1 }
+
+# --- The ground -------------------------------------------------------------------------------
+# ⚠ FIVE TERRAIN TYPES, AND THE `sealing_decay_tau` VALUES ARE TIME CONSTANTS RATHER THAN RECOVERY
+# TIMES -- `varied.toml`'s header carries the correction, and the Days they produce are 2.9-4.1x
+# larger. Quote the Days, never the tau.
+
+[[terrain]]
+name = "ordinary"
+base_fertility_percent = 100
+sealing_decay_tau = 96
+
+[[terrain]]
+name = "rock"
+base_fertility_percent = 20
+sealing_decay_tau = 0
+
+[[terrain]]
+name = "floodplain"
+base_fertility_percent = 100
+sealing_decay_tau = 48
+
+[[terrain]]
+name = "marsh"
+base_fertility_percent = 50
+sealing_decay_tau = 64
+
+[[terrain]]
+name = "thin_soil"
+base_fertility_percent = 60
+sealing_decay_tau = 160
+
+# --- The water --------------------------------------------------------------------------------
+# ⚠ BOTH LEVELS ARE LEVELS AND NEITHER IS A COVERAGE. At one sea level five keys give 2-15% of the
+# map wet and 3-9% at flood risk -- a 7.5x spread at one number -- so a share quoted from this file
+# names the keys it was measured on and this file may not be quoted at all.
+
+[water]
+sea_level_percent = 25
+flood_level_percent = 30
+carries = "sewage"
+capacity_per_cell = 1000
+outflow_per_exit_per_day = 100
+runoff_per_sealed_cell_per_day = 50
+
+# 🔴 A FLOOD EVERY TWO DAYS IS A STOPWATCH SETTING AND A CITY UNDER IT IS NOT A CITY --
+# `flooded.toml`'s own header says so. It is longer here for the same reason the decline clocks are:
+# a photograph wants a coast that has flooded ONCE, not a world being demolished by weather.
+#
+# ⚠ EIGHT AND NOT FORTY, AND THE REASON IS THE MISS RATE RATHER THAN THE PACE. A flood seeds anywhere
+# in the Hazard Region, which is 11,063 Cells spread over the whole map against a city occupying a
+# few hundred, so MOST FLOODS DO NOT REACH THE CITY -- measured at 40 Days, the single flood in
+# 122,880 Ticks seeded at Cell (57,173) and touched nothing. An interval is therefore not how often
+# the player SEES a flood; it is how often the dice are rolled. ⚠ It is still a stopwatch setting.
+[disasters]
+flood_every_days       = 8
+flood_rises_over_days  = 2
+flood_recedes_over_days = 3
+
+# --- The roads --------------------------------------------------------------------------------
+
+[roads]
+block_tiles                    = 32
+arterial_count                 = 0
+arterial_junction_tiles        = 512
+foot_crossing_every            = 4
+foot_paths_per_thousand_blocks = 40
+street_speed_kph               = 50
+arterial_speed_kph             = 90
+walk_speed_kph                 = 5
+street_capacity_per_hour       = 3600
+arterial_capacity_per_hour     = 12000
+foot_path_capacity_per_hour    = 1000
+
+# ⚠ A LOOP AND NOT A FORMULA. Congestion slows a Vehicle, a slower Vehicle dwells longer, and longer
+# dwell IS higher volume (adr/0099). Absent, roads never slow down.
+[traffic]
+alpha_percent = 15
+beta          = 4
+clamp_percent = 400
+
+[lots]
+lots_per_segment = 5
+
+[parking]
+radius_metres = 400
+shed_keeps = 24
+
+[trips]
+crossing_seconds = 30
+commute_fast_minutes = 20
+commute_moderate_minutes = 40
+commute_budget_minutes = 50
+
+[jobs]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+shift_hours_min = 6
+shift_hours_max = 10
+arrive_early_max_minutes = 15
+
+# --- The map ----------------------------------------------------------------------------------
+
+[layers]
+noise_range_metres            = 300
+noise_intensity_percent       = 400
+desirability_pollution_percent = 100
+desirability_noise_percent     = 100
+pollution_period      = 64
+pollution_offset      = 0
+land_value_period     = 256
+land_value_offset     = 16
+kernel_metres         = 1024
+pollution_decay_ticks = 2048
+land_value_tau        = 8
+fertility_pollution_percent = 4
+woodland_regrowth_days = 512
+
+# 🔴 ON THE WATER'S EDGE, AND THE SECOND ONE IS THE SKYLINE. See the header: a corner city cannot
+# meet a coast by accident on a 65.5 km map.
+#
+# 🔴 ⚠ 1,024 TILES APART AND NOT `twinned.toml`'S 2,048, AND THE GAP IS THE ONE NUMBER THAT HAD TO
+# CHANGE WHEN IT WAS COPIED. `twinned.toml` exists to author a SADDLE -- adr/0134's watershed needs
+# ground between two concentrations -- so its gap is sized to be unmistakable. `Main.Frame` fits the
+# eye to the extent of every Lot, so at 2,048 the default frame was 7.8 km up over 8.2 km of mostly
+# empty ground with two smudges in it, and the picture was of the gap. ***A demonstration's setting
+# copied into a subject is a setting nobody chose***. At 1,024 and 20,000 Citizens the two read as
+# two quarters of one conurbation. ⚠ IT IS STILL A COMPOSITION CHOICE AND NOT A DESIGN ONE, and
+# plans/0002 §D1 gains no row for it: this file ratifies nothing.
+[[lattice]]
+origin_east_tiles  = 11520
+origin_north_tiles = 4800
+
+[[lattice]]
+origin_east_tiles  = 12544
+origin_north_tiles = 4800
+
+[districts]
+prominence_percent = 50
+revisit_ticks = 2048
+hysteresis_percent = 50
+migrate_cells = 16
+
+# --- The outside ------------------------------------------------------------------------------
+# ⚠ FOUR EDGES, AND EVERY ONE PRICES EVERY GOOD. A file stating [districts] and leaving a Good
+# unpriced is refused at load, because a District opens a Pool per Good and the Hinterland's price
+# is the only ceiling on it -- an unpriced Good is free everywhere, for ever. ⚠ The ceiling is the
+# MINIMUM across edges, so the cheapest north/east entry below is what the city actually pays.
+
+[[hinterland]]
+edge = "north"
+emigrant_balance_min = 300
+emigrant_balance_max = 2000
+prices = [
+  { resource = "sundries", price = 100 },
+  { resource = "repairs",  price = 250 },
+]
+
+[[hinterland]]
+edge = "east"
+emigrant_balance_min = 200
+emigrant_balance_max = 1400
+prices = [
+  { resource = "sundries", price = 120 },
+  { resource = "repairs",  price = 200 },
+]
+
+[[hinterland]]
+edge = "west"
+emigrant_balance_min = 40
+emigrant_balance_max = 400
+prices = [
+  { resource = "sundries", price = 140 },
+  { resource = "repairs",  price = 260 },
+]
+
+[[hinterland]]
+edge = "south"
+emigrant_balance_min = 120
+emigrant_balance_max = 900
+prices = [
+  { resource = "sundries", price = 130 },
+  { resource = "repairs",  price = 240 },
+]
+
+[market]
+decay_percent = 50
+move_cap_percent = 10

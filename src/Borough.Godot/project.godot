@@ -23,3 +23,34 @@ project/assembly_name="Borough.Godot"
 [rendering]
 
 renderer/rendering_method="forward_plus"
+
+; 🔴 ⚠ THE KEY MUST NOT REPEAT ITS OWN SECTION, AND THIS ONE DID FROM THE HOUR
+; IT WAS WRITTEN (699bc6f, 2026-09-01) UNTIL IT WAS READ BACK.
+; The setting's full name is rendering/lights_and_shadows/directional_shadow/size,
+; and inside [rendering] the part before the first slash is the section -- so the
+; line written here as `rendering/lights_and_shadows/...` declared
+; rendering/rendering/lights_and_shadows/..., which is not a setting Godot has.
+; ***An unknown key is accepted in silence***: no warning, no error, no log line.
+; The atlas ran at Godot's default 4096 from the day 8192 was written down, and
+; every reading taken against it -- including the one recorded here saying what
+; 8192 bought -- was a reading of 4096 against 4096. Confirmed by printing
+; ProjectSettings.GetSetting at startup, which is the only thing that can say.
+; ⚠ There is nothing to grep for. The check is to READ THE VALUE BACK.
+;
+; The directional shadow atlas is FOUR cascades sharing ONE texture: at 8192 each
+; Parallel4Split gets 4096 square, spread over its slice of
+; DirectionalShadowMaxDistance. A shadow's edge is quantised to that grid, a roof
+; silhouette is a diagonal, and a diagonal on a grid is a staircase -- which open
+; ground shows and a wall hides.
+;
+; ⚠ WHAT 8192 ACTUALLY BUYS, measured on a 24-frame burst one Tick apart at a
+; 140 m standoff: the edge goes from a battlement with a five-to-six-pixel tread
+; to a near-straight line serrated by one pixel. It is the largest single lever
+; on the crawl, and the second is the range -- see Orbit() in Main.cs, which now
+; ties DirectionalShadowMaxDistance to the camera's standoff for the same reason.
+;
+; ⚠ It costs ~134 MB of VRAM (8192² at 16-bit depth) and that is the whole price.
+; soft_shadow_filter_quality was tried here at 4 and removed again -- ⚠ though
+; that test ran through the broken prefix too, so it proved nothing and is worth
+; re-running rather than trusting.
+lights_and_shadows/directional_shadow/size=8192

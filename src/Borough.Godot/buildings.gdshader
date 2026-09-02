@@ -27,6 +27,21 @@ const float PLINTH = 0.9;
 const float NEAR_FADE = 500.0;
 const float FAR_FADE = 1100.0;
 
+// HOW FAR THROUGH THE NIGHT IT IS: 0 at the last of the light, 0.5 at solar midnight, 1 at the
+// first of it, and pinned at 1 all day. Set from the clock by Main.Daylight, which is the same
+// place the sun's angle comes from.
+//
+// 🔴 IT IS THE ONLY THING IN THIS FILE THAT COMES FROM OUTSIDE THE INSTANCE, and it has to be:
+// every other input here is a property of the Building, and the hour is a property of the world.
+//
+// 🔴 IT REPLACED A `night` UNIFORM THAT WAS A DARKNESS, AND A DARKNESS IS THE WRONG QUANTITY
+// TWICE OVER. It is symmetrical, so it said the same thing at nine in the evening and at four in
+// the morning and no window keyed on it could be lit for part of a night -- and it was a
+// BRIGHTNESS, so it arrived at the emission as a dimmer and every lamp in the city faded up
+// through dusk and down through dawn. ***A lamp does not fade. It is switched.*** What the sky
+// does between is the sky's business, and the wall is lit or it is not.
+uniform float night_phase = 1.0;
+
 varying vec3 v_local;
 varying vec3 v_size;
 varying vec3 v_face;
@@ -88,7 +103,24 @@ void fragment() {
     float jamb = (wide - paneW) * 0.5;
 
     // Smoothed against the pixel's own footprint, so a wall a hundred metres off does not sparkle.
-    vec2 grain = vec2(fwidth(withinX), fwidth(withinY)) + 0.0001;
+    //
+    // 🔴 THE FOOTPRINT IS TAKEN OFF THE UNWRAPPED WALL AND NOT OFF THE BAY, AND TAKING IT OFF THE
+    // BAY IS WHAT MADE THE WALLS LEAK LIGHT. `withinX` is a `mod`, so at every bay boundary it
+    // falls from `wide` to zero in one pixel and `fwidth` of it reports the whole bay -- three
+    // and a half METRES of blur handed to a smoothstep whose whole job is to be a centimetre
+    // wide. The window then half-opens along the seam: measured at the shipped bay, `inX` comes
+    // out at 0.24 on the boundary pixel, which is a quarter of a lit pane laid down as a hairline
+    // between every column of windows and, from `withinY`'s own wrap, between every storey.
+    // ***The dashes were windows, drawn one pixel wide, in the gaps.***
+    //
+    // ⚠ IT IS INVISIBLE BY DAY AND THE NIGHT IS WHERE IT WAS REPORTED, for the reason the lit
+    // window exists at all: by day a quarter-open pane is a shade of grey on a grey wall, and at
+    // night it is a quarter of a lamp on a black one. A defect that only the emission shows is
+    // still a defect in the ALBEDO.
+    //
+    // `u` and `up` run the length of the wall without wrapping and have the same derivative
+    // everywhere the `mod` does, so this is the same blur minus the seam.
+    vec2 grain = vec2(fwidth(u), fwidth(up)) + 0.0001;
     float inX = smoothstep(jamb - grain.x, jamb + grain.x, withinX)
         * (1.0 - smoothstep(jamb + paneW - grain.x, jamb + paneW + grain.x, withinX));
     float inY = smoothstep(sill - grain.y, sill + grain.y, withinY)
@@ -164,4 +196,71 @@ void fragment() {
     // a shell***, which is the physical fact the material was not being told.
     ROUGHNESS = mix(0.9, mix(0.28, 0.85, max(shut, ruin)), glazed);
     SPECULAR = mix(0.5, 0.68, glazed * (1.0 - shut) * (1.0 - ruin));
+
+    // 🔴 THE LIT WINDOW IS THE OCCUPANCY SAYING SOMETHING A DAYTIME PICTURE CANNOT. By day a shut
+    // opening and an open one differ by a shade of grey nobody reads at street distance; at night
+    // the same number is the difference between a black wall and a lamp. ***So this is the same
+    // fact drawn twice, and the second drawing is the legible one*** -- a half-empty quarter reads
+    // as half-empty from a kilometre up, which no overlay has ever managed.
+    //
+    // ⚠ NOT EVERY OCCUPIED WINDOW. `shut` already spends the occupancy share; a second, independent
+    // draw decides which of what is left has a light on at this hour, because a household with the
+    // lights off in one room is not a household that has moved out. ⚠ AND A RUIN LIGHTS NOTHING,
+    // for the reason it shutters nothing.
+    // ⚠ AND NOT EVERY WINDOW AT ONCE, WHICH IS THE WHOLE OF WHAT MAKES A CITY LOOK INHABITED.
+    // A block that lights in one frame and darkens in one frame is a switch; a block whose
+    // windows come on over the evening in no order, thin out through the small hours and are
+    // dark before the sun is up is a place people live in. ***The hour a lamp goes on is a
+    // property of the household and not of the sky***, so each opening draws its own two, and
+    // the sky's only remaining job is to say which night it is.
+    //
+    //   `lamp`   whether this window is ever lit at all -- the unused room, the empty back
+    //            bedroom. It is the old constant, kept, because a wall lit end to end reads as
+    //            an office block whatever the hour.
+    //   `wakes`  when it comes on, spread across the evening: from about sunset to a third of
+    //            the way through the night.
+    //   `sleeps` when it goes out. ⚠ CUBED RATHER THAN FLAT, and that is the shape of the
+    //            request rather than a tuning: a flat draw empties the city at an even rate all
+    //            night, and what a city actually does is empty in a rush after everyone is home
+    //            and then hold a long thin tail of people still up. Cubed, the wall is fully lit
+    //            at 21:00, 29% of it is still burning at solar midnight and 3% an hour and a
+    //            half before dawn.
+    //
+    // ⚠ THE LAST OF THEM GOES OUT BEFORE THE SUN COMES UP AND NOT WITH IT. The ceiling is 0.86
+    // against a sunrise at 0.92, so the city is dark for a moment first -- which is the order
+    // the two things happen in outdoors, and reversing it makes the dawn read as a light switch.
+    float lamp = draw(vec3(bayAt, floorAt, 13.0 + (v_custom.a * 57.0)));
+    float wakes = draw(vec3(bayAt, floorAt, 29.0 + (v_custom.a * 23.0)));
+    float sleeps = draw(vec3(floorAt, bayAt, 71.0 + (v_custom.a * 41.0)));
+
+    float onAt = 0.06 + (wakes * 0.24);
+    float offAt = max(onAt + 0.08, 0.30 + (0.56 * sleeps * sleeps * sleeps));
+
+    // 🔴 A STEP AND NOT A RAMP, AND THIS IS THE SECOND TIME THE SAME MISTAKE WAS MADE IN ONE
+    // FILE. A `smoothstep` was here, twelve thousandths of a night wide, on the argument that
+    // several thousand windows switching hard would arrive as a sparkle. ***It arrives as a
+    // window that fades on, and nothing in the world fades on*** -- a switch is thrown and the
+    // room is lit. The sparkle it was guarding against does not exist either: every opening
+    // draws its own hour off a continuous hash, so no two switch on the same frame anyway.
+    float wired = step(lamp, 0.70) * (1.0 - shut) * (1.0 - ruin) * upright;
+    float burning = wired * step(onAt, night_phase) * (1.0 - step(offAt, night_phase));
+
+    // ⚠ THE SECOND TERM IS WHAT SURVIVES THE FADE, and without it a city goes BLACK from exactly
+    // the distance at which its lights would be the whole picture: `glazed` carries the far fade,
+    // so a window past FAR_FADE contributes nothing. This is the same warmth spread over the wall
+    // instead of the pane, keyed on occupancy alone -- the per-window hash is noise at that range,
+    // and noise that flickers is worse than no lights at all.
+    //
+    // ⚠ IT KEEPS THE SAME HOURS, and it has to work them out for itself because there is no one
+    // window here to ask: `wakeful` approximates the share of a wall that would be lit at this
+    // phase if the two draws above were run over the whole of it.
+    //
+    // ⚠ AND IT IS THE ONE TERM HERE THAT MAY RAMP, because it is not a lamp. It is a few thousand
+    // of them summed at a kilometre, and a sum moves smoothly however hard each switch is -- so
+    // the smoothstep that was wrong on a window is right on the smudge.
+    float wakeful = smoothstep(0.0, 0.10, night_phase)
+        * (1.0 - smoothstep(0.10, 0.86, night_phase));
+    float haze = (1.0 - far) * upright * v_custom.b * (1.0 - ruin) * wakeful * 0.16;
+
+    EMISSION = vec3(1.0, 0.74, 0.40) * ((glazed * burning * 2.6) + haze);
 }

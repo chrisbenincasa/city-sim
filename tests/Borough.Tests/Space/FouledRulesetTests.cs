@@ -114,11 +114,16 @@ public sealed class FouledRulesetTests
     {
         // ⚠ 08:00, NOT MIDNIGHT, AND THE HOUR IS THE POINT. A Segment's volume is the count of
         // Vehicles on it AT THIS INSTANT, so the noise term is instantaneous while land value is the
-        // only thing in the composition that has memory. Probing at Tick 2048 -- midnight, Tick 0 of
-        // day two -- reads a city where nobody is driving and reports the noise term as zero
-        // everywhere, which is true of that instant and false of the world. Shift starts are 6 to 10
-        // (`shift_start_earliest_hour`), and 2048 Ticks is a Day, so this lands at about 07:00.
-        World world = Run(681);
+        // only thing in the composition that has memory. Probing at midnight reads a city where nobody
+        // is driving and reports the noise term as zero everywhere, which is true of that instant and
+        // false of the world. Shift starts are 6 to 10 (`shift_start_earliest_hour`).
+        //
+        // 🔴 Asked for as an HOUR rather than as a Tick count. This said `Run(681)` with a comment
+        // deriving 681 from a Day of 2048, and on 2026-09-01 the Day's start moved to 05:00
+        // (adr/0101, amended), which left the arithmetic intact and the hour it produced five hours
+        // out. *** A Tick count derived from a clock is a clock reading with its derivation thrown
+        // away ***, which is plans/0012 Cause 5 in a test rather than in prose.
+        World world = Run((int)Ticks.PerDay + Ticks.AtClock(8));
         DesirabilityWeights weights = world.Rules.Layers.Desirability;
         int pollutionOnly = 0;
         int noiseOnly = 0;
@@ -161,8 +166,10 @@ public sealed class FouledRulesetTests
     /// ⚠ <b>This is a property of the composition and not of the Ruleset, and it was found by this
     /// world rather than reasoned to.</b> A Segment's volume is the count of Vehicles on it <em>at
     /// that instant</em>, so the noise term is instantaneous — while land value is the only part of
-    /// the composition that has memory. At Tick 2048, midnight at the top of day two, every Segment in
-    /// a 100%-car-ownership city is empty and desirability is a one-term field.
+    /// the composition that has memory. At midnight every Segment in a 100%-car-ownership city is
+    /// empty and desirability is a one-term field. ⚠ <b>Midnight is asked for by name</b> through
+    /// <see cref="Ticks.AtClock"/> rather than reached by counting whole Days, which stopped being the
+    /// same thing on 2026-09-01.
     /// </para>
     /// <para>
     /// <b>So the land value target oscillates with the Day, at the Day's own period</b>, and what a
@@ -179,8 +186,8 @@ public sealed class FouledRulesetTests
     [Fact]
     public void Noise_is_zero_at_midnight_and_that_is_the_composition_not_the_world()
     {
-        World midnight = Run(2 * (int)Ticks.PerDay);
-        World morning = Run(681);
+        World midnight = Run((int)Ticks.PerDay + Ticks.AtClock(0));
+        World morning = Run((int)Ticks.PerDay + Ticks.AtClock(8));
         DesirabilityWeights weights = midnight.Rules.Layers.Desirability;
 
         Assert.Equal(0, Loudest(midnight, weights));

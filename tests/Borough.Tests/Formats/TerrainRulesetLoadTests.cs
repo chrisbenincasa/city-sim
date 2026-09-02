@@ -385,6 +385,11 @@ public sealed class TerrainRulesetLoadTests
             }
         }
 
-        Assert.Equal(["varied.toml"], priced);
+        // pictured.toml states [[terrain]] because it states everything -- plans/0051 row 1 is a
+        // world to photograph rather than a demonstration of one mechanism, and
+        // TwinLatticeTests carries the whole argument for exempting it from a test of this shape.
+        // ⚠ varied.toml is still the only file that DEMONSTRATES priced ground: this one turns it
+        // on beside sixteen other mechanisms, so nothing measured here could be attributed to it.
+        Assert.Equal(["pictured.toml", "varied.toml"], priced);
     }
 }

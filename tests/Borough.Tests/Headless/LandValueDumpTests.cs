@@ -33,12 +33,22 @@ public sealed class LandValueDumpTests
     /// </summary>
     /// <remarks>
     /// ⚠ <b>Not a round number, and the roundness is the trap.</b> A Day is 2,048 Ticks, so every
-    /// round multiple of it lands at midnight — where a city with 100% car ownership has no Vehicle
-    /// on any Segment and desirability's noise term is <b>zero in every Cell</b> (<c>adr/0127</c>).
-    /// ***A dump taken on a round number of Days is a dump of a one-term composition***, and it would
-    /// have read as a working two-term one.
+    /// round multiple of it lands at the Day's own Tick 0 — and under a Day beginning at 05:00 the
+    /// hour that matters is <b>08:00</b>, where a city with 100% car ownership is on the road. At
+    /// midnight it has no Vehicle on any Segment and desirability's noise term is <b>zero in every
+    /// Cell</b> (<c>adr/0127</c>). ***A dump taken on a round number of Days is a dump of a one-term
+    /// composition***, and it would have read as a working two-term one.
+    /// <para>
+    /// 🔴 <b>It was the literal <c>"21163"</c> until 2026-09-01</b>, with this same remark deriving it
+    /// from a Day of 2,048 — correct arithmetic against a midnight anchor, and five hours out the
+    /// moment the anchor moved (<c>adr/0101</c>, amended). ***A Tick count derived from a clock is a
+    /// clock reading with its derivation thrown away.*** It is now composed from
+    /// <see cref="Ticks.AtClock"/>, so the hour is what is stated and the Tick is what is computed.
+    /// </para>
     /// </remarks>
-    private const string Ticks = "21163";
+    private static readonly string Ticks =
+        ((10 * Core.Quantities.Ticks.PerDay) + Core.Quantities.Ticks.AtClock(8))
+            .ToString(System.Globalization.CultureInfo.InvariantCulture);
 
     private const string Population = "4000";
 
@@ -140,8 +150,10 @@ public sealed class LandValueDumpTests
     }
 
     private static (int Code, string Report) Run(
-        string ruleset, string citizens = Population, string ticks = Ticks)
+        string ruleset, string citizens = Population, string? ticks = null)
     {
+        ticks ??= Ticks;
+
         Assert.True(
             Options.TryParse(
                 ["--land-value", "--ruleset", ruleset, "--citizens", citizens, "--ticks", ticks],

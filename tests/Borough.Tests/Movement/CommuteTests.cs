@@ -58,13 +58,19 @@ public sealed class CommuteTests
     /// no generator existed — so a Trip carrying <see cref="TripPurpose.Commute"/> in a run whose
     /// Input Log holds one <c>populate</c> and nothing else is the whole milestone in one assertion.
     /// </remarks>
+    /// <remarks>
+    /// 🔴 ⚠ <b>It reads the PEAK over the run and not the final instant, and the reason is that the
+    /// Day moved under it.</b> With Tick 0 at midnight the morning wave was still walking at Tick 512;
+    /// with Tick 0 at <b>05:00</b> (<c>adr/0101</c>, amended) the earliest Shift starts at Tick 85 and
+    /// the latest at 427, so by 512 the whole wave has ARRIVED and <see cref="InFlight"/> reads zero
+    /// against a city that commuted all morning. ***An instantaneous count is a claim about a Tick and
+    /// this test is making a claim about a run.*** Sampling every Tick costs the same 512 steps.
+    /// </remarks>
     [Fact]
     public void A_citizen_with_a_workplace_walks_to_it_without_being_told_to()
     {
-        World world = Run(GoldenFixtures.Rules()).World;
-
         Assert.True(
-            InFlight(world, TripPurpose.Commute) > 0,
+            PeakInFlight(GoldenFixtures.Rules(), TripPurpose.Commute) > 0,
             "no Citizen commuted over 512 Ticks of the shipped Ruleset.");
     }
 
@@ -347,6 +353,34 @@ public sealed class CommuteTests
         builder.Append(new Ticks(0), new Command(CommandKind.Populate, default, default));
 
         return builder.Build();
+    }
+
+    /// <summary>
+    /// The most Trips of one purpose that were in flight at any Tick of the run.
+    /// </summary>
+    /// <remarks>
+    /// <b><see cref="InFlight"/> asked once a Tick rather than once at the end</b>, because a wave
+    /// that has finished is indistinguishable from a wave that never left. See the caller.
+    /// </remarks>
+    private static int PeakInFlight(Ruleset rules, TripPurpose purpose)
+    {
+        InputLog log = Log();
+        Simulation simulation = Replay.Start(log, rules);
+        int peak = 0;
+
+        for (int tick = 0; tick < TickCount; tick++)
+        {
+            Replay.Trace(simulation, log, new Ticks(1), HashEvery, []);
+
+            int now = InFlight(simulation.World, purpose);
+
+            if (now > peak)
+            {
+                peak = now;
+            }
+        }
+
+        return peak;
     }
 
     /// <summary>Live Trips of one purpose. Read from the table because a Fate frees the row.</summary>

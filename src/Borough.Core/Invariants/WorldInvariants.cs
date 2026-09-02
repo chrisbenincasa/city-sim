@@ -420,6 +420,29 @@ public static class WorldInvariants
                 continue;
             }
 
+            // A Water Body's Bin, whose ceiling IS derivable without a Building kind -- the one
+            // owner other than a Building for which that is true. It is the body's own Cell count
+            // times [water] capacity_per_cell, which is what World.RebuildCapacities derives at
+            // milestone 24 task 6b. ⚠ THIS CHECK DID NOT KNOW THAT, and the shape is the Business
+            // arm's above exactly: the rebuild grew an owner it could derive and the invariant kept
+            // the old two-way split, so a water Bin fell through to the `must be long.MaxValue`
+            // branch below and failed. ***Every world could reach it***: rulesets/coastal.toml
+            // panicked at the end-of-run walk from the day [water] grew a Bin, and nothing ran it to
+            // one. ⚠ The conserved test comes FIRST because it does in the rebuild -- a conserved
+            // Resource is unbounded wherever it sits, before any owner is consulted.
+            if (bins.OwnerKind[bin] == BinOwnerKind.WaterBody)
+            {
+                report.Require(
+                    bins.Capacity[bin] == (world.Rules.IsConserved(bins.Resource[bin])
+                        ? long.MaxValue
+                        : world.WaterCapacityOf(bin)),
+                    Invariant.BinCapacityMatchesItsDeclaration,
+                    bin,
+                    bins.Capacity[bin]);
+
+                continue;
+            }
+
             // The treasury's ceiling comes from 04 §2 -- "Money is a Resource too, and its Bin is
             // unbounded" -- and not from a Building kind it does not have. Asserting it against
             // DeclaredCapacity would be asserting it against the zero returned for a kind nobody

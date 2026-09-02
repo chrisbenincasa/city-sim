@@ -72,6 +72,39 @@ public readonly record struct Ticks(ulong Raw) : IComparable<Ticks>
     public const int HoursPerDay = 24;
 
     /// <summary>
+    /// The wall-clock hour Tick 0 of a Day stands at. <b>05:00, and it used to be midnight.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>A DAY IS A WAKING DAY AND NOT A CALENDAR ONE, which is a change to <c>adr/0101</c>'s
+    /// convention rather than to anything it argued.</b> That record spent the freedom on midnight
+    /// because nothing then asked what time it was; two things ask now. A run opened with no
+    /// <c>--start-at</c> begins at Tick 0, and under the moving sun that meant ***every fresh run
+    /// opened in the dark***. And a Day boundary at midnight cuts the night in half, so the quiet
+    /// hours belong to two different Day numbers and no readout of "a Day" ever shows one.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is a PHASE and not a length.</b> A Day is still 2048 Ticks and 24 hours; what moved
+    /// is where the count starts. Nothing that measures a duration is touched, which is exactly the
+    /// distinction <see cref="AtClock"/> exists to keep — see its remarks, because
+    /// <see cref="AtHour"/> was already serving both meanings and only one of them may move.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Hash-bearing, and the movement is real rather than incidental.</b> A Shift starting at
+    /// 06:00 now begins at Tick 85 of the Day where it began at Tick 512, so every commute in every
+    /// world shifts within the Day. <c>05 §4</c> calls that a design change and not an optimisation.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Five and not six or four, and there is nothing to ratify.</b> It wants to be before the
+    /// earliest Shift a Ruleset may declare — <c>shift_start_earliest_hour</c> is 6 in every shipped
+    /// file — so that no commute is cut by the Day boundary it belongs to, and after the middle of
+    /// the night so the quiet hours stay in one Day. Any hour in that band is the same world; this
+    /// one is also just before sunrise, which is what makes a fresh run open on a dawn.
+    /// </para>
+    /// </remarks>
+    public const int DayBeginsAtHour = 5;
+
+    /// <summary>
     /// The Tick of the Day a given in-world hour falls on, <b>with Tick 0 as midnight</b>.
     /// </summary>
     /// <remarks>
@@ -92,8 +125,52 @@ public readonly record struct Ticks(ulong Raw) : IComparable<Ticks>
     /// Day, for ever.
     /// </para>
     /// </remarks>
-    /// <param name="hour">An in-world hour. 0 is midnight; 24 is the following midnight.</param>
+    /// <param name="hour">A number of in-world hours. 24 is a whole Day.</param>
     public static int AtHour(int hour) => AtMinute(hour * 60);
+
+    /// <summary>
+    /// The Tick of the Day a given <b>wall-clock</b> hour falls on, with Tick 0 at
+    /// <see cref="DayBeginsAtHour"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b><see cref="AtHour"/> WAS SERVING TWO MEANINGS AND ONLY ONE OF THEM MAY BE PHASED.</b>
+    /// It was reading <em>six hours</em> at three call sites — a Shift's length, a punctuality
+    /// margin, a whole Day — and <em>six o'clock</em> at a fourth. While Tick 0 was midnight the two
+    /// were the same arithmetic and the ambiguity cost nothing; the moment a Day starts at 05:00 they
+    /// part company, and a Shift six hours long would have become a Shift one hour long. ***So the
+    /// split is what makes the phase safe, and it is the whole of the risk in this change.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It wraps, and the wrap is the point.</b> 05:00 is Tick 0 and 04:00 is the last hour of
+    /// the same Day, so a caller asking for an hour earlier than the Day's start gets the
+    /// <em>late</em> end rather than a negative Tick.
+    /// </para>
+    /// </remarks>
+    /// <param name="hour">A wall-clock hour, 0 to 23.</param>
+    public static int AtClock(int hour)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(hour);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(hour, HoursPerDay);
+
+        return AtMinute((hour - DayBeginsAtHour + HoursPerDay) % HoursPerDay * 60);
+    }
+
+    /// <summary>
+    /// The wall-clock minute of the day a Tick stands at — <b>0 to 1,439, where 0 is midnight.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b><see cref="AtClock"/>'s inverse, and the one place a reading of the clock is derived.</b>
+    /// Three separate dumps and the shell's readout each carried their own copy of
+    /// <c>ofDay * 24 / PerDay</c>, which was right while the Day began at midnight and silently
+    /// wrong the moment it did not. ⚠ <b>It is a number and never a string</b> — <c>05 §1</c>: the
+    /// shell owns every string a human reads.
+    /// </remarks>
+    /// <param name="tick">Any Tick. The Day it falls in does not matter.</param>
+    public static int MinuteOfDay(ulong tick) =>
+        (int)((IntegerMath.FloorDiv(
+                (long)(tick % PerDay) * MinutesPerDay, PerDay)
+            + (DayBeginsAtHour * 60)) % MinutesPerDay);
 
     /// <summary>
     /// The Tick of the Day a given in-world minute falls on, with Tick 0 as midnight.

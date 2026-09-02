@@ -36,10 +36,21 @@ namespace Borough.Core.Movement;
 /// <c>adr/0101</c>, and <c>CONTEXT.md</c> → Shift.
 /// </para>
 /// <para>
-/// <b>Tick 0 of the Day is midnight</b> (<see cref="Ticks.AtHour"/>). This class used to say the Day
-/// began at the peak and that the choice was unobservable, which was true while nothing in the
-/// simulation asked the time. A Day with a quiet night in it distinguishes its own ends, so the
-/// freedom is spent — deliberately, once, in an ADR rather than in a Ruleset key.
+/// <b>Tick 0 of the Day is 05:00</b> (<see cref="Ticks.DayBeginsAtHour"/>, read through
+/// <see cref="Ticks.AtClock"/>). This class used to say the Day began at the peak and that the choice
+/// was unobservable, which was true while nothing in the simulation asked the time. A Day with a quiet
+/// night in it distinguishes its own ends, so the freedom is spent — deliberately, once, and not in a
+/// Ruleset key.
+/// </para>
+/// <para>
+/// 🔴 ⚠ <b>It said <em>midnight</em> until 2026-09-01, which is <c>adr/0101</c>'s own convention and
+/// not a claim this class was making.</b> Two readers arrived that the ADR did not have: a run opened
+/// with no start Tick begins at Tick 0, and under a sun that moves that meant every fresh run opened
+/// in the dark — and a Day boundary at midnight cuts the night in half, so the quiet hours belong to
+/// two Day numbers and no readout of <em>a Day</em> ever shows one. <b>What moved is a phase and not a
+/// length</b>: a Day is still <see cref="Ticks.PerDay"/> Ticks and 24 hours, and every duration in
+/// this file is untouched. A Shift starting at 06:00 now begins at Tick 85 of the Day where it began
+/// at Tick 512, which is a design change under <c>05 §4</c> and not an optimisation.
 /// </para>
 /// <para>
 /// <b>The evening leg is here, and the refusal it replaces was reasoning from an absence.</b> The

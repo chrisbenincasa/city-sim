@@ -15,6 +15,8 @@ Shift length is drawn in **Ticks** rather than in whole hours, and there is a **
 `arrive_early_max_minutes` — that this record originally counted at three.
 
 **And Tick 0 of the Day is midnight**, stated here once because this decision is what spends the freedom.
+🔴 ⚠ **AMENDED 2026-09-01 — Tick 0 is 05:00.** The convention moved and the argument below did not; see
+*Tick 0 is midnight, and saying so is the point*, which now carries the amendment in full.
 
 Guiding concepts: `EMERGENCE`, `UNIQUE INDIVIDUALS`, `LEGIBLE CAUSE`.
 
@@ -113,6 +115,41 @@ what the journey looked like then — which is the property that makes a Citizen
 commute that has since got worse a diagnosable thing rather than an impossible one.
 
 ### Tick 0 is midnight, and saying so is the point
+
+🔴 ⚠ **AMENDED 2026-09-01: THE HOUR IS NOW 05:00, AND EVERY WORD BELOW STILL HOLDS.** What this section
+argues is that *the anchor is a convention rather than a tuning number, spent by the first document that
+uses it, and therefore worth announcing*. That argument is untouched — this is the announcement being
+made a second time, at a different hour, for reasons the original could not have had.
+
+**Two readers arrived that did not exist when midnight was chosen.** A run opened with no start Tick
+begins at Tick 0, and under a sun that moves across the sky, ***every fresh run opened in the dark***.
+And a Day boundary at midnight cuts the night in half, so the quiet hours belong to two different Day
+numbers and no readout of *a Day* ever shows one whole.
+
+⚠ **It is a PHASE and not a length, and nothing here is a duration.** A Day is still 2048 Ticks and 24
+in-world hours. What moved is where the count starts, which is why the repair in the build is a second
+spelling — `Ticks.AtClock` for a time of day, `Ticks.AtHour` for a number of hours — rather than an edit
+to the one function that was quietly serving both meanings. **There was exactly one time-of-day caller**,
+`CommuteRoster`, and three duration callers in the Ruleset loader.
+
+⚠ **Hash-bearing, and the movement is real.** A Shift starting at 06:00 begins at Tick **85** of the Day
+where it began at Tick **512**, so every commute in every world shifts within the Day. `05 §4` calls that
+a design change and not an optimisation.
+
+⚠ **Five and not six or four, and there is nothing to ratify.** The hour wants to be before the earliest
+Shift a Ruleset may declare — `shift_start_earliest_hour` is 6 in every shipped file — so that no commute
+is cut by the Day boundary it belongs to, and after the middle of the night so the quiet hours stay in one
+Day. Any hour in that band is the same world; this one is also just before sunrise, which is what makes a
+fresh run open on a dawn. **It remains a convention rather than a tuning number**, so `adr/0052` has
+nothing to ask of it and no `peak_offset` key is opened.
+
+🔴 **It also uncovered a defect that had nothing to do with the clock.** Moving the Day's start moved the
+morning peak onto the Tick `FactorioTests` saves at, and the save/reload equivalence test went red for the
+first time — on a world it had been saving in the dead of night, with no Traveller in flight, for as long
+as it had existed. What it caught was `WalkScratch.Arrived` surviving a query that never searched. See
+`plans/0003` and `WalkScratch.Forget`. ***A fixture that covers a mechanism at a Tick where the mechanism
+is asleep covers nothing***, and only a phase change said so.
+
 
 `CommuteEngine` declines an offset key on the ground that *no Rule, no Layer and no Zone Rule asks what
 time of day it is, so when the peak falls within the Day is unobservable*, and that is correct today. **A

@@ -50,6 +50,23 @@ public partial class Main : Node3D
     /// </remarks>
     private const float PitchRadians = 0.61547971f;
 
+    /// <summary>The lowest the eye may be tipped, in radians — <b>4°.</b></summary>
+    /// <remarks>
+    /// ⚠ <b>Not zero, and the reason is the ground rather than taste.</b> The terrain is one
+    /// <c>PlaneMesh</c> 65.5 km across at <c>y = 0.01</c>; at a horizontal eye it is edge-on, the
+    /// far half of the map converges into a single row of pixels, and what fills the frame is the
+    /// sky's ground colour. A few degrees is enough to keep a surface under the city.
+    /// </remarks>
+    private const float LowestRadians = 0.0698f;
+
+    /// <summary>The highest — <b>85°, and deliberately not 90.</b></summary>
+    /// <remarks>
+    /// ⚠ <b>Straight down would make <see cref="Orbit"/>'s up-vector degenerate</b>, and a
+    /// <c>LookAt</c> whose forward is parallel to its up produces a basis with no defined yaw — so
+    /// the city would spin on the last frame before the top. The five degrees are the guard.
+    /// </remarks>
+    private const float HighestRadians = 1.4835f;
+
     /// <summary>A quarter turn of the compass, which is what one press of the rotate key is.</summary>
     private const float YawStepRadians = Mathf.Pi * 0.25f;
 
@@ -366,8 +383,31 @@ public partial class Main : Node3D
 
     private MultiMeshInstance3D _cells = null!;
 
+    /// <summary>The sun, kept because it follows the clock (<c>plans/0051</c> row 2).</summary>
+    private DirectionalLight3D _light = null!;
+
+    /// <summary>The sky, kept for the same reason: its colours are the hour's.</summary>
+    private ProceduralSkyMaterial _above = null!;
+
+    /// <summary>The environment, kept because ambient light is the hour's too.</summary>
+    private Godot.Environment _air = null!;
+
     /// <summary>The ground the city actually stands on, in metres, from the last framing.</summary>
     private Rect2 _laid;
+
+    /// <summary>
+    /// The ground the Road Graph covers, in metres, from the last framing. <b>Larger than
+    /// <see cref="_laid"/> and not by a knowable factor.</b>
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>It is measured off the Nodes rather than guessed from the city's size, and the guess it
+    /// replaces was <c>_laid.Grow(_span * 0.5f)</c>.</b> That margin scaled with the city, so the
+    /// larger a city grew the further it pushed the woodland away from itself — and at 20,000
+    /// Citizens on <c>rulesets/pictured.toml</c> ***there was not one tree anywhere near the town***
+    /// (<c>plans/0051</c> <b>F7</b>). A paved rectangle is a fact the Road Graph already holds, so
+    /// asking it costs one walk of the Nodes on a framing and nothing at all per frame.
+    /// </remarks>
+    private Rect2 _paved;
 
     private MultiMeshInstance3D _ground = null!;
     private MeshInstance3D _land = null!;
@@ -540,6 +580,27 @@ public partial class Main : Node3D
 
     /// <summary>Which corner the city is seen from, clockwise from due south in radians.</summary>
     private float _yaw = YawStepRadians;
+
+    /// <summary>
+    /// How far the eye is tipped above the ground. <b>Opens at the isometric angle and moves.</b>
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>It was a <c>const</c> until <c>plans/0051</c> row 3.</b> Every picture this shell had
+    /// ever produced was taken from the same 35.26°, which is a drawing convention rather than a
+    /// camera — and a city seen only from one angle is a diagram of itself. ***What a low eye buys
+    /// is the SKYLINE***: a roof line against the sky is the one thing a plan view cannot show, and
+    /// it is what a person photographs.
+    /// </remarks>
+    private float _pitch = PitchRadians;
+
+    /// <summary>The lens, kept because its focus plane rides the orbit's standoff.</summary>
+    private CameraAttributesPractical _lens = null!;
+
+    /// <summary>Whether the lens is on. <b>Read by <see cref="Orbit"/> and nothing else.</b></summary>
+    private bool _photographing;
+
+    /// <summary>The Buildings' shader, kept because the hour is a uniform on it.</summary>
+    private ShaderMaterial? _paint;
 
     public override void _Ready()
     {
@@ -801,6 +862,7 @@ public partial class Main : Node3D
 
         Edge(delta);
 
+        Daylight();
         Draw(_alpha);
         Drive();
         Answer();
@@ -962,6 +1024,22 @@ public partial class Main : Node3D
 
             case DriveVerb.Hold:
                 Hold(command.Path!, command.Amount);
+
+                break;
+
+            case DriveVerb.Lens:
+                Lens(command.Amount != 0);
+
+                break;
+
+            case DriveVerb.Tilt:
+                // Degrees in, radians held. The clamp lives here rather than in the grammar because
+                // the bounds are the SHELL's -- they come from the ground mesh and from LookAt's
+                // up-vector, neither of which Borough.Formats knows anything about.
+                _pitch = Mathf.Clamp(
+                    Mathf.DegToRad(command.Amount), LowestRadians, HighestRadians);
+
+                Orbit();
 
                 break;
 
@@ -1535,6 +1613,14 @@ public partial class Main : Node3D
         {
             Key.Q => Made(DriveVerb.Turn, -1),
             Key.E => Made(DriveVerb.Turn, 1),
+
+            // ⚠ THE KEYBOARD STEPS AND THE VERB IS STILL ABSOLUTE, which is this file's rule for
+            // every toggle: read what is held, work out where it goes, and ask for that. So a
+            // recorded session replays the ANGLE and not the keypress, and a step size changed
+            // later cannot re-aim somebody's old script.
+            Key.R => Made(DriveVerb.Tilt, Tipped(5)),
+            Key.F => Made(DriveVerb.Tilt, Tipped(-5)),
+            Key.L => Made(DriveVerb.Lens, _photographing ? 0 : 1),
             Key.G => Made(DriveVerb.Roads, _roads.Visible ? 0 : 1),
             Key.C => Made(DriveVerb.Cells, _cells.Visible ? 0 : 1),
             Key.Equal or Key.KpAdd => Made(DriveVerb.Zoom, 4),
@@ -1814,12 +1900,16 @@ public partial class Main : Node3D
         Cursor();
 
         ulong tick = _world.Tick.Raw;
-        ulong ofDay = tick % (ulong)Ticks.PerDay;
+
+        // ⚠ THE MINUTE COMES FROM Ticks AND IS NO LONGER DERIVED HERE. A Day begins at 05:00, so
+        // `ofDay * 24 / PerDay` is off by five hours -- and this was one of four copies of that
+        // expression, which is exactly why it now lives in one place.
+        int minute = Ticks.MinuteOfDay(tick);
 
         _readout.Text =
             $"{System.IO.Path.GetFileName(_rulesetPath)}   Tick {tick:N0}   "
             + $"Day {tick / (ulong)Ticks.PerDay}   "
-            + $"{ofDay * 24 / (ulong)Ticks.PerDay:00}:{ofDay * 1440 / (ulong)Ticks.PerDay % 60:00}\n"
+            + $"{minute / 60:00}:{minute % 60:00}\n"
             + $"Citizens {_world.Citizens.Rows.LiveCount:N0}   Buildings {drawn:N0}   "
             + $"vacant Lots {vacant:N0}   "
             + $"travelling {moving:N0}{Weather(under)}\n"
@@ -1827,7 +1917,7 @@ public partial class Main : Node3D
             + $"mode {Holding()}   "
             + "[ ] speed, space pause, w write log, g roads, c cells, tab tune\n"
             + "click acts   right-drag or two-finger scroll pans   edge of screen pans   "
-            + "pinch or -/= zooms   q/e turns"
+            + "pinch or -/= zooms   q/e turns   r/f tilts   l lens"
             + (_refused.Length > 0 ? $"\nREFUSED — {_refused}" : string.Empty);
 
         _hover.Text = Pointing();
@@ -3381,11 +3471,18 @@ public partial class Main : Node3D
                 + $"sealing {cells.Sealing[layer]:N0}");
         }
 
-        int district = _world.DistrictsInCells.Slot(east, north);
+        // 🔴 THROUGH `Of` AND NOT THROUGH `Slot`, AND THE TWO RETURN SLOTS IN DIFFERENT TABLES.
+        // DistrictResidency.Slot answers with a row of the MEMBERSHIP table -- one row per Cell in
+        // a District, of which there are thousands -- and this line was handing it to the DISTRICT
+        // table, of which there are two. It threw IndexOutOfRangeException on the first frame the
+        // cursor rested on a District Cell, once a frame, for ever. ⚠ NO WORLD COULD REACH IT until
+        // rulesets/pictured.toml: a Ruleset must state [districts] for the index to hold anything,
+        // three shipped files do, and nobody had pointed the shell at one of them.
+        Handle<District> district = _world.DistrictsInCells.Of(_world.DistrictCells, east, north);
 
-        if (district != DistrictResidency.NotResident)
+        if (_world.Districts.Rows.TryResolve(district, out int seat))
         {
-            said.Add($"District {_world.Districts.Rows.IdAt(district):N0}");
+            said.Add($"District {_world.Districts.Rows.IdAt(seat):N0}");
         }
     }
 
@@ -3760,7 +3857,12 @@ public partial class Main : Node3D
         // ⚠ THE YARD TEST FOLLOWS THE PAVING AND NOT THE LOTS. `SyntheticCity` lays a lattice larger
         // than it subdivides (`plans/0049` F8), so a rectangle drawn round the Lots leaves paved
         // blocks outside it -- and a crown scattered freely there stands in a carriageway.
-        Rect2 paved = _laid.Grow(_span * 0.5f);
+        //
+        // 🔴 IT IS THE ROAD GRAPH'S OWN EXTENT AND NO LONGER A MARGIN PROPORTIONAL TO THE CITY.
+        // `_laid.Grow(_span * 0.5f)` suppressed a city-width of countryside in every direction, so
+        // the bigger the city the barer its surroundings -- plans/0051 F7. One block of slack is
+        // kept because a Node is a centreline and a carriageway has width.
+        Rect2 paved = _paved.Grow(block * MetresPerTile);
         WoodlandCellTable trees = _world.Layers.Woodland;
         TerrainCellTable ground = _world.Layers.Terrain;
         int crowns = 0;
@@ -4082,7 +4184,11 @@ public partial class Main : Node3D
         }
         else
         {
-            material = new ShaderMaterial { Shader = GD.Load<Shader>(painted) };
+            // Kept because the hour is a uniform on it. It is one layer -- the Buildings -- and a
+            // second painted layer would need a list rather than a field; there is no second one,
+            // and inventing the list before there is would be a guess about what it holds.
+            _paint = new ShaderMaterial { Shader = GD.Load<Shader>(painted) };
+            material = _paint;
         }
 
         mesh.Material = material;
@@ -4137,7 +4243,7 @@ public partial class Main : Node3D
     /// </remarks>
     private void Sun()
     {
-        var light = new DirectionalLight3D
+        _light = new DirectionalLight3D
         {
             LightEnergy = 1.25f,
             LightColor = new Color(1.0f, 0.96f, 0.88f),
@@ -4148,23 +4254,41 @@ public partial class Main : Node3D
             // framing it would spend the whole atlas on empty ground and give the city texels
             // metres wide. This is the neighbourhood a person looks at, and past the fade a
             // distant city is unshadowed rather than wrong.
+            //
+            // ⚠ THE VALUE HERE IS ONLY THE OPENING ONE. Orbit() overwrites it on every camera
+            // move, because how much range is worth spending depends on how far away the eye is
+            // standing -- see the comment there, which carries the measurement.
             DirectionalShadowMaxDistance = 1_600f,
             DirectionalShadowFadeStart = 0.85f,
             DirectionalShadowSplit1 = 0.06f,
             DirectionalShadowSplit2 = 0.16f,
             DirectionalShadowSplit3 = 0.44f,
+
+            // ⚠ THE OPENING VALUE ONLY. Daylight() sets this every frame from how high the sun is
+            // standing, because the artifact it exists to hide is a function of that and of
+            // nothing else -- see the comment there, which carries the measurement and the three
+            // things that were tried instead and did not work.
+            //
+            // ⚠ And the faint concentric MOIRÉ over open ground is a different thing and is real:
+            // it is one quantisation level, 1/255, and ShadowBias 1.0 erases it. Not taken,
+            // because a bias that large detaches a shadow from its own wall to cure something
+            // nobody has reported seeing.
             ShadowBlur = 1.1f,
         };
 
-        // ⚠ NOT NOON. A sun overhead lights every roof identically and leaves no wall in shadow,
-        // which is the one lighting angle at which a pitched roof and a flat one look the same.
-        light.RotateX(-0.78f);
-        light.RotateY(-0.62f);
-        light.SetParam(Light3D.Param.ShadowNormalBias, 1.6f);
-        light.SetParam(Light3D.Param.ShadowBias, 0.06f);
-        AddChild(light);
+        // ⚠ NOT NOON, AND SINCE plans/0051 ROW 2 NOT A CONSTANT EITHER. The angle set here is the
+        // one the first frame is drawn at before Daylight has run; every frame after it comes from
+        // the clock. A sun overhead lights every roof identically and leaves no wall in shadow,
+        // which is the one lighting angle at which a pitched roof and a flat one look the same --
+        // so the arc below is capped well short of the zenith rather than being astronomically
+        // right.
+        _light.RotateX(-0.78f);
+        _light.RotateY(-0.62f);
+        _light.SetParam(Light3D.Param.ShadowNormalBias, 1.6f);
+        _light.SetParam(Light3D.Param.ShadowBias, 0.06f);
+        AddChild(_light);
 
-        var above = new ProceduralSkyMaterial
+        _above = new ProceduralSkyMaterial
         {
             SkyTopColor = new Color(0.28f, 0.42f, 0.66f),
             SkyHorizonColor = new Color(0.63f, 0.70f, 0.78f),
@@ -4179,12 +4303,10 @@ public partial class Main : Node3D
             SunCurve = 0.2f,
         };
 
-        var sky = new WorldEnvironment
+        _air = new Godot.Environment
         {
-            Environment = new Godot.Environment
-            {
                 BackgroundMode = Godot.Environment.BGMode.Sky,
-                Sky = new Sky { SkyMaterial = above },
+                Sky = new Sky { SkyMaterial = _above },
                 AmbientLightSource = Godot.Environment.AmbientSource.Sky,
                 AmbientLightSkyContribution = 1f,
                 AmbientLightEnergy = 1.05f,
@@ -4202,10 +4324,229 @@ public partial class Main : Node3D
                 // loses exactly the shading the openings are drawn against.
                 TonemapMode = Godot.Environment.ToneMapper.Filmic,
                 TonemapWhite = 2.2f,
-            },
         };
 
-        AddChild(sky);
+        AddChild(new WorldEnvironment { Environment = _air });
+        Daylight();
+    }
+
+    /// <summary>How high the sun climbs at noon, in radians — <b>54°, and short of the zenith.</b></summary>
+    /// <remarks>
+    /// ⚠ <b>It is a look and not a latitude.</b> A sun overhead lights every roof identically and
+    /// leaves no wall in shadow, which is the one angle at which a pitched roof and a flat one are
+    /// indistinguishable — and the pitch is what <c>plans/0049</c> spent a session varying. So the
+    /// arc is capped where walls still catch light, and nowhere in this file is a claim about where
+    /// on Earth the city is.
+    /// </remarks>
+    private const float NoonRadians = 0.95f;
+
+    /// <summary>The clock fraction the lamps' night opens at, and how much of a Day it spans.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This sun rises at 06:00 and sets at 18:00</b> — <c>height</c> is
+    /// <c>sin(NoonRadians)·cos(t)</c> and <c>t</c> is <c>(clock − ½)·τ</c>, so it crosses zero at
+    /// <c>clock</c> 0.25 and 0.75 and there is no seasonal term. The window below is that night
+    /// with a margin at each end: it opens at <b>0.70</b> and closes at <b>0.30</b> — the hour or
+    /// so either side that a person would call dusk and dawn.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>THE MARGIN IS WHAT STOPS THE WRAP FROM BEING SEEN.</b> The phase steps from 1 back to
+    /// 0 at the instant the window opens, and every lamp is off on both sides of that step — but
+    /// only because <c>night</c> has ALSO reached zero by then. At <c>clock</c> 0.70 the sun stands
+    /// at height <b>0.25</b>, above the 0.20 where <c>night</c>'s own ramp bottoms out, so the
+    /// discontinuity is multiplied by nothing. ***Narrowing this window would put the wrap inside
+    /// the lit hours and the whole city would blink once a Day.***
+    /// </para>
+    /// </remarks>
+    private const float NightOpensAt = 0.70f;
+
+    /// <inheritdoc cref="NightOpensAt"/>
+    private const float NightSpans = 0.60f;
+
+    /// <summary>Where the sun stands at this Tick, as a unit vector from the city towards it.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The whole of the model.</b> <c>t</c> is the hour angle, zero at noon, and the sun rides a
+    /// circle through due east and due west tilted so that its high point is due south at
+    /// <see cref="NoonRadians"/>. At <c>t = ±π/2</c> it is on the horizon at the two ends of that
+    /// circle; at <c>t = π</c> it is as far below the horizon as it was above it. ⚠ <b>The vector
+    /// is a unit vector by construction</b> — <c>sin²t + cos²t(sin²m + cos²m)</c> — so nothing here
+    /// needs normalising and a rounding error cannot make the day longer.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>+Z is SOUTH in this shell and not north.</b> Every position is built as
+    /// <c>(east, height, −north)</c>, so the sun's noon component is <c>+Z</c> and getting that sign
+    /// wrong puts the light behind the camera all day, which reads as an overcast world rather than
+    /// as a bug.
+    /// </para>
+    /// <para>
+    /// <b>Tick 0 is 05:00</b> (<c>Ticks.DayBeginsAtHour</c>, <c>adr/0101</c> amended), so a run opened
+    /// with no <c>--start-at</c> opens on a dawn. That is the clock the city keeps and not something
+    /// to correct here; the offset is applied below rather than assumed.
+    /// </para>
+    /// <para>
+    /// 🔴 ⚠ <b>IT TAKES THE SUB-TICK FRACTION, AND THE REASON IS THAT A DAY IS ONLY 2,048 SAMPLES
+    /// LONG.</b> One Tick is <b>0.176°</b> of the sun's circle. At 4× the shell steps 32 Ticks a
+    /// second and the sweep reads as motion; at <b>1× it steps 8</b>, so a 60 fps frame holds the sun
+    /// still for seven frames and then jumps it — and a dawn shadow a hundred metres long snaps
+    /// visibly on every one of those jumps. ***The Tick is the simulation's resolution and it is not
+    /// the picture's***, which is <see cref="_alpha"/>'s whole argument arriving at the one consumer
+    /// that had not asked for it. The city is unmoved: nothing here is read by
+    /// <c>Borough.Core</c> and the sun is not state.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Computed as a fraction of the Day rather than through <c>Ticks.MinuteOfDay</c>.</b> That
+    /// helper floors to the whole minute, which at 0.70 minutes a Tick is a <em>second</em>
+    /// quantisation laid over the one being removed. The wall-clock offset it carries is applied here
+    /// from the same constant, so there is still one place that decides when a Day begins.
+    /// </para>
+    /// </remarks>
+    /// <param name="tick">The Tick the world is on.</param>
+    /// <param name="within">How far into that Tick the frame is, in <c>[0, 1)</c>.</param>
+    private static Vector3 Sunward(ulong tick, float within)
+    {
+        float t = (Clock(tick, within) - 0.5f) * Mathf.Tau;
+
+        return new Vector3(
+            -Mathf.Sin(t),
+            Mathf.Sin(NoonRadians) * Mathf.Cos(t),
+            Mathf.Cos(NoonRadians) * Mathf.Cos(t));
+    }
+
+    /// <summary>Where in its Day the world is, as a fraction with midnight at zero.</summary>
+    /// <remarks>
+    /// <para>
+    /// Pulled out of <see cref="Sunward"/> so that the sun's angle and the hour the lamps keep are
+    /// the same reading of the same clock. <b>Tick 0 is 05:00</b> (<c>Ticks.DayBeginsAtHour</c>),
+    /// and applying that offset here is what keeps one place deciding when a Day begins.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is not wrapped into <c>[0, 1)</c>.</b> The offset can carry it past 1 and the two
+    /// callers both want it that way — the sun takes a cosine, which does not care, and
+    /// <see cref="Daylight"/> takes a <c>%</c> of its own against a different origin.
+    /// </para>
+    /// </remarks>
+    /// <param name="tick">The Tick the world is on.</param>
+    /// <param name="within">How far into that Tick the frame is, in <c>[0, 1)</c>.</param>
+    private static float Clock(ulong tick, float within)
+    {
+        float ofDay = ((tick % (ulong)Ticks.PerDay) + within) / Ticks.PerDay;
+
+        return ofDay + (Ticks.DayBeginsAtHour / (float)Ticks.HoursPerDay);
+    }
+
+    /// <summary>Points the sun, colours the sky and sets the ambient — all from the clock.</summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THE LIGHT BECOMES THE MOON BELOW THE HORIZON, AND IT IS THE SAME LIGHT.</b> One
+    /// <see cref="DirectionalLight3D"/> is aimed from the sun while the sun is up and from the sun's
+    /// antipode while it is down — which is a full moon every single night, and is a fib. It is told
+    /// here rather than hidden because the alternative is a city nobody can see for half of a
+    /// <b>two-minute</b> Day, and because ***a second light would have to be dimmed to nothing at
+    /// dawn anyway***, which is this one line spent twice.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Both ramps start at exactly zero height, which is what stops the swap from popping.</b>
+    /// The sun's energy reaches zero as it touches the horizon and the moon's leaves zero from the
+    /// same instant, so the 180° flip happens while the light contributes nothing. An earlier
+    /// spelling ramped the sun in from below the horizon and the swap was a visible lurch at every
+    /// dawn and every dusk. ***What carries the twilight is the AMBIENT and the sky, not the
+    /// directional light*** — which is also what happens outdoors.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The dusk tint is keyed on <c>|height|</c> and therefore paints dawn as well.</b> They are
+    /// the same geometry and the shell has no reason to tell them apart.
+    /// </para>
+    /// </remarks>
+    private void Daylight()
+    {
+        float within = _alpha.Raw / 65_536f;
+        Vector3 sunward = Sunward(_world.Tick.Raw, within);
+        float height = sunward.Y;
+        float up = Mathf.SmoothStep(0f, 0.12f, height);
+        float down = Mathf.SmoothStep(0f, 0.10f, -height);
+
+        _light.LookAtFromPosition(height > 0f ? sunward : -sunward, Vector3.Zero, Vector3.Up);
+
+        // 🔴 THE SOFTNESS RIDES THE SUN'S HEIGHT, AND A CONSTANT ONE CANNOT BE RIGHT AT ANY HOUR.
+        // A shadow edge is drawn one screen pixel at a time, so a SHALLOW edge holds its row for
+        // several pixels before it steps down and the eye reads a comb. How shallow it lies is set
+        // by how low the sun is: measured at a 40 m standoff, the tread is four to seven pixels at
+        // 08:00 and the comb is invisible by midday. ***That is why the artifact was reported as
+        // going away later in the day.***
+        //
+        // ⚠ A staircase is hidden when the SOFTNESS EXCEEDS THE TREAD, and nothing else hides it.
+        // Measured against the same frame, and this is the finding rather than a preference: FXAA
+        // moves nothing, PCF filter quality Ultra moves nothing, and 2× supersampling moves
+        // nothing -- all three leave the same two-pixel riser, because none of them changes the
+        // edge's SLOPE and the slope is what sets the tread. ⚠ Blur is the only lever that
+        // reaches it, which is worth stating plainly because blur was tried and rejected once: a
+        // FIXED blur is not the fix, and it was measured with the range fixed too, so its screen
+        // width swung wildly with the zoom.
+        //
+        // So it is spent where it is needed and nowhere else. ⚠ THE LAW IS SQUARED AND A LINEAR
+        // ONE WAS TRIED FIRST AND MEASURED SHORT: 0.9/height reaches only 2.2 at 08:00, where the
+        // sun stands at 0.41, and 2.2 leaves the same two-pixel riser the unblurred edge has. The
+        // sun's own height is capped at sin(0.95) = 0.81 here, so the whole usable range is narrow
+        // and a gentle curve cannot cross it. Squared, it sits at the 3.5 ceiling through the
+        // morning and the evening and eases to 1.1 only around midday, where the edge is steep
+        // enough that blur would buy nothing and cost sharpness. The floor on the divisor stops it
+        // running away as the sun sets.
+        float raking = Mathf.Max(Mathf.Abs(height), 0.30f);
+
+        _light.ShadowBlur = Mathf.Clamp(0.73f / (raking * raking), 1.1f, 3.5f);
+
+        // A raking sun is BRIGHTER than a high one and not dimmer -- it is the same disc through
+        // more air, and what the air takes is the blue end. The energy peak sits at the horizon for
+        // that reason and the colour goes with it.
+        float low = 1f - Mathf.SmoothStep(0.02f, 0.30f, height);
+
+        _light.LightEnergy = height > 0f ? Mathf.Lerp(0f, Mathf.Lerp(1.25f, 1.4f, low), up) : down * 0.18f;
+        _light.LightColor = height > 0f
+            ? new Color(1.0f, 0.96f, 0.88f).Lerp(new Color(1.0f, 0.71f, 0.44f), low)
+            : new Color(0.60f, 0.72f, 1.0f);
+
+        // Twilight is wider than the sun's own ramp on purpose: the sky is still lit for a good
+        // while after the disc has gone, and an ambient that fell with the sun would black the city
+        // out the instant it touched the horizon.
+        float lit = Mathf.SmoothStep(-0.26f, 0.22f, height);
+        float dusk = 1f - Mathf.SmoothStep(0.02f, 0.40f, Mathf.Abs(height));
+
+        // ⚠ AMBIENT IS THE SKY HERE -- AmbientSource.Sky at full contribution -- so the four colours
+        // below are not a backdrop, they are the fill light on every wall the sun is not on. That is
+        // why the dusk tint is worth having at all: it puts warm light INTO the shadows, which is
+        // the half of golden hour a directional light cannot do.
+        _air.AmbientLightEnergy = Mathf.Lerp(0.26f, 1.05f, lit);
+
+        // 🔴 HOW FAR THROUGH THE NIGHT IT IS, AND NOT HOW DARK IT IS. A darkness was sent here
+        // first and it was the wrong quantity twice: it is symmetrical, so a window keyed on it
+        // said the same thing at nine in the evening and at four in the morning; and it is a
+        // brightness, so it reached the emission as a dimmer and faded every lamp in the city up
+        // through dusk and down through dawn. ***A lamp is switched, not dimmed.*** The shader now
+        // takes an hour and decides for itself, per window, whether that window is lit.
+        //
+        // ⚠ TAKEN OFF THE CLOCK AND NOT OFF THE SUN'S HEIGHT, because height is a cosine: it barely
+        // moves for the hours either side of midnight and then races at the horizon, so a phase
+        // built from it would have the whole city going to bed in the first twenty minutes. This is
+        // linear in TIME, which is what an hour is.
+        //
+        // Clamped rather than wrapped, so all day it sits at 1 — past every lamp's hour, which is
+        // the same as saying they are all out.
+        _paint?.SetShaderParameter(
+            "night_phase",
+            Mathf.Min(1f, (Clock(_world.Tick.Raw, within) + (1f - NightOpensAt)) % 1f / NightSpans));
+
+        _above.SkyTopColor = new Color(0.03f, 0.04f, 0.11f)
+            .Lerp(new Color(0.28f, 0.42f, 0.66f), lit)
+            .Lerp(new Color(0.24f, 0.26f, 0.52f), dusk * 0.85f);
+        _above.SkyHorizonColor = new Color(0.06f, 0.08f, 0.17f)
+            .Lerp(new Color(0.63f, 0.70f, 0.78f), lit)
+            .Lerp(new Color(1.00f, 0.56f, 0.28f), dusk);
+        _above.GroundBottomColor = new Color(0.04f, 0.05f, 0.09f)
+            .Lerp(new Color(0.50f, 0.56f, 0.62f), lit);
+        _above.GroundHorizonColor = new Color(0.05f, 0.07f, 0.13f)
+            .Lerp(new Color(0.58f, 0.65f, 0.71f), lit)
+            .Lerp(new Color(0.62f, 0.42f, 0.34f), dusk);
     }
 
     /// <summary>Fits the eye's orbit to the city that is actually standing.</summary>
@@ -4248,6 +4589,38 @@ public partial class Main : Node3D
         _focus = centre;
         _distance = span * 0.95f;
         _laid = new Rect2(east, north, eastEnd - east, northEnd - north);
+        _paved = Paved(_laid);
+    }
+
+    /// <summary>The rectangle the Road Graph's Nodes span, in metres — the ground that is paved.</summary>
+    /// <remarks>
+    /// ⚠ <b>It falls back to the Lots rather than to nothing</b>, because a Ruleset stating no
+    /// <c>[roads]</c> has no Nodes at all and the caller would otherwise get an empty rectangle that
+    /// suppresses nothing — which is the same defect as suppressing everything, pointing the other
+    /// way.
+    /// </remarks>
+    private Rect2 Paved(Rect2 fallback)
+    {
+        RoadNodeTable nodes = _world.Roads.Nodes;
+        float east = float.MaxValue;
+        float north = float.MaxValue;
+        float eastEnd = float.MinValue;
+        float northEnd = float.MinValue;
+
+        for (int slot = 0; slot < nodes.Rows.SlotCount; slot++)
+        {
+            if (!nodes.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            east = Mathf.Min(east, nodes.East[slot].Raw * MetresPerTile);
+            north = Mathf.Min(north, nodes.North[slot].Raw * MetresPerTile);
+            eastEnd = Mathf.Max(eastEnd, nodes.East[slot].Raw * MetresPerTile);
+            northEnd = Mathf.Max(northEnd, nodes.North[slot].Raw * MetresPerTile);
+        }
+
+        return east > eastEnd ? fallback : new Rect2(east, north, eastEnd - east, northEnd - north);
     }
 
     /// <summary>
@@ -4259,10 +4632,54 @@ public partial class Main : Node3D
     {
         Frame();
 
-        _camera = new Camera3D { Far = 200_000f, Fov = 60f };
+        _lens = new CameraAttributesPractical();
+        _camera = new Camera3D { Far = 200_000f, Fov = 60f, Attributes = _lens };
 
         AddChild(_camera);
         Orbit();
+    }
+
+    /// <summary>Puts the lens on or takes it off — the HUD and the depth of field together.</summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THE HUD IS THE HALF THAT MATTERS AND THE CURSOR IS THE WORST OF IT.</b> The pick marker
+    /// is a Cell-sized quad — 128 m — so at the framings a person would photograph from it is a
+    /// sixth of the picture in flat yellow. It is exactly right as an instrument and ruinous as a
+    /// subject, which is the whole shape of this verb: ***nothing here is wrong, it is just not what
+    /// a photograph is of.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The focus distance is the ORBIT's and not a number.</b> The eye is always exactly
+    /// <see cref="_distance"/> from what it is looking at, so the plane in focus is known for free
+    /// and no key has to be authored for it. The near and far bounds are fractions of that, which is
+    /// what makes the effect scale: at 300 m it is a tilt-shift over a few streets, and at 3 km it
+    /// is a haze over the far half of the city.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It re-applies on every zoom and every tilt</b> — <see cref="Orbit"/> calls it — because
+    /// a focus plane pinned to a distance the camera has since left is a blur over the subject.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The Cell lattice goes off and does NOT come back</b>, which is the one place this verb
+    /// is not its own inverse. Turning it back on would override a person who had switched it off
+    /// themselves, and the alternative — remembering what it was — is a second piece of state for a
+    /// grid one keypress restores. ***Asymmetric on purpose, and small.***
+    /// </para>
+    /// </remarks>
+    private void Lens(bool on)
+    {
+        _photographing = on;
+        _hud.Visible = !on;
+        _cursor.Visible = !on;
+        _cells.Visible = _cells.Visible && !on;
+
+        _lens.DofBlurNearEnabled = on;
+        _lens.DofBlurFarEnabled = on;
+        _lens.DofBlurAmount = 0.12f;
+        _lens.DofBlurNearDistance = _distance * 0.62f;
+        _lens.DofBlurNearTransition = _distance * 0.34f;
+        _lens.DofBlurFarDistance = _distance * 1.34f;
+        _lens.DofBlurFarTransition = _distance * 0.7f;
     }
 
     /// <summary>
@@ -4275,14 +4692,53 @@ public partial class Main : Node3D
     /// </remarks>
     private void Orbit()
     {
-        float flat = Mathf.Cos(PitchRadians) * _distance;
+        float flat = Mathf.Cos(_pitch) * _distance;
 
         _camera.LookAtFromPosition(
             _focus + new Vector3(
-                Mathf.Sin(_yaw) * flat, Mathf.Sin(PitchRadians) * _distance, Mathf.Cos(_yaw) * flat),
+                Mathf.Sin(_yaw) * flat, Mathf.Sin(_pitch) * _distance, Mathf.Cos(_yaw) * flat),
             _focus,
             Vector3.Up);
+
+        // 🔴 THE SHADOW RANGE RIDES THE STANDOFF TOO, and it is the second half of the fix for a
+        // crawling shadow edge. A cascade is a fixed count of texels spread over whatever distance
+        // it is told to cover, so a range set for the widest shot spends most of its resolution on
+        // ground the eye is nowhere near — and at a close orbit the edge under the nose is
+        // quantised to texels several screen pixels across. Measured against the same burst: at a
+        // 140 m standoff, 1,600 m leaves a fuzzy two-to-three-pixel serration and 400 m leaves a
+        // clean line. Tying the two keeps both ends: near work gets tight cascades, and a wide
+        // shot still has shadows out to the horizon it can see.
+        //
+        // ⚠ The floor exists because a very close orbit must still shadow the whole block, and the
+        // ceiling because past it the cascades are coarse again and nothing is gained.
+        //
+        // ⚠ HOW THE CRAWL WAS MEASURED, because it is not a thing a still can show: twenty-four
+        // frames one Tick apart at half a Tick a second -- slow enough that the sub-Tick sun left
+        // over in each shot is a fiftieth of a Tick rather than a whole one -- tracking one edge.
+        // It should advance +3.4 px a Tick. Before the atlas key was repaired and the range tied
+        // here, it advanced between -2.4 and +9.5 and WENT BACKWARDS ON SIX OF TWENTY-THREE
+        // FRAMES; after, the residual span is 2.9 px against 8.6 and not one step reverses.
+        // ***A shadow edge that reverses is what could not be described from the chair.***
+        _light.DirectionalShadowMaxDistance = Mathf.Clamp(_distance * 3f, 400f, 3_000f);
+
+        // The focus plane rides the standoff, so a zoom or a tilt cannot leave the subject blurred.
+        if (_photographing)
+        {
+            Lens(true);
+        }
     }
+
+    /// <summary>Where a step of the tilt key lands, in whole degrees, already clamped.</summary>
+    /// <remarks>
+    /// ⚠ <b>It rounds before it steps, so the ladder is the same going up and coming back down.</b>
+    /// Stepping the radian and converting afterwards would leave 35.26° at 40.26°, 45.26° and so on
+    /// — a ladder whose rungs depend on where it was started, which is exactly what an absolute
+    /// verb exists to avoid.
+    /// </remarks>
+    private int Tipped(int degrees) => Mathf.Clamp(
+        (int)Mathf.Round(Mathf.RadToDeg(_pitch)) + degrees,
+        (int)Mathf.Round(Mathf.RadToDeg(LowestRadians)),
+        (int)Mathf.Round(Mathf.RadToDeg(HighestRadians)));
 
     /// <summary>The nearest the eye may stand, which is close enough to read one Building.</summary>
     private float Nearest() => Mathf.Max(32f, _span * 0.02f);
