@@ -131,6 +131,13 @@ public static class LotSubdivider
             return 0;
         }
 
+        // The block remembers it was zoned, BEFORE anything is carved and whether or not anything is.
+        // plans/0053 step 1: a block with no Street on any face yields no Lots, and the whole point of
+        // recording it here is that the intent survives that -- so a Street laid later finds land that
+        // knows what it was painted for. Zoning land the network cannot reach is no longer a command
+        // the world forgets.
+        world.ZoneBlock(column, row, zone);
+
         int created = 0;
 
         created += Face(world, streets.Horizontal(column, row), column, row, StreetAxis.East, StreetSide.Left, zone);
@@ -275,73 +282,34 @@ public static class LotSubdivider
     {
         int created = 0;
 
-        // The slot count is read once, before anything is created. Lots laid by this loop are
-        // themselves fronted and would otherwise be revisited — terminating, because the claim mask
-        // refuses a second lay, but only after walking the table again for every block it touched.
-        int before = world.Lots.Rows.SlotCount;
+        // ⚠ THIS WALKS BLOCKS AND USED TO WALK LOTS, which is plans/0053 step 1's whole point. The
+        // old loop asked every fronted Lot which block it belonged to and re-subdivided that block
+        // with the Lot's own Zone -- so a block that had lost EVERY Lot was invisible to it and had
+        // forgotten it was ever zoned. This method's remarks named that as a real limitation and
+        // pointed at a per-Tile zone layer as the fix; a per-BLOCK row is the cheaper one, and it is
+        // the unit the verb already acts on.
+        //
+        // The slot count is read once, before anything is created. SubdivideBlock calls ZoneBlock,
+        // which allocates into this very table when a square has no row -- so a live count read
+        // inside the condition would grow under the loop. Every row appended by this pass is one
+        // already being visited, so stopping at the count taken on the way in loses nothing.
+        int before = world.Blocks.Rows.SlotCount;
 
         for (int slot = 0; slot < before; slot++)
         {
-            if (!world.Lots.Rows.IsLive(slot)
-                || !world.Lots.HasFrontage(slot)
-                || !BlockOf(world, slot, out int column, out int row))
+            if (!world.Blocks.Rows.IsLive(slot))
             {
                 continue;
             }
 
-            created += SubdivideBlock(world, column, row, world.Lots.Zone[slot]);
+            created += SubdivideBlock(
+                world,
+                world.Blocks.LatticeColumn[slot],
+                world.Blocks.LatticeRow[slot],
+                world.Blocks.Zone[slot]);
         }
 
         return created;
     }
 
-    /// <summary>
-    /// Which block a Lot belongs to — <b>which is not the block its coordinates floor into</b>.
-    /// </summary>
-    /// <remarks>
-    /// <b>A Segment borders two blocks and the side is what decides.</b> A Lot on the north side of a
-    /// horizontal Street belongs to the block above it; one on the south side belongs to the block
-    /// below, whose row index is one lower. Flooring the Lot's own position answers the first case and
-    /// silently gets the second wrong — and the failure is invisible, because the block it names is a
-    /// real neighbouring block that will simply be subdivided instead.
-    /// </remarks>
-    private static bool BlockOf(World world, int slot, out int column, out int row)
-    {
-        StreetGrid streets = world.Roads.Streets;
-        int block = streets.BlockTiles;
-
-        column = 0;
-        row = 0;
-
-        if (block <= 0)
-        {
-            return false;
-        }
-
-        int east = world.Lots.East[slot].Raw;
-        int north = world.Lots.North[slot].Raw;
-        var side = (StreetSide)world.Lots.Side[slot];
-
-        column = Arithmetic.IntegerMath.FloorDiv(east, block);
-        row = Arithmetic.IntegerMath.FloorDiv(north, block);
-
-        if (north == row * block)
-        {
-            // A horizontal Street. Left is its north side, so the block above; Right is the one below.
-            if (side == StreetSide.Right)
-            {
-                row--;
-            }
-        }
-        else
-        {
-            // A vertical Street. Right is its east side, so this block; Left is the one to the west.
-            if (side == StreetSide.Left)
-            {
-                column--;
-            }
-        }
-
-        return column >= 0 && row >= 0 && column < streets.Blocks && row < streets.Blocks;
-    }
 }

@@ -77,6 +77,26 @@ public readonly struct Policy;
 public readonly struct Lot;
 
 /// <summary>
+/// One square of the Street lattice, bounded by up to four Segments. See <see cref="Citizen"/> for
+/// why it is empty.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>It is the unit the <c>zone</c> verb acts on, and until this table existed it was the only such
+/// unit with no row.</b> <c>LotSubdivider</c> subdivides a block against its four faces and reads that
+/// block's Zone back off <em>whichever Lots survived on it</em> — so a block that lost every Lot had
+/// forgotten it was ever zoned. That limitation is named in <c>LotSubdivider.Relot</c>'s own remarks
+/// and this row is what discharges it.
+/// </para>
+/// <para>
+/// <b>A row exists only for a block the player has done something to</b>, which is why the index into
+/// this table is a <see cref="Space.BlockResidency"/> rather than a column. The lattice has
+/// <c>Span²</c> squares and a city occupies a handful of them.
+/// </para>
+/// </remarks>
+public readonly struct Block;
+
+/// <summary>
 /// One Household's place in the Unplaced Pool.
 /// </summary>
 /// <remarks>

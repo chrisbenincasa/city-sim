@@ -133,6 +133,16 @@ public sealed class World
         Key = key;
 
         Lots = new LotTable(PerThousand(citizens, 225));
+
+        // Sized OFF the Lot table rather than off the Citizen count, because a block is a container
+        // for Lots and the two quantities cannot drift apart if only one of them is authored.
+        // LotSubdivider yields 8 Lots to a block at the shipped block_tiles and lots_per_segment, so
+        // 32 is four times the headroom -- and a pattern that carves fewer Lots to a block (plans/0053
+        // back-to-back yields 5) needs MORE blocks for one city, which is the direction this errs in.
+        // ⚠ It is a capacity and not a bound on the world: the lattice has Span^2 squares and this
+        // table holds only the ones somebody has zoned.
+        Blocks = new BlockTable(PerThousand(citizens, 32));
+
         Buildings = new BuildingTable(PerThousand(citizens, 150), Lots);
 
         // Ahead of the actors rather than beside the Rule engine, because since adr/0114 a Household
@@ -415,6 +425,14 @@ public sealed class World
             // that moves no row relative to another -- see the note above it. adr/0100: this moves
             // every committed State Hash baseline, which costs nothing while nobody carries a save.
             Policies.Rows,
+
+            // And the Blocks, plans/0053 step 1. Appended on the same grounds. A block is the unit
+            // the `zone` verb acts on and it was the only such unit with no row -- so a block that
+            // lost every Lot forgot it had ever been zoned, which is the limitation LotSubdivider.Relot
+            // names in its own remarks. Saved rather than derived for one column's sake: `pattern` is a
+            // historical fact about conditions that are gone and cannot be recomputed from a world
+            // that has moved on.
+            Blocks.Rows,
         ];
 
         // The same list minus the tables no Tick phase can write, for the Decide guard alone. See
@@ -519,6 +537,22 @@ public sealed class World
 
     /// <summary>Parcels of land.</summary>
     public LotTable Lots { get; }
+
+    /// <summary>The lattice squares the player has zoned — their Zone, band and carving pattern.</summary>
+    public BlockTable Blocks { get; }
+
+    /// <summary>
+    /// Which slot of <see cref="Blocks"/> holds a given lattice square — <b>derived, rebuilt on the
+    /// Epoch, and outside the State Hash</b>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Not a registered table, for <see cref="Frontage"/>'s reason.</b> It is a function from a
+    /// lattice position to a slot and owns one array, none of which is saved — so a table of its own
+    /// would fold four allocator scalars and make the hash depend on how many times the index had been
+    /// rebuilt. ⚠ <b>It is sized by <c>[roads] block_tiles</c> rather than by a design constant</b>,
+    /// which makes it the only residency in the project that cannot allocate in a field initialiser.
+    /// </remarks>
+    public Space.BlockResidency BlockIndex { get; } = new();
 
     /// <summary>Structures.</summary>
     public BuildingTable Buildings { get; }
@@ -2956,6 +2990,14 @@ public sealed class World
         // its position, which is adr/0079.
         Frontage.Rebuild(Lots, Roads.Streets);
 
+        // The block index, rebuilt wholesale from the Blocks' own saved lattice positions. After
+        // Roads.RebuildDerived because that is where StreetGrid.Span becomes known, and this index is
+        // the one in the project whose LENGTH is a function of [roads] block_tiles rather than of a
+        // design constant -- so it cannot be sized before the road graph has been read.
+        //
+        // Resize clears, so this loop is not an addition to a stale array: it is the whole content.
+        RebuildBlockIndex();
+
         // The Lot's reverse index. Not ordered like the four lists below it — a Lot holds at most one
         // Building, so there is nothing to insert in order, and a second Building naming the same Lot
         // is a violation the whole-world tier reports rather than a list this would silently lengthen.
@@ -3200,6 +3242,102 @@ public sealed class World
         // are arrays over the Day rather than columns over a table, so the block at the top of this
         // method -- which is a list of columns -- cannot reach them.
         Commutes.Rebuild(Citizens, Buildings, Businesses, Rules, Key);
+    }
+
+    /// <summary>
+    /// Rebuilds <see cref="BlockIndex"/> from the Blocks' saved lattice positions.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Sized from <c>StreetGrid.Span</c> on every call, because the lattice's extent is not a
+    /// constant.</b> Every other residency in the project indexes <c>CellGrid</c> and allocates once in
+    /// a field initialiser; this one cannot, and <see cref="Space.BlockResidency"/> carries what that
+    /// costs at each block size.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A Block whose lattice square is off the current lattice keeps its row and gets no index
+    /// entry</b>, which is <c>adr/0079</c>'s shape one table over: the row is state the player made and
+    /// the index is a convenience over it, so a lattice that no longer contains it makes it
+    /// unreachable rather than making it a defect. It cannot happen while <c>block_tiles</c> is
+    /// world-creation, and it is written this way so that it stays merely unreachable if that changes.
+    /// </para>
+    /// </remarks>
+    private void RebuildBlockIndex()
+    {
+        BlockIndex.Resize(Roads.Streets.Span);
+
+        for (int slot = 0; slot < Blocks.Rows.SlotCount; slot++)
+        {
+            if (!Blocks.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            int column = Blocks.LatticeColumn[slot];
+            int row = Blocks.LatticeRow[slot];
+
+            if (BlockIndex.Contains(column, row))
+            {
+                BlockIndex.Occupy(column, row, slot);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Records that a lattice square carries <paramref name="zone"/>, creating its row if it has none.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is what makes a block remember.</b> Before it, a block's Zone was read back off
+    /// whichever Lots survived on it — so a block that lost every Lot had forgotten it was ever zoned,
+    /// and a Street run back through it yielded nothing until the player zoned again.
+    /// <c>LotSubdivider.Relot</c> names that limitation in its own remarks; this is the fact that
+    /// outlives the Lots.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Re-zoning OVERWRITES rather than accumulating.</b> A Zone is a permission set and the
+    /// verb's payload is the whole of it, so painting a block twice leaves it holding the second
+    /// answer — which is what the player did — rather than the union, which is what nobody asked for.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It leaves <see cref="BlockTable.Band"/> and <see cref="BlockTable.Pattern"/> at zero</b>,
+    /// which is <c>plans/0053</c> steps 2 and 4 and not this one. A zero band is *the band a world with
+    /// no bands has*, and nothing reads either column yet.
+    /// </para>
+    /// </remarks>
+    /// <returns>The Block's slot, or <see cref="Rows.NoSlot"/> if the square is off the lattice.</returns>
+    public int ZoneBlock(int column, int row, ushort zone)
+    {
+        // The lattice's extent is not known until there are roads, and it becomes known DURING
+        // generation -- RoadGenerator.LayInto and then LotSubdivider, with no RebuildDerived between
+        // them. So the index re-derives itself the moment the lattice it indexes changes shape,
+        // which is a thing derived state is allowed to do and saved state is not. The comparison is
+        // two integers on a path that runs once per zoned block.
+        if (BlockIndex.Span != Roads.Streets.Span)
+        {
+            RebuildBlockIndex();
+        }
+
+        if (!BlockIndex.Contains(column, row))
+        {
+            return Rows.NoSlot;
+        }
+
+        int slot = BlockIndex.Slot(column, row);
+
+        if (slot == BlockResidency.NotResident)
+        {
+            slot = Blocks.Rows.Resolve(Blocks.Rows.Allocate());
+
+            Blocks.LatticeColumn[slot] = column;
+            Blocks.LatticeRow[slot] = row;
+
+            BlockIndex.Occupy(column, row, slot);
+        }
+
+        Blocks.Zone[slot] = zone;
+
+        return slot;
     }
 
     /// <summary>The Households living in each Building.</summary>
