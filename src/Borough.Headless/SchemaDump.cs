@@ -36,10 +36,20 @@ namespace Borough.Headless;
 /// avoid — so the schema completes them and the loader corrects you.
 /// </para>
 /// <para>
-/// ⚠ <b>No key carries a description, and that is a gap rather than a decision.</b> What a key
-/// <em>means</em> lives in the Ruleset headers and the loader's doc comments, and neither is
-/// attributable to a key mechanically. A description would have to be authored — at which point it
-/// is a second copy again, of the smaller and more valuable kind.
+/// ✅ <b>Every key now carries a description, and the gap this paragraph used to record is
+/// closed.</b> It said: <em>"No key carries a description … what a key means lives in the Ruleset
+/// headers and the loader's doc comments, and neither is attributable to a key mechanically. A
+/// description would have to be authored — at which point it is a second copy again."</em> Both
+/// halves were right. <see cref="RulesetKeyNotes"/> authors the sentence, and
+/// <c>RulesetKeyNoteTests</c> is what stops it being a copy: it fails when a key has no note
+/// <em>and</em> when a note has no key, so neither side can move without the other. ***An authored
+/// list a test holds against the code is a different object from an authored list nothing
+/// compares***, and only the second is <c>plans/0012</c> Cause 1.
+/// </para>
+/// <para>
+/// ⚠ <b>A key with no note still emits, silently.</b> The note is looked up and omitted where it is
+/// absent rather than refused here — the coverage test is the instrument for that, and a schema dump
+/// that threw would turn one missing sentence into no autocomplete at all.
 /// </para>
 /// </remarks>
 internal static class SchemaDump
@@ -100,6 +110,17 @@ internal static class SchemaDump
 
         /// <summary>The scalar shape, where this is a leaf. <c>Unknown</c> emits no type at all.</summary>
         public RulesetKeyKind Kind { get; set; }
+
+        /// <summary>
+        /// What the key does, from <see cref="RulesetKeyNotes"/>, or <c>null</c> where none is
+        /// authored.
+        /// </summary>
+        /// <remarks>
+        /// <b>Set once and never overwritten with <c>null</c></b>, on <see cref="Kind"/>'s
+        /// reasoning: one section appears once per table of its shape, and a node reached first
+        /// through a path traversal has no note of its own to offer.
+        /// </remarks>
+        public string? Note { get; set; }
 
         public SortedDictionary<string, Section> Children { get; } = new(StringComparer.Ordinal);
     }
@@ -171,6 +192,8 @@ internal static class SchemaDump
                     leaf.Kind = key.Value;
                 }
 
+                leaf.Note ??= RulesetKeyNotes.For(entry.Key, key.Key);
+
                 leaf.Repeats |= key.Value == RulesetKeyKind.Array;
             }
         }
@@ -234,6 +257,13 @@ internal static class SchemaDump
 
     private static void WriteBody(Utf8JsonWriter writer, Section section)
     {
+        // Before the type, because an editor shows the first line of a hover and a schema is read by
+        // a person more often than by a validator.
+        if (section.Note is not null)
+        {
+            writer.WriteString("description", section.Note);
+        }
+
         bool holdsTable = section.Children.Count > 0
             || section.Kind is RulesetKeyKind.Table or RulesetKeyKind.Array;
 

@@ -42,6 +42,16 @@ internal enum Mode
     /// </remarks>
     Schema,
 
+    /// <summary>
+    /// Write the Ruleset key surface out as a reference page, one section at a time.
+    /// </summary>
+    /// <remarks>
+    /// <b><see cref="Schema"/>'s twin and the second mode that never makes a world.</b> They share
+    /// one source and differ in audience: the schema is completed against by an editor, this is read
+    /// by a person learning the format. Neither wants a seed, a population or a Tick count.
+    /// </remarks>
+    KeyReference,
+
     /// <summary>Build a synthetic city and print what is in it. Slice 4's artefact.</summary>
     Report,
 
@@ -508,6 +518,7 @@ internal sealed class Options
         bool watch = false;
         int frames = DefaultFrames;
         bool schema = false;
+        bool keyReference = false;
         bool business = false;
         bool market = false;
         Layer? dump = null;
@@ -673,10 +684,14 @@ internal sealed class Options
                     session = true;
                     continue;
 
+                // NOT a session flag, on --schema's reasoning exactly: it reads the Ruleset folder
+                // and never builds a world, so --ticks, --citizens and --seed mean nothing to it.
+                case "--key-reference":
+                    keyReference = true;
+                    continue;
+
                 // A run, for the same reason --census is: the guard is a property of stepping a world,
                 // and the report never steps one.
-                // NOT a session flag, and the only picture that is not: it reads files and never
-                // builds a world, so --ticks, --citizens and --seed mean nothing to it.
                 case "--schema":
                     schema = true;
                     continue;
@@ -1337,6 +1352,15 @@ internal sealed class Options
             return false;
         }
 
+        if (keyReference && rulesets.Count == 0)
+        {
+            complaint = "--key-reference needs --ruleset PATH, and it reads the whole FOLDER that "
+                      + "path is in, for --schema's reason exactly: a reader only ever asks a table "
+                      + "that exists, so one file describes only the sections it happens to "
+                      + "declare. Try --ruleset rulesets/minimal.toml.";
+            return false;
+        }
+
         if (schema && rulesets.Count == 0)
         {
             complaint = "--schema needs --ruleset PATH, and it reads the whole FOLDER that path is "
@@ -1348,7 +1372,8 @@ internal sealed class Options
 
         options = new Options
         {
-            Mode = schema ? Mode.Schema
+            Mode = keyReference ? Mode.KeyReference
+                 : schema ? Mode.Schema
                  : day ? Mode.Day
                  : watch ? Mode.Watch
                  : school ? Mode.School
@@ -1507,6 +1532,13 @@ internal sealed class Options
                                 happens to demonstrate. The loader stays the authority --
                                 the schema is autocomplete, and unknown keys stay permitted
                                 because a refusal at the parse site carries a better message
+          --key-reference       write the Ruleset key surface to stdout as a reference page,
+                                one section at a time, each key with a sentence saying what
+                                it DOES. --schema's twin: same source, same folder rule, same
+                                world-free mode -- an editor completes against the schema and
+                                a person reads this. It states no values, no defaults and no
+                                ranges: the loader carries the range and delivers it in the
+                                refusal, which is the only moment it helps
           --land-value          dump land value against the desirability it is chasing, and
                                 the gap: three grids, because a lag is a property of a pair
                                 and not of a value. Needs --ruleset whose Rules EMIT -- the

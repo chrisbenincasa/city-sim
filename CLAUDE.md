@@ -67,6 +67,7 @@ are still open, so do not write implementation code beyond the current slice unl
 | `docs/07-the-drawing.md` | **What the city LOOKS like, and how the picture gets made.** The four pillars of the drawing, the three asset pipelines and the recommendation, the reference games, and what a screenshot actually costs. ⚠ **It owns the look and nothing else** — a sentence here about a mechanism is `06`'s or `02`'s and belongs there. 🔴 **Its §5 holds an open question that belongs in `plans/0002`** and is parked here because that file is at its word ceiling |
 | `docs/movement-primer.md` | **Orientation only, and it owns nothing.** Movement and routing rebuilt from first principles, for paging the subsystem back in. Stores no status and almost no numbers, which is what keeps it from drifting. `03`, `CONTEXT.md` and the ADRs win against it always |
 | `docs/adr/` | The decision records, numbered from `0001`. `0028` is reserved and unwritten. **Count them rather than quoting a total** — a count in prose is a fact that drifts |
+| `docs/ruleset-reference.md` | **Every Ruleset key, with what it does. GENERATED — do not edit it.** The key set comes from `RulesetLoader`'s own record of what its readers asked for; the sentences are authored once in `src/Borough.Formats/RulesetKeyNotes.cs`, and **a test refuses both a key with no sentence and a sentence with no key**. ⚠ **It states no values, no defaults and no ranges** — the loader carries the range and delivers it in the refusal, each file in `rulesets/` carries what it demonstrates, and `plans/0002` §D carries what is ratified. Regenerate with `--key-reference`; `RulesetReferenceTests` compares bytes |
 | `docs/deferred.md` | What is deliberately not being built, with retrofit costs and revisit triggers |
 | `docs/references.md` | Reference games and prior art, with the standing of each decision |
 | `docs/spike-results.md` | Recorded spike numbers and the decision each produced |
@@ -220,6 +221,7 @@ dotnet run --project src/Borough.Headless -- --market --ruleset rulesets/provisi
 dotnet run --project src/Borough.Headless -- --school --ruleset rulesets/schooled.toml --citizens 2000 --ticks 300000 --schools 4
 dotnet run --project src/Borough.Headless -- --flood --ruleset rulesets/flooded.toml --citizens 2000 --ticks 40960
 dotnet run --project src/Borough.Headless -- --schema --ruleset rulesets/minimal.toml > rulesets/ruleset.schema.json
+dotnet run --project src/Borough.Headless -- --key-reference --ruleset rulesets/minimal.toml > docs/ruleset-reference.md
 npx @taplo/cli lint 'rulesets/*.toml'   # the schema, checked the way an editor applies it
 dotnet run --project src/Borough.Headless -- \
   --ruleset rulesets/minimal.toml --reload-at 200 --ruleset rulesets/minimal-tuned.toml --ticks 400

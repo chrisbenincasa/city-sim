@@ -4587,3 +4587,43 @@ argument for a status row being a pointer with no content of its own, which is w
 ⚠ **No mechanical check reaches it and none could.** Both halves cite real files, every link opens, and
 `adr/0172` is correctly linked *from the section that was already right*. The contradiction is two
 prose claims about state, which is the class this ledger holds because no test can.
+
+---
+
+### 🔴 `CorpusBudgetTests` counts prose in a C# string literal as **simulation**, and the amnesty ratio fell by it
+
+**Found 2026-09-02, by writing the thing that exposes it, which is the only reason it is here on the
+day.** `src/Borough.Formats/RulesetKeyNotes.cs` was added to carry one authored sentence per Ruleset
+key — 168 of them, feeding the generated schema's `description` fields and
+[`docs/ruleset-reference.md`](../docs/ruleset-reference.md). It is **577 non-comment lines** holding
+**5,388 words of English prose** inside string literals.
+
+⚠ **The ratio read 52 before it and 51 after**, against a ceiling of 52. ***Every word of that fall is
+an artefact.*** The check's numerator is *all prose, doc-comments included*; its denominator is
+*non-comment lines under `src/`*. A comment line is prose and a code line is simulation, and the
+classifier is `line.Trim().StartsWith("//")` — so a sentence inside `"..."` lands on the denominator
+twice over: it is not counted as prose, **and** it is counted as the simulation the prose is measured
+against. Corrected by hand — 5,388 words moved to the numerator and 577 lines off the denominator —
+the reading is **52**, which is where it already was.
+
+⚠ **The ceiling was not breached and that is not the point.** What is new is that the instrument now
+has a **direction somebody can push it in**: any prose relocated from a `.md` file or a `///` comment
+into a string literal lowers the ratio twice. `CLAUDE.md` already records the near-miss of this shape —
+*doc-comments count on the numerator so that nothing escapes `docs/` by relocating* — and this is the
+same escape through the one door that sentence does not cover. ***A ratchet with a hole in its
+numerator ratchets on the files that are honest about being prose.***
+
+⚠ **It is a defect in the check and NOT in the file that found it.** A note beside the key it
+describes is the best-placed sentence available for it, which is `adr/0093`'s own rule, and the
+alternative — a hand-written reference page in `docs/` — is the copy `plans/0050` spent a session
+deleting thirty instances of. ***The file is right and the instrument cannot see what kind of line it
+is looking at.***
+
+**Filed rather than fixed, and the judgement owed is which of three.** (a) Count words inside string
+literals on the numerator and exclude those lines from the denominator, which needs a C# literal
+scanner in a test that today does `StartsWith` — and would then have to decide about every format
+string and refusal message in `RulesetLoader`, where the same words are load-bearing behaviour rather
+than description. (b) Exempt named files, which is a list that drifts. (c) Accept it, record it here,
+and re-seed the ceiling from a corrected reading — noting that a raise made by the author who tripped
+it *"is not a check"*, by `CorpusBudgetTests`' own remark. ⚠ **The reading to correct from is 52 and
+not 51**, whichever is chosen.
