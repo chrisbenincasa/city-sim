@@ -72,12 +72,76 @@ public sealed class LotTable
         BuildingSlot = _rows.Derived<int>("building_slot");
         FrontageSlot = _rows.Derived<int>("frontage_slot");
         FrontageOffset = _rows.Derived<Tiles>("frontage_offset");
+        ParcelEast = _rows.Derived<Tiles>("parcel_east");
+        ParcelNorth = _rows.Derived<Tiles>("parcel_north");
+        ParcelWide = _rows.Derived<Tiles>("parcel_wide");
+        ParcelDeep = _rows.Derived<Tiles>("parcel_deep");
 
         _rows.Seal();
     }
 
     /// <summary>The slot allocator, the generation counters and the column list.</summary>
     public Rows<Lot> Rows => _rows;
+
+    /// <summary>
+    /// <b>The ground this Lot holds</b> — its parcel's south-west corner and extent, in Tiles.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>A LOT IS AN ADDRESS AND THIS DOES NOT CHANGE THAT.</b> <c>adr/0078</c> refused a
+    /// <em>depth key</em>, and there still is not one: the parcel is <b>derived</b>, on the epoch,
+    /// from the block's saved pattern and the lattice — the same standing as
+    /// <see cref="FrontageSlot"/>, produced by the same carve, and rebuilt from the same saved state.
+    /// </para>
+    /// <para>
+    /// <b><c>plans/0052</c> stage 1, which is <c>plans/0053</c>'s step 5.</b> Before this the ground
+    /// under a Building was invented independently in six places — five in the shell and one in the
+    /// core — and two of those inventions landed on the same patch, which is <c>plans/0049</c>
+    /// <b>F21</b>. ***A partition of a block cannot overlap; five sizings can.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>An unfronted Lot has no parcel</b> and reads zero on all four. <c>adr/0079</c> keeps such
+    /// a Lot and its Building standing with no Address, and ground with no Address on it is ground
+    /// this table cannot name — so a zero here means <em>ask the frontage</em> rather than
+    /// <em>a Building covering nothing</em>.
+    /// </para>
+    /// </remarks>
+    public Column<Tiles> ParcelEast { get; }
+
+    /// <inheritdoc cref="ParcelEast"/>
+    public Column<Tiles> ParcelNorth { get; }
+
+    /// <inheritdoc cref="ParcelEast"/>
+    public Column<Tiles> ParcelWide { get; }
+
+    /// <inheritdoc cref="ParcelEast"/>
+    public Column<Tiles> ParcelDeep { get; }
+
+    /// <summary>
+    /// How much ground a Lot holds, in Tiles — <b>and therefore how much its Building Seals</b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THIS REPLACED <c>[[building]] footprint_tiles</c>, WHICH IS DELETED.</b>
+    /// <c>adr/0025</c> is unambiguous about which of the two belongs in the design: <em>block
+    /// geometry determining parcel size is a physical consequence — it is not a rule at all; it is
+    /// arithmetic over what the player drew</em>. ***An authored constant was standing exactly where
+    /// the design says arithmetic belongs.***
+    /// </para>
+    /// <para>
+    /// <b>The whole parcel is spent, garden included</b>, which reads
+    /// <c>adr/0022</c>'s <em>"Land is a stock the city spends"</em> literally: <b>you cannot farm
+    /// somebody's back garden</b>. ⚠ <b>A coverage fraction can arrive later as a multiplier
+    /// defaulting to 1</b> — it would be <c>adr/0025</c>'s band, a lever the design already wants —
+    /// without this having been wrong.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It stretches one word in <c>CONTEXT.md</c> → Sealing</b> — <em>"the count of Tiles in a
+    /// Cell ever built on"</em> — because a garden is developed rather than built on. That is a
+    /// corpus correction and not a design problem, and it is filed.
+    /// </para>
+    /// </remarks>
+    public int ParcelTiles(int slot) => ParcelWide[slot].Raw * ParcelDeep[slot].Raw;
 
     /// <summary>Position along the east axis, in whole Tiles.</summary>
     public Column<Tiles> East { get; }

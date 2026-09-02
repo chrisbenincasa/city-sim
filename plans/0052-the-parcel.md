@@ -15,6 +15,10 @@ so there is nowhere for a per-block subdivision decision to live and every parce
 document collapses into a world constant. `plans/0053` is the trunk — a Block becomes a row, bands
 ship, patterns become a set — and **its steps 1 and 2 must land before anything here can.**
 
+✅ **STAGE 1 SHIPPED 2026-09-02**, as that document's step 5. ***What it found is recorded there and
+not here*** — the Sealing table, `MapLayers.Seal`'s inability to express a parcel, and the fact that the
+predicted flattening below **did not happen**. Stages 2 and 3 are unstarted.
+
 ⚠ **Two questions below are answered there rather than here.** **Q1** — *what depth* — was mis-posed:
 there is no single depth, because there is no single pattern. **Q2** — opposing-face arbitration — is a
 property of each pattern rather than a question with one answer. ⚠ **The `Depth = block/2` and mitre
@@ -235,11 +239,21 @@ is knowable, so the corner gives back the ground it was holding in reserve.
 (*"the caller's `deep`, which is jittered per Building"*). The only clean stage-1 derivation, half the
 block minus the carriageway, is **the same number for every parcel in the world**.
 
-***So stage 1 deletes a jitter and installs a constant.*** It is still worth doing — F21 becomes
+~~***So stage 1 deletes a jitter and installs a constant.***~~ It is still worth doing — F21 becomes
 impossible, five implementations become one, and the footprint becomes real — but **a reader expecting
 the frame to improve at stage 1 will be disappointed, and the frame will get flatter.** Either stage 1
 owns a jitter in the core, or it accepts the flattening and says so in its commit. **It must not
 discover this after the fact.**
+
+🔴 ✅ **IT DID NOT HAPPEN, AND THE PREMISE WAS THE ERROR RATHER THAN THE ARITHMETIC.** Stage 1 shipped
+on 2026-09-02 and the picture did not flatten. **The jitter did not have to be deleted; it had to move
+down a level.** The shell used to invent *a depth in metres*; it now draws a **share of a depth the
+city holds** — `DepthFillLow`–`DepthFillHigh`, 0.45 to 0.85 of the parcel. ⚠ **And the constant this
+paragraph feared was never reached**, because [`0053`](0053-the-block.md) landed first and there is no
+single depth: a back-to-back parcel reaches the block's centre line and a detached one holds a strip.
+***So there are now two independent sources of variation where the old 26 m constant was one*** — the
+block varies against its neighbours, and each Building varies against the one next door. **The
+warning was right about the mechanism and wrong about what stage 1 would be built on top of.**
 
 ### What the interior becomes
 
@@ -308,7 +322,7 @@ they are now one stage.
 
 | # | Stage | Hash | Save | What it buys |
 |---|---|---|---|---|
-| **1** | **The parcel exists, the shell reads it, and the footprint derives from it.** Parcel columns on `LotTable`, `(derived AND rebuilt)`; the subdivider partitions the block; `World.RebuildDerived` rebuilds it. The shell **deletes** `Depth`, `Deepest`, `Kerb` and `PastTheCorner`. The core **deletes** `footprint_tiles`, its loader refusal and its schema entry | **yes** — Sealing moves | compatible | F21 becomes impossible rather than repaired. Six implementations become one. 🔴 **Fertility, Woodland and the Land half of `adr/0025`'s axis become real quantities instead of a constant** |
+| **1** | ✅ **SHIPPED 2026-09-02 as [`0053`](0053-the-block.md) step 5** — that document holds what it found. **The parcel exists, the shell reads it, and the footprint derives from it.** Parcel columns on `LotTable`, `(derived AND rebuilt)`; the subdivider partitions the block; `World.RebuildDerived` rebuilds it. The shell **deletes** `Depth`, `Deepest`, `Kerb` and `PastTheCorner`. The core **deletes** `footprint_tiles`, its loader refusal and its schema entry | **yes** — Sealing moves | compatible | F21 becomes impossible rather than repaired. Six implementations become one. 🔴 **Fertility, Woodland and the Land half of `adr/0025`'s axis become real quantities instead of a constant** |
 | **2** | **Parcels vary, kinds match them, and occupancy scales with the band.** A block's subdivision becomes a *pattern* rather than a fixed count; a Zone Rule gains a term matching a kind to a parcel size; `adr/0025`'s bands supply the occupancy. ⚠ **The old stages 2 and 3, merged — see G2** | **yes** | re-record | **Big buildings that hold the people they look like they hold.** The skyline stops being uniform |
 | **3** | **Land is a stock the player spends.** The frontage-against-stacking trade in `CONTEXT.md` → Frontage becomes a real choice with a real cost | **yes** | re-record | The density trade the vocabulary has described since before there was a Road Graph |
 
@@ -464,9 +478,9 @@ Owed to [`0002`](0002-open-questions.md) when this leaves planning.
 
 | # | Question | Type |
 |---|---|---|
-| **Q1** | **What is a parcel's depth derived FROM at stage 1?** Half the block minus the carriageway is the only answer that fills the frame exactly, and it makes every parcel in a world the same depth — which is **G3**, and which is the uniformity this plan is meant to end | *arguable* |
-| **Q2** | 🔴 **When two OPPOSING faces both reach the interior, what arbitrates?** `PastTheCorner` arbitrates perpendicular faces only. ⚠ **Narrowed by G5** — whether the interior becomes a Lot is settled by `adr/0079` and is no longer part of this question | *arguable* |
-| **Q3** | ✅ **ANSWERED on the *before* half, 2026-09-02.** Frontage is **0.3%–2.0%** of `RebuildDerived`, and the whole pass is **O(capacity) not O(live)** — so the parcel's marginal cost is a column clear. `FrontageRebuildCostTests`. **The gate on stage 1 is cleared**; take the *after* half with the same instrument | *measurable* |
+| **Q1** | ✅ **ANSWERED, and it was MIS-POSED.** There is no single depth because there is no single pattern — [`0053`](0053-the-block.md) *What step 3 shipped* holds the answer, and it was already in the code under the name `LotSubdivider.CornerTiles` | *arguable* |
+| **Q2** | ✅ **ANSWERED, and it too was mis-posed.** Opposing-face arbitration is a property of **each pattern** rather than a question with one answer — [`0053`](0053-the-block.md) *The pattern set*. `PastTheCorner` is deleted | *arguable* |
+| **Q3** | ✅ **ANSWERED ON BOTH HALVES, 2026-09-02.** *Before*: frontage is **0.3%–2.0%** of `RebuildDerived`, and the whole pass is **O(capacity) not O(live)**. *After*: the parcel costs **0.012–0.202 ms** against a whole pass of **2.06–3.66 ms** — three to four times frontage, because it carves each block once, and **under 9% of the pass** at every size read. ⚠ **The whole pass did not move outside noise** (1.93→2.06, 2.28→2.32, 2.35→2.31, 3.60→3.66 ms). `FrontageRebuildCostTests`, which grew a `parcel` column to say so. 🔴 **No machine is named, so none of these figures may be quoted** (`adr/0106`) | *measurable* |
 | **Q4** | **Does `lots_per_segment` survive as a world number through stage 2?** Merged stage 2 says no, and `adr/0078` predicts it: *"at that point `lots_per_segment` also stops being one number and becomes one per band"* | *arguable* |
 | **Q5** | 🔴 **What happens to a partitioned block that an off-lattice Segment crosses?** **G6.** Out of scope here and it must not be discovered during stage 2 | *arguable* |
-| **Q6** | **Does Sealing saturate once the footprint is the parcel, and does Fertility stop discriminating?** | *measurable*, and cheap — `SealingMeasurementTests` already prints the peak |
+| **Q6** | 🔴 ✅ **ANSWERED, 2026-09-02, and the answer is YES AT ONE BLOCK SIZE AND NO AT THE OTHER.** On `minimal.toml` (`block_tiles = 32`) the peak Cell is **71.5%** and **0 of 143** Cells saturate. On `severance.toml` (`block_tiles = 256`, mean parcel **5,157** Tiles) **1,576 of 4,812** saturate at 100%, and a saturated Cell has Fertility 0 and stops discriminating. ⚠ **That is the honest cost of *the whole parcel is spent, garden included***, and the lever is the coverage fraction this plan already parked as a deferred derivation *because it would introduce a number*. [`0053`](0053-the-block.md) *What step 5 shipped* holds the table | *measurable*, and it was cheap — `SealingMeasurementTests` |

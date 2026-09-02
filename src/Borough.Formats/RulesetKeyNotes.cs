@@ -85,9 +85,6 @@ public static class RulesetKeyNotes
             "How many tenants one Building of this kind holds — Households and Businesses share the "
             + "one ceiling. Absent means the kind houses nobody, which is what most kinds are. "
             + "Lowering it below what a standing Building already holds evicts the overflow.",
-        ["[[building]] footprint_tiles"] =
-            "How many Tiles a Building of this kind covers, and therefore Seals. Absent means one "
-            + "Tile, which is the figure the corpus already carried for a house.",
         ["[[building]] parking"] =
             "How many Vehicles a Building of this kind can park. Zero is meaningful and is the "
             + "same as omitting the key — a tower with no parking is a real building.",

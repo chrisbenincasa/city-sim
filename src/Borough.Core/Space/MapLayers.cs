@@ -667,6 +667,79 @@ public sealed class MapLayers
         }
     }
 
+    /// <summary>
+    /// Seals a <b>rectangle of ground</b>, spreading it over every Cell it actually covers.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b><c>plans/0052</c> STAGE 1 MADE THIS NECESSARY AND THE MEASUREMENT IS WHAT FOUND IT.</b>
+    /// <see cref="Seal(Cells, Cells, int)"/> takes a Cell and a count, which is exactly right for a
+    /// footprint of one to four Tiles: a small building sits inside one Cell. <b>A parcel does
+    /// not.</b> At <c>rulesets/severance.toml</c>'s <c>block_tiles = 256</c> a block is 64 Cells and
+    /// the mean parcel is <b>5,157 Tiles</b> — five Cells' worth of ground — and putting all of it in
+    /// the Lot's own Cell <b>saturated 481 Cells</b> where the shipped block size saturates none.
+    /// ***A saturated Cell has Fertility 0 and stops telling two differently-built Cells apart***,
+    /// which is the failure the plan told itself to look for before it re-recorded anything.
+    /// </para>
+    /// <para>
+    /// <b>The overlap is exact rather than apportioned.</b> Each Cell gets the area of its
+    /// intersection with the rectangle, so the parts sum to the whole and no Tile is counted twice —
+    /// which is what makes this <c>CONTEXT.md</c> → Sealing's <em>"the count of Tiles in a Cell ever
+    /// built on"</em> read literally rather than approximately.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The cost is the parcel's Cell span and nothing else.</b> One Cell at the shipped block
+    /// size, nine at the coarsest world that ships, and it runs once per Building raised rather than
+    /// once per Tick.
+    /// </para>
+    /// </remarks>
+    public void SealGround(Tiles east, Tiles north, Tiles wide, Tiles deep)
+    {
+        if (wide.Raw <= 0 || deep.Raw <= 0)
+        {
+            return;
+        }
+
+        int lastEast = east.Raw + wide.Raw - 1;
+        int lastNorth = north.Raw + deep.Raw - 1;
+
+        Cells firstCellEast = CellGrid.ToCellsClamped(east);
+        Cells lastCellEast = CellGrid.ToCellsClamped(new Tiles(lastEast));
+        Cells firstCellNorth = CellGrid.ToCellsClamped(north);
+        Cells lastCellNorth = CellGrid.ToCellsClamped(new Tiles(lastNorth));
+
+        for (int cellEast = firstCellEast.Raw; cellEast <= lastCellEast.Raw; cellEast++)
+        {
+            int loEast = cellEast * CellGrid.TilesPerCell;
+            int hiEast = loEast + CellGrid.TilesPerCell - 1;
+            int fromEast = loEast > east.Raw ? loEast : east.Raw;
+            int toEast = hiEast < lastEast ? hiEast : lastEast;
+
+            if (toEast < fromEast)
+            {
+                continue;
+            }
+
+            for (int cellNorth = firstCellNorth.Raw; cellNorth <= lastCellNorth.Raw; cellNorth++)
+            {
+                int loNorth = cellNorth * CellGrid.TilesPerCell;
+                int hiNorth = loNorth + CellGrid.TilesPerCell - 1;
+                int fromNorth = loNorth > north.Raw ? loNorth : north.Raw;
+                int toNorth = hiNorth < lastNorth ? hiNorth : lastNorth;
+
+                if (toNorth < fromNorth)
+                {
+                    continue;
+                }
+
+                Seal(
+                    new Cells(cellEast),
+                    new Cells(cellNorth),
+                    (toEast - fromEast + 1) * (toNorth - fromNorth + 1));
+            }
+        }
+    }
+
     /// <summary>How many Tiles in a Cell have been built on. Zero where nothing is resident.</summary>
     public int Sealing(Cells east, Cells north) => Read(_cells.Sealing, east, north);
 

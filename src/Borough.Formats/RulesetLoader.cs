@@ -2052,40 +2052,20 @@ public static class RulesetLoader
                     }
                 }
 
-                // CONTEXT.md -> Building's footprint, which the vocabulary has always specified and
-                // nothing in the build carried: "a Building has a footprint (the set of Tiles it
-                // covers)" and "interacts with Map Layers through that footprint". Sealing is such a
-                // Layer. A Lot stores a position and no extent and adr/0078 refused it a depth, so
-                // this cannot be derived and is declared on the kind like occupancy and employment.
+                // plans/0052 stage 1: footprint_tiles is RETIRED and the ground it named is now
+                // DERIVED. A Building covers its Lot's parcel, which is a partition of the block the
+                // player drew -- adr/0025's own line is that block geometry determining parcel size
+                // "is not a rule at all; it is arithmetic over what the player drew", and an authored
+                // constant was standing exactly where the design says arithmetic belongs.
                 //
-                // ONE WHEN ABSENT rather than zero, and that is the opposite default to the three
-                // keys around it. Absent `occupants` means a kind that houses nobody, which is a
-                // real building; absent `footprint_tiles` would mean a building covering no ground,
-                // which is not a thing. One is CONTEXT.md -> Sealing's own illustration of the unit
-                // -- "one house seals 1/1024 of its Cell" -- so a file that does not state this gets
-                // the figure the corpus already carried and no world moves that did not have to.
-                //
-                // Zero is refused for that reason and not merely negatives: a kind seals its ground
-                // or it is not a Building. The read site clamps to one as a backstop, because a
-                // KindDefinition built in a test does not come through this door.
-                int footprintTiles = 1;
-
-                if (TryInteger(table, "footprint_tiles", out long covers, required: false, name))
-                {
-                    if (covers < 1)
-                    {
-                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "footprint_tiles") ?? table), name,
-                            $"footprint_tiles is {covers}. It counts the Tiles a Building of this "
-                            + "kind covers and therefore Seals, so it is at least one; omit it for "
-                            + "the single Tile CONTEXT.md gives a house.");
-                    }
-                    else
-                    {
-                        footprintTiles = covers > CellGrid.TilesInCell
-                            ? CellGrid.TilesInCell
-                            : (int)covers;
-                    }
-                }
+                // Refused by name rather than dropped, because a file still stating it would
+                // otherwise load clean and seal a different amount of ground than it says.
+                RefuseRetired(table, "footprint_tiles", name,
+                    "footprint_tiles is stated on a [[building]] kind. A Building now covers its "
+                    + "Lot's PARCEL -- the block's ground, partitioned by the block's subdivision "
+                    + "pattern -- so the ground it seals is derived from what the player drew and "
+                    + "is no longer a property of the kind (plans/0052, adr/0025). Remove the key; "
+                    + "make the ground bigger by drawing bigger blocks.");
 
                 // adr/0141 gave `jobs` and the Shift band to the TRADE, and adr/0148 removed them
                 // from here rather than leaving them parsed and unread. A key nothing reads is this
@@ -2200,7 +2180,6 @@ public static class RulesetLoader
                     CollapsesAfterDays = collapsesAfterDays,
                     AbandonedWhenEmptyAfterTicks = emptyAfterTicks,
                     Occupants = occupants,
-                    FootprintTiles = footprintTiles,
                     Business = business,
                     Parking = parking,
                     ArrivalsPerDay = arrivalsPerDay,

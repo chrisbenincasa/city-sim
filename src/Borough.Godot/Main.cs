@@ -92,9 +92,34 @@ public partial class Main : Node3D
     /// <inheritdoc cref="BuildingFillLow"/>
     private const float BuildingFillHigh = 1.0f;
 
+    /// <summary>
+    /// The band a Building fills of its <b>parcel's depth</b>. <b>Narrower than the frontage's,
+    /// because a garden is normal.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THIS REPLACES A DEPTH IN METRES, AND THAT IS THE WHOLE OF <c>plans/0052</c> STAGE 1
+    /// ARRIVING IN THE SHELL.</b> <c>PlotDepthMetres</c> was 26 m — a thickness the city did not
+    /// have, invented here because <c>adr/0078</c> says a Lot is an address point and owns no
+    /// ground. <b>A Lot now carries a parcel</b>, so the depth is the city's and this is only what
+    /// share of it a wall stands on.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It made every density look the same and it no longer can.</b> The old constant was the
+    /// same 26 m on a 32-Tile block and on a 256-Tile one, so the drawing said nothing about how the
+    /// ground had been divided. The parcel differs by pattern by construction — a back-to-back plot
+    /// reaches the block's centre line and a detached one holds a strip — so this band varies what
+    /// the band multiplies rather than being the whole of the answer.
+    /// </para>
+    /// </remarks>
+    private const float DepthFillLow = 0.45f;
+
+    /// <inheritdoc cref="DepthFillLow"/>
+    private const float DepthFillHigh = 0.85f;
+
     /// <summary>How far a pitched roof rises, as a share of the Building's depth.</summary>
     /// <remarks>
-    /// ⚠ <b><see cref="PlotDepthMetres"/>' class of thing and labelled as one</b> — the city holds
+    /// ⚠ <b><see cref="DepthFillLow"/>' class of thing and labelled as one</b> — the city holds
     /// no roof. A silhouette is all that reads at a high-level camera, so this is the cheapest
     /// variety in the drawing and the one that costs the simulation nothing at all.
     /// </remarks>
@@ -124,7 +149,7 @@ public partial class Main : Node3D
 
     /// <summary>How far a roof oversails its wall. <b>What makes a pitch legible.</b></summary>
     /// <remarks>
-    /// <see cref="PlotDepthMetres"/>' class of thing and labelled as one — the city holds no eaves.
+    /// <see cref="DepthFillLow"/>' class of thing and labelled as one — the city holds no eaves.
     /// A real overhang is 300–600 mm; this is larger because the camera is fifty metres up and a
     /// half-metre line is a pixel. What it buys is a <b>shadow at the wall head</b>, which is the
     /// edge a roof's angle is actually read against.
@@ -156,27 +181,30 @@ public partial class Main : Node3D
 
     /// <summary>How far into a block a scattered thing must be to count as being in the yard.</summary>
     /// <remarks>
-    /// 🔴 <b>Derived from the deepest Building rather than chosen</b> — half a carriageway, plus
-    /// <see cref="PlotDepthMetres"/> at its jitter's top, plus a metre. A tree inside this band would
-    /// stand in somebody's front room.
+    /// <para>
+    /// 🔴 <b>IT IS THE BLOCK'S OWN CARVE NOW AND NO LONGER A CONSTANT</b> (<c>plans/0052</c> stage
+    /// 1). It was half a carriageway plus an invented 26 m at its jitter's top — the same band on a
+    /// 32-Tile block and on a 256-Tile one, so a coarse city kept its trees in a ring that meant
+    /// nothing. <b><see cref="BlockPatterns.StripTiles"/> is the depth the core actually carves</b>,
+    /// called rather than restated, because a second copy of the city's arithmetic in the renderer
+    /// is <c>plans/0012</c> <b>Cause 1</b>.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is the DETACHED strip and not the deepest a parcel can be</b>, which is deliberate
+    /// and is a floor rather than a guarantee: a back-to-back block's parcels meet at the centre
+    /// line and have no yard at all, so a margin honest about <em>that</em> would suppress the
+    /// courtyard on every block in the city. <b>What covers the denser patterns is the Woodland
+    /// itself</b> — <see cref="MapLayers.Seal"/> takes a Cell's trees back as its ground is built
+    /// on, and stage 1 seals the whole parcel, so a terraced block thins itself out and needs no
+    /// margin to do it.
+    /// </para>
     /// </remarks>
-    private const float YardMarginMetres = (RoadWidthMetres * 0.5f) + (PlotDepthMetres * 1.4f) + 1f;
+    private static float YardMargin(int block, int lots) =>
+        (RoadWidthMetres * 0.5f) + (BlockPatterns.StripTiles(block, lots) * MetresPerTile) + 1f;
 
     /// <summary>Above this, a Building gets a flat roof. <b>Tall things are not gabled.</b></summary>
     private const float PitchCeilingMetres = 24f;
 
-    /// <summary>
-    /// How deep a Building is drawn, as a share of its frontage. <b>Invented, and it has to be.</b>
-    /// </summary>
-    /// <remarks>
-    /// <b>A Lot has no depth and there is no depth key</b> (<c>adr/0078</c>) — a Lot is an address
-    /// point on a Segment, and how far back the building goes is a fact the city does not hold. So
-    /// this is the renderer inventing a thickness, exactly as the setback does, and it is labelled
-    /// as one so nobody promotes it to a Ruleset key. ⚠ <b>It is metres and NOT a share of the
-    /// frontage</b>, which is what it was until it was found to make every density look the same —
-    /// see <see cref="Depth"/>.
-    /// </remarks>
-    private const float PlotDepthMetres = 26f;
 
     /// <summary>
     /// The narrowest run of kerb worth standing a Building on, in metres.
@@ -862,7 +890,7 @@ public partial class Main : Node3D
 
         // THE COURTYARD. A block's middle cannot hold a Lot (adr/0078) and these are not Lots: an
         // outbuilding belongs to the Building in front of it and is drawn from its scramble, which
-        // is PlotDepthMetres' own bargain -- geometry the city does not have, invented so the
+        // is DepthFillLow's own bargain -- geometry the city does not have, invented so the
         // picture reads as a city, and labelled so nobody promotes it to a Ruleset key.
         _yards = Layer(Outbuilding, Vector3.One, perInstance: true);
         _trees = Layer(Crown, new SphereMesh { Radius = 0.5f, Height = 1f, RadialSegments = 6, Rings = 3 });
@@ -2086,162 +2114,6 @@ public partial class Main : Node3D
         return $"{Rungs[rung]} — a Day in {day}, {Ladder[rung] * SecondsPerTick:N0}x real time";
     }
 
-    /// <summary>
-    /// The stretch of kerb a Lot has to itself, as a span along the block in metres.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// 🔴 <b>THE FLAT 51.2 m FRONTAGE WAS RIGHT ON AVERAGE AND WRONG ON EVERY KERB.</b>
-    /// <c>Frontage.SideOf</c> is <b>odd-and-even house numbering</b> — indices 0, 2, 4 to the left
-    /// and 1, 3 to the right — so a Segment's five Lots split <b>three and two</b>. Three Lots of
-    /// 51.2 m want <b>153.6 m</b> of a 128 m kerb and two want <b>102.4 m</b>: the first side
-    /// over-subscribed by a fifth and the second short by a fifth. ⚠ <b>The over-subscribed side
-    /// INTERPENETRATED once the corner Lots stopped being cut</b> — 64 overlapping pairs, measured —
-    /// and the short side had a fifth of its kerb that no Lot could ever reach.
-    /// </para>
-    /// <para>
-    /// ✅ <b>So a Lot's frontage is the half-way line to its neighbours ON ITS OWN SIDE</b>, which
-    /// tiles each kerb exactly, needs no new data, and is asymmetric where the offsets are.
-    /// ⚠ <b>It calls <c>Frontage</c> rather than restating it</b> — the offsets are the city's own
-    /// arithmetic and a second copy in the renderer is <c>plans/0012</c> <b>Cause 1</b>.
-    /// </para>
-    /// </remarks>
-    private static (float From, float To) Kerb(
-        int alongTiles, int lots, int block, bool horizontal)
-    {
-        float span = block * MetresPerTile;
-        float clear = RoadWidthMetres * 0.5f;
-        int index = -1;
-
-        for (int at = 0; at < lots; at++)
-        {
-            if (Frontage.OffsetOf(at, lots, block).Raw == alongTiles)
-            {
-                index = at;
-
-                break;
-            }
-        }
-
-        // Not a lattice Lot at all -- a hand-placed one, or a Ruleset whose offsets this build does
-        // not generate. It gets the block, which is what the flat frontage always gave it. ⚠ IT
-        // STILL GIVES UP THE CORNER: an early return here skipped the reserve below and put every
-        // such Lot back into the cross street's ground.
-        if (index < 0)
-        {
-            return PastTheCorner(clear, span - clear, span, clear, block, horizontal);
-        }
-
-        float here = alongTiles * MetresPerTile;
-        float from = index >= 2
-            ? (here + (Frontage.OffsetOf(index - 2, lots, block).Raw * MetresPerTile)) * 0.5f
-            : clear;
-        float to = index + 2 < lots
-            ? (here + (Frontage.OffsetOf(index + 2, lots, block).Raw * MetresPerTile)) * 0.5f
-            : span - clear;
-
-        return PastTheCorner(from, to, span, clear, block, horizontal);
-    }
-
-    /// <summary>The stretch of kerb left after the cross street's Buildings have taken the corner.</summary>
-    /// <remarks>
-    /// <para>
-    /// 🔴 <b>THE CORNER IS CLAIMED BY FOUR FACES INDEPENDENTLY AND THEREFORE CLAIMED TWICE.</b> A
-    /// Building steps back from its own kerb, so the ground within a depth of a cross street is
-    /// already spoken for by a Building on <i>that</i> street. Nothing in the city arbitrates it: a
-    /// Lot is an <b>address</b> and owns no ground (<c>adr/0078</c>), so the parcel is the shell's
-    /// own invention and four inventions land on one patch.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>THE FIX IS ALLOCATION AND NOT GEOMETRY</b>, which is what every other city builder
-    /// does — a SimCity 4 lot is a rectangle of tiles and a tile belongs to exactly one lot; a
-    /// Cities: Skylines block is 8 m zoning cells, each claimed by exactly one road's strip. So
-    /// <b>two faces take the corners and two give them up</b>: the horizontal pair runs the block's
-    /// whole length, the vertical pair starts a depth in from each end. <b>Which is what a real
-    /// corner does</b> — the corner building belongs to one street and the cross street's terrace
-    /// begins after it. Four rectangles, no overlap, no hole, at every block size.
-    /// <para>
-    /// ⚠ <b>NOTHING IS CUT ON A DIAGONAL AND NO BUILDING IS A TRAPEZOID.</b> Four mitred trapezoids
-    /// tile a square frame exactly, and that is the arithmetic that <i>refuted</i> the claim that a
-    /// full square block is impossible — it is not the drawing. The drawing is boxes. This method
-    /// was called <c>Mitre</c> for one commit and the name described a building nobody would build.
-    /// </para>
-    /// </para>
-    /// <para>
-    /// 🔴 ⚠ <b>THE RESERVE IS THE DEEPEST A NEIGHBOUR CAN BE AND NOT THIS BUILDING'S OWN DEPTH.</b>
-    /// The first version reserved the caller's <c>deep</c>, which is jittered per Building — so a
-    /// shallow Lot held back a shallow distance and the deeper Building on the cross street reached
-    /// straight through it. It cut the overlap without closing it: <b>28 pairs and 2,610 m² still
-    /// stood, 26 of them perpendicular</b>. What has to be reserved is the worst case, because the
-    /// neighbour's draw is not knowable from here.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>It degrades into Manhattan on its own</b>, which is the point. As the block narrows
-    /// toward twice a Building's depth the reserved run shrinks to nothing and the end faces stop
-    /// carrying Buildings at all — long faces holding the frontage, short ends holding none,
-    /// arrived at as a <i>consequence</i> rather than chosen as a look (<c>plans/0049</c> F18, F21).
-    /// </para>
-    /// </remarks>
-    private static (float From, float To) PastTheCorner(
-        float from, float to, float span, float clear, int blockTiles, bool horizontal)
-    {
-        if (horizontal)
-        {
-            return (from, to);
-        }
-
-        float guard = clear + Deepest(blockTiles);
-
-        from = Math.Max(from, guard);
-        to = Math.Max(from, Math.Min(to, span - guard));
-
-        return (from, to);
-    }
-
-    /// <summary>The deepest a Building on this block can be drawn, in metres.</summary>
-    /// <remarks>
-    /// <b><see cref="Depth"/>'s jitter at its top, capped the same way</b> — the one number a face
-    /// can reserve against a neighbour whose own draw it cannot see.
-    /// </remarks>
-    private static float Deepest(int blockTiles)
-    {
-        float room = ((blockTiles * MetresPerTile) - RoadWidthMetres) * 0.5f;
-
-        return room > 4f
-            ? Mathf.Min(PlotDepthMetres * 1.4f, room * 0.95f)
-            : PlotDepthMetres * 1.4f;
-    }
-
-
-    /// <summary>How far back from the kerb a Building reaches, in metres.</summary>
-    /// <remarks>
-    /// <para>
-    /// 🔴 ⚠ <b>THIS USED TO BE A SHARE OF THE FRONTAGE AND THAT WAS THE DEFECT.</b> Tying depth to
-    /// width fixes a Building's <i>shape</i>, so narrowing the Lots shrank every building instead
-    /// of terracing them — a street of ten narrow houses came out as ten small sheds with the same
-    /// gaps between them, and the city looked identical at every density it was asked for. ***A
-    /// real terrace house is 6 m wide and 12 m deep***; the two are independent and the renderer
-    /// now says so.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>It is the shell's invention and the city holds no such number</b> — a Lot has no depth
-    /// and there is no depth key (<c>adr/0078</c>). What it must not do is reach the Building on
-    /// the block's far face, so it is capped against the block rather than trusted.
-    /// </para>
-    /// </remarks>
-    private static float Depth(int blockTiles, ulong shape)
-    {
-        float wanted = PlotDepthMetres * (0.8f + (((shape >> 16) & 0xFFu) / 255f * 0.6f));
-        float room = ((blockTiles * MetresPerTile) - RoadWidthMetres) * 0.5f;
-
-        // 🔴 0.95 AND NOT 0.8, AND THE DIFFERENCE ONLY SHOWS ON A SMALL BLOCK. At the shipped
-        // block_tiles = 32 the room is 60 m and the wanted depth is 21-36, so the cap never bites;
-        // at 16 it is 28 m and the cap IS the depth. Holding a fifth back there left a 21 m strip
-        // down the middle of a 64 m block, which is the one geometry a real city does not have --
-        // Manhattan's 61 m block is exactly two 30 m Lots and they meet. See plans/0049 F18.
-        return room > 4f ? Mathf.Min(wanted, room * 0.95f) : wanted;
-    }
-
     /// <summary>What one Building's walls are, which is <see cref="Standing"/> and a wander.</summary>
     /// <remarks>
     /// ⚠ <b>Value and warmth, and not hue.</b> Moving the hue gives a painted street; moving how
@@ -2264,7 +2136,7 @@ public partial class Main : Node3D
     /// <remarks>
     /// ⚠ <b>Weighted, and the weighting is the whole point.</b> A fair coin between two tones
     /// gives a chequerboard; one roofing in five puts a slate roof in a street of tile, which is
-    /// what a street of them looks like. It is <see cref="PlotDepthMetres"/>' class of thing and
+    /// what a street of them looks like. It is <see cref="DepthFillLow"/>' class of thing and
     /// draws on no <c>purpose_tag</c>.
     /// </remarks>
     private static Color Slate(ulong shape)
@@ -2289,7 +2161,7 @@ public partial class Main : Node3D
     /// thirty, the shell draws a tower without being told to.
     /// </para>
     /// <para>
-    /// <b>The jitter is <see cref="PlotDepthMetres"/>' class of thing and is labelled as one</b> — a
+    /// <b>The jitter is <see cref="DepthFillLow"/>' class of thing and is labelled as one</b> — a
     /// thickness the city does not have, invented so the picture reads as a city rather than as a
     /// bar chart. It is keyed on the Building's monotonic row id, so a Building keeps its shape for
     /// as long as it stands and a rebuilt one on the same Lot is visibly a different building.
@@ -2310,32 +2182,75 @@ public partial class Main : Node3D
                 continue;
             }
 
-            float east = lots.East[lot].Raw * MetresPerTile;
-            float north = lots.North[lot].Raw * MetresPerTile;
+            // 🔴 THE GROUND IS THE CITY'S NOW AND THE SHELL NO LONGER INVENTS IT
+            // (plans/0052 stage 1). A Lot carries a PARCEL -- a rectangle of Tiles derived on the
+            // epoch from the block's own pattern, and a partition of that block by construction.
+            // FIVE separate inventions stood here: a setback, a stretch of kerb, a corner reserve,
+            // a depth, and a re-centring onto the stretch. They are one read.
+            int wideTiles = lots.ParcelWide[lot].Raw;
+            int deepTiles = lots.ParcelDeep[lot].Raw;
+
+            // ⚠ NO GROUND IS THE GEOMETRY REPORTING RATHER THAN FAILING. A Lot whose Street is gone
+            // keeps its Building and loses its Address (adr/0079) and therefore its parcel; and a
+            // pattern that carries no Building on this face leaves its Lots as ADDRESSES WITH
+            // NOWHERE TO STAND, which is the block saying it was subdivided on four faces when it
+            // holds two (plans/0049 F21). Drawing a sliver would be drawing a Building the block
+            // cannot hold.
+            if (wideTiles <= 0 || deepTiles <= 0)
+            {
+                continue;
+            }
+
+            float parcelEast = lots.ParcelEast[lot].Raw * MetresPerTile;
+            float parcelNorth = lots.ParcelNorth[lot].Raw * MetresPerTile;
+            float parcelWide = wideTiles * MetresPerTile;
+            float parcelDeep = deepTiles * MetresPerTile;
+
             var side = (StreetSide)lots.Side[lot];
 
-            // ⚠ A LOT'S COORDINATE IS A POINT ON THE SEGMENT, NOT A PLOT OF GROUND BESIDE IT.
-            // Lots hang on Segments and have no depth (adr/0078), so drawing one where it says it
-            // is puts the Building in the carriageway. Which kerb to step to is Side, read the way
-            // LotSubdivider.BlockOf writes it: on a horizontal Street Left is the north side, on a
+            // Which of the parcel's two axes runs ALONG the Street. Read the way
+            // BlockPatterns.SideOf writes it: on a horizontal Street Left is the north side, on a
             // vertical one Right is the east side.
             bool horizontal = block > 0 && lots.North[lot].Raw % block == 0;
 
             ulong id = table.Rows.IdAt(slot);
             ulong shape = Scramble(id);
-            float deep = Depth(block, shape);
 
-            // Half the carriageway plus half the building's own depth, so the near face clears the
-            // road by construction rather than by a constant that happened to be big enough.
-            float setback = (RoadWidthMetres * 0.5f) + (deep * 0.5f);
+            float alongSpan = horizontal ? parcelWide : parcelDeep;
+            float deepSpan = horizontal ? parcelDeep : parcelWide;
+
+            // Each draw takes its own bit range off the one scramble, so a deep Building is not
+            // also a wide one and a tall one is neither.
+            float fill = BuildingFillLow
+                + (((shape >> 8) & 0xFFu) / 255f * (BuildingFillHigh - BuildingFillLow));
+            float along = alongSpan * fill;
+            float deep = deepSpan
+                * (DepthFillLow + (((shape >> 16) & 0xFFu) / 255f * (DepthFillHigh - DepthFillLow)));
+
+            if (along < MinFrontageMetres)
+            {
+                continue;
+            }
+
+            // 🔴 PUSHED AGAINST THE STREET EDGE OF ITS OWN PARCEL, so what is left over is at the
+            // BACK, where a garden is. Centring in the parcel instead would give every street a
+            // ragged building line and set a shallow house back further than a deep one.
+            float east;
+            float north;
 
             if (horizontal)
             {
-                north += side == StreetSide.Left ? setback : -setback;
+                east = parcelEast + (parcelWide * 0.5f);
+                north = side == StreetSide.Left
+                    ? parcelNorth + (deep * 0.5f)
+                    : parcelNorth + parcelDeep - (deep * 0.5f);
             }
             else
             {
-                east += side == StreetSide.Right ? setback : -setback;
+                north = parcelNorth + (parcelDeep * 0.5f);
+                east = side == StreetSide.Right
+                    ? parcelEast + (deep * 0.5f)
+                    : parcelEast + parcelWide - (deep * 0.5f);
             }
 
             byte kind = table.Kind[slot];
@@ -2343,44 +2258,8 @@ public partial class Main : Node3D
                 ? Math.Max(1, _world.Rules.Kind(kind).Occupants)
                 : 1;
 
-            // 0.55x to 1.85x on the height, 0.85x to 1.15x on the frontage. Each draw takes its
-            // own bit range off the one scramble, so a tall Building is not also a fat one.
+            // 0.55x to 1.85x on the height.
             float tall = storeys * StoreyMetres * (0.55f + ((shape & 0xFFu) / 255f * 1.3f));
-            // The Lot's own place along the block, which Sited needs in order to know whether the
-            // Building it is about to size runs into the cross street.
-            int alongTiles = (horizontal ? lots.East[lot].Raw : lots.North[lot].Raw) % block;
-            // 🔴 THE BAND IS WIDE AND THE OLD ONE WAS THE REASON A BLOCK FACE READ AS TWO SLABS.
-            // 0.72-0.98 of a 51.2 m frontage is a 37-50 m building with a gap nobody can see from
-            // the camera this game is played at; the band below is a terrace beside a house.
-            float fill = BuildingFillLow
-                + (((shape >> 8) & 0xFFu) / 255f * (BuildingFillHigh - BuildingFillLow));
-            (float from, float to) = Kerb(
-                alongTiles, _world.Rules.Lots.LotsPerSegment, block, horizontal);
-            float along = (to - from) * fill;
-
-            // ⚠ A FACE THAT GAVE ITS CORNERS UP CAN HAVE NOTHING LEFT, and that is the geometry
-            // reporting rather than failing: on a block only twice a Building deep the end faces
-            // have no ground, so their Lots are ADDRESSES WITH NOWHERE TO STAND. Drawing a sliver
-            // would be drawing a Building the block cannot hold; the honest picture is the empty
-            // end, and what it says is that the Ruleset has subdivided four faces of a block that
-            // fits two (plans/0049 F21).
-            if (along < MinFrontageMetres)
-            {
-                continue;
-            }
-
-
-            // ⚠ CENTRED ON THE STRETCH AND NOT ON THE LOT'S OWN POINT. The two differ wherever the
-            // neighbours are unevenly spaced, which at the shipped offsets is every corner Lot --
-            // and centring on the point is what walked a full-width Building into the cross street.
-            if (horizontal)
-            {
-                east += ((from + to) * 0.5f) - (alongTiles * MetresPerTile);
-            }
-            else
-            {
-                north += ((from + to) * 0.5f) - (alongTiles * MetresPerTile);
-            }
 
             // The long side runs ALONG the Street, which is what makes a row of them read as a
             // street rather than as a field of blocks -- so the plan is swapped with the axis the
@@ -2500,18 +2379,18 @@ public partial class Main : Node3D
     /// something the Building already says.
     /// </para>
     /// <para>
-    /// ⚠ <b>It steps to the kerb exactly as <see cref="Buildings"/> does and for the same reason</b>
-    /// — a Lot's coordinate is a point on the Segment (<c>adr/0078</c>), so a pad drawn where the
-    /// Lot says it is lies in the carriageway. The setback here is half the carriageway plus half
-    /// the pad, so the two layers agree about which side of the road a Lot is on.
+    /// 🔴 <b>IT IS THE LOT'S PARCEL, DRAWN WHOLE</b> (<c>plans/0052</c> stage 1) — the same
+    /// rectangle <see cref="Buildings"/> stands a wall on a share of. ⚠ <b>Before this the two
+    /// layers invented DIFFERENT ground</b>: a Lot's coordinate is a point on a Segment
+    /// (<c>adr/0078</c>) and each of them stepped off it by its own setback, so a pad and the
+    /// Building that replaced it did not cover the same patch. <b>They cannot disagree now, because
+    /// neither of them is deciding.</b>
     /// </para>
     /// </remarks>
     private System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where, Color What)>
         Plots()
     {
         LotTable lots = _world.Lots;
-        int block = _world.Roads.Streets.BlockTiles;
-        int perSegment = _world.Rules.Lots.LotsPerSegment;
 
         for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
         {
@@ -2520,42 +2399,34 @@ public partial class Main : Node3D
                 continue;
             }
 
-            float east = lots.East[slot].Raw * MetresPerTile;
-            float north = lots.North[slot].Raw * MetresPerTile;
-            var side = (StreetSide)lots.Side[slot];
-            bool horizontal = block > 0 && lots.North[slot].Raw % block == 0;
+            // ⚠ THE PAD IS THE LOT'S PARCEL, which is what a vacant Lot has always been trying
+            // to draw -- the ground the city would build on. Before plans/0052 stage 1 the shell
+            // had to invent it, and it invented a DIFFERENT rectangle here than Buildings() did.
+            int wideTiles = lots.ParcelWide[slot].Raw;
+            int deepTiles = lots.ParcelDeep[slot].Raw;
 
-            // ⚠ THE PAD IS THE LOT'S OWN STRETCH OF KERB, on Buildings()' rule and for the same
-            // reason -- a pad drawn at the flat frontage overhung the cross street on every corner
-            // Lot, which is a subdivision the city has not made.
-            int alongTiles = (horizontal ? lots.East[slot].Raw : lots.North[slot].Raw) % block;
-            (float from, float to) = Kerb(alongTiles, perSegment, block, horizontal);
-            float pad = to - from;
-
-            if (pad < MinFrontageMetres)
+            if (wideTiles <= 0 || deepTiles <= 0)
             {
                 continue;
             }
 
-            float setback = (RoadWidthMetres * 0.5f) + (pad * 0.25f);
-            float slide = ((from + to) * 0.5f) - (alongTiles * MetresPerTile);
+            float parcelWide = wideTiles * MetresPerTile;
+            float parcelDeep = deepTiles * MetresPerTile;
 
-            if (horizontal)
+            if (Mathf.Min(parcelWide, parcelDeep) < MinFrontageMetres)
             {
-                north += side == StreetSide.Left ? setback : -setback;
-                east += slide;
+                continue;
             }
-            else
-            {
-                east += side == StreetSide.Right ? setback : -setback;
-                north += slide;
-            }
+
+            // The pad IS the parcel, drawn whole -- which is the one thing in this shell that is
+            // allowed to be, because a pad is not a Building and the ground under it is exactly
+            // what the verb produced.
+            float east = (lots.ParcelEast[slot].Raw * MetresPerTile) + (parcelWide * 0.5f);
+            float north = (lots.ParcelNorth[slot].Raw * MetresPerTile) + (parcelDeep * 0.5f);
 
             // A hand's breadth off the ground -- above the carriageway at 0.1 m so a pad on a kerb
             // is not hidden by the road it hangs on, and far below anything that stands up.
-            Vector3 plan = horizontal
-                ? new Vector3(pad, 0.4f, pad * 0.5f)
-                : new Vector3(pad * 0.5f, 0.4f, pad);
+            Vector3 plan = new(parcelWide, 0.4f, parcelDeep);
 
             yield return (
                 lots.Rows.IdAt(slot),
@@ -3980,7 +3851,7 @@ public partial class Main : Node3D
     /// decision.
     /// </para>
     /// <para>
-    /// ⚠ <b>Inside the laid city a crown must clear <see cref="YardMarginMetres"/> of every block
+    /// ⚠ <b>Inside the laid city a crown must clear <see cref="YardMargin"/> of every block
     /// edge</b>, which is what keeps one out of the carriageway and out of somebody's front room.
     /// Outside it there is no lattice to avoid and the test is not applied — ***a regular gap in open
     /// country would draw the road grid where there are no roads.***
@@ -3989,6 +3860,7 @@ public partial class Main : Node3D
     private void Scatter()
     {
         int block = _world.Roads.Streets.BlockTiles;
+        int lots = _world.Rules.Lots.LotsPerSegment;
         float reach = Mathf.Max(_span * 1.6f, 2_048f);
         Rect2 window = _laid.Grow(reach);
 
@@ -4029,7 +3901,7 @@ public partial class Main : Node3D
                     float x = (east * CellGrid.MetresPerCell) + ((draw & 0xFFFu) / 4095f * CellGrid.MetresPerCell);
                     float z = (north * CellGrid.MetresPerCell) + (((draw >> 12) & 0xFFFu) / 4095f * CellGrid.MetresPerCell);
 
-                    if (paved.HasPoint(new Vector2(x, z)) && !InAYard(x, z, block))
+                    if (paved.HasPoint(new Vector2(x, z)) && !InAYard(x, z, block, lots))
                     {
                         continue;
                     }
@@ -4069,7 +3941,7 @@ public partial class Main : Node3D
     }
 
     /// <summary>Whether a point stands far enough into a block to be behind the Buildings.</summary>
-    private static bool InAYard(float east, float north, int block)
+    private static bool InAYard(float east, float north, int block, int lots)
     {
         if (block <= 0)
         {
@@ -4077,11 +3949,12 @@ public partial class Main : Node3D
         }
 
         float span = block * MetresPerTile;
+        float margin = YardMargin(block, lots);
         float alongEast = Mathf.PosMod(east, span);
         float alongNorth = Mathf.PosMod(north, span);
 
-        return alongEast > YardMarginMetres && alongEast < span - YardMarginMetres
-            && alongNorth > YardMarginMetres && alongNorth < span - YardMarginMetres;
+        return alongEast > margin && alongEast < span - margin
+            && alongNorth > margin && alongNorth < span - margin;
     }
 
     /// <summary>Where a Cell's three bytes start in the skin, or <c>-1</c> if it is off the map.</summary>

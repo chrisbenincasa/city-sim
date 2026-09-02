@@ -206,7 +206,6 @@ spread_days   = 16
 
 [[building]]
 name = "school"
-footprint_tiles = 4
 serves = "education"
 
 [needs]

@@ -204,12 +204,26 @@ public sealed class Frontage
     /// </remarks>
     /// <returns><c>true</c> when the Lot fronts a lattice Segment at all.</returns>
     public static bool BlockOf(
-        StreetGrid streets, Tiles east, Tiles north, StreetSide side, out int column, out int row)
+        StreetGrid streets, Tiles east, Tiles north, StreetSide side, out int column, out int row) =>
+        BlockOf(streets, east, north, side, out column, out row, out _);
+
+    /// <inheritdoc cref="BlockOf(StreetGrid, Tiles, Tiles, StreetSide, out int, out int)"/>
+    /// <remarks>
+    /// <b>The overload that also names the FACE</b>, which is what pairs a Lot with its parcel:
+    /// <see cref="BlockPatterns.Carve"/> produces parcels keyed by face and offset, and a Lot carries
+    /// a position and a side. ⚠ <b>The face falls out of the same two tests</b> — a horizontal Segment
+    /// runs eastward so Left is its north side, which makes the block's SOUTH face; a vertical one
+    /// runs northward so Left is its west side, which makes the block's EAST face.
+    /// </remarks>
+    public static bool BlockOf(
+        StreetGrid streets, Tiles east, Tiles north, StreetSide side,
+        out int column, out int row, out BlockFace face)
     {
         ArgumentNullException.ThrowIfNull(streets);
 
         column = 0;
         row = 0;
+        face = BlockFace.South;
 
         int block = streets.BlockTiles;
 
@@ -231,6 +245,7 @@ public sealed class Frontage
             if (side == StreetSide.Right)
             {
                 row--;
+                face = BlockFace.North;
             }
 
             return row >= 0;
@@ -238,9 +253,12 @@ public sealed class Frontage
 
         if (alongEast == 0 && alongNorth != 0)
         {
+            face = BlockFace.West;
+
             if (side == StreetSide.Left)
             {
                 column--;
+                face = BlockFace.East;
             }
 
             return column >= 0;

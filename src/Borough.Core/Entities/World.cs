@@ -2998,6 +2998,11 @@ public sealed class World
         // Resize clears, so this loop is not an addition to a stale array: it is the whole content.
         RebuildBlockIndex();
 
+        // plans/0052 stage 1. After the block index, because it looks a Lot's block up in it; after
+        // Frontage.Rebuild, because a Lot with no Address has no parcel and this reads that decision
+        // rather than making it again.
+        RebuildParcels();
+
         // The Lot's reverse index. Not ordered like the four lists below it — a Lot holds at most one
         // Building, so there is nothing to insert in order, and a second Building naming the same Lot
         // is a violation the whole-world tier reports rather than a list this would silently lengthen.
@@ -3243,6 +3248,108 @@ public sealed class World
         // method -- which is a list of columns -- cannot reach them.
         Commutes.Rebuild(Citizens, Buildings, Businesses, Rules, Key);
     }
+    /// <summary>
+    /// Rebuilds every Lot's parcel from the block it stands on and the pattern that block was carved
+    /// with.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>plans/0052</c> stage 1's other half.</b> ⚠ <b><c>Rows.Derived</c> ALLOCATES a column; it
+    /// does not make anything rebuild it</b> — the trap <c>DerivedRebuildAuditTests</c> exists to
+    /// catch, and which it caught on milestone 7's <c>car_park.segment_next</c>. Four columns
+    /// declared and nothing populating them would load a world whose every Building covered nothing.
+    /// </para>
+    /// <para>
+    /// <b>A Lot is matched to its parcel by FACE and OFFSET, which identify it uniquely.</b> Two
+    /// parcels on one face never share an offset, because an offset comes from
+    /// <see cref="Space.Frontage.OffsetOf"/> and that is injective in the index. ***So this is a
+    /// lookup rather than a re-derivation of the carve's decisions.***
+    /// </para>
+    /// <para>
+    /// <b>The carve is cached against the last block seen, and that is not a micro-optimisation.</b>
+    /// A block's Lots are created together, so slot order and block order agree until the table
+    /// churns — and re-carving per Lot rather than per block would multiply the work by the Lots a
+    /// block carries. ⚠ <b>It stays correct when the order is broken</b>; only the cost changes.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A Lot with no Address gets no parcel and is cleared rather than left</b>, which is
+    /// <c>adr/0079</c> read across: the Building stands, the Address is gone, and ground with no
+    /// Address on it is ground this table cannot name.
+    /// </para>
+    /// </remarks>
+    /// <remarks>
+    /// ⚠ <b>Public because it is MEASURED, and <see cref="RebuildDerived"/> is its only caller in
+    /// the build</b> — the same bargain <c>Frontage.Rebuild</c> already had.
+    /// <c>FrontageRebuildCostTests</c> prices it against the whole pass, which is what
+    /// <c>plans/0052</c> <b>Q3</b> asked for on both halves.
+    /// </remarks>
+    public void RebuildParcels()
+    {
+        int blockTiles = Roads.Streets.BlockTiles;
+        int perSegment = Rules.Lots.LotsPerSegment;
+        int ceiling = Space.BlockPatterns.Ceiling(perSegment);
+
+        Span<Space.Parcel> parcels = ceiling <= 0
+            ? []
+            : ceiling <= 64 ? stackalloc Space.Parcel[64] : new Space.Parcel[ceiling];
+
+        // The cached carve: which block it is for, and how many parcels it holds.
+        int atColumn = int.MinValue;
+        int atRow = int.MinValue;
+        int count = 0;
+
+        for (int slot = 0; slot < Lots.Rows.SlotCount; slot++)
+        {
+            if (!Lots.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            Lots.ParcelEast[slot] = Quantities.Tiles.Zero;
+            Lots.ParcelNorth[slot] = Quantities.Tiles.Zero;
+            Lots.ParcelWide[slot] = Quantities.Tiles.Zero;
+            Lots.ParcelDeep[slot] = Quantities.Tiles.Zero;
+
+            if (ceiling <= 0
+                || !Lots.HasFrontage(slot)
+                || !Space.Frontage.BlockOf(
+                    Roads.Streets, Lots.East[slot], Lots.North[slot], (Space.StreetSide)Lots.Side[slot],
+                    out int column, out int row, out Space.BlockFace face)
+                || !BlockIndex.Contains(column, row))
+            {
+                continue;
+            }
+
+            if (column != atColumn || row != atRow)
+            {
+                int blockSlot = BlockIndex.Slot(column, row);
+
+                count = blockSlot == Space.BlockResidency.NotResident
+                    ? 0
+                    : Space.BlockPatterns.Carve(
+                        PatternOf(blockSlot, out _), column, row, blockTiles, perSegment, parcels);
+
+                atColumn = column;
+                atRow = row;
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                if (parcels[i].Face != face || parcels[i].Offset != Lots.FrontageOffset[slot])
+                {
+                    continue;
+                }
+
+                Lots.ParcelEast[slot] = parcels[i].East;
+                Lots.ParcelNorth[slot] = parcels[i].North;
+                Lots.ParcelWide[slot] = parcels[i].Wide;
+                Lots.ParcelDeep[slot] = parcels[i].Deep;
+
+                break;
+            }
+        }
+    }
+
 
     /// <summary>
     /// Rebuilds <see cref="BlockIndex"/> from the Blocks' saved lattice positions.
@@ -3707,22 +3814,46 @@ public sealed class World
         // the single door every Building comes through -- the populator's and the Zone Rule's alike
         // -- so it is where the footprint meets the ground rather than at either caller.
         //
-        // The clamp is a backstop and not the refusal. RulesetLoader refuses footprint_tiles below
-        // one at the parse site (adr/0048); reaching here with zero means a KindDefinition was built
-        // in a test rather than loaded, and a Building covering no ground is not a thing this method
-        // should invent a second meaning for.
-        // Declares() rather than Kind(), because a fixture may raise a Building of a kind its Ruleset
-        // never declared -- BuildingResidencyTests builds a world with no [[building]] at all and
-        // asks the Cell index to hold one. That is a legal thing for a test to do and it is not this
-        // method's business to start refusing it, so an undeclared kind takes CONTEXT.md's one Tile.
-        int footprintTiles = Rules.Declares(kind) ? Rules.Kind(kind).FootprintTiles : 1;
+        // plans/0052 stage 1: THE FOOTPRINT IS THE LOT'S PARCEL. It was `[[building]] footprint_tiles`
+        // -- an authored constant on the kind -- and adr/0025 says in as many words that block
+        // geometry determining parcel size "is not a rule at all; it is arithmetic over what the
+        // player drew". So the ground a Building seals is the ground its Lot holds, and the key is
+        // deleted rather than retuned.
+        //
+        // The whole parcel is spent, garden included, which reads adr/0022's "Land is a stock the
+        // city spends" literally: you cannot farm somebody's back garden. A coverage fraction can
+        // arrive later as a multiplier defaulting to 1 without this having been wrong.
+        //
+        // ONE WHEN THERE IS NO PARCEL, which is CONTEXT.md -> Sealing's own illustration of the unit
+        // -- "one house seals 1/1024 of its Cell". A Lot with no Address has no parcel (adr/0079
+        // keeps it and its Building standing), and a fixture may raise a Building on a Lot no
+        // subdivider ever carved -- BuildingResidencyTests builds a world with no [[building]] at all
+        // and asks the Cell index to hold one. Both are legal and neither is a Building covering
+        // nothing.
+        int footprintTiles = Lots.ParcelTiles(lotSlot);
 
-        // Clamped, because a gate Lot stands ON a map edge (adr/0088) and the edge is a
-        // fencepost: Tile WorldTiles is one past the last Tile and has no Cell of its own.
-        Layers.Seal(
-            CellGrid.ToCellsClamped(Lots.East[lotSlot]),
-            CellGrid.ToCellsClamped(Lots.North[lotSlot]),
-            footprintTiles < 1 ? 1 : footprintTiles);
+        if (footprintTiles < 1)
+        {
+            // No parcel: a Lot with no Address (adr/0079), or one no subdivider carved. Clamped,
+            // because a gate Lot stands ON a map edge (adr/0088) and the edge is a fencepost -- Tile
+            // WorldTiles is one past the last Tile and has no Cell of its own.
+            Layers.Seal(
+                CellGrid.ToCellsClamped(Lots.East[lotSlot]),
+                CellGrid.ToCellsClamped(Lots.North[lotSlot]),
+                1);
+        }
+        else
+        {
+            // 🔴 SPREAD OVER THE CELLS THE GROUND ACTUALLY COVERS, and that is not a refinement. A
+            // parcel can be BIGGER THAN A CELL: severance.toml's block_tiles = 256 makes a block 64
+            // Cells and its mean parcel 5,157 Tiles, and sealing all of that into the Lot's own Cell
+            // saturated 481 Cells. A saturated Cell has Fertility 0 and stops telling two
+            // differently-built Cells apart, which is the whole quantity this was supposed to give
+            // back.
+            Layers.SealGround(
+                Lots.ParcelEast[lotSlot], Lots.ParcelNorth[lotSlot],
+                Lots.ParcelWide[lotSlot], Lots.ParcelDeep[lotSlot]);
+        }
 
         // adr/0069: construction houses NOBODY, so a Building is empty from the Tick it is raised and
         // its clock starts here rather than the first time somebody leaves it. ***That is the half of

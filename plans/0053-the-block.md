@@ -53,7 +53,7 @@ before adding bands produces a uniform city made of a different shape.**
 | **2** | ✅ **Bands ship** — *2026-09-02*. `adr/0025`'s cap is a real value on the block **and the Zone Rule reads it**. ⚠ **The generator paints them** — see *The two calls* | no, and that is a finding | More than one of anything |
 | **3** | ✅ **A pattern is a partition function** — *2026-09-02*. Three to start, the set open | no, and that is a finding | (a), (b) and (c) all become expressible, and none is privileged |
 | **4** | 🟡 **Carve and re-carve** — *2026-09-02*. Selection at carve time, frozen while occupied, re-platted when vacant. ⚠ **Selection reads the band and nothing else**, so the city is banded rather than varied | yes, and it is an ENCODING move | ***The city stops being uniform*** — partly |
-| **5** | **The parcel, then the footprint** — [`0052`](0052-the-parcel.md) in full | yes | Sealing, Fertility, Woodland, `adr/0025`'s Land axis, and F21 becoming impossible |
+| **5** | ✅ **The parcel, then the footprint** — *2026-09-02*, [`0052`](0052-the-parcel.md) stage 1 in full. ⚠ **It did not flatten the picture as that plan predicted** — see *What step 5 shipped* | yes, and Sealing moved | Sealing, Fertility, Woodland, `adr/0025`'s Land axis, and F21 becoming **impossible** |
 
 ⚠ **Steps 1–2 are the trunk and neither is in [`0052`](0052-the-parcel.md).** That plan is not wrong;
 it is a leaf on a tree that does not exist yet.
@@ -416,7 +416,95 @@ two thresholds, and a threshold invented here is a hash-bearing number with no r
 **One derivation was explored and does not close yet.** A pattern's own *claimed-ground share* is a
 natural cut point — pick the pattern whose share is the smallest one at or above what is already built
 around the block — which needs **built ground**, and built ground is the footprint, which is step 5.
-***So Q2 is not blocked on an argument; it is blocked on step 5.***
+~~***So Q2 is not blocked on an argument; it is blocked on step 5.***~~
+
+🔴 ✅ **UNBLOCKED 2026-09-02: step 5 shipped and built ground is now a real quantity.** A Cell's
+Sealing is the ground actually spent — **81% of it Buildings on the shipped world** where it was 4% —
+so the neighbourhood term the derivation wanted can now be read off `MapLayers`. ⚠ **What it is
+still short of is the cut points**, and the derivation above avoids inventing them only if
+*claimed-ground share* is genuinely the ordering, which is the argument nobody has had yet.
+***So Q2 is no longer blocked on a mechanism; it is blocked on a sitting.***
+
+---
+
+## What step 5 shipped
+
+✅ **A Lot carries a parcel, a Building covers it, and `footprint_tiles` is gone.** Four
+`(derived AND rebuilt)` columns on `LotTable` — `parcel_east`, `parcel_north`, `parcel_wide`,
+`parcel_deep` — written by the carve and rebuilt on the epoch by `World.RebuildParcels`, matched to
+Lots by `(face, offset)`. `ParcelTests` is what holds them.
+
+🔴 **The ground under a Building was invented in SIX places and is now decided in one.** Five were in
+the shell — a setback, a stretch of kerb, a corner reserve, a depth and a re-centring — and the sixth
+was `[[building]] footprint_tiles` in the core, which cited `adr/0078` as its reason for existing.
+***A partition of a block cannot overlap; six inventions can***, which is `plans/0049` **F21** stated
+as a property rather than as a bug. The shell's `Kerb`, `PastTheCorner`, `Deepest` and `Depth` are
+deleted, and so is `PlotDepthMetres`, the 26 m the last three rested on.
+
+### 🔴 The measurement moved, and it moved further than the plan expected
+
+[`0052`](0052-the-parcel.md) **G4** measured Buildings at **4%** of all Sealing with a peak Cell at
+**11.2%** — a city whose ground was a rounding error against its roads. `SealingMeasurementTests`,
+re-pointed at the parcel and given a saturation counter:
+
+| World | Buildings | Mean parcel | Buildings' share | Peak Cell | Saturated |
+|---|---|---|---|---|---|
+| `minimal.toml` — `block_tiles = 32` | 481 on **37,296** Tiles | **77** | **81%**, roads 18% | 733 = **71.5%** | **0** of 143 |
+| `severance.toml` — `block_tiles = 256` | 481 on **2,480,844** Tiles | **5,157** | **97%**, roads 2% | 1,024 = **100%** | 🔴 **1,576** of 4,812 |
+
+⚠ **The second row is the honest consequence and not a defect.** A quarter-kilometre block carves a
+parcel five Cells' worth of ground, the whole of it is spent because a garden is developed, and a
+Cell with nothing left has **Fertility 0** and stops telling two differently-built Cells apart. **The
+lever that would fix it is a coverage fraction**, and it is parked in [`0052`](0052-the-parcel.md) as
+a deferred derivation *because it would introduce a number*. ***The saturation is what the absence of
+that number costs, stated rather than hidden.***
+
+### 🔴 `MapLayers.Seal` could not express a parcel, and the measurement is what found it
+
+`Seal(cell, cell, count)` takes **one Cell** and a count, which is exactly right for a footprint of
+one to four Tiles and wrong for a rectangle bigger than a Cell. The first run put a whole 5,157-Tile
+parcel into the Lot's own Cell: **481 saturated Cells, Buildings at 430% of all Sealing, and roads
+reading NEGATIVE.** `SealGround` spreads by exact per-Cell overlap, so the parts sum to the whole and
+`CONTEXT.md` → Sealing reads literally.
+
+⚠ **Nothing would have caught this but the instrument.** Every assertion in the suite passed both
+before and after; a share over 100% is not a compile error and not an invariant. ***A quantity nobody
+prints is a quantity nobody checks.***
+
+### ✅ The picture did NOT flatten, and [`0052`](0052-the-parcel.md) **G3** predicted it would
+
+That plan's own warning — *stage 1 deletes a jitter and installs a constant*, **"the frame will get
+flatter"** — did not happen, and the reason is worth keeping. **The jitter did not have to be
+deleted; it had to move down a level.** The shell used to invent *a depth in metres*; it now draws a
+**share of a depth the city holds**. So `DepthFillLow`–`DepthFillHigh` still varies one building
+against its neighbour, and the parcel underneath varies one *block* against another — which the old
+constant could not do at all, because 26 m was 26 m on a 32-Tile block and on a 256-Tile one.
+***Two independent sources of variation where there was one.***
+
+### ⚠ What the loader gained by losing a key
+
+`[[building]] footprint_tiles` is **retired** rather than deleted: `RefuseRetired` names it, says why,
+and tells an author what to do instead — *"make the ground bigger by drawing bigger blocks."*
+`adr/0048`'s refusal count went **223 → 222** while the loader got stricter, for the reason
+[`plans/0050`](0050-the-ruleset-sweep.md) recorded the first time it happened: a retirement is one
+call site where a refusal is one call site plus a sentence somewhere else.
+
+### 🔴 What is still owed
+
+⚠ **Nothing re-plats on the occasion that matters**, which step 4 already recorded and step 5 does
+not discharge. `RecarveBlock` is called from `Relot` and from tests; **no Rule, no policy and no
+player verb calls it**, so a block's pattern is chosen once at founding and never revisited in any
+shipped world.
+
+⚠ **`InAYard` is a floor rather than a guarantee.** It clears the **detached** strip, because a margin
+honest about a back-to-back block — whose parcels meet at the centre line and leave no yard at all —
+would suppress the courtyard on every block in the city. What covers the denser patterns is the
+Woodland itself: `Seal` takes a Cell's trees back as its ground is built on, and a terraced block now
+thins itself out.
+
+🔴 **The shell is compile-checked and not run.** `dotnet build src/Borough.Godot` succeeds; there is no
+GPU here, so ***nobody has looked at the city this changed***, and under the amnesty's own amended
+Definition of done that is exactly the clause that is not satisfied.
 
 ---
 

@@ -231,6 +231,14 @@ public static class LotSubdivider
             world.Lots.FrontageSlot[slot] = segment + 1;
             world.Lots.FrontageOffset[slot] = parcel.Offset;
 
+            // plans/0052 stage 1. The ground, written beside the Address by the one function that
+            // produced both -- which is the whole reason Carve returns a rectangle rather than an
+            // offset. World.RebuildParcels recomputes exactly this from the block's saved pattern.
+            world.Lots.ParcelEast[slot] = parcel.East;
+            world.Lots.ParcelNorth[slot] = parcel.North;
+            world.Lots.ParcelWide[slot] = parcel.Wide;
+            world.Lots.ParcelDeep[slot] = parcel.Deep;
+
             created++;
             onFace++;
         }

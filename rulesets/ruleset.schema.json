@@ -70,10 +70,6 @@
             "description": "How many Days the premises' own Rules may starve continuously before the Building is condemned. Absent means this kind never declines.",
             "type": "integer"
           },
-          "footprint_tiles": {
-            "description": "How many Tiles a Building of this kind covers, and therefore Seals. Absent means one Tile, which is the figure the corpus already carried for a house.",
-            "type": "integer"
-          },
           "name": {
             "description": "What this kind of Building is called. [[zone_rule]] kind and [[rule]] kind refer to it by this name.",
             "type": "string"

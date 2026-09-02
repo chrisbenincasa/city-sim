@@ -1992,7 +1992,7 @@ not merely *this is not a punishment* but *this does not happen on most blocks*.
 class comment has been amended at the symbol; the two documents have not.
 
 
-### 🔴 `adr/0078` says **nothing reads land area**, and `Borough.Core` has read it since `footprint_tiles` shipped — Cause 2 with the write running the other way
+### 🟡 `adr/0078` says **nothing reads land area**, and `Borough.Core` has read it since `footprint_tiles` shipped — Cause 2 with the write running the other way — **TWO OF FOUR PAID 2026-09-02**
 
 **NEW 2026-09-02, found in the grill of [`plans/0052`](0052-the-parcel.md) (finding **G4**).**
 [`adr/0078`](../docs/adr/0078-frontage-is-derived-on-the-epoch-and-a-lots-width-is-the-segments-own-building-count.md)
@@ -2029,16 +2029,37 @@ tree that paves ~1.8× `main`'s area and are UPPER BOUNDS on the road share** �
 before quoting. The Building arithmetic needs no run: 8 Lots per block × 1 Tile against a 1,024-Tile
 block.
 
-- [ ] Amend `adr/0078`'s *nothing reads land area* premise, naming `FootprintTiles` as the consumer
-      that arrived. ⚠ **Annotate, do not delete** — the ADR's own *What would trigger revisiting*
-      section is what this is collected under.
-- [ ] ⚠ **Do not fix this by retuning `footprint_tiles`.** It is an authored constant standing where
-      `adr/0025` says *"arithmetic over what the player drew"* belongs; the repair is
-      [`plans/0052`](0052-the-parcel.md) stage 1, which deletes the key.
-- [ ] ⚠ **Held, not owed:** `CONTEXT.md` → Sealing reads *"the count of Tiles in a Cell **ever built
-      on**"*, and a garden is developed rather than built on. **That sentence is correct today** and
-      becomes wrong only if `plans/0052` stage 1 lands with footprint = parcel area. **Do not edit it
-      now** — this line exists so the edit is not discovered late.
+- [x] ✅ **PAID 2026-09-02.** `adr/0078`'s *What would trigger revisiting* now records that the
+      trigger fired **twice** — once unnoticed through `FootprintTiles`, once properly through
+      `plans/0053`'s bands and `plans/0052` stage 1's parcel — and that **the premise is revised while
+      the decision stands**: the ADR refused an *authored* depth key, and the parcel is derived.
+      Annotated, not deleted.
+- [x] ✅ **PAID 2026-09-02, by deletion.** `[[building]] footprint_tiles` is **retired**
+      (`RefuseRetired`), `KindDefinition.FootprintTiles` is gone, and both files that stated it lost
+      the line. A Building covers its Lot's parcel. `adr/0048`'s count went **223 → 222** while the
+      loader got stricter, for [`plans/0050`](0050-the-ruleset-sweep.md)'s reason.
+- [ ] 🔴 ⚠ **NO LONGER HELD — OWED AS OF 2026-09-02, and the pre-filing is what stopped it being
+      discovered late.** `plans/0052` stage 1 landed **with footprint = parcel area**, so
+      `CONTEXT.md` → Sealing's *"the count of Tiles in a Cell **ever built on**"* is now stretched: a
+      **garden is developed rather than built on**, and the whole parcel Seals.
+      ⚠ **The phrase is in SIX documents and FOUR code sites, so this is a sweep and not an edit** —
+      `CONTEXT.md` (twice: Sealing, and Woodland's *"those ever built on"*), `docs/02 §2.2`'s Fertility
+      paragraph, `adr/0022`, `adr/0151` (which **quotes** it as the reason demolition unseals),
+      `adr/0156` (which quotes it as a Fertility premise) and `adr/0159` (whose whole argument is that
+      Sealing and Woodland partition one budget); and `LotTable.cs`, `LayerSchedule.cs`,
+      `LayerCellTable.cs`, `MapLayers.cs`. ***Fix them together or not at all*** — six documents
+      agreeing on a wrong phrase is one defect, and five of them agreeing on a right one is Cause 1.
+      ⚠ **Nothing about the ARITHMETIC is wrong**; `adr/0159`'s budget still partitions and
+      `adr/0151`'s unsealing still holds. What is wrong is one word.
+- [ ] ⚠ **Filed, not owed: Sealing SATURATES at a large block size, and it is the honest cost rather
+      than a defect.** With footprint = parcel, `SealingMeasurementTests` reads **0 of 143** Cells
+      saturated on `minimal.toml` (`block_tiles = 32`, peak Cell 71.5%) and 🔴 **1,576 of 4,812** on
+      `severance.toml` (`block_tiles = 256`, mean parcel **5,157** Tiles, peak 100%). A saturated Cell
+      has **Fertility 0** and stops telling two differently-built Cells apart. ***The lever is a
+      coverage fraction*** — what share of a parcel a Building actually covers — and
+      [`plans/0052`](0052-the-parcel.md) parks it as a deferred derivation **because it would
+      introduce a number**. No corpus edit is owed; this line exists so the next reader of a Fertility
+      figure knows which world it came from.
 - [ ] `adr/0078`'s second trigger, *a Street Segment that is not a block face*, is **also live** and
       also uncollected — `StreetGrid.OffLatticeCount`, populated by Arterials. Filed here for
       visibility; it is `plans/0052` **Q5** and needs no corpus edit until that question is answered.

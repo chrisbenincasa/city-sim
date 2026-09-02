@@ -118,7 +118,6 @@ business = "grocer"
 # `--schools 4` when photographing this file, or the school is a kind that never appears.
 [[building]]
 name = "school"
-footprint_tiles = 4
 serves = "education"
 
 # 🔴 THERE IS NO GATE IN THIS FILE AND THAT IS A REFUSAL RATHER THAN AN OVERSIGHT. A `port` kind was

@@ -92,6 +92,32 @@ and it postdates this decision.
 
 **Density bands arriving.** [`0025`](0025-density-is-a-cap-and-it-trades-land-for-materials.md)'s trade is *land for materials*, and the moment a band reads land area, depth acquires a consumer and stops being a number with nothing to be a property of. At that point `lots_per_segment` also stops being one number and becomes one per band, which is the *"vary by zone density"* half of `02 §2.2` that this decision leaves unbuilt on purpose.
 
+🔴 ✅ **THIS TRIGGER FIRED, TWICE, AND THE SECOND TIME IT LANDED — 2026-09-02.**
+
+**First it fired unnoticed.** `[[building]] footprint_tiles` shipped, was read on the path to
+`MapLayers.Seal`, and made land area **hash-bearing** — while its own doc comment cited *this ADR* as
+the reason it had to be an authored constant. Nobody carried the news back; it is
+[`plans/0012`](../../plans/0012-corpus-audit.md)'s *`adr/0078` says nothing reads land area* entry, and
+it is [`adr/0073`](0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md)
+exactly.
+
+**Then bands arrived and the sentence above came true as written.**
+[`plans/0053`](../../plans/0053-the-block.md) made a Block a row, gave it a **band** and a **pattern**,
+and [`plans/0052`](../../plans/0052-the-parcel.md) stage 1 gave every Lot a **parcel** — four
+`(derived AND rebuilt)` columns, `LotTable.ParcelEast`/`North`/`Wide`/`Deep`. `footprint_tiles` is
+retired; a Building covers its parcel.
+
+⚠ **WHAT IS REVISED IS THE PREMISE AND NOT THE DECISION.** *"Depth has nothing to be a property of"* is
+now false — depth is a property of the **block's pattern**, which is a saved historical fact about the
+block. ✅ **But this ADR's actual refusal STANDS AND IS UNTOUCHED**: it refused an **authored depth
+key**, and there still is not one. The parcel is *derived on the epoch*, which is the very disposition
+this document chose for frontage and for the same reason. ***The consumer arrived and the arithmetic
+absorbed it; no number was authored.***
+
+⚠ **`lots_per_segment` has NOT yet become one per band**, and this paragraph predicted that it would.
+It is [`plans/0053`](../../plans/0053-the-block.md) **Q5**, still open, and step 3 produced evidence
+for it: at `lots_per_segment = 1` an exhaustive pattern is not exhaustive.
+
 **Frontage becoming expensive to rebuild.** The rebuild is wholesale, on the same reasoning `RoadGraph.RebuildDerived` gives: nothing has measured the cost of a player editing roads, because until this slice nothing could. If a profile shows the rebuild rather than the edit, the Epoch already carries the per-Segment granularity an incremental rebuild would need — the invalidation contract exists, and only the consumer would be new.
 
 **A Street Segment that is not a block face.** The alternating-sides derivation assumes a Segment spans one block edge, which is what [`0077`](0077-a-road-edit-is-one-segment-and-the-player-lays-streets-only.md) makes the player's unit too. A generator or a command that produced Streets of varying length would make *Lots per Segment* the wrong unit and *Lots per Tile of frontage* the right one — which is a rescaling rather than a re-argument, but it is a hash-moving one.

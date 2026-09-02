@@ -25,10 +25,10 @@ dotnet run --project src/Borough.Headless -- \
 
 ## The sections
 
-33 sections, 170 keys.
+33 sections, 169 keys.
 
 - [`[[band]]`](#band) — 2 keys
-- [`[[building]]`](#building) — 13 keys
+- [`[[building]]`](#building) — 12 keys
 - [`[[building]] bins`](#building-bins) — 3 keys
 - [`[[business]]`](#business) — 6 keys
 - [`[[hinterland]]`](#hinterland) — 4 keys
@@ -104,10 +104,6 @@ How many Days an abandoned Building stands as a shell before it collapses and th
 **`condemn_after_days`** · *whole number*
 
 How many Days the premises' own Rules may starve continuously before the Building is condemned. Absent means this kind never declines.
-
-**`footprint_tiles`** · *whole number*
-
-How many Tiles a Building of this kind covers, and therefore Seals. Absent means one Tile, which is the figure the corpus already carried for a house.
 
 **`name`** · *quoted string*
 

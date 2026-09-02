@@ -24,8 +24,20 @@ namespace Borough.Tests.Space;
 /// <para>
 /// ⚠ <b>It asserts almost nothing and it is not a regression test.</b> Its two assertions are that
 /// roads seal and that Buildings seal, which is the pair that was identically zero before. The
-/// numbers it prints are what a document may quote, and they will move the moment
-/// <c>footprint_tiles</c> is retuned — which is the point of the key.
+/// numbers it prints are what a document may quote.
+/// </para>
+/// <para>
+/// 🔴 <b>RE-POINTED 2026-09-02 BY <c>plans/0052</c> STAGE 1.</b> It read the Buildings' share off
+/// <c>footprint_tiles</c>, one lookup for the whole city because the key was a property of the kind.
+/// <b>The key is retired and the footprint is now the Lot's parcel</b>, so the share is <em>summed
+/// per Building</em> — and it moves when the player draws different blocks rather than when a
+/// designer retunes a constant, which is the whole of what stage 1 bought.
+/// </para>
+/// <para>
+/// ⚠ <b>THE SATURATION CHECK IS WHY THE PEAK IS PRINTED.</b> A block is exactly one Cell at shipped
+/// figures, so a block's parcels plus its carriageway may exceed 1,024 Tiles. <c>MapLayers.Seal</c>
+/// clamps at the write site, so there is no correctness break — but <b>a saturated Cell has Fertility
+/// 0 and stops telling two differently-built Cells apart</b>.
 /// </para>
 /// </remarks>
 [Trait(Tier.Key, Tier.Instrument)]
@@ -50,7 +62,7 @@ public sealed class SealingMeasurementTests(ITestOutputHelper output)
 
     /// <summary>What one generated city's ground looks like once it is built.</summary>
     private readonly record struct Reading(
-        int Cells, long Total, int Peak, int Buildings, int FootprintTiles);
+        int Cells, long Total, int Peak, int Buildings, long BuildingTiles, int Saturated);
 
     private static Reading Measure(string file)
     {
@@ -62,6 +74,7 @@ public sealed class SealingMeasurementTests(ITestOutputHelper output)
         int cells = 0;
         long total = 0;
         int peak = 0;
+        int saturated = 0;
 
         for (int slot = 0; slot < world.Layers.Cells.Rows.SlotCount; slot++)
         {
@@ -80,15 +93,37 @@ public sealed class SealingMeasurementTests(ITestOutputHelper output)
             cells++;
             total += sealing;
             peak = sealing > peak ? sealing : peak;
+
+            if (sealing >= CellGrid.TilesInCell)
+            {
+                saturated++;
+            }
         }
 
         // The Buildings' share is counted rather than differenced, because every Building seals its
-        // kind's footprint exactly once at World.CreateBuilding. The populator raises one kind, so
-        // one lookup covers the city. Roads are what is left.
-        int footprint = world.Rules.Kind(DwellingKind).FootprintTiles;
+        // Lot's parcel exactly once at World.CreateBuilding. plans/0052 stage 1: SUMMED rather than
+        // multiplied, because the footprint is a property of the ground and not of the kind, so two
+        // Buildings of one kind on differently-shaped parcels seal different amounts. Roads are what
+        // is left.
+        long buildingTiles = 0;
+
+        for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
+        {
+            if (!world.Buildings.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            if (world.Lots.Rows.TryResolve(world.Buildings.Lot[slot], out int lotSlot))
+            {
+                int parcel = world.Lots.ParcelTiles(lotSlot);
+
+                buildingTiles += parcel < 1 ? 1 : parcel;
+            }
+        }
 
         return new Reading(
-            cells, total, peak, world.Buildings.Rows.LiveCount, footprint);
+            cells, total, peak, world.Buildings.Rows.LiveCount, buildingTiles, saturated);
     }
 
     private static string Percent(long tiles, long cells)
@@ -111,12 +146,13 @@ public sealed class SealingMeasurementTests(ITestOutputHelper output)
     {
         Reading reading = Measure(file);
 
-        long buildingTiles = (long)reading.Buildings * reading.FootprintTiles;
+        long buildingTiles = reading.BuildingTiles;
         long roadTiles = reading.Total - buildingTiles;
 
         output.WriteLine($"# {file} — {Citizens} Citizens, Cell = {CellGrid.TilesInCell} Tiles");
-        output.WriteLine($"Buildings                {reading.Buildings} at "
-            + $"footprint_tiles = {reading.FootprintTiles}");
+        output.WriteLine($"Buildings                {reading.Buildings} on "
+            + $"{buildingTiles} Tiles of parcel, mean "
+            + $"{(reading.Buildings > 0 ? buildingTiles / reading.Buildings : 0)}");
         output.WriteLine($"cells with any Sealing   {reading.Cells}");
         output.WriteLine($"total Tiles sealed       {reading.Total}");
         output.WriteLine($"  of which Buildings     {buildingTiles} "
@@ -126,6 +162,8 @@ public sealed class SealingMeasurementTests(ITestOutputHelper output)
         output.WriteLine($"mean over sealed Cells   {Percent(reading.Total, reading.Cells)}");
         output.WriteLine($"PEAK Cell                {reading.Peak} Tiles = "
             + $"{Percent(reading.Peak, 1)}");
+        output.WriteLine($"SATURATED Cells          {reading.Saturated} of {reading.Cells} — a "
+            + "saturated Cell has Fertility 0 and no longer distinguishes two built Cells");
 
         // The two facts that were false before this milestone, and nothing else. A number here would
         // be a regression test over a figure that is deliberately a Ruleset's to move.

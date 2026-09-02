@@ -202,7 +202,13 @@ public sealed class DerivedRebuildAuditTests
         // 40 -> 41: business.pool_slot, milestone 25 task 5. The reverse index into the unpremised
         // pool, derived for HouseholdTable.PoolSlot's reason -- the pool table is the saved truth and
         // a saved reverse index would be a second fact free to disagree with it.
-        Assert.Equal(41, all.Length);
+        // 41 -> 45: lot.parcel_east, parcel_north, parcel_wide and parcel_deep, plans/0052 stage 1.
+        // The ground a Lot holds, derived on the epoch from the block's saved pattern and the lattice
+        // -- adr/0078's argument for frontage, applied to the thing that argument refused a KEY for.
+        // ⚠ THESE FOUR ARE EXACTLY WHAT THIS AUDIT EXISTS FOR. Rows.Derived allocates a column and
+        // does not make anything rebuild it, and four columns declared with nothing populating them
+        // would load a world in which every Building covered no ground and nothing anywhere failed.
+        Assert.Equal(45, all.Length);
         Assert.Single(ScratchColumns(Stepped(0)));
     }
 

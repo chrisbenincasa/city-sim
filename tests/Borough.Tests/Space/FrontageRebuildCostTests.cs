@@ -99,7 +99,7 @@ public sealed class FrontageRebuildCostTests(ITestOutputHelper output)
         output.WriteLine("Frontage.Rebuild against World.RebuildDerived, rulesets/minimal.toml.");
         output.WriteLine($"{Repeats} repeats per reading, best of, Release.");
         output.WriteLine(string.Empty);
-        output.WriteLine("citizens     lots  fronted   frontage    whole    share");
+        output.WriteLine("citizens     lots  fronted   frontage   parcel    whole    share");
         output.WriteLine("-----------------------------------------------------------");
 
         foreach (int citizens in Sizes)
@@ -117,6 +117,7 @@ public sealed class FrontageRebuildCostTests(ITestOutputHelper output)
             world.RebuildDerived();
 
             long frontage = long.MaxValue;
+            long parcel = long.MaxValue;
             long whole = long.MaxValue;
 
             for (int i = 0; i < Repeats; i++)
@@ -131,6 +132,15 @@ public sealed class FrontageRebuildCostTests(ITestOutputHelper output)
             for (int i = 0; i < Repeats; i++)
             {
                 long before = Stopwatch.GetTimestamp();
+                world.RebuildParcels();
+                long took = Stopwatch.GetTimestamp() - before;
+
+                parcel = took < parcel ? took : parcel;
+            }
+
+            for (int i = 0; i < Repeats; i++)
+            {
+                long before = Stopwatch.GetTimestamp();
                 world.RebuildDerived();
                 long took = Stopwatch.GetTimestamp() - before;
 
@@ -138,12 +148,13 @@ public sealed class FrontageRebuildCostTests(ITestOutputHelper output)
             }
 
             double frontageMs = frontage * 1000.0 / Stopwatch.Frequency;
+            double parcelMs = parcel * 1000.0 / Stopwatch.Frequency;
             double wholeMs = whole * 1000.0 / Stopwatch.Frequency;
             double share = wholeMs > 0 ? frontageMs * 100.0 / wholeMs : 0;
 
             output.WriteLine(
-                $"{citizens,8}  {lots,7}  {fronted,7}  {frontageMs,8:F3}ms {wholeMs,7:F3}ms "
-                + $"{share,6:F1}%");
+                $"{citizens,8}  {lots,7}  {fronted,7}  {frontageMs,8:F3}ms {parcelMs,7:F3}ms "
+                + $"{wholeMs,7:F3}ms {share,6:F1}%");
 
             // The pair that would be silently zero if the fixture stopped populating, which is the
             // failure this instrument could otherwise report as a very fast rebuild.
