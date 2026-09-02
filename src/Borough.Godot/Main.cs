@@ -4343,18 +4343,34 @@ public partial class Main : Node3D
     /// as a bug.
     /// </para>
     /// <para>
-    /// 🔴 <b>Tick 0 is MIDNIGHT</b> (<c>adr/0101</c>), so a run opened with no <c>--start-at</c>
-    /// opens in the dark. That is the clock the city keeps and not something to correct here.
+    /// <b>Tick 0 is 05:00</b> (<c>Ticks.DayBeginsAtHour</c>, <c>adr/0101</c> amended), so a run opened
+    /// with no <c>--start-at</c> opens on a dawn. That is the clock the city keeps and not something
+    /// to correct here; the offset is applied below rather than assumed.
+    /// </para>
+    /// <para>
+    /// 🔴 ⚠ <b>IT TAKES THE SUB-TICK FRACTION, AND THE REASON IS THAT A DAY IS ONLY 2,048 SAMPLES
+    /// LONG.</b> One Tick is <b>0.176°</b> of the sun's circle. At 4× the shell steps 32 Ticks a
+    /// second and the sweep reads as motion; at <b>1× it steps 8</b>, so a 60 fps frame holds the sun
+    /// still for seven frames and then jumps it — and a dawn shadow a hundred metres long snaps
+    /// visibly on every one of those jumps. ***The Tick is the simulation's resolution and it is not
+    /// the picture's***, which is <see cref="_alpha"/>'s whole argument arriving at the one consumer
+    /// that had not asked for it. The city is unmoved: nothing here is read by
+    /// <c>Borough.Core</c> and the sun is not state.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Computed as a fraction of the Day rather than through <c>Ticks.MinuteOfDay</c>.</b> That
+    /// helper floors to the whole minute, which at 0.70 minutes a Tick is a <em>second</em>
+    /// quantisation laid over the one being removed. The wall-clock offset it carries is applied here
+    /// from the same constant, so there is still one place that decides when a Day begins.
     /// </para>
     /// </remarks>
-    private static Vector3 Sunward(ulong tick)
+    /// <param name="tick">The Tick the world is on.</param>
+    /// <param name="within">How far into that Tick the frame is, in <c>[0, 1)</c>.</param>
+    private static Vector3 Sunward(ulong tick, float within)
     {
-        // 🔴 THROUGH Ticks.MinuteOfDay AND NOT OFF THE PHASE. This read the Tick of the Day directly,
-        // which was the same thing as the wall clock only for as long as a Day began at midnight. It
-        // begins at 05:00 as of 2026-09-01 (adr/0101, amended), so read straight this put the sun five
-        // hours behind the readout beside it -- midnight light under an 05:00 clock, and nothing in the
-        // shell to say which of the two was wrong.
-        float t = ((Ticks.MinuteOfDay(tick) / (float)Ticks.MinutesPerDay) - 0.5f) * Mathf.Tau;
+        float ofDay = ((tick % (ulong)Ticks.PerDay) + within) / Ticks.PerDay;
+        float clock = ofDay + (Ticks.DayBeginsAtHour / (float)Ticks.HoursPerDay);
+        float t = (clock - 0.5f) * Mathf.Tau;
 
         return new Vector3(
             -Mathf.Sin(t),
@@ -4387,7 +4403,7 @@ public partial class Main : Node3D
     /// </remarks>
     private void Daylight()
     {
-        Vector3 sunward = Sunward(_world.Tick.Raw);
+        Vector3 sunward = Sunward(_world.Tick.Raw, _alpha.Raw / 65_536f);
         float height = sunward.Y;
         float up = Mathf.SmoothStep(0f, 0.12f, height);
         float down = Mathf.SmoothStep(0f, 0.10f, -height);
