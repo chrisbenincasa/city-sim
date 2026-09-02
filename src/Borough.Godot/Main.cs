@@ -4340,6 +4340,29 @@ public partial class Main : Node3D
     /// </remarks>
     private const float NoonRadians = 0.95f;
 
+    /// <summary>The clock fraction the lamps' night opens at, and how much of a Day it spans.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This sun rises at 06:00 and sets at 18:00</b> — <c>height</c> is
+    /// <c>sin(NoonRadians)·cos(t)</c> and <c>t</c> is <c>(clock − ½)·τ</c>, so it crosses zero at
+    /// <c>clock</c> 0.25 and 0.75 and there is no seasonal term. The window below is that night
+    /// with a margin at each end: it opens at <b>0.70</b> and closes at <b>0.30</b> — the hour or
+    /// so either side that a person would call dusk and dawn.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>THE MARGIN IS WHAT STOPS THE WRAP FROM BEING SEEN.</b> The phase steps from 1 back to
+    /// 0 at the instant the window opens, and every lamp is off on both sides of that step — but
+    /// only because <c>night</c> has ALSO reached zero by then. At <c>clock</c> 0.70 the sun stands
+    /// at height <b>0.25</b>, above the 0.20 where <c>night</c>'s own ramp bottoms out, so the
+    /// discontinuity is multiplied by nothing. ***Narrowing this window would put the wrap inside
+    /// the lit hours and the whole city would blink once a Day.***
+    /// </para>
+    /// </remarks>
+    private const float NightOpensAt = 0.70f;
+
+    /// <inheritdoc cref="NightOpensAt"/>
+    private const float NightSpans = 0.60f;
+
     /// <summary>Where the sun stands at this Tick, as a unit vector from the city towards it.</summary>
     /// <remarks>
     /// <para>
@@ -4382,14 +4405,34 @@ public partial class Main : Node3D
     /// <param name="within">How far into that Tick the frame is, in <c>[0, 1)</c>.</param>
     private static Vector3 Sunward(ulong tick, float within)
     {
-        float ofDay = ((tick % (ulong)Ticks.PerDay) + within) / Ticks.PerDay;
-        float clock = ofDay + (Ticks.DayBeginsAtHour / (float)Ticks.HoursPerDay);
-        float t = (clock - 0.5f) * Mathf.Tau;
+        float t = (Clock(tick, within) - 0.5f) * Mathf.Tau;
 
         return new Vector3(
             -Mathf.Sin(t),
             Mathf.Sin(NoonRadians) * Mathf.Cos(t),
             Mathf.Cos(NoonRadians) * Mathf.Cos(t));
+    }
+
+    /// <summary>Where in its Day the world is, as a fraction with midnight at zero.</summary>
+    /// <remarks>
+    /// <para>
+    /// Pulled out of <see cref="Sunward"/> so that the sun's angle and the hour the lamps keep are
+    /// the same reading of the same clock. <b>Tick 0 is 05:00</b> (<c>Ticks.DayBeginsAtHour</c>),
+    /// and applying that offset here is what keeps one place deciding when a Day begins.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is not wrapped into <c>[0, 1)</c>.</b> The offset can carry it past 1 and the two
+    /// callers both want it that way — the sun takes a cosine, which does not care, and
+    /// <see cref="Daylight"/> takes a <c>%</c> of its own against a different origin.
+    /// </para>
+    /// </remarks>
+    /// <param name="tick">The Tick the world is on.</param>
+    /// <param name="within">How far into that Tick the frame is, in <c>[0, 1)</c>.</param>
+    private static float Clock(ulong tick, float within)
+    {
+        float ofDay = ((tick % (ulong)Ticks.PerDay) + within) / Ticks.PerDay;
+
+        return ofDay + (Ticks.DayBeginsAtHour / (float)Ticks.HoursPerDay);
     }
 
     /// <summary>Points the sun, colours the sky and sets the ambient — all from the clock.</summary>
@@ -4417,7 +4460,8 @@ public partial class Main : Node3D
     /// </remarks>
     private void Daylight()
     {
-        Vector3 sunward = Sunward(_world.Tick.Raw, _alpha.Raw / 65_536f);
+        float within = _alpha.Raw / 65_536f;
+        Vector3 sunward = Sunward(_world.Tick.Raw, within);
         float height = sunward.Y;
         float up = Mathf.SmoothStep(0f, 0.12f, height);
         float down = Mathf.SmoothStep(0f, 0.10f, -height);
@@ -4474,12 +4518,23 @@ public partial class Main : Node3D
         // the half of golden hour a directional light cannot do.
         _air.AmbientLightEnergy = Mathf.Lerp(0.26f, 1.05f, lit);
 
-        // ⚠ THE LAMPS COME ON BEFORE THE SUN IS DOWN AND GO OFF AFTER IT IS UP, which is why this is
-        // its own ramp and not `1 - lit`. A window lit at the moment the disc touches the horizon is
-        // what dusk looks like; a city that switched on at astronomical midnight would never be seen
-        // switching on at all.
+        // 🔴 HOW FAR THROUGH THE NIGHT IT IS, AND NOT HOW DARK IT IS. A darkness was sent here
+        // first and it was the wrong quantity twice: it is symmetrical, so a window keyed on it
+        // said the same thing at nine in the evening and at four in the morning; and it is a
+        // brightness, so it reached the emission as a dimmer and faded every lamp in the city up
+        // through dusk and down through dawn. ***A lamp is switched, not dimmed.*** The shader now
+        // takes an hour and decides for itself, per window, whether that window is lit.
+        //
+        // ⚠ TAKEN OFF THE CLOCK AND NOT OFF THE SUN'S HEIGHT, because height is a cosine: it barely
+        // moves for the hours either side of midnight and then races at the horizon, so a phase
+        // built from it would have the whole city going to bed in the first twenty minutes. This is
+        // linear in TIME, which is what an hour is.
+        //
+        // Clamped rather than wrapped, so all day it sits at 1 — past every lamp's hour, which is
+        // the same as saying they are all out.
         _paint?.SetShaderParameter(
-            "night", 1f - Mathf.SmoothStep(-0.04f, 0.20f, height));
+            "night_phase",
+            Mathf.Min(1f, (Clock(_world.Tick.Raw, within) + (1f - NightOpensAt)) % 1f / NightSpans));
 
         _above.SkyTopColor = new Color(0.03f, 0.04f, 0.11f)
             .Lerp(new Color(0.28f, 0.42f, 0.66f), lit)

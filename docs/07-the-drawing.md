@@ -218,7 +218,7 @@ ends up with assets for a system nobody built.
 | **District** | `DistrictTable` has rows and no boundary is drawn |
 | **Sealing** | Per Cell, in the readout, not on the ground |
 | **Needs** | Four, saved and hashed, read by a panel |
-| **Night** | The clock is on screen and the sun does not move |
+| **Night** | ✅ **DRAWN as of [`plans/0051`](../plans/0051-the-four-pillars-and-a-city-to-photograph.md)** — the sun is on the clock, and a window's own two hours decide when its lamp is lit. ⚠ **Left in this table rather than struck from it**, because what is drawn is a *dwelling* at night: nothing distinguishes a shop, a school or a street at that hour, and a city whose only night-time mark is a bedroom window is still silent about most of itself |
 | **Evidence** | ***The pillar-4 mechanism is a UI element***, and arguably the most important graphical thing in the game |
 
 ### 6.2 Vocabulary only — do not buy art for these
