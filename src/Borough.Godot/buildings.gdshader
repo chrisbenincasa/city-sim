@@ -27,6 +27,25 @@ const float PLINTH = 0.9;
 const float NEAR_FADE = 500.0;
 const float FAR_FADE = 1100.0;
 
+// The last of the night at which a lamp may come ON, as a share of the night.
+//
+// 🔴 IT EXISTS BECAUSE YOU COULD SEE THE CITY CHANGE GEAR. The two draws below used to occupy
+// DISJOINT halves of the night -- every lamp was on by 0.30 and none went out before 0.30 -- so
+// the city filled up, hit a seam, and emptied. ***Two processes that cannot overlap read as one
+// switch***, however smoothly each of them is spread, and the seam was legible at a glance.
+// They now overlap across the whole middle of the night: some windows are going dark while
+// others are still coming on, and only past this does the city do one thing at a time.
+const float LATEST_ON = 0.48;
+
+// The least time a lamp stays lit once it is lit.
+//
+// ⚠ WITHOUT IT THE OVERLAP BUYS A FLICKER. The moment `offAt` is allowed to fall below `onAt`
+// the two draws are independent, so a window can be scheduled to go out before it came on and
+// -- worse -- to go out just after, which is a lamp switched on and off inside a few minutes.
+// ***A room somebody walked into is lit for the evening, not for a moment.*** About an hour and
+// a half of a night, which is the shortest stay that still reads as somebody being in.
+const float MIN_LIT = 0.17;
+
 // HOW FAR THROUGH THE NIGHT IT IS: 0 at the last of the light, 0.5 at solar midnight, 1 at the
 // first of it, and pinned at 1 all day. Set from the clock by Main.Daylight, which is the same
 // place the sun's angle comes from.
@@ -41,6 +60,19 @@ const float FAR_FADE = 1100.0;
 // through dusk and down through dawn. ***A lamp does not fade. It is switched.*** What the sky
 // does between is the sky's business, and the wall is lit or it is not.
 uniform float night_phase = 1.0;
+
+// WHICH NIGHT IT IS, counted from the world's first, and wrapped so the float stays exact.
+//
+// 🔴 WITHOUT IT EVERY NIGHT IS THE SAME NIGHT, and that is what it was. Every draw below keyed on
+// the bay, the storey and the Building -- all three constant for as long as the Building stands --
+// so the same windows lit at the same hours for ever. ***A city that repeats itself exactly is a
+// screensaver***, and the tell is that you cannot tell two nights apart.
+//
+// ⚠ IT TURNS OVER AT DUSK AND NOT AT MIDNIGHT, because a night spans the date boundary and a
+// counter that ticked at 00:00 would relight the whole city halfway through the evening. Main
+// increments it at the same moment `night_phase` wraps to zero, which is the one instant no lamp
+// is keyed on.
+uniform float night_index = 0.0;
 
 varying vec3 v_local;
 varying vec3 v_size;
@@ -129,6 +161,27 @@ void fragment() {
     float above = step(PLINTH, up) * step(up, v_size.y - 0.35);
     float opening = inX * inY * upright * above;
 
+    // 🔴 THE REVEAL, AND IT IS THE DOOR'S OWN ARGUMENT APPLIED TO A WINDOW. A pane is drawn DARKER
+    // than its wall, so on a wall that is already dark -- one in shadow, or one painted slate --
+    // the pane and the wall land in the same crushed end of the tonemapper and the openings simply
+    // vanish. ***Measured: at 06:45 a sunlit facade shows its full window grid and the shadowed
+    // facade beside it reads as a blank slab, on the same Building.*** The night frame is what
+    // proves the openings were there all along -- every one of those blank walls lights up.
+    //
+    // ⚠ WHAT SURVIVES A DIM IS AN EDGE AND NOT A TONE. The surround is the wall turned OUT, so the
+    // opening becomes a light–dark PAIR rather than a single dark patch, and a pair still reads
+    // when both halves are dark because the eye measures the step between them. It is exactly what
+    // `doorcase` below already does for the door, and for the same reason.
+    float outerW = paneW + 0.42;
+    float outerH = paneH + 0.36;
+    float outerJamb = (wide - outerW) * 0.5;
+    float outerSill = sill - 0.18;
+    float outX = smoothstep(outerJamb - grain.x, outerJamb + grain.x, withinX)
+        * (1.0 - smoothstep(outerJamb + outerW - grain.x, outerJamb + outerW + grain.x, withinX));
+    float outY = smoothstep(outerSill - grain.y, outerSill + grain.y, withinY)
+        * (1.0 - smoothstep(outerSill + outerH - grain.y, outerSill + outerH + grain.y, withinY));
+    float reveal = clamp((outX * outY * upright * above) - opening, 0.0, 1.0);
+
     // THE FRONT DOOR, and it is the one mark here that says something the city knows. The Lot's
     // Side decides which kerb the Building steps to, so the face carrying the door is the face
     // on the Street — which makes a block's four rows read as four rows facing outward rather
@@ -185,6 +238,7 @@ void fragment() {
     vec3 body = mix(wall, wall * 0.72, base * upright * far);
 
     vec3 painted = mix(body, glass, glazed);
+    painted = mix(painted, (wall * 1.32) + 0.02, clamp(reveal * far, 0.0, 1.0) * (1.0 - cased));
     painted = mix(painted, (wall * 1.45) + 0.03, cased);
     painted = mix(painted, mix(wall * 0.30, vec3(0.05, 0.055, 0.06), 0.4), doored);
 
@@ -194,8 +248,18 @@ void fragment() {
     // Glass is smooth, and a smooth surface with a near-black albedo is mostly the highlight it
     // catches off the sky — so the holes in a shell read as glints. ***There is no glass left in
     // a shell***, which is the physical fact the material was not being told.
-    ROUGHNESS = mix(0.9, mix(0.28, 0.85, max(shut, ruin)), glazed);
-    SPECULAR = mix(0.5, 0.68, glazed * (1.0 - shut) * (1.0 - ruin));
+    // 🔴 GLASS IS A MIRROR AND A WALL IS NOT, WHICH IS THE OTHER HALF OF WHY A SHADOWED FACADE
+    // READ AS BLANK. Ambient here is the SKY at full contribution, so a smooth surface returns the
+    // sky and a rough one returns almost nothing -- and the roughness was 0.28, which is a broad
+    // weak sheen that a wall's own diffuse swamps. At 0.06 the pane picks the sky up properly, and
+    // ***the openings on a wall the sun is not on come out BRIGHTER than the wall rather than
+    // darker***, which is what a real window does and is the reverse of the sunlit case. Two
+    // opposite readings of the same geometry, both correct, and the wall is legible under either.
+    //
+    // ⚠ A SHUT PANE STAYS ROUGH AND SO DOES A RUIN. A shutter is boards and a shell has no glass
+    // left in it, which is the fact the material is being told rather than a look being chosen.
+    ROUGHNESS = mix(0.9, mix(0.06, 0.85, max(shut, ruin)), glazed);
+    SPECULAR = mix(0.5, 0.9, glazed * (1.0 - shut) * (1.0 - ruin));
 
     // 🔴 THE LIT WINDOW IS THE OCCUPANCY SAYING SOMETHING A DAYTIME PICTURE CANNOT. By day a shut
     // opening and an open one differ by a shade of grey nobody reads at street distance; at night
@@ -214,27 +278,42 @@ void fragment() {
     // property of the household and not of the sky***, so each opening draws its own two, and
     // the sky's only remaining job is to say which night it is.
     //
-    //   `lamp`   whether this window is ever lit at all -- the unused room, the empty back
-    //            bedroom. It is the old constant, kept, because a wall lit end to end reads as
-    //            an office block whatever the hour.
-    //   `wakes`  when it comes on, spread across the evening: from about sunset to a third of
-    //            the way through the night.
+    //   `ever`   whether this window is ever lit at all -- the unused room, the empty back
+    //            bedroom, the stairwell. ⚠ IT IS THE ONE DRAW HERE THAT DOES NOT TURN OVER, and
+    //            that is the point: a room with no lamp in it has no lamp in it tomorrow either,
+    //            so a Building keeps a few dead openings for as long as it stands.
+    //   `in`     whether anybody is in TONIGHT, redrawn every night off `night_index`.
+    //            🔴 WITHOUT THIS EVERY NIGHT WAS THE SAME NIGHT -- the same windows at the same
+    //            hours for ever, because every draw was keyed on things that do not change. ***A
+    //            city you cannot tell two nights apart is a screensaver.*** Roughly half of what
+    //            is wired is in on a given night, and it is a different half each time.
+    //   `wakes`  when it comes on, spread from the last of the light to LATEST_ON -- which is
+    //            nearly half the night rather than the third it was, so the arrivals are still
+    //            running while the early leavers are going dark.
     //   `sleeps` when it goes out. ⚠ CUBED RATHER THAN FLAT, and that is the shape of the
     //            request rather than a tuning: a flat draw empties the city at an even rate all
     //            night, and what a city actually does is empty in a rush after everyone is home
-    //            and then hold a long thin tail of people still up. Cubed, the wall is fully lit
-    //            at 21:00, 29% of it is still burning at solar midnight and 3% an hour and a
-    //            half before dawn.
+    //            and then hold a long thin tail of people still up.
     //
     // ⚠ THE LAST OF THEM GOES OUT BEFORE THE SUN COMES UP AND NOT WITH IT. The ceiling is 0.86
     // against a sunrise at 0.92, so the city is dark for a moment first -- which is the order
     // the two things happen in outdoors, and reversing it makes the dawn read as a light switch.
-    float lamp = draw(vec3(bayAt, floorAt, 13.0 + (v_custom.a * 57.0)));
-    float wakes = draw(vec3(bayAt, floorAt, 29.0 + (v_custom.a * 23.0)));
-    float sleeps = draw(vec3(floorAt, bayAt, 71.0 + (v_custom.a * 41.0)));
+    //
+    // 🔴 THE TWO SCHEDULES OVERLAP AND THAT IS THE WHOLE POINT OF THE NUMBERS ABOVE. `offAt`
+    // opens at 0.18 while `onAt` runs to 0.48, so through the middle of every night both things
+    // are happening at once and there is no instant the city turns round. MIN_LIT is what stops
+    // that overlap from producing a lamp that blinks: it is a FLOOR on the duration and not on
+    // the hour, so a window that came on late simply stays on later.
+    float ever = draw(vec3(bayAt, floorAt, 13.0 + (v_custom.a * 57.0)));
+    float in_tonight = draw(
+        vec3(bayAt, floorAt, 101.0 + (v_custom.a * 19.0) + (night_index * 7.31)));
+    float wakes = draw(
+        vec3(bayAt, floorAt, 29.0 + (v_custom.a * 23.0) + (night_index * 4.17)));
+    float sleeps = draw(
+        vec3(floorAt, bayAt, 71.0 + (v_custom.a * 41.0) + (night_index * 2.53)));
 
-    float onAt = 0.06 + (wakes * 0.24);
-    float offAt = max(onAt + 0.08, 0.30 + (0.56 * sleeps * sleeps * sleeps));
+    float onAt = 0.02 + (wakes * (LATEST_ON - 0.02));
+    float offAt = max(onAt + MIN_LIT, 0.18 + (0.68 * sleeps * sleeps * sleeps));
 
     // 🔴 A STEP AND NOT A RAMP, AND THIS IS THE SECOND TIME THE SAME MISTAKE WAS MADE IN ONE
     // FILE. A `smoothstep` was here, twelve thousandths of a night wide, on the argument that
@@ -242,7 +321,13 @@ void fragment() {
     // window that fades on, and nothing in the world fades on*** -- a switch is thrown and the
     // room is lit. The sparkle it was guarding against does not exist either: every opening
     // draws its own hour off a continuous hash, so no two switch on the same frame anyway.
-    float wired = step(lamp, 0.70) * (1.0 - shut) * (1.0 - ruin) * upright;
+    // ⚠ TWO GATES AND NOT ONE, AND THEY ANSWER DIFFERENT QUESTIONS. `ever` asks whether there
+    // is a lamp in this room at all and never changes; `in_tonight` asks whether anybody is home
+    // to switch it on and is redrawn nightly. 0.80 x 0.62 is about half of an unshuttered wall lit
+    // on any one night -- against the 0.70 that stood here, which lit the same seven windows in
+    // ten every night of the world's life.
+    float wired =
+        step(ever, 0.80) * step(in_tonight, 0.62) * (1.0 - shut) * (1.0 - ruin) * upright;
     float burning = wired * step(onAt, night_phase) * (1.0 - step(offAt, night_phase));
 
     // ⚠ THE SECOND TERM IS WHAT SURVIVES THE FADE, and without it a city goes BLACK from exactly
@@ -258,8 +343,11 @@ void fragment() {
     // ⚠ AND IT IS THE ONE TERM HERE THAT MAY RAMP, because it is not a lamp. It is a few thousand
     // of them summed at a kilometre, and a sum moves smoothly however hard each switch is -- so
     // the smoothstep that was wrong on a window is right on the smudge.
-    float wakeful = smoothstep(0.0, 0.10, night_phase)
-        * (1.0 - smoothstep(0.10, 0.86, night_phase));
+    // ⚠ ITS SHOULDERS FOLLOW THE TWO SCHEDULES ABOVE and are not independent of them: the rise
+    // is `onAt`'s spread and the fall is `offAt`'s, so the smudge a distant city reads as peaks
+    // where the count of lit windows actually peaks rather than at a phase nobody chose.
+    float wakeful = smoothstep(0.0, 0.22, night_phase)
+        * (1.0 - smoothstep(0.30, 0.86, night_phase));
     float haze = (1.0 - far) * upright * v_custom.b * (1.0 - ruin) * wakeful * 0.16;
 
     EMISSION = vec3(1.0, 0.74, 0.40) * ((glazed * burning * 2.6) + haze);

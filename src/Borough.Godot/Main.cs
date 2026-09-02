@@ -4750,9 +4750,37 @@ public partial class Main : Node3D
         // morning and the evening and eases to 1.1 only around midday, where the edge is steep
         // enough that blur would buy nothing and cost sharpness. The floor on the divisor stops it
         // running away as the sun sets.
-        float raking = Mathf.Max(Mathf.Abs(height), 0.30f);
+        // 🔴 THE FLOOR AND THE CEILING BOTH BIT AT SUNRISE, SO THE LAW WAS FLAT ACROSS THE ONLY
+        // HOURS IT EXISTS FOR. Worked at the shipped constants: at 06:45 the sun stands at
+        // sin(0.95) x cos(-1.372) = 0.161, the 0.30 floor replaces it, and 0.73 / 0.09 = 8.11 is
+        // then clamped to 3.5. ***The ceiling is reached at height 0.457, which is about 09:00***
+        // -- so from first light to mid-morning the blur was a CONSTANT 3.5 however raking the sun
+        // got, and the staircase it is spent on is worst exactly there. ⚠ The law was correct and
+        // it was never reached: two clamps had turned a curve into a plateau over its own domain.
+        //
+        // The floor comes down to 0.12, which is a sun about twenty minutes up, and the ceiling
+        // goes to 6.0. ⚠ A BLUR THIS WIDE IS NOT FREE -- it detaches a shadow from the wall that
+        // casts it -- which is why it is spent only where the tread is widest and eases back to
+        // 1.1 by midday exactly as before.
+        float raking = Mathf.Max(Mathf.Abs(height), 0.12f);
 
-        _light.ShadowBlur = Mathf.Clamp(0.73f / (raking * raking), 1.1f, 3.5f);
+        _light.ShadowBlur = Mathf.Clamp(0.73f / (raking * raking), 1.1f, 6.0f);
+
+        // 🔴 THE SECOND LEVER, AND project.godot NAMED IT WITHOUT ANYONE PULLING IT: the range.
+        // Four cascades share one 8192 atlas over DirectionalShadowMaxDistance, so a texel is the
+        // range divided by 4096 -- and a texel's footprint on the GROUND is that divided by the
+        // sine of the sun's height. At a raking sun the same texel smears six times as far, which
+        // is the tread the blur is being asked to hide.
+        //
+        // ⚠ SO THE RANGE IS TIGHTENED WHERE THE SUN IS LOW rather than the blur alone being
+        // widened. Spending the atlas on ground the eye is not on buys nothing; past the fade a
+        // distant city is unshadowed rather than wrong, which is the bargain Sun() already struck.
+        // ⚠ Orbit() no longer sets this -- it is a function of the standoff AND the hour, and two
+        // writers would race whichever ran last.
+        _light.DirectionalShadowMaxDistance = Mathf.Clamp(
+            _distance * Mathf.Lerp(1.7f, 3f, Mathf.SmoothStep(0.08f, 0.55f, Mathf.Abs(height))),
+            300f,
+            3_000f);
 
         // A raking sun is BRIGHTER than a high one and not dimmer -- it is the same disc through
         // more air, and what the air takes is the blue end. The energy peak sits at the horizon for
@@ -4793,6 +4821,26 @@ public partial class Main : Node3D
         _paint?.SetShaderParameter(
             "night_phase",
             Mathf.Min(1f, (Clock(_world.Tick.Raw, within) + (1f - NightOpensAt)) % 1f / NightSpans));
+
+        // 🔴 WHICH NIGHT IT IS, so that not every lamp in the city keeps the same hours for ever.
+        // Every draw in the shader was keyed on the bay, the storey and the Building -- none of
+        // which moves -- so the same windows lit at the same times on every night of the world's
+        // life. ***A city you cannot tell two nights apart is a screensaver.***
+        //
+        // ⚠ IT TURNS OVER AT DUSK AND NOT AT MIDNIGHT. A night spans the date boundary, so a
+        // counter incrementing at 00:00 would redraw every lamp halfway through the evening and
+        // the city would visibly reshuffle. The offset here is `night_phase`'s own, so the floor
+        // steps at the one instant the phase wraps to zero and nothing is keyed on it.
+        //
+        // ⚠ WRAPPED AT 1024 BECAUSE IT IS A HASH SEED AND NOT A COUNT. A float loses whole numbers
+        // past 2^24, and a seed that stops incrementing is a city that stops changing -- which is
+        // the defect this exists to fix, arriving quietly a few thousand Days in.
+        _paint?.SetShaderParameter(
+            "night_index",
+            Mathf.Floor(
+                (((_world.Tick.Raw % (ulong)(Ticks.PerDay * 1024)) + within) / Ticks.PerDay)
+                + (Ticks.DayBeginsAtHour / (float)Ticks.HoursPerDay)
+                + (1f - NightOpensAt)));
 
         _above.SkyTopColor = new Color(0.03f, 0.04f, 0.11f)
             .Lerp(new Color(0.28f, 0.42f, 0.66f), lit)
@@ -4977,7 +5025,10 @@ public partial class Main : Node3D
         // here, it advanced between -2.4 and +9.5 and WENT BACKWARDS ON SIX OF TWENTY-THREE
         // FRAMES; after, the residual span is 2.9 px against 8.6 and not one step reverses.
         // ***A shadow edge that reverses is what could not be described from the chair.***
-        _light.DirectionalShadowMaxDistance = Mathf.Clamp(_distance * 3f, 400f, 3_000f);
+        // ⚠ THE RANGE MOVED TO Daylight() AND IS NOT SET HERE, because it is a function of the
+        // standoff and of the sun's height together -- see the comment there, which carries the
+        // texel arithmetic. Daylight runs every frame and this runs on a camera move, so a copy
+        // here would win for exactly one frame and then lose, which is the worst of both.
 
         // The focus plane rides the standoff, so a zoom or a tilt cannot leave the subject blurred.
         if (_photographing)
