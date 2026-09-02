@@ -295,29 +295,11 @@ candidates    = 3
 shift_hours_min = 6
 shift_hours_max = 10
 arrive_early_max_minutes = 15
-# ===========================================================================================
-# ADDITION 1 OF 3 -- the money in the city. Nothing above this line moved.
 
 [households]
-# NOBODY DRIVES, which is minimal.toml's own state said out loud rather than by omission. The table
-# has to exist to carry the two keys below and car_ownership_percent is required inside it, so 0 is
-# the value that leaves this file behaving exactly as minimal.toml does. adr/0098: 0 is a legitimate
-# city -- one before the motor car -- and is not a placeholder.
 car_ownership_percent = 0
-# WHAT A HOUSEHOLD IS FOUNDED WITH, drawn uniformly per Household at creation and issued through
-# World.Endow. See the header for why this is fixture content rather than adr/0116's deferred
-# founding balance, and why it is a band.
-#
-# THE FLOOR IS ZERO ON PURPOSE. A Household that opens with nothing is a Household the levy takes
-# nothing from and the rebate lifts, which is the first thing worth watching in this circuit -- and
-# it is what makes `floored to zero` read non-zero on the first sweep instead of being a counter
-# nobody has ever seen fire.
 opening_balance_min = 0
 opening_balance_max = 1000
-# ===========================================================================================
-# ADDITION 2 OF 3 -- the levy. DECLARED FIRST, and the order is load-bearing: a Policy acts where it
-# runs (there is no proposal and no settle), so the levy declared above the rebate funds it on the
-# same trigger. The same pair in the other order pays out of last Day's remainder.
 
 [[policy]]
 name = "household_levy"
@@ -325,13 +307,6 @@ sweeps = "household"
 interval = 2048
 apply = { derived = "balance", percent = 10 }
 transfer = { from = "local", to = "global", resource = "money", amount = 1 }
-# ===========================================================================================
-# ADDITION 3 OF 3 -- the rebate. A FLAT amount, which CONTEXT -> Policy prefers against because a
-# flat amount goes stale as the economy grows. It is flat here anyway and the reason is that the
-# alternative is worse: a percentage paid OUT of a balance pays the rich most, which is a mechanic
-# nobody would author. What CONTEXT actually asks for -- a percentage of gross income below a line --
-# needs an income (milestone 15) and a poverty line (a hash-bearing number with no ratifier), and
-# adr/0070 says the answer to an unbuilt mechanism is to build it rather than to approximate it.
 
 [[policy]]
 name = "household_rebate"

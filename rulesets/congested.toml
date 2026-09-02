@@ -124,10 +124,6 @@ bins = [
 ]
 occupants = 4
 business = "shop"
-# HOW MANY VEHICLES A DWELLING OF THIS KIND CAN PARK. Identical to minimal.toml's, including the
-# value. See there for why eight is `jobs`' own derivation rather than a second guess -- both count
-# CITIZENS, and adr/0119 settled that a parking space is held by the Citizen because World.ModeOf
-# drives every MEMBER of a car-owning Household. UNRATIFIED; ratifier is milestone 7 task 8.
 parking = 8
 
 [[rule]]
@@ -196,13 +192,7 @@ foot_path_capacity_per_hour    = 1000
 lots_per_segment = 5
 
 [parking]
-# How far a driver will walk from a Car Park, in metres. adr/0009's radius, milestone 7 task 2.
-# minimal.toml's header carries why it is metres rather than minutes, why 400 is R5.6's measured
-# rung rather than the five-minute intuition it nearly coincides with, and what ratifies it.
 radius_metres = 400
-# How many Car Parks a Building's Parking Shed holds. minimal.toml's header carries where 24
-# came from, why the search for a derivation failed, why it is a different dial from the radius
-# rather than a second spelling of it, and why it must live here rather than on [[building]].
 shed_keeps = 24
 
 [trips]
@@ -218,92 +208,11 @@ candidates    = 3
 shift_hours_min = 6
 shift_hours_max = 10
 arrive_early_max_minutes = 15
-# ===========================================================================================
-# THE CONGESTION RULESET -- minimal.toml on Streets narrow enough for a generated city to fill.
-#
-# Everything above this banner is minimal.toml's own header and content, kept verbatim. Nothing
-# above was written for this file. What follows is what this file changes and why.
-#
-# WHY IT EXISTS. Milestone 5c task 6 built the volume-delay function (adr/0099): a Segment's dwell
-# is free-flow x (1 + alpha x (v/c)^beta), clamped, priced on entry from that Segment's volume at
-# that instant. NO SHIPPED RULESET STATES [traffic] OR [households], so no shipped file could reach
-# it -- and `--traffic` refuses all three rather than drawing an empty picture. This is the file
-# that picture is for. It is severance.toml's precedent exactly, for severance.toml's reason: a
-# mechanism that minimal.toml structurally cannot demonstrate needs a rung where it does, and that
-# rung is chosen by measurement rather than by taste.
-#
-# IT CHANGES ONE NUMBER AND ADDS TWO TABLES. street_capacity_per_hour goes 3600 -> 400; [households]
-# and [traffic] are new. Nothing else moves, because a demonstration that varies two things at once
-# demonstrates neither.
-#
-# WHY THE CAPACITY HAD TO MOVE AT ALL, AND IT IS NOT A TUNING PREFERENCE. A generated city never
-# reaches a load where any of [traffic] matters. The paved extent scales with the SQUARE ROOT of the
-# population -- SyntheticCity sizes it to World's own 225 Lots per 1,000 Citizens -- so THE SAME
-# NUMBER SIZES BOTH THE DEMAND AND THE SUPPLY, and v/c peaks at 0.44 at 4,000, 16,000 and 64,000
-# Citizens alike. Congestion is something a PLAYER makes by laying too little road (adr/0090), and
-# CommandKind.Populate cannot reach it. Narrowing the road is the only lever a generated world has.
-#
-# WHY 400 AND NOT 200 OR 900, MEASURED. At 16,000 Citizens over 512 Ticks:
-#
-#     Vehicles/hour   holds   busiest v/c   the two panels   the bill
-#     -------------   -----   -----------   --------------   --------
-#              3600    9.22          0.44        identical    x1.0000
-#               900    2.30          2.61        identical    x1.0000
-#               600    1.54          3.91        identical    x1.0002
-#               400    1.02          5.86          DIFFER     x1.0088
-#               200    0.51         15.63   identical (all @)  x1.8949
-#
-# 400 IS THE ONLY RUNG WHERE BOTH HALVES OF THE PICTURE MOVE. Above it the extra dwell is real and
-# SUB-TICK, so it changes what a crossing costs without changing how many Vehicles stand on a road
-# at any Tick boundary -- the bill moves and the grid cannot see it. Below it every block clips at
-# `@` in both panels and the grid stops discriminating from the other end. ***A per-Tick snapshot
-# cannot see a sub-Tick delay***, which is a property of the instrument and not of this file.
-#
-# 400 VEHICLES AN HOUR IS NOT A ROAD, AND SAYING SO IS THE POINT. By Little's Law a Segment holds
-# `capacity per Tick x its free-flow crossing time` Vehicles when it is running at capacity: at 3600
-# that is 9.2 Vehicles on a 128 m block, a 14 m spacing, which is what a road at capacity looks
-# like. At 400 it is 1.02 -- one car per block. THIS FILE IS NOT A CITY, for every reason
-# minimal.toml gives above and one more: you have to make the Street absurd before a generated city
-# will congest it, and that measured fact is worth more than a prettier demonstration would be.
-#
-# THE PICTURE IT DRAWS IS UNIFORM, AND THAT IS THE CITY RATHER THAN THE FUNCTION. Every Building
-# here has the same occupants and the same posts, so the developed area congests all at once and
-# there is no hot spot to find. That is 5b-bis task 7's finding arriving on a second axis -- 222
-# blocks of 228 within a quarter of employment parity, because THE CITY HAS NO LAND USE AT ALL --
-# and no [traffic] number can fix it. A hot spot needs somewhere everybody is going.
-# ===========================================================================================
 
 [households]
-# WHO OWNS A CAR (adr/0098). A Household keeps one or does not; a Citizen of one that does drives
-# everywhere and one of a Household that does not walks everywhere. 100 because this file exists to
-# put Vehicles on Segments, and a partial rate would make the demonstration a measurement of the
-# rate rather than of the function. Derived from the Ruleset in force and never a column, so the
-# owner set is nested and lowering this number is a change to the standing city.
-#
-# ABSENT MEANS NOBODY DRIVES, and it is reached by omitting the table rather than by a defaulted
-# key: zero is a legitimate answer, and a placeholder inside the range of legitimate answers cannot
-# announce itself (session F).
 car_ownership_percent = 100
 
 [traffic]
-# THE VOLUME-DELAY FUNCTION (adr/0099). BPR. SOURCED, NOT RATIFIED, and the three numbers have
-# three different standings.
-#
-# alpha AND beta ARE TEXTBOOK and are what S2 ran. They are authored as percentages because this
-# file has no decimals -- `alpha = 15` would be off by two orders of magnitude with nothing able to
-# notice, which is adr/0094's Speed.PerKilometrePerHour literal exactly. THE NAME OF A QUANTITY IS
-# NOT ITS DENOMINATION.
-#
-# THE CLAMP IS RECOVERED ARITHMETIC. S2 R8.0 published `an arc at the clamp costs 39.4x free-flow`,
-# and 1 + 0.15 x 4^4 = 39.4 exactly -- so 400% is backed out of its own delay rather than stated
-# anywhere. S2 is SYNTHETIC and ran R4's uniform origin-destination draw, which is the longest-trip
-# distribution available, so nothing may be carried out of it bare (plans/0012 Cause 5).
-#
-# beta IS BOUNDED BY ARITHMETIC RATHER THAN BY TASTE: 4^8 is 65,536, which is exactly Q16.16's whole
-# range, so the loader refuses above 6.
-#
-# ABSENT MEANS ROADS NEVER SLOW DOWN, which is also every city this project described before task 6
-# -- so an older Ruleset still means what it meant.
 alpha_percent = 15
 beta          = 4
 clamp_percent = 400

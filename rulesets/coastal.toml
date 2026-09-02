@@ -73,21 +73,7 @@ family = "good"
 [[resource]]
 name = "repairs"
 family = "good"
-# THE FIRST family = "utility" RESOURCE IN ANY SHIPPED RULESET, and it is here because a Water Body's
-# Bin has to hold something.
-#
-# WHY UTILITY AND NOT GOOD. adr/0161. adr/0031's family axis is one question -- does inter-District
-# movement require a Vehicle? -- and a Water Body moves its contents along an edge of the WATER graph,
-# downstream, with no Vehicle, no Trip and no Segment. A `good` here would be a counterexample to the
-# definition of good sitting inside a loaded world, which is why the loader refuses one by name.
-#
-# ⚠ WHAT DUMPING DOES IS A TRANSFORMATION AND NOT A MOVE. Refuse tipped into a river stops being
-# refuse; the Scope.Map precedent is exact, since a Rule emitting industrial pollution is not putting
-# a good into a Cell and nobody reads the pollution in a Cell as the coal that made it.
-#
-# 🔴 NOTHING PUTS ANY OF IT ANYWHERE. No Scope reaches a Water Body, so every body's level is zero
-# from Tick 0 to the end of every run on this file. That is adr/0070's *unbuilt*, named here so the
-# declaration is not read as a working inflow.
+
 [[resource]]
 name = "sewage"
 family = "utility"
@@ -104,9 +90,6 @@ shift_start_latest_hour   = 10
 
 [[building]]
 name = "dwelling"
-# THE TRADE A BUILDING OF THIS KIND COMES WITH (adr/0148). Construction instantiates it,
-# already premised, taking one of `occupants`' slots -- it is drawn from no pool, so
-# adr/0069's `construction houses nobody` is untouched.
 business = "shop"
 bins = [
     { resource = "sundries", capacity = 48, owner = "occupant" },
@@ -197,89 +180,15 @@ candidates    = 3
 shift_hours_min = 6
 shift_hours_max = 10
 arrive_early_max_minutes = 15
-# WHERE THE SEA STANDS. adr/0160. The one key a Ruleset states about water; everything else -- which
-# Cells are wet, how many bodies there are, which way each drains -- is derived by WaterGenerator from
-# the WorldKey. There is deliberately no water-coverage key: a share of the map is an OUTCOME, and
-# authoring it would make the generator solve for a number instead of laying a world.
-#
-# 🔴 UNRATIFIED. plans/0002 §D1. Refused at 0 (a second spelling of omitting this table) and at 100
-# (a world that is entirely water is not a city).
+
 [water]
 sea_level_percent = 25
-# How high a flood reaches, on the SAME scale as sea_level_percent -- a percent of the height range
-# THIS WORLD REALISED, not of the possible one. A dry Cell below this level is Hazard Region and its
-# stored depth is the difference; a Cell at or above it has no row at all.
-#
-# UNRATIFIED. plans/0002 §D1 carries it and names its ratifier. It is the first number in the corpus
-# that decides how much land is risky, and there is nothing yet that fires on it -- Disasters are
-# behind milestone 15 -- so no run can currently tell you whether 30 is generous or stingy. What it
-# is anchored on is the shape of the thing: a five-point band above a sea at 25 is riverside land,
-# which is what 01 §5.2 asks for, and it is what keeps the table sparse enough for adr/0157's choice
-# to store it sparsely to stay true.
-#
-# ⚠ OMITTING THIS KEY IS A WORLD AND NOT A GAP. A steep coast has no floodplain, and the absence is
-# how that is spelled (adr/0123) -- there are no rows rather than rows of depth zero. coastal.toml
-# is the only shipped file that states it.
 flood_level_percent = 30
-# THE WATER BODY'S BIN -- CONTEXT.md -> Water Body's two parameters, plus the Resource they apply to.
-# All three stand or fall together and the loader refuses a subset: a Bin needs something to hold, a
-# ceiling and a way out, and any one alone is half a mechanism. Omitting all three is water with no
-# level, which is every other shipped file.
-#
-# HOW THE TWO NUMBERS PRODUCE THREE BEHAVIOURS WITH NO TAXONOMY OF WATER TYPES. A body's capacity is
-# its size in Cells times capacity_per_cell; its outflow is its EXITS times outflow_per_exit_per_day,
-# where an exit is a Cell on the map's boundary, or the single rim Cell a landlocked body spills over,
-# or -- for an endorheic body -- none at all.
-#
-#   a pond          0 exits          never drains, fills for ever, and pollution is a DEBT
-#   a spilling lake 1 exit           ~1,000 Days to empty at 100 Cells: slow, so still mostly a debt
-#   the sea         ~1,000 exits     ~330 Days at the 33,435 Cells measured here: a RENT
-#
-# 🔴 BOTH NUMBERS ARE UNRATIFIED AND THIS FILE CAN RATIFY NEITHER. The Resource's units are the
-# Ruleset's own and nothing dumps, so every level is zero on every run and no measurement here can say
-# whether 1000 and 100 are generous or stingy. What they are anchored on is the SHAPE above -- the
-# ordering of the three cases and the rough Day counts -- and not on any magnitude. plans/0002 §D1
-# holds both rows and names what would settle them.
 carries = "sewage"
 capacity_per_cell = 1000
 outflow_per_exit_per_day = 100
-# THE INFLOW, AND IT IS THE HALF THAT MAKES THE WHOLE MECHANISM OBSERVABLE.
-#
-# What a FULLY sealed Cell sheds into the body it drains to, per Day, scaled down by how much of the
-# Cell is actually paved. Impervious surface is what makes runoff run rather than soak, so the more of
-# a catchment the player paves, the more it fouls the water below it -- and because the water graph
-# runs downhill, the consequence lands DOWNSTREAM of whoever caused it. That is the one asymmetric
-# spatial relationship CONTEXT.md -> Water Body names, reached with no new verb.
-#
-# ⚠ DUMPING IS THE OTHER INFLOW AND IT IS NOT BUILT. It needs a Scope that reaches a Water Body, and a
-# Bin can FAIL where a Map Layer cell cannot -- a design question rather than a copy of scope = "map".
-#
-# 🔴 UNRATIFIED, and it is the number with the least behind it of the three. It is anchored on wanting
-# a visible level within a run somebody will sit through, and on nothing else. plans/0002 §D1.
 runoff_per_sealed_cell_per_day = 50
-# WHY THIS FILE MOVES ITS CITY OFF THE MAP'S CORNER, AND IT IS THE ONLY REASON.
-#
-# Every Ruleset that states no [[lattice]] gets one at (0, 0), so its city sits in the map's
-# north-west corner -- CLAUDE.md's "corner city", named there for a different reason entirely. That
-# is harmless in every other shipped file and it is fatal here, because A MAP EDGE IS WHERE WATER
-# LEAVES THE WORLD. The catchment seeds every dry boundary Cell as draining off the map, so a corner
-# city's runoff drains off the map too, and the Bin level stays at zero on all five seeds measured.
-# Nothing was wrong with the runoff; it was sited where its own output is invisible.
-#
-# ⚠ THIS IS AN ORIGIN AND NOTHING ELSE -- the same sentence twinned.toml's header carries. It does
-# not say the city is bigger, denser, or nearer any particular body. It says the city stands with
-# map on all four sides of it, which is what a downstream relationship needs in order to exist.
-#
-# ⚠ 8192 IS HALF OF THE 16384-TILE MAP AND IS NOT A TUNED NUMBER. It is the middle, chosen because
-# the middle is the furthest a city can stand from every edge at once. RoadGenerator gives a lattice
-# `WorldTiles - max(origin_east, origin_north)` of room, so this leaves 8192 tiles -- ample for the
-# populations this file is run at, and it is what would bind first if somebody raised them.
-# ⚠ AND STATING IT IS AIMING A DEMONSTRATION RATHER THAN CHOOSING WHERE A CITY STANDS. The key has
-# two readers -- SyntheticCity builds from it and PlacementEngine.Distance measures a Household's
-# taste for the centre against it -- so it is designer-facing and does not belong in the instrument
-# (adr/0164's third row). But neither shipped origin was a designer's: this one is the middle so
-# runoff does not drain off the world, and flooded.toml's is the water's edge so the city can meet a
-# coast at all. Read a moved origin here as the instrument being pointed. plans/0050.
+
 [[lattice]]
 origin_east_tiles  = 8192
 origin_north_tiles = 8192

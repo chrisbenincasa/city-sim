@@ -58,20 +58,25 @@
 [[resource]]
 name = "sundries"
 family = "good"
+
 [[resource]]
 name = "repairs"
 family = "good"
+
 [[resource]]
 name = "sewage"
 family = "utility"
+
 [[resource]]
 name = "money"
 family = "money"
+
 [[business]]
 name = "shop"
 jobs = 8
 shift_start_earliest_hour = 6
 shift_start_latest_hour   = 10
+
 [[building]]
 name = "dwelling"
 business = "shop"
@@ -81,6 +86,7 @@ bins = [
 ]
 occupants = 3
 parking = 8
+
 [[rule]]
 name    = "restock"
 kind    = "dwelling"
@@ -88,6 +94,7 @@ rate    = 8
 apply   = { min = 1, max = 4 }
 inputs  = []
 outputs = [ { scope = "local", resource = "sundries", amount = 4 } ]
+
 [[rule]]
 name    = "consume"
 kind    = "dwelling"
@@ -95,6 +102,7 @@ rate    = 32
 apply   = { min = 1, max = 1 }
 inputs  = [ { scope = "local", resource = "sundries", amount = 4 } ]
 outputs = []
+
 [[rule]]
 name    = "upkeep"
 kind    = "dwelling"
@@ -102,16 +110,19 @@ rate    = 16
 apply   = { min = 1, max = 1 }
 inputs  = [ { scope = "local", resource = "repairs", amount = 4 } ]
 outputs = []
+
 [[zone_rule]]
 name          = "housing"
 kind          = "dwelling"
 zone          = 0
 interval      = 32
 revisit_ticks = 2048
+
 [placement]
 interval      = 32
 revisit_ticks = 1024
 candidates    = 3
+
 [layers]
 noise_range_metres            = 300
 noise_intensity_percent       = 400
@@ -124,6 +135,7 @@ land_value_offset     = 16
 kernel_metres         = 1024
 pollution_decay_ticks = 2048
 land_value_tau        = 8
+
 [roads]
 block_tiles                    = 32
 arterial_count                 = 0
@@ -136,16 +148,20 @@ walk_speed_kph                 = 5
 street_capacity_per_hour       = 3600
 arterial_capacity_per_hour     = 12000
 foot_path_capacity_per_hour    = 1000
+
 [lots]
 lots_per_segment = 5
+
 [parking]
 radius_metres = 400
 shed_keeps = 24
+
 [trips]
 crossing_seconds = 30
 commute_fast_minutes = 20
 commute_moderate_minutes = 40
 commute_budget_minutes = 50
+
 [jobs]
 interval      = 32
 revisit_ticks = 1024
@@ -153,6 +169,7 @@ candidates    = 3
 shift_hours_min = 6
 shift_hours_max = 10
 arrive_early_max_minutes = 15
+
 [water]
 sea_level_percent = 25
 flood_level_percent = 30
@@ -160,15 +177,7 @@ carries = "sewage"
 capacity_per_cell = 1000
 outflow_per_exit_per_day = 100
 runoff_per_sealed_cell_per_day = 50
-# THE ORIGIN IS AIMED AT THE MECHANISM AND NOT AT A CITY, and it has two readers so it cannot simply
-# move into the instrument (adr/0164's third row). SyntheticCity decides where to build from it, and
-# PlacementEngine.Distance measures a Household's taste for the centre against it -- a real
-# designer-facing consumer. But NEITHER shipped origin was a designer's: coastal.toml sits at the
-# map's middle so runoff does not drain off the world, and this one sits on the water's edge because
-# the synthetic city is ~1.4 km across on a 65.5 km map and cannot meet a coast by accident
-# (adr/0089 arriving where nobody expected it). ⚠ SO STATING IT HERE IS AIMING A DEMONSTRATION, NOT
-# CHOOSING WHERE A CITY STANDS. Read it as the instrument's setting; the taste reader is why the key
-# stays a key. plans/0050.
+
 [[lattice]]
 origin_east_tiles  = 11520
 origin_north_tiles = 4800

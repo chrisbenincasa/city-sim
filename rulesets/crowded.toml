@@ -49,19 +49,7 @@ family = "good"
 [[resource]]
 name = "money"
 family = "money"
-# `owner = "occupant"` is adr/0141's line -- the larder goes with the family, the roof does not -- so
-# `sundries` is one Bin per Household and `repairs` is one per Building. The premises still declare
-# the ceiling. minimal.toml's dwelling carries the argument and what it changes about the city.
-# ---------------------------------------------------------------------------------------------------
-# THE TRADE. adr/0141 gave `jobs`, the Shift band and the wage to the BUSINESS rather than to the
-# premises; adr/0148 removed the first two from [[building]] rather than leaving them parsed and
-# unread. THE WAGE IS NOT HERE: that is adr/0026 at milestone 15, and a `wage` key is refused until
-# there is something to pay it out of.
-#
-# THE COMMENTS BELOW ARE THE ONES THAT STOOD ON [[building]], moved verbatim with their numbers. Read
-# them as a property of the TRADE now -- "a Building of this kind" has become "a Business of this
-# trade", and the derivations are untouched because the arithmetic did not move.
-# ---------------------------------------------------------------------------------------------------
+
 [[business]]
 name = "shop"
 jobs = 8
@@ -80,11 +68,6 @@ parking = 8
 
 [[building]]
 name = "port"
-# RAISED FROM bordered.toml's 12. Four gates times 96 is 384 Households a Day asking to come in,
-# against a construction rate the Zone Rule sets -- and the point of this file is that the first
-# number wins. ⚠ THIS IS A CEILING AND NOT A RATE: nothing in the simulation decides to arrive
-# (adr/0128), so what actually arrives is whatever a caller asks for, clipped to this. The runner's
-# --arrivals mode asks for MORE than this every Day precisely so that the ceiling is what answers.
 arrivals_per_day = 96
 
 [[hinterland]]
@@ -142,13 +125,6 @@ revisit_ticks = 2048
 interval      = 32
 revisit_ticks = 1024
 candidates    = 3
-# CUT FROM bordered.toml's 120 Days, and the cut is the whole reason this file exists.
-# 🔴 ⚠ IT IS NOT A SECOND OPINION ABOUT HOW LONG A FAMILY WOULD LOOK. bordered.toml's 120 Days is
-# the designer's number and the one plans/0002 §D1 carries; two Days is a COMPRESSION, chosen so
-# that the give-up bound is reachable inside a run somebody will actually sit through. At 120 Days
-# a demonstration would have to run 245,760 Ticks to show one Departure, and milestone 9's F17 is
-# what happens when a mechanism ships correct and unobservable.
-# ⚠ DO NOT QUOTE TWO DAYS AS THE POOL'S BOUND. It is this file's, and this file is a stopwatch.
 gives_up_after_days = 2
 
 [layers]

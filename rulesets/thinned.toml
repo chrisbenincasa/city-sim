@@ -94,54 +94,8 @@ bins = [
     { resource = "sundries", capacity = 48, owner = "occupant" },
     { resource = "repairs",  capacity = 4 },
 ]
-# HOW MANY DAYS A PREMISES RULE MAY STARVE CONTINUOUSLY before the Building is condemned and
-# abandoned. adr/0141's premises half; the tenant half is `tenancy_ends_after_days`, which this
-# file does not state because its tenants are fed.
-#
-# !! IT WAS `condemn_after = 4` AND THAT WAS 45 IN-WORLD MINUTES. The old key counted FIRINGS a
-# starved Rule may miss, so its value had to be read against the Rule's own `rate` to mean
-# anything: 4 missed firings of `upkeep` at rate 16 is 64 Ticks. Nothing on the page said so, the
-# value stood at 4 in all eighteen shipped files, and NO AUTHOR EVER CHANGED IT -- because no
-# author could see what it said. A dwelling here lived about half an in-world Day.
-#
-# So milestone 17 authored the felt quantity and derived the count, which is adr/0059 and
-# adr/0130's rule arriving at the one key that had gone the other way. THE FLOOR IS NOW ONE DAY
-# AND 45 MINUTES IS NOT EXPRESSIBLE AT ALL, which is the point of the unit rather than a side
-# effect of it.
-#
-# !! UNRATIFIED, and plans/0002 D1 holds it. This is a stopwatch setting: what it dials with
-# `collapses_after_days` is WHAT SHARE OF THE CITY IS DERELICT at steady state, and that share is
-# a ratio of the two -- roughly blight / (life + blight). QUOTE THE CENSUS AND NEVER THE
-# ARITHMETIC: this file's header carries the measured numbers and an earlier version of it
-# carried a paper figure that was wrong by a factor of two.
 condemn_after_days = 8
-# THE FIRST THRESHOLD, and the whole of this file's diff from declining.toml is this key, the 8 above
-# and one word in `upkeep` below. Past this the Building sheds ONE Occupant; past condemn_after_days
-# it is abandoned. CONTEXT.md → Failure Pressure has said so since before the build existed and
-# nothing implemented the first half until milestone 17 task 3.
-#
-# ⚠ 8 ABOVE IS NOT A TUNING CHANGE, IT IS HEADROOM FOR THIS KEY. `occupants` is 4 and one leaves per
-# Day, so a Building needs four Days to empty. At declining.toml's 2 it would shed twice and be
-# abandoned with two Households still in it, and the file would demonstrate a slower demolition
-# rather than a recovery. ***The two keys are read against `occupants` and not against each other.***
 sheds_occupant_after_days = 1
-# The sink for what condemn_after_days creates: how many Days the empty shell stands before it
-# collapses and the Lot returns to vacant (adr/0091, milestone 17). REQUIRED wherever
-# condemn_after is stated -- a kind that can be abandoned and cannot collapse accumulates
-# shells for ever, which is adr/0006, and the loader refuses it.
-#
-# !! A STOPWATCH SETTING AND NOT A DESIGN CLAIM, exactly as crowded.toml's two are. What this
-# number actually dials, together with condemn_after_days above, is WHAT SHARE OF THE CITY IS
-# DERELICT at steady state -- because the share is a RATIO of the two and not a property of
-# either. A shell that stands 1 Day in a city whose Buildings live 2 is a third of the stock; the
-# same 1 Day against a life of half a Day is two thirds, which is what this file measured when
-# the threshold above was 45 minutes.
-#
-# !! ONE DAY IS THE FLOOR THE UNIT ALLOWS and it is chosen so the demonstration demonstrates:
-# a shell that a short run can watch appear, stand and fall. A city a player would live in
-# wants a gentler failure rate AND a longer blight, and that pair is UNRATIFIED with no world
-# to settle it -- plans/0002 D1, ratified by the first play session in which somebody watches
-# a district decline, which is adr/0091's own ratifier for the clearance price.
 collapses_after_days = 1
 occupants = 4
 business = "shop"

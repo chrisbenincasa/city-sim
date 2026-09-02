@@ -118,33 +118,7 @@ family = "good"
 [[resource]]
 name = "money"
 family = "money"
-# Kind 1, which is what Borough.Core.Entities.SyntheticCity builds and what Households are placed in.
-# A dwelling holding a Bin its Occupants draw from is CONTEXT -> Building's own sentence, and it is
-# the one shape available while `local` is the only scope with a Bin behind it.
-#
-# NOTHING IN THIS FILE DECLINES, AND THAT IS DELIBERATE AS OF MILESTONE 17. `condemn_after` stood at 4
-# here, as it did in all eighteen shipped files, and no author had ever set it to anything else -- which
-# is adr/0164's test (`would a designer ever set this?`) answered by the tree. It is gone from every
-# world that demonstrates something other than decline, because a Building that falls down does not
-# stay fallen: abandonment leaves a SHELL standing (adr/0091), and at the shipped failure rate two
-# thirds of the city is derelict at steady state. A world demonstrating traffic, water or a market
-# should not have to do so in a ruin.
-#
-# Decline now lives in rulesets/declining.toml, which is this file plus two keys, and in
-# diagnosed.toml, which needs Buildings to fall down so its on_fail chain has something to record.
-# DO NOT ADD `condemn_after` BACK HERE to make a test fail faster -- that is what declining.toml is for.
-# ---------------------------------------------------------------------------------------------------
-# THE TRADE. adr/0141 gave `jobs` and the Shift band to the BUSINESS rather than to the premises;
-# adr/0148 removed them from [[building]] rather than leaving them parsed and unread.
-#
-# THE COMMENTS BELOW ARE THE ONES THAT STOOD ON [[building]], moved verbatim with their numbers. Read
-# them as a property of the TRADE now -- "a Building of this kind" has become "a Business of this
-# trade", and the derivations are untouched because the arithmetic did not move.
-#
-# ADDED AT THE MERGE OF 2026-08-24, and it is a migration rather than content. This file was forked
-# from minimal.toml BEFORE adr/0148 landed on main, so main's migration never reached it and it was
-# the only shape of Ruleset the merged loader refuses. Nothing here is a new decision.
-# ---------------------------------------------------------------------------------------------------
+
 [[business]]
 name = "shop"
 jobs = 8
@@ -153,9 +127,6 @@ shift_start_latest_hour   = 10
 
 [[building]]
 name = "dwelling"
-# THE TRADE A BUILDING OF THIS KIND COMES WITH (adr/0148). Construction instantiates it,
-# already premised, taking one of `occupants`' slots -- it is drawn from no pool, so
-# adr/0069's `construction houses nobody` is untouched.
 business = "shop"
 bins = [
     { resource = "sundries", capacity = 48 },
@@ -171,9 +142,7 @@ rate    = 8
 apply   = { min = 1, max = 4 }
 inputs  = []
 outputs = [ { scope = "local", resource = "sundries", amount = 4 } ]
-# Derived, because a dwelling's draw is stated by how many Households live in it rather than bounded
-# by what is in the Bin. `occupancy` is the one declared Readout (slice 7 task 7), and this is the
-# first thing outside a test to read it.
+
 [[rule]]
 name    = "consume"
 kind    = "dwelling"
@@ -201,56 +170,7 @@ revisit_ticks = 2048
 interval      = 32
 revisit_ticks = 1024
 candidates    = 3
-# THE DESIRABILITY COMPOSITION -- SEVEN NUMBERS, EVERY ONE UNRATIFIED. adr/0122 deleted `w1`, because
-# land value drifting toward a target whose first term is land value made it a GAIN of 1/(1 - w1) on
-# the others rather than a fifth weight. `w5` SHORELINE ARRIVED AT MILESTONE 24 TASK 7, once runoff
-# gave a Water Body's Bin an inflow -- before that it would have been the present-and-permanently-zero
-# term adr/0123 refused -- so what composes is `- w2*pollution - w3*noise - w5*shoreline`.
-#
-# ON A FILE WITH NO [water] THE SHORELINE TERM IS ABSENT AND NOT ZERO, which is the same distinction
-# one level down: no water means no term rather than a term contributing nothing. adr/0123 still
-# leaves AMENITY out, and amenity is the only POSITIVE term, so the field is BOUNDED ABOVE BY ZERO
-# until milestone 15: the best land in the city is clean, quiet and empty beside clean water.
-#
-# `noise_range_metres` is the cutoff. 02 section 2.4 says 50-300 m; that band is SIX TIMES WIDE and
-# is the same defect plans/0012 records against the industrial kernel's 1-10 km. 300 is its outer
-# end, not a derivation.
-#
-# `noise_intensity_percent` IS NOT A SCALE, and it is the one number here with a derivation. The
-# level is log(1+x) -- linear below unity, logarithmic above it -- so this decides WHICH REGIME the
-# city sits in. At 100 a Street at its stated capacity falls under unity by about 150 m and its
-# noise adds LINEARLY, which is the physically-wrong arithmetic the logarithm was chosen to prevent.
-# At 400 it stays in the logarithmic stretch across the whole 300 m.
-#
-# The two weights are 100 and 100, DELIBERATELY NEUTRAL rather than derived. Measured magnitudes put
-# the terms within one order of magnitude -- pollution about 12 in kernel units under a strong
-# source, noise about 3 beside a capacity Street -- so 1:1 leaves both VISIBLE, which is the only
-# property anything can check today. Nothing distinguishes them further and nothing can: the
-# quantity that would refute a weight comes from a consumer of land value, and there is no consumer
-# in src/ at all (adr/0125). Each owes TWO plans/0002 section D1 entries -- a reachable floor and an
-# owed real ratifier -- and the floor REFUTES and never confirms.
-#
-# Fertility's ONE weight, and this is the only shipped file that states it -- because it is the only
-# one that prices its ground, and in the other twelve MapLayers.Fertility throws before any weight is
-# reached. It is not refused there, on the same footing as desirability_pollution_percent: eight of
-# the nine older files have no Rule that emits at all and state that weight anyway. A weight is
-# allowed to describe a term the world does not currently exercise.
-#
-# 4 percent, and it is ANCHORED rather than derived. adr/0022's Evidence specimen -- "41% -- ground
-# sealed 12%, pollution from Eastfield Industrial 47%" -- is the only sentence in the corpus that says
-# what a plume ought to cost a farm, and 4% against a plume measured at about 12 kernel units under a
-# strong source lands near that half. UNRATIFIED, plans/0002 section D1, and 🔴 chosen against NO
-# consumer: nothing reads Fertility, because no milestone in docs/06 builds a farm.
-#
-# ⚠ There is no fertility_sealing_percent and the absence is the decision (adr/0156). A Cell at 1024
-# sealed Tiles has every Tile built on and therefore no farmland, which PINS that coefficient at
-# base x Sealing / 1024. Offering it as a key would invite a file to state that a fully paved Cell
-# still farms.
-# it by TERRAIN TYPE — rock may never recover, floodplain may recover over hundreds of Days — so it
-# is a `sealing_decay_tau` key on each [[terrain]] table and there is no global one. A file that
-# states no [[terrain]] heals NOWHERE, which is exactly what this file said by writing 0 here.
-# Milestone 24 task 4; the key is refused in [layers] rather than ignored, with a message naming
-# where it went.
+
 [layers]
 fertility_pollution_percent    = 4
 noise_range_metres            = 300
@@ -264,54 +184,6 @@ land_value_offset     = 16
 kernel_metres         = 1024
 pollution_decay_ticks = 2048
 land_value_tau        = 8
-# ---------------------------------------------------------------------------------------------------
-# THE SECOND THING THIS FILE ADDS, AND IT IS THE ONE adr/0022 CALLS LOAD-BEARING BY NAME:
-#
-#     "the first response is more reboot levers, not faster regrowth; REGROWTH SPEED IS THE
-#      LOAD-BEARING CONSTANT and loosening it deletes the arc."
-#
-# 🔴 UNTIL 2026-08-24 IT HAD NO OWNER. No ADR, no plans/0002 row, no named ratifier, no key here, and
-# adr/0052 had never been applied to it -- a hash-bearing constant an ADR calls load-bearing, carried
-# for the life of the project by that one sentence. Milestone 24 task 8b, plans/0042 decision 10.
-#
-# ⚠ IT IS A DURATION AND NOT A RATE, and that is the shape of the fix rather than a preference. The
-# key says how many Days a Cell cleared of ALL its forest takes to return to what the seed laid; the
-# per-pass Tile count is derived from it. Authoring "2 Tiles a pass" instead would silently mean half
-# the recovery the day somebody retuned the cadence -- pollution_decay_ticks' precedent, and adr/0059's
-# rule. ⚠ IT IS ALSO WHY THE CURVE IS LINEAR: task 4 shipped an exponential decay beside this and a
-# caveat about the multiplier between its time constant and the felt duration, GOT THE MULTIPLIER
-# WRONG, and had it refuted by the first instrument that measured it (plans/0042 F12). A linear rate
-# makes the authored number and the felt number THE SAME NUMBER, so there is no multiplier to quote
-# and no caveat to travel wrong.
-#
-# ⚠ 🔴 THE DURATION IS A FULL CELL'S AND NOT EVERY CELL'S, AND THAT CLAUSE TRAVELS WITH THE NUMBER.
-# The step is absolute -- so many Tiles a pass, wherever forest advances at all -- so a Cell the seed
-# left a quarter wooded comes back in a quarter of the stated Days. MEASURED rather than read: the
-# cost instrument put 26.6% of the map's forest back in 65 passes of this rate, where the duration
-# alone predicts 12.7%. The alternative, scaling each Cell's step by its own ceiling, is refused
-# because that division rounds to zero on exactly the thinly wooded Cells it would exist to slow.
-#
-# 512 DAYS, AND IT IS ANCHORED ON THE WORD "slowly" AND ON WHAT SITS BESIDE IT. adr/0022 says only
-# that forest regrows "slowly"; what makes 512 legible is the comparison with the Sealing recovery in
-# the [[terrain]] tables below, which runs 197 Days on floodplain to 468 on thin soil. So a Cell that
-# was PAVED and then abandoned takes its ground back first and its trees back after -- roughly 700
-# Days end to end -- and that compound is the ratchet adr/0022 is protecting. At the reference tick
-# rate a Day is 2m08s, so 512 Days is about EIGHTEEN HOURS of play at 1x. ⚠ THE REAL-TIME READING IS
-# THE POINT, because adr/0022's subject is "what the last hours of a game feel like" and no in-world
-# figure answers that question.
-#
-# ⚠ OMITTING THE KEY MEANS FOREST NEVER RETURNS, which is what all fifteen shipped files said by
-# saying nothing, and it stays a legitimate world rather than a misconfiguration. A STATED ZERO IS
-# REFUSED, because a duration of zero Days means INSTANTLY and not never -- the two spellings would
-# mean opposite things, which is why this key refuses the value adr/0160's sea level refuses for the
-# opposite reason. The ceiling is 1,024, a Cell's Tile count: past it the derived step rounds to
-# nothing, a floor of one Tile takes over, and the authored duration would silently not be the
-# duration.
-#
-# 🔴 UNRATIFIED, ONE plans/0002 §D1 ROW, and its ratifier is milestone 24's long run -- total Woodland
-# against total Sealing over 100k+ Ticks. ⚠ REFUTING IN BOTH DIRECTIONS: regrowth so fast that
-# clearing costs nothing deletes adr/0022's arc, which is the failure that ADR names; so slow that a
-# cleared map never recovers is a one-way ratchet, which is adr/0006's concern wearing the other sign.
 woodland_regrowth_days = 512
 
 [roads]
@@ -347,60 +219,6 @@ candidates    = 3
 shift_hours_min = 6
 shift_hours_max = 10
 arrive_early_max_minutes = 15
-# ---------------------------------------------------------------------------------------------------
-# THE ONE THING THIS FILE ADDS. Five tables, one per adr/0158 terrain type, each pricing the ground
-# before anything is built on it. `base_fertility_percent` is a percentage of FULLY fertile, authored
-# as a whole number because adr/0048 refuses an unquoted decimal anywhere on the path into the
-# simulation, and converted to Q16.16 at load.
-#
-# ⚠ ALL FIVE ARE REQUIRED. See the header: the generator places every type whatever this says, so a
-# missing one is ground the world contains and this file values at nothing.
-#
-# 🔴 ALL FIVE ARE UNRATIFIED, share ONE plans/0002 §D1 row, and the ratifier is the first farm.
-#
-# ---------------------------------------------------------------------------------------------------
-# `sealing_decay_tau` IS THE SECOND KEY, AND MILESTONE 24 TASK 4 MOVED IT HERE FROM [layers]. It is
-# how long ground of this type takes to heal after it is built on and then left. It USED to be one
-# global number in [layers], pinned at 0 in every shipped file, because 02 §2.4 keys the rate BY
-# TERRAIN TYPE and there was no terrain to key it by. There is terrain now, so the key sits beside
-# the type it is keyed by, and [layers] refuses it.
-#
-# ⚠ IT IS A COUNT OF SCHEDULED UPDATES, AND SEALING'S CADENCE IS A DAY, so it is a count of DAYS.
-# That is the only reason the number below is readable against CONTEXT.md -> Sealing's stated intent,
-# which is written in Days: "floodplain may recover over hundreds of Days". A tau counted in some
-# other unit would be a number nobody could check against that sentence without converting first.
-#
-# ⚠ A TAU IS NOT A RECOVERY TIME, AND THE TWO ARE NOT EVEN IN A FIXED RATIO. The decay is exponential
-# with a floor of one Tile, so a fully-sealed Cell -- 1,024 Tiles -- empties in roughly
-# `tau * ln(2 * 1024 / tau) + tau/2` Days, which is a TAU-DEPENDENT multiple: 4.1x at 48 and 2.9x at
-# 160. MEASURED, by SealingRecoveryMeasurementTests, from a Cell sealed to all 1,024 Tiles:
-#
-#     ordinary    tau  96   ->  329 Days to bare ground   (half gone at  66)
-#     rock        tau   0   ->  never                     (      -        )
-#     floodplain  tau  48   ->  197 Days                  (half gone at  33)
-#     marsh       tau  64   ->  244 Days                  (half gone at  44)
-#     thin_soil   tau 160   ->  468 Days                  (half gone at 112)
-#
-# QUOTE THE DAYS, NEVER THE TAU. ⚠ The first draft of this block carried a flat 7.4x derived on paper
-# and the instrument refuted it on its first run -- and floodplain's tau went 32 -> 48 in the same
-# edit, because 143 Days is not "hundreds of Days". A multiplier derived rather than measured is a
-# caveat that travels wrong, which is the exact failure the caveat is about (plans/0012 Cause 5).
-#
-# ⚠ THE FLOOR OF ONE TILE IS A FIX AND NOT A ROUNDING CHOICE. Plain integer exponential decay STALLS:
-# the decrement rounds to zero once the value falls below tau/2, so ground would settle at a permanent
-# residue -- measured at 3 Tiles for tau 8, 299 for tau 600 -- and a tau above 2,048 would never move
-# a full Cell at all. An endpoint stated in Days cannot be delivered by a curve that never arrives.
-# MapLayers.DecaySealing carries the argument and LayerFieldsTests watches both ends of it.
-#
-# `rock = 0` MEANS NEVER, and it is the one value here that is stated rather than chosen:
-# CONTEXT.md -> Sealing says rock may never recover. Zero is reached by a type SAYING zero, not by a
-# default, so a file that omits the key is refused rather than quietly meaning never.
-#
-# 🔴 THE OTHER FOUR ARE UNRATIFIED AND SHARE ONE plans/0002 §D1 ROW. Only floodplain's is anchored on
-# anything -- the "hundreds of Days" sentence -- and the remaining three are ORDERED against it rather
-# than derived: marsh drains slower than floodplain, ordinary slower again, thin soil slowest of the
-# four because there is least soil to come back. ⚠ THE ORDER IS AN ARGUMENT AND THE SPACING IS NOT.
-# Nothing says thin soil should be six times floodplain rather than three.
 
 [[terrain]]
 name = "ordinary"

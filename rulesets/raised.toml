@@ -102,27 +102,8 @@ revisit_ticks = 2048
 interval      = 32
 revisit_ticks = 1024
 candidates    = 3
-# ADDITION 3 OF 3 -- THE SINK, and the loader refuses this file without it. See the header: [founding]
-# is an inflow into the unpremised pool and nothing tenants a Business yet, so a bound is what keeps
-# adr/0006 satisfied. It is [placement]'s key because adr/0144 has a Business SHARE the Household's
-# bound as a declared stand-in rather than author a second one nothing can ratify.
 gives_up_after_days = 30
-# ADDITION 1 OF 3 -- THE TRADES. adr/0141's own example, and the same two tenanted.toml names. Two
-# rather than one because a single trade could not show that the choice is drawn at all.
-#
-# BOTH EMPLOY SOMEBODY AND THE LOADER REFUSES THIS FILE OTHERWISE. adr/0146: a founder becomes their
-# Business's first worker, which is the whole of the labour cost milestone 27 ships -- so a trade
-# nobody can work at is a trade nobody can found. The trade is drawn UNIFORMLY, so it is every
-# declared one rather than at least one.
-#
-# THE NUMBERS ARE THE DWELLING'S OWN AND ARE NOT A SECOND CLAIM. Eight is what `shop` above declares,
-# derived from the row ratios; the band 6-10 is the same ordinary spread of opening times. A founded
-# shop that employed a DIFFERENT number from the shop a dwelling comes with would be asserting
-# something about scale that nothing in this file measures.
-#
-# ⚠ THREE IS DELIBERATE ON `barber` and it is the one number here that is not a copy: a trade the city
-# founds and a trade the city is built out of do not have to be the same size, and a file in which
-# every trade employs eight could not show that the ceiling is read per trade at all.
+
 [[business]]
 name                      = "bakery"
 jobs                      = 8
@@ -134,9 +115,7 @@ name                      = "barber"
 jobs                      = 3
 shift_start_earliest_hour = 9
 shift_start_latest_hour   = 9
-# ADDITION 2 OF 3 -- THE CHANNEL. adr/0145 and its amendment. There is no demand key here and that
-# absence IS the decision: a Household founds on its own MEANS and never on the city's NEED, so
-# nothing in this table reads shop count, vacancy or anything unsold.
+
 [founding]
 founding_band    = 400
 reconsider_ticks = 8192
@@ -183,29 +162,11 @@ candidates    = 3
 shift_hours_min = 6
 shift_hours_max = 10
 arrive_early_max_minutes = 15
-# ===========================================================================================
-# ADDITION 1 OF 3 -- the money in the city. Nothing above this line moved.
 
 [households]
-# NOBODY DRIVES, which is minimal.toml's own state said out loud rather than by omission. The table
-# has to exist to carry the two keys below and car_ownership_percent is required inside it, so 0 is
-# the value that leaves this file behaving exactly as minimal.toml does. adr/0098: 0 is a legitimate
-# city -- one before the motor car -- and is not a placeholder.
 car_ownership_percent = 0
-# WHAT A HOUSEHOLD IS FOUNDED WITH, drawn uniformly per Household at creation and issued through
-# World.Endow. See the header for why this is fixture content rather than adr/0116's deferred
-# founding balance, and why it is a band.
-#
-# THE FLOOR IS ZERO ON PURPOSE. A Household that opens with nothing is a Household the levy takes
-# nothing from and the rebate lifts, which is the first thing worth watching in this circuit -- and
-# it is what makes `floored to zero` read non-zero on the first sweep instead of being a counter
-# nobody has ever seen fire.
 opening_balance_min = 0
 opening_balance_max = 1000
-# ===========================================================================================
-# ADDITION 2 OF 3 -- the levy. DECLARED FIRST, and the order is load-bearing: a Policy acts where it
-# runs (there is no proposal and no settle), so the levy declared above the rebate funds it on the
-# same trigger. The same pair in the other order pays out of last Day's remainder.
 
 [[policy]]
 name = "household_levy"
@@ -213,13 +174,6 @@ sweeps = "household"
 interval = 2048
 apply = { derived = "balance", percent = 10 }
 transfer = { from = "local", to = "global", resource = "money", amount = 1 }
-# ===========================================================================================
-# ADDITION 3 OF 3 -- the rebate. A FLAT amount, which CONTEXT -> Policy prefers against because a
-# flat amount goes stale as the economy grows. It is flat here anyway and the reason is that the
-# alternative is worse: a percentage paid OUT of a balance pays the rich most, which is a mechanic
-# nobody would author. What CONTEXT actually asks for -- a percentage of gross income below a line --
-# needs an income (milestone 15) and a poverty line (a hash-bearing number with no ratifier), and
-# adr/0070 says the answer to an unbuilt mechanism is to build it rather than to approximate it.
 
 [[policy]]
 name = "household_rebate"
@@ -227,22 +181,7 @@ sweeps = "household"
 interval = 2048
 apply = { min = 100, max = 100 }
 transfer = { from = "global", to = "local", resource = "money", amount = 1 }
-# THE FERTILITY DECISION, and the band is the whole of it. adr/0011: "Decision: how many children,
-# possibly zero. Zero sends the Household to Childless; otherwise to Family."
-#
-# 0..3 STRADDLES REPLACEMENT ON PURPOSE. Two children per Household is EXACT Citizen replacement --
-# two adults replaced by two -- and adr/0011 is emphatic that the threshold "falls out of
-# conservation rather than being chosen". A band whose whole range sat above or below 2 would make
-# the outcome a restatement of this file; one straddling it makes Replacement Rate a reading of the
-# city. The mean of 0..3 is 1.5, so THIS WORLD IS BELOW REPLACEMENT BY CONSTRUCTION and the
-# population declines. That is a property of the band and not a finding about cities.
-#
-# 🔴 THE DRAW IS UNCONDITIONED. adr/0011 conditions fertility on housing cost, dwelling size and job
-# security, and the discrete-choice machinery all three would read is UNBUILT -- adr/0070, which
-# says that is a mechanism nobody has written rather than evidence about what fertility should be.
-# So do not read a number out of a run of this file as a statement about affordability.
-#
-# UNRATIFIED, chosen by taste, no plans/0002 §D row. plans/0045 suspends adr/0052 to allow that.
+
 [[life_stage]]
 name          = "young"
 duration_days = 24
@@ -251,17 +190,6 @@ next          = "family"
 childless     = "childless"
 children_min  = 0
 children_max  = 3
-# The age an adult carries, in Days, drawn on formation and NEVER ADVANCED -- adr/0011, and adr/0010
-# is why: real ageing is arithmetically impossible under one clock. It is stated HERE because this is
-# the stage children become adults in, and the loader refuses a children_become target without it.
-#
-# ⚠ 1..160 IS THE LENGTH OF A LIFE IN THIS FILE and not a human age. A full chain is ~160 Days at the
-# floor, so the band spans one lifetime -- which is the only scale this world has. There is no
-# calendar and CONTEXT.md bans inventing one, so a number that looked like human years would be a
-# unit this project does not have.
-#
-# ⚠ ZERO IS NOT IN THE BAND and cannot be: zero is what a CHILD carries, and it is the only marker of
-# childhood there is. plans/0046 stage 4 is the gate that reads it.
 adult_age_min_days = 1
 adult_age_max_days = 160
 
@@ -270,25 +198,19 @@ name          = "family"
 duration_days = 48
 spread_days   = 16
 next          = "mature_family"
-# adr/0011: "On exit the children become adults and form new Young Households, entering the Unplaced
-# Pool." That is stage 3 and it is why THIS row is the one to watch when generation lands -- under
-# stage 1 its exit is an ordinary scheduled transition and spawns nobody.
+
 [[life_stage]]
 name           = "mature_family"
 duration_days  = 48
 spread_days    = 16
 next           = "empty_nest"
 children_become = "young"
-# Adults who never had children. REACHABLE AS OF STAGE 3, and it is `young`'s zero draw that reaches
-# it. Under stages 1 and 2 nothing routed into it at all, because the only
-# thing that would is the fertility decision. Terminal, like empty_nest, and kept separate from it
-# because they are different diagnoses -- see the header.
+
 [[life_stage]]
 name          = "childless"
 duration_days = 40
 spread_days   = 16
-# Adults whose children have left. Terminal under stage 1, which is why a long run of this file ends
-# with the whole city here. Dissolution is stage 2.
+
 [[life_stage]]
 name          = "empty_nest"
 duration_days = 40

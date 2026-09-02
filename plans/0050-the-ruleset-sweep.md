@@ -311,6 +311,42 @@ unchanged"* — changes six other lines, three of them about the dwelling itself
 a second copy that drifts.*** They were the only two that said it, and they were the two that were
 wrong. Corrected in place.
 
+### 🔴 A second pass, because the first one stopped at the wrong layer
+
+**Run 2026-09-01 on the user's reading of the result: *"the explanations in rulesets are kind of
+ridiculous, i will not lie to you."* They were, and the first pass had not touched why.**
+
+⚠ **What the first pass removed was DUPLICATION ACROSS FILES** — the same paragraph pasted into 24
+places. What it left was a different defect and a larger one: **7,329 comment lines against 4,016
+lines of TOML**, `minimal.toml` alone at **760 against 95**, and **1,159 of those lines carrying an
+`adr/` or `docs/` citation**. ***A paragraph that cites a record is usually re-arguing it***, and a
+Ruleset is the last place that argument should live. A good part of the rest was not argument at
+all but **changelog** — twenty-five lines in `minimal.toml` on why a quantity was multiplied by four
+on 2026-08-13, which is a commit message, and the commit exists.
+
+**The rule, chosen by the user: headers stay, inline commentary goes, one-liners only where the key
+is genuinely non-obvious.** All **228** inline comment blocks deleted across 30 files; **six**
+one-line notes added back, in `minimal.toml` only, because the other 29 headers already say what
+their file changes.
+
+| | before the sweep | after pass 1 | after pass 2 |
+|---|---|---|---|
+| lines | 25,201 | 11,345 | **8,019** |
+| comment lines | 20,630 | 7,329 | **3,922** |
+| comment words | 300,167 | 103,283 | **50,456** |
+
+✅ **Proved comment-only by the same two instruments, a second time.** The schema regenerated from
+the stripped folder is **byte-identical**; the golden traces regenerate with **all 64 State Hash
+samples unchanged** and only the three `ruleset` content-hash header lines moving.
+
+⚠ **What is left is now HEADERS, and the outliers are the same defect one level up.** 3,971 header
+lines against 3,473 of TOML, and the distribution is wide: `levied.toml` **367** header lines to
+127 of TOML, `founded.toml` **286** to 121 — against `crowded.toml`'s **40** to 117 and
+`raised.toml`'s **42** to 150. ***The lean files are lean because they were written after the
+convention changed, not because anybody cut them***, which is the first pass's finding arriving
+again in the one place it did not reach. **Not acted on**: the user's instruction was *headers
+mainly*, and a header is the thing this corpus decided a demonstration Ruleset must carry.
+
 ### What the collapse did NOT do
 
 ⚠ **`provisioned.toml`, `oversupplied.toml` and `waged.toml` lost 25 lines each and keep ~670.** Their

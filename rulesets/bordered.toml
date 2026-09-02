@@ -122,19 +122,7 @@ family = "good"
 [[resource]]
 name = "money"
 family = "money"
-# `owner = "occupant"` is adr/0141's line -- the larder goes with the family, the roof does not -- so
-# `sundries` is one Bin per Household and `repairs` is one per Building. The premises still declare
-# the ceiling. minimal.toml's dwelling carries the argument and what it changes about the city.
-# ---------------------------------------------------------------------------------------------------
-# THE TRADE. adr/0141 gave `jobs`, the Shift band and the wage to the BUSINESS rather than to the
-# premises; adr/0148 removed the first two from [[building]] rather than leaving them parsed and
-# unread. THE WAGE IS NOT HERE: that is adr/0026 at milestone 15, and a `wage` key is refused until
-# there is something to pay it out of.
-#
-# THE COMMENTS BELOW ARE THE ONES THAT STOOD ON [[building]], moved verbatim with their numbers. Read
-# them as a property of the TRADE now -- "a Building of this kind" has become "a Business of this
-# trade", and the derivations are untouched because the arithmetic did not move.
-# ---------------------------------------------------------------------------------------------------
+
 [[business]]
 name = "shop"
 jobs = 8
@@ -210,16 +198,6 @@ revisit_ticks = 2048
 interval      = 32
 revisit_ticks = 1024
 candidates    = 3
-# How long a Household keeps looking before it gives up and leaves (adr/0130). REQUIRED HERE and
-# absent from the other nine shipped files, and the difference is the gate: this is the only one
-# with a door into the Unplaced Pool, and a Pool with an inflow and no sink grows without bound,
-# which adr/0006 forbids. The loader refuses a Ruleset that declares arrivals_per_day without it.
-#
-# 120 Days is four months, which is 00-vision.md's own flagship Evidence line -- "Considered 20
-# dwellings over 4 months" -- read as a Household at exactly this bound on the day it left.
-# ⚠ UNRATIFIED: plans/0002 §D1 names what would settle it. It is a DURATION and not a count of
-# tries: the count falls out of revisit_ticks, so retuning the cadence above changes how many
-# homes a family is shown and NOT how long they wait.
 gives_up_after_days = 120
 
 [layers]

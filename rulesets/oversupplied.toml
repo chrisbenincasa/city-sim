@@ -152,36 +152,13 @@ family = "good"
 [[resource]]
 name = "money"
 family = "money"
-# `owner = "occupant"` is adr/0141's line -- the larder goes with the family, the roof does not -- so
-# `sundries` is one Bin per Household and `repairs` is one per Building. The premises still declare
-# the ceiling. minimal.toml's dwelling carries the argument and what it changes about the city.
-# ---------------------------------------------------------------------------------------------------
-# THE TRADE. adr/0141 gave `jobs`, the Shift band and the wage to the BUSINESS rather than to the
-# premises; adr/0148 removed the first two from [[building]] rather than leaving them parsed and
-# unread. THE WAGE IS NOT HERE: that is adr/0026 at milestone 15, and a `wage` key is refused until
-# there is something to pay it out of.
-#
-# THE COMMENTS BELOW ARE THE ONES THAT STOOD ON [[building]], moved verbatim with their numbers. Read
-# them as a property of the TRADE now -- "a Building of this kind" has become "a Business of this
-# trade", and the derivations are untouched because the arithmetic did not move.
-# ---------------------------------------------------------------------------------------------------
+
 [[business]]
 name = "shop"
 jobs = 8
 shift_start_earliest_hour = 6
 shift_start_latest_hour   = 10
-# ---------------------------------------------------------------------------------------------------
-# THE PROVIDER'S TRADE. Milestone 26 task 3, and it is a SECOND trade rather than a second use of
-# `shop` above, because that one comes with a dwelling (adr/0148) and is a shopkeeper living over the
-# premises. This one occupies a premises of its own and nobody lives there.
-#
-# ⚠ `jobs` IS 3 AND NOT 8, and it is derived rather than chosen the same way the dwelling's is: a
-# shopfront holds one tenant, that tenant is this Business, and a corner grocer is not an eight-person
-# workplace. It counts CITIZENS and never Households (adr/0141).
-#
-# THE WAGE IS NOT HERE, on twinned.toml's own reason: that is adr/0026 at milestone 15, and a `wage`
-# key is refused until there is something to pay it out of.
-# ---------------------------------------------------------------------------------------------------
+
 [[business]]
 name = "grocer"
 jobs = 3
@@ -190,29 +167,6 @@ shift_start_latest_hour   = 10
 
 [[building]]
 name = "dwelling"
-# 🔴 MIGRATED FROM `condemn_after = 4` BY MILESTONE 17 (adr/0168), AND UNLIKE THE `shopfront` KIND
-# BELOW ***THE QUANTITY DID NOT SURVIVE***. That key had no header defending it here: it stood at 4
-# in all eighteen shipped files and no author ever set it, which is adr/0164's `would a designer ever
-# set this?` answered by the tree. What it BOUGHT was invisible and differed per verdict --
-#
-#   premises, via `upkeep` at rate 16:  4 x 16 =  64 Ticks  (45 in-world minutes)
-#   tenant,   via `restock` at rate  8:  4 x  8 =  32 Ticks  (22 in-world minutes)
-#
-# -- and a Day is 2,048 Ticks, so NEITHER IS EXPRESSIBLE ANY MORE. That is the unit doing its job
-# rather than an obstacle: adr/0168 chose the Day precisely so that forty-five minutes is unwritable.
-#
-# 🔴 ⚠ THE 32-TICK TENANT CLOCK WAS EVICTING HOUSEHOLDS BEFORE THE MARKET COULD EXIST. `restock`
-# buys from a District Pool, and no District exists until `[districts] revisit_ticks` = 2048 -- so
-# every Household in this file starved by construction for the first 2,048 Ticks and was turned out
-# after 32 of them. ***That is the same rope the `shopfront` kind is given deliberately, and the
-# dwelling was never given it.*** The value below is the first authorable duration that reaches past
-# the watershed, which is the shopfront header's own reasoning applied to the other kind.
-#
-# 🔴 THE THREE NUMBERS BELOW ARE UNRATIFIED and are recorded in plans/0002 §D1. They are the FLOOR of
-# the unit rather than a chosen quantity -- the honest migration of a value that was smaller than the
-# unit permits -- and a floor is not an argument. ⚠ Do not read the condemnation count of a run of
-# this file as a claim about decline: `upkeep` draws `repairs`, nothing on this file produces any, so
-# every dwelling is condemned with probability 1 and the threshold sets only the cycle time.
 condemn_after_days      = 1
 tenancy_ends_after_days = 1
 collapses_after_days    = 1
@@ -223,31 +177,7 @@ bins = [
 occupants = 4
 business = "shop"
 parking = 8
-# ---------------------------------------------------------------------------------------------------
-# THE PROVIDER'S PREMISES. Milestone 26 task 3.
-#
-# ⚠ ITS SUNDRIES BIN IS `owner = "business"`, AND THAT KEY IS WHAT MAKES THIS A SELLER. adr/0141's
-# line is that a tenant owns what leaves with it and the premises own the capacity -- so the stock
-# belongs to the Business and goes with it when the tenancy ends, while the shelf space is a property
-# of the building. Task 1 of this milestone added the third BinTenancy for it (adr/0166).
-#
-# ⚠ `occupants = 1` BECAUSE THE ONLY TENANT IS THE BUSINESS. One ceiling counts both kinds of tenant
-# (adr/0147), and the Business instantiated with this kind takes the single slot -- so a Household can
-# never be placed here, and PlacementEngine never looks: adr/0165's split puts this kind on the trade
-# bit and Space.ZonedLots keeps a house-hunter's draw on land that admits a dwelling.
-#
-# ⚠ NO `condemn_after`, AND ITS ABSENCE IS THE SAME POINT ITS PRESENCE USED TO MAKE. See the header:
-# an unsold Bin stops on Blocking.Space and the pressure clock is cleared for every reason but
-# Supply, so a shop nobody buys from is immortal whether or not the key is stated. It was declared
-# here until milestone 17 "so the mechanism has somewhere to land"; adr/0164 is why it is not --
-# a key nothing can reach is a key no designer can have an opinion about. It returns at task 7 with
-# the money-consuming Rule that can fail, at a value chosen for a trade.
-#
-# ⚠ NO `parking` KEY, and that is an omission with a reason rather than a default: a Car Park is
-# supply at a Building (adr/0120), a shopper is not a mechanism this build has, and the only trips
-# that exist are commutes. Declaring shed capacity for customers nobody simulates would be a number
-# with no consumer.
-# ---------------------------------------------------------------------------------------------------
+
 [[building]]
 name = "shopfront"
 bins = [
@@ -255,37 +185,10 @@ bins = [
     { resource = "repairs",  capacity = 4 },
     { resource = "money",    owner = "business" },
 ]
-# THE ROPE, MIGRATED FROM `condemn_after = 4` BY MILESTONE 17 (adr/0168), AND THE QUANTITY SURVIVED
-# THE UNIT CHANGE. `rates` fires every 1,024 Ticks, so four missed firings was 4,096 Ticks and 4,096
-# Ticks is two Days. The number below buys the same rope the `rates` header reasons for; only the
-# spelling moved. Read that header -- grep `THE SLACK IS` -- for what the rope is FOR.
-#
-# ⚠ IT IS THE **TENANCY** THRESHOLD AND NOT THE PREMISES ONE, which is the half adr/0168 exists to
-# separate. `rates` consumes `local money`, a balance belongs to a Business and never to a Building
-# (adr/0113), so RulesetLoader.ApplyTenancies derives the SHOP as the payer: it is the shop that runs
-# out of rope, and what ends is its tenancy. The premises stand and placement re-lets them.
-#
-# ⚠ NO `condemn_after_days` ON THIS KIND, and its absence is a reading rather than an omission. The
-# only other Rule here is `stock`, which has no inputs and therefore cannot fail on supply -- it can
-# block on `Space` alone, and RuleEngine.Stop CLEARS the pressure clock on every reason but supply.
-# ***A premises threshold on this kind would arm on nothing.***
 tenancy_ends_after_days = 2
 occupants = 1
 business = "grocer"
-# ---------------------------------------------------------------------------------------------------
-# 🔴 THE ONE EDIT, AND IT IS THE WHOLE MILESTONE. On every other shipped file `restock` is
-# `inputs = []` -- four sundries a firing, drawn from nothing. Here the larder is filled by BUYING,
-# and `pool` is the term that crosses an ownership boundary: the Good moves one way and money the
-# other at the prevailing price, settled atomically with the Rule (adr/0050).
-#
-# ⚠ THIS LINE IS WHY THE FILE DOES NOT RUN. RuleEngine.Bin throws on Scope.Pool. Everything else here
-# would step today.
-#
-# ⚠ AND IT IS ALSO THE DEMAND SIGNAL, WHICH COSTS NOTHING BECAUSE THE PURCHASE CREATES IT
-# (plans/0043 W15). A Household with no reachable seller fails this Rule and STARVES -- and starvation
-# is already a Blocking reason, a wait list and a StarvedSince clock. adr/0163's tier 1 reads elapsed
-# unserved need off those rows. No new record, no new column, no new mechanism.
-# ---------------------------------------------------------------------------------------------------
+
 [[rule]]
 name    = "restock"
 kind    = "dwelling"
@@ -309,18 +212,7 @@ rate    = 16
 apply   = { min = 1, max = 1 }
 inputs  = [ { scope = "local", resource = "repairs", amount = 4 } ]
 outputs = []
-# ---------------------------------------------------------------------------------------------------
-# WHAT FILLS THE SELLER'S OWN BIN. `inputs = []` for the header's reason: nothing in this build
-# produces sundries, so a shop that bought them would starve on a Pool nobody supplies. This is a
-# retailer importing from off-map, which is what the Hinterland prices are the ceiling for.
-#
-# ⚠ IT OUTPUTS `local` AND NOT `pool`, and that is adr/0139 rather than an oversight -- a Pool is a
-# market and not a store, so stock stays with the seller and a buyer's `pool` term comes to find it.
-#
-# ⚠ ITS TENANCY IS DERIVED AND NOT DECLARED. The Bin it names is `owner = "business"`, so
-# RuleDefinition.Tenancy resolves to Business and this Rule Instance lives exactly as long as the
-# grocer's tenancy (adr/0166). There is no `[[rule]]` key for it and adr/0141 is unamended.
-# ---------------------------------------------------------------------------------------------------
+
 [[rule]]
 name    = "stock"
 kind    = "shopfront"
@@ -328,71 +220,7 @@ rate    = 8
 apply   = { min = 1, max = 4 }
 inputs  = []
 outputs = [ { scope = "local", resource = "sundries", amount = 8 } ]
-# ---------------------------------------------------------------------------------------------------
-# 🔴 THE DECLINE HALF, AND IT IS A RECURRING COST RATHER THAN A FAILURE TO SELL.
-#
-# ⚠ A SHOP NOBODY BUYS FROM IS IMMORTAL, and that is why this Rule exists. Unsold stock fills the
-# `sundries` Bin, so `stock` stops on `Blocking.Space` -- and `RuleEngine.Stop` CLEARS the failure
-# pressure clock for every blocking reason that is not `Blocking.Supply`, deliberately, because a full
-# Bin is what a well-supplied Building with nobody to sell to looks like. So a trade cannot be made to
-# churn by failing to SELL; it must go short of something it CONSUMES (adr/0163, corrected the day it
-# was written; adr/0166).
-#
-# ⚠ IT IS TWO TERMS AND NOT ONE, and that is adr/0024 rather than a style. Money is conserved -- never
-# created or destroyed inside the city -- so a local money input with no counterparty is REFUSED at
-# load by RulesetLoader's refusal 4 -- *"a cost paid to nobody is a leak, not a cost"*, which is the
-# loader's own message and not a sentence in adr/0024. The counterparty here is the treasury, which
-# makes this a LEVY on a trade and not rent to a landlord: nothing in this build owns premises, and
-# writing rent would name an actor that does not exist (adr/0070 -- classify it, and this one is
-# `unbuilt`). ⚠ Cost of goods to a supplier is the SUCCESSOR and is named in adr/0169 with its
-# trigger; it is not written here because nothing sells to a grocer.
-#
-# ⚠ THE MONEY BIN ON THE KIND ABOVE IS WHAT ROUTES THIS RULE TO THE BUSINESS. `ApplyTenancies` reads a
-# Rule's local terms against the kind's declared Bins to decide whose Rule it is, so without that line
-# the only local term is `money`, no declaration matches, and the subject defaults to the PREMISES --
-# which holds no money (adr/0113) and would throw. ⚠ It does NOT open a second balance:
-# `World.FitBusiness` guards with `FindOwnerBin(...).IsNone`, so it finds the one `World.OpenBalance`
-# already made.
-#
-# 🔴 BOTH NUMBERS ARE UNRATIFIED and plans/0002 §D1 holds them.
-#
-# ⚠ `rate = 1024` IS HALF A DAY BECAUSE A DAY IS NOT EXPRESSIBLE. A rate is a reschedule interval and
-# the loader refuses anything at or beyond `WHEEL_SIZE`, which is 2048 -- a rate of exactly one Day
-# would re-arm into the Event Wheel bucket it just came off. So *a daily levy* cannot be written, and
-# the nearest thing that can is twice a day at half the money. ***The burden is the Day's and the
-# period is the wheel's***, which is worth knowing before reading either digit as a design intent.
-#
-# ⚠ `amount` IS A SHARE OF A MEASURED REVENUE AND NOT A GUESS, and the measurement is the point.
-# Twenty shopfronts on this file at 2,000 Citizens earn between **5.2 and 62.6 money a Tick**, median
-# ~32 -- a **19x spread**, and that spread is LOCATION: a shop with hungry Households in reach sells
-# and one without does not. 8,192 twice a Day is ~25% of the median, which fails the weakest **2 of
-# 20** and leaves the rest trading. ***So bankruptcy here is a TAIL event rather than the normal
-# outcome***, which is what makes it worth distinguishing from starvation at all.
-#
-# 🔴 THE FIRST VALUE WRITTEN HERE WAS 2,048 AND NOTHING EVER FAILED. At ~6% of revenue the levy was
-# unfailable, so the mechanism was present, correct and **unobservable** -- the exact shape this
-# corpus keeps filing, a producer shipped without a consequence. ⚠ A trade whose total recurring cost
-# is 6% of its takings is not a trade. ***The number was not too small for the test; it was wrong
-# about the world.***
-#
-# ⚠ Read the sentence rather than the digits: what is claimed is a *share of a measured median*, and
-# that median moves the moment anything else about this file does -- the stride, the arrival rate, the
-# import ceiling or the number of shopfronts.
-#
-# ⚠ THE SLACK IS `tenancy_ends_after_days = 2` ON THE `shopfront` KIND, and it is doing real work here. A shopfront opens at a ZERO
-# balance (adr/0148 instantiates the kind's trade; nothing founds on this file), and it cannot sell
-# until a District exists at `[districts] revisit_ticks` = 2048. So its first levies fail by
-# construction. ***Two Days is 4,096 Ticks of rope, which reaches past the watershed*** -- and
-# adr/0053's recovery is TOTAL, so the first successful levy clears the clock outright.
-#
-# ⚠ THIS PARAGRAPH READ `THE SLACK IS condemn_after = 4` AND ITS SUM WAS `four missed firings at 1024
-# is 4,096 Ticks`. Milestone 17 re-authored the threshold as a duration (adr/0168) and the QUANTITY IS
-# UNCHANGED -- 4 x 1024 = 4,096 = two Days -- but the DERIVATION is not, and restating the key without
-# restating the sum would have left a header reasoning from a rate the number no longer depends on.
-# ***The rope is now stated directly, so retuning `rate` below cannot silently move it*** -- which is
-# adr/0059 and adr/0130's `author the duration, derive the count`, and the whole reason this key
-# changed.
-# ---------------------------------------------------------------------------------------------------
+
 [[rule]]
 name    = "rates"
 kind    = "shopfront"
@@ -407,23 +235,7 @@ kind          = "dwelling"
 zone          = 0
 interval      = 32
 revisit_ticks = 2048
-# ---------------------------------------------------------------------------------------------------
-# THE SECOND ZONE RULE, AND `zone = 1` IS THE TRADE BIT. adr/0165 makes a Zone a permission set over
-# Building kinds and paints bit 1 on one block in TradeBlockStride; ZoneRuleDefinition.Admits is
-# `1 << zone`, so this rule looks only at land permitted to a trade and the housing rule above looks
-# only at land permitted to a dwelling. ***The split is exclusive, so the two never contend for a
-# Lot.***
-#
-# 🔴 ⚠ IT IS RAISED BY DEMAND FOR HOUSING, WHICH IS THE WRONG SIGNAL, AND THE HEADER SAYS SO AT
-# LENGTH. ZoneRuleEngine.Create builds while the Unplaced Pool is non-empty; that is tier 0 and the
-# only demand signal that exists. Task 6 replaces it FOR THIS RULE ONLY with adr/0163's elapsed
-# unserved need in reach, and the housing rule stays tier 0.
-#
-# ⚠ THE CADENCE IS THE HOUSING RULE'S, COPIED, AND THAT IS A PLACEHOLDER RATHER THAN A CHOICE. Nothing
-# has measured what interval a trade should be evaluated at, and authoring a different number here
-# would be a second unratified hash-bearing number chosen against no consumer (adr/0052). It moves
-# when task 6 gives it a signal worth pacing.
-# ---------------------------------------------------------------------------------------------------
+
 [[zone_rule]]
 name          = "trade"
 kind          = "shopfront"
@@ -482,43 +294,7 @@ candidates    = 3
 shift_hours_min = 6
 shift_hours_max = 10
 arrive_early_max_minutes = 15
-# ---------------------------------------------------------------------------------------------------
-# 🔴 THE BUYER'S MONEY. Milestone 26 task 4, and without it THIS FILE'S ONE POINT DOES NOT HAPPEN.
-#
-# A purchase moves the Good one way and money the other (adr/0050). Every Household in the build opens
-# an EMPTY money Bin -- World.OpenBalance, at Tick 0 -- and adr/0024 makes the Outside Connection
-# money's only source, so a Household is penniless for ever unless something issues it some. Nothing
-# in this file did: there is no wage (adr/0026, milestone 15), no gate to arrive through, and no
-# [[policy]] circuit. ***So on the day Scope.Pool resolved, every `restock` failed on the money leg at
-# Tick 0 and went on failing*** -- the shops filled, nobody bought, and the market this file exists to
-# demonstrate never traded once. Found by running it, not by reading it.
-#
-# `[households]` IS TAXED.TOML'S MECHANISM AND IT IS THE ONLY ISSUANCE IN THE BUILD.
-# Borough.Core.Entities.SyntheticCity reads the band and World.Endow issues it. Read taxed.toml's own
-# header for why that is fixture content rather than adr/0116's deferred founding balance.
-#
-# car_ownership_percent = 0 FOR TAXED.TOML'S REASON EXACTLY: the table has to exist to carry the two
-# keys below and this key is required inside it, so 0 is the value that leaves the rest of this file
-# behaving as it did. adr/0098: 0 is a city before the motor car, not a placeholder.
-#
-# ⚠ THE CEILING IS DERIVED AND THE FLOOR IS NOT. A Household here eats 4 sundries every 32 Ticks
-# (`consume` below), which is 256 a Day, and the import ceiling on sundries is 100 -- the min across
-# the two Hinterlands -- so ONE DAY'S SHOPPING AT THE CEILING PRICE IS 25,600. That is the ceiling.
-# It is chosen so that both halves of the demonstration are inside a run somebody will sit through:
-# a Household near the top shops for about a Day, and one near the bottom cannot buy a single batch.
-# ***A band larger than this would hide the second half; a band smaller would hide the first.***
-#
-# THE FLOOR IS ZERO ON PURPOSE, which is taxed.toml's line and its reason: a Household that opens with
-# nothing is the one this file most needs -- it is the Building that could not afford it, which
-# plans/0044 task 8 says is the clause that gets dropped and the only one showing the market having a
-# consequence.
-#
-# 🔴 BOTH NUMBERS ARE UNRATIFIED AND THIS FILE CANNOT RATIFY THEM YET, for the header's reason: what
-# would ratify a starting balance is a city with an INCOME, and there is no wage until milestone 15.
-# Until then this is a stock being spent down and never replaced, so ***a run of this file has an END
-# rather than a steady state***, and no number out of it is evidence about what a Household should
-# hold. plans/0002 §D1 carries a row apiece.
-# ---------------------------------------------------------------------------------------------------
+
 [households]
 car_ownership_percent = 0
 opening_balance_min = 0
@@ -531,60 +307,12 @@ origin_north_tiles = 0
 [[lattice]]
 origin_east_tiles  = 2048
 origin_north_tiles = 0
-# adr/0134's four keys, and NOT ONE OF THEM IS CONSULTED ON THIS WORLD. See the header: the field is
-# flat, so no peak ever dies at a saddle and no boundary is ever contested. Every value the loader
-# admits gives the same two Districts here. plans/0002 §D1 carries all three unratified rows and names
-# milestone 15 -- the first world with a density GRADIENT in it -- as what would ratify or refute them.
+
 [districts]
-# How far a concentration must stand above the saddle joining it to a taller one, as a percentage OF
-# ITS OWN HEIGHT, before it is a centre of its own. Relative and not a Building count, because an
-# absolute threshold would be tied without saying so to `[lots] lots_per_segment`. A midpoint of the
-# range the loader admits and nothing more.
 prominence_percent = 50
-# How often the extent is re-derived. ⚠ NOT A MAP LAYER CADENCE and must not be moved to `[layers]` by
-# resemblance -- adr/0044 owns that one, it is read in a different phase and it is about a different
-# field. 2,048 Ticks is ONE DAY, and it is chosen for the reason a Day is chosen anywhere here: it is
-# the shortest period over which a city's shape could plausibly have changed, and a boundary that
-# redrew faster than a person could notice would be a boundary nobody could be told about.
 revisit_ticks = 2048
-# How decisively the field must favour a new District before a Cell changes, as a percentage of the
-# level its own basin reaches it at. adr/0134: "a Cell changes District only when the field difference
-# clears a band, NEVER ON A TIE." 50 is the midpoint again.
 hysteresis_percent = 50
-# The most Cells that may change District in one re-evaluation. ⚠ IT BOUNDS HOW FAR THE BOUNDARY MOVES
-# AND NOT HOW MUCH WORK THE EVALUATION DOES -- a work bound would be a profiler's number, and sizing a
-# District from a profiler is what plans/0037 forbids by name. ⚠ 16 IS A GUESS WITH A RATIFIER AND NOT
-# A DERIVATION. At the cadence above it means a boundary may redraw at most sixteen Cells of ground a
-# Day -- each Cell being 32x32 Tiles, about 128 m a side -- which is slow enough that a player watching
-# one move could say what moved and why. Nothing measured it; milestone 15 is what would.
 migrate_cells = 16
-# ---------------------------------------------------------------------------------------------------
-# TWO HINTERLANDS, AND THEY EXIST TO PUT A CEILING UNDER THE POOL PRICE RATHER THAN A DOOR IN THE MAP.
-# Milestone 12 task 6, adr/0135. THIS FILE DECLARES NO GATE KIND, so nothing ever arrives through
-# either of these and no emigrant balance is ever drawn -- which is why both bands are ZERO. A
-# Hinterland whose emigrants arrive penniless is a real economy and not an unset field
-# (HinterlandDefinition.Endows); a Hinterland with nobody to send is a MARKET WITHOUT A DOOR, which is
-# what these two are and all they are.
-#
-# WHY A FILE WITH DISTRICTS MUST HAVE THEM AT ALL. A District opens a Pool per good, and the
-# Hinterland's price is the ONLY ceiling on what that Pool can charge -- CONTEXT.md makes the
-# Hinterland "the one authored anchor under every price in the design", and adr/0050 gives the reason:
-# "an emergent price needs an anchor or it can run away." An unpriced good is not merely unanchored,
-# it is FREE EVERYWHERE FOR EVER. The loader refuses that combination outright rather than letting it
-# load clean and misbehave in silence, which is adr/0048's own rule.
-#
-# TWO AND NOT FOUR, DELIBERATELY. The ceiling for a good is the MINIMUM price across every declared
-# Hinterland -- adr/0135 ships no haulage term at 12, so with carriage free every gate is equidistant
-# and a city buys at the cheapest. ONE Hinterland would make that minimum inert and the mechanism
-# undemonstrated, which is this file's own founding complaint about a watershed over one peak. Four
-# would be three-quarters decoration in a file with no gates. ⚠ THE TWO GOODS TAKE THEIR CEILING FROM
-# DIFFERENT EDGES, and that is chosen: sundries is cheapest north and repairs is cheapest east, so a
-# min() that silently returned the first table would be wrong on exactly one of them.
-#
-# 🔴 ALL FOUR PRICES ARE UNRATIFIED GUESSES AND NOTHING IN THIS CORPUS HAS EVER PRICED ANYTHING. They
-# are the first prices in the project. What they are chosen for is ORDER and SPREAD -- repairs costs
-# more than sundries, and the two edges differ by enough that the min is visibly selecting -- and not
-# for any claim about what a thing is worth. plans/0002 §D1 carries a row apiece.
 
 [[hinterland]]
 edge = "north"
@@ -603,37 +331,7 @@ prices = [
   { resource = "sundries", price = 120 },
   { resource = "repairs",  price = 200 },
 ]
-# ---------------------------------------------------------------------------------------------------
-# THE MARKET'S DAMPING, AND NEITHER KEY IS A PRICE. Milestone 12 task 6, adr/0135. A Pool price is
-# never authored: it opens at the import ceiling above and moves from there by a damped tâtonnement,
-# recomputed on a Ticks.PerDay boundary from the Pool's level against how much the District has
-# recently been drawing. 04 §4 asks for three properties -- damped, local, bounded. LOCAL is the Pool
-# being per-District and is not a number; BOUNDED is the ceiling above and is not a number either;
-# DAMPED is this table, and it is the only one of the three that needed keys.
-#
-# ⚠ OMITTING THIS TABLE IS A REAL CHOICE AND NOT AN OVERSIGHT: it means every trade clears at the
-# ceiling for ever, which is the city every other shipped Ruleset has. That is why adding this key
-# moves no other file's State Hash.
-#
-# 🔴 BOTH NUMBERS ARE UNRATIFIED AND THIS FILE CANNOT RATIFY EITHER. Nothing writes the consumption
-# bucket while Scope.Pool throws, so every rate here is zero, the recompute reads that as NO TRADES,
-# and every price sits at its ceiling from Tick 0 to the end of the run. THE MARKET IS BUILT, CORRECT
-# AND INERT ON THIS FILE -- milestone 9's land-value producer and task 5's Pool Bins in the same shape,
-# for the same reason. What would ratify them is task 8's Provider Ruleset, where a second `[[building]]`
-# kind sells into the Pool and a consumer draws out of it. plans/0002 §D1 carries a row each and names
-# milestone 12's own acceptance run.
+
 [market]
-# How much of the standing consumption rate survives one Day, as a percentage; the rest of the weight
-# goes to the Day just ended. ZERO IS ALLOWED and means no smoothing at all -- the rate is the Day's
-# own draw, which is a real and rather twitchy market. 100 is refused, because a rate that never takes
-# on a new Day stays at the zero it was created with for ever and the price is frozen while the file
-# appears to be damping it. 50 is the midpoint of the admitted range and nothing more, which is this
-# file's habit for a number with no measurement behind it.
 decay_percent = 50
-# The furthest a price may travel in one recompute, as a percentage of the import ceiling. At 10 a
-# price needs ten Days to cross its whole range, which is the property this number is chosen for: slow
-# enough that a player watching a price move could say what moved it. ⚠ IT IS WHAT STOPS 04 §4's
-# PREDICTED OSCILLATION FROM BEING A SQUARE WAVE -- "everyone piles into the profitable Good, it
-# crashes, everyone piles out" -- and whether 10 is enough damping for that is exactly what no world
-# yet built can say.
 move_cap_percent = 10

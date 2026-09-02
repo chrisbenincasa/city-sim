@@ -55,46 +55,15 @@
 # What is commented HERE is what this file changes and why.
 
 [needs]
-# How far a Need moves on one occasion, and how deep it may go. All five keys are REQUIRED of a file
-# that states this table, on [market]'s and [districts]' rule: a stated table states its keys.
-#
-# 🔴 A DEGRADE IS A RATE PER DAY; A RECOVER IS A STEP PER OCCASION. The first build charged both per
-# occasion, and a blocked Rule has exactly ONE -- RuleEngine.Stop sleeps it on the Bin until that Bin
-# changes -- so a dry afternoon and a dry month read the same depth. A shortage is a STATE and only a
-# duration measures it; a meal is an event. adr/0053 found this for the Building; this is it arriving
-# at the Household.
-#
-# ⚠ EVERY STEP IS POSITIVE AND THE DIRECTION IS THE MECHANISM'S. A degrade always falls and a recover
-# always rises, so a sign here would be a second, contradictable spelling of what the code already
-# knows. The loader refuses zero and negatives and says why.
-#
-# 🔴 SUSTENANCE FALLS FASTER THAN IT CLIMBS, AND THAT ASYMMETRY IS THE ONLY DELIBERATE SHAPE IN THIS
-# TABLE. 04 section 1: "Food fails fast and hard. A daily Need, and unmet Sustenance degrades a
-# Household quickly. This is the chain that produces crises." Four a Day down against one a meal up.
-# The 4:1 is chosen by taste and ratifies nothing.
 sustenance_degrade = 4
 sustenance_recover = 1
-# And Satisfaction the other way about -- "Consumer Goods fail slowly and softly. Unmet Satisfaction
-# erodes over Days and eventually produces a housed Departure. This is the chain that produces
-# decline." Slower to lose and no harder to regain. ⚠ NOTHING IN THIS FILE FEEDS IT; see the header.
 satisfaction_degrade = 1
 satisfaction_recover = 1
-# 🔴 THE FLOOR IS REQUIRED AND IT IS NOT A TUNING CONVENIENCE. A Need that fell for ever would be a
-# magnitude trending downward at steady state, which is adr/0006 as adr/0003 extends it to quantities
-# -- the one invariant a 100k-Tick run exists to catch. It would fail on this Need rather than on this
-# file, in some later milestone, for a reason nobody would look here for.
-#
-# ⚠ IT IS A DEPTH AND NOT A THRESHOLD. adr/0102 is explicit that there is no threshold under a Need: a
-# Household leaves by COMPARISON, and a duration crossing a line is adr/0053's Failure Pressure, the
-# BUILDING mechanism, which exists because abandonment has no actor. A Household has one. So this
-# number says how destitute a Household can get and says nothing whatever about what it then does.
 floor = -1000
 
 [[resource]]
 name = "sundries"
 family = "good"
-# 04 section 1 pairs the Good with the Need. This one key is what makes every `consume` firing and
-# every `consume` starvation a shopping occasion for Sustenance.
 need = "sustenance"
 
 [[resource]]
@@ -117,30 +86,6 @@ bins = [
     { resource = "sundries", capacity = 48, owner = "occupant" },
     { resource = "repairs",  capacity = 4 },
 ]
-# HOW MANY DAYS A TENANT'S OWN RULE MAY STARVE CONTINUOUSLY before the tenancy ends and the
-# Household is unplaced. adr/0141's TENANT half, and this file is the only shipped world that
-# states it.
-#
-# !! THIS KEY DID NOT EXIST UNTIL MILESTONE 17, AND ITS ABSENCE IS WHAT BROKE THIS FILE. One key --
-# `condemn_after` -- armed BOTH verdicts: the premises' and the tenant's. So when decline was
-# stripped out of every world that demonstrates something else, this world lost its tenancy churn
-# with it, and the ONE FILE WHOSE ENTIRE PURPOSE IS A TENANCY THAT ENDS quietly stopped ending any.
-# The tests caught it; nothing in the file said it could happen. adr/0141 split the VERDICT in
-# milestone 25 and stopped at the number, which is the half that bit.
-#
-# !! THE PREMISES THRESHOLD IS STILL ABSENT AND THAT IS THE WHOLE DEMONSTRATION. This file states
-# `tenancy_ends_after_days` and NOT `condemn_after_days`, so its tenants fail and its buildings
-# stand -- which is the sentence this world exists to be. declining.toml is the mirror: premises
-# threshold, no tenant one. NEITHER FILE COULD BE WRITTEN BEFORE THE SPLIT.
-#
-# !! NO `collapses_after_days` IS OWED HERE, and the loader agrees. That key is required only
-# alongside condemn_after_days, because only an abandoned Building leaves a shell. A tenancy that
-# ends leaves the premises standing and empty, which placement refills -- so the cycle is bounded
-# by the housing stock and needs no sink of its own.
-#
-# !! ONE DAY IS THE FLOOR THE UNIT ALLOWS, and it is UNRATIFIED -- plans/0002 D1. A dwelling whose
-# larder nothing fills is an absence of a mechanism rather than a hardship, so the rate at which
-# this world evicts people is not a claim about how long a hungry Household keeps its home.
 tenancy_ends_after_days = 1
 occupants = 4
 business = "shop"

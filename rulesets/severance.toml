@@ -111,8 +111,6 @@ family = "money"
 
 [[business]]
 name = "shop"
-# Identical to minimal.toml's. See there for why `jobs` sits on the dwelling kind rather than on a
-# workplace kind of its own, and why 8 is the floor of 1000/360 x 3 rather than a chosen number.
 jobs = 8
 shift_start_earliest_hour = 6
 shift_start_latest_hour   = 10
@@ -125,10 +123,6 @@ bins = [
 ]
 occupants = 4
 business = "shop"
-# HOW MANY VEHICLES A DWELLING OF THIS KIND CAN PARK. Identical to minimal.toml's, including the
-# value. See there for why eight is `jobs`' own derivation rather than a second guess -- both count
-# CITIZENS, and adr/0119 settled that a parking space is held by the Citizen because World.ModeOf
-# drives every MEMBER of a car-owning Household. UNRATIFIED; ratifier is milestone 7 task 8.
 parking = 8
 
 [[rule]]
@@ -179,122 +173,7 @@ land_value_offset     = 16
 kernel_metres         = 1024
 pollution_decay_ticks = 2048
 land_value_tau        = 8
-# The road network. plans/0020 (milestone 5a), and the first section here that describes the
-# *ground* rather than what happens on it. adr/0014: Streets snap to the grid, Arterials are
-# freeform between authored Junction pieces, and the Road Graph is uniform regardless of which of
-# the two a road is -- the simulation never sees a spline.
-#
-# THE WHOLE SECTION IS OPTIONAL AND ITS ABSENCE MEANS THERE ARE NO ROADS, which is [placement]'s
-# polarity rather than [layers]'. A default would put eight hash-bearing numbers in the binary that
-# nobody authored (adr/0052), and the failure that hides is quiet: a city laced with roads its
-# designer never asked for, at a density that sets Segment count and therefore every routing figure
-# downstream. A world with no roads fails loudly instead -- `--roads` refuses to print, no Lot has
-# frontage, and every catchment query still throws by name. Once the section is present every key in
-# it is REQUIRED, because there is no number here the engine can derive.
-#
-# NOTHING MOVES ON THIS GRAPH YET. 5a delivers a graph that exists, hashes, saves and can be asked
-# what is connected to what. There are no Trips, no Legs, no routing and no Lanes, so `volume` is
-# zero everywhere and `fidelity` is a named hole -- which means the capacities below are stored,
-# hashed and READ BY NOTHING. They are here because CONTEXT -> Segment lists capacity among a
-# Segment's attributes and a schema change on a table with rows costs more than a column nobody
-# reads.
-#
-# `block_tiles` IS THE DENSITY AXIS AND IT IS A DENOMINATOR. It sets how many Segments a map of
-# fixed size holds, so everything divided by road density inherits its error. 32 is one Street on
-# every Cell boundary, which is the rung that reproduces CONTEXT -> Segment's ~30,000-Segment
-# placeholder; S2 R0 swept it and reports 16.20 km/km², UNRATIFIED, with plans/0002 recording that
-# nothing yet says whether that describes a real city.
-#
-# THE THREE SPEEDS ARE HASH-BEARING AND UNRATIFIED (plans/0002 §D1). 50 km/h for a Street, 90 for
-# an Arterial and 5 for a walk are the figures S2 ran on. adr/0071 settled how a speed is spelled --
-# Q16.16 Tiles per Tick, converted from km/h here, exactly, because 02 §2 says there are no seconds
-# in the library and no metres -- and it says in terms that CHOOSING A REPRESENTATION RATIFIES NO
-# VALUE. Authoring them in km/h is what lets a human check them against reality, which 02 §10
-# requires of any authored number.
-#
-# `foot_crossing_every` IS SEVERANCE'S DIAL AND IT IS THE INTERESTING NUMBER IN THIS SECTION.
-# Between Junction pieces an Arterial carries no pedestrian Arcs at all, so a Street it runs over is
-# either deleted or kept as a crossing -- and this decides which. At 4, every fourth severed Street
-# survives as a footbridge. At 0 there are no crossings and the pedestrian network is cut in two
-# while the car network is untouched, which is CONTEXT -> Severance's claim made observable: a city
-# can be perfectly well connected for cars and broken for people. It is the one number here whose
-# effect a test asserts in both directions.
-#
-# THE CAPACITIES ARE PER LANE-HOUR TIMES LANES, AND THEY ARE STORED PER DAY. A Street is 2 lanes at
-# 1,800 veh/h/lane and an Arterial 6 at 2,000; a foot path carries no Vehicles at all and gets a
-# nominal figure so that volume/capacity is defined rather than a division by zero. The loader
-# multiplies by 24 exactly -- a Day is CONTEXT's only time unit above the Tick, where Q16.16
-# Vehicles per Tick would be a fourth quantity at a scale adr/0071 enumerates exactly three for.
-# ---------------------------------------------------------------------------------------------
-# THIS FILE IS minimal.toml WITH THREE NUMBERS IN THE TABLE BELOW CHANGED, AND NOTHING ELSE.
-# Everything above this banner is minimal.toml's own text, verbatim, so that a diff of the two
-# files is exactly the three lines the demonstration turns on.
-# ---------------------------------------------------------------------------------------------
-#
-# WHAT THIS FILE IS FOR. minimal.toml CANNOT DEMONSTRATE SEVERANCE, and that is measured rather than
-# suspected. A sweep of 240 road configurations against an Arterial-free control (plans/0020,
-# 2026-08-11) found the shipped 32-Tile lattice severed by NOTHING at every foot_crossing_every in
-# 1..16 and at every Arterial count up to 32. Only `never` moves it there, and only by 2.0%. So
-# `--roads --ruleset rulesets/minimal.toml` is a picture of a city with an intact pedestrian network
-# -- the correct picture, and not the one the milestone exists to show.
-#
-# WHY THE SHIPPED FILE IS NOT SIMPLY RETUNED. This table is world-creation and hash-bearing: a
-# different one is a different city, which a test asserts. plans/0002 §D1 names its ratifier as the
-# first Ruleset that models a city, and milestone 5b is forbidden to choose it. A demonstration is
-# CONTENT, so it gets a file of its own -- which is minimal-tuned.toml's precedent exactly.
-#
-# WHY A COARSER LATTICE. Severance is governed by the ABSOLUTE NUMBER OF CROSSINGS the dial leaves,
-# not by the ratio the dial states. An Arterial severs one Street per block it crosses, so a finer
-# lattice hands it more Streets to sever and the same ratio leaves proportionally more crossings
-# standing. Measured, at eight Arterials and foot_crossing_every = 4:
-#
-#     block size (Tiles)    32     64    128    256    512
-#     crossings kept       306    150     73     35     16
-#     walkable nodes cut  0.0%   0.0%   0.1%   0.7%  58.0%
-#
-# WHY SIXTEEN ARTERIALS AND NOT EIGHT, WHICH IS THE MORE INTERESTING HALF. The Arterial polyline is
-# drawn from the world key, so Severance is a function of the SEED. At eight Arterials on this
-# lattice it is mostly noise: over twelve seeds the dial at 8 ranges from 0.0% to 23.5% and is under
-# 1% on FOUR of them. A demonstration that shows nothing on a third of the seeds is not a
-# demonstration. Sixteen Arterials averages the draw down. Over the same twelve seeds:
-#
-#     foot_crossing_every       1      2      4      8     16   never
-#     median walkable cut    0.0%   0.0%   5.0%  32.1%  56.1%  75.5%
-#     worst seed             0.0%   0.0%   0.7%   8.2%  32.3%  56.6%
-#
-# ...while the car network stays whole throughout. Cars fine, pedestrians cut off, which is the
-# sentence CONTEXT -> Severance exists to make true. The shipped 16 is chosen over 8 because its
-# FLOOR across seeds -- 32.3% -- is what a test can assert against without being a hostage to the
-# polyline's dice.
-#
-# THE SEED-SENSITIVITY IS ITSELF A FINDING, AND IT IS WHY --roads NOW ACCEPTS --seed. It refused
-# until 2026-08-11, so every Severance number this corpus recorded was ONE DRAW, described as though
-# it were a property of the road table. The block-size table above is still one draw per column and
-# should be read as such; only this file's own rows are characterised over seeds.
-#
-# WHAT IT STILL DOES NOT SHOW. This severs pedestrians by DISCONNECTION. The larger half of Severance
-# is DETOUR -- a crossing four hundred metres away severs a neighbourhood in every sense a player
-# would recognise, and is perfectly connected on this metric. Measuring that needs a shortest path
-# over the foot subgraph, and nothing in Borough.Core searches the graph yet. This file understates
-# Severance until milestone 5b, and the direction of the error is known.
-#
-# EVERY NUMBER ABOVE IS A READING ON A PAVED EXTENT, AND THE EXTENT IS NOT THE MAP. Severance is a
-# property of a lattice against the Arterials crossing it, and arterial_count is a PER-MAP count --
-# so sixteen Arterials mean one thing over 4,096 Tiles and something else entirely over 16,384. That
-# was invisible for as long as the two were the same number. On 2026-08-13 the map went to 512 Cells
-# (adr/0089) and this file, unchanged, stranded 0% of pedestrians on the worst of eight seeds: it had
-# stopped demonstrating without a single number in it moving.
-#
-# THE EXTENT IS NAMED BY A SYMBOL AND NOT RESTATED HERE. It is
-# RoadSeveranceTests.DemonstrationExtentTiles, which is where every reading above was taken. Writing
-# the figure into this header as well would be plans/0012 Cause 1 -- one fact in two places, drifting
-# -- and adr/0093's writing half says to name the symbol rather than the value. What this file states
-# is the ROAD TABLE; what the extent is, is the test's to state, and the test lays this file and
-# minimal.toml over the same ground so the control is a control.
-#
-# THIS FILE IS NOT A CITY, for every reason minimal.toml gives above and one more: a 256-Tile block
-# is 1,024 m on a side, which is not a block. It is a graph chosen to make one mechanism visible.
-#
+
 [roads]
 block_tiles                    = 256
 arterial_count                 = 16
@@ -312,34 +191,15 @@ foot_path_capacity_per_hour    = 1000
 lots_per_segment = 5
 
 [parking]
-# How far a driver will walk from a Car Park, in metres. adr/0009's radius, milestone 7 task 2.
-# minimal.toml's header carries why it is metres rather than minutes, why 400 is R5.6's measured
-# rung rather than the five-minute intuition it nearly coincides with, and what ratifies it.
 radius_metres = 400
-# How many Car Parks a Building's Parking Shed holds. minimal.toml's header carries where 24
-# came from, why the search for a derivation failed, why it is a different dial from the radius
-# rather than a second spelling of it, and why it must live here rather than on [[building]].
 shed_keeps = 24
 
 [trips]
-# Identical to minimal.toml's, and deliberately so: this file differs from that one in three
-# [roads] numbers and in nothing else, because a demonstration that varies two things at once
-# demonstrates neither. The crossing cost matters here for a reason it does not there -- a severed
-# city is one where the other side of the street is sometimes the only side you can reach -- but
-# the term applies only to two Addresses on one Segment, so it moves the first band and leaves
-# Severance to the mode mask, which is where the mechanism actually lives.
 crossing_seconds = 30
-# Identical to minimal.toml's, and it must stay identical. See there for the rungs, why the upper two
-# read zero in a city this small, and why that is not a reason to move them.
 commute_fast_minutes = 20
 commute_moderate_minutes = 40
-# Identical to minimal.toml's, and it must stay identical. See there for why 20 minutes -- the
-# short version is that it is read off the walk-cost distribution --trips prints, at the rung
-# where it admits an eight-block neighbourhood and refuses half a sixteen-block one, and that it
-# also sizes the box the assignment pass draws candidates from.
 commute_budget_minutes = 50
-# Identical to minimal.toml's. adr/0081's assignment pass: [placement]'s three keys on the
-# employment axis, with the sample derived from the duration (adr/0059).
+
 [jobs]
 interval      = 32
 revisit_ticks = 1024

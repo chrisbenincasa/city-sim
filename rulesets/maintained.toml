@@ -208,44 +208,7 @@ bins = [
     { resource = "sundries", capacity = 48, owner = "occupant" },
     { resource = "repairs",  capacity = 4 },
 ]
-# HOW MANY DAYS A PREMISES RULE MAY STARVE CONTINUOUSLY before the Building is condemned and
-# abandoned. adr/0141's premises half; the tenant half is `tenancy_ends_after_days`, which this
-# file does not state because its tenants are fed.
-#
-# !! IT WAS `condemn_after = 4` AND THAT WAS 45 IN-WORLD MINUTES. The old key counted FIRINGS a
-# starved Rule may miss, so its value had to be read against the Rule's own `rate` to mean
-# anything: 4 missed firings of `upkeep` at rate 16 is 64 Ticks. Nothing on the page said so, the
-# value stood at 4 in all eighteen shipped files, and NO AUTHOR EVER CHANGED IT -- because no
-# author could see what it said. A dwelling here lived about half an in-world Day.
-#
-# So milestone 17 authored the felt quantity and derived the count, which is adr/0059 and
-# adr/0130's rule arriving at the one key that had gone the other way. THE FLOOR IS NOW ONE DAY
-# AND 45 MINUTES IS NOT EXPRESSIBLE AT ALL, which is the point of the unit rather than a side
-# effect of it.
-#
-# !! UNRATIFIED, and plans/0002 D1 holds it. This is a stopwatch setting: what it dials with
-# `collapses_after_days` is WHAT SHARE OF THE CITY IS DERELICT at steady state, and that share is
-# a ratio of the two -- roughly blight / (life + blight). QUOTE THE CENSUS AND NEVER THE
-# ARITHMETIC: this file's header carries the measured numbers and an earlier version of it
-# carried a paper figure that was wrong by a factor of two.
 condemn_after_days = 2
-# The sink for what condemn_after_days creates: how many Days the empty shell stands before it
-# collapses and the Lot returns to vacant (adr/0091, milestone 17). REQUIRED wherever
-# condemn_after is stated -- a kind that can be abandoned and cannot collapse accumulates
-# shells for ever, which is adr/0006, and the loader refuses it.
-#
-# !! A STOPWATCH SETTING AND NOT A DESIGN CLAIM, exactly as crowded.toml's two are. What this
-# number actually dials, together with condemn_after_days above, is WHAT SHARE OF THE CITY IS
-# DERELICT at steady state -- because the share is a RATIO of the two and not a property of
-# either. A shell that stands 1 Day in a city whose Buildings live 2 is a third of the stock; the
-# same 1 Day against a life of half a Day is two thirds, which is what this file measured when
-# the threshold above was 45 minutes.
-#
-# !! ONE DAY IS THE FLOOR THE UNIT ALLOWS and it is chosen so the demonstration demonstrates:
-# a shell that a short run can watch appear, stand and fall. A city a player would live in
-# wants a gentler failure rate AND a longer blight, and that pair is UNRATIFIED with no world
-# to settle it -- plans/0002 D1, ratified by the first play session in which somebody watches
-# a district decline, which is adr/0091's own ratifier for the clearance price.
 collapses_after_days = 1
 occupants = 4
 business = "shop"
@@ -266,36 +229,7 @@ rate    = 32
 apply   = { min = 1, max = 1 }
 inputs  = [ { scope = "local", resource = "sundries", amount = 4 } ]
 outputs = []
-# THE SUPPLY, and the whole diff against declining.toml. Same shape as `restock` above -- greedy, no
-# inputs, an extraction step with its source elided -- and it is elided for the same reason and points
-# at the same missing scope: what should feed this is a delivery bought from the District, which is
-# `pool`, which throws. Read the header before reading anything into the fact that it cannot fail.
-#
-# IT IS THE PREMISES' RULE AND NOT A TENANT'S. Its only term is on `repairs`, which the [[building]]
-# declares without an `owner`, so the loader derives BinTenancy.Premises and there is one Rule
-# Instance per Building rather than one per Household (adr/0141). That matters here: a shared roof is
-# mended once however many families live under it, which is the same sorting `upkeep` gets and the
-# opposite of `restock`'s.
-#
-# RATE 32 AGAINST upkeep's 16 IS THE WHOLE BALANCE. It supplies up to 4 every 32 Ticks; a full
-# dwelling wants 6. See the header for what that produces and for why none of these numbers is
-# ratified.
-#
-# 🔴 GREEDY -- { min = 1, max = 4 } AT amount = 1 -- AND IT WAS { min = 1, max = 1 } AT amount = 4 FOR
-# ONE RUN, WHICH DEADLOCKED THE BUILDING. A Rule producing exactly the Bin's capacity can only fire
-# when the Bin is COMPLETELY EMPTY: it went short of space at the top, subscribed to `repairs` and
-# slept; `upkeep` drew the level down to 1, went short of supply, and subscribed to the same Bin.
-# ***Both premises Rules then sat on one Bin, each waiting for a state the other could not produce***,
-# and the level held at 1 from Tick 40 to the end of an 8,192-Tick run. Measured, not reasoned: the
-# --evidence panel showed `maintain … space … last ran 40` beside `upkeep … supply … 510 missed`, and
-# the census was byte-identical to declining.toml because the supply Rule had effectively never run.
-#
-# ⚠ THIS IS THE KNIFE EDGE declining.toml's OWN HEADER WARNS ABOUT, reached from the other side -- its
-# note on the Goods rescale says a Bin that must be exactly full for one firing to succeed fired
-# Invariant.WaiterIsBlockedByTheBinItNames and exposed a live wake-path defect, filed unfixed as
-# plans/0003 queue item 8. ***A producer whose output equals a capacity is that shape by
-# construction.*** Greedy is `restock`'s own answer and the reason it keeps running: it works through
-# whatever space it has (02 §4.1), so it always makes progress and never waits for an empty Bin.
+
 [[rule]]
 name    = "maintain"
 kind    = "dwelling"
@@ -303,27 +237,7 @@ rate    = 32
 apply   = { min = 1, max = 4 }
 inputs  = []
 outputs = [ { scope = "local", resource = "repairs", amount = 1 } ]
-# The Rule that starves and RECOVERS, which is the one declining.toml cannot show. It goes short, it
-# subscribes to `repairs` (adr/0045 -- a failed Rule waits on the Bin rather than retrying), and the
-# next `maintain` write wakes it. RuleEngine.Stop stamps StarvedSince on the way down and zeroes it on
-# the way back up, so the pressure is a sawtooth and the threshold is never approached.
-#
-# ⚠ `apply` DERIVES FROM OCCUPANCY HERE AND FIRED ONCE ON declining.toml, and that is the second half
-# of the diff. Wear should scale with how many people cause it, and occupancy is the ONLY quantity in
-# this world that differs between two Buildings -- without it every dwelling behaves identically and
-# the file demonstrates one outcome instead of two. ⚠ It is also the `occupancy` Readout's first
-# caller since milestone 25: adr/0141 gave `consume` a Rule Instance per Household and took away the
-# only thing that had ever read it, leaving a Readout that was declared, resolving, and called by
-# nothing.
-#
-# ⚠ THE `amount` DROPPED FROM 4 TO 1 AND THAT IS NOT A SEPARATE TUNING DECISION. It is 4 spread across
-# the applications the Readout now supplies: three Households at 1 is 3 against the old flat 4, so a
-# full dwelling costs roughly what it used to and an emptier one costs less. Leaving it at 4 would
-# have made a full dwelling want 12 against a Bin whose capacity is 4 -- unsatisfiable by
-# construction, permanently starved, and this file would have been declining.toml with extra steps.
-#
-# It has no on_fail chain, so no ConditionId reaches RuleInstance.reported; diagnosed.toml is where
-# that is demonstrated and this file is not it.
+
 [[rule]]
 name    = "upkeep"
 kind    = "dwelling"
