@@ -360,4 +360,79 @@ public sealed class WalkRoutingTests
 
         Assert.True(scratch.Relaxed < 8, $"settled {scratch.Relaxed} nodes for a two-Segment walk.");
     }
+
+    /// <summary>
+    /// A query answered without a search leaves no destination behind for the next caller to read.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>This is the violation written out, and it fired.</b> Five of
+    /// <see cref="WalkRouting.Cost"/>'s returns answer without searching, and
+    /// <see cref="WalkScratch.Arrived"/> is the one thing on that scratch no generation stamp
+    /// protects — so a caller reading it on one of those paths read the <em>previous</em> journey's
+    /// destination. <c>TripEngine.RecordRoute</c> is exactly that caller: it reads
+    /// <see cref="WalkScratch.Arrived"/> straight after <see cref="WalkRouting.Cost"/> to write a
+    /// drive Leg's route, so a vehicle whose origin and destination shared a Segment was recorded
+    /// driving somebody else's road — and attributing <c>adr/0041</c>'s per-Segment volume along it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It presented as a save/reload failure, which it was not.</b> A reloaded world gets a
+    /// fresh engine whose scratch has never searched, so it took the correct branch while the world
+    /// that had been running took the stale one, and <c>FactorioTests</c> reported <c>05 §4</c>
+    /// invariant 6. ***The simulation was not a function of the World.*** This asserts the cause,
+    /// where that test could only report a symptom sixty Ticks downstream.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void AQueryAnsweredWithoutSearchingLeavesNoDestinationBehind()
+    {
+        RoadGraph graph = RoadFixtures.Chain(8);
+        WalkScratch scratch = new();
+
+        Address from = Address.On(0, Tiles.Zero, StreetSide.Left);
+        Address far = Address.On(6, Span, StreetSide.Left);
+
+        WalkRouting.Cost(graph, TravelMode.Foot, from, far, Crossing, scratch, recordPath: true);
+
+        Assert.NotEqual(WalkScratch.NoNode, scratch.Arrived);
+
+        // The same-Segment case, which never reaches the search at all.
+        Address low = Address.On(3, new Tiles(4), StreetSide.Left);
+        Address high = Address.On(3, new Tiles(20), StreetSide.Left);
+
+        WalkRouting.Cost(graph, TravelMode.Foot, low, high, Crossing, scratch, recordPath: true);
+
+        Assert.Equal(WalkScratch.NoNode, scratch.Arrived);
+    }
+
+    /// <summary>
+    /// The reachability reject leaves no destination behind either.
+    /// </summary>
+    /// <remarks>
+    /// <b>The same defect through the other door</b>, and worth its own case because the two rejects
+    /// are reached by different conditions: one is <em>too close to search</em> and this one is
+    /// <em>impossible to search</em>. A vehicle offered a journey between components has no route by
+    /// definition, so a stale one is the worst possible answer.
+    /// </remarks>
+    [Fact]
+    public void AnUnreachableQueryLeavesNoDestinationBehind()
+    {
+        RoadGraph graph = RoadFixtures.TwoIslands(6);
+        WalkScratch scratch = new();
+
+        Address from = Address.On(0, Tiles.Zero, StreetSide.Left);
+        Address near = Address.On(2, Span, StreetSide.Left);
+
+        WalkRouting.Cost(graph, TravelMode.Foot, from, near, Crossing, scratch, recordPath: true);
+
+        Assert.NotEqual(WalkScratch.NoNode, scratch.Arrived);
+
+        Address other = Address.On(6, Tiles.Zero, StreetSide.Left);
+
+        Assert.True(
+            WalkRouting.Cost(graph, TravelMode.Foot, from, other, Crossing, scratch, recordPath: true)
+                .IsImpassable);
+
+        Assert.Equal(WalkScratch.NoNode, scratch.Arrived);
+    }
 }

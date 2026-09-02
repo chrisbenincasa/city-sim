@@ -97,6 +97,12 @@ public static class WalkRouting
         ArgumentNullException.ThrowIfNull(graph);
         ArgumentNullException.ThrowIfNull(scratch);
 
+        // 🔴 Before the rejects and not after them. Five of the returns below answer without searching,
+        // and a caller reading WalkScratch.Arrived on one of those paths was reading the PREVIOUS
+        // journey's destination -- so a drive Leg between two Addresses on one Segment recorded another
+        // Traveller's route and attributed adr/0041's volume along it. See WalkScratch.Forget.
+        scratch.Forget();
+
         // A Building with no frontage, or an endpoint whose Segment was bulldozed and which the read
         // boundary has already turned into a named absence (adr/0079). Not a long walk — no walk,
         // and the caller records *no route found* or *stranded* accordingly.

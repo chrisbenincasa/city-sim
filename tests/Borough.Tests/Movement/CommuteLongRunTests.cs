@@ -334,9 +334,15 @@ public sealed class CommuteLongRunTests(ITestOutputHelper output)
             int here = world.Commutes.CountAt(world.Citizens, phase)
                 + world.Commutes.ReturningCountAt(world.Citizens, phase);
 
-            // The bin a Tick falls in, floored -- the inverse of Ticks.AtHour, and inexact in the
+            // The bin a Tick falls in, floored -- the inverse of Ticks.AtClock, and inexact in the
             // same place for the same reason: 24 does not divide 2048.
-            perHour[(int)((long)phase * Bins / Ticks.PerDay)] += here;
+            //
+            // 🔴 Through Ticks.MinuteOfDay and NOT off the phase directly. A phase is a Tick of the
+            // Day and every band below is a WALL-CLOCK hour, and those stopped being the same thing on
+            // 2026-09-01 when the Day moved to 05:00 (adr/0101, amended). Read straight, this put the
+            // evening peak in the small hours and reported 460 of 1,090 journeys beginning at night --
+            // *** a histogram five hours out of register, describing a city that had not changed ***.
+            perHour[Ticks.MinuteOfDay((ulong)phase) * Bins / Ticks.MinutesPerDay] += here;
             total += here;
         }
 

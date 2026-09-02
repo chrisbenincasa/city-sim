@@ -170,7 +170,7 @@ internal static class WatchDump
         output.WriteLine(string.Create(
             CultureInfo.InvariantCulture,
             $"-- Tick {tick}  Day {tick / (ulong)Ticks.PerDay} "
-            + $"{ofDay * 24 / (ulong)Ticks.PerDay:00}:{ofDay * 1440 / (ulong)Ticks.PerDay % 60:00}  "
+            + $"{Ticks.MinuteOfDay(tick) / 60:00}:{Ticks.MinuteOfDay(tick) % 60:00}  "
             + $"travelling {world.Travellers.Rows.LiveCount}  placed {found}  "
             + $"buildings {world.Buildings.Rows.LiveCount}"));
 

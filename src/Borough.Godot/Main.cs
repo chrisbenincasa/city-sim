@@ -1900,12 +1900,16 @@ public partial class Main : Node3D
         Cursor();
 
         ulong tick = _world.Tick.Raw;
-        ulong ofDay = tick % (ulong)Ticks.PerDay;
+
+        // ⚠ THE MINUTE COMES FROM Ticks AND IS NO LONGER DERIVED HERE. A Day begins at 05:00, so
+        // `ofDay * 24 / PerDay` is off by five hours -- and this was one of four copies of that
+        // expression, which is exactly why it now lives in one place.
+        int minute = Ticks.MinuteOfDay(tick);
 
         _readout.Text =
             $"{System.IO.Path.GetFileName(_rulesetPath)}   Tick {tick:N0}   "
             + $"Day {tick / (ulong)Ticks.PerDay}   "
-            + $"{ofDay * 24 / (ulong)Ticks.PerDay:00}:{ofDay * 1440 / (ulong)Ticks.PerDay % 60:00}\n"
+            + $"{minute / 60:00}:{minute % 60:00}\n"
             + $"Citizens {_world.Citizens.Rows.LiveCount:N0}   Buildings {drawn:N0}   "
             + $"vacant Lots {vacant:N0}   "
             + $"travelling {moving:N0}{Weather(under)}\n"
@@ -4345,7 +4349,12 @@ public partial class Main : Node3D
     /// </remarks>
     private static Vector3 Sunward(ulong tick)
     {
-        float t = (((tick % (ulong)Ticks.PerDay) / (float)Ticks.PerDay) - 0.5f) * Mathf.Tau;
+        // 🔴 THROUGH Ticks.MinuteOfDay AND NOT OFF THE PHASE. This read the Tick of the Day directly,
+        // which was the same thing as the wall clock only for as long as a Day began at midnight. It
+        // begins at 05:00 as of 2026-09-01 (adr/0101, amended), so read straight this put the sun five
+        // hours behind the readout beside it -- midnight light under an 05:00 clock, and nothing in the
+        // shell to say which of the two was wrong.
+        float t = ((Ticks.MinuteOfDay(tick) / (float)Ticks.MinutesPerDay) - 0.5f) * Mathf.Tau;
 
         return new Vector3(
             -Mathf.Sin(t),
