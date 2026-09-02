@@ -714,4 +714,24 @@ public enum PurposeTag : ulong
     /// </para>
     /// </remarks>
     CentralityTaste = 36,
+
+    /// <summary>
+    /// <b>Where a Building stands on its parcel</b> — the four setbacks, drawn once per patch of
+    /// ground.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// ⚠ <b>DRAWN ON THE GROUND AND NOT ON THE LOT'S ID</b>, which is the one thing about this tag
+    /// worth reading. A footprint is a property of the <em>patch</em>: a Lot demolished and re-laid on
+    /// the same parcel puts its Building back where the last one stood, and a recycled slot cannot
+    /// move a house that nobody touched. ***The entity id is the parcel's own south-west corner***,
+    /// which is stable across a save, a re-carve that lands on the same rectangle, and a slot the
+    /// allocator hands out again.
+    /// </para>
+    /// <para>
+    /// <b>Tick zero, like every standing property.</b> The setbacks are a fact about how the house was
+    /// built and not about the moment it was asked about.
+    /// </para>
+    /// </remarks>
+    BuildingFootprint = 37,
 }

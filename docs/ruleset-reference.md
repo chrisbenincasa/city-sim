@@ -25,7 +25,7 @@ dotnet run --project src/Borough.Headless -- \
 
 ## The sections
 
-33 sections, 169 keys.
+33 sections, 170 keys.
 
 - [`[[band]]`](#band) — 2 keys
 - [`[[building]]`](#building) — 12 keys
@@ -51,7 +51,7 @@ dotnet run --project src/Borough.Headless -- \
 - [`[households]`](#households) — 3 keys
 - [`[jobs]`](#jobs) — 6 keys
 - [`[layers]`](#layers) — 20 keys
-- [`[lots]`](#lots) — 1 key
+- [`[lots]`](#lots) — 2 keys
 - [`[market]`](#market) — 2 keys
 - [`[needs]`](#needs) — 9 keys
 - [`[parking]`](#parking) — 2 keys
@@ -708,6 +708,10 @@ How many Ticks between recomputations of the woodland field.
 **`lots_per_segment`** · *whole number*
 
 How many Lots one Street Segment carries, both sides together. A Lot is an address with no extent — there is no depth key, because a Lot has no depth. Omitting the whole [lots] table means land cannot be subdivided and the city grows nothing.
+
+**`setback_tiles`** · *whole number*
+
+The most ground a Building leaves on each side of its parcel, in Tiles. It is a length and not a fraction, so how much of a plot gets built on rises with the plot: a detached parcel keeps under half of itself and a slab's covers most of its site. The four sides are drawn independently per patch of ground, so a street varies and some walls stand on the pavement. Zero means every Building covers its whole parcel.
 
 ---
 

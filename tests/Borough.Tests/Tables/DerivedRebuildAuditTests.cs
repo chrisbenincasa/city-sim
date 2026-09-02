@@ -208,7 +208,11 @@ public sealed class DerivedRebuildAuditTests
         // ⚠ THESE FOUR ARE EXACTLY WHAT THIS AUDIT EXISTS FOR. Rows.Derived allocates a column and
         // does not make anything rebuild it, and four columns declared with nothing populating them
         // would load a world in which every Building covered no ground and nothing anywhere failed.
-        Assert.Equal(45, all.Length);
+        // 45 -> 49: lot.footprint_east, footprint_north, footprint_wide and footprint_deep,
+        // plans/0053. The part of the parcel with a wall on it, which is what Sealing takes and what
+        // the shell draws -- and which had been TWO different rectangles, the core sealing the whole
+        // holding and the shell drawing about half of it.
+        Assert.Equal(49, all.Length);
         Assert.Single(ScratchColumns(Stepped(0)));
     }
 

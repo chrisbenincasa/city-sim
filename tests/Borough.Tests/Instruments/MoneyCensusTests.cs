@@ -366,5 +366,6 @@ public sealed class MoneyCensusTests
 
         [lots]
         lots_per_segment = 5
+        setback_tiles = 2
         """;
 }

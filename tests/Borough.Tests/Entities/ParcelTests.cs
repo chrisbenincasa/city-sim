@@ -215,6 +215,7 @@ public sealed class ParcelTests
     {
         World world = Populated();
 
+        long footprintTiles = 0;
         long parcelTiles = 0;
 
         for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
@@ -222,13 +223,15 @@ public sealed class ParcelTests
             if (world.Buildings.Rows.IsLive(slot)
                 && world.Lots.Rows.TryResolve(world.Buildings.Lot[slot], out int lotSlot))
             {
+                int footprint = world.Lots.FootprintTiles(lotSlot);
                 int parcel = world.Lots.ParcelTiles(lotSlot);
 
+                footprintTiles += footprint < 1 ? 1 : footprint;
                 parcelTiles += parcel < 1 ? 1 : parcel;
             }
         }
 
-        Assert.True(parcelTiles > 0, "no Building stands on a parcel, so this measures nothing.");
+        Assert.True(footprintTiles > 0, "no Building stands on ground, so this measures nothing.");
 
         long sealed_ = 0;
 
@@ -242,10 +245,21 @@ public sealed class ParcelTests
 
         // Roads seal too, so the Buildings' share is a floor rather than the total. What this refuses
         // is the state before stage 1, where the Buildings' share was a per-kind constant and this
-        // sum would have been 481 Tiles against tens of thousands of parcel.
+        // sum would have been 481 Tiles against tens of thousands of footprint.
         Assert.True(
-            sealed_ >= parcelTiles,
-            $"the city seals {sealed_} Tiles and its Buildings' parcels are {parcelTiles}.");
+            sealed_ >= footprintTiles,
+            $"the city seals {sealed_} Tiles and its Buildings' footprints are {footprintTiles}.");
+
+        // 🔴 AND THE GARDEN IS NOT SEALED, WHICH IS THE HALF THAT WAS WRONG UNTIL 2026-09-02. This
+        // asserted `sealed_ >= parcelTiles` -- the whole holding, hedge to hedge -- while the shell
+        // drew a wall on about half of it, so ***the simulation and the picture disagreed about the
+        // same rectangle and only the picture was right.*** A garden is ground the city has not
+        // spent. The comparison is a floor and not an equality because roads seal too, so this is
+        // the weaker half; what it refuses is the footprint quietly becoming the parcel again.
+        Assert.True(
+            footprintTiles < parcelTiles,
+            $"the Buildings cover {footprintTiles} Tiles of {parcelTiles} they hold, so nothing has "
+            + "a garden and [lots] setback_tiles is doing nothing.");
     }
 
     /// <summary>

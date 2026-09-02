@@ -268,6 +268,7 @@ public sealed class PolicyTests(ITestOutputHelper output)
 
         [lots]
         lots_per_segment = 5
+        setback_tiles = 2
 
         [households]
         car_ownership_percent = 0

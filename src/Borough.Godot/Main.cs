@@ -76,46 +76,17 @@ public partial class Main : Node3D
     /// <summary>How wide the carriageway is drawn. A drawing width, and no Segment states one.</summary>
     private const float RoadWidthMetres = 8f;
 
-    /// <summary>
-    /// The band a Building fills of its Lot's frontage. <b>Wide on purpose.</b>
-    /// </summary>
-    /// <remarks>
-    /// 🔴 <b>IT WAS 0.72–0.98 AND THAT IS WHY A BLOCK FACE READ AS TWO SLABS.</b> At the shipped
-    /// <c>block_tiles = 32</c> and <c>lots_per_segment = 5</c> a Lot has <b>51.2 m</b> of frontage
-    /// (<c>plans/0049</c> <b>F1</b>), so the old band put a 37–50 m building on it and left a gap
-    /// too narrow to see from the camera this game is played at. ⚠ <b>The Lot width is DERIVED and
-    /// is not the lever</b> — <c>lots_per_segment</c> is <c>CONTEXT.md</c> → Address's own <i>five
-    /// Buildings share a Segment</i>. This is, and it costs nothing.
-    /// </remarks>
-    private const float BuildingFillLow = 0.55f;
-
-    /// <inheritdoc cref="BuildingFillLow"/>
-    private const float BuildingFillHigh = 1.0f;
-
-    /// <summary>
-    /// The band a Building fills of its <b>parcel's depth</b>. <b>Narrower than the frontage's,
-    /// because a garden is normal.</b>
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// 🔴 <b>THIS REPLACES A DEPTH IN METRES, AND THAT IS THE WHOLE OF <c>plans/0052</c> STAGE 1
-    /// ARRIVING IN THE SHELL.</b> <c>PlotDepthMetres</c> was 26 m — a thickness the city did not
-    /// have, invented here because <c>adr/0078</c> says a Lot is an address point and owns no
-    /// ground. <b>A Lot now carries a parcel</b>, so the depth is the city's and this is only what
-    /// share of it a wall stands on.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>It made every density look the same and it no longer can.</b> The old constant was the
-    /// same 26 m on a 32-Tile block and on a 256-Tile one, so the drawing said nothing about how the
-    /// ground had been divided. The parcel differs by pattern by construction — a back-to-back plot
-    /// reaches the block's centre line and a detached one holds a strip — so this band varies what
-    /// the band multiplies rather than being the whole of the answer.
-    /// </para>
-    /// </remarks>
-    private const float DepthFillLow = 0.45f;
-
-    /// <inheritdoc cref="DepthFillLow"/>
-    private const float DepthFillHigh = 0.85f;
+    // 🔴 BuildingFillLow/High AND DepthFillLow/High STOOD HERE AND ARE NOW `[lots] setback_tiles`.
+    // Four drawing constants -- 0.55-1.00 of the frontage and 0.45-0.85 of the depth -- deciding how
+    // much of its parcel a Building covered. THE SIMULATION DID NOT AGREE WITH THEM: World.CreateBuilding
+    // sealed the WHOLE parcel, so Sealing was about twice the ground this file put a wall on, and the
+    // two quantities were the same quantity. ***A number the shell invents about the city is a number
+    // the city cannot see.*** adr/0015 says a number a designer would want to change is Ruleset data;
+    // these had escaped that by being called drawing constants.
+    //
+    // What replaced them is ONE key and it is a LENGTH, so coverage rises with the parcel instead of
+    // being the same share of every plot -- which is what DepthFillLow's own remark said the old
+    // arrangement got wrong. The shell reads LotTable.Footprint* and invents nothing.
 
     /// <summary>How far a pitched roof rises, as a share of the Building's depth.</summary>
     /// <remarks>
@@ -2201,10 +2172,22 @@ public partial class Main : Node3D
                 continue;
             }
 
-            float parcelEast = lots.ParcelEast[lot].Raw * MetresPerTile;
-            float parcelNorth = lots.ParcelNorth[lot].Raw * MetresPerTile;
-            float parcelWide = wideTiles * MetresPerTile;
-            float parcelDeep = deepTiles * MetresPerTile;
+            // 🔴 THE FOOTPRINT, READ AND NOT DERIVED. Where the parcel is the Lot's holding, this
+            // is the part with a wall on it -- the same rectangle World.CreateBuilding seals, so the
+            // drawing and the Sealing Layer cannot disagree about the same building. The centre and
+            // the plan both fall straight out of it and there is no draw left in this block.
+            int footWide = lots.FootprintWide[lot].Raw;
+            int footDeep = lots.FootprintDeep[lot].Raw;
+
+            if (footWide <= 0 || footDeep <= 0)
+            {
+                continue;
+            }
+
+            float east = (lots.FootprintEast[lot].Raw + (footWide * 0.5f)) * MetresPerTile;
+            float north = (lots.FootprintNorth[lot].Raw + (footDeep * 0.5f)) * MetresPerTile;
+            float eastWest = footWide * MetresPerTile;
+            float southNorth = footDeep * MetresPerTile;
 
             var side = (StreetSide)lots.Side[lot];
 
@@ -2213,45 +2196,16 @@ public partial class Main : Node3D
             // vertical one Right is the east side.
             bool horizontal = block > 0 && lots.North[lot].Raw % block == 0;
 
-            ulong id = table.Rows.IdAt(slot);
-            ulong shape = Scramble(id);
-
-            float alongSpan = horizontal ? parcelWide : parcelDeep;
-            float deepSpan = horizontal ? parcelDeep : parcelWide;
-
-            // Each draw takes its own bit range off the one scramble, so a deep Building is not
-            // also a wide one and a tall one is neither.
-            float fill = BuildingFillLow
-                + (((shape >> 8) & 0xFFu) / 255f * (BuildingFillHigh - BuildingFillLow));
-            float along = alongSpan * fill;
-            float deep = deepSpan
-                * (DepthFillLow + (((shape >> 16) & 0xFFu) / 255f * (DepthFillHigh - DepthFillLow)));
+            float along = horizontal ? eastWest : southNorth;
+            float deep = horizontal ? southNorth : eastWest;
 
             if (along < MinFrontageMetres)
             {
                 continue;
             }
 
-            // 🔴 PUSHED AGAINST THE STREET EDGE OF ITS OWN PARCEL, so what is left over is at the
-            // BACK, where a garden is. Centring in the parcel instead would give every street a
-            // ragged building line and set a shallow house back further than a deep one.
-            float east;
-            float north;
-
-            if (horizontal)
-            {
-                east = parcelEast + (parcelWide * 0.5f);
-                north = side == StreetSide.Left
-                    ? parcelNorth + (deep * 0.5f)
-                    : parcelNorth + parcelDeep - (deep * 0.5f);
-            }
-            else
-            {
-                north = parcelNorth + (parcelDeep * 0.5f);
-                east = side == StreetSide.Right
-                    ? parcelEast + (deep * 0.5f)
-                    : parcelEast + parcelWide - (deep * 0.5f);
-            }
+            ulong id = table.Rows.IdAt(slot);
+            ulong shape = Scramble(id);
 
             byte kind = table.Kind[slot];
             int storeys = _world.Rules.Declares(kind)

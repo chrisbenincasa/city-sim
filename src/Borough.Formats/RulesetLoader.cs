@@ -5401,7 +5401,33 @@ public static class RulesetLoader
                 return LotRuleset.None;
             }
 
-            return new LotRuleset((int)value);
+            // setback_tiles: how much ground a Building leaves on each side of its parcel. REQUIRED,
+            // and not defaulted, because a default would have been the number that used to live in
+            // Borough.Godot as four drawing constants -- silently, where no Ruleset could retune it
+            // and no State Hash could see it. A file that carves land says how much of it gets built
+            // on.
+            if (!TryInteger(_lotsTable, "setback_tiles", out long setback, required: true))
+            {
+                return LotRuleset.None;
+            }
+
+            // Half the block, because two setbacks meet: a parcel is at most a block deep, so a
+            // setback past half of one leaves no footprint on any parcel in the world.
+            long widest = roads.Runs ? IntegerMath.FloorDiv(roads.BlockTiles, 2) : int.MaxValue;
+
+            if (setback < 0 || setback > widest)
+            {
+                Refuse(LineOfLot("setback_tiles"), null,
+                    $"setback_tiles = {setback} is out of range. It is the most ground a Building "
+                    + "leaves on each side of its parcel, so it is at least 0 — a wall on the "
+                    + "pavement, which a terrace is — and at most half the block "
+                    + $"({widest}), beyond which two setbacks meet and no parcel in the world has a "
+                    + "footprint left on it.");
+
+                return LotRuleset.None;
+            }
+
+            return new LotRuleset((int)value, (int)setback);
         }
 
         /// <summary>The line a <c>[lots]</c> key is on, or the table's.</summary>

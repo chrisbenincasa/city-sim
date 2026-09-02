@@ -120,11 +120,11 @@ internal static class RoadFixtures
     /// hour to spend, and the default parameter makes the case unrepresentable.
     /// </para>
     /// </remarks>
-    internal static Ruleset With(RoadRuleset roads, int lotsPerSegment = 5) =>
+    internal static Ruleset With(RoadRuleset roads, int lotsPerSegment = 5, int setbackTiles = 2) =>
         new Ruleset([], [], [], [], [], [], [], [], [])
         {
             Roads = roads,
-            Lots = new LotRuleset(lotsPerSegment),
+            Lots = new LotRuleset(lotsPerSegment, setbackTiles),
         };
 
     /// <summary>

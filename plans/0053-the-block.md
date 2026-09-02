@@ -578,6 +578,64 @@ capacity-from-ground and massing are for.
 
 ---
 
+## What the footprint shipped — *2026-09-02*
+
+🔴 **THE SIMULATION AND THE DRAWING DISAGREED ABOUT ONE RECTANGLE BY ABOUT A FACTOR OF TWO, AND THE
+DRAWING WAS RIGHT.** `World.CreateBuilding` sealed the **whole parcel** — garden included — reading
+`adr/0022`'s *Land is a stock the city spends* as *you cannot farm somebody's back garden*. Meanwhile
+`Borough.Godot` drew a wall on **55–100%** of the frontage and **45–85%** of the depth, so half the
+sealed ground had visible grass on it. ***A Building had two footprints and neither knew about the
+other.*** `CONTEXT.md` → Building settles it: a Building *"interacts with Map Layers through that
+footprint"*, and the footprint is the walls.
+
+**`LotTable.Footprint*` is the one rectangle now** — four derived columns beside the parcel, produced
+by the same call, rebuilt by the same pass. Sealing takes it and the shell draws it, so they cannot
+part company. ⚠ **The old comment predicted its own repair** — *"a coverage fraction can arrive later
+as a multiplier defaulting to 1 without this having been wrong"* — and it is **not a multiplier**.
+
+### 🔴 One Ruleset key replaced four drawing constants, and the shape is derived from it
+
+`[lots] setback_tiles`: **the most ground a Building leaves on each side of its parcel**. ⚠ **A LENGTH
+AND NOT A FRACTION, and that is the whole of its shape.** Coverage then rises with the parcel without
+anybody stating that it should — at the shipped lattice a detached plot keeps about **44%** of itself,
+a terrace's **58%**, a slab's **77%**. ***A fraction would have made every density cover the same share
+of its ground***, which is the failure `DepthFillLow`'s own remark described one project over. **The
+four sides are drawn independently per patch of ground**, so a street varies and some walls stand on
+the pavement, which is what a terrace is. ⚠ **The draw is on the PARCEL'S CORNER and not the Lot's id**
+— a footprint is a property of the patch, so a re-laid Lot puts its Building back where the last one
+stood.
+
+⚠ **A `plans/0002` §D1 ROW IS OWED AND IS NOT THERE, and the reason is not that nobody thought of
+it.** [`adr/0052`](../docs/adr/0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md)
+is **suspended** by [`plans/0045`](0045-amnesty.md), so a ratifier is not owed on the day; and
+`plans/0002` is **at its amnesty word ceiling**, so the row was written, cut twice and then dropped —
+`CorpusBudgetTests` refused all three lengths. ⚠ **The obvious ratifier is unavailable anyway**:
+Sealing feeds Fertility and Woodland and nothing yet reads either for anything a player sees, so ***the
+number that would refute this has no consumer***. **It goes in §D1 the day the amnesty lifts**, and this
+paragraph is what will still be here to say so.
+
+⚠ **Required of every Ruleset that states `[lots]`, and a stated zero is a real city** — every Building
+covers its whole parcel, which is what the simulation did before the key existed. **Absence is refused**
+so that a file has to say which of the two it wants.
+
+🔴 **`adr/0015` arrived by a route it does not name.** A number a designer would want to change is
+Ruleset data; these four had escaped that by being called *drawing constants*. ***A number the shell
+invents about the city is a number the city cannot see*** — it moves no State Hash, no Ruleset retunes
+it, and no test can hold it to anything.
+
+### What it cost, and what it bought
+
+**Four hash literals in three files, three trace re-records and 33 Ruleset edits.** The State Hash moves
+because Sealing moves, which is a design change under `05 §4` and is the point rather than a side
+effect. `adr/0048`'s count of record goes **222 → 223**.
+
+✅ **AND THE TREES CAME BACK**, which is what `plans/0052`'s own *What is still owed* was about. `adr/0159`
+caps Woodland at `1024 − Sealing`, so sealing the whole parcel had stripped every built block; one Cell
+in the core reads **sealing 680** where it read **944**. Looked at on `platted.toml` at 40,000 Citizens:
+gardens between the houses, and a courtyard block with trees standing in the courtyard.
+
+---
+
 ## What this does to [`0052`](0052-the-parcel.md)
 
 ✅ **Nothing in it is withdrawn.** G1–G8 stand, the Sealing measurements stand, Q3's answer stands, and

@@ -266,6 +266,21 @@ foot_path_capacity_per_hour    = 1000
 # depth and there is no depth key.
 lots_per_segment = 5
 
+# How much ground a Building leaves on each side of its parcel. CHOSEN, and one of the few numbers
+# in this file that is -- 2 Tiles is 8 m, a front garden's depth.
+#
+# ⚠ IT IS A LENGTH AND NOT A FRACTION, AND THAT IS THE WHOLE OF ITS SHAPE. Coverage rises with the
+# parcel on its own: at this lattice a detached plot is 6 x 6 Tiles and keeps about 44% of itself, a
+# terrace's 6 x 16 keeps 58%, and a slab's 16 x 16 keeps 77%. A fraction would have made every
+# density cover the same share of its ground, which is what made every block look alike before block
+# patterns existed.
+#
+# ⚠ AND IT IS A CEILING RATHER THAN A SETBACK LINE. The four sides are drawn independently on
+# [0, setback_tiles] per patch of ground, so a street varies and some walls stand on the pavement --
+# which is what a terrace is. 0 means every Building covers its whole parcel, which is what the
+# simulation did before this key existed, while the shell drew something smaller.
+setback_tiles = 2
+
 [parking]
 radius_metres = 400
 shed_keeps = 24

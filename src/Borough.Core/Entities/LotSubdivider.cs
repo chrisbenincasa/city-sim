@@ -243,6 +243,18 @@ public static class LotSubdivider
             world.Lots.ParcelWide[slot] = parcel.Wide;
             world.Lots.ParcelDeep[slot] = parcel.Deep;
 
+            // And the footprint, which is the parcel inset by four drawn setbacks. Written here for
+            // the same reason the parcel is -- so a Lot is never live with ground and no building
+            // line on it -- and recomputed identically by World.RebuildParcels.
+            (Quantities.Tiles footEast, Quantities.Tiles footNorth, Quantities.Tiles footWide,
+                Quantities.Tiles footDeep) = world.Rules.Lots.Footprint(
+                    world.Key, parcel.East, parcel.North, parcel.Wide, parcel.Deep);
+
+            world.Lots.FootprintEast[slot] = footEast;
+            world.Lots.FootprintNorth[slot] = footNorth;
+            world.Lots.FootprintWide[slot] = footWide;
+            world.Lots.FootprintDeep[slot] = footDeep;
+
             created++;
             onFace++;
         }

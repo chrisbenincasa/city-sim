@@ -76,6 +76,10 @@ public sealed class LotTable
         ParcelNorth = _rows.Derived<Tiles>("parcel_north");
         ParcelWide = _rows.Derived<Tiles>("parcel_wide");
         ParcelDeep = _rows.Derived<Tiles>("parcel_deep");
+        FootprintEast = _rows.Derived<Tiles>("footprint_east");
+        FootprintNorth = _rows.Derived<Tiles>("footprint_north");
+        FootprintWide = _rows.Derived<Tiles>("footprint_wide");
+        FootprintDeep = _rows.Derived<Tiles>("footprint_deep");
 
         _rows.Seal();
     }
@@ -118,6 +122,41 @@ public sealed class LotTable
     public Column<Tiles> ParcelDeep { get; }
 
     /// <summary>
+    /// <b>The ground the Building on this Lot actually covers</b> — its parcel inset by four
+    /// setbacks.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THIS IS WHAT MEETS THE MAP LAYERS, AND THE PARCEL IS NOT.</b> <c>CONTEXT.md</c> →
+    /// Building: <i>"a Building has a footprint (the set of Tiles it covers)"</i> and <i>"interacts
+    /// with Map Layers through that footprint"</i>. The parcel is the Lot's <em>holding</em>;
+    /// this is the part with a wall on it. ⚠ <b>Sealing was the parcel and was therefore about
+    /// TWICE the built ground</b>, while the shell drew the smaller figure — so the simulation and
+    /// the picture disagreed about the same quantity, and the picture was the one that was right.
+    /// </para>
+    /// <para>
+    /// <b>Derived on the epoch beside <see cref="ParcelEast"/> and by the same call.</b> The
+    /// setbacks come from <c>[lots] setback_tiles</c> and a draw on the <em>parcel's corner</em>, so
+    /// the footprint is a property of the ground rather than of the row — see
+    /// <c>LotRuleset.Footprint</c>.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Zero on all four where there is no parcel</b>, the same convention
+    /// <see cref="ParcelEast"/> keeps, and it means the same thing: <em>ask the frontage</em>.
+    /// </para>
+    /// </remarks>
+    public Column<Tiles> FootprintEast { get; }
+
+    /// <inheritdoc cref="FootprintEast"/>
+    public Column<Tiles> FootprintNorth { get; }
+
+    /// <inheritdoc cref="FootprintEast"/>
+    public Column<Tiles> FootprintWide { get; }
+
+    /// <inheritdoc cref="FootprintEast"/>
+    public Column<Tiles> FootprintDeep { get; }
+
+    /// <summary>
     /// How much ground a Lot holds, in Tiles — <b>and therefore how much its Building Seals</b>.
     /// </summary>
     /// <remarks>
@@ -142,6 +181,9 @@ public sealed class LotTable
     /// </para>
     /// </remarks>
     public int ParcelTiles(int slot) => ParcelWide[slot].Raw * ParcelDeep[slot].Raw;
+
+    /// <summary>How many Tiles the Building on this Lot covers. Zero where there is no parcel.</summary>
+    public int FootprintTiles(int slot) => FootprintWide[slot].Raw * FootprintDeep[slot].Raw;
 
     /// <summary>Position along the east axis, in whole Tiles.</summary>
     public Column<Tiles> East { get; }

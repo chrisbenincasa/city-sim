@@ -189,6 +189,9 @@ foot_path_capacity_per_hour    = 1000
 
 [lots]
 lots_per_segment = 5
+# The most ground a Building leaves on each side of its parcel. A LENGTH and not a fraction, so
+# coverage rises with the parcel -- see minimal.toml, which carries the argument.
+setback_tiles = 2
 
 [parking]
 radius_metres = 400

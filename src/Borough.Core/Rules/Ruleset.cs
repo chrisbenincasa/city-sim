@@ -2292,7 +2292,27 @@ public readonly record struct MarketRuleset(int DecayPercent, int MoveCapPercent
 /// structurally.
 /// </para>
 /// <para>
-/// <b><see cref="LotsPerSegment"/> is derived rather than chosen</b>, which is why this table has one
+/// 🔴 <b><see cref="SetbackTiles"/> IS THE SECOND KEY AND IT ARRIVED BECAUSE THE SIMULATION AND THE
+/// DRAWING DISAGREED ABOUT WHAT A BUILDING COVERS.</b> The core sealed the <em>whole parcel</em> —
+/// garden included — while the shell drew a wall on 55–100% of the frontage and 45–85% of the depth,
+/// so ***Sealing was about twice what the picture showed*** and the four numbers that decided it lived
+/// in <c>Borough.Godot</c>, where no Ruleset could retune them and no State Hash could see them. That
+/// is <c>adr/0015</c>'s rule — a number a designer would want to change is Ruleset data — applied to
+/// numbers that had escaped it by being drawing constants.
+/// </para>
+/// <para>
+/// ⚠ <b>ONE KEY REPLACES FOUR, AND THE SHAPE IS DERIVED FROM IT.</b> A setback is a length rather
+/// than a fraction, so <b>coverage rises with the parcel</b> without anybody stating that it should:
+/// at the shipped lattice a detached plot is 6 × 6 Tiles and keeps about <b>44%</b>, a terrace's
+/// 6 × 16 keeps <b>58%</b>, and a slab's 16 × 16 keeps <b>77%</b>. ***A fraction would have made every
+/// density cover the same share of its ground***, which is the failure the shell's own
+/// <c>DepthFillLow</c> comment describes one level down. ⚠ <b>The four setbacks are drawn
+/// independently per parcel</b>, so a street varies and no two houses sit on the same line —
+/// see <see cref="Determinism.PurposeTag.BuildingFootprint"/>, which draws on the ground rather than
+/// on the Lot.
+/// </para>
+/// <para>
+/// <b><see cref="LotsPerSegment"/> is derived rather than chosen</b>, which is why this table had one
 /// key instead of the two <c>plans/0022</c> predicted. It is <c>CONTEXT.md</c> → Address's own working
 /// figure — <i>"five Buildings share a Segment"</i> — which is the premise of the decision that keeps
 /// an Address off a Node and therefore of the ~30,000-Segment figure every routing cost is priced
@@ -2300,13 +2320,87 @@ public readonly record struct MarketRuleset(int DecayPercent, int MoveCapPercent
 /// </para>
 /// </remarks>
 /// <param name="LotsPerSegment">How many Lots one Street Segment carries, both sides together.</param>
-public readonly record struct LotRuleset(int LotsPerSegment)
+/// <param name="SetbackTiles">
+/// The most ground a Building leaves on each side of its parcel, in Tiles.
+/// </param>
+public readonly record struct LotRuleset(int LotsPerSegment, int SetbackTiles)
 {
     /// <summary>A Ruleset whose land cannot be subdivided at all.</summary>
     public static LotRuleset None => default;
 
     /// <summary>Whether the subdivider runs.</summary>
     public bool Runs => LotsPerSegment > 0;
+
+    /// <summary>
+    /// <b>The footprint one parcel carries</b> — the parcel inset by four independently drawn
+    /// setbacks.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Each side is drawn on <c>[0, SetbackTiles]</c>, inclusive at both ends.</b> Zero is a
+    /// building on the pavement, which a terrace is; the ceiling is a full garden. ⚠ <b>The draw is on
+    /// the PARCEL'S CORNER and not on the Lot</b>, so the same patch of ground puts a Building back
+    /// where the last one stood.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A parcel too small to inset keeps its whole self.</b> The setbacks are clamped so the
+    /// footprint is at least one Tile each way — ***a Building covering nothing is not a garden***, and
+    /// at <c>block_tiles = 4</c> a parcel is one Tile across.
+    /// </para>
+    /// </remarks>
+    public (Quantities.Tiles East, Quantities.Tiles North, Quantities.Tiles Wide, Quantities.Tiles Deep)
+        Footprint(WorldKey key, Quantities.Tiles east, Quantities.Tiles north,
+            Quantities.Tiles wide, Quantities.Tiles deep)
+    {
+        if (wide.Raw < 1 || deep.Raw < 1)
+        {
+            return (Quantities.Tiles.Zero, Quantities.Tiles.Zero, Quantities.Tiles.Zero, Quantities.Tiles.Zero);
+        }
+
+        if (SetbackTiles < 1)
+        {
+            return (east, north, wide, deep);
+        }
+
+        // The patch's own corner, packed. Two Tiles coordinates fit a ulong with room to spare, and
+        // the map is 16,384 a side.
+        ulong patch = ((ulong)(uint)east.Raw << 32) | (uint)north.Raw;
+        ulong draw = Determinism.Randomness.Draw(
+            key, patch, Quantities.Ticks.Zero, Determinism.PurposeTag.BuildingFootprint);
+
+        int span = SetbackTiles + 1;
+
+        // Four independent bytes of one draw rather than four draws: the stream is counter-based and
+        // one call is one mix, and the bytes of a mixed word are independent of each other.
+        int west = (int)((draw & 0xFF) % (ulong)span);
+        int easterly = (int)(((draw >> 8) & 0xFF) % (ulong)span);
+        int southerly = (int)(((draw >> 16) & 0xFF) % (ulong)span);
+        int northerly = (int)(((draw >> 24) & 0xFF) % (ulong)span);
+
+        Trim(wide.Raw, ref west, ref easterly);
+        Trim(deep.Raw, ref southerly, ref northerly);
+
+        return (new Quantities.Tiles(east.Raw + west),
+            new Quantities.Tiles(north.Raw + southerly),
+            new Quantities.Tiles(wide.Raw - west - easterly),
+            new Quantities.Tiles(deep.Raw - southerly - northerly));
+    }
+
+    /// <summary>Shrinks two setbacks until they leave at least one Tile between them.</summary>
+    private static void Trim(int span, ref int low, ref int high)
+    {
+        while (low + high >= span)
+        {
+            if (high > low)
+            {
+                high--;
+            }
+            else
+            {
+                low--;
+            }
+        }
+    }
 }
 
 /// <summary>

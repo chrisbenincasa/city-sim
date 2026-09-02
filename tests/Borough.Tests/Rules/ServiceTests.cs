@@ -515,6 +515,7 @@ public sealed class ServiceTests
 
         [lots]
         lots_per_segment = 5
+        setback_tiles = 2
 
         [trips]
         crossing_seconds = 30

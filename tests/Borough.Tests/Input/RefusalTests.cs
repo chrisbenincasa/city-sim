@@ -441,6 +441,7 @@ public sealed class RefusalTests
 
         [lots]
         lots_per_segment = 5
+        setback_tiles = 2
         """;
 
     private const string Travelled = """

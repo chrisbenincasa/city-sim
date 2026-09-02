@@ -3309,6 +3309,10 @@ public sealed class World
             Lots.ParcelNorth[slot] = Quantities.Tiles.Zero;
             Lots.ParcelWide[slot] = Quantities.Tiles.Zero;
             Lots.ParcelDeep[slot] = Quantities.Tiles.Zero;
+            Lots.FootprintEast[slot] = Quantities.Tiles.Zero;
+            Lots.FootprintNorth[slot] = Quantities.Tiles.Zero;
+            Lots.FootprintWide[slot] = Quantities.Tiles.Zero;
+            Lots.FootprintDeep[slot] = Quantities.Tiles.Zero;
 
             if (ceiling <= 0
                 || !Lots.HasFrontage(slot)
@@ -3344,6 +3348,18 @@ public sealed class World
                 Lots.ParcelNorth[slot] = parcels[i].North;
                 Lots.ParcelWide[slot] = parcels[i].Wide;
                 Lots.ParcelDeep[slot] = parcels[i].Deep;
+
+                // The footprint is derived from the parcel and never stored separately, so the two
+                // cannot part company across a save -- which is the failure the parcel itself was
+                // built to end, arriving one level in.
+                (Quantities.Tiles east, Quantities.Tiles north, Quantities.Tiles wide,
+                    Quantities.Tiles deep) = Rules.Lots.Footprint(
+                        Key, parcels[i].East, parcels[i].North, parcels[i].Wide, parcels[i].Deep);
+
+                Lots.FootprintEast[slot] = east;
+                Lots.FootprintNorth[slot] = north;
+                Lots.FootprintWide[slot] = wide;
+                Lots.FootprintDeep[slot] = deep;
 
                 break;
             }
@@ -3820,9 +3836,18 @@ public sealed class World
         // player drew". So the ground a Building seals is the ground its Lot holds, and the key is
         // deleted rather than retuned.
         //
-        // The whole parcel is spent, garden included, which reads adr/0022's "Land is a stock the
-        // city spends" literally: you cannot farm somebody's back garden. A coverage fraction can
-        // arrive later as a multiplier defaulting to 1 without this having been wrong.
+        // 🔴 THE FOOTPRINT AND NOT THE PARCEL, AND THAT SENTENCE REPLACES ONE THAT SAID THE
+        // OPPOSITE. It read "the whole parcel is spent, garden included", citing adr/0022's "Land is
+        // a stock the city spends" -- you cannot farm somebody's back garden. THE READING WAS WRONG
+        // AND THE SHELL HAD ALREADY SAID SO: it drew a wall on 55-100% of the frontage and 45-85% of
+        // the depth, so half the sealed ground had visible grass on it. adr/0022's stock is spent by
+        // what is BUILT, and a garden is not built -- CONTEXT.md -> Building says a Building
+        // interacts with Map Layers "through that footprint" and the footprint is the walls.
+        //
+        // The old comment predicted its own repair -- "a coverage fraction can arrive later as a
+        // multiplier defaulting to 1 without this having been wrong". It arrived, and it is not a
+        // multiplier: it is [lots] setback_tiles, a LENGTH, so coverage rises with the parcel and a
+        // slab covers its site while a suburb does not. See LotRuleset.Footprint.
         //
         // ONE WHEN THERE IS NO PARCEL, which is CONTEXT.md -> Sealing's own illustration of the unit
         // -- "one house seals 1/1024 of its Cell". A Lot with no Address has no parcel (adr/0079
@@ -3830,7 +3855,7 @@ public sealed class World
         // subdivider ever carved -- BuildingResidencyTests builds a world with no [[building]] at all
         // and asks the Cell index to hold one. Both are legal and neither is a Building covering
         // nothing.
-        int footprintTiles = Lots.ParcelTiles(lotSlot);
+        int footprintTiles = Lots.FootprintTiles(lotSlot);
 
         if (footprintTiles < 1)
         {
@@ -3851,8 +3876,8 @@ public sealed class World
             // differently-built Cells apart, which is the whole quantity this was supposed to give
             // back.
             Layers.SealGround(
-                Lots.ParcelEast[lotSlot], Lots.ParcelNorth[lotSlot],
-                Lots.ParcelWide[lotSlot], Lots.ParcelDeep[lotSlot]);
+                Lots.FootprintEast[lotSlot], Lots.FootprintNorth[lotSlot],
+                Lots.FootprintWide[lotSlot], Lots.FootprintDeep[lotSlot]);
         }
 
         // adr/0069: construction houses NOBODY, so a Building is empty from the Tick it is raised and

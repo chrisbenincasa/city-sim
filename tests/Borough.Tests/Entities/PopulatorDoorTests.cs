@@ -236,6 +236,7 @@ public sealed class PopulatorDoorTests
 
             [lots]
             lots_per_segment = 5
+            setback_tiles = 2
             """,
             "populator-door.toml");
 

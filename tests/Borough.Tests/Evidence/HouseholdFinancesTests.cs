@@ -246,6 +246,7 @@ public sealed class HouseholdFinancesTests
 
         [lots]
         lots_per_segment = 5
+        setback_tiles = 2
         """;
 
     /// <summary>The currency, which opens a balance on every Household and puts nothing in it.</summary>
