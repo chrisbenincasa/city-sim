@@ -34,6 +34,14 @@ using Borough.Core.Rules;
 /// </remarks>
 internal static class DayDump
 {
+    /// <summary>How many <see cref="CitizenActivity"/> values there are.</summary>
+    /// <remarks>
+    /// ⚠ <b>Derived from the enum and not written down</b>, because this file indexed two arrays by
+    /// the value and sized both to a literal <c>4</c> — so the day a fifth arrived, the dump wrote
+    /// past the end of both. <c>CitizenActivity</c>'s own remark had said the set would grow.
+    /// </remarks>
+    private static readonly int Activities = Enum.GetValues<CitizenActivity>().Length;
+
     /// <summary>The subject's state at one Tick, reduced to what a transition would change.</summary>
     private readonly record struct Reading(
         CitizenActivity Activity, bool Travelling, TripFate LastFate, long Balance,
@@ -164,7 +172,10 @@ internal static class DayDump
     /// </remarks>
     private static void Meanwhile(TextWriter output, World world)
     {
-        var counts = new int[4];
+        // Sized off the enum rather than off a literal 4, which is what let the fifth
+        // value arrive without this file noticing. CitizenActivity.Travelling landed on
+        // 2026-09-03 and every index below would have been an out-of-range write.
+        var counts = new int[Activities];
         int employed = 0;
         int live = 0;
         int hungry = 0;
@@ -216,7 +227,8 @@ internal static class DayDump
             + $"{counts[(int)CitizenActivity.AtHome]:N0} at home, "
             + $"{counts[(int)CitizenActivity.TravellingToWork]:N0} walking to work, "
             + $"{counts[(int)CitizenActivity.AtWork]:N0} at work, "
-            + $"{counts[(int)CitizenActivity.TravellingHome]:N0} walking home");
+            + $"{counts[(int)CitizenActivity.TravellingHome]:N0} walking home, "
+            + $"{counts[(int)CitizenActivity.Travelling]:N0} on another journey");
 
         if (!world.Rules.Needs.Runs)
         {
@@ -244,7 +256,7 @@ internal static class DayDump
         TextWriter output, World world, Simulation simulation, int subject)
     {
         Reading previous = Read(world, subject);
-        var spent = new long[4];
+        var spent = new long[Activities];
         int events = 0;
 
         Line(output, 0, previous.Activity, "the Day begins", previous);
@@ -299,6 +311,7 @@ internal static class DayDump
                 CitizenActivity.TravellingToWork => "set off for work",
                 CitizenActivity.AtWork => "arrived at work",
                 CitizenActivity.TravellingHome => "set off home",
+                CitizenActivity.Travelling => "set off on an errand",
                 CitizenActivity.AtHome when was.Activity == CitizenActivity.TravellingHome =>
                     "got home",
                 CitizenActivity.AtHome => $"turned back — {Fate(now.LastFate)}",
@@ -342,6 +355,8 @@ internal static class DayDump
             $"#   at work          {spent[(int)CitizenActivity.AtWork],6:N0} Ticks");
         output.WriteLine(
             $"#   walking home     {spent[(int)CitizenActivity.TravellingHome],6:N0} Ticks");
+        output.WriteLine(
+            $"#   another journey  {spent[(int)CitizenActivity.Travelling],6:N0} Ticks");
         output.WriteLine("#");
         output.WriteLine(
             "# What this Citizen did NOT do, because the mechanism does not exist rather than "

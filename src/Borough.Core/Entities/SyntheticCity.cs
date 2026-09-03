@@ -487,25 +487,48 @@ public static class SyntheticCity
     /// </summary>
     /// <remarks>
     /// <para>
+    /// <b>Every <see cref="TradeBlockStride"/>th block AROUND EACH RING, counted from the middle.</b>
+    /// <see cref="Shell"/> lays the lattice out as concentric Chebyshev shells and numbers each one
+    /// from its south-west corner; this is that numbering read backwards, so a shell of <c>8r</c>
+    /// blocks yields exactly <c>r</c> of them to trade and the share is the stride's by construction
+    /// at every radius. ⚠ <b>The middle block is on the trade side</b>, which is step 0 of ring 0 —
+    /// a consequence of the arithmetic that this time says something, since
+    /// <see cref="Subdivide"/> builds outward from that block and <see cref="BandAt"/> gives it the
+    /// densest band.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>IT WAS AN ANTI-DIAGONAL FROM THE MAP'S ORIGIN, AND BOTH HALVES OF THAT WERE WRONG ONCE
+    /// THE CITY GREW FROM ITS MIDDLE.</b> The origin keying put a shop in the dense core only by
+    /// parity: measured on <c>banded.toml</c> at 4,000 Citizens the densest band is <b>6 blocks of
+    /// 33</b>, and the diagonal missed every one — <b>24 trade Lots, all suburban.</b> Phase-locking
+    /// the same diagonal to the middle fixed that and broke the share instead, because ***a straight
+    /// line crosses a small square ring far more often, per block of its perimeter, than a large
+    /// one***: ring 1 gave <b>2 blocks of 8</b> where the stride says one in eight. Measured on
+    /// <c>provisioned.toml</c> at 2,000 Citizens — <b>16 trade Lots before, 72 after</b>, on a city
+    /// of 42 blocks where the stride promises about five. ***A land-use split that changes with the
+    /// city's size is not a split.*** Counting round the ring is exact at every radius.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Two blocks a ring apart on the same spoke are NOT both trade</b>, which a radius-keyed
+    /// rule would have given and which was tried and rejected: a Manhattan distance from the middle
+    /// turns the stride into concentric rings of shops, so a city whose radius is under the stride
+    /// gets exactly ONE trade block. On <c>banded.toml</c> at 4,000 Citizens — 36 blocks, radius 3,
+    /// stride 8 — that was <b>2 trade Lots in the whole city.</b>
+    /// </para>
+    /// <para>
     /// <b>Keyed on the block's ABSOLUTE position and not on the loop index</b>, which matters in
     /// exactly one shipped world and would have been invisible everywhere else: <c>twinned.toml</c>
     /// carves two lattices with different origins, and an index-keyed stride would give the same
     /// ground a different use depending on which walk reached it. ***A block's use is a property of
-    /// the ground, not of the order it was visited in.***
+    /// the ground, not of the order it was visited in.*** ⚠ <b>The centre is a property of the
+    /// lattice and not of the walk</b>, so that still holds with two lattices and two centres.
     /// </para>
     /// <para>
-    /// <b>The diagonal is what spreads it.</b> <c>column % stride</c> would make whole columns
-    /// commercial; summing the two scatters one block in <see cref="TradeBlockStride"/> evenly across
-    /// every row. ⚠ <b>It puts block (0, 0) on the trade side</b>, which is a consequence of the
-    /// arithmetic rather than a location theory — and it is the direction to err in, because the
-    /// alternative offset yields **no commercial land at all** in a small city, which is
-    /// <c>plans/0044</c> **P6**'s silent failure exactly.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>The diagonal is also why the stride saturates</b>: on a grid of <em>n</em> blocks a side,
-    /// <c>column + row</c> spans 0..2(n−1), so any stride past that marks exactly the one block at
-    /// the origin and every larger value is the same world. See <see cref="TradeBlockStride"/>, which
-    /// carries the measurement. <b>A stride is only a dial while it is smaller than the city.</b>
+    /// ⚠ <b>The stride saturates at the city's radius rather than at its diagonal</b>: a shell of
+    /// <c>8r</c> blocks yields none at all once the stride passes it, so every value above
+    /// <c>8 &#215; radius</c> marks the middle block and nothing else. See
+    /// <see cref="TradeBlockStride"/>, which carries the measurement. <b>A stride is only a dial
+    /// while it is smaller than the city.</b>
     /// </para>
     /// <para>
     /// <b>It draws no randomness</b>, which is this class's own standing rule: every value it
@@ -514,8 +537,58 @@ public static class SyntheticCity
     /// a stream. <c>adr/0165</c> quotes that sentence to refuse a drawn share.
     /// </para>
     /// </remarks>
-    private static bool IsTradeBlock(int column, int row) =>
-        (column + row) % TradeBlockStride == 0;
+    private static bool IsTradeBlock(int column, int row, int centreColumn, int centreRow) =>
+        Step(column - centreColumn, row - centreRow) % TradeBlockStride == 0;
+
+    /// <summary>
+    /// Where a block sits in <see cref="Shell"/>'s numbering of its own ring — <b>that method read
+    /// backwards.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The four sides, and each corner belongs to exactly one of them</b>, matching the walk that
+    /// produced the numbering: the south side stops one short of the south-east corner, which the
+    /// east side takes, and so on round. Getting that wrong would number two blocks the same and
+    /// leave a third unreachable — and since the only reader takes a remainder, it would show up as
+    /// a land-use split that is subtly out rather than as anything failing.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is the inverse of <see cref="Shell"/> and the two must be read together.</b> They are
+    /// a pair with no test between them; what checks them is that
+    /// <see cref="IsTradeBlock"/>'s share comes out at the stride, which is asserted on a real
+    /// lattice rather than on the arithmetic.
+    /// </para>
+    /// </remarks>
+    private static int Step(int east, int north)
+    {
+        int acrossEast = east < 0 ? -east : east;
+        int acrossNorth = north < 0 ? -north : north;
+        int ring = acrossEast > acrossNorth ? acrossEast : acrossNorth;
+
+        if (ring == 0)
+        {
+            return 0;
+        }
+
+        int side = 2 * ring;
+
+        if (north == -ring && east < ring)
+        {
+            return east + ring;
+        }
+
+        if (east == ring && north < ring)
+        {
+            return side + north + ring;
+        }
+
+        if (north == ring && east > -ring)
+        {
+            return (2 * side) + ring - east;
+        }
+
+        return (3 * side) + ring - north;
+    }
 
     /// <summary>
     /// Raises up to <paramref name="wanted"/> dwellings on the vacant Lots inside one lattice's box.
@@ -952,45 +1025,139 @@ public static class SyntheticCity
         int made = 0;
         int room = 0;
 
-        for (int b = 0; b < span * span && room < wanted; b++)
+        // 🔴 OUTWARD FROM THE MIDDLE, AND IT WAS READING ORDER. This walked `b % span` and
+        // `b / span` -- west to east, south to north, from the lattice's origin corner -- and it
+        // stops the moment it has room, so what it built was a STRIP along the south edge of a
+        // square lattice. That is plans/0049 F8 and F41, filed twice from a Lot count and from the
+        // Sealing overlay, and it is here rather than in the drawing. ***A city that grows in
+        // reading order rather than from its middle has no middle***, and BandAt paints its rings
+        // concentrically about one -- so the two passes disagreed about where the city was.
+        //
+        // 🔴 WHAT IT COST WAS THE TOP OF THE DENSITY LADDER. Measured on `platted.toml`, the file
+        // whose whole job is to draw all five block patterns in one city: at 10,000 Citizens the
+        // lattice paves 0-544 Tiles square and the built part reaches north 158, never within 114
+        // Tiles of the centre row; at 40,000 it paves 0-1,056 and reaches 286. The drawn storey
+        // counts were 2, 3, 4 and 5 in both runs -- ***four times the population and the same three
+        // rungs*** -- because bands 4 and 5, the courtyard and the slab, were painted on ground
+        // nothing ever subdivided. The file's own header claims a slab in the middle.
+        //
+        // ⚠ THE ORDER IS A CHEBYSHEV RING WALK ABOUT `BandAt`'s OWN CENTRE, which is the point: one
+        // centre read by both passes rather than two conventions that happen to agree on a full
+        // lattice. Ring 0 is the middle square and ring r is the shell of 8r squares around it, so
+        // the densest band is subdivided first and the city thins outward.
+        //
+        // ⚠ IT IS SAFE TO REORDER AND THIS IS WHY. Adjacent blocks claim OPPOSITE sides of the
+        // Segment they share, and which side is a property of a block's own coordinates rather than
+        // of who reached it first -- the paragraph above already says so, and it said it about a
+        // walk that never tested it.
+        int half = IntegerMath.FloorDiv(span, 2);
+        int centreColumn = firstColumn + half;
+        int centreRow = firstRow + half;
+        // The furthest corner of the box from the middle, and not `span`. A ring costs 8r steps, so
+        // a bound twice as large as it needs to be does four times the work -- every step of it
+        // clipped by the test below, which is the kind of correct that reads as deliberate.
+        int reach = half > span - 1 - half ? half : span - 1 - half;
+
+        for (int ring = 0; ring <= reach && room < wanted; ring++)
         {
-            int column = firstColumn + (b % span);
-            int row = firstRow + IntegerMath.FloorDiv(b, span);
+            int around = ring == 0 ? 1 : 8 * ring;
 
-            if (column >= blocks || row >= blocks)
+            for (int step = 0; step < around && room < wanted; step++)
             {
-                continue;
-            }
+                Shell(centreColumn, centreRow, ring, step, out int column, out int row);
 
-            // plans/0053 step 2. The generator paints the band the way it paints the Zone, which is
-            // adr/0025's "the player sets a ceiling" with the generator standing in for the player --
-            // NOT a cap derived from conditions, which that ADR rejects by name. In a Ruleset with no
-            // [[band]] this is 0 on every block and nothing anywhere reads it.
-            world.BandBlock(column, row, BandAt(world, column, row, firstColumn, firstRow, span));
+                if (column < firstColumn || row < firstRow
+                    || column >= firstColumn + span || row >= firstRow + span
+                    || column >= blocks || row >= blocks)
+                {
+                    continue;
+                }
 
-            // adr/0165's split, at the loop that already had `column` and `row` in hand -- the ADR's
-            // own words are that the change is WHAT THAT VALUE IS and not where it comes from.
-            if (IsTradeBlock(column, row))
-            {
-                // Carved and NOT counted, which is what keeps `wanted` meaning what this method's
-                // summary says it means: enough land to hold `wanted` DWELLINGS. Counting a
-                // commercial block toward a housing target would silently shrink every generated
-                // city by the trade's share -- a population change wearing a zoning change's clothes.
-                LotSubdivider.SubdivideBlock(world, column, row, Trade);
-                continue;
-            }
+                // plans/0053 step 2. The generator paints the band the way it paints the Zone, which
+                // is adr/0025's "the player sets a ceiling" with the generator standing in for the
+                // player -- NOT a cap derived from conditions, which that ADR rejects by name. In a
+                // Ruleset with no [[band]] this is 0 on every block and nothing anywhere reads it.
+                world.BandBlock(column, row, BandAt(world, room, wanted));
 
-            int before = world.Lots.Rows.SlotCount;
+                // adr/0165's split, at the loop that already had `column` and `row` in hand -- the
+                // ADR's own words are that the change is WHAT THAT VALUE IS and not where it comes
+                // from.
+                if (IsTradeBlock(column, row, centreColumn, centreRow))
+                {
+                    // Carved and NOT counted, which is what keeps `wanted` meaning what this
+                    // method's summary says it means: enough land to hold `wanted` DWELLINGS.
+                    // Counting a commercial block toward a housing target would silently shrink
+                    // every generated city by the trade's share -- a population change wearing a
+                    // zoning change's clothes.
+                    LotSubdivider.SubdivideBlock(world, column, row, Trade);
+                    continue;
+                }
 
-            made += LotSubdivider.SubdivideBlock(world, column, row, Housing);
+                int before = world.Lots.Rows.SlotCount;
 
-            for (int slot = before; slot < world.Lots.Rows.SlotCount; slot++)
-            {
-                room += RoomOn(world, slot, rate, trades);
+                made += LotSubdivider.SubdivideBlock(world, column, row, Housing);
+
+                for (int slot = before; slot < world.Lots.Rows.SlotCount; slot++)
+                {
+                    room += RoomOn(world, slot, rate, trades);
+                }
             }
         }
 
         return made;
+    }
+
+    /// <summary>
+    /// The <paramref name="step"/>th lattice square on the Chebyshev shell at
+    /// <paramref name="ring"/> from a centre — <b>ring 0 being the centre square itself.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Eight squares a ring, so a shell holds <c>8 × ring</c> of them</b>, walked from its
+    /// south-west corner: east along the south side, north up the east, west along the north, south
+    /// down the west. ⚠ <b>The order within a shell is arbitrary and is recorded as arbitrary</b> —
+    /// what is not arbitrary is that a shell is finished before the next one is started, which is
+    /// the whole of what <see cref="Subdivide"/> needs from it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It bounds nothing.</b> A shell runs past the lattice on every side once the ring exceeds
+    /// the half-span, and the caller is what refuses those — because a square outside the lattice
+    /// and a square past the far edge of the map are two different refusals and only one of them is
+    /// this function's business.
+    /// </para>
+    /// </remarks>
+    private static void Shell(
+        int centreColumn, int centreRow, int ring, int step, out int column, out int row)
+    {
+        if (ring <= 0)
+        {
+            column = centreColumn;
+            row = centreRow;
+            return;
+        }
+
+        int side = 2 * ring;
+
+        if (step < side)
+        {
+            column = centreColumn - ring + step;
+            row = centreRow - ring;
+        }
+        else if (step < 2 * side)
+        {
+            column = centreColumn + ring;
+            row = centreRow - ring + (step - side);
+        }
+        else if (step < 3 * side)
+        {
+            column = centreColumn + ring - (step - (2 * side));
+            row = centreRow + ring;
+        }
+        else
+        {
+            column = centreColumn - ring;
+            row = centreRow + ring - (step - (3 * side));
+        }
     }
 
     /// <summary>How many Households one carved Lot has room for.</summary>
@@ -1034,33 +1201,53 @@ public static class SyntheticCity
     }
 
     /// <summary>
-    /// Which density band the generator paints on a lattice square — <b>concentric rings, densest at
-    /// the middle</b>.
+    /// Which density band the generator paints on the block it is about to carve — <b>a share of the
+    /// population apiece, densest first.</b>
     /// </summary>
     /// <remarks>
     /// <para>
     /// <b>The generator standing in for the player, which is what <c>adr/0025</c> asks for</b>: the
     /// player sets a ceiling, and a player would set a high one in the middle. ⚠ <b>It is NOT a cap
     /// derived from conditions</b> — that ADR rejects the road-derived cap by name, and reading land
-    /// value here instead of road tier would not change the objection. This reads only the lattice's
-    /// own geometry, which is the same thing <see cref="IsTradeBlock"/> reads.
+    /// value here instead of road tier would not change the objection. This reads only how much of
+    /// the population is already housed, which is the pass's own progress and nothing about the city.
     /// </para>
     /// <para>
-    /// ✅ <b>It introduces no tuning number, and that is why the rings are equal.</b> The ring count is
-    /// the Ruleset's band count and the ring width falls out of the lattice's half-span, so there is
-    /// no boundary anybody chose and nothing here to ratify under <c>adr/0052</c>. ***A layout with a
-    /// authored radius would have been a hash-bearing number invented by a fixture.***
+    /// 🔴 <b>IT WAS A CHEBYSHEV RING OVER THE LATTICE'S HALF-SPAN, AND THE GRADIENT WAS NEVER
+    /// CROSSED AT ANY POPULATION.</b> The two extents in that division are unrelated quantities:
+    /// <see cref="PavedTiles"/> sizes the lattice from <c>Lots.Rows.Capacity</c> — a TABLE's capacity
+    /// — while <see cref="Subdivide"/> stops at the population's room, so the band a block got was
+    /// the ratio between a memory sizing and a city sizing. ***Measured on <c>platted.toml</c>, the
+    /// file whose whole job is to draw all five patterns in one city: under the old reading-order
+    /// walk the drawn storeys were 2, 3, 4, 5 at 10,000 Citizens and 2, 3, 4, 5 at 40,000; under a
+    /// centre-out walk against the same divisor they were 5, 6, 7 at 10,000, at 40,000 AND at
+    /// 160,000.*** Sixteen times the population and the same three rungs, from the other end. The
+    /// divisor grew exactly as fast as the built radius did, so no city ever crossed a band boundary.
     /// </para>
     /// <para>
-    /// <b>Chebyshev rather than Euclidean</b>, matching <c>ZoneRuleEngine.Score</c>'s centrality term
-    /// one subsystem over — square rings on a square lattice, and no distance to take a root of.
+    /// ✅ <b>EACH DECLARED BAND HOUSES AN EQUAL SHARE OF THE POPULATION, and the ground each needs
+    /// falls out of how dense it is.</b> That is why this introduces no tuning number and nothing
+    /// here is ratifiable under <c>adr/0052</c>: the only figure is the Ruleset's own band count.
+    /// ⚠ <b>The rings come out UNEQUAL and that is the correction rather than a side effect</b> — a
+    /// slab block houses an order of magnitude more people than a detached one, so a fifth of the
+    /// population fits in a couple of blocks at the middle and wants dozens at the rim. ***A city
+    /// thins outward because the ground each band needs differs, which is the thing the equal rings
+    /// were asserting away.***
     /// </para>
     /// <para>
-    /// ⚠ <b>Zero when the Ruleset declares no band</b>, which is every shipped file but the one that
-    /// demonstrates this. Band 0 is <em>no band</em> and admits everything.
+    /// ⚠ <b>The rings are still concentric and are no longer GEOMETRY.</b>
+    /// <see cref="Subdivide"/> walks outward one Chebyshev shell at a time and the progress below
+    /// only rises, so the band it hands out is non-increasing in the ring — which is what makes the
+    /// picture concentric. ⚠ <b>A shell may carry two bands</b>, where the share is crossed part-way
+    /// round it, and that is left alone: a boundary that falls on a ring edge is a boundary somebody
+    /// drew.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Zero when the Ruleset declares no band</b>, which is every shipped file but the two that
+    /// demonstrate this. Band 0 is <em>no band</em> and admits everything.
     /// </para>
     /// </remarks>
-    private static byte BandAt(World world, int column, int row, int firstColumn, int firstRow, int span)
+    private static byte BandAt(World world, int room, int wanted)
     {
         int bands = world.Rules.Bands.Length;
 
@@ -1069,28 +1256,25 @@ public static class SyntheticCity
             return 0;
         }
 
-        int half = IntegerMath.FloorDiv(span, 2);
-        int centreColumn = firstColumn + half;
-        int centreRow = firstRow + half;
-
-        int acrossEast = column > centreColumn ? column - centreColumn : centreColumn - column;
-        int acrossNorth = row > centreRow ? row - centreRow : centreRow - row;
-        int reach = acrossEast > acrossNorth ? acrossEast : acrossNorth;
-
-        // The +1 is a fencepost and not a fudge: a lattice of span 1 has a half-span of 0, and every
-        // square in it is the centre -- so the denominator has to be the number of rings there ARE
-        // rather than the distance to the last one.
-        int ring = IntegerMath.FloorDiv(reach * bands, half + 1);
-
-        if (ring >= bands)
+        // A target of nothing is not a target of one: with no population to divide there is no
+        // share to be part-way through, and the middle is where the pass starts.
+        if (wanted <= 0)
         {
-            ring = bands - 1;
+            return (byte)bands;
         }
 
-        // Counted from 1, and inverted so that ring 0 -- the middle -- takes the LAST band declared.
-        // Declaration order is intensity order, lowest first (BandDefinition), so the densest band is
-        // the one written last and it lands where a player would have painted it.
-        return (byte)(bands - ring);
+        int crossed = IntegerMath.FloorDiv(room * bands, wanted);
+
+        if (crossed >= bands)
+        {
+            crossed = bands - 1;
+        }
+
+        // Counted from 1, and inverted so that the FIRST ground carved -- the middle -- takes the
+        // last band declared. Declaration order is intensity order, lowest first (BandDefinition),
+        // so the densest band is the one written last and it lands where a player would have
+        // painted it.
+        return (byte)(bands - crossed);
     }
 
 

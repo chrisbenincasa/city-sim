@@ -51,22 +51,38 @@ public sealed class BuildingDensityFieldTests
     /// </remarks>
     private const int BlockDensity = 8;
 
-    /// <summary>A population inside the band where each lattice's edge is still ragged.</summary>
+    /// <summary>
+    /// The populations the plateau count is read at — <b>a ladder, because the band it used to
+    /// straddle is gone.</b>
+    /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Measured, and stated in <c>rulesets/twinned.toml</c>'s header for the same reason it is
-    /// here.</b> A lattice that has not filled its own ground has a ragged edge, and a ragged edge
-    /// carries maxima of its own — more components than there are centres. ***A demonstration world
-    /// has a size at which it demonstrates something else***, and the number is cheap to state and
-    /// expensive to rediscover.
+    /// 🔴 <b>THERE WAS A RAGGED BAND AND <c>plans/0055</c> CLOSED IT.</b> A lattice that had not
+    /// filled its own ground had a ragged edge, and a ragged edge carried density maxima of its own —
+    /// more plateaus than there were centres. The count was <b>not monotonic</b>: 200 → 2, 300 → 3,
+    /// 400 → 4, 500 → 3, 600 → 3, 800 → 3, 1,000 → 2, and 2 at every size above, re-swept twice as
+    /// the Lots per block moved. <b>Re-swept 2026-09-03 across 31 sizes from 100 to 64,000 Citizens,
+    /// it is 2 at every single one.</b>
     /// </para>
     /// <para>
-    /// <b>600 rather than the band's edge on purpose.</b> The sweep reads 2 at 200 and 2 at 1,000,
-    /// so a test sited at either end is one small change away from measuring the boundary instead
-    /// of the effect.
+    /// <b>The cause is the subdivider and not the field.</b> The old walk raster-scanned the block
+    /// lattice and stopped wherever the population ran out, so the last row it reached was half
+    /// filled and carried bumps of its own; <c>plans/0055</c> walks outward from the middle in
+    /// Chebyshev shells, so a lattice that has not filled its ground is a smaller filled lattice
+    /// rather than a ragged one. ***A demonstration world had a size at which it demonstrated
+    /// something else, and now it does not.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>So the ladder is what is read, rather than a size chosen inside a window.</b> A single
+    /// population here was only ever standing in for the range, and the range is now uniform — which
+    /// is a claim worth asserting across it rather than at a point in it.
     /// </para>
     /// </remarks>
-    private const int RaggedBandCitizens = 600;
+    private static readonly int[] SweptCitizens =
+    [
+        100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800, 850, 900, 950,
+        1_000, 1_100, 1_200, 1_400, 1_600, 1_800, 2_000, 2_400, 3_200, 4_000, 8_000, 16_000, 64_000,
+    ];
 
     private static World Populated(string file, int citizens)
     {
@@ -400,64 +416,55 @@ public sealed class BuildingDensityFieldTests
         Assert.Equal(1, Plateaus(Populated("minimal.toml", citizens)));
 
     /// <summary>
-    /// 🔴 <b>A two-lattice world has TWO concentrations</b>, above the ragged band and below it.
-    /// </summary>
-    /// <remarks>
-    /// ⚠ <b>The low rung is 200 and not the old 2,000 floor</b>: the band is a window rather than a
-    /// minimum (see <see cref="RaggedBandCitizens"/>), so a city too SMALL to have a ragged edge
-    /// reads two just as a filled one does, and both sides of the window are worth pinning.
-    /// <para>
-    /// 🔴 <b>It was 400, and 400 is INSIDE the band as of <c>plans/0053</c>.</b> Occupancy divides
-    /// the ground, so a city of a given population takes a different number of Buildings and the
-    /// band moved down and widened: it now runs <b>300–800</b> where it ran 500–800. The low rung
-    /// moved to the nearest size still below it rather than the assertion being loosened.
-    /// </para>
-    /// </remarks>
-    [Theory]
-    [InlineData(200)]
-    [InlineData(4_000)]
-    [InlineData(16_000)]
-    [InlineData(64_000)]
-    public void A_two_lattice_world_has_two_concentrations(int citizens) =>
-        Assert.Equal(2, Plateaus(Populated("twinned.toml", citizens)));
-
-    /// <summary>
-    /// ⚠ <b>And inside the ragged band it does not</b> — <c>twinned.toml</c> at 600 Citizens is
-    /// three plateaus.
+    /// ✅ <b>And it reads two at EVERY size, which it did not before</b> — the ragged band is closed.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Committed as a fact rather than left in prose, because it is the reading that would be
-    /// mistaken for a defect.</b> Each lattice holds ~61 Buildings over ~11 Cells at that size and
-    /// does not fill its own ground, so its ragged edge carries maxima of its own. ⚠ **The watershed
-    /// would still find two**, because prominence is what discards a plateau whose saddle to a higher
-    /// one is barely below it — ***this counts candidate centres and the watershed counts accepted
-    /// ones***, and the gap between those two numbers is exactly what the prominence threshold is for.
-    /// <b>If this ever reads 2, the band has moved and the file's header is now wrong.</b>
+    /// 🔴 <b>THIS WAS THE INVERSE FACT AND IT IS KEPT AS THE INVERSE.</b> It asserted <em>more than
+    /// two</em> at 600 Citizens and carried the instruction <em>if this ever reads 2, the band has
+    /// moved — re-sweep it and update this and the file's header rather than deleting this.</em>
+    /// <c>plans/0055</c> made it read 2, the sweep was taken, and the band is not somewhere else: it
+    /// is <b>gone across 31 sizes from 100 to 64,000 Citizens.</b> See <see cref="SweptCitizens"/>
+    /// for the old readings and the cause.
     /// </para>
     /// <para>
-    /// 🔴 ⚠ <b>IT IS A BAND AND NOT A FLOOR, AND IT SAID <i>FLOOR</i> UNTIL 2026-09-01.</b> Giving
-    /// the block's corner an owner drops a block from ten Lots to eight
-    /// (<see cref="Borough.Core.Entities.LotSubdivider.CornerTiles"/>), which moved the reading at
-    /// 1,000 Citizens from 4 to <b>2</b> and sent somebody to sweep the whole range. The count is
-    /// <b>NOT MONOTONIC</b>: 200 → 2, <b>300 → 3, 400 → 4, 500 → 3, 600 → 3, 800 → 3</b>, 1,000 → 2,
-    /// and 2 at every size above (re-swept at <c>plans/0053</c>, which moved the band's lower edge
-    /// from 500 to 300 by changing how many Buildings a population takes). ***A city too small to have a ragged edge reads the same as a city
-    /// that has filled its own ground***, so a single threshold could never have described this and
-    /// the old name asserted one. What the extra maxima need is a lattice large enough to be ragged
-    /// and too small to be full, which is a window rather than a minimum.
+    /// <b>What it now guards is worth more than what it guarded.</b> The old fact pinned a quirk of
+    /// the subdivider so that nobody would mistake it for a defect; this one pins the property the
+    /// world exists to have — ***two concentrations means two, at every size a reader might run it
+    /// at*** — and it is the fact that would go red if a future walk left ragged edges again.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It replaced a <c>[Theory]</c> at 200 / 4,000 / 16,000 / 64,000 rather than joining
+    /// it.</b> Every rung of that fact is on this ladder, so keeping both would have been two
+    /// statements of one claim that can part company — <c>plans/0012</c> <b>Cause 1</b> — and the
+    /// four rungs were only ever a sample of the range this now reads whole.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It counts CANDIDATE centres and the watershed counts ACCEPTED ones</b>, which is
+    /// unchanged and is why the two numbers were allowed to differ in the first place. Prominence
+    /// discards a plateau whose saddle to a higher one is barely below it; nothing here consults a
+    /// threshold. <b>The two agreeing everywhere is a fact about this world and not a licence to read
+    /// one for the other.</b>
     /// </para>
     /// </remarks>
     [Fact]
-    public void Inside_the_ragged_band_the_two_lattices_are_not_yet_two_plateaus()
+    public void Every_size_on_the_ladder_reads_two_concentrations()
     {
-        int plateaus = Plateaus(Populated("twinned.toml", RaggedBandCitizens));
+        List<string> read = [];
 
-        Assert.True(
-            plateaus > 2,
-            $"twinned.toml at {RaggedBandCitizens} Citizens now has {plateaus} plateaus where it "
-            + "measured 3. The band has moved -- re-sweep it and update this and twinned.toml's "
-            + "header rather than deleting this.");
+        foreach (int citizens in SweptCitizens)
+        {
+            int plateaus = Plateaus(Populated("twinned.toml", citizens));
+
+            read.Add($"{citizens} → {plateaus}");
+
+            Assert.True(
+                plateaus == 2,
+                $"twinned.toml at {citizens} Citizens has {plateaus} plateaus and not 2. The ragged "
+                + "band plans/0055 closed has reopened, or the gap between the two lattices has. "
+                + "Re-sweep, and update this and twinned.toml's header rather than loosening it. "
+                + "The ladder so far: " + string.Join(", ", read));
+        }
     }
 
     /// <summary>

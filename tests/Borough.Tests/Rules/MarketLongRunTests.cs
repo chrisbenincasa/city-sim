@@ -199,6 +199,25 @@ public sealed class MarketLongRunTests(MarketLongRun run) : IClassFixture<Market
     /// and not about the city.
     /// </para>
     /// <para>
+    /// 🔴 <b>THE NON-VACUITY GUARD USED TO BE A RATIO AND THE RATIO WAS MEASURING THE LAND SUPPLY.</b>
+    /// It read <em>shops × 4 ≥ trade Lots</em> — most of what admits a shop is spoken for — and that
+    /// held only because <c>provisioned.toml</c> happened to carve about eighteen trade Lots.
+    /// <c>plans/0055</c> made the city grow from its middle and fixed the commercial stride to count
+    /// round each ring rather than along a diagonal, and the same world now carves <b>64</b>. Nothing
+    /// about the market changed and the guard failed. ***A guard whose threshold moves with a number
+    /// it does not name is measuring that number.*** What it was actually asking is whether the count
+    /// CLIMBED, so that is what it asks now — measured on <c>provisioned.toml</c> at 2,000 Citizens,
+    /// <b>2 shops at the first reading and 13 at the last</b>, still rising.
+    /// </para>
+    /// <para>
+    /// <b>And the ceiling is now shown to be reachable across the arms rather than within one.</b>
+    /// <c>oversupplied.toml</c> closes at <b>64 shops on 64 trade Lots</b> — exactly pinned, which is
+    /// what that world exists to demonstrate — so the bound the loop asserts is one some world in the
+    /// class actually touches. ⚠ <b>That is a weaker claim per arm and a stronger one overall</b>:
+    /// the old ratio demanded slack land be nearly full on every world, which is a property of the
+    /// subdivider, while this demands a live count on every world and a binding ceiling on one.
+    /// </para>
+    /// <para>
     /// 🔴 ⚠ <b>THIS IS NOT `adr/0170`'S RATIFIER AND MUST NOT BE READ AS ONE.</b> That record names
     /// *whether the live shopfront count converges* as the quantity, on the reference machine, on
     /// <c>provisioned.toml</c> — and a convergence reading taken on a city whose Households have all
@@ -209,6 +228,8 @@ public sealed class MarketLongRunTests(MarketLongRun run) : IClassFixture<Market
     [Fact]
     public void The_shop_count_is_bounded_by_the_land()
     {
+        bool reached = false;
+
         foreach (MarketLongRun.Arm world in _run.Worlds)
         {
             MarketLongRun.Reading[] tail = world.Tail;
@@ -228,20 +249,32 @@ public sealed class MarketLongRunTests(MarketLongRun run) : IClassFixture<Market
             }
 
             // ⚠ THE NON-VACUITY GUARD, and it is what stops a dead city passing this. A world that
-            // condemned itself into permanent shells has a shop count that cannot rise and would sit
-            // under any ceiling for ever -- which is exactly the green main was getting. So the land
-            // has to be genuinely contested: most of what admits a shop has to be spoken for by the
-            // end of the tail.
+            // condemned itself into permanent shells has a shop count that cannot rise, and it would
+            // sit under any ceiling for ever -- which is exactly the green main was getting. So the
+            // count has to have CLIMBED, which is the thing itself rather than a proxy for it.
             MarketLongRun.Reading closing = tail[^1];
 
             Assert.True(
-                closing.Shops * 4 >= closing.TradeLots,
-                $"{world.File} ended with {closing.Shops:N0} shops on {closing.TradeLots:N0} trade "
-                + "Lots, so the ceiling asserted above is nowhere near binding and this fact is "
+                closing.Shops > world.Readings[0].Shops,
+                $"{world.File} opened on {world.Readings[0].Shops:N0} shops and closed on "
+                + $"{closing.Shops:N0}, so the count never climbed and the ceiling asserted above is "
                 + "green for the wrong reason. Check that the city is still building at all: a world "
                 + "whose premises have condemned into standing shells stops raising anything, and "
                 + "that is the state main's flat shop count was measured in.");
+
+            reached |= closing.Shops >= closing.TradeLots;
         }
+
+        // ⚠ AND THE CEILING HAS TO BE TOUCHED BY SOMEBODY, or the loop above bounds a count against a
+        // number nothing ever approaches. oversupplied.toml is the world that exists to reach it --
+        // adr/0170's tier 0 pins at the Lot ceiling and the weakest shops then go broke -- so this is
+        // asserted across the arms rather than within one. ***A bound no world reaches is not a
+        // bound.***
+        Assert.True(
+            reached,
+            "no world in this class ended with its shop count at its trade-Lot ceiling, so the bound "
+            + "asserted above is slack on every arm and holds nothing. oversupplied.toml is the arm "
+            + "that is meant to reach it.");
     }
 
     /// <summary>

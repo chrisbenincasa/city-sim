@@ -17,11 +17,20 @@
 # `admits` has something to refuse. `provisioned.toml` is the file that models a shop; read that one
 # for anything about trade, and read nothing about the economy out of this one.
 #
-# THE LAYOUT IS THE GENERATOR'S AND NOT THIS FILE'S. SyntheticCity paints concentric rings, densest
-# at the middle, with the ring count taken from how many bands are declared here and the ring width
-# falling out of the lattice's own half-span. **So this file chooses how many bands there are and
-# never where they go**, and no number in it is a radius. That is deliberate: a radius would have
-# been a hash-bearing figure invented by a fixture, which is adr/0052 with nobody to ratify it.
+# THE LAYOUT IS THE GENERATOR'S AND NOT THIS FILE'S. SyntheticCity subdivides outward from the
+# lattice's middle and gives each declared band an EQUAL SHARE OF THE POPULATION, so the ring count
+# is taken from how many bands are declared here and each ring's width falls out of how much ground
+# that share needs. **So this file chooses how many bands there are and never where they go**, and
+# no number in it is a radius. That is deliberate: a radius would have been a hash-bearing figure
+# invented by a fixture, which is adr/0052 with nobody to ratify it.
+#
+# 🔴 THE RINGS ARE UNEQUAL AND THAT IS THE POINT, and until plans/0049 row 4 they were equal and the
+# gradient was never crossed. The old width was a share of the LATTICE's half-span, and the lattice
+# is sized from the Lot table's capacity while the built part is sized from the population -- two
+# unrelated quantities, so the band a block got was the ratio between a memory sizing and a city
+# sizing and no population ever reached the middle bands. A slab block houses an order of magnitude
+# more people than a detached one, so a share of the population is a couple of blocks at the middle
+# and dozens at the rim. **A city thins outward because the ground each band needs differs.**
 #
 # DECLARATION ORDER IS INTENSITY ORDER, LOWEST FIRST, and it is authored rather than derived --
 # nothing in a [[band]] states a density. The last one declared is the one the generator puts in the

@@ -6865,6 +6865,12 @@ public sealed class World
                     arrived ? CitizenActivity.AtWork : CitizenActivity.AtHome,
                 CitizenActivity.TravellingHome =>
                     arrived ? CitizenActivity.AtHome : CitizenActivity.AtWork,
+
+                // Whatever the Fate, because this one carries no direction -- it is every
+                // non-commute purpose at once -- so there is no second place a failed journey could
+                // leave somebody. An arrival, a shop and a school run all end at home.
+                CitizenActivity.Travelling => CitizenActivity.AtHome,
+
                 CitizenActivity other => other,
             });
 

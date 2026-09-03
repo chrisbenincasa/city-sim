@@ -2113,6 +2113,17 @@ produces** did.
 **F8** and surfaces a `ParkingOccupancyIsConserved` leak — so what is owed here is a header saying
 what a run does **today**, and it is owed whether or not that branch ever lands.
 
+✅ **PAID 2026-09-03, and by both halves.** The branch landed as
+[`plans/0055`](0055-the-middle.md): the city grows outward from its middle and each band houses an
+equal share of the population, so the rings are unequal and the ladder is crossed. **Both headers now
+say what a run does today** — `banded.toml`'s ring width no longer falls out of the half-span, and
+`platted.toml` records that it drew three rungs for most of its life. ⚠ **Neither alarm survived
+contact**: the gradient did not reopen `plans/0037` **F8** (`twinned.toml`'s field is still flat at
+16,000 Citizens, 226 of 322 Cells at height 8), and the parking leak was *exposed* rather than caused
+and is fixed at its root — `0055` **F5**. ⚠ **What is NOT discharged is whether the ladder is crossed
+WELL**, which is a measurement nobody has re-taken and is `0055` **Q1** rather than a correction owed
+here.
+
 ### `rulesets/fouled.toml`'s comment says its emitter fires **twice a Day** and the Rule says **sixteen times** — Cause 1, in a file
 
 **NEW 2026-09-02, found while copying that Rule into `pictured.toml` for

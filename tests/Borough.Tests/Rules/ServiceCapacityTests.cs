@@ -328,12 +328,24 @@ public sealed class ServiceCapacityTests
     /// admission did.
     /// </para>
     /// <para>
-    /// 🔴 <b>THE SCHOOL IS SITED AT THE FAR END OF THE CITY, AND THAT IS THE GUARD RATHER THAN A
-    /// DETAIL.</b> Placed on the first vacant Lot it lands beside the first Households the generator
-    /// made, ***so slot order and distance order agree and the fixture asks nothing.*** The first
-    /// spelling did exactly that and its guard went red on a passing mechanism, which is the
+    /// 🔴 <b>THE SCHOOL IS SITED ON THE NEWEST FAMILY'S DOORSTEP, AND THAT IS THE GUARD RATHER THAN
+    /// A DETAIL.</b> Placed on the first vacant Lot it lands beside the first Households the
+    /// generator made, ***so slot order and distance order agree and the fixture asks nothing.*** The
+    /// first spelling did exactly that and its guard went red on a passing mechanism, which is the
     /// cheapest possible reminder that ***a test of an ordering has to be built somewhere the two
     /// orderings disagree.***
+    /// </para>
+    /// <para>
+    /// 🔴 <b>THE SECOND SPELLING SAID <em>THE FAR END OF THE CITY</em> AND THAT IS NOT THE SAME
+    /// THING.</b> It took the vacant Lot furthest from the first vacant Lot, which put the school
+    /// wherever the map happened to be widest — and worked only for as long as the generator laid its
+    /// Households down a raster, so that far in space meant late in slot order. <c>plans/0055</c>
+    /// grew the city from its middle instead, the two ends of the widest axis became equally old, and
+    /// <b>Household 0 came back as both the nearest applicant and the lowest-slot one.</b> ***A
+    /// fixture that gets the disagreement it needs as a side effect of the generator's scan order is
+    /// resting on the thing it is testing against.*** So the site is now named by what it is for:
+    /// <see cref="OnTheNewestFamilysDoorstep"/> asks for the highest-slot family in the city and
+    /// builds next door to it.
     /// </para>
     /// </remarks>
     [Fact]
@@ -341,7 +353,7 @@ public sealed class ServiceCapacityTests
     {
         (World world, Simulation simulation) = City(Bounded);
 
-        Place(simulation, world, FarApartVacantLots(world)[1]);
+        Place(simulation, world, OnTheNewestFamilysDoorstep(world));
 
         int school = OnlySchool(world);
 
@@ -719,6 +731,71 @@ public sealed class ServiceCapacityTests
         Assert.True(far >= 0, "the generated city left fewer than two vacant Lots.");
 
         return [first, far];
+    }
+
+    /// <summary>
+    /// The vacant Lot nearest the home of the <b>highest-slot housed Household</b> — the newest
+    /// family in the city.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>It is named after the disagreement it exists to create.</b> Admission is being tested for a
+    /// distance bias against a slot-order one, so the fixture has to stand somewhere the two orders
+    /// point opposite ways, and the newest family's doorstep is the one site that is guaranteed to —
+    /// whatever shape the generator lays the city out in. ⚠ <b>Nearest rather than on top</b>: the
+    /// family's own Lot is built on, so what is asked for is the closest vacant one. ⚠ <b>And
+    /// housed rather than child-bearing</b>, because the school is sited before the first Day and
+    /// nobody has a child yet — <c>Child</c> reads an Age column that is still every adult's.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Manhattan Tiles, not a route.</b> The routed cost is what the assertion reads; this only
+    /// has to put the school somewhere the routed answer will not be Household 0, and a distance that
+    /// ignores the road network is enough for that. ***A fixture may use a cruder measure than the
+    /// thing it is setting up, and must never use the same one.***
+    /// </para>
+    /// </remarks>
+    private static int OnTheNewestFamilysDoorstep(World world)
+    {
+        int newest = -1;
+        int home = -1;
+
+        for (int slot = 0; slot < world.Households.Rows.SlotCount; slot++)
+        {
+            if (world.Households.Rows.IsLive(slot)
+                && world.Buildings.Rows.TryResolve(world.Households.Dwelling[slot], out int housed))
+            {
+                newest = slot;
+                home = housed;
+            }
+        }
+
+        Assert.True(newest >= 0, "the generated city housed no Household at all.");
+
+        int lot = world.Lots.Rows.Resolve(world.Buildings.Lot[home]);
+        int nearest = -1;
+        long best = long.MaxValue;
+
+        for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
+        {
+            if (!world.Lots.Rows.IsLive(slot) || !world.Lots.IsVacant(slot))
+            {
+                continue;
+            }
+
+            long east = world.Lots.East[slot].Raw - world.Lots.East[lot].Raw;
+            long north = world.Lots.North[slot].Raw - world.Lots.North[lot].Raw;
+            long apart = (east < 0 ? -east : east) + (north < 0 ? -north : north);
+
+            if (apart < best)
+            {
+                best = apart;
+                nearest = slot;
+            }
+        }
+
+        Assert.True(nearest >= 0, "the generated city left no vacant Lot to build a school on.");
+
+        return nearest;
     }
 
     /// <summary>Two vacant Lots, far enough apart in slot order to be different Buildings.</summary>

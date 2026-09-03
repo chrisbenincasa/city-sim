@@ -37,16 +37,22 @@ namespace Borough.Tests.Golden;
 public sealed class GoldenSessionCoverageTests
 {
     /// <summary>The block the session bulldozes a face off, zones, restores and bulldozes again.</summary>
-    private static (int Column, int Row) Edited => (5, 6);
+    private static (int Column, int Row) Edited => (3, 0);
 
     // ⚠ (5, 5) was tried first and cost one Lot that nothing here could see. The bulldozed south face
     // of a block is the NORTH face of the block below it, so at (5, 5) the edit reached into (5, 4) --
     // which the populator subdivides -- and the session's carve count came out one short of the
     // per-block sum. At (50, 50) the question never arose, because the populator paved one row.
     // A road edit is not local to the block that names it, and it takes a neighbour with it.
+    //
+    // ⚠ BOTH OF THESE MOVED TO ROW 0 AT plans/0055, with every Zone command in the session --
+    // GoldenFixtures.Session() carries why there was nowhere further to go. AND ROW 0 ANSWERS THE
+    // PARAGRAPH ABOVE OUTRIGHT: the south face of a row-0 block is the map's boundary street, so
+    // there is no block below for the edit to reach into. The hazard is not avoided by a margin here,
+    // it is absent.
 
     /// <summary>The block the session strips of all four faces before zoning it.</summary>
-    private static (int Column, int Row) Stripped => (6, 7);
+    private static (int Column, int Row) Stripped => (7, 0);
 
     /// <summary>
     /// <b>The lattice spacing the fixture states is the one the Ruleset states.</b>

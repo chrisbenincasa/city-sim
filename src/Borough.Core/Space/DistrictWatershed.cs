@@ -188,7 +188,7 @@ public static class DistrictWatershed
         BuildingResidency density, BuildingTable buildings, LotTable lots, RoadGraph roads)
     {
         int[] ordinalOf = new int[CellGrid.WorldCellCount];
-        int[] held = HeldForTrade(lots, density);
+        int[] field = Field(lots, density);
 
         List<int> cellIndex = [];
         List<int> heights = [];
@@ -201,7 +201,7 @@ public static class DistrictWatershed
                 Cells e = new(east);
                 Cells n = new(north);
 
-                int height = density.Density(e, n) + held[CellGrid.Index(e, n)];
+                int height = field[CellGrid.Index(e, n)];
 
                 if (height <= 0)
                 {
@@ -218,6 +218,46 @@ public static class DistrictWatershed
 
         return new Basins(
             [.. cellIndex], [.. heights], [.. components], ordinalOf);
+    }
+
+    /// <summary>
+    /// <b>The field the watershed floods</b> — Buildings per Cell, plus the vacant trade land holding
+    /// itself open beside them.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>PUBLIC BECAUSE A SECOND COPY OF IT WAS WRONG.</b> <c>DistrictWatershedTests</c> asserted
+    /// that a District's centre is as dense as any Cell it holds, and read that density off
+    /// <see cref="BuildingResidency.Density"/> — <b>the Buildings alone</b>, which is not what the
+    /// flood climbs. The two agreed for as long as vacant trade land was scarce enough to change no
+    /// ordering, and <c>plans/0055</c>'s subdivider quadrupled it: <c>twinned.toml</c> at 4,000
+    /// Citizens then reported <b>a centre of Building-density 7 holding a Cell of 8</b>, in both of
+    /// its Districts, and the flood was correct in both. ***A test comparing the answer against a
+    /// field the answer was not computed from is not a check, it is a coincidence with a good
+    /// record.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It allocates the whole grid and is not on the Tick path twice.</b>
+    /// <see cref="Collect"/> is its one simulation caller, on <c>[districts] revisit_ticks</c>; every
+    /// other caller is asking a question about a world that has stopped.
+    /// </para>
+    /// </remarks>
+    public static int[] Field(LotTable lots, BuildingResidency density)
+    {
+        int[] field = HeldForTrade(lots, density);
+
+        for (int north = 0; north < CellGrid.WorldCells; north++)
+        {
+            for (int east = 0; east < CellGrid.WorldCells; east++)
+            {
+                Cells e = new(east);
+                Cells n = new(north);
+
+                field[CellGrid.Index(e, n)] += density.Density(e, n);
+            }
+        }
+
+        return field;
     }
 
     /// <summary>

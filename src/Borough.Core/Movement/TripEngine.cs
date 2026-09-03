@@ -180,6 +180,28 @@ public sealed class TripEngine
     {
         TripRuleset rules = _world.Rules.Trips;
 
+        // 🔴 ON THE ROAD, WHOEVER SENT THEM. CommuteEngine wrote a travelling Activity before calling
+        // this and no other generator did, so an immigrant, a shopper and a schoolchild all read as
+        // standing at home for the length of their journey -- and CommuteEngine's OWN guard is that
+        // column. See CitizenActivity.Travelling, which carries the measurement. It goes here rather
+        // than in each caller for the reason this method's remarks already give about the purpose:
+        // what is identical for every purpose belongs in the one place they all pass through.
+        //
+        // ⚠ IT IS SET BEFORE THE REFUSALS AND THAT IS DELIBERATE -- CommuteEngine's own argument for
+        // the same ordering. Every refusal below resolves through World.ResolveTrip on the spot and
+        // RecordTripFate puts the Citizen back, so writing it afterwards would stamp a journey that
+        // was never made onto somebody standing still.
+        //
+        // ⚠ AND IT DOES NOT OVERWRITE THE COMMUTE'S TWO, which carry a DIRECTION this one does not:
+        // RecordTripFate reads the standing value to decide where an arriving Citizen ends up, so
+        // flattening a commute to `Travelling` would land every commuter back at home.
+        if ((Entities.CitizenActivity)_world.Citizens.Activity[citizen]
+            is not (Entities.CitizenActivity.TravellingToWork
+                or Entities.CitizenActivity.TravellingHome))
+        {
+            _world.Citizens.Activity[citizen] = (byte)Entities.CitizenActivity.Travelling;
+        }
+
         Address from = _world.PedestrianAccessPoint(fromBuilding);
         Address to = _world.PedestrianAccessPoint(toBuilding);
 

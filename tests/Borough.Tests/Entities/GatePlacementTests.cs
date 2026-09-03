@@ -120,16 +120,34 @@ public sealed class GatePlacementTests
     }
 
     /// <summary>
-    /// 🔴 <b>Every gate is routable by car, and the far two are beyond the Commute Budget anyway.</b>
+    /// 🔴 <b>Every gate is routable by car, and the Commute Budget admits some of them and refuses
+    /// at least one.</b>
     /// </summary>
     /// <remarks>
     /// <para>
     /// <b>Two claims, because separating them is the whole point.</b> Every gate has a finite car
     /// route to the city — that is the paving and the carved block having genuinely joined the
     /// lattice, and it is what would have been <see cref="TravelTime.Impassable"/> before. And the
-    /// far two are further from that city than any Trip may travel: measured at 1,000 Citizens,
-    /// <b>east 62 minutes and north 73</b> against a ceiling of <b>49</b>, where west and south are
-    /// <b>0</b>.
+    /// Budget is a real sieve over that set rather than a formality: something is admitted and
+    /// something is refused.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>THE SECOND CLAIM NAMED COMPASS POINTS UNTIL <c>plans/0055</c>, AND THE COMPASS WAS THE
+    /// CITY'S ADDRESS RATHER THAN THE MECHANISM.</b> It read <i>the far two are further from that
+    /// city than any Trip may travel — east 62 minutes and north 73 against a ceiling of 49, where
+    /// west and south are 0</i>. Every one of those numbers was a property of a city sitting in the
+    /// <b>origin corner</b> of a 65.5 km map, which is where the generator's reading-order walk left
+    /// it. It builds outward from the middle now, so the same world measures <b>west 39.7, south
+    /// 39.7, north 48.9 and east 52.9 minutes</b> — ***a spread straddling the ceiling instead of two
+    /// zeroes and two impossibilities***, and <c>bordered.toml</c>'s four Hinterlands are four live
+    /// markets where two of them used to be unreachable by construction.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>So the assertion is written against the SIEVE and no longer against the compass.</b> A
+    /// test that names the edge it expects to fail is a test that has to be rewritten every time the
+    /// city moves, and it would go green on a world where the ceiling refuses nothing — which is
+    /// <c>plans/0049</c> <b>F26</b>'s failure exactly. What must hold is that the Budget divides the
+    /// gates, and which edge falls on which side is the geometry's business.
     /// </para>
     /// <para>
     /// ⚠ <b><c>TripEngine</c> judges the Commute Budget on every Trip and not only on a commute</b>,
@@ -204,11 +222,36 @@ public sealed class GatePlacementTests
             withinBudget[edge] = reached;
         }
 
-        Assert.True(withinBudget[MapEdge.West] > 0, "the west gate should be in the city.");
-        Assert.True(withinBudget[MapEdge.South] > 0, "the south gate should be in the city.");
+        Assert.Equal(4, withinBudget.Count);
 
-        Assert.Equal(0, withinBudget[MapEdge.East]);
-        Assert.Equal(0, withinBudget[MapEdge.North]);
+        int admitted = 0;
+        int refused = 0;
+
+        foreach ((MapEdge edge, int reached) in withinBudget)
+        {
+            _ = edge;
+
+            if (reached > 0)
+            {
+                admitted++;
+            }
+            else
+            {
+                refused++;
+            }
+        }
+
+        Assert.True(
+            admitted > 0,
+            "no gate reaches a single dwelling inside the Commute Budget, so every Hinterland is "
+                + "unreachable and the four markets are decoration.");
+
+        Assert.True(
+            refused > 0,
+            "every gate is inside the Commute Budget, so the ceiling refuses nothing in this world "
+                + "and this fact is green for the wrong reason. A world whose far edge is inside one "
+                + "budget is a world adr/0089's map sizing does not describe -- check the paved "
+                + "extent before lowering this.");
     }
 
     /// <summary>No gate stands on a corner, which would name two markets and therefore neither.</summary>

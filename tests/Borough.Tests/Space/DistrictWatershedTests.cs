@@ -412,11 +412,30 @@ public sealed class DistrictWatershedTests
         Assert.All(built, index => Assert.Contains(index, filed));
     }
 
-    /// <summary>A District's centre is one of its own Cells, and is as dense as any of them.</summary>
+    /// <summary>A District's centre is one of its own Cells, and is as high as any of them.</summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>IT READ THE BUILDINGS AND THE FLOOD CLIMBS <see cref="DistrictWatershed.Field"/>.</b>
+    /// The field is Buildings <em>plus</em> the vacant trade land standing open beside them, and this
+    /// compared the centre against <c>BuildingsInCells.Density</c> alone — a different surface, which
+    /// happened to order the Cells the same way for as long as trade land was scarce.
+    /// <c>plans/0055</c>'s subdivider quadrupled it and both of <c>twinned.toml</c>'s Districts came
+    /// back with <b>a centre of Building-density 7 holding a Cell of 8</b>, one Cell east, at 4,000
+    /// Citizens. <b>The flood was right in both.</b> ***This test had never once asserted the property
+    /// it names.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>So it is a NEW assertion and not a repaired one</b>, and what it now guards is the
+    /// watershed's central post-condition: a Cell drains uphill, so the seat it drains to cannot be
+    /// lower than it is. A failure here means the descent put a Cell in a basin it cannot reach.
+    /// </para>
+    /// </remarks>
     [Fact]
     public void A_districts_centre_is_its_densest_cell()
     {
         World world = Evaluated(WithDistricts("twinned.toml", ShippedPercent), citizens: 4_000);
+
+        int[] field = DistrictWatershed.Field(world.Lots, world.BuildingsInCells);
 
         foreach (int district in Districts(world))
         {
@@ -427,7 +446,7 @@ public sealed class DistrictWatershedTests
                 world.Districts.Rows.At(district),
                 world.DistrictsInCells.Of(world.DistrictCells, east, north));
 
-            int peak = world.BuildingsInCells.Density(east, north);
+            int peak = field[CellGrid.Index(east, north)];
 
             for (int slot = 0; slot < world.DistrictCells.Rows.SlotCount; slot++)
             {
@@ -438,9 +457,9 @@ public sealed class DistrictWatershedTests
                 }
 
                 Assert.True(
-                    world.BuildingsInCells.Density(
-                        world.DistrictCells.East[slot], world.DistrictCells.North[slot]) <= peak,
-                    "a District holds a Cell denser than its own centre, so the flood assigned it to "
+                    field[CellGrid.Index(
+                        world.DistrictCells.East[slot], world.DistrictCells.North[slot])] <= peak,
+                    "a District holds a Cell higher than its own centre, so the flood assigned it to "
                     + "the wrong basin.");
             }
         }

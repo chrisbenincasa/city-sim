@@ -4,9 +4,9 @@
 # WHAT IT EXISTS TO SHOW: **the block pattern ladder, end to end, in one city.** BlockPatterns.Ladder
 # orders five patterns by ground per Address and BlockPatterns.ForBand puts a band on each rung, and
 # until this file existed ***no Ruleset that could be written selected more than two of them***. The
-# generator paints one concentric ring per declared band, so a run of this file is the ladder laid
-# out from the edge inward: detached at the rim, then perimeter, terrace, courtyard, and a slab in
-# the middle.
+# generator gives one concentric ring per declared band an equal share of the population, so a run of
+# this file is the ladder laid out from the edge inward: detached at the rim, then perimeter,
+# terrace, courtyard, and a slab in the middle.
 #
 # WHY FIVE. Because there are five rungs. It is not a chosen number and it does not survive the set
 # growing -- add a sixth pattern and this file wants a sixth band, which is the coupling being
@@ -20,9 +20,17 @@
 # each*** -- read `banded.toml` for what a band refuses and this one for what a band shapes.
 #
 # ⚠ WHAT IT MUST NOT BE READ AS. **Not a model of how a real city's density falls off.** The rings
-# are equal-width squares because the generator has no tuning number to make them anything else, and
-# a real city's is neither square nor equal. It is a test card for the patterns, and the only claim
-# it makes is that all five of them get drawn.
+# are squares because the lattice is one, and a real city's are not. What is no longer arbitrary is
+# their WIDTH: each band houses a fifth of the population, so the middle rings are narrow and the
+# rim is wide, which is a consequence of the patterns' own capacities rather than a curve anybody
+# fitted. It is a test card for the patterns, and the only claim it makes is that all five of them
+# get drawn.
+#
+# 🔴 AND FOR MOST OF ITS LIFE IT DREW THREE. plans/0049 row 4, measured: at 10,000 Citizens and at
+# 40,000 this file's drawn storeys were 2, 3, 4 and 5 -- the two densest bands were painted on
+# ground the generator never subdivided, because the band ring was denominated in the paved
+# lattice's half-span and the built part is sized by the population. The two scale together, so no
+# population crossed a boundary. It draws 2 through 7 now.
 #
 # ⚠ AND NOT A SOURCE OF ANY NUMBER. No figure out of a run of this file ratifies anything. The band
 # count is derived from the pattern count and the ring geometry is the generator's; nothing here was

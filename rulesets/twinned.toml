@@ -64,27 +64,26 @@
 #     the gap           the western lattice's built ground reaches Tile 156; the eastern starts at
 #                       2,048 -- so the gap is TWELVE TIMES the width of either concentration
 #
-# ⚠ IT HAS A RAGGED BAND IN THE MIDDLE OF ITS RANGE, AND IT IS A WINDOW RATHER THAN A FLOOR.
-# A lattice that has not filled its own ground has a ragged edge, and a ragged edge carries density
-# maxima of its own -- more plateaus than there are centres. RE-MEASURED 2026-09-02, and the count is
-# NOT MONOTONIC: 200 -> 2, 300 -> 3, 400 -> 4, 500 -> 3, 600 -> 3, 800 -> 3, 1,000 -> 2, and 2 at every
-# size above. A city too SMALL to have a ragged edge reads the same as one that has FILLED its ground,
-# so the two readings of `2` mean opposite things and no single threshold can describe this.
-# ⚠ THE BAND'S LOWER EDGE MOVED 500 -> 300 at plans/0053, for the reason the 2026-09-01 sweep records
-# one paragraph down: a change to how many Buildings a population takes moves where a lattice fills
-# its own ground, and therefore moves both edges of this window. THE SHAPE OF THE FINDING IS STABLE
-# AND THE DIGITS ARE NOT -- re-sweep rather than trusting these, and `BuildingDensityFieldTests` is
-# what says on the day that they have moved.
+# ✅ IT READS TWO CONCENTRATIONS AT EVERY SIZE, AND UNTIL 2026-09-03 IT DID NOT.
+# RE-SWEPT across 31 populations from 100 to 64,000 Citizens: 2 at every one of them. So there is no
+# size at which this file demonstrates something other than what it is for, and no window a reader has
+# to be warned out of.
 #
-# 🔴 THIS SAID "RUN IT AT 2,000 CITIZENS OR MORE" AND NAMED 1,000 AS FOUR PLATEAUS. Both halves were
-# taken at milestone 12 task 2 and both are now wrong: giving a block's corner an owner
-# (`LotSubdivider.CornerTiles`) drops a block from ten Lots to eight, so the same population subdivides
-# more blocks, each lattice fills its ground sooner, and 1,000 now reads TWO. ***A bound stated as a
-# minimum when the thing it bounds is a window will be wrong from whichever side moves first.***
-# The watershed would still find two anywhere in the band, because prominence is what discards a plateau
-# whose saddle to a higher one is barely below it -- but the FIELD does not say two, so a reading taken
-# inside the band is not the reading this file exists to give. `BuildingDensityFieldTests` holds both
-# halves and is sited at 600.
+# 🔴 IT HAD A RAGGED BAND IN THE MIDDLE OF ITS RANGE AND plans/0055 CLOSED IT. A lattice that had not
+# filled its own ground had a ragged edge, and a ragged edge carried density maxima of its own -- more
+# plateaus than there were centres. The count was NOT MONOTONIC: 200 -> 2, 300 -> 3, 400 -> 4,
+# 500 -> 3, 600 -> 3, 800 -> 3, 1,000 -> 2, and 2 at every size above; the band's lower edge had
+# already moved 500 -> 300 once, at plans/0053, when a change to how many Lots a block carves moved
+# where a lattice fills its ground. THE CAUSE WAS THE SUBDIVIDER AND NEVER THE FIELD. The old walk
+# raster-scanned the block lattice and stopped wherever the population ran out, so the row it stopped
+# in was half filled and carried bumps of its own. plans/0055 walks outward from the middle in
+# Chebyshev shells instead, so a lattice that has not filled its ground is now a SMALLER FILLED
+# LATTICE rather than a ragged one. ***The band was never a property of this world; it was the scan
+# order showing through it.***
+# ⚠ THE OLD PARAGRAPH SAID "RE-SWEEP RATHER THAN TRUSTING THESE DIGITS" AND SAID THE SHAPE OF THE
+# FINDING WAS STABLE. The digits were right to distrust and the shape did not survive either.
+# `BuildingDensityFieldTests.Every_size_on_the_ladder_reads_two_concentrations` reads the whole ladder
+# now rather than one size inside a window, and it is what says on the day this comes back.
 #
 # WHAT THE FIELD LOOKS LIKE, AND IT IS THE MEASUREMENT THAT MATTERS MOST HERE. RE-MEASURED at 16,000
 # Citizens on 2026-09-02: a Cell inside either lattice holds EXACTLY EIGHT Buildings -- 83 Cells of the

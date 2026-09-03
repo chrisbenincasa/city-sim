@@ -55,7 +55,10 @@ public sealed class CommuteDumpTests
         // that before the run nobody holds a job anywhere, so no block can be anything but an
         // exporter -- and after it, some are not.
         Assert.Contains("0 take them in, 0 are within a", first, StringComparison.Ordinal);
-        Assert.DoesNotContain("0 are within a", second, StringComparison.Ordinal);
+        // ⚠ THE COMMA IS LOAD-BEARING. Without it this reads "0 are within a" out of the middle of
+        // "10 are within a", so the assertion held only while the balanced count never ended in a
+        // zero -- and plans/0055 made it 10. ***A substring is not a field.***
+        Assert.DoesNotContain(", 0 are within a", second, StringComparison.Ordinal);
     }
 
     /// <summary>

@@ -200,7 +200,36 @@ public sealed class DistrictReevaluationTests
         // Everything east of the authored gap. The western lattice is left standing, so exactly one
         // basin survives and exactly one District should.
         int frontier = CellGrid.ToCells(new Tiles(world.Rules.Lattices.Max(l => l.OriginEastTiles))).Raw;
-        Handle<District> west = Of(world, new Cells(0), new Cells(0));
+
+        // 🔴 THE DISTRICT OVER A BUILDING THE DEMOLITION WILL SPARE, FOUND RATHER THAN NAMED. This
+        // read `Of(world, new Cells(0), new Cells(0))` -- the western lattice's own ORIGIN CORNER --
+        // which held a Building only because SyntheticCity used to subdivide in reading order from
+        // exactly there. It builds outward from a lattice's middle now (plans/0055), so Cell (0, 0)
+        // holds no Building, no District and nothing to compare. ***A fixture that names a
+        // coordinate is a fixture that names where the generator happened to start.***
+        Handle<District> west = default;
+
+        for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
+        {
+            if (!world.Buildings.Rows.IsLive(slot)
+                || !world.Lots.Rows.TryResolve(world.Buildings.Lot[slot], out int lot)
+                || CellGrid.ToCells(world.Lots.East[lot]).Raw >= frontier)
+            {
+                continue;
+            }
+
+            west = Of(world, CellGrid.ToCells(world.Lots.East[lot]),
+                CellGrid.ToCells(world.Lots.North[lot]));
+
+            if (!west.IsNone)
+            {
+                break;
+            }
+        }
+
+        Assert.False(
+            west.IsNone,
+            "no Building west of the gap carries a District, so this fact has nothing to spare.");
 
         Demolish(world, east => CellGrid.ToCells(east).Raw >= frontier);
 

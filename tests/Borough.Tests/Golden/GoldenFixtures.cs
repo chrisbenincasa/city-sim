@@ -198,11 +198,34 @@ internal static class GoldenFixtures
     /// saved state, and saved state that moves without somebody saying so is what this file is for.
     /// </para>
     /// <para>
-    /// <b>The Zone commands sit clear of the populated blocks.</b> The populator subdivides along
-    /// lattice row 0 and stops as soon as it has land for the Buildings it wants, so every command
-    /// here names a block well beyond its reach. Zoning a block the populator already carved is not
+    /// <b>The Zone commands sit clear of the populated blocks.</b> The populator fills outward from
+    /// the middle of its box and stops as soon as it has land for the Buildings it wants, so every
+    /// command here names a block well beyond its reach. Zoning a block the populator already carved is not
     /// an error — the claim mask refuses it face by face — but it is a <em>no-op</em>, and a session
     /// full of no-ops is a baseline that covers nothing while every hash in it still moves.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>EVERY COMMAND MOVED ON 2026-09-03, AND THIS TIME THE POPULATOR DID NOT REACH FURTHER —
+    /// IT MOVED.</b> <c>plans/0055</c> grows the city outward from the middle of its own box instead
+    /// of raster-scanning from a corner, so the populated ground stopped being a strip along lattice
+    /// row 0 and became <b>a square spanning columns 2–10 and rows 2–10</b>, which is where every one
+    /// of these commands was. <b>The session carved 36 Lots where 93 were expected.</b>
+    /// </para>
+    /// <para>
+    /// 🔴 <b>AND THERE IS NOWHERE FAR AWAY TO PUT THEM, WHICH IS THE FINDING RATHER THAN THE
+    /// INCONVENIENCE.</b> The first repair translated the whole set by <c>(+16, +14)</c> and carved
+    /// <b>ZERO</b>: <c>SyntheticCity.PavedTiles</c> sizes the lattice to what the population needs
+    /// and no more, so at this session's 4,000 Citizens <b>the paved lattice is 11 blocks a side and
+    /// the populator holds 9 of them.</b> ***The margin these commands need does not exist on the
+    /// map; it exists in the ring order.*** So they sit in the OUTERMOST ring — column 0 and row 0,
+    /// Chebyshev distance 6 from the middle — which is the last ground the walk would reach and the
+    /// only ground whose safety is a property of the algorithm rather than of a measurement.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Both road-edit blocks are on row 0, and their south face is the map's own boundary
+    /// street.</b> That is deliberate: bulldozing it takes no neighbour with it, because there is no
+    /// block below row 0 — which is the hazard the note two paragraphs down was written about, and
+    /// this is the one siting that cannot suffer it.
     /// </para>
     /// <para>
     /// ⚠ <b>THE LAST COMMAND LEFT ROW 5 ON 2026-09-01, for the same reason and one turn later.</b>
@@ -247,17 +270,17 @@ internal static class GoldenFixtures
 
         builder.Append(new Ticks(0), new Command(CommandKind.Populate, default, default));
 
-        Append(builder, tick: 0, block: (0, 8), zone: 1);
-        Append(builder, tick: 1, block: (1, 8), zone: 1);
-        Append(builder, tick: 1, block: (2, 8), zone: 2);
-        Append(builder, tick: 2, block: (2, 6), zone: 2);
-        Append(builder, tick: 9, block: (7, 6), zone: 3);
-        Append(builder, tick: 17, block: (3, 7), zone: 1);
-        Append(builder, tick: 17, block: (4, 7), zone: 1);
-        Append(builder, tick: 33, block: (8, 8), zone: 4);
-        Append(builder, tick: 64, block: (5, 9), zone: 2);
-        Append(builder, tick: 65, block: (0, 9), zone: 3);
-        Append(builder, tick: 97, block: (9, 9), zone: 5);
+        Append(builder, tick: 0, block: (0, 0), zone: 1);
+        Append(builder, tick: 1, block: (1, 0), zone: 1);
+        Append(builder, tick: 1, block: (5, 0), zone: 2);
+        Append(builder, tick: 2, block: (9, 0), zone: 2);
+        Append(builder, tick: 9, block: (10, 0), zone: 3);
+        Append(builder, tick: 17, block: (0, 1), zone: 1);
+        Append(builder, tick: 17, block: (0, 2), zone: 1);
+        Append(builder, tick: 33, block: (0, 3), zone: 4);
+        Append(builder, tick: 64, block: (0, 4), zone: 2);
+        Append(builder, tick: 65, block: (0, 5), zone: 3);
+        Append(builder, tick: 97, block: (0, 6), zone: 5);
 
         // 5a-bis. The road editor, and it is here for coverage rather than for shape: a baseline
         // records what a run did, so a committed session that never edits a road leaves the Epoch,
@@ -276,16 +299,16 @@ internal static class GoldenFixtures
         //
         // GoldenSessionCoverageTests asserts each of those outcomes against the replayed world, so
         // the coverage is a claim the suite checks rather than a comment.
-        Connect(builder, tick: 129, node: (5, 6), StreetAxis.East, ConnectAction.Bulldoze);
-        Append(builder, tick: 130, block: (5, 6), zone: 1);
-        Connect(builder, tick: 200, node: (5, 6), StreetAxis.East, ConnectAction.Lay);
-        Connect(builder, tick: 300, node: (5, 6), StreetAxis.East, ConnectAction.Bulldoze);
+        Connect(builder, tick: 129, node: (3, 0), StreetAxis.East, ConnectAction.Bulldoze);
+        Append(builder, tick: 130, block: (3, 0), zone: 1);
+        Connect(builder, tick: 200, node: (3, 0), StreetAxis.East, ConnectAction.Lay);
+        Connect(builder, tick: 300, node: (3, 0), StreetAxis.East, ConnectAction.Bulldoze);
 
-        Connect(builder, tick: 400, node: (6, 7), StreetAxis.East, ConnectAction.Bulldoze);
-        Connect(builder, tick: 400, node: (6, 8), StreetAxis.East, ConnectAction.Bulldoze);
-        Connect(builder, tick: 400, node: (6, 7), StreetAxis.North, ConnectAction.Bulldoze);
-        Connect(builder, tick: 400, node: (7, 7), StreetAxis.North, ConnectAction.Bulldoze);
-        Append(builder, tick: 401, block: (6, 7), zone: 4);
+        Connect(builder, tick: 400, node: (7, 0), StreetAxis.East, ConnectAction.Bulldoze);
+        Connect(builder, tick: 400, node: (7, 1), StreetAxis.East, ConnectAction.Bulldoze);
+        Connect(builder, tick: 400, node: (7, 0), StreetAxis.North, ConnectAction.Bulldoze);
+        Connect(builder, tick: 400, node: (8, 0), StreetAxis.North, ConnectAction.Bulldoze);
+        Append(builder, tick: 401, block: (7, 0), zone: 4);
 
         // Slice 8 task 10. A transition rather than a command -- there is no reload verb, because
         // Command is 12 bytes and could not carry a hash -- so it is appended here and not through

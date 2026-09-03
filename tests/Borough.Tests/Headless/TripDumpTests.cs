@@ -29,7 +29,7 @@ public sealed class TripDumpTests
     private const string Population = "400";
 
     /// <summary>
-    /// The population <c>severance.toml</c> is read at, which is <b>not</b>
+    /// The populations <c>severance.toml</c> is read at, which are <b>not</b>
     /// <see cref="Population"/>.
     /// </summary>
     /// <remarks>
@@ -42,14 +42,25 @@ public sealed class TripDumpTests
     /// severed***, and the instrument correctly reported no unreachable pair.
     /// </para>
     /// <para>
-    /// ⚠ <b>Measured 2026-09-02, and it is a window at both ends</b>: 1,000 → 5 Buildings and 0
-    /// unreachable pairs; <b>2,000 → 8 and 16 of 28</b>; <b>4,000 → 16 and 73 of 120</b>; <b>8,000 →
-    /// 25 and 175 of 300</b>; 16,000 → 52 and <b>0</b>, because by then the cut-throughs have joined
-    /// the city up. <b>4,000 is the middle of the window on purpose</b>, so a test here is not one
-    /// small change away from measuring an edge.
+    /// 🔴 <b>AND AT <c>plans/0055</c> THE BAND STOPPED BEING A BAND.</b> Measured 2026-09-02 it read
+    /// as a clean window — 1,000 → 0 unreachable pairs, 2,000 → 16 of 28, 4,000 → 73 of 120, 8,000 →
+    /// 175 of 300, 16,000 → 0 — and 4,000 was chosen as its middle so that a test here would not be
+    /// one small change away from an edge. Re-swept 2026-09-03 under the centre-out subdivider, the
+    /// same file reads: <b>1,000 → 0, 2,000 → 16, 3,000 → 20, 4,000 → 0, 6,000 → 111, 8,000 → 153,
+    /// 12,000 → 0, 16,000 → 951.</b> ***There is no middle to stand in.*** Whether a city of this
+    /// shape severs is a property of exactly which blocks the walk reached before it had housed
+    /// everybody, and it flips between adjacent sizes.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>So the test reads a LADDER and asserts the file can sever, rather than reading one
+    /// population and asserting it does.</b> A single reading here was never testing the Ruleset; it
+    /// was testing that one number still landed inside a band nobody was watching. <b>Every rung is
+    /// dumped and every rung is checked for a disagreeing verdict</b>, so the cost is eight dumps and
+    /// what it buys is a fact that survives the next change to how the city is carved.
     /// </para>
     /// </remarks>
-    private const string SeveredPopulation = "4000";
+    private static readonly string[] SeveredPopulations =
+        ["1000", "2000", "3000", "4000", "6000", "8000", "12000", "16000"];
 
     /// <summary>
     /// <b><c>rulesets/severance.toml</c> is a city people cannot walk across, and the dump says so.</b>
@@ -63,10 +74,33 @@ public sealed class TripDumpTests
     [Fact]
     public void A_severed_city_reports_pairs_with_no_route()
     {
-        string report = Dump("severance.toml");
+        List<string> read = [];
+        int severed = 0;
 
-        Assert.True(Unreachable(report) > 0, "a city known to sever reported every pair reachable");
-        Assert.DoesNotContain("THEY DISAGREE", report, StringComparison.Ordinal);
+        foreach (string citizens in SeveredPopulations)
+        {
+            string report = Dump("severance.toml", citizens);
+            int unreachable = Unreachable(report);
+
+            read.Add($"{citizens} → {unreachable}");
+
+            if (unreachable > 0)
+            {
+                severed++;
+            }
+
+            // Checked at EVERY rung rather than at the one that severed. The two verdicts disagreeing
+            // is a defect in the instrument, and an instrument is not excused from being right about
+            // a city it has nothing to report on.
+            Assert.DoesNotContain("THEY DISAGREE", report, StringComparison.Ordinal);
+        }
+
+        Assert.True(
+            severed > 0,
+            "a city known to sever reported every pair reachable at every size on the ladder: "
+            + string.Join(", ", read)
+            + ". severance.toml exists to be the one world with something to report, so this is "
+            + "either the file no longer severing or the instrument no longer seeing it.");
     }
 
     /// <summary>
@@ -297,16 +331,15 @@ public sealed class TripDumpTests
     }
 
     /// <summary>
-    /// ⚠ <b>The population is chosen by the RULESET</b> — see <see cref="SeveredPopulation"/>, which
-    /// records why <c>severance.toml</c> needs a bigger city than the others to have anything to say.
+    /// ⚠ <b>The population is the caller's</b> — see <see cref="SeveredPopulations"/>, which records
+    /// why <c>severance.toml</c> is read at eight sizes rather than at one.
     /// </summary>
-    private static string Dump(string ruleset)
+    private static string Dump(string ruleset, string? citizens = null)
     {
         Assert.True(
             Options.TryParse(
                 ["--trips", "--ruleset", Path.Combine(AppContext.BaseDirectory, "Rulesets", ruleset),
-                 "--citizens",
-                 ruleset == "severance.toml" ? SeveredPopulation : Population],
+                 "--citizens", citizens ?? Population],
                 out Options? options,
                 out string? complaint),
             complaint);
