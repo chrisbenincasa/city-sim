@@ -134,7 +134,11 @@ put up and **two of them do not survive F2's own table**:
    **78**, so the ladder reads it as sparser than a bungalow. 🔴 **The proxy is what fails.** Ground
    behind a door stands in for people behind a door, and it holds for the five because all five house
    people by going **back**. ***A tower houses them UP, and the metric cannot see up at all.***
-3. ✅ **Invert the derivation.** A pattern declares **its own storeys** as part of its form, and the
+3. ✅ **Invert the derivation.** **LANDED 2026-09-03 as [`0058`](0058-the-plot-ratio.md)**, and in
+   the form below rather than the one first written: a pattern declares nothing, because *ground per
+   dwelling reduces to storeys* and storeys can simply be **divided out of the ratio**. Read `0058`
+   for what it cost — every generated city contracted by up to a third, which nothing in the suite was
+   watching. A pattern declares **its own storeys** as part of its form, and the
    ladder sorts on ground per **dwelling** rather than ground per **door**. ⚠ **That is not a new
    quantity to argue about** — dwellings are floor area over `[capacity] floor_tiles_per_dwelling`,
    floor area is `claimed × storeys`, so ground per dwelling reduces to `floor_tiles_per_dwelling /
@@ -150,8 +154,8 @@ it wants writing down before it is written.
 ⚠ **And lever 3 alone still gives a RING of towers rather than a skyline.** The ladder is a total
 order and `ForBand` indexes it, so one band gets one pattern for ever. Several forms sitting near one
 density is what makes a choice among them available — and a draw over near-ties is the same trick
-`LotRuleset.StoreysOn` already plays one level down. **Not designed. Named here so lever 3 is not
-oversold.**
+`LotRuleset.StoreysOn` already plays one level down. **Landed with it** as `[lots] pattern_spread`, symmetric and drawn on
+the block, which is what keeps the re-carve ratchet writeable — [`0058`](0058-the-plot-ratio.md).
 
 **Q2 — should `age` be normalised against the run or against the oldest Building?** F3 makes the case
 for the run. A world loaded from a save at Tick 900,000 whose Buildings all went up in the last

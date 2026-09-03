@@ -87,7 +87,7 @@ public sealed class CommuteLongRunTests(ITestOutputHelper output)
     /// the window says 0%, and would have been "fixed" by widening the band until it admitted the
     /// noise it was made of.
     /// </remarks>
-    private const int PeakPopulation = 4_000;
+    private const int PeakPopulation = 6_000;
 
     /// <summary>
     /// Four Days, which is all the profile needs and a fraction of what the flow readings do.

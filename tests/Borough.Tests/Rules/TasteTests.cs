@@ -36,7 +36,7 @@ public sealed class TasteTests
     /// one sample from the zero-centred distribution above. It is not a measurement of the taste.
     /// </para>
     /// </remarks>
-    private const int TasteIsMeasurable = 8_000;
+    private const int TasteIsMeasurable = 12_000;
 
     private static readonly WorldKey Key = WorldKey.FromSeed(0);
 

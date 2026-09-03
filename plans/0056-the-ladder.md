@@ -7,6 +7,14 @@ number somebody chooses now, and it was 1 because nobody had.**
 first half landed.** [`0055`](0055-the-middle.md) made the city cross its density ladder for the first
 time; what that showed is that the ladder is short.
 
+⚠ **AMENDED 2026-09-03 by [`0058`](0058-the-plot-ratio.md): `storeys_per_rung` no longer names
+storeys.** It names a **plot ratio** — floor area per unit of block — and `BlockPatterns.Storeys`
+divides it by the share of the block the pattern claims. So this plan's arithmetic still describes the
+*ceiling* correctly and no longer describes the *rung*: the three forms that cover their whole block
+stand exactly the heights below, and the two that stand back off their ground stand taller. **The key
+was not renamed**, because what it sets — how far one step up the ladder goes — is the same quantity
+it always was.
+
 ---
 
 ## The finding

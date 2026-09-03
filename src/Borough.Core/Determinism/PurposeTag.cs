@@ -744,4 +744,29 @@ public enum PurposeTag : ulong
     /// make the founding candidate and the reassessment candidate the same person every pass.
     /// </remarks>
     ReassessDraw = 38,
+
+    /// <summary>
+    /// <b>Which of several near-equal block patterns one block is carved by</b>, drawn once per
+    /// block.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>DRAWN ON THE BLOCK'S COORDINATES AND NOT ON ITS ROW</b>, for
+    /// <see cref="BuildingFootprint"/>'s reason one level up. Which form a piece of ground takes is a
+    /// property of the <em>ground</em>: a block zoned, cleared and zoned again is re-carved the same
+    /// way, and a recycled row cannot re-plat a block nobody touched.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>AND THE DRAW IS WHAT KEEPS THE RE-CARVE RATCHET WRITEABLE.</b> It depends on the block
+    /// and never on the band, so it is a **fixed offset** for one piece of ground — and a fixed
+    /// offset added to a rung that rises with the band still rises with the band.
+    /// ***A draw that saw the band would let an upzoned block select a sparser form, which is the one
+    /// thing <c>LotSubdivider.RecarveBlock</c> is built to make unwriteable.***
+    /// </para>
+    /// <para>
+    /// <b>Tick zero, like every standing property.</b> A block's form is a fact about how the ground
+    /// was surveyed and not about the moment it was asked about.
+    /// </para>
+    /// </remarks>
+    BlockPattern = 39,
 }

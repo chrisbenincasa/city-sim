@@ -412,7 +412,15 @@ public static class BlockPatterns
     /// not the end state.
     /// </para>
     /// </remarks>
-    public static BlockPattern ForBand(byte band, int bandCount, int blockTiles, int lotsPerSegment)
+    public static BlockPattern ForBand(
+        byte band,
+        int bandCount,
+        int blockTiles,
+        int lotsPerSegment,
+        Determinism.WorldKey key,
+        int column,
+        int row,
+        int spread)
     {
         if (band == 0 || bandCount <= 0)
         {
@@ -426,11 +434,68 @@ public static class BlockPatterns
             ? Count - 1
             : IntegerMath.FloorDiv((band - 1) * (Count - 1), bandCount - 1);
 
+        rung += Scatter(key, column, row, spread);
+
         Span<BlockPattern> ladder = stackalloc BlockPattern[Count];
 
         Ladder(blockTiles, lotsPerSegment, ladder);
 
-        return ladder[rung >= Count ? Count - 1 : rung];
+        return ladder[rung < 0 ? 0 : rung >= Count ? Count - 1 : rung];
+    }
+
+    /// <summary>
+    /// <b>How far off its band's rung one block's form is drawn</b>, symmetrically, in rungs.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THIS IS WHAT MAKES A DENSITY A DISTRIBUTION RATHER THAN A VALUE.</b> Without it
+    /// <see cref="ForBand"/> is a total order indexed by a band, so one band gets one form for ever
+    /// and a whole ring of the city is the same shape — which is exactly what the drawing showed
+    /// (<c>plans/0057</c> <b>F1</b>: the boundaries fall on streets, because they are the only thing
+    /// there is). ***A city is not one form per density; it is a mix around one.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>SYMMETRIC, AND IT COSTS THE THING A ONE-SIDED DRAW WOULD KEEP.</b> Drawing only upward
+    /// would never make a dense band sparser, which sounds safer and quietly biases every world
+    /// denser than its Ruleset says. A symmetric draw leaves the band's rung as the <em>centre</em>
+    /// of what the band means, which is what a band was always claiming to be. ⚠ <b>The clamp at each
+    /// end is not symmetric</b> and cannot be: a band at rung 0 has nothing below it, so the bottom
+    /// band skews up and the top band skews down. That is a property of a bounded ladder and not of
+    /// this draw.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>IT DRAWS ON THE BLOCK AND NEVER ON THE BAND, AND THE RE-CARVE RATCHET IS WHY.</b>
+    /// <c>LotSubdivider.RecarveBlock</c> refuses a re-plat that would move a block <em>down</em> the
+    /// ladder, and it can only refuse what it can compare — so selection has to be monotone in the
+    /// band for one piece of ground. A fixed offset added to a rung that rises with the band still
+    /// rises with the band, and a clamp is monotone too. ***A draw that saw the band would make
+    /// upzoning a block and watching it get sparser writeable***, which is the failure the ratchet's
+    /// whole remark is about.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Absent means 0 and 0 is the old behaviour exactly</b> — no draw is taken, so a world that
+    /// does not state <c>[lots] pattern_spread</c> selects the form it selected before this existed.
+    /// The key is opted into rather than defaulted under everybody, which is the shape
+    /// <c>[lots] storeys_per_rung</c> established (<c>plans/0056</c>).
+    /// </para>
+    /// </remarks>
+    private static int Scatter(Determinism.WorldKey key, int column, int row, int spread)
+    {
+        if (spread <= 0)
+        {
+            return 0;
+        }
+
+        // The ground's own coordinates as the entity id, which is PurposeTag.BlockPattern's whole
+        // remark: a block cleared and zoned again is re-carved the same way, and a recycled row
+        // cannot re-plat land nobody touched.
+        ulong patch = ((ulong)(uint)column << 32) | (uint)row;
+        ulong draw = Determinism.Randomness.Draw(
+            key, patch, Quantities.Ticks.Zero, Determinism.PurposeTag.BlockPattern);
+
+        // A different bit range from the one LotSubdivider's storey jitter reads, because the two
+        // draws carry different tags and must not be correlated by sharing a window as well.
+        return (int)(((draw >> 16) & 0xFFFF) % (ulong)((2 * spread) + 1)) - spread;
     }
 
     /// <summary>
@@ -494,12 +559,33 @@ public static class BlockPatterns
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>The rung times the step plus two, and there is no table.</b> Two is the floor — a building
-    /// with no upper floor is a shed — and the rest is <see cref="Rung"/>, so ***height rises with
-    /// density because it is the same quantity***, not because anybody wrote a height beside each
-    /// pattern. At <c>storeys_per_rung = 1</c> and the shipped lattice that is a two-storey suburb,
-    /// a three-storey perimeter block, a four-storey terrace, a five-storey courtyard block and a
-    /// six-storey slab.
+    /// 🔴 <b>THE RUNG NAMES A PLOT RATIO AND NOT A STOREY COUNT, AND THE STOREYS FALL OUT OF THE
+    /// GROUND THE FORM DECLINED TO TAKE.</b> <c>ratio = rung × step + 2</c> is floor area per unit of
+    /// <em>block</em>, and a pattern claiming <c>claimed</c> of a <c>blockTiles²</c> block needs
+    /// <c>ratio × block ÷ claimed</c> storeys to deliver it. ***So a form that spreads out is short
+    /// and a form that stands back is tall, at the same density***, which is the sentence this
+    /// function exists to make true.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>IT RETURNED <c>rung × step + 2</c> AS A STOREY COUNT AND THAT IS WHY THE CITY COULD ONLY
+    /// BUILD OUT.</b> A storey count applied to whatever footprint the pattern happened to carve made
+    /// height and footprint the same decision, and the ladder's own quantity — ground behind one front
+    /// door — is a <em>plan-view</em> measure that cannot see a form housing people upward at all.
+    /// ***A tower claims little ground, so under the old reading it sorted below a bungalow and came
+    /// out two storeys tall.*** <c>plans/0057</c> found it; <c>plans/0058</c> is this.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The floor of two stopped being a clamp and became a consequence</b>, and the argument it
+    /// carried is unchanged: <em>a building with no upper floor is a shed</em>. The ratio's floor is
+    /// 2 and no form claims more than its whole block, so two is what a form covering everything
+    /// gets and everything else is taller. See <see cref="Floor"/>.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>What moves on a world that states nothing.</b> At <c>storeys_per_rung = 1</c> and the
+    /// shipped lattice the ladder was 2, 3, 4, 5, 6 and is now 3, 3, 4, 5, 6 — one storey, on the
+    /// sparsest rung, because <see cref="BlockPattern.Detached"/> claims 624 Tiles of a 1,024-Tile
+    /// block and a plot ratio of 2 on 61% of the ground is three floors. ***Every hash in the project
+    /// moves and no Ruleset key had to change for it to.***
     /// </para>
     /// <para>
     /// 🔴 <b>THE STEP WAS 1 AND NOBODY HAD CHOSEN IT, WHICH IS DIFFERENT FROM ITS BEING DERIVED.</b>
@@ -521,12 +607,45 @@ public static class BlockPatterns
     /// ⚠ <b>It follows the ladder and therefore follows the lattice.</b> The rungs reorder at
     /// <c>lots_per_segment = 4</c> — see <see cref="Ladder"/> — so on such a world the courtyard
     /// block is the shorter of the two. That is the ladder being honest rather than this being
-    /// wrong: whichever form gives one door less ground is the taller one.
+    /// wrong: whichever form gives one door less ground is the denser one.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>THE LADDER'S QUANTITY IS UNCHANGED AND WAS NOT THE DEFECT.</b> Ground behind one door is
+    /// a fine ordering of the five forms that exist, all of which house people by going back. What
+    /// was wrong was reading its <em>index</em> as a height. ***A sixth form that houses people
+    /// upward would still sort wrongly here***, and that is <c>plans/0058</c>'s open question rather
+    /// than something this change fixes.
     /// </para>
     /// </remarks>
     public static int Storeys(
-        BlockPattern pattern, int blockTiles, int lotsPerSegment, int storeysPerRung) =>
-        (Rung(pattern, blockTiles, lotsPerSegment) * (storeysPerRung < 1 ? 1 : storeysPerRung)) + 2;
+        BlockPattern pattern, int blockTiles, int lotsPerSegment, int storeysPerRung)
+    {
+        int step = storeysPerRung < 1 ? 1 : storeysPerRung;
+        int ratio = (Rung(pattern, blockTiles, lotsPerSegment) * step) + 2;
+        int claimed = ClaimedTiles(pattern, blockTiles, lotsPerSegment);
+
+        if (claimed <= 0 || blockTiles <= 0)
+        {
+            return Floor;
+        }
+
+        // long, because a large block times a large ratio leaves 32 bits. Nothing here is a
+        // Q16.16 quantity -- it is a count of storeys -- so the width is the only question.
+        long storeys = IntegerMath.FloorDiv(
+            (long)ratio * blockTiles * blockTiles, claimed);
+
+        return storeys < Floor ? Floor : storeys > byte.MaxValue ? byte.MaxValue : (int)storeys;
+    }
+
+    /// <summary>The shortest Building any pattern can produce. <b>A floor and not a default.</b></summary>
+    /// <remarks>
+    /// ⚠ <b>It is now unreachable from above rather than clamped to.</b> The plot ratio's own floor
+    /// is 2 and no pattern claims more than its whole block, so <c>ratio × block ÷ claimed</c> is at
+    /// least 2 for every form that claims anything. ***The clamp survives for the degenerate lattice
+    /// and not for the design***, which is the difference between a floor that is argued and a floor
+    /// that is enforced.
+    /// </remarks>
+    private const int Floor = 2;
 
     /// <summary>Where one pattern sits on this lattice's <see cref="Ladder"/>.</summary>
     /// <remarks>

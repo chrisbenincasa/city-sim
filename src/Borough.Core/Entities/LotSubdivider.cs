@@ -148,7 +148,11 @@ public static class LotSubdivider
                 world.Blocks.Band[blockSlot],
                 world.Rules.Bands.Length,
                 world.Roads.Streets.BlockTiles,
-                world.Rules.Lots.LotsPerSegment);
+                world.Rules.Lots.LotsPerSegment,
+                world.Key,
+                column,
+                row,
+                world.Rules.Lots.PatternSpread);
 
             world.PatternBlock(column, row, pattern);
         }
@@ -388,7 +392,8 @@ public static class LotSubdivider
         int perSegment = world.Rules.Lots.LotsPerSegment;
 
         BlockPattern wanted = BlockPatterns.ForBand(
-            world.Blocks.Band[blockSlot], world.Rules.Bands.Length, blockTiles, perSegment);
+            world.Blocks.Band[blockSlot], world.Rules.Bands.Length, blockTiles, perSegment,
+            world.Key, column, row, world.Rules.Lots.PatternSpread);
 
         if (wanted == carved)
         {

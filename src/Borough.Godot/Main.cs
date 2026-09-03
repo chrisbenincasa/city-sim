@@ -333,9 +333,9 @@ public partial class Main : Node3D
         /// govern.</b> Five patterns are five things and not five amounts, and a monotone ramp
         /// over them would invite exactly the reading — <em>Slab is more than Courtyard</em> —
         /// that the ladder does not support. It gets its own hues and the legend names them.
-        /// ⚠ <b>Recoverable only up to the value two rungs share</b>: the storey draw spans
-        /// <c>0..storeys_per_rung</c> inclusive, so the top of one rung's range is the bottom of
-        /// the next one's, and a Building sitting on it is drawn as the higher of the two.
+        /// ⚠ <b>Read off the BLOCK and not off the height, since <c>plans/0058</c>.</b> A rung names
+        /// a plot ratio now and the storeys divide it by the ground the pattern claims, so height
+        /// no longer identifies a rung at all — see <see cref="RungOf"/>.
         /// </remarks>
         Rung,
 
@@ -2378,7 +2378,7 @@ public partial class Main : Node3D
             // second site would be a second answer to "what colour is this Building".
             Color paint = _washing switch
             {
-                Wash.Rung => Patterns[RungOf(lots.Storeys[lot])].SrgbToLinear(),
+                Wash.Rung => Patterns[RungOf(lot)].SrgbToLinear(),
                 Wash.Age => Shade(Vintage(slot)).SrgbToLinear(),
                 _ => (table.IsAbandoned(slot) ? Derelict : Rendered(shape)).SrgbToLinear(),
             };
@@ -4227,6 +4227,19 @@ public partial class Main : Node3D
             AlbedoColor = Muted,
         };
 
+        if (_washing == Wash.Rung)
+        {
+            _rungOf = new int[BlockPatterns.Count];
+
+            for (int i = 0; i < BlockPatterns.Count; i++)
+            {
+                _rungOf[i] = BlockPatterns.Rung(
+                    (BlockPattern)i,
+                    _world.Roads.Streets.BlockTiles,
+                    _world.Rules.Lots.LotsPerSegment);
+            }
+        }
+
         _categorical ??= new StandardMaterial3D
         {
             // The same unshaded argument the ground overlay makes, spent on the MASSING instead:
@@ -4443,30 +4456,66 @@ public partial class Main : Node3D
             + $"{_washCells:N0} Cells read",
         Wash.Rung =>
             "\nOVERLAY rung — DEBUG. The block pattern a Building's Lot was carved by, "
-            + "0 detached / 1 perimeter / 2 back-to-back / 3 courtyard / 4 slab, "
-            + "sparsest to densest. Recovered from storeys, so a Building on the height two "
-            + "rungs share is drawn as the higher one",
+            + "0 detached / 1 perimeter / 2 back-to-back / 3 courtyard / 4 slab, sparsest to "
+            + "densest. Read off the block and not off the height: a rung names a plot ratio, so "
+            + "two Buildings of one height can be on different rungs",
         _ => $"\nOVERLAY age — DEBUG. Bright is OLD: raised at Tick 0, dark is raised now, "
             + $"at Tick {_world.Tick.Raw:N0}. ⚠ A generated city is one vintage — "
             + "SyntheticCity raises everything in one call — so a flat wash here is the world "
             + "saying so and not the overlay failing",
     };
 
-    /// <summary>A Building's rung, recovered from the storeys its Lot carries.</summary>
+    /// <summary>A Building's rung, read off the pattern its block was carved by.</summary>
     /// <remarks>
-    /// ⚠ <b>Recovered and not stored.</b> <c>BlockPatterns.Storeys</c> is
-    /// <c>(rung × step) + 2</c> and <c>LotRuleset.StoreysOn</c> adds a draw of <c>0..step</c>
-    /// <em>inclusive</em>, so adjacent rungs share their boundary height and this returns the
-    /// higher of the two there. A debug view may carry that; a mechanism may not, which is why
-    /// nothing but this reads it back.
+    /// <para>
+    /// 🔴 <b>IT READ THE HEIGHT BACK AND <c>plans/0058</c> MADE THAT IMPOSSIBLE.</b> This was
+    /// <c>(storeys - 2) / step</c>, which worked only while the rung <em>was</em> the storey count.
+    /// A rung now names a plot ratio and the storeys divide it by the ground the pattern claims —
+    /// ***so two Buildings of one height can be on different rungs and two on one rung can be
+    /// different heights***, which is the entire point of the change and the exact thing a recovery
+    /// from height cannot survive. It asks the block instead.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Cold path, and it is three lookups a Building.</b> The Lot's frontage names its block,
+    /// the block names its pattern, and <see cref="_rungOf"/> holds the ladder so the sort is not
+    /// re-run per Building. It runs when the massing is rebuilt and never inside a Tick.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A Lot whose block cannot be found reads as rung 0</b> rather than refusing. This is a
+    /// debug view over a picture that is already drawn; a Building the wash cannot classify is
+    /// better shown in the sparsest colour than not shown at all, and nothing downstream reads it.
+    /// </para>
     /// </remarks>
-    private int RungOf(byte storeys)
+    private int RungOf(int lot)
     {
-        int step = _world.Rules.Lots.StoreysPerRung;
-        int rung = (storeys - 2) / (step < 1 ? 1 : step);
+        if (_rungOf is null
+            || !Frontage.BlockOf(
+                _world.Roads.Streets, _world.Lots.East[lot], _world.Lots.North[lot],
+                (StreetSide)_world.Lots.Side[lot], out int column, out int row)
+            || !_world.BlockIndex.Contains(column, row))
+        {
+            return 0;
+        }
+
+        int blockSlot = _world.BlockIndex.Slot(column, row);
+
+        if (blockSlot == BlockResidency.NotResident)
+        {
+            return 0;
+        }
+
+        int rung = _rungOf[(int)_world.PatternOf(blockSlot, out _)];
 
         return rung < 0 ? 0 : rung >= Patterns.Length ? Patterns.Length - 1 : rung;
     }
+
+    /// <summary>Each pattern's position on this world's ladder, built once when a wash is set.</summary>
+    /// <remarks>
+    /// ⚠ <b>The ladder is a function of two WORLD-CREATION keys</b> — <c>block_tiles</c> and
+    /// <c>lots_per_segment</c> — so within one world it is a constant and building it per Building
+    /// would be re-running a sort a few hundred times for one answer.
+    /// </remarks>
+    private int[]? _rungOf;
 
     /// <summary>How old a Building is, as a share of the run so far.</summary>
     /// <remarks>

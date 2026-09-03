@@ -148,11 +148,23 @@ public sealed class TripDumpTests
     /// code it governs is not thereby applied to the code next to it</b> — which is the corpus's own
     /// <i>citing an ADR is not applying it</i> (<c>adr/0044</c>) at the scale of one file.
     /// </remarks>
+    /// <remarks>
+    /// ⚠ <b>The two files are read at DIFFERENT populations and the second argument is why.</b>
+    /// <see cref="Population"/> is *enough Citizens for a few dozen Buildings* on the shipped
+    /// lattice and has never been that on <c>severance.toml</c>, whose block is 256 Tiles — the
+    /// class remark above records 400 falling out of the bottom of that file's band at
+    /// <c>plans/0053</c>, and this theory went on passing 400 to it anyway. <c>plans/0058</c> made
+    /// the sparsest form three storeys, one Building on one of those enormous parcels then held the
+    /// entire population, and the dump correctly reported ***a city with one Building has no pair to
+    /// walk between***. ⚠ <b>The exit code is what failed, not the assertion</b>, which is the
+    /// instrument refusing to report on a world that cannot carry the reading rather than reporting
+    /// a clean zero from it.
+    /// </remarks>
     [Theory]
-    [InlineData("severance.toml")]
-    [InlineData("minimal.toml")]
-    public void No_band_reports_a_walk_of_no_time_at_all(string ruleset) =>
-        Assert.DoesNotMatch(@"(?<!\d)0\.0 min", Dump(ruleset));
+    [InlineData("severance.toml", "2000")]
+    [InlineData("minimal.toml", Population)]
+    public void No_band_reports_a_walk_of_no_time_at_all(string ruleset, string citizens) =>
+        Assert.DoesNotMatch(@"(?<!\d)0\.0 min", Dump(ruleset, citizens));
 
     /// <summary>
     /// The detour figure exists, which is the half <c>--roads</c> states it cannot measure.

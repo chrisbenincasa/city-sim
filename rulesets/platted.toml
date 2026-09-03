@@ -313,6 +313,26 @@ lots_per_segment = 5
 # by half a metre; at 3 it is a real low-rise/mid-rise split and the core reads flat.
 storeys_per_rung = 3
 
+# How many rungs either side of its band's own rung a block's pattern may be drawn. THE ONLY SHIPPED
+# FILE THAT STATES IT, for storeys_per_rung's reason: this is the file whose job is to draw the ladder,
+# and a ladder every rung of which is one form everywhere is not a city.
+#
+# 🔴 WITHOUT IT A DENSITY IS A VALUE AND NOT A DISTRIBUTION. ForBand indexes a total order, so one band
+# gets one form for ever -- and that is exactly what the drawing showed at plans/0057 F1: five clean
+# rings with the boundaries falling on streets, because the streets are the only thing there is to
+# fall on. Nothing in a real city says every block of one density is the same shape.
+#
+# 2 lets a block reach two rungs either way, so a dense band is mostly slabs with courtyard blocks and
+# terraces through it and the odd perimeter block. CHOSEN, and against a stated band rather than
+# derived: 1 is too narrow to read as a mix from across the city and 4 is the whole ladder, at which
+# point every band draws from every form and the bands stop meaning anything. ⚠ IT IS NOT RATIFIED and
+# adr/0052 is suspended -- plans/0058 carries the reading it was chosen against.
+#
+# ⚠ THE DRAW IS ON THE BLOCK'S OWN GROUND AND NEVER ON THE BAND. That is what keeps the re-carve
+# ratchet writeable: a fixed offset added to a rung that rises with the band still rises with it, so
+# upzoning a block can still never make it sparser. PurposeTag.BlockPattern carries the argument.
+pattern_spread = 2
+
 # How much ground a Building leaves on each side of its parcel. CHOSEN, and one of the few numbers
 # in this file that is -- 2 Tiles is 8 m, a front garden's depth.
 #

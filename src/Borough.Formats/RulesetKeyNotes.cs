@@ -579,12 +579,19 @@ public static class RulesetKeyNotes
             + "walls stand on the pavement. Zero means every Building covers its whole parcel.",
 
         ["[lots] storeys_per_rung"] =
-            "How many storeys one step up the density ladder is worth. A block's pattern gives it a "
-            + "rung, and its Buildings stand the rung times this plus two — two being a floor rather "
-            + "than a step, because a building with no upper floor is a shed. The per-parcel jitter "
-            + "is one rung wide, so a street varies without a Building's rung stopping being "
-            + "readable off its height. Omitting it means one storey per rung, which caps the "
-            + "tallest Building in the world at seven.",
+            "How much plot ratio one step up the density ladder is worth. A block's pattern gives it "
+            + "a rung, and the rung times this plus two is the floor area its Buildings put on each "
+            + "unit of block — so how tall they stand depends on how much of the block the pattern "
+            + "leaves open. A form that spreads out is short and a form that stands back is tall, at "
+            + "the same density. Two is a floor rather than a step, because a building with no upper "
+            + "floor is a shed. Omitting it means one step per rung.",
+
+        ["[lots] pattern_spread"] =
+            "How many rungs either side of its band's own rung a block's pattern may be drawn, so a "
+            + "density is a mix of forms rather than one form. The band's rung stays the centre of "
+            + "what the band means; the draw is on the block's own ground, so a block cleared and "
+            + "zoned again is re-carved the same way and a re-plat can still never move a block down "
+            + "the ladder. Omitting it means every block takes its band's form exactly.",
 
         // ---- [trips] --------------------------------------------------------------------------
         ["[trips] crossing_seconds"] =

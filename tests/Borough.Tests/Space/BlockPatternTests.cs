@@ -1,3 +1,4 @@
+using Borough.Core.Determinism;
 using Borough.Core.Space;
 
 namespace Borough.Tests.Space;
@@ -491,7 +492,9 @@ public sealed class BlockPatternTests
         BlockPatterns.Ladder(ShippedBlockTiles, ShippedLotsPerSegment, ladder);
 
         BlockPattern For(byte band, int bandCount) =>
-            BlockPatterns.ForBand(band, bandCount, ShippedBlockTiles, ShippedLotsPerSegment);
+            BlockPatterns.ForBand(
+                band, bandCount, ShippedBlockTiles, ShippedLotsPerSegment,
+                WorldKey.FromSeed(1), 0, 0, spread: 0);
 
         // No band at all, however many are declared.
         Assert.Equal(BlockPattern.Detached, For(0, 0));
@@ -531,19 +534,28 @@ public sealed class BlockPatternTests
     [Fact]
     public void A_denser_band_never_gets_a_less_intense_pattern()
     {
+        // 🔴 EVERY SPREAD AND SEVERAL BLOCKS, WHICH IS THE POINT OF THE SWEEP SINCE plans/0058.
+        // The scatter draw is what could break this, and it cannot only because it depends on the
+        // block and never on the band -- so a fixed offset rides a rising rung. A draw that read the
+        // band would fail here on some block at some spread, which is the whole reason to sweep both
+        // rather than to assert the property once at spread 0 and call the ratchet safe.
+        for (int spread = 0; spread < BlockPatterns.Count; spread++)
+        for (int block = 0; block < 32; block++)
         for (int bandCount = 1; bandCount <= 12; bandCount++)
         {
             int last = -1;
 
             for (byte band = 1; band <= bandCount; band++)
             {
-                BlockPattern here =
-                    BlockPatterns.ForBand(band, bandCount, ShippedBlockTiles, ShippedLotsPerSegment);
+                BlockPattern here = BlockPatterns.ForBand(
+                    band, bandCount, ShippedBlockTiles, ShippedLotsPerSegment,
+                    WorldKey.FromSeed(7), block, block * 3, spread);
                 int rung = BlockPatterns.Rung(here, ShippedBlockTiles, ShippedLotsPerSegment);
 
                 Assert.True(
                     rung >= last,
-                    $"band {band} of {bandCount} gets {here} at rung {rung}, below rung {last}.");
+                    $"spread {spread}, block {block}: band {band} of {bandCount} gets {here} at "
+                    + $"rung {rung}, below rung {last}.");
 
                 last = rung;
             }

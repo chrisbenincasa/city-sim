@@ -2486,7 +2486,8 @@ public readonly record struct CapacityRuleset(
 /// <param name="SetbackTiles">
 /// The most ground a Building leaves on each side of its parcel, in Tiles.
 /// </param>
-public readonly record struct LotRuleset(int LotsPerSegment, int SetbackTiles, int StoreysPerRung = 1)
+public readonly record struct LotRuleset(
+    int LotsPerSegment, int SetbackTiles, int StoreysPerRung = 1, int PatternSpread = 0)
 {
     /// <summary>A Ruleset whose land cannot be subdivided at all.</summary>
     public static LotRuleset None => default;

@@ -5576,11 +5576,11 @@ public static class RulesetLoader
             // storeys_per_rung: how many storeys one step up the density ladder is worth. OPTIONAL,
             // and absent means 1 -- which is the step the ladder had when nobody had chosen one, so
             // a file that does not state it carves exactly what it carved before the key existed.
-            // ⚠ THE CEILING IS WHAT THIS KEY REALLY SETS. BlockPatterns.Storeys is `rung * step + 2`
-            // and the jitter is one step wide, so the tallest Building any world can hold is
-            // `(BlockPatterns.Count - 1) * step + 2 + step`. At the absent value that is SEVEN
-            // storeys, on every world, at every population -- a number nothing in the corpus states
-            // and nobody chose, because it fell out of there being five ways to subdivide a block.
+            // ⚠ IT SETS A PLOT RATIO AND NOT A HEIGHT, since plans/0058. `rung * step + 2` is floor
+            // area per unit of block, and BlockPatterns.Storeys divides it by the share of the block
+            // the pattern actually claims -- so the same key on a form that stands back off its
+            // ground buys more storeys than on a form that covers it. THE CEILING IS THEREFORE NOT
+            // A FUNCTION OF THIS KEY ALONE any more, and the range below is a range on the ratio.
             // `required: false` reads absent and malformed the same way, and they are not the same
             // -- a malformed one has already refused by the time this returns, so the refusal count
             // is what separates them and the caller need not. ReadCapacity's `Rate` is the same
@@ -5605,7 +5605,36 @@ public static class RulesetLoader
                 return LotRuleset.None;
             }
 
-            return new LotRuleset((int)value, (int)setback, (int)step);
+            // pattern_spread: how far off its band's rung a block's form may be drawn, in rungs and
+            // symmetrically. OPTIONAL, and absent means 0 -- no draw is taken at all, so a file that
+            // does not state it selects exactly the form it selected before the key existed.
+            // ⚠ IT IS A DISTRIBUTION AND NOT A LOOSENING. The band's rung stays the CENTRE of what
+            // the band means; what changes is that a band stops being one form everywhere, which is
+            // what made a whole ring of the city one shape (plans/0057 F1).
+            if (!TryInteger(_lotsTable, "pattern_spread", out long spread, required: false))
+            {
+                spread = 0;
+            }
+
+            // The ceiling is one short of the ladder's length, because a spread that reaches the
+            // whole ladder makes every band select uniformly from every form -- which is a city with
+            // no bands in it, expressible already by declaring none. ⚠ The floor is 0 and not 1: 0 is
+            // the absent value and has to stay writeable, so that a file can say `no scatter here`
+            // out loud rather than by omission.
+            if (spread < 0 || spread >= Core.Space.BlockPatterns.Count)
+            {
+                Refuse(LineOfLot("pattern_spread"), null,
+                    $"pattern_spread = {spread} is out of range. It is how many rungs either side of "
+                    + "its band's own rung a block's pattern may be drawn, so it is at least 0 — "
+                    + "every block takes its band's form, which is what a file omitting the key gets "
+                    + $"— and at most {Core.Space.BlockPatterns.Count - 1}, beyond which every band "
+                    + "draws from the whole ladder and the bands stop meaning anything. A city with "
+                    + "no density bands is written by declaring no [[band]].");
+
+                return LotRuleset.None;
+            }
+
+            return new LotRuleset((int)value, (int)setback, (int)step, (int)spread);
         }
 
         /// <summary>Reads <c>[capacity]</c> — how much floor one tenancy, job, car or pupil takes.</summary>
