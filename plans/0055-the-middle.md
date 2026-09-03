@@ -164,6 +164,28 @@ cannot suffer it.
 because the populator ***moved***, and the answer was never a bigger margin until the frontier stopped
 creeping in one direction and started growing in all four.
 
+### F8 — A residual is only a measurement while the thing subtracted is inside the thing it is subtracted from
+
+**`SealingMeasurementTests` reported how much of a city's Sealing is road by subtracting the
+Buildings' share from the layer's total, and it summed `Lots.ParcelTiles` while
+`World.CreateBuilding` seals `Lots.FootprintTiles`.** [`0052`](0052-the-parcel.md) stage 1 made those
+two different quantities — a footprint is a fraction of its parcel — so the two numbers were never
+nested and the residual stayed positive only for as long as the roads sealed enough to cover the gap.
+
+**A compact city closed it.** `minimal.toml` at 4,000 Citizens: **38,064 Tiles of parcel against a
+layer holding 29,943**, so *roads sealed nothing* fired on a city whose roads seal plenty. ⚠ **No Cell
+was clamped in that reading** — peak 509 of 1,024 — so `MapLayers.Seal`'s saturation is not what made
+the difference and the two quantities simply were not the same one.
+
+Summing the footprint instead: **Buildings 70%, roads 29%** on `minimal.toml`, **69/30** on
+`twinned.toml`, **44/55** on `severance.toml`. ⚠ **The road figure is a FLOOR and not a count wherever
+a Cell saturates**, because the clamp's loss lands entirely on the residual side — 20 of 2,899 Cells
+on `severance.toml`, and none on the other two. That is now stated at the site.
+
+⚠ **It is an instrument, so the working lane never ran it.** Found by the whole suite, which also
+found two `parking` instruments that [`0053`](0053-the-block.md)'s own retirement left unloadable a
+day earlier — filed there, not here.
+
 ---
 
 ## What it cost

@@ -925,6 +925,29 @@ question with one answer.
 
 ---
 
+## 🔴 The `parking` retirement left two instruments unloadable, and nothing ran them for a day
+
+**FOUND 2026-09-03 by [`0055`](0055-the-middle.md)'s whole-suite run.** `bd81389` retired
+`[[building]] parking` into `RefuseRetired` — occupancy divides the ground now, so how many Vehicles
+a Building parks is derived from floor area over `[capacity] floor_tiles_per_parking_space`. **Two
+test classes build their own TOML by hand and still state the key**, so both are refused at load:
+
+| Class | Where |
+|---|---|
+| `ParkingScarcityTests.The_walk_and_the_exhaustion_as_occupancy_climbs` | `Ruleset(int rung)` — the sweep's whole point is cutting `parking` rung by rung |
+| `ParkingArrivalStreamTests.The_arrival_peak_is_land_use_as_much_as_it_is_the_city` | `WithASecondEmployingKind()` |
+
+⚠ **Both are INSTRUMENT tier, which is why a day passed.** `scripts/test.sh` filters them out and the
+post-submit lane is the only thing that runs them — so ***a retirement that breaks an instrument is
+invisible to the lane the retirement was made in.*** That is [`0032`](0032-test-tiers.md)'s axis doing
+exactly what it says it does and costing exactly what it says it costs.
+
+🔴 **The scarcity one is not a rename.** Its sweep is *cut `parking` rung by rung and watch the walk
+lengthen*, and there is no key left to cut — the number is derived from the ground. **So the
+instrument needs re-aiming at `floor_tiles_per_parking_space` and that is a different sweep**, not a
+find-and-replace. It is filed here rather than repaired because it is this plan's step that retired
+the key.
+
 ## Open questions
 
 | # | Question | Type |

@@ -101,10 +101,21 @@ public sealed class SealingMeasurementTests(ITestOutputHelper output)
         }
 
         // The Buildings' share is counted rather than differenced, because every Building seals its
-        // Lot's parcel exactly once at World.CreateBuilding. plans/0052 stage 1: SUMMED rather than
-        // multiplied, because the footprint is a property of the ground and not of the kind, so two
-        // Buildings of one kind on differently-shaped parcels seal different amounts. Roads are what
-        // is left.
+        // Lot's FOOTPRINT exactly once at World.CreateBuilding. plans/0052 stage 1: SUMMED rather
+        // than multiplied, because the footprint is a property of the ground and not of the kind, so
+        // two Buildings of one kind on differently-shaped parcels seal different amounts. Roads are
+        // what is left.
+        //
+        // 🔴 IT SUMMED `ParcelTiles` AND THE WORLD SEALS `FootprintTiles`, WHICH plans/0052 STAGE 1
+        // MADE TWO DIFFERENT QUANTITIES -- a footprint is a fraction of its parcel. So the residual
+        // below was a subtraction of two numbers that are not nested, and it stayed positive only
+        // for as long as the roads sealed enough to cover the gap. plans/0055 made the city compact
+        // and it went NEGATIVE: on minimal.toml at 4,000 Citizens, 38,064 Tiles of parcel against a
+        // layer holding 29,943, so `roads sealed nothing` fired on a city whose roads seal plenty.
+        // ***A residual is only a measurement while the thing subtracted is part of the thing it is
+        // subtracted from.*** No Cell was clamped in that reading -- peak 509 of 1,024 -- so the
+        // clamp at MapLayers.Seal is not what made the difference, and the two quantities simply
+        // were not the same one.
         long buildingTiles = 0;
 
         for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
@@ -116,9 +127,9 @@ public sealed class SealingMeasurementTests(ITestOutputHelper output)
 
             if (world.Lots.Rows.TryResolve(world.Buildings.Lot[slot], out int lotSlot))
             {
-                int parcel = world.Lots.ParcelTiles(lotSlot);
+                int footprint = world.Lots.FootprintTiles(lotSlot);
 
-                buildingTiles += parcel < 1 ? 1 : parcel;
+                buildingTiles += footprint < 1 ? 1 : footprint;
             }
         }
 
@@ -151,7 +162,7 @@ public sealed class SealingMeasurementTests(ITestOutputHelper output)
 
         output.WriteLine($"# {file} — {Citizens} Citizens, Cell = {CellGrid.TilesInCell} Tiles");
         output.WriteLine($"Buildings                {reading.Buildings} on "
-            + $"{buildingTiles} Tiles of parcel, mean "
+            + $"{buildingTiles} Tiles of footprint, mean "
             + $"{(reading.Buildings > 0 ? buildingTiles / reading.Buildings : 0)}");
         output.WriteLine($"cells with any Sealing   {reading.Cells}");
         output.WriteLine($"total Tiles sealed       {reading.Total}");
@@ -165,6 +176,14 @@ public sealed class SealingMeasurementTests(ITestOutputHelper output)
         output.WriteLine($"SATURATED Cells          {reading.Saturated} of {reading.Cells} — a "
             + "saturated Cell has Fertility 0 and no longer distinguishes two built Cells");
 
+        // ⚠ AND THE ROAD FIGURE IS A FLOOR RATHER THAN A COUNT WHEREVER A CELL SATURATES.
+        // MapLayers.Seal clamps at CellGrid.TilesInCell, so a Cell that filled up stopped recording
+        // what was added to it -- and the residual carries that loss entirely on the road side,
+        // since the footprint sum above is taken off the Lots and is not clamped by anything.
+        // MEASURED: minimal.toml and twinned.toml saturate NO Cell at 4,000 Citizens and severance
+        // .toml saturates 20 of 2,899, so this reads true on two of the three worlds and low on the
+        // third. It is stated rather than corrected because the assertion below is a sign test.
+        //
         // The two facts that were false before this milestone, and nothing else. A number here would
         // be a regression test over a figure that is deliberately a Ruleset's to move.
         Assert.True(roadTiles > 0, "roads sealed nothing");
