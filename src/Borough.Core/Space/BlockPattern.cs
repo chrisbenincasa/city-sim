@@ -494,11 +494,28 @@ public static class BlockPatterns
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>The rung plus two, and there is no table.</b> Two is the floor — a building with no upper
-    /// floor is a shed — and the rest is <see cref="Rung"/>, so ***height rises with density because
-    /// it is the same quantity***, not because anybody wrote a height beside each pattern. At the
-    /// shipped lattice that is a two-storey suburb, a three-storey perimeter block, a four-storey
-    /// terrace, a five-storey courtyard block and a six-storey slab.
+    /// <b>The rung times the step plus two, and there is no table.</b> Two is the floor — a building
+    /// with no upper floor is a shed — and the rest is <see cref="Rung"/>, so ***height rises with
+    /// density because it is the same quantity***, not because anybody wrote a height beside each
+    /// pattern. At <c>storeys_per_rung = 1</c> and the shipped lattice that is a two-storey suburb,
+    /// a three-storey perimeter block, a four-storey terrace, a five-storey courtyard block and a
+    /// six-storey slab.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>THE STEP WAS 1 AND NOBODY HAD CHOSEN IT, WHICH IS DIFFERENT FROM ITS BEING DERIVED.</b>
+    /// The floor of two carries an argument and <see cref="Rung"/> carries a derivation; the
+    /// <em>distance between rungs</em> carried neither, and its consequence was a ceiling nothing in
+    /// the corpus states: <c><see cref="Count"/> - 1 + 2</c>, plus a jitter of one, is <b>seven
+    /// storeys — 24.5 m — and that was the tallest Building this design could produce on any world
+    /// at any population.</b> ***The height of the tallest thing in the city was set by how many ways
+    /// there are to subdivide a block***, which is a geometry decision that was never about height.
+    /// <c>plans/0056</c> made it <c>[lots] storeys_per_rung</c>.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Absent means 1, and 1 is what every file that does not state it gets</b> — so this is a
+    /// key a world opts into rather than a number that moved under everybody. ⚠ <b>The FLOOR is
+    /// still two and does not scale</b>: a shed is a shed whatever the step is, and multiplying the
+    /// floor would raise the suburb rather than lengthen the ladder.
     /// </para>
     /// <para>
     /// ⚠ <b>It follows the ladder and therefore follows the lattice.</b> The rungs reorder at
@@ -507,8 +524,9 @@ public static class BlockPatterns
     /// wrong: whichever form gives one door less ground is the taller one.
     /// </para>
     /// </remarks>
-    public static int Storeys(BlockPattern pattern, int blockTiles, int lotsPerSegment) =>
-        Rung(pattern, blockTiles, lotsPerSegment) + 2;
+    public static int Storeys(
+        BlockPattern pattern, int blockTiles, int lotsPerSegment, int storeysPerRung) =>
+        (Rung(pattern, blockTiles, lotsPerSegment) * (storeysPerRung < 1 ? 1 : storeysPerRung)) + 2;
 
     /// <summary>Where one pattern sits on this lattice's <see cref="Ladder"/>.</summary>
     /// <remarks>

@@ -3364,7 +3364,8 @@ public sealed class World
                     : Space.BlockPatterns.Carve(
                         pattern, column, row, blockTiles, perSegment, parcels);
 
-                atStoreys = Space.BlockPatterns.Storeys(pattern, blockTiles, perSegment);
+                atStoreys = Space.BlockPatterns.Storeys(
+                    pattern, blockTiles, perSegment, Rules.Lots.StoreysPerRung);
                 atColumn = column;
                 atRow = row;
             }
@@ -3393,7 +3394,7 @@ public sealed class World
                 Lots.FootprintWide[slot] = wide;
                 Lots.FootprintDeep[slot] = deep;
                 Lots.Storeys[slot] = Borough.Core.Rules.LotRuleset.StoreysOn(
-                    Key, parcels[i].East, parcels[i].North, atStoreys);
+                    Key, parcels[i].East, parcels[i].North, atStoreys, Rules.Lots.StoreysPerRung);
 
                 break;
             }

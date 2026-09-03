@@ -2486,7 +2486,7 @@ public readonly record struct CapacityRuleset(
 /// <param name="SetbackTiles">
 /// The most ground a Building leaves on each side of its parcel, in Tiles.
 /// </param>
-public readonly record struct LotRuleset(int LotsPerSegment, int SetbackTiles)
+public readonly record struct LotRuleset(int LotsPerSegment, int SetbackTiles, int StoreysPerRung = 1)
 {
     /// <summary>A Ruleset whose land cannot be subdivided at all.</summary>
     public static LotRuleset None => default;
@@ -2551,23 +2551,48 @@ public readonly record struct LotRuleset(int LotsPerSegment, int SetbackTiles)
 
     /// <summary>
     /// <b>How many storeys a Building on this parcel stands</b> — the pattern's height, plus a draw
-    /// of one.
+    /// <b>one rung wide</b>.
     /// </summary>
     /// <remarks>
-    /// <b>One storey of variation and no more</b>, drawn on the parcel's corner like the setbacks.
-    /// ⚠ <b>It is what stops a block reading as a wall</b>, and it is deliberately small: two
-    /// storeys of jitter would blur the ladder, which is the thing the height is supposed to say.
-    /// The tag is <see cref="Determinism.PurposeTag.BuildingFootprint"/>'s and the bit range is its
-    /// own, so a tall Building is not also a deep one.
+    /// <para>
+    /// <b>ONE RUNG OF VARIATION AND NO MORE</b>, drawn on the parcel's corner like the setbacks.
+    /// ⚠ <b>It is what stops a block reading as a wall</b>, and its width is derived rather than
+    /// chosen: a jitter narrower than the ladder's own step cannot blur the ladder, and a jitter
+    /// exactly one step wide is the widest that still leaves a Building's rung recoverable from its
+    /// height. The tag is <see cref="Determinism.PurposeTag.BuildingFootprint"/>'s and the bit range
+    /// is its own, so a tall Building is not also a deep one.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>IT SAID <em>ONE STOREY OF VARIATION AND NO MORE, BECAUSE TWO WOULD BLUR THE LADDER</em>,
+    /// AND THAT SENTENCE WAS TRUE OF A LADDER WHOSE STEP IS ONE.</b> It was written when every rung
+    /// was one storey above the last, so a jitter of two spanned three rungs and the height stopped
+    /// naming a density. <c>plans/0056</c> made the step a Ruleset value; at
+    /// <c>storeys_per_rung = 3</c> a jitter of three spans one rung and blurs nothing. ***The
+    /// argument was never about the number two; it was about the jitter against the step, and it
+    /// discharges itself once the step can move.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>At <c>storeys_per_rung = 1</c> this is bit-identical to what it replaced</b> — a draw
+    /// over <c>{0, 1}</c> — so no world that does not state the key moves a State Hash.
+    /// </para>
     /// </remarks>
     public static byte StoreysOn(
-        WorldKey key, Quantities.Tiles east, Quantities.Tiles north, int patternStoreys)
+        WorldKey key,
+        Quantities.Tiles east,
+        Quantities.Tiles north,
+        int patternStoreys,
+        int storeysPerRung)
     {
         ulong patch = ((ulong)(uint)east.Raw << 32) | (uint)north.Raw;
         ulong draw = Determinism.Randomness.Draw(
             key, patch, Quantities.Ticks.Zero, Determinism.PurposeTag.BuildingFootprint);
 
-        int storeys = patternStoreys + (int)((draw >> 32) & 1);
+        // Inclusive of the step, so the jitter is one rung wide: at a step of 1 that is {0, 1},
+        // which is the mask this replaced. Same modulo the Footprint draw above it uses, on the same
+        // word, and `Arithmetic`'s raw-division lint does not reach a ulong remainder by a constant
+        // the caller has already been range-checked on.
+        int spread = storeysPerRung < 1 ? 1 : storeysPerRung;
+        int storeys = patternStoreys + (int)(((draw >> 32) & 0xFF) % (ulong)(spread + 1));
 
         return (byte)(storeys < 1 ? 1 : storeys > 255 ? 255 : storeys);
     }

@@ -5573,7 +5573,39 @@ public static class RulesetLoader
                 return LotRuleset.None;
             }
 
-            return new LotRuleset((int)value, (int)setback);
+            // storeys_per_rung: how many storeys one step up the density ladder is worth. OPTIONAL,
+            // and absent means 1 -- which is the step the ladder had when nobody had chosen one, so
+            // a file that does not state it carves exactly what it carved before the key existed.
+            // ⚠ THE CEILING IS WHAT THIS KEY REALLY SETS. BlockPatterns.Storeys is `rung * step + 2`
+            // and the jitter is one step wide, so the tallest Building any world can hold is
+            // `(BlockPatterns.Count - 1) * step + 2 + step`. At the absent value that is SEVEN
+            // storeys, on every world, at every population -- a number nothing in the corpus states
+            // and nobody chose, because it fell out of there being five ways to subdivide a block.
+            // `required: false` reads absent and malformed the same way, and they are not the same
+            // -- a malformed one has already refused by the time this returns, so the refusal count
+            // is what separates them and the caller need not. ReadCapacity's `Rate` is the same
+            // shape.
+            if (!TryInteger(_lotsTable, "storeys_per_rung", out long step, required: false))
+            {
+                step = 1;
+            }
+
+            // The floor is 1 because a step of zero is a flat ladder, which is a city with one
+            // height -- expressible already by declaring one [[band]], and saying it here as well
+            // would be two spellings of one city. The ceiling keeps the tallest Building inside the
+            // byte LotTable.Storeys is: 50 gives (4 * 50) + 2 + 50 = 252.
+            if (step < 1 || step > 50)
+            {
+                Refuse(LineOfLot("storeys_per_rung"), null,
+                    $"storeys_per_rung = {step} is out of range. It is how many storeys one step up "
+                    + "the density ladder is worth, so it is at least 1 — a flat ladder is a city "
+                    + "with one [[band]], not a step of zero — and at most 50, beyond which the "
+                    + "tallest block pattern stands more storeys than a Lot can record.");
+
+                return LotRuleset.None;
+            }
+
+            return new LotRuleset((int)value, (int)setback, (int)step);
         }
 
         /// <summary>Reads <c>[capacity]</c> — how much floor one tenancy, job, car or pupil takes.</summary>

@@ -578,6 +578,14 @@ public static class RulesetKeyNotes
             + "four sides are drawn independently per patch of ground, so a street varies and some "
             + "walls stand on the pavement. Zero means every Building covers its whole parcel.",
 
+        ["[lots] storeys_per_rung"] =
+            "How many storeys one step up the density ladder is worth. A block's pattern gives it a "
+            + "rung, and its Buildings stand the rung times this plus two — two being a floor rather "
+            + "than a step, because a building with no upper floor is a shed. The per-parcel jitter "
+            + "is one rung wide, so a street varies without a Building's rung stopping being "
+            + "readable off its height. Omitting it means one storey per rung, which caps the "
+            + "tallest Building in the world at seven.",
+
         // ---- [trips] --------------------------------------------------------------------------
         ["[trips] crossing_seconds"] =
             "What it costs on foot to reach the other side of a Segment, in in-world seconds. Zero "

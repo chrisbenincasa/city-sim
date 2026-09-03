@@ -199,7 +199,8 @@ public static class LotSubdivider
 
         // A property of the BLOCK and hoisted out of the loop, which is what it is: every Building
         // on one block stands the same number of storeys before the per-parcel draw.
-        int patternStoreys = BlockPatterns.Storeys(pattern, blockTiles, perSegment);
+        int patternStoreys =
+            BlockPatterns.Storeys(pattern, blockTiles, perSegment, world.Rules.Lots.StoreysPerRung);
 
         // The face being laid, and whether this carve has put anything on it. Carve returns parcels
         // in face order, so a change of face is the boundary at which the previous one is closed.
@@ -259,7 +260,8 @@ public static class LotSubdivider
             world.Lots.FootprintWide[slot] = footWide;
             world.Lots.FootprintDeep[slot] = footDeep;
             world.Lots.Storeys[slot] = Rules.LotRuleset.StoreysOn(
-                world.Key, parcel.East, parcel.North, patternStoreys);
+                world.Key, parcel.East, parcel.North, patternStoreys,
+                world.Rules.Lots.StoreysPerRung);
 
             created++;
             onFace++;
