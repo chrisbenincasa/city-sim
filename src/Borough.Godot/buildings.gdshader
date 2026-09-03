@@ -6,6 +6,11 @@
 // boxes cannot each carry their own mesh. The size is recovered from the instance transform
 // rather than passed in, so a Building drawn taller gets more storeys without being told.
 //
+// 🔴 THE STOREY COUNT IS THE ONE THING HERE THAT IS THE CITY'S, and it arrives through the same
+// door as the size: `LotTable.Storeys` times `Main.StoreyMetres` IS the height of the box, so
+// dividing it back out returns the city's number exactly. ⚠ A window is still invented geometry;
+// HOW MANY ROWS OF THEM there are is not.
+//
 // ⚠ TWO CHANNELS OF INSTANCE_CUSTOM ARE THE CITY'S AND THE OTHER TWO ARE THE DRAWING'S.
 //   r, g  the street face's outward normal, remapped from -1..1 — which kerb the Lot is on
 //         (adr/0074), and therefore where the front door goes
@@ -14,7 +19,10 @@
 shader_type spatial;
 render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 
-// One storey, and the same 3.5 m the C# side uses to turn `occupants` into a height.
+// One storey, and the same 3.5 m Main.StoreyMetres draws one with. ⚠ IT IS A SECOND COPY OF A
+// NUMBER AND THERE IS NO WAY TO PASS IT: a shader cannot read a C# const and every INSTANCE_CUSTOM
+// channel is spent. What makes the copy safe is that the height is now an exact multiple of it, so
+// a drift shows up as a storey grid that does not divide the wall rather than as nothing at all.
 const float STOREY = 3.5;
 
 // How wide a window bay is, kerb to kerb along the wall.
@@ -116,13 +124,23 @@ void fragment() {
     float u = mix(metres.x, metres.z, sideways);
     float span = mix(v_size.x, v_size.z, sideways);
 
-    // ⚠ THE STOREY SPACING IS FITTED RATHER THAN FIXED. A wall 9 m tall gets two storeys of 4.5 m
-    // and not two of 3.5 with a metre of blank above, because a blank strip under the eaves reads
-    // as a mistake and an over-tall storey reads as a warehouse.
-    float storeys = max(1.0, floor((v_size.y - PLINTH) / STOREY));
-    float lift = (v_size.y - PLINTH) / storeys;
-    float floorAt = floor(max(up - PLINTH, 0.0) / lift);
-    float withinY = mod(max(up - PLINTH, 0.0), lift);
+    // 🔴 THE STOREY COUNT IS RECOVERED EXACTLY AND WAS FITTED. It read
+    // `floor((v_size.y - PLINTH) / STOREY)` against a height the C# side had multiplied by a
+    // 0.55–1.85 jitter, so ***the number of window rows on a wall was not the number of storeys the
+    // city holds*** -- measured on `platted.toml`, a ladder of five rungs came out as eight distinct
+    // counts, 130 Buildings drawn one storey tall on a city whose floor is two. The jitter is gone
+    // and the height is now `storeys * STOREY` exactly, so a `round` returns the city's own number
+    // and `lift` is the storey height it was built from.
+    //
+    // ⚠ THE PLINTH IS NO LONGER SUBTRACTED FROM THE GRID, and the sentence that used to stand here
+    // was about the jitter rather than about the plinth: a wall 9 m tall got two storeys of 4.5 m
+    // so that no blank strip was left under the eaves. An exact multiple leaves none, so the fit
+    // has nothing to absorb. The plinth stays what it separately is -- `above` below, which is the
+    // mask that keeps an opening off the bottom 0.9 m of a wall.
+    float storeys = max(1.0, floor((v_size.y / STOREY) + 0.5));
+    float lift = v_size.y / storeys;
+    float floorAt = floor(up / lift);
+    float withinY = mod(up, lift);
 
     float bays = max(1.0, floor(span / BAY));
     float wide = span / bays;

@@ -2225,8 +2225,20 @@ public partial class Main : Node3D
             // `drive` skill's F26, which is this failure arriving through a stale binary instead.
             int storeys = Math.Max(1, (int)lots.Storeys[lot]);
 
-            // 0.55x to 1.85x on the height.
-            float tall = storeys * StoreyMetres * (0.55f + ((shape & 0xFFu) / 255f * 1.3f));
+            // 🔴 THE HEIGHT IS THE STOREY COUNT AND NOTHING ELSE NOW. A `* (0.55f + draw * 1.3f)`
+            // stood on this line -- 0.55x to 1.85x, which at the ladder's top is plus or minus three
+            // storeys -- and it was inherited from the era when the height was INFERRED from a
+            // kind's `occupants` and there was no storey count to draw. There is one now, and
+            // LotRuleset.StoreysOn's own remark says what this jitter was doing to it: ***one storey
+            // of variation and no more, because two storeys of jitter would blur the ladder, which
+            // is the thing the height is supposed to say***. The shell was applying six.
+            //
+            // ⚠ TWO MECHANISMS BOTH CLAIMED TO BE WHAT STOPS A BLOCK READING AS A WALL, which is
+            // plans/0012 Cause 1 arriving in geometry: the city's is a deterministic draw of one
+            // storey off the parcel's corner, and the shell's was a continuous multiplier that
+            // swamped it. The city's is the one that survives, because it is the one a Building's
+            // FLOOR AREA -- and therefore its occupancy -- is derived from.
+            float tall = storeys * StoreyMetres;
 
             // The long side runs ALONG the Street, which is what makes a row of them read as a
             // street rather than as a field of blocks -- so the plan is swapped with the axis the

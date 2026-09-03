@@ -2091,6 +2091,28 @@ block.
       visibility; it is `plans/0052` **Q5** and needs no corpus edit until that question is answered.
 
 
+### `rulesets/platted.toml` and `banded.toml` describe a five-ring city that no run of either has produced since 2026-09-02 — Cause 1, against a picture
+
+**NEW 2026-09-03, found by [`plans/0049`](0049-visuals.md) row 4** (**F43**, **F44**).
+`platted.toml`'s header says a run of it is *"the ladder laid out from the edge inward: detached at
+the rim, then perimeter, terrace, courtyard, and a slab in the middle"* and that *"the only claim it
+makes is that all five of them get drawn"*; `banded.toml`'s says the ring width *"[falls] out of the
+lattice's own half-span"*. **Measured: the file draws three rungs, at 10,000 Citizens and at
+40,000.**
+
+⚠ **The drift is not in the sentence, it is under it.** Both headers were true when written and
+`plans/0053` recorded having *looked* at five rings. Three commits later that plan's own capacity
+step made `Subdivide` count room rather than Lots, the built extent fell from 82% of the lattice to
+27%, and the two densest bands went onto ground nothing subdivides. ***A comment about a picture
+cannot report that the picture changed***, which is the one thing that makes this different from
+every other Cause 1 entry here: no second copy of a number drifted, a **claim about what a run
+produces** did.
+
+🔴 **It cannot be paid by editing the headers alone.** The fix is
+[`plans/0049`](0049-visuals.md) **F45**, on branch `row4-generator`, and it reopens `plans/0037`
+**F8** and surfaces a `ParkingOccupancyIsConserved` leak — so what is owed here is a header saying
+what a run does **today**, and it is owed whether or not that branch ever lands.
+
 ### `rulesets/fouled.toml`'s comment says its emitter fires **twice a Day** and the Rule says **sixteen times** — Cause 1, in a file
 
 **NEW 2026-09-02, found while copying that Rule into `pictured.toml` for
