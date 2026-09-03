@@ -734,4 +734,14 @@ public enum PurposeTag : ulong
     /// </para>
     /// </remarks>
     BuildingFootprint = 37,
+
+    /// <summary>
+    /// Which housed Households the reassessment sweep looks at on one pass.
+    /// </summary>
+    /// <remarks>
+    /// <b>Distinct from <see cref="PoolDraw"/> and <see cref="FoundingDraw"/>, and for their
+    /// reason.</b> All three draw from the same table on the same trigger; sharing a tag would
+    /// make the founding candidate and the reassessment candidate the same person every pass.
+    /// </remarks>
+    ReassessDraw = 38,
 }

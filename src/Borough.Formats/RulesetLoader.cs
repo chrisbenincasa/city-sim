@@ -5193,11 +5193,12 @@ public static class RulesetLoader
             uint interval = ReadInterval(_placementTable, null);
             int revisit = ReadPlacementRevisit(interval);
             int candidates = ReadCandidates();
-            int givesUp = ReadGivesUpAfterDays(gated);
+            int reconsider = ReadReconsiderTicks(interval);
+            int givesUp = ReadGivesUpAfterDays(gated || reconsider > 0);
 
             RefuseEmptyClockUnderTheRevisit(kinds, revisit);
 
-            return new PlacementRuleset(interval, revisit, candidates, givesUp);
+            return new PlacementRuleset(interval, revisit, candidates, givesUp, reconsider);
         }
 
         /// <summary>
@@ -5274,19 +5275,19 @@ public static class RulesetLoader
         /// This check is on the right side of that line: a declared kind is a fact about the file.
         /// </para>
         /// </remarks>
-        private int ReadGivesUpAfterDays(bool gated)
+        private int ReadGivesUpAfterDays(bool needsSink)
         {
             if (!TryInteger(_placementTable!, "gives_up_after_days", out long days, required: false))
             {
-                if (gated)
+                if (needsSink)
                 {
                     Refuse(LineOf(_placementTable!), null,
-                        "this Ruleset declares a kind with arrivals_per_day, so Households can enter "
-                        + "the Unplaced Pool from outside, and [placement] does not state "
-                        + "gives_up_after_days -- so nothing ever leaves the Pool except by being "
-                        + "housed. A Pool with a door into it and no give-up rule grows without "
-                        + "bound, which adr/0006 forbids. State how long a Household keeps looking, "
-                        + "in Days, or remove the gate kind.");
+                        "this Ruleset has a door into the Unplaced Pool -- a gate kind "
+                        + "(arrivals_per_day) or a reassessment sweep (reconsider_ticks) -- and "
+                        + "[placement] does not state gives_up_after_days. Nothing ever leaves the "
+                        + "Pool except by being housed, so a Pool with a door and no give-up rule "
+                        + "can fill without bound, which adr/0006 forbids. State how long a "
+                        + "Household keeps looking, in Days.");
                 }
 
                 return 0;
@@ -5348,6 +5349,38 @@ public static class RulesetLoader
             }
 
             return (int)revisit;
+        }
+
+        private int ReadReconsiderTicks(uint interval)
+        {
+            if (!TryInteger(_placementTable!, "reconsider_ticks", out long reconsider,
+                    required: false))
+            {
+                return 0;
+            }
+
+            if (reconsider < 1 || reconsider > int.MaxValue)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(_placementTable!, "reconsider_ticks")
+                        ?? _placementTable!), null,
+                    $"reconsider_ticks = {reconsider} is not a duration this world can hold. "
+                    + "It is how long the reassessment pass takes to check every housed "
+                    + "Household once, in Ticks, so it is at least 1; omit it to skip "
+                    + "reassessment entirely.");
+                return 0;
+            }
+
+            if (reconsider < interval)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(_placementTable!, "reconsider_ticks")
+                        ?? _placementTable!), null,
+                    $"reconsider_ticks = {reconsider} is shorter than the interval of "
+                    + $"{interval} it would be delivered in. A reconsider period is a duration "
+                    + "spread over triggers; shorten the interval or lengthen the period.");
+                return (int)interval;
+            }
+
+            return (int)reconsider;
         }
 
         /// <summary>How many dwellings one Household looks at before waiting for its next occasion.</summary>

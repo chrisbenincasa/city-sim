@@ -79,7 +79,7 @@ public sealed class ZoneRuleCreateTests
     /// too narrowly. Both make the loop tests statements about the <em>loop</em>.
     /// </remarks>
     private static PlacementRuleset Placing(uint interval = 4, int candidates = 64) =>
-        new(interval, (int)interval, candidates, 0);
+        new(interval, (int)interval, candidates, 0, 0);
 
     /// <summary>
     /// A world with <paramref name="vacant"/> empty Lots and <paramref name="seeking"/> Households

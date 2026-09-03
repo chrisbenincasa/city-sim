@@ -67,7 +67,7 @@ public sealed class Census
     private const int RuleMetrics = RuleCounters * AggregatesPerRuleCounter;
 
     /// <summary>The members of <see cref="PlacementCounter"/>.</summary>
-    private const int PlacementCounters = 4;
+    private const int PlacementCounters = 5;
 
     /// <summary>The Sweep family's share of one reading, on the same terms.</summary>
     private const int ZoneMetrics = ZoneCounters * AggregatesPerRuleCounter;
@@ -323,6 +323,7 @@ public sealed class Census
         Write(_values, at + _placementBase, (int)PlacementCounter.Placed, placement.Placed);
         Write(_values, at + _placementBase, (int)PlacementCounter.Departed, placement.Departed);
         Write(_values, at + _placementBase, (int)PlacementCounter.Retired, placement.Retired);
+        Write(_values, at + _placementBase, (int)PlacementCounter.Reassessed, placement.Reassessed);
 
         Write(_values, at + _tripBase, (int)TripCounter.Completed, trips.Completed);
         Write(_values, at + _tripBase, (int)TripCounter.NoRouteFound, trips.NoRouteFound);
@@ -569,7 +570,7 @@ public sealed class Census
         {
             if (metric.PlacementCounter is not (PlacementCounter.Considered
                     or PlacementCounter.Placed or PlacementCounter.Departed
-                    or PlacementCounter.Retired))
+                    or PlacementCounter.Retired or PlacementCounter.Reassessed))
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(metric), metric.PlacementCounter,

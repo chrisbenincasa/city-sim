@@ -1944,6 +1944,45 @@ public sealed class RulesetLoaderTests
     }
 
     /// <summary>
+    /// A placement sweep with <c>reconsider_ticks</c> carries through to the Ruleset.
+    /// </summary>
+    [Fact]
+    public void A_placement_reconsider_ticks_is_loaded()
+    {
+        Ruleset ruleset = Accepted(
+            Bakery
+            + "\n[placement]\ninterval = 32\nrevisit_ticks = 1024\ncandidates = 3\n"
+            + "reconsider_ticks = 1024\ngives_up_after_days = 60\n");
+
+        Assert.True(ruleset.Placement.Reconsiders);
+        Assert.Equal(1024, ruleset.Placement.ReconsiderTicks);
+    }
+
+    /// <summary>A <c>reconsider_ticks</c> shorter than the interval is refused.</summary>
+    [Fact]
+    public void A_reconsider_ticks_shorter_than_the_interval_is_refused()
+    {
+        RulesetRefusal refusal = Refused(
+            Bakery
+            + "\n[placement]\ninterval = 32\nrevisit_ticks = 1024\ncandidates = 3\n"
+            + "reconsider_ticks = 16\ngives_up_after_days = 60\n");
+
+        Assert.Contains("reconsider_ticks", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>A <c>reconsider_ticks</c> without <c>gives_up_after_days</c> is refused.</summary>
+    [Fact]
+    public void A_reconsider_ticks_without_gives_up_after_days_is_refused()
+    {
+        RulesetRefusal refusal = Refused(
+            Bakery
+            + "\n[placement]\ninterval = 32\nrevisit_ticks = 1024\ncandidates = 3\n"
+            + "reconsider_ticks = 1024\n");
+
+        Assert.Contains("gives_up_after_days", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// A Ruleset that declares a gate and no <c>[placement]</c> table at all is refused.
     /// </summary>
     /// <remarks>

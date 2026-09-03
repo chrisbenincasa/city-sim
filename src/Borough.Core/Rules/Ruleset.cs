@@ -1603,7 +1603,8 @@ public readonly record struct HinterlandDefinition(
 /// up</b>, which is only a coherent Ruleset in a file with no gate in it.
 /// </param>
 public readonly record struct PlacementRuleset(
-    uint Interval, int RevisitTicks, int Candidates, int GivesUpAfterDays)
+    uint Interval, int RevisitTicks, int Candidates, int GivesUpAfterDays,
+    int ReconsiderTicks)
 {
     /// <summary>A Ruleset whose city houses nobody.</summary>
     public static PlacementRuleset None => default;
@@ -1679,6 +1680,28 @@ public readonly record struct PlacementRuleset(
         }
 
         return (int)IntegerMath.CeilDiv((long)pool * Interval, RevisitTicks);
+    }
+
+    /// <summary>Whether housed Households are periodically reassessed for rent affordability.</summary>
+    public bool Reconsiders => ReconsiderTicks > 0;
+
+    /// <summary>
+    /// How many housed Households one pass reassesses, given <paramref name="households"/> of them.
+    /// </summary>
+    /// <remarks>
+    /// <b><see cref="FoundingRuleset.SampleFor"/>'s derivation over a different population.</b>
+    /// </remarks>
+    public int SampleForReassess(int households, uint interval)
+    {
+        if (ReconsiderTicks < 1)
+        {
+            throw new InvalidOperationException(
+                $"placement has a reconsider period of {ReconsiderTicks}. It is how long the "
+                + "pass takes to reassess every housed Household once, so it divides; the loader "
+                + "refuses anything below the interval, and this Ruleset was not built by it.");
+        }
+
+        return (int)IntegerMath.CeilDiv((long)households * interval, ReconsiderTicks);
     }
 }
 

@@ -219,6 +219,12 @@ public enum PlacementCounter : byte
     /// produced by the same pass on the same trigger, not because it measures the same thing.
     /// </remarks>
     Retired,
+
+    /// <summary>
+    /// Housed Households that the reassessment sweep moved back into the Pool because they could
+    /// no longer afford their dwelling's rent.
+    /// </summary>
+    Reassessed,
 }
 
 /// <summary>

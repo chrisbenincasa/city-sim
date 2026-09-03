@@ -65,8 +65,9 @@ public sealed class PlacementTests
 
     /// <summary>A pass that looks at everybody waiting every trigger.</summary>
     private static PlacementRuleset Placing(
-        uint interval = 4, int candidates = 64, int givesUpAfterDays = 0) =>
-        new(interval, (int)interval, candidates, givesUpAfterDays);
+        uint interval = 4, int candidates = 64, int givesUpAfterDays = 0,
+        int reconsiderTicks = 0) =>
+        new(interval, (int)interval, candidates, givesUpAfterDays, reconsiderTicks);
 
     /// <summary>
     /// <paramref name="buildings"/> standing empty, and <paramref name="seeking"/> Households in the
@@ -242,7 +243,7 @@ public sealed class PlacementTests
     [InlineData(256, 8)]
     public void The_sample_is_a_fraction_of_the_queue(int pool, int expected)
     {
-        var placement = new PlacementRuleset(Interval: 32, RevisitTicks: 1024, Candidates: 3, GivesUpAfterDays: 0);
+        var placement = new PlacementRuleset(Interval: 32, RevisitTicks: 1024, Candidates: 3, GivesUpAfterDays: 0, ReconsiderTicks: 0);
 
         Assert.Equal(expected, placement.SampleFor(pool));
     }
@@ -283,7 +284,8 @@ public sealed class PlacementTests
                 inputs: [], outputs: [], emissions: [], bins: [], kindRules: [], zoneRules: [])
             {
                 Placement = new PlacementRuleset(
-                    Interval: 4, RevisitTicks: 128, Candidates: 64, GivesUpAfterDays: 0),
+                    Interval: 4, RevisitTicks: 128, Candidates: 64, GivesUpAfterDays: 0,
+                    ReconsiderTicks: 0),
                 Capacity = new CapacityRuleset(FloorPerOccupant, 0, 0),
             },
             buildings: 64,
@@ -538,6 +540,135 @@ public sealed class PlacementTests
         Run(simulation, 64);
 
         Assert.Equal(0, world.UnplacedPool.Count);
+        Assert.Equal(4, Housed(world));
+    }
+
+    // ---- reassessment sweep -----------------------------------------------------------------------
+
+    /// <summary>A housed Household whose balance falls below rent is unplaced by reassessment.</summary>
+    [Fact]
+    public void Reassessment_unplaces_a_household_that_cannot_afford_rent()
+    {
+        Ruleset ruleset = new(
+            resources: [ResourceFamily.Money],
+            rules: [],
+            kinds: [new KindDefinition(0, 0, 0, 0)
+            {
+                Houses = true,
+                Rent = new Money(100),
+            }],
+            inputs: [],
+            outputs: [],
+            emissions: [],
+            bins: [],
+            kindRules: [],
+            zoneRules: [])
+        {
+            Placement = Placing(reconsiderTicks: 4),
+            Capacity = new CapacityRuleset(FloorPerOccupant, 0, 0),
+        };
+
+        (World world, Simulation simulation) = City(ruleset, buildings: 4, seeking: 4);
+
+        for (int i = 0; i < 4; i++)
+        {
+            Handle<Household> h = world.UnplacedPool.At(i);
+            world.Endow(h, new Money(200));
+        }
+
+        Run(simulation, 64);
+
+        Assert.Equal(4, Housed(world));
+
+        for (int slot = 0; slot < world.Households.Rows.SlotCount; slot++)
+        {
+            if (world.Households.Rows.IsLive(slot)
+                && !world.Households.Balance[slot].IsNone)
+            {
+                long balance = world.BalanceOf(world.Households.Rows.At(slot)).Raw;
+
+                if (balance > 0)
+                {
+                    world.Withdraw(world.Households.Balance[slot], balance, Ticks.Zero);
+                }
+            }
+        }
+
+        PlacementActivity after = Run(simulation, 64);
+
+        Assert.True(after.Reassessed.Sum > 0);
+        Assert.True(world.UnplacedPool.Count > 0);
+    }
+
+    /// <summary>A housed Household that can afford rent survives reassessment.</summary>
+    [Fact]
+    public void Reassessment_leaves_a_household_that_can_afford_rent()
+    {
+        Ruleset ruleset = new(
+            resources: [ResourceFamily.Money],
+            rules: [],
+            kinds: [new KindDefinition(0, 0, 0, 0)
+            {
+                Houses = true,
+                Rent = new Money(100),
+            }],
+            inputs: [],
+            outputs: [],
+            emissions: [],
+            bins: [],
+            kindRules: [],
+            zoneRules: [])
+        {
+            Placement = Placing(reconsiderTicks: 4),
+            Capacity = new CapacityRuleset(FloorPerOccupant, 0, 0),
+        };
+
+        (World world, Simulation simulation) = City(ruleset, buildings: 4, seeking: 4);
+
+        for (int i = 0; i < 4; i++)
+        {
+            Handle<Household> h = world.UnplacedPool.At(i);
+            world.Endow(h, new Money(200));
+        }
+
+        Run(simulation, 64);
+
+        Assert.Equal(4, Housed(world));
+
+        PlacementActivity after = Run(simulation, 64);
+
+        Assert.Equal(0, after.Reassessed.Sum);
+        Assert.Equal(4, Housed(world));
+    }
+
+    /// <summary>A free dwelling never reassesses anyone out, regardless of balance.</summary>
+    [Fact]
+    public void A_free_dwelling_is_never_reassessed()
+    {
+        Ruleset ruleset = new(
+            resources: [ResourceFamily.Money],
+            rules: [],
+            kinds: [new KindDefinition(0, 0, 0, 0) { Houses = true }],
+            inputs: [],
+            outputs: [],
+            emissions: [],
+            bins: [],
+            kindRules: [],
+            zoneRules: [])
+        {
+            Placement = Placing(reconsiderTicks: 4),
+            Capacity = new CapacityRuleset(FloorPerOccupant, 0, 0),
+        };
+
+        (World world, Simulation simulation) = City(ruleset, buildings: 4, seeking: 4);
+
+        Run(simulation, 64);
+
+        Assert.Equal(4, Housed(world));
+
+        PlacementActivity after = Run(simulation, 64);
+
+        Assert.Equal(0, after.Reassessed.Sum);
         Assert.Equal(4, Housed(world));
     }
 }
