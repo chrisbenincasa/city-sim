@@ -476,26 +476,32 @@ public sealed class ServiceCapacityTests
     }
 
     /// <summary>
-    /// 🔴 <b>Two scarce schools DO invert, which is what makes the measurement worth taking.</b>
+    /// 🔴 <b>Two scarce schools produce a STABLE matching, and this test used to assert the
+    /// opposite.</b>
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>The positive control, and without it the class asserts only that a counter can read
-    /// zero.</b> A family whose nearest school is full walks on to the further one and is admitted
-    /// there on a key that describes a journey it is not making — ***its distance to the school it
-    /// did not get*** — so it can take a place from somebody living next door to the school it did
-    /// get. That is the gap between ordering occasions and ordering a school's applicants, and it is
-    /// reachable in a fixture with two schools and one place each.
+    /// <b>The acceptance test for <c>ServiceEngine.Match</c>, and it is the same fixture and the
+    /// same instrument that priced the defect.</b> Written on 2026-09-03 asserting
+    /// <c>Inverted &gt; 0</c> — because the nearest-first ordering keyed a family by the distance to
+    /// its <em>nearest</em> school and then admitted it wherever a place was left, ***so it was
+    /// ranked by the journey it did not make.*** Deferred acceptance landed the same day and this
+    /// went red, which is the only way a test of a defect can report that the defect is gone.
     /// </para>
     /// <para>
-    /// ⚠ <b>No count is asserted, only that there is one.</b> How many is a property of this
-    /// generated city and of the ceiling, and pinning it here would make a test a baseline for a
-    /// figure nothing has ratified. The figures live in <c>plans/0054</c> <b>F6</b>, taken on
+    /// 🔴 <b>THE SCARCITY ASSERTION IS NOT A FORMALITY.</b> A matching with nobody turned away is
+    /// stable for free, so without the first line this would pass against a city with eight schools
+    /// and no shortage at all — which is the shape the <c>--school</c> sweep reads at both ends.
+    /// ***A stability test on an unconstrained matching is a test of nothing.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>No count is asserted beyond the zero.</b> How many are turned away is a property of this
+    /// generated city and of the ceiling; the figures live in <c>plans/0054</c> <b>F6a</b>, taken on
     /// <c>schooled.toml</c> through <c>--school</c>.
     /// </para>
     /// </remarks>
     [Fact]
-    public void Two_scarce_schools_admit_somebody_a_nearer_family_should_have_beaten()
+    public void Two_scarce_schools_leave_no_family_and_school_wanting_each_other()
     {
         (World world, Simulation simulation) = City(Bounded);
 
@@ -509,9 +515,41 @@ public sealed class ServiceCapacityTests
         ServiceAdmission.Reading reading = ServiceAdmission.Measure(world, simulation.Services);
 
         Assert.True(
-            reading.Inverted > 0,
-            "two scarce schools inverted nobody, so the occasion ordering has no gap to close.");
-        Assert.True(reading.WorstMargin > TravelTime.Zero, "an inversion with no margin is not one.");
+            reading.TurnedAway > 0,
+            "nobody was turned away, so this world is stable for free and asserts nothing.");
+        Assert.Equal(0, reading.Inverted);
+        Assert.Equal(TravelTime.Zero, reading.WorstMargin);
+    }
+
+    /// <summary>
+    /// <b>A family displaced from its first choice ends up at its second, not on the street.</b>
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>The one behaviour deferred acceptance has that no ordering does, asserted directly.</b>
+    /// A proposal that beats a school's furthest held family <em>evicts</em> that family, and the
+    /// evicted one resumes proposing from where its cursor stood. ***If it did not, the matching
+    /// would leave places empty while families stood outside*** — so this asserts both schools are
+    /// used and nobody who could have been placed was not.
+    /// </remarks>
+    [Fact]
+    public void Both_scarce_schools_fill_and_the_displaced_walk_on()
+    {
+        (World world, Simulation simulation) = City(Bounded);
+
+        foreach (int lot in FarApartVacantLots(world))
+        {
+            Place(simulation, world, lot);
+        }
+
+        StepToDay(simulation, 4);
+
+        List<int> schools = Schools(world);
+
+        Assert.Equal(2, schools.Count);
+        Assert.All(
+            schools,
+            slot => Assert.Equal(
+                world.DeclaredPlaces(slot), world.Buildings.AttendedToday[slot]));
     }
 
     // ---- fixtures -------------------------------------------------------------------------------

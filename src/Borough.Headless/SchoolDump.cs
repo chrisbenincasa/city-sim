@@ -386,16 +386,24 @@ internal static class SchoolDump
     /// city, and a count of the turned-away cannot see that the wrong ones were turned away.
     /// </para>
     /// <para>
-    /// <b>An inversion is a family turned away from a full door that lives NEARER that school than
-    /// somebody the school admitted.</b> Nearest-first orders <em>occasions</em>, by each family's
-    /// distance to its own nearest school; a per-school rule would order each school's
-    /// <em>applicants</em>. ***Zero inversions means the two agree on this world and the expensive
-    /// mechanism buys nothing here.*** <c>plans/0054</c> <b>F6</b> holds what it is for.
+    /// <b>An inversion is a BLOCKING PAIR: a family turned away from a full door that lives nearer
+    /// that school than somebody the school admitted.</b> Both would rather have each other, which
+    /// is what a stable matching forbids — so this column reads zero exactly when
+    /// <c>ServiceEngine.Match</c> did its job.
     /// </para>
     /// <para>
-    /// ⚠ <b>It prints the margin beside the count</b>, because a count says the rule was broken and
-    /// never says by how much. A margin of a few seconds is two families on one street; a margin of
-    /// minutes is somebody walking across the city past a school they should have had.
+    /// 🔴 <b>IT WAS BUILT TO PRICE A GAP AND IT NOW GUARDS THE THING THAT CLOSED IT, WHICH IS THE
+    /// SAME INSTRUMENT DOING BOTH JOBS.</b> Against the nearest-first ordering it read
+    /// <b>0 / 55 / 4 / 0</b> at one, two, four and eight schools — zero at both ends and total in the
+    /// middle, because a mechanism with no scarcity in it cannot be unfair. Against deferred
+    /// acceptance it reads <b>0 / 0 / 0 / 0</b>. ***A number that justified building something is the
+    /// cheapest possible test that it works***, and this one was already written. <c>plans/0054</c>
+    /// <b>F6a</b> holds the readings.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It prints the margin beside the count</b>, because a count says the matching was unstable
+    /// and never says by how much. ⚠ <b>And it is a LOWER BOUND on the disagreement</b>: one blocking
+    /// pair can stand for a chain of displacements. What it is exact about is the zero.
     /// </para>
     /// </remarks>
     private static void Admission(World world, Simulation simulation, TextWriter output)
@@ -403,13 +411,13 @@ internal static class SchoolDump
         ServiceAdmission.Reading reading = ServiceAdmission.Measure(world, simulation.Services);
 
         output.WriteLine();
-        output.WriteLine("  Admission on the last Day — is nearest-first also nearest-per-school?");
+        output.WriteLine("  Admission on the last Day — is the matching stable?");
         output.WriteLine(F($"    admitted                {reading.Admitted,10:N0}"));
         output.WriteLine(F($"    turned away at the door {reading.TurnedAway,10:N0}"));
         output.WriteLine(F($"    ... of which INVERTED   {reading.Inverted,10:N0}"));
 
         output.WriteLine(reading.Inverted == 0
-            ? "    ... so the occasion ordering and a per-school ordering agree on this world."
+            ? "    ... so no family and school would both rather have had each other."
             : F($"    worst margin        {TripDump.Minutes(reading.WorstMargin.Raw),10} min of walk"));
     }
 

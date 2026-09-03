@@ -291,6 +291,8 @@ above.
 
 ### ✅ F6 discharged — WHO gets the last place is the family living nearest
 
+> 🔴 **SUPERSEDED THE SAME DAY BY [F6d](#-f6d--deferred-acceptance-shipped-and-the-instrument-that-priced-the-gap-is-what-proves-it), and kept because it is the record of a step rather than of a mistake.** The mechanism below is an *ordering*; what stands is a *matching*. ⚠ **Read the rest of this section for what it found and never for what the build does** ([`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)) — its `Ask`/`Order`/`Serve` are gone, and its own residue is what F6a measured and F6d closed.
+
 **The pass walks Households in slot order**, so the same families take the places every Day and the
 same six are turned away every Day. ⚠ **Slot order is not noise**: a slot is allocated when a
 Household is created, so ***the oldest Households in the city always get the school and the newest
@@ -402,7 +404,7 @@ refuses an equilibrium computation in a way it does not refuse ranking a handful
 got is.*** That is an ADR-sized argument and ADRs are frozen ([`plans/0045`](0045-amnesty.md)
 standing order 1).
 
-🔴 **What the amnesty does NOT freeze is the finding**, and this is it: **the shipped ordering is
+✅ **BUILT THE SAME DAY — see F6d, and this paragraph is left as the judgement that preceded it.** 🔴 **What the amnesty does NOT freeze is the finding**, and this is it: **the shipped ordering is
 unstable, the instability is measured, and the design question is now *what is a school for* rather
 than *how big is the gap*.** The three answers F6 originally named — nearest-first, arrival order,
 lottery — were about who deserves a place. ***The measurement says the current answer is none of the
@@ -414,6 +416,86 @@ count, so the day admission stopped being slot order the dump printed byte-for-b
 see the section above. ***An instrument that can only count cannot report a change of identity***,
 which is [F3](#-f3-discharged--a-school-is-full-and-being-full-is-a-third-city)'s *the reach panel
 called that 100%* for the third time in this document.
+
+
+### ✅ F6d — deferred acceptance SHIPPED, and the instrument that priced the gap is what proves it
+
+**Built 2026-09-03, the same day the measurement was taken.** `ServiceEngine` is now a matching
+rather than an ordering: `Collect` gathers every family's reachable schools in its own order of
+preference, `Match` runs deferred acceptance, `Apply` writes the result. **Families propose, schools
+hold the nearest and reject the rest, and a rejected family resumes from where its cursor stood.**
+
+***What it buys is a property rather than a number: the matching is STABLE.*** There is no family and
+school that would both rather have each other than what they got.
+
+**The proof is the instrument, unchanged, on the same worlds:**
+
+| schools | turned away | inverted BEFORE | inverted AFTER |
+|---|---|---|---|
+| 1 | 88 | 0 | **0** |
+| 2 | 55 | **55 — every one** | **0** |
+| 4 | 6 | **4** | **0** |
+| 8 | 0 | 0 | **0** |
+
+⚠ **The reach panel and the per-school table did not move**: 103 attended, 6 turned away, 95%,
+21/18/16/48. ***For the second time on this mechanism a real change was invisible to every count in
+the dump***, and the only column that could see it is the one built to price the gap. **A number that
+justified building something is the cheapest possible test that it works.**
+
+🔴 **The strongest evidence is a test going RED.** `Two_scarce_schools_admit_somebody_a_nearer_family_should_have_beaten`
+was written hours earlier to assert `Inverted > 0` — it pinned the *defect*, because a positive
+control was the only thing stopping the class from asserting that a counter can read zero. It failed
+on the first run against the matching. ***That is the only way a test of a defect can report that the
+defect is gone***, and it is now
+`Two_scarce_schools_leave_no_family_and_school_wanting_each_other` with its own history in its
+remark.
+
+### 🔴 F6e — it cost no routes, which was not the expectation
+
+**The judgement written in F6c priced deferred acceptance at *a route per displacement*. That was
+wrong and the reason is worth keeping.** `Collect` already walks every candidate in the box — nearest
+-first made it do that, because ***nothing can rank without visiting*** — so the routes for the whole
+preference list were **already being paid and thrown away**. Keeping the list costs the storage and a
+`Span.Sort` per family; the proposals are heap operations on `(cost, occasion)` packed into a `long`.
+
+⚠ **So what the expensive-sounding algorithm actually added is MEMORY**, one entry per
+(family × reachable school), and the routing that already dominated the pass did not move.
+***A cost estimate made against the mechanism you are replacing prices the wrong build***: the route
+per displacement was real against the *slot-order* engine and imaginary against the one actually
+standing.
+
+⚠ **Two allocations are sized by an argument rather than by a declaration.** A school's held set is
+`min(places left today, families that named it)` — a school on a very large floor can declare more
+places than the city has children, and sizing by the declaration would size a buffer **by the
+ground**. And places *left* rather than places declared, because `BuildingTable.AttendedToday` is a
+per-Day meter this pass must not assume it is first to touch.
+
+### 🔴 F6f — AN ADR IS OWED FOR THE MATCHING AND CANNOT BE WRITTEN
+
+[`adr/0045`](0045-amnesty.md) standing order 1 freezes `docs/adr/`. **This is the debt, recorded
+where the mechanism is, because a debt in a narrative paragraph is a debt nobody sums** —
+[`plans/0012`](0012-corpus-audit.md) *Cause 1*.
+
+⚠ **AND A CLAIM MADE EARLIER IN THIS SESSION WAS WRONG.** It was said that
+[`adr/0017`](../docs/adr/0017-agents-satisfice-they-never-optimise.md) *refuses an equilibrium
+computation*, and that this was the main argument against building the matching. **Reading the ADR
+rather than remembering it says otherwise.** It governs **how an actor comes to know its options and
+when it switches between them** — a short, sticky Provider List, switched only on a substantial
+improvement. ***How a full provider rations a scarce place is a question it does not reach***, and
+no other record in this corpus does either.
+
+What it *does* touch is its first consequence — **work per decision bounded by a Ruleset constant
+rather than by the size of the city** — because a family may propose more than once. ⚠ **The bound
+here is the PLAYER'S school count**, which is the same argument that lets this pass have no
+`candidates` key at all, so the scaling objection does not land. And its third — **no synchronised
+herd** — argues *for* the matching rather than against it: ***whoever asks first wins is the
+stampede, and resolving contention is what stops it.***
+
+🔴 **So the ADR is owed for what nothing states rather than for overruling something that does**:
+*a provider with more applicants than places admits the nearest, and the losers walk on*. **Read this
+before extending the matching to a second rationing site** — a clinic, a job, a dwelling — because
+the argument for doing it this way has never been written down, and the next author will find a
+mechanism with no record and reasonably assume there was one.
 
 ### The rate is chosen, and it is the one number in `[capacity]` with no standing city behind it
 
@@ -436,7 +518,7 @@ beside it. It lands where `floor_tiles_per_job` sits, and a desk scaled the same
 | 3 | **Nothing expresses the MIX within a zone** (F2) — no weight, share or priority on a Zone Rule | *undesigned* |
 | 4 | **76% of every shipped Ruleset is copy**, because no key inside a present table may be omitted. A base-and-differences mechanism needs an answer to *a default could not announce itself* | *undesigned* |
 | 5 | **`banded.toml` has never stood its second kind**; **`provisioned.toml` steadies at half shells** | readings, above |
-| 6 | ~~Who gets the last place at a full school is slot order~~ ✅ **NEAREST-FIRST SHIPPED 2026-09-03** — and the residue is **MEASURED**: the ordering is unstable, 55 of 55 turned-away families inverted at two schools by up to 12.3 min (F6a). Deferred acceptance is the answer and it needs an ADR | shipped, residue *undesigned* |
+| 6 | ~~Who gets the last place at a full school is slot order~~ ✅ **CLOSED 2026-09-03** — nearest-first shipped, its residue was **measured** (55 of 55 turned-away families inverted at two schools), and **deferred acceptance shipped the same day**: the matching is stable and the instrument reads 0 on every world (F6a, F6d). 🔴 **An ADR is owed and frozen** (F6f) | shipped, ADR owed |
 
 🔴 **NONE OF THESE IS A SHAPE COMMITMENT TO UNWIND.** They are absences. ***The thing that IS a
 commitment — a kind carries behaviour and the ground carries form — held up under twelve kinds and
