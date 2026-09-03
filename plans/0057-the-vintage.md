@@ -73,13 +73,25 @@ be one.** Measured off the draw list of the wash itself — `platted.toml`, 4,00
 ⚠ **The courtyard row is a ring and not a slab**, so its footprint overstates its floor area by the
 hole the drawing already subtracts. The trend survives without it.
 
-**It is a derivation and not a tuning miss.** Storeys come from the rung; the rung is the pattern's
-place on a ladder sorted by *addresses fitted*; and the patterns that fit the most addresses —
-`BackToBack` and `Slab` — are the ones that take **half the block's depth per parcel**
-(`BlockPatterns.DepthTiles`). ***Dense and deep are the same patterns, so height and footprint are
-positively correlated by construction.*** Nothing downstream can break the correlation, because the
-footprint is the parcel inset by a **fixed** `[lots] setback_tiles` and the parcel is a property of
-the pattern.
+**It is a derivation and not a tuning miss.** Storeys come from the rung, and the rung is the
+pattern's place on a ladder sorted by **claimed ground per Address** — how much land stands behind one
+front door. Measured at the shipped lattice, `block_tiles = 32`, `lots_per_segment = 5`:
+
+| rung | pattern | claimed | Addresses | ground/door |
+|---|---|---|---|---|
+| 0 | detached | 624 | 8 | 78 |
+| 1 | perimeter | 1,024 | 8 | 128 |
+| 2 | back-to-back | 1,024 | 5 | 204 |
+| 3 | courtyard | 880 | 4 | 220 |
+| 4 | slab | 1,024 | 2 | 512 |
+
+🔴 ***The densest rung is the one with the FEWEST doors and the MOST land behind each of them.*** The
+quantity is a **proxy**: land behind one door stands in for *how many people are behind that door*,
+and it holds across these five because every one of them houses people by going **back**. So the
+patterns that rank dense are the ones taking half the block's depth per parcel
+(`BlockPatterns.DepthTiles`), which is why height and footprint are positively correlated by
+construction. Nothing downstream can break the correlation: the footprint is the parcel inset by a
+**fixed** `[lots] setback_tiles`, and the parcel is a property of the pattern.
 
 ⚠ **This is an *unbuilt* absence and not a *refused* one** (`adr/0070`): nobody decided a city should
 have no towers. The tower-shaped form was never reachable.
@@ -109,21 +121,37 @@ massing, and anything that wants to tell a new Building from an old one.
 
 ## Open
 
-**Q1 — how does a city build UP without building OUT?** F2 says it cannot today. Three levers, and
-they are not alternatives so much as different sizes:
+**Q1 — how does a city build UP without building OUT?** F2 says it cannot today. Three levers were
+put up and **two of them do not survive F2's own table**:
 
-1. **A setback that grows with storeys.** `[lots] setback_tiles` becomes a base plus a per-storey
-   step, so a tall Building insets further and stands on a small footprint in a parcel that did not
-   shrink. The `yard` layer already draws the remainder, so the open ground appears for free. **The
-   smallest change with a real result, and it is how tall buildings were actually regulated.**
-2. **A sixth block pattern.** One small central parcel per block, at the top of the ladder — the
-   literal tower. Costs a colour here, an entry in `BlockPatterns.Ladder`, and a re-record.
-3. **Break the rung's dependence on the pattern**, so a band chooses a height and the pattern chooses
-   a plan. The largest, and the one that makes *up* and *out* two decisions instead of one.
+1. ❌ **A setback that grows with storeys** — `[lots] setback_tiles` as a base plus a per-storey step.
+   It works and it is the wrong shape: it makes footprint a *function* of height, so **every** tall
+   Building is thin. That is the present monotony with its sign flipped, not variety, and it is a
+   scalar knob where the ask was an emergent form.
+2. ❌ **A sixth block pattern, `Tower`** — one small central parcel per block. ***It sorts to the
+   BOTTOM of the ladder and comes out two storeys tall.*** A tower deliberately claims **little**
+   ground; a hypothetical 8×8 parcel behind one door is 64 Tiles a door against a detached house's
+   **78**, so the ladder reads it as sparser than a bungalow. 🔴 **The proxy is what fails.** Ground
+   behind a door stands in for people behind a door, and it holds for the five because all five house
+   people by going **back**. ***A tower houses them UP, and the metric cannot see up at all.***
+3. ✅ **Invert the derivation.** A pattern declares **its own storeys** as part of its form, and the
+   ladder sorts on ground per **dwelling** rather than ground per **door**. ⚠ **That is not a new
+   quantity to argue about** — dwellings are floor area over `[capacity] floor_tiles_per_dwelling`,
+   floor area is `claimed × storeys`, so ground per dwelling reduces to `floor_tiles_per_dwelling /
+   storeys` and the ladder is sorting on **storeys**. It orders the present five in **exactly their
+   current order**, and a 20-storey tower lands at the top honestly.
 
-⚠ **Unratified in all three cases** — there is no argument yet for what a per-storey setback should
-be, and `adr/0052` is suspended, so any number lands in [`0002`](0002-open-questions.md) §D unratified
-like the rest.
+⚠ **Lever 3 reverses the sentence `BlockPatterns.Storeys` is built on** — *height rises with density
+because it is the same quantity*. Under it, density rises with height, because height becomes the
+input rather than the output. It also empties `[lots] storeys_per_rung`, which
+[`0056`](0056-the-ladder.md) landed the same day. ***That is a reopening and not a refinement***, and
+it wants writing down before it is written.
+
+⚠ **And lever 3 alone still gives a RING of towers rather than a skyline.** The ladder is a total
+order and `ForBand` indexes it, so one band gets one pattern for ever. Several forms sitting near one
+density is what makes a choice among them available — and a draw over near-ties is the same trick
+`LotRuleset.StoreysOn` already plays one level down. **Not designed. Named here so lever 3 is not
+oversold.**
 
 **Q2 — should `age` be normalised against the run or against the oldest Building?** F3 makes the case
 for the run. A world loaded from a save at Tick 900,000 whose Buildings all went up in the last
