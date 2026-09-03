@@ -87,11 +87,16 @@ and race; there is no weight, no share and no priority key. `[[band]]` is the me
 density, and `banded.toml`'s own header records that ***the generator paints bands as concentric
 rings and the Ruleset chooses only how many.***
 
-### 🔴 F3 — A service Building has no capacity, and one school covers a million people
+### ✅ F3 — A service Building has no capacity, and one school covers a million people
 
 `ServiceEngine` holds no capacity of any kind: **it serves every Household that can route to it.**
 `--schools 4` changes travel distance and not admission. ***"The school is full" is most of what a
 school IS in a city-builder***, and it is `adr/0070` *unbuilt* — a mechanism, not a key.
+
+⚠ **DISCHARGED 2026-09-03** — and the finding was worse than this paragraph said. See
+*F3 discharged*, below: it was not that one school could cover a million people in principle, it was
+that ***one school was covering the whole of a shipped world already*** while three others stood
+empty beside it and the reach panel reported 100%.
 
 ### 🔴 F4 — Nothing in this project had ever built a mixed city
 
@@ -223,15 +228,103 @@ out of the same key. ⚠ **At 4,000 Citizens over 20,480 Ticks on a probe that r
 
 ---
 
+## ✅ F3 discharged — a school is full, and being full is a third city
+
+`[capacity] floor_tiles_per_place`. **A fourth rate in a table that already had three**, and
+`plans/0053` step 3 arriving at the one capacity that had escaped it: a school's places are its floor
+area over the rate, so ***a bigger school teaches more children*** and where the schools stand starts
+to matter.
+
+### 🔴 The reading that justified building it, and what it found instead
+
+`--school --ruleset rulesets/schooled.toml --citizens 2000 --ticks 100000 --schools 4` stood four
+schools of **64, 54, 48 and 144** Tiles of floor and reached steady state at **109 families with a
+child**. With no ceiling:
+
+| | attended | unreached | no school | full | deliverable share |
+|---|---|---|---|---|---|
+| **before** | 109 | 0 | 0 | — | **100%** |
+| **after**, at rate 3 | 103 | 0 | 0 | **6** | 95% |
+
+🔴 ⚠ **ALL 109 FAMILIES ATTENDED THE SAME SCHOOL AND THE OTHER THREE SERVED NOBODY.** The per-school
+panel read `109 / 0 / 0 / 0`. `ServiceEngine` satisfices — it stops at the first candidate inside the
+Fast rung (`adr/0017`) — and at 2,000 Citizens the whole city is inside one Fast rung, so *the first
+school in slot order* wins for everybody for ever. ***And the reach panel called that 100%,*** which
+is F3's *one school covers a million people* in the literal, on a shipped file, unreported by any
+instrument in the repository until this one printed a per-school row.
+
+With the rate in force the same four hold **21, 18, 16 and 48** places and every one of them fills.
+⚠ **The numbers are a property of that population and that siting and ratify nothing** — `--school`
+places schools by striding the vacant Lot list, which is deliberately not a siting policy.
+
+### What the ceiling actually buys is DISTRIBUTION, and scarcity is the case beyond it
+
+A full school is **skipped and the family walks on**, which is what a family does — so the mechanism's
+first effect is that the load spreads and siting becomes a decision. Only when every reachable school
+is full does anybody fail, and that is the **third counter**.
+
+| counter | the city it names | what the player does |
+|---|---|---|
+| `no school` | none in the box | build one |
+| `unreached` | one in the box, no route in the Budget — `adr/0032`'s Severance | mend the network |
+| **`full`** | one in the box, reachable, no place left today | build **another** one |
+
+⚠ **`full` is tested AFTER the route and not before it**, which is the expensive order and the only
+honest one: fullness is `O(1)` and a route is not, but asking the cheap question first would file a
+school behind an Arterial under *full* and ***the player would build a second school to fix a road.***
+It costs nothing in the ordinary world, where nothing is full and every candidate in the box is routed
+anyway.
+
+### 🔴 Its absence means the OPPOSITE of the other three rates', and that is forced
+
+The other three are **supplies**, so an absent one is a city with none of that thing. This one is a
+**ceiling**, so an absent one is a city where no service Building is ever full. ***An unstated bound
+is no bound.*** The other reading would have emptied every school in the corpus, silently, on the day
+the key was added. ⚠ **The cost is that it is opt-in**, so `RulesetLoader` refuses it in a file that
+declares no serving kind — `TryAttendedRates`' refusal from the other side, and this key needs it
+more, because its absence is invisible by design.
+
+⚠ **`BuildingTable.AttendedToday` advances in EVERY world and binds only where a rate is stated.**
+***The number a designer needs in order to choose the ceiling is the one that column holds***, and a
+meter that only started counting once somebody had already chosen could not have supplied the reading
+above.
+
+### 🔴 F6 — WHO gets the last place is decided by slot order, and that is a systematic bias
+
+**The pass walks Households in slot order**, so the same families take the places every Day and the
+same six are turned away every Day. ⚠ **Slot order is not noise**: a slot is allocated when a
+Household is created, so ***the oldest Households in the city always get the school and the newest
+never do.*** It reads as a queue nobody joined.
+
+**It is `adr/0070` *undesigned* rather than unbuilt.** The alternatives are real design choices with
+arguments of their own — admit nearest-first, admit by arrival order within the Day, admit by
+lottery on the Household's own id — and each says something different about what a school is. ⚠ **It
+could not have been seen before the ceiling existed**, because with no ceiling the order of admission
+has no consequence at all. ***A mechanism with no scarcity in it cannot be unfair.*** Filed here and
+not worked around.
+
+### The rate is chosen, and it is the one number in `[capacity]` with no standing city behind it
+
+The other three are divisions of what 39 `occupants`, 32 `jobs` and 29 `parking` declarations already
+said about a detached building. **No kind has ever declared a place count**, so there is nothing to
+divide. What is left is the method `minimal.toml` uses for its *cross-check* rather than its anchor: a
+school is about 10 m² of gross floor per pupil, a Tile is 16 m² so a real place is 0.6 Tiles, and that
+file admits its floor areas are **about 4× a real building's** — so 2.5, and **3** is the integer
+beside it. It lands where `floor_tiles_per_job` sits, and a desk scaled the same way lands at 4.
+🔴 **No ratifier, no `plans/0002` §D row**, under `plans/0045` standing order 4.
+
+---
+
 ## What is owed
 
 | # | Owed | Kind |
 |---|---|---|
 | 1 | ~~A kind cannot declare itself a workplace~~ ✅ **DONE 2026-09-02** — `houses` and `premises`, above | shipped |
-| 2 | **A service Building has no capacity** (F3). A mechanism rather than a key | *unbuilt* |
+| 2 | ~~A service Building has no capacity~~ ✅ **DONE 2026-09-03** — `[capacity] floor_tiles_per_place`, above | shipped |
 | 3 | **Nothing expresses the MIX within a zone** (F2) — no weight, share or priority on a Zone Rule | *undesigned* |
 | 4 | **76% of every shipped Ruleset is copy**, because no key inside a present table may be omitted. A base-and-differences mechanism needs an answer to *a default could not announce itself* | *undesigned* |
 | 5 | **`banded.toml` has never stood its second kind**; **`provisioned.toml` steadies at half shells** | readings, above |
+| 6 | **Who gets the last place at a full school is slot order** (F6), which is Household age and not distance, arrival or chance | *undesigned* |
 
 🔴 **NONE OF THESE IS A SHAPE COMMITMENT TO UNWIND.** They are absences. ***The thing that IS a
 commitment — a kind carries behaviour and the ground carries form — held up under twelve kinds and

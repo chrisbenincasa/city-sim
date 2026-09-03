@@ -547,6 +547,14 @@ public static class RulesetKeyNotes
             "How much floor a Building must have per parking space it is given, in Tiles. It is a "
             + "parking minimum, which is a property of a city rather than of a building. Absent "
             + "means the city has no parking at all.",
+        ["[capacity] floor_tiles_per_place"] =
+            "How much floor one attendance a Day takes at a service Building, in Tiles. A school's "
+            + "places are its floor area divided by this, so a bigger school teaches more children "
+            + "and where the schools stand matters as much as how many there are. It is the one rate "
+            + "in this table whose absence means the OPPOSITE of the other three: it is a ceiling "
+            + "rather than a supply, so omitting it means no service Building is ever full. It is "
+            + "refused in a Ruleset where no kind declares serves, because a ceiling nothing can "
+            + "reach would sit there reading as a mechanism this world has.",
 
         // ---- [lots] ---------------------------------------------------------------------------
         ["[lots] lots_per_segment"] =

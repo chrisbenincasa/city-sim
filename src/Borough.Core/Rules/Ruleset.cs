@@ -536,7 +536,7 @@ public readonly record struct KindDefinition(
     /// shed one and reset the clock — was refused**: it also resets progress toward
     /// <see cref="CondemnAfterTicks"/>, so a kind stating both would shed for ever and never be
     /// condemned, and the second threshold would become dead code in every world that used the first.
-    /// ⚠ <b>A column recording the last shed was refused for <see cref="Tenanted"/>' reason</b> — it
+    /// ⚠ <b>A column recording the last shed was refused as state pointed at by nothing</b> — it
     /// would be live state pointed at by nothing, where the same fact is already derivable from
     /// <c>StarvedSince</c>.
     /// </para>
@@ -817,8 +817,8 @@ public readonly record struct KindDefinition(
     /// </para>
     /// <para>
     /// ⚠ <b>A service kind is still an ordinary Building in every other respect.</b> It stands on a
-    /// Lot, seals its footprint, may declare <see cref="Tenanted"/>, and can be
-    /// condemned. What <c>adr/0026</c> adds and this build does not have is that its staffing is
+    /// Lot, seals its footprint, may declare <see cref="Houses"/> or <see cref="Premises"/>, and can
+    /// be condemned. What <c>adr/0026</c> adds and this build does not have is that its staffing is
     /// <em>demand-determined by catchment</em> — ***you cannot fix unemployment by hiring everyone as
     /// a teacher, because the number of teachers is set by the number of children*** — and that is
     /// <c>adr/0070</c> <em>unbuilt</em>: a school here employs whatever its floor area divides into,
@@ -2338,12 +2338,38 @@ public readonly record struct MarketRuleset(int DecayPercent, int MoveCapPercent
 /// property of a city and not of a building</b>, which is where it sits in every real planning code and
 /// is a better home than the per-kind key it replaces.
 /// </para>
+/// <para>
+/// 🔴 <b><see cref="FloorTilesPerPlace"/> IS THE FOURTH RATE AND ITS ABSENCE MEANS THE OPPOSITE
+/// OF THE OTHER THREE.</b> They are supplies, so an absent one is a city with none of that thing; this
+/// one is a <em>ceiling</em>, so an absent one is a city where no service Building is ever full.
+/// ***An unstated bound is no bound***, and it has to be that way round: the other reading would make
+/// every school in every Ruleset shipped before this key existed serve nobody, silently, on the day
+/// the key was added. ⚠ <b>The cost is that it is opt-in, and a key nobody opts into is a mechanism
+/// nobody reviews</b> — which is why <c>RulesetLoader</c> refuses it in a file that declares no
+/// service kind rather than letting it sit inert.
+/// </para>
+/// <para>
+/// ⚠ <b>It has no anchor outside this repository and the other three do.</b> A dwelling, a desk and
+/// a parking space are quantities somebody has measured; ***the standing city says nothing about a
+/// school place*** — no kind has ever declared a place count, so there is no thirty-nine-declaration
+/// division to perform and nothing to divide. It is chosen, under <c>plans/0045</c> standing order 4,
+/// and what a reading of the shipped world does with it belongs in <c>rulesets/schooled.toml</c>'s
+/// header rather than folded into this sentence.
+/// </para>
 /// </remarks>
 /// <param name="FloorTilesPerOccupant">How much floor one tenancy takes. Zero means nobody is housed.</param>
 /// <param name="FloorTilesPerJob">How much floor one job takes. Zero means nobody is employed.</param>
 /// <param name="FloorTilesPerParkingSpace">How much floor one parking space is owed. Zero means none.</param>
+/// <param name="FloorTilesPerPlace">
+/// How much floor one attendance a Day takes at a service Building. <b>Zero means no service Building
+/// is ever full</b> — a ceiling and not a supply, so its absence removes a bound instead of removing
+/// a thing.
+/// </param>
 public readonly record struct CapacityRuleset(
-    int FloorTilesPerOccupant, int FloorTilesPerJob, int FloorTilesPerParkingSpace)
+    int FloorTilesPerOccupant,
+    int FloorTilesPerJob,
+    int FloorTilesPerParkingSpace,
+    int FloorTilesPerPlace = 0)
 {
     /// <summary>A Ruleset in which nothing holds anybody.</summary>
     public static CapacityRuleset None => default;

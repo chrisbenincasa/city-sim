@@ -52,6 +52,18 @@ public sealed class BuildingTable
         ArrivalsToday = _rows.Saved<int>("arrivals_today");
         ArrivalDay = _rows.Saved<int>("arrival_day");
 
+        // The service Building's daily attendance meter -- ArrivalsToday's shape exactly, and saved
+        // for its reason: how many attended today is reproducible from nothing else, and a reload
+        // that reset it would let one school take a whole Day's places twice.
+        //
+        // ⚠ IT COUNTS IN EVERY WORLD AND BINDS ONLY WHERE A RATE IS STATED. A city with no
+        // [capacity] floor_tiles_per_place has no ceiling, but it still has an answer to `how many
+        // children came here today` -- and that answer is what a designer needs in order to choose
+        // the rate at all. A meter nobody can read is not evidence for the number that would bound
+        // it.
+        AttendedToday = _rows.Saved<int>("attended_today");
+        AttendedDay = _rows.Saved<int>("attended_day");
+
         // When the city abandoned this Building, or default if it did not. SAVED AND NOT DERIVED, and
         // the reason is the whole of what separates this state from dereliction.
         //
@@ -236,6 +248,38 @@ public sealed class BuildingTable
     /// nothing on a Building nobody arrives at, and is right across a save.
     /// </remarks>
     public Column<int> ArrivalDay { get; }
+
+    /// <summary>
+    /// How many Households have attended this service Building on the Day
+    /// <see cref="AttendedDay"/> names.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is what makes <c>[capacity] floor_tiles_per_place</c> bind</b>, and it is
+    /// <see cref="ArrivalsToday"/>'s mechanism rather than its analogy: a ceiling on attendance is a
+    /// <em>rate</em>, so meeting it takes a count and the period the count belongs to. The whole
+    /// population attends on one Tick (<c>ServiceEngine.Attend</c>), so a per-call bound would let
+    /// every family in the city take the same last place.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Advanced in every world, bounded only where a rate is stated.</b> A Ruleset with no
+    /// <c>floor_tiles_per_place</c> has no ceiling and still keeps the tally, because
+    /// ***the number a designer would need in order to choose the ceiling is the one this column
+    /// holds.*** Zero on every Building that is not a service, and on every service in a world with
+    /// no attended Need.
+    /// </para>
+    /// </remarks>
+    public Column<int> AttendedToday { get; }
+
+    /// <summary>
+    /// Which Day <see cref="AttendedToday"/> counts, so the meter resets without a sweep.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="ArrivalDay"/>'s argument, unchanged: a stored period is <c>O(1)</c> at the read
+    /// site, costs nothing on the Buildings nobody attends, and is right across a load that lands
+    /// mid-Day where a scheduled reset that has already run would not be.
+    /// </remarks>
+    public Column<int> AttendedDay { get; }
 
     /// <summary>
     /// The Tick the city abandoned this Building on, or <c>default</c> if it still stands in use.

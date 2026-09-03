@@ -164,6 +164,29 @@ floor_tiles_per_occupant      = 25
 floor_tiles_per_job           = 3
 floor_tiles_per_parking_space = 12
 
+# 🔴 THE FOURTH RATE, AND THIS IS THE ONLY SHIPPED FILE THAT STATES IT. How much floor one
+# attendance a Day takes at a service Building. A school's places are its floor area over this, and
+# a school full for the Day is skipped by the next family, who walks on to the next school.
+#
+# ⚠ IT IS THE ONE RATE IN THIS TABLE WITH NO STANDING CITY BEHIND IT. The other three are
+# divisions of what 39 `occupants`, 32 `jobs` and 29 `parking` declarations already said about a
+# detached building; NO KIND HAS EVER DECLARED A PLACE COUNT, so there is nothing to divide. What is
+# left is the method minimal.toml uses for its cross-check rather than its anchor: a real quantity,
+# scaled by the distortion that file admits to. A school is about 10 m2 of gross floor per pupil; a
+# Tile is 16 m2, so a real place is 0.6 Tiles; the floor areas in this model are ABOUT 4x A REAL
+# BUILDING'S, so 2.5 -- and 3 is the integer beside it. It sits where floor_tiles_per_job sits, and
+# a desk scaled the same way lands at 4, so the two are coherent.
+#
+# 🔴 IT IS CHOSEN, IT RATIFIES NOTHING, AND WHAT FOLLOWS IS A READING RATHER THAN AN ARGUMENT FOR IT.
+# --school --ruleset rulesets/schooled.toml --citizens 2000 --ticks 100000 --schools 4 stood four
+# schools of 64, 54, 48 and 144 Tiles of floor, and 109 families with a child. WITHOUT A CEILING ALL
+# 109 ATTENDED THE SAME SCHOOL AND THE OTHER THREE SERVED NOBODY -- satisficing stops at the first
+# school inside the Fast rung (adr/0017), and at 2,000 Citizens the whole city is inside one. ***So
+# three of four schools were ornaments, and the reach panel called it 100%.*** That is what the
+# ceiling is for: at this rate those four schools hold 21, 18, 16 and 48 places, and the load has to
+# spread across them. The numbers are a property of that population and that siting, not of this key.
+floor_tiles_per_place         = 3
+
 [parking]
 radius_metres = 400
 shed_keeps = 24

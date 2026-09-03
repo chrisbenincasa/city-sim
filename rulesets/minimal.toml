@@ -267,6 +267,19 @@ setback_tiles = 2
 # means nobody is employed anywhere; no floor_tiles_per_parking_space means the city has no parking.
 # A parking minimum is a property of a CITY and not of a building, which is where it sits in every
 # real planning code.
+#
+# 🔴 THERE IS A FOURTH RATE AND IT IS NOT STATED HERE, WHICH IS ITSELF THE ARGUMENT.
+# `floor_tiles_per_place` is how much floor one attendance a Day takes at a SERVICE Building -- a
+# school's places are its floor area over this, so a bigger school teaches more children and where
+# the schools stand matters as much as how many there are. This file declares no kind that `serves`
+# anything, so the key would be a hash-bearing number no mechanism here could reach, and the loader
+# REFUSES it on exactly that ground. See rulesets/schooled.toml, which states it.
+#
+# ⚠ AND ITS ABSENCE MEANS THE OPPOSITE OF THE OTHER THREE. They are supplies, so an absent one is
+# a city with none of that thing; that one is a CEILING, so an absent one is a city where no service
+# Building is ever full. ***An unstated bound is no bound.*** It has to be that way round: the other
+# reading would have emptied every school in every file shipped before the key existed, silently, on
+# the day it was added.
 floor_tiles_per_occupant      = 25
 floor_tiles_per_job           = 3
 floor_tiles_per_parking_space = 12

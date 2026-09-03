@@ -381,6 +381,10 @@ public static class RulesetLoader
             // reaches. Neither table can see the defect alone.
             RefuseUnpricedGoods(districts, hinterlands, hinterlandPrices);
 
+            // The same shape one table along: [capacity]'s ceiling on attendance can only bind on a
+            // kind that serves something, and ReadCapacity runs before ReadKinds so it cannot ask.
+            RefuseInertServicePlaces(capacity, kinds);
+
             if (_refusals.Count == 0)
             {
                 // After every reader has run and before anything else is checked, because the
@@ -5517,13 +5521,25 @@ public static class RulesetLoader
             return new LotRuleset((int)value, (int)setback);
         }
 
-        /// <summary>Reads <c>[capacity]</c> — how much floor one tenancy, job or car takes.</summary>
+        /// <summary>Reads <c>[capacity]</c> — how much floor one tenancy, job, car or pupil takes.</summary>
         /// <remarks>
-        /// <b>Three rates and no counts.</b> Absence of the table is a city in which nothing holds
+        /// <para>
+        /// <b>Four rates and no counts.</b> Absence of the table is a city in which nothing holds
         /// anybody; absence of a key within it is a city with none of that thing. ⚠ <b>A stated zero
         /// is refused</b> and absence is how you mean it — a rate of zero would divide by nothing,
         /// and a key written to mean <em>none</em> reads as an author who thought they were setting a
         /// quantity.
+        /// </para>
+        /// <para>
+        /// 🔴 <b><c>floor_tiles_per_place</c> IS THE ONE WHOSE ABSENCE MEANS THE OPPOSITE.</b> The
+        /// other three are supplies and this one is a ceiling, so an absent one is a city where no
+        /// service Building is ever full rather than a city with no service places. That asymmetry is
+        /// forced: the other reading would empty every school in every file shipped before the key
+        /// existed. ⚠ <b>Which is why it is refused where nothing serves</b> —
+        /// <see cref="RefuseInertServicePlaces"/>, because an opt-in ceiling that sits inert is a
+        /// mechanism nobody reviews. That check cannot live here: this reader runs FIRST and the
+        /// kinds are not read yet.
+        /// </para>
         /// </remarks>
         private CapacityRuleset ReadCapacity()
         {
@@ -5535,8 +5551,9 @@ public static class RulesetLoader
             int occupant = Rate("floor_tiles_per_occupant", "one tenancy");
             int job = Rate("floor_tiles_per_job", "one job");
             int space = Rate("floor_tiles_per_parking_space", "one parking space");
+            int place = Rate("floor_tiles_per_place", "one attendance a Day");
 
-            return new CapacityRuleset(occupant, job, space);
+            return new CapacityRuleset(occupant, job, space, place);
 
             int Rate(string key, string what)
             {
@@ -5561,6 +5578,43 @@ public static class RulesetLoader
 
                 return (int)value;
             }
+        }
+
+        /// <summary>
+        /// Refuses <c>[capacity] floor_tiles_per_place</c> in a Ruleset where no kind serves
+        /// anything.
+        /// </summary>
+        /// <remarks>
+        /// <b><c>TryAttendedRates</c>' refusal, arriving from the other side.</b> That one refuses an
+        /// attended Need's rates where no kind serves the Need; this refuses the ceiling on how many
+        /// may attend where nothing is attended at all. Both are a hash-bearing number nothing can
+        /// reach, which ***reads on the page as a mechanism this world has*** — and this key is the
+        /// one where that is most likely, because its absence is silent by design.
+        /// </remarks>
+        /// <param name="capacity">The <c>[capacity]</c> table as read.</param>
+        /// <param name="kinds">Every declared kind, so their <c>serves</c> can be asked.</param>
+        private void RefuseInertServicePlaces(CapacityRuleset capacity, KindDefinition[] kinds)
+        {
+            if (capacity.FloorTilesPerPlace <= 0)
+            {
+                return;
+            }
+
+            for (int i = 0; i < kinds.Length; i++)
+            {
+                if (kinds[i].IsService)
+                {
+                    return;
+                }
+            }
+
+            Refuse(LineOfCapacity("floor_tiles_per_place"), null,
+                $"floor_tiles_per_place = {capacity.FloorTilesPerPlace} is stated and no "
+                + "[[building]] declares a `serves` key. It is how much floor one attendance a Day "
+                + "takes at a SERVICE Building (adr/0032), so with nothing serving anything it is a "
+                + "hash-bearing number no mechanism in this world can reach -- and unlike the other "
+                + "three rates its absence is invisible, because absent means no service Building is "
+                + "ever full. Declare a kind that serves, or drop the key.");
         }
 
         /// <summary>The line a <c>[capacity]</c> key is on, or the table's.</summary>

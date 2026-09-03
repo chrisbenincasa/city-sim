@@ -383,6 +383,14 @@ classes were found and opted in; that one was not, and no full run happened afte
 **Measured on `schooled.toml`: 2,000 Citizens, 146 Days, 4 schools, 12,122 occasions — `unreached`
 ZERO, and ZERO again at 20,000.**
 
+🔴 ⚠ **AND ALL FOUR SCHOOLS WERE ONE SCHOOL, WHICH THIS READING COULD NOT SEE.** Found 2026-09-03 by
+a per-school panel that did not exist here: satisficing stops at the first candidate inside the Fast
+rung, and in a city entirely inside one Fast rung that is *the first school in slot order*, for
+everybody, for ever — so **109 families attended one of the four and the other three served nobody**,
+while the reach panel above called it 100%. ***A share of occasions delivered cannot see which
+Building delivered them.*** `[capacity] floor_tiles_per_place` is the repair and
+[`plans/0054`](0054-the-kind.md) holds it.
+
 🔴 **THAT 100% IS A PROPERTY OF THE WORLD.** ***The synthetic city is ~1.4 km across against a Commute
 Budget that walks 4.2 km***, so nothing in it is out of reach — `adr/0089` backwards.
 

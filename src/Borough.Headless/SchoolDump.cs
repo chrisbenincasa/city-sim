@@ -102,6 +102,7 @@ internal static class SchoolDump
         Trajectory(series, output);
         output.WriteLine();
         Reach(series, world, placed, output);
+        Supply(world, output);
 
         return 0;
     }
@@ -183,7 +184,8 @@ internal static class SchoolDump
     // ---- the reading ---------------------------------------------------------------------------
 
     private readonly record struct Reading(
-        ulong Tick, int Attended, int Unreached, int NoService, long Depth, int Schooled, int Families)
+        ulong Tick, int Attended, int Unreached, int NoService, int Full, long Depth, int Schooled,
+        int Families)
     {
         internal static Reading Of(World world, Simulation simulation, ulong tick)
         {
@@ -220,8 +222,8 @@ internal static class SchoolDump
             ServiceEngine services = simulation.Services;
 
             return new Reading(
-                tick, services.Attended, services.Unreached, services.NoService, depth, schooled,
-                families);
+                tick, services.Attended, services.Unreached, services.NoService, services.Full,
+                depth, schooled, families);
         }
     }
 
@@ -270,7 +272,7 @@ internal static class SchoolDump
         int stride = series.Count <= Rows ? 1 : series.Count / Rows;
 
         output.WriteLine(
-            "  Day     attended  unreached  no school   families  at zero   mean depth"
+            "  Day     attended  unreached  no school   full   families  at zero   mean depth"
             + (stride > 1 ? F($"   (every {stride:N0} Days)") : string.Empty));
 
         for (int i = 0; i < series.Count; i += stride)
@@ -279,7 +281,8 @@ internal static class SchoolDump
             long mean = r.Families == 0 ? 0 : r.Depth / r.Families;
 
             string flows = F($"  {i,-6:N0}  {r.Attended,8:N0}  {r.Unreached,9:N0}  {r.NoService,9:N0}");
-            output.WriteLine(F($"{flows}  {r.Families,9:N0}  {r.Schooled,7:N0}  {mean,11:N0}"));
+            output.WriteLine(F(
+                $"{flows}  {r.Full,5:N0}  {r.Families,9:N0}  {r.Schooled,7:N0}  {mean,11:N0}"));
         }
     }
 
@@ -289,15 +292,17 @@ internal static class SchoolDump
         long attended = 0;
         long unreached = 0;
         long none = 0;
+        long full = 0;
 
         foreach (Reading r in series)
         {
             attended += r.Attended;
             unreached += r.Unreached;
             none += r.NoService;
+            full += r.Full;
         }
 
-        long inBox = attended + unreached;
+        long inBox = attended + unreached + full;
         long occasions = inBox + none;
 
         output.WriteLine("  Reach");
@@ -306,6 +311,7 @@ internal static class SchoolDump
         output.WriteLine(F($"    school in the box       {inBox,10:N0}"));
         output.WriteLine(F($"    ... and delivered       {attended,10:N0}"));
         output.WriteLine(F($"    ... and unreachable     {unreached,10:N0}"));
+        output.WriteLine(F($"    ... and full            {full,10:N0}"));
         output.WriteLine(F($"    no school in the box    {none,10:N0}"));
 
         if (inBox > 0)
@@ -318,6 +324,51 @@ internal static class SchoolDump
         output.WriteLine();
         output.WriteLine(F(
             $"    {world.Buildings.Rows.LiveCount:N0} Buildings stand, of which {placed:N0} are schools."));
+    }
+
+    /// <summary>
+    /// What each school actually holds, which is the panel the ceiling cannot be chosen without.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>A rate is only choosable against a floor area somebody has looked at.</b>
+    /// <c>[capacity] floor_tiles_per_place</c> is the one rate in that table with no anchor outside
+    /// this repository — there is no standing city to divide, because no kind ever declared a place
+    /// count — so ***the substitute for a derivation is a reading***, and this is where it is taken.
+    /// ⚠ <b>It prints in a world with no rate too</b>, and that is the point: the tally advances
+    /// everywhere and the ceiling binds only where stated, so a designer can see what a school is
+    /// asked for before deciding what it may give.
+    /// </remarks>
+    private static void Supply(World world, TextWriter output)
+    {
+        int rate = world.Rules.Capacity.FloorTilesPerPlace;
+
+        output.WriteLine();
+        output.WriteLine(rate > 0
+            ? F($"  Each school — floor_tiles_per_place = {rate:N0}, so places derive from the ground")
+            : "  Each school — no [capacity] floor_tiles_per_place, so none of them is ever full");
+        output.WriteLine("    slot      floor    places   attended on the last Day");
+
+        BuildingTable buildings = world.Buildings;
+        int shown = 0;
+
+        for (int slot = 0; slot < buildings.Rows.SlotCount && shown < Rows; slot++)
+        {
+            if (!buildings.Rows.IsLive(slot)
+                || !world.Rules.Declares(buildings.Kind[slot])
+                || !world.Rules.Kind(buildings.Kind[slot]).IsService)
+            {
+                continue;
+            }
+
+            shown++;
+
+            string places = rate > 0
+                ? F($"{world.DeclaredPlaces(slot),8:N0}")
+                : "       —";
+
+            output.WriteLine(F(
+                $"    {slot,-8:N0}  {world.FloorTilesOf(slot),7:N0}  {places}  {buildings.AttendedToday[slot],9:N0}"));
+        }
     }
 
     private static string F(FormattableString text) =>

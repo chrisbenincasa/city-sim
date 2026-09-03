@@ -5813,8 +5813,11 @@ public sealed class World
     /// together when the ground moves. ⚠ <b>Zero where the Building's Lot is gone or unfronted</b>,
     /// which is <c>adr/0079</c>'s Building standing on an Address it no longer has — and a Building
     /// with no ground under it holds nobody rather than holding a default.
+    /// ⚠ <b>Public rather than internal since the service ceiling shipped</b>: a shell reporting a
+    /// derived capacity has to be able to show the quantity it was derived FROM, and the alternative
+    /// was a second spelling of this resolve living in <c>Borough.Headless</c>.
     /// </remarks>
-    internal int FloorTilesOf(int buildingSlot)
+    public int FloorTilesOf(int buildingSlot)
     {
         if (buildingSlot < 0 || !Buildings.Rows.IsLive(buildingSlot))
         {
@@ -5824,6 +5827,107 @@ public sealed class World
         return Lots.Rows.TryResolve(Buildings.Lot[buildingSlot], out int lotSlot)
             ? Lots.FloorTiles(lotSlot)
             : 0;
+    }
+
+    /// <summary>
+    /// <b>How many attendances a Day this service Building has room for</b>, or <c>0</c> where its
+    /// kind serves nobody or the Ruleset states no rate.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="FloorTilesOf"/> over <c>[capacity] floor_tiles_per_place</c></b>, which is
+    /// <c>plans/0053</c> step 3 applied to the one capacity that had escaped it. ***A bigger school
+    /// teaches more children***, so where the schools are matters as much as how many there are —
+    /// which is the whole reason to have a ceiling at all. A per-kind count would have made every
+    /// school in the city identical, and then a catchment problem would look exactly like a supply
+    /// problem.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>ZERO IS TWO DIFFERENT CITIES HERE AND CALLERS MUST NOT READ IT AS ONE.</b> A kind that
+    /// serves nobody has no places; a world with no rate has <em>no ceiling</em>, which is the
+    /// opposite. <see cref="HasServicePlace"/> is the question with the answer in it, and this method
+    /// is the quantity — so ***anything deciding whether to turn a family away asks that one.***
+    /// </para>
+    /// </remarks>
+    /// <param name="buildingSlot">The Building being asked about.</param>
+    /// <returns>Its declared places a Day.</returns>
+    public int DeclaredPlaces(int buildingSlot)
+    {
+        if (buildingSlot < 0 || !Buildings.Rows.IsLive(buildingSlot))
+        {
+            return 0;
+        }
+
+        byte kind = Buildings.Kind[buildingSlot];
+
+        return Rules.Declares(kind) && Rules.Kind(kind).IsService
+            ? CapacityRuleset.Holds(FloorTilesOf(buildingSlot), Rules.Capacity.FloorTilesPerPlace)
+            : 0;
+    }
+
+    /// <summary>
+    /// Whether this service Building can take one more attendance on <paramref name="day"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A world with no <c>floor_tiles_per_place</c> answers <c>true</c> always</b>, and that is
+    /// the key's absence meaning <em>no bound</em> rather than <em>no places</em> — see
+    /// <see cref="CapacityRuleset"/>, which carries the argument. Every Ruleset shipped before
+    /// the key existed is that world, and none of them changed behaviour on the day it arrived.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A service kind standing on no ground answers <c>false</c> in a world that HAS a rate.</b>
+    /// <see cref="CapacityRuleset.Holds"/> floors at one wherever there is any floor at all, so zero
+    /// here means the Lot is gone or unfronted (<c>adr/0079</c>) — a school with no ground under it,
+    /// which teaches nobody rather than teaching everybody.
+    /// </para>
+    /// </remarks>
+    /// <param name="buildingSlot">The service Building.</param>
+    /// <param name="day">Which Day is being asked about, as <c>Ticks</c> floor-divided by a Day.</param>
+    /// <returns><c>true</c> when somebody else may attend today.</returns>
+    public bool HasServicePlace(int buildingSlot, int day)
+    {
+        if (Rules.Capacity.FloorTilesPerPlace <= 0)
+        {
+            return true;
+        }
+
+        int places = DeclaredPlaces(buildingSlot);
+
+        if (places <= 0)
+        {
+            return false;
+        }
+
+        return Buildings.AttendedDay[buildingSlot] != day
+            || Buildings.AttendedToday[buildingSlot] < places;
+    }
+
+    /// <summary>Records one attendance at this service Building on <paramref name="day"/>.</summary>
+    /// <remarks>
+    /// <b>Unconditional, and it is <see cref="HasServicePlace"/>'s job to have asked.</b> The two are
+    /// split rather than fused into a <c>TryAttend</c> because the scan looks at several candidates
+    /// and debits exactly one — <c>World.TryArrive</c>'s fused shape is right where the caller asks
+    /// about the Building it has already chosen, and wrong here. ⚠ <b>The lazy reset lives on this
+    /// side</b>, so a Day with no attendance costs nothing and a Building nobody ever attends is
+    /// never touched.
+    /// </remarks>
+    /// <param name="buildingSlot">The service Building attended.</param>
+    /// <param name="day">The Day it was attended on.</param>
+    public void TakeServicePlace(int buildingSlot, int day)
+    {
+        if (buildingSlot < 0 || !Buildings.Rows.IsLive(buildingSlot))
+        {
+            return;
+        }
+
+        if (Buildings.AttendedDay[buildingSlot] != day)
+        {
+            Buildings.AttendedDay[buildingSlot] = day;
+            Buildings.AttendedToday[buildingSlot] = 0;
+        }
+
+        Buildings.AttendedToday[buildingSlot]++;
     }
 
     /// <summary>

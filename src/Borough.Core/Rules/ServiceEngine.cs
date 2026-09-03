@@ -1,5 +1,6 @@
 namespace Borough.Core.Rules;
 
+using Borough.Core.Arithmetic;
 using Borough.Core.Entities;
 using Borough.Core.Movement;
 using Borough.Core.Quantities;
@@ -66,6 +67,7 @@ public sealed class ServiceEngine
     private int _tickAttended;
     private int _tickUnreached;
     private int _tickNoService;
+    private int _tickFull;
 
     /// <param name="world">The world whose Households attend.</param>
     /// <param name="trips">The one door a Trip is created through.</param>
@@ -96,6 +98,26 @@ public sealed class ServiceEngine
     public int NoService => _tickNoService;
 
     /// <summary>
+    /// Occasions where a service Building stood in range, the Road Graph could deliver somebody to
+    /// it, and <b>it had no place left today</b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The third city, and it is counted apart for <see cref="Unreached"/>'s reason rather than
+    /// by analogy with it.</b> No school, a school nobody can reach and a school that is full are
+    /// three diagnoses asking the player for three different things — build one, mend the network,
+    /// build ANOTHER one — and ***a mechanism that cannot tell them apart is telling the player to
+    /// guess.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is zero in every world that states no <c>[capacity] floor_tiles_per_place</c></b>,
+    /// which is every Ruleset shipped before that key existed. A zero here is *no ceiling in this
+    /// city* as often as it is *nobody was turned away*, so read it beside the rate.
+    /// </para>
+    /// </remarks>
+    public int Full => _tickFull;
+
+    /// <summary>
     /// Runs one Day's attendance: every Household that has somebody to send, sending them.
     /// </summary>
     /// <remarks>
@@ -110,6 +132,7 @@ public sealed class ServiceEngine
         _tickAttended = 0;
         _tickUnreached = 0;
         _tickNoService = 0;
+        _tickFull = 0;
 
         NeedRuleset needs = _world.Rules.Needs;
 
@@ -127,15 +150,20 @@ public sealed class ServiceEngine
 
         Cells radius = EmploymentEngine.Radius(trips.CommuteBudget, _world.Rules.Roads.WalkSpeed);
 
+        // World.TryArrive's line, for its reason: FloorDiv rather than raw '/' because BOR0203 is an
+        // error for the second, and stating the rounding is the rule even where a Tick count never
+        // crosses zero. Exact here, because this pass only runs on a Day boundary.
+        int day = (int)IntegerMath.FloorDiv((long)tick.Raw, Ticks.PerDay);
+
         // Ordered by Need id rather than by anything meaningful, and it must stay fixed: both passes
         // create Trips, and swapping them renumbers every Trip id the State Hash folds.
-        AttendAll(Need.Education, radius, needs, trips, tick);
-        AttendAll(Need.Health, radius, needs, trips, tick);
+        AttendAll(Need.Education, radius, needs, trips, tick, day);
+        AttendAll(Need.Health, radius, needs, trips, tick, day);
     }
 
     /// <summary>One Day's attendance for one Need, across the whole population.</summary>
     private void AttendAll(
-        Need need, Cells radius, NeedRuleset needs, TripRuleset trips, Ticks tick)
+        Need need, Cells radius, NeedRuleset needs, TripRuleset trips, Ticks tick, int day)
     {
         // 🔴 THE GATE IS THE RULESET AND NEVER THE CITY, AND THE FIRST SPELLING OF THIS GOT IT
         // WRONG. It returned here when `Gather` found no standing school -- which conflates two
@@ -179,7 +207,7 @@ public sealed class ServiceEngine
                 continue;
             }
 
-            AttendOne(slot, need, depth, radius, needs, trips, tick);
+            AttendOne(slot, need, depth, radius, needs, trips, tick, day);
         }
     }
 
@@ -201,7 +229,7 @@ public sealed class ServiceEngine
     /// </remarks>
     private void AttendOne(
         int slot, Need need, Column<int> depth, Cells radius, NeedRuleset needs, TripRuleset trips,
-        Ticks tick)
+        Ticks tick, int day)
     {
         int traveller = Traveller(slot, need);
 
@@ -218,11 +246,16 @@ public sealed class ServiceEngine
             return;
         }
 
-        if (!Nearest(home, mode, radius, trips, out int provider))
+        if (!Nearest(home, mode, radius, trips, day, out int provider))
         {
             RuleEngine.Write(depth, slot, depth[slot] - needs.DegradeOf(need), needs.Floor);
             return;
         }
+
+        // Debited the moment the provider is settled and before the Trip, so the tally cannot depend
+        // on anything downstream of it -- and so the family behind this one in slot order meets a
+        // school that has already been attended today rather than one that is about to be.
+        _world.TakeServicePlace(provider, day);
 
         // ⚠ ACTIVITY IS DELIBERATELY NOT WRITTEN, and the enum deliberately does not grow. A school
         // run's RETURN journey is unbuilt -- exactly where the commute stood at 5b-bis -- so an
@@ -309,7 +342,7 @@ public sealed class ServiceEngine
     /// </para>
     /// </remarks>
     private bool Nearest(
-        int home, TravelMode mode, Cells radius, TripRuleset trips, out int provider)
+        int home, TravelMode mode, Cells radius, TripRuleset trips, int day, out int provider)
     {
         provider = Rows.NoSlot;
 
@@ -339,6 +372,7 @@ public sealed class ServiceEngine
         CommuteRung best = CommuteRung.Fast;
         bool found = false;
         bool inBox = false;
+        bool sawFull = false;
 
         for (int i = 0; i < _serviceCount; i++)
         {
@@ -360,6 +394,24 @@ public sealed class ServiceEngine
                 continue;
             }
 
+            // 🔴 ROUTED FIRST AND ASKED ABOUT PLACES SECOND, WHICH IS THE EXPENSIVE ORDER AND THE
+            // ONLY HONEST ONE. Fullness is O(1) and the route is not, so the cheap question wants to
+            // go first -- but then a school behind an Arterial that also happens to be full would be
+            // reported as FULL, and the player would build a second school to fix a road. ***A
+            // diagnosis is worth what it costs to act on it wrongly.*** The order costs nothing in
+            // the ordinary world, where nothing is full and every candidate in the box is routed
+            // anyway.
+            //
+            // ⚠ AND IT KEEPS LOOKING RATHER THAN FAILING. A family whose nearest school is full
+            // walks to the next one, which is what a family does -- and it is what makes the
+            // DISTRIBUTION of schools matter and not just the count. Satisficing is unchanged: the
+            // Fast break below is still what stops the walk.
+            if (!_world.HasServicePlace(candidate, day))
+            {
+                sawFull = true;
+                continue;
+            }
+
             if (!found || rung < best)
             {
                 found = true;
@@ -375,9 +427,19 @@ public sealed class ServiceEngine
 
         if (!found)
         {
-            // The two failures are counted apart because they are two different cities: a city with
-            // no schools, and a city whose schools are behind an Arterial.
-            if (inBox)
+            // The three failures are counted apart because they are three different cities: a city
+            // with no schools, a city whose schools are behind an Arterial, and a city whose schools
+            // are full. Each asks the player for a different thing, and a counter that merged any two
+            // of them would be telling them to guess which.
+            //
+            // ⚠ `full` is tested FIRST because it is the most specific claim of the three: this
+            // family found a school, could reach it, and was turned away at the door. The other two
+            // stay in their old order and their old meaning.
+            if (sawFull)
+            {
+                _tickFull++;
+            }
+            else if (inBox)
             {
                 _tickUnreached++;
             }

@@ -25,7 +25,7 @@ dotnet run --project src/Borough.Headless -- \
 
 ## The sections
 
-34 sections, 173 keys.
+34 sections, 174 keys.
 
 - [`[[band]]`](#band) — 2 keys
 - [`[[building]]`](#building) — 13 keys
@@ -45,7 +45,7 @@ dotnet run --project src/Borough.Headless -- \
 - [`[[rule]] outputs`](#rule-outputs) — 4 keys
 - [`[[terrain]]`](#terrain) — 3 keys
 - [`[[zone_rule]]`](#zone_rule) — 7 keys
-- [`[capacity]`](#capacity) — 3 keys
+- [`[capacity]`](#capacity) — 4 keys
 - [`[disasters]`](#disasters) — 3 keys
 - [`[districts]`](#districts) — 4 keys
 - [`[founding]`](#founding) — 2 keys
@@ -541,6 +541,10 @@ How much floor one tenancy takes, in Tiles. A Building's occupancy is its floor 
 **`floor_tiles_per_parking_space`** · *whole number*
 
 How much floor a Building must have per parking space it is given, in Tiles. It is a parking minimum, which is a property of a city rather than of a building. Absent means the city has no parking at all.
+
+**`floor_tiles_per_place`** · *whole number*
+
+How much floor one attendance a Day takes at a service Building, in Tiles. A school's places are its floor area divided by this, so a bigger school teaches more children and where the schools stand matters as much as how many there are. It is the one rate in this table whose absence means the OPPOSITE of the other three: it is a ceiling rather than a supply, so omitting it means no service Building is ever full. It is refused in a Ruleset where no kind declares serves, because a ceiling nothing can reach would sit there reading as a mechanism this world has.
 
 ---
 
