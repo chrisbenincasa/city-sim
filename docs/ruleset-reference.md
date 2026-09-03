@@ -25,7 +25,7 @@ dotnet run --project src/Borough.Headless -- \
 
 ## The sections
 
-32 sections, 169 keys.
+32 sections, 170 keys.
 
 - [`[[building]]`](#building) — 14 keys
 - [`[[building]] bins`](#building-bins) — 3 keys
@@ -54,7 +54,7 @@ dotnet run --project src/Borough.Headless -- \
 - [`[market]`](#market) — 2 keys
 - [`[needs]`](#needs) — 9 keys
 - [`[parking]`](#parking) — 2 keys
-- [`[placement]`](#placement) — 4 keys
+- [`[placement]`](#placement) — 5 keys
 - [`[roads]`](#roads) — 11 keys
 - [`[traffic]`](#traffic) — 3 keys
 - [`[trips]`](#trips) — 4 keys
@@ -776,11 +776,15 @@ How many dwellings one Household looks at on one occasion before waiting for the
 
 **`gives_up_after_days`** · *whole number*
 
-How long a Household keeps looking for a home before it gives up and leaves. Required of any Ruleset with a door into the Pool — a gate kind, or a life stage whose children leave home — because a Pool with an inflow and no sink grows without bound. Absent means nobody ever gives up, which is only coherent in a world with no door in it.
+How long a Household keeps looking for a home before it gives up and leaves. Required of any Ruleset with a door into the Pool — a gate kind, a reassessment sweep, or a life stage whose children leave home — because a Pool with an inflow and no sink grows without bound. Absent means nobody ever gives up, which is only coherent in a world with no door in it.
 
 **`interval`** · *whole number*
 
 How many Ticks between passes that drain the Unplaced Pool into standing dwellings. Omitting the whole [placement] table means the pass does not run and nobody is ever housed, which is loud rather than quiet — the Pool grows and the Census says so.
+
+**`reconsider_ticks`** · *whole number*
+
+How long the reassessment sweep takes to check every housed Household once, in Ticks. When stated, housed Households whose balance falls below their dwelling's rent are moved back into the Unplaced Pool. This is a door into the Pool, so the Ruleset owes gives_up_after_days. Absent means no reassessment.
 
 **`revisit_ticks`** · *whole number*
 

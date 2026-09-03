@@ -57,6 +57,7 @@ public sealed class PlacementEngine
     private int _tickRetired;
     private int _tickFounded;
     private int _tickPremised;
+    private int _tickReassessed;
 
     private RuleFlow _consideredFlow;
     private RuleFlow _placedFlow;
@@ -64,6 +65,7 @@ public sealed class PlacementEngine
     private RuleFlow _retiredFlow;
     private RuleFlow _foundedFlow;
     private RuleFlow _premisedFlow;
+    private RuleFlow _reassessedFlow;
 
     /// <param name="world">The tables this drains, and the Ruleset it drains under. Not copied.</param>
     /// <param name="key">The world seed, as the draws' first coordinate.</param>
@@ -97,7 +99,7 @@ public sealed class PlacementEngine
     {
         var activity = new PlacementActivity(
             _consideredFlow, _placedFlow, _departedFlow, _retiredFlow, _foundedFlow,
-            _premisedFlow);
+            _premisedFlow, _reassessedFlow);
 
         _consideredFlow = default;
         _placedFlow = default;
@@ -105,6 +107,7 @@ public sealed class PlacementEngine
         _retiredFlow = default;
         _foundedFlow = default;
         _premisedFlow = default;
+        _reassessedFlow = default;
 
         return activity;
     }
@@ -131,6 +134,7 @@ public sealed class PlacementEngine
             // trigger, and returning here would make the unpremised sink conditional on there being
             // unhoused HOUSEHOLDS -- so a city that housed everybody would stop retiring shops, and
             // adr/0006's bound would hold only while the other pool was non-empty.
+            Reassess(tick);
             Tenant(tick);
             Retire(tick);
             Found(tick);
@@ -180,6 +184,7 @@ public sealed class PlacementEngine
             }
         }
 
+        Reassess(tick);
         Tenant(tick);
         Retire(tick);
         Found(tick);
@@ -959,6 +964,82 @@ public sealed class PlacementEngine
         }
     }
 
+    /// <summary>
+    /// Checks a sample of housed Households for rent affordability and unplaces those who can no
+    /// longer afford their dwelling.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The first voluntary-move channel, and a Household that leaves is CHOOSING to.</b> Every
+    /// other <see cref="World.Unplace"/> call site is the city taking the home away — eviction,
+    /// premises emptying, decline, shedding. This one is the Household recognising it cannot
+    /// afford where it lives and re-entering the Pool to look for something it can.
+    /// </para>
+    /// <para>
+    /// <b><see cref="Found"/>'s shape exactly: a sampled sweep over the Household table, skipping
+    /// those the criterion does not reach.</b> The draw is over all Households and skips unhoused
+    /// ones, which is correct rather than wasteful: the Pool is small relative to the population
+    /// in a working city, so most draws hit housed Households.
+    /// </para>
+    /// </remarks>
+    private void Reassess(Ticks tick)
+    {
+        PlacementRuleset placement = _world.Rules.Placement;
+
+        if (!placement.Reconsiders)
+        {
+            return;
+        }
+
+        int slots = _world.Households.Rows.SlotCount;
+
+        if (slots == 0)
+        {
+            return;
+        }
+
+        Span<int> into = Scratch(placement.SampleForReassess(slots, placement.Interval));
+
+        for (int draw = 0; draw < into.Length; draw++)
+        {
+            ulong entity = Randomness.Mix((ulong)(uint)draw << 32);
+            ulong value = Randomness.Draw(_key, entity, tick, PurposeTag.ReassessDraw);
+
+            into[draw] = (int)(value % (ulong)(uint)slots);
+        }
+
+        for (int i = 0; i < into.Length; i++)
+        {
+            int slot = into[i];
+
+            if (!_world.Households.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            if (!_world.Buildings.Rows.IsValid(_world.Households.Dwelling[slot]))
+            {
+                continue;
+            }
+
+            int buildingSlot = _world.Buildings.Rows.Resolve(_world.Households.Dwelling[slot]);
+            Money kindRent = _world.Rules.Kind(_world.Buildings.Kind[buildingSlot]).Rent;
+
+            if (kindRent.Raw <= 0)
+            {
+                continue;
+            }
+
+            Handle<Household> household = _world.Households.Rows.At(slot);
+
+            if (_world.BalanceOf(household).Raw < kindRent.Raw)
+            {
+                _world.Unplace(household);
+                _tickReassessed++;
+            }
+        }
+    }
+
     /// <summary>Folds this Tick's counts into the flows and resets them.</summary>
     private void CloseTick()
     {
@@ -968,6 +1049,7 @@ public sealed class PlacementEngine
         _retiredFlow = _retiredFlow.Fold(_tickRetired);
         _foundedFlow = _foundedFlow.Fold(_tickFounded);
         _premisedFlow = _premisedFlow.Fold(_tickPremised);
+        _reassessedFlow = _reassessedFlow.Fold(_tickReassessed);
 
         _tickConsidered = 0;
         _tickPlaced = 0;
@@ -975,6 +1057,7 @@ public sealed class PlacementEngine
         _tickRetired = 0;
         _tickFounded = 0;
         _tickPremised = 0;
+        _tickReassessed = 0;
     }
 }
 
@@ -1004,4 +1087,4 @@ public sealed class PlacementEngine
 /// </param>
 public readonly record struct PlacementActivity(
     RuleFlow Considered, RuleFlow Placed, RuleFlow Departed, RuleFlow Retired, RuleFlow Founded,
-    RuleFlow Premised);
+    RuleFlow Premised, RuleFlow Reassessed);

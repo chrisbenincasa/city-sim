@@ -59,7 +59,8 @@ public sealed class UnpremisedPoolTests
             inputs: [], outputs: [], emissions: [], bins: [], kindRules: [], zoneRules: [])
         {
             Placement = new PlacementRuleset(
-                Interval: 4, RevisitTicks: 128, Candidates: 8, GivesUpAfterDays: days),
+                Interval: 4, RevisitTicks: 128, Candidates: 8, GivesUpAfterDays: days,
+                ReconsiderTicks: 0),
         };
 
     private static (World World, Handle<Business> Business, Handle<Building> Premises) Shop(

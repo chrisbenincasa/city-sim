@@ -450,12 +450,17 @@ public static class RulesetKeyNotes
             "How many dwellings one Household looks at on one occasion before waiting for the next. "
             + "A behaviour model rather than a budget: a family that sees three flats and takes the "
             + "first with room is not an optimiser being approximated.",
+        ["[placement] reconsider_ticks"] =
+            "How long the reassessment sweep takes to check every housed Household once, in Ticks. "
+            + "When stated, housed Households whose balance falls below their dwelling's rent are "
+            + "moved back into the Unplaced Pool. This is a door into the Pool, so the Ruleset "
+            + "owes gives_up_after_days. Absent means no reassessment.",
         ["[placement] gives_up_after_days"] =
             "How long a Household keeps looking for a home before it gives up and leaves. Required "
-            + "of any Ruleset with a door into the Pool — a gate kind, or a life stage whose "
-            + "children leave home — because a Pool with an inflow and no sink grows without bound. "
-            + "Absent means nobody ever gives up, which is only coherent in a world with no door in "
-            + "it.",
+            + "of any Ruleset with a door into the Pool — a gate kind, a reassessment sweep, or a "
+            + "life stage whose children leave home — because a Pool with an inflow and no sink "
+            + "grows without bound. Absent means nobody ever gives up, which is only coherent in a "
+            + "world with no door in it.",
 
         // ---- [jobs] ---------------------------------------------------------------------------
         ["[jobs] interval"] =

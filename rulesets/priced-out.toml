@@ -1,0 +1,160 @@
+# THE REASSESSMENT RULESET -- taxed.toml with rent high enough to lock out half the city.
+#
+# ===========================================================================================
+# WHY IT EXISTS. Row 16b built the reassessment sweep: a housed Household whose balance falls
+# below its dwelling's rent is moved back to the Unplaced Pool. taxed.toml cannot demonstrate
+# it because its rent of 50 is below the opening band's minimum meaningful levy take, so
+# nobody is ever priced out. This file raises rent to 500 against the same 0..1000 band, adds
+# reconsider_ticks so the sweep runs, and adds gives_up_after_days so the Pool has a sink.
+#
+# WHAT TO WATCH. Three things happen that taxed.toml cannot show:
+#
+#   1. About half the Households open below 500 and are never placed at all.
+#   2. Of those placed, the levy (10%/Day) drains them toward the crossing point. When a
+#      Household's balance crosses below 500 the reassessment sweep ejects it.
+#   3. Ejected Households re-enter the Pool. Those who cannot find a dwelling they can afford
+#      within 60 Days give up and depart.
+#
+# The `reassessed out` counter in --census is the direct readout. `departed` counts the sink.
+#
+# ===========================================================================================
+# IT IS A DEMONSTRATION, NOT A CITY. taxed.toml's first line applies here unchanged, and the
+# rent of 500 is chosen to make the reassessment visible, not to model anything. A city where
+# rent is half the wealth ceiling is a city that prices itself empty; the file exists to show
+# the mechanism doing it.
+#
+# ===========================================================================================
+# The body below is taxed.toml's, with three edits marked EDIT.
+
+[[resource]]
+name = "sundries"
+family = "good"
+
+[[resource]]
+name = "repairs"
+family = "good"
+
+[[resource]]
+name = "money"
+family = "money"
+
+[[business]]
+name = "shop"
+jobs = 8
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+[[building]]
+name = "dwelling"
+bins = [
+    { resource = "sundries", capacity = 48, owner = "occupant" },
+    { resource = "repairs",  capacity = 4 },
+]
+occupants = 4
+# EDIT 1 OF 3: rent raised from 50 to 500 so about half the opening band is locked out.
+rent = 500
+business = "shop"
+
+[[rule]]
+name    = "restock"
+kind    = "dwelling"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = []
+outputs = [ { scope = "local", resource = "sundries", amount = 4 } ]
+
+[[rule]]
+name    = "consume"
+kind    = "dwelling"
+rate    = 32
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "sundries", amount = 4 } ]
+outputs = []
+
+[[rule]]
+name    = "upkeep"
+kind    = "dwelling"
+rate    = 16
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "repairs", amount = 4 } ]
+outputs = []
+
+[[zone_rule]]
+name          = "housing"
+kind          = "dwelling"
+zone          = 0
+interval      = 32
+revisit_ticks = 2048
+
+[placement]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+# EDIT 2 OF 3: reassessment sweep and the sink it requires.
+reconsider_ticks   = 1024
+gives_up_after_days = 60
+
+[layers]
+noise_range_metres            = 300
+noise_intensity_percent       = 400
+desirability_pollution_percent = 100
+desirability_noise_percent     = 100
+pollution_period      = 64
+pollution_offset      = 0
+land_value_period     = 256
+land_value_offset     = 16
+kernel_metres         = 1024
+pollution_decay_ticks = 2048
+land_value_tau        = 8
+
+[roads]
+block_tiles                    = 32
+arterial_count                 = 0
+arterial_junction_tiles        = 512
+foot_crossing_every            = 4
+foot_paths_per_thousand_blocks = 40
+street_speed_kph               = 50
+arterial_speed_kph             = 90
+walk_speed_kph                 = 5
+street_capacity_per_hour       = 3600
+arterial_capacity_per_hour     = 12000
+foot_path_capacity_per_hour    = 1000
+
+[lots]
+lots_per_segment = 5
+
+[trips]
+crossing_seconds = 30
+commute_fast_minutes = 20
+commute_moderate_minutes = 40
+commute_budget_minutes = 50
+
+[jobs]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+shift_hours_min = 6
+shift_hours_max = 10
+arrive_early_max_minutes = 15
+
+# EDIT 3 OF 3: same band and circuit as taxed.toml. The levy drains toward 500; the rebate
+# does not lift fast enough to keep pace, so a Household placed at 600 crosses below 500
+# within a few Days and the reassessment sweep ejects it.
+[households]
+car_ownership_percent = 0
+opening_balance_min = 0
+opening_balance_max = 1000
+
+[[policy]]
+name = "household_levy"
+sweeps = "household"
+interval = 2048
+apply = { derived = "balance", percent = 10 }
+transfer = { from = "local", to = "global", resource = "money", amount = 1 }
+
+[[policy]]
+name = "household_rebate"
+sweeps = "household"
+interval = 2048
+apply = { min = 100, max = 100 }
+transfer = { from = "global", to = "local", resource = "money", amount = 1 }
