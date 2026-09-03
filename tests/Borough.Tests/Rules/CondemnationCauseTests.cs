@@ -103,7 +103,7 @@ public sealed class CondemnationCauseTests
             new RuleDefinition(House, FastRate, ApplyCount.Band(1, 1), RuleId.None,
                 false, default, Unsupplied, 0, 0, 0, 0, 0, 0),
         ],
-        kinds: [new KindDefinition(0, 2, 0, 2) { CondemnAfterTicks = Condemn, Tenanted = 1 > 0 }],
+        kinds: [new KindDefinition(0, 2, 0, 2) { CondemnAfterTicks = Condemn, Houses = 1 > 0 , Premises = 1 > 0 }],
         inputs:
         [
             new Term(new BinRef(Scope.Local, Repairs), 1),
@@ -127,7 +127,7 @@ public sealed class CondemnationCauseTests
             new RuleDefinition(House, FastRate, ApplyCount.Band(1, 1), RuleId.None,
                 false, default, ConditionId.None, 0, 1, 0, 0, 0, 0),
         ],
-        kinds: [new KindDefinition(0, 1, 0, 1) { CondemnAfterTicks = Condemn, Tenanted = 1 > 0 }],
+        kinds: [new KindDefinition(0, 1, 0, 1) { CondemnAfterTicks = Condemn, Houses = 1 > 0 , Premises = 1 > 0 }],
         inputs: [new Term(new BinRef(Scope.Local, Repairs), 1)],
         outputs: [],
         emissions: [],
@@ -351,7 +351,7 @@ public sealed class CondemnationCauseTests
             new RuleDefinition(House, FastRate, ApplyCount.Band(1, 1), RuleId.None,
                 false, default, ConditionId.None, 0, 1, 0, 0, 0, 0),
         ],
-        kinds: [new KindDefinition(0, 1, 0, 1) { Tenanted = 1 > 0 }],
+        kinds: [new KindDefinition(0, 1, 0, 1) { Houses = 1 > 0 , Premises = 1 > 0 }],
         inputs: [new Term(new BinRef(Scope.Local, Repairs), 1)],
         outputs: [],
         emissions: [],

@@ -254,7 +254,8 @@ public sealed class NeedTests
         {{(restocks ? Restock : string.Empty)}}
         [[building]]
         name = "dwelling"
-        tenanted = true
+        houses = true
+        premises = true
         bins = [ { resource = "sundries", capacity = 48, owner = "occupant" } ]
 
         [roads]

@@ -173,11 +173,61 @@ to whoever next quotes them. Filed rather than worked around
 
 ---
 
+## ✅ F1 discharged — `tenanted` became `houses` and `premises`
+
+**One boolean was doing two jobs.** `adr/0147` gives a Building a single ceiling that a Household and
+a Business compete for — a shop on the ground floor costs a family its slot — and that is right and is
+**untouched**. What was missing is the **permission** over that ceiling, which was always two questions
+wearing one word.
+
+| | `houses` | `premises` |
+|---|---|---|
+| **A house, a terrace** | yes | no |
+| **A corner shop** — flats above the shop | yes | yes |
+| **An office, a supermarket, a depot** | no | yes |
+| **A warehouse, a monument** | no | no |
+
+⚠ **Neither key adds a tenancy.** A Building's tenancies are its floor over `[capacity]
+floor_tiles_per_occupant` whichever is set, and both absent is a Building nobody occupies.
+`World.TryDeclaredOccupancy` gates on **either**; `TryDeclaredHousing` returns **zero** without
+`houses`, which is the line that stops anything sizing a city from counting an office block's
+tenancies as homes.
+
+**One predicate became two, and the two call sites had always been asking different questions in the
+same words.** `World.HasRoom` stays as *is there a free tenancy*; `HasRoomForHousehold` and
+`HasRoomForPremises` add the permission, and `PlacementEngine`'s housing pass and unpremised pass now
+ask one each. ⚠ **They are not exclusive and must not be written as a choice** — mixed use is a
+Household and a Business competing for one slot, which is what a second ceiling would have destroyed.
+
+### 🔴 `tenanted` is REFUSED by name rather than read as `houses`
+
+***A key that changed meaning is more dangerous than a key that was deleted.*** Every shipped file
+writing `tenanted = true` on a kind carrying a trade meant **both** keys, so quietly keeping the
+housing half would have left every shop in the game unable to hold the shop — ***a Ruleset loading
+clean and doing less than it says.*** `RefuseRetired` carries it, and the refusal names both halves.
+
+### ✅ It is behaviour-neutral, and that is measured rather than argued
+
+All 39 declarations across the 33 shipped files became `houses = true` **and** `premises = true`,
+which is exactly what the old key meant. **2,693 tests passed on the first run with the split in** and
+not one placement, occupancy, tenancy, employment, business or parking test moved. ⚠ **The three
+Ruleset CONTENT hashes moved and the State Hash traces did not** — the text of the files changed and
+the city did not, which is `05 §4`'s distinction arriving at the file level.
+
+### ✅ And the probe now writes what it could not
+
+The same twelve kinds, reloaded: **16 offices stand holding no Household and 16 trades**, 13
+supermarkets likewise, 19 corner shops mixed, and **`house` and `terrace` hold zero trades** — the
+residential kinds refuse a Business now, which is the half of this nobody asked for and which falls
+out of the same key. ⚠ **At 4,000 Citizens over 20,480 Ticks on a probe that ratifies nothing.**
+
+---
+
 ## What is owed
 
 | # | Owed | Kind |
 |---|---|---|
-| 1 | **A kind cannot declare itself a workplace** (F1). One key, or splitting the tenancy ceiling | *undesigned* |
+| 1 | ~~A kind cannot declare itself a workplace~~ ✅ **DONE 2026-09-02** — `houses` and `premises`, above | shipped |
 | 2 | **A service Building has no capacity** (F3). A mechanism rather than a key | *unbuilt* |
 | 3 | **Nothing expresses the MIX within a zone** (F2) — no weight, share or priority on a Zone Rule | *undesigned* |
 | 4 | **76% of every shipped Ruleset is copy**, because no key inside a present table may be omitted. A base-and-differences mechanism needs an answer to *a default could not announce itself* | *undesigned* |

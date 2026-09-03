@@ -25,10 +25,10 @@ dotnet run --project src/Borough.Headless -- \
 
 ## The sections
 
-34 sections, 172 keys.
+34 sections, 173 keys.
 
 - [`[[band]]`](#band) — 2 keys
-- [`[[building]]`](#building) — 12 keys
+- [`[[building]]`](#building) — 13 keys
 - [`[[building]] bins`](#building-bins) — 3 keys
 - [`[[business]]`](#business) — 5 keys
 - [`[[hinterland]]`](#hinterland) — 4 keys
@@ -106,6 +106,10 @@ How many Days an abandoned Building stands as a shell before it collapses and th
 
 How many Days the premises' own Rules may starve continuously before the Building is condemned. Absent means this kind never declines.
 
+**`houses`** · *true or false*
+
+Whether a HOUSEHOLD may take a tenancy in a Building of this kind. It says whether and never how many: the count is the Building's own floor area over [capacity] floor_tiles_per_occupant, so two Buildings of one kind on differently-sized ground hold different numbers. Households and Businesses share the one ceiling, and this is one of the two permissions over it — see premises, which does not follow from this one. Absent means no Household may live here, which is what most kinds are.
+
 **`name`** · *quoted string*
 
 What this kind of Building is called. [[zone_rule]] kind and [[rule]] kind refer to it by this name.
@@ -113,6 +117,10 @@ What this kind of Building is called. [[zone_rule]] kind and [[rule]] kind refer
 **`parked`** · *true or false*
 
 Whether Buildings of this kind carry parking at all. Whether, and never how many: the count is the Building's floor area over [capacity] floor_tiles_per_parking_space. It exists so that a detached house may carry a driveway where a tower may not — a parking minimum is a property of the city, and an exemption from it is a property of the kind. Absent means the kind provides none.
+
+**`premises`** · *true or false*
+
+Whether a BUSINESS may take a tenancy in a Building of this kind. houses' other half, over the same single ceiling, and it governs both ways a trade arrives: the one this kind comes with and one premised out of the unpremised pool. A kind declaring business and not this is refused, because the trade would have nowhere to sit. A kind declaring both is mixed use — the flats above the shop, competing for the same tenancies. Absent means no Business may take premises here.
 
 **`serves`** · *quoted string*
 
@@ -125,10 +133,6 @@ How many Days the premises may starve before the Building sheds one Occupant —
 **`tenancy_ends_after_days`** · *whole number*
 
 How many Days a tenant's own Rules may starve continuously before the tenancy ends and the tenant is put out. Independent of the premises' threshold: a kind may state either, both or neither. Absent means tenancies here never end.
-
-**`tenanted`** · *true or false*
-
-Whether Buildings of this kind take tenants at all — Households and Businesses share the one ceiling. It says whether and never how many: the count is the Building's own floor area over [capacity] floor_tiles_per_occupant, so two Buildings of one kind on differently-sized ground hold different numbers. Absent means the kind houses nobody, which is what most kinds are.
 
 ---
 

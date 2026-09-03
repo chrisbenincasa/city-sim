@@ -70,12 +70,20 @@
             "description": "How many Days the premises' own Rules may starve continuously before the Building is condemned. Absent means this kind never declines.",
             "type": "integer"
           },
+          "houses": {
+            "description": "Whether a HOUSEHOLD may take a tenancy in a Building of this kind. It says whether and never how many: the count is the Building's own floor area over [capacity] floor_tiles_per_occupant, so two Buildings of one kind on differently-sized ground hold different numbers. Households and Businesses share the one ceiling, and this is one of the two permissions over it — see premises, which does not follow from this one. Absent means no Household may live here, which is what most kinds are.",
+            "type": "boolean"
+          },
           "name": {
             "description": "What this kind of Building is called. [[zone_rule]] kind and [[rule]] kind refer to it by this name.",
             "type": "string"
           },
           "parked": {
             "description": "Whether Buildings of this kind carry parking at all. Whether, and never how many: the count is the Building's floor area over [capacity] floor_tiles_per_parking_space. It exists so that a detached house may carry a driveway where a tower may not — a parking minimum is a property of the city, and an exemption from it is a property of the kind. Absent means the kind provides none.",
+            "type": "boolean"
+          },
+          "premises": {
+            "description": "Whether a BUSINESS may take a tenancy in a Building of this kind. houses' other half, over the same single ceiling, and it governs both ways a trade arrives: the one this kind comes with and one premised out of the unpremised pool. A kind declaring business and not this is refused, because the trade would have nowhere to sit. A kind declaring both is mixed use — the flats above the shop, competing for the same tenancies. Absent means no Business may take premises here.",
             "type": "boolean"
           },
           "serves": {
@@ -89,10 +97,6 @@
           "tenancy_ends_after_days": {
             "description": "How many Days a tenant's own Rules may starve continuously before the tenancy ends and the tenant is put out. Independent of the premises' threshold: a kind may state either, both or neither. Absent means tenancies here never end.",
             "type": "integer"
-          },
-          "tenanted": {
-            "description": "Whether Buildings of this kind take tenants at all — Households and Businesses share the one ceiling. It says whether and never how many: the count is the Building's own floor area over [capacity] floor_tiles_per_occupant, so two Buildings of one kind on differently-sized ground hold different numbers. Absent means the kind houses nobody, which is what most kinds are.",
-            "type": "boolean"
           }
         }
       }

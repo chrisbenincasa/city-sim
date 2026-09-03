@@ -455,7 +455,10 @@ public sealed class PlacementEngine
             // overstated what a Household had been offered by roughly the blight share.
             _world.UnplacedPool.Considered[position]++;
 
-            if (!_world.HasRoom(building))
+            // plans/0054 F1: the HOUSEHOLD's question. A free tenancy in a kind that admits only
+            // trades is a free tenancy and not a home, and asking the shared predicate here would
+            // put a family in the warehouse the moment a warehouse existed.
+            if (!_world.HasRoomForHousehold(building))
             {
                 continue;
             }
@@ -795,7 +798,8 @@ public sealed class PlacementEngine
 
                 int building = _world.Lots.BuildingOn(lot);
 
-                if (building == Rows.NoSlot || !_world.HasRoom(building))
+                // The BUSINESS's question, and the other half of plans/0054 F1.
+                if (building == Rows.NoSlot || !_world.HasRoomForPremises(building))
                 {
                     continue;
                 }

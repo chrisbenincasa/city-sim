@@ -623,7 +623,8 @@ public readonly record struct KindDefinition(
     public int AbandonedWhenEmptyAfterTicks { get; init; }
 
     /// <summary>
-    /// Whether a Building of this kind takes tenants at all. <b>Whether, never how many.</b>
+    /// Whether a <b>Household</b> may take a tenancy in a Building of this kind.
+    /// <b>Whether, never how many.</b>
     /// </summary>
     /// <remarks>
     /// <para>
@@ -645,10 +646,48 @@ public readonly record struct KindDefinition(
     /// <b>A kind the Ruleset does not declare at all is a different thing from one declaring
     /// <c>false</c></b> — see <see cref="Entities.World.TryDeclaredOccupancy"/>. Dereliction must not
     /// evict, so a derelict kind keeps the Occupants it has and admits nobody new, where a kind
-    /// stating <c>tenanted = false</c> has a real ceiling of zero.
+    /// stating <c>houses = false</c> has a real ceiling of zero.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>THIS WAS <c>tenanted</c>, AND IT MEANT BOTH KINDS OF TENANT AT ONCE.</b>
+    /// <c>plans/0054</c> F1: <c>adr/0147</c> gives a Building one ceiling that a Household and a
+    /// Business compete for, which is right — a shop on the ground floor takes a flat's worth of
+    /// premises — but the <em>permission</em> was one boolean, so ***a kind that wanted a trade had
+    /// to declare itself housing, and then families moved into the warehouse.*** An office, a
+    /// supermarket and a depot were all unwritable. The ceiling is unchanged and undivided; what
+    /// split is who may claim from it. See <see cref="Premises"/>.
     /// </para>
     /// </remarks>
-    public bool Tenanted { get; init; }
+    public bool Houses { get; init; }
+
+    /// <summary>
+    /// Whether a <b>Business</b> may take a tenancy in a Building of this kind.
+    /// <b>Whether, never how many.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="Houses"/>' other half, over the same ceiling</b> (<c>adr/0147</c>). A kind
+    /// declaring both is mixed use — the flats above the shop — and one declaring neither is a
+    /// Building nobody occupies, which a warehouse and a monument both are. ***The two are
+    /// permissions and not capacities***: neither adds a tenancy, and a Building's tenancies are its
+    /// floor area over <c>[capacity] floor_tiles_per_occupant</c> whichever of them is set.
+    /// </para>
+    /// <para>
+    /// <b>It governs BOTH ways a trade arrives.</b> <see cref="Business"/> instantiates one at
+    /// construction (<c>adr/0148</c>) and <c>PlacementEngine</c> premises one out of the unpremised
+    /// pool (<c>adr/0147</c>), and a kind that admits neither admits both of nothing. ⚠ <b>A kind
+    /// declaring <see cref="Business"/> and not this is REFUSED at load</b> rather than defaulted
+    /// true: the trade would arrive with nowhere to sit, and a key that turned itself on could not
+    /// be told from one the author meant.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The word is the vocabulary's</b> — <c>CONTEXT.md</c> → Premises, where a Household is
+    /// <em>housed</em> and a Business is <em>premised</em>, and <c>World.Premise</c> is already the
+    /// method that does it. ***Two verbs the design already had, arriving as the two keys it was
+    /// missing.***
+    /// </para>
+    /// </remarks>
+    public bool Premises { get; init; }
 
     /// <summary>
     /// The Business kind a Building of this kind comes with, or <c>0</c> for none.
@@ -657,8 +696,8 @@ public readonly record struct KindDefinition(
     /// <para>
     /// <b><c>adr/0148</c>: a premises kind may declare its trade, and construction instantiates it.</b>
     /// A Zone Rule raising a Building of this kind creates a <see cref="Entities.Business"/> of this
-    /// trade, already premised, taking one of the Building's tenancies — <see cref="Tenanted"/>, of
-    /// which there are as many as its floor area divides into. ***It is drawn from no
+    /// trade, already premised, taking one of the Building's tenancies — <see cref="Premises"/> must
+    /// admit it, and there are as many as its floor area divides into. ***It is drawn from no
     /// pool***, which is why this does not reach
     /// <c>adr/0069</c>'s <em>construction houses nobody</em>: nothing is taken out of the Unplaced Pool
     /// and nothing out of the unpremised one, so no demand signal is drained.
@@ -683,7 +722,7 @@ public readonly record struct KindDefinition(
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b><see cref="Tenanted"/>'s shape on the second axis</b> (<c>plans/0053</c>): capacity is
+    /// <b><see cref="Houses"/>' shape on the second axis</b> (<c>plans/0053</c>): capacity is
     /// geometry and behaviour is content, so the count divides floor area — <c>[capacity]
     /// floor_tiles_per_parking_space</c> — and what a kind knows, which no arithmetic could derive,
     /// is whether it carries parking at all.
@@ -2289,7 +2328,7 @@ public readonly record struct MarketRuleset(int DecayPercent, int MoveCapPercent
 /// </para>
 /// <para>
 /// ⚠ <b>A kind still says WHETHER it houses; only the count derives.</b>
-/// <see cref="KindDefinition.Tenanted"/> is the whole of what <c>occupants</c> became — capacity is
+/// <see cref="KindDefinition.Houses"/> is the whole of what <c>occupants</c> became — capacity is
 /// geometry and behaviour is content, and a school is not a boarding house because it is large.
 /// </para>
 /// <para>

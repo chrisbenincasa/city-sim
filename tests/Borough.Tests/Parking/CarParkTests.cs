@@ -63,7 +63,8 @@ public sealed class CarParkTests
 
         [[building]]
         name = "dwelling"
-        tenanted = true
+        houses = true
+        premises = true
         parked = true
         bins = [
             { resource = "sundries", capacity = 12 },
@@ -71,7 +72,8 @@ public sealed class CarParkTests
 
         [[building]]
         name = "depot"
-        tenanted = true
+        houses = true
+        premises = true
         """;
 
     /// <summary>The same file with no <c>[capacity]</c> table: a city with no parking in it.</summary>
@@ -82,7 +84,8 @@ public sealed class CarParkTests
 
         [[building]]
         name = "dwelling"
-        tenanted = true
+        houses = true
+        premises = true
         parked = true
         bins = [
             { resource = "sundries", capacity = 12 },
@@ -90,7 +93,8 @@ public sealed class CarParkTests
 
         [[building]]
         name = "depot"
-        tenanted = true
+        houses = true
+        premises = true
         """;
 
     /// <summary>The same file with no <c>[[building]]</c> at all: every Building is derelict.</summary>

@@ -539,7 +539,8 @@ public sealed class CommuteLongRunTests(ITestOutputHelper output)
                 { resource = "sundries", capacity = 48 },
                 { resource = "repairs",  capacity = 4 },
             ]
-            tenanted = true
+            houses = true
+            premises = true
             business = "workshop_trade"
             condemn_after_days   = 2
             collapses_after_days = 1

@@ -44,7 +44,7 @@ public sealed class UnplacedPoolTests
     private static Ruleset Housing(int occupants) => new(
         resources: [ResourceFamily.Money],
         rules: [],
-        kinds: [new KindDefinition(0, 0, 0, 0) { Tenanted = occupants > 0 }],
+        kinds: [new KindDefinition(0, 0, 0, 0) { Houses = occupants > 0 , Premises = occupants > 0 }],
         inputs: [],
         outputs: [],
         emissions: [],

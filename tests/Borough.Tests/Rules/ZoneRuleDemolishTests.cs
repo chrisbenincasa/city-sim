@@ -69,7 +69,7 @@ public sealed class ZoneRuleDemolishTests
             [
                 new KindDefinition(0, 1, 0, 1)
                 {
-                    CondemnAfterTicks = condemnAfter, CollapsesAfterDays = 1, Tenanted = true,
+                    CondemnAfterTicks = condemnAfter, CollapsesAfterDays = 1, Houses = true, Premises = true,
                 },
             ],
             inputs: [new Term(new BinRef(Scope.Local, Repairs), 1)],
@@ -96,7 +96,7 @@ public sealed class ZoneRuleDemolishTests
             [
                 new KindDefinition(0, 1, 0, 1)
                 {
-                    CondemnAfterTicks = Condemn, CollapsesAfterDays = 1, Tenanted = true,
+                    CondemnAfterTicks = Condemn, CollapsesAfterDays = 1, Houses = true, Premises = true,
                 },
             ],
             inputs: [],
@@ -449,7 +449,7 @@ public sealed class ZoneRuleDemolishTests
                     House, Rate * 4, ApplyCount.Band(1, 1), RuleId.None, false, default,
                     ConditionId.None, 0, 1, 0, 0, 0, 0),
             ],
-            kinds: [new KindDefinition(0, 1, 0, 1) { CondemnAfterTicks = Condemn, Tenanted = 1 > 0 }],
+            kinds: [new KindDefinition(0, 1, 0, 1) { CondemnAfterTicks = Condemn, Houses = 1 > 0 , Premises = 1 > 0 }],
             inputs: [new Term(new BinRef(Scope.Local, Repairs), 1)],
             outputs: [],
             emissions: [],

@@ -219,7 +219,8 @@ public sealed class PopulatorDoorTests
             """
             [[building]]
             name = "dwelling"
-            tenanted = true
+            houses = true
+            premises = true
             [roads]
             block_tiles = 32
             arterial_count = 0

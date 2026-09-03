@@ -121,7 +121,7 @@ internal static class KindDump
     /// </remarks>
     private static void Declared(TextWriter output, Ruleset rules, RulesetNames names)
     {
-        output.WriteLine("  id  kind                  tenanted  parked  trade            serves      bins  rules");
+        output.WriteLine("  id  kind                  houses  premises  parked  trade            serves      bins  rules");
 
         for (byte kind = 1; kind <= rules.KindCount; kind++)
         {
@@ -135,9 +135,10 @@ internal static class KindDump
 
             output.WriteLine(string.Create(
                 CultureInfo.InvariantCulture,
-                $"  {kind,2}  {Name(names, kind),-20}  {Truth(definition.Tenanted),-8}  "
-                + $"{Truth(definition.Parked),-6}  {trade,-15}  {serves,-10}  "
-                + $"{rules.BinsOf(kind).Length,4}  {rules.RulesOf(kind).Length,5}"));
+                $"  {kind,2}  {Name(names, kind),-20}  {Truth(definition.Houses),-6}  "
+                + $"{Truth(definition.Premises),-8}  {Truth(definition.Parked),-6}  {trade,-15}  "
+                + $"{serves,-10}  {rules.BinsOf(kind).Length,4}  "
+                + $"{rules.RulesOf(kind).Length,5}"));
         }
     }
 

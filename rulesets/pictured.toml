@@ -96,7 +96,8 @@ bins = [
     { resource = "sundries", capacity = 48, owner = "occupant" },
     { resource = "repairs",  capacity = 4 },
 ]
-tenanted = true
+houses   = true
+premises = true
 # Whether it parks at all -- the count is floor area over [capacity] floor_tiles_per_parking_space.
 parked = true
 business = "shop"
@@ -109,7 +110,8 @@ bins = [
     { resource = "money",    owner = "business" },
 ]
 tenancy_ends_after_days = 8
-tenanted = true
+houses   = true
+premises = true
 business = "grocer"
 
 # ⚠ NOTHING IN THE WORLD PLACES THIS. `Service` is 01 §5's placement exception, so a run with no

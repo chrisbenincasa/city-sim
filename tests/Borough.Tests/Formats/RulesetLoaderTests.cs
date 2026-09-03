@@ -559,7 +559,8 @@ public sealed class RulesetLoaderTests
 
             [[building]]
             name = "bakery"
-            tenanted = true
+            houses = true
+            premises = true
             bins = [ { resource = "flour", capacity = 60 } ]
 
             [[building]]
@@ -1472,76 +1473,119 @@ public sealed class RulesetLoaderTests
     // ---- tenancy, adr/0068 as plans/0053 left it -------------------------------------------------
 
     /// <summary>
-    /// A kind that says nothing about tenancy houses nobody, which is what almost every kind means.
+    /// A kind that says nothing about tenancy admits nobody of either sort.
     /// </summary>
     /// <remarks>
-    /// <b>The default is the load-bearing half of this pair</b>, and it survived the key changing
-    /// shape: every Ruleset written before occupancy existed omitted <c>occupants</c> and meant
-    /// *this kind is not a home* — a bakery, a factory, a farm. <c>tenanted</c> inherits that, and
-    /// inherits it more cleanly, because an absent predicate is simply <em>no</em> where an absent
+    /// <b>The default is the load-bearing half of this pair</b>, and it has survived the key
+    /// changing shape twice: every Ruleset written before occupancy existed omitted
+    /// <c>occupants</c> and meant *this kind is not a home*. Both predicates inherit that, and
+    /// inherit it more cleanly, because an absent predicate is simply <em>no</em> where an absent
     /// count had to be argued into meaning zero.
     /// </remarks>
     [Fact]
-    public void A_kind_that_says_nothing_about_tenancy_houses_nobody()
+    public void A_kind_that_says_nothing_about_tenancy_admits_nobody()
     {
         Ruleset ruleset = Accepted(Bakery);
 
-        Assert.False(ruleset.Kind(1).Tenanted);
+        Assert.False(ruleset.Kind(1).Houses);
+        Assert.False(ruleset.Kind(1).Premises);
     }
 
-    /// <summary>A kind that declares <c>tenanted</c> takes tenants, and the count is not here.</summary>
+    /// <summary><c>houses</c> admits a Household and does NOT admit a trade.</summary>
     /// <remarks>
-    /// <b>This is the whole of what a kind still says about housing</b> (<c>plans/0053</c>). How
-    /// many is floor area over <c>[capacity] floor_tiles_per_occupant</c>, so it differs Building by
-    /// Building with the ground each stands on — and the thing a kind knows, which no arithmetic
-    /// could derive, is whether it is a home at all.
+    /// 🔴 <b>The independence is the whole of <c>plans/0054</c> F1.</b> One boolean meant tenants of
+    /// any kind, so a kind wanting a trade had to declare itself housing — and then Households were
+    /// placed into the office. ***Asserting that one key does not grant the other is asserting that
+    /// an office is now writable***, which is the thing that was not.
     /// </remarks>
     [Fact]
-    public void A_kind_that_declares_tenanted_takes_tenants()
+    public void Houses_admits_a_household_and_not_a_trade()
     {
         Ruleset ruleset = Accepted(Bakery.Replace(
             "name = \"bakery\"\n",
-            "name = \"bakery\"\ntenanted = true\n",
+            "name = \"bakery\"\nhouses = true\n",
             StringComparison.Ordinal));
 
-        Assert.True(ruleset.Kind(1).Tenanted);
+        Assert.True(ruleset.Kind(1).Houses);
+        Assert.False(ruleset.Kind(1).Premises);
     }
 
-    /// <summary>
-    /// A stated <c>tenanted = false</c> is the same city as saying nothing.
-    /// </summary>
+    /// <summary><c>premises</c> admits a trade and does NOT admit a Household.</summary>
+    /// <remarks>
+    /// <b>The office, and the reason this work happened.</b> A warehouse, a depot and an office are
+    /// all this row, and none of them was expressible before — <c>tenanted = true</c> was the only
+    /// way to hold a Business and it housed families as a side effect.
+    /// </remarks>
+    [Fact]
+    public void Premises_admits_a_trade_and_not_a_household()
+    {
+        Ruleset ruleset = Accepted(Bakery.Replace(
+            "name = \"bakery\"\n",
+            "name = \"bakery\"\npremises = true\n",
+            StringComparison.Ordinal));
+
+        Assert.False(ruleset.Kind(1).Houses);
+        Assert.True(ruleset.Kind(1).Premises);
+    }
+
+    /// <summary>A stated <c>false</c> is the same city as saying nothing, for both keys.</summary>
     /// <remarks>
     /// <b>Which is what makes writing the word optional rather than ceremonial.</b> The count key
-    /// this replaced could not have this property — <c>occupants = 0</c> and no <c>occupants</c> had
-    /// to stay apart, because a kind the Ruleset dropped is <em>derelict</em> and must not read as
-    /// one declaring none. A predicate carries no such second meaning.
+    /// these replaced could not have this property — <c>occupants = 0</c> and no <c>occupants</c>
+    /// had to stay apart, because a kind the Ruleset dropped is <em>derelict</em> and must not read
+    /// as one declaring none. A predicate carries no such second meaning.
     /// </remarks>
     [Fact]
     public void A_stated_false_tenancy_is_the_same_as_none()
     {
         Ruleset ruleset = Accepted(Bakery.Replace(
             "name = \"bakery\"\n",
-            "name = \"bakery\"\ntenanted = false\n",
+            "name = \"bakery\"\nhouses = false\npremises = false\n",
             StringComparison.Ordinal));
 
-        Assert.False(ruleset.Kind(1).Tenanted);
+        Assert.False(ruleset.Kind(1).Houses);
+        Assert.False(ruleset.Kind(1).Premises);
     }
 
-    /// <summary><c>tenanted</c> must be true or false rather than a number.</summary>
+    /// <summary>A numeric permission is refused, for both keys.</summary>
     /// <remarks>
-    /// <b>The likeliest wrong value is the key it replaced.</b> An author reaching for
-    /// <c>tenanted = 4</c> is somebody who half-remembers <c>occupants</c>, and TOML would otherwise
+    /// <b>The likeliest wrong value is the key they replaced.</b> An author reaching for
+    /// <c>houses = 4</c> is somebody who half-remembers <c>occupants</c>, and TOML would otherwise
     /// hand the loader an integer where it asked a question.
     /// </remarks>
-    [Fact]
-    public void A_numeric_tenancy_is_refused()
+    [Theory]
+    [InlineData("houses")]
+    [InlineData("premises")]
+    public void A_numeric_tenancy_is_refused(string key)
     {
         RulesetRefusal refusal = Refused(Bakery.Replace(
             "name = \"bakery\"\n",
-            "name = \"bakery\"\ntenanted = 4\n",
+            $"name = \"bakery\"\n{key} = 4\n",
             StringComparison.Ordinal));
 
         Assert.Contains("must be true or false", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// <c>tenanted</c> is refused by name, and the refusal says which of the two it became.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>Refused rather than read as <c>houses</c>, and the choice is the finding.</b> Every
+    /// shipped file that wrote <c>tenanted = true</c> on a kind carrying a trade meant BOTH keys, so
+    /// quietly keeping the housing half would have left every shop in the game unable to hold the
+    /// shop — a Ruleset loading clean and doing less than it says. ***A key that changed meaning is
+    /// more dangerous than a key that was deleted***, which is <c>RefuseRetired</c>'s whole job.
+    /// </remarks>
+    [Fact]
+    public void The_retired_tenanted_key_is_refused_and_names_both_halves()
+    {
+        RulesetRefusal refusal = Refused(Bakery.Replace(
+            "name = \"bakery\"\n",
+            "name = \"bakery\"\ntenanted = true\n",
+            StringComparison.Ordinal));
+
+        Assert.Contains("houses = true", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("premises = true", refusal.Reason, StringComparison.Ordinal);
     }
 
     /// <summary>

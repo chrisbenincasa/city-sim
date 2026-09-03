@@ -112,8 +112,19 @@ bins = [
     { resource = "sundries", capacity = 48, owner = "occupant" },
     { resource = "repairs",  capacity = 4 },
 ]
-# Tenants of ANY kind (adr/0141), so the shop below costs a family its slot.
-tenanted = true
+# WHO MAY TAKE A TENANCY, in two keys over ONE ceiling. `tenanted` was a single boolean meaning
+# tenants of ANY kind, and it could not write an office: a kind wanting a trade had to declare
+# itself housing, and then families were placed into it (plans/0054 F1).
+#
+# adr/0147's single ceiling is untouched and is the point -- a shop on the ground floor costs a
+# family its slot, from one number, with no rule expressing it. What split is the PERMISSION over
+# that ceiling, which was always two questions wearing one word.
+#
+# Neither key adds a tenancy. A Building's tenancies are its floor over [capacity]
+# floor_tiles_per_occupant whichever is set, and both absent is a Building nobody occupies -- a
+# warehouse, a monument. This file states both because its dwelling comes with a shop.
+houses   = true
+premises = true
 # WHETHER IT PARKS, and never how many. `[capacity] floor_tiles_per_parking_space` says how much
 # floor one space takes; this says whether this kind is asked for any. It exists because a rate
 # alone would give every Building parking in proportion to its floor, making a tower the biggest
@@ -225,8 +236,8 @@ setback_tiles = 2
 # because there is NO DISTINGUISHING PROPERTY between two Buildings of one kind. There is one now --
 # a Lot carries a parcel, the parcel carries a footprint, the footprint carries a floor area.
 #
-# ⚠ A KIND STILL SAYS WHETHER IT HOUSES; only the count derives. `[[building]] tenanted` is what is
-# left of `occupants`. Capacity is geometry, behaviour is content, and a school is not a boarding
+# ⚠ A KIND STILL SAYS WHETHER IT HOUSES; only the count derives. `[[building]] houses` is what is
+# left of `occupants`, and `premises` is the same question asked about a trade (plans/0054). Capacity is geometry, behaviour is content, and a school is not a boarding
 # house because it is large.
 #
 # 🔴 THE ANCHOR IS THE CITY THAT ALREADY STOOD, and every rate below is a division rather than a

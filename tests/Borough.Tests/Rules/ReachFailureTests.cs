@@ -388,7 +388,8 @@ public sealed class ReachFailureTests
 
             [[building]]
             name = "dwelling"
-            tenanted = true
+            houses = true
+            premises = true
             bins = [
                 { resource = "sundries", capacity = 12 },
             ]

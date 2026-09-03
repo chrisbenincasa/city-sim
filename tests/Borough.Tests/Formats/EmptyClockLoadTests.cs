@@ -39,7 +39,8 @@ public sealed class EmptyClockLoadTests
 
         [[building]]
         name = "dwelling"
-        tenanted = true
+        houses = true
+        premises = true
         abandoned_when_empty_after_days = 20
         collapses_after_days = 10
 

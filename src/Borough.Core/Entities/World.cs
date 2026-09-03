@@ -1909,7 +1909,7 @@ public sealed class World
         // that placed without asking. Report-and-return rather than Require, on the same reasoning as
         // the check above: under Collect a Require records and falls through, which would house the
         // family anyway and leave the violation describing a world the run then kept running in.
-        if (!HasRoom(buildingSlot))
+        if (!HasRoomForHousehold(buildingSlot))
         {
             Invariants.Report(Invariant.BuildingHasRoomForTheHousehold, slot, buildingSlot);
             return;
@@ -4030,6 +4030,10 @@ public sealed class World
         bool roomBeside =
             !TryDeclaredOccupancy(kind, buildingSlot, out int ceiling) || ceiling > 1;
 
+        // ⚠ `Premises` IS NOT RE-ASKED HERE and does not need to be: RulesetLoader refuses a kind
+        // declaring `business` without it, so `trade != 0` already carries the permission
+        // (plans/0054 F1). Asking again would be a second copy of that rule, in the file that would
+        // not be edited when it moved.
         if (trade != 0 && roomBeside && !HoldsOwnTrade(buildingSlot))
         {
             // The origin is written here rather than inside CreateBusiness, because this is the one
@@ -5788,7 +5792,13 @@ public sealed class World
         // kind, so every dwelling in the world held four Households whatever it stood on -- and the
         // shell drew them all four storeys tall for the same reason. What the Ruleset declares now is
         // that the kind takes tenants at all; the count is floor area over a rate.
-        occupants = Rules.Kind(kind).Tenanted
+        // ⚠ EITHER PERMISSION MAKES A TENANCY, and neither adds one (plans/0054 F1). The ceiling is
+        // adr/0147's single one and is undivided; `houses` and `premises` say who may claim from it,
+        // so a warehouse admitting only trades has exactly the tenancies its floor divides into and
+        // a Building admitting nobody has none at all.
+        KindDefinition declaration = Rules.Kind(kind);
+
+        occupants = declaration.Houses || declaration.Premises
             ? CapacityRuleset.Holds(FloorTilesOf(buildingSlot), Rules.Capacity.FloorTilesPerOccupant)
             : 0;
 
@@ -5849,6 +5859,16 @@ public sealed class World
         {
             households = 0;
             return false;
+        }
+
+        // 🔴 A KIND THAT DOES NOT HOUSE HOLDS NO HOUSEHOLDS, HOWEVER MUCH FLOOR IT HAS (plans/0054
+        // F1). Before the split this could not arise -- a ceiling above zero implied `tenanted`,
+        // which implied housing -- and anything sizing a city off this would now count an office
+        // block's tenancies as homes and build too few of the real ones.
+        if (!Rules.Kind(kind).Houses)
+        {
+            households = 0;
+            return true;
         }
 
         households = Rules.Kind(kind).Business != 0 && occupants > 0
@@ -5943,6 +5963,40 @@ public sealed class World
         !Buildings.IsAbandoned(buildingSlot)
         && TryDeclaredOccupancy(Buildings.Kind[buildingSlot], buildingSlot, out int occupants)
         && Tenants(buildingSlot) < occupants;
+
+    /// <summary>
+    /// Whether a <b>Household</b> may move into <paramref name="buildingSlot"/> right now.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="HasRoom"/> plus the permission</b> (<c>plans/0054</c> F1). The ceiling is one
+    /// and is shared (<c>adr/0147</c>); what this adds is that the kind admits a Household to it at
+    /// all. ***A free tenancy in an office is a free tenancy and not a home.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The two predicates are not exclusive</b> and must not be written as a choice. A kind
+    /// declaring both is mixed use, and there a Household and a Business are competing for the same
+    /// slot — which is <c>adr/0147</c>'s whole point and the thing a second ceiling would have
+    /// destroyed.
+    /// </para>
+    /// </remarks>
+    public bool HasRoomForHousehold(int buildingSlot) =>
+        Rules.Declares(Buildings.Kind[buildingSlot])
+        && Rules.Kind(Buildings.Kind[buildingSlot]).Houses
+        && HasRoom(buildingSlot);
+
+    /// <summary>
+    /// Whether a <b>Business</b> may take premises in <paramref name="buildingSlot"/> right now.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="HasRoomForHousehold"/>'s other half, and every word of its remark applies. This is
+    /// the predicate <c>PlacementEngine</c>'s unpremised pass asks, and <c>CreateBuilding</c> asks
+    /// the same permission when it instantiates the trade a kind comes with (<c>adr/0148</c>).
+    /// </remarks>
+    public bool HasRoomForPremises(int buildingSlot) =>
+        Rules.Declares(Buildings.Kind[buildingSlot])
+        && Rules.Kind(Buildings.Kind[buildingSlot]).Premises
+        && HasRoom(buildingSlot);
 
     /// <summary>
     /// How many tenants of <em>any</em> kind <paramref name="buildingSlot"/> holds — Households and

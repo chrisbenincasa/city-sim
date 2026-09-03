@@ -117,7 +117,7 @@ public sealed class TenancyEndsTests
                 {
                     CondemnAfterTicks = CondemnTicks,
                     TenancyEndsAfterTicks = CondemnTicks,
-                    Tenanted = true,
+                    Houses = true, Premises = true,
                 },
             ],
             inputs: [new Term(new BinRef(Scope.Local, Food), 1)],

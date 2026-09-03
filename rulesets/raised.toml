@@ -63,7 +63,8 @@ bins = [
     { resource = "sundries", capacity = 48, owner = "occupant" },
     { resource = "repairs",  capacity = 4 },
 ]
-tenanted = true
+houses   = true
+premises = true
 business = "shop"
 
 [[rule]]

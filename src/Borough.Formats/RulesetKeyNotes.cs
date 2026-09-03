@@ -36,10 +36,14 @@ namespace Borough.Formats;
 /// that listed keys and said nothing about omitting them would describe a language nobody writes.
 /// </para>
 /// <para>
-/// ⚠ <b>Eight retired keys are deliberately absent.</b> <c>condemn_after</c>, <c>sample</c>,
-/// <c>wage</c>, <c>storage</c>, <c>sealing_decay_tau</c> in <c>[layers]</c> and the three
-/// <c>adr/0148</c> moved to <c>[[business]]</c> are known to the loader only so it can refuse them
-/// by name with a sentence saying where they went. They are permitted and never offered
+/// ⚠ <b>The retired keys are deliberately absent</b> — <c>condemn_after</c>, <c>sample</c>,
+/// <c>wage</c>, <c>storage</c>, <c>sealing_decay_tau</c> in <c>[layers]</c>, the three
+/// <c>adr/0148</c> moved to <c>[[business]]</c>, <c>occupants</c>/<c>jobs</c>/<c>parking</c>/
+/// <c>footprint_tiles</c> from <c>plans/0052</c> and <c>plans/0053</c>, and <c>tenanted</c> from
+/// <c>plans/0054</c>. They are known to the loader only so it can refuse them by name with a
+/// sentence saying where they went. ⚠ <b>Count the <c>RefuseRetired</c> calls rather than trusting a
+/// total here</b>: this sentence said <em>eight</em> and named five, which was two slices stale
+/// before <c>plans/0054</c> touched it. They are permitted and never offered
 /// (<c>RulesetLoader.Reader._retired</c>), they are not in the surface, and a note here would
 /// advertise them.
 /// </para>
@@ -81,12 +85,20 @@ public static class RulesetKeyNotes
         ["[[building]] name"] =
             "What this kind of Building is called. [[zone_rule]] kind and [[rule]] kind refer to it "
             + "by this name.",
-        ["[[building]] tenanted"] =
-            "Whether Buildings of this kind take tenants at all — Households and Businesses share "
-            + "the one ceiling. It says whether and never how many: the count is the Building's own "
-            + "floor area over [capacity] floor_tiles_per_occupant, so two Buildings of one kind on "
-            + "differently-sized ground hold different numbers. Absent means the kind houses "
-            + "nobody, which is what most kinds are.",
+        ["[[building]] houses"] =
+            "Whether a HOUSEHOLD may take a tenancy in a Building of this kind. It says whether and "
+            + "never how many: the count is the Building's own floor area over [capacity] "
+            + "floor_tiles_per_occupant, so two Buildings of one kind on differently-sized ground "
+            + "hold different numbers. Households and Businesses share the one ceiling, and this is "
+            + "one of the two permissions over it — see premises, which does not follow from this "
+            + "one. Absent means no Household may live here, which is what most kinds are.",
+        ["[[building]] premises"] =
+            "Whether a BUSINESS may take a tenancy in a Building of this kind. houses' other half, "
+            + "over the same single ceiling, and it governs both ways a trade arrives: the one this "
+            + "kind comes with and one premised out of the unpremised pool. A kind declaring "
+            + "business and not this is refused, because the trade would have nowhere to sit. A "
+            + "kind declaring both is mixed use — the flats above the shop, competing for the same "
+            + "tenancies. Absent means no Business may take premises here.",
         ["[[building]] parked"] =
             "Whether Buildings of this kind carry parking at all. Whether, and never how many: the "
             + "count is the Building's floor area over [capacity] floor_tiles_per_parking_space. It "

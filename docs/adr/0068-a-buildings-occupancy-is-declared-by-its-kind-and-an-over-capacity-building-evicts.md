@@ -4,7 +4,9 @@
 > DOCUMENT STAYS.** [`plans/0053`](../../plans/0053-the-block.md) step 3 makes a Building's occupancy
 > **derived from the ground it stands on** — its floor area over `[capacity] floor_tiles_per_occupant`
 > — so `[[building]] occupants` is retired and no kind declares a count any more. ⚠ **What a kind
-> declares now is WHETHER it takes tenants at all**, `[[building]] tenanted`, which is behaviour
+> declares now is WHETHER it takes tenants at all**, `[[building]] houses` and `premises` — one
+> key until [`plans/0054`](../../plans/0054-the-kind.md) split the permission from the ceiling —
+> which is behaviour
 > rather than capacity.
 >
 > ⚠ **Every consequence below survives the change and one of them is now load-bearing rather than

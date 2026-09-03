@@ -61,7 +61,8 @@ public sealed class ParkingHoldTests
 
         [[building]]
         name = "dwelling"
-        tenanted = true
+        houses = true
+        premises = true
         parked = true
         bins = [
             { resource = "sundries", capacity = 12 },

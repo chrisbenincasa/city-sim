@@ -228,7 +228,8 @@ public sealed class HouseholdFinancesTests
 
         [[building]]
         name = "dwelling"
-        tenanted = true
+        houses = true
+        premises = true
         bins = [ { resource = "sundries", capacity = 48 } ]
 
         [roads]

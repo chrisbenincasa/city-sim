@@ -43,7 +43,8 @@ public sealed class OutsideConnectionPlacementTests
 
         [[building]]
         name = "dwelling"
-        tenanted = true
+        houses = true
+        premises = true
         [[building]]
         name = "port"
         arrivals_per_day = 40
@@ -198,8 +199,8 @@ public sealed class OutsideConnectionPlacementTests
         // The same Ruleset with the dwelling kind turned into a gate. Nothing is placed after this.
         RulesetLoadResult reloaded = RulesetLoader.Parse(
             TwoKinds.Replace(
-                "name = \"dwelling\"\ntenanted = true",
-                "name = \"dwelling\"\ntenanted = true\narrivals_per_day = 40",
+                "name = \"dwelling\"\nhouses = true\npremises = true",
+                "name = \"dwelling\"\nhouses = true\npremises = true\narrivals_per_day = 40",
                 StringComparison.Ordinal),
             "reload.toml");
 

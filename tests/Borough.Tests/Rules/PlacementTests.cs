@@ -48,7 +48,7 @@ public sealed class PlacementTests
     private static Ruleset Housing(int occupants, PlacementRuleset placement) => new(
         resources: [],
         rules: [],
-        kinds: [new KindDefinition(0, 0, 0, 0) { Tenanted = occupants > 0 }],
+        kinds: [new KindDefinition(0, 0, 0, 0) { Houses = occupants > 0 , Premises = occupants > 0 }],
         inputs: [],
         outputs: [],
         emissions: [],
@@ -279,7 +279,7 @@ public sealed class PlacementTests
         (World world, Simulation simulation) = City(
             new Ruleset(
                 resources: [], rules: [],
-                kinds: [new KindDefinition(0, 0, 0, 0) { Tenanted = 1 > 0 }],
+                kinds: [new KindDefinition(0, 0, 0, 0) { Houses = 1 > 0 , Premises = 1 > 0 }],
                 inputs: [], outputs: [], emissions: [], bins: [], kindRules: [], zoneRules: [])
             {
                 Placement = new PlacementRuleset(

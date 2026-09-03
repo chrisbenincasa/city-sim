@@ -134,7 +134,8 @@ bins = [
     { resource = "sundries", capacity = 48, owner = "occupant" },
     { resource = "repairs",  capacity = 4 },
 ]
-tenanted = true
+houses   = true
+premises = true
 # Whether it parks at all -- the count is floor area over [capacity] floor_tiles_per_parking_space.
 parked = true
 business = "shop"

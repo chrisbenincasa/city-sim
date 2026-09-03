@@ -69,7 +69,7 @@ public sealed class EmptyBuildingSinkTests
                 {
                     AbandonedWhenEmptyAfterTicks = emptiesAfter,
                     CollapsesAfterDays = standsFor,
-                    Tenanted = true,
+                    Houses = true, Premises = true,
                 },
             ],
             inputs: [],

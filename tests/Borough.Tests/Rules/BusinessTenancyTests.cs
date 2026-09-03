@@ -102,7 +102,7 @@ public sealed class BusinessTenancyTests
             ],
             kinds:
             [
-                new KindDefinition(0, 4, 0, 3) { Tenanted = true, Business = Trade },
+                new KindDefinition(0, 4, 0, 3) { Houses = true, Premises = true, Business = Trade },
             ],
             inputs:
             [

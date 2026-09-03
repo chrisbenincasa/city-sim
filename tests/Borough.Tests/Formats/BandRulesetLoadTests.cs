@@ -31,7 +31,8 @@ public sealed class BandRulesetLoadTests
         [[building]]
         name      = "dwelling"
         bins      = [ { resource = "sundries", capacity = 8 } ]
-        tenanted = true
+        houses = true
+        premises = true
         [[zone_rule]]
         name          = "housing"
         kind          = "dwelling"

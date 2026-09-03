@@ -88,7 +88,7 @@ public sealed class OccupancySheddingTests
                     CondemnAfterTicks = condemnsAfter,
                     ShedsOccupantAfterTicks = shedsAfter,
                     CollapsesAfterDays = 1,
-                    Tenanted = true,
+                    Houses = true, Premises = true,
                 },
             ],
             inputs: [new Term(new BinRef(Scope.Local, Repairs), 1)],

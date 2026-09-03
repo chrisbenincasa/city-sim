@@ -152,13 +152,15 @@ public sealed class OutsideConnectionRulesetLoadTests
             $"""
             {OneKind}
             arrivals_per_day = 40
-            tenanted = true
+            houses = true
+            premises = true
             {Sink}
             """);
 
         KindDefinition kind = ruleset.Kind(1);
 
         Assert.Equal(40, kind.ArrivalsPerDay);
-        Assert.True(kind.Tenanted);
+        Assert.True(kind.Houses);
+        Assert.True(kind.Premises);
     }
 }

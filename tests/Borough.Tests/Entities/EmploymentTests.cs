@@ -57,7 +57,8 @@ public sealed class EmploymentTests
 
         [[building]]
         name = "workplace"
-        tenanted = true
+        houses = true
+        premises = true
         bins = [
             { resource = "sundries", capacity = 12 },
         ]
@@ -155,8 +156,8 @@ public sealed class EmploymentTests
     private static World CityThatCameWithItsTrade(int workers, int jobs, WorldKey? key = null)
     {
         string toml = Employing(jobs).Replace(
-            "name = \"workplace\"\ntenanted = true\nbins = [",
-            "name = \"workplace\"\ntenanted = true\nbusiness = \"workplace\"\nbins = [",
+            "name = \"workplace\"\nhouses = true\npremises = true\nbins = [",
+            "name = \"workplace\"\nhouses = true\npremises = true\nbusiness = \"workplace\"\nbins = [",
             StringComparison.Ordinal);
 
         var world = new World(1_000, Load(toml));

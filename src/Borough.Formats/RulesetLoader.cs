@@ -2065,14 +2065,37 @@ public static class RulesetLoader
                     "occupants is stated on a [[building]] kind. How many tenants a Building holds "
                     + "is DERIVED now -- its floor area over [capacity] floor_tiles_per_occupant -- "
                     + "so it differs Building by Building with the ground each stands on "
-                    + "(plans/0053). Write `tenanted = true` for a kind that takes tenants at all, "
+                    + "(plans/0053). Write `houses = true` for a kind a Household may live in, "
                     + "and make a Building hold more by drawing bigger blocks.");
 
-                bool tenanted = false;
+                // plans/0054 F1: `tenanted` meant BOTH KINDS OF TENANT with one boolean, so a kind
+                // that wanted a trade had to declare itself housing -- and then Households were
+                // placed into the office. adr/0147's single ceiling is right and is untouched; what
+                // was missing is the PERMISSION over it, which is two questions and not one.
+                //
+                // Refused by name rather than read as `houses`, because the two are not synonyms:
+                // every shipped file that said `tenanted = true` on a kind carrying a trade meant
+                // BOTH keys, and silently keeping the housing half would have left every shop in
+                // the game unable to hold the shop.
+                RefuseRetired(table, "tenanted", name,
+                    "tenanted is stated on a [[building]] kind. It meant a Household may live here "
+                    + "AND a Business may take premises here, which are different questions -- an "
+                    + "office is the second without the first (plans/0054). Write `houses = true`, "
+                    + "`premises = true`, or both. Both absent is a Building nobody occupies, which "
+                    + "a warehouse and a monument are.");
 
-                if (TryBoolean(table, "tenanted", out bool takes, name))
+                bool houses = false;
+
+                if (TryBoolean(table, "houses", out bool lived, name))
                 {
-                    tenanted = takes;
+                    houses = lived;
+                }
+
+                bool premises = false;
+
+                if (TryBoolean(table, "premises", out bool traded, name))
+                {
+                    premises = traded;
                 }
 
                 // plans/0052 stage 1: footprint_tiles is RETIRED and the ground it named is now
@@ -2185,18 +2208,25 @@ public static class RulesetLoader
                             + "kind naming a trade nothing declares would raise Buildings that come "
                             + "with nothing, which loads clean and employs nobody.");
                     }
-                    else if (!tenanted)
+                    else if (!premises)
                     {
                         // A premises with no room for the shop it comes with is half a sentence.
                         // adr/0147 counts one ceiling over both kinds of tenant, so a declared trade
                         // needs a slot to sit in exactly as a Household does. ⚠ The COUNT is derived
                         // now and cannot be checked here -- it depends on ground no Ruleset has seen
-                        // -- so what is checkable is that the kind takes tenants at all.
+                        // -- so what is checkable is that the kind admits a Business at all.
+                        //
+                        // ⚠ IT READS `premises` AND NOT `houses`, WHICH IS THE WHOLE OF plans/0054
+                        // F1. This refusal used to say `tenanted = true`, and obeying it made the
+                        // kind housing as a side effect -- so every shop in every shipped file is
+                        // also a dwelling, and there was no way to write one that is not.
                         Refuse(LineOf((SyntaxNodeBase?)Find(table, "business") ?? table), name,
-                            $"business is \"{trade}\" and this kind is not tenanted. A Building of "
-                            + "this kind comes with a trade and has nowhere to hold it -- one "
-                            + "ceiling counts both kinds of tenant (adr/0147), so write "
-                            + "`tenanted = true`, or drop the trade.");
+                            $"business is \"{trade}\" and this kind states no `premises`. A "
+                            + "Building of this kind comes with a trade and has nowhere to hold it "
+                            + "-- one ceiling counts both kinds of tenant (adr/0147) and `premises` "
+                            + "is what admits a Business to it, so write `premises = true`, or drop "
+                            + "the trade. ⚠ `houses` is the other permission and does not grant "
+                            + "this one: a shop in a dwelling states both.");
                     }
                 }
 
@@ -2208,7 +2238,8 @@ public static class RulesetLoader
                     ShedsOccupantAfterTicks = shedsAfterTicks,
                     CollapsesAfterDays = collapsesAfterDays,
                     AbandonedWhenEmptyAfterTicks = emptyAfterTicks,
-                    Tenanted = tenanted,
+                    Houses = houses,
+                    Premises = premises,
                     Parked = parked,
                     Business = business,
                     ArrivalsPerDay = arrivalsPerDay,

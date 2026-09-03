@@ -96,7 +96,8 @@ bins = [
 ]
 condemn_after_days = 2
 collapses_after_days = 1
-tenanted = true
+houses   = true
+premises = true
 # Whether it parks at all -- the count is floor area over [capacity] floor_tiles_per_parking_space.
 parked = true
 business = "shop"

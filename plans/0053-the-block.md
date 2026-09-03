@@ -642,6 +642,9 @@ gardens between the houses, and a courtyard block with trees standing in the cou
 GROUND IT STANDS ON.** `[[building]] occupants`, `jobs` and `parking` are retired. What a Building
 holds is its **floor area** — footprint × storeys — over a rate in the new `[capacity]` table:
 `floor_tiles_per_occupant`, `floor_tiles_per_job`, `floor_tiles_per_parking_space`. What a *kind*
+⚠ **`tenanted` BECAME TWO KEYS on 2026-09-02** — `houses` and `premises`, because one boolean could
+not say *workplace and not a home* ([`plans/0054`](0054-the-kind.md) F1). Everything below is
+unchanged in substance: what a kind
 declares now is **whether it does the thing at all**: `[[building]] tenanted` and `parked`, two truth
 keys, a shape this loader had never had. ***Capacity is geometry; behaviour is content.***
 
