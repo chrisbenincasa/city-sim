@@ -2,8 +2,10 @@ using Borough.Core;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Input;
+using Borough.Core.Movement;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
+using Borough.Core.Space;
 using Borough.Formats;
 
 namespace Borough.Tests.Rules;
@@ -14,11 +16,14 @@ namespace Borough.Tests.Rules;
 /// </summary>
 /// <remarks>
 /// <para>
-/// 🔴 <b>Before this key one school served a million people.</b> <c>ServiceEngine</c> satisfices —
-/// it stops at the first school inside the Fast rung (<c>adr/0017</c>) — and in a city small enough
+/// 🔴 <b>Before this key one school served a million people.</b> <c>ServiceEngine</c> satisficed —
+/// it stopped at the first school inside the Fast rung (<c>adr/0017</c>) — and in a city small enough
 /// for everything to be Fast that is the first school in slot order, for everybody, for ever. A
 /// reading of <c>--school --citizens 2000 --schools 4</c> put all 109 families with a child in one
 /// of the four and left the other three serving nobody, and ***the reach panel called that 100%.***
+/// ⚠ <b>That break is gone and this class holds the assertion that replaced it</b> — see
+/// <see cref="Both_schools_teach_somebody_when_neither_is_full"/>. The ceiling and the ordering are
+/// two repairs to one reading, and only the first of them is a Ruleset key.
 /// </para>
 /// <para>
 /// <b>What the ceiling buys is not scarcity, it is DISTRIBUTION.</b> A full school is skipped and
@@ -70,7 +75,7 @@ public sealed class ServiceCapacityTests
     /// </summary>
     /// <remarks>
     /// ⚠ <b>The two counters are the whole reason the fullness test sits AFTER the route</b> in
-    /// <c>ServiceEngine.Nearest</c>. Asking the cheap question first would file a school behind an
+    /// <c>ServiceEngine.Reach</c>. Asking the cheap question first would file a school behind an
     /// Arterial under <em>full</em>, and the player would build a second school to fix a road.
     /// </remarks>
     [Fact]
@@ -91,7 +96,7 @@ public sealed class ServiceCapacityTests
     /// </summary>
     /// <remarks>
     /// 🔴 <b>This is the behaviour the ceiling exists for and the one a naive spelling loses.</b> A
-    /// <c>Nearest</c> that failed on a full school would turn the family away with a school standing
+    /// <c>Reach</c> that failed on a full school would turn the family away with a school standing
     /// empty next door, which is worse than having no ceiling at all.
     /// </remarks>
     [Fact]
@@ -303,7 +308,214 @@ public sealed class ServiceCapacityTests
             "rulesets/schooled.toml no longer states floor_tiles_per_place.");
     }
 
+    // ---- who gets the place -----------------------------------------------------------------------
+
+    /// <summary>
+    /// 🔴 <b>The one place goes to the family living nearest the school.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The ceiling is what made this askable at all.</b> With no scarcity the order of admission
+    /// has no consequence, so the bias could not be seen — and when the ceiling arrived the answer
+    /// was <em>slot order</em>, which is the order Households were created in. ***The oldest
+    /// families in the city took the school every Day and the newest never did.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The second assertion is a vacuity guard and not a claim about the design.</b> If the
+    /// nearest applicant were also the first applicant in slot order, this would pass against the
+    /// very code it exists to refuse. A red one there means the generated city moved, not that
+    /// admission did.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>THE SCHOOL IS SITED AT THE FAR END OF THE CITY, AND THAT IS THE GUARD RATHER THAN A
+    /// DETAIL.</b> Placed on the first vacant Lot it lands beside the first Households the generator
+    /// made, ***so slot order and distance order agree and the fixture asks nothing.*** The first
+    /// spelling did exactly that and its guard went red on a passing mechanism, which is the
+    /// cheapest possible reminder that ***a test of an ordering has to be built somewhere the two
+    /// orderings disagree.***
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_place_goes_to_the_nearest_family_and_not_the_oldest_household()
+    {
+        (World world, Simulation simulation) = City(Bounded);
+
+        Place(simulation, world, FarApartVacantLots(world)[1]);
+
+        int school = OnlySchool(world);
+
+        StepToDay(simulation, 4);
+
+        List<(int Slot, TravelTime Cost)> applicants = Applicants(world, school);
+
+        Assert.True(applicants.Count > 1, "one applicant cannot be admitted ahead of anybody.");
+        Assert.Equal(1, world.DeclaredPlaces(school));
+
+        int admitted = Admitted(world);
+        TravelTime nearest = applicants.Min(a => a.Cost);
+
+        Assert.Equal(nearest, applicants.Single(a => a.Slot == admitted).Cost);
+
+        Assert.NotEqual(
+            applicants.Min(a => a.Slot),
+            admitted);
+    }
+
+    /// <summary>
+    /// 🔴 <b>Two schools are two schools, and the second one is not left standing empty.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is the reading that opened the whole question, as an assertion.</b>
+    /// <c>--school --citizens 2000 --schools 4</c> put all 109 families with a child in ONE of the
+    /// four: the walk stopped at the first <c>Fast</c>-rung candidate in slot order (<c>adr/0017</c>),
+    /// and a city small enough for everything to be Fast has exactly one such candidate for
+    /// everybody, for ever. ***And the reach panel called that 100%***, because a share-of-occasions
+    /// number cannot see which Building delivered them.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>No ceiling in this fixture, deliberately.</b> The ceiling spreads the load by turning
+    /// families away; this asserts the load spreads with nobody turned away at all, so it is the
+    /// <em>choice</em> under test and never the capacity.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void Both_schools_teach_somebody_when_neither_is_full()
+    {
+        (World world, Simulation simulation) = City(Unbounded);
+
+        int[] lots = FarApartVacantLots(world);
+
+        foreach (int lot in lots)
+        {
+            Place(simulation, world, lot);
+        }
+
+        StepToDay(simulation, 4);
+
+        List<int> schools = Schools(world);
+
+        Assert.Equal(2, schools.Count);
+        Assert.Equal(0, simulation.Services.Full);
+        Assert.All(
+            schools,
+            slot => Assert.True(
+                world.Buildings.AttendedToday[slot] > 0,
+                $"school {slot} taught nobody, so the whole city walked to the other one."));
+    }
+
     // ---- fixtures -------------------------------------------------------------------------------
+
+    /// <summary>
+    /// The Household the school took, which is the one whose Education went UP.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Read off the Need rather than off a Trip</b>, because the Need is what the occasion is
+    /// for: <c>ServiceEngine.Serve</c> recovers on an attendance and <c>Fail</c> degrades on
+    /// everything else, so in a one-place city exactly one applicant is still at the ideal.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>AT ZERO AND NOT ABOVE IT.</b> <c>RuleEngine.Write</c> clamps a Need at the ideal, which
+    /// is <c>0</c> — ***the column is a depth below satisfaction and never a stock of it*** — so the
+    /// family that attends every Day never rises, it simply never falls. ⚠ <b>And the applicant
+    /// filter is load-bearing for the same reason</b>: a Household with no child has no occasion, so
+    /// it sits at zero having never been asked.
+    /// </para>
+    /// </remarks>
+    private static int Admitted(World world)
+    {
+        int found = -1;
+
+        for (int slot = 0; slot < world.Households.Rows.SlotCount; slot++)
+        {
+            if (!world.Households.Rows.IsLive(slot)
+                || Child(world, slot) < 0
+                || world.Households.Education[slot] < 0)
+            {
+                continue;
+            }
+
+            Assert.True(found < 0, "two Households attended a school holding one place.");
+            found = slot;
+        }
+
+        Assert.True(found >= 0, "nobody attended.");
+
+        return found;
+    }
+
+    /// <summary>
+    /// Every Household with an occasion, and what the walk to this school costs it.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Filtered on the rung and not on the box</b>, which is <c>ServiceEngine.Reach</c>'s own
+    /// order: the box is a straight-line bound that over-supplies candidates, and the Commute Budget
+    /// is the thing that actually refuses one.
+    /// </remarks>
+    private static List<(int Slot, TravelTime Cost)> Applicants(World world, int school)
+    {
+        List<(int Slot, TravelTime Cost)> found = [];
+        var scratch = new WalkScratch();
+
+        for (int slot = 0; slot < world.Households.Rows.SlotCount; slot++)
+        {
+            if (!world.Households.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            int child = Child(world, slot);
+
+            if (child < 0
+                || !world.Buildings.Rows.TryResolve(world.Households.Dwelling[slot], out int home))
+            {
+                continue;
+            }
+
+            TravelMode mode = world.ModeOf(child);
+
+            TravelTime cost = WalkRouting.Cost(
+                world.Roads, mode, world.AccessPoint(home, mode), world.AccessPoint(school, mode),
+                world.Rules.Trips.CrossingCost, scratch);
+
+            if (world.Rules.Trips.TryRung(cost, out _))
+            {
+                found.Add((slot, cost));
+            }
+        }
+
+        return found;
+    }
+
+    /// <summary>The first child in this Household, or <c>-1</c> — <c>ServiceEngine.Traveller</c>'s rule.</summary>
+    private static int Child(World world, int slot)
+    {
+        foreach (int member in world.Members.Walk(slot))
+        {
+            if (world.Citizens.Age[member] == 0)
+            {
+                return member;
+            }
+        }
+
+        return -1;
+    }
+
+    private static List<int> Schools(World world)
+    {
+        List<int> found = [];
+
+        for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
+        {
+            if (world.Buildings.Rows.IsLive(slot) && world.Buildings.Kind[slot] == School)
+            {
+                found.Add(slot);
+            }
+        }
+
+        return found;
+    }
 
     private static int OnlySchool(World world)
     {
@@ -320,6 +532,46 @@ public sealed class ServiceCapacityTests
     }
 
     private static int FirstVacantLot(World world) => TwoVacantLots(world)[0];
+
+    /// <summary>
+    /// Two vacant Lots as far apart as this world has, so the two schools are two PLACES.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b><see cref="TwoVacantLots"/> returns the first two in slot order, which are neighbours
+    /// — and two schools on one Segment are one school for every purpose the ordering has.</b> The
+    /// first spelling of <see cref="Both_schools_teach_somebody_when_neither_is_full"/> used it and
+    /// went red against working code: every family's nearest school really was the same one, and a
+    /// tie really does go to the lower Building slot. ***A test of where the city walks has to put
+    /// somewhere else to walk to on the map.***
+    /// </remarks>
+    private static int[] FarApartVacantLots(World world)
+    {
+        int first = FirstVacantLot(world);
+        int far = -1;
+        long best = -1;
+
+        for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
+        {
+            if (!world.Lots.Rows.IsLive(slot) || !world.Lots.IsVacant(slot) || slot == first)
+            {
+                continue;
+            }
+
+            long east = world.Lots.East[slot].Raw - world.Lots.East[first].Raw;
+            long north = world.Lots.North[slot].Raw - world.Lots.North[first].Raw;
+            long apart = (east < 0 ? -east : east) + (north < 0 ? -north : north);
+
+            if (apart > best)
+            {
+                best = apart;
+                far = slot;
+            }
+        }
+
+        Assert.True(far >= 0, "the generated city left fewer than two vacant Lots.");
+
+        return [first, far];
+    }
 
     /// <summary>Two vacant Lots, far enough apart in slot order to be different Buildings.</summary>
     private static int[] TwoVacantLots(World world)

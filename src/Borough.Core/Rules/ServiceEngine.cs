@@ -24,6 +24,39 @@ using Borough.Core.Tables;
 /// their names so the absence is legible rather than silent.
 /// </para>
 /// <para>
+/// 🔴 <b>THE PASS IS TWO PASSES, AND WHAT MADE IT TWO IS ADMISSION RATHER THAN COST.</b> A school
+/// has places, so somebody is turned away — and the order the population is walked in <em>is</em>
+/// the order the places are given out. Walking it in slot order gave them out by <b>Household
+/// age</b>: a slot is allocated when a Household is created, so ***the oldest families in the city
+/// took the school every Day and the newest never did.*** So the first pass <see cref="Ask">asks</see>
+/// every Household how far its nearest service Building is, the occasions are
+/// <see cref="Order">ordered by that distance</see>, and the second pass <see cref="Serve">serves</see>
+/// them in that order. <b>The family living nearest a school is admitted first, and the family
+/// turned away is the one living furthest from any of them.</b>
+/// </para>
+/// <para>
+/// ⚠ <b>THE ORDER IS OVER OCCASIONS AND NOT OVER ONE SCHOOL'S APPLICANTS, and the two come apart.</b>
+/// Each family is keyed by the distance to <em>its own</em> nearest school, so a family whose
+/// nearest is full can be admitted at a further one ahead of a family living closer to that further
+/// one. Closing that gap is deferred acceptance — a rejected applicant re-keyed on its next
+/// candidate and re-queued, displacing whoever it beats — and ***that costs a route per
+/// displacement*** where this costs a sort. What is left is a mis-ordering between two families at
+/// one school; what it replaces was a mis-ordering across the whole city, on a property that has
+/// nothing to do with schools.
+/// </para>
+/// <para>
+/// 🔴 <b>AND IT ENDS THE SATISFICING BREAK, WHICH IS A DESIGN CHANGE AND NOT A TIDY-UP.</b> The
+/// walk used to stop at the first <c>Fast</c>-rung candidate in slot order (<c>adr/0017</c>) and
+/// never rank the set; it now routes every candidate in the box and takes the cheapest.
+/// ***Nothing can admit nearest-first without knowing who is nearest*** — the key is a distance, and
+/// once it has been paid for, a family walking past its nearest school to a further one it happened
+/// to meet earlier in slot order is a deliberate absurdity rather than a saving. ⚠ <b>What makes the
+/// break affordable to lose is <see cref="Reach"/>'s own argument for having no <c>candidates</c>
+/// key</b>: service Buildings are placed by hand, one verb at a time, so the set being ranked is
+/// bounded by the player and not by the city. The blow-up <c>adr/0017</c> exists to refuse is a
+/// Household ranking the city; this ranks what the player has built.
+/// </para>
+/// <para>
 /// 🔴 <b>THE FAILURE IS PER-OCCASION HERE AND THAT IS NOT A REGRESSION OF THE THING
 /// <c>RuleEngine.RefreshNeed</c> FIXED.</b> The bought Needs had to become a duration because ***a
 /// success is an event and a failure is a state***: a blocked Rule is put to sleep on its Bin by
@@ -64,6 +97,32 @@ public sealed class ServiceEngine
 
     private int _serviceCount;
 
+    // ---- the occasions, between Ask and Serve ---------------------------------------------------
+    //
+    // Parallel arrays rather than an array of structs, so the sort moves _order alone and never a
+    // payload. SCRATCH AND NEVER STATE, on _services' argument: rebuilt from the world every pass,
+    // so nothing here is saved, hashed, or a column somebody has to remember to rebuild on load.
+
+    /// <summary>The Household whose occasion this is.</summary>
+    private int[] _slots = [];
+
+    /// <summary>Who makes the journey — <see cref="Traveller"/>'s answer, kept rather than re-asked.</summary>
+    private int[] _travellers = [];
+
+    /// <summary>The Building the journey starts at.</summary>
+    private int[] _homes = [];
+
+    /// <summary>The nearest service Building, decided before anybody had taken a place.</summary>
+    private int[] _providers = [];
+
+    /// <summary>The sort key: that distance, with the Household slot underneath it.</summary>
+    private long[] _keys = [];
+
+    /// <summary>Indices into the four arrays above, and the only thing the sort moves.</summary>
+    private int[] _order = [];
+
+    private int _occasionCount;
+
     private int _tickAttended;
     private int _tickUnreached;
     private int _tickNoService;
@@ -78,6 +137,32 @@ public sealed class ServiceEngine
 
         _world = world;
         _trips = trips;
+    }
+
+    /// <summary>Why an occasion found nobody to send its traveller to.</summary>
+    /// <remarks>
+    /// <b>Four values against three counters, and the fourth is the point.</b>
+    /// <see cref="Doorstep"/> degrades the Need and increments nothing: it is <c>adr/0079</c>'s hole
+    /// — a dwelling whose Address is on no Segment — and it is neither *there is no school* nor *the
+    /// network is severed*. ***A counter that absorbed it would report a defect in the subdivider as
+    /// a defect in the city's schools.***
+    /// </remarks>
+    private enum Miss
+    {
+        /// <summary>A provider was found. Not a miss.</summary>
+        None,
+
+        /// <summary>The journey could not start: no Lot, off the Cell grid, or no Address.</summary>
+        Doorstep,
+
+        /// <summary>No service Building for this Need stood inside the box at all.</summary>
+        NoService,
+
+        /// <summary>One stood, and the Road Graph could deliver nobody inside the Budget.</summary>
+        Unreached,
+
+        /// <summary>One stood, somebody could reach it, and it had no place left today.</summary>
+        Full,
     }
 
     /// <summary>School runs completed on the Tick just closed.</summary>
@@ -113,6 +198,11 @@ public sealed class ServiceEngine
     /// ⚠ <b>It is zero in every world that states no <c>[capacity] floor_tiles_per_place</c></b>,
     /// which is every Ruleset shipped before that key existed. A zero here is *no ceiling in this
     /// city* as often as it is *nobody was turned away*, so read it beside the rate.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>WHO it names moved when admission stopped being slot order.</b> The families turned
+    /// away are the ones living furthest from any service Building, which is a sentence a player can
+    /// act on — where *the oldest Households take the places* was a sentence about the save file.
     /// </para>
     /// </remarks>
     public int Full => _tickFull;
@@ -162,6 +252,12 @@ public sealed class ServiceEngine
     }
 
     /// <summary>One Day's attendance for one Need, across the whole population.</summary>
+    /// <remarks>
+    /// <b>Ask, order, serve.</b> The three steps are separate because the middle one needs every
+    /// answer before it can decide anything — ***an ordering is not a property any one Household
+    /// has*** — and because a place taken in the third would otherwise change an answer the first
+    /// had already given.
+    /// </remarks>
     private void AttendAll(
         Need need, Cells radius, NeedRuleset needs, TripRuleset trips, Ticks tick, int day)
     {
@@ -198,20 +294,18 @@ public sealed class ServiceEngine
             return;
         }
 
-        HouseholdTable households = _world.Households;
+        Ask(need, depth, radius, needs, trips, day);
+        Order();
 
-        for (int slot = 0; slot < households.Rows.SlotCount; slot++)
+        for (int i = 0; i < _occasionCount; i++)
         {
-            if (!households.Rows.IsLive(slot))
-            {
-                continue;
-            }
-
-            AttendOne(slot, need, depth, radius, needs, trips, tick, day);
+            Serve(_order[i], need, depth, radius, needs, trips, tick, day);
         }
     }
 
-    /// <summary>One Household's occasion: send somebody, or record that nobody could go.</summary>
+    /// <summary>
+    /// Pass one: every Household that has an occasion, and how far its nearest provider is.
+    /// </summary>
     /// <remarks>
     /// <para>
     /// 🔴 <b>A Household with nobody to send has NO OCCASION, and that is the load-bearing
@@ -226,35 +320,117 @@ public sealed class ServiceEngine
     /// <c>EmploymentEngine.Home</c>'s reason</b>: attendance is anchored at a dwelling, so somebody
     /// in the Unplaced Pool has no origin to travel from. The queue they are in is the housing one.
     /// </para>
+    /// <para>
+    /// 🔴 <b>THE THREE FAILURES THAT DO NOT DEPEND ON A PLACE ARE SETTLED HERE, and settling them
+    /// here is what keeps the ordering honest.</b> No school in the box, no route inside the Budget
+    /// and no doorstep to leave from are all true before anybody has been admitted to anything, so
+    /// ***a family that was never going to attend must not sit in a queue ahead of one that was.***
+    /// Only <see cref="Miss.Full"/> survives into pass two, because it is the only one an earlier
+    /// occasion can cause.
+    /// </para>
     /// </remarks>
-    private void AttendOne(
-        int slot, Need need, Column<int> depth, Cells radius, NeedRuleset needs, TripRuleset trips,
+    private void Ask(
+        Need need, Column<int> depth, Cells radius, NeedRuleset needs, TripRuleset trips, int day)
+    {
+        _occasionCount = 0;
+
+        HouseholdTable households = _world.Households;
+
+        for (int slot = 0; slot < households.Rows.SlotCount; slot++)
+        {
+            if (!households.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            int traveller = Traveller(slot, need);
+
+            if (traveller < 0)
+            {
+                continue;
+            }
+
+            if (!_world.Buildings.Rows.TryResolve(households.Dwelling[slot], out int home))
+            {
+                continue;
+            }
+
+            // Asked WITHOUT the places, so this answer is the city's geometry and nothing else: the
+            // key has to mean "how far this family lives from a school" on every Day, and a key that
+            // moved because somebody else got in first would be sorting on the previous Day's luck.
+            Miss miss = Reach(
+                home, _world.ModeOf(traveller), radius, trips, day, respectPlaces: false,
+                out int provider, out TravelTime cost);
+
+            if (miss != Miss.None)
+            {
+                Fail(miss, need, depth, slot, needs);
+                continue;
+            }
+
+            Enqueue(slot, traveller, home, provider, cost);
+        }
+    }
+
+    /// <summary>Puts the occasions in admission order: nearest first, oldest Household on a tie.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The key is <c>(distance, slot)</c> packed into one <c>long</c>, and the packing is what
+    /// makes the tie-break a stated rule rather than an artefact.</b> <c>Span.Sort</c> is
+    /// introspective and therefore unstable; equal keys would come out in whatever order the
+    /// partitioning left them, which is deterministic but is nobody's decision. Ties are common
+    /// here — two families on one Segment are the same distance from the same school — so the
+    /// second field is not a formality. ***Slot order decides a tie and no longer decides the
+    /// queue.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Allocation-free</b>, which is <c>RuleEngine.Apply</c>'s reason for the same overload:
+    /// the key span sorts the payload span beside it, and both are the reused buffers.
+    /// </para>
+    /// </remarks>
+    private void Order() =>
+        _keys.AsSpan(0, _occasionCount).Sort(_order.AsSpan(0, _occasionCount));
+
+    /// <summary>Pass two: one occasion, in admission order — send somebody, or record that nobody could go.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The place is taken here and not in <see cref="Ask"/></b>, so the tally cannot depend on
+    /// anything the ordering has not already decided — and the family behind this one in
+    /// <em>distance</em> order meets a school that has already been attended today rather than one
+    /// that is about to be.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A full first choice is not a failure; the family walks on.</b> That second walk is the
+    /// only route this method pays for, and it is paid by nobody in the ordinary world where nothing
+    /// is full. A <see cref="Reach"/> that failed on a full candidate would turn a family away with
+    /// a school standing empty next door.
+    /// </para>
+    /// </remarks>
+    private void Serve(
+        int entry, Need need, Column<int> depth, Cells radius, NeedRuleset needs, TripRuleset trips,
         Ticks tick, int day)
     {
-        int traveller = Traveller(slot, need);
-
-        if (traveller < 0)
-        {
-            return;
-        }
+        int slot = _slots[entry];
+        int traveller = _travellers[entry];
+        int home = _homes[entry];
+        int provider = _providers[entry];
 
         TravelMode mode = _world.ModeOf(traveller);
 
-        if (!_world.Buildings.Rows.TryResolve(
-                _world.Households.Dwelling[slot], out int home))
+        if (!_world.HasServicePlace(provider, day))
         {
-            return;
+            // Pass one already proved something reachable stands in this box, so the only miss this
+            // walk can come back with is Full -- every other one was settled before the queue formed.
+            Miss miss = Reach(
+                home, mode, radius, trips, day, respectPlaces: true, out provider, out _);
+
+            if (miss != Miss.None)
+            {
+                Fail(miss, need, depth, slot, needs);
+                return;
+            }
         }
 
-        if (!Nearest(home, mode, radius, trips, day, out int provider))
-        {
-            RuleEngine.Write(depth, slot, depth[slot] - needs.DegradeOf(need), needs.Floor);
-            return;
-        }
-
-        // Debited the moment the provider is settled and before the Trip, so the tally cannot depend
-        // on anything downstream of it -- and so the family behind this one in slot order meets a
-        // school that has already been attended today rather than one that is about to be.
         _world.TakeServicePlace(provider, day);
 
         // ⚠ ACTIVITY IS DELIBERATELY NOT WRITTEN, and the enum deliberately does not grow. A school
@@ -267,6 +443,72 @@ public sealed class ServiceEngine
 
         RuleEngine.Write(depth, slot, depth[slot] + needs.RecoverOf(need), needs.Floor);
         _tickAttended++;
+    }
+
+    /// <summary>A failed occasion: degrade the Need, and count the city it names.</summary>
+    /// <remarks>
+    /// <b><see cref="Miss.Doorstep"/> degrades and counts nowhere</b> — see <see cref="Miss"/>. The
+    /// degrade is unconditional because a Need does not care why nobody went.
+    /// </remarks>
+    private void Fail(Miss miss, Need need, Column<int> depth, int slot, NeedRuleset needs)
+    {
+        RuleEngine.Write(depth, slot, depth[slot] - needs.DegradeOf(need), needs.Floor);
+
+        if (miss == Miss.Full)
+        {
+            _tickFull++;
+        }
+        else if (miss == Miss.Unreached)
+        {
+            _tickUnreached++;
+        }
+        else if (miss == Miss.NoService)
+        {
+            _tickNoService++;
+        }
+    }
+
+    /// <summary>Records one occasion and its key, growing the buffers as one.</summary>
+    private void Enqueue(int slot, int traveller, int home, int provider, TravelTime cost)
+    {
+        Grow(_occasionCount + 1);
+
+        _slots[_occasionCount] = slot;
+        _travellers[_occasionCount] = traveller;
+        _homes[_occasionCount] = home;
+        _providers[_occasionCount] = provider;
+
+        // Distance in the high half and the Household slot in the low half, so one comparison
+        // orders both fields. A constant shift count -- BOR0204 reports a computed one, and this is
+        // checkable by eye. A route's cost is non-negative and a slot is an index, so neither half
+        // can run into the other.
+        _keys[_occasionCount] = ((long)cost.Raw << 32) | (uint)slot;
+        _order[_occasionCount] = _occasionCount;
+
+        _occasionCount++;
+    }
+
+    /// <summary>Sizes the six occasion buffers together, so an index means the same thing in each.</summary>
+    private void Grow(int needed)
+    {
+        if (_slots.Length >= needed)
+        {
+            return;
+        }
+
+        int size = _slots.Length == 0 ? 64 : _slots.Length;
+
+        while (size < needed)
+        {
+            size *= 2;
+        }
+
+        Array.Resize(ref _slots, size);
+        Array.Resize(ref _travellers, size);
+        Array.Resize(ref _homes, size);
+        Array.Resize(ref _providers, size);
+        Array.Resize(ref _keys, size);
+        Array.Resize(ref _order, size);
     }
 
     /// <summary>
@@ -316,7 +558,7 @@ public sealed class ServiceEngine
     }
 
     /// <summary>
-    /// The first service Building this Household can reach inside the Budget, satisficing.
+    /// The nearest service Building this Household can reach inside the Budget, and why not.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -330,25 +572,42 @@ public sealed class ServiceEngine
     /// (<c>adr/0164</c>), and here it belongs nowhere at all.
     /// </para>
     /// <para>
-    /// <b>Satisficing survives the missing key</b>: the walk stops on the first <c>Fast</c> rung
-    /// rather than ranking the set, so what is taken is the first good-enough school met in slot
-    /// order and never the best one in the city. <c>adr/0017</c>, and the same break
-    /// <c>TryEmploy</c> makes.
+    /// 🔴 <b>THE CHEAPEST CANDIDATE AND NOT THE FIRST GOOD-ENOUGH ONE.</b> This used to break the
+    /// walk on the first <c>Fast</c> rung, which is <c>adr/0017</c> spelled without a sampler — and
+    /// in a city small enough for everything to be Fast that is *the first school in slot order, for
+    /// everybody, for ever.* The class remark holds the argument; the short version is that
+    /// nearest-first admission needs a distance, and a build that has already paid for one may not
+    /// then pretend it does not know.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Ties go to the lower Building slot</b>, because the scan keeps the incumbent on an equal
+    /// cost. That is <c>Gather</c>'s order, which is the table's, which is fixed for a given world —
+    /// so two equidistant schools split the city the same way on every Day and after every reload.
     /// </para>
     /// <para>
     /// ⚠ <b>The box is a straight-line bound on a network distance</b>, so it over-supplies
     /// candidates and never under-supplies them — <c>EmploymentEngine.Radius</c>'s argument, and the
     /// reason the second stage is a real route rather than a tightened box.
     /// </para>
+    /// <para>
+    /// 🔴 <b><paramref name="respectPlaces"/> is what makes this one method and not two.</b> Pass one
+    /// asks it <c>false</c> and gets the city's geometry; pass two asks it <c>true</c> and gets what
+    /// is left. ⚠ <b>Fullness is tested AFTER the route in both</b>, which is the expensive order and
+    /// the only honest one: fullness is <c>O(1)</c> and a route is not, but asking the cheap question
+    /// first would file a school behind an Arterial under <em>full</em> and ***the player would build
+    /// a second school to fix a road.***
+    /// </para>
     /// </remarks>
-    private bool Nearest(
-        int home, TravelMode mode, Cells radius, TripRuleset trips, int day, out int provider)
+    private Miss Reach(
+        int home, TravelMode mode, Cells radius, TripRuleset trips, int day, bool respectPlaces,
+        out int provider, out TravelTime cost)
     {
         provider = Rows.NoSlot;
+        cost = TravelTime.Impassable;
 
         if (!_world.Lots.Rows.TryResolve(_world.Buildings.Lot[home], out int lot))
         {
-            return false;
+            return Miss.Doorstep;
         }
 
         Cells east = CellGrid.ToCells(_world.Lots.East[lot]);
@@ -356,21 +615,19 @@ public sealed class ServiceEngine
 
         if (!CellGrid.Contains(east, north))
         {
-            return false;
+            return Miss.Doorstep;
         }
 
         Address door = _world.AccessPoint(home, mode);
 
         // adr/0079's hole: nobody starts a walk from a door that is not on a Segment. Not an
-        // unreachable school -- an unreachable doorstep -- so it is neither of the two counters.
+        // unreachable school -- an unreachable doorstep -- so it is none of the three counters.
         if (!door.Exists)
         {
-            return false;
+            return Miss.Doorstep;
         }
 
         CellRect box = CellRect.At(east, north).Dilate(radius).Clamp();
-        CommuteRung best = CommuteRung.Fast;
-        bool found = false;
         bool inBox = false;
         bool sawFull = false;
 
@@ -385,71 +642,47 @@ public sealed class ServiceEngine
 
             inBox = true;
 
-            TravelTime cost = WalkRouting.Cost(
+            TravelTime candidateCost = WalkRouting.Cost(
                 _world.Roads, mode, door, _world.AccessPoint(candidate, mode), trips.CrossingCost,
                 _walk);
 
-            if (!trips.TryRung(cost, out CommuteRung rung))
+            // The rung is the CEILING and no longer the choice: it refuses a school outside the
+            // Commute Budget, and the cheapest of what survives is what is taken. Rung and cost order
+            // the same set the same way, so the old best-rung comparison was the coarser spelling of
+            // this one.
+            if (!trips.TryRung(candidateCost, out _))
             {
                 continue;
             }
 
-            // 🔴 ROUTED FIRST AND ASKED ABOUT PLACES SECOND, WHICH IS THE EXPENSIVE ORDER AND THE
-            // ONLY HONEST ONE. Fullness is O(1) and the route is not, so the cheap question wants to
-            // go first -- but then a school behind an Arterial that also happens to be full would be
-            // reported as FULL, and the player would build a second school to fix a road. ***A
-            // diagnosis is worth what it costs to act on it wrongly.*** The order costs nothing in
-            // the ordinary world, where nothing is full and every candidate in the box is routed
-            // anyway.
-            //
-            // ⚠ AND IT KEEPS LOOKING RATHER THAN FAILING. A family whose nearest school is full
-            // walks to the next one, which is what a family does -- and it is what makes the
-            // DISTRIBUTION of schools matter and not just the count. Satisficing is unchanged: the
-            // Fast break below is still what stops the walk.
-            if (!_world.HasServicePlace(candidate, day))
+            if (respectPlaces && !_world.HasServicePlace(candidate, day))
             {
                 sawFull = true;
                 continue;
             }
 
-            if (!found || rung < best)
+            if (provider == Rows.NoSlot || candidateCost < cost)
             {
-                found = true;
-                best = rung;
                 provider = candidate;
-            }
-
-            if (rung == CommuteRung.Fast)
-            {
-                break;
+                cost = candidateCost;
             }
         }
 
-        if (!found)
+        if (provider != Rows.NoSlot)
         {
-            // The three failures are counted apart because they are three different cities: a city
-            // with no schools, a city whose schools are behind an Arterial, and a city whose schools
-            // are full. Each asks the player for a different thing, and a counter that merged any two
-            // of them would be telling them to guess which.
-            //
-            // ⚠ `full` is tested FIRST because it is the most specific claim of the three: this
-            // family found a school, could reach it, and was turned away at the door. The other two
-            // stay in their old order and their old meaning.
-            if (sawFull)
-            {
-                _tickFull++;
-            }
-            else if (inBox)
-            {
-                _tickUnreached++;
-            }
-            else
-            {
-                _tickNoService++;
-            }
+            return Miss.None;
         }
 
-        return found;
+        // The three failures are named apart because they are three different cities: a city with no
+        // schools, a city whose schools are behind an Arterial, and a city whose schools are full.
+        // Each asks the player for a different thing, and a counter that merged any two of them would
+        // be telling them to guess which.
+        //
+        // ⚠ `full` is tested FIRST because it is the most specific claim of the three: this family
+        // found a school, could reach it, and was turned away at the door.
+        return sawFull ? Miss.Full
+            : inBox ? Miss.Unreached
+            : Miss.NoService;
     }
 
     /// <summary>Whether this Building's Lot falls inside the box.</summary>

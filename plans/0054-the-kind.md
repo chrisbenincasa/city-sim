@@ -289,7 +289,7 @@ more, because its absence is invisible by design.
 meter that only started counting once somebody had already chosen could not have supplied the reading
 above.
 
-### 🔴 F6 — WHO gets the last place is decided by slot order, and that is a systematic bias
+### ✅ F6 discharged — WHO gets the last place is the family living nearest
 
 **The pass walks Households in slot order**, so the same families take the places every Day and the
 same six are turned away every Day. ⚠ **Slot order is not noise**: a slot is allocated when a
@@ -302,6 +302,44 @@ lottery on the Household's own id — and each says something different about wh
 could not have been seen before the ceiling existed**, because with no ceiling the order of admission
 has no consequence at all. ***A mechanism with no scarcity in it cannot be unfair.*** Filed here and
 not worked around.
+
+**Discharged 2026-09-03, and the answer taken was nearest-first.** The pass is now two passes:
+`ServiceEngine.Ask` asks every Household how far its nearest service Building is, `Order` sorts the
+occasions by that distance, and `Serve` serves them in that order. ***The family living nearest a
+school is admitted first, and the family turned away is the one living furthest from any of them.***
+
+🔴 **It cost the satisficing break, and that is a design change rather than a tidy-up.** The walk
+used to stop at the first `Fast`-rung candidate in slot order ([`adr/0017`](../docs/adr/0017-agents-satisfice-they-never-optimise.md));
+it now routes every candidate in the box and takes the cheapest. ***Nothing can admit nearest-first
+without knowing who is nearest*** — and a build that has paid for a distance may not then walk a
+family past its nearest school to a further one it happened to meet earlier in slot order. ⚠ **What
+makes the break affordable to lose is the argument already written down for having no `candidates`
+key**: service Buildings are placed by hand, one verb at a time, so the set being ranked is bounded
+by the player and not by the city. The blow-up `adr/0017` refuses is a Household ranking the *city*.
+
+⚠ **The order is over OCCASIONS and not over one school's applicants, and the two come apart.** Each
+family is keyed by the distance to *its own* nearest school, so a family whose nearest is full can be
+admitted at a further one ahead of a family living closer to *that* one. Closing the gap is deferred
+acceptance — a rejected applicant re-keyed on its next candidate and re-queued — and ***that costs a
+route per displacement where this costs a sort.*** What is left is a mis-ordering between two
+families at one school; what it replaces was a mis-ordering across the whole city on a property that
+has nothing to do with schools.
+
+### 🔴 AND THE INSTRUMENT THAT FOUND F3 CANNOT SEE F6's REPAIR AT ALL
+
+`--school --ruleset rulesets/schooled.toml --citizens 2000 --ticks 100000 --schools 4` prints
+**byte-for-byte the same output** before and after — diffed on 2026-09-03, both engines built from
+the same tree. 103 attended, 6 turned away, deliverable share 95%, the four schools at 21/18/16/48
+and every one full.
+
+***Every column in that panel is a COUNT, and the change is an IDENTITY.*** A different six families
+being turned away is invisible to a tally of how many were, which is
+[F3](#-f3-discharged--a-school-is-full-and-being-full-is-a-third-city)'s *the reach panel called that
+100%* arriving one repair later and one level down. ⚠ **So the evidence is the tests and there was
+never going to be a reading**: `The_place_goes_to_the_nearest_family_and_not_the_oldest_household`
+and `Both_schools_teach_somebody_when_neither_is_full` both go **red against the previous engine** —
+it admitted a family at a walk of **201,325** where the nearest applicant stood at **85,004**, and it
+left the second school teaching nobody. ***A number that only a test can hold is still a number.***
 
 ### The rate is chosen, and it is the one number in `[capacity]` with no standing city behind it
 
@@ -324,7 +362,7 @@ beside it. It lands where `floor_tiles_per_job` sits, and a desk scaled the same
 | 3 | **Nothing expresses the MIX within a zone** (F2) — no weight, share or priority on a Zone Rule | *undesigned* |
 | 4 | **76% of every shipped Ruleset is copy**, because no key inside a present table may be omitted. A base-and-differences mechanism needs an answer to *a default could not announce itself* | *undesigned* |
 | 5 | **`banded.toml` has never stood its second kind**; **`provisioned.toml` steadies at half shells** | readings, above |
-| 6 | **Who gets the last place at a full school is slot order** (F6), which is Household age and not distance, arrival or chance | *undesigned* |
+| 6 | ~~Who gets the last place at a full school is slot order~~ ✅ **DONE 2026-09-03** — nearest-first, above | shipped |
 
 🔴 **NONE OF THESE IS A SHAPE COMMITMENT TO UNWIND.** They are absences. ***The thing that IS a
 commitment — a kind carries behaviour and the ground carries form — held up under twelve kinds and
