@@ -3922,6 +3922,11 @@ public sealed class World
         // how long the bet is left standing.
         Buildings.MarkEmpty(Buildings.Rows.Resolve(building), now);
 
+        // Beside MarkEmpty because they are the same fact from two ends -- a Building is raised
+        // empty (adr/0069: construction houses nobody), so the Tick that starts the empty clock is
+        // the Tick that starts the age.
+        Buildings.MarkRaised(Buildings.Rows.Resolve(building), now);
+
         Fit(building, kind, now, key);
 
         return building;

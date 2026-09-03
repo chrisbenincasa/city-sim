@@ -2558,9 +2558,12 @@ public readonly record struct LotRuleset(int LotsPerSegment, int SetbackTiles, i
     /// <b>ONE RUNG OF VARIATION AND NO MORE</b>, drawn on the parcel's corner like the setbacks.
     /// ⚠ <b>It is what stops a block reading as a wall</b>, and its width is derived rather than
     /// chosen: a jitter narrower than the ladder's own step cannot blur the ladder, and a jitter
-    /// exactly one step wide is the widest that still leaves a Building's rung recoverable from its
-    /// height. The tag is <see cref="Determinism.PurposeTag.BuildingFootprint"/>'s and the bit range
-    /// is its own, so a tall Building is not also a deep one.
+    /// exactly one step wide is the widest that leaves two rungs merely TOUCHING. ⚠ <b>Touching and
+    /// not disjoint.</b> The draw spans <c>0..step</c> <em>inclusive</em>, so one rung's tallest
+    /// height is the next one's shortest and a Building standing at it names either — which is what
+    /// the original <c>0 or 1</c> mask did too, so the widening cost nothing that was there before
+    /// (<c>plans/0057</c>). The tag is <see cref="Determinism.PurposeTag.BuildingFootprint"/>'s and
+    /// the bit range is its own, so a tall Building is not also a deep one.
     /// </para>
     /// <para>
     /// 🔴 <b>IT SAID <em>ONE STOREY OF VARIATION AND NO MORE, BECAUSE TWO WOULD BLUR THE LADDER</em>,

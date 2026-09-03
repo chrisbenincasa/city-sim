@@ -4811,3 +4811,31 @@ than description. (b) Exempt named files, which is a list that drifts. (c) Accep
 and re-seed the ceiling from a corrected reading — noting that a raise made by the author who tripped
 it *"is not a check"*, by `CorpusBudgetTests`' own remark. ⚠ **The reading to correct from is 52 and
 not 51**, whichever is chosen.
+
+---
+
+## Filed 2026-09-03, by [`0057`](0057-the-vintage.md) — a claim of recoverability that is one value too strong
+
+### ⚠ *"the widest that still leaves a Building's rung recoverable from its height"* — it is recoverable except where two rungs touch
+
+**Found 2026-09-03, by writing the overlay that recovers it.** `plans/0056` and
+`LotRuleset.StoreysOn`'s remarks both defended the storey jitter's width with the claim that a jitter
+of exactly one step *leaves a Building's rung recoverable from its height, as `(storeys - 2) / step`.*
+
+⚠ **`Randomness.Draw`'s jitter spans `0..step` INCLUSIVE**, so rung *r* reaches
+`(r × step) + 2 + step`, which is rung *r+1*'s floor. **The two ranges share their boundary value and
+a Building standing on it names either rung.** `(storeys - 2) / step` returns the higher one.
+
+⚠ **This is a *Cause 5* of the ordinary kind and not a defect in the mechanism.** The overlap predates
+`0056` exactly — the original `0 or 1` mask gave rung *r* `{r+2, r+3}` and *r+1* `{r+3, r+4}` — so the
+sentence was already wrong when it was written about a step of one, and widening the step neither
+introduced nor worsened it. What the sentence should have said is *the widest that leaves two rungs
+touching rather than overlapping*, which is the property the argument actually needs.
+
+⚠ **Closing it is available and was refused.** An exclusive draw, `0..step-1`, makes the rungs
+disjoint — and deletes the jitter entirely at `step = 1`, which is the bit-identity `0056` turns on
+and the reason no golden trace moved there. ***A correction that moves every hash in the project to
+buy a boundary nobody reads is the wrong trade***, so the claim was corrected instead of the code.
+
+**PAID 2026-09-03** at both sites, and `0057`'s `RungOf` carries the caveat where the recovery is
+actually performed.

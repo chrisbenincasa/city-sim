@@ -461,11 +461,21 @@ every number in all three artefacts moved from the first sample on. **No shipped
 except `rulesets/varied.toml`**, which is not a fixture here, so `session.borough`,
 `driving-session.borough` and the four literals in two files needed no touch at all.
 
-⚠ **The two entries together are the cleanest statement of the distinction this directory keeps.** Task
-4 changed twelve Rulesets and no city; task 8b changed one column and every city. ***A file fingerprint
+**`plans/0057` moved every State Hash sample by the same door, and its interest is what the column was
+FOR.** `BuildingTable` gained `raised_at` — the Tick a Building went up — so the composition changed
+and all three artefacts moved from the first sample on, with no Ruleset touched at all. ⚠ **The column
+was added to feed a debug overlay**, which is a thin reason for a hash move on its own; what carries it
+is that *when* a Building was raised is state the city does not hold and several things want — an age
+overlay today, weathering and era-varied massing later (`plans/0056` Q1). ***A view is a legitimate
+reason to add state, and it is a bad reason to add state that only a view will ever read.*** The
+version byte in `World.HashSeed` is unmoved here for the reason given below.
+
+⚠ **The three entries together are the cleanest statement of the distinction this directory keeps.**
+Task 4 changed twelve Rulesets and no city; task 8b and `plans/0057` each changed one column and every
+city. ***A file fingerprint
 and a State Hash answer different questions, and a re-baseline that moves one and not the other is the
-normal case rather than the surprising one.*** The version byte in `World.HashSeed` is unmoved in both:
-a table gained a column, which is a world with more state in it, not a change to the fold.
+normal case rather than the surprising one.*** The version byte in `World.HashSeed` is unmoved in all
+three: a table gained a column, which is a world with more state in it, not a change to the fold.
 
 ## The driving session
 

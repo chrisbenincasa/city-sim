@@ -56,9 +56,18 @@ ladder, which is the thing the height is supposed to say.*** That is true of a l
 and only of one — a jitter of two then spans three rungs and the height stops naming a density.
 
 **With the step a variable, the jitter's width is derived rather than chosen: one step.** A jitter
-narrower than the step cannot blur the ladder; a jitter exactly one step wide is the widest that still
-leaves a Building's rung recoverable from its height, as `(storeys - 2) / step`. ***The argument was
-never about the number two; it was about the jitter against the step.***
+narrower than the step cannot blur the ladder; a jitter exactly one step wide is the widest that
+leaves the rungs merely *touching* rather than overlapping. ***The argument was never about the
+number two; it was about the jitter against the step.***
+
+⚠ **CORRECTED 2026-09-03 by [`0057`](0057-the-vintage.md).** This paragraph said the jitter leaves a
+Building's rung *recoverable* from its height, as `(storeys - 2) / step`. **It is one value too
+strong.** The draw spans `0..step` **inclusive**, so rung *r*'s top height is rung *r+1*'s bottom and
+a Building sitting there is indistinguishable. ⚠ **The overlap is not new** — the original `0 or 1`
+mask gave rung *r* `{r+2, r+3}` and rung *r+1* `{r+3, r+4}`, sharing a value in exactly the same way —
+so the widening cost nothing that was there before. Making the draw exclusive would close it and
+would also delete the jitter entirely at `step = 1`, which is the bit-identity the section below
+turns on. Filed in [`0012`](0012-corpus-audit.md).
 
 ⚠ **At `storeys_per_rung = 1` the new draw is bit-identical to the mask it replaced** —
 `((draw >> 32) & 0xFF) % 2` is `(draw >> 32) & 1` — so **no world that does not state the key moves a

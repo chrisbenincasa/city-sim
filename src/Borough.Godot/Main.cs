@@ -323,7 +323,57 @@ public partial class Main : Node3D
 
         /// <summary>Sealing — how much of a Cell is under paving and roof.</summary>
         Sealed,
+
+        /// <summary>
+        /// A Building's rung on <c>BlockPatterns.Ladder</c>. <b>A DEBUG VIEW AND NOT A SHIPPING
+        /// ONE.</b>
+        /// </summary>
+        /// <remarks>
+        /// ⚠ <b>Categorical, so it is the one wash the <see cref="Bands"/> reasoning does not
+        /// govern.</b> Five patterns are five things and not five amounts, and a monotone ramp
+        /// over them would invite exactly the reading — <em>Slab is more than Courtyard</em> —
+        /// that the ladder does not support. It gets its own hues and the legend names them.
+        /// ⚠ <b>Recoverable only up to the value two rungs share</b>: the storey draw spans
+        /// <c>0..storeys_per_rung</c> inclusive, so the top of one rung's range is the bottom of
+        /// the next one's, and a Building sitting on it is drawn as the higher of the two.
+        /// </remarks>
+        Rung,
+
+        /// <summary>
+        /// How long a Building has stood, against the Tick now. <b>A DEBUG VIEW AND NOT A SHIPPING
+        /// ONE.</b>
+        /// </summary>
+        /// <remarks>
+        /// 🔴 <b>A GENERATED CITY IS ONE VINTAGE AND THIS VIEW IS HOW YOU SEE THAT.</b>
+        /// <c>SyntheticCity</c> raises everything it lays inside one call at one Tick, so on a
+        /// fresh world every Building is the same age and the whole city washes flat at the top of
+        /// the ramp. That is a true reading of a real absence rather than a broken overlay — see
+        /// <c>plans/0057</c>. It only says anything once a run has raised Buildings at different
+        /// Ticks.
+        /// </remarks>
+        Age,
     }
+
+    /// <summary>The five hues <see cref="Wash.Rung"/> is drawn with, sparsest to densest.</summary>
+    /// <remarks>
+    /// ⚠ <b>Hues and not a ramp, and that is the opposite of <see cref="Bands"/> on purpose.</b>
+    /// The ladder orders patterns by how many addresses they fit, which makes rung an ordinal and
+    /// not a quantity — <em>Slab is one place above Courtyard</em> is true and <em>Slab is 25%
+    /// more than Courtyard</em> is not. A monotone ramp asserts the second. ⚠ <b>Five, and the
+    /// count is <c>BlockPatterns.Count</c>'s</b>; a sixth pattern needs a sixth colour here and
+    /// <see cref="RungOf"/> clamps rather than crashing until it gets one.
+    /// ⚠ <b>Named for the PATTERN and not the rung</b>, because this shell already spells
+    /// <c>Rungs</c> as the speed ladder's names, and two <c>Color[]</c> a line apart under one word
+    /// is how a wrong index gets written.
+    /// </remarks>
+    private static readonly Color[] Patterns =
+    [
+        new(0.42f, 0.62f, 0.35f),
+        new(0.28f, 0.55f, 0.72f),
+        new(0.88f, 0.74f, 0.28f),
+        new(0.82f, 0.42f, 0.62f),
+        new(0.90f, 0.34f, 0.24f),
+    ];
 
     /// <summary>
     /// The ramp an overlay is drawn with, dark to bright. <b>Perceptual and not a rainbow.</b>
@@ -498,6 +548,9 @@ public partial class Main : Node3D
 
     /// <inheritdoc cref="_wash"/>
     private StandardMaterial3D? _muted;
+
+    /// <inheritdoc cref="_wash"/>
+    private StandardMaterial3D? _categorical;
 
     /// <summary>The ground's ordinary material, kept so an overlay can be taken off again.</summary>
     private StandardMaterial3D _skinned = null!;
@@ -1765,6 +1818,8 @@ public partial class Main : Node3D
             Wash.None => "pollution",
             Wash.Pollution => "value",
             Wash.Value => "sealing",
+            Wash.Sealed => "rung",
+            Wash.Rung => "age",
             _ => "off",
         };
     }
@@ -2318,8 +2373,22 @@ public partial class Main : Node3D
                 ? Mathf.Clamp(_world.Occupants.Length(slot) / (float)room, 0f, 1f)
                 : 1f;
 
-            Color paint = (table.IsAbandoned(slot) ? Derelict : Rendered(shape)).SrgbToLinear();
-            Color slate = Slate(shape).SrgbToLinear();
+            // 🔴 THE ONE PAINT DERIVATION, and the two debug washes take it over here rather than
+            // anywhere downstream -- both Massing construction sites read these two locals, so a
+            // second site would be a second answer to "what colour is this Building".
+            Color paint = _washing switch
+            {
+                Wash.Rung => Patterns[RungOf(lots.Storeys[lot])].SrgbToLinear(),
+                Wash.Age => Shade(Vintage(slot)).SrgbToLinear(),
+                _ => (table.IsAbandoned(slot) ? Derelict : Rendered(shape)).SrgbToLinear(),
+            };
+
+            // ⚠ The roof takes the SAME colour under a debug wash. A slate that stayed slate would
+            // put a second, meaningless hue on top of every reading, and from the shallow tilt the
+            // shell opens at the roof is most of what a tall Building shows.
+            Color slate = _washing is Wash.Rung or Wash.Age
+                ? paint
+                : Slate(shape).SrgbToLinear();
             float lit = table.IsAbandoned(slot) ? 0f : taken;
             float draw = ((shape >> 56) & 0xFFu) / 255f;
 
@@ -4129,13 +4198,15 @@ public partial class Main : Node3D
             "pollution" => Wash.Pollution,
             "value" or "land" or "land-value" => Wash.Value,
             "sealing" or "sealed" => Wash.Sealed,
+            "rung" or "pattern" => Wash.Rung,
+            "age" or "vintage" => Wash.Age,
             _ => Wash.None,
         };
 
         if (want == Wash.None && layer is not ("off" or "none"))
         {
-            _refused = $"there is no overlay called '{layer}'. There is off, pollution, value "
-                + "and sealing.";
+            _refused = $"there is no overlay called '{layer}'. There is off, pollution, value, "
+                + "sealing, and the two debug ones, rung and age.";
         }
 
         _washing = want;
@@ -4156,9 +4227,29 @@ public partial class Main : Node3D
             AlbedoColor = Muted,
         };
 
-        foreach ((string _, MultiMeshInstance3D over, bool _, List<ulong>? _) in Layers())
+        _categorical ??= new StandardMaterial3D
         {
-            over.MaterialOverride = _washing == Wash.None ? null : _muted;
+            // The same unshaded argument the ground overlay makes, spent on the MASSING instead:
+            // a rung read against a sunset is a rung multiplied by the time of day. Instance
+            // colour has to be the albedo, because a MultiMesh's per-instance colour is the only
+            // channel that survives one material over thousands of Buildings.
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            VertexColorUseAsAlbedo = true,
+        };
+
+        foreach ((string name, MultiMeshInstance3D over, bool _, List<ulong>? _) in Layers())
+        {
+            over.MaterialOverride = _washing switch
+            {
+                Wash.None => null,
+
+                // ⚠ THE MASSING KEEPS ITS OWN COLOUR UNDER A BUILDING WASH, which is the whole
+                // difference between these two and the three ground ones. A ground overlay mutes
+                // everything and lets the plane carry the reading; a building overlay mutes
+                // everything EXCEPT the thing being measured.
+                Wash.Rung or Wash.Age when name is "building" or "roof" => _categorical,
+                _ => _muted,
+            };
         }
 
         _cursor.MaterialOverride = _washing == Wash.None ? null : _muted;
@@ -4166,6 +4257,18 @@ public partial class Main : Node3D
         if (_washing == Wash.None)
         {
             ((PlaneMesh)_land.Mesh).Material = _skinned;
+
+            return;
+        }
+
+        // A building wash reads nothing off a Cell, so there is no texture to build and the ground
+        // goes dark rather than staying under the last layer's tint -- which would be a stale
+        // instrument sitting beside a live one, and the reader has no way to tell.
+        if (_washing is Wash.Rung or Wash.Age)
+        {
+            _washPeak = 0;
+            _washCells = 0;
+            ((PlaneMesh)_land.Mesh).Material = _muted;
 
             return;
         }
@@ -4336,9 +4439,49 @@ public partial class Main : Node3D
             $"\nOVERLAY land value — MAGNITUDE, bright is WORSE: 0 to {Whole(_washPeak)}. "
             + $"Desirability has no positive term yet (adr/0123), so every Cell is at or below "
             + $"zero. {_washCells:N0} Cells read",
-        _ => $"\nOVERLAY sealing — dark 0 to bright {_washPeak:N0} Tiles a Cell, "
+        Wash.Sealed => $"\nOVERLAY sealing — dark 0 to bright {_washPeak:N0} Tiles a Cell, "
             + $"{_washCells:N0} Cells read",
+        Wash.Rung =>
+            "\nOVERLAY rung — DEBUG. The block pattern a Building's Lot was carved by, "
+            + "0 detached / 1 perimeter / 2 back-to-back / 3 courtyard / 4 slab, "
+            + "sparsest to densest. Recovered from storeys, so a Building on the height two "
+            + "rungs share is drawn as the higher one",
+        _ => $"\nOVERLAY age — DEBUG. Bright is OLD: raised at Tick 0, dark is raised now, "
+            + $"at Tick {_world.Tick.Raw:N0}. ⚠ A generated city is one vintage — "
+            + "SyntheticCity raises everything in one call — so a flat wash here is the world "
+            + "saying so and not the overlay failing",
     };
+
+    /// <summary>A Building's rung, recovered from the storeys its Lot carries.</summary>
+    /// <remarks>
+    /// ⚠ <b>Recovered and not stored.</b> <c>BlockPatterns.Storeys</c> is
+    /// <c>(rung × step) + 2</c> and <c>LotRuleset.StoreysOn</c> adds a draw of <c>0..step</c>
+    /// <em>inclusive</em>, so adjacent rungs share their boundary height and this returns the
+    /// higher of the two there. A debug view may carry that; a mechanism may not, which is why
+    /// nothing but this reads it back.
+    /// </remarks>
+    private int RungOf(byte storeys)
+    {
+        int step = _world.Rules.Lots.StoreysPerRung;
+        int rung = (storeys - 2) / (step < 1 ? 1 : step);
+
+        return rung < 0 ? 0 : rung >= Patterns.Length ? Patterns.Length - 1 : rung;
+    }
+
+    /// <summary>How old a Building is, as a share of the run so far.</summary>
+    /// <remarks>
+    /// ⚠ <b>Normalised against the Tick now and not against the oldest Building</b>, so 1.0 always
+    /// means <em>here since Tick 0</em> rather than <em>oldest thing on screen</em>. A ramp fitted
+    /// to the oldest would look identical on a city of one vintage and a city of twenty, which is
+    /// the exact distinction this view exists to make.
+    /// </remarks>
+    private float Vintage(int slot)
+    {
+        ulong now = _world.Tick.Raw;
+
+        return now == 0 ? 1f : 1f - Mathf.Clamp(
+            (now - _world.Buildings.StandingFor(slot, _world.Tick)) / (float)now, 0f, 1f);
+    }
 
     /// <summary>The lit surface of the world, one quad carrying <see cref="Skin"/>.</summary>
     /// <remarks>

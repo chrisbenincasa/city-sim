@@ -112,6 +112,13 @@ disarms the hand to `look`** and prints a refusal, rather than leaving the previ
 **Layer names for `overlay`** — `off` (or `none`), `pollution`, `value` (or `land`, `land-value`),
 `sealing` (or `sealed`). An unknown name is a refusal in the readout, not a silent `off`.
 
+⚠ **Two more are DEBUG views and would not ship** — `rung` (or `pattern`) and `age` (or `vintage`).
+They are **building** washes rather than ground ones: the ground goes dark and the massing keeps a
+colour, which is the opposite of the three above. `rung` is categorical — five hues for the five
+block patterns, sparsest to densest — and `age` is the ordinary ramp, **bright is old**, normalised
+against the Tick now rather than against the oldest Building on screen. 🔴 **A generated city is one
+vintage**, so `age` washes flat on a fresh world; that is the reading and not a fault.
+
 ### The four refusals a script gets at parse time
 
 Every one of them is collected, so a script is fixed in one pass rather than one line per run.

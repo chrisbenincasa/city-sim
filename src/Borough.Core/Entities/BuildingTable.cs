@@ -105,6 +105,22 @@ public sealed class BuildingTable
         // `now >= since + d` -- because Ticks refuses a subtraction operator on purpose.
         EmptySince = _rows.Saved<Ticks>("empty_since", Touch.Cold);
 
+        // The Tick this Building was raised on. SAVED because it is the only record the city keeps
+        // of WHEN anything happened to it, and a reload that reset it would make every Building in a
+        // hundred-year-old town the same age as the one raised this morning.
+        //
+        // ⚠ PLUS ONE, WHICH IS EmptySince's ENCODING AND FOR ITS REASON. A zero-filled row has to
+        // read as "no Building here", and Tick 0 is when the populator raises every Building in
+        // every shipped world -- so zero-as-a-Tick would make the whole generated city read as
+        // unraised. RaisedOn and StandingFor below are the whole interface.
+        //
+        // 🔴 IT VARIES IN NO GENERATED CITY AND THAT IS NOT A DEFECT IN THIS COLUMN. SyntheticCity
+        // raises everything it lays in one call at one Tick, so a fresh world is uniformly aged and
+        // only a RUN produces a spread -- the Zone Rule building on cleared land is the one thing in
+        // the build that raises a Building at a Tick somebody would notice. ***A city with no
+        // history has no ages***, which is a statement about the generator and not about age.
+        RaisedAt = _rows.Saved<Ticks>("raised_at", Touch.Cold);
+
         _rows.Seal();
     }
 
@@ -188,6 +204,45 @@ public sealed class BuildingTable
     /// This Building's Car Park slot, or <see cref="Rows.NoSlot"/> if it has none.
     /// </summary>
     public int CarParkOf(int slot) => CarPark[slot] - 1;
+
+    /// <summary>
+    /// The Tick this Building was raised on, <b>encoded plus one</b> so that a zero-filled row reads
+    /// as no Building rather than as one raised at midnight on the first Day.
+    /// </summary>
+    /// <remarks>
+    /// <b>Read it through <see cref="RaisedOn"/> and <see cref="StandingFor"/> and never directly</b>,
+    /// which is <see cref="EmptySince"/>'s rule and for its reason: the encoding does not travel, and
+    /// a comparison made in decoded space is one subtraction away from a <c>Ticks</c> that refuses to
+    /// be subtracted.
+    /// </remarks>
+    public Column<Ticks> RaisedAt { get; }
+
+    /// <summary>Records the Tick this Building was raised on.</summary>
+    public void MarkRaised(int slot, Ticks now) => RaisedAt[slot] = new Ticks(now.Raw + 1);
+
+    /// <summary>The Tick this Building was raised on, or <c>default</c> if nothing recorded one.</summary>
+    /// <remarks>
+    /// ⚠ <b><c>default</c> is a real answer and means <em>unrecorded</em></b>, not <em>Tick 0</em> —
+    /// a save written before this column existed loads every Building that way, and so does any
+    /// fixture that builds a row by hand rather than through <c>World.CreateBuilding</c>.
+    /// </remarks>
+    public Ticks RaisedOn(int slot) =>
+        RaisedAt[slot] == default ? default : new Ticks(RaisedAt[slot].Raw - 1);
+
+    /// <summary>How many Ticks this Building has stood, or zero if nothing recorded when it went up.</summary>
+    /// <remarks>
+    /// <b>Subtracted in ENCODED space</b>, which is <see cref="HasStoodEmptyFor"/>'s rule: the stored
+    /// value is the Tick plus one, so <c>now + 1 - stored</c> is <c>now - raised</c> without ever
+    /// asking <c>Ticks</c> for an operator it refuses. ⚠ <b>The comparison guards the subtraction
+    /// rather than clamping after it</b> — these are unsigned, so a Building recorded in the future
+    /// would wrap to an enormous age instead of to a negative one.
+    /// </remarks>
+    public ulong StandingFor(int slot, Ticks now)
+    {
+        ulong stored = RaisedAt[slot].Raw;
+
+        return stored == 0 || now.Raw + 1 < stored ? 0 : now.Raw + 1 - stored;
+    }
 
     /// <summary>Whether the city has abandoned this Building — see <see cref="AbandonedSince"/>.</summary>
     /// <remarks>
