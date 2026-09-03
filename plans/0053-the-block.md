@@ -806,6 +806,107 @@ eviction clause is stronger than when it was written.** The document carries a b
 
 ---
 
+## What the massing shipped — *2026-09-02*
+
+🔴 **A BUILDING WHOSE FLOOR THE CITY COUNTED AS A RING WAS DRAWN AS A SOLID BOX, AND THAT IS THE SAME
+DEFECT FOR THE THIRD TIME.** `BuildingPlan.HabitableTiles` has hollowed a deep footprint since step 3
+— the middle of a big plan is dark and is not floor — and `Borough.Godot` drew one box over the lot of
+it. ***The parcel against the footprint at [`0052`](0052-the-parcel.md) stage 1, the height against
+the occupancy at step 3, and now the plan against the mass.*** The repair is the same one all three
+times: **one derivation with two readers**, `BuildingPlan.Hollow`, which the capacity subtracts and
+the shell draws.
+
+**A courtyard Building is four wings now** — south, north, and two flanks between them, so the corners
+belong to the east–west wings and no Tile is drawn twice. Each wing's ridge runs along its own long
+axis, which is not a draw: a ring's roof runs *round* the ring, and the solid case's minority
+cross-gable would be a roof pitched over a 16 m span pretending to be a building.
+
+### ✅ A hole under a wing's thickness is not a hole, and the shell is what asked
+
+**The arithmetic alone hollows at 9 × 9 and its first holes are ONE TILE wide.** Measured on
+`platted.toml`: the commonest hollow footprint was `14 × 9`, hole `6 × 1`. ***A four-metre gap between
+two sixteen-metre wings is a light well and not a courtyard***, and a drawing that opened it would
+read as a crack in the roof.
+
+⚠ **The threshold is derived and no second constant arrives.** It is the wing's own thickness —
+`DaylightTiles` — so the first footprint that hollows is `4 + 4 + 4 = 12` Tiles, **48 m**, on both
+axes. *A gap narrower than the thing bounding it is a slot rather than a place.* ⚠ **And it had to
+move the CAPACITY as well as the drawing**: a `12 × 9` footprint holds 108 Tiles of floor now and held
+104. The alternative was two rectangles again.
+
+🔴 **THE STATE HASH DID NOT MOVE AND THAT IS A FACT ABOUT THE BASELINE RATHER THAN ABOUT THE CHANGE.**
+Every golden artefact passed untouched, because `declining.toml` and `congested.toml` carry no
+footprint the threshold reaches — **`minimal.toml` at 2,000 Citizens has ZERO rings across 288 Lots**.
+***So the goldens do not cover this at all***, and what does is `BuildingPlanTests`, which is the file
+this step also had to write.
+
+### 🔴 The constant shipped in step 3 with no test, and the prose was wrong about it
+
+**`BuildingPlan` had no test of any kind.** It is the only thing between a parcel's area and how many
+people live on it, and the wing thickness could have moved a Tile in either direction with the whole
+suite green — because every assertion reads occupancy against whatever the plan happens to say.
+***A derivation with two readers and no test is a convention.***
+
+🔴 **AND THE ONE-TILE MOVE WAS AVAILABLE, because the remark and the arithmetic disagreed.** The type's
+own sentence read *"no point in a Building may be further than `DaylightTiles` from an outside wall"*,
+which describes a wing of **5**; the code has always cut **4**, which is the other reading of the same
+justification — *16 m across, lit from both faces*. ⚠ **The two are a factor of two apart and both are
+coherent**, so nothing but a reader's guess stood between them. ***The prose was wrong and the number
+was right***, so this is a correction to a sentence and not to a city — and it is worth its paragraph
+because the wrong reading is the plausible one, and adopting it would have raised every capacity in
+the game.
+
+### ⚠ It bounds the capacity and says nothing about whether the form is buildable
+
+On `severance.toml`, whose block is 256 Tiles, `Hollow` returns a ring around a hole of **117 × 40** —
+one Address holding a courtyard **468 m by 160 m**. ***The floor is right and the shape is absurd.***
+The cause is the pattern handing one Address a quarter of a superblock, not the plan; **filed here
+rather than worked around**, because the fix belongs to the pattern set.
+
+### 🔴 An L-plan is UNDESIGNED rather than unbuilt, and the corner is why
+
+**This step was scoped as *L-plans and courtyards* and ships the courtyards alone**, so the missing
+half gets a name and a reason rather than a shape drawn because it would look right
+([`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) — only *refused* is
+evidence, and this is *undesigned*).
+
+**What would produce an L is a Building fronting two Streets at a block's corner, and a corner parcel
+does not hold the ground round the corner.** The cross face's parcel does, because ***a pattern is a
+partition***. Drawing an arm there would put a wall on a neighbour's plot, which is precisely the
+two-footprints defect step 2 spent itself closing. `BlockPattern` already refused the mitre in the same
+words — ***at a real corner one street wins*** — so an L needs a partition that hands a corner to one
+Address, which is a change to the **pattern set** and not to `BuildingPlan`.
+
+⚠ **The other candidate was a rear return** — a tall front block with a lower wing behind it, which is
+what a deep terrace actually is — and it was rejected for having **no derivation at all**. Nothing in
+the city says where the step is or how much of the depth it takes, so every number in it would be the
+shell inventing a fact about a Building. ***That is the class of thing `plans/0052` stage 1 deleted
+five of.***
+
+### What it cost, and what it bought
+
+**Two files of code and one of tests.** `BuildingPlan` gains `Hollow`; `Borough.Godot` gains `Wings`
+and loses nothing.
+
+⚠ **`Massings` now returns a count it did not before.** A courtyard writes **four** bodies, so the
+readout's *Buildings* figure would have counted wings — it counts changes of Id instead, which is
+exact because a ring's wings are emitted consecutively. ***The layer's instance count and the city's
+Building count stopped being the same number***, and the readout says *Buildings*.
+
+⚠ **A ring gets NO outbuilding, and the reason is geometric rather than a taste.** The shed stands in
+the back garden and a ring has no back garden — its open ground is *inside* it. Measured on the shot:
+the yard layer falls **406 → 380** while the body layer rises **542 → 662** and the roof **376 → 442**.
+
+✅ **AND IT WAS LOOKED AT.** `platted.toml` at 10,000 Citizens, Tick 1,026: **40 of 542 standing
+Buildings are rings**, and from the air the dense rings read as Berlin Blockrand — a continuous
+four-storey street wall with a green or paved court inside it — while the ordinary city stays solid
+buildings with gardens between them. ⚠ **What surprised me is that the courts are not all green**:
+Sealing takes the whole footprint, so a court inside a Building carries no Woodland and draws as
+paving, and the two states sit side by side in one frame. ***That is the Sealing rule made visible for
+the first time***, and nothing was changed to produce it.
+
+---
+
 ## What this does to [`0052`](0052-the-parcel.md)
 
 ✅ **Nothing in it is withdrawn.** G1–G8 stand, the Sealing measurements stand, Q3's answer stands, and

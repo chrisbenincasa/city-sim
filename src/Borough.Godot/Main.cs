@@ -2306,6 +2306,40 @@ public partial class Main : Node3D
                 ? Mathf.Clamp(_world.Occupants.Length(slot) / (float)room, 0f, 1f)
                 : 1f;
 
+            Color paint = (table.IsAbandoned(slot) ? Derelict : Rendered(shape)).SrgbToLinear();
+            Color slate = Slate(shape).SrgbToLinear();
+            float lit = table.IsAbandoned(slot) ? 0f : taken;
+            float draw = ((shape >> 56) & 0xFFu) / 255f;
+
+            // 🔴 A RING IS FOUR WINGS AND NOT ONE BOX (plans/0053 step 4). BuildingPlan.Hollow is
+            // the same call LotTable.FloorTiles subtracts, so the courtyard the city counted OUT of
+            // this Building's capacity is the courtyard the picture leaves open. ***A Building that
+            // counted a hole and drew a solid roof would be the parcel-against-footprint defect
+            // arriving one level in***, which is what plans/0052 stage 1 was.
+            if (BuildingPlan.Hollow(footWide, footDeep, out int holeWide, out int holeDeep))
+            {
+                foreach (Massing wing in Wings(
+                    id,
+                    lots.FootprintEast[lot].Raw * MetresPerTile,
+                    lots.FootprintNorth[lot].Raw * MetresPerTile,
+                    eastWest,
+                    southNorth,
+                    holeWide * MetresPerTile,
+                    holeDeep * MetresPerTile,
+                    tall,
+                    shape,
+                    paint,
+                    slate,
+                    lit,
+                    draw,
+                    pitched))
+                {
+                    yield return wing;
+                }
+
+                continue;
+            }
+
             yield return new Massing(
                 id,
                 new Transform3D(Basis.FromScale(plan), new Vector3(east, tall * 0.5f, -north)),
@@ -2316,15 +2350,115 @@ public partial class Main : Node3D
                         east + (horizontal ? 0f : back * off),
                         shed * 0.4f,
                         -(north + (horizontal ? back * off : 0f)))),
-                (table.IsAbandoned(slot) ? Derelict : Rendered(shape)).SrgbToLinear(),
-                Slate(shape).SrgbToLinear(),
-                new Color(
-                    (faceEast + 1f) * 0.5f,
-                    (faceSouth + 1f) * 0.5f,
-                    table.IsAbandoned(slot) ? 0f : taken,
-                    ((shape >> 56) & 0xFFu) / 255f),
+                paint,
+                slate,
+                new Color((faceEast + 1f) * 0.5f, (faceSouth + 1f) * 0.5f, lit, draw),
                 pitched,
                 outhoused);
+        }
+    }
+
+    /// <summary>
+    /// One courtyard Building, as the <b>four wings</b> its floor area is actually made of.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b><c>plans/0053</c> step 4, and the shape is READ rather than invented.</b>
+    /// <see cref="BuildingPlan.Hollow"/> answers both this and <c>LotTable.FloorTiles</c>, so the
+    /// wings drawn here are exactly the Tiles the city counted and the courtyard is exactly the ones
+    /// it did not. ***The alternative was a third rectangle in a project that has now twice paid for
+    /// having two.***
+    /// </para>
+    /// <para>
+    /// <b>The partition is south wing, north wing, then the two flanks BETWEEN them</b> — so the
+    /// corners belong to the east–west wings and nothing is drawn twice. ⚠ <b>Z-fighting is not the
+    /// reason</b>; overlapping wings would put two window walls in one place and the openings would
+    /// interfere, which reads as a smear rather than as a seam.
+    /// </para>
+    /// <para>
+    /// <b>Each wing's ridge runs along its own long axis, and that is not a draw.</b> The solid case
+    /// turns a minority of gables to face the kerb because a terrace really does that; a ring's roof
+    /// runs <em>round</em> the ring, and a wing gabled across itself would be a roof pitched over a
+    /// 16 m span pretending to be a building.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>FOUR DOORS, ONE PER WING, ON ITS OWN OUTER FACE.</b> The two custom channels the shader
+    /// reads are <em>which way the front is</em> (<c>adr/0074</c>), and a ring has four fronts —
+    /// which is what a mansion block is. The Lot's own <c>Side</c> is not used here at all, and that
+    /// is the one place in this file where the drawing knows something the Address does not.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>NO OUTBUILDING, and the reason is geometric rather than a taste.</b> The shed stands in
+    /// the back garden and a ring has no back garden — its open ground is <em>inside</em> it. ***An
+    /// outbuilding in a courtyard is a different building type***, and inventing one would be the
+    /// shell asserting a thing about the city again.
+    /// </para>
+    /// </remarks>
+    private static System.Collections.Generic.IEnumerable<Massing> Wings(
+        ulong id,
+        float westEdge,
+        float southEdge,
+        float wide,
+        float deep,
+        float holeWide,
+        float holeDeep,
+        float tall,
+        ulong shape,
+        Color paint,
+        Color slate,
+        float lit,
+        float draw,
+        bool pitched)
+    {
+        float thick = BuildingPlan.DaylightTiles * MetresPerTile;
+
+        // south, north, west, east -- and the flanks are shortened to the hole so the corners are
+        // the east-west wings' and no Tile is drawn twice.
+        (float East, float North, float Wide, float Deep, float FaceEast, float FaceNorth)[] wings =
+        [
+            (westEdge + (wide * 0.5f), southEdge + (thick * 0.5f), wide, thick, 0f, -1f),
+            (westEdge + (wide * 0.5f), southEdge + deep - (thick * 0.5f), wide, thick, 0f, 1f),
+            (westEdge + (thick * 0.5f), southEdge + thick + (holeDeep * 0.5f), thick, holeDeep, -1f, 0f),
+            (westEdge + wide - (thick * 0.5f), southEdge + thick + (holeDeep * 0.5f), thick, holeDeep,
+                1f, 0f),
+        ];
+
+        foreach ((float east, float north, float wingWide, float wingDeep, float faceEast,
+                  float faceNorth) in wings)
+        {
+            // ⚠ THE RIDGE RUNS ALONG THE WING, so the span the roof CROSSES is its short axis and
+            // the rise stays an angle rather than a height -- the same reading the solid case takes,
+            // against a span this wing decides rather than a draw.
+            bool ridgeEastWest = wingWide >= wingDeep;
+            float slope = ridgeEastWest ? wingDeep : wingWide;
+            float ridge = ridgeEastWest ? wingWide : wingDeep;
+
+            float rise = Mathf.Min(
+                slope * (RoofRiseLow
+                    + (((shape >> 40) & 0xFFu) / 255f * (RoofRiseHigh - RoofRiseLow))),
+                RoofRiseCeilingMetres);
+
+            Basis cap = Basis.FromScale(
+                new Vector3(slope + (EavesMetres * 2f), rise, ridge + (EavesMetres * 2f)));
+
+            // A PrismMesh runs its ridge along its own Z, which is north-south here because a
+            // position is composed with -north. So the quarter turn is owed exactly when the ridge
+            // is meant to run east-west, and never otherwise -- the solid case's exclusive-or is
+            // two questions and this is one.
+            yield return new Massing(
+                id,
+                new Transform3D(
+                    Basis.FromScale(new Vector3(wingWide, tall, wingDeep)),
+                    new Vector3(east, tall * 0.5f, -north)),
+                new Transform3D(
+                    ridgeEastWest ? Quarter * cap : cap,
+                    new Vector3(east, tall + (rise * 0.5f), -north)),
+                Transform3D.Identity,
+                paint,
+                slate,
+                new Color((faceEast + 1f) * 0.5f, (-faceNorth + 1f) * 0.5f, lit, draw),
+                pitched,
+                false);
         }
     }
 
@@ -2540,15 +2674,26 @@ public partial class Main : Node3D
 
     /// <summary>Fills the body layer and the roof layer from one walk. Returns the Buildings.</summary>
     /// <remarks>
-    /// ⚠ <b>The two counts are not the same number and the return is the BODY's</b> — a flat-roofed
-    /// Building writes no roof instance, so the readout's <c>Buildings</c> figure would otherwise
-    /// count gables.
+    /// <para>
+    /// ⚠ <b>THREE COUNTS AND THE RETURN IS NONE OF THEM.</b> A flat-roofed Building writes no roof
+    /// instance, so the roof count is short; and since <c>plans/0053</c> step 4 a courtyard Building
+    /// writes <b>four</b> bodies, so the body count is long. ***The readout says <em>Buildings</em>
+    /// and has to mean Buildings***, so what is returned is the number of distinct ones.
+    /// </para>
+    /// <para>
+    /// <b>A change of Id and not a set</b>, because <see cref="Wings"/> emits a ring's four wings
+    /// consecutively — so counting the transitions is exact here and costs nothing. ⚠ <b>It is exact
+    /// only under that ordering</b>, which is why the ordering is stated at the one place that
+    /// produces it rather than assumed here.
+    /// </para>
     /// </remarks>
     private int Massings(System.Collections.Generic.IEnumerable<Massing> massing)
     {
         int bodies = 0;
         int roofs = 0;
         int yards = 0;
+        int buildings = 0;
+        ulong last = 0;
 
         _buildingIds.Clear();
         _roofIds.Clear();
@@ -2559,6 +2704,12 @@ public partial class Main : Node3D
             if (bodies >= _buildings.Multimesh.InstanceCount)
             {
                 break;
+            }
+
+            if (bodies == 0 || one.Id != last)
+            {
+                buildings++;
+                last = one.Id;
             }
 
             _buildingIds.Add(one.Id);
@@ -2593,7 +2744,7 @@ public partial class Main : Node3D
         _roofs.Multimesh.VisibleInstanceCount = roofs;
         _yards.Multimesh.VisibleInstanceCount = yards;
 
-        return bodies;
+        return buildings;
     }
 
     /// <summary>Writes transforms into a MultiMesh and returns how many there were.</summary>

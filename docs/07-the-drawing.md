@@ -211,12 +211,12 @@ ends up with assets for a system nobody built.
 |---|---|
 | **The overlays** | ✅ **DRAWN as of [`plans/0049`](../plans/0049-visuals.md) row 7** — pollution, land value and Sealing, on the `o` key and the `overlay` drive verb. §3.1's *takes over rather than tints* as written: the city goes to an unlit silhouette and the ground carries the ramp. ⚠ **What is still missing is the REGION half** — `01 §5` wants an overlay to follow the camera and tint **Settlements** when the Cells are too small to see, and it tints Cells at every zoom |
 | **Zone** | A Lot carries one and only vacant Lots show anything |
-| **Kind identity** | `serves` and `[[business]]` both exist; a school, a shop and a house are one box |
+| **Kind identity** | `serves` and `[[business]]` both exist; a school, a shop and a house are one box. ⚠ **A Building is no longer ALWAYS one box** — [`plans/0053`](../plans/0053-the-block.md) step 4 draws a footprint the daylight bound hollows as **four wings round a courtyard**, off `BuildingPlan.Hollow`, which is the same call the capacity subtracts. ***That is form derived from the ground and not identity***: the ring says the plot is big, never that the building is a school |
 | **The street** | One flat slab. No junction, kerb, footway or crossing, and no Arterial/Street distinction — though `foot_crossing_every` and `foot_paths_per_thousand_blocks` are Ruleset keys |
 | **Travellers** | One cube for a driver and a walker alike, when Mode and the Fidelity tier are both held |
-| **Car Park** | Capacity is declared per kind and nothing is drawn |
+| **Car Park** | Capacity is a Building's floor over `[capacity] floor_tiles_per_parking_space` ([`plans/0053`](../plans/0053-the-block.md) step 3) and nothing is drawn. ⚠ **This row said *declared per kind* until then**, which was the retired `[[building]] parking` |
 | **District** | `DistrictTable` has rows and no boundary is drawn |
-| **Sealing** | Per Cell, in the readout, not on the ground |
+| **Sealing** | 🔴 **THIS ROW CONTRADICTS *The overlays* FOUR ROWS ABOVE IT**, which records Sealing as one of the three drawn overlays. It is on the ground and it is in the readout; what this row still names correctly is that it is **per Cell** and nothing draws it at the grain a Building has. Owed to [`plans/0012`](../plans/0012-corpus-audit.md) — noticed at `plans/0053` step 4 and not caused by it |
 | **Needs** | Four, saved and hashed, read by a panel |
 | **Night** | ✅ **DRAWN as of [`plans/0051`](../plans/0051-the-four-pillars-and-a-city-to-photograph.md)** — the sun is on the clock, and a window's own two hours decide when its lamp is lit. ⚠ **Left in this table rather than struck from it**, because what is drawn is a *dwelling* at night: nothing distinguishes a shop, a school or a street at that hour, and a city whose only night-time mark is a bedroom window is still silent about most of itself |
 | **Evidence** | ***The pillar-4 mechanism is a UI element***, and arguably the most important graphical thing in the game |
