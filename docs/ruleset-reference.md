@@ -25,9 +25,9 @@ dotnet run --project src/Borough.Headless -- \
 
 ## The sections
 
-32 sections, 168 keys.
+32 sections, 169 keys.
 
-- [`[[building]]`](#building) — 13 keys
+- [`[[building]]`](#building) — 14 keys
 - [`[[building]] bins`](#building-bins) — 3 keys
 - [`[[business]]`](#business) — 6 keys
 - [`[[hinterland]]`](#hinterland) — 4 keys
@@ -105,6 +105,10 @@ How many tenants one Building of this kind holds — Households and Businesses s
 **`parking`** · *whole number*
 
 How many Vehicles a Building of this kind can park. Zero is meaningful and is the same as omitting the key — a tower with no parking is a real building.
+
+**`rent`** · *whole number*
+
+What a Household pays per Day to live in a Building of this kind. Zero or absent means the dwelling is free. A Household that cannot afford the rent skips the dwelling during placement.
 
 **`serves`** · *quoted string*
 

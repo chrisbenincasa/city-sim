@@ -215,6 +215,7 @@ bins = [
     { resource = "repairs",  capacity = 4 },
 ]
 occupants = 4
+rent = 50
 business = "shop"
 
 [[rule]]

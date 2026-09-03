@@ -91,6 +91,10 @@ public static class RulesetKeyNotes
         ["[[building]] parking"] =
             "How many Vehicles a Building of this kind can park. Zero is meaningful and is the "
             + "same as omitting the key — a tower with no parking is a real building.",
+        ["[[building]] rent"] =
+            "What a Household pays per Day to live in a Building of this kind. Zero or absent "
+            + "means the dwelling is free. A Household that cannot afford the rent skips the "
+            + "dwelling during placement.",
         ["[[building]] arrivals_per_day"] =
             "How many Households a Building of this kind admits from the Outside each Day. Stating "
             + "this is what makes the kind an Outside Connection, so absence means the kind is not "

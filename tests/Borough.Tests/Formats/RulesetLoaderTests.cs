@@ -1669,6 +1669,38 @@ public sealed class RulesetLoaderTests
         Assert.Contains("parks none", refusal.Reason, StringComparison.Ordinal);
     }
 
+    // ---- [[building]] rent (02 §5.2 step 2b) -------------------------------------------------------
+
+    [Fact]
+    public void A_kind_that_declares_rent_carries_the_amount()
+    {
+        Ruleset ruleset = Accepted(Bakery.Replace(
+            "name = \"bakery\"\n",
+            "name = \"bakery\"\nrent = 50\n",
+            StringComparison.Ordinal));
+
+        Assert.Equal(50, ruleset.Kind(1).Rent.Raw);
+    }
+
+    [Fact]
+    public void A_kind_with_no_rent_is_free()
+    {
+        Ruleset ruleset = Accepted(Bakery);
+
+        Assert.Equal(0, ruleset.Kind(1).Rent.Raw);
+    }
+
+    [Fact]
+    public void A_negative_rent_is_refused()
+    {
+        RulesetRefusal refusal = Refused(Bakery.Replace(
+            "name = \"bakery\"\n",
+            "name = \"bakery\"\nrent = -1\n",
+            StringComparison.Ordinal));
+
+        Assert.Contains("rent is -1", refusal.Reason, StringComparison.Ordinal);
+    }
+
     /// <summary>
     /// <b>Zero parking is a real declaration, and it is the value this key exists to make
     /// authorable.</b>

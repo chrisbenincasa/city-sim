@@ -460,6 +460,17 @@ public sealed class PlacementEngine
                 continue;
             }
 
+            // 02 §5.2 step 2b: affordable? A dwelling whose rent exceeds the seeker's balance is
+            // skipped -- a hard filter, not a score. The Household was SHOWN the dwelling (Considered
+            // is already incremented), which is a real thing that happens to somebody who cannot
+            // afford the home they looked at.
+            Money kindRent = _world.Rules.Kind(_world.Buildings.Kind[building]).Rent;
+
+            if (kindRent.Raw > 0 && _world.BalanceOf(seeker).Raw < kindRent.Raw)
+            {
+                continue;
+            }
+
             // The old accept, and it is still the accept in 27 of the 30 shipped worlds: the first
             // dwelling with room in it, taken without comparison. ⚠ THE EARLY RETURN IS THE PART
             // THAT MATTERS, not the choice -- a Household with no opinion would pick this same

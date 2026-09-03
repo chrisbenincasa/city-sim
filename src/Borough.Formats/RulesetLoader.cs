@@ -2115,6 +2115,28 @@ public static class RulesetLoader
                     }
                 }
 
+                // 02 §5.2 step 2b's hard filter: what a Household pays per Day to live here.
+                // Optional, and absent means the dwelling is free -- which is what every kind
+                // before this key existed already meant. Zero is allowed and means the same thing.
+                // Negative is refused on parking's reasoning: a rent you are paid to live in is not
+                // a sentence anybody meant to write.
+                Money rent = Money.Zero;
+
+                if (TryInteger(table, "rent", out long costs, required: false, name))
+                {
+                    if (costs < 0)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "rent") ?? table), name,
+                            $"rent is {costs}. It is what a Household pays per Day to live in a "
+                            + "Building of this kind, so it cannot be negative; omit it or state "
+                            + "zero for a free dwelling.");
+                    }
+                    else
+                    {
+                        rent = new Money(costs);
+                    }
+                }
+
                 // adr/0088's throughput ceiling, and it is the key that makes the kind an Outside
                 // Connection (milestone 11 task 1). Optional, because almost no kind is a gate.
                 //
@@ -2191,6 +2213,7 @@ public static class RulesetLoader
                     FootprintTiles = footprintTiles,
                     Business = business,
                     Parking = parking,
+                    Rent = rent,
                     ArrivalsPerDay = arrivalsPerDay,
                     Serves = serves,
                 };
