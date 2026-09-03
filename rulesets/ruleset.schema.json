@@ -86,6 +86,10 @@
             "description": "Whether a BUSINESS may take a tenancy in a Building of this kind. houses' other half, over the same single ceiling, and it governs both ways a trade arrives: the one this kind comes with and one premised out of the unpremised pool. A kind declaring business and not this is refused, because the trade would have nowhere to sit. A kind declaring both is mixed use — the flats above the shop, competing for the same tenancies. Absent means no Business may take premises here.",
             "type": "boolean"
           },
+          "rent": {
+            "description": "What a Household pays per Day to live in a Building of this kind. Zero or absent means the dwelling is free. A Household that cannot afford the rent skips the dwelling during placement.",
+            "type": "integer"
+          },
           "serves": {
             "description": "Which Attended Need a Household travelling here satisfies — education or health. Stating it is what makes the kind a service Building; absence means it is not one.",
             "type": "string"

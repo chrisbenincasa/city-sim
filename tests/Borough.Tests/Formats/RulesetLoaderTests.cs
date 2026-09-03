@@ -1735,6 +1735,38 @@ public sealed class RulesetLoaderTests
         Assert.Equal(0, ruleset.Capacity.FloorTilesPerParkingSpace);
     }
 
+    // ---- [[building]] rent (02 §5.2 step 2b) -------------------------------------------------------
+
+    [Fact]
+    public void A_kind_that_declares_rent_carries_the_amount()
+    {
+        Ruleset ruleset = Accepted(Bakery.Replace(
+            "name = \"bakery\"\n",
+            "name = \"bakery\"\nrent = 50\n",
+            StringComparison.Ordinal));
+
+        Assert.Equal(50, ruleset.Kind(1).Rent.Raw);
+    }
+
+    [Fact]
+    public void A_kind_with_no_rent_is_free()
+    {
+        Ruleset ruleset = Accepted(Bakery);
+
+        Assert.Equal(0, ruleset.Kind(1).Rent.Raw);
+    }
+
+    [Fact]
+    public void A_negative_rent_is_refused()
+    {
+        RulesetRefusal refusal = Refused(Bakery.Replace(
+            "name = \"bakery\"\n",
+            "name = \"bakery\"\nrent = -1\n",
+            StringComparison.Ordinal));
+
+        Assert.Contains("rent is -1", refusal.Reason, StringComparison.Ordinal);
+    }
+
     /// <summary>A stated zero is refused, and absence is how <em>none</em> is meant.</summary>
     /// <remarks>
     /// <b>A rate of zero would divide by nothing</b>, and a key written to mean <em>none</em> reads

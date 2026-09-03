@@ -25,10 +25,10 @@ dotnet run --project src/Borough.Headless -- \
 
 ## The sections
 
-34 sections, 174 keys.
+34 sections, 175 keys.
 
 - [`[[band]]`](#band) — 2 keys
-- [`[[building]]`](#building) — 13 keys
+- [`[[building]]`](#building) — 14 keys
 - [`[[building]] bins`](#building-bins) — 3 keys
 - [`[[business]]`](#business) — 5 keys
 - [`[[hinterland]]`](#hinterland) — 4 keys
@@ -121,6 +121,10 @@ Whether Buildings of this kind carry parking at all. Whether, and never how many
 **`premises`** · *true or false*
 
 Whether a BUSINESS may take a tenancy in a Building of this kind. houses' other half, over the same single ceiling, and it governs both ways a trade arrives: the one this kind comes with and one premised out of the unpremised pool. A kind declaring business and not this is refused, because the trade would have nowhere to sit. A kind declaring both is mixed use — the flats above the shop, competing for the same tenancies. Absent means no Business may take premises here.
+
+**`rent`** · *whole number*
+
+What a Household pays per Day to live in a Building of this kind. Zero or absent means the dwelling is free. A Household that cannot afford the rent skips the dwelling during placement.
 
 **`serves`** · *quoted string*
 

@@ -740,6 +740,33 @@ public readonly record struct KindDefinition(
 
 
     /// <summary>
+    /// What a Household pays per Day to live in a Building of this kind. <see cref="Money.Zero"/>
+    /// means the dwelling is free.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>02 §5.2</c> step 2b's hard filter — <em>affordable?</em> — arriving as a property of the
+    /// kind.</b> <c>PlacementEngine.TryHouse</c> skips a dwelling whose rent exceeds the seeker's
+    /// balance, so a Household with no money is excluded from every dwelling that charges one.
+    /// </para>
+    /// <para>
+    /// <b>A filter and not a score.</b> Rent does not trade off against commute or centrality; a
+    /// dwelling the Household cannot afford is not considered at all, exactly as a full dwelling is
+    /// not. The soft trade-off is <c>02 §5.4</c>'s choice model, which is a different mechanism.
+    /// </para>
+    /// <para>
+    /// <b>It is NOT deducted at placement.</b> Placement is the moment a Household chooses; the
+    /// recurring charge belongs to a Rule, which is a separate mechanism. This key gates entry and
+    /// nothing else.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>PROVISIONAL wherever it is authored</b> — <c>plans/0045</c> standing order 4 suspends
+    /// <c>adr/0052</c>.
+    /// </para>
+    /// </remarks>
+    public Money Rent { get; init; }
+
+    /// <summary>
     /// How many Households a Building of this kind admits from the Outside per Day. Zero means this
     /// kind is not an Outside Connection at all.
     /// </summary>

@@ -105,6 +105,10 @@ public static class RulesetKeyNotes
             + "exists so that a detached house may carry a driveway where a tower may not — a "
             + "parking minimum is a property of the city, and an exemption from it is a property of "
             + "the kind. Absent means the kind provides none.",
+        ["[[building]] rent"] =
+            "What a Household pays per Day to live in a Building of this kind. Zero or absent "
+            + "means the dwelling is free. A Household that cannot afford the rent skips the "
+            + "dwelling during placement.",
         ["[[building]] arrivals_per_day"] =
             "How many Households a Building of this kind admits from the Outside each Day. Stating "
             + "this is what makes the kind an Outside Connection, so absence means the kind is not "

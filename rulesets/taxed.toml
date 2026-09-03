@@ -215,6 +215,7 @@ bins = [
 ]
 houses   = true
 premises = true
+rent     = 50
 business = "shop"
 
 [[rule]]

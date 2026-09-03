@@ -445,4 +445,99 @@ public sealed class PlacementTests
 
         simulation.CheckEndOfRun();
     }
+
+    /// <summary>A Household whose balance is below the rent is not placed.</summary>
+    [Fact]
+    public void A_household_that_cannot_afford_the_rent_stays_in_the_pool()
+    {
+        Ruleset ruleset = new(
+            resources: [ResourceFamily.Money],
+            rules: [],
+            kinds: [new KindDefinition(0, 0, 0, 0)
+            {
+                Houses = true,
+                Rent = new Money(100),
+            }],
+            inputs: [],
+            outputs: [],
+            emissions: [],
+            bins: [],
+            kindRules: [],
+            zoneRules: [])
+        {
+            Placement = Placing(),
+            Capacity = new CapacityRuleset(FloorPerOccupant, 0, 0),
+        };
+
+        (World world, Simulation simulation) = City(ruleset, buildings: 4, seeking: 4);
+
+        Run(simulation, 64);
+
+        Assert.Equal(4, world.UnplacedPool.Count);
+        Assert.Equal(0, Housed(world));
+    }
+
+    /// <summary>A Household that can afford the rent is placed normally.</summary>
+    [Fact]
+    public void A_household_that_can_afford_the_rent_is_placed()
+    {
+        Ruleset ruleset = new(
+            resources: [ResourceFamily.Money],
+            rules: [],
+            kinds: [new KindDefinition(0, 0, 0, 0)
+            {
+                Houses = true,
+                Rent = new Money(100),
+            }],
+            inputs: [],
+            outputs: [],
+            emissions: [],
+            bins: [],
+            kindRules: [],
+            zoneRules: [])
+        {
+            Placement = Placing(),
+            Capacity = new CapacityRuleset(FloorPerOccupant, 0, 0),
+        };
+
+        (World world, Simulation simulation) = City(ruleset, buildings: 4, seeking: 4);
+
+        for (int i = 0; i < 4; i++)
+        {
+            Handle<Household> h = world.UnplacedPool.At(i);
+            world.Endow(h, new Money(200));
+        }
+
+        Run(simulation, 64);
+
+        Assert.Equal(0, world.UnplacedPool.Count);
+        Assert.Equal(4, Housed(world));
+    }
+
+    /// <summary>A dwelling with no rent (the default) places Households regardless of balance.</summary>
+    [Fact]
+    public void A_free_dwelling_places_a_household_with_no_money()
+    {
+        Ruleset ruleset = new(
+            resources: [ResourceFamily.Money],
+            rules: [],
+            kinds: [new KindDefinition(0, 0, 0, 0) { Houses = true }],
+            inputs: [],
+            outputs: [],
+            emissions: [],
+            bins: [],
+            kindRules: [],
+            zoneRules: [])
+        {
+            Placement = Placing(),
+            Capacity = new CapacityRuleset(FloorPerOccupant, 0, 0),
+        };
+
+        (World world, Simulation simulation) = City(ruleset, buildings: 4, seeking: 4);
+
+        Run(simulation, 64);
+
+        Assert.Equal(0, world.UnplacedPool.Count);
+        Assert.Equal(4, Housed(world));
+    }
 }
