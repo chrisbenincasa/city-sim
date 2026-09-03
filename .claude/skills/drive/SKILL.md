@@ -1,0 +1,254 @@
+---
+name: drive
+description: Drive the Godot shell programmatically — the --drive script channel, the --listen socket, --record, and the three files a driven run returns (shoot, readout, draw). Use whenever the shell has to be launched, photographed, stepped to a Tick, clicked at a Tile, or asserted against without a hand on the keyboard, and whenever a change to Main.cs or to anything it draws needs watching happen.
+---
+
+# Driving the shell
+
+The shell has a full command surface that needs no keyboard. It is [`plans/0048`](../../../plans/0048-driving-the-shell.md),
+five tiers, all landed 2026-08-31. Read that plan for the findings; this file is the operating
+instructions.
+
+🔴 **A driven run does not build, and `dotnet build -c Release` builds the configuration Godot does
+not load.** Godot runs `.godot/mono/temp/bin/**Debug**`, and a shell whose build is stale starts
+anyway on whatever was there last. `plans/0048` **F26**: a new MultiMesh layer was added, the shell
+was driven, and `draw` reported nine layers and not ten. ***A screenshot cannot report that it is
+stale and a draw list can.*** So, before any driven verification of a shell change:
+
+```
+dotnet build src/Borough.Godot          # no -c. The default is Debug and Debug is what loads
+```
+
+⚠ **`godot` on this Mac is a wrapper script and must stay one** — a symlink stalls the .NET module
+on an invisible modal alert. If a run hangs at `.NET: Initializing module...`, that is the cause.
+
+---
+
+## 1 — Which channel
+
+| Want | Channel | Display needed |
+|---|---|---|
+| A reproducible run somebody else can re-run | **`--drive FILE`** | only for `shoot` |
+| To explore a running city and keep the session | **`--listen PATH` + `--record FILE`** | usually yes |
+| To assert the drawing agrees with the city | **`draw`**, from either channel | ***yes*** — see §5 |
+
+**The two channels are one grammar.** `DriveScript.Line` prepends *now* as the Tick and calls the
+same parser, so a verb cannot come to mean two things depending on how it was sent. And `--record`
+writes from `Main.Apply`, the one surface every channel arrives at — so a socket session, a script
+run and a hand at the keyboard all record as the same drive script, and ***the log of an interactive
+session replays as a batch run*** (**F20**: byte-identical draw list).
+
+---
+
+## 2 — Launching
+
+```
+godot --path src/Borough.Godot -- \
+  --ruleset rulesets/flooded.toml --citizens 2000 --start-at 6000 \
+  --drive /tmp/run/flood.drive --quit-at 6500
+```
+
+Everything after Godot's own `--` is the shell's. **Relative paths resolve against the repository
+root**, not against the Godot project — for the Ruleset, the script, the socket and every file a verb
+writes.
+
+| Argument | Default | Notes |
+|---|---|---|
+| `--ruleset PATH` | `rulesets/minimal.toml` | Refused rather than defaulted if bad |
+| `--citizens N` | `1000` | ⚠ **`Borough.Headless` defaults to 10,000.** A cross-check against the runner must pass the same figure — a lattice paves what its population needs (**F14**) |
+| `--start-at TICK` | `0` | **Steps every Tick and skips nothing.** Slow and correct: a world jumped to is a different world |
+| `--drive PATH` | — | The script. Does **not** imply an end (**D3**) |
+| `--quit-at TICK` | — | One more `quit` command on the end of the script, not a second mechanism |
+| `--listen PATH` | — | Unix domain socket. Unlinked before binding, deleted on exit |
+| `--record PATH` | — | Appends every applied command as a script line |
+| `--govern` | off | Opens the Policy panel at start, so a machine with no hands can photograph it |
+| `BOROUGH_LOG` (env) | — | Any value: writes the Input Log at `quit`, so play → write → replay → compare runs in a script |
+
+**`--headless` works** (**F12**): the world runs, every verb applies, every `readout` is written.
+See §5 for the two things it silently cannot do.
+
+---
+
+## 3 — The grammar
+
+`<tick> <verb> [argument]`, one per line, `#` to end of line is a comment. Blank lines are skipped.
+The parser is `src/Borough.Formats/DriveScript.cs`; the applier is `Main.Apply`.
+
+⚠ **Every verb is an absolute and none is a toggle.** `roads off` means the same thing whatever ran
+before it. The keyboard is what toggles — it reads the current state and calls the absolute — so
+there is one applier rather than two behaviours that can part company.
+
+| Verb | Form | What it does |
+|---|---|---|
+| `pause` | `pause` | Stops the clock; remembers the rung |
+| `resume` | `resume` | Starts it again at the remembered rung |
+| `speed` | `speed <rung>` | Sets the rung, 0–8. **The shell clamps.** `speed 0` is a pause |
+| `roads` | `roads on\|off` | The carriageway |
+| `cells` | `cells on\|off` | The 128 m Cell lattice |
+| `lens` | `lens on\|off` | HUD off **and** depth of field on. A picture for a person rather than for a record |
+| `overlay` | `overlay <name>` | Tints the ground by a Map Layer. A **view**; changes no State Hash |
+| `turn` | `turn left\|right` | A quarter turn of the eye |
+| `tilt` | `tilt <degrees>` | Degrees above the horizon, 4–85, **absolute**. The shell clamps |
+| `zoom` | `zoom in\|out [notches]` | Notches default to 4. **Clamped to the city's span** |
+| `focus` | `focus <east> <north> [metres]` | Puts the camera over a Tile. ⚠ **The distance is NOT clamped** — the one place a script may do what a player cannot, and the reason it exists is that the zoom clamp otherwise confines a script to ~3 km of a 65.5 km map |
+| `hold` | `hold <tool> [which]` | Chooses what the next `click` means |
+| `click` | `click <east> <north> [shift]` | **Acts on the city** at a Tile |
+| `shoot` | `shoot <path.png>` | The frame, **and the readout beside it** as `<path>.txt`, in one act |
+| `readout` | `readout <path>` | The readout alone. Needs no display |
+| `draw` | `draw <path>` | The draw list — every instance on screen, as TSV |
+| `quit` | `quit` | Ends the run |
+
+**The rung ladder** — `speed N` indexes it, and the shell opens at **5**:
+
+| 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|
+| paused | 1/16× | 1/8× | 1/4× | 0.5× | **1×** | 2× | 3× | 4× |
+
+**Tools for `hold`** — `look`, `zone`, `street`, `demolish`, `service`. The second word is *which
+one*: a Zone Rule by declaration position, a service by its 1-based kind id. ⚠ **An unknown tool
+disarms the hand to `look`** and prints a refusal, rather than leaving the previous tool loaded.
+⚠ **`shift` on a `click` with `street` held is a bulldoze.**
+
+**Layer names for `overlay`** — `off` (or `none`), `pollution`, `value` (or `land`, `land-value`),
+`sealing` (or `sealed`). An unknown name is a refusal in the readout, not a silent `off`.
+
+### The four refusals a script gets at parse time
+
+Every one of them is collected, so a script is fixed in one pass rather than one line per run.
+
+1. **Ticks may not go backwards.** The shell cannot step back to reach one.
+2. **Nothing runs after `quit`.**
+3. 🔴 **A stopped clock never reaches a later Tick.** `pause` at 6,101 then `readout` at 6,400 is a
+   **hang, not an error** — and a hang looks like work. Refused at parse (`DriveScript.Stopped`)
+   for exactly that reason. `resume` or `speed N` before advancing.
+4. **`--quit-at` before the script's last command** is refused, and so is one after a trailing
+   `pause`.
+
+### The clock
+
+🔴 ***A Tick number in a script is not a fast-forward.*** `_Process` steps no further than the next
+command's Tick — which is what makes the landing Tick a property of the **script** rather than of
+the frame rate or the machine's load (**F6**) — but it never hurries. A script whose first command
+is at Tick 2,000 waits **250 s** at rung 1. **`--start-at` is how a late Tick is reached and `speed`
+is how a long stretch is crossed.**
+
+---
+
+## 4 — The socket
+
+```
+godot --path src/Borough.Godot -- --ruleset rulesets/minimal.toml \
+  --listen /tmp/borough.sock --record /tmp/session.drive &
+```
+
+Then, one line in and one line out, **and the read blocks until the reply comes** — so a driver
+sends and reads in lock step without a clock of its own:
+
+```
+printf 'pause\nreadout /tmp/a.txt\ndraw /tmp/a.tsv\nquit\n' | nc -U /tmp/borough.sock
+```
+
+| | |
+|---|---|
+| **Wire line** | The same grammar **with no Tick** — its Tick is *now*, stamped on arrival |
+| **Reply** | `ok<TAB><tick><TAB><readout, newlines as tabs>` or `refused<TAB><reason>` |
+| **A poll** | ⚠ **An empty line.** No commands, and the state comes back anyway |
+| **Threading** | Lines are applied on the main thread at a Tick boundary, never where they arrive |
+| **Clients** | One at a time (`Listen(1)`) |
+
+⚠ **`quit` down the socket is how the run ends cleanly**, and it is what deletes the socket file.
+A killed shell leaves it behind and the next run reports *address in use* — a message about this run
+that reads as one about that one. `--listen` unlinks before binding, so it recovers on its own.
+
+---
+
+## 5 — What comes back, and what `--headless` costs
+
+| Verb | File | Format |
+|---|---|---|
+| `readout` | one file | `tick <N>` on its own first line, then the readout as it is on screen. **The Tick is on line one so a caller need not parse an em-dash** |
+| `shoot` | `<path>.png` **and** `<path>.txt` | The frame, and the same readout beside it — written in one act so they cannot disagree about which Tick they are of |
+| `draw` | one TSV | `tick`, `ruleset`, one `layer` row per layer with **instances / capacity / visible**, then one `row` per instance: `layer index id x y z sx sy sz yaw r g b` |
+
+**The thirteen layers, in draw order**: `ground hazard water flood road cell plot building roof yard
+tree rock traveller`. Four carry an entity id (`plot`, `building`, `roof`, `yard`) and `traveller`
+resolves one; the rest honestly say `-`.
+
+⚠ **`instances` against `capacity` is not bookkeeping.** A layer at capacity has silently dropped
+whatever did not fit, and the picture shows a smaller city with nothing to say so — ***the one
+failure a screenshot renders as success.***
+
+🔴 **Two things `--headless` cannot do, and both used to look like success:**
+
+- **`shoot` writes no picture.** It says *no picture at Tick N* and **still writes the caption**, so
+  a script written for a screen returns its numbers on a machine without one.
+- **`draw` withholds its rows.** Under the dummy renderer every transform reads back as the
+  identity — the first headless dump had the correct layers, the correct row count and 21,504 lines
+  of zeros (**F17**). The counts are CPU-side and stay true; the rows are withheld with the reason
+  written into the file. ***A draw list needs a real display.***
+
+**Why the draw list is the tier that pays for the others**: almost everything the shell reads is the
+core's, so a driven shell reporting world state reports what `Borough.Headless` already reports. What
+only exists here is **the derivation** — the transform and the colour this shell decided on.
+`Basis.Scaled` scales in the parent frame, so every east–west Segment once drew 8 m long and 128 m
+wide and half the road network was missing from a picture nobody could assert on. A row saying a
+Segment is 8 long and 128 wide fails a test.
+
+---
+
+## 6 — Recipes
+
+**Photograph one Tick from two angles.** The same city, two drawings:
+
+```
+# /tmp/run/flood.drive
+6101 pause
+6101 shoot /tmp/run/a.png
+6101 roads off
+6101 turn left
+6101 shoot /tmp/run/b.png
+6101 speed 8
+6400 readout /tmp/run/c.txt
+```
+
+**Assert the drawing against the city**, which is the reason to run this at all:
+
+```
+6101 draw /tmp/run/one.tsv
+awk -F'\t' '$1=="row" && $2=="road" {print $8, $10}' /tmp/run/one.tsv | sort -u
+```
+
+Then cross-check the count against `dotnet run --project src/Borough.Headless -- --roads` **at the
+same population**.
+
+**Act on the city:**
+
+```
+150 hold zone 1
+150 click 8200 8200
+150 hold street
+152 click 8200 8232 shift     # shift is the bulldoze
+160 shoot /tmp/run/after.png
+```
+
+⚠ **A driven click enters the Input Log by the same door a hand's does** — `Main.Act` builds a
+`Command` and `Ordered()` drains it into `Step`. The camera, speed and layer verbs do not, which is
+the other half unchanged. ⚠ **A click outside the map is refused in `Apply`**, because the driven
+aim skips the ray that clamps a cursor.
+
+**Explore, then keep it:** run with `--listen` and `--record`, drive it by hand or over the socket,
+and the recorded file replays through `--drive`. That round trip is what makes a wall-clock channel
+into a deterministic simulation defensible rather than merely tolerated.
+
+---
+
+## 7 — What none of this buys
+
+⚠ **NOT ONE TIMING FIGURE.** `--drive` forces nothing about the frame clock, and a driven run is on
+a machine that is not necessarily the reference one.
+[`adr/0106`](../../../docs/adr/0106-a-wall-clock-budget-names-a-machine-class-and-a-thread-count-or-it-is-not-a-budget.md)
+governs: ***a number produced this way is not the number it looks like.*** This buys **observation
+and reproduction**. Measurement stays where it was.
+
+⚠ **And a picture is a spot check rather than an instrument.** It catches what no assertion names —
+lighting, occlusion, whether a thing is *legible*. The draw list is the half a test can hold.
