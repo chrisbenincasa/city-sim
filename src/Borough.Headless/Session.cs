@@ -734,6 +734,20 @@ internal static class Session
         return ZoneDump.Run(options, writer);
     }
 
+    /// <summary>Runs <c>--kinds</c>, to <c>--out</c> or to the console.</summary>
+    internal static int DumpKinds(Options options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (options.OutPath is null)
+        {
+            return KindDump.Run(options, Console.Out);
+        }
+
+        using var writer = new StreamWriter(options.OutPath);
+        return KindDump.Run(options, writer);
+    }
+
     /// <summary>Slice 5a's artefact: the Road Graph, and its components per mode.</summary>
     internal static int DumpRoads(Options options)
     {

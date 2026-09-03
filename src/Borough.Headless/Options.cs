@@ -80,6 +80,16 @@ internal enum Mode
     Zones,
 
     /// <summary>
+    /// Print the standing city counted by Building kind, before and after a run.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Zones"/>' shape exactly — it runs a real session, refuses without a Ruleset, and
+    /// prints the same table twice — and it exists because the Zone dump answers *where* and cannot
+    /// answer *what*. Every Building in that grid is one <c>#</c> whatever kind it is.
+    /// </remarks>
+    Kinds,
+
+    /// <summary>
     /// Print the Road Graph and its connected components. Slice 5a's.
     /// </summary>
     /// <remarks>
@@ -501,6 +511,7 @@ internal sealed class Options
         bool csv = false;
         bool decideGuard = true;
         bool zones = false;
+        bool kinds = false;
         bool roads = false;
         bool trips = false;
         bool commute = false;
@@ -559,6 +570,11 @@ internal sealed class Options
                 // with --layer's refusal below for a reason the operator did not cause.
                 case "--zones":
                     zones = true;
+                    continue;
+
+                // Not a session flag, on --zones' reasoning: this dump runs its own.
+                case "--kinds":
+                    kinds = true;
                     continue;
 
                 // Not a session flag either, and for a stronger reason than --zones': a Road dump does
@@ -889,6 +905,17 @@ internal sealed class Options
             return false;
         }
 
+        // A kind is a Ruleset's declaration, so a kind dump with no Rules would print an empty
+        // table -- which reads as a broken instrument rather than as a runner nobody told what to
+        // count. --zones' polarity exactly.
+        if (kinds && rulesets.Count == 0)
+        {
+            complaint = "--kinds needs --ruleset PATH. A Building kind is content: without one "
+                      + "there is nothing declared to count, and an empty table would read as a "
+                      + "defect rather than as a missing argument.";
+            return false;
+        }
+
         if (reloadAt.Count > 0 && log is not null)
         {
             complaint = "--reload-at and --log disagree: a recorded session carries its own "
@@ -940,6 +967,18 @@ internal sealed class Options
         //
         // ⚠ --day is named here and still has no block of its own. That is a gap this one does not
         // close: the pair `--day --market` still parses.
+        // At the TOP, which is what the block below says a new mode should do: it names every other
+        // picture, runs first and returns, so no block beneath it needs editing to admit this one.
+        // Order of flags does not matter -- both bools are set by the time this runs.
+        if (kinds && (school || stages || day || money || market || business || arrivals || landValue
+                      || parking || evidence || traffic || commute || zones || roads || trips
+                      || flood || watch || dump is not null))
+        {
+            complaint = "--kinds asks for another picture, and each picture builds its own world. "
+                      + "Ask for one.";
+            return false;
+        }
+
         if (school && (stages || day || money || market || business || arrivals || landValue
                        || parking || evidence || traffic || commute || zones || roads || trips
                        || dump is not null))
@@ -1392,6 +1431,7 @@ internal sealed class Options
                  : trips ? Mode.Trips
                  : roads ? Mode.Roads
                  : zones ? Mode.Zones
+                 : kinds ? Mode.Kinds
                  : dump is not null ? Mode.Layer
                  : session ? Mode.Run
                  : Mode.Report,
@@ -1476,6 +1516,11 @@ internal sealed class Options
           --zones               dump the Lot grid by permission and occupancy, before and
                                 after --ticks Ticks of sweeping, with what the sweep did.
                                 Needs --ruleset, because a sweep is a Ruleset's behaviour
+          --kinds               count the standing city BY BUILDING KIND, before and after
+                                --ticks Ticks, with what each kind declares and why any kind
+                                stands nowhere. Needs --ruleset. It is the only picture that
+                                reports the MIX: --census has no per-kind row and --zones
+                                draws every Building as the same character
           --roads               dump the Road Graph -- Segments by kind, the Arcs each mode
                                 admits, and the connected components of both subgraphs.
                                 Needs --ruleset, because a road network is content. Takes

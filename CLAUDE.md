@@ -210,6 +210,7 @@ returns a formatted string because a panel wanted one.
 dotnet build                  # must succeed with no GPU and no Godot installed
 dotnet run --project src/Borough.Headless
 dotnet run --project src/Borough.Headless -- --zones --ruleset rulesets/minimal.toml --ticks 5000
+dotnet run --project src/Borough.Headless -- --kinds --ruleset rulesets/provisioned.toml --citizens 4000 --ticks 24576
 dotnet run --project src/Borough.Headless -- --commute --ruleset rulesets/minimal.toml --ticks 4096
 dotnet run --project src/Borough.Headless -- --traffic --ruleset rulesets/congested.toml --citizens 16000 --ticks 512
 dotnet run --project src/Borough.Headless -- --evidence --ruleset rulesets/diagnosed.toml --citizens 4000 --ticks 2048
