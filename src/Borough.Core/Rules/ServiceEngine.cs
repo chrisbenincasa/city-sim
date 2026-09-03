@@ -115,6 +115,9 @@ public sealed class ServiceEngine
     /// <summary>The nearest service Building, decided before anybody had taken a place.</summary>
     private int[] _providers = [];
 
+    /// <summary>Where the family actually went, or <see cref="Rows.NoSlot"/> if it was turned away.</summary>
+    private int[] _settled = [];
+
     /// <summary>The sort key: that distance, with the Household slot underneath it.</summary>
     private long[] _keys = [];
 
@@ -122,6 +125,9 @@ public sealed class ServiceEngine
     private int[] _order = [];
 
     private int _occasionCount;
+
+    /// <summary>Which Need <see cref="LastProviders"/> describes.</summary>
+    private Need _lastNeed;
 
     private int _tickAttended;
     private int _tickUnreached;
@@ -206,6 +212,55 @@ public sealed class ServiceEngine
     /// </para>
     /// </remarks>
     public int Full => _tickFull;
+
+    // ---- the assignment, for an instrument ------------------------------------------------------
+
+    /// <summary>
+    /// Which Need the arrays below describe — <see cref="Need.Education"/> unless a world serves
+    /// Health and nothing else.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>The two Needs share one set of buffers</b>, so a world serving both leaves Health's pass
+    /// standing here and Education's overwritten. That is the reason this property exists rather
+    /// than the reader assuming: ***a readout that cannot say what it is of is a readout of
+    /// whatever ran last.***
+    /// </remarks>
+    public Need LastNeed => _lastNeed;
+
+    /// <summary>The Households that had an occasion on the last Day this pass ran, in slot order.</summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>AN INSTRUMENT SURFACE, AND IT EXISTS BECAUSE EVERY OTHER READING OF THIS MECHANISM IS
+    /// A COUNT.</b> <see cref="Attended"/>, <see cref="Full"/>, <see cref="Unreached"/> and
+    /// <see cref="NoService"/> say how many; ***nothing said WHICH***, so the day admission stopped
+    /// being slot order the <c>--school</c> panel printed byte-for-byte the same output it had
+    /// printed before. A change of identity is invisible to a tally of quantity, which is the same
+    /// blind spot that let one school serve a whole city at a reported 100%.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It holds only the occasions that reached the QUEUE</b>, which is every Household that
+    /// could route to something. A family with no school in its box, no route inside the Budget, or
+    /// no Address to leave from failed in <see cref="Ask"/> and is not here — those three are
+    /// settled before the ordering exists and no ordering could have changed them.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Valid on the Tick the pass ran and meaningless on any other</b>, exactly as the four
+    /// counters are: the buffers are scratch, not state, so nothing saves them, nothing hashes them
+    /// and a reload does not rebuild them.
+    /// </para>
+    /// </remarks>
+    public ReadOnlySpan<int> LastHouseholds => _slots.AsSpan(0, _occasionCount);
+
+    /// <summary>
+    /// Where each of <see cref="LastHouseholds"/> went, or <see cref="Rows.NoSlot"/> for a family
+    /// turned away at a full door.
+    /// </summary>
+    /// <remarks>
+    /// <b>Parallel to <see cref="LastHouseholds"/> by index and not by slot.</b> A
+    /// <see cref="Rows.NoSlot"/> here is <see cref="Full"/> and can be nothing else, for
+    /// <see cref="LastHouseholds"/>' reason.
+    /// </remarks>
+    public ReadOnlySpan<int> LastProviders => _settled.AsSpan(0, _occasionCount);
 
     /// <summary>
     /// Runs one Day's attendance: every Household that has somebody to send, sending them.
@@ -293,6 +348,8 @@ public sealed class ServiceEngine
         {
             return;
         }
+
+        _lastNeed = need;
 
         Ask(need, depth, radius, needs, trips, day);
         Order();
@@ -431,6 +488,8 @@ public sealed class ServiceEngine
             }
         }
 
+        _settled[entry] = provider;
+
         _world.TakeServicePlace(provider, day);
 
         // ⚠ ACTIVITY IS DELIBERATELY NOT WRITTEN, and the enum deliberately does not grow. A school
@@ -477,6 +536,7 @@ public sealed class ServiceEngine
         _travellers[_occasionCount] = traveller;
         _homes[_occasionCount] = home;
         _providers[_occasionCount] = provider;
+        _settled[_occasionCount] = Rows.NoSlot;
 
         // Distance in the high half and the Household slot in the low half, so one comparison
         // orders both fields. A constant shift count -- BOR0204 reports a computed one, and this is
@@ -507,6 +567,7 @@ public sealed class ServiceEngine
         Array.Resize(ref _travellers, size);
         Array.Resize(ref _homes, size);
         Array.Resize(ref _providers, size);
+        Array.Resize(ref _settled, size);
         Array.Resize(ref _keys, size);
         Array.Resize(ref _order, size);
     }

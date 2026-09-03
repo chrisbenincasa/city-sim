@@ -341,6 +341,80 @@ and `Both_schools_teach_somebody_when_neither_is_full` both go **red against the
 it admitted a family at a walk of **201,325** where the nearest applicant stood at **85,004**, and it
 left the second school teaching nobody. ***A number that only a test can hold is still a number.***
 
+
+### 🔴 F6a — the gap was MEASURED before it was argued about, and it is not small
+
+The section above deferred the per-school ordering on the grounds that ***nobody knew the size of the
+gap.*** That is a claim a measurement could settle, so [`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)
+says it may not be settled by argument. **It was measured on 2026-09-03 and the argument loses.**
+
+**An INVERSION is a blocking pair, counted.** A family turned away at a full door, which could have
+reached some school inside the Commute Budget, and whose walk to that school is *shorter* than the
+longest walk among the families that school admitted. ***That is exactly the pair a stable matching
+forbids***: the family would rather have the school, and the school would rather have the family.
+`ServiceEngine.LastHouseholds`/`LastProviders` expose the Day's assignment, `ServiceAdmission.Measure`
+counts the pairs, and `--school` prints them.
+
+`--school --ruleset rulesets/schooled.toml --citizens 2000 --ticks 100000`, sweeping `--schools`:
+
+| schools | admitted | turned away | **inverted** | worst margin |
+|---|---|---|---|---|
+| 1 | 21 | 88 | **0** | — |
+| 2 | 54 | 55 | **55 — every one** | **12.3 min** |
+| 4 | 103 | 6 | **4** | 2.1 min |
+| 8 | 109 | 0 | **0** | — |
+
+🔴 **THE GAP IS ZERO AT BOTH ENDS AND TOTAL IN THE MIDDLE, AND ONLY ONE OF THE TWO ZEROES IS A
+RESULT.** At **one** school it is zero *by construction* — there is nowhere to leak to, so *nearest to
+my own nearest* and *nearest to this school* are the same question, and that row is the instrument's
+control rather than a finding. At **eight** it is zero because nobody is turned away at all: ***a
+mechanism with no scarcity in it cannot be unfair***, which is the same sentence that explains why
+F6 was invisible before the ceiling shipped. **The middle is where a player actually builds.**
+
+⚠ **12.3 minutes is against a Fast rung of 20 and a Commute Budget of 50** ([`adr/0095`](../docs/adr/0095-a-commute-budget-is-three-rungs-and-only-the-last-one-refuses.md)),
+so the worst-served family at two schools was walked past a school **62% of a Fast commute** nearer
+than the family that took its place. That is not a rounding difference between two orderings.
+
+### 🔴 F6b — the mechanism that produces it, which is why 2 schools is worse than 4
+
+***A family is keyed by the distance to the school it did NOT get.*** The key is the walk to its
+nearest service Building; the walk it actually makes is to whatever still had a place when its turn
+came. Those are the same journey only while its first choice is free.
+
+So the scarcer the supply, the more families are admitted at a school their key says nothing about —
+and a key that describes an unmade journey is a key that sorts nobody correctly. At two schools
+**every family whose nearest was full** was placed at the other one on a key drawn from the first,
+which is why the inversion count is not merely high but **total**.
+
+⚠ **The count is a LOWER BOUND on what deferred acceptance would move.** A displaced family proposes
+onward and can displace a third, so one blocking pair may stand for a chain. What it is exact about
+is the direction: ***a world with no inversions has no chain to start.***
+
+### 🔴 F6c — so the recommendation reverses, and the reason it was wrong is on the record
+
+**The judgement written when nearest-first shipped was *not worth building, the gap is probably
+theoretical*.** It rested on three arguments and the measurement kills the first outright — the gap
+is 100% of the turned-away at the shape of city the mechanism exists for. The other two stand and are
+now the whole case for waiting: deferred acceptance is a per-school held-set plus a per-family cursor
+plus a convergence loop, and [`adr/0017`](../docs/adr/0017-agents-satisfice-they-never-optimise.md)
+refuses an equilibrium computation in a way it does not refuse ranking a handful of schools once.
+***Ranking what the player built is not optimisation; re-proposing in response to what other families
+got is.*** That is an ADR-sized argument and ADRs are frozen ([`plans/0045`](0045-amnesty.md)
+standing order 1).
+
+🔴 **What the amnesty does NOT freeze is the finding**, and this is it: **the shipped ordering is
+unstable, the instability is measured, and the design question is now *what is a school for* rather
+than *how big is the gap*.** The three answers F6 originally named — nearest-first, arrival order,
+lottery — were about who deserves a place. ***The measurement says the current answer is none of the
+three***: at two schools it is *whoever lived near a school that was already full*, which is nobody's
+idea of a rule.
+
+⚠ **And it cost the panel a column it should always have had.** Every other number in `--school` is a
+count, so the day admission stopped being slot order the dump printed byte-for-byte the same output —
+see the section above. ***An instrument that can only count cannot report a change of identity***,
+which is [F3](#-f3-discharged--a-school-is-full-and-being-full-is-a-third-city)'s *the reach panel
+called that 100%* for the third time in this document.
+
 ### The rate is chosen, and it is the one number in `[capacity]` with no standing city behind it
 
 The other three are divisions of what 39 `occupants`, 32 `jobs` and 29 `parking` declarations already
@@ -362,7 +436,7 @@ beside it. It lands where `floor_tiles_per_job` sits, and a desk scaled the same
 | 3 | **Nothing expresses the MIX within a zone** (F2) — no weight, share or priority on a Zone Rule | *undesigned* |
 | 4 | **76% of every shipped Ruleset is copy**, because no key inside a present table may be omitted. A base-and-differences mechanism needs an answer to *a default could not announce itself* | *undesigned* |
 | 5 | **`banded.toml` has never stood its second kind**; **`provisioned.toml` steadies at half shells** | readings, above |
-| 6 | ~~Who gets the last place at a full school is slot order~~ ✅ **DONE 2026-09-03** — nearest-first, above | shipped |
+| 6 | ~~Who gets the last place at a full school is slot order~~ ✅ **NEAREST-FIRST SHIPPED 2026-09-03** — and the residue is **MEASURED**: the ordering is unstable, 55 of 55 turned-away families inverted at two schools by up to 12.3 min (F6a). Deferred acceptance is the answer and it needs an ADR | shipped, residue *undesigned* |
 
 🔴 **NONE OF THESE IS A SHAPE COMMITMENT TO UNWIND.** They are absences. ***The thing that IS a
 commitment — a kind carries behaviour and the ground carries form — held up under twelve kinds and

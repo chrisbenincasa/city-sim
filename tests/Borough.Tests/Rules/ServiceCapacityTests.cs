@@ -7,6 +7,7 @@ using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
 using Borough.Formats;
+using Borough.Headless;
 
 namespace Borough.Tests.Rules;
 
@@ -402,6 +403,115 @@ public sealed class ServiceCapacityTests
             slot => Assert.True(
                 world.Buildings.AttendedToday[slot] > 0,
                 $"school {slot} taught nobody, so the whole city walked to the other one."));
+    }
+
+    // ---- how far this is from a per-school rule ----------------------------------------------------
+
+    /// <summary>
+    /// <b>The assignment readout agrees with the counters it sits beside.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>The load-bearing test for the instrument, and it is an identity rather than a value.</b>
+    /// <c>ServiceAdmission</c> restates <c>ServiceEngine.Traveller</c>'s rule in a second assembly in
+    /// order to route the same journeys, and ***an instrument that models the mechanism it measures
+    /// is wrong the day the mechanism moves.*** What catches that is this: the engine's own
+    /// <c>Attended</c> and <c>Full</c> are computed by the pass, the readout's two counts are
+    /// computed by walking the arrays, and they cannot both be right and disagree.
+    /// </para>
+    /// <para>
+    /// ⚠ <b><c>Unreached</c> and <c>NoService</c> are deliberately not in the identity</b> — those
+    /// families never reached the queue, because their failure was settled before any ordering
+    /// existed.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_assignment_readout_agrees_with_the_pass_that_produced_it()
+    {
+        (World world, Simulation simulation) = City(Bounded);
+
+        foreach (int lot in FarApartVacantLots(world))
+        {
+            Place(simulation, world, lot);
+        }
+
+        StepToDay(simulation, 4);
+
+        ServiceAdmission.Reading reading = ServiceAdmission.Measure(world, simulation.Services);
+
+        Assert.Equal(simulation.Services.Attended, reading.Admitted);
+        Assert.Equal(simulation.Services.Full, reading.TurnedAway);
+        Assert.True(reading.TurnedAway > 0, "nobody was turned away, so the reading asks nothing.");
+    }
+
+    /// <summary>
+    /// 🔴 <b>A one-school city cannot have an inversion, and the instrument must say so.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The control, and it is the assertion that stops a zero being trusted for the wrong
+    /// reason.</b> An inversion is cross-school leakage — a family admitted at a school that is not
+    /// its nearest, ahead of somebody closer to <em>that</em> school. With one school there is
+    /// nowhere to leak to: *nearest to my own nearest* and *nearest to this school* are the same
+    /// question, so the occasion ordering and a per-school ordering are the same ordering.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It asserts families WERE turned away in the same breath</b>, because a counter that
+    /// reads zero on an empty set proves nothing at all.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void One_school_admits_in_per_school_order_by_construction()
+    {
+        (World world, Simulation simulation) = City(Bounded);
+
+        Place(simulation, world, FarApartVacantLots(world)[1]);
+        StepToDay(simulation, 4);
+
+        ServiceAdmission.Reading reading = ServiceAdmission.Measure(world, simulation.Services);
+
+        Assert.True(reading.TurnedAway > 0, "nobody was turned away, so there is nothing to invert.");
+        Assert.Equal(0, reading.Inverted);
+        Assert.Equal(TravelTime.Zero, reading.WorstMargin);
+    }
+
+    /// <summary>
+    /// 🔴 <b>Two scarce schools DO invert, which is what makes the measurement worth taking.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The positive control, and without it the class asserts only that a counter can read
+    /// zero.</b> A family whose nearest school is full walks on to the further one and is admitted
+    /// there on a key that describes a journey it is not making — ***its distance to the school it
+    /// did not get*** — so it can take a place from somebody living next door to the school it did
+    /// get. That is the gap between ordering occasions and ordering a school's applicants, and it is
+    /// reachable in a fixture with two schools and one place each.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>No count is asserted, only that there is one.</b> How many is a property of this
+    /// generated city and of the ceiling, and pinning it here would make a test a baseline for a
+    /// figure nothing has ratified. The figures live in <c>plans/0054</c> <b>F6</b>, taken on
+    /// <c>schooled.toml</c> through <c>--school</c>.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void Two_scarce_schools_admit_somebody_a_nearer_family_should_have_beaten()
+    {
+        (World world, Simulation simulation) = City(Bounded);
+
+        foreach (int lot in FarApartVacantLots(world))
+        {
+            Place(simulation, world, lot);
+        }
+
+        StepToDay(simulation, 4);
+
+        ServiceAdmission.Reading reading = ServiceAdmission.Measure(world, simulation.Services);
+
+        Assert.True(
+            reading.Inverted > 0,
+            "two scarce schools inverted nobody, so the occasion ordering has no gap to close.");
+        Assert.True(reading.WorstMargin > TravelTime.Zero, "an inversion with no margin is not one.");
     }
 
     // ---- fixtures -------------------------------------------------------------------------------

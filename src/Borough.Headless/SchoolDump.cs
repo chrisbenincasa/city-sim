@@ -103,6 +103,7 @@ internal static class SchoolDump
         output.WriteLine();
         Reach(series, world, placed, output);
         Supply(world, output);
+        Admission(world, simulation, output);
 
         return 0;
     }
@@ -369,6 +370,47 @@ internal static class SchoolDump
             output.WriteLine(F(
                 $"    {slot,-8:N0}  {world.FloorTilesOf(slot),7:N0}  {places}  {buildings.AttendedToday[slot],9:N0}"));
         }
+    }
+
+    /// <summary>
+    /// Whether the ordering that decides WHO gets the last place agrees with a per-school rule.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THE ONE PANEL HERE THAT IS NOT A COUNT, AND IT IS HERE BECAUSE EVERY OTHER ONE IS.</b>
+    /// The Day admission stopped being decided by Household slot order and started being decided by
+    /// distance, ***this dump printed byte-for-byte the same output it had printed before*** — 103
+    /// attended, 6 turned away, 95%, the four schools at 21/18/16/48. Every column above is a tally
+    /// of how many, and the change was a change of which. ⚠ <b>That is the reported 100% arriving a
+    /// second time</b>: a share-of-occasions number could not see that one school served the whole
+    /// city, and a count of the turned-away cannot see that the wrong ones were turned away.
+    /// </para>
+    /// <para>
+    /// <b>An inversion is a family turned away from a full door that lives NEARER that school than
+    /// somebody the school admitted.</b> Nearest-first orders <em>occasions</em>, by each family's
+    /// distance to its own nearest school; a per-school rule would order each school's
+    /// <em>applicants</em>. ***Zero inversions means the two agree on this world and the expensive
+    /// mechanism buys nothing here.*** <c>plans/0054</c> <b>F6</b> holds what it is for.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It prints the margin beside the count</b>, because a count says the rule was broken and
+    /// never says by how much. A margin of a few seconds is two families on one street; a margin of
+    /// minutes is somebody walking across the city past a school they should have had.
+    /// </para>
+    /// </remarks>
+    private static void Admission(World world, Simulation simulation, TextWriter output)
+    {
+        ServiceAdmission.Reading reading = ServiceAdmission.Measure(world, simulation.Services);
+
+        output.WriteLine();
+        output.WriteLine("  Admission on the last Day — is nearest-first also nearest-per-school?");
+        output.WriteLine(F($"    admitted                {reading.Admitted,10:N0}"));
+        output.WriteLine(F($"    turned away at the door {reading.TurnedAway,10:N0}"));
+        output.WriteLine(F($"    ... of which INVERTED   {reading.Inverted,10:N0}"));
+
+        output.WriteLine(reading.Inverted == 0
+            ? "    ... so the occasion ordering and a per-school ordering agree on this world."
+            : F($"    worst margin        {TripDump.Minutes(reading.WorstMargin.Raw),10} min of walk"));
     }
 
     private static string F(FormattableString text) =>
