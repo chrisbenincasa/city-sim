@@ -73,8 +73,38 @@ public partial class Main : Node3D
     /// <summary>What one notch of zoom in multiplies the eye's standoff by.</summary>
     private const float DollyPerStep = 0.92f;
 
-    /// <summary>How wide the carriageway is drawn. A drawing width, and no Segment states one.</summary>
+    /// <summary>How wide a <b>Street's</b> carriageway is drawn. A drawing width, and no Segment
+    /// states one.</summary>
     private const float RoadWidthMetres = 8f;
+
+    /// <summary>The same, for an <see cref="RoadKind.Arterial"/>.</summary>
+    /// <remarks>
+    /// ⚠ <b>INVENTED, like <see cref="RoadWidthMetres"/>, and the RATIO is the only part of it doing
+    /// any work.</b> The city holds no width for any road: <c>[roads]</c> states a block size, an
+    /// Arterial count, a junction spacing and two pedestrian keys, and not one metre of carriageway.
+    /// What the city <em>does</em> hold is <see cref="RoadSegmentTable.Kind"/>, and free-flow and
+    /// capacity are derived from it — an Arterial carries <b>3.3×</b> a Street's Vehicles a Day —
+    /// so ***that these three differ is a fact and how much they differ is not***.
+    /// </remarks>
+    private const float ArterialWidthMetres = 14f;
+
+    /// <inheritdoc cref="ArterialWidthMetres"/>
+    /// <summary>The same, for a <see cref="RoadKind.FootPath"/> — a cut-through, and not a road.</summary>
+    private const float FootPathWidthMetres = 2.5f;
+
+    /// <summary>What a Street's carriageway is painted. <b>sRGB</b>; see <see cref="Paving"/>.</summary>
+    private static readonly Color Carriageway = new(0.30f, 0.30f, 0.33f);
+
+    /// <summary>An Arterial, darker than a Street because it carries more and is resurfaced less.</summary>
+    /// <remarks>
+    /// ⚠ <b>No shipped Ruleset lays one</b> — <c>arterial_count = 0</c> on every file — so this
+    /// colour is unreachable in a shipped world and is here because the <em>Kind</em> is reachable
+    /// and a drawing that handles two of three cases is one nobody notices is incomplete.
+    /// </remarks>
+    private static readonly Color Arterial = new(0.26f, 0.26f, 0.29f);
+
+    /// <summary>A FootPath, which is paving rather than asphalt and must not read as a road.</summary>
+    private static readonly Color Flagstone = new(0.52f, 0.50f, 0.46f);
 
     // 🔴 BuildingFillLow/High AND DepthFillLow/High STOOD HERE AND ARE NOW `[lots] setback_tiles`.
     // Four drawing constants -- 0.55-1.00 of the frontage and 0.45-0.85 of the depth -- deciding how
@@ -791,6 +821,10 @@ public partial class Main : Node3D
     /// <summary>Which Citizen each drawn Traveller is, in instance order.</summary>
     private readonly List<ulong> _travellerIds = [];
 
+    /// <summary>Which Segment each road instance is, so the <c>draw</c> list can be joined to the
+    /// Road Graph. <b>Monotonic row ids, never slots.</b></summary>
+    private readonly List<ulong> _roadIds = [];
+
     /// <summary>Which vacant Lot each drawn pad is, in instance order.</summary>
     private readonly List<ulong> _plotIds = [];
 
@@ -1002,7 +1036,7 @@ public partial class Main : Node3D
         // a rising tide read as arriving rather than as flickering.
         _water = Layer(new Color(0.10f, 0.22f, 0.42f), new Vector3(1f, 1f, 1f), casts: false);
         _flood = Layer(new Color(0.20f, 0.48f, 0.78f), new Vector3(1f, 1f, 1f), casts: false);
-        _roads = Layer(new Color(0.30f, 0.30f, 0.33f), new Vector3(1f, 0.1f, 1f), casts: false);
+        _roads = Layer(Carriageway, new Vector3(1f, 0.1f, 1f), perInstance: true, casts: false);
 
         // 🔴 A VACANT LOT DREW NOTHING AT ALL, so Zone -- which creates Lots and never a Building --
         // had NO visible result on any world. Buildings() walks the Building table, and a Lot with
@@ -1442,7 +1476,27 @@ public partial class Main : Node3D
     {
         string ruleset = "rulesets/minimal.toml";
         int citizens = 1_000;
-        ulong startAt = 0;
+
+        // 🔴 THE SHELL OPENS AT 08:00 AND THE SIMULATION'S DAY STILL BEGINS AT 05:00, AND KEEPING
+        // THOSE TWO APART IS THE WHOLE OF THIS DEFAULT.
+        //
+        // Ticks.DayBeginsAtHour is 5, so Tick 0 is 05:00 and a run opened at Tick 0 opened BEFORE
+        // SUNRISE -- a photograph of the dark, taken by a shell working perfectly. That was found
+        // driving plans/0049 row 8: the first three frames came back black and nothing anywhere
+        // said why.
+        //
+        // ⚠ THE OBVIOUS FIX IS TO MOVE DayBeginsAtHour AND IT IS REFUSED. That constant carries
+        // TWO jobs -- the Day's PHASE, which is hash-bearing, and what a fresh run opens on, which
+        // is free -- and its own remark states the constraint the first one is under: it must sit
+        // before the earliest Shift a Ruleset may declare, so that no commute is cut by the Day
+        // boundary it belongs to. `shift_start_earliest_hour` is 6 in 42 of the 45 entries across
+        // the shipped files, so 5 is nearly at that ceiling already and 8 is well past it: every
+        // 06:00 Shift would wrap to the LATE end of its Day. ***So the phase may not move and the
+        // opening view may, and this is the half that may.***
+        //
+        // ⚠ It steps the world 256 Ticks at boot rather than jumping. --start-at skips nothing,
+        // and a world jumped to is a different world.
+        ulong startAt = (ulong)Ticks.AtClock(8);
         string? drive = null;
         ulong quitAt = 0;
         string? listen = null;

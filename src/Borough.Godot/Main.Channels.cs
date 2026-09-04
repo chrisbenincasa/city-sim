@@ -587,7 +587,7 @@ public partial class Main
         ("hazard", _hazard, false, null),
         ("water", _water, false, null),
         ("flood", _flood, false, null),
-        ("road", _roads, false, null),
+        ("road", _roads, true, _roadIds),
         ("cell", _cells, false, null),
         ("plot", _plots, true, _plotIds),
         ("building", _buildings, true, _buildingIds),

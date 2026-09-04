@@ -223,9 +223,12 @@ public partial class Main
     /// as a bug.
     /// </para>
     /// <para>
-    /// <b>Tick 0 is 05:00</b> (<c>Ticks.DayBeginsAtHour</c>, <c>adr/0101</c> amended), so a run opened
-    /// with no <c>--start-at</c> opens on a dawn. That is the clock the city keeps and not something
-    /// to correct here; the offset is applied below rather than assumed.
+    /// <b>Tick 0 is 05:00</b> (<c>Ticks.DayBeginsAtHour</c>, <c>adr/0101</c> amended). That is the
+    /// clock the city keeps and not something to correct here; the offset is applied below rather
+    /// than assumed. ⚠ <b>A run with no <c>--start-at</c> no longer opens at Tick 0</b> — the shell
+    /// defaults to <c>Ticks.AtClock(8)</c> because Tick 0 is before sunrise and opened on a
+    /// photograph of the dark. <b>That is a default and not a clock change</b>; see
+    /// <c>Main.Arguments</c> for why the constant itself may not move.
     /// </para>
     /// <para>
     /// 🔴 ⚠ <b>IT TAKES THE SUB-TICK FRACTION, AND THE REASON IS THAT A DAY IS ONLY 2,048 SAMPLES
