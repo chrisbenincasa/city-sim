@@ -2254,6 +2254,44 @@ section carrying a correction banner rather than four in-place corrections, and 
 now the opposite of what it says. ⚠ **It should be written beside the work rather than alone**: `0049`
 row 8 is the street row, row 24 in `0045` is the width row, and either one puts a hand on this section.
 
+### 🔴 `arterial_count = 0 everywhere` is the same mistake for the THIRD time, and the second since a document was written to stop it — a new Cause
+
+**Found 2026-09-04, driving [`0049`](0049-visuals.md) row 8 step 2.** Three shipped files state
+`arterial_count = 16` — `severance.toml`, `bordered.toml`, `crowded.toml` — and 37 state 0. The
+sighting is `0049` **F58**; what belongs here is that it is the **third** time.
+
+| When | Where | What was said |
+|---|---|---|
+| 2026-08-14 | [`adr/0098`](../docs/adr/0098-a-citizen-travels-in-their-households-mode-and-mode-choice-is-undesigned-rather-than-unbuilt.md) | *"Both shipped Rulesets set `arterial_count = 0`"* — true when written, a **stale count** now |
+| 2026-08-22 | [`0042`](0042-terrain-and-the-land-rows.md) decision 4 | **CORRECTED IT**, naming all three files, and headed the paragraph *"corrected here so nobody reasons from them again"*. The same correction is in [`0002`](0002-open-questions.md) at `0151` |
+| 2026-09-04 | [`0049`](0049-visuals.md) **F51** | *"`arterial_count = 0` on every shipped file, so a crossing exists in the model **nowhere**"* — and **refused a piece of work on it** |
+
+🔴 **This is not Cause 1 and it is not Cause 5, and the difference is the whole point.** Cause 1 is
+two copies drifting apart; Cause 5 is a number quoted away from its caveat. Here there was **one
+correct copy, sitting in the ledger of corrections, and the second re-derivation never opened it**.
+***A correction filed in a plan is only reachable by somebody who already suspects the claim*** — and
+the whole value of a correction is to the reader who does not.
+
+⚠ **The proximate source is `CLAUDE.md`'s constants table**, which `0042` had already named. Its
+`[roads]` row states `arterial_count = 0` as the current value, and the table's own preamble says it
+is *the authority on nothing but the current value* — but *current value of what* is a question the
+row does not answer, and the answer is **`minimal.toml`'s**, not the corpus's. F51 read *the value* as
+*the inventory*, which is what a table of constants invites: ***a Constants table states a default and
+reads as a census.***
+
+🔴 **And F51 then used the absence as evidence**, which is the one move
+[`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) reserves for
+*refused*. A crossing was classified *does not exist* and a piece of work was declined on it, so
+***the defect reached a decision*** — which is this ledger's own §*Why a defect SURVIVES* transition,
+completed inside a single day.
+
+**The repair has two halves and one is done.** The doc-comments that repeated it are corrected in
+place (`Main.cs`, `Main.Ground.cs`) and F51 carries a falsification banner. **What is NOT done and
+needs judgement**: whether `CLAUDE.md`'s `[roads]` row should name the file its numbers come from, and
+whether the general rule — ***a Constants row states a value and never an inventory*** — belongs in
+that file's own preamble. Both are edits to the file that says it holds no counts, so the smallest
+honest change may be a clause rather than a column.
+
 ### `adr/0123` says Amenity needs a `kind` column on `BusinessTable`, and a park is not a Business
 
 **Found 2026-08-23, in the sitting that produced

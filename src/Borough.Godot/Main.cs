@@ -73,18 +73,62 @@ public partial class Main : Node3D
     /// <summary>What one notch of zoom in multiplies the eye's standoff by.</summary>
     private const float DollyPerStep = 0.92f;
 
-    /// <summary>How wide a <b>Street's</b> carriageway is drawn. A drawing width, and no Segment
-    /// states one.</summary>
-    private const float RoadWidthMetres = 8f;
-
-    /// <summary>The same, for an <see cref="RoadKind.Arterial"/>.</summary>
+    /// <summary>
+    /// <b>How wide a Street's whole right of way is drawn</b> — kerb to kerb <em>and</em> the
+    /// pavements, which together spend it.
+    /// </summary>
     /// <remarks>
-    /// ⚠ <b>INVENTED, like <see cref="RoadWidthMetres"/>, and the RATIO is the only part of it doing
+    /// <para>
+    /// 🔴 <b>THIS WAS <c>RoadWidthMetres</c> AND IT WAS DOING TWO JOBS.</b> It was the width of the
+    /// asphalt <em>and</em> the width of the ground a Street claims, and those were the same number
+    /// only because nothing but asphalt was drawn on a Street. <see cref="Footways"/> put something
+    /// else there, so they separated — and the split is what makes the row cost no ground: the
+    /// carriageway gives up what the pavements take, and 8 m of street stays 8 m of street.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is what <see cref="YardMargin"/> and <see cref="Edge"/> meant all along.</b> Both
+    /// asked <em>how far from the centre line is the road's edge</em>, which is this and never the
+    /// carriageway. Leaving them on the carriageway would have moved a scatter margin and a cursor
+    /// as a side effect of repainting a kerb.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>8 m is a Tile and a Tile is what the setback moves in.</b> <c>[lots] setback_tiles</c>
+    /// is 2 on every shipped file and each side is drawn on <c>[0, 2]</c> Tiles, so a Building's
+    /// front wall stands at <b>0, 4 or 8 m</b> from the centre line — and a half-street of 4 m puts
+    /// the back of the pavement exactly on the middle rung. ***The street's edge and the setback's
+    /// quantum are the same length on purpose.***
+    /// </para>
+    /// </remarks>
+    private const float StreetWidthMetres = 8f;
+
+    /// <summary>How wide a <b>Street's</b> asphalt is drawn — the right of way, less two pavements.</summary>
+    /// <remarks>
+    /// ⚠ <b>Derived rather than chosen</b>, so the two cannot drift apart and leave the street a
+    /// different width than the ground it claims.
+    /// </remarks>
+    private const float CarriagewayWidthMetres =
+        StreetWidthMetres - (2f * FootwayWidthMetres);
+
+    /// <summary>How wide one <b>pavement</b> is drawn, on one side of one Segment.</summary>
+    /// <remarks>
+    /// ⚠ <b>INVENTED, and it is spent out of <see cref="StreetWidthMetres"/> rather than added to
+    /// it.</b> See <see cref="Footways"/> for what is invented here and what is not: the width is,
+    /// and <em>which Segments have one</em> is not.
+    /// </remarks>
+    private const float FootwayWidthMetres = 1.5f;
+
+    /// <summary>The same as <see cref="StreetWidthMetres"/>, for an <see cref="RoadKind.Arterial"/>.</summary>
+    /// <remarks>
+    /// ⚠ <b>INVENTED, like <see cref="StreetWidthMetres"/>, and the RATIO is the only part of it doing
     /// any work.</b> The city holds no width for any road: <c>[roads]</c> states a block size, an
     /// Arterial count, a junction spacing and two pedestrian keys, and not one metre of carriageway.
     /// What the city <em>does</em> hold is <see cref="RoadSegmentTable.Kind"/>, and free-flow and
     /// capacity are derived from it — an Arterial carries <b>3.3×</b> a Street's Vehicles a Day —
     /// so ***that these three differ is a fact and how much they differ is not***.
+    /// </remarks>
+    /// <remarks>
+    /// ⚠ <b>An Arterial spends none of it on a pavement</b>, and that is not a width decision —
+    /// see <see cref="Footways"/>.
     /// </remarks>
     private const float ArterialWidthMetres = 14f;
 
@@ -97,13 +141,26 @@ public partial class Main : Node3D
 
     /// <summary>An Arterial, darker than a Street because it carries more and is resurfaced less.</summary>
     /// <remarks>
-    /// ⚠ <b>No shipped Ruleset lays one</b> — <c>arterial_count = 0</c> on every file — so this
-    /// colour is unreachable in a shipped world and is here because the <em>Kind</em> is reachable
-    /// and a drawing that handles two of three cases is one nobody notices is incomplete.
+    /// 🔴 ⚠ <b>THREE SHIPPED RULESETS LAY ONE AND THIS COMMENT SAID NONE DID.</b>
+    /// <c>severance.toml</c>, <c>bordered.toml</c> and <c>crowded.toml</c> all state
+    /// <c>arterial_count = 16</c>; the other 37 files state 0. Measured rather than read:
+    /// <c>--roads</c> on <c>crowded.toml</c> reports <b>730</b> Arterial Segments of 530,914. So this
+    /// colour is reachable, <see cref="Footways"/>'s refusal to draw a pavement beside one is
+    /// reachable, and <c>plans/0049</c> <b>F51</b>'s refusal of a crossing rests on the same false
+    /// premise — filed there.
     /// </remarks>
     private static readonly Color Arterial = new(0.26f, 0.26f, 0.29f);
 
-    /// <summary>A FootPath, which is paving rather than asphalt and must not read as a road.</summary>
+    /// <summary>
+    /// <b>Paving — what a FootPath is made of, and what a pavement beside a Street is made of.</b>
+    /// It is not asphalt and must not read as a road.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>ONE colour for both, and that is the claim rather than a saving.</b> A cut-through and a
+    /// kerbside pavement are the same surface and the same permission — <see cref="TravelMode.Foot"/>
+    /// on a Segment — so the foot network is one colour on the map wherever it runs. ***What the eye
+    /// picks out is where you may walk, which is a fact the city holds per Segment.***
+    /// </remarks>
     private static readonly Color Flagstone = new(0.52f, 0.50f, 0.46f);
 
     // 🔴 BuildingFillLow/High AND DepthFillLow/High STOOD HERE AND ARE NOW `[lots] setback_tiles`.
@@ -201,7 +258,7 @@ public partial class Main : Node3D
     /// </para>
     /// </remarks>
     private static float YardMargin(int block, int lots) =>
-        (RoadWidthMetres * 0.5f) + (BlockPatterns.StripTiles(block, lots) * MetresPerTile) + 1f;
+        (StreetWidthMetres * 0.5f) + (BlockPatterns.StripTiles(block, lots) * MetresPerTile) + 1f;
 
     /// <summary>Above this, a Building gets a flat roof. <b>Tall things are not gabled.</b></summary>
     private const float PitchCeilingMetres = 24f;
@@ -569,6 +626,7 @@ public partial class Main : Node3D
     private MultiMeshInstance3D _rocks = null!;
     private MultiMeshInstance3D _travellers = null!;
     private MultiMeshInstance3D _roads = null!;
+    private MultiMeshInstance3D _footways = null!;
     private MultiMeshInstance3D _plots = null!;
     private PanelContainer _tuner = null!;
 
@@ -844,6 +902,12 @@ public partial class Main : Node3D
     /// Road Graph. <b>Monotonic row ids, never slots.</b></summary>
     private readonly List<ulong> _roadIds = [];
 
+    /// <summary>
+    /// Which Segment each pavement instance is. ⚠ <b>Every id appears TWICE</b> — a Segment gets a
+    /// strip on each side — so a reader counting distinct Segments here must say so.
+    /// </summary>
+    private readonly List<ulong> _footwayIds = [];
+
     /// <summary>Which vacant Lot each drawn pad is, in instance order.</summary>
     private readonly List<ulong> _plotIds = [];
 
@@ -1056,6 +1120,28 @@ public partial class Main : Node3D
         _water = Layer(new Color(0.10f, 0.22f, 0.42f), new Vector3(1f, 1f, 1f), casts: false);
         _flood = Layer(new Color(0.20f, 0.48f, 0.78f), new Vector3(1f, 1f, 1f), casts: false);
         _roads = Layer(Carriageway, new Vector3(1f, 0.1f, 1f), perInstance: true, casts: false);
+
+        // THE PAVEMENT STANDS 0.1 m PROUD OF THE ASPHALT, and that step is the kerb. The roads box
+        // above is 0.1 m tall and its instances are drawn at y = 0, so a Street's roof is at 0.05 m
+        // (Edge()'s remark measured it); this box is 0.3 m tall, so a pavement's roof is at 0.15 m.
+        //
+        // ⚠ A HEIGHT MEASURED AGAINST THE OTHER MESH AND NOT AGAINST A SCALE. That is Edge()'s own
+        // finding one level up -- a height derived from a scale rather than from the mesh it scales
+        // is a number about the wrong object -- and it applies here for the same reason: 0.1 in the
+        // roads layer is a MESH size and 1.0 in Paving()'s basis is a SCALE on it.
+        //
+        // ⚠ IT IS THE KERB'S FACE AND NOT THE KERB. Step 3 of plans/0049 row 8 is the kerb proper --
+        // its own band along the channel, and the dropped one where a Lot steps to it -- and this is
+        // only the step that a pavement being higher than a road produces on its own.
+        _footways = Layer(Flagstone, new Vector3(1f, 0.3f, 1f), perInstance: true, casts: false,
+
+            // TWO A SEGMENT, so the ceiling is twice the road layer's or the pavements run out
+            // halfway along a city whose carriageways are all drawn. On bordered.toml the roads
+            // layer is ALREADY at its ceiling with 535,817 Segments, and a pavement layer that
+            // stopped at half of what the asphalt covered would be the failure §5 names: a layer at
+            // capacity has silently dropped what did not fit, and the picture shows a smaller city
+            // with nothing to say so.
+            instances: 2 * LayerInstances);
 
         // 🔴 A VACANT LOT DREW NOTHING AT ALL, so Zone -- which creates Lots and never a Building --
         // had NO visible result on any world. Buildings() walks the Building table, and a Lot with
@@ -1717,8 +1803,20 @@ public partial class Main : Node3D
     /// changed afterwards is a resize the engine declines to do.
     /// </remarks>
     private MultiMeshInstance3D Layer(
-        Color colour, Vector3 size, bool perInstance = false, bool casts = true) =>
-        Layer(colour, new BoxMesh { Size = size }, perInstance, casts: casts);
+        Color colour, Vector3 size, bool perInstance = false, bool casts = true,
+        int instances = LayerInstances) =>
+        Layer(colour, new BoxMesh { Size = size }, perInstance, casts: casts, instances: instances);
+
+    /// <summary>
+    /// How many instances a layer holds unless it says otherwise — <b>a ceiling and not a count</b>.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>A layer at its ceiling has dropped whatever did not fit and the picture cannot say
+    /// so</b>, which is why <c>draw</c> prints this beside the instance count
+    /// (<c>plans/0048</c> §5). It is <b>reached</b> on <c>bordered.toml</c>, whose 535,817 Segments
+    /// are more than eight times it.
+    /// </remarks>
+    private const int LayerInstances = 65_536;
 
     /// <inheritdoc cref="Layer(Color, Vector3, bool)"/>
     /// <summary>The same, for a layer whose instances are not boxes.</summary>
@@ -1740,12 +1838,17 @@ public partial class Main : Node3D
     /// because the flat ones are unit boxes squashed by their instance transforms and the mesh
     /// does not know.
     /// </param>
+    /// <param name="instances">
+    /// The layer's ceiling. Defaults to <see cref="LayerInstances"/>; raised only by a layer that
+    /// draws more than one instance per thing, which today is the pavements.
+    /// </param>
     private MultiMeshInstance3D Layer(
         Color colour,
         PrimitiveMesh mesh,
         bool perInstance = false,
         string? painted = null,
-        bool casts = true)
+        bool casts = true,
+        int instances = LayerInstances)
     {
         Material material;
 
@@ -1777,7 +1880,7 @@ public partial class Main : Node3D
         };
 
         multi.Mesh = mesh;
-        multi.InstanceCount = 65_536;
+        multi.InstanceCount = instances;
         multi.VisibleInstanceCount = 0;
 
         var node = new MultiMeshInstance3D { Multimesh = multi };

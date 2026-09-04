@@ -146,7 +146,10 @@ public partial class Main
                 break;
 
             case DriveVerb.Roads:
-                _roads.Visible = command.Amount != 0;
+                // ⚠ THE PAVEMENTS GO WITH THE ASPHALT. `roads off` is how a person looks at the
+                // ground under the city, and a street hidden down to two floating kerbside strips
+                // would be a stranger picture than either state the verb offers.
+                _roads.Visible = _footways.Visible = command.Amount != 0;
 
                 break;
 
@@ -606,6 +609,10 @@ public partial class Main
         ("water", _water, false, null),
         ("flood", _flood, false, null),
         ("road", _roads, true, _roadIds),
+
+        // ⚠ TWO ROWS PER SEGMENT and the same id on both, which is the one layer here where an id
+        // is not unique down the column. See _footwayIds.
+        ("footway", _footways, true, _footwayIds),
         ("cell", _cells, false, null),
         ("plot", _plots, true, _plotIds),
         ("building", _buildings, true, _buildingIds),

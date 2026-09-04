@@ -236,11 +236,17 @@ public partial class Main
     /// aim is three chances for the ghost, the panel and the verb to disagree*** — and the ghost is
     /// the one nobody would ever check against the other two.
     /// </para>
+    /// <para>
+    /// ⚠ <b>Half the CARRIAGEWAY and not half the street</b>, which is the quantity that kept the
+    /// ghost a spine when <see cref="Footways"/> narrowed the asphalt. Half the right of way is now
+    /// wider than the asphalt it is meant to sit inside, so it would have covered the kerb on both
+    /// sides — ***the same 4 m, meaning a different thing.***
+    /// </para>
     /// </remarks>
     private Transform3D Edge((Tiles East, Tiles North) at, int blockTiles)
     {
         float span = blockTiles * MetresPerTile;
-        float wide = RoadWidthMetres * 0.5f;
+        float wide = CarriagewayWidthMetres * 0.5f;
         (int column, int row, StreetAxis axis) = _world.Roads.Streets.NearestEdge(at.East, at.North);
 
         return axis == StreetAxis.East
@@ -1061,9 +1067,18 @@ public partial class Main
     /// city does and does not state.
     /// </para>
     /// <para>
-    /// ⚠ <b>A CROSSING IS NOT DRAWN AND THAT IS A REFUSAL RATHER THAN AN OMISSION.</b>
-    /// <c>[roads] foot_crossing_every</c> is read only where an Arterial severs the lattice, every
-    /// shipped file states <c>arterial_count = 0</c>, and so <b>no crossing exists in the model
+    /// 🔴 <b>A CROSSING IS STILL NOT DRAWN AND THE REASON THIS COMMENT GAVE IS FALSE.</b> It said
+    /// every shipped file states <c>arterial_count = 0</c>. <b>Three state 16</b> —
+    /// <c>severance.toml</c>, <c>bordered.toml</c>, <c>crowded.toml</c> — and <c>--roads</c> on
+    /// <c>crowded.toml</c> counts <b>730</b> Arterial Segments, so crossings exist and are drawn
+    /// today as the <see cref="RoadKind.FootPath"/> Segments they are made into. What stands is that
+    /// <em>this method</em> invents nothing for them; what falls is the claim that there is nothing
+    /// to invent for. Filed as <c>plans/0049</c> <b>F58</b>, against <b>F51</b>.
+    /// </para>
+    /// <para>
+    /// <b>The paragraph this replaced, kept because the reasoning was sound and only the premise
+    /// was wrong:</b> <c>[roads] foot_crossing_every</c> is read only where an Arterial severs the
+    /// lattice, and where no Arterial is laid <b>no crossing exists in the model
     /// anywhere</b>. Drawing one would be inventing a fact rather than under-drawing a held one —
     /// <c>plans/0049</c> <b>F51</b>.
     /// </para>
@@ -1096,7 +1111,7 @@ public partial class Main
             {
                 RoadKind.Arterial => (ArterialWidthMetres, Arterial),
                 RoadKind.FootPath => (FootPathWidthMetres, Flagstone),
-                _ => (RoadWidthMetres, Carriageway),
+                _ => (CarriagewayWidthMetres, Carriageway),
             };
 
             // Scaled along its own length and turned to face the other end: one unit cube per
@@ -1120,8 +1135,127 @@ public partial class Main
         }
     }
 
-    /// <summary>Writes <see cref="Paving"/> into the road layer.</summary>
-    private void Pave() => Fill(_roads, Paving(), _roadIds);
+    /// <summary>
+    /// <b>The pavements</b> — one strip either side of every Segment that carries feet <em>and</em>
+    /// cars.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THE MASK DECIDES AND THE KIND DOES NOT, AND THAT IS THE WHOLE ROW.</b>
+    /// <see cref="RoadSegmentTable.ModesForward"/> and <c>ModesBackward</c> are
+    /// <c>(saved AND hashed)</c> per Segment, and <c>TravelMode.cs</c> says in as many words that
+    /// <b>this is where Severance lives</b>: an Arterial's Arcs carry <see cref="TravelMode.Car"/>
+    /// and not <see cref="TravelMode.Foot"/>, so a pedestrian route across one does not exist.
+    /// ***So the drawing reads the permission rather than the label***, and the three cases fall out
+    /// of the union of the two masks with nothing invented in between:
+    /// </para>
+    /// <para>
+    /// <b>Foot and Car</b> — a carriageway with a pavement each side. <b>Foot alone</b> — the whole
+    /// Segment is already the pavement, which is the <see cref="Flagstone"/>
+    /// <see cref="RoadKind.FootPath"/> <see cref="Paving"/> draws, so nothing is added beside it.
+    /// <b>Car alone</b> — <b>no pavement at all</b>, because there is nowhere to walk. That last one
+    /// is Severance, drawn: an Arterial is a wall of asphalt with no way across it except at a
+    /// crossing, and until now the drawing said nothing about it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>WHAT IS INVENTED IS THE WIDTH AND WHAT IS NOT IS WHICH SEGMENTS HAVE ONE</b>
+    /// (<c>plans/0049</c> rule 2). <see cref="FootwayWidthMetres"/> is chosen by eye and is spent
+    /// out of <see cref="StreetWidthMetres"/> rather than added to it, so ***the street claims
+    /// exactly the ground it claimed before this method existed*** — which is why the row moves no
+    /// Building, no Lot pad and no scatter margin.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>IT STOPS SHORT OF THE JUNCTION AT BOTH ENDS, AND THE GAP IS NOT A ROUNDING.</b> A
+    /// Segment runs node to node, so a pavement drawn its full length would cross the carriageway of
+    /// every Segment meeting it at either end — a raised paving bar laid across each junction, on the
+    /// exact ground a vehicle drives over. Trimming half a carriageway at each end leaves the
+    /// junction box bare. ***The gap is where a dropped kerb and a crossing would go, and neither is
+    /// drawn***: the junction is step 4 of this row and a crossing is <b>F51</b>'s question, now
+    /// reopened by <b>F58</b>.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Two instances a Segment, so the layer is sized for two.</b> A pavement cannot be one box
+    /// — it is an annulus round the asphalt — and the alternative was a shader on a wider slab, which
+    /// buys nothing a second instance does not and costs a material nothing else here needs.
+    /// </para>
+    /// </remarks>
+    private System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where, Color What)>
+        Footways()
+    {
+        RoadSegmentTable segments = _world.Roads.Segments;
+        RoadNodeTable nodes = _world.Roads.Nodes;
+
+        for (int slot = 0; slot < segments.Rows.SlotCount; slot++)
+        {
+            if (!segments.Rows.IsLive(slot)
+                || !nodes.Rows.TryResolve(segments.NodeA[slot], out int a)
+                || !nodes.Rows.TryResolve(segments.NodeB[slot], out int b))
+            {
+                continue;
+            }
+
+            // The Segment's mask, which is the union of its two directions -- TravelMode.cs'
+            // own arrangement, and the reason it is a union is that a one-way street carries cars
+            // one way and pedestrians both.
+            var modes = (TravelMode)(segments.ModesForward[slot] | segments.ModesBackward[slot]);
+
+            if ((modes & TravelMode.Foot) == 0 || (modes & TravelMode.Car) == 0)
+            {
+                continue;
+            }
+
+            var from = new Vector3(
+                nodes.East[a].Raw * MetresPerTile, 0f, -nodes.North[a].Raw * MetresPerTile);
+            var to = new Vector3(
+                nodes.East[b].Raw * MetresPerTile, 0f, -nodes.North[b].Raw * MetresPerTile);
+
+            float carriageway = (RoadKind)segments.Kind[slot] == RoadKind.Arterial
+                ? ArterialWidthMetres
+                : CarriagewayWidthMetres;
+
+            // The run between the two junction boxes rather than between the two nodes. A Segment
+            // shorter than the junctions it joins has no pavement to draw, which an Arterial ramp
+            // can be -- ConnectToGrid lays one of StepTiles where the Junction is already on the
+            // grid line.
+            float along = from.DistanceTo(to) - carriageway;
+
+            if (along <= 0f)
+            {
+                continue;
+            }
+
+            float yaw = Mathf.Atan2(to.X - from.X, to.Z - from.Z);
+            var basis = new Basis(Quaternion.FromEuler(new Vector3(0f, yaw, 0f)))
+                * Basis.FromScale(new Vector3(FootwayWidthMetres, 1f, along));
+
+            // Perpendicular to the run, in the world's frame, at the middle of the pavement's own
+            // width -- half the asphalt plus half the strip. Composing it here rather than as a
+            // local offset on the basis keeps the two strips symmetric about the centre line
+            // whichever way round the Segment's two nodes were created.
+            var across = new Vector3(Mathf.Cos(yaw), 0f, -Mathf.Sin(yaw))
+                * ((carriageway + FootwayWidthMetres) * 0.5f);
+
+            Vector3 middle = from.Lerp(to, 0.5f);
+            Color paint = Flagstone.SrgbToLinear();
+
+            yield return (segments.Rows.IdAt(slot), new Transform3D(basis, middle + across), paint);
+            yield return (segments.Rows.IdAt(slot), new Transform3D(basis, middle - across), paint);
+        }
+    }
+
+    /// <summary>Writes <see cref="Paving"/> and <see cref="Footways"/> into their two layers.</summary>
+    /// <remarks>
+    /// ⚠ <b>Two layers rather than one, and the reason is the draw list.</b> A pavement is
+    /// distinguishable from a carriageway by its width and its colour, which is a filter a reader
+    /// has to know to apply; a layer of its own is a row somebody can count by name
+    /// (<c>plans/0048</c> §5). It is also what makes the pavements a thing that can be counted
+    /// against <c>--roads</c>' census of what carries feet.
+    /// </remarks>
+    private void Pave()
+    {
+        Fill(_roads, Paving(), _roadIds);
+        Fill(_footways, Footways(), _footwayIds);
+    }
 
     /// <summary>The Cell lattice, drawn over the ground the city stands on.</summary>
     /// <remarks>
