@@ -198,7 +198,8 @@ public static class LotSubdivider
         // block_tiles, so a coarse world must not put an unbounded frame on the stack.
         Span<Parcel> parcels = ceiling <= 64 ? stackalloc Parcel[64] : new Parcel[ceiling];
 
-        int count = BlockPatterns.Carve(pattern, column, row, blockTiles, perSegment, parcels);
+        int count = BlockPatterns.Carve(
+            world.Key, pattern, column, row, blockTiles, perSegment, parcels);
         int created = 0;
 
         // A property of the BLOCK and hoisted out of the loop, which is what it is: every Building

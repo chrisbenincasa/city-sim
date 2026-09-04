@@ -3362,7 +3362,7 @@ public sealed class World
                 count = blockSlot == Space.BlockResidency.NotResident
                     ? 0
                     : Space.BlockPatterns.Carve(
-                        pattern, column, row, blockTiles, perSegment, parcels);
+                        Key, pattern, column, row, blockTiles, perSegment, parcels);
 
                 atStoreys = Space.BlockPatterns.Storeys(
                     pattern, blockTiles, perSegment, Rules.Lots.StoreysPerRung);

@@ -24,19 +24,32 @@ public sealed class TasteTests
     /// passed because seed 0 was lucky***, and a change to the Lot supply moved which seed was.
     /// </para>
     /// <para>
-    /// ✅ <b>The effect is real and it needs a bigger city.</b> Swept over three seeds:
-    /// <b>2,000 → +4, +3, −4; 8,000 → −27, −8, −5; 20,000 → −12, −29, −4</b>. Every reading at
-    /// 8,000 and above has the sign the design predicts. ⚠ <b>The reason is the SAMPLE and not the
-    /// taste</b> — a Household compares the three Lots it was shown (<c>adr/0017</c> refusing an
-    /// optimiser), and in a city a kilometre across three Lots barely differ in centrality. The
-    /// preference has to have something to prefer.
+    /// 🔴 ⚠ <b>AND IT THEN RAN AT 12,000, WHERE SEED 0 WAS LUCKY AGAIN.</b> <c>plans/0060</c>'s
+    /// change to the parcel geometry moved it and the same failure returned three days later.
+    /// Re-swept over five seeds, <c>roomMean − centreMean</c> with the sham gap beside it:
+    /// </para>
+    /// <list type="table">
+    /// <item><term>12,000</term><description><b>−6</b>, +3, +11, +3, +8 — sham 2, 4, 6, 11, 10.
+    /// ***Seed 0 is the one negative reading in the row.***</description></item>
+    /// <item><term>20,000</term><description>+3, +1, +13, +7, +13 — sham 11, 3, 1, 4, 4. Right sign
+    /// throughout, and two of the five are inside their own sham.</description></item>
+    /// <item><term>32,000</term><description><b>+13, +14, +16, +15, +12</b> — sham 6, 6, 2, 8, 6.
+    /// ✅ <b>Every seed positive, every seed clear of its sham.</b></description></item>
+    /// </list>
+    /// <para>
+    /// ⚠ <b>The reason is the SAMPLE and not the taste</b> — a Household compares the three Lots it
+    /// was shown (<c>adr/0017</c> refusing an optimiser), and in a small city three Lots barely
+    /// differ in centrality. The preference has to have something to prefer, and how much there is
+    /// to prefer scales with the city. ⚠ <b>A single-seed sign test on a quantity this size is what
+    /// failed twice</b>; the sham comparison below is the part that makes one seed defensible, so
+    /// read the two assertions as one instrument.
     /// </para>
     /// <para>
     /// ⚠ <b>The 161-against-172 in <c>rulesets/choosy.toml</c>'s header was taken at 2,000</b> and is
     /// one sample from the zero-centred distribution above. It is not a measurement of the taste.
     /// </para>
     /// </remarks>
-    private const int TasteIsMeasurable = 12_000;
+    private const int TasteIsMeasurable = 32_000;
 
     private static readonly WorldKey Key = WorldKey.FromSeed(0);
 
@@ -157,8 +170,9 @@ public sealed class TasteTests
             $"Households wanting the centre live {centreMean} Tiles from it on average and "
                 + $"Households wanting room live {roomMean} at {TasteIsMeasurable} Citizens. The "
                 + "preference is not reaching placement. ⚠ Do NOT re-site this at a smaller city to "
-                + "make it pass -- at 2,000 the gap is noise centred on zero and a lucky seed is "
-                + "what this test used to be.");
+                + "make it pass -- at 2,000 and at 12,000 the gap is noise a lucky seed 0 sat on "
+                + "top of, which is what this test used to be, twice. The five-seed band here is "
+                + "+12 to +16; a reading outside it is a change to the city and not a seed.");
 
         // 🔴 THE PLACEBO, AND IT IS THE HALF OF THIS TEST THAT CAN FAIL FOR AN INTERESTING REASON.
         //

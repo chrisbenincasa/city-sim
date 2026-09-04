@@ -281,10 +281,12 @@ public sealed class ParcelTests
         var detached = new Parcel[BlockPatterns.Ceiling(perSegment)];
         var terrace = new Parcel[BlockPatterns.Ceiling(perSegment)];
 
-        int detachedCount =
-            BlockPatterns.Carve(BlockPattern.Detached, 2, 2, block, perSegment, detached);
-        int terraceCount =
-            BlockPatterns.Carve(BlockPattern.BackToBack, 2, 2, block, perSegment, terrace);
+        int detachedCount = BlockPatterns.Carve(
+            Borough.Core.Determinism.WorldKey.FromSeed(0),
+            BlockPattern.Detached, 2, 2, block, perSegment, detached);
+        int terraceCount = BlockPatterns.Carve(
+            Borough.Core.Determinism.WorldKey.FromSeed(0),
+            BlockPattern.BackToBack, 2, 2, block, perSegment, terrace);
 
         int deepestDetached = detached[..detachedCount]
             .Where(parcel => parcel.Face is BlockFace.South or BlockFace.North)

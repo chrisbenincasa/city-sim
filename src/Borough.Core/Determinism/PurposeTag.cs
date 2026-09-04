@@ -769,4 +769,55 @@ public enum PurposeTag : ulong
     /// </para>
     /// </remarks>
     BlockPattern = 39,
+
+    /// <summary>
+    /// <b>How wide a plot is on this block, before any multiple of it</b> — the block's own plot
+    /// module, drawn once per block.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>A PLOT WIDTH USED TO BE A FIFTH OF EVERY SEGMENT, EVERYWHERE ON THE MAP.</b>
+    /// <c>[lots] lots_per_segment</c> is one number for the whole world, and it was sizing two
+    /// different things: how many Addresses a Segment holds — which is the <b>routing graph's</b>
+    /// number, and the argument <c>adr/0078</c> actually makes — and how wide the ground behind one
+    /// of them is, which it was never a claim about. ***The five was chosen to size the graph and
+    /// was being used to size plots.*** <c>plans/0045</c> row 24.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>DRAWN ON THE BLOCK'S COORDINATES</b>, for <see cref="BlockPattern"/>'s reason exactly: a
+    /// plot module is a property of the <em>ground</em>, so a block cleared and zoned again is
+    /// re-platted on the same module and a recycled row cannot re-survey land nobody touched.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Its own tag rather than a share of <see cref="BlockPattern"/>'s</b>, which is this
+    /// enum's standing rule and bites here: both are drawn on the same block coordinates at Tick
+    /// zero, so a shared tag would tie <em>which form this block takes</em> to <em>how finely it is
+    /// platted</em> — every terrace on one module and every suburb on the other, which is a
+    /// correlation with no cause in the city.
+    /// </para>
+    /// </remarks>
+    PlotUnit = 40,
+
+    /// <summary>
+    /// <b>Which plots on one face of a block are a module wider than the rest</b>, drawn once per
+    /// face.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A face's ground divides into a whole number of modules and the modules rarely divide
+    /// evenly</b>, so some plots take one more than the others. This is which — a rotation, so the
+    /// wider ones sit together the way a terrace of larger houses does rather than alternating.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>THE FACE IS IN THE ENTITY ID AND NOT ONLY THE BLOCK</b>, which is the whole reason this
+    /// is not <see cref="PlotUnit"/> with a second draw off it. A block's four faces are platted
+    /// independently; keyed on the block alone every face of one block would take its spare modules
+    /// at the same position, and a block would read as four copies of one terrace.
+    /// </para>
+    /// <para>
+    /// <b>Tick zero, like every standing property.</b> How a face was platted is a fact about the
+    /// survey and not about the moment it was asked about.
+    /// </para>
+    /// </remarks>
+    PlotWidths = 41,
 }
