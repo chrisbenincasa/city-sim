@@ -424,36 +424,50 @@ public partial class Main
         _ => $"refused for reason {(ushort)refusal}, which this shell has no sentence for.",
     };
 
-    /// <summary>One Street on the lattice edge leaving the intersection nearest the cursor.</summary>
+    /// <summary>One Street on the lattice edge <b>nearest</b> the cursor.</summary>
     /// <remarks>
-    /// ⚠ <b>The AXIS is chosen from where inside the block the cursor sits</b>, which is the only
-    /// thing a single click can say about a choice between two edges. <c>adr/0077</c> makes a Connect
-    /// exactly one Segment on the lattice, so the question is never <em>which route</em> — it is
-    /// which of the two edges leaving one corner, and the cursor's own offset answers it.
+    /// <para>
+    /// 🔴 <b>THIS SENT THE CURSOR'S OWN TILE AND SPLIT THE BLOCK ON A DIAGONAL, AND THE PLAYER
+    /// COULD NOT AIM IT.</b> Two invisible rules composed. <c>Simulation.ApplyConnect</c> FLOORS
+    /// whatever Tile it is given, so the edit landed on the south-west corner of the block clicked
+    /// in and never on the nearest one; the axis was then <c>alongEast >= alongNorth</c>, a diagonal
+    /// split of that same block. ***So a click near a block's top-right corner laid a Street at its
+    /// bottom-left.*** ⚠ <b>Face midpoints were right and the interior was not</b>, which is why the
+    /// playtest's forty clicks produced forty Segments and no surprise.
+    /// </para>
+    /// <para>
+    /// <b><see cref="StreetGrid.NearestEdge"/> resolves the aim and
+    /// <see cref="StreetGrid.IntersectionTile"/> addresses it</b>, so the Tile this sends is the
+    /// intersection itself and the core's floor is a no-op on it. ⚠ <b>The floor is not the defect
+    /// and is not touched</b>: it is <c>adr/0014</c>'s <em>Streets snap to the grid</em>, and moving
+    /// it would change what every already-recorded <c>.borough</c> log replays to. ***A rule belongs
+    /// to the city and an aim belongs to the hand***, which is the division
+    /// <see cref="Act"/> already states.
+    /// </para>
     /// </remarks>
     private void Lay((Tiles East, Tiles North) at, bool bulldoze)
     {
-        // ⚠ A world with no lattice has block 0, and the axis below would divide by it. The CORE
+        // ⚠ A world with no lattice has block 0 and NearestEdge answers NoSlot for it. The CORE
         // refuses that world by name (Refusal.ConnectWorldHasNoLattice) and Send is what reports it
-        // -- so this is arithmetic the shell cannot do rather than a rule it is restating.
-        int block = _world.Roads.Streets.BlockTiles;
+        // -- so this is an aim the shell cannot take rather than a rule it is restating.
+        StreetGrid streets = _world.Roads.Streets;
 
-        if (block <= 0)
+        if (streets.BlockTiles <= 0)
         {
             Send(new Command(CommandKind.Connect, at.East, at.North, default));
 
             return;
         }
 
-        int alongEast = ((at.East.Raw % block) + block) % block;
-        int alongNorth = ((at.North.Raw % block) + block) % block;
+        (int column, int row, StreetAxis axis) = streets.NearestEdge(at.East, at.North);
+        (Tiles east, Tiles north) = streets.IntersectionTile(column, row);
 
         var payload = new ConnectPayload(
-            alongEast >= alongNorth ? StreetAxis.East : StreetAxis.North,
+            axis,
             bulldoze ? ConnectAction.Bulldoze : ConnectAction.Lay,
             RoadKind.Street);
 
-        Send(new Command(CommandKind.Connect, at.East, at.North, payload.Encode()));
+        Send(new Command(CommandKind.Connect, east, north, payload.Encode()));
     }
 
     /// <summary>Clears the abandoned Building nearest the cursor, at its own Lot's Tile.</summary>

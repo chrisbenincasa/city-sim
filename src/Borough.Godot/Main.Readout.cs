@@ -145,6 +145,11 @@ public partial class Main
             Virgin(said, at);
         }
 
+        if (_verb == Verb.Connect)
+        {
+            Aiming(said, at);
+        }
+
         if (_verb == Verb.Service)
         {
             int lot = VacantNear(at);
@@ -300,6 +305,55 @@ public partial class Main
     }
 
     /// <summary>
+    /// Which Segment a Street click would lay or bulldoze, <b>and whether one is already there.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THE STREET TOOL WAS THE ONE VERB THAT CHANGED THE GROUND WITH NOTHING TO HOVER.</b>
+    /// <see cref="Virgin"/> gives <c>Zone</c> a line, <see cref="Raise"/>'s Lot line gives
+    /// <c>Service</c> one and <see cref="Built"/> gives <c>Demolish</c> the Building it will
+    /// actually clear — and <c>Connect</c> got the Tile coordinate, which is where the cursor is and
+    /// not what the click does. ***A verb you cannot aim is a verb you cannot test***, and until
+    /// this line existed the only way to know which edge a click had chosen was to click and look.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It resolves the aim through <see cref="StreetGrid.NearestEdge"/>, which is what
+    /// <see cref="Lay"/> sends</b> — the same sharing <see cref="NearestIn"/> has with
+    /// <see cref="Clear"/>, and for the same reason: ***a panel that named one edge while the verb
+    /// acted on another would be worse than no panel at all.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Both outcomes of a plain click are stated, because one of them is nothing.</b>
+    /// <c>RoadGraph.LayStreet</c> returns <c>false</c> on an edge that already carries a Street and
+    /// <c>BulldozeStreet</c> returns it on one that carries none, and <c>ApplyConnect</c> treats
+    /// either as a Tick with no edit rather than as a refusal — so there is no sentence in
+    /// <see cref="Sentence"/> to reach and this is the only place a person can be told.
+    /// </para>
+    /// </remarks>
+    private void Aiming(System.Collections.Generic.List<string> said, (Tiles East, Tiles North) at)
+    {
+        StreetGrid streets = _world.Roads.Streets;
+
+        if (streets.BlockTiles <= 0)
+        {
+            said.Add("no Street lattice in this world — this Ruleset states no [roads] block_tiles");
+
+            return;
+        }
+
+        (int column, int row, StreetAxis axis) = streets.NearestEdge(at.East, at.North);
+        (Tiles east, Tiles north) = streets.IntersectionTile(column, row);
+        int segment = streets.SegmentOn(column, row, axis);
+        string edge = $"the edge running {(axis == StreetAxis.East ? "EAST" : "NORTH")} from "
+            + $"({east.Raw:N0}, {north.Raw:N0})";
+
+        said.Add(segment == Rows.NoSlot
+            ? $"click LAYS a Street on {edge} — nothing stands there, so shift-click does nothing"
+            : $"shift-click BULLDOZES Segment {_world.Roads.Segments.Rows.IdAt(segment):N0} on "
+                + $"{edge} — a plain click does nothing, it is already built");
+    }
+
+    /// <summary>
     /// How much of the block under the cursor is still virgin frontage. <b>Whether a click would do
     /// anything.</b>
     /// </summary>
@@ -381,11 +435,18 @@ public partial class Main
 
         int block = _world.Roads.Streets.BlockTiles;
 
+        // 🔴 THE STREET TOOL GETS THE EDGE AND EVERY OTHER VERB GETS THE BLOCK, because those are
+        // the things the two act on. Connect edits ONE lattice edge (adr/0077) and the block was the
+        // only thing drawn, so the ghost agreed with the click on which block and said nothing at
+        // all about which of its four sides -- the half of row 22 a sentence in the hover cannot fix,
+        // since a person aiming is looking at the ground rather than at the panel.
         _cursor.Multimesh.SetInstanceTransform(
             0,
-            block > 0
-                ? Block(at, block, 0.03f)
-                : Tile(CellGrid.ToCells(at.East), CellGrid.ToCells(at.North), 0.03f));
+            _verb == Verb.Connect && block > 0
+                ? Edge(at, block)
+                : block > 0
+                    ? Block(at, block, 0.03f)
+                    : Tile(CellGrid.ToCells(at.East), CellGrid.ToCells(at.North), 0.03f));
         _cursor.Multimesh.VisibleInstanceCount = 1;
     }
 

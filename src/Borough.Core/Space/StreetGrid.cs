@@ -1,4 +1,5 @@
 using Borough.Core.Arithmetic;
+using Borough.Core.Quantities;
 using Borough.Core.Tables;
 
 namespace Borough.Core.Space;
@@ -161,6 +162,102 @@ public sealed class StreetGrid
     /// </summary>
     public int SegmentOn(int column, int row, StreetAxis axis) =>
         axis == StreetAxis.East ? Horizontal(column, row) : Vertical(column, row);
+
+    /// <summary>
+    /// The lattice edge nearest a Tile — <b>the aim, where <see cref="SegmentOn"/> is the lookup.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>NEAREST AND NOT FLOORED, AND THAT DIFFERENCE IS THE WHOLE OF WHY THE STREET TOOL COULD
+    /// NOT BE AIMED.</b> <c>Simulation.ApplyConnect</c> floors the Tile a <c>CommandKind.Connect</c>
+    /// names — <c>adr/0014</c>'s <em>Streets snap to the grid</em>, and it is the city's snap to make
+    /// — so a Command naming <em>any</em> Tile inside a block edits that block's <b>south-west</b>
+    /// corner. A click near a block's top-right laid a Street at its bottom-left, a block away, and
+    /// the player raised it unprompted on the first session with a world worth building in
+    /// (<c>plans/0045</c> row 22). ⚠ <b>Face midpoints work perfectly and the interior does not</b>,
+    /// which is why forty driven clicks had never caught it.
+    /// </para>
+    /// <para>
+    /// <b>Perpendicular distance to the four lines the block sits between</b>, which answers the axis
+    /// as well as the edge: the two east–west faces are <see cref="StreetAxis.East"/> edges and the
+    /// two north–south ones are <see cref="StreetAxis.North"/>. ***One click cannot say more than
+    /// which edge it is nearest***, and that is exactly what it does say.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Ties go south, then west, then north, then east.</b> A click at the dead centre of a
+    /// block is equidistant from all four and there is no honest answer there — so it gets a stated
+    /// one rather than a coin, and the same click always lays the same Street.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Every edge it returns is one the graph will act on.</b> The block is brought inside
+    /// <see cref="Blocks"/> first, so the four candidates all satisfy <c>RoadGraph.LayStreet</c>'s
+    /// lattice bound — an edge outside it is not refused there, it returns <c>false</c> and applies
+    /// nothing, and ***a verb that silently does nothing is worse than one that says no***.
+    /// </para>
+    /// </remarks>
+    /// <returns>
+    /// The column, row and axis naming the edge — or <see cref="Rows.NoSlot"/> for both indices on a
+    /// world whose <c>[roads]</c> states no lattice, which is the world
+    /// <c>Refusal.ConnectWorldHasNoLattice</c> covers.
+    /// </returns>
+    public (int Column, int Row, StreetAxis Axis) NearestEdge(Tiles east, Tiles north)
+    {
+        if (BlockTiles <= 0 || Blocks <= 0)
+        {
+            return (Rows.NoSlot, Rows.NoSlot, StreetAxis.East);
+        }
+
+        int column = IntegerMath.FloorDiv(east.Raw, BlockTiles);
+        int row = IntegerMath.FloorDiv(north.Raw, BlockTiles);
+
+        column = column < 0 ? 0 : column >= Blocks ? Blocks - 1 : column;
+        row = row < 0 ? 0 : row >= Blocks ? Blocks - 1 : row;
+
+        int alongEast = east.Raw - (column * BlockTiles);
+        int alongNorth = north.Raw - (row * BlockTiles);
+
+        alongEast = alongEast < 0 ? 0 : alongEast > BlockTiles ? BlockTiles : alongEast;
+        alongNorth = alongNorth < 0 ? 0 : alongNorth > BlockTiles ? BlockTiles : alongNorth;
+
+        // South first, and every comparison below is strict -- so the first of an equal pair keeps
+        // the answer and this order IS the tie-break the remark names.
+        (int Column, int Row, StreetAxis Axis) edge = (column, row, StreetAxis.East);
+        int nearest = alongNorth;
+
+        if (alongEast < nearest)
+        {
+            nearest = alongEast;
+            edge = (column, row, StreetAxis.North);
+        }
+
+        if (BlockTiles - alongNorth < nearest)
+        {
+            nearest = BlockTiles - alongNorth;
+            edge = (column, row + 1, StreetAxis.East);
+        }
+
+        if (BlockTiles - alongEast < nearest)
+        {
+            edge = (column + 1, row, StreetAxis.North);
+        }
+
+        return edge;
+    }
+
+    /// <summary>
+    /// The Tile intersection <c>(column, row)</c> stands on — <b>what a <c>CommandKind.Connect</c>
+    /// must name to reach the edges leaving it.</b>
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Exact rather than merely inside the block, and that is what makes the city's floor a
+    /// no-op.</b> <c>Simulation.ApplyConnect</c> takes <c>FloorDiv(tile, block_tiles)</c> of what the
+    /// Command names, and <c>FloorDiv(column × block_tiles, block_tiles)</c> is <c>column</c> — so a
+    /// front end that aims with <see cref="NearestEdge"/> and addresses with this hands the city a
+    /// Tile it cannot move. ***The snap stays the city's and the aim stays the hand's***, which is
+    /// the division <c>Simulation.Refuses</c> already draws between a rule and a pick.
+    /// </remarks>
+    public (Tiles East, Tiles North) IntersectionTile(int column, int row) =>
+        (new Tiles(column * BlockTiles), new Tiles(row * BlockTiles));
 
     /// <summary>
     /// The node standing at intersection <c>(column, row)</c>, or <see cref="Rows.NoSlot"/> if the

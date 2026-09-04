@@ -208,6 +208,62 @@ public partial class Main
     }
 
     /// <summary>
+    /// The lattice edge a Street click would act on, <b>drawn as the Segment it would lay.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>NARROWER THAN THE CARRIAGEWAY AND FLOATING OVER IT, AND BOTH HALVES ARE LOAD-BEARING.</b>
+    /// A ghost as wide as a Street would <em>hide</em> the Street it is aimed at — on exactly the
+    /// edges shift-click can act on, which are the ones where knowing there is one is the whole
+    /// question. So it is a spine down the middle at <see cref="AimAboveMetres"/>: virgin ground
+    /// gets a yellow bar on green, and an edge that already carries a Street gets a grey road with a
+    /// yellow stripe down it. ***The ghost says where the click lands and the picture says which of
+    /// the two things it will do.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The height was measured against the carriageway's mesh rather than assumed.</b>
+    /// <see cref="Pave"/>'s Y scale is 1 and reads as half a metre — but the roads layer's box is
+    /// <c>0.1</c> m tall to begin with, so a Street's roof is at <b>0.05 m</b>. The first version of
+    /// this was a wide band sunk to 0.2 m <em>to pass under that roof</em> and let the road show
+    /// through the middle of it; the roof was ten times lower than the scale suggested, so the band
+    /// floated over the Street and hid it. ***A height derived from a scale rather than from the
+    /// mesh it scales is a number about the wrong object***, and the screenshot that would have
+    /// caught it is the second one — the first had no Street under the aim.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It asks <see cref="StreetGrid.NearestEdge"/> rather than deriving the edge itself</b>,
+    /// which is <see cref="Lay"/>'s query and <see cref="Aiming"/>'s. ***Three derivations of one
+    /// aim is three chances for the ghost, the panel and the verb to disagree*** — and the ghost is
+    /// the one nobody would ever check against the other two.
+    /// </para>
+    /// </remarks>
+    private Transform3D Edge((Tiles East, Tiles North) at, int blockTiles)
+    {
+        float span = blockTiles * MetresPerTile;
+        float wide = RoadWidthMetres * 0.5f;
+        (int column, int row, StreetAxis axis) = _world.Roads.Streets.NearestEdge(at.East, at.North);
+
+        return axis == StreetAxis.East
+            ? new Transform3D(
+                Basis.FromScale(new Vector3(span, AimThickMetres, wide)),
+                new Vector3((column + 0.5f) * span, AimAboveMetres, -row * span))
+            : new Transform3D(
+                Basis.FromScale(new Vector3(wide, AimThickMetres, span)),
+                new Vector3(column * span, AimAboveMetres, -(row + 0.5f) * span));
+    }
+
+    /// <summary>How high the Street tool's ghost floats, in metres. <b>Clear of the carriageway.</b></summary>
+    /// <remarks>
+    /// ⚠ <b>PROVISIONAL</b> under the amnesty's standing order 4 — chosen by eye, no ratifier. It is
+    /// a drawing height and not a quantity the city holds, so <c>adr/0015</c> does not reach it: no
+    /// designer tunes how far a cursor floats over a road.
+    /// </remarks>
+    private const float AimAboveMetres = 0.2f;
+
+    /// <summary>How thick the Street tool's ghost is drawn. <b>PROVISIONAL</b>, as its height.</summary>
+    private const float AimThickMetres = 0.2f;
+
+    /// <summary>
     /// The Hazard Region, laid once — <b><c>01 §5.3</c>'s posted price, and the shell's first
     /// overlay of a thing that has not happened.</b>
     /// </summary>
