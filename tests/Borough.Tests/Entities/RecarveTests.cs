@@ -210,12 +210,11 @@ public sealed class RecarveTests
     /// </para>
     /// <para>
     /// 🔴 <b>AND THE TITLE OF THIS TEST IS NOW LITERALLY FALSE, WHICH IS THE POINT.</b>
-    /// <c>plans/0059</c>'s <see cref="BlockPattern.Tower"/> claims a <em>quarter</em> of its block
-    /// against a slab's whole one, and it sits <em>above</em> the slab — so a pattern claiming less
-    /// ground does now replace one, and must. ***The name is kept because the failure it guards
-    /// against is the one it was named for***: the ratchet reading area rather than the ladder. The
-    /// courtyard was the counter-example that retired the proxy; the tower is the one that would have
-    /// made it absurd.
+    /// <c>plans/0059</c>'s original <see cref="BlockPattern.Tower"/> claimed a <em>quarter</em> of its
+    /// block against a slab's whole one and still sat above the slab — proving that a pattern
+    /// claiming less ground sometimes must replace one. <c>plans/0062</c> later gave its podium the
+    /// full site, but the name remains because the failure it guards against is still the ratchet
+    /// reading area rather than the ladder.
     /// </para>
     /// <para>
     /// <b>It is also what a real city does.</b> Re-platting is an intensification — a block re-divided

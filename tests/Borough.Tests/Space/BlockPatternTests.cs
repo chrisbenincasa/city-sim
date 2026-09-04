@@ -113,6 +113,7 @@ public sealed class BlockPatternTests
     [InlineData(BlockPattern.BackToBack)]
     [InlineData(BlockPattern.Courtyard)]
     [InlineData(BlockPattern.Slab)]
+    [InlineData(BlockPattern.Tower)]
     public void No_tile_is_claimed_twice(BlockPattern pattern)
     {
         int[,] claims = Paint(
@@ -148,6 +149,7 @@ public sealed class BlockPatternTests
     [InlineData(BlockPattern.BackToBack)]
     [InlineData(BlockPattern.Courtyard)]
     [InlineData(BlockPattern.Slab)]
+    [InlineData(BlockPattern.Tower)]
     public void An_exhaustive_pattern_leaves_no_ground(BlockPattern pattern)
     {
         int[,] claims = Paint(

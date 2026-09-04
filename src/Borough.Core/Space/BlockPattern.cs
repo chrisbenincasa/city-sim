@@ -259,12 +259,13 @@ public static class BlockPatterns
     /// </summary>
     /// <remarks>
     /// 🔴 ⚠ <b>THE EXHAUSTIVENESS TEST ASSERTS EACH PATTERN AGAINST ITS OWN CLAIM, NEVER AGAINST ONE
-    /// RULE.</b> Overlap is a defect in all three; <b>leftover ground is a defect in two of them and
-    /// the point of the third</b>. A single rule would have had to pick one of those and would have
-    /// been wrong about the other two.
+    /// RULE.</b> Overlap is always a defect; leftover ground belongs to some forms and contradicts
+    /// others. A single rule would have had to pick one of those and would have been wrong about the
+    /// other.
     /// </remarks>
     public static bool Exhaustive(BlockPattern pattern) =>
-        pattern is BlockPattern.BackToBack or BlockPattern.Perimeter or BlockPattern.Slab;
+        pattern is BlockPattern.BackToBack or BlockPattern.Perimeter or BlockPattern.Slab
+            or BlockPattern.Tower;
 
     /// <summary>
     /// <b>How deep a shallow strip is, in Tiles</b> — the one authored-looking number in this file,
@@ -432,16 +433,12 @@ public static class BlockPatterns
             // rather than a deep-plan one: at a half the frame closes and the hole is gone.
             BlockPattern.Courtyard => IntegerMath.FloorDiv(acrossTiles, 3),
 
-            // A HALF EACH WAY, WHICH IS A QUARTER OF THE BLOCK'S GROUND -- the same class of
-            // statement as Courtyard's third and StripTiles' quarter cap, a fraction of what the
-            // player drew rather than a length. ⚠ IT IS THE LARGEST FRACTION THAT STILL LEAVES THE
-            // MAJORITY OF THE BLOCK OPEN, which is what makes the form a tower rather than a slab,
-            // and the ceiling on it is arithmetic rather than taste: a rung names a plot ratio, so
-            // a form on a NINTH of its block (a third each way) has to stand nine times the ratio
-            // -- 174 storeys at the top rung of `storeys_per_rung = 3`, which is 609 m and absurd.
-            // ***The footprint of the tallest form is what prices the top of the ladder***, and a
-            // third was measured before a half was chosen. plans/0059.
-            BlockPattern.Tower => IntegerMath.FloorDiv(acrossTiles, 2),
+            // THE WHOLE SITE. Tower's open ground used to be encoded by shrinking the PARCEL to a
+            // quarter of the block. That made three quarters of the block ownerless and guaranteed
+            // an empty centre wherever the densest form appeared. The open part belongs in the
+            // Building plan instead: one Lot holds the block, a podium occupies its footprint, and
+            // a smaller shaft rises from it. plans/0062.
+            BlockPattern.Tower => acrossTiles,
             _ => StripTiles(alongTiles, acrossTiles, lotsPerSegment),
         };
     }
@@ -641,8 +638,8 @@ public static class BlockPatterns
     /// 🔴 <b>IT WAS GROUND PER ADDRESS AND THAT WAS A PROXY THAT BROKE ON THE SIXTH FORM.</b> Land
     /// behind a door stood in for people behind a door, which holds for five forms that all house
     /// people by going <em>back</em> — and <see cref="BlockPattern.Tower"/> houses them <em>up</em>.
-    /// A tower claims a quarter of its block behind one door, so the proxy ranked it **between a
-    /// suburb and a terrace** while the thing it was standing in for ranked it top.
+    /// A tower originally claimed a quarter of its block behind one door, so the proxy ranked it
+    /// **between a suburb and a terrace** while the thing it was standing in for ranked it top.
     /// ***A proxy is only visible as one when something arrives that it is wrong about***, and
     /// <c>plans/0058</c> is what made the real quantity computable at all. <c>plans/0059</c>.
     /// </para>
@@ -760,6 +757,27 @@ public static class BlockPatterns
         if (claimed <= 0 || blockTiles <= 0)
         {
             return Floor;
+        }
+
+        // Tower's claimed ground is its full-site podium, not the repeated plan of every floor.
+        // Solve the same floor-area target against the smaller shaft above that podium. Without
+        // this branch, giving the Tower's empty centre back to its Lot would turn the top rung into
+        // a broad seventeen-storey slab and erase the vertical half of the form. plans/0062.
+        if (pattern == BlockPattern.Tower)
+        {
+            BuildingPlan.TowerForm form = BuildingPlan.Tower(blockTiles, blockTiles, byte.MaxValue);
+            long target = (long)ratio * blockTiles * blockTiles;
+            long podiumFloor = (long)blockTiles * blockTiles * form.PodiumStoreys;
+            long shaftFloor = (long)form.ShaftWide * form.ShaftDeep;
+            long remaining = target - podiumFloor;
+            long shaftStoreys = shaftFloor > 0
+                ? IntegerMath.FloorDiv(remaining < 0 ? 0 : remaining, shaftFloor)
+                : 0;
+            long towerStoreys = form.PodiumStoreys + shaftStoreys;
+
+            return towerStoreys < Floor
+                ? Floor
+                : towerStoreys > byte.MaxValue ? byte.MaxValue : (int)towerStoreys;
         }
 
         // long, because a large block times a large ratio leaves 32 bits. Nothing here is a
@@ -994,7 +1012,7 @@ public static class BlockPatterns
                     from += widths[before];
                 }
 
-                int wide = Narrow(pattern, along, widths[group], ref from);
+                int wide = widths[group];
 
                 into[written++] = Rectangle(face, ground, side, offset, from, wide, depth);
             }
@@ -1195,47 +1213,6 @@ public static class BlockPatterns
                 new Tiles(baseEast + ground.Wide - depth), new Tiles(baseNorth + from),
                 new Tiles(depth), new Tiles(wide)),
         };
-    }
-
-    /// <summary>
-    /// <b>Shrinks a parcel inside its own slice</b>, centring what is left. Every pattern but
-    /// <see cref="BlockPattern.Tower"/> keeps the whole slice.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// 🔴 <b>IT IS THE ONE THING A TOWER NEEDS THAT NO OTHER FORM DOES.</b> Every pattern above it
-    /// says how <em>deep</em> a parcel runs and lets the face's own division say how <em>wide</em> —
-    /// which is right for a row of plots and wrong for a form whose whole claim is that it does not
-    /// use the frontage it was given. ***A tower with <c>ParcelsPerFace</c> of one and no narrowing
-    /// is a slab***, because one parcel over one face is the face.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>Centred, so the open ground is a plaza on both sides rather than a gap at one end.</b>
-    /// The consequence is that the Address sits off the footprint: a Lot's position is its door on
-    /// the kerb and its footprint is its parcel, and the two are already different quantities
-    /// (<c>plans/0052</c>). ***A tower is where that gap first becomes visible*** — the door is at
-    /// the first Address on the face and the building is in the middle of the block's frontage.
-    /// </para>
-    /// </remarks>
-    private static int Narrow(BlockPattern pattern, int alongTiles, int span, ref int from)
-    {
-        if (pattern != BlockPattern.Tower)
-        {
-            return span;
-        }
-
-        // ⚠ HALF OF THE FACE'S OWN EXTENT. A tower is a half each way, so the half it takes ALONG
-        // the face is a fraction of that face and not of the block's other axis.
-        int wide = DepthTiles(pattern, BlockFace.South, alongTiles, alongTiles, 0);
-
-        if (wide >= span || wide <= 0)
-        {
-            return span;
-        }
-
-        from += IntegerMath.FloorDiv(span - wide, 2);
-
-        return wide;
     }
 
     /// <summary>

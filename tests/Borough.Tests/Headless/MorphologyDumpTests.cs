@@ -130,6 +130,43 @@ public sealed class MorphologyDumpTests
         Assert.Contains("UNVERIFIED", report, StringComparison.Ordinal);
     }
 
+    /// <summary>The fabric report separates assigned ground from Buildings actually standing.</summary>
+    [Fact]
+    public void Urban_fabric_reports_the_three_ground_surfaces_by_pattern()
+    {
+        string sparse = Dump("minimal.toml", "1000");
+        string varied = Dump("platted.toml", "10000");
+
+        Assert.Contains("## Urban fabric", sparse, StringComparison.Ordinal);
+        Assert.Contains("Parcel/block", sparse, StringComparison.Ordinal);
+        Assert.Contains("Potential/block", sparse, StringComparison.Ordinal);
+        Assert.Contains("Standing/block", sparse, StringComparison.Ordinal);
+        Assert.Contains("Detached", sparse, StringComparison.Ordinal);
+        Assert.Contains("Courtyard", varied, StringComparison.Ordinal);
+        Assert.Contains("Tower", varied, StringComparison.Ordinal);
+
+        double[] detached = FabricRow(sparse, "Detached");
+        double[] slab = FabricRow(varied, "Slab");
+        double[] tower = FabricRow(varied, "Tower");
+
+        Assert.True(detached[2] > detached[3] && detached[3] > detached[4], sparse);
+        Assert.True(slab[4] > tower[4], varied);
+    }
+
+    /// <summary>The five numeric columns on one Urban-fabric pattern row.</summary>
+    private static double[] FabricRow(string report, string pattern)
+    {
+        string line = Array.Find(
+            report.Split('\n'), each => each.TrimStart().StartsWith(pattern, StringComparison.Ordinal))
+            ?? throw new InvalidOperationException($"the dump printed no '{pattern}' fabric row:\n{report}");
+
+        return line.Split(' ', StringSplitOptions.RemoveEmptyEntries)[1..]
+            .Select(each => double.Parse(
+                each.TrimEnd('%').Replace(",", string.Empty, StringComparison.Ordinal),
+                CultureInfo.InvariantCulture))
+            .ToArray();
+    }
+
     /// <summary>
     /// The figure printed after <paramref name="label"/>, parsed rather than substring-matched.
     /// </summary>

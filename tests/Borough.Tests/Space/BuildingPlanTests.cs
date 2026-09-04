@@ -24,6 +24,34 @@ namespace Borough.Tests.Space;
 /// </remarks>
 public sealed class BuildingPlanTests
 {
+    /// <summary>A Tower does not become a courtyard merely because its plan is broad.</summary>
+    [Fact]
+    public void A_tower_is_solid_where_the_generic_plan_would_be_hollow()
+    {
+        int wide = 16;
+        int deep = 16;
+
+        Assert.True(BuildingPlan.Hollow(wide, deep, out _, out _));
+        Assert.False(BuildingPlan.Hollow(BlockPattern.Tower, wide, deep, out _, out _));
+        Assert.Equal(wide * deep, BuildingPlan.HabitableTiles(BlockPattern.Tower, wide, deep));
+    }
+
+    /// <summary>A Tower's capacity counts the same podium and shaft the shell draws.</summary>
+    [Fact]
+    public void A_tower_is_a_full_base_beneath_a_centred_half_plan_shaft()
+    {
+        BuildingPlan.TowerForm form = BuildingPlan.Tower(31, 29, 18);
+
+        Assert.Equal(2, form.PodiumStoreys);
+        Assert.Equal(16, form.ShaftStoreys);
+        Assert.Equal(8, form.ShaftEast);
+        Assert.Equal(7, form.ShaftNorth);
+        Assert.Equal(15, form.ShaftWide);
+        Assert.Equal(14, form.ShaftDeep);
+        Assert.Equal(
+            (31 * 29 * 2) + (15 * 14 * 16),
+            BuildingPlan.FloorTiles(BlockPattern.Tower, 31, 29, 18));
+    }
     /// <summary>
     /// A footprint under the bound is solid, and every Tile of it is floor.
     /// </summary>

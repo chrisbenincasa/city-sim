@@ -1,3 +1,4 @@
+using Borough.Core.Arithmetic;
 using Borough.Core.Quantities;
 
 namespace Borough.Core.Space;
@@ -84,11 +85,84 @@ public static class BuildingPlan
     /// </summary>
     public const int DaylightTiles = 4;
 
+    /// <summary>The street-wall storeys beneath a Tower's smaller shaft.</summary>
+    /// <remarks>
+    /// <b>Two storeys is a type, not a density control:</b> ground and first floor make the base a
+    /// Building rather than a roof deck. The block pattern still derives the total storeys from its
+    /// intensity rung; this only partitions those storeys into base and shaft.
+    /// </remarks>
+    public const int TowerPodiumStoreys = 2;
+
+    /// <summary>The two vertically distinct rectangles of a Tower.</summary>
+    public readonly record struct TowerForm(
+        int PodiumStoreys,
+        int ShaftStoreys,
+        int ShaftEast,
+        int ShaftNorth,
+        int ShaftWide,
+        int ShaftDeep);
+
+    /// <summary>Build a full-site podium with a centred half-width, half-depth solid shaft.</summary>
+    public static TowerForm Tower(int wide, int deep, int storeys)
+    {
+        int positiveStoreys = storeys < 0 ? 0 : storeys;
+        int podium = positiveStoreys < TowerPodiumStoreys
+            ? positiveStoreys
+            : TowerPodiumStoreys;
+        int halfWide = IntegerMath.FloorDiv(wide, 2);
+        int halfDeep = IntegerMath.FloorDiv(deep, 2);
+        int shaftWide = halfWide < 1 ? 1 : halfWide;
+        int shaftDeep = halfDeep < 1 ? 1 : halfDeep;
+
+        return new TowerForm(
+            podium,
+            storeys - podium < 0 ? 0 : storeys - podium,
+            IntegerMath.FloorDiv(wide - shaftWide, 2),
+            IntegerMath.FloorDiv(deep - shaftDeep, 2),
+            shaftWide,
+            shaftDeep);
+    }
+
+    /// <summary>The floor carried by all storeys of a block form.</summary>
+    public static int FloorTiles(BlockPattern pattern, int wide, int deep, int storeys)
+    {
+        if (wide < 1 || deep < 1 || storeys < 1)
+        {
+            return 0;
+        }
+
+        if (pattern != BlockPattern.Tower)
+        {
+            return HabitableTiles(pattern, wide, deep) * storeys;
+        }
+
+        TowerForm form = Tower(wide, deep, storeys);
+        return (wide * deep * form.PodiumStoreys)
+            + (form.ShaftWide * form.ShaftDeep * form.ShaftStoreys);
+    }
+
     /// <summary>
     /// The floor one storey of a <paramref name="wide"/> × <paramref name="deep"/> footprint carries.
     /// </summary>
     public static int HabitableTiles(Tiles wide, Tiles deep) =>
         HabitableTiles(wide.Raw, deep.Raw);
+
+    /// <summary>The floor one storey carries when its block form is known.</summary>
+    public static int HabitableTiles(BlockPattern pattern, Tiles wide, Tiles deep) =>
+        HabitableTiles(pattern, wide.Raw, deep.Raw);
+
+    /// <summary>The floor one storey carries when its block form is known.</summary>
+    public static int HabitableTiles(BlockPattern pattern, int wide, int deep)
+    {
+        if (wide < 1 || deep < 1)
+        {
+            return 0;
+        }
+
+        return Hollow(pattern, wide, deep, out int holeWide, out int holeDeep)
+            ? (wide * deep) - (holeWide * holeDeep)
+            : wide * deep;
+    }
 
     /// <summary>
     /// The floor one storey of a <paramref name="wide"/> × <paramref name="deep"/> footprint carries.
@@ -165,5 +239,25 @@ public static class BuildingPlan
         holeDeep = spareDeep;
 
         return true;
+    }
+
+    /// <summary>Whether this block form explicitly admits a courtyard in this footprint.</summary>
+    /// <remarks>
+    /// <b>A Tower is solid.</b> The generic daylight rule used to turn every sufficiently broad
+    /// rectangle into a ring, so a tall tower became an extruded hollow square. The pattern is the
+    /// missing fact: a courtyard may be hollow and a Tower may not, even at identical dimensions.
+    /// Capacity and the shell call this same function.
+    /// </remarks>
+    public static bool Hollow(
+        BlockPattern pattern, int wide, int deep, out int holeWide, out int holeDeep)
+    {
+        if (pattern == BlockPattern.Tower)
+        {
+            holeWide = 0;
+            holeDeep = 0;
+            return false;
+        }
+
+        return Hollow(wide, deep, out holeWide, out holeDeep);
     }
 }

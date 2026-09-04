@@ -81,6 +81,7 @@ public sealed class LotTable
         FootprintWide = _rows.Saved<Tiles>("footprint_wide");
         FootprintDeep = _rows.Saved<Tiles>("footprint_deep");
         Storeys = _rows.Saved<byte>("storeys");
+        Pattern = _rows.Saved<byte>("block_pattern", Touch.Cold);
 
         _rows.Seal();
     }
@@ -184,6 +185,22 @@ public sealed class LotTable
     /// </remarks>
     public Column<byte> Storeys { get; }
 
+    /// <summary>The <see cref="Space.BlockPattern"/> that carved this Lot.</summary>
+    /// <remarks>
+    /// <b>Saved beside the parcel and rebuilt beside it on an epoch.</b> Parcel geometry survives a
+    /// Ruleset change rather than being silently reinterpreted, and this is part of that geometry.
+    /// A Building plan needs to know
+    /// whether a broad footprint is a courtyard or a Tower; dimensions alone cannot carry that
+    /// distinction, which is what made tall Towers hollow squares.
+    /// </remarks>
+    public Column<byte> Pattern { get; }
+
+    /// <summary>The decoded pattern; the column stores one-based so zero means not rebuilt.</summary>
+    public Space.BlockPattern PatternOf(int slot) =>
+        Pattern[slot] == 0
+            ? Space.BlockPattern.Detached
+            : (Space.BlockPattern)(Pattern[slot] - 1);
+
     /// <summary>
     /// How much ground a Lot holds, in Tiles — <b>and therefore how much its Building Seals</b>.
     /// </summary>
@@ -230,8 +247,8 @@ public sealed class LotTable
     /// 256-Tile block housing four hundred people in two Buildings.
     /// </para>
     /// </remarks>
-    public int FloorTiles(int slot) =>
-        BuildingPlan.HabitableTiles(FootprintWide[slot], FootprintDeep[slot]) * Storeys[slot];
+    public int FloorTiles(int slot) => BuildingPlan.FloorTiles(
+        PatternOf(slot), FootprintWide[slot].Raw, FootprintDeep[slot].Raw, Storeys[slot]);
 
     /// <summary>Position along the east axis, in whole Tiles.</summary>
     public Column<Tiles> East { get; }

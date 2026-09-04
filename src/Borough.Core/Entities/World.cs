@@ -3308,6 +3308,7 @@ public sealed class World
         int atRow = int.MinValue;
         int count = 0;
         int atStoreys = 0;
+        Space.BlockPattern atPattern = Space.BlockPattern.Detached;
 
         for (int slot = 0; slot < Lots.Rows.SlotCount; slot++)
         {
@@ -3342,6 +3343,7 @@ public sealed class World
             Lots.FootprintWide[slot] = Quantities.Tiles.Zero;
             Lots.FootprintDeep[slot] = Quantities.Tiles.Zero;
             Lots.Storeys[slot] = 0;
+            Lots.Pattern[slot] = 0;
 
             if (!Space.Frontage.BlockOf(
                     Roads.Streets, Lots.East[slot], Lots.North[slot], (Space.StreetSide)Lots.Side[slot],
@@ -3370,6 +3372,7 @@ public sealed class World
 
                 atStoreys = Space.BlockPatterns.Storeys(
                     pattern, blockTiles, perSegment, Rules.Lots.StoreysPerRung);
+                atPattern = pattern;
                 atColumn = column;
                 atRow = row;
             }
@@ -3399,6 +3402,7 @@ public sealed class World
                 Lots.FootprintDeep[slot] = deep;
                 Lots.Storeys[slot] = Borough.Core.Rules.LotRuleset.StoreysOn(
                     Key, parcels[i].East, parcels[i].North, atStoreys, Rules.Lots.StoreysPerRung);
+                Lots.Pattern[slot] = (byte)((byte)atPattern + 1);
 
                 break;
             }

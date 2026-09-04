@@ -280,12 +280,81 @@ public partial class Main
             float lit = table.IsAbandoned(slot) ? 0f : taken;
             float draw = ((shape >> 56) & 0xFFu) / 255f;
 
+            // A TOWER IS TWO BODIES FROM THE SAME PLAN THE CITY COUNTS. The Lot owns the whole
+            // site; its low podium closes the street wall, and the centred half-plan shaft rises
+            // above it. Encoding the setback by shrinking the parcel left the block centre
+            // ownerless, while drawing this only in the shell would give the city floor it could
+            // not show. BuildingPlan.Tower is therefore the sole partition read here and by
+            // LotTable.FloorTiles. plans/0062.
+            if (lots.PatternOf(lot) == BlockPattern.Tower)
+            {
+                BuildingPlan.TowerForm tower = BuildingPlan.Tower(footWide, footDeep, storeys);
+                float podiumTall = tower.PodiumStoreys * StoreyMetres;
+                float shaftTall = tower.ShaftStoreys * StoreyMetres;
+                Color reads = new(
+                    (faceEast + 1f) * 0.5f, (faceSouth + 1f) * 0.5f, lit, draw);
+
+                yield return new Massing(
+                    id,
+                    new Transform3D(
+                        Basis.FromScale(new Vector3(eastWest, podiumTall, southNorth)),
+                        new Vector3(east, podiumTall * 0.5f, -north)),
+                    default,
+                    default,
+                    paint,
+                    slate,
+                    reads,
+                    Cap.Flat,
+                    false);
+
+                if (tower.ShaftStoreys > 0)
+                {
+                    float shaftWide = tower.ShaftWide * MetresPerTile;
+                    float shaftDeep = tower.ShaftDeep * MetresPerTile;
+                    float shaftEast = (lots.FootprintEast[lot].Raw + tower.ShaftEast
+                        + (tower.ShaftWide * 0.5f)) * MetresPerTile;
+                    float shaftNorth = (lots.FootprintNorth[lot].Raw + tower.ShaftNorth
+                        + (tower.ShaftDeep * 0.5f)) * MetresPerTile;
+                    float shaftWanted = Math.Min(shaftWide, shaftDeep) * (RoofRiseLow
+                        + (((shape >> 40) & 0xFFu) / 255f * (RoofRiseHigh - RoofRiseLow)));
+                    Cap shaftCap = CapFor(tall, shaftWide, shaftDeep, shaftWanted);
+                    float shaftRise = Mathf.Min(shaftWanted, RoofRiseCeilingMetres);
+
+                    yield return new Massing(
+                        id,
+                        new Transform3D(
+                            Basis.FromScale(new Vector3(shaftWide, shaftTall, shaftDeep)),
+                            new Vector3(
+                                shaftEast,
+                                podiumTall + (shaftTall * 0.5f),
+                                -shaftNorth)),
+                        new Transform3D(
+                            CapBasis(
+                                shaftCap,
+                                shaftWide > shaftDeep,
+                                Math.Min(shaftWide, shaftDeep),
+                                Math.Max(shaftWide, shaftDeep),
+                                shaftRise),
+                            new Vector3(shaftEast, tall + (shaftRise * 0.5f), -shaftNorth)),
+                        default,
+                        paint,
+                        slate,
+                        reads,
+                        shaftCap,
+                        false);
+                }
+
+                continue;
+            }
+
             // 🔴 A RING IS FOUR WINGS AND NOT ONE BOX (plans/0053 step 4). BuildingPlan.Hollow is
             // the same call LotTable.FloorTiles subtracts, so the courtyard the city counted OUT of
             // this Building's capacity is the courtyard the picture leaves open. ***A Building that
             // counted a hole and drew a solid roof would be the parcel-against-footprint defect
             // arriving one level in***, which is what plans/0052 stage 1 was.
-            if (BuildingPlan.Hollow(footWide, footDeep, out int holeWide, out int holeDeep))
+            if (BuildingPlan.Hollow(
+                    lots.PatternOf(lot), footWide, footDeep,
+                    out int holeWide, out int holeDeep))
             {
                 foreach (Massing wing in Wings(
                     id,
