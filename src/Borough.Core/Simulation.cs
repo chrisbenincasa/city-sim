@@ -586,8 +586,8 @@ public sealed class Simulation
         }
 
         TripPayload payload = TripPayload.Decode(command.Zone);
-        int column = IntegerMath.FloorDiv(command.East.Raw, block);
-        int row = IntegerMath.FloorDiv(command.North.Raw, block);
+        int column = _world.Roads.Streets.Lattice.LineAt(command.East.Raw);
+        int row = _world.Roads.Streets.Lattice.LineAt(command.North.Raw);
 
         origin = OccupiedBuildingIn(column, row);
         destination = OccupiedBuildingIn(column + payload.BlocksEast, row + payload.BlocksNorth);
@@ -810,10 +810,9 @@ public sealed class Simulation
     /// <summary>The two block coordinates a refused <c>Trip</c> named, spelled out.</summary>
     private string TripBlocks(Command command)
     {
-        int block = _world.Roads.Streets.BlockTiles;
         TripPayload payload = TripPayload.Decode(command.Zone);
-        int column = IntegerMath.FloorDiv(command.East.Raw, block);
-        int row = IntegerMath.FloorDiv(command.North.Raw, block);
+        int column = _world.Roads.Streets.Lattice.LineAt(command.East.Raw);
+        int row = _world.Roads.Streets.Lattice.LineAt(command.North.Raw);
 
         return $"trip from block ({column}, {row}) to block ({column + payload.BlocksEast}, "
             + $"{row + payload.BlocksNorth}) names a block with no occupied Building in it. The "
@@ -853,13 +852,16 @@ public sealed class Simulation
             throw new InvalidOperationException(Explain(refusal, command));
         }
 
-        int block = _world.Roads.Streets.BlockTiles;
-
         // Snapped down to the lattice, which is what adr/0014's "Streets snap to the grid" means once
         // the graph is nodes at intersections rather than Tiles: the player names a place and the
         // edit lands on the edge leaving the intersection at or below it.
-        int column = IntegerMath.FloorDiv(command.East.Raw, block);
-        int row = IntegerMath.FloorDiv(command.North.Raw, block);
+        //
+        // ⚠ THE SNAP IS THE LATTICE'S OWN and no longer a divide, so a player's click lands on the
+        // line below it however the lines are spaced. StreetGrid.IntersectionTile's remark -- the
+        // snap stays the city's and the aim stays the hand's -- is what makes that safe: the shell
+        // aims with NearestEdge and addresses with IntersectionTile, and both read this lattice.
+        int column = _world.Roads.Streets.Lattice.LineAt(command.East.Raw);
+        int row = _world.Roads.Streets.Lattice.LineAt(command.North.Raw);
 
         bool changed = payload.Action == ConnectAction.Lay
             ? _world.Roads.LayStreet(column, row, payload.Axis)
@@ -965,7 +967,7 @@ public sealed class Simulation
     /// </remarks>
     private int OccupiedBuildingIn(int column, int row)
     {
-        int block = _world.Roads.Streets.BlockTiles;
+        BlockLattice lattice = _world.Roads.Streets.Lattice;
         LotTable lots = _world.Lots;
 
         for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
@@ -975,8 +977,8 @@ public sealed class Simulation
                 continue;
             }
 
-            if (IntegerMath.FloorDiv(lots.East[slot].Raw, block) == column
-                && IntegerMath.FloorDiv(lots.North[slot].Raw, block) == row)
+            if (lattice.LineAt(lots.East[slot].Raw) == column
+                && lattice.LineAt(lots.North[slot].Raw) == row)
             {
                 return lots.BuildingOn(slot);
             }

@@ -41,12 +41,26 @@ public sealed class RoadGraph
     private readonly RoutingPartition _partition = new(RoutingPartition.DesignEdge);
 
     private RoadRuleset _ruleset;
+    private readonly Determinism.WorldKey _key;
+    private BlockLattice _lattice = BlockLattice.None;
     private int[] _cursor = [];
 
     /// <param name="ruleset">The <c>[roads]</c> table in force. <see cref="RoadRuleset.None"/> is a world with no roads.</param>
     public RoadGraph(RoadRuleset ruleset)
+        : this(ruleset, default)
     {
+    }
+
+    /// <param name="ruleset">The <c>[roads]</c> table in force.</param>
+    /// <param name="key">
+    /// The world, which the lattice's spacing is drawn on when <c>[roads] block_spread_tiles</c>
+    /// states one. <c>plans/0045</c> row 25.
+    /// </param>
+    public RoadGraph(RoadRuleset ruleset, Determinism.WorldKey key)
+    {
+        _key = key;
         _ruleset = ruleset;
+        _lattice = Lay(ruleset, key);
 
         int nodes = ExpectedNodes(ruleset);
         _nodes = new RoadNodeTable(nodes);
@@ -120,6 +134,30 @@ public sealed class RoadGraph
     /// <summary>The <c>[roads]</c> table this graph's derived columns currently reflect.</summary>
     public RoadRuleset Ruleset => _ruleset;
 
+    /// <summary>
+    /// <b>Where this world's lattice lines stand</b> — the two questions <c>block_tiles</c> was
+    /// answering by arithmetic (<see cref="BlockLattice"/>).
+    /// </summary>
+    /// <remarks>
+    /// <b>Held by the graph rather than by <see cref="StreetGrid"/>, because the generator needs it
+    /// before there is an index to read.</b> <c>RoadGenerator.LayInto</c> takes this graph and lays
+    /// the Nodes the index will later find; if the lattice lived on the index the two would derive
+    /// it separately and could disagree about where a line stands. Rebuilt in the constructor and in
+    /// <see cref="Adopt"/>, which are the two places <c>[roads]</c> arrives.
+    /// </remarks>
+    public BlockLattice Lattice => _lattice;
+
+    /// <summary>The lattice a <c>[roads]</c> table and a world describe.</summary>
+    /// <remarks>
+    /// ⚠ <b>Absent spread means UNIFORM, which is the shipped world.</b> The key is optional for the
+    /// reason every <c>[roads]</c>-family key is: a default would be a hash-bearing world-creation
+    /// number nobody chose. <c>plans/0045</c> row 25.
+    /// </remarks>
+    private static BlockLattice Lay(RoadRuleset ruleset, Determinism.WorldKey key) =>
+        ruleset.BlockSpreadTiles > 0
+            ? BlockLattice.Varied(key, ruleset.BlockTiles, ruleset.BlockSpreadTiles)
+            : BlockLattice.Even(ruleset.BlockTiles);
+
     /// <summary>Whether this world has roads at all.</summary>
     public bool Exists => _segments.Rows.LiveCount > 0;
 
@@ -173,6 +211,7 @@ public sealed class RoadGraph
     public void Adopt(RoadRuleset ruleset)
     {
         _ruleset = ruleset;
+        _lattice = Lay(ruleset, _key);
         RebuildDerived();
     }
 
@@ -217,7 +256,14 @@ public sealed class RoadGraph
         _segments.Create(
             NodeFor(column, row),
             NodeFor(toColumn, toRow),
-            new Tiles(_ruleset.BlockTiles),
+
+            // ⚠ THIS BLOCK'S WIDTH and not a nominal one -- a Segment's length is a piece of ground.
+            // BlockLattice.Nominal is the other kind and would be wrong here on any lattice whose
+            // lines are not evenly spaced. plans/0045 row 25.
+            new Tiles(
+                axis == StreetAxis.East
+                    ? _lattice.WidthOf(column)
+                    : _lattice.WidthOf(row)),
             RoadKind.Street,
             TravelMode.Any,
             TravelMode.Any);
@@ -276,9 +322,7 @@ public sealed class RoadGraph
 
         return slot != Rows.NoSlot
             ? _nodes.Rows.At(slot)
-            : _nodes.Create(
-                new Tiles(column * _ruleset.BlockTiles),
-                new Tiles(row * _ruleset.BlockTiles));
+            : _nodes.Create(_lattice.TileOf(column), _lattice.TileOf(row));
     }
 
     /// <summary>
@@ -304,7 +348,7 @@ public sealed class RoadGraph
         DeriveSegmentAttributes();
         RebuildAdjacency();
         _connectivity.Rebuild(_nodes, _segments);
-        _streets.Rebuild(_nodes, _segments, _ruleset.BlockTiles);
+        _streets.Rebuild(_nodes, _segments, _lattice);
 
         // Last, and it must run after RebuildAdjacency because it reads the Arcs.
         //

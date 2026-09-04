@@ -35,10 +35,15 @@ public sealed class BlockPatternTests
 
     /// <summary>Every parcel one pattern yields for one block.</summary>
     private static Parcel[] Carve(BlockPattern pattern, int blockTiles, int lotsPerSegment,
-        int column = 3, int row = 4)
+        int column = 3, int row = 4, ulong seed = 0)
     {
         var into = new Parcel[BlockPatterns.Ceiling(lotsPerSegment)];
-        int count = BlockPatterns.Carve(pattern, column, row, blockTiles, lotsPerSegment, into);
+        int count = BlockPatterns.Carve(
+            Borough.Core.Determinism.WorldKey.FromSeed(seed),
+            pattern,
+            BlockGround.At(BlockLattice.Even(blockTiles), column, row),
+            lotsPerSegment,
+            into);
 
         return into[..count];
     }

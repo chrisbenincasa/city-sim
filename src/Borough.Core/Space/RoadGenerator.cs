@@ -227,42 +227,59 @@ public static class RoadGenerator
     /// </remarks>
     private static void Link(RoadGraph graph, RoadRuleset roads, Layout from, Layout to)
     {
-        int block = roads.BlockTiles;
+        BlockLattice lattice = graph.Lattice;
 
         (Handle<RoadNode> start, int east, int north) = from.NearestTo(to.OriginEast, to.OriginNorth);
         (Handle<RoadNode> end, int endEast, int endNorth) = to.NearestTo(east, north);
 
-        var length = new Tiles(block);
         Handle<RoadNode> current = start;
 
-        int stepEast = endEast > east ? block : -block;
+        // 🔴 A STEP TO THE NEXT LINE, and it used to be a step of one block. The corridor lands on
+        // the same Nodes either way while the lines are evenly spaced; on a lattice whose lines are
+        // not, a fixed step walks off the grid and invents a Node between two intersections.
+        // plans/0045 row 25.
+        int step = endEast > east ? 1 : -1;
 
         while (east != endEast)
         {
-            east += stepEast;
+            int was = east;
+
+            east = lattice.EdgeOf(lattice.LineAt(east) + step);
 
             Handle<RoadNode> next = east == endEast && north == endNorth
                 ? end
                 : graph.Nodes.Create(new Tiles(east), new Tiles(north));
 
             graph.Segments.Create(
-                current, next, length, RoadKind.Street, TravelMode.Any, TravelMode.Any);
+                current,
+                next,
+                new Tiles(IntegerMath.Abs(east - was)),
+                RoadKind.Street,
+                TravelMode.Any,
+                TravelMode.Any);
 
             current = next;
         }
 
-        int stepNorth = endNorth > north ? block : -block;
+        step = endNorth > north ? 1 : -1;
 
         while (north != endNorth)
         {
-            north += stepNorth;
+            int was = north;
+
+            north = lattice.EdgeOf(lattice.LineAt(north) + step);
 
             Handle<RoadNode> next = north == endNorth
                 ? end
                 : graph.Nodes.Create(new Tiles(east), new Tiles(north));
 
             graph.Segments.Create(
-                current, next, length, RoadKind.Street, TravelMode.Any, TravelMode.Any);
+                current,
+                next,
+                new Tiles(IntegerMath.Abs(north - was)),
+                RoadKind.Street,
+                TravelMode.Any,
+                TravelMode.Any);
 
             current = next;
         }
@@ -281,8 +298,26 @@ public static class RoadGenerator
         int index,
         MapLayers? layers)
     {
+        /// <summary>
+        /// Where the lines stand — <b>this world's, and not an arithmetic on
+        /// <c>block_tiles</c></b> (<see cref="BlockLattice"/>).
+        /// </summary>
+        private readonly BlockLattice _lattice = graph.Lattice;
+
+        /// <summary>The global line this lattice's west edge stands on.</summary>
+        /// <remarks>
+        /// <b>Exact, because <c>RulesetLoader</c> refuses an origin off the block grid.</b> ⚠ That
+        /// refusal is stated as <em>a multiple of <c>block_tiles</c></em>, which is the same
+        /// sentence as <em>on a line</em> only while the lines are evenly spaced —
+        /// <c>plans/0045</c> row 25.
+        /// </remarks>
+        private readonly int _lineEast = graph.Lattice.LineAt(origin.OriginEastTiles);
+
+        /// <summary>The global line this lattice's south edge stands on.</summary>
+        private readonly int _lineNorth = graph.Lattice.LineAt(origin.OriginNorthTiles);
+
         /// <summary>Node columns and rows in the Street grid.</summary>
-        private readonly int _grid = IntegerMath.FloorDiv(extentTiles, roads.BlockTiles) + 1;
+        private readonly int _grid = graph.Lattice.LinesIn(origin.OriginEastTiles, extentTiles);
 
         /// <summary>The Tile this lattice's west edge stands on.</summary>
         public int OriginEast => origin.OriginEastTiles;
@@ -290,12 +325,90 @@ public static class RoadGenerator
         /// <summary>The Tile this lattice's south edge stands on.</summary>
         public int OriginNorth => origin.OriginNorthTiles;
 
+        /// <summary>The Tile column <paramref name="column"/>'s line stands on.</summary>
+        /// <remarks>
+        /// <b>The global spacing, translated to this lattice's origin.</b> An origin on a line — the
+        /// only kind the loader admits — makes this exactly <c>EdgeOf(_lineEast + column)</c>; the
+        /// subtraction is what keeps an origin that is not one a translation rather than a snap, so
+        /// no world's Nodes move because this method replaced the multiply.
+        /// </remarks>
+        public int EastOf(int column) =>
+            OriginEast + _lattice.EdgeOf(_lineEast + column) - _lattice.EdgeOf(_lineEast);
+
+        /// <summary>The Tile row <paramref name="row"/>'s line stands on.</summary>
+        public int NorthOf(int row) =>
+            OriginNorth + _lattice.EdgeOf(_lineNorth + row) - _lattice.EdgeOf(_lineNorth);
+
+        /// <summary>How wide the block east of column <paramref name="column"/> is.</summary>
+        public int WideAt(int column) => EastOf(column + 1) - EastOf(column);
+
+        /// <summary>How deep the block north of row <paramref name="row"/> is.</summary>
+        public int DeepAt(int row) => NorthOf(row + 1) - NorthOf(row);
+
+        /// <summary>This lattice's column holding <paramref name="east"/>.</summary>
+        public int ColumnAt(int east) =>
+            _lattice.LineAt(east - OriginEast + _lattice.EdgeOf(_lineEast)) - _lineEast;
+
+        /// <summary>This lattice's row holding <paramref name="north"/>.</summary>
+        public int RowAt(int north) =>
+            _lattice.LineAt(north - OriginNorth + _lattice.EdgeOf(_lineNorth)) - _lineNorth;
+
+        /// <summary>Column <paramref name="column"/>'s line, measured from this lattice's origin.</summary>
+        /// <remarks>
+        /// <b>The Arterial pass works in lattice-local Tiles</b> — <c>InBounds</c> tests against the
+        /// extent and <c>SealRun</c> adds the origin back — so it needs the local form of the same
+        /// two questions rather than a second convention.
+        /// </remarks>
+        public int LocalEast(int column) => EastOf(column) - OriginEast;
+
+        /// <summary>Row <paramref name="row"/>'s line, measured from this lattice's origin.</summary>
+        public int LocalNorth(int row) => NorthOf(row) - OriginNorth;
+
+        /// <summary>The column whose line is NEAREST a local Tile, rather than the one holding it.</summary>
+        /// <remarks>
+        /// <b>A ramp reaches the nearest intersection and not the one south-west of it</b>, which is
+        /// why this rounds where <see cref="ColumnAt"/> floors. ⚠ <b>Comparing the two neighbours
+        /// rather than dividing</b>, because <c>RoundDiv</c> is that comparison written out for a
+        /// spacing that does not vary.
+        /// </remarks>
+        public int NearestColumn(int localEast)
+        {
+            int column = ColumnAt(OriginEast + localEast);
+
+            return localEast - LocalEast(column) > LocalEast(column + 1) - localEast
+                ? column + 1
+                : column;
+        }
+
+        /// <summary>The row whose line is nearest a local Tile.</summary>
+        public int NearestRow(int localNorth)
+        {
+            int row = RowAt(OriginNorth + localNorth);
+
+            return localNorth - LocalNorth(row) > LocalNorth(row + 1) - localNorth
+                ? row + 1
+                : row;
+        }
+
+
         /// <summary>How far the laid Nodes reach from the origin, which is not the authored extent.</summary>
         /// <remarks>
         /// <b>The grid is floored, so the far Node stops at or before the extent.</b> An overlap test
         /// against the authored extent would refuse worlds whose Nodes never touch.
         /// </remarks>
-        private int Span => (_grid - 1) * roads.BlockTiles;
+        private int Span
+        {
+            get
+            {
+                int east = EastOf(_grid - 1) - OriginEast;
+                int north = NorthOf(_grid - 1) - OriginNorth;
+
+                // ⚠ THE WIDER OF THE TWO, because Reach and Overlaps are one number applied to both
+                // axes and this is a refusal test -- understating it lets two lattices contend for
+                // ground. Equal on an evenly spaced lattice, which is why nothing moves here.
+                return east > north ? east : north;
+            }
+        }
 
         /// <summary>
         /// How far this lattice's ground reaches — <b>the Nodes plus one block</b>.
@@ -310,7 +423,9 @@ public static class RoadGenerator
         /// <b>20,545 / 20,736</b> where it is 20,641 / 20,640 by construction. ***A refusal drawn at
         /// the roads is drawn at the wrong thing, because it is the LAND that is contended.***
         /// </remarks>
-        private int Reach => Span + roads.BlockTiles;
+        // ⚠ A block as a LENGTH and not a particular block's ground -- an overlap margin, which is
+        // BlockLattice.Nominal's own distinction.
+        private int Reach => Span + _lattice.Nominal;
 
         /// <summary>Whether this lattice stands on any of <paramref name="other"/>'s ground.</summary>
         public bool Overlaps(Layout other) =>
@@ -329,16 +444,10 @@ public static class RoadGenerator
         /// </remarks>
         public (Handle<RoadNode> Node, int East, int North) NearestTo(int east, int north)
         {
-            int column = Clamp(
-                IntegerMath.FloorDiv(east - OriginEast, roads.BlockTiles), 0, _grid - 1);
+            int column = Clamp(ColumnAt(east), 0, _grid - 1);
+            int row = Clamp(RowAt(north), 0, _grid - 1);
 
-            int row = Clamp(
-                IntegerMath.FloorDiv(north - OriginNorth, roads.BlockTiles), 0, _grid - 1);
-
-            return (
-                Intersection(column, row),
-                OriginEast + (column * roads.BlockTiles),
-                OriginNorth + (row * roads.BlockTiles));
+            return (Intersection(column, row), EastOf(column), NorthOf(row));
         }
 
         /// <summary>
@@ -379,16 +488,16 @@ public static class RoadGenerator
                 for (int east = 0; east < _grid; east++)
                 {
                     _intersections[(north * _grid) + east] = graph.Nodes.Create(
-                        new Tiles(OriginEast + (east * roads.BlockTiles)),
-                        new Tiles(OriginNorth + (north * roads.BlockTiles)));
+                        new Tiles(EastOf(east)), new Tiles(NorthOf(north)));
                 }
             }
 
             _streets = new Handle<RoadSegment>[2 * _grid * (_grid - 1)];
             _severed = new bool[_streets.Length];
 
-            var length = new Tiles(roads.BlockTiles);
-
+            // 🔴 A LENGTH PER SEGMENT AND NOT ONE FOR THE LATTICE. It was hoisted out of both loops
+            // as `var length = new Tiles(roads.BlockTiles)`, which is the assumption row 25 removes:
+            // a Street's length is the ground between two lines and those need not be equal.
             for (int north = 0; north < _grid; north++)
             {
                 for (int east = 0; east < _grid - 1; east++)
@@ -396,17 +505,15 @@ public static class RoadGenerator
                     _streets[Horizontal(east, north)] = graph.Segments.Create(
                         Intersection(east, north),
                         Intersection(east + 1, north),
-                        length,
+                        new Tiles(WideAt(east)),
                         RoadKind.Street,
                         TravelMode.Any,
                         TravelMode.Any);
 
                     SealRun(
-                        OriginEast + (east * roads.BlockTiles),
-                        OriginNorth + (north * roads.BlockTiles),
-                        OriginEast + ((east + 1) * roads.BlockTiles),
-                        OriginNorth + (north * roads.BlockTiles),
-                        roads.BlockTiles);
+                        EastOf(east), NorthOf(north),
+                        EastOf(east + 1), NorthOf(north),
+                        WideAt(east));
                 }
             }
 
@@ -417,17 +524,15 @@ public static class RoadGenerator
                     _streets[Vertical(east, north)] = graph.Segments.Create(
                         Intersection(east, north),
                         Intersection(east, north + 1),
-                        length,
+                        new Tiles(DeepAt(north)),
                         RoadKind.Street,
                         TravelMode.Any,
                         TravelMode.Any);
 
                     SealRun(
-                        OriginEast + (east * roads.BlockTiles),
-                        OriginNorth + (north * roads.BlockTiles),
-                        OriginEast + (east * roads.BlockTiles),
-                        OriginNorth + ((north + 1) * roads.BlockTiles),
-                        roads.BlockTiles);
+                        EastOf(east), NorthOf(north),
+                        EastOf(east), NorthOf(north + 1),
+                        DeepAt(north));
                 }
             }
         }
@@ -589,10 +694,10 @@ public static class RoadGenerator
         /// </summary>
         private void MarkSevered(int fromEast, int fromNorth, int toEast, int toNorth)
         {
-            int fromColumn = IntegerMath.FloorDiv(fromEast, roads.BlockTiles);
-            int toColumn = IntegerMath.FloorDiv(toEast, roads.BlockTiles);
-            int fromRow = IntegerMath.FloorDiv(fromNorth, roads.BlockTiles);
-            int toRow = IntegerMath.FloorDiv(toNorth, roads.BlockTiles);
+            int fromColumn = ColumnAt(OriginEast + fromEast);
+            int toColumn = ColumnAt(OriginEast + toEast);
+            int fromRow = RowAt(OriginNorth + fromNorth);
+            int toRow = RowAt(OriginNorth + toNorth);
 
             if (fromColumn != toColumn)
             {
@@ -628,11 +733,10 @@ public static class RoadGenerator
         /// </remarks>
         private void ConnectToGrid(Handle<RoadNode> junction, int tileEast, int tileNorth)
         {
-            int column = Clamp(IntegerMath.RoundDiv(tileEast, roads.BlockTiles), 0, _grid - 1);
-            int row = Clamp(IntegerMath.RoundDiv(tileNorth, roads.BlockTiles), 0, _grid - 1);
+            int column = Clamp(NearestColumn(tileEast), 0, _grid - 1);
+            int row = Clamp(NearestRow(tileNorth), 0, _grid - 1);
 
-            int length = Distance(
-                tileEast, tileNorth, column * roads.BlockTiles, row * roads.BlockTiles);
+            int length = Distance(tileEast, tileNorth, LocalEast(column), LocalNorth(row));
 
             graph.Segments.Create(
                 junction,
@@ -647,8 +751,7 @@ public static class RoadGenerator
             SealRun(
                 OriginEast + tileEast,
                 OriginNorth + tileNorth,
-                OriginEast + (column * roads.BlockTiles),
-                OriginNorth + (row * roads.BlockTiles),
+                EastOf(column), NorthOf(row),
                 length <= 0 ? StepTiles : length);
         }
 
@@ -804,8 +907,6 @@ public static class RoadGenerator
                 return;
             }
 
-            var diagonal = new Tiles(Distance(0, 0, roads.BlockTiles, roads.BlockTiles));
-
             for (int north = 0; north < _grid - 1; north++)
             {
                 for (int east = 0; east < _grid - 1; east++)
@@ -821,6 +922,10 @@ public static class RoadGenerator
                         continue;
                     }
 
+                    // ⚠ THIS BLOCK'S diagonal. It was hoisted above both loops as one length for
+                    // the whole lattice, which is only right while every block is the same size.
+                    var diagonal = new Tiles(Distance(0, 0, WideAt(east), DeepAt(north)));
+
                     graph.Segments.Create(
                         Intersection(east, north),
                         Intersection(east + 1, north + 1),
@@ -834,10 +939,8 @@ public static class RoadGenerator
                     // It seals MORE Tiles than a Street of the same block because it is longer,
                     // which is the geometry and not a weighting.
                     SealRun(
-                        OriginEast + (east * roads.BlockTiles),
-                        OriginNorth + (north * roads.BlockTiles),
-                        OriginEast + ((east + 1) * roads.BlockTiles),
-                        OriginNorth + ((north + 1) * roads.BlockTiles),
+                        EastOf(east), NorthOf(north),
+                        EastOf(east + 1), NorthOf(north + 1),
                         diagonal.Raw);
                 }
             }

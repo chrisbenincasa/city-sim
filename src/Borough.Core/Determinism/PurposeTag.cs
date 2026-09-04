@@ -769,4 +769,81 @@ public enum PurposeTag : ulong
     /// </para>
     /// </remarks>
     BlockPattern = 39,
+
+    /// <summary>
+    /// <b>How wide a plot is on this block, before any multiple of it</b> — the block's own plot
+    /// module, drawn once per block.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>A PLOT WIDTH USED TO BE A FIFTH OF EVERY SEGMENT, EVERYWHERE ON THE MAP.</b>
+    /// <c>[lots] lots_per_segment</c> is one number for the whole world, and it was sizing two
+    /// different things: how many Addresses a Segment holds — which is the <b>routing graph's</b>
+    /// number, and the argument <c>adr/0078</c> actually makes — and how wide the ground behind one
+    /// of them is, which it was never a claim about. ***The five was chosen to size the graph and
+    /// was being used to size plots.*** <c>plans/0045</c> row 24.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>DRAWN ON THE BLOCK'S COORDINATES</b>, for <see cref="BlockPattern"/>'s reason exactly: a
+    /// plot module is a property of the <em>ground</em>, so a block cleared and zoned again is
+    /// re-platted on the same module and a recycled row cannot re-survey land nobody touched.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Its own tag rather than a share of <see cref="BlockPattern"/>'s</b>, which is this
+    /// enum's standing rule and bites here: both are drawn on the same block coordinates at Tick
+    /// zero, so a shared tag would tie <em>which form this block takes</em> to <em>how finely it is
+    /// platted</em> — every terrace on one module and every suburb on the other, which is a
+    /// correlation with no cause in the city.
+    /// </para>
+    /// </remarks>
+    PlotUnit = 40,
+
+    /// <summary>
+    /// <b>Which plots on one face of a block are a module wider than the rest</b>, drawn once per
+    /// face.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A face's ground divides into a whole number of modules and the modules rarely divide
+    /// evenly</b>, so some plots take one more than the others. This is which — a rotation, so the
+    /// wider ones sit together the way a terrace of larger houses does rather than alternating.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>THE FACE IS IN THE ENTITY ID AND NOT ONLY THE BLOCK</b>, which is the whole reason this
+    /// is not <see cref="PlotUnit"/> with a second draw off it. A block's four faces are platted
+    /// independently; keyed on the block alone every face of one block would take its spare modules
+    /// at the same position, and a block would read as four copies of one terrace.
+    /// </para>
+    /// <para>
+    /// <b>Tick zero, like every standing property.</b> How a face was platted is a fact about the
+    /// survey and not about the moment it was asked about.
+    /// </para>
+    /// </remarks>
+    PlotWidths = 41,
+
+    /// <summary>
+    /// <b>Which line of a period is the wide one, and which the narrow</b> — the Street lattice's
+    /// own spacing (<see cref="Space.BlockLattice.Varied"/>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b><c>plans/0045</c> row 25: the lattice a player's Streets snap to is not uniform.</b>
+    /// <c>[roads] block_tiles</c> was one number for the whole map, so 128 m was a good block size
+    /// that was also the only one.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>DRAWN ON THE PERIOD AND NOT ON THE LINE, which is the whole reason the mean holds.</b>
+    /// Every line in a run of four reads this one answer, so the run measures four nominal blocks
+    /// however the wide one fell — ***a per-line draw would need a running correction, and a
+    /// correction is where a held mean silently stops being held.*** The grain is what
+    /// <c>--morphology</c> reads and the row's own warning is that moving it would be the wrong
+    /// change made confidently.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is the PLAN and not the ground</b>, so it takes no Tick: a lattice is world-creation
+    /// data and a block that is re-platted is re-platted the same width, exactly as
+    /// <see cref="PlotUnit"/> is on the block's own coordinates.
+    /// </para>
+    /// </remarks>
+    BlockSpacing = 42,
 }

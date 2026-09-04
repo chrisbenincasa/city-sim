@@ -281,11 +281,22 @@ public static class BlockPatterns
     /// drifted.
     /// </para>
     /// <para>
-    /// <b>Two terms, both derived.</b> <c>blockTiles ÷ lotsPerSegment</c> is one Lot's frontage, so a
-    /// strip that deep makes a square-ish plot — <b>a plot is about as deep as it is wide</b>, which is
-    /// the only shape claim in this file and the only one a real block supports without a survey.
-    /// <c>blockTiles ÷ 4</c> caps it, so the middle band never closes: at that cap the two strips take
-    /// half the block and the interior keeps the other half.
+    /// <b>Two terms, both derived.</b> The first is one plot's frontage, so a strip that deep makes a
+    /// square-ish plot — <b>a plot is about as deep as it is wide</b>, which is the only shape claim
+    /// in this file and the only one a real block supports without a survey. <c>blockTiles ÷ 4</c>
+    /// caps it, so the middle band never closes: at that cap the two strips take half the block and
+    /// the interior keeps the other half.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>THE FIRST TERM WAS <c>blockTiles ÷ lotsPerSegment</c> AND THAT IS THE ADDRESS SPACING,
+    /// NOT A PLOT'S FRONTAGE.</b> A Segment's Addresses split between the two blocks that share it by
+    /// parity (<see cref="Frontage.SideOf"/>), so a face carries about <em>half</em> of them and each
+    /// parcel is about <b>twice</b> the spacing wide. ***The file's one shape claim was false in the
+    /// shipped city by a factor of 1.8***: at <c>block_tiles = 32</c> and
+    /// <c>lots_per_segment = 5</c> the strip came out 6 Tiles deep behind parcels measured 10 and 11
+    /// Tiles wide — read off the draw list, 40 × 24 m and 44 × 24 m. The term is
+    /// <c>2 × blockTiles ÷ lotsPerSegment</c> now, and at the shipped lattice ***the quarter cap is
+    /// what binds***, so the depth is 8. <c>plans/0045</c> row 24.
     /// </para>
     /// <para>
     /// ⚠ <b>Nothing may write this as a Ruleset key.</b> <c>adr/0078</c> refused a depth key and the
@@ -293,15 +304,31 @@ public static class BlockPatterns
     /// keys that already exist.
     /// </para>
     /// </remarks>
-    public static int StripTiles(int blockTiles, int lotsPerSegment)
+    public static int StripTiles(int blockTiles, int lotsPerSegment) =>
+        StripTiles(blockTiles, blockTiles, lotsPerSegment);
+
+    /// <inheritdoc cref="StripTiles(int, int)"/>
+    /// <remarks>
+    /// 🔴 <b>THE TWO TERMS MEASURE DIFFERENT AXES AND THE ONE-ARGUMENT FORM CANNOT SAY SO.</b> The
+    /// frontage term is twice the Address spacing <b>along</b> the face; the quarter cap is a
+    /// fraction of the block <b>across</b> it. They were one number while every block was square,
+    /// which is exactly <c>plans/0045</c> row 25's assumption — ***a derivation that reads two
+    /// extents off one variable is not wrong about the number and is wrong about the quantity.***
+    /// </remarks>
+    /// <param name="alongTiles">How far the face runs, which sets a plot's frontage.</param>
+    /// <param name="acrossTiles">How deep the block is behind it, which the cap is a quarter of.</param>
+    /// <param name="lotsPerSegment">Addresses a Segment holds.</param>
+    public static int StripTiles(int alongTiles, int acrossTiles, int lotsPerSegment)
     {
         if (lotsPerSegment <= 0)
         {
             return 0;
         }
 
-        int frontage = IntegerMath.FloorDiv(blockTiles, lotsPerSegment);
-        int quarter = IntegerMath.FloorDiv(blockTiles, 4);
+        // TWICE the Address spacing, because a face carries every other Address and the parcel
+        // behind one of them spans the gap its neighbour on the far side left.
+        int frontage = IntegerMath.FloorDiv(2 * alongTiles, lotsPerSegment);
+        int quarter = IntegerMath.FloorDiv(acrossTiles, 4);
 
         return frontage < quarter ? frontage : quarter;
     }
@@ -375,24 +402,35 @@ public static class BlockPatterns
     /// arbitrary is that some rule must exist, because a Tile cannot belong to two parcels.
     /// </para>
     /// </remarks>
-    public static int DepthTiles(BlockPattern pattern, BlockFace face, int blockTiles, int lotsPerSegment)
+    public static int DepthTiles(
+        BlockPattern pattern, BlockFace face, int blockTiles, int lotsPerSegment) =>
+        DepthTiles(pattern, face, blockTiles, blockTiles, lotsPerSegment);
+
+    /// <inheritdoc cref="DepthTiles(BlockPattern, BlockFace, int, int)"/>
+    /// <remarks>
+    /// ⚠ <b>Every fraction here is of the ACROSS extent</b> — a half, a third, a quarter of the
+    /// ground the depth runs into — and only the strip's frontage term reads the along one.
+    /// <c>plans/0045</c> row 25.
+    /// </remarks>
+    public static int DepthTiles(
+        BlockPattern pattern, BlockFace face, int alongTiles, int acrossTiles, int lotsPerSegment)
     {
-        int half = IntegerMath.FloorDiv(blockTiles, 2);
-        int far = blockTiles - half;
+        int half = IntegerMath.FloorDiv(acrossTiles, 2);
+        int far = acrossTiles - half;
 
         return pattern switch
         {
-            BlockPattern.Detached => StripTiles(blockTiles, lotsPerSegment),
+            BlockPattern.Detached => StripTiles(alongTiles, acrossTiles, lotsPerSegment),
             BlockPattern.BackToBack or BlockPattern.Slab => face == BlockFace.South ? half : far,
             BlockPattern.Perimeter => face is BlockFace.South or BlockFace.North
-                ? StripTiles(blockTiles, lotsPerSegment)
+                ? StripTiles(alongTiles, acrossTiles, lotsPerSegment)
                 : face == BlockFace.West ? half : far,
 
             // A THIRD, so the hole is a third of the block across and the frame is a third each
             // side. It is the same class of statement as StripTiles' quarter cap -- a fraction of
             // what the player drew, not a length -- and it is what makes the form a COURTYARD block
             // rather than a deep-plan one: at a half the frame closes and the hole is gone.
-            BlockPattern.Courtyard => IntegerMath.FloorDiv(blockTiles, 3),
+            BlockPattern.Courtyard => IntegerMath.FloorDiv(acrossTiles, 3),
 
             // A HALF EACH WAY, WHICH IS A QUARTER OF THE BLOCK'S GROUND -- the same class of
             // statement as Courtyard's third and StripTiles' quarter cap, a fraction of what the
@@ -403,8 +441,8 @@ public static class BlockPatterns
             // -- 174 storeys at the top rung of `storeys_per_rung = 3`, which is 609 m and absurd.
             // ***The footprint of the tallest form is what prices the top of the ladder***, and a
             // third was measured before a half was chosen. plans/0059.
-            BlockPattern.Tower => IntegerMath.FloorDiv(blockTiles, 2),
-            _ => StripTiles(blockTiles, lotsPerSegment),
+            BlockPattern.Tower => IntegerMath.FloorDiv(acrossTiles, 2),
+            _ => StripTiles(alongTiles, acrossTiles, lotsPerSegment),
         };
     }
 
@@ -427,7 +465,7 @@ public static class BlockPatterns
 
         Span<Parcel> parcels = ceiling <= 64 ? stackalloc Parcel[64] : new Parcel[ceiling];
 
-        int count = Carve(pattern, 0, 0, blockTiles, lotsPerSegment, parcels);
+        int count = Carve(default, pattern, blockTiles, lotsPerSegment, parcels);
         int claimed = 0;
 
         for (int i = 0; i < count; i++)
@@ -455,7 +493,7 @@ public static class BlockPatterns
 
         Span<Parcel> parcels = ceiling <= 64 ? stackalloc Parcel[64] : new Parcel[ceiling];
 
-        return Carve(pattern, 0, 0, blockTiles, lotsPerSegment, parcels);
+        return Carve(default, pattern, blockTiles, lotsPerSegment, parcels);
     }
 
     /// <summary>
@@ -838,15 +876,39 @@ public static class BlockPatterns
     /// </remarks>
     /// <returns>How many parcels were written. Never more than <see cref="Ceiling"/>.</returns>
     public static int Carve(
-        BlockPattern pattern, int column, int row, int blockTiles, int lotsPerSegment,
-        Span<Parcel> into)
+        Determinism.WorldKey key, BlockPattern pattern, int blockTiles,
+        int lotsPerSegment, Span<Parcel> into) =>
+        Carve(key, pattern, BlockGround.Square(blockTiles), lotsPerSegment, into);
+
+    /// <inheritdoc cref="Carve(Determinism.WorldKey, BlockPattern, int, int, Span{Parcel})"/>
+    /// <remarks>
+    /// 🔴 <b>A BLOCK IS TWO EXTENTS AND A PLACE, AND IT USED TO BE ONE NUMBER.</b> Four faces off a
+    /// single <c>blockTiles</c> is a square block by construction, and the origin was
+    /// <c>column × blockTiles</c> — both true of an evenly spaced lattice and of nothing else.
+    /// <see cref="BlockGround"/> carries the four numbers, and every derivation below says which of
+    /// them it is reading. <c>plans/0045</c> row 25.
+    /// </remarks>
+    public static int Carve(
+        Determinism.WorldKey key, BlockPattern pattern, BlockGround ground,
+        int lotsPerSegment, Span<Parcel> into)
     {
-        if (blockTiles <= 0 || lotsPerSegment <= 0)
+        if (ground.Wide <= 0 || ground.Deep <= 0 || lotsPerSegment <= 0)
         {
             return 0;
         }
 
         int written = 0;
+
+        // plans/0045 row 24. Hoisted out of the face loop -- four stackallocs in a loop is a stack
+        // overflow waiting for a coarse Ruleset, and lotsPerSegment is the most parcels any one face
+        // can carry, so one buffer serves all four.
+        Span<int> widths = lotsPerSegment <= 32 ? stackalloc int[32] : new int[lotsPerSegment];
+
+        // ⚠ ONE MODULE FOR THE BLOCK, taken off its NARROWER side -- BlockGround.Least's own remark.
+        // Tait's structure is regular within a block and varying between them, so a module per face
+        // would be the wrong half of the survey; the narrower side is what keeps the short face able
+        // to divide by it at all.
+        int unit = UnitTiles(key, ground.Column, ground.Row, ground.Least);
 
         for (BlockFace face = BlockFace.South; face <= BlockFace.East; face++)
         {
@@ -856,7 +918,11 @@ public static class BlockPatterns
             }
 
             StreetSide side = SideOf(face);
-            (int low, int high) = ReachTiles(pattern, face, blockTiles, lotsPerSegment);
+            (int low, int high) = ReachTiles(pattern, face, ground, lotsPerSegment);
+
+            // How far this face runs, which is what its Addresses are spaced along and what its
+            // parcels divide. ⚠ NOT the block, and not the other axis.
+            int along = ground.Along(face);
 
             // How many Addresses this face carries, which is what its ground divides among. A first
             // pass rather than a running count: a parcel's width needs the total, and the total is
@@ -866,7 +932,7 @@ public static class BlockPatterns
             for (int index = 0; index < lotsPerSegment; index++)
             {
                 if (Frontage.SideOf(index) == side
-                    && Within(Frontage.OffsetOf(index, lotsPerSegment, blockTiles).Raw, low, high))
+                    && Within(Frontage.OffsetOf(index, lotsPerSegment, along).Raw, low, high))
                 {
                     count++;
                 }
@@ -877,7 +943,7 @@ public static class BlockPatterns
                 continue;
             }
 
-            int depth = DepthTiles(pattern, face, blockTiles, lotsPerSegment);
+            int depth = DepthTiles(pattern, face, along, ground.Across(face), lotsPerSegment);
             int reach = high - low;
 
             // How many parcels this face is actually cut into. A coarse pattern joins Addresses; it
@@ -887,9 +953,15 @@ public static class BlockPatterns
             int placed = 0;
             int last = -1;
 
+            // plans/0045 row 24. The face's ground divides into multiples of the BLOCK's module
+            // rather than into equal shares of lots_per_segment -- so a face shows two widths and
+            // the module varies from block to block. Computed once per face because a parcel's left
+            // edge is the sum of the ones before it.
+            Widths(key, ground.Column, ground.Row, face, unit, reach, groups, widths);
+
             for (int index = 0; index < lotsPerSegment; index++)
             {
-                Tiles offset = Frontage.OffsetOf(index, lotsPerSegment, blockTiles);
+                Tiles offset = Frontage.OffsetOf(index, lotsPerSegment, along);
 
                 if (Frontage.SideOf(index) != side || !Within(offset.Raw, low, high))
                 {
@@ -913,18 +985,168 @@ public static class BlockPatterns
 
                 last = group;
 
-                // FloorDiv on both edges rather than a width times an index: the slices then abut
-                // exactly and the last one absorbs the remainder, so a reach that does not divide by
-                // the count still tiles.
-                int from = low + IntegerMath.FloorDiv(group * reach, groups);
-                int to = low + IntegerMath.FloorDiv((group + 1) * reach, groups);
-                int wide = Narrow(pattern, blockTiles, to - from, ref from);
+                // The left edge is the sum of the widths before it, so the slices abut exactly and
+                // the face tiles however the modules fell -- Widths is what guarantees the total.
+                int from = low;
 
-                into[written++] = Rectangle(face, column, row, blockTiles, side, offset, from, wide, depth);
+                for (int before = 0; before < group; before++)
+                {
+                    from += widths[before];
+                }
+
+                int wide = Narrow(pattern, along, widths[group], ref from);
+
+                into[written++] = Rectangle(face, ground, side, offset, from, wide, depth);
             }
         }
 
         return written;
+    }
+
+    /// <summary>
+    /// <b>The block's own plot module, in Tiles</b> — the width every plot on it is a multiple of.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>A PLOT WIDTH IS A MULTIPLE OF ITS OWN BLOCK'S UNIT AND NOT A FIFTH OF EVERY SEGMENT.</b>
+    /// <c>[lots] lots_per_segment</c> is one number for the whole map and it was sizing two different
+    /// things: the Addresses a Segment holds, which is <c>adr/0078</c>'s <b>routing-graph</b>
+    /// argument — five a Segment is what holds the graph near 30,000 Segments rather than 150,000 —
+    /// and the width of the ground behind one, which that argument was never about. ***The five was
+    /// chosen to size the graph and was being used to size plots.*** ⚠ <b>The routing argument is
+    /// untouched</b>: five <em>on average</em> is compatible with widths that vary, and nothing in
+    /// the 30,000 bound needs them equal. <c>plans/0045</c> row 24.
+    /// </para>
+    /// <para>
+    /// <b>A power-of-two fraction of the block, drawn between two adjacent ones.</b> Tait's survey of
+    /// 49 Scottish blocks supplies the <em>structure</em> — widths quantised rather than continuous,
+    /// the unit block-specific and varying about 2.2× between blocks, regular within a block and
+    /// varying between them. 🔴 <b>IT DOES NOT SUPPLY THE STEP, and importing one would make a
+    /// Borough plot width a claim about Scotland</b> (<c>plans/0012</c> <b>Cause 5</b>). What supplies
+    /// the step here is the grid: a block is a power of two Tiles, so halves and quarters are exact
+    /// where thirds are not, and the two adjacent fractions <c>÷8</c> and <c>÷16</c> are a <b>2×</b>
+    /// spread — the nearest thing the grid can express to the survey's 2.2 without borrowing its
+    /// number.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>WHY TWO FRACTIONS AND NOT SIX, WHICH IS THE QUESTION A SURVEY CANNOT ANSWER.</b> Measured
+    /// on <c>minimal.toml</c> at 1,000 Citizens with the draw list's <c>scale</c> row: at the distance
+    /// the whole city is read from — the eye 1,000 m out, tilt 40° — <b>one Tile of frontage is 5.35
+    /// pixels</b>, and at the distance a player edits from (400 m) it is <b>13.4</b>. A face carries
+    /// <b>two or three</b> parcels at the shipped lattice, so a block can show at most three widths
+    /// in a row; ***a set of six classes is a distribution nobody can see in a row of three***, and
+    /// four of them would sit inside the 5-pixel threshold at the reading distance. <b>Two classes a
+    /// face and two modules a map</b> is what those two numbers buy, and it is derived from this
+    /// build rather than from a survey.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Floored, and it stays honest off a power of two.</b> A block that is not a power of two
+    /// Tiles gets a floored module and the exactness argument lapses — what does not lapse is the
+    /// tiling, because <see cref="Widths"/> gives the last parcel the remainder.
+    /// </para>
+    /// </remarks>
+    public static int UnitTiles(Determinism.WorldKey key, int column, int row, int blockTiles)
+    {
+        if (blockTiles <= 0)
+        {
+            return 0;
+        }
+
+        // The ground's own coordinates as the entity id -- PurposeTag.PlotUnit's whole remark, and
+        // BlockPattern's one level up: a block cleared and zoned again is re-platted the same way.
+        ulong patch = ((ulong)(uint)column << 32) | (uint)row;
+        ulong draw = Determinism.Randomness.Draw(
+            key, patch, Quantities.Ticks.Zero, Determinism.PurposeTag.PlotUnit);
+
+        int unit = IntegerMath.ShiftRight(blockTiles, (int)(3 + (draw & 1)));
+
+        return unit > 0 ? unit : 1;
+    }
+
+    /// <summary>
+    /// <b>How one face's ground divides among its parcels</b>, in Tiles, quantised to the block's
+    /// module.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Every parcel takes a whole number of modules and the spare ones are dealt to a contiguous
+    /// run.</b> A face holding <c>units</c> modules across <c>groups</c> parcels gives each
+    /// <c>units ÷ groups</c> and hands the remainder out one apiece — so a face shows exactly
+    /// <b>two</b> widths, which is what two or three parcels in a row can express. ⚠ <b>Contiguous
+    /// rather than alternating</b>, because a terrace of larger houses at one end is a shape and
+    /// a wide-narrow-wide comb is a pattern nobody builds.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>IT TILES THE FACE EXACTLY, WHICH IS NOT A ROUNDING CONVENIENCE.</b>
+    /// <see cref="Exhaustive"/> patterns claim to leave no ground over, and a partition that
+    /// quantised and then stopped would leave a sliver at one end of every face of every one of them.
+    /// ***The last parcel absorbs <c>reach mod unit</c>***, which is under one module and is what the
+    /// end of a real terrace does.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It falls back to the even split when the module is too coarse for the face</b> — fewer
+    /// modules than parcels — rather than refusing or dropping a parcel. That is the coarse-Ruleset
+    /// case and it reproduces exactly what the carve did before this existed.
+    /// </para>
+    /// </remarks>
+    /// <param name="key">The world key the module and the deal are drawn from.</param>
+    /// <param name="column">The block's column.</param>
+    /// <param name="row">The block's row.</param>
+    /// <param name="face">Which face is being platted — <b>in the deal's entity id.</b></param>
+    /// <param name="unit">The block's module, from <see cref="UnitTiles"/>.</param>
+    /// <param name="reach">How many Tiles of face the parcels divide.</param>
+    /// <param name="groups">How many parcels divide it.</param>
+    /// <param name="into">Filled with <paramref name="groups"/> widths, summing to <paramref name="reach"/>.</param>
+    public static void Widths(
+        Determinism.WorldKey key, int column, int row, BlockFace face,
+        int unit, int reach, int groups, Span<int> into)
+    {
+        if (groups <= 0)
+        {
+            return;
+        }
+
+        int units = unit > 0 ? IntegerMath.FloorDiv(reach, unit) : 0;
+
+        if (units < groups)
+        {
+            // The even split, which is what the carve did before a module existed. FloorDiv on both
+            // edges rather than a width times an index, so the slices abut exactly.
+            for (int at = 0; at < groups; at++)
+            {
+                into[at] = IntegerMath.FloorDiv((at + 1) * reach, groups)
+                    - IntegerMath.FloorDiv(at * reach, groups);
+            }
+
+            return;
+        }
+
+        int baseUnits = IntegerMath.FloorDiv(units, groups);
+        int spare = units - (baseUnits * groups);
+
+        // The face in the id, not only the block: PurposeTag.PlotWidths' own remark. Four faces
+        // keyed alike would take their spare modules at one position and a block would read as four
+        // copies of one terrace.
+        ulong patch = ((ulong)(uint)column << 32) | (uint)row;
+        ulong draw = Determinism.Randomness.Draw(
+            key, patch ^ ((ulong)face << 60), Quantities.Ticks.Zero,
+            Determinism.PurposeTag.PlotWidths);
+
+        int from = (int)(draw % (ulong)groups);
+
+        for (int at = 0; at < groups; at++)
+        {
+            into[at] = baseUnits * unit;
+        }
+
+        for (int given = 0; given < spare; given++)
+        {
+            into[(from + given) % groups] += unit;
+        }
+
+        // The end of the terrace takes what the modules did not reach -- under one module, and the
+        // reason an Exhaustive pattern still leaves no ground over.
+        into[groups - 1] += reach - (units * unit);
     }
 
     /// <summary>Whether an offset falls on the stretch of face a pattern lays Addresses along.</summary>
@@ -942,11 +1164,14 @@ public static class BlockPatterns
     /// the far edge, which is the only place a subtraction appears.
     /// </remarks>
     private static Parcel Rectangle(
-        BlockFace face, int column, int row, int blockTiles, StreetSide side, Tiles offset,
+        BlockFace face, BlockGround ground, StreetSide side, Tiles offset,
         int from, int wide, int depth)
     {
-        int baseEast = column * blockTiles;
-        int baseNorth = row * blockTiles;
+        // ⚠ THE BLOCK'S OWN ORIGIN, which was `column × blockTiles` -- the lattice answers it now,
+        // and the two subtractions below measure back from the block's own far edge rather than from
+        // one span used for both axes. plans/0045 row 25.
+        int baseEast = ground.East;
+        int baseNorth = ground.North;
 
         return face switch
         {
@@ -957,7 +1182,7 @@ public static class BlockPatterns
 
             BlockFace.North => new Parcel(
                 face, side, offset,
-                new Tiles(baseEast + from), new Tiles(baseNorth + blockTiles - depth),
+                new Tiles(baseEast + from), new Tiles(baseNorth + ground.Deep - depth),
                 new Tiles(wide), new Tiles(depth)),
 
             BlockFace.West => new Parcel(
@@ -967,7 +1192,7 @@ public static class BlockPatterns
 
             _ => new Parcel(
                 face, side, offset,
-                new Tiles(baseEast + blockTiles - depth), new Tiles(baseNorth + from),
+                new Tiles(baseEast + ground.Wide - depth), new Tiles(baseNorth + from),
                 new Tiles(depth), new Tiles(wide)),
         };
     }
@@ -992,14 +1217,16 @@ public static class BlockPatterns
     /// the first Address on the face and the building is in the middle of the block's frontage.
     /// </para>
     /// </remarks>
-    private static int Narrow(BlockPattern pattern, int blockTiles, int span, ref int from)
+    private static int Narrow(BlockPattern pattern, int alongTiles, int span, ref int from)
     {
         if (pattern != BlockPattern.Tower)
         {
             return span;
         }
 
-        int wide = DepthTiles(pattern, BlockFace.South, blockTiles, 0);
+        // ⚠ HALF OF THE FACE'S OWN EXTENT. A tower is a half each way, so the half it takes ALONG
+        // the face is a fraction of that face and not of the block's other axis.
+        int wide = DepthTiles(pattern, BlockFace.South, alongTiles, alongTiles, 0);
 
         if (wide >= span || wide <= 0)
         {
@@ -1022,11 +1249,16 @@ public static class BlockPatterns
     /// what a real corner does.
     /// </remarks>
     public static (int Low, int High) ReachTiles(
-        BlockPattern pattern, BlockFace face, int blockTiles, int lotsPerSegment)
+        BlockPattern pattern, BlockFace face, int blockTiles, int lotsPerSegment) =>
+        ReachTiles(pattern, face, BlockGround.Square(blockTiles), lotsPerSegment);
+
+    /// <inheritdoc cref="ReachTiles(BlockPattern, BlockFace, int, int)"/>
+    public static (int Low, int High) ReachTiles(
+        BlockPattern pattern, BlockFace face, BlockGround ground, int lotsPerSegment)
     {
         if (face is BlockFace.South or BlockFace.North)
         {
-            return (0, blockTiles);
+            return (0, ground.Wide);
         }
 
         // 🔴 THE RESERVATION IS THE SOUTH FACE'S OWN DEPTH AND NO LONGER StripTiles. They were the
@@ -1035,8 +1267,11 @@ public static class BlockPatterns
         // reaches a THIRD of the block, and a reservation still set to the strip let the north and
         // south parcels run under the east and west ones. ***Two rectangles overlapped by 16 Tiles a
         // block, and the partition test is what would have caught it.***
-        int corner = DepthTiles(pattern, BlockFace.South, blockTiles, lotsPerSegment);
+        // ⚠ THE SOUTH FACE'S DEPTH, which runs north-south -- so it is measured across the block's
+        // DEEP extent while the reach it trims runs along the same one. plans/0045 row 25.
+        int corner = DepthTiles(
+            pattern, BlockFace.South, ground.Wide, ground.Deep, lotsPerSegment);
 
-        return (corner, blockTiles - corner);
+        return (corner, ground.Deep - corner);
     }
 }

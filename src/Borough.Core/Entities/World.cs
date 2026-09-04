@@ -161,7 +161,7 @@ public sealed class World
         // CitizenTable now takes a CarParkTable because `ParkedIn` is a handle rather than a slot --
         // Address.cs's rule, one table over: a saved slot index folds the city's whole demolition
         // history into the hash, so two runs building the same city would disagree.
-        Roads = new RoadGraph(rules.Roads);
+        Roads = new RoadGraph(rules.Roads, key);
 
         // One Car Park per Building, so this is the Building ratio and not a fourth guessed one --
         // which 0002 §D1 asks in as many words that nobody add. A kind declaring `parking = 0` still
@@ -3362,7 +3362,11 @@ public sealed class World
                 count = blockSlot == Space.BlockResidency.NotResident
                     ? 0
                     : Space.BlockPatterns.Carve(
-                        pattern, column, row, blockTiles, perSegment, parcels);
+                        Key,
+                        pattern,
+                        Space.BlockGround.At(Roads.Streets.Lattice, column, row),
+                        perSegment,
+                        parcels);
 
                 atStoreys = Space.BlockPatterns.Storeys(
                     pattern, blockTiles, perSegment, Rules.Lots.StoreysPerRung);

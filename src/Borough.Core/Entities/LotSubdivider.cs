@@ -62,8 +62,8 @@ public static class LotSubdivider
             return 0;
         }
 
-        int column = Arithmetic.IntegerMath.FloorDiv(east.Raw, streets.BlockTiles);
-        int row = Arithmetic.IntegerMath.FloorDiv(north.Raw, streets.BlockTiles);
+        int column = streets.Lattice.LineAt(east.Raw);
+        int row = streets.Lattice.LineAt(north.Raw);
 
         return SubdivideBlock(world, column, row, zone);
     }
@@ -185,6 +185,10 @@ public static class LotSubdivider
     {
         StreetGrid streets = world.Roads.Streets;
 
+        // ✅ THE BLOCK'S OWN GROUND -- two extents and a place, from the lattice. This read
+        // `streets.BlockTiles` and carved four faces off it, which is a square block by
+        // construction. plans/0045 row 25.
+        BlockGround ground = BlockGround.At(streets.Lattice, column, row);
         int blockTiles = streets.BlockTiles;
         int perSegment = world.Rules.Lots.LotsPerSegment;
         int ceiling = BlockPatterns.Ceiling(perSegment);
@@ -198,7 +202,7 @@ public static class LotSubdivider
         // block_tiles, so a coarse world must not put an unbounded frame on the stack.
         Span<Parcel> parcels = ceiling <= 64 ? stackalloc Parcel[64] : new Parcel[ceiling];
 
-        int count = BlockPatterns.Carve(pattern, column, row, blockTiles, perSegment, parcels);
+        int count = BlockPatterns.Carve(world.Key, pattern, ground, perSegment, parcels);
         int created = 0;
 
         // A property of the BLOCK and hoisted out of the loop, which is what it is: every Building

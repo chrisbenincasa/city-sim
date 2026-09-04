@@ -4772,6 +4772,28 @@ public static class RulesetLoader
                 return false;
             }
 
+            // 🔴 A VARYING LATTICE MAKES THIS REFUSAL UNSTATEABLE IN A RULESET, AND THAT IS THE
+            // FINDING RATHER THAN A LIMITATION OF THE CODE. The test below is "a multiple of
+            // block_tiles", which is the same sentence as "on a line" only while the lines are
+            // evenly spaced. Once `block_spread_tiles` is stated the line positions are drawn on the
+            // WORLD SEED -- so whether an origin stands on a line is a property of the world and no
+            // longer of the file, and a loader has no world. ***So the two are refused together***,
+            // which under adr/0070 is the one classification that is evidence: a second lattice on a
+            // varying grid is REFUSED and not merely unbuilt, and the day somebody wants one the
+            // question is where the check lives rather than how to compute it. plans/0045 row 25.
+            if (roads.BlockSpreadTiles > 0 && value != 0)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, key) ?? table), null,
+                    $"{key} = {value} is stated beside block_spread_tiles = "
+                    + $"{roads.BlockSpreadTiles}, and the two cannot be checked against each other "
+                    + "here. A varying lattice draws its line positions on the world seed, so "
+                    + "whether an origin stands on a line is a property of the WORLD and not of "
+                    + "this file -- and a Ruleset is loaded before any world exists. Line 0 is "
+                    + "always at Tile 0, so an origin of 0 is the one this file can promise.");
+
+                return false;
+            }
+
             if (value % roads.BlockTiles != 0)
             {
                 Refuse(LineOf((SyntaxNodeBase?)Find(table, key) ?? table), null,
@@ -5468,6 +5490,15 @@ public static class RulesetLoader
                 "It is a count per thousand blocks, so it is between 0 and 1,000 inclusive; 1,000 "
                 + "would give every block a cut-through.");
 
+            // 🔴 plans/0045 row 25. ABSENT MEANS UNIFORM, which is the polarity that makes a plain
+            // gridiron still expressible -- the row's complaint is that 128 m is a good block size
+            // that is also the ONLY one, and a derived spread with no key would replace one absolute
+            // with another. A file that wants a hierarchy of streets states this.
+            int spread = OptionalRoadNumber(
+                "block_spread_tiles", minimum: 1, maximum: CellGrid.WorldTiles,
+                "It is how much wider the wide line of each period is, and how much narrower the "
+                + "narrow one, so it is at least 1 Tile. Absent means the lattice is uniform.");
+
             Speed street = RoadSpeed("street_speed_kph");
             Speed arterial = RoadSpeed("arterial_speed_kph");
             Speed walk = RoadSpeed("walk_speed_kph");
@@ -5491,8 +5522,22 @@ public static class RulesetLoader
                     + "counted, and absent from the graph.");
             }
 
+            // 🔴 A SPREAD AT OR ABOVE HALF THE BLOCK INVERTS THE LADDER, which is worse than a
+            // narrow block: at exactly half the narrow line is block_tiles / 2 and at more than half
+            // it is NEGATIVE, so lines would run backwards and the lattice would fold. The bound is
+            // stated at a half rather than at "positive" because a block one Tile across carries no
+            // face any pattern can divide -- BlockPatterns.StripTiles caps at a quarter of it, which
+            // is zero below four Tiles, and a zero-depth parcel is a Lot with nowhere to stand.
+            if (spread > 0 && 2 * spread >= block)
+            {
+                Refuse(LineOfRoad("block_spread_tiles"), null,
+                    $"block_spread_tiles = {spread} is at least half of block_tiles = {block}, so "
+                    + $"the narrow line of every period would be {block - spread} Tiles and the "
+                    + "lattice would fold rather than vary. Keep it under half the block.");
+            }
+
             return new RoadRuleset(
-                block, arterials, junctions, crossings, paths,
+                block, spread, arterials, junctions, crossings, paths,
                 street, arterial, walk,
                 streetCapacity, arterialCapacity, pathCapacity);
         }
@@ -7454,6 +7499,32 @@ public static class RulesetLoader
         /// <summary>The line a <c>[jobs]</c> key is on, or the table's.</summary>
         private int LineOfJob(string key) =>
             LineOf((SyntaxNodeBase?)Find(_jobsTable!, key) ?? _jobsTable!);
+
+        /// <summary>
+        /// An OPTIONAL <c>[roads]</c> integer, whose absence is a real setting.
+        /// </summary>
+        /// <remarks>
+        /// <b><c>[roads]</c>'s own polarity, one key down.</b> The table is optional and its absence
+        /// means a world with no roads; a key inside it that is absent means the thing it turns on
+        /// does not happen — which is <c>[households] car_ownership_percent</c>'s arrangement and
+        /// <c>[traffic]</c>'s. ***A default would be a hash-bearing world-creation number nobody
+        /// chose, in a file nobody can see.***
+        /// </remarks>
+        private int OptionalRoadNumber(string key, int minimum, int maximum, string range)
+        {
+            if (!TryInteger(_roadsTable!, key, out long value, required: false))
+            {
+                return 0;
+            }
+
+            if (value < minimum || value > maximum)
+            {
+                Refuse(LineOfRoad(key), null, $"{key} = {value} is out of range. {range}");
+                return 0;
+            }
+
+            return (int)value;
+        }
 
         /// <summary>A required <c>[roads]</c> integer, refused when it is outside its range.</summary>
         private int RoadNumber(string key, int minimum, int maximum, string range)

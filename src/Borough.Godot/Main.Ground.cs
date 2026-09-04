@@ -196,15 +196,26 @@ public partial class Main
     }
 
     /// <summary>One block-sized flat slab, centred on the block the point falls in.</summary>
-    private static Transform3D Block((Tiles East, Tiles North) at, int blockTiles, float height)
+    /// <remarks>
+    /// ⚠ <b>THE BLOCK'S OWN TWO EXTENTS AND NOT ONE SPAN.</b> The ghost is what row 22 built so a
+    /// player can see where a click lands, and a ghost drawn at the mean size on a lattice whose
+    /// blocks are not the mean is a cursor that lies about the ground it covers. <c>plans/0045</c>
+    /// row 25.
+    /// </remarks>
+    private static Transform3D Block(
+        (Tiles East, Tiles North) at, BlockLattice lattice, float height)
     {
-        float span = blockTiles * MetresPerTile;
-        int column = IntegerMath.FloorDiv(at.East.Raw, blockTiles);
-        int row = IntegerMath.FloorDiv(at.North.Raw, blockTiles);
+        int column = lattice.LineAt(at.East.Raw);
+        int row = lattice.LineAt(at.North.Raw);
+
+        float wide = lattice.WidthOf(column) * MetresPerTile;
+        float deep = lattice.WidthOf(row) * MetresPerTile;
+        float west = lattice.EdgeOf(column) * MetresPerTile;
+        float south = lattice.EdgeOf(row) * MetresPerTile;
 
         return new Transform3D(
-            Basis.FromScale(new Vector3(span, height, span)),
-            new Vector3((column + 0.5f) * span, height * 0.5f, -(row + 0.5f) * span));
+            Basis.FromScale(new Vector3(wide, height, deep)),
+            new Vector3(west + (wide * 0.5f), height * 0.5f, -(south + (deep * 0.5f))));
     }
 
     /// <summary>
@@ -243,19 +254,28 @@ public partial class Main
     /// sides — ***the same 4 m, meaning a different thing.***
     /// </para>
     /// </remarks>
-    private Transform3D Edge((Tiles East, Tiles North) at, int blockTiles)
+    private Transform3D Edge((Tiles East, Tiles North) at, BlockLattice lattice)
     {
-        float span = blockTiles * MetresPerTile;
-        float wide = CarriagewayWidthMetres * 0.5f;
+        float thin = CarriagewayWidthMetres * 0.5f;
         (int column, int row, StreetAxis axis) = _world.Roads.Streets.NearestEdge(at.East, at.North);
+
+        // ⚠ THE EDGE'S OWN LENGTH. It was one `span` for both axes and both ends, which draws a
+        // ghost the wrong length on any lattice whose lines are not evenly spaced -- and the ghost
+        // is the whole of what row 22 built. plans/0045 row 25.
+        float west = lattice.EdgeOf(column) * MetresPerTile;
+        float south = lattice.EdgeOf(row) * MetresPerTile;
 
         return axis == StreetAxis.East
             ? new Transform3D(
-                Basis.FromScale(new Vector3(span, AimThickMetres, wide)),
-                new Vector3((column + 0.5f) * span, AimAboveMetres, -row * span))
+                Basis.FromScale(
+                    new Vector3(lattice.WidthOf(column) * MetresPerTile, AimThickMetres, thin)),
+                new Vector3(
+                    west + (lattice.WidthOf(column) * MetresPerTile * 0.5f), AimAboveMetres, -south))
             : new Transform3D(
-                Basis.FromScale(new Vector3(wide, AimThickMetres, span)),
-                new Vector3(column * span, AimAboveMetres, -(row + 0.5f) * span));
+                Basis.FromScale(
+                    new Vector3(thin, AimThickMetres, lattice.WidthOf(row) * MetresPerTile)),
+                new Vector3(
+                    west, AimAboveMetres, -(south + (lattice.WidthOf(row) * MetresPerTile * 0.5f))));
     }
 
     /// <summary>How high the Street tool's ghost floats, in metres. <b>Clear of the carriageway.</b></summary>

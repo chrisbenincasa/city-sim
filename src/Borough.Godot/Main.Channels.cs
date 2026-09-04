@@ -544,6 +544,7 @@ public partial class Main
         text.Append(
             CultureInfo.InvariantCulture,
             $"ruleset\t{Path.GetFileName(_rulesetPath)}\n");
+        text.Append(CultureInfo.InvariantCulture, $"{Ruler()}\n");
         text.Append("# layer\tname\tinstances\tcapacity\tvisible\n");
 
         foreach ((string name, MultiMeshInstance3D layer, bool _, List<ulong>? _) in Layers())
@@ -629,6 +630,45 @@ public partial class Main
         ("rock", _rocks, false, null),
         ("traveller", _travellers, false, _travellerIds),
     ];
+
+    /// <summary>
+    /// <b>What a Tile is worth in pixels at the ground the camera is looking at</b>, on each axis,
+    /// and how far away the eye is.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>EVERY JUDGEMENT ABOUT WHAT THE DRAWING READS WAS AN EYEBALL BEFORE THIS ROW.</b>
+    /// <c>plans/0045</c> row 24 asks what frontage difference is legible at the distance the city is
+    /// read from, and says the draw list and a screenshot can measure it — but the draw list is in
+    /// <b>metres</b> and a screenshot is in <b>pixels</b>, and nothing joined the two. ***A picture
+    /// is a spot check because nobody can put a ruler on it***, and this is the ruler.
+    /// </para>
+    /// <para>
+    /// <b>Unprojected rather than derived from the field of view.</b> Three ground points a Tile
+    /// apart go through <see cref="Camera3D.UnprojectPosition"/>, which is the same projection the
+    /// frame was drawn with — so perspective, tilt and the viewport's own size are all in the answer
+    /// rather than in an approximation of it. ⚠ <b>The two axes differ by the tilt</b>: what runs
+    /// across the view keeps its scale and what runs into it is foreshortened, so a frontage figure
+    /// has to say which way the street runs.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is a reading of the CAMERA and not of the city</b>, so it changes with a zoom and a
+    /// tilt and never with a Tick. Two runs of one script agree; a run at another distance does not,
+    /// and that is what it is for.
+    /// </para>
+    /// </remarks>
+    private string Ruler()
+    {
+        Vector2 at = _camera.UnprojectPosition(_focus);
+        Vector2 east = _camera.UnprojectPosition(_focus + new Vector3(MetresPerTile, 0f, 0f));
+        Vector2 north = _camera.UnprojectPosition(_focus - new Vector3(0f, 0f, MetresPerTile));
+
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"scale\t{Figure(at.DistanceTo(east))}\t{Figure(at.DistanceTo(north))}\t"
+                + $"{Figure(_distance)}\t{GetViewport().GetVisibleRect().Size.X}\t"
+                + $"{GetViewport().GetVisibleRect().Size.Y}");
+    }
 
     /// <summary>
     /// A number in a row. <b>Fixed, invariant and rounded</b>, so two runs diff rather than differ.

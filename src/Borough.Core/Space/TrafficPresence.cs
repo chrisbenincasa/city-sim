@@ -107,7 +107,10 @@ public sealed class TrafficPresence
 
         // The dilation: ceil(range / block) blocks of reach, plus one for the fencepost between a
         // Tile's position and the block it floors into.
-        int window = IntegerMath.CeilDiv(range.Raw, block) + 1;
+        //
+        // ⚠ THE NARROWEST BLOCK, for LineSourceQueries' reason: this is a window that must not
+        // under-cover, and on a lattice whose lines are not evenly spaced the mean would.
+        int window = IntegerMath.CeilDiv(range.Raw, streets.Lattice.Narrowest) + 1;
 
         for (int slot = 0; slot < segments.Rows.SlotCount; slot++)
         {

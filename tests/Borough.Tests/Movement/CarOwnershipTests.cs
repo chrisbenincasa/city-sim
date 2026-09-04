@@ -38,12 +38,28 @@ public sealed class CarOwnershipTests
 
     /// <summary>A population at which the Commute Budget actually refuses somebody a job.</summary>
     /// <remarks>
-    /// <b>16,000 and not <see cref="Population"/>'s 4,000</b>, because the driver advantage this
-    /// class exists to demonstrate is <b>zero</b> at 4,000 — the city fits inside a walk. Measured
-    /// drivers minus walkers: <b>−1, +41, +1,070</b> at 4,000, 16,000 and 64,000. 16,000 is the
-    /// cheapest rung that is unambiguously positive.
+    /// <para>
+    /// 🔴 <b>64,000, AND THE READING THAT SETS IT IS <c>Beyond</c> AND NOT EMPLOYMENT.</b>
+    /// <see cref="EmploymentActivity.Beyond"/> counts candidate vacancies refused for exceeding the
+    /// ceiling, so it <em>is</em> the Budget binding, stated directly. Measured on
+    /// <c>minimal.toml</c> over <see cref="Ticks"/>, a walker's <c>Beyond</c>: <b>0 at 16,000, 0 at
+    /// 24,000, 36 at 32,000, 1,124 at 48,000, 4,920 at 64,000</b>. A driver's: <b>0 at every one of
+    /// them.</b>
+    /// </para>
+    /// <para>
+    /// ⚠ <b>16,000 REFUSED NOBODY, AND THIS CLASS ALREADY KNEW THAT SHAPE OF MISTAKE.</b> It moved
+    /// off 4,000 on 2026-09-01 because the mechanism was inert there, and landed on a population
+    /// where the Budget also refuses nobody — not one walker even reaches the unsavoury rung at
+    /// 16,000. ***The escape from an inert fixture was itself inert***, and it stayed invisible for
+    /// three days because the reading it escaped to saturates. <c>plans/0060</c>.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>32,000 is where it first binds and 36 refusals is not a demonstration</b>, which is why
+    /// this is not the cheapest rung that is nonzero. The pair of runs costs about <b>6 s</b> at
+    /// 64,000, so the cheap rung buys nothing worth the ambiguity.
+    /// </para>
     /// </remarks>
-    private const int BudgetBinds = 16_000;
+    private const int BudgetBinds = 64_000;
     private const int Ticks = 2_048;
     private const int HashEvery = 64;
 
@@ -377,47 +393,77 @@ public sealed class CarOwnershipTests
     }
 
     /// <summary>
-    /// ⚠ <b>A driver is judged for a job on the clock they actually travel on.</b>
+    /// ⚠ <b>A driver is judged for a job on the clock they actually travel on</b> — so the Commute
+    /// Budget refuses a walker jobs it never refuses a driver.
     /// </summary>
     /// <remarks>
     /// <para>
     /// <c>adr/0008</c>, not a refinement. Session F refused a per-mode weight on the Commute Budget
     /// precisely so a walk and a drive are compared on <em>one</em> clock — which only works if the
-    /// clock is read in the mode the journey is made in. The visible consequence is that a city of
-    /// drivers employs more people from the same housing stock, because the same Budget reaches
-    /// further. <b>A driver judged on walking time would refuse jobs they can reach in ten minutes,
-    /// and the shortfall would read as a labour-market finding.</b>
+    /// clock is read in the mode the journey is made in. <b>A driver judged on walking time would
+    /// refuse jobs they can reach in ten minutes, and the shortfall would read as a labour-market
+    /// finding.</b>
     /// </para>
     /// <para>
-    /// 🔴 ⚠ <b>THIS RAN AT 4,000 CITIZENS UNTIL 2026-09-01 AND THE ADVANTAGE THERE IS EXACTLY
-    /// ZERO.</b> Measured, drivers minus walkers: <b>4,000 → −1, 16,000 → +41, 64,000 → +1,070</b>.
-    /// At 4,000 the city is small enough that every job is inside the Budget on foot, so the mode
-    /// cannot matter and the assertion was <c>&gt;=</c> being satisfied by a <b>tie</b>. ***A
-    /// comparison run on a city where the mechanism under comparison is inert measures the city***
-    /// — the sentence <c>CarRouteLengthTests</c> already carried, arriving here one test late.
+    /// 🔴 <b>THIS ASSERTED ON THE EMPLOYMENT TOTAL UNTIL 2026-09-04, AND THAT NUMBER SATURATES.</b>
+    /// A walker the ceiling refuses does not go unemployed — they take a nearer job. So the total is
+    /// bounded by the vacancies the city holds rather than by how far anybody reaches, and the whole
+    /// effect lands in <em>which</em> job and not in <em>how many</em>. Measured at
+    /// <see cref="BudgetBinds"/>: employment <b>44,188 walking against 44,211 driving</b>, a margin
+    /// of <b>0.05%</b> — while the refusals behind it are <b>4,920 against 0</b> and the rung split
+    /// is <b>26,307 / 15,991 / 1,890</b> against <b>44,211 / 0 / 0</b>.
+    /// ***A saturating proxy passes as loudly on a margin of one job as on a margin of a thousand.***
     /// </para>
     /// <para>
-    /// ⚠ <b>The −1 at 4,000 is the CUT-THROUGHS and not noise</b>, which is worth knowing because it
-    /// makes the tie look like a walker advantage. At <c>foot_paths_per_thousand_blocks = 0</c> the
-    /// two read <b>3,398 and 3,398</b>; at the shipped 40 a walker can use a FootPath a driver
-    /// cannot, and one job changes hands.
+    /// ⚠ <b>THE SWEEP THIS TEST WAS SITED BY HAD GONE STALE AND NOTHING COULD SAY SO.</b> It
+    /// recorded drivers minus walkers as <b>−1, +41, +1,070</b> at 4,000, 16,000 and 64,000 on
+    /// 2026-09-01. Re-measured on <c>2620f50</c>, the same three populations give <b>+1, +1,
+    /// +19</b> — two orders of magnitude down at the top rung — and the assertion went on passing
+    /// on a margin of <b>one job</b>, because <c>&gt;</c> reports a sign and never a size.
+    /// <c>plans/0060</c> row 24 is what tipped it, by four jobs, having not caused it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A driver's <c>Beyond</c> is 0 at every population measured, and that is a finding rather
+    /// than a tautology.</b> Fifty clock minutes at 90 km/h reaches across more city than this
+    /// lattice holds at 64,000, so the Budget does not bind on a driver at any size this suite runs.
+    /// The day it does, this is the assertion that says so.
     /// </para>
     /// </remarks>
-
-
     [Fact]
-    public void A_city_of_drivers_employs_more_people_than_a_city_of_walkers()
+    public void The_budget_refuses_a_walker_jobs_it_never_refuses_a_driver()
     {
-        long walking = Run(GoldenFixtures.Rules(), BudgetBinds).Employment.Drain().Employed.Sum;
-        long driving = Run(WithOwnership(100), BudgetBinds).Employment.Drain().Employed.Sum;
+        EmploymentActivity walking = Run(GoldenFixtures.Rules(), BudgetBinds).Employment.Drain();
+        EmploymentActivity driving = Run(WithOwnership(100), BudgetBinds).Employment.Drain();
 
-        Assert.True(walking > 0, "nobody was employed at all, so the comparison is empty.");
         Assert.True(
-            driving > walking,
-            $"a city of drivers employed {driving} against a city of walkers' {walking} at "
-            + $"{BudgetBinds} Citizens. A tie here means the Commute Budget has stopped binding at "
-            + "this size -- re-sweep the population rather than lowering this to >=, which is what "
-            + "hid the inert fixture for as long as it did.");
+            walking.Employed.Sum > 0, "nobody was employed at all, so the comparison is empty.");
+
+        Assert.True(
+            walking.Beyond.Sum > 0,
+            $"the Commute Budget refused a walker nothing at {BudgetBinds} Citizens, so the "
+            + "mechanism under comparison is inert here and the run measures the city instead. "
+            + "Re-sweep the population -- and read Beyond rather than the employment total, which "
+            + "saturates and hid exactly this twice.");
+
+        Assert.True(
+            driving.Beyond.Sum == 0,
+            $"the Commute Budget refused a driver {driving.Beyond.Sum} vacancies at {BudgetBinds} "
+            + $"Citizens, against a walker's {walking.Beyond.Sum}. A driver being refused at all is "
+            + "new: either the city has outgrown the ceiling in both modes, or the clock a driver "
+            + "is judged on has stopped being the one they travel on.");
+
+        // The same reach seen from the other side. A driver's commute is Fast or it does not happen;
+        // a walker fills all three rungs. ⚠ This is the half that would survive a city large enough
+        // to refuse a driver too, so it is asserted beside the refusal rather than instead of it.
+        Assert.True(
+            driving.Moderate.Sum + driving.Unsavoury.Sum == 0,
+            $"{driving.Moderate.Sum + driving.Unsavoury.Sum} drivers commuted beyond the fast rung.");
+
+        Assert.True(
+            walking.Moderate.Sum + walking.Unsavoury.Sum > walking.Employed.Sum / 4,
+            $"only {walking.Moderate.Sum + walking.Unsavoury.Sum} of {walking.Employed.Sum} walkers "
+            + "commute beyond the fast rung, so the two modes are no longer distinguishable by the "
+            + "rung they land on.");
     }
 
     /// <summary>Every employed Citizen's home and workplace Addresses, in the given mode.</summary>
