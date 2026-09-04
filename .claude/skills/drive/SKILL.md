@@ -62,7 +62,28 @@ writes.
 | `--listen PATH` | — | Unix domain socket. Unlinked before binding, deleted on exit |
 | `--record PATH` | — | Appends every applied command as a script line |
 | `--govern` | off | Opens the Policy panel at start, so a machine with no hands can photograph it |
+| `--empty` | off | 🔴 **Declines to generate a city.** No lattice, no Lots, no Buildings, no Citizens — and see below, because it withholds the terrain too |
 | `BOROUGH_LOG` (env) | — | Any value: writes the Input Log at `quit`, so play → write → replay → compare runs in a script |
+
+🔴 **`--empty` is the only argument that changes what the shell is a picture of.** Everything else
+sizes or times a generated city; this one declines to generate one. `CommandKind.Populate` ran at
+Tick 0 unconditionally until 2026-09-04, so ***every screenshot, balance run and judgement about how
+this city reads was taken on a lattice [`adr/0090`](../../../docs/adr/0090-the-generator-makes-land-and-the-player-makes-every-road.md)
+says will not exist*** — and `CommandKind.Connect` has never been watched working. The flag is the
+path to the other world.
+
+✅ **It issues `CommandKind.Ground` rather than skipping the Command, since 2026-09-04.** It used to
+skip it outright, which gave a world with no ground in it at all — measured on `flooded.toml` at 500
+Citizens, Tick 10: populated drew hazard **11,063**, water **5,058**, tree **3,512**, and `--empty`
+drew **0**, **0**, **0**. That is not `adr/0090`'s world either. `PopulateInto` is split at `LayLand`
+now, so `Ground` lays terrain, Woodland, water and hazard and stops — and **both branches spend
+exactly one Tick at boot**, so `--start-at` counts from 1 either way.
+
+🔴 **A world booted this way has nobody in it, and `people` is how it gets somebody.** The chain is
+Households → the Unplaced Pool → placement → Buildings, so an empty Pool builds nothing for ever:
+measured on `minimal.toml` before the verb existed, 40 Street clicks and 16 zone clicks gave 40
+Segments and 128 Lots and **0 Buildings, 0 Citizens** five in-world Days later. The full recipe is
+**boot empty → `hold street` and click → `hold zone 1` and click → `people` → run**.
 
 **`--headless` works** (**F12**): the world runs, every verb applies, every `readout` is written.
 See §5 for the two things it silently cannot do.
@@ -93,6 +114,7 @@ there is one applier rather than two behaviours that can part company.
 | `focus` | `focus <east> <north> [metres]` | Puts the camera over a Tile. ⚠ **The distance is NOT clamped** — the one place a script may do what a player cannot, and the reason it exists is that the zoom clamp otherwise confines a script to ~3 km of a 65.5 km map |
 | `hold` | `hold <tool> [which]` | Chooses what the next `click` means |
 | `click` | `click <east> <north> [shift]` | **Acts on the city** at a Tile |
+| `people` | `people` | **Puts people in the city** — Buildings, Households and Citizens on whatever Lots stand. `CommandKind.People`, and the one verb here with no key on the keyboard: it is an instrument in `CommandKind.Populate`'s family, and it acts **once per world**. Refused, in words, on a world that already has people or has no Lots yet |
 | `shoot` | `shoot <path.png>` | The frame, **and the readout beside it** as `<path>.txt`, in one act |
 | `readout` | `readout <path>` | The readout alone. Needs no display |
 | `draw` | `draw <path>` | The draw list — every instance on screen, as TSV |
@@ -177,8 +199,11 @@ that reads as one about that one. `--listen` unlinks before binding, so it recov
 | `shoot` | `<path>.png` **and** `<path>.txt` | The frame, and the same readout beside it — written in one act so they cannot disagree about which Tick they are of |
 | `draw` | one TSV | `tick`, `ruleset`, one `layer` row per layer with **instances / capacity / visible**, then one `row` per instance: `layer index id x y z sx sy sz yaw r g b` |
 
-**The thirteen layers, in draw order**: `ground hazard water flood road cell plot building roof yard
-tree rock traveller`. Four carry an entity id (`plot`, `building`, `roof`, `yard`) and `traveller`
+**The fifteen layers, in draw order**: `ground hazard water flood road cell plot building roof hip
+mansard yard tree rock traveller`. ⚠ **`roof`, `hip` and `mansard` are the three PITCHED families and
+a Building writes into at most one of them** — a flat-roofed Building writes into none, so the three
+never sum to the Building count. Six carry an entity id (`plot`, `building`, `roof`, `hip`,
+`mansard`, `yard`) and `traveller`
 resolves one; the rest honestly say `-`.
 
 ⚠ **`instances` against `capacity` is not bookkeeping.** A layer at capacity has silently dropped
