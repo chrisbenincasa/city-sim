@@ -225,6 +225,11 @@ bend. On `pictured.toml` at 2,000 Citizens the pavements come out **122.2 / 125.
 against a 128 m block. ***So a strip length is a statement about the junction and not about the
 Segment.***
 
+⚠ **Both layers also hold a CAP across the head of a dead end**, which lies *across* the run rather
+than along it — a pavement cap is `sx = 1.1` with `sz` the road's width plus two kerbs, and a kerb cap
+is `sx = 0.4` with `sz` the carriageway. ***So `sz` is not a length down the street for those rows***,
+and the honest way to count dead ends is the cap's `sz`. `severance.toml` at 2,000 Citizens has **12**.
+
 ⚠ **`instances` against `capacity` is not bookkeeping.** A layer at capacity has silently dropped
 whatever did not fit, and the picture shows a smaller city with nothing to say so — ***the one
 failure a screenshot renders as success.***

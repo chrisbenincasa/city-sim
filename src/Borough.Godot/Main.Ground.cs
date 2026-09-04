@@ -1179,9 +1179,11 @@ public partial class Main
     /// flush and the strip simply starts further from the road.
     /// </para>
     /// <para>
-    /// ⚠ <b>Two instances a Segment, so the layer is sized for two.</b> A pavement cannot be one box
-    /// — it is an annulus round the asphalt — and the alternative was a shader on a wider slab, which
-    /// buys nothing a second instance does not and costs a material nothing else here needs.
+    /// ⚠ <b>Two instances a Segment, and a third and fourth at a dead end.</b> A pavement cannot be
+    /// one box — it is an annulus round the asphalt — and the alternative was a shader on a wider
+    /// slab, which buys nothing a second instance does not and costs a material nothing else here
+    /// needs. <see cref="Head"/> adds the bar across each end that is a dead end, so the layer is
+    /// sized for <b>four</b> rather than for the ordinary two.
     /// </para>
     /// </remarks>
     private System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where, Color What)>
@@ -1248,6 +1250,26 @@ public partial class Main
                     + (side * (half + KerbWidthMetres + (PavementWidthMetres * 0.5f)));
 
                 yield return (id, new Transform3D(basis, middle), paint);
+            }
+
+            // The head of a dead end, at either end or both. The strips above already ran back past
+            // the node by FootwayWidthMetres, so this closes the U between them.
+            float span = 2f * (half + KerbWidthMetres);
+
+            if (DeadEnd(a, slot))
+            {
+                yield return (
+                    id,
+                    Head(from, run, yaw, span, KerbWidthMetres, FootwayWidthMetres, 1f),
+                    paint);
+            }
+
+            if (DeadEnd(b, slot))
+            {
+                yield return (
+                    id,
+                    Head(to, -run, yaw, span, KerbWidthMetres, FootwayWidthMetres, 1f),
+                    paint);
             }
         }
     }
@@ -1401,6 +1423,21 @@ public partial class Main
                     yield return (id, where, paint);
                 }
             }
+
+            // The kerb's own U round the head of a dead end, inside the pavement's. The band ran
+            // back by KerbWidthMetres above, so this bar spans the asphalt exactly.
+            Color stone = Kerbstone.SrgbToLinear();
+            float tall = KerbTopMetres / (KerbBoxMetres * 0.5f);
+
+            if (DeadEnd(a, slot))
+            {
+                yield return (id, Head(from, run, yaw, carriageway, 0f, KerbWidthMetres, tall), stone);
+            }
+
+            if (DeadEnd(b, slot))
+            {
+                yield return (id, Head(to, -run, yaw, carriageway, 0f, KerbWidthMetres, tall), stone);
+            }
         }
     }
 
@@ -1470,12 +1507,13 @@ public partial class Main
     /// Arterial carries no footway, so every corner a footway can turn today is a right angle.
     /// </para>
     /// <para>
-    /// ⚠ <b>What is not drawn is the END of a dead end</b>, and it is generated rather than
-    /// hypothetical: a node with one arm has no neighbour to mitre against, so the two strips stop
-    /// flush across the Segment's end and leave the square between them bare. Counted off the
-    /// <c>draw</c> list, <c>rulesets/pictured.toml</c> has <b>0</b> and <c>rulesets/severance.toml</c>
-    /// has <b>22</b> — the Street stubs its Arterials cut off. Closing one is a cap and not a mitre,
-    /// so it is a third shape rather than another evaluation of the expression above.
+    /// ⚠ <b>A DEAD END IS THE ONE CASE THIS DOES NOT SOLVE, AND IT RETURNS A NUMBER FOR
+    /// <see cref="Head"/> INSTEAD.</b> A node with one arm has no second edge, so there is no
+    /// intersection: the strip runs back past the node by its own <c>far</c> and
+    /// <see cref="Head"/> lays the bar that closes the U. ***A cap is a shape and a mitre is a
+    /// crossing***, which is why it is a second method rather than another case here. Counted off
+    /// the <c>draw</c> list, <c>rulesets/pictured.toml</c> has <b>0</b> and
+    /// <c>rulesets/severance.toml</c> has <b>12</b> — the Street stubs its Arterials cut off.
     /// </para>
     /// </remarks>
     /// <param name="node">The node's slot — the end the strip is being measured from.</param>
@@ -1536,12 +1574,21 @@ public partial class Main
             }
         }
 
+        // A DEAD END: nothing else drives out of this node, so there is no line to meet. The strip
+        // runs back past the node by its OWN outer edge, which is exactly where Head's bar across
+        // the head butts against it -- so the two are one number stated once rather than two that
+        // have to agree.
+        if (nearest < 0)
+        {
+            return DeadEnd(node, self) ? -far : 0f;
+        }
+
         float sine = Mathf.Sin(turn);
 
-        // No arm, or one straight ahead or directly behind: parallel edges have no intersection and
-        // the two strips simply meet at the node. The tolerance also catches the near-parallel case,
-        // where the true mitre runs off down the Segment.
-        if (nearest < 0 || Mathf.Abs(sine) < 0.05f)
+        // An arm straight ahead or directly behind: parallel edges have no intersection and the two
+        // strips simply meet at the node. The tolerance also catches the near-parallel case, where
+        // the true mitre runs off down the Segment.
+        if (Mathf.Abs(sine) < 0.05f)
         {
             return 0f;
         }
@@ -1559,6 +1606,80 @@ public partial class Main
 
         return ((mine * Mathf.Cos(turn)) + theirs) / sine;
     }
+
+    /// <summary>
+    /// Whether a node is the <b>head of a dead end</b> — nothing but this Segment drives out of it.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>A node with no Arcs at all answers NO rather than yes</b>, which is the opposite of what
+    /// the loop alone would say. Zero Arcs means the adjacency has not been rebuilt, not that the
+    /// road ends here — and the two are indistinguishable from inside this method. ***Reading a
+    /// missing structure as a positive answer would cap every end in the city***, which is a
+    /// rendering fault that looks like a design.
+    /// </remarks>
+    private bool DeadEnd(int node, int self)
+    {
+        RoadNodeTable nodes = _world.Roads.Nodes;
+        RoadArcs arcs = _world.Roads.Arcs;
+        RoadSegmentTable segments = _world.Roads.Segments;
+
+        int start = nodes.ArcStart[node];
+        int end = Math.Min(start + nodes.ArcCount[node], arcs.Count);
+
+        if (end <= start)
+        {
+            return false;
+        }
+
+        for (int arc = start; arc < end; arc++)
+        {
+            int other = arcs.Segment[arc];
+
+            if (other != self && (Modes(segments, other) & TravelMode.Car) != 0)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// The bar across the <b>head of a dead end</b> — one strip's turn round the end of the road.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>A CAP IS A SHAPE AND NOT A MITRE, WHICH IS WHY IT IS A SECOND METHOD.</b> Every other
+    /// end in the city is two edges meeting at an angle and <see cref="Mitre"/> solves it; a dead
+    /// end has no second edge, so the strip has to <em>turn through 180°</em> round the carriageway's
+    /// head. This is that turn, drawn as one box lying across the run.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It butts against the side strips and does not overlap them</b>, and the two halves are
+    /// one number: <see cref="Mitre"/> runs a strip back past the node by its own
+    /// <c>far</c> — the outer edge — and this bar occupies exactly <c>[-far, -near]</c> and spans
+    /// only as wide as the strip's <em>inner</em> edge. So the kerb closes as a <b>U</b> round the
+    /// asphalt with the pavement's own U outside it, and the whole head tiles with no hole and no
+    /// coplanar pair.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Nothing is drawn on the carriageway.</b> <see cref="Paving"/> runs node to node, so the
+    /// road's end face is at the node and every part of this sits beyond it.
+    /// </para>
+    /// </remarks>
+    /// <param name="at">The node — the head of the road.</param>
+    /// <param name="outward">Unit vector, from the node <em>into</em> the Segment.</param>
+    /// <param name="yaw">The Segment's yaw; the bar lies across it.</param>
+    /// <param name="span">How wide the bar is, across the road.</param>
+    /// <param name="near">The strip's inner edge, out from the carriageway's edge.</param>
+    /// <param name="far">The strip's outer edge, out from the carriageway's edge.</param>
+    /// <param name="tall">The Y scale, which is a share of the layer's mesh and not a height.</param>
+    private static Transform3D Head(
+        Vector3 at, Vector3 outward, float yaw, float span, float near, float far, float tall) =>
+        new(
+            new Basis(Quaternion.FromEuler(new Vector3(0f, yaw + (Mathf.Pi * 0.5f), 0f)))
+                * Basis.FromScale(new Vector3(far - near, tall, span)),
+            at - (outward * ((near + far) * 0.5f)));
 
     /// <summary>Hold a mitre inside the Segment it belongs to.</summary>
     /// <remarks>

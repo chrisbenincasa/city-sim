@@ -1199,13 +1199,14 @@ public partial class Main : Node3D
         // foot half: the kerb took its band out of it, at the same top, so the two are flush.
         _footways = Layer(Flagstone, new Vector3(1f, 0.3f, 1f), perInstance: true, casts: false,
 
-            // TWO A SEGMENT, so the ceiling is twice the road layer's or the pavements run out
-            // halfway along a city whose carriageways are all drawn. On bordered.toml the roads
-            // layer is ALREADY at its ceiling with 535,817 Segments, and a pavement layer that
-            // stopped at half of what the asphalt covered would be the failure §5 names: a layer at
-            // capacity has silently dropped what did not fit, and the picture shows a smaller city
-            // with nothing to say so.
-            instances: 2 * LayerInstances);
+            // FOUR A SEGMENT, which is a bound and not a count: two strips, plus a cap across the
+            // head at each end that is a DEAD END. It was twice the road layer's while two was the
+            // whole story, and the ceiling has to hold the bound rather than the ordinary case --
+            // on bordered.toml the roads layer is ALREADY at its ceiling with 535,817 Segments, and
+            // a pavement layer that stopped at half of what the asphalt covered would be the
+            // failure §5 names: a layer at capacity has silently dropped what did not fit, and the
+            // picture shows a smaller city with nothing to say so.
+            instances: 4 * LayerInstances);
 
         // THE KERB, AND IT IS ONE MESH FOR TWO THINGS AT TWO HEIGHTS. A band is drawn with its top
         // flush with the pavement -- 0.15 m, so the only step in the street is at the channel -- and
@@ -1219,8 +1220,9 @@ public partial class Main : Node3D
         _kerbs = Layer(Kerbstone, new Vector3(1f, 0.3f, 1f), perInstance: true, casts: false,
 
             // FOUR TIMES, and it is a bound rather than a count: two band runs a Segment before any
-            // Address breaks them, plus one run and one drop for every Address that does. On
-            // pictured.toml that is ~800 for 194 Streets and 208 Lots.
+            // Address breaks them, plus one run and one drop for every Address that does, plus a
+            // cap across each end that is a dead end. On pictured.toml that is ~800 for 194 Streets
+            // and 208 Lots.
             instances: 4 * LayerInstances);
 
         // 🔴 A VACANT LOT DREW NOTHING AT ALL, so Zone -- which creates Lots and never a Building --
