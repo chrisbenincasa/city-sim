@@ -146,6 +146,138 @@ public sealed class BlockLattice
         return lattice;
     }
 
+    /// <summary>
+    /// A lattice whose lines are <b>not</b> evenly spaced, holding the mean exactly.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b><c>plans/0045</c> ROW 25: <c>[roads] block_tiles = 32</c> IS ONE NUMBER FOR THE WHOLE
+    /// MAP, AND 128 m IS A GOOD BLOCK SIZE THAT IS ALSO THE ONLY ONE.</b> Decided by the player on
+    /// the sitting that raised it.
+    /// </para>
+    /// <para>
+    /// <b>A PERIOD THAT SUMS TO THE MEAN, and it is exact rather than approximate.</b> Every run of
+    /// <see cref="Period"/> lines carries one wide spacing, one narrow one and the nominal
+    /// everywhere else, so the run measures <c>Period × block_tiles</c> whatever the draw did —
+    /// ***the grain is held and the uniformity is not.*** ⚠ <b>That is a design constraint and not
+    /// an implementation convenience</b>: the row's own warning is that <em>a change that moves the
+    /// grain rather than the uniformity would be the wrong change made confidently</em>, and the
+    /// shipped lattice measured 183 intersections per square mile against Manhattan's ~105 and
+    /// Portland's 400, so the grain was never the problem.
+    /// </para>
+    /// <para>
+    /// <b>Which line is wide is DRAWN and the fact that one is is not.</b> A fixed repeating pattern
+    /// would put a wide street every fourth line across the whole map, which is a wallpaper rather
+    /// than a city; an independent draw per line would be noise, and no gridiron anybody has built
+    /// is noise. ***What a real gridiron has is a hierarchy*** — most streets at the common spacing
+    /// and an occasional wider one — so the structure is fixed and its position is drawn.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>One spacing serves BOTH axes and the two read it at different offsets</b>, so block
+    /// <c>(c, r)</c> is <c>WidthOf(c)</c> by <c>WidthOf(r)</c> and is oblong wherever the two differ.
+    /// A second independent spacing — Manhattan's avenues against its streets — is a different
+    /// decision and this makes no claim about it.
+    /// </para>
+    /// </remarks>
+    /// <param name="key">The world, so two worlds do not get one street plan.</param>
+    /// <param name="blockTiles">The mean spacing, which every period sums to.</param>
+    /// <param name="spreadTiles">How much wider the wide line is, and narrower the narrow one.</param>
+    public static BlockLattice Varied(
+        Determinism.WorldKey key, int blockTiles, int spreadTiles)
+    {
+        if (blockTiles <= 0 || spreadTiles <= 0)
+        {
+            return Even(blockTiles);
+        }
+
+        var lattice = new BlockLattice();
+
+        int lines = IntegerMath.FloorDiv(CellGrid.WorldTiles, blockTiles) + 1;
+
+        lattice.Nominal = blockTiles;
+        lattice.Lines = lines;
+        lattice.Uniform = false;
+        lattice._edge = new int[lines];
+        lattice._line = new int[CellGrid.WorldTiles + 1];
+        lattice.Narrowest = int.MaxValue;
+        lattice.Widest = 0;
+
+        int at = 0;
+
+        for (int line = 0; line < lines; line++)
+        {
+            lattice._edge[line] = at;
+
+            int width = Spacing(key, line, blockTiles, spreadTiles);
+
+            lattice.Narrowest = width < lattice.Narrowest ? width : lattice.Narrowest;
+            lattice.Widest = width > lattice.Widest ? width : lattice.Widest;
+
+            at += width;
+        }
+
+        // The last line carries no block east of it, so its drawn width is never used as ground --
+        // but Narrowest and Widest have already seen it, which is the conservative direction for
+        // both: a window sized on a block that does not exist is one block too wide and never one
+        // too narrow.
+        int tile = 0;
+
+        for (int line = 0; line < lines && tile <= CellGrid.WorldTiles; line++)
+        {
+            int next = line + 1 < lines ? lattice._edge[line + 1] : CellGrid.WorldTiles + 1;
+
+            while (tile < next && tile <= CellGrid.WorldTiles)
+            {
+                lattice._line[tile++] = line;
+            }
+        }
+
+        while (tile <= CellGrid.WorldTiles)
+        {
+            lattice._line[tile++] = lines - 1;
+        }
+
+        return lattice;
+    }
+
+    /// <summary>How many lines one wide spacing and one narrow one are shared between.</summary>
+    /// <remarks>
+    /// <b>Four, and the number is doing one job: it is how often a wider street happens.</b> At four
+    /// a quarter of the lines are wide and a quarter narrow, which is a hierarchy dense enough to
+    /// read as one rather than as an occasional oddity — ⚠ <b>and the mean is held over four lines
+    /// rather than over the map</b>, so no stretch of the city drifts wide or narrow, which an
+    /// independent draw would allow.
+    /// </remarks>
+    private const int Period = 4;
+
+    /// <summary>The spacing east of one line.</summary>
+    /// <remarks>
+    /// ⚠ <b>Both draws are on the PERIOD and not on the line</b>, so every line in a run reads the
+    /// same two answers and the run's total is <c>Period × blockTiles</c> by construction rather
+    /// than by accumulation. A per-line draw would need a running correction, and a correction is
+    /// where a mean silently stops being held.
+    /// </remarks>
+    private static int Spacing(
+        Determinism.WorldKey key, int line, int blockTiles, int spreadTiles)
+    {
+        int period = IntegerMath.FloorDiv(line, Period);
+        int within = line - (period * Period);
+
+        ulong draw = Determinism.Randomness.Draw(
+            key, (ulong)(uint)period, Quantities.Ticks.Zero, Determinism.PurposeTag.BlockSpacing);
+
+        int wide = (int)(draw % Period);
+
+        // The narrow line is offset from the wide one rather than drawn again, which is what makes
+        // them distinct without a rejection loop -- and a loop is what a determinism budget cannot
+        // price. Period is 4, so the offset lands on one of the other three.
+        int narrow = (wide + 1 + (int)((draw >> 8) % (Period - 1))) % Period;
+
+        return within == wide ? blockTiles + spreadTiles
+            : within == narrow ? blockTiles - spreadTiles
+            : blockTiles;
+    }
+
     /// <summary>The Tile line <paramref name="line"/> stands on.</summary>
     /// <remarks>
     /// ⚠ <b>Extrapolated past the last line rather than clamped</b>, because callers address the

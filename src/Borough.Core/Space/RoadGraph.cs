@@ -41,14 +41,26 @@ public sealed class RoadGraph
     private readonly RoutingPartition _partition = new(RoutingPartition.DesignEdge);
 
     private RoadRuleset _ruleset;
+    private readonly Determinism.WorldKey _key;
     private BlockLattice _lattice = BlockLattice.None;
     private int[] _cursor = [];
 
     /// <param name="ruleset">The <c>[roads]</c> table in force. <see cref="RoadRuleset.None"/> is a world with no roads.</param>
     public RoadGraph(RoadRuleset ruleset)
+        : this(ruleset, default)
     {
+    }
+
+    /// <param name="ruleset">The <c>[roads]</c> table in force.</param>
+    /// <param name="key">
+    /// The world, which the lattice's spacing is drawn on when <c>[roads] block_spread_tiles</c>
+    /// states one. <c>plans/0045</c> row 25.
+    /// </param>
+    public RoadGraph(RoadRuleset ruleset, Determinism.WorldKey key)
+    {
+        _key = key;
         _ruleset = ruleset;
-        _lattice = BlockLattice.Even(ruleset.BlockTiles);
+        _lattice = Lay(ruleset, key);
 
         int nodes = ExpectedNodes(ruleset);
         _nodes = new RoadNodeTable(nodes);
@@ -135,6 +147,17 @@ public sealed class RoadGraph
     /// </remarks>
     public BlockLattice Lattice => _lattice;
 
+    /// <summary>The lattice a <c>[roads]</c> table and a world describe.</summary>
+    /// <remarks>
+    /// ⚠ <b>Absent spread means UNIFORM, which is the shipped world.</b> The key is optional for the
+    /// reason every <c>[roads]</c>-family key is: a default would be a hash-bearing world-creation
+    /// number nobody chose. <c>plans/0045</c> row 25.
+    /// </remarks>
+    private static BlockLattice Lay(RoadRuleset ruleset, Determinism.WorldKey key) =>
+        ruleset.BlockSpreadTiles > 0
+            ? BlockLattice.Varied(key, ruleset.BlockTiles, ruleset.BlockSpreadTiles)
+            : BlockLattice.Even(ruleset.BlockTiles);
+
     /// <summary>Whether this world has roads at all.</summary>
     public bool Exists => _segments.Rows.LiveCount > 0;
 
@@ -188,7 +211,7 @@ public sealed class RoadGraph
     public void Adopt(RoadRuleset ruleset)
     {
         _ruleset = ruleset;
-        _lattice = BlockLattice.Even(ruleset.BlockTiles);
+        _lattice = Lay(ruleset, _key);
         RebuildDerived();
     }
 

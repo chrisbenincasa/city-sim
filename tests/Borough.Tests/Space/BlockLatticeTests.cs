@@ -1,4 +1,5 @@
 using Borough.Core.Arithmetic;
+using Borough.Core.Determinism;
 using Borough.Core.Space;
 
 namespace Borough.Tests.Space;
@@ -147,6 +148,121 @@ public sealed class BlockLatticeTests
         Assert.Equal(Block, lattice.Nominal);
         Assert.Equal(Block, lattice.Narrowest);
         Assert.Equal(Block, lattice.Widest);
+    }
+
+    /// <summary>
+    /// 🔴 <b>THE MEAN IS HELD EXACTLY, AND THAT IS THE DESIGN CONSTRAINT RATHER THAN A ROUNDING
+    /// CLAIM.</b>
+    /// </summary>
+    /// <remarks>
+    /// <c>plans/0045</c> row 25's own warning is that <em>a change that moves the grain rather than
+    /// the uniformity would be the wrong change made confidently</em> — the shipped lattice measures
+    /// 183 intersections per square mile against Manhattan's ~105 and Portland's 400, so the grain
+    /// was never the problem. ***Every run of four lines sums to four nominal blocks***, so a varied
+    /// lattice's line positions coincide with an even one's at every fourth line and no stretch of
+    /// the map drifts wide or narrow.
+    /// </remarks>
+    [Theory]
+    [InlineData(32, 8)]
+    [InlineData(32, 4)]
+    [InlineData(32, 1)]
+    [InlineData(64, 16)]
+    public void A_varied_lattice_holds_the_mean_every_period(int block, int spread)
+    {
+        BlockLattice varied = BlockLattice.Varied(WorldKey.FromSeed(7), block, spread);
+        BlockLattice even = BlockLattice.Even(block);
+
+        Assert.False(varied.Uniform);
+        Assert.Equal(even.Lines, varied.Lines);
+
+        for (int line = 0; line < varied.Lines; line += 4)
+        {
+            Assert.Equal(even.EdgeOf(line), varied.EdgeOf(line));
+        }
+    }
+
+    /// <summary>
+    /// Three spacings and no fourth — one wide, one narrow, the nominal for the rest.
+    /// </summary>
+    /// <remarks>
+    /// <b>The structure is fixed and only its position is drawn</b>, which is what makes this a
+    /// street hierarchy rather than noise. ⚠ <b>A gridiron has a hierarchy and noise does not</b>,
+    /// so an independent draw per line would have been the wrong shape however well it held its
+    /// mean.
+    /// </remarks>
+    [Fact]
+    public void A_varied_lattice_has_exactly_three_spacings()
+    {
+        BlockLattice lattice = BlockLattice.Varied(WorldKey.FromSeed(0), Block, 8);
+
+        var seen = new HashSet<int>();
+
+        for (int block = 0; block < lattice.Blocks; block++)
+        {
+            seen.Add(lattice.WidthOf(block));
+        }
+
+        Assert.Equal([Block - 8, Block, Block + 8], seen.OrderBy(width => width).ToArray());
+        Assert.Equal(Block - 8, lattice.Narrowest);
+        Assert.Equal(Block + 8, lattice.Widest);
+        Assert.Equal(Block, lattice.Nominal);
+    }
+
+    /// <summary>
+    /// The two questions stay inverses when the lines are not evenly spaced.
+    /// </summary>
+    /// <remarks>
+    /// <b>The same property as the even case, which is the point of stating it as a property.</b>
+    /// Every site the previous commit routed through <see cref="BlockLattice.LineAt"/> and
+    /// <see cref="BlockLattice.EdgeOf"/> rests on this and on nothing else about the spacing.
+    /// </remarks>
+    [Fact]
+    public void A_varied_tile_still_lies_between_its_own_line_and_the_next()
+    {
+        BlockLattice lattice = BlockLattice.Varied(WorldKey.FromSeed(3), Block, 8);
+
+        for (int tile = 0; tile < CellGrid.WorldTiles; tile++)
+        {
+            int line = lattice.LineAt(tile);
+
+            Assert.True(
+                lattice.EdgeOf(line) <= tile && tile < lattice.EdgeOf(line + 1),
+                $"Tile {tile} landed in block {line}, which runs "
+                    + $"{lattice.EdgeOf(line)}..{lattice.EdgeOf(line + 1)}");
+        }
+    }
+
+    /// <summary>The street plan is the world's, and two worlds do not share one.</summary>
+    [Fact]
+    public void The_spacing_is_the_worlds_and_is_the_same_every_time_it_is_asked()
+    {
+        BlockLattice one = BlockLattice.Varied(WorldKey.FromSeed(11), Block, 8);
+        BlockLattice again = BlockLattice.Varied(WorldKey.FromSeed(11), Block, 8);
+        BlockLattice other = BlockLattice.Varied(WorldKey.FromSeed(12), Block, 8);
+
+        var differs = false;
+
+        for (int block = 0; block < 64; block++)
+        {
+            Assert.Equal(one.WidthOf(block), again.WidthOf(block));
+
+            differs |= one.WidthOf(block) != other.WidthOf(block);
+        }
+
+        Assert.True(differs, "two world seeds produced the same street plan over 64 blocks.");
+    }
+
+    /// <summary>A spread of zero is the even lattice, not a degenerate varied one.</summary>
+    /// <remarks>
+    /// <c>[roads] block_spread_tiles</c> is optional and <b>absent means uniform</b>, which is the
+    /// polarity every <c>[roads]</c>-family key uses. This is that polarity at the one place a
+    /// caller could get it wrong.
+    /// </remarks>
+    [Fact]
+    public void No_spread_is_the_even_lattice()
+    {
+        Assert.True(BlockLattice.Varied(WorldKey.FromSeed(1), Block, 0).Uniform);
+        Assert.True(BlockLattice.Varied(WorldKey.FromSeed(1), Block, -4).Uniform);
     }
 
     /// <summary>A world with no roads answers rather than dividing by zero.</summary>

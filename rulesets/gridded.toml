@@ -1,0 +1,261 @@
+# ===================================================================================================
+# gridded.toml -- `minimal.toml` WITH A LATTICE THAT IS NOT UNIFORM.
+#
+# WHAT IT EXISTS TO SHOW: **a street hierarchy.** Every other shipped file states `block_tiles` and
+# gets one block size for the whole map -- 128 m is a good block size that is also the only one, which
+# is what `plans/0045` row 25 raised. This file states `block_spread_tiles` beside it, and the lattice
+# comes out with a wide line and a narrow one in every run of four.
+#
+# WHAT IT MUST NOT BE READ AS: a claim that a real city's blocks vary by this much, or in this shape.
+# The STRUCTURE here -- most streets at the common spacing and an occasional wider one -- is what a
+# gridiron has and noise does not. **The STEP is the grid's own**: 8 Tiles is a quarter of
+# `block_tiles = 32`, on the same footing `plans/0060` put the plot module on, and it is not imported
+# from a survey of anywhere.
+#
+# ⚠ THE MEAN IS HELD AND THAT IS THE POINT. Every period of four lines sums to four nominal blocks,
+# so `--morphology`'s grain readings are meant not to move -- and measured against `minimal.toml` on
+# the same seed at 10,000 Citizens, the ones that matter do not: 627 Segments, 324 Nodes, 320
+# intersections and the WHOLE degree histogram including its 72.50% four-way share come out
+# byte-identical. ***What moves is the block-size distribution, which is the reading that section
+# exists for.***
+#
+# ⚠ TWO READINGS DO MOVE A LITTLE AND NEITHER IS THE GRAIN. phi goes 0.9981 -> 0.9969, and the four
+# cardinal bearing bins hold at 306 each -- so every bit of that is the FOOT-PATH DIAGONALS, which stop
+# sitting at 45 degrees once the block they cross is oblong. And the paved extent goes 4.73 -> 4.60
+# km2, which carries intersection density from 175 to 180 per square mile on an unchanged Node count:
+# ***a density that moved because the denominator did.***
+#
+# ⚠ EVERY FIGURE IN THIS HEADER IS AT 10,000 CITIZENS, seed 0, which is `--morphology`'s own default
+# and NOT the 2,000 most of the runbook uses. A block histogram is a property of the reading's extent:
+# at 2,000 this file reads 25/50/25 and a mean of 128.0 m exactly, and at 10,000 it reads 29/47/24 and
+# 126.1 m, on one lattice whose every period of four lines sums exactly. The mean is held over the MAP
+# and a city is a sample of it (`plans/0012` Cause 5).
+#
+# ⚠ IT DECLARES ONE `[[lattice]]` AND CANNOT DECLARE TWO. A varying lattice draws its line positions
+# on the world seed, so whether a second origin stands on a line is a property of the world rather
+# than of this file -- and a Ruleset is loaded before a world exists. The loader refuses the pair by
+# name; that refusal is `adr/0070` evidence and not an oversight.
+#
+# EVERYTHING ELSE IS `minimal.toml` UNCHANGED. One file, one variable.
+# ===================================================================================================
+
+[[resource]]
+name = "sundries"
+family = "good"
+
+[[resource]]
+name = "repairs"
+family = "good"
+
+[[resource]]
+name = "money"
+family = "money"
+
+[[business]]
+name = "shop"
+# Counts CITIZENS, not Households, and it puts full employment out of reach by design.
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+[[building]]
+name = "dwelling"
+bins = [
+    { resource = "sundries", capacity = 48, owner = "occupant" },
+    { resource = "repairs",  capacity = 4 },
+]
+# WHO MAY TAKE A TENANCY, in two keys over ONE ceiling. `tenanted` was a single boolean meaning
+# tenants of ANY kind, and it could not write an office: a kind wanting a trade had to declare
+# itself housing, and then families were placed into it (plans/0054 F1).
+#
+# adr/0147's single ceiling is untouched and is the point -- a shop on the ground floor costs a
+# family its slot, from one number, with no rule expressing it. What split is the PERMISSION over
+# that ceiling, which was always two questions wearing one word.
+#
+# Neither key adds a tenancy. A Building's tenancies are its floor over [capacity]
+# floor_tiles_per_occupant whichever is set, and both absent is a Building nobody occupies -- a
+# warehouse, a monument. This file states both because its dwelling comes with a shop.
+houses   = true
+premises = true
+# WHETHER IT PARKS, and never how many. `[capacity] floor_tiles_per_parking_space` says how much
+# floor one space takes; this says whether this kind is asked for any. It exists because a rate
+# alone would give every Building parking in proportion to its floor, making a tower the biggest
+# provider in the city -- and adr/0009's own second player-tool row is the opposite sentence, "a
+# detached house carries a driveway, a tower may not". A parking minimum is a property of the city;
+# an exemption from it is a property of the kind.
+parked = true
+business = "shop"
+
+[[rule]]
+name    = "restock"
+kind    = "dwelling"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = []
+outputs = [ { scope = "local", resource = "sundries", amount = 4 } ]
+
+[[rule]]
+name    = "consume"
+kind    = "dwelling"
+rate    = 32
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "sundries", amount = 4 } ]
+outputs = []
+
+[[rule]]
+name    = "upkeep"
+kind    = "dwelling"
+rate    = 16
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "repairs", amount = 4 } ]
+outputs = []
+
+[[zone_rule]]
+name          = "housing"
+kind          = "dwelling"
+# `zone` is a bit INDEX, not a mask. `revisit_ticks` is a DURATION and the sample derives from it
+# (adr/0059); `interval` is only the grain it is delivered in. 2048 is TICKS_PER_DAY -- stating it
+# is not choosing it.
+zone          = 0
+interval      = 32
+revisit_ticks = 2048
+
+[placement]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+
+# Every number here is 02 §2.4's own, written down because a designer cannot tune what they cannot
+# find. The cadence is the designer's and not the profiler's (adr/0044). `kernel_metres` is
+# world-creation and is refused on RELOAD. There is no `sealing_decay_tau` here: it is keyed by
+# terrain type, so it lives on each [[terrain]] table and a file with none heals nowhere.
+[layers]
+noise_range_metres            = 300
+noise_intensity_percent       = 400
+desirability_pollution_percent = 100
+desirability_noise_percent     = 100
+pollution_period      = 64
+pollution_offset      = 0
+land_value_period     = 256
+land_value_offset     = 16
+kernel_metres         = 1024
+pollution_decay_ticks = 2048
+land_value_tau        = 8
+
+[roads]
+block_tiles                    = 32
+# 🔴 THE ONE KEY THIS FILE EXISTS FOR (plans/0045 row 25). How much wider the wide line of each
+# four-line period is, and how much narrower the narrow one -- so blocks come out 24, 32 and 40 Tiles
+# and every period still sums to 128. ABSENT MEANS UNIFORM, which is every other shipped file.
+# ⚠ A QUARTER OF `block_tiles`, and the quarter is the grid's rather than a survey's: 32 is a power of
+# two, so quarters are exact where thirds are not. At the distance the whole city is read from one
+# Tile of frontage is 5.35 pixels (plans/0060 F2), so 8 Tiles is 43 pixels and reads plainly.
+block_spread_tiles             = 8
+# 0 because an Arterial is a player tool and does not belong in a generator (adr/0164). The four
+# arterial keys below are inert at this lattice rather than unset.
+arterial_count                 = 0
+arterial_junction_tiles        = 512
+foot_crossing_every            = 4
+foot_paths_per_thousand_blocks = 40
+street_speed_kph               = 50
+arterial_speed_kph             = 90
+walk_speed_kph                 = 5
+street_capacity_per_hour       = 3600
+arterial_capacity_per_hour     = 12000
+foot_path_capacity_per_hour    = 1000
+
+[lots]
+# DERIVED, not chosen: CONTEXT.md -> Address's own "five Buildings share a Segment". A Lot has no
+# depth and there is no depth key.
+lots_per_segment = 5
+
+# How much ground a Building leaves on each side of its parcel. CHOSEN, and one of the few numbers
+# in this file that is -- 2 Tiles is 8 m, a front garden's depth.
+#
+# ⚠ IT IS A LENGTH AND NOT A FRACTION, AND THAT IS THE WHOLE OF ITS SHAPE. Coverage rises with the
+# parcel on its own: at this lattice a detached plot is 6 x 6 Tiles and keeps about 44% of itself, a
+# terrace's 6 x 16 keeps 58%, and a slab's 16 x 16 keeps 77%. A fraction would have made every
+# density cover the same share of its ground, which is what made every block look alike before block
+# patterns existed.
+#
+# ⚠ AND IT IS A CEILING RATHER THAN A SETBACK LINE. The four sides are drawn independently on
+# [0, setback_tiles] per patch of ground, so a street varies and some walls stand on the pavement --
+# which is what a terrace is. 0 means every Building covers its whole parcel, which is what the
+# simulation did before this key existed, while the shell drew something smaller.
+setback_tiles = 2
+
+[capacity]
+# HOW MUCH FLOOR ONE OF ANYTHING TAKES. Three rates, replacing `[[building]] occupants`,
+# `[[building]] parking` and `[[business]] jobs` -- which were 39, 29 and 32 declarations across the
+# shipped files carrying two kinds and three values between them.
+#
+# A number repeated thirty times is not thirty decisions. A game whose cities run to a million people
+# cannot ask an author to write a count down for every combination of form and use, and adr/0068
+# argued the opposite from a premise that has since died: it said occupancy belongs on the kind
+# because there is NO DISTINGUISHING PROPERTY between two Buildings of one kind. There is one now --
+# a Lot carries a parcel, the parcel carries a footprint, the footprint carries a floor area.
+#
+# ⚠ A KIND STILL SAYS WHETHER IT HOUSES; only the count derives. `[[building]] houses` is what is
+# left of `occupants`, and `premises` is the same question asked about a trade (plans/0054). Capacity is geometry, behaviour is content, and a school is not a boarding
+# house because it is large.
+#
+# 🔴 THE ANCHOR IS THE CITY THAT ALREADY STOOD, and every rate below is a division rather than a
+# choice. The building on a Detached parcel at this lattice -- block_tiles = 32, lots_per_segment = 5
+# -- has a 78-Tile parcel, a 51-Tile footprint and two storeys, so 102 Tiles of floor. That building
+# is the one 28 of the 34 shipped kinds described, and what they said about it was: 4 occupants,
+# 8 jobs, 8 parking spaces. So:
+#
+#   floor_tiles_per_occupant      = 102 / 4 = 25   (the building's floor over its tenancies)
+#   floor_tiles_per_job           =  25 / 8 =  3   (ONE tenancy's share over its posts -- a Business
+#                                                   occupies one tenancy, adr/0141)
+#   floor_tiles_per_parking_space = 102 / 8 = 12   (the building's floor over its spaces)
+#
+# ⚠ SO THE SUBURB IS THE CITY IT WAS, AND EVERYTHING DENSER IS NEW. A detached building still holds
+# four families; a perimeter block holds 11, a back-to-back 24, a courtyard 35, a slab 107 -- and
+# nobody wrote one of those down. ***That ladder is the whole point*** (plans/0053): a number
+# repeated thirty times was not thirty decisions, and the same three rates now describe five forms.
+#
+# ⚠ AND 25 IS NOT WHAT A DWELLING MEASURES. A Tile is 16 m2, so a real 96 m2 dwelling is 6 Tiles and
+# this is four of them. The rate absorbs a defect one layer down: `setback_tiles` is a LENGTH, so an
+# 8 m margin is negligible on a 48 m-deep parcel and a detached building covers 65% of its plot.
+# THE FLOOR AREAS ARE ABOUT 4x A REAL BUILDING'S; the PARCELS are right. ***Anchoring on the standing
+# city is what keeps it right while the footprint is wrong***, and the footprint is filed in
+# plans/0053 rather than worked around in silence. All three rates are unratified.
+#
+# ⚠ ABSENCE IS A CITY IN EACH CASE. No table means no Building holds anybody; no floor_tiles_per_job
+# means nobody is employed anywhere; no floor_tiles_per_parking_space means the city has no parking.
+# A parking minimum is a property of a CITY and not of a building, which is where it sits in every
+# real planning code.
+#
+# 🔴 THERE IS A FOURTH RATE AND IT IS NOT STATED HERE, WHICH IS ITSELF THE ARGUMENT.
+# `floor_tiles_per_place` is how much floor one attendance a Day takes at a SERVICE Building -- a
+# school's places are its floor area over this, so a bigger school teaches more children and where
+# the schools stand matters as much as how many there are. This file declares no kind that `serves`
+# anything, so the key would be a hash-bearing number no mechanism here could reach, and the loader
+# REFUSES it on exactly that ground. See rulesets/schooled.toml, which states it.
+#
+# ⚠ AND ITS ABSENCE MEANS THE OPPOSITE OF THE OTHER THREE. They are supplies, so an absent one is
+# a city with none of that thing; that one is a CEILING, so an absent one is a city where no service
+# Building is ever full. ***An unstated bound is no bound.*** It has to be that way round: the other
+# reading would have emptied every school in every file shipped before the key existed, silently, on
+# the day it was added.
+floor_tiles_per_occupant      = 25
+floor_tiles_per_job           = 3
+floor_tiles_per_parking_space = 12
+
+[parking]
+radius_metres = 400
+shed_keeps = 24
+
+[trips]
+crossing_seconds = 30
+commute_fast_minutes = 20
+commute_moderate_minutes = 40
+commute_budget_minutes = 50
+
+[jobs]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+shift_hours_min = 6
+shift_hours_max = 10
+arrive_early_max_minutes = 15

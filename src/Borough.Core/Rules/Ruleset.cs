@@ -1814,6 +1814,13 @@ public readonly record struct FoundingRuleset(Money FoundingBand, int Reconsider
 /// Street grid spacing in Tiles — the block, and <b>the axis that sets Segment count</b>. A Cell is
 /// 32 Tiles, so 32 is one Street on every Cell boundary.
 /// </param>
+/// <param name="BlockSpreadTiles">
+/// How much wider the wide line of each four-line period is, and how much narrower the narrow one —
+/// <b>and <c>0</c> means the lattice is uniform</b>. <c>plans/0045</c> row 25.
+/// ⚠ <b>It is not a spacing and it is not a mean.</b> Every period sums to four nominal blocks
+/// whatever this is, so it moves the <em>uniformity</em> and never the <em>grain</em>, which is what
+/// <c>--morphology</c> reads.
+/// </param>
 /// <param name="ArterialCount">How many freeform Arterials cross the map.</param>
 /// <param name="ArterialJunctionTiles">Tiles of Arterial between authored Junction pieces.</param>
 /// <param name="FootCrossingEvery">
@@ -1836,6 +1843,7 @@ public readonly record struct FoundingRuleset(Money FoundingBand, int Reconsider
 /// </param>
 public readonly record struct RoadRuleset(
     int BlockTiles,
+    int BlockSpreadTiles,
     int ArterialCount,
     int ArterialJunctionTiles,
     int FootCrossingEvery,

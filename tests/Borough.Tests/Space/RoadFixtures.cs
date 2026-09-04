@@ -40,9 +40,14 @@ internal static class RoadFixtures
         int arterials = 2,
         int junctionTiles = 512,
         int crossingEvery = 4,
-        int footPaths = 40) =>
+        int footPaths = 40,
+        int blockSpread = 0) =>
         new(
             BlockTiles: blockTiles,
+
+            // ⚠ ZERO IS UNIFORM, which is what every fixture here was written against. A fixture
+            // that wants a varying lattice says so. plans/0045 row 25.
+            BlockSpreadTiles: blockSpread,
             ArterialCount: arterials,
             ArterialJunctionTiles: junctionTiles,
             FootCrossingEvery: crossingEvery,

@@ -1,6 +1,8 @@
 using System;
 using System.Globalization;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Borough.Core.Entities;
 using Borough.Core.Determinism;
 using Borough.Core.Quantities;
@@ -228,6 +230,9 @@ internal static class MorphologyDump
                 $"{from,3}°–{(from + (360 / Bins)) % 360,3}°   {bearings[bin],8:N0}   "
                 + Bar(bearings[bin], bearings)));
         }
+
+        output.WriteLine();
+        Blocks(graph, output);
 
         output.WriteLine();
         output.WriteLine("## Intersections");
@@ -487,6 +492,106 @@ internal static class MorphologyDump
             + "generator doing exactly what it was written to do, measured for the first time. What "
             + "the figure is WORTH is a design question (adr/0090, adr/0077) and this mode does not "
             + "have an opinion about it.");
+    }
+
+    /// <summary>
+    /// <b>How big the blocks are</b> — the distribution of Street lengths, which is what
+    /// <em>uniform</em> means.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b><c>plans/0045</c> ROW 25 NAMES THIS MODE AS <i>the instrument that will read it</i>, AND
+    /// EVERY OTHER READING IN THIS FILE IS BLIND TO BLOCK SPACING.</b> Orientation entropy, φ, node
+    /// degree and circuity are all properties of which way an edge runs and how many meet — and
+    /// moving the spacing while holding the mean moves none of them, because every Street still runs
+    /// due east or due north. <b>Measured across the pair</b> — <c>minimal.toml</c> against
+    /// <c>gridded.toml</c>, same seed, at <b>10,000</b> Citizens — the Segment count (<b>627</b>),
+    /// the Node count (<b>324</b>), the intersection count (<b>320</b>) and <b>the whole degree
+    /// histogram including the 72.50% four-way share</b> are <em>byte-identical</em>. ***The named
+    /// instrument reads the GRAIN and cannot read the UNIFORMITY***, which is the mirror of the
+    /// row's own warning that a change moving the grain would be the wrong change made confidently.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Two readings do move a little, and neither is the one that was wanted.</b> φ goes
+    /// <b>0.9981 → 0.9969</b> and the bearing histogram goes 6 occupied bins to 12 — and the
+    /// four cardinal bins hold at <b>306</b> each, so ***every bit of that movement is the foot-path
+    /// diagonals***, which stop being at 45° once the block they cross is oblong. And the paved
+    /// extent goes <b>4.73 → 4.60 km²</b>, which carries intersection density from 175 to
+    /// 180 per square mile on an unchanged Node count — ***a density that moved because the
+    /// denominator did.***
+    /// </para>
+    /// <para>
+    /// <b>So the reading is the Street-length distribution</b>, printed as the distinct lengths with
+    /// their counts rather than as a mean and a spread. ⚠ <b>A mean says almost nothing</b>: the
+    /// design constraint on a varying lattice is that the mean is held so the grain does not move,
+    /// so it is close to the one figure guaranteed not to change. It is the SHAPE that carries the
+    /// answer. 🔴 <b>Almost, and the gap is worth its line: the mean is held over the MAP and a city
+    /// is a SAMPLE of it.</b> <see cref="Space.BlockLattice"/> holds it exactly over every run of
+    /// four lines, but a city paves the blocks it needs and stops mid-period, so the sample's mean
+    /// is the map's only when the truncation happens to be even — <b>128.0 m at 2,000 Citizens and
+    /// 126.1 m at 10,000</b>, on one lattice whose every period sums exactly. ***A quantity held by
+    /// construction over the world is not held over an arbitrary window into it.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Streets only.</b> An Arterial is a spline and a foot path is a block diagonal, so
+    /// neither length is a lattice spacing — including them would put the diagonal's 181 m in a
+    /// histogram of block sizes and read as variation that is not there.
+    /// </para>
+    /// </remarks>
+    private static void Blocks(RoadGraph graph, TextWriter output)
+    {
+        RoadSegmentTable segments = graph.Segments;
+        var seen = new SortedDictionary<int, int>();
+        long total = 0;
+        int counted = 0;
+
+        for (int slot = 0; slot < segments.Rows.SlotCount; slot++)
+        {
+            if (!segments.Rows.IsLive(slot) || segments.Kind[slot] != (byte)RoadKind.Street)
+            {
+                continue;
+            }
+
+            int tiles = segments.LengthTiles[slot].Raw;
+
+            seen[tiles] = seen.TryGetValue(tiles, out int had) ? had + 1 : 1;
+            total += tiles;
+            counted++;
+        }
+
+        output.WriteLine("## Blocks");
+        output.WriteLine();
+
+        if (counted == 0)
+        {
+            output.WriteLine(Line("No Streets, so this world has no lattice to measure."));
+            return;
+        }
+
+        output.WriteLine(Line($"Streets                 {counted:N0}"));
+        output.WriteLine(Line($"Distinct lengths        {seen.Count}"));
+        output.WriteLine(Line(
+            $"Mean                    {(double)total / counted * Tiles.Metres:N1} m — "
+            + "⚠ held per period over the MAP, and this is a sample of it, so a city that "
+            + "stops mid-period reads a little off the nominal"));
+        output.WriteLine();
+        output.WriteLine("### Street lengths, by block size");
+        output.WriteLine();
+
+        foreach ((int tiles, int count) in seen)
+        {
+            output.WriteLine(Line(
+                $"{tiles,5} Tiles {tiles * Tiles.Metres,6:N0} m   {count,8:N0}   "
+                + $"{(double)count / counted * 100,6:N2}%"));
+        }
+
+        output.WriteLine();
+        output.WriteLine(Line(
+            seen.Count == 1
+                ? $"READING: the lattice is UNIFORM — every block is {seen.Keys.First()} Tiles."
+                : $"READING: the lattice is NOT uniform — {seen.Count} block sizes, "
+                    + $"{seen.Keys.First()} to {seen.Keys.Last()} Tiles, a "
+                    + $"{(double)seen.Keys.Last() / seen.Keys.First():N2}x spread."));
     }
 
     /// <summary>One line, in the invariant culture, so a dump is byte-comparable across machines.</summary>

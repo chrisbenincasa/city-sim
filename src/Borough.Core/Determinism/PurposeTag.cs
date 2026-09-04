@@ -820,4 +820,30 @@ public enum PurposeTag : ulong
     /// </para>
     /// </remarks>
     PlotWidths = 41,
+
+    /// <summary>
+    /// <b>Which line of a period is the wide one, and which the narrow</b> — the Street lattice's
+    /// own spacing (<see cref="Space.BlockLattice.Varied"/>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b><c>plans/0045</c> row 25: the lattice a player's Streets snap to is not uniform.</b>
+    /// <c>[roads] block_tiles</c> was one number for the whole map, so 128 m was a good block size
+    /// that was also the only one.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>DRAWN ON THE PERIOD AND NOT ON THE LINE, which is the whole reason the mean holds.</b>
+    /// Every line in a run of four reads this one answer, so the run measures four nominal blocks
+    /// however the wide one fell — ***a per-line draw would need a running correction, and a
+    /// correction is where a held mean silently stops being held.*** The grain is what
+    /// <c>--morphology</c> reads and the row's own warning is that moving it would be the wrong
+    /// change made confidently.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is the PLAN and not the ground</b>, so it takes no Tick: a lattice is world-creation
+    /// data and a block that is re-platted is re-platted the same width, exactly as
+    /// <see cref="PlotUnit"/> is on the block's own coordinates.
+    /// </para>
+    /// </remarks>
+    BlockSpacing = 42,
 }

@@ -25,7 +25,7 @@ dotnet run --project src/Borough.Headless -- \
 
 ## The sections
 
-34 sections, 178 keys.
+34 sections, 179 keys.
 
 - [`[[band]]`](#band) — 2 keys
 - [`[[building]]`](#building) — 14 keys
@@ -57,7 +57,7 @@ dotnet run --project src/Borough.Headless -- \
 - [`[needs]`](#needs) — 9 keys
 - [`[parking]`](#parking) — 2 keys
 - [`[placement]`](#placement) — 5 keys
-- [`[roads]`](#roads) — 11 keys
+- [`[roads]`](#roads) — 12 keys
 - [`[traffic]`](#traffic) — 3 keys
 - [`[trips]`](#trips) — 4 keys
 - [`[water]`](#water) — 6 keys
@@ -853,6 +853,10 @@ How many Tiles of Arterial lie between two authored Junction pieces, which is th
 **`arterial_speed_kph`** · *whole number*
 
 Free-flow speed on an Arterial.
+
+**`block_spread_tiles`** · *whole number*
+
+How much wider the wide line of each four-line period is, and how much narrower the narrow one — so the lattice comes out with a hierarchy of streets instead of one block size everywhere. Absent means the lattice is uniform, which is what every other shipped file states. It moves no mean: every period sums to four nominal blocks, so the network's grain is unchanged and only its uniformity moves. A world stating it may declare only one [[lattice]], at origin 0.
 
 **`block_tiles`** · *whole number*
 

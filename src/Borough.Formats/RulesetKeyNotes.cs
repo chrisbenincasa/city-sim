@@ -511,6 +511,13 @@ public static class RulesetKeyNotes
             "The Street grid spacing in Tiles — the block. It decides Segment count and therefore "
             + "every routing figure downstream. Omitting the whole [roads] table means the world has "
             + "no roads at all.",
+        ["[roads] block_spread_tiles"] =
+            "How much wider the wide line of each four-line period is, and how much narrower the "
+            + "narrow one — so the lattice comes out with a hierarchy of streets instead of one "
+            + "block size everywhere. Absent means the lattice is uniform, which is what every "
+            + "other shipped file states. It moves no mean: every period sums to four nominal "
+            + "blocks, so the network's grain is unchanged and only its uniformity moves. A world "
+            + "stating it may declare only one [[lattice]], at origin 0.",
         ["[roads] arterial_count"] =
             "How many freeform Arterials cross the map. Zero is a city of Streets alone, and "
             + "therefore a city where Severance cannot happen — which is what every city-modelling "
