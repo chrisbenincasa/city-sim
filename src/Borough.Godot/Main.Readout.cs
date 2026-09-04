@@ -384,8 +384,8 @@ public partial class Main
         (Tiles East, Tiles North) at,
         StreetGrid streets)
     {
-        int column = IntegerMath.FloorDiv(at.East.Raw, streets.BlockTiles);
-        int row = IntegerMath.FloorDiv(at.North.Raw, streets.BlockTiles);
+        int column = streets.Lattice.LineAt(at.East.Raw);
+        int row = streets.Lattice.LineAt(at.North.Raw);
         int paths = 0;
         int others = 0;
 
@@ -441,8 +441,8 @@ public partial class Main
             return;
         }
 
-        int column = IntegerMath.FloorDiv(at.East.Raw, streets.BlockTiles);
-        int row = IntegerMath.FloorDiv(at.North.Raw, streets.BlockTiles);
+        int column = streets.Lattice.LineAt(at.East.Raw);
+        int row = streets.Lattice.LineAt(at.North.Raw);
         int free = 0;
         int faces = 0;
 
@@ -509,9 +509,9 @@ public partial class Main
         _cursor.Multimesh.SetInstanceTransform(
             0,
             _verb == Verb.Connect && block > 0
-                ? Edge(at, block)
+                ? Edge(at, _world.Roads.Streets.Lattice)
                 : block > 0
-                    ? Block(at, block, 0.03f)
+                    ? Block(at, _world.Roads.Streets.Lattice, 0.03f)
                     : Tile(CellGrid.ToCells(at.East), CellGrid.ToCells(at.North), 0.03f));
         _cursor.Multimesh.VisibleInstanceCount = 1;
     }

@@ -153,10 +153,10 @@ public sealed class Frontage
             return Rows.NoSlot;
         }
 
-        int column = IntegerMath.FloorDiv(east.Raw, block);
-        int row = IntegerMath.FloorDiv(north.Raw, block);
-        int alongEast = east.Raw - (column * block);
-        int alongNorth = north.Raw - (row * block);
+        int column = streets.Lattice.LineAt(east.Raw);
+        int row = streets.Lattice.LineAt(north.Raw);
+        int alongEast = east.Raw - streets.Lattice.EdgeOf(column);
+        int alongNorth = north.Raw - streets.Lattice.EdgeOf(row);
 
         if (alongNorth == 0 && alongEast != 0)
         {
@@ -232,11 +232,11 @@ public sealed class Frontage
             return false;
         }
 
-        column = IntegerMath.FloorDiv(east.Raw, block);
-        row = IntegerMath.FloorDiv(north.Raw, block);
+        column = streets.Lattice.LineAt(east.Raw);
+        row = streets.Lattice.LineAt(north.Raw);
 
-        int alongEast = east.Raw - (column * block);
-        int alongNorth = north.Raw - (row * block);
+        int alongEast = east.Raw - streets.Lattice.EdgeOf(column);
+        int alongNorth = north.Raw - streets.Lattice.EdgeOf(row);
 
         // A horizontal face. The same test Locate makes, and for the same reason: a position exactly
         // on an intersection fronts nothing and belongs to no face.

@@ -653,7 +653,10 @@ public static class SyntheticCity
     {
         // One block wider than the lattice, for Subdivide's reason: the block beyond the east edge
         // has that edge's Segments as its west face, so it carries Lots and they are this lattice's.
-        int reach = extentTiles + world.Rules.Roads.BlockTiles;
+        //
+        // ⚠ A block as a LENGTH -- a margin on a box -- so the WIDEST block and not the mean, which
+        // is what keeps the box covering on a lattice whose lines are not evenly spaced.
+        int reach = extentTiles + world.Roads.Lattice.Widest;
         int fromEast = lattice.OriginEastTiles;
         int fromNorth = lattice.OriginNorthTiles;
         int toEast = fromEast + reach;
@@ -672,8 +675,8 @@ public static class SyntheticCity
             // world with no lattice, which makes the two tests below inert and builds every row --
             // the degenerate path, where a Lot is one Tile and there are no blocks to finish.
             int here = blockTiles > 0
-                ? (IntegerMath.FloorDiv(world.Lots.East[slot].Raw, blockTiles) * CellGrid.WorldCells)
-                    + IntegerMath.FloorDiv(world.Lots.North[slot].Raw, blockTiles)
+                ? (world.Roads.Lattice.LineAt(world.Lots.East[slot].Raw) * CellGrid.WorldCells)
+                    + world.Roads.Lattice.LineAt(world.Lots.North[slot].Raw)
                 : 0;
 
             // 🔴 THE POPULATION IS HOUSED, THEN ONE MORE STREET GOES UP (plans/0053). Two rules, and
@@ -999,7 +1002,9 @@ public static class SyntheticCity
             blocks++;
         }
 
-        int tiles = blocks * block;
+        // ⚠ HOW FAR `blocks` BLOCKS REACH FROM THE ORIGIN, which is a walk and not a multiply --
+        // the extent this returns is ground and the blocks it counts need not be equal.
+        int tiles = world.Roads.Lattice.EdgeOf(blocks) - world.Roads.Lattice.EdgeOf(0);
 
         return tiles < CellGrid.WorldTiles ? tiles : CellGrid.WorldTiles;
     }
@@ -1099,9 +1104,8 @@ public static class SyntheticCity
             return wanted;
         }
 
-        int block = world.Rules.Roads.BlockTiles;
-        int firstColumn = IntegerMath.FloorDiv(lattice.OriginEastTiles, block);
-        int firstRow = IntegerMath.FloorDiv(lattice.OriginNorthTiles, block);
+        int firstColumn = world.Roads.Lattice.LineAt(lattice.OriginEastTiles);
+        int firstRow = world.Roads.Lattice.LineAt(lattice.OriginNorthTiles);
         // ⚠ ONE BLOCK WIDER THAN THE LATTICE, and it is measured rather than reasoned. A lattice of
         // n blocks has n+1 Node columns, so the block SITTING BEYOND its east edge still has that
         // last column of vertical Segments as its west face -- and a face is all SubdivideBlock
@@ -1109,7 +1113,7 @@ public static class SyntheticCity
         // them: every golden trace moved, and GoldenSessionCoverageTests named it exactly ("carved
         // 118 Lots where 117 were expected"). ***A lattice's Lots do not stop at its extent, because
         // a Segment has two sides.***
-        int span = IntegerMath.FloorDiv(extentTiles, block) + 1;
+        int span = world.Roads.Lattice.LinesIn(lattice.OriginEastTiles, extentTiles);
 
         int rate = world.Rules.Capacity.FloorTilesPerOccupant;
         bool trades = world.Rules.Declares(DwellingKind)

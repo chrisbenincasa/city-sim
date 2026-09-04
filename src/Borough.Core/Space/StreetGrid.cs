@@ -108,8 +108,21 @@ public sealed class StreetGrid
     /// <summary>Intersections along one edge of the map. Zero where the world has no roads.</summary>
     public int Span { get; private set; }
 
-    /// <summary>Tiles between adjacent intersections, as the <c>[roads]</c> table states it.</summary>
-    public int BlockTiles { get; private set; }
+    /// <summary>
+    /// <b>Where the lines stand.</b> <see cref="BlockLattice.None"/> on a world with no roads.
+    /// </summary>
+    public BlockLattice Lattice { get; private set; } = BlockLattice.None;
+
+    /// <summary>
+    /// A block as a LENGTH, as the <c>[roads]</c> table states it.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>This is <see cref="BlockLattice.Nominal"/> and NOT the width of any particular block.</b>
+    /// It survives as the <em>does this world have a lattice at all</em> test and as a distance;
+    /// every site that meant <em>this block's ground</em> reads <see cref="Lattice"/> now.
+    /// <c>plans/0045</c> row 25.
+    /// </remarks>
+    public int BlockTiles => Lattice.Nominal;
 
     /// <summary>Blocks along one edge of the map — one fewer than the intersections.</summary>
     public int Blocks => Span > 0 ? Span - 1 : 0;
@@ -251,17 +264,23 @@ public sealed class StreetGrid
             return (Rows.NoSlot, Rows.NoSlot, StreetAxis.East);
         }
 
-        int column = IntegerMath.FloorDiv(east.Raw, BlockTiles);
-        int row = IntegerMath.FloorDiv(north.Raw, BlockTiles);
+        int column = Lattice.LineAt(east.Raw);
+        int row = Lattice.LineAt(north.Raw);
 
         column = column < 0 ? 0 : column >= Blocks ? Blocks - 1 : column;
         row = row < 0 ? 0 : row >= Blocks ? Blocks - 1 : row;
 
-        int alongEast = east.Raw - (column * BlockTiles);
-        int alongNorth = north.Raw - (row * BlockTiles);
+        // 🔴 THE TWO EXTENTS ARE THIS BLOCK'S OWN AND THEY NEED NOT BE EQUAL. They were one number
+        // until plans/0045 row 25, which is what made the four comparisons below read as a
+        // half-block test; they are a distance to each of four named edges and always were.
+        int wide = Lattice.WidthOf(column);
+        int deep = Lattice.WidthOf(row);
 
-        alongEast = alongEast < 0 ? 0 : alongEast > BlockTiles ? BlockTiles : alongEast;
-        alongNorth = alongNorth < 0 ? 0 : alongNorth > BlockTiles ? BlockTiles : alongNorth;
+        int alongEast = east.Raw - Lattice.EdgeOf(column);
+        int alongNorth = north.Raw - Lattice.EdgeOf(row);
+
+        alongEast = alongEast < 0 ? 0 : alongEast > wide ? wide : alongEast;
+        alongNorth = alongNorth < 0 ? 0 : alongNorth > deep ? deep : alongNorth;
 
         // South first, and every comparison below is strict -- so the first of an equal pair keeps
         // the answer and this order IS the tie-break the remark names.
@@ -274,13 +293,13 @@ public sealed class StreetGrid
             edge = (column, row, StreetAxis.North);
         }
 
-        if (BlockTiles - alongNorth < nearest)
+        if (deep - alongNorth < nearest)
         {
-            nearest = BlockTiles - alongNorth;
+            nearest = deep - alongNorth;
             edge = (column, row + 1, StreetAxis.East);
         }
 
-        if (BlockTiles - alongEast < nearest)
+        if (wide - alongEast < nearest)
         {
             edge = (column + 1, row, StreetAxis.North);
         }
@@ -301,7 +320,7 @@ public sealed class StreetGrid
     /// the division <c>Simulation.Refuses</c> already draws between a rule and a pick.
     /// </remarks>
     public (Tiles East, Tiles North) IntersectionTile(int column, int row) =>
-        (new Tiles(column * BlockTiles), new Tiles(row * BlockTiles));
+        (Lattice.TileOf(column), Lattice.TileOf(row));
 
     /// <summary>
     /// What a drag from one Tile to another asks the lattice for — <b>the classification, so that a
@@ -391,13 +410,14 @@ public sealed class StreetGrid
     /// a road edit the same code path as subdivision at world creation, which is the property
     /// <c>plans/0022</c> asks for when it says neither half is testable alone.
     /// </remarks>
-    public void Rebuild(RoadNodeTable nodes, RoadSegmentTable segments, int blockTiles)
+    public void Rebuild(RoadNodeTable nodes, RoadSegmentTable segments, BlockLattice lattice)
     {
         ArgumentNullException.ThrowIfNull(nodes);
         ArgumentNullException.ThrowIfNull(segments);
+        ArgumentNullException.ThrowIfNull(lattice);
 
-        BlockTiles = blockTiles;
-        Span = blockTiles > 0 ? IntegerMath.FloorDiv(CellGrid.WorldTiles, blockTiles) + 1 : 0;
+        Lattice = lattice;
+        Span = lattice.Lines;
 
         int edges = Blocks * Span;
         int intersections = Span * Span;
@@ -482,7 +502,7 @@ public sealed class StreetGrid
             {
                 _offLattice[OffLatticeCount++] = slot;
 
-                Bucket(nodes, segments, slot, blockTiles);
+                Bucket(nodes, segments, slot, lattice);
             }
         }
     }
@@ -500,9 +520,9 @@ public sealed class StreetGrid
     /// the map: on <c>rulesets/bordered.toml</c> it is 12,581 Segments of which about 10,500 are foot
     /// paths, and one whole-map land value pass walked it 2 million times.
     /// </remarks>
-    private void Bucket(RoadNodeTable nodes, RoadSegmentTable segments, int slot, int blockTiles)
+    private void Bucket(RoadNodeTable nodes, RoadSegmentTable segments, int slot, BlockLattice lattice)
     {
-        if (blockTiles <= 0
+        if (lattice.Nominal <= 0
             || Span <= 0
             || !nodes.Rows.TryResolve(segments.NodeA[slot], out int a)
             || !nodes.Rows.TryResolve(segments.NodeB[slot], out int b))
@@ -510,10 +530,10 @@ public sealed class StreetGrid
             return;
         }
 
-        int columnA = IntegerMath.FloorDiv(nodes.East[a].Raw, blockTiles);
-        int rowA = IntegerMath.FloorDiv(nodes.North[a].Raw, blockTiles);
-        int columnB = IntegerMath.FloorDiv(nodes.East[b].Raw, blockTiles);
-        int rowB = IntegerMath.FloorDiv(nodes.North[b].Raw, blockTiles);
+        int columnA = lattice.LineAt(nodes.East[a].Raw);
+        int rowA = lattice.LineAt(nodes.North[a].Raw);
+        int columnB = lattice.LineAt(nodes.East[b].Raw);
+        int rowB = lattice.LineAt(nodes.North[b].Raw);
 
         int spanEast = IntegerMath.Abs(columnB - columnA);
         int spanNorth = IntegerMath.Abs(rowB - rowA);
@@ -523,10 +543,11 @@ public sealed class StreetGrid
         // under the middle it reaches half, and the window is squared, so this is worth about 3x on a
         // world with Arterials. It is why `reach` is a CEILING of the half-span: an odd span must round
         // up or the far end falls outside the window it is looked for in.
-        int column = IntegerMath.FloorDiv(
-            nodes.East[a].Raw + nodes.East[b].Raw, blockTiles * 2);
-        int row = IntegerMath.FloorDiv(
-            nodes.North[a].Raw + nodes.North[b].Raw, blockTiles * 2);
+        // ⚠ The midpoint's TILE first and then its block, which is one step where it used to be a
+        // divide by twice the block: FloorDiv(a + b, 2B) is only FloorDiv((a + b) / 2, B) because
+        // the spacing is one number, and that is exactly the assumption row 25 is removing.
+        int column = lattice.LineAt(IntegerMath.FloorDiv(nodes.East[a].Raw + nodes.East[b].Raw, 2));
+        int row = lattice.LineAt(IntegerMath.FloorDiv(nodes.North[a].Raw + nodes.North[b].Raw, 2));
 
         int reach = IntegerMath.CeilDiv(spanEast > spanNorth ? spanEast : spanNorth, 2) + 1;
 
@@ -561,11 +582,13 @@ public sealed class StreetGrid
         int east = nodes.East[slot].Raw;
         int north = nodes.North[slot].Raw;
 
-        column = IntegerMath.FloorDiv(east, BlockTiles);
-        row = IntegerMath.FloorDiv(north, BlockTiles);
+        column = Lattice.LineAt(east);
+        row = Lattice.LineAt(north);
 
-        return east == column * BlockTiles
-            && north == row * BlockTiles
+        // ⚠ EXACTLY on a line, which is what makes this a lattice membership test and not a
+        // proximity one -- a node one Tile off a line is off the lattice however near it is.
+        return east == Lattice.EdgeOf(column)
+            && north == Lattice.EdgeOf(row)
             && column >= 0 && column < Span
             && row >= 0 && row < Span;
     }

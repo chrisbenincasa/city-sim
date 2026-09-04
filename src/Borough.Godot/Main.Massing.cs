@@ -90,7 +90,7 @@ public partial class Main
     {
         BuildingTable table = _world.Buildings;
         LotTable lots = _world.Lots;
-        int block = _world.Roads.Streets.BlockTiles;
+        BlockLattice lattice = _world.Roads.Streets.Lattice;
 
         for (int slot = 0; slot < table.Rows.SlotCount; slot++)
         {
@@ -140,7 +140,10 @@ public partial class Main
             // Which of the parcel's two axes runs ALONG the Street. Read the way
             // BlockPatterns.SideOf writes it: on a horizontal Street Left is the north side, on a
             // vertical one Right is the east side.
-            bool horizontal = block > 0 && lots.North[lot].Raw % block == 0;
+            // ⚠ ON A LINE, which is what the modulo was asking. It reads the same on an evenly
+            // spaced lattice and is the question rather than an arithmetic that answers it.
+            bool horizontal = lattice.Nominal > 0
+                && lattice.EdgeOf(lattice.LineAt(lots.North[lot].Raw)) == lots.North[lot].Raw;
 
             float along = horizontal ? eastWest : southNorth;
             float deep = horizontal ? southNorth : eastWest;

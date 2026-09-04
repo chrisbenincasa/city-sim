@@ -62,8 +62,8 @@ public static class LotSubdivider
             return 0;
         }
 
-        int column = Arithmetic.IntegerMath.FloorDiv(east.Raw, streets.BlockTiles);
-        int row = Arithmetic.IntegerMath.FloorDiv(north.Raw, streets.BlockTiles);
+        int column = streets.Lattice.LineAt(east.Raw);
+        int row = streets.Lattice.LineAt(north.Raw);
 
         return SubdivideBlock(world, column, row, zone);
     }
@@ -185,6 +185,12 @@ public static class LotSubdivider
     {
         StreetGrid streets = world.Roads.Streets;
 
+        // 🔴 ONE NUMBER FOR A BLOCK THAT HAS TWO EXTENTS. BlockPatterns carves four faces off a
+        // single blockTiles, so a block is square by construction -- which is true on an evenly
+        // spaced lattice and is the next thing plans/0045 row 25 has to remove. The lattice can
+        // already answer WidthOf(column) and WidthOf(row) separately; what cannot yet take the
+        // answer is Carve. ***Marked rather than half-converted***, because passing WidthOf(column)
+        // here would look done and would silently use a block's width as its depth.
         int blockTiles = streets.BlockTiles;
         int perSegment = world.Rules.Lots.LotsPerSegment;
         int ceiling = BlockPatterns.Ceiling(perSegment);

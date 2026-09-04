@@ -227,9 +227,14 @@ public static class LineSourceQueries
 
         // The window is ceil(range / block) blocks each way: a Segment more than that many block steps
         // off cannot have a point within range, because a block IS the lattice pitch.
-        int window = block > 0 ? IntegerMath.CeilDiv(range, block) : 0;
-        int column = block > 0 ? IntegerMath.FloorDiv(east.Raw, block) : 0;
-        int row = block > 0 ? IntegerMath.FloorDiv(north.Raw, block) : 0;
+        //
+        // 🔴 SIZED BY THE NARROWEST BLOCK AND NOT BY THE NOMINAL ONE. The sentence above is a claim
+        // about the pitch, and on a lattice whose lines are not evenly spaced the pitch is a range
+        // rather than a number -- a window sized by the mean covers less ground than it believes and
+        // this query answers quietly wrong. BlockLattice.Narrowest' own remark. plans/0045 row 25.
+        int window = block > 0 ? IntegerMath.CeilDiv(range, streets.Lattice.Narrowest) : 0;
+        int column = block > 0 ? streets.Lattice.LineAt(east.Raw) : 0;
+        int row = block > 0 ? streets.Lattice.LineAt(north.Raw) : 0;
 
         // PROVABLY ZERO RATHER THAN APPROXIMATELY, and the proof is three lines of this file.
         // Contribution returns zero for a Segment carrying no Vehicles, so where nothing within range
