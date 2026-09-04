@@ -40,7 +40,10 @@ public sealed class BlockPatternTests
         var into = new Parcel[BlockPatterns.Ceiling(lotsPerSegment)];
         int count = BlockPatterns.Carve(
             Borough.Core.Determinism.WorldKey.FromSeed(seed),
-            pattern, column, row, blockTiles, lotsPerSegment, into);
+            pattern,
+            BlockGround.At(BlockLattice.Even(blockTiles), column, row),
+            lotsPerSegment,
+            into);
 
         return into[..count];
     }
