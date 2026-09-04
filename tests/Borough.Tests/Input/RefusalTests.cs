@@ -162,6 +162,16 @@ public sealed class RefusalTests
                 return (simulation, Case(refusal, simulation, world));
             }
 
+            case Refusal.PeopleWorldHasNoLots:
+            {
+                // A world nothing has been laid on -- which is what CommandKind.Ground now gives a
+                // player, and where a hand that lays Streets and asks for people before zoning
+                // anything ends up.
+                (World world, Simulation simulation) = Unbuilt();
+
+                return (simulation, Case(refusal, simulation, world));
+            }
+
             case Refusal.GovernPolicyHasNoName:
             {
                 (World world, Simulation simulation) = City(Schooled + Anonymous);
@@ -253,6 +263,12 @@ public sealed class RefusalTests
 
         Refusal.ServiceNoVacantLotOnThatTile => Command.Service(
             new Tiles(9_000), new Tiles(9_000), School),
+
+        // ⚠ ONE COMMAND FOR TWO REFUSALS, because the verb carries no payload at all: what
+        // distinguishes them is the WORLD it is applied to, which is what Case's world switch above
+        // selects. The default world is a generated city, so it holds people.
+        Refusal.PeopleWorldAlreadyHasAPopulation or Refusal.PeopleWorldHasNoLots =>
+            new Command(CommandKind.People, default, default),
 
         _ => throw new Xunit.Sdk.XunitException(
             $"Refusal.{refusal} has no case, so nothing anywhere asserts that the query and the "
@@ -351,6 +367,24 @@ public sealed class RefusalTests
         world.CreateBuilding(world.Lots.Create(new Tiles(0), new Tiles(0), 1), Dwelling, Ticks.Zero, key);
         world.CreateBuilding(
             world.Lots.Create(new Tiles(2 * block), new Tiles(0), 1), Dwelling, Ticks.Zero, key);
+
+        return (world, simulation);
+    }
+
+    /// <summary>
+    /// A world with the ground laid and nothing standing on it — <c>adr/0090</c>'s world.
+    /// </summary>
+    /// <remarks>
+    /// <b>Not populated, and that is the whole of it.</b> <see cref="City"/> calls the populator, so
+    /// every world it makes already holds Lots and people; this one is what <c>CommandKind.Ground</c>
+    /// leaves behind, and it is the only world in which <c>People</c> can be refused for having
+    /// nowhere to put anybody.
+    /// </remarks>
+    private static (World World, Simulation Simulation) Unbuilt()
+    {
+        var key = WorldKey.FromSeed(Seed);
+        var world = new World(Citizens, Parse(Schooled), key);
+        var simulation = new Simulation(world, key) { VerifyDecideWritesNothing = false };
 
         return (world, simulation);
     }

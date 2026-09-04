@@ -192,6 +192,88 @@ public enum CommandKind : ushort
     /// </para>
     /// </remarks>
     Demolish = 8,
+
+    /// <summary>
+    /// Make the ground and nothing that stands on it — terrain, Woodland, water and the Hazard
+    /// Regions. <b><c>adr/0090</c>'s generator remit as a verb</b>, and — like
+    /// <see cref="Populate"/> — an instrument rather than one of <c>01 §2</c>'s five.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>IT EXISTS SO THAT THE WORLD THE DESIGN DESCRIBES CAN BE REACHED AT ALL.</b>
+    /// <c>adr/0090</c> gives the generator <em>"terrain, Woodland, hazard regions, and the Outside
+    /// Connections with their stubs. Nothing else"</em> and gives the player every road, but the
+    /// only verb that laid ground was <see cref="Populate"/>, which lays a whole synthetic city
+    /// with it. So the reachable worlds were <em>a generated lattice</em> or <em>a bare map</em>,
+    /// and the design's own world was neither. <c>SyntheticCity.GroundInto</c> is the split.
+    /// </para>
+    /// <para>
+    /// <b>It is a Command and not a runner switch, for <see cref="Populate"/>'s reason exactly.</b>
+    /// Ground that arrived beside <c>Simulation.Apply</c> would be a state change no replay
+    /// reproduces and no State Hash divergence explains — and this is the one kind of state where
+    /// that would be silent, because a forest and a coastline are not things a readout counts.
+    /// </para>
+    /// <para>
+    /// <b>No payload, and the format version does not move.</b> <c>InputLogCodec.Version</c>'s rule
+    /// is that a <em>sixth field</em> bumps it; this adds none. <see cref="Command.East"/>,
+    /// <see cref="Command.North"/> and <see cref="Command.Zone"/> all stay zero — the ground's size
+    /// and shape are the Ruleset's and the <see cref="WorldKey"/>'s, neither of which is a payload.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It and <see cref="Populate"/> are ALTERNATIVES rather than a sequence.</b>
+    /// <see cref="Populate"/> lays the ground itself, so a world that took this verb refuses the
+    /// other one by name. ***A world gets its ground from exactly one verb at Tick 0.***
+    /// </para>
+    /// <para>
+    /// <b>It is NOT expected to be deleted on <see cref="Populate"/>'s terms.</b> The generator
+    /// making land is the design rather than a scaffold, so what this verb does outlives the
+    /// instrument that first needed it; what is open is whether world creation should be a verb at
+    /// all, which is a different question from whether the generator should lay ground.
+    /// </para>
+    /// </remarks>
+    Ground = 9,
+
+    /// <summary>
+    /// Raise Buildings, Households and Citizens on whatever Lots already stand.
+    /// <b><see cref="Populate"/>'s people half as a verb</b>, and — like it — an instrument rather
+    /// than one of <c>01 §2</c>'s five.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>A PLAYER-BUILT WORLD COULD NOT BE LIVED IN, AND THE DOOR HAD BEEN BUILT FOR IT SINCE
+    /// 2026-08-15.</b> <see cref="Ground"/> made <c>adr/0090</c>'s world reachable, so a player can
+    /// lay Streets with <see cref="Connect"/> and carve Lots with <see cref="Zone"/> — and nothing
+    /// was ever built on them, because the chain is Households → the Unplaced Pool → placement →
+    /// Buildings and ***an empty world has an empty Pool, which is the Pool working rather than
+    /// failing***. <c>SyntheticCity.PeopleInto</c> is exactly the half that was missing and had no
+    /// caller outside the test suite.
+    /// </para>
+    /// <para>
+    /// <b>It is a Command and not a runner switch, for <see cref="Populate"/>'s reason exactly.</b>
+    /// A population arriving beside <c>Simulation.Apply</c> is a state change no replay reproduces
+    /// and no State Hash divergence explains.
+    /// </para>
+    /// <para>
+    /// <b>No payload, and the format version does not move.</b> <c>InputLogCodec.Version</c>'s rule
+    /// is that a <em>sixth field</em> bumps it; this adds none. The size is
+    /// <see cref="WorldConfiguration.Citizens"/>, which the log already states —
+    /// <see cref="Populate"/>'s argument, and it applies here unchanged because the two verbs read
+    /// the same number.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is the LAND that separates it from <see cref="Populate"/> and never the people.</b>
+    /// <see cref="Populate"/> lays the ground, the lattice and the Lots and then calls this; a world
+    /// that took <see cref="Ground"/> has the ground and owes the rest to the player. So this verb
+    /// builds on whatever Lots are standing at the Tick it applies, and a world with none is refused
+    /// by name (<c>Refusal.PeopleWorldHasNoLots</c>) rather than populated into nowhere.
+    /// </para>
+    /// <para>
+    /// <b>It is expected to be deleted</b>, on <see cref="Populate"/>'s terms: when a Household can
+    /// decide to arrive — milestone 16, <c>adr/0128</c> — this stops being the only thing that puts
+    /// anybody in a city the player built.
+    /// </para>
+    /// </remarks>
+    People = 10,
 }
 
 /// <summary>

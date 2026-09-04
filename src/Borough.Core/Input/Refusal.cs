@@ -112,4 +112,18 @@ public enum Refusal : ushort
 
     /// <summary><c>Service</c> names a Tile holding no vacant Lot — a shell is not vacant.</summary>
     ServiceNoVacantLotOnThatTile = 17,
+
+    /// <summary>
+    /// <c>People</c> is commanded on a world that already holds a population. World creation belongs
+    /// at Tick 0 and once — a second application would build a city of twice the configured size
+    /// into tables sized for one.
+    /// </summary>
+    PeopleWorldAlreadyHasAPopulation = 18,
+
+    /// <summary>
+    /// <c>People</c> is commanded on a world with no Lots, so there is nowhere to put anybody. On a
+    /// world laid by <c>Connect</c> the Lots come from <c>Zone</c>, which carves against the Street
+    /// faces that are standing.
+    /// </summary>
+    PeopleWorldHasNoLots = 19,
 }

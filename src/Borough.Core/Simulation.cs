@@ -429,10 +429,43 @@ public sealed class Simulation
                 break;
 
             case CommandKind.Populate:
-                // Spike S0's verb, and the only one here that is an instrument rather than a player's.
-                // It is applied like any other because that is the point of it: a population that
-                // arrived any other way would be outside the log that claims to describe the session.
+                // Spike S0's verb, and one of the two here that are an instrument rather than a
+                // player's. It is applied like any other because that is the point of it: a
+                // population that arrived any other way would be outside the log that claims to
+                // describe the session.
                 SyntheticCity.PopulateInto(_world, _key, tick);
+                break;
+
+            case CommandKind.Ground:
+                // adr/0090's generator remit as a verb -- terrain, Woodland, water and the Hazard
+                // Regions, and nothing that stands on them. It is Populate's ground half without
+                // Populate's lattice, Lots and people, and it is what makes the world that ADR
+                // describes reachable: before the split the only worlds available were a generated
+                // city or a bare map, and the design's own world was neither.
+                //
+                // ⚠ AN ALTERNATIVE TO Populate AND NOT A PREDECESSOR. PopulateInto lays the ground
+                // itself, so a world that took this verb refuses that one by name -- see
+                // SyntheticCity.RefuseIfGrounded, which asks what is standing rather than carrying
+                // a flag.
+                SyntheticCity.GroundInto(_world, _key);
+                break;
+
+            case CommandKind.People:
+                // Ground's other half, and the verb that makes a player-built world liveable. Ground
+                // lays terrain, Woodland, water and hazard and stops there, so a world reached that
+                // way gets its Streets from Connect and its Lots from Zone -- and then nothing was
+                // ever built on them, because the chain is Households -> the Unplaced Pool ->
+                // placement -> Buildings and an empty world has an empty Pool. plans/0045 row 21.
+                //
+                // ⚠ IT IS Populate's PEOPLE HALF AND NOT A SECOND Populate. What separates the two
+                // is the LAND: Populate lays the lattice and carves the Lots itself, and this builds
+                // on whatever is standing. So a world takes Populate, or it takes Ground and this.
+                //
+                // ⚠ AND IT DOES NOT EVALUATE THE DISTRICTS, WHERE PopulateInto DOES. That call is in
+                // PopulateInto rather than at its Command because most of the suite populates a world
+                // directly and never steps it; a command applies in phase 0 of a real Tick, and
+                // adr/0134's re-evaluation is phase 6's own cadence on the city this leaves standing.
+                ApplyPeople(tick);
                 break;
 
             case CommandKind.Trip:
@@ -519,6 +552,7 @@ public sealed class Simulation
         CommandKind.Govern => RefuseGovern(command),
         CommandKind.Demolish => RefuseDemolish(command, out _),
         CommandKind.Service => RefuseService(command, out _, out _),
+        CommandKind.People => RefusePeople(),
         _ => Refusal.VerbNotApplied,
     };
 
@@ -622,6 +656,20 @@ public sealed class Simulation
 
         return lot < 0 ? Refusal.ServiceNoVacantLotOnThatTile : Refusal.None;
     }
+
+    /// <inheritdoc cref="ApplyPeople"/>
+    /// <remarks>
+    /// ⚠ <b>The two arms are <c>SyntheticCity.PeopleInto</c>'s own two throws, in its order.</b> That
+    /// method guards itself and will go on doing so — it is called directly by half the suite — so
+    /// this is a second reader of the same two facts rather than a second rule. ***What it buys is a
+    /// front end that declines the click***: an exception out of phase 0 aborts a Tick half way, and
+    /// on this verb both failures are things a hand at the keyboard reaches in the ordinary course of
+    /// playing — populating twice, or populating before zoning anything.
+    /// </remarks>
+    private Refusal RefusePeople() =>
+        _world.Citizens.Rows.LiveCount != 0 ? Refusal.PeopleWorldAlreadyHasAPopulation
+        : _world.Lots.Rows.LiveCount <= 0 ? Refusal.PeopleWorldHasNoLots
+        : Refusal.None;
 
     /// <summary>The refusal as a sentence for a <b>crash artefact</b>, which is a different reader.</summary>
     /// <remarks>
@@ -739,6 +787,21 @@ public sealed class Simulation
             + "names up to twenty of them, and a school landing on a neighbour's plot because "
             + "the click resolved to the first is worse than a refusal. A Lot holding a Building "
             + "-- a standing one or an adr/0091 shell -- is not vacant; demolish first.",
+
+        Refusal.PeopleWorldAlreadyHasAPopulation =>
+            "people is commanded on a world that already holds one, and a synthetic population is "
+            + "not something to add a second of. It is world creation, so it belongs at Tick 0 and "
+            + "once -- a second application builds a city of twice the configured size into tables "
+            + "sized from that configuration, which is a run that answers the sizing question with "
+            + "the wrong number and reports success.",
+
+        Refusal.PeopleWorldHasNoLots =>
+            "people is commanded on a world with no Lots, so there is nowhere to put anybody. A city "
+            + "reached through CommandKind.Ground gets its Streets from Connect and its Lots from "
+            + "Zone, which carves against the Street faces that are standing -- so lay the Streets, "
+            + "zone the blocks, then populate. It refuses rather than making no rows, because a "
+            + "populator that answers the sizing question with an empty world and reports success is "
+            + "the one outcome nothing downstream can tell from a small city.",
 
         _ => $"command kind {(ushort)command.Kind} was refused with reason {(ushort)refusal}, which "
             + "this build has no diagnosis for.",
@@ -1055,6 +1118,30 @@ public sealed class Simulation
         }
 
         _world.DestroyBuilding(_world.Buildings.Rows.At(building), tick);
+    }
+
+    /// <summary>
+    /// Raises Buildings, Households and Citizens on whatever Lots stand — <c>CommandKind.People</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>The whole of it is one call, and that is the point of the row that added it.</b>
+    /// <c>SyntheticCity.PeopleInto</c> was split out of <c>PopulateInto</c> on 2026-08-15 for exactly
+    /// this case and its own remark named it — <em>"a city whose Streets were laid by
+    /// <c>CommandKind.Connect</c> wants the people half without the land half and could not ask for
+    /// it"</em> — and then nothing outside the test suite could ask, because there was no verb. The
+    /// guard above it is the shell's rather than the city's: the city throws either way.
+    /// </remarks>
+    private void ApplyPeople(Ticks tick)
+    {
+        Refusal refusal = RefusePeople();
+
+        if (refusal != Refusal.None)
+        {
+            throw new InvalidOperationException(
+                Explain(refusal, new Command(CommandKind.People, default, default)));
+        }
+
+        SyntheticCity.PeopleInto(_world, _key, tick);
     }
 
     /// <summary>

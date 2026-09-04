@@ -57,6 +57,9 @@ internal static class Program
                 case Mode.Roads:
                     return Session.DumpRoads(options);
 
+                case Mode.Morphology:
+                    return Session.DumpMorphology(options);
+
                 case Mode.Trips:
                     return Session.DumpTrips(options);
 

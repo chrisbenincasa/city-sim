@@ -7,6 +7,18 @@ namespace Borough.Headless;
 internal enum Mode
 {
     /// <summary>
+    /// Measure the street network's shape against the urban-morphology literature's measures.
+    /// </summary>
+    /// <remarks>
+    /// <b>The only mode whose output is meant to be compared against something outside this
+    /// project.</b> Every other picture answers a question about Borough in Borough's own terms;
+    /// this one computes the quantities a paper about real cities computes, so that the Borough
+    /// column in such a comparison stops being derived from the lattice's definition and starts
+    /// being read off the lattice.
+    /// </remarks>
+    Morphology,
+
+    /// <summary>
     /// Follow one Citizen through one Day, Tick by Tick. <c>plans/0045</c>'s queue item 3.
     /// </summary>
     /// <remarks>
@@ -513,6 +525,7 @@ internal sealed class Options
         bool zones = false;
         bool kinds = false;
         bool roads = false;
+        bool morphology = false;
         bool trips = false;
         bool commute = false;
         bool traffic = false;
@@ -582,6 +595,12 @@ internal sealed class Options
                 // it, so there is no *after* picture to take.
                 case "--roads":
                     roads = true;
+                    continue;
+
+                // --roads' reasoning exactly, and the two modes measure the same graph for different
+                // questions: --roads asks what the network CARRIES, and this asks what SHAPE it is.
+                case "--morphology":
+                    morphology = true;
                     continue;
 
                 // Not a session flag, for --roads' reason and one more: a Trip dump walks a graph
@@ -1128,6 +1147,34 @@ internal sealed class Options
             return false;
         }
 
+        // --roads' three refusals, taken one at a time rather than by folding the two modes into a
+        // shared flag: they build the same world for different readings, and a reader of one refusal
+        // should not have to work out which mode it is about.
+        if (morphology && (zones || roads || dump is not null))
+        {
+            complaint = "--morphology asks for its own picture, and each mode here builds its own "
+                      + "world. Ask for one.";
+            return false;
+        }
+
+        if (morphology && rulesets.Count == 0)
+        {
+            complaint = "--morphology needs --ruleset PATH. The shape of a street network is a "
+                      + "Ruleset's content: without one there is nothing to measure, and an empty "
+                      + "reading would look like a defect rather than like a Ruleset that declares "
+                      + "no [roads].";
+            return false;
+        }
+
+        if (morphology && (log is not null || session))
+        {
+            complaint = "--morphology and the session flags disagree: the Road Graph is laid at "
+                      + "world creation and nothing edits it yet, so there is no run to measure "
+                      + "after. Drop the session flags. (--seed is the exception and is accepted, "
+                      + "because a seed is what varies the network this mode exists to measure.)";
+            return false;
+        }
+
         if (roads && (zones || dump is not null))
         {
             complaint = "--roads asks for a third picture, and each of the three builds its own "
@@ -1430,6 +1477,7 @@ internal sealed class Options
                  : commute ? Mode.Commute
                  : trips ? Mode.Trips
                  : roads ? Mode.Roads
+                 : morphology ? Mode.Morphology
                  : zones ? Mode.Zones
                  : kinds ? Mode.Kinds
                  : dump is not null ? Mode.Layer
@@ -1525,6 +1573,12 @@ internal sealed class Options
                                 admits, and the connected components of both subgraphs.
                                 Needs --ruleset, because a road network is content. Takes
                                 no session: the graph is laid at world creation
+          --morphology          MEASURE the street network's shape the way the urban-
+                                morphology literature measures a real one -- orientation
+                                entropy, the orientation-order index, circuity, node degree
+                                and intersection density. Needs --ruleset, takes no session.
+                                ⚠ The orientation-order formula is unverified against its
+                                source; the type's remarks say so and name every constant
           --trips               dump what a walk costs between this city's Buildings, by
                                 distance, and the DETOUR over the grid ideal -- the half of
                                 Severance --roads says it cannot see. Needs --ruleset, takes

@@ -251,6 +251,15 @@ have — and if terraforming is ever argued, that argument reopens the renderer 
 
 ## 8. A Lot has no width, and quantising frontage costs nothing
 
+🔴 **STALE AS OF 2026-09-02, AND ITS CONCLUSION IS FALSIFIED — DO NOT PRICE ANYTHING FROM THIS
+SECTION.** [`plans/0053`](../plans/0053-the-block.md) step 5 put four **saved** extents on `LotTable`,
+deleted `Main.Kerb`, and retired `BuildingFillLow`/`High` into the Ruleset key `[lots] setback_tiles`.
+So a Lot **has** a width, it is the city's own hashed number, and quantising it is a Core edit that
+moves the State Hash rather than the renderer change this section concludes it is. ⚠ **The section is
+left standing rather than deleted** ([`PROCESS.md`](../PROCESS.md) → *Conventions*); the full account
+and the repair it needs are [`plans/0012`](../plans/0012-corpus-audit.md) → *`docs/07 §8` says a Lot
+has no width*, found by [`plans/0049`](../plans/0049-visuals.md) **F53**.
+
 ⚠ **This section exists because the opposite was asserted, in this document's own first draft, as
 the thing that gated the pipeline decision.** It was wrong.
 

@@ -157,6 +157,90 @@ public static class SyntheticCity
     private static readonly LatticeDefinition[] OneAtTheOrigin = [new LatticeDefinition(0, 0)];
 
     /// <summary>
+    /// Makes the ground and nothing that stands on it — terrain, Woodland, water and the Hazard
+    /// Regions. <b><c>adr/0090</c>'s generator remit, exactly.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THIS WAS WELDED INSIDE <see cref="PopulateInto"/> AND THE WELD HID THE ONE LINE THE
+    /// DESIGN DRAWS.</b> <c>adr/0090</c> gives the generator <em>"terrain, Woodland, hazard regions,
+    /// and the Outside Connections with their stubs. Nothing else"</em>, and gives the player every
+    /// road. The four passes below are that list; <see cref="LayLand"/> and <see cref="PeopleInto"/>
+    /// are the part the same ADR refuses. One method did both, so <b>there was no way to ask for the
+    /// world the design describes</b> — the only worlds reachable were a full synthetic city or a
+    /// bare map with no ground on it at all.
+    /// </para>
+    /// <para>
+    /// <b>It was found by building the flag rather than by reading the ADR.</b>
+    /// <c>Borough.Godot</c>'s <c>--empty</c> landed first, skipping the whole Command, and a driven
+    /// run on <c>rulesets/flooded.toml</c> at 500 Citizens reported hazard <b>0</b>, water <b>0</b>
+    /// and tree <b>0</b> where the populated world reported <b>11,063</b>, <b>5,058</b> and
+    /// <b>3,512</b>. ***A world with no ground is not the world an ADR describes, and a reading
+    /// taken on it is a reading of nowhere.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The Outside Connections are NOT here and that is not an omission of this method's.</b>
+    /// A gate is a <c>[[building]]</c> kind carrying <c>arrivals_per_day</c>, so it is raised on a
+    /// Lot by <see cref="PeopleInto"/> and there is no Lot until something carves one. <b>Whether a
+    /// gate can stand on a world the player has not built yet is open</b>, and it is the question
+    /// <c>adr/0090</c>'s stub — unset in <c>plans/0002</c> §D2 — is waiting on.
+    /// </para>
+    /// </remarks>
+    /// <param name="world">The world to lay ground in. Must have no ground in it.</param>
+    /// <param name="key">The world key, which every generator below draws against.</param>
+    /// <exception cref="InvalidOperationException">The world already has ground.</exception>
+    public static void GroundInto(World world, WorldKey key)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+
+        RefuseIfGrounded(world);
+
+        // The ground, before anything stands on it. plans/0042 decision 3, adr/0158. Nothing in
+        // LayLand consults it -- roads do not avoid water (adr/0021) and buildable grade does not
+        // ship (adr/0157) -- so this is first because it is the ground rather than because anything
+        // below reads it. ⚠ It computes a height field and keeps none of it (adr/0157).
+        world.Layers.LayTerrain(key);
+
+        // The forest, on the ground and before the roads. adr/0159, milestone 24 task 8a. ⚠ THE
+        // ORDER AGAINST LayLand IS LOAD-BEARING and the order against LayTerrain is not: every Cell
+        // is unsealed at this instant, so the Sealing ceiling is trivially satisfied and this pass
+        // never consults it -- but run it after LayLand and it plants forest on top of the roads.
+        // MapLayers.Seal is what takes the forest back as the city arrives.
+        //
+        // ⚠ AND THE ORDER SURVIVES THE SPLIT ONLY BECAUSE THE SPLIT IS AT LayLand. Every pass in
+        // this method runs before every pass that puts something on the ground, whichever Command
+        // asked for it -- which is why Ground and Populate are alternatives rather than a sequence.
+        world.Layers.LayWoodland(key);
+
+        // The water, between the ground and the roads. adr/0034, adr/0160, milestone 24 task 6a. ⚠
+        // THE ORDER AGAINST LayLand IS NOT LOAD-BEARING TODAY AND WILL BE: roads do not avoid water
+        // (adr/0021), so a lattice laid after this pass runs straight across a lake and nothing
+        // refuses it. That is the build being honest about what it has not decided rather than a
+        // defect -- a bridge is "a buildability exception plus a rendering variant, not a system"
+        // (adr/0021), and neither exists. It goes here so that the day something does read the
+        // water, the water is already there.
+        WaterGenerator.LayInto(
+            world.Water,
+            world.WaterCells,
+            world.WaterInCells,
+            world.Catchment,
+            world.Flood,
+            world.Rules.Water,
+            key);
+
+        // The Hazard Region's index, from the rows that pass just wrote. Rebuilt rather than filled
+        // as the rows are made, unlike WaterInCells above -- the floodplain pass is a single walk of
+        // the height field with no handles to thread, and threading an index through it to save one
+        // O(rows) pass on a Ruleset that mostly declares no water would be structure with nothing
+        // behind it. plans/0045 row 12.
+        world.FloodInCells.Rebuild(world.Flood);
+
+        // The Bins, once the bodies exist -- FitDistrictPools' rule, and the constructor cannot do it
+        // because a world under construction has no Water Bodies. milestone 24 task 6b, adr/0161.
+        world.FitWaterBins();
+    }
+
+    /// <summary>
     /// Fills <paramref name="world"/> to the Citizen count it was configured with, laying the land
     /// first.
     /// </summary>
@@ -187,45 +271,10 @@ public static class SyntheticCity
 
         RefuseIfPopulated(world);
 
-        // The ground, before anything stands on it. plans/0042 decision 3, adr/0158. Nothing in
-        // LayLand consults it -- roads do not avoid water (adr/0021) and buildable grade does not
-        // ship (adr/0157) -- so this is first because it is the ground rather than because anything
-        // below reads it. ⚠ It computes a height field and keeps none of it (adr/0157).
-        world.Layers.LayTerrain(key);
-
-        // The forest, on the ground and before the roads. adr/0159, milestone 24 task 8a. ⚠ THE
-        // ORDER AGAINST LayLand IS LOAD-BEARING and the order against LayTerrain is not: every Cell
-        // is unsealed at this instant, so the Sealing ceiling is trivially satisfied and this pass
-        // never consults it -- but run it after LayLand and it plants forest on top of the roads.
-        // MapLayers.Seal is what takes the forest back as the city arrives.
-        world.Layers.LayWoodland(key);
-
-        // The water, between the ground and the roads. adr/0034, adr/0160, milestone 24 task 6a. ⚠
-        // THE ORDER AGAINST LayLand IS NOT LOAD-BEARING TODAY AND WILL BE: roads do not avoid water
-        // (adr/0021), so a lattice laid after this pass runs straight across a lake and nothing
-        // refuses it. That is the build being honest about what it has not decided rather than a
-        // defect -- a bridge is "a buildability exception plus a rendering variant, not a system"
-        // (adr/0021), and neither exists. It goes here so that the day something does read the
-        // water, the water is already there.
-        WaterGenerator.LayInto(
-            world.Water,
-            world.WaterCells,
-            world.WaterInCells,
-            world.Catchment,
-            world.Flood,
-            world.Rules.Water,
-            key);
-
-        // The Hazard Region's index, from the rows that pass just wrote. Rebuilt rather than filled
-        // as the rows are made, unlike WaterInCells above -- the floodplain pass is a single walk of
-        // the height field with no handles to thread, and threading an index through it to save one
-        // O(rows) pass on a Ruleset that mostly declares no water would be structure with nothing
-        // behind it. plans/0045 row 12.
-        world.FloodInCells.Rebuild(world.Flood);
-
-        // The Bins, once the bodies exist -- FitDistrictPools' rule, and the constructor cannot do it
-        // because a world under construction has no Water Bodies. milestone 24 task 6b, adr/0161.
-        world.FitWaterBins();
+        // adr/0090'S GENERATOR REMIT, AND IT IS A CALL NOW RATHER THAN FOUR PASSES INLINE. The
+        // ground is the half of this method the design keeps; everything below it is the half the
+        // design gives to the player. See GroundInto for what the weld was hiding.
+        GroundInto(world, key);
 
         LayLand(world, key);
         PeopleInto(world, key, now);
@@ -796,6 +845,50 @@ public static class SyntheticCity
     /// </remarks>
     private static int Share(int total, int lattices, int index) =>
         IntegerMath.FloorDiv(total, lattices) + (index < total % lattices ? 1 : 0);
+
+    /// <summary>
+    /// Refuses a world whose ground is already laid, on the one piece of it a repeat would
+    /// duplicate.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Water Bodies are the whole signal, and the first version of this guard also asked about
+    /// Woodland and was wrong twice over.</b> <see cref="Space.WoodlandGenerator"/> <em>writes every
+    /// row</em> from the <see cref="WorldKey"/> alone and says in its own file that it needs no
+    /// already-laid refusal — so a fresh world's Woodland table is fully live before anything has
+    /// run, which made the check fire on every boot, and re-running it would have been harmless
+    /// anyway. <c>LayTerrain</c> is the same shape and keeps no height field at all
+    /// (<c>adr/0157</c>). ***A table being full is not evidence that a pass filled it***, and a
+    /// generator that overwrites is not one that duplicates.
+    /// </para>
+    /// <para>
+    /// <b><see cref="Space.WaterGenerator"/> is the exception, and it is the only one:</b> it
+    /// <em>creates rows</em>, so a second call lays a second coastline over the same ground. That is
+    /// the corruption this refuses, and it is reachable exactly one way — a world that took
+    /// <c>CommandKind.Ground</c> and then <see cref="PopulateInto"/>, which lays ground itself.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>So a Ruleset declaring no water takes both verbs without complaint, and the resulting
+    /// world is correct rather than merely unrefused.</b> Terrain and Woodland are rewritten
+    /// identically and the city is then built on them. ***The guard fires wherever a repeat would do
+    /// damage, which is a narrower claim than fires whenever the passes have run*** — and the
+    /// narrower one is what this method can honestly make.
+    /// </para>
+    /// </remarks>
+    private static void RefuseIfGrounded(World world)
+    {
+        if (world.Water.Rows.LiveCount == 0)
+        {
+            return;
+        }
+
+        throw new InvalidOperationException(
+            "this world already has Water Bodies, so its ground has been laid once. Ground and "
+            + "Populate are alternatives and not a sequence: Populate lays the ground itself, so a "
+            + "world that took Ground first must not take Populate after it. adr/0090 gives the "
+            + "generator the ground and the player every road; pick which of the two verbs made "
+            + "this world at Tick 0.");
+    }
 
     /// <summary>
     /// Refuses a world that already holds people.

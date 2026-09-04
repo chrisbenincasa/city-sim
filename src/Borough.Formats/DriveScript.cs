@@ -76,6 +76,33 @@ public enum DriveVerb
     Click,
 
     /// <summary>
+    /// Put people in the city — Buildings, Households and Citizens on whatever Lots stand.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THE ONE VERB HERE THAT IS NOT A PLAYER'S, and it is on this channel because the
+    /// keyboard is the wrong surface for it.</b> <c>CommandKind.People</c> is an instrument, in
+    /// <c>CommandKind.Populate</c>'s family and expected to be deleted with it; the shell's letter
+    /// keys are the four verbs <c>01 §2</c> gives a player, and a fifth beside them would blur
+    /// exactly the line <c>Main</c> draws between the governing panel and the tuner. ⚠ <b>And it acts
+    /// ONCE per world</b> — the second application is refused by name — so a key that is wrong for
+    /// the whole session after its first press is a key that is wrong.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A person is not shut out, because the socket is this same grammar.</b>
+    /// <see cref="DriveScript.Line"/> stamps a wire line with <em>now</em> and parses it here, so
+    /// somebody watching a running city types <c>people</c> down <c>--listen</c> and gets it — and
+    /// the run records as a script that replays. ***The channel is what it lacks, not a hand.***
+    /// </para>
+    /// <para>
+    /// <b>It reaches the world through <c>Main.Send</c> like a click does</b>, so it enters the
+    /// Input Log by the one door: a population arriving beside <c>Simulation.Apply</c> is a state
+    /// change no replay reproduces.
+    /// </para>
+    /// </remarks>
+    People,
+
+    /// <summary>
     /// Put the camera over a Tile. <c>East</c> and <c>North</c> are the Tile;
     /// <c>Amount</c> is an optional distance in metres, or 0 to keep the one it has.
     /// </summary>
@@ -311,6 +338,7 @@ public static class DriveScript
             // would silently re-aim every recorded session that had relied on it.
             DriveVerb.Hold =>
                 $"{at} hold {command.Path} {command.Amount.ToString(CultureInfo.InvariantCulture)}",
+            DriveVerb.People => $"{at} people",
             DriveVerb.Lens => $"{at} lens {(command.Amount != 0 ? "on" : "off")}",
             DriveVerb.Overlay => $"{at} overlay {command.Path}",
             DriveVerb.Tilt =>
@@ -376,12 +404,18 @@ public static class DriveScript
         {
             case "pause":
             case "resume":
+            case "people":
             case "quit":
                 return Arity(0)
                     ? Made(verb switch
                     {
                         "pause" => DriveVerb.Pause,
                         "resume" => DriveVerb.Resume,
+
+                        // ⚠ It takes no argument for CommandKind.People's own reason: the size is
+                        // WorldConfiguration.Citizens, which --citizens set and the Input Log already
+                        // states. A count here would let one session state two populations.
+                        "people" => DriveVerb.People,
                         _ => DriveVerb.Quit,
                     })
                     : null;
@@ -595,7 +629,8 @@ public static class DriveScript
 
             default:
                 refusals.Add($"{file}:{line}: no verb '{verb}'. There is pause, resume, speed, "
-                    + "roads, cells, turn, zoom, hold, click, focus, shoot, readout, draw and quit.");
+                    + "roads, cells, turn, zoom, hold, click, people, focus, shoot, readout, draw "
+                    + "and quit.");
 
                 return null;
         }

@@ -306,6 +306,8 @@ public static class InputLogCodec
             "trip" => CommandKind.Trip,
             "arrive" => CommandKind.Arrive,
             "demolish" => CommandKind.Demolish,
+            "ground" => CommandKind.Ground,
+            "people" => CommandKind.People,
             _ => throw lines.Complain($"'{fields[1]}' is not a verb this format knows."),
         };
 
@@ -326,6 +328,8 @@ public static class InputLogCodec
         CommandKind.Trip => "trip",
         CommandKind.Arrive => "arrive",
         CommandKind.Demolish => "demolish",
+        CommandKind.Ground => "ground",
+        CommandKind.People => "people",
         _ => throw new ArgumentOutOfRangeException(
             nameof(kind), kind, "a command with no verb cannot be written."),
     };

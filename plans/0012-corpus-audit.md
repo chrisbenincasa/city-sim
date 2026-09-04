@@ -2211,6 +2211,49 @@ once rather than improvised at the next merge. **The mapping for this instance i
 in [`06`](../docs/06-roadmap.md) → *Retired numbering*, third block, which is what
 [`PROCESS.md`](../PROCESS.md) requires of any renumber.
 
+### 🔴 `docs/07 §8` says **a Lot has no width** and `LotTable` has held four saved extents since 2026-09-02 — Cause 1, and the stale copy is the one carrying the *price*
+
+**Found 2026-09-04, while answering [`0045`](0045-amnesty.md)'s deferred ground question in
+[`0049`](0049-visuals.md) F53.** §8 is titled *A Lot has no width, and quantising frontage costs
+nothing*, and it is what a reader reaches for to price any change to how wide something on the ground
+is. **It was written 2026-09-01 and falsified on 09-02 by [`0053`](0053-the-block.md) step 5**, which
+that document records in full and which nothing propagated here.
+
+| What §8 says | What the build says |
+|---|---|
+| *"The simulation holds no frontage width"* | `LotTable` declares `ParcelWide`, `ParcelDeep`, `FootprintWide`, `FootprintDeep` — **`Saved`, and therefore hashed** |
+| *"A Lot is seven columns ... none of them is an extent"* | **Fifteen** columns, four of them extents, plus `Storeys` |
+| *"The width is computed in `Main.Kerb`, in the shell"* | `Kerb` was **deleted** by [`0052`](0052-the-parcel.md) row 1, with `PastTheCorner`, `Deepest` and `Depth`. A grep across `src/` returns nothing |
+| *"The only continuous quantity ... is `BuildingFillLow`–`High`, which is a constant in the shell"* | Both constants are **gone**; the replacement is **`[lots] setback_tiles`**, a Ruleset key, which `Main.cs` records at the declaration site they used to occupy |
+
+🔴 **The conclusion is what makes this expensive, because it is the half anybody would act on.**
+*"Snapping a Building's width to whole modules is a renderer change: no simulation edit, no State Hash
+movement"* is now wrong in **both** clauses. The width is the city's own saved number, the subdivider
+computes it, and quantising it is a Core edit that moves the hash. ⚠ **Under
+[`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)
+that is not a reason to defer the work** — it is a reason the sentence must not be quoted, which is a
+different thing, and the distinction is exactly what `adr/0100` exists to hold.
+
+⚠ **It is Cause 1 and not Cause 4, and the difference is worth keeping.** Nothing has yet been decided
+from it: [`0045`](0045-amnesty.md) queue row **24** is the one live piece of work on plot widths, it
+reaches the opposite conclusion from the code rather than from `07`, and it marks itself
+*hash-bearing; needs a new `purpose_tag`*. ***So this is a copy that drifted and not yet a decision
+taken from a drifted copy***, and it is filed on the day precisely so that it does not become the
+second — which is the transition this ledger's own §*Why a defect SURVIVES* says is the expensive one.
+
+⚠ **The propagation gap is the general finding.** `0053` step 5 changed `LotTable`'s declaration,
+deleted four shell members and retired two shell constants into a Ruleset key, and it recorded all of
+that in its own document. **`07 §8` is a second copy of the same facts in a document `0053` had no
+reason to open**, and no corpus check is document-to-document *about a symbol*, so nothing could have
+caught it. ***A section whose argument is a column list is a copy of a declaration, and it decays the
+moment the declaration moves.***
+
+**The repair needs judgement and is not an edit.** §8's *title* is a claim, its *body* is a column
+list and its *conclusion* is a price, and all three moved together — so the honest form is a rewritten
+section carrying a correction banner rather than four in-place corrections, and what it should say is
+now the opposite of what it says. ⚠ **It should be written beside the work rather than alone**: `0049`
+row 8 is the street row, row 24 in `0045` is the width row, and either one puts a hand on this section.
+
 ### `adr/0123` says Amenity needs a `kind` column on `BusinessTable`, and a park is not a Business
 
 **Found 2026-08-23, in the sitting that produced

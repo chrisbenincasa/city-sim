@@ -238,6 +238,7 @@ public sealed class DriveScriptTests
     [InlineData("100 draw a/b.tsv")]
     [InlineData("100 hold demolish 0")]
     [InlineData("100 hold zone 2")]
+    [InlineData("100 people")]
     [InlineData("100 click 4096 8192")]
     [InlineData("100 click 4096 8192 shift")]
     [InlineData("100 focus 4096 8192")]

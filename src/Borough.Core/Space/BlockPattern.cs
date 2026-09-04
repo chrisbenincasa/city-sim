@@ -27,7 +27,7 @@ public enum BlockFace : byte
 }
 
 /// <summary>
-/// <b>How a block is subdivided</b> — one of three real subdivisions of a real city block.
+/// <b>How a block is subdivided</b> — one of six real subdivisions of a real city block.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -38,7 +38,12 @@ public enum BlockFace : byte
 /// in it.***
 /// </para>
 /// <para>
-/// ⚠ <b>THE SET IS OPEN AND THREE IS A STARTING POINT.</b> What is decided is not the number but that
+/// ⚠ <b>THE SET IS OPEN AND THE NUMBER HAS ALREADY MOVED — IT OPENED AT THREE AND
+/// <see cref="BlockPatterns.Count"/> IS SIX.</b> ⚠ <b>Two sentences here went on saying <em>three</em>
+/// for as long as it took to add <see cref="Courtyard"/>, <see cref="Slab"/> and
+/// <see cref="Tower"/></b>, which is what a count written in prose beside a count written in code
+/// does. ***A number stated in two places is a number that will disagree with itself***, so read
+/// <see cref="BlockPatterns.Count"/> and never this sentence. What is decided is not the number but that
 /// <b>a pattern declares its own exhaustiveness claim</b> — see <see cref="BlockPatterns.Exhaustive"/>
 /// — because that is what lets a suburban block keep its leftover ground without weakening the test
 /// that refuses leftover ground everywhere else.
@@ -66,13 +71,35 @@ public enum BlockPattern : byte
     Detached = 0,
 
     /// <summary>
-    /// <b>One pair of streets takes the whole block; plots meet along the centre line.</b> A British
-    /// terrace, a Portland 200 ft block, Manhattan.
+    /// <b>Plots on all four faces and no ground left over.</b> A perimeter block — unbroken frontage
+    /// the whole way round, and the middle <em>taken</em> rather than kept.
     /// </summary>
     /// <remarks>
-    /// ✅ <b>Exhaustive.</b> The cross streets get <b>gable ends</b> — the terrace's end wall faces
-    /// them — so they carry no Address at all, which is the one place in this set where a face with a
-    /// Street on it yields nothing.
+    /// <para>
+    /// 🔴 <b>THIS COMMENT WAS <see cref="BackToBack"/>'s, PASTED VERBATIM, AND IT DESCRIBED THE
+    /// OPPOSITE GEOMETRY.</b> It read <em>"one pair of streets takes the whole block"</em> and
+    /// <em>"the cross streets … carry no Address at all"</em> — while
+    /// <see cref="BlockPatterns.Carries"/> says in its own remark that <see cref="BackToBack"/> is
+    /// <b>the only</b> pattern that refuses a face, and this one refuses none: it falls to that
+    /// method's <c>_ => true</c>. ***Two members sharing one description are two members nobody can
+    /// tell apart, and the wrong one is the one nobody reads twice.*** Found three times
+    /// independently before anyone opened the switch it contradicts.
+    /// </para>
+    /// <para>
+    /// <b>Four faces, two depths, and the deep pair is what closes the block.</b>
+    /// <see cref="BlockPatterns.DepthTiles"/>: south and north take
+    /// <see cref="BlockPatterns.StripTiles"/>; west and east take a <b>half-block each</b> and meet
+    /// along the centre line, consuming the middle band the strips left behind. ⚠ <b>Which pair goes
+    /// deep is arbitrary in the same way the seam's side is</b>, and is recorded here rather than
+    /// argued — what is not arbitrary is that one pair must, because two shallow strips leave a hole
+    /// and this form has none.
+    /// </para>
+    /// <para>
+    /// ✅ <b>Exhaustive</b>, and the contrast that carries the form is with <see cref="Courtyard"/>
+    /// rather than with the terrace: both build on all four faces, and this one <em>fills</em> the
+    /// middle where that one <em>keeps</em> it. ⚠ <b>They are not a coarse and a fine version of one
+    /// shape</b> — a courtyard is a room, and this block has none.
+    /// </para>
     /// </remarks>
     Perimeter = 1,
 
@@ -330,7 +357,12 @@ public static class BlockPatterns
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Three patterns, two depths, and every one of them is what the pattern MEANS.</b>
+    /// <b>Every depth here is what its pattern MEANS, and none of them is a chosen length.</b>
+    /// ⚠ <b>This paragraph said <em>three patterns, two depths</em> and the switch below has six
+    /// arms</b> — the three fractions were added underneath it with their arguments in inline
+    /// comments, and the summary was never re-read against them. The three named next are the three
+    /// that share <see cref="StripTiles"/> and the half-block; <see cref="BlockPattern.Courtyard"/>,
+    /// <see cref="BlockPattern.Tower"/> and <see cref="BlockPattern.Slab"/> carry their own.
     /// <see cref="BlockPattern.Detached"/> takes a strip on every face.
     /// <see cref="BlockPattern.BackToBack"/>'s plots <em>meet along the centre line</em>, which is a
     /// half-block. <see cref="BlockPattern.Perimeter"/>'s losing pair <em>splits the middle band down

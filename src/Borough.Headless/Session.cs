@@ -762,6 +762,22 @@ internal static class Session
         return RoadDump.Run(options, writer);
     }
 
+    /// <summary>
+    /// The street network measured against the urban-morphology literature, rather than described.
+    /// </summary>
+    internal static int DumpMorphology(Options options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (options.OutPath is null)
+        {
+            return MorphologyDump.Run(options, Console.Out);
+        }
+
+        using var writer = new StreamWriter(options.OutPath);
+        return MorphologyDump.Run(options, writer);
+    }
+
     /// <summary>Milestone 5b's artefact: what a walk costs, and how far past the grid ideal.</summary>
     internal static int DumpTrips(Options options)
     {
