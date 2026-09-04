@@ -73,8 +73,38 @@ public partial class Main : Node3D
     /// <summary>What one notch of zoom in multiplies the eye's standoff by.</summary>
     private const float DollyPerStep = 0.92f;
 
-    /// <summary>How wide the carriageway is drawn. A drawing width, and no Segment states one.</summary>
+    /// <summary>How wide a <b>Street's</b> carriageway is drawn. A drawing width, and no Segment
+    /// states one.</summary>
     private const float RoadWidthMetres = 8f;
+
+    /// <summary>The same, for an <see cref="RoadKind.Arterial"/>.</summary>
+    /// <remarks>
+    /// ⚠ <b>INVENTED, like <see cref="RoadWidthMetres"/>, and the RATIO is the only part of it doing
+    /// any work.</b> The city holds no width for any road: <c>[roads]</c> states a block size, an
+    /// Arterial count, a junction spacing and two pedestrian keys, and not one metre of carriageway.
+    /// What the city <em>does</em> hold is <see cref="RoadSegmentTable.Kind"/>, and free-flow and
+    /// capacity are derived from it — an Arterial carries <b>3.3×</b> a Street's Vehicles a Day —
+    /// so ***that these three differ is a fact and how much they differ is not***.
+    /// </remarks>
+    private const float ArterialWidthMetres = 14f;
+
+    /// <inheritdoc cref="ArterialWidthMetres"/>
+    /// <summary>The same, for a <see cref="RoadKind.FootPath"/> — a cut-through, and not a road.</summary>
+    private const float FootPathWidthMetres = 2.5f;
+
+    /// <summary>What a Street's carriageway is painted. <b>sRGB</b>; see <see cref="Paving"/>.</summary>
+    private static readonly Color Carriageway = new(0.30f, 0.30f, 0.33f);
+
+    /// <summary>An Arterial, darker than a Street because it carries more and is resurfaced less.</summary>
+    /// <remarks>
+    /// ⚠ <b>No shipped Ruleset lays one</b> — <c>arterial_count = 0</c> on every file — so this
+    /// colour is unreachable in a shipped world and is here because the <em>Kind</em> is reachable
+    /// and a drawing that handles two of three cases is one nobody notices is incomplete.
+    /// </remarks>
+    private static readonly Color Arterial = new(0.26f, 0.26f, 0.29f);
+
+    /// <summary>A FootPath, which is paving rather than asphalt and must not read as a road.</summary>
+    private static readonly Color Flagstone = new(0.52f, 0.50f, 0.46f);
 
     // 🔴 BuildingFillLow/High AND DepthFillLow/High STOOD HERE AND ARE NOW `[lots] setback_tiles`.
     // Four drawing constants -- 0.55-1.00 of the frontage and 0.45-0.85 of the depth -- deciding how
@@ -791,6 +821,10 @@ public partial class Main : Node3D
     /// <summary>Which Citizen each drawn Traveller is, in instance order.</summary>
     private readonly List<ulong> _travellerIds = [];
 
+    /// <summary>Which Segment each road instance is, so the <c>draw</c> list can be joined to the
+    /// Road Graph. <b>Monotonic row ids, never slots.</b></summary>
+    private readonly List<ulong> _roadIds = [];
+
     /// <summary>Which vacant Lot each drawn pad is, in instance order.</summary>
     private readonly List<ulong> _plotIds = [];
 
@@ -1002,7 +1036,7 @@ public partial class Main : Node3D
         // a rising tide read as arriving rather than as flickering.
         _water = Layer(new Color(0.10f, 0.22f, 0.42f), new Vector3(1f, 1f, 1f), casts: false);
         _flood = Layer(new Color(0.20f, 0.48f, 0.78f), new Vector3(1f, 1f, 1f), casts: false);
-        _roads = Layer(new Color(0.30f, 0.30f, 0.33f), new Vector3(1f, 0.1f, 1f), casts: false);
+        _roads = Layer(Carriageway, new Vector3(1f, 0.1f, 1f), perInstance: true, casts: false);
 
         // 🔴 A VACANT LOT DREW NOTHING AT ALL, so Zone -- which creates Lots and never a Building --
         // had NO visible result on any world. Buildings() walks the Building table, and a Lot with

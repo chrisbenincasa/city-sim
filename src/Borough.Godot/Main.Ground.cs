@@ -987,15 +987,37 @@ public partial class Main
         AddChild(_land);
     }
 
-    /// <summary>The Road Graph, laid once — the lattice is generated before the first frame.</summary>
-    private void Pave()
+    /// <summary>
+    /// The Road Graph, laid once — the lattice is generated before the first frame.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>IT DRAWS THREE KINDS AND USED TO DRAW ONE.</b> <see cref="RoadSegmentTable.Kind"/> is a
+    /// <c>(saved AND hashed)</c> column and the drawing ignored it, so on <c>rulesets/pictured.toml</c>
+    /// the <b>6</b> <see cref="RoadKind.FootPath"/> Segments of its 200 were painted as 8 m of
+    /// carriageway in road grey, identical to the 194 Streets beside them — ***a cut-through drawn as
+    /// a road***. That is <c>docs/07 §1.3</c> failing on a fact the city already held, which is the
+    /// cheapest kind of failure to have and the easiest to not see.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The WIDTHS are invented and the DISTINCTION is not</b>, and the two halves are labelled
+    /// apart on purpose (<c>plans/0049</c> rule 2). See <see cref="ArterialWidthMetres"/> for what the
+    /// city does and does not state.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A CROSSING IS NOT DRAWN AND THAT IS A REFUSAL RATHER THAN AN OMISSION.</b>
+    /// <c>[roads] foot_crossing_every</c> is read only where an Arterial severs the lattice, every
+    /// shipped file states <c>arterial_count = 0</c>, and so <b>no crossing exists in the model
+    /// anywhere</b>. Drawing one would be inventing a fact rather than under-drawing a held one —
+    /// <c>plans/0049</c> <b>F51</b>.
+    /// </para>
+    /// </remarks>
+    private System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where, Color What)> Paving()
     {
         RoadSegmentTable segments = _world.Roads.Segments;
         RoadNodeTable nodes = _world.Roads.Nodes;
-        int drawn = 0;
 
-        for (int slot = 0; slot < segments.Rows.SlotCount && drawn < _roads.Multimesh.InstanceCount;
-             slot++)
+        for (int slot = 0; slot < segments.Rows.SlotCount; slot++)
         {
             if (!segments.Rows.IsLive(slot)
                 || !nodes.Rows.TryResolve(segments.NodeA[slot], out int a)
@@ -1014,6 +1036,13 @@ public partial class Main
                 continue;
             }
 
+            (float wide, Color paint) = (RoadKind)segments.Kind[slot] switch
+            {
+                RoadKind.Arterial => (ArterialWidthMetres, Arterial),
+                RoadKind.FootPath => (FootPathWidthMetres, Flagstone),
+                _ => (RoadWidthMetres, Carriageway),
+            };
+
             // Scaled along its own length and turned to face the other end: one unit cube per
             // Segment, which is why the Road Graph costs one draw call however large the city is.
             //
@@ -1024,15 +1053,19 @@ public partial class Main
             // rasterises the line itself and never asks for a transform.
             var basis = new Basis(Quaternion.FromEuler(
                     new Vector3(0f, Mathf.Atan2(to.X - from.X, to.Z - from.Z), 0f)))
-                * Basis.FromScale(
-                    new Vector3(RoadWidthMetres, 1f, from.DistanceTo(to)));
+                * Basis.FromScale(new Vector3(wide, 1f, from.DistanceTo(to)));
 
-            _roads.Multimesh.SetInstanceTransform(
-                drawn++, new Transform3D(basis, from.Lerp(to, 0.5f)));
+            // ⚠ LINEAR, because a MultiMesh instance colour is multiplied into albedo in linear
+            // space and the constants above are stated in sRGB like every other palette entry here.
+            yield return (
+                segments.Rows.IdAt(slot),
+                new Transform3D(basis, from.Lerp(to, 0.5f)),
+                paint.SrgbToLinear());
         }
-
-        _roads.Multimesh.VisibleInstanceCount = drawn;
     }
+
+    /// <summary>Writes <see cref="Paving"/> into the road layer.</summary>
+    private void Pave() => Fill(_roads, Paving(), _roadIds);
 
     /// <summary>The Cell lattice, drawn over the ground the city stands on.</summary>
     /// <remarks>
