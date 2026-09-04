@@ -177,6 +177,13 @@ measures intensity, so *where* a new form lands is now an accident of its plan r
 about its density. The five in hand happen to sort suburb-to-slab. **A sixth is where that stops being
 lucky**, and the ordering wants an argument before it gets one rather than after.
 
+**ANSWERED 2026-09-03 by [`0059`](0059-the-tower.md), and both estimates above were wrong.** Built and
+measured, a tower on a third of the block each way sorts to **rung 1** — not the middle of the city
+and not the suburbs, but standing 51 storeys in the second-sparsest band. ***The ordering did want an
+argument and it got one on the day***: ground behind a door was a proxy for people behind a door, and
+`0058` **F5** is exactly what makes the real quantity computable, so the ladder now sorts on the
+Address count and the five keep the order they had.
+
 **Q3 — nothing asserts the extent of a generated city.** F3 is the argument for it: a change to
 occupancy silently resizes every world, and the suite finds out through whichever fixture happens to
 sit nearest an edge. One instrument printing Tiles paved and Buildings raised per shipped Ruleset

@@ -145,10 +145,21 @@ public sealed class RecarveTests
         int created = LotSubdivider.RecarveBlock(world, column, row);
 
         Assert.True(created > 0, "the re-plat laid no Lots.");
-        Assert.Equal(BlockPattern.Slab, PatternOn(world, column, row));
 
-        // A slab turns its gable ends to the cross streets, so it lays fewer Addresses on more
-        // ground. The count is not asserted -- see BlockPatternTests -- but the face set is.
+        // ⚠ IT WAS Slab UNTIL plans/0059 PUT A SIXTH RUNG ABOVE IT. Two declared bands are the two
+        // ends of the ladder, so the top band is whatever the ladder's last rung is -- and asserting
+        // the NAME here would make this test a second copy of the ladder's ordering. It asserts the
+        // rung instead, which is the property the re-plat actually has.
+        Assert.Equal(
+            BlockPatterns.Count - 1,
+            BlockPatterns.Rung(
+                PatternOn(world, column, row),
+                world.Roads.Streets.BlockTiles,
+                world.Rules.Lots.LotsPerSegment));
+
+        // Whatever stands at the top of the ladder turns its ends to the cross streets, so it lays
+        // its Addresses on the east-west pair only. The count is not asserted -- see
+        // BlockPatternTests -- but the face set is.
         foreach (int lot in LotsOn(world, column, row))
         {
             Assert.Equal(0, world.Lots.North[lot].Raw % world.Roads.Streets.BlockTiles);
@@ -194,8 +205,17 @@ public sealed class RecarveTests
     /// <see cref="BlockPattern.Detached"/>, which sits below the terrace standing on it, and the
     /// re-plat refuses. ⚠ <b>Below on the LADDER and no longer by ground claimed</b> — see
     /// <c>BlockPatterns.Ladder</c>, where a pattern with a courtyard in it claims less than one it is
-    /// denser than and the area proxy inverts. <b>The slab is the block standing here</b>, because two
-    /// declared bands are the two ends of a five-rung ladder.
+    /// denser than and the area proxy inverts. <b>The ladder's LAST RUNG is the block standing
+    /// here</b>, because two declared bands are its two ends.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>AND THE TITLE OF THIS TEST IS NOW LITERALLY FALSE, WHICH IS THE POINT.</b>
+    /// <c>plans/0059</c>'s <see cref="BlockPattern.Tower"/> claims a <em>quarter</em> of its block
+    /// against a slab's whole one, and it sits <em>above</em> the slab — so a pattern claiming less
+    /// ground does now replace one, and must. ***The name is kept because the failure it guards
+    /// against is the one it was named for***: the ratchet reading area rather than the ladder. The
+    /// courtyard was the counter-example that retired the proxy; the tower is the one that would have
+    /// made it absurd.
     /// </para>
     /// <para>
     /// <b>It is also what a real city does.</b> Re-platting is an intensification — a block re-divided
@@ -212,13 +232,19 @@ public sealed class RecarveTests
         (int column, int row) = Upzoned(world);
 
         Assert.True(LotSubdivider.RecarveBlock(world, column, row) > 0);
-        Assert.Equal(BlockPattern.Slab, PatternOn(world, column, row));
+
+        BlockPattern top = PatternOn(world, column, row);
+
+        Assert.Equal(
+            BlockPatterns.Count - 1,
+            BlockPatterns.Rung(
+                top, world.Roads.Streets.BlockTiles, world.Rules.Lots.LotsPerSegment));
 
         // Down again. The band moves; the ground does not.
         world.BandBlock(column, row, 1);
 
         Assert.Equal(0, LotSubdivider.RecarveBlock(world, column, row));
-        Assert.Equal(BlockPattern.Slab, PatternOn(world, column, row));
+        Assert.Equal(top, PatternOn(world, column, row));
     }
 
     /// <summary>
@@ -268,9 +294,15 @@ public sealed class RecarveTests
         Assert.Empty(LotsOn(world, column, row));
 
         // And when it is carved, it takes the band's pattern straight away rather than needing a
-        // re-plat to get there.
+        // re-plat to get there -- the ladder's last rung, whatever stands there, for the reason
+        // An_upzoned_vacant_block_re_plats gives.
         Assert.True(LotSubdivider.SubdivideBlock(world, column, row, LotTable.Housing) > 0);
-        Assert.Equal(BlockPattern.Slab, PatternOn(world, column, row));
+        Assert.Equal(
+            BlockPatterns.Count - 1,
+            BlockPatterns.Rung(
+                PatternOn(world, column, row),
+                world.Roads.Streets.BlockTiles,
+                world.Rules.Lots.LotsPerSegment));
     }
 
     /// <summary>

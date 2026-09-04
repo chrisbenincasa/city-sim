@@ -359,9 +359,11 @@ public partial class Main : Node3D
     /// ⚠ <b>Hues and not a ramp, and that is the opposite of <see cref="Bands"/> on purpose.</b>
     /// The ladder orders patterns by how many addresses they fit, which makes rung an ordinal and
     /// not a quantity — <em>Slab is one place above Courtyard</em> is true and <em>Slab is 25%
-    /// more than Courtyard</em> is not. A monotone ramp asserts the second. ⚠ <b>Five, and the
-    /// count is <c>BlockPatterns.Count</c>'s</b>; a sixth pattern needs a sixth colour here and
-    /// <see cref="RungOf"/> clamps rather than crashing until it gets one.
+    /// more than Courtyard</em> is not. A monotone ramp asserts the second. ⚠ <b>Six, and the
+    /// count is <c>BlockPatterns.Count</c>'s</b>; a seventh pattern needs a seventh colour here and
+    /// <see cref="RungOf"/> clamps rather than crashing until it gets one. ⚠ <b>The top one is
+    /// near-white on purpose</b>: <see cref="BlockPattern.Tower"/> is the one form whose <em>height</em>
+    /// is its identity, and a light colour is what reads on a thin shape against a dark ground.
     /// ⚠ <b>Named for the PATTERN and not the rung</b>, because this shell already spells
     /// <c>Rungs</c> as the speed ladder's names, and two <c>Color[]</c> a line apart under one word
     /// is how a wrong index gets written.
@@ -373,6 +375,7 @@ public partial class Main : Node3D
         new(0.88f, 0.74f, 0.28f),
         new(0.82f, 0.42f, 0.62f),
         new(0.90f, 0.34f, 0.24f),
+        new(0.96f, 0.96f, 0.94f),
     ];
 
     /// <summary>
@@ -4456,9 +4459,10 @@ public partial class Main : Node3D
             + $"{_washCells:N0} Cells read",
         Wash.Rung =>
             "\nOVERLAY rung — DEBUG. The block pattern a Building's Lot was carved by, "
-            + "0 detached / 1 perimeter / 2 back-to-back / 3 courtyard / 4 slab, sparsest to "
-            + "densest. Read off the block and not off the height: a rung names a plot ratio, so "
-            + "two Buildings of one height can be on different rungs",
+            + "0 detached / 1 perimeter / 2 back-to-back / 3 courtyard / 4 slab / 5 tower, "
+            + "sparsest to densest, ordered by how many people stand behind one door. Read off the "
+            + "block and not off the height: a rung names a plot ratio, so two Buildings of one "
+            + "height can be on different rungs",
         _ => $"\nOVERLAY age — DEBUG. Bright is OLD: raised at Tick 0, dark is raised now, "
             + $"at Tick {_world.Tick.Raw:N0}. ⚠ A generated city is one vintage — "
             + "SyntheticCity raises everything in one call — so a flat wash here is the world "

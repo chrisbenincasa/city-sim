@@ -119,6 +119,34 @@ public enum BlockPattern : byte
     /// property of its own and not a fifth geometry.
     /// </remarks>
     Slab = 4,
+
+    /// <summary>
+    /// <b>One building on a fraction of the block, and the rest of the ground left open.</b> A tower
+    /// in a plaza — Lever House, a Barbican point block, half of Hong Kong.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THE FIRST FORM IN THIS SET THAT HOUSES PEOPLE BY GOING UP.</b> Every one above it takes
+    /// more of the block to hold more people; this one takes <em>less</em> and stands taller for it,
+    /// which is only expressible at all because <c>plans/0058</c> made a rung name a plot ratio.
+    /// ***Under the old reading — a rung being a storey count — this form was two storeys on a small
+    /// parcel, which is a shed.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>NOT exhaustive, and it is the least exhaustive thing here</b> — half the block each way
+    /// is a <b>quarter</b> of its ground, so three quarters is left open. That is the form and not a
+    /// defect: the open ground <em>is</em> the plaza, in the same way <see cref="Courtyard"/>'s hole
+    /// is the courtyard and <see cref="Detached"/>'s is scrub. ⚠ <b>The fraction is priced by the
+    /// top of the ladder rather than chosen for its looks</b> — see
+    /// <see cref="BlockPatterns.DepthTiles"/>.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>One face, one Address, and the address is on the kerb.</b> A tower with its own street
+    /// door is the ordinary arrangement; nothing here models a forecourt, and the setback machinery
+    /// that would draw one is per-parcel rather than per-form.
+    /// </para>
+    /// </remarks>
+    Tower = 5,
 }
 
 /// <summary>
@@ -277,7 +305,7 @@ public static class BlockPatterns
     /// </para>
     /// </remarks>
     public static int ParcelsPerFace(BlockPattern pattern) =>
-        pattern is BlockPattern.Courtyard or BlockPattern.Slab ? 1 : 0;
+        pattern is BlockPattern.Courtyard or BlockPattern.Slab or BlockPattern.Tower ? 1 : 0;
 
     /// <summary>Whether a pattern lays Addresses on this face at all.</summary>
     /// <remarks>
@@ -287,8 +315,15 @@ public static class BlockPatterns
     /// own pattern — a Segment's two sides are subdivided independently and always were.
     /// </remarks>
     public static bool Carries(BlockPattern pattern, BlockFace face) =>
-        pattern is not (BlockPattern.BackToBack or BlockPattern.Slab)
-        || face is BlockFace.South or BlockFace.North;
+        pattern switch
+        {
+            // ⚠ ONE face and not two, which is what makes it one Building rather than two. The pair
+            // below take the north face as well and meet along the centre line; a tower has no
+            // second half to meet.
+            BlockPattern.Tower => face is BlockFace.South,
+            BlockPattern.BackToBack or BlockPattern.Slab => face is BlockFace.South or BlockFace.North,
+            _ => true,
+        };
 
     /// <summary>
     /// <b>How deep the ground behind a face runs, in Tiles.</b>
@@ -326,6 +361,17 @@ public static class BlockPatterns
             // what the player drew, not a length -- and it is what makes the form a COURTYARD block
             // rather than a deep-plan one: at a half the frame closes and the hole is gone.
             BlockPattern.Courtyard => IntegerMath.FloorDiv(blockTiles, 3),
+
+            // A HALF EACH WAY, WHICH IS A QUARTER OF THE BLOCK'S GROUND -- the same class of
+            // statement as Courtyard's third and StripTiles' quarter cap, a fraction of what the
+            // player drew rather than a length. ⚠ IT IS THE LARGEST FRACTION THAT STILL LEAVES THE
+            // MAJORITY OF THE BLOCK OPEN, which is what makes the form a tower rather than a slab,
+            // and the ceiling on it is arithmetic rather than taste: a rung names a plot ratio, so
+            // a form on a NINTH of its block (a third each way) has to stand nine times the ratio
+            // -- 174 storeys at the top rung of `storeys_per_rung = 3`, which is 609 m and absurd.
+            // ***The footprint of the tallest form is what prices the top of the ladder***, and a
+            // third was measured before a half was chosen. plans/0059.
+            BlockPattern.Tower => IntegerMath.FloorDiv(blockTiles, 2),
             _ => StripTiles(blockTiles, lotsPerSegment),
         };
     }
@@ -514,12 +560,29 @@ public static class BlockPatterns
     /// comparison collapses back onto area and the courtyard sorts below.
     /// </para>
     /// <para>
-    /// <b>The quantity is GROUND PER ADDRESS, ascending — how much land stands behind one door.</b> It
-    /// is derived rather than chosen and it needs no cut point. ⚠ <b>What changed is not the
-    /// quantity but where it is read</b>: the ladder is now computed for the lattice in hand instead
-    /// of being fixed once and asserted to be lattice-independent, which it is not. <c>block_tiles</c>
-    /// and <c>lots_per_segment</c> are world-creation keys, so within a world this is a constant and
-    /// the ratchet in <c>LotSubdivider.RecarveBlock</c> still compares two positions on one ladder.
+    /// <b>The quantity is FLOOR AREA PER ADDRESS — how many people stand behind one door — and it
+    /// reduces to the Address count.</b> Since <c>plans/0058</c> a rung names a plot ratio, so the
+    /// floor area a pattern puts on a block is <c>ratio × blockTiles²</c> and the pattern cancels
+    /// out: ***every form at one rung houses the same number of people.*** Divide that by the doors
+    /// and the ratio cancels too, leaving <c>1 ÷ addresses</c>. **Fewer doors is denser**, and there
+    /// is no cut point and nothing chosen. <see cref="ClaimedTiles"/> survives only as the tie-break.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>IT WAS GROUND PER ADDRESS AND THAT WAS A PROXY THAT BROKE ON THE SIXTH FORM.</b> Land
+    /// behind a door stood in for people behind a door, which holds for five forms that all house
+    /// people by going <em>back</em> — and <see cref="BlockPattern.Tower"/> houses them <em>up</em>.
+    /// A tower claims a quarter of its block behind one door, so the proxy ranked it **between a
+    /// suburb and a terrace** while the thing it was standing in for ranked it top.
+    /// ***A proxy is only visible as one when something arrives that it is wrong about***, and
+    /// <c>plans/0058</c> is what made the real quantity computable at all. <c>plans/0059</c>.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The five keep the order they had</b> at the shipped lattice — 8, 8, 5, 4 and 2 doors —
+    /// so this replaced the quantity without moving the ladder it produced. ⚠ <b>And it is still not
+    /// the enum order</b>: 28 of the 84 reachable lattices depart from it, so the ladder is still
+    /// computed for the lattice in hand rather than fixed once. <c>block_tiles</c> and
+    /// <c>lots_per_segment</c> are world-creation keys, so within a world this is a constant and the
+    /// ratchet in <c>LotSubdivider.RecarveBlock</c> still compares two positions on one ladder.
     /// </para>
     /// <para>
     /// ⚠ <b>Ties fall back to the enum order, and the sort is stable so that they do.</b> On a lattice
@@ -670,12 +733,17 @@ public static class BlockPatterns
         return 0;
     }
 
-    /// <summary>Whether <paramref name="left"/> gives one Address MORE ground than <paramref name="right"/> does.</summary>
+    /// <summary>Whether <paramref name="left"/> puts FEWER people behind one door than <paramref name="right"/>.</summary>
     /// <remarks>
-    /// <b>Cross-multiplied rather than divided</b>, so the comparison is exact at every lattice and
-    /// there is no rounding to argue about — and it stays inside <c>adr/0003</c> without reaching for
-    /// <c>Borough.Core.Arithmetic</c> at all. ⚠ <b>A pattern laying NO Address sorts to the top</b>,
-    /// where nothing selects it, rather than to the bottom where a band of 1 would.
+    /// <b>An integer comparison and no longer a cross-multiplication</b>, because the quantity
+    /// reduced: floor area per Address is <c>ratio × blockTiles² ÷ addresses</c> and every term but
+    /// the last is the same for both sides. ***The exactness the cross-multiplication was buying is
+    /// now free.*** <see cref="Ladder"/> carries the derivation.
+    /// ⚠ <b>Ground survives as the tie-break and only as that</b> — two forms with the same number of
+    /// doors hold the same number of people, so the one on less ground is the more urban of the two,
+    /// and a tie is broken rather than invented.
+    /// ⚠ <b>A pattern laying NO Address sorts to the top</b>, where a band of 1 will not select it,
+    /// rather than to the bottom where it would be every dense band's answer.
     /// </remarks>
     private static bool Sparser(
         BlockPattern left, BlockPattern right, ReadOnlySpan<int> claimed, ReadOnlySpan<int> addresses)
@@ -688,14 +756,14 @@ public static class BlockPatterns
             return rightAddresses == 0 && leftAddresses != 0;
         }
 
-        long lhs = (long)claimed[(int)left] * rightAddresses;
-        long rhs = (long)claimed[(int)right] * leftAddresses;
-
-        return lhs != rhs ? lhs < rhs : claimed[(int)left] < claimed[(int)right];
+        // 🔴 MORE DOORS IS SPARSER, and the ground is now only the tie-break. See the remarks.
+        return leftAddresses != rightAddresses
+            ? leftAddresses > rightAddresses
+            : claimed[(int)left] < claimed[(int)right];
     }
 
     /// <summary>How many patterns there are. <b>Open by construction</b> — see <see cref="BlockPattern"/>.</summary>
-    public const int Count = 5;
+    public const int Count = 6;
 
     /// <summary>Which side of a face's Segment the block behind it stands on.</summary>
     /// <remarks>
@@ -818,8 +886,9 @@ public static class BlockPatterns
                 // the count still tiles.
                 int from = low + IntegerMath.FloorDiv(group * reach, groups);
                 int to = low + IntegerMath.FloorDiv((group + 1) * reach, groups);
+                int wide = Narrow(pattern, blockTiles, to - from, ref from);
 
-                into[written++] = Rectangle(face, column, row, blockTiles, side, offset, from, to - from, depth);
+                into[written++] = Rectangle(face, column, row, blockTiles, side, offset, from, wide, depth);
             }
         }
 
@@ -869,6 +938,45 @@ public static class BlockPatterns
                 new Tiles(baseEast + blockTiles - depth), new Tiles(baseNorth + from),
                 new Tiles(depth), new Tiles(wide)),
         };
+    }
+
+    /// <summary>
+    /// <b>Shrinks a parcel inside its own slice</b>, centring what is left. Every pattern but
+    /// <see cref="BlockPattern.Tower"/> keeps the whole slice.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>IT IS THE ONE THING A TOWER NEEDS THAT NO OTHER FORM DOES.</b> Every pattern above it
+    /// says how <em>deep</em> a parcel runs and lets the face's own division say how <em>wide</em> —
+    /// which is right for a row of plots and wrong for a form whose whole claim is that it does not
+    /// use the frontage it was given. ***A tower with <c>ParcelsPerFace</c> of one and no narrowing
+    /// is a slab***, because one parcel over one face is the face.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Centred, so the open ground is a plaza on both sides rather than a gap at one end.</b>
+    /// The consequence is that the Address sits off the footprint: a Lot's position is its door on
+    /// the kerb and its footprint is its parcel, and the two are already different quantities
+    /// (<c>plans/0052</c>). ***A tower is where that gap first becomes visible*** — the door is at
+    /// the first Address on the face and the building is in the middle of the block's frontage.
+    /// </para>
+    /// </remarks>
+    private static int Narrow(BlockPattern pattern, int blockTiles, int span, ref int from)
+    {
+        if (pattern != BlockPattern.Tower)
+        {
+            return span;
+        }
+
+        int wide = DepthTiles(pattern, BlockFace.South, blockTiles, 0);
+
+        if (wide >= span || wide <= 0)
+        {
+            return span;
+        }
+
+        from += IntegerMath.FloorDiv(span - wide, 2);
+
+        return wide;
     }
 
     /// <summary>

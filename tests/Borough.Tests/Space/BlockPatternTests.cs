@@ -30,7 +30,7 @@ public sealed class BlockPatternTests
     private static readonly BlockPattern[] All =
     [
         BlockPattern.Detached, BlockPattern.Perimeter, BlockPattern.BackToBack,
-        BlockPattern.Courtyard, BlockPattern.Slab,
+        BlockPattern.Courtyard, BlockPattern.Slab, BlockPattern.Tower,
     ];
 
     /// <summary>Every parcel one pattern yields for one block.</summary>
@@ -318,7 +318,7 @@ public sealed class BlockPatternTests
     /// with 3 Lots a Segment the reservation is 3 deep, the offsets are 2, 6 and 10, and <b>the east
     /// face's parity holds only 2 and 10 — both outside the reach</b>. ***So the case is a property of
     /// the interaction between parity and the corner filter, not of a degenerate key value***, and
-    /// <see cref="The_ladder_is_ground_per_address_ascending"/> found it by inverting.
+    /// <see cref="The_ladder_is_people_per_address_descending"/> found it by inverting.
     /// </para>
     /// <para>
     /// ⚠ <b>This is <c>plans/0053</c> <b>Q5</b>'s evidence</b> — <em>does <c>lots_per_segment</c>
@@ -361,9 +361,19 @@ public sealed class BlockPatternTests
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>The quantity is ground per Address, ascending — how much land stands behind one door.</b>
-    /// <c>BlockPatterns.Ladder</c> sorts on it and <c>ForBand</c> indexes the result, so this asserts
-    /// the sort is a real total order rather than asserting any particular order came out.
+    /// <b>The quantity is floor area per Address — how many people stand behind one door — and it
+    /// reduces to the door count.</b> <c>BlockPatterns.Ladder</c> sorts on it and <c>ForBand</c>
+    /// indexes the result, so this asserts the sort is a real total order rather than asserting any
+    /// particular order came out.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>IT WAS GROUND PER ADDRESS UNTIL <c>plans/0059</c>, AND THAT WAS A PROXY.</b> Land behind
+    /// a door stood in for people behind a door, which is true of five forms that all house people by
+    /// going back and false of <see cref="BlockPattern.Tower"/>, which claims a quarter of its block
+    /// and sorted between a suburb and a terrace. ⚠ <b>The five keep the order they had</b>, so this
+    /// change replaced the quantity without moving the ladder it produced at the shipped lattice —
+    /// ***which is the strongest evidence available that the proxy was a good one right up until it
+    /// was not.***
     /// </para>
     /// <para>
     /// 🔴 <b>WHAT THIS TEST USED TO SAY WAS THAT THE ENUM ORDER <em>IS</em> THE INTENSITY ORDER AT
@@ -383,7 +393,7 @@ public sealed class BlockPatternTests
     /// </para>
     /// </remarks>
     [Fact]
-    public void The_ladder_is_ground_per_address_ascending()
+    public void The_ladder_is_people_per_address_descending()
     {
         int swept = 0;
 
@@ -409,8 +419,10 @@ public sealed class BlockPatternTests
                     Assert.Equal(rung, BlockPatterns.Rung(ladder[rung], blockTiles, lotsPerSegment));
                 }
 
-                // And it is sorted on the quantity it says it is, cross-multiplied so the check does
-                // not round where the sort did not.
+                // And it is sorted on the quantity it says it is: doors DESCENDING, with claimed
+                // ground breaking a tie. Floor area per Address is what the ladder means and floor
+                // area is `ratio * block` for every pattern (plans/0058 F5), so the comparison
+                // reduces to the door count and needs no cross-multiplication any more.
                 for (int rung = 1; rung < BlockPatterns.Count; rung++)
                 {
                     (int below, int belowDoors) = Ground(ladder[rung - 1], blockTiles, lotsPerSegment);
@@ -422,10 +434,10 @@ public sealed class BlockPatternTests
                     }
 
                     Assert.True(
-                        (long)below * aboveDoors <= (long)above * belowDoors,
-                        $"at block {blockTiles}, {lotsPerSegment} per Segment {ladder[rung - 1]} gives "
-                        + $"{below}/{belowDoors} a door and sits below {ladder[rung]}'s "
-                        + $"{above}/{aboveDoors}.");
+                        belowDoors > aboveDoors || (belowDoors == aboveDoors && below <= above),
+                        $"at block {blockTiles}, {lotsPerSegment} per Segment {ladder[rung - 1]} has "
+                        + $"{belowDoors} door(s) on {below} Tiles and sits below {ladder[rung]}'s "
+                        + $"{aboveDoors} on {above}.");
                 }
 
                 swept++;
@@ -440,13 +452,15 @@ public sealed class BlockPatternTests
     /// drawn from.
     /// </summary>
     /// <remarks>
-    /// <b>Ground per Address at 32 Tiles and 5 Lots a Segment</b>: Detached 78, Perimeter 128,
-    /// BackToBack 204, Courtyard 220, Slab 512. ⚠ <b>The figures are this lattice's and travel
-    /// nowhere</b> — see <see cref="The_ladder_is_ground_per_address_ascending"/>, where a third of
-    /// the range puts the middle pair the other way round.
+    /// <b>Addresses at 32 Tiles and 5 Lots a Segment</b>: Detached 8, Perimeter 8, BackToBack 5,
+    /// Courtyard 4, Slab 2, Tower 1. ⚠ <b>The figures are this lattice's and travel nowhere</b> — see
+    /// <see cref="The_ladder_is_people_per_address_descending"/>, where a third of the range puts the
+    /// middle pair the other way round. ⚠ <b>Detached and Perimeter TIE on doors here</b> and are
+    /// separated by claimed ground, 624 against 1,024 — the tie-break earning its place at the one
+    /// lattice every picture is drawn from.
     /// </remarks>
     [Fact]
-    public void The_shipped_lattice_climbs_from_a_suburb_to_a_slab()
+    public void The_shipped_lattice_climbs_from_a_suburb_to_a_tower()
     {
         var ladder = new BlockPattern[BlockPatterns.Count];
 
@@ -455,7 +469,7 @@ public sealed class BlockPatternTests
         Assert.Equal(
             [
                 BlockPattern.Detached, BlockPattern.Perimeter, BlockPattern.BackToBack,
-                BlockPattern.Courtyard, BlockPattern.Slab,
+                BlockPattern.Courtyard, BlockPattern.Slab, BlockPattern.Tower,
             ],
             ladder);
     }
