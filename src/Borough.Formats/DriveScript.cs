@@ -76,6 +76,32 @@ public enum DriveVerb
     Click,
 
     /// <summary>
+    /// Where the pointer was when the button came up, <b>after a <see cref="Click"/> that held a
+    /// tool the gesture means something to.</b> <c>East</c> and <c>North</c> are the Tile.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THE ONE VERB HERE THAT IS HALF OF A GESTURE, and every other one is an absolute.</b>
+    /// A drag is two events and a press cannot know where it will end, so this is the second of the
+    /// pair rather than a self-contained instruction — the one place the grammar's own rule bends,
+    /// and it bends because the thing being recorded genuinely has two ends. ⚠ <b>A
+    /// <c>release</c> with no <c>click</c> before it says so and acts on nothing.</b>
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It changes the city NEVER.</b> The press is what acts; this reports what the drag asked
+    /// for and could not have — <c>plans/0045</c> row 23, and the reason it exists is that
+    /// <em>how do I build a diagonal road</em> had no answer on screen. ***A refusal nobody can
+    /// make happen is a refusal nobody has seen.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The shell emits one only when the drag left the edge it started on</b>, so an ordinary
+    /// click records exactly what it always did and a recording gains a line only where a person
+    /// would have seen a sentence.
+    /// </para>
+    /// </remarks>
+    Release,
+
+    /// <summary>
     /// Put people in the city — Buildings, Households and Citizens on whatever Lots stand.
     /// </summary>
     /// <remarks>
@@ -350,6 +376,9 @@ public static class DriveScript
                 $"{at} click {command.East.ToString(CultureInfo.InvariantCulture)} "
                 + $"{command.North.ToString(CultureInfo.InvariantCulture)}"
                 + (command.Amount != 0 ? " shift" : string.Empty),
+            DriveVerb.Release =>
+                $"{at} release {command.East.ToString(CultureInfo.InvariantCulture)} "
+                + $"{command.North.ToString(CultureInfo.InvariantCulture)}",
             _ => $"{at} quit",
         };
     }
@@ -562,6 +591,26 @@ public static class DriveScript
                 return new DriveCommand(
                     tick, DriveVerb.Click, word.Length == 5 ? 1 : 0, null, east, north);
 
+            case "release":
+                if (word.Length != 4)
+                {
+                    refusals.Add($"{file}:{line}: 'release' takes an east Tile and a north Tile — "
+                        + "where the pointer was when the button came up.");
+
+                    return null;
+                }
+
+                if (!int.TryParse(word[2], NumberStyles.None, CultureInfo.InvariantCulture, out int upEast)
+                    || !int.TryParse(word[3], NumberStyles.None, CultureInfo.InvariantCulture, out int upNorth))
+                {
+                    refusals.Add($"{file}:{line}: 'release' takes two Tile coordinates, not "
+                        + $"'{word[2]} {word[3]}'.");
+
+                    return null;
+                }
+
+                return new DriveCommand(tick, DriveVerb.Release, 0, null, upEast, upNorth);
+
             case "tilt":
                 if (word.Length != 3
                     || !int.TryParse(
@@ -629,8 +678,8 @@ public static class DriveScript
 
             default:
                 refusals.Add($"{file}:{line}: no verb '{verb}'. There is pause, resume, speed, "
-                    + "roads, cells, turn, zoom, hold, click, people, focus, shoot, readout, draw "
-                    + "and quit.");
+                    + "roads, cells, turn, zoom, hold, click, release, people, focus, shoot, "
+                    + "readout, draw and quit.");
 
                 return null;
         }

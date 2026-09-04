@@ -245,6 +245,24 @@ public partial class Main
 
                 break;
 
+            case DriveVerb.Release:
+                // The bounds are checked on the same reasoning as Click's above: a driven release
+                // names a Tile and meets no ray. ⚠ It CHANGES NOTHING and only speaks, so an
+                // off-map one is the same non-event a click's is.
+                if (command.East < 0 || command.North < 0
+                    || command.East >= CellGrid.WorldTiles || command.North >= CellGrid.WorldTiles)
+                {
+                    _refused = "that is not on the map.";
+
+                    break;
+                }
+
+                _aimed = (new Tiles(command.East), new Tiles(command.North));
+
+                Dragged((new Tiles(command.East), new Tiles(command.North)));
+
+                break;
+
             case DriveVerb.People:
                 // 🔴 plans/0045 ROW 21. --empty gives adr/0090's world -- ground, and every road the
                 // player's -- and until this verb existed nothing could ever be built on the Streets
@@ -476,7 +494,7 @@ public partial class Main
 
             _answered.Add(string.Create(
                 CultureInfo.InvariantCulture,
-                $"ok\t{_world.Tick.Raw}\t{_readout.Text.Replace('\n', '\t')}"));
+                $"ok\t{_world.Tick.Raw}\t{Captioned().Replace('\n', '\t')}"));
         }
     }
 
@@ -607,6 +625,28 @@ public partial class Main
         value.ToString("0.###", CultureInfo.InvariantCulture);
 
     /// <summary>Put the readout on disk as it stands. Composed by the caller.</summary>
+    /// <remarks>
+    /// 🔴 <b>THE HOVER IS ON THE SCREEN AND WAS NOT IN THE CAPTION.</b> Every channel carried
+    /// <c>_readout.Text</c> alone — <c>readout</c>, <c>shoot</c> and the socket's reply — so the
+    /// panel that says <em>what a click would do here</em> was invisible to every driven run.
+    /// ***A caption that omits half the screen cannot be asserted against the half it omits***, and
+    /// the hover is where <see cref="Aiming"/>, <see cref="Virgin"/> and <see cref="Crossing"/> all
+    /// write. Found by driving <c>plans/0045</c> row 23 and looking for a sentence that was on
+    /// screen the whole time.
+    /// </remarks>
     private void Write(string path) =>
-        File.WriteAllText(Globalize(path), $"tick {_world.Tick.Raw}\n{_readout.Text}\n");
+        File.WriteAllText(Globalize(path), $"tick {_world.Tick.Raw}\n{Captioned()}\n");
+
+    /// <summary>
+    /// The readout and the hover, in the order they read — <b>what a driven run is told is on
+    /// screen.</b>
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>The rule stays <em>a <c>Control</c> is invisible to a channel</em></b>, and this is one
+    /// panel joining the caption rather than a general escape from it: the tool palette and the two
+    /// editing panels are still checked against a line of the readout, as <see cref="Palette"/>'s
+    /// own remark says. ⚠ <b>A separator line rather than a blank one</b>, so a caller greps for
+    /// <c>hover</c> and knows which panel a line came from.
+    /// </remarks>
+    private string Captioned() => $"{_readout.Text}\nhover —\n{_hover.Text}";
 }

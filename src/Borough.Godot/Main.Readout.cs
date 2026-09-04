@@ -351,6 +351,72 @@ public partial class Main
             ? $"click LAYS a Street on {edge} — nothing stands there, so shift-click does nothing"
             : $"shift-click BULLDOZES Segment {_world.Roads.Segments.Rows.IdAt(segment):N0} on "
                 + $"{edge} — a plain click does nothing, it is already built");
+
+        Crossing(said, at, streets);
+    }
+
+    /// <summary>
+    /// The roads through this block that the lattice does not hold — <b>the diagonal a player can
+    /// see, named, and said not to be a Street.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THE GENERATED WORLD CONTAINS DIAGONALS AND NO TOOL LAYS ONE.</b>
+    /// <c>[roads] foot_paths_per_thousand_blocks</c> lays a <see cref="RoadKind.FootPath"/> corner to
+    /// corner across a block, which is why <c>--morphology</c> reports six occupied compass bins
+    /// where a pure lattice has four. ***A player who has seen a diagonal on screen will reasonably
+    /// ask for the tool that made it***, and the honest answer is that no tool did —
+    /// <c>plans/0045</c> row 23. Until this line existed the hover talked about an east–north edge
+    /// while the cursor sat on the very thing the question was about.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Through the block's own bucket rather than a walk.</b>
+    /// <see cref="StreetGrid.OffLatticeHead"/> buckets each off-lattice Segment at the block of its
+    /// first endpoint, so this is a short chain and not the <c>O(Lots)</c> scan
+    /// <see cref="Raise"/> is stuck with. ⚠ <b>A Segment can reach out of its bucket</b>
+    /// (<see cref="StreetGrid.OffLatticeReachBlocks"/>), so what this reports is what <em>starts</em>
+    /// here — enough to answer <em>what is that</em>, and not a claim about everything crossing the
+    /// block.
+    /// </para>
+    /// </remarks>
+    private void Crossing(
+        System.Collections.Generic.List<string> said,
+        (Tiles East, Tiles North) at,
+        StreetGrid streets)
+    {
+        int column = IntegerMath.FloorDiv(at.East.Raw, streets.BlockTiles);
+        int row = IntegerMath.FloorDiv(at.North.Raw, streets.BlockTiles);
+        int paths = 0;
+        int others = 0;
+
+        for (int slot = streets.OffLatticeHead(column, row);
+             slot != Rows.NoSlot;
+             slot = streets.OffLatticeNext(slot))
+        {
+            if ((RoadKind)_world.Roads.Segments.Kind[slot] == RoadKind.FootPath)
+            {
+                paths++;
+            }
+            else
+            {
+                others++;
+            }
+        }
+
+        if (paths > 0)
+        {
+            said.Add(paths == 1
+                ? "a FOOT PATH cuts this block corner to corner — foot only, laid when the world "
+                    + "was made. No tool lays one: a Street runs east or north"
+                : $"{paths:N0} FOOT PATHS cut this block — foot only, laid when the world was made. "
+                    + "No tool lays one: a Street runs east or north");
+        }
+
+        if (others > 0)
+        {
+            said.Add($"{others:N0} road(s) here are off the lattice — an Arterial is a route rather "
+                + "than one click (adr/0077), so no tool lays one either");
+        }
     }
 
     /// <summary>

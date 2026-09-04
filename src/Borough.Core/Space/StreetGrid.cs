@@ -24,6 +24,50 @@ public enum StreetAxis : byte
 }
 
 /// <summary>
+/// What a drag across the lattice asks for — <b>and every value but one is something the Street
+/// tool cannot do in a single edit.</b>
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>A Street edit is one Segment</b> (<c>adr/0077</c>), and the lattice runs on two axes, so the
+/// only drag a click can honour is the one that begins and ends on the same edge. ⚠ <b>The other
+/// two are not defects and are not refusals either</b>: they are the shape of the answer to
+/// <em>can I drag a road from here to there</em>, which until this enum existed the tool answered
+/// by laying one Segment somewhere near the start and saying nothing.
+/// </para>
+/// <para>
+/// ⚠ <b><see cref="TwoAxes"/> is the diagonal AND the dog-leg, deliberately.</b> They differ in
+/// shape and not in what the player is owed — both need east and north, so both are a sequence of
+/// clicks rather than one — and a front end that separated them would be offering a distinction the
+/// tool does not have.
+/// </para>
+/// </remarks>
+public enum StreetDrag : byte
+{
+    /// <summary>
+    /// The world states no <c>[roads] block_tiles</c>, so there is no lattice to drag across.
+    /// <b><c>Refusal.ConnectWorldHasNoLattice</c> is the sentence for it</b>, and it is the core's
+    /// rather than the aim's.
+    /// </summary>
+    NoLattice = 0,
+
+    /// <summary>Both ends name one edge. <b>An ordinary click, and the only drag a click honours.</b></summary>
+    OneEdge = 1,
+
+    /// <summary>
+    /// The two edges lie on one straight line. <b>A run of Streets, and a run is many edits.</b>
+    /// </summary>
+    OneLine = 2,
+
+    /// <summary>
+    /// Getting from one to the other needs both axes — <b>a diagonal, or a dog-leg.</b> There is no
+    /// diagonal Street to lay, and the diagonals already standing in a generated city are
+    /// <see cref="RoadKind.FootPath"/>s the world was made with.
+    /// </summary>
+    TwoAxes = 3,
+}
+
+/// <summary>
 /// Which Street Segment lies on each edge of the block lattice — <b>the index that lets the
 /// subdivider name a block's four faces without searching for them</b>.
 /// </summary>
@@ -258,6 +302,69 @@ public sealed class StreetGrid
     /// </remarks>
     public (Tiles East, Tiles North) IntersectionTile(int column, int row) =>
         (new Tiles(column * BlockTiles), new Tiles(row * BlockTiles));
+
+    /// <summary>
+    /// What a drag from one Tile to another asks the lattice for — <b>the classification, so that a
+    /// front end can say why a straight line between two points is not one Street.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THE LATTICE HAS TWO AXES AND NOTHING SAID SO.</b> <see cref="StreetAxis"/> declares
+    /// exactly <see cref="StreetAxis.East"/> and <see cref="StreetAxis.North"/>, so
+    /// <em>how do I build a diagonal road</em> has the answer <b>you cannot</b> — a refusal, and
+    /// <c>adr/0070</c>'s one classification that counts as evidence. ⚠ <b>And the generated world
+    /// contains diagonals</b>: <c>[roads] foot_paths_per_thousand_blocks</c> lays a
+    /// <see cref="RoadKind.FootPath"/> corner to corner across a block, which is why
+    /// <c>--morphology</c> reports six occupied compass bins where a pure lattice has four.
+    /// ***A player who has seen a diagonal on screen will reasonably ask for the tool that made
+    /// it***, and no tool did. <c>plans/0045</c> row 23.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It classifies and refuses nothing.</b> Both ends resolve through
+    /// <see cref="NearestEdge"/>, so this is the same aim <c>Simulation.ApplyConnect</c> will act on
+    /// rather than a second reading of the cursor — and the words a player reads are the shell's,
+    /// as <c>Refusal</c>'s own remark requires.
+    /// </para>
+    /// </remarks>
+    /// <returns>
+    /// The classification, and how many Streets one straight run would take — <b>which is stated
+    /// only for <see cref="StreetDrag.OneLine"/></b>. There is no single run to count across
+    /// <see cref="StreetDrag.TwoAxes"/>, because the route is a choice rather than a length, so it
+    /// answers zero rather than inventing one.
+    /// </returns>
+    public (StreetDrag Drag, int Streets) Between(
+        Tiles fromEast, Tiles fromNorth, Tiles toEast, Tiles toNorth)
+    {
+        if (BlockTiles <= 0 || Blocks <= 0)
+        {
+            return (StreetDrag.NoLattice, 0);
+        }
+
+        (int fromColumn, int fromRow, StreetAxis fromAxis) = NearestEdge(fromEast, fromNorth);
+        (int toColumn, int toRow, StreetAxis toAxis) = NearestEdge(toEast, toNorth);
+
+        if (fromAxis != toAxis)
+        {
+            return (StreetDrag.TwoAxes, 0);
+        }
+
+        if (fromColumn == toColumn && fromRow == toRow)
+        {
+            return (StreetDrag.OneEdge, 1);
+        }
+
+        // An east edge is named by the intersection it leaves, so two of them share a line when they
+        // share a ROW; two north edges share one when they share a column. ⚠ Same axis and a
+        // different perpendicular coordinate is not a line -- it is a dog-leg, and it needs both
+        // axes to walk exactly as a diagonal does.
+        return fromAxis == StreetAxis.East
+            ? fromRow == toRow
+                ? (StreetDrag.OneLine, IntegerMath.Abs(toColumn - fromColumn) + 1)
+                : (StreetDrag.TwoAxes, 0)
+            : fromColumn == toColumn
+                ? (StreetDrag.OneLine, IntegerMath.Abs(toRow - fromRow) + 1)
+                : (StreetDrag.TwoAxes, 0);
+    }
 
     /// <summary>
     /// The node standing at intersection <c>(column, row)</c>, or <see cref="Rows.NoSlot"/> if the

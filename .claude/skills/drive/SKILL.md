@@ -114,6 +114,7 @@ there is one applier rather than two behaviours that can part company.
 | `focus` | `focus <east> <north> [metres]` | Puts the camera over a Tile. ⚠ **The distance is NOT clamped** — the one place a script may do what a player cannot, and the reason it exists is that the zoom clamp otherwise confines a script to ~3 km of a 65.5 km map |
 | `hold` | `hold <tool> [which]` | Chooses what the next `click` means |
 | `click` | `click <east> <north> [shift]` | **Acts on the city** at a Tile |
+| `release` | `release <east> <north>` | **The other half of a drag, and it changes nothing.** Says what the gesture asked the lattice for: with `street` held, a drag across two edges gets a sentence — there are no diagonal Streets, and a run is many edits. ⚠ **The second of a pair**, so a `release` with no `click` before it says so. `--record` writes one only where the drag left the edge it started on |
 | `people` | `people` | **Puts people in the city** — Buildings, Households and Citizens on whatever Lots stand. `CommandKind.People`, and the one verb here with no key on the keyboard: it is an instrument in `CommandKind.Populate`'s family, and it acts **once per world**. Refused, in words, on a world that already has people or has no Lots yet |
 | `shoot` | `shoot <path.png>` | The frame, **and the readout beside it** as `<path>.txt`, in one act |
 | `readout` | `readout <path>` | The readout alone. Needs no display |
@@ -125,6 +126,8 @@ there is one applier rather than two behaviours that can part company.
 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
 |---|---|---|---|---|---|---|---|---|
 | paused | 1/16× | 1/8× | 1/4× | 0.5× | **1×** | 2× | 3× | 4× |
+
+🔴 **The caption carries the HOVER as well as the readout, since 2026-09-04.** Every channel used to carry `_readout.Text` alone, so the panel that says *what a click would do here* — the Street tool's edge, the zone tool's free frontage, the foot path crossing the block — was invisible to every driven run. ***A caption that omits half the screen cannot be asserted against the half it omits.*** The tool palette and the two editing panels are still `Control`s and still invisible; only the hover joined.
 
 **Tools for `hold`** — `look`, `zone`, `street`, `demolish`, `service`. The second word is *which
 one*: a Zone Rule by declaration position, a service by its 1-based kind id. ⚠ **An unknown tool
@@ -195,7 +198,7 @@ that reads as one about that one. `--listen` unlinks before binding, so it recov
 
 | Verb | File | Format |
 |---|---|---|
-| `readout` | one file | `tick <N>` on its own first line, then the readout as it is on screen. **The Tick is on line one so a caller need not parse an em-dash** |
+| `readout` | one file | `tick <N>` on its own first line, then the readout, then a `hover —` line and the hover panel beneath it. **The Tick is on line one so a caller need not parse an em-dash** |
 | `shoot` | `<path>.png` **and** `<path>.txt` | The frame, and the same readout beside it — written in one act so they cannot disagree about which Tick they are of |
 | `draw` | one TSV | `tick`, `ruleset`, one `layer` row per layer with **instances / capacity / visible**, then one `row` per instance: `layer index id x y z sx sy sz yaw r g b` |
 

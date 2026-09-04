@@ -768,6 +768,25 @@ public partial class Main : Node3D
     /// pointing at the corner of the map.
     /// </remarks>
     private (Tiles East, Tiles North)? _aimed;
+
+    /// <summary>
+    /// Where the last press landed, while the button is still down — <b>the first half of a drag,
+    /// and null the rest of the time.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THE PRESS STILL ACTS AND THIS CHANGES NOTHING ABOUT THAT.</b> Acting on release with a
+    /// slop test is what made a trackpad click unusable in the first place (see
+    /// <see cref="_UnhandledInput"/>'s own remark), so the release is a <em>reader</em> here: it can
+    /// add a sentence and it can never lay, bulldoze or withhold a Street.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Only <see cref="Verb.Connect"/> sets it</b>, because it is the only tool a drag means
+    /// anything to. Zoning, demolishing and raising a service are all one plot, and a drag across
+    /// them is a click.
+    /// </para>
+    /// </remarks>
+    private (Tiles East, Tiles North)? _pressed;
     private Label _readout = null!;
     private VisibleAgent[] _agents = new VisibleAgent[8192];
     private double _owed;
@@ -1271,6 +1290,27 @@ public partial class Main : Node3D
                 {
                     _refused = "that is not on the map.";
                 }
+            }
+
+            // The other half of a drag, and it is a READER: it says what the gesture asked the
+            // lattice for and never acts. plans/0045 row 23 -- there are no diagonal Streets, and
+            // until this branch existed a drag laid one Segment near where it started and reported
+            // nothing at all. ⚠ Nothing is applied unless Dragging finds something worth a
+            // sentence, so an ordinary click records exactly what it always did.
+            if (button is { Pressed: false, ButtonIndex: MouseButton.Left })
+            {
+                if (Dragging(Aim()) is { } upTo)
+                {
+                    Apply(new DriveCommand(
+                        _world.Tick.Raw,
+                        DriveVerb.Release,
+                        0,
+                        null,
+                        upTo.East.Raw,
+                        upTo.North.Raw));
+                }
+
+                _pressed = null;
             }
 
             return;
