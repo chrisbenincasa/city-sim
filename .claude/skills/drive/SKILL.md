@@ -202,16 +202,21 @@ that reads as one about that one. `--listen` unlinks before binding, so it recov
 | `shoot` | `<path>.png` **and** `<path>.txt` | The frame, and the same readout beside it — written in one act so they cannot disagree about which Tick they are of |
 | `draw` | one TSV | `tick`, `ruleset`, one `layer` row per layer with **instances / capacity / visible**, then one `row` per instance: `layer index id x y z sx sy sz yaw r g b` |
 
-**The sixteen layers, in draw order**: `ground hazard water flood road footway cell plot building roof
-hip mansard yard tree rock traveller`. ⚠ **`roof`, `hip` and `mansard` are the three PITCHED families and
+**The seventeen layers, in draw order**: `ground hazard water flood road footway kerb cell plot building
+roof hip mansard yard tree rock traveller`. ⚠ **`roof`, `hip` and `mansard` are the three PITCHED families and
 a Building writes into at most one of them** — a flat-roofed Building writes into none, so the three
-never sum to the Building count. Seven carry an entity id (`plot`, `building`, `roof`, `hip`,
-`mansard`, `yard`, `footway`) and `traveller`
+never sum to the Building count. Eight carry an entity id (`plot`, `building`, `roof`, `hip`,
+`mansard`, `yard`, `footway`, `kerb`) and `traveller`
 resolves one; the rest honestly say `-`.
 
-⚠ **`footway` is the one layer whose id is not unique down its column** — a Segment gets a pavement
-on each side, so it appears **twice**, and its capacity is twice every other layer's for the same
-reason. ***Count Segments there with `sort -u`, or count double.***
+⚠ **`footway` and `kerb` are the two layers whose id is not unique down its column** — both are
+per-Segment-per-side, so a Segment appears at least twice, and their capacities are 2× and 4× every
+other layer's for the same reason. ***Count Segments there with `sort -u`, or count double.***
+
+⚠ **`kerb` holds two different things and the NAME does not separate them**: a kerb **band** is
+`sx = 0.4` and `sy = 1`, and a **dropped** kerb — one per Address — is `sx = 1.4` and `sy = 0.467`,
+which is the band's height scaled down to the carriageway's. ***Filter on the width, and the drop
+count should equal the Lot count*** (`--zones` prints that).
 
 ⚠ **`instances` against `capacity` is not bookkeeping.** A layer at capacity has silently dropped
 whatever did not fit, and the picture shows a smaller city with nothing to say so — ***the one

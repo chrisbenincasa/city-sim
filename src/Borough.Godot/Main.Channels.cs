@@ -149,7 +149,7 @@ public partial class Main
                 // ⚠ THE PAVEMENTS GO WITH THE ASPHALT. `roads off` is how a person looks at the
                 // ground under the city, and a street hidden down to two floating kerbside strips
                 // would be a stranger picture than either state the verb offers.
-                _roads.Visible = _footways.Visible = command.Amount != 0;
+                _roads.Visible = _footways.Visible = _kerbs.Visible = command.Amount != 0;
 
                 break;
 
@@ -613,6 +613,11 @@ public partial class Main
         // ⚠ TWO ROWS PER SEGMENT and the same id on both, which is the one layer here where an id
         // is not unique down the column. See _footwayIds.
         ("footway", _footways, true, _footwayIds),
+
+        // ⚠ TWO KINDS OF ROW IN ONE LAYER, told apart by the `y` column and not by the name: a band
+        // sits at 0.15 m and a DROPPED kerb at 0.07 m. See Kerbs(). The id is the Segment's, as the
+        // footway's is, and for the same reason -- a drop's own id would be a Lot's.
+        ("kerb", _kerbs, true, _kerbIds),
         ("cell", _cells, false, null),
         ("plot", _plots, true, _plotIds),
         ("building", _buildings, true, _buildingIds),
