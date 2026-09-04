@@ -235,6 +235,9 @@ internal static class MorphologyDump
         Blocks(graph, output);
 
         output.WriteLine();
+        Fabric(world, output);
+
+        output.WriteLine();
         output.WriteLine("## Intersections");
         output.WriteLine();
         Degrees(graph, nodes, squareKm, output);
@@ -593,6 +596,103 @@ internal static class MorphologyDump
                     + $"{seen.Keys.First()} to {seen.Keys.Last()} Tiles, a "
                     + $"{(double)seen.Keys.Last() / seen.Keys.First():N2}x spread."));
     }
+
+    /// <summary>
+    /// Measures the developed ground by the pattern that carved it: block, parcel, potential
+    /// footprint and the footprint of Buildings actually standing.
+    /// </summary>
+    /// <remarks>
+    /// <b>These are four different answers.</b> A Detached block deliberately leaves unlotted ground;
+    /// a courtyard parcels ground that its Building does not cover; and a vacant Lot has a potential
+    /// footprint with no Building on it. Collapsing them into one percentage is how a city with a
+    /// great deal of floor area came to be described as dense while its centres remained visibly
+    /// empty. The rows are grouped by the saved carving pattern, not by the band currently over the
+    /// block, because the former is the historical fact the geometry was made from.
+    /// </remarks>
+    private static void Fabric(World world, TextWriter output)
+    {
+        int count = BlockPatterns.Count;
+        var blocks = new long[count];
+        var ground = new long[count];
+        var parcels = new long[count];
+        var potential = new long[count];
+        var standing = new long[count];
+        var buildings = new long[count];
+        var patternAt = new Dictionary<(int Column, int Row), int>();
+        BlockLattice lattice = world.Roads.Streets.Lattice;
+
+        for (int slot = 0; slot < world.Blocks.Rows.SlotCount; slot++)
+        {
+            if (!world.Blocks.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            BlockPattern pattern = world.PatternOf(slot, out bool chosen);
+
+            if (!chosen)
+            {
+                continue;
+            }
+
+            int index = (int)pattern;
+            int column = world.Blocks.LatticeColumn[slot];
+            int row = world.Blocks.LatticeRow[slot];
+
+            blocks[index]++;
+            ground[index] += (long)lattice.WidthOf(column) * lattice.WidthOf(row);
+            patternAt[(column, row)] = index;
+        }
+
+        for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
+        {
+            if (!world.Lots.Rows.IsLive(slot) || world.Lots.ParcelTiles(slot) <= 0)
+            {
+                continue;
+            }
+
+            int column = lattice.LineAt(world.Lots.ParcelEast[slot].Raw);
+            int row = lattice.LineAt(world.Lots.ParcelNorth[slot].Raw);
+
+            if (!patternAt.TryGetValue((column, row), out int index))
+            {
+                continue;
+            }
+
+            parcels[index] += world.Lots.ParcelTiles(slot);
+            potential[index] += world.Lots.FootprintTiles(slot);
+
+            if (!world.Lots.IsVacant(slot))
+            {
+                standing[index] += world.Lots.FootprintTiles(slot);
+                buildings[index]++;
+            }
+        }
+
+        output.WriteLine("## Urban fabric");
+        output.WriteLine();
+        output.WriteLine(Line(
+            "Pattern          Blocks Buildings   Parcel/block   Potential/block   Standing/block"));
+
+        for (int index = 0; index < count; index++)
+        {
+            if (blocks[index] == 0)
+            {
+                continue;
+            }
+
+            output.WriteLine(Line(
+                $"{((BlockPattern)index),-15} {blocks[index],6:N0} {buildings[index],9:N0} {Share(parcels[index], ground[index]),13:N1}% {Share(potential[index], ground[index]),16:N1}% {Share(standing[index], ground[index]),15:N1}%"));
+        }
+
+        output.WriteLine();
+        output.WriteLine(Line(
+            "Parcel/block is land assigned to Lots; potential/block is their Building lines; "
+            + "standing/block excludes vacant Lots. None is floor-area or population density."));
+    }
+
+    private static double Share(long part, long whole) =>
+        whole <= 0 ? 0 : 100.0 * part / whole;
 
     /// <summary>One line, in the invariant culture, so a dump is byte-comparable across machines.</summary>
     /// <remarks>

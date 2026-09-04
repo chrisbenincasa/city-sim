@@ -270,6 +270,7 @@ public static class LotSubdivider
             world.Lots.Storeys[slot] = Rules.LotRuleset.StoreysOn(
                 world.Key, parcel.East, parcel.North, patternStoreys,
                 world.Rules.Lots.StoreysPerRung);
+            world.Lots.Pattern[slot] = (byte)((byte)pattern + 1);
 
             created++;
             onFace++;

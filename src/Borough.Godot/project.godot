@@ -54,3 +54,9 @@ renderer/rendering_method="forward_plus"
 ; that test ran through the broken prefix too, so it proved nothing and is worth
 ; re-running rather than trusting.
 lights_and_shadows/directional_shadow/size=8192
+
+; PCSS from the sun's 0.5-degree angular distance exposes the filter's samples on
+; long evening shadows at Soft Low. Medium adds samples rather than more authored
+; blur; Tick 1,067 on platted.toml is the fixed specimen. Higher tiers are left to
+; a graphics setting because they multiply this directional light's shadow cost.
+lights_and_shadows/directional_shadow/soft_shadow_filter_quality=3

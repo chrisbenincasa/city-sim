@@ -107,10 +107,25 @@ public partial class Main
             DirectionalShadowSplit2 = 0.16f,
             DirectionalShadowSplit3 = 0.44f,
 
-            // ⚠ THE OPENING VALUE ONLY. Daylight() sets this every frame from how high the sun is
-            // standing, because the artifact it exists to hide is a function of that and of
-            // nothing else -- see the comment there, which carries the measurement and the three
-            // things that were tried instead and did not work.
+            // A real sun is a disc rather than a point;
+            // Godot's angular distance makes the penumbra grow with caster-to-receiver distance.
+            // That is exactly where the comb is most visible here -- a tall Building casting onto
+            // a lower roof -- while a shadow at the foot of its own wall stays comparatively sharp.
+            // 0.5 degrees is the apparent diameter of the sun, not a softness tuned to one frame.
+            //
+            // 🔴 THE LARGE TRIANGULAR BITES LOOKED LIKE PANCAKE CLIPPING AND WERE NOT. At Tick 1,067
+            // with this angle held at zero, disabling DirectionalShadowPancakeSize left them in the
+            // same roofs; restoring the pancake and enabling this removed them. They are the sparse
+            // filter kernel made legible by a long projection, the same sampling defect as the finer
+            // comb at a different screen scale. project.godot raises that kernel one quality step.
+            LightAngularDistance = 0.5f,
+
+            // 🔴 THE SUN'S DISC NOW OWNS SOFTNESS, SO THIS MUST NOT RISE WITH THE HOUR TOO. The old
+            // low-sun compensation reached 6.0; Godot multiplies constant blur into PCSS, so at
+            // Tick 1,067 it turned a small solar penumbra into a several-metre haze. Medium
+            // filtering supplies samples, angular distance supplies their spread, and this remains
+            // the neutral multiplier. Contact shadows stay sharp while caster separation alone
+            // softens an edge.
             //
             // ⚠ And the faint concentric MOIRÉ over open ground is a different thing and is real:
             // it is one quantisation level, 1/255, and ShadowBias 1.0 erases it. Not taken,
@@ -313,46 +328,6 @@ public partial class Main
         float down = Mathf.SmoothStep(0f, 0.10f, -height);
 
         _light.LookAtFromPosition(height > 0f ? sunward : -sunward, Vector3.Zero, Vector3.Up);
-
-        // 🔴 THE SOFTNESS RIDES THE SUN'S HEIGHT, AND A CONSTANT ONE CANNOT BE RIGHT AT ANY HOUR.
-        // A shadow edge is drawn one screen pixel at a time, so a SHALLOW edge holds its row for
-        // several pixels before it steps down and the eye reads a comb. How shallow it lies is set
-        // by how low the sun is: measured at a 40 m standoff, the tread is four to seven pixels at
-        // 08:00 and the comb is invisible by midday. ***That is why the artifact was reported as
-        // going away later in the day.***
-        //
-        // ⚠ A staircase is hidden when the SOFTNESS EXCEEDS THE TREAD, and nothing else hides it.
-        // Measured against the same frame, and this is the finding rather than a preference: FXAA
-        // moves nothing, PCF filter quality Ultra moves nothing, and 2× supersampling moves
-        // nothing -- all three leave the same two-pixel riser, because none of them changes the
-        // edge's SLOPE and the slope is what sets the tread. ⚠ Blur is the only lever that
-        // reaches it, which is worth stating plainly because blur was tried and rejected once: a
-        // FIXED blur is not the fix, and it was measured with the range fixed too, so its screen
-        // width swung wildly with the zoom.
-        //
-        // So it is spent where it is needed and nowhere else. ⚠ THE LAW IS SQUARED AND A LINEAR
-        // ONE WAS TRIED FIRST AND MEASURED SHORT: 0.9/height reaches only 2.2 at 08:00, where the
-        // sun stands at 0.41, and 2.2 leaves the same two-pixel riser the unblurred edge has. The
-        // sun's own height is capped at sin(0.95) = 0.81 here, so the whole usable range is narrow
-        // and a gentle curve cannot cross it. Squared, it sits at the 3.5 ceiling through the
-        // morning and the evening and eases to 1.1 only around midday, where the edge is steep
-        // enough that blur would buy nothing and cost sharpness. The floor on the divisor stops it
-        // running away as the sun sets.
-        // 🔴 THE FLOOR AND THE CEILING BOTH BIT AT SUNRISE, SO THE LAW WAS FLAT ACROSS THE ONLY
-        // HOURS IT EXISTS FOR. Worked at the shipped constants: at 06:45 the sun stands at
-        // sin(0.95) x cos(-1.372) = 0.161, the 0.30 floor replaces it, and 0.73 / 0.09 = 8.11 is
-        // then clamped to 3.5. ***The ceiling is reached at height 0.457, which is about 09:00***
-        // -- so from first light to mid-morning the blur was a CONSTANT 3.5 however raking the sun
-        // got, and the staircase it is spent on is worst exactly there. ⚠ The law was correct and
-        // it was never reached: two clamps had turned a curve into a plateau over its own domain.
-        //
-        // The floor comes down to 0.12, which is a sun about twenty minutes up, and the ceiling
-        // goes to 6.0. ⚠ A BLUR THIS WIDE IS NOT FREE -- it detaches a shadow from the wall that
-        // casts it -- which is why it is spent only where the tread is widest and eases back to
-        // 1.1 by midday exactly as before.
-        float raking = Mathf.Max(Mathf.Abs(height), 0.12f);
-
-        _light.ShadowBlur = Mathf.Clamp(0.73f / (raking * raking), 1.1f, 6.0f);
 
         // 🔴 THE SECOND LEVER, AND project.godot NAMED IT WITHOUT ANYONE PULLING IT: the range.
         // Four cascades share one 8192 atlas over DirectionalShadowMaxDistance, so a texel is the
