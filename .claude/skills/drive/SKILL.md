@@ -200,7 +200,7 @@ that reads as one about that one. `--listen` unlinks before binding, so it recov
 |---|---|---|
 | `readout` | one file | `tick <N>` on its own first line, then the readout, then a `hover —` line and the hover panel beneath it. **The Tick is on line one so a caller need not parse an em-dash** |
 | `shoot` | `<path>.png` **and** `<path>.txt` | The frame, and the same readout beside it — written in one act so they cannot disagree about which Tick they are of |
-| `draw` | one TSV | `tick`, `ruleset`, one `layer` row per layer with **instances / capacity / visible**, then one `row` per instance: `layer index id x y z sx sy sz yaw r g b` |
+| `draw` | one TSV | `tick`, `ruleset`, **`scale`**, one `layer` row per layer with **instances / capacity / visible**, then one `row` per instance: `layer index id x y z sx sy sz yaw r g b` |
 
 **The fifteen layers, in draw order**: `ground hazard water flood road cell plot building roof hip
 mansard yard tree rock traveller`. ⚠ **`roof`, `hip` and `mansard` are the three PITCHED families and
@@ -208,6 +208,18 @@ a Building writes into at most one of them** — a flat-roofed Building writes i
 never sum to the Building count. Six carry an entity id (`plot`, `building`, `roof`, `hip`,
 `mansard`, `yard`) and `traveller`
 resolves one; the rest honestly say `-`.
+
+🔴 **`scale` is the ruler, and it is the only row in the file that is about the CAMERA rather
+than about the city.** `scale <px per Tile east> <px per Tile north> <eye distance m> <viewport w>
+<viewport h>`, from three ground points a Tile apart put through the same projection the frame was
+drawn with — so tilt, perspective and the window's own size are in the answer. ***Everything else the
+draw list says is in metres and a screenshot is in pixels; nothing joined them until 2026-09-04***
+([`plans/0060`](../../../plans/0060-the-plot-module.md) **F2**), so every judgement about whether a
+thing *reads* was an eyeball. **Measured** at 3,024 × 1,834 and tilt 40°: **54.6 px a Tile at 100 m,
+27.0 at 200, 13.4 at 400 — where a player edits — 5.35 at 1,000 with the city in frame, 2.67 at
+2,000.** ⚠ **The two axes differ by the tilt**, so a frontage figure has to say which way the
+street runs. ⚠ **And it is a property of the READING** — the same distance on a smaller window is
+fewer pixels a Tile, which is why the viewport is in the row.
 
 ⚠ **`instances` against `capacity` is not bookkeeping.** A layer at capacity has silently dropped
 whatever did not fit, and the picture shows a smaller city with nothing to say so — ***the one
