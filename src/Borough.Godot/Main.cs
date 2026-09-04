@@ -1476,7 +1476,27 @@ public partial class Main : Node3D
     {
         string ruleset = "rulesets/minimal.toml";
         int citizens = 1_000;
-        ulong startAt = 0;
+
+        // 🔴 THE SHELL OPENS AT 08:00 AND THE SIMULATION'S DAY STILL BEGINS AT 05:00, AND KEEPING
+        // THOSE TWO APART IS THE WHOLE OF THIS DEFAULT.
+        //
+        // Ticks.DayBeginsAtHour is 5, so Tick 0 is 05:00 and a run opened at Tick 0 opened BEFORE
+        // SUNRISE -- a photograph of the dark, taken by a shell working perfectly. That was found
+        // driving plans/0049 row 8: the first three frames came back black and nothing anywhere
+        // said why.
+        //
+        // ⚠ THE OBVIOUS FIX IS TO MOVE DayBeginsAtHour AND IT IS REFUSED. That constant carries
+        // TWO jobs -- the Day's PHASE, which is hash-bearing, and what a fresh run opens on, which
+        // is free -- and its own remark states the constraint the first one is under: it must sit
+        // before the earliest Shift a Ruleset may declare, so that no commute is cut by the Day
+        // boundary it belongs to. `shift_start_earliest_hour` is 6 in 42 of the 45 entries across
+        // the shipped files, so 5 is nearly at that ceiling already and 8 is well past it: every
+        // 06:00 Shift would wrap to the LATE end of its Day. ***So the phase may not move and the
+        // opening view may, and this is the half that may.***
+        //
+        // ⚠ It steps the world 256 Ticks at boot rather than jumping. --start-at skips nothing,
+        // and a world jumped to is a different world.
+        ulong startAt = (ulong)Ticks.AtClock(8);
         string? drive = null;
         ulong quitAt = 0;
         string? listen = null;

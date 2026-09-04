@@ -96,10 +96,18 @@ public readonly record struct Ticks(ulong Raw) : IComparable<Ticks>
     /// </para>
     /// <para>
     /// ⚠ <b>Five and not six or four, and there is nothing to ratify.</b> It wants to be before the
-    /// earliest Shift a Ruleset may declare — <c>shift_start_earliest_hour</c> is 6 in every shipped
-    /// file — so that no commute is cut by the Day boundary it belongs to, and after the middle of
+    /// earliest Shift a Ruleset may declare — <c>shift_start_earliest_hour</c> is <b>6 in all but
+    /// three of the shipped files</b>, and 9 in <c>founded</c>, <c>levied</c> and <c>raised</c>,
+    /// ⚠ <b>so the binding number is the MINIMUM across the set and not a value every file shares</b>
+    /// (this clause read <em>6 in every shipped file</em> until 2026-09-04 and three files already
+    /// disagreed) — so that no commute is cut by the Day boundary it belongs to, and after the middle of
     /// the night so the quiet hours stay in one Day. Any hour in that band is the same world; this
-    /// one is also just before sunrise, which is what makes a fresh run open on a dawn.
+    /// one is also just before sunrise. ⚠ <b>THAT LAST CLAUSE USED TO END <em>which is what makes a
+    /// fresh run open on a dawn</em>, AND IT WAS THIS CONSTANT DOING A SECOND JOB.</b> Where a run
+    /// OPENS is the shell's default start Tick and has moved to 08:00; the Day's PHASE is this
+    /// constant and has not moved, because the band above is what it is under. ***A hash-bearing
+    /// number should not have been carrying an opening view***, and the two are separated rather
+    /// than traded off — <c>Main.Arguments</c> holds the other half.
     /// </para>
     /// </remarks>
     public const int DayBeginsAtHour = 5;
