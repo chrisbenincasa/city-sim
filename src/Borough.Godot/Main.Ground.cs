@@ -1067,20 +1067,22 @@ public partial class Main
     /// city does and does not state.
     /// </para>
     /// <para>
-    /// 🔴 <b>A CROSSING IS STILL NOT DRAWN AND THE REASON THIS COMMENT GAVE IS FALSE.</b> It said
-    /// every shipped file states <c>arterial_count = 0</c>. <b>Three state 16</b> —
-    /// <c>severance.toml</c>, <c>bordered.toml</c>, <c>crowded.toml</c> — and <c>--roads</c> on
-    /// <c>crowded.toml</c> counts <b>730</b> Arterial Segments, so crossings exist and are drawn
-    /// today as the <see cref="RoadKind.FootPath"/> Segments they are made into. What stands is that
-    /// <em>this method</em> invents nothing for them; what falls is the claim that there is nothing
-    /// to invent for. Filed as <c>plans/0049</c> <b>F58</b>, against <b>F51</b>.
+    /// ✅ <b>THE CROSSING IS DRAWN, AND IT IS NOT A STRIPE ACROSS A ROAD — IT IS A WHOLE STREET KEPT
+    /// FOR FEET.</b> <c>RoadGenerator.ApplySeverance</c> takes every severed Street and either frees
+    /// it or, at <c>[roads] foot_crossing_every</c>, sets its Kind to
+    /// <see cref="RoadKind.FootPath"/> and both its mode masks to <see cref="TravelMode.Foot"/> —
+    /// the <em>whole lattice edge</em>, not a short bar over the asphalt. So the thing this method
+    /// was asked to invent already had a row, and has been drawn in <see cref="Flagstone"/> since
+    /// step 1. ⚠ <b>Nothing here paints a zebra</b>, and that is now a measured absence of a fact
+    /// rather than an assumption about one: <c>rulesets/severance.toml</c>'s <b>10</b> FootPath
+    /// Segments are <b>1,024 m and 1,448 m long</b>, which are one lattice edge and one block
+    /// diagonal. <c>plans/0049</c> <b>F63</b> closes <b>F58</b>'s reopening of <b>F51</b>.
     /// </para>
     /// <para>
-    /// <b>The paragraph this replaced, kept because the reasoning was sound and only the premise
-    /// was wrong:</b> <c>[roads] foot_crossing_every</c> is read only where an Arterial severs the
-    /// lattice, and where no Arterial is laid <b>no crossing exists in the model
-    /// anywhere</b>. Drawing one would be inventing a fact rather than under-drawing a held one —
-    /// <c>plans/0049</c> <b>F51</b>.
+    /// <b>The paragraph this replaced, kept because it was the corpus's third sighting of one
+    /// mistake:</b> it said every shipped file states <c>arterial_count = 0</c>. <b>Three state
+    /// 16</b> — <c>severance.toml</c>, <c>bordered.toml</c>, <c>crowded.toml</c>. Filed as a Cause
+    /// in <c>plans/0012</c>.
     /// </para>
     /// </remarks>
     private System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where, Color What)> Paving()
@@ -1165,12 +1167,11 @@ public partial class Main
     /// Building, no Lot pad and no scatter margin.
     /// </para>
     /// <para>
-    /// 🔴 <b>IT STOPS SHORT OF THE JUNCTION AT BOTH ENDS, AND THE GAP IS NOT A ROUNDING.</b> A
-    /// Segment runs node to node, so a pavement drawn its full length would cross the carriageway of
-    /// every Segment meeting it at either end — a raised paving bar laid across each junction, on the
-    /// exact ground a vehicle drives over. Trimming half a carriageway at each end leaves the
-    /// junction box bare. ***The gap is where a crossing would go, and one is not drawn***: that is
-    /// <b>F51</b>'s question, reopened by <b>F58</b>, and the junction itself is step 4.
+    /// 🔴 <b>IT STOPS AT THE MITRE AND NO LONGER AT A CONSTANT.</b> A Segment runs node to node, so a
+    /// pavement drawn its full length would cross the carriageway of every Segment meeting it at
+    /// either end — a raised paving bar laid across each junction, on the exact ground a vehicle
+    /// drives over. Step 2 trimmed half a carriageway at each end unconditionally, which is right
+    /// only where a Street crosses at a right angle; <see cref="Mitre"/> asks what is actually there.
     /// </para>
     /// <para>
     /// ⚠ <b>It is the PAVEMENT and not the whole foot half</b> — <see cref="Kerbs"/> took
@@ -1198,12 +1199,8 @@ public partial class Main
                 continue;
             }
 
-            // The Segment's mask, which is the union of its two directions -- TravelMode.cs'
-            // own arrangement, and the reason it is a union is that a one-way street carries cars
-            // one way and pedestrians both.
-            var modes = (TravelMode)(segments.ModesForward[slot] | segments.ModesBackward[slot]);
-
-            if ((modes & TravelMode.Foot) == 0 || (modes & TravelMode.Car) == 0)
+            if ((Modes(segments, slot) & (TravelMode.Foot | TravelMode.Car))
+                != (TravelMode.Foot | TravelMode.Car))
             {
                 continue;
             }
@@ -1213,37 +1210,45 @@ public partial class Main
             var to = new Vector3(
                 nodes.East[b].Raw * MetresPerTile, 0f, -nodes.North[b].Raw * MetresPerTile);
 
-            float carriageway = (RoadKind)segments.Kind[slot] == RoadKind.Arterial
+            float half = ((RoadKind)segments.Kind[slot] == RoadKind.Arterial
                 ? ArterialWidthMetres
-                : CarriagewayWidthMetres;
+                : CarriagewayWidthMetres) * 0.5f;
 
-            // The run between the two junction boxes rather than between the two nodes. A Segment
-            // shorter than the junctions it joins has no pavement to draw, which an Arterial ramp
-            // can be -- ConnectToGrid lays one of StepTiles where the Junction is already on the
-            // grid line.
-            float along = from.DistanceTo(to) - carriageway;
-
-            if (along <= 0f)
-            {
-                continue;
-            }
-
+            float length = from.DistanceTo(to);
             float yaw = Mathf.Atan2(to.X - from.X, to.Z - from.Z);
-            var basis = new Basis(Quaternion.FromEuler(new Vector3(0f, yaw, 0f)))
-                * Basis.FromScale(new Vector3(PavementWidthMetres, 1f, along));
+            var run = new Vector3(Mathf.Sin(yaw), 0f, Mathf.Cos(yaw));
 
-            // Perpendicular to the run, in the world's frame, at the middle of the PAVEMENT'S own
-            // width -- half the asphalt, then the kerb's band, then half the paving behind it.
-            // Composing it here rather than as a local offset on the basis keeps the two strips
-            // symmetric about the centre line whichever way round the Segment's nodes were created.
-            var across = new Vector3(Mathf.Cos(yaw), 0f, -Mathf.Sin(yaw))
-                * ((carriageway * 0.5f) + KerbWidthMetres + (PavementWidthMetres * 0.5f));
-
-            Vector3 middle = from.Lerp(to, 0.5f);
+            // Perpendicular to the run, in the world's frame. Composing the offset here rather than
+            // as a local translation on the basis keeps the two strips symmetric about the centre
+            // line whichever way round the Segment's nodes were created.
+            var across = new Vector3(Mathf.Cos(yaw), 0f, -Mathf.Sin(yaw));
             Color paint = Flagstone.SrgbToLinear();
+            ulong id = segments.Rows.IdAt(slot);
 
-            yield return (segments.Rows.IdAt(slot), new Transform3D(basis, middle + across), paint);
-            yield return (segments.Rows.IdAt(slot), new Transform3D(basis, middle - across), paint);
+            for (int lateral = 1; lateral >= -1; lateral -= 2)
+            {
+                Vector3 side = across * lateral;
+
+                // The pavement's own two edges, measured out from the carriageway: it begins where
+                // the kerb band ends and ends at the whole footway's width.
+                float low = Trim(
+                    Mitre(a, slot, run, side, half, KerbWidthMetres, FootwayWidthMetres), length);
+                float high = length - Trim(
+                    Mitre(b, slot, -run, side, half, KerbWidthMetres, FootwayWidthMetres), length);
+
+                if (high <= low)
+                {
+                    continue;
+                }
+
+                var basis = new Basis(Quaternion.FromEuler(new Vector3(0f, yaw, 0f)))
+                    * Basis.FromScale(new Vector3(PavementWidthMetres, 1f, high - low));
+
+                Vector3 middle = from + (run * ((low + high) * 0.5f))
+                    + (side * (half + KerbWidthMetres + (PavementWidthMetres * 0.5f)));
+
+                yield return (id, new Transform3D(basis, middle), paint);
+            }
         }
     }
 
@@ -1298,8 +1303,9 @@ public partial class Main
     /// counting.
     /// </para>
     /// <para>
-    /// ⚠ <b>Same trim as the pavement</b>, so a band never runs across the junction it ends at, and a
-    /// drop is clipped to the band rather than allowed to escape it.
+    /// ⚠ <b>Same <see cref="Mitre"/> as the pavement, one step nearer the road</b>, so a band never
+    /// runs across the junction it ends at, and a drop is clipped to the band rather than allowed to
+    /// escape it.
     /// </para>
     /// </remarks>
     private System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where, Color What)>
@@ -1336,9 +1342,8 @@ public partial class Main
                 continue;
             }
 
-            var modes = (TravelMode)(segments.ModesForward[slot] | segments.ModesBackward[slot]);
-
-            if ((modes & TravelMode.Foot) == 0 || (modes & TravelMode.Car) == 0)
+            if ((Modes(segments, slot) & (TravelMode.Foot | TravelMode.Car))
+                != (TravelMode.Foot | TravelMode.Car))
             {
                 continue;
             }
@@ -1349,25 +1354,20 @@ public partial class Main
                 nodes.East[b].Raw * MetresPerTile, 0f, -nodes.North[b].Raw * MetresPerTile);
 
             // A→B oriented east, then north -- see the remark. World +Z is SOUTH, so northward is
-            // the direction in which Z DECREASES.
+            // the direction in which Z DECREASES. ⚠ The NODE SLOTS turn over with the ends, because
+            // the mitre below is asked of the node the run leaves.
             if (to.X < from.X || (Mathf.IsEqualApprox(to.X, from.X) && to.Z > from.Z))
             {
                 (from, to) = (to, from);
+                (a, b) = (b, a);
             }
 
             float carriageway = (RoadKind)segments.Kind[slot] == RoadKind.Arterial
                 ? ArterialWidthMetres
                 : CarriagewayWidthMetres;
 
+            float half = carriageway * 0.5f;
             float length = from.DistanceTo(to);
-            float low = carriageway * 0.5f;
-            float high = length - low;
-
-            if (high <= low)
-            {
-                continue;
-            }
-
             float yaw = Mathf.Atan2(to.X - from.X, to.Z - from.Z);
             var run = new Vector3(Mathf.Sin(yaw), 0f, Mathf.Cos(yaw));
 
@@ -1381,10 +1381,21 @@ public partial class Main
 
             for (byte side = 0; side <= 1; side++)
             {
-                float lateral = side == (byte)StreetSide.Left ? 1f : -1f;
+                Vector3 lateral = across * (side == (byte)StreetSide.Left ? 1f : -1f);
+
+                // The band's own two edges: it starts at the channel and is KerbWidthMetres deep.
+                float low = Trim(
+                    Mitre(a, slot, run, lateral, half, 0f, KerbWidthMetres), length);
+                float high = length - Trim(
+                    Mitre(b, slot, -run, lateral, half, 0f, KerbWidthMetres), length);
+
+                if (high <= low)
+                {
+                    continue;
+                }
 
                 foreach ((Transform3D where, Color paint) in Kerb(
-                    from, run, across * lateral, yaw, carriageway, low, high,
+                    from, run, lateral, yaw, carriageway, low, high,
                     addresses, first, at, side))
                 {
                     yield return (id, where, paint);
@@ -1392,6 +1403,182 @@ public partial class Main
             }
         }
     }
+
+    /// <summary>
+    /// <b>THE JUNCTION</b> — how far from a node a strip down one side of a Segment stops, given
+    /// what else actually meets the Segment there.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>IT IS THE MITRE — WHERE THIS STRIP'S EDGE CROSSES THE NEIGHBOURING ARM'S.</b> With the
+    /// node at the origin, this Segment leaving along <b>a</b> and the neighbour along <b>b</b> at
+    /// an angle <c>φ</c> measured round <em>toward the side being drawn</em>, two lines at offsets
+    /// <c>p</c> and <c>q</c> from their own centrelines meet at
+    /// <c>(p·cos φ + q) / sin φ</c> along <b>a</b>. That one expression is the whole of this row's
+    /// fourth step, and every case below is it evaluated rather than a case handled:
+    /// </para>
+    /// <para>
+    /// <b>φ = 90°, two Streets</b> — <c>q</c>, half a carriageway: the constant step 2 hard-coded,
+    /// which is why an interior crossroads was already right. <b>φ = 90°, an Arterial</b> — seven
+    /// metres, not two and a half; step 2 laid <b>4.5 m of raised kerb and pavement across the
+    /// Arterial's asphalt</b> at every such node, ***the pavement drawn on top of the motorway***.
+    /// <b>φ = 180°</b>, the arm straight ahead — <c>sin φ</c> is zero, there is no intersection, and
+    /// the two strips meet at the node: this is the through side of a T-junction and of every
+    /// straight-through node, where step 2 bit 2.5 m out of a pavement <em>nothing crosses</em>.
+    /// <b>φ &gt; 180°</b>, the nearest arm round that way is behind — <c>sin φ</c> is negative, the
+    /// mitre is <em>past</em> the node, and the strip wraps the outside of a bend. <b>No arm at
+    /// all</b> — zero, and the strip ends flush.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>A FOOTPATH IS NOT A CARRIAGEWAY AND IS NOT COUNTED.</b> The question this asks is
+    /// <em>what drives across the ground my pavement wants</em>, so the arm list is filtered on
+    /// <see cref="TravelMode.Car"/> — and a pavement therefore runs straight past the mouth of a
+    /// cut-through instead of being broken by it. <b>That is the same column step 2 read</b>, asked
+    /// at the node rather than along the Segment.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>NEAR EDGE TO NEAR EDGE, which is what <paramref name="near"/> and
+    /// <paramref name="far"/> are for.</b> On the side an arm crosses, the corner is <em>inside</em>
+    /// both strips and it is their inner edges that meet; where the nearest arm is behind, the
+    /// corner is <em>outside</em> both and it is their outer edges. Getting this wrong is not
+    /// cosmetic: with the inner edge used on both sides the pavement of one arm is drawn over the
+    /// kerb of the next, coplanar and in a different colour, on all four corners of every crossroads
+    /// in the city.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The neighbour's step is zero when the neighbour has no footway</b>, because an Arterial
+    /// is asphalt out to its edge and nothing further. So a Street's pavement dead-ends flush
+    /// against it — <b>Severance, at the junction</b>, and the one place in the drawing where you
+    /// can see that the way across is not here.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It reads the city's own adjacency and builds none.</b>
+    /// <see cref="RoadNodeTable.ArcStart"/> and <c>ArcCount</c> are a CSR slice over
+    /// <see cref="RoadArcs"/>, <c>(derived AND rebuilt)</c> — so the arms at a node are a lookup,
+    /// and the alternative was a shell-side index of Segments by node, which is a second copy of a
+    /// structure the core already keeps correct.
+    /// </para>
+    /// <para>
+    /// ✅ <b>AT A RIGHT ANGLE THE FOUR STRIPS TILE THE CORNER EXACTLY, WITH NO HOLE AND NO OVERLAP</b>
+    /// — worked through rather than assumed, because the near-edge rule above is the only reason it
+    /// comes out that way and the obvious spelling does not. Inside a crossroads the crossing arm's
+    /// kerb owns the square its own band sweeps and this Segment's pavement starts beyond it;
+    /// outside a bend both strips reach past the node far enough to cover the square between them,
+    /// and the kerb stops exactly where the neighbour's pavement begins. ⚠ <b>A right angle</b>: an
+    /// oblique junction leaves slivers, because a strip is a box and ends square rather than on the
+    /// mitre line. Streets are grid-snapped by definition (<see cref="RoadKind.Street"/>) and an
+    /// Arterial carries no footway, so every corner a footway can turn today is a right angle.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>What is not drawn is the END of a dead end</b>, and it is generated rather than
+    /// hypothetical: a node with one arm has no neighbour to mitre against, so the two strips stop
+    /// flush across the Segment's end and leave the square between them bare. Counted off the
+    /// <c>draw</c> list, <c>rulesets/pictured.toml</c> has <b>0</b> and <c>rulesets/severance.toml</c>
+    /// has <b>22</b> — the Street stubs its Arterials cut off. Closing one is a cap and not a mitre,
+    /// so it is a third shape rather than another evaluation of the expression above.
+    /// </para>
+    /// </remarks>
+    /// <param name="node">The node's slot — the end the strip is being measured from.</param>
+    /// <param name="self">This Segment's slot, which is the one arm at the node to ignore.</param>
+    /// <param name="outward">Unit vector, this Segment's direction <em>leaving</em> the node.</param>
+    /// <param name="side">Unit vector, perpendicular, pointing at the side being drawn.</param>
+    /// <param name="half">Half this Segment's carriageway, in metres.</param>
+    /// <param name="near">The strip's inner edge, out from the carriageway's edge.</param>
+    /// <param name="far">The strip's outer edge, out from the carriageway's edge.</param>
+    private float Mitre(
+        int node, int self, Vector3 outward, Vector3 side, float half, float near, float far)
+    {
+        RoadNodeTable nodes = _world.Roads.Nodes;
+        RoadArcs arcs = _world.Roads.Arcs;
+        RoadSegmentTable segments = _world.Roads.Segments;
+
+        int start = nodes.ArcStart[node];
+        int end = Math.Min(start + nodes.ArcCount[node], arcs.Count);
+        float turn = Mathf.Tau;
+        int nearest = -1;
+
+        for (int arc = start; arc < end; arc++)
+        {
+            int other = arcs.Segment[arc];
+
+            if (other == self || (Modes(segments, other) & TravelMode.Car) == 0)
+            {
+                continue;
+            }
+
+            int target = arcs.Target[arc];
+            var away = new Vector3(
+                (nodes.East[target].Raw - nodes.East[node].Raw) * MetresPerTile,
+                0f,
+                -(nodes.North[target].Raw - nodes.North[node].Raw) * MetresPerTile);
+
+            if (away.LengthSquared() <= 0f)
+            {
+                continue;
+            }
+
+            away = away.Normalized();
+
+            // The bearing from this Segment round TOWARD the side being drawn, in [0, τ). The arm
+            // with the smallest one is the neighbour this side's edge actually runs into; anything
+            // further round is hidden behind it.
+            float bearing = Mathf.Atan2(side.Dot(away), outward.Dot(away));
+
+            if (bearing < 0f)
+            {
+                bearing += Mathf.Tau;
+            }
+
+            if (bearing < turn)
+            {
+                turn = bearing;
+                nearest = other;
+            }
+        }
+
+        float sine = Mathf.Sin(turn);
+
+        // No arm, or one straight ahead or directly behind: parallel edges have no intersection and
+        // the two strips simply meet at the node. The tolerance also catches the near-parallel case,
+        // where the true mitre runs off down the Segment.
+        if (nearest < 0 || Mathf.Abs(sine) < 0.05f)
+        {
+            return 0f;
+        }
+
+        bool crosses = sine > 0f;
+        float mine = half + (crosses ? near : far);
+        float theirs = ((RoadKind)segments.Kind[nearest] == RoadKind.Arterial
+            ? ArterialWidthMetres
+            : CarriagewayWidthMetres) * 0.5f;
+
+        if ((Modes(segments, nearest) & TravelMode.Foot) != 0)
+        {
+            theirs += crosses ? near : far;
+        }
+
+        return ((mine * Mathf.Cos(turn)) + theirs) / sine;
+    }
+
+    /// <summary>Hold a mitre inside the Segment it belongs to.</summary>
+    /// <remarks>
+    /// ⚠ <b>The bound is symmetric and the mitre is not.</b> A mitre may legitimately be negative —
+    /// that is the outside of a bend — so this clamps the magnitude rather than flooring at zero,
+    /// and the caller drops the strip outright when the two ends cross over.
+    /// </remarks>
+    private static float Trim(float mitre, float length) =>
+        Mathf.Clamp(mitre, -length * 0.5f, length * 0.5f);
+
+    /// <summary>
+    /// A Segment's own travel modes — <b>the union of its two directions</b>.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>A union rather than one direction</b>, because a one-way street carries cars one way and
+    /// pedestrians both, and the question every caller here asks is <em>what is this Segment for</em>
+    /// rather than <em>what may leave this end</em>.
+    /// </remarks>
+    private static TravelMode Modes(RoadSegmentTable segments, int slot) =>
+        (TravelMode)(segments.ModesForward[slot] | segments.ModesBackward[slot]);
 
     /// <summary>
     /// One side of one Segment's kerb — the band runs and the drops between them, in order along

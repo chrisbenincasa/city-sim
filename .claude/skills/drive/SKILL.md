@@ -218,6 +218,13 @@ other layer's for the same reason. ***Count Segments there with `sort -u`, or co
 which is the band's height scaled down to the carriageway's. ***Filter on the width, and the drop
 count should equal the Lot count*** (`--zones` prints that).
 
+⚠ **A `footway` or `kerb` row's `sz` is NOT its Segment's length**, and a strip may be **longer** than
+the Segment it belongs to. Each end is mitred against whatever meets the Segment at that node — half a
+carriageway where one crosses, nothing where none does, and a *negative* trim round the outside of a
+bend. On `pictured.toml` at 2,000 Citizens the pavements come out **122.2 / 125.1 / 128.0 / 132.0 m**
+against a 128 m block. ***So a strip length is a statement about the junction and not about the
+Segment.***
+
 ⚠ **`instances` against `capacity` is not bookkeeping.** A layer at capacity has silently dropped
 whatever did not fit, and the picture shows a smaller city with nothing to say so — ***the one
 failure a screenshot renders as success.***
