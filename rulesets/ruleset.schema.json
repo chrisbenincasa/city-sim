@@ -110,9 +110,21 @@
       "items": {
         "type": "object",
         "properties": {
+          "closes_hour": {
+            "description": "The daily closing hour; purchases arriving at or after closing fail.",
+            "type": "integer"
+          },
           "name": {
             "description": "What this trade is called. [[building]] business names it.",
             "type": "string"
+          },
+          "open_days": {
+            "description": "Shop operating days as a Monday-first weekly bit mask, independent of staffing.",
+            "type": "integer"
+          },
+          "opens_hour": {
+            "description": "The daily opening hour for shopping purchases.",
+            "type": "integer"
           },
           "pay_period_days": {
             "description": "How many Days pass between paydays at this trade. One is daily; zero would be a payday that never comes round.",
@@ -128,6 +140,10 @@
           },
           "wage_per_day": {
             "description": "What one job at this trade pays for one Day worked, as a flat rate. Paired with pay_period_days: each is half a mechanism alone. Absent means the trade pays nothing.",
+            "type": "integer"
+          },
+          "work_days": {
+            "description": "Workdays as a Monday-first weekly bit mask. Absent preserves daily work.",
             "type": "integer"
           }
         }
@@ -551,7 +567,7 @@
           "type": "integer"
         },
         "reconsider_ticks": {
-          "description": "How long the reassessment sweep takes to check every housed Household once, in Ticks. When stated, housed Households whose balance falls below their dwelling's rent are moved back into the Unplaced Pool. This is a door into the Pool, so the Ruleset owes gives_up_after_days. Absent means no reassessment.",
+          "description": "The duration used to size a sample of housed Households for reassessment, in Ticks; sampling is with replacement and does not guarantee coverage. Unaffordable rent or an enabled shortage criterion returns a Household to the Unplaced Pool, so the Ruleset owes gives_up_after_days. Absent means no reassessment.",
           "type": "integer"
         },
         "revisit_ticks": {
@@ -793,6 +809,39 @@
             "description": "The name of the Condition this Rule's failure reports under, which is what the diagnosis panel groups by. Absent means the failure is not reported by name.",
             "type": "string"
           }
+        }
+      }
+    },
+    "shopping": {
+      "type": "object",
+      "properties": {
+        "interval": {
+          "description": "How often each Household considers replenishment, staggered across Ticks.",
+          "type": "integer"
+        },
+        "known_shops": {
+          "description": "The maximum number of remembered providers per Household.",
+          "type": "integer"
+        },
+        "low_days": {
+          "description": "Supplies below this many Days of consumption prompt an outing.",
+          "type": "integer"
+        },
+        "retry_ticks": {
+          "description": "The delay before retrying an unsuccessful outing or an interrupted return.",
+          "type": "integer"
+        },
+        "search_candidates": {
+          "description": "The number of nearby premises sampled when discovering shops, without inspecting stock.",
+          "type": "integer"
+        },
+        "severe_need": {
+          "description": "Sustenance depth at which shopping can delay work and try one extra known shop.",
+          "type": "integer"
+        },
+        "target_days": {
+          "description": "The Days of consumption an outing tries to bring home, bounded by storage and affordability.",
+          "type": "integer"
         }
       }
     },

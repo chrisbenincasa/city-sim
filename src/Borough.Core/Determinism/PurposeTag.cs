@@ -846,4 +846,6 @@ public enum PurposeTag : ulong
     /// </para>
     /// </remarks>
     BlockSpacing = 42,
+    ShoppingDiscovery = 43,
+    ShoppingSettleOrder = 44,
 }

@@ -25,12 +25,12 @@ dotnet run --project src/Borough.Headless -- \
 
 ## The sections
 
-34 sections, 180 keys.
+35 sections, 191 keys.
 
 - [`[[band]]`](#band) — 2 keys
 - [`[[building]]`](#building) — 14 keys
 - [`[[building]] bins`](#building-bins) — 3 keys
-- [`[[business]]`](#business) — 5 keys
+- [`[[business]]`](#business) — 9 keys
 - [`[[hinterland]]`](#hinterland) — 4 keys
 - [`[[hinterland]] prices`](#hinterland-prices) — 2 keys
 - [`[[lattice]]`](#lattice) — 2 keys
@@ -58,6 +58,7 @@ dotnet run --project src/Borough.Headless -- \
 - [`[parking]`](#parking) — 2 keys
 - [`[placement]`](#placement) — 6 keys
 - [`[roads]`](#roads) — 12 keys
+- [`[shopping]`](#shopping) — 7 keys
 - [`[traffic]`](#traffic) — 3 keys
 - [`[trips]`](#trips) — 4 keys
 - [`[water]`](#water) — 6 keys
@@ -162,9 +163,21 @@ Which Resource this Bin holds, naming a [[resource]]. One Bin per Resource per k
 
 *An array of tables — a file may declare this more than once.*
 
+**`closes_hour`** · *whole number*
+
+The daily closing hour; purchases arriving at or after closing fail.
+
 **`name`** · *quoted string*
 
 What this trade is called. [[building]] business names it.
+
+**`open_days`** · *whole number*
+
+Shop operating days as a Monday-first weekly bit mask, independent of staffing.
+
+**`opens_hour`** · *whole number*
+
+The daily opening hour for shopping purchases.
 
 **`pay_period_days`** · *whole number*
 
@@ -181,6 +194,10 @@ The latest hour a Business of this trade may open. Hour 23 is the ceiling, becau
 **`wage_per_day`** · *whole number*
 
 What one job at this trade pays for one Day worked, as a flat rate. Paired with pay_period_days: each is half a mechanism alone. Absent means the trade pays nothing.
+
+**`work_days`** · *whole number*
+
+Workdays as a Monday-first weekly bit mask. Absent preserves daily work.
 
 ---
 
@@ -889,6 +906,38 @@ Free-flow speed on a Street, in km/h, converted exactly at load because the libr
 **`walk_speed_kph`** · *whole number*
 
 Walking speed on foot. It is also what turns the Commute Budget into the box the job search draws candidates from.
+
+---
+
+## `[shopping]`
+
+**`interval`** · *whole number*
+
+How often each Household considers replenishment, staggered across Ticks.
+
+**`known_shops`** · *whole number*
+
+The maximum number of remembered providers per Household.
+
+**`low_days`** · *whole number*
+
+Supplies below this many Days of consumption prompt an outing.
+
+**`retry_ticks`** · *whole number*
+
+The delay before retrying an unsuccessful outing or an interrupted return.
+
+**`search_candidates`** · *whole number*
+
+The number of nearby premises sampled when discovering shops, without inspecting stock.
+
+**`severe_need`** · *whole number*
+
+Sustenance depth at which shopping can delay work and try one extra known shop.
+
+**`target_days`** · *whole number*
+
+The Days of consumption an outing tries to bring home, bounded by storage and affordability.
 
 ---
 

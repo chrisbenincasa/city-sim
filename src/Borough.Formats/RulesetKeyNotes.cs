@@ -168,6 +168,17 @@ public static class RulesetKeyNotes
         ["[[business]] wage_per_day"] =
             "What one job at this trade pays for one Day worked, as a flat rate. Paired with "
             + "pay_period_days: each is half a mechanism alone. Absent means the trade pays nothing.",
+        ["[[business]] work_days"] = "Workdays as a Monday-first weekly bit mask. Absent preserves daily work.",
+        ["[[business]] open_days"] = "Shop operating days as a Monday-first weekly bit mask, independent of staffing.",
+        ["[[business]] opens_hour"] = "The daily opening hour for shopping purchases.",
+        ["[[business]] closes_hour"] = "The daily closing hour; purchases arriving at or after closing fail.",
+        ["[shopping] interval"] = "How often each Household considers replenishment, staggered across Ticks.",
+        ["[shopping] low_days"] = "Supplies below this many Days of consumption prompt an outing.",
+        ["[shopping] target_days"] = "The Days of consumption an outing tries to bring home, bounded by storage and affordability.",
+        ["[shopping] severe_need"] = "Sustenance depth at which shopping can delay work and try one extra known shop.",
+        ["[shopping] known_shops"] = "The maximum number of remembered providers per Household.",
+        ["[shopping] search_candidates"] = "The number of nearby premises sampled when discovering shops, without inspecting stock.",
+        ["[shopping] retry_ticks"] = "The delay before retrying an unsuccessful outing or an interrupted return.",
         ["[[business]] pay_period_days"] =
             "How many Days pass between paydays at this trade. One is daily; zero would be a payday "
             + "that never comes round.",

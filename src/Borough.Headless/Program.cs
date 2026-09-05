@@ -99,6 +99,8 @@ internal static class Program
                 case Mode.Stages:
                     return Session.DumpStages(options);
 
+                case Mode.Shopping:
+                    return ShoppingDump.Run(options, Console.Out);
                 case Mode.School:
                     return Session.DumpSchool(options);
 
