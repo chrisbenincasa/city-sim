@@ -61,6 +61,21 @@ public sealed class CoarseWheelTests
         return (world, world.Buildings.Create(world.Lots, lot, Kind));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Removing_premises_unlinks_a_long_sleeper_before_or_after_cascade(bool cascaded)
+    {
+        (World world, Handle<Building> building) = Built();
+        const uint Delay = (3 * Ticks.PerDay) + 700;
+        Handle<RuleInstance> instance = world.CreateRuleInstance(building, Sleep, Ticks.Zero, Delay);
+        if (cascaded) world.Wheel.Cascade(new Ticks(3 * (ulong)Ticks.PerDay));
+        world.DestroyBuilding(building, new Ticks(cascaded ? 3 * (ulong)Ticks.PerDay : 1));
+        Assert.False(world.RuleInstances.Rows.IsValid(instance));
+        Assert.Equal(0, Count(world.Wheel.CoarseArmed, 3));
+        Assert.Equal(0, Count(world.Wheel.Armed, 700));
+    }
+
     private static int SlotOf(World world, Handle<RuleInstance> instance) =>
         world.RuleInstances.Rows.Resolve(instance);
 

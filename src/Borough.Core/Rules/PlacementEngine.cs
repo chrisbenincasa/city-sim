@@ -29,17 +29,8 @@ namespace Borough.Core.Rules;
 /// to the sample size within one trigger.
 /// </para>
 /// <para>
-/// <b>It is blind, on <c>adr/0054</c>'s existing reasoning and not on a new one.</b> Acceptance needs
-/// rent, a commute and a tolerance; none exists, so any member would take any dwelling. This moves
-/// that same draw to a second site rather than extending the argument, and <c>02 §5.2</c> step 2b's
-/// hard filter — *affordable? at least one reachable job in budget?* — lands **here** when the choice
-/// model arrives, instead of being retrofitted into a Zone Rule where it has no business being.
-/// </para>
-/// <para>
-/// <b>Sampled rather than exhaustive, which is <c>02 §5.3</c>: sampling is a behaviour model and not
-/// an optimisation.</b> A Household considers <c>candidates</c> dwellings and takes the first with
-/// room; finding none, it waits for its next occasion. Nothing is recorded about why, because a
-/// refusal reason is milestone 9a's and there is no reason to record while the filter is blind.
+/// <see cref="TryHouse"/> filters candidates by affordability before comparing preferences.
+/// <see cref="Reassess"/> gives housed Households a way back into the Pool.
 /// </para>
 /// </remarks>
 public sealed class PlacementEngine
@@ -58,6 +49,7 @@ public sealed class PlacementEngine
     private int _tickFounded;
     private int _tickPremised;
     private int _tickReassessed;
+    private int _tickShortageMoves;
 
     private RuleFlow _consideredFlow;
     private RuleFlow _placedFlow;
@@ -66,6 +58,7 @@ public sealed class PlacementEngine
     private RuleFlow _foundedFlow;
     private RuleFlow _premisedFlow;
     private RuleFlow _reassessedFlow;
+    private RuleFlow _shortageMovesFlow;
 
     /// <param name="world">The tables this drains, and the Ruleset it drains under. Not copied.</param>
     /// <param name="key">The world seed, as the draws' first coordinate.</param>
@@ -99,7 +92,7 @@ public sealed class PlacementEngine
     {
         var activity = new PlacementActivity(
             _consideredFlow, _placedFlow, _departedFlow, _retiredFlow, _foundedFlow,
-            _premisedFlow, _reassessedFlow);
+            _premisedFlow, _reassessedFlow, _shortageMovesFlow);
 
         _consideredFlow = default;
         _placedFlow = default;
@@ -108,6 +101,7 @@ public sealed class PlacementEngine
         _foundedFlow = default;
         _premisedFlow = default;
         _reassessedFlow = default;
+        _shortageMovesFlow = default;
 
         return activity;
     }
@@ -969,8 +963,7 @@ public sealed class PlacementEngine
     }
 
     /// <summary>
-    /// Checks a sample of housed Households for rent affordability and unplaces those who can no
-    /// longer afford their dwelling.
+    /// Checks housed Households for unaffordable rent or continuing shortages.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -1029,19 +1022,67 @@ public sealed class PlacementEngine
             int buildingSlot = _world.Buildings.Rows.Resolve(_world.Households.Dwelling[slot]);
             Money kindRent = _world.Rules.Kind(_world.Buildings.Kind[buildingSlot]).Rent;
 
-            if (kindRent.Raw <= 0)
+            Handle<Household> household = _world.Households.Rows.At(slot);
+            bool pricedOut = kindRent.Raw > 0 && _world.BalanceOf(household).Raw < kindRent.Raw;
+            bool shortage = !pricedOut && ShortagePromptsMove(household, buildingSlot, tick);
+
+            if (pricedOut || shortage)
+            {
+                _world.Unplace(household);
+                _tickReassessed++;
+                if (shortage)
+                {
+                    _tickShortageMoves++;
+                }
+            }
+        }
+    }
+
+    private bool ShortagePromptsMove(Handle<Household> household, int building, Ticks tick)
+    {
+        int threshold = _world.Rules.Placement.MoveAtNeed;
+        NeedRuleset needs = _world.Rules.Needs;
+        if (threshold >= 0 || !needs.Runs)
+        {
+            return false;
+        }
+
+        int slot = _world.Households.Rows.Resolve(household);
+        if (_world.Households.Sustenance[slot] > threshold
+            && _world.Households.Satisfaction[slot] > threshold)
+        {
+            return false;
+        }
+
+        foreach (int instance in _world.BuildingRules.Walk(building))
+        {
+            if (_world.RuleInstances.Household[instance] != household
+                || !_world.RuleInstances.IsStarving(instance))
             {
                 continue;
             }
 
-            Handle<Household> household = _world.Households.Rows.At(slot);
-
-            if (_world.BalanceOf(household).Raw < kindRent.Raw)
+            // Residual hunger survives a move. Only a continuing shortage in this tenancy
+            // can trigger another one; newly created Rules start their own shortage clock.
+            ulong elapsed = tick.Raw - _world.RuleInstances.StarvedSince[instance].Raw;
+            foreach (Term term in _world.Rules.Inputs(_world.RuleInstances.Rule[instance]))
             {
-                _world.Unplace(household);
-                _tickReassessed++;
+                Need need = _world.Rules.NeedOf(term.Bin.Resource);
+                if (need is not (Need.Sustenance or Need.Satisfaction))
+                {
+                    continue;
+                }
+
+                long duration = IntegerMath.CeilDiv(-(long)threshold * Ticks.PerDay, needs.DegradeOf(need));
+                if (_world.Households.NeedColumn(need)![slot] <= threshold
+                    && elapsed >= (ulong)duration)
+                {
+                    return true;
+                }
             }
         }
+
+        return false;
     }
 
     /// <summary>Folds this Tick's counts into the flows and resets them.</summary>
@@ -1054,6 +1095,7 @@ public sealed class PlacementEngine
         _foundedFlow = _foundedFlow.Fold(_tickFounded);
         _premisedFlow = _premisedFlow.Fold(_tickPremised);
         _reassessedFlow = _reassessedFlow.Fold(_tickReassessed);
+        _shortageMovesFlow = _shortageMovesFlow.Fold(_tickShortageMoves);
 
         _tickConsidered = 0;
         _tickPlaced = 0;
@@ -1062,6 +1104,7 @@ public sealed class PlacementEngine
         _tickFounded = 0;
         _tickPremised = 0;
         _tickReassessed = 0;
+        _tickShortageMoves = 0;
     }
 }
 
@@ -1091,4 +1134,4 @@ public sealed class PlacementEngine
 /// </param>
 public readonly record struct PlacementActivity(
     RuleFlow Considered, RuleFlow Placed, RuleFlow Departed, RuleFlow Retired, RuleFlow Founded,
-    RuleFlow Premised, RuleFlow Reassessed);
+    RuleFlow Premised, RuleFlow Reassessed, RuleFlow ShortageMoves = default);

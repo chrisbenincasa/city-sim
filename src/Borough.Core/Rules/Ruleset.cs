@@ -1606,6 +1606,9 @@ public readonly record struct PlacementRuleset(
     uint Interval, int RevisitTicks, int Candidates, int GivesUpAfterDays,
     int ReconsiderTicks)
 {
+    /// <summary>Deficit that can prompt a move; zero disables shortage reassessment.</summary>
+    public int MoveAtNeed { get; init; }
+
     /// <summary>A Ruleset whose city houses nobody.</summary>
     public static PlacementRuleset None => default;
 

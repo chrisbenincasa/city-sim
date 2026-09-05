@@ -469,10 +469,14 @@ public static class RulesetKeyNotes
             "How many dwellings one Household looks at on one occasion before waiting for the next. "
             + "A behaviour model rather than a budget: a family that sees three flats and takes the "
             + "first with room is not an optimiser being approximated.",
+        ["[placement] move_at_need"] =
+            "The Sustenance or Satisfaction deficit at which a continuing shortage can prompt "
+            + "a move. Requires reassessment and Needs; each tenancy must endure its own shortage "
+            + "long enough to reach this depth. Absent means shortages never prompt moves.",
         ["[placement] reconsider_ticks"] =
-            "How long the reassessment sweep takes to check every housed Household once, in Ticks. "
-            + "When stated, housed Households whose balance falls below their dwelling's rent are "
-            + "moved back into the Unplaced Pool. This is a door into the Pool, so the Ruleset "
+            "The duration used to size a sample of housed Households for reassessment, in Ticks; "
+            + "sampling is with replacement and does not guarantee coverage. Unaffordable rent "
+            + "or an enabled shortage criterion returns a Household to the Unplaced Pool, so the Ruleset "
             + "owes gives_up_after_days. Absent means no reassessment.",
         ["[placement] gives_up_after_days"] =
             "How long a Household keeps looking for a home before it gives up and leaves. Required "

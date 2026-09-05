@@ -372,6 +372,7 @@ public static class RulesetLoader
             // the pair: they are owed by a file declaring a kind that serves one and refused of a file
             // that declares none (adr/0130's rule for gives_up_after_days, one table along).
             NeedRuleset needs = ReadNeeds(kinds);
+            placement = placement with { MoveAtNeed = ReadMoveAtNeed(placement, needs) };
             // After ReadPlacement, because the founding pass rides its trigger and the refusal for a
             // file stating [founding] with no [placement] is a property of the pair.
             FoundingRuleset founding = ReadFounding(placement, businessKinds, capacity);
@@ -5371,6 +5372,26 @@ public static class RulesetLoader
             }
 
             return (int)revisit;
+        }
+
+        private int ReadMoveAtNeed(PlacementRuleset placement, NeedRuleset needs)
+        {
+            if (_placementTable is null
+                || !TryInteger(_placementTable, "move_at_need", out long threshold, required: false))
+            {
+                return 0;
+            }
+
+            if (!placement.Reconsiders || !needs.Runs
+                || threshold >= 0 || threshold < needs.Floor)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(_placementTable, "move_at_need") ?? _placementTable), null,
+                    "move_at_need requires reconsider_ticks and [needs], and must be a negative "
+                    + "deficit at or above the Need floor. Omit it to disable shortage moves.");
+                return 0;
+            }
+
+            return (int)threshold;
         }
 
         private int ReadReconsiderTicks(uint interval)

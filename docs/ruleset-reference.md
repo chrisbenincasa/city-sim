@@ -25,7 +25,7 @@ dotnet run --project src/Borough.Headless -- \
 
 ## The sections
 
-34 sections, 179 keys.
+34 sections, 180 keys.
 
 - [`[[band]]`](#band) — 2 keys
 - [`[[building]]`](#building) — 14 keys
@@ -56,7 +56,7 @@ dotnet run --project src/Borough.Headless -- \
 - [`[market]`](#market) — 2 keys
 - [`[needs]`](#needs) — 9 keys
 - [`[parking]`](#parking) — 2 keys
-- [`[placement]`](#placement) — 5 keys
+- [`[placement]`](#placement) — 6 keys
 - [`[roads]`](#roads) — 12 keys
 - [`[traffic]`](#traffic) — 3 keys
 - [`[trips]`](#trips) — 4 keys
@@ -826,9 +826,13 @@ How long a Household keeps looking for a home before it gives up and leaves. Req
 
 How many Ticks between passes that drain the Unplaced Pool into standing dwellings. Omitting the whole [placement] table means the pass does not run and nobody is ever housed, which is loud rather than quiet — the Pool grows and the Census says so.
 
+**`move_at_need`** · *whole number*
+
+The Sustenance or Satisfaction deficit at which a continuing shortage can prompt a move. Requires reassessment and Needs; each tenancy must endure its own shortage long enough to reach this depth. Absent means shortages never prompt moves.
+
 **`reconsider_ticks`** · *whole number*
 
-How long the reassessment sweep takes to check every housed Household once, in Ticks. When stated, housed Households whose balance falls below their dwelling's rent are moved back into the Unplaced Pool. This is a door into the Pool, so the Ruleset owes gives_up_after_days. Absent means no reassessment.
+The duration used to size a sample of housed Households for reassessment, in Ticks; sampling is with replacement and does not guarantee coverage. Unaffordable rent or an enabled shortage criterion returns a Household to the Unplaced Pool, so the Ruleset owes gives_up_after_days. Absent means no reassessment.
 
 **`revisit_ticks`** · *whole number*
 
