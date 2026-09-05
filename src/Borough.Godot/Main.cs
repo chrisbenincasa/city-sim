@@ -1446,10 +1446,18 @@ public partial class Main : Node3D
             // larger slop radius would have been the same defect with a longer fuse.
             if (button is { Pressed: true, ButtonIndex: MouseButton.Left })
             {
-                // ⚠ THROUGH Apply, so --record spells the click out as the Tile it resolved to.
-                // A recording holding a screen position would be a recording of a camera, and a
-                // camera is not an input (adr/0007). _aimed is null here, so Aim() casts the ray.
-                if (Aim() is { } at)
+                // Record inspected subject ids and edit Tiles, so playback does not depend on
+                // the camera. Use this event's pixel for inspection, including injected input.
+                if (_verb == Verb.Look)
+                {
+                    _aimed = null;
+                    var picked = PickInformation(true, button.Position);
+                    if (!picked.Building.IsNone) Ui($"building {RowId(_world.Buildings.Rows, picked.Building)}");
+                    else if (!picked.Road.IsNone) Ui($"road {RowId(_world.Roads.Segments.Rows, picked.Road)}");
+                    else if (Aim(button.Position) is { } ground)
+                        Ui($"ground {ground.East.Raw} {ground.North.Raw}");
+                }
+                else if (Aim() is { } at)
                 {
                     Apply(new DriveCommand(
                         _world.Tick.Raw,
@@ -1548,6 +1556,14 @@ public partial class Main : Node3D
         // everything a replay has to know*** -- and the tool is the second half of every click.
         switch (key.Keycode)
         {
+            case Key.Escape:
+                Ui("close");
+                return;
+
+            case Key.F3:
+                Ui(_debugShown ? "debug off" : "debug on");
+                return;
+
             case Key.Tab:
                 _tuner.Visible = !_tuner.Visible;
 
@@ -1651,7 +1667,6 @@ public partial class Main : Node3D
             Key.Key2 => Made(DriveVerb.Speed, DesignSpeed + 1),
             Key.Key3 => Made(DriveVerb.Speed, DesignSpeed + 2),
             Key.Key4 => Made(DriveVerb.Speed, DesignSpeed + 3),
-            Key.Escape => Made(DriveVerb.Quit),
             _ => null,
         };
 
@@ -1854,7 +1869,7 @@ public partial class Main : Node3D
             + Legend()
             + (_refused.Length > 0 ? $"\nREFUSED — {_refused}" : string.Empty);
 
-        _hover.Text = Pointing();
+        RefreshInformation();
     }
 
     /// <summary>

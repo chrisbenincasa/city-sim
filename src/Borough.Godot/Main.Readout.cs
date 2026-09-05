@@ -58,7 +58,7 @@ public partial class Main
     /// </para>
     /// </remarks>
     /// <returns>The Tile under the cursor, or <c>null</c> for the sky and for off-map ground.</returns>
-    private (Tiles East, Tiles North)? Aim()
+    private (Tiles East, Tiles North)? Aim(Vector2? screen = null)
     {
         // A driven run names a Tile rather than a pixel, so there is no ray to cast: plans/0048's
         // whole finding is that a wall-clock channel addresses moments and the city is addressed in
@@ -68,7 +68,7 @@ public partial class Main
             return driven;
         }
 
-        Vector2 at = GetViewport().GetMousePosition();
+        Vector2 at = screen ?? GetViewport().GetMousePosition();
         Vector3 from = _camera.ProjectRayOrigin(at);
         Vector3 along = _camera.ProjectRayNormal(at);
 
@@ -492,6 +492,11 @@ public partial class Main
     /// </remarks>
     private void Cursor()
     {
+        if (_verb == Verb.Look || OverInformation(GetViewport().GetMousePosition()))
+        {
+            _cursor.Multimesh.VisibleInstanceCount = 0;
+            return;
+        }
         if (Aim() is not { } at)
         {
             _cursor.Multimesh.VisibleInstanceCount = 0;
@@ -528,8 +533,10 @@ public partial class Main
     private void Retype()
     {
         _readout.LabelSettings = new LabelSettings { FontSize = Typed(ReadoutPoints) };
-        _hover.LabelSettings = new LabelSettings { FontSize = Typed(HoverPoints) };
+        _hover.LabelSettings = null;
+        _hover.AddThemeFontSizeOverride("font_size", Typed(HoverPoints));
         _type.DefaultFontSize = Typed(ControlPoints);
+        LayoutInformation();
     }
 
     /// <summary>The readout's size at the reference window, in points.</summary>
@@ -636,35 +643,9 @@ public partial class Main
             MouseFilter = Control.MouseFilterEnum.Ignore,
         };
 
-        // TOP RIGHT AND GROWING DOWNWARD, moved there from the bottom left on 2026-09-04 at the
-        // player's request. The two panels now sit in opposite top corners: what the CITY is doing
-        // on the left, what the CURSOR is over on the right, and the eye travels sideways along one
-        // line rather than diagonally across the frame.
-        //
-        // 🔴 THE COMMENT THIS REPLACES ARGUED THE OPPOSITE AND ITS ARGUMENT READS INVERTED. It said
-        // the panel grew upward because "a top-anchored panel would make every line move whenever
-        // the one above it appeared". Pointing() APPENDS -- the Tile/Cell line is always first and
-        // every conditional line goes after it -- so a top anchor pins the one line that is always
-        // there and a bottom anchor pins the one that is not, which moves the header on every sweep.
-        // ⚠ THIS IS REASONED FROM Pointing()'s ORDER AND NOT FROM WATCHING IT. The old note was
-        // written by somebody who had the shell in front of them, so treat this as the claim to
-        // check first if the panel turns out to jump: ***a comment that disagrees with a comment is
-        // not evidence, it is two people to ask.***
-        //
-        // ⚠ OFFSETS AND NOT Position, WHICH IS WHAT CLIPPED THE LAST LINE at the old corner. On an
-        // anchored Control, Position writes OffsetLeft/OffsetTop -- so setting it pinned the panel
-        // against the wrong edge and the stack grew off the screen. The pinned edge has to be the
-        // one the stack grows AWAY from, which here is the top right.
         _hover = new Label
         {
-            AnchorLeft = 1f,
-            AnchorRight = 1f,
-            GrowHorizontal = Control.GrowDirection.Begin,
-            HorizontalAlignment = HorizontalAlignment.Right,
-
-            OffsetRight = -16f,
-            OffsetTop = 12f,
-            LabelSettings = new LabelSettings { FontSize = Typed(HoverPoints) },
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
             MouseFilter = Control.MouseFilterEnum.Ignore,
         };
 
@@ -678,9 +659,10 @@ public partial class Main
         GetViewport().SizeChanged += Retype;
 
         _hud.AddChild(_readout);
-        _hud.AddChild(_hover);
+        _readout.Visible = false;
         AddChild(_hud);
         Tuner(_hud);
         Panels();
+        Information();
     }
 }

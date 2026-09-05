@@ -197,6 +197,7 @@ public partial class Main
         // sees***, and looking is the one verb that changes nothing and should erase nothing.
         if (_verb == Verb.Look)
         {
+            SelectPointed();
             return;
         }
 

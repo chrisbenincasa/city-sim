@@ -14,6 +14,29 @@ namespace Borough.Tests.Formats;
 /// </remarks>
 public sealed class DriveScriptTests
 {
+    [Theory]
+    [InlineData("theme light")]
+    [InlineData("debug on")]
+    [InlineData("point 8216 8208")]
+    [InlineData("household 17")]
+    [InlineData("section stocks on")]
+    [InlineData("size 640 720")]
+    [InlineData("close")]
+    public void Information_actions_round_trip_without_advancing_a_paused_clock(string action)
+    {
+        DriveScriptResult parsed = DriveScript.Parse($"10 pause\n10 ui {action}\n10 quit", "ui.drive");
+        Assert.Empty(parsed.Refusals);
+        DriveCommand command = parsed.Commands![1];
+        Assert.Equal(DriveVerb.Ui, command.Verb);
+        Assert.Equal(action, command.Path);
+        Assert.Equal(command, DriveScript.Parse(DriveScript.Spell(command), "again").Commands![0]);
+        Assert.NotEmpty(DriveScript.Parse($"10 pause\n11 ui {action}", "stopped").Refusals);
+    }
+
+    [Fact]
+    public void Information_action_cannot_be_empty() =>
+        Assert.NotEmpty(DriveScript.Parse("1 ui", "ui.drive").Refusals);
+
     [Fact]
     public void A_script_reads_every_verb_at_the_Tick_it_names()
     {

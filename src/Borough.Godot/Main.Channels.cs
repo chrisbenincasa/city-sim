@@ -128,7 +128,12 @@ public partial class Main
     {
         switch (command.Verb)
         {
+            case DriveVerb.Ui:
+                InformationAction(command.Path ?? string.Empty);
+                break;
+
             case DriveVerb.Pause:
+                _owed = 0;
                 _rung = 0;
 
                 break;
@@ -142,6 +147,7 @@ public partial class Main
                 // Clamped rather than refused: the ladder's length is the shell's own fact and the
                 // format cannot know it, so the parser checks the shape and this checks the range.
                 _rung = Math.Clamp(command.Amount, 0, Ladder.Length - 1);
+                if (_rung == 0) _owed = 0;
 
                 break;
 
@@ -701,5 +707,5 @@ public partial class Main
     /// own remark says. ⚠ <b>A separator line rather than a blank one</b>, so a caller greps for
     /// <c>hover</c> and knows which panel a line came from.
     /// </remarks>
-    private string Captioned() => $"{_readout.Text}\nhover —\n{_hover.Text}";
+    private string Captioned() => $"{_readout.Text}\nhover —\n{_hover.Text}\ndebug —\n{Pointing()}\ninspector —\n{_inspectionCaption}\n{InformationGeometry()}";
 }

@@ -440,7 +440,13 @@ public partial class Main
         _policiesButton.Pressed += Govern;
 
         _tools.AddChild(_policiesButton);
-        _palette.AddChild(box);
+        var paletteScroll = new ScrollContainer
+        {
+            VerticalScrollMode = ScrollContainer.ScrollMode.Disabled,
+            CustomMinimumSize = new Vector2(0, 78),
+        };
+        paletteScroll.AddChild(box);
+        _palette.AddChild(paletteScroll);
         layer.AddChild(_palette);
 
         ShowTools();
@@ -720,6 +726,7 @@ public partial class Main
 
         var key = WorldKey.FromSeed(seed);
 
+        CloseInspection();
         _world = new World(citizens, loaded.Ruleset, key);
         _simulation = new Simulation(_world, key) { VerifyDecideWritesNothing = false };
 

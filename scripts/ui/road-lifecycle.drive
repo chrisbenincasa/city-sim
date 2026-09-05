@@ -1,0 +1,19 @@
+512 pause
+512 ui size 1440 960
+512 ui theme dark
+512 ui debug off
+512 focus 48 32 300
+512 hold look
+512 click 48 32
+512 ui read artifacts/hud-live/road-lifecycle-before.json
+512 hold street
+512 click 48 32 shift
+512 speed 8
+513 pause
+513 ui read artifacts/hud-live/road-lifecycle-removed.json
+513 shoot artifacts/hud-live/road-lifecycle-removed.png
+513 click 48 32
+513 speed 8
+514 pause
+514 ui read artifacts/hud-live/road-lifecycle-replaced.json
+514 quit

@@ -1,0 +1,20 @@
+4000 pause
+4000 ui size 1440 960
+4000 ui theme dark
+4000 ui debug off
+4000 focus 80 48 350
+4000 hold look
+4000 click 90 36
+4000 ui point 68 36
+4000 ui read artifacts/hud-live/lifecycle-target-before.json
+4000 speed 8
+4500 pause
+4500 ui read artifacts/hud-live/lifecycle-target-abandoned.json
+4500 shoot artifacts/hud-live/lifecycle-target-abandoned.png
+4500 hold demolish
+4500 click 90 36
+4500 speed 8
+4501 pause
+4501 ui read artifacts/hud-live/lifecycle-target-removed.json
+4501 shoot artifacts/hud-live/lifecycle-target-removed.png
+4501 quit

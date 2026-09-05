@@ -184,6 +184,8 @@ public enum DriveVerb
 
     /// <summary>End the run.</summary>
     Quit,
+
+    Ui,
 }
 
 /// <summary>One instruction, and <b>the Tick it lands on rather than the moment it arrives</b>.</summary>
@@ -346,6 +348,7 @@ public static class DriveScript
 
         return command.Verb switch
         {
+            DriveVerb.Ui => $"{at} ui {command.Path}",
             DriveVerb.Pause => $"{at} pause",
             DriveVerb.Resume => $"{at} resume",
             DriveVerb.Speed =>
@@ -426,11 +429,22 @@ public static class DriveScript
             return null;
         }
 
+        DriveCommand? MissingUi()
+        {
+            refusals.Add($"{file}:{line}: ui requires an action.");
+            return null;
+        }
+
         string verb = word[1].ToLowerInvariant();
         string? argument = word.Length > 2 ? word[2] : null;
 
         switch (verb)
         {
+            case "ui":
+                return word.Length >= 3
+                    ? new DriveCommand(tick, DriveVerb.Ui, 0, string.Join(" ", word[2..]))
+                    : MissingUi();
+
             case "pause":
             case "resume":
             case "people":

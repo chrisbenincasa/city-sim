@@ -1,0 +1,9 @@
+512 pause
+512 ui size 1440 960
+512 ui theme dark
+512 ui debug off
+512 focus 80 48 350
+512 hold look
+512 click 68 36
+512 ui point 90 36
+512 shoot artifacts/hud-live/building-dark.png

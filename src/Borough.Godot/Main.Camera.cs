@@ -106,9 +106,10 @@ public partial class Main
         // rather than a guessed corner -- a guess killed edge-scrolling north-west outright on the
         // first attempt -- and the palette is the third, sitting on the bottom edge where the pan
         // would otherwise fight the buttons.
-        if (_readout.GetGlobalRect().HasPoint(at)
-            || _hover.GetGlobalRect().HasPoint(at)
-            || _palette.GetGlobalRect().HasPoint(at))
+        if (OverInformation(at)
+            || _readout.Visible && _readout.GetGlobalRect().HasPoint(at)
+            || _hover.IsVisibleInTree() && _hover.GetGlobalRect().HasPoint(at)
+            || _palette.IsVisibleInTree() && _palette.GetGlobalRect().HasPoint(at))
         {
             return;
         }
