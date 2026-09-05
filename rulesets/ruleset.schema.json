@@ -546,6 +546,10 @@
           "description": "How many Ticks between passes that drain the Unplaced Pool into standing dwellings. Omitting the whole [placement] table means the pass does not run and nobody is ever housed, which is loud rather than quiet — the Pool grows and the Census says so.",
           "type": "integer"
         },
+        "move_at_need": {
+          "description": "The Sustenance or Satisfaction deficit at which a continuing shortage can prompt a move. Requires reassessment and Needs; each tenancy must endure its own shortage long enough to reach this depth. Absent means shortages never prompt moves.",
+          "type": "integer"
+        },
         "reconsider_ticks": {
           "description": "How long the reassessment sweep takes to check every housed Household once, in Ticks. When stated, housed Households whose balance falls below their dwelling's rent are moved back into the Unplaced Pool. This is a door into the Pool, so the Ruleset owes gives_up_after_days. Absent means no reassessment.",
           "type": "integer"

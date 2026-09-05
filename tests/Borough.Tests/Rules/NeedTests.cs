@@ -2,6 +2,8 @@ using Borough.Core;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
+using Borough.Core.Persistence;
+using Borough.Tests.Persistence;
 using Borough.Core.Rules;
 using Borough.Formats;
 
@@ -161,6 +163,144 @@ public sealed class NeedTests
 
         Assert.False(result.Ok);
         Assert.Contains("sustenance_degrade", result.Describe(), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("sustenance")]
+    [InlineData("satisfaction")]
+    public void A_continuing_shortage_prompts_a_move_and_the_new_tenancy_gets_time(string need)
+    {
+        string text = MovingCity(false).Replace("need = \"sustenance\"", $"need = \"{need}\"", StringComparison.Ordinal)
+            .Replace("satisfaction_degrade = 1", "satisfaction_degrade = 4", StringComparison.Ordinal);
+        (World world, Simulation sim) = MovingWorld(text);
+        for (int slot = 0; slot < world.Households.Rows.SlotCount; slot++)
+        {
+            world.Households.Sustenance[slot] = -20;
+            world.Households.Satisfaction[slot] = -20;
+        }
+
+        Advance(sim, Ticks.PerDay * 2);
+        Assert.Equal(0, sim.Placement.Drain().ShortageMoves.Sum);
+        long moves = 0;
+        bool sawMove = false;
+        for (int tick = 0; tick < Ticks.PerDay; tick++)
+        {
+            sim.Step(default);
+            long now = sim.Placement.Drain().ShortageMoves.Sum;
+            moves += now;
+            sawMove |= now > 0;
+        }
+        Assert.True(sawMove);
+        Assert.True(moves <= world.Households.Rows.SlotCount,
+            "Residual hunger must not make a rehoused Household move again immediately.");
+    }
+
+    [Fact]
+    public void A_shortage_move_cleans_up_the_tenancys_long_sleeping_producer()
+    {
+        (World world, Simulation sim) = MovingWorld(MovingCity(true)
+            .Replace("rate    = 16", "rate    = 65536", StringComparison.Ordinal));
+        Advance(sim, Ticks.PerDay * 4);
+        Assert.True(sim.Placement.Drain().ShortageMoves.Sum > 0);
+    }
+
+    [Fact]
+    public void A_supplied_home_does_not_lose_tenants_with_residual_hunger()
+    {
+        (World world, Simulation sim) = MovingWorld(MovingCity(true));
+        for (int slot = 0; slot < world.Households.Rows.SlotCount; slot++)
+        {
+            world.Households.Sustenance[slot] = -40;
+        }
+        Advance(sim, Ticks.PerDay * 4);
+        Assert.Equal(0, sim.Placement.Drain().Reassessed.Sum);
+        Assert.Equal(0, world.UnplacedPool.Count);
+        Assert.Equal(0, Deepest(world));
+    }
+
+    [Theory]
+    [InlineData("move_at_need = 0")]
+    [InlineData("move_at_need = -41")]
+    [InlineData("move_at_need = -2147483649")]
+    public void An_unreachable_or_nonnegative_move_threshold_is_refused(string setting)
+    {
+        RulesetLoadResult result = Parse(MovingCity(false).Replace("move_at_need = -8", setting, StringComparison.Ordinal));
+        Assert.False(result.Ok);
+        Assert.Contains("move_at_need", result.Describe(), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("reconsider_ticks = 32", "")]
+    [InlineData("gives_up_after_days = 30", "")]
+    [InlineData("[needs]", "[unused_needs]")]
+    public void Shortage_moves_require_needs_a_sweep_and_a_pool_sink(string before, string after)
+    {
+        Assert.False(Parse(MovingCity(false).Replace(before, after, StringComparison.Ordinal)).Ok);
+    }
+
+    [Fact]
+    public void A_shortage_move_survives_save_and_reload()
+    {
+        string text = MovingCity(false);
+        (World world, Simulation sim) = MovingWorld(text);
+        Advance(sim, Ticks.PerDay * 2);
+        var file = new MemorySave();
+        sim.SaveAtEndOfTick(file);
+        sim.Step(default);
+        World loaded = SaveFile.Read(file, world.Rules, out SaveHeader header);
+        var resumed = new Simulation(loaded, header.Key);
+        Assert.Equal(world.HashState(), loaded.HashState());
+        for (int tick = 0; tick < Ticks.PerDay * 2; tick++)
+        {
+            sim.Step(default);
+            resumed.Step(default);
+            Assert.Equal(world.HashState(), loaded.HashState());
+        }
+        Assert.True(resumed.Placement.Drain().ShortageMoves.Sum > 0);
+    }
+
+    [Fact]
+    public void Reload_can_enable_and_disable_shortage_moves_in_the_standing_city()
+    {
+        Ruleset on = Parse(MovingCity(false)).Ruleset!;
+        Ruleset off = Parse(MovingCity(false).Replace("move_at_need = -8", "", StringComparison.Ordinal)).Ruleset!;
+        WorldKey key = WorldKey.FromSeed(Seed);
+        var world = new World(32, off, key);
+        var sim = new Simulation(world, key, RulesetCatalogue.Of([1UL, 2UL], [off, on]));
+        SyntheticCity.PopulateInto(world, key, Ticks.Zero);
+        for (int tick = 0; tick < Ticks.PerDay * 4; tick++) sim.Step(new TickInput(default, 1));
+        Assert.Equal(0, sim.Placement.Drain().ShortageMoves.Sum);
+        for (int tick = 0; tick < 256; tick++) sim.Step(new TickInput(default, 2));
+        Assert.True(sim.Placement.Drain().ShortageMoves.Sum > 0);
+        for (int tick = 0; tick < Ticks.PerDay * 4; tick++) sim.Step(new TickInput(default, 1));
+        Assert.Equal(0, sim.Placement.Drain().ShortageMoves.Sum);
+    }
+
+    private static string MovingCity(bool restocks) => City(restocks) + """
+
+        [placement]
+        interval = 32
+        revisit_ticks = 32
+        candidates = 16
+        reconsider_ticks = 32
+        gives_up_after_days = 30
+        move_at_need = -8
+        """;
+
+    private static (World, Simulation) MovingWorld(string text)
+    {
+        RulesetLoadResult result = Parse(text);
+        Assert.True(result.Ok, result.Describe());
+        WorldKey key = WorldKey.FromSeed(Seed);
+        var world = new World(32, result.Ruleset!, key);
+        var sim = new Simulation(world, key);
+        SyntheticCity.PopulateInto(world, key, Ticks.Zero);
+        return (world, sim);
+    }
+
+    private static void Advance(Simulation sim, int ticks)
+    {
+        for (int tick = 0; tick < ticks; tick++) sim.Step(default);
     }
 
     private const int Floor = -40;

@@ -7701,8 +7701,10 @@ public sealed class World
 
         if (blocking == Blocking.Nothing)
         {
-            bool wasArmed = Wheel.Armed.Remove(
-                EventWheel.BucketOf(RuleInstances.NextTick[instanceSlot]), instanceSlot);
+            Ticks due = RuleInstances.NextTick[instanceSlot];
+            // A long sleep can still be coarse, or already cascaded onto the fine wheel.
+            bool wasArmed = Wheel.Armed.Remove(EventWheel.BucketOf(due), instanceSlot)
+                || Wheel.CoarseArmed.Remove(EventWheel.CoarseBucketOf(due), instanceSlot);
 
             Invariants.Require(
                 wasArmed, Invariant.RuleInstanceIsArmedOrWaiting, instanceSlot, -1);

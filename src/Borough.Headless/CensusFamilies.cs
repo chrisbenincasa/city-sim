@@ -90,6 +90,7 @@ internal static class CensusFamilies
         (PlacementCounter.Departed, Aggregate.Sum, "departed"),
         (PlacementCounter.Retired, Aggregate.Sum, "shops emigrated"),
         (PlacementCounter.Reassessed, Aggregate.Sum, "reassessed out"),
+        (PlacementCounter.ShortageMoves, Aggregate.Sum, "shortage moves"),
     ];
 
     /// <summary>

@@ -222,9 +222,12 @@ public enum PlacementCounter : byte
 
     /// <summary>
     /// Housed Households that the reassessment sweep moved back into the Pool because they could
-    /// no longer afford their dwelling's rent.
+    /// no longer afford rent or endure a continuing shortage.
     /// </summary>
     Reassessed,
+
+    /// <summary>Reassessed Households leaving because of a continuing Need shortage.</summary>
+    ShortageMoves,
 }
 
 /// <summary>
