@@ -67,4 +67,6 @@ public enum CitizenActivity : byte
     /// leave somebody.
     /// </remarks>
     Travelling = 4,
+    ShoppingTravelling = 5,
+    ShoppingStopped = 6,
 }

@@ -683,4 +683,33 @@ public partial class Main
         Tuner(_hud);
         Panels();
     }
+    private static string Weekday(ulong tick) =>
+        new[] { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" }
+            [Borough.Core.Rules.WeeklyHours.DayOf((long)tick)];
+
+    private string ShoppingCaption()
+    {
+        if (!_world.Rules.Shopping.Runs) { return string.Empty; }
+        int outNow = 0;
+        long carried = 0;
+        int example = -1;
+        var shopping = _world.Shopping;
+        for (int row = 0; row < shopping.Rows.SlotCount; row++)
+        {
+            if (!shopping.Rows.IsLive(row) || shopping.Stage[row] == 0) { continue; }
+            outNow++;
+            carried += shopping.Cargo[row];
+            if (shopping.Cargo[row] > 0) { example = row; }
+        }
+        int atWork = 0;
+        for (int citizen = 0; citizen < _world.Citizens.Rows.SlotCount; citizen++)
+        {
+            if (_world.Citizens.Rows.IsLive(citizen)
+                && (Borough.Core.Entities.CitizenActivity)_world.Citizens.Activity[citizen]
+                    == Borough.Core.Entities.CitizenActivity.AtWork) { atWork++; }
+        }
+        string sample = example < 0 ? string.Empty
+            : $" — bringing home {shopping.Cargo[example]} {_names.Resource(shopping.Good[example])}";
+        return $"\nAt work {atWork:N0}   Shopping {outNow:N0} Households   Goods being carried {carried:N0}{sample}";
+    }
 }

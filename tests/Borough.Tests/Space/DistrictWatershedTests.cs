@@ -771,7 +771,7 @@ public sealed class DistrictWatershedTests
             // whole argument for exempting it. It ratifies nothing, so there is no figure here for
             // the exemption to protect.
             bool expected = file is "twinned.toml" or "provisioned.toml" or "oversupplied.toml"
-                or "waged.toml" or "pictured.toml";
+                or "waged.toml" or "pictured.toml" or "shopping.toml";
 
             Assert.Equal(expected, states);
         }

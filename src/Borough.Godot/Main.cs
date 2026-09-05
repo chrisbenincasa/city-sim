@@ -1841,11 +1841,11 @@ public partial class Main : Node3D
 
         _readout.Text =
             $"{System.IO.Path.GetFileName(_rulesetPath)}   Tick {tick:N0}   "
-            + $"Day {tick / (ulong)Ticks.PerDay}   "
+            + $"Day {tick / (ulong)Ticks.PerDay}   {Weekday(tick)}   "
             + $"{minute / 60:00}:{minute % 60:00}\n"
             + $"Citizens {_world.Citizens.Rows.LiveCount:N0}   Buildings {drawn:N0}   "
             + $"vacant Lots {vacant:N0}   "
-            + $"travelling {moving:N0}{Weather(under)}\n"
+            + $"travelling {moving:N0}{Weather(under)}{ShoppingCaption()}\n"
             + $"speed {Pace(_rung)}   "
             + $"mode {Holding()}   "
             + "[ ] speed, space pause, w write log, g roads, c cells, tab tune\n"

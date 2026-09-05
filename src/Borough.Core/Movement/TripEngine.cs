@@ -197,7 +197,8 @@ public sealed class TripEngine
         // flattening a commute to `Travelling` would land every commuter back at home.
         if ((Entities.CitizenActivity)_world.Citizens.Activity[citizen]
             is not (Entities.CitizenActivity.TravellingToWork
-                or Entities.CitizenActivity.TravellingHome))
+                or Entities.CitizenActivity.TravellingHome
+                or Entities.CitizenActivity.ShoppingTravelling))
         {
             _world.Citizens.Activity[citizen] = (byte)Entities.CitizenActivity.Travelling;
         }

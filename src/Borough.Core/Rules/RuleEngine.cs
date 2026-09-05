@@ -289,6 +289,8 @@ public sealed class RuleEngine
             Grow(ref _verdicts, _verdictCount + 1);
             Grow(ref _order, _verdictCount + 1);
 
+            if (ShoppingEngine.IsReplenishment(_world, instance)) { continue; }
+
             _verdicts[_verdictCount] = Walk(
                 instance, _world.RuleInstances.Rule[instance], Unbounded);
             _order[_verdictCount] = Randomness.Draw(
@@ -356,6 +358,12 @@ public sealed class RuleEngine
             }
         }
 
+        for (int i = 0; i < _dueCount; i++)
+        {
+            int instance = _due[i];
+            if (ShoppingEngine.IsReplenishment(_world, instance))
+            { _world.Wheel.Arm(instance, tick, (uint)_world.Rules.Shopping.Interval); }
+        }
         _dueCount = 0;
 
         CloseTick();
