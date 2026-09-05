@@ -1,0 +1,49 @@
+{
+  "subject": "courtyard-apartment",
+  "palette": "warm-slate",
+  "view": "close",
+  "comparison": "expanded-kit-1",
+  "instances": [
+    {
+      "asset": "courtyard-apartment",
+      "palette": "warm-slate",
+      "anchor": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -15.31,
+        0,
+        -13.31
+      ],
+      "boundsSize": [
+        30.62,
+        14.6,
+        26.62
+      ],
+      "triangles": 26504,
+      "surfaces": 6
+    }
+  ],
+  "camera": "(9.186001, 11.059601, 35.356403)",
+  "target": "(0, 5.548, 13.31)",
+  "fov": 40,
+  "viewport": "(1440, 960)",
+  "sunRotation": "(-61.999992, -27.999998, 0)",
+  "sunEnergy": 1.15,
+  "sunAngularDistance": 0.5,
+  "ambientEnergy": 0.55,
+  "ssao": true,
+  "taa": true,
+  "exposure": 1,
+  "light": "noon",
+  "triangles": 26504,
+  "surfaces": 6,
+  "tick": null,
+  "population": null,
+  "godot": "4.7.2-stable (official)",
+  "renderer": "forward_plus"
+}

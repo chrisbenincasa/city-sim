@@ -731,6 +731,7 @@ public partial class Main
         int mansards = 0;
         int yards = 0;
         int buildings = 0;
+        int foliageFootprints = 0;
         ulong last = 0;
 
         _buildingIds.Clear();
@@ -752,6 +753,8 @@ public partial class Main
                 last = one.Id;
             }
 
+            FoliageFootprint(one.Body, foliageFootprints++);
+            if (one.Outhoused) FoliageFootprint(one.Yard, foliageFootprints++);
             _buildingIds.Add(one.Id);
             _buildings.Multimesh.SetInstanceTransform(bodies, one.Body);
             _buildings.Multimesh.SetInstanceColor(bodies, one.Paint);
@@ -806,6 +809,7 @@ public partial class Main
         _mansards.Multimesh.VisibleInstanceCount = mansards;
         _yards.Multimesh.VisibleInstanceCount = yards;
 
+        RefreshFoliage(foliageFootprints);
         return buildings;
     }
 

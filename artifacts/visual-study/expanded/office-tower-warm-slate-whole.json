@@ -1,0 +1,49 @@
+{
+  "subject": "office-tower",
+  "palette": "warm-slate",
+  "view": "whole",
+  "comparison": "expanded-kit-1",
+  "instances": [
+    {
+      "asset": "office-tower",
+      "palette": "warm-slate",
+      "anchor": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -12.15,
+        0,
+        -10.15
+      ],
+      "boundsSize": [
+        24.3,
+        49.4,
+        22.85
+      ],
+      "triangles": 63024,
+      "surfaces": 5
+    }
+  ],
+  "camera": "(74.100006, 76.57, 97.605)",
+  "target": "(0, 24.7, 1.2750006)",
+  "fov": 40,
+  "viewport": "(1440, 960)",
+  "sunRotation": "(-61.999992, -27.999998, 0)",
+  "sunEnergy": 1.15,
+  "sunAngularDistance": 0.5,
+  "ambientEnergy": 0.55,
+  "ssao": true,
+  "taa": true,
+  "exposure": 1,
+  "light": "noon",
+  "triangles": 63024,
+  "surfaces": 5,
+  "tick": null,
+  "population": null,
+  "godot": "4.7.2-stable (official)",
+  "renderer": "forward_plus"
+}

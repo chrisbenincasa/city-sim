@@ -19,11 +19,8 @@
 shader_type spatial;
 render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 
-// One storey, and the same 3.5 m Main.StoreyMetres draws one with. ⚠ IT IS A SECOND COPY OF A
-// NUMBER AND THERE IS NO WAY TO PASS IT: a shader cannot read a C# const and every INSTANCE_CUSTOM
-// channel is spent. What makes the copy safe is that the height is now an exact multiple of it, so
-// a drift shows up as a storey grid that does not divide the wall rather than as nothing at all.
-const float STOREY = 3.5;
+// Set by the shell from the same height used to draw each storey.
+uniform float storey_metres = 3.5;
 
 // How wide a window bay is, kerb to kerb along the wall.
 const float BAY = 3.6;
@@ -125,7 +122,7 @@ void fragment() {
     float span = mix(v_size.x, v_size.z, sideways);
 
     // 🔴 THE STOREY COUNT IS RECOVERED EXACTLY AND WAS FITTED. It read
-    // `floor((v_size.y - PLINTH) / STOREY)` against a height the C# side had multiplied by a
+    // `floor((v_size.y - PLINTH) / storey_metres)` against a height the C# side had multiplied by a
     // 0.55–1.85 jitter, so ***the number of window rows on a wall was not the number of storeys the
     // city holds*** -- measured on `platted.toml`, a ladder of five rungs came out as eight distinct
     // counts, 130 Buildings drawn one storey tall on a city whose floor is two. The jitter is gone
@@ -137,7 +134,7 @@ void fragment() {
     // so that no blank strip was left under the eaves. An exact multiple leaves none, so the fit
     // has nothing to absorb. The plinth stays what it separately is -- `above` below, which is the
     // mask that keeps an opening off the bottom 0.9 m of a wall.
-    float storeys = max(1.0, floor((v_size.y / STOREY) + 0.5));
+    float storeys = max(1.0, floor((v_size.y / storey_metres) + 0.5));
     float lift = v_size.y / storeys;
     float floorAt = floor(up / lift);
     float withinY = mod(up, lift);
@@ -255,6 +252,18 @@ void fragment() {
     float base = 1.0 - smoothstep(0.0, PLINTH, up);
     vec3 body = mix(wall, wall * 0.72, base * upright * far);
 
+    // PROVISIONAL masonry and joinery; these add construction detail, not condition.
+    float close_detail = 1.0 - smoothstep(0.10, 0.55, max(grain.x, grain.y));
+    float course = mod(up, 0.32);
+    float joint = 1.0 - smoothstep(0.012 - grain.y, 0.012 + grain.y, min(course, 0.32 - course));
+    float masonry = step(v_custom.a, 0.38) * upright * close_detail;
+    body *= 1.0 - joint * masonry * 0.13;
+    float cornice = smoothstep(v_size.y - 0.32 - grain.y, v_size.y - 0.32 + grain.y, up) * upright;
+    body = mix(body, wall * 1.22, cornice * far);
+    float barX = 1.0 - smoothstep(0.045 - grain.x, 0.045 + grain.x, abs(withinX - wide * 0.5));
+    float barY = 1.0 - smoothstep(0.035 - grain.y, 0.035 + grain.y, abs(withinY - sill - paneH * 0.55));
+    float frame = max(barX, barY) * close_detail;
+    glass = mix(glass, wall * 1.15, frame);
     vec3 painted = mix(body, glass, glazed);
     painted = mix(painted, (wall * 1.32) + 0.02, clamp(reveal * far, 0.0, 1.0) * (1.0 - cased));
     painted = mix(painted, (wall * 1.45) + 0.03, cased);
@@ -368,5 +377,5 @@ void fragment() {
         * (1.0 - smoothstep(0.30, 0.86, night_phase));
     float haze = (1.0 - far) * upright * v_custom.b * (1.0 - ruin) * wakeful * 0.16;
 
-    EMISSION = vec3(1.0, 0.74, 0.40) * ((glazed * burning * 2.6) + haze);
+    EMISSION = vec3(1.0, 0.74, 0.40) * ((glazed * (1.0 - frame) * burning * 2.6) + haze);
 }

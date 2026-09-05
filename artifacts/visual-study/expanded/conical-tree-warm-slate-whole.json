@@ -1,0 +1,49 @@
+{
+  "subject": "conical-tree",
+  "palette": "warm-slate",
+  "view": "whole",
+  "comparison": "expanded-kit-1",
+  "instances": [
+    {
+      "asset": "conical-tree",
+      "palette": "warm-slate",
+      "anchor": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -2.3219593,
+        0,
+        -2.1751788
+      ],
+      "boundsSize": [
+        4.7419596,
+        7,
+        4.350357
+      ],
+      "triangles": 6084,
+      "surfaces": 3
+    }
+  ],
+  "camera": "(10.549021, 10.849999, 13.650001)",
+  "target": "(0.04902053, 3.5, -2.3841858E-07)",
+  "fov": 40,
+  "viewport": "(1440, 960)",
+  "sunRotation": "(-61.999992, -27.999998, 0)",
+  "sunEnergy": 1.15,
+  "sunAngularDistance": 0.5,
+  "ambientEnergy": 0.55,
+  "ssao": true,
+  "taa": true,
+  "exposure": 1,
+  "light": "noon",
+  "triangles": 6084,
+  "surfaces": 3,
+  "tick": null,
+  "population": null,
+  "godot": "4.7.2-stable (official)",
+  "renderer": "forward_plus"
+}

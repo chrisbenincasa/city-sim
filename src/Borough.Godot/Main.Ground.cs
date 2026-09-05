@@ -170,31 +170,6 @@ public partial class Main
                 height * 0.5f,
                 -(north.Raw + 0.5f) * CellMetres));
 
-    /// <summary>Every Traveller the last query placed.</summary>
-    private System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where)> Travellers(
-        int found)
-    {
-        for (int agent = 0; agent < found; agent++)
-        {
-            // ⚠ RESOLVED RATHER THAN READ. A Handle's index is internal to the core on purpose --
-            // it is a recycled slot, and 05 §4 folds the monotonic id precisely because the slot
-            // is not identity. A draw list keyed on a slot would name a different Citizen after a
-            // collection, which is the one thing a list meant for diffing must never do.
-            ulong id = _world.Citizens.Rows.TryResolve(_agents[agent].Citizen, out int slot)
-                ? _world.Citizens.Rows.IdAt(slot)
-                : 0UL;
-
-            yield return (
-                id,
-                new Transform3D(
-                Basis.Identity,
-                new Vector3(
-                    _agents[agent].East.Raw * MetresPerTile / 65_536f,
-                    4f,
-                    -_agents[agent].North.Raw * MetresPerTile / 65_536f)));
-        }
-    }
-
     /// <summary>One block-sized flat slab, centred on the block the point falls in.</summary>
     /// <remarks>
     /// ⚠ <b>THE BLOCK'S OWN TWO EXTENTS AND NOT ONE SPAN.</b> The ghost is what row 22 built so a
@@ -551,6 +526,7 @@ public partial class Main
     /// </remarks>
     private void Scatter()
     {
+        IndexFoliageBuildings();
         int block = _world.Roads.Streets.BlockTiles;
         int lots = _world.Rules.Lots.LotsPerSegment;
         float reach = Mathf.Max(_span * 1.6f, 2_048f);
@@ -593,7 +569,8 @@ public partial class Main
                     float x = (east * CellGrid.MetresPerCell) + ((draw & 0xFFFu) / 4095f * CellGrid.MetresPerCell);
                     float z = (north * CellGrid.MetresPerCell) + (((draw >> 12) & 0xFFFu) / 4095f * CellGrid.MetresPerCell);
 
-                    if (paved.HasPoint(new Vector2(x, z)) && !InAYard(x, z, block, lots))
+                    if (BuildingExcludesFoliage(new Vector2(x, z))
+                        || (paved.HasPoint(new Vector2(x, z)) && !InAYard(x, z, block, lots)))
                     {
                         continue;
                     }
@@ -609,10 +586,13 @@ public partial class Main
                         float broad = tall * (0.45f + (((draw >> 32) & 0x3Fu) / 63f * 0.3f));
 
                         _trees.Multimesh.SetInstanceTransform(
-                            crowns++,
+                            crowns,
                             new Transform3D(
-                                Basis.FromScale(new Vector3(broad, tall, broad)),
-                                new Vector3(x, tall * 0.42f, -z)));
+                                Basis.FromEuler(new Vector3(0f, (draw & 255) / 255f * Mathf.Tau, 0f))
+                                    * Basis.FromScale(new Vector3(broad, tall, broad)),
+                                new Vector3(x, 0.05f, -z)));
+                        float shade = 0.88f + ((draw >> 40) & 255) / 255f * 0.24f;
+                        _trees.Multimesh.SetInstanceColor(crowns++, new Color(shade, shade, shade));
                     }
                     else if (stones < _rocks.Multimesh.InstanceCount)
                     {
@@ -1041,12 +1021,9 @@ public partial class Main
         // ⚠ HELD IN A FIELD BECAUSE AN OVERLAY TAKES THE GROUND AND HAS TO GIVE IT BACK. The
         // instrument swaps the plane's material for an unshaded one carrying the layer; this is
         // what it swaps back to, and rebuilding it on the way out would lose the texture with it.
-        _skinned = new StandardMaterial3D
-        {
-            AlbedoTexture = _skin,
-            Roughness = 1f,
-            TextureFilter = BaseMaterial3D.TextureFilterEnum.Linear,
-        };
+        var groundMaterial = new ShaderMaterial { Shader = GD.Load<Shader>("res://ground.gdshader") };
+        groundMaterial.SetShaderParameter("terrain", _skin);
+        _skinned = groundMaterial;
 
         _land = new MeshInstance3D
         {

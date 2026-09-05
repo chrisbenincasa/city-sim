@@ -1,0 +1,32 @@
+{
+  "sources": [
+    {
+      "asset": "Asphalt012",
+      "author": "ambientCG",
+      "url": "https://ambientcg.com/view?id=Asphalt012",
+      "download": "https://acg-download.struffelproductions.com/file/ambientCG-Web/download/Asphalt012_KBZIdFew/Asphalt012_1K-JPG.zip",
+      "license": "CC0-1.0",
+      "license_url": "https://docs.ambientcg.com/license/",
+      "archive_sha256": "c077e5d1b21a4333829bb655043ee6a45ddcf82fef850528f91f4305ac11193d"
+    },
+    {
+      "asset": "Brick Wall 001",
+      "author": "Dimitrios Savva / Rob Tuytel / Poly Haven",
+      "url": "https://polyhaven.com/a/brick_wall_001",
+      "license": "CC0-1.0",
+      "files": "art/visual-study/fidelity-1/research.json"
+    }
+  ],
+  "additional_sources_to_explore": [
+    {
+      "url": "https://www.cgbookcase.com/",
+      "license_url": "https://www.cgbookcase.com/textures",
+      "standing": "Textures use CC0-1.0. No files used in this sample."
+    },
+    {
+      "url": "https://www.sharetextures.com/",
+      "license_url": "https://www.sharetextures.com/p/license",
+      "standing": "Custom CC0-based licence, not standard unrestricted CC0: permits commercial projects but restricts redistribution and automated downloads. No files used in this sample."
+    }
+  ]
+}

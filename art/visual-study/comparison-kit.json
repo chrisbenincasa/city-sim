@@ -1,0 +1,66 @@
+{
+  "version": "comparison-kit-v1",
+  "status": "Expanded roster and street study authorised; initial expanded executions awaiting feedback",
+  "authority": "scripts/art/kit.py",
+  "type": "isolated art specimens; no claim of simulation support",
+  "first_trio": [
+    "detached-house",
+    "residential-tower",
+    "car"
+  ],
+  "remaining": [
+    "attached-townhouse",
+    "walk-up-apartment",
+    "courtyard-apartment",
+    "office-tower",
+    "mixed-use-tower",
+    "small-shop",
+    "corner-shop",
+    "factory-with-office",
+    "school",
+    "bus",
+    "walker"
+  ],
+  "context": [
+    "street-corner",
+    "courtyard",
+    "round-tree",
+    "conical-tree"
+  ],
+  "order": "One specimen across material-rich, sculpted and middle before extending the family. Review first trio together.",
+  "controls": [
+    "dimensions",
+    "openings",
+    "architectural composition",
+    "palette",
+    "camera",
+    "lighting",
+    "exposure"
+  ],
+  "allowed_variation": [
+    "joinery depth",
+    "small trim",
+    "surface relief",
+    "roughness",
+    "detail geometry"
+  ],
+  "next_checks": [
+    "close and playing-distance views",
+    "assembled street",
+    "repetition",
+    "motion",
+    "night",
+    "live state response",
+    "cost"
+  ],
+  "limitations": "First trio is an initial execution. No selected style, full-kit completion or performance acceptance.",
+  "latest_round": {
+    "id": "expanded-kit-1",
+    "authority": "scripts/art/expanded-kit.py",
+    "layout": "art/visual-study/expanded-layout.json",
+    "viewer": "src/Borough.Godot/ExpandedStudy.cs",
+    "direction": "Realistic construction extension in warm-slate and earth-terracotta; retain both approved residential towers and all car palettes in context.",
+    "supersedes": "Original three-treatment sequence and composition constraints apply to earlier comparisons. This extension follows the model and palette feedback.",
+    "checks": "Matched specimen views, assembled street, courtyard and deliberate housing repetition. Motion, night, live state and measured cost remain outstanding."
+  }
+}

@@ -1,0 +1,510 @@
+{
+  "subject": "neighbourhood",
+  "palette": "mixed-approved",
+  "view": "tower",
+  "comparison": "neighbourhood-1",
+  "instances": [
+    {
+      "asset": "corner-shop",
+      "palette": "earth-terracotta",
+      "anchor": false,
+      "position": [
+        -1,
+        0,
+        -7
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -7.2,
+        0,
+        -6.175
+      ],
+      "boundsSize": [
+        14.6,
+        10.7775,
+        13.2375
+      ],
+      "triangles": 24804,
+      "surfaces": 14
+    },
+    {
+      "asset": "attached-townhouse",
+      "palette": "warm-slate",
+      "anchor": false,
+      "position": [
+        -18,
+        0,
+        -6
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -9.175,
+        0,
+        -5.8425
+      ],
+      "boundsSize": [
+        18.35,
+        12.12,
+        13.6175
+      ],
+      "triangles": 88936,
+      "surfaces": 20
+    },
+    {
+      "asset": "attached-townhouse",
+      "palette": "earth-terracotta",
+      "anchor": false,
+      "position": [
+        -18,
+        0,
+        36
+      ],
+      "yaw": 180,
+      "boundsMin": [
+        -9.175,
+        0,
+        -5.8425
+      ],
+      "boundsSize": [
+        18.35,
+        12.12,
+        13.6175
+      ],
+      "triangles": 88936,
+      "surfaces": 20
+    },
+    {
+      "asset": "residential-tower",
+      "palette": "warm-slate",
+      "anchor": false,
+      "position": [
+        -18,
+        0,
+        -36
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -11.675,
+        0,
+        -10.175
+      ],
+      "boundsSize": [
+        23.35,
+        43.4,
+        20.35
+      ],
+      "triangles": 174492,
+      "surfaces": 13
+    },
+    {
+      "asset": "street-tree",
+      "palette": "warm-slate",
+      "anchor": false,
+      "position": [
+        -31,
+        0,
+        4
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -2.5442257,
+        -0.0040898323,
+        -2.8970506
+      ],
+      "boundsSize": [
+        5.2688932,
+        6.2752194,
+        5.702131
+      ],
+      "triangles": 32004,
+      "surfaces": 2
+    },
+    {
+      "asset": "street-tree",
+      "palette": "warm-slate",
+      "anchor": false,
+      "position": [
+        -9,
+        0,
+        4
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -2.5442257,
+        -0.0040898323,
+        -2.8970506
+      ],
+      "boundsSize": [
+        5.2688932,
+        6.2752194,
+        5.702131
+      ],
+      "triangles": 32004,
+      "surfaces": 2
+    },
+    {
+      "asset": "street-tree",
+      "palette": "warm-slate",
+      "anchor": false,
+      "position": [
+        6,
+        0,
+        -18
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -2.5442257,
+        -0.0040898323,
+        -2.8970506
+      ],
+      "boundsSize": [
+        5.2688932,
+        6.2752194,
+        5.702131
+      ],
+      "triangles": 32004,
+      "surfaces": 2
+    },
+    {
+      "asset": "street-tree",
+      "palette": "warm-slate",
+      "anchor": false,
+      "position": [
+        6,
+        0,
+        -36
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -2.5442257,
+        -0.0040898323,
+        -2.8970506
+      ],
+      "boundsSize": [
+        5.2688932,
+        6.2752194,
+        5.702131
+      ],
+      "triangles": 32004,
+      "surfaces": 2
+    },
+    {
+      "asset": "street-tree",
+      "palette": "warm-slate",
+      "anchor": false,
+      "position": [
+        -31,
+        0,
+        25
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -2.5442257,
+        -0.0040898323,
+        -2.8970506
+      ],
+      "boundsSize": [
+        5.2688932,
+        6.2752194,
+        5.702131
+      ],
+      "triangles": 32004,
+      "surfaces": 2
+    },
+    {
+      "asset": "street-tree",
+      "palette": "warm-slate",
+      "anchor": false,
+      "position": [
+        27,
+        0,
+        -7
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -2.5442257,
+        -0.0040898323,
+        -2.8970506
+      ],
+      "boundsSize": [
+        5.2688932,
+        6.2752194,
+        5.702131
+      ],
+      "triangles": 32004,
+      "surfaces": 2
+    },
+    {
+      "asset": "street-tree",
+      "palette": "warm-slate",
+      "anchor": false,
+      "position": [
+        27,
+        0,
+        29
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -2.5442257,
+        -0.0040898323,
+        -2.8970506
+      ],
+      "boundsSize": [
+        5.2688932,
+        6.2752194,
+        5.702131
+      ],
+      "triangles": 32004,
+      "surfaces": 2
+    },
+    {
+      "asset": "car-realistic",
+      "palette": "warm-slate",
+      "anchor": true,
+      "position": [
+        -24,
+        0,
+        10
+      ],
+      "yaw": 90,
+      "boundsMin": [
+        -1.0596,
+        0,
+        -2.225
+      ],
+      "boundsSize": [
+        2.1192,
+        1.525,
+        4.4775
+      ],
+      "triangles": 5150,
+      "surfaces": 6
+    },
+    {
+      "asset": "car-realistic",
+      "palette": "earth-terracotta",
+      "anchor": true,
+      "position": [
+        -8,
+        0,
+        18
+      ],
+      "yaw": -90,
+      "boundsMin": [
+        -1.0596,
+        0,
+        -2.225
+      ],
+      "boundsSize": [
+        2.1192,
+        1.525,
+        4.4775
+      ],
+      "triangles": 5150,
+      "surfaces": 6
+    },
+    {
+      "asset": "car-realistic",
+      "palette": "original",
+      "anchor": true,
+      "position": [
+        19,
+        0,
+        -14
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -1.0596,
+        0,
+        -2.225
+      ],
+      "boundsSize": [
+        2.1192,
+        1.525,
+        4.4775
+      ],
+      "triangles": 5150,
+      "surfaces": 6
+    },
+    {
+      "asset": "car-realistic",
+      "palette": "warm-slate",
+      "anchor": true,
+      "position": [
+        13,
+        0,
+        33
+      ],
+      "yaw": 180,
+      "boundsMin": [
+        -1.0596,
+        0,
+        -2.225
+      ],
+      "boundsSize": [
+        2.1192,
+        1.525,
+        4.4775
+      ],
+      "triangles": 5150,
+      "surfaces": 6
+    },
+    {
+      "asset": "walker",
+      "palette": "original",
+      "anchor": false,
+      "position": [
+        4,
+        0,
+        3
+      ],
+      "yaw": 44,
+      "boundsMin": [
+        -0.3444939,
+        0,
+        -0.195
+      ],
+      "boundsSize": [
+        0.6889878,
+        1.7850001,
+        0.45999998
+      ],
+      "triangles": 2572,
+      "surfaces": 5
+    },
+    {
+      "asset": "walker",
+      "palette": "original",
+      "anchor": false,
+      "position": [
+        -6,
+        0,
+        5
+      ],
+      "yaw": -66,
+      "boundsMin": [
+        -0.3444939,
+        0,
+        -0.195
+      ],
+      "boundsSize": [
+        0.6889878,
+        1.7850001,
+        0.45999998
+      ],
+      "triangles": 2572,
+      "surfaces": 5
+    },
+    {
+      "asset": "walker",
+      "palette": "original",
+      "anchor": false,
+      "position": [
+        -22,
+        0,
+        4
+      ],
+      "yaw": -242,
+      "boundsMin": [
+        -0.3444939,
+        0,
+        -0.195
+      ],
+      "boundsSize": [
+        0.6889878,
+        1.7850001,
+        0.45999998
+      ],
+      "triangles": 2572,
+      "surfaces": 5
+    },
+    {
+      "asset": "walker",
+      "palette": "original",
+      "anchor": false,
+      "position": [
+        -27,
+        0,
+        24
+      ],
+      "yaw": -297,
+      "boundsMin": [
+        -0.3444939,
+        0,
+        -0.195
+      ],
+      "boundsSize": [
+        0.6889878,
+        1.7850001,
+        0.45999998
+      ],
+      "triangles": 2572,
+      "surfaces": 5
+    },
+    {
+      "asset": "walker",
+      "palette": "original",
+      "anchor": false,
+      "position": [
+        25,
+        0,
+        -5
+      ],
+      "yaw": 275,
+      "boundsMin": [
+        -0.3444939,
+        0,
+        -0.195
+      ],
+      "boundsSize": [
+        0.6889878,
+        1.7850001,
+        0.45999998
+      ],
+      "triangles": 2572,
+      "surfaces": 5
+    },
+    {
+      "asset": "walker",
+      "palette": "original",
+      "anchor": false,
+      "position": [
+        -11,
+        0,
+        -23
+      ],
+      "yaw": -121,
+      "boundsMin": [
+        -0.3444939,
+        0,
+        -0.195
+      ],
+      "boundsSize": [
+        0.6889878,
+        1.7850001,
+        0.45999998
+      ],
+      "triangles": 2572,
+      "surfaces": 5
+    }
+  ],
+  "brickScale": 1,
+  "camera": "(29, 27, -8)",
+  "target": "(-18, 23, -36)",
+  "fov": 40,
+  "viewport": "(1440, 960)",
+  "sunRotation": "(-61.999992, -27.999998, 0)",
+  "sunEnergy": 1.15,
+  "sunAngularDistance": 0.5,
+  "ambientEnergy": 0.55,
+  "ssao": true,
+  "taa": true,
+  "exposure": 1,
+  "light": "noon",
+  "triangles": 637228,
+  "surfaces": 135,
+  "tick": null,
+  "population": null,
+  "godot": "4.7.2-stable (official)",
+  "renderer": "forward_plus"
+}

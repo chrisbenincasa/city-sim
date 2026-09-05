@@ -1,0 +1,50 @@
+{
+  "authority": "scripts/art/fidelity-study.py",
+  "source_sha256": "8d54cbb59ac931511aade5bc7bfcb66f60f1cc19e198545fd63781bf2c19ec51",
+  "helper_sha256": "f24b8fc6fb860d79e1381c66b95d0c7d6a418c2aeb54170efb12cb773e5edf77",
+  "blender": "5.2.1 LTS",
+  "units": "metres",
+  "front": "Blender -Y, Godot +Z",
+  "assets": [
+    {
+      "specimen": "attached-townhouse",
+      "asset": "attached-townhouse.glb",
+      "geometry_sha256": "c6b28e433d0e1397fc27876762ca1d378c26c5958fc8ee5278a91a535c72bab7",
+      "bounds_blender": [
+        [
+          -9.175000190734863,
+          -7.775000095367432,
+          0.0
+        ],
+        [
+          9.175000190734863,
+          5.84250020980835,
+          12.119999885559082
+        ]
+      ],
+      "polygons": 44953,
+      "materials": [
+        "wall",
+        "frame",
+        "roof",
+        "glass",
+        "metal",
+        "stone",
+        "room",
+        "blind",
+        "curtain",
+        "interior",
+        "bark",
+        "brick",
+        "slate-0",
+        "slate-1",
+        "slate-2",
+        "lamp",
+        "paving-light",
+        "paving",
+        "accent",
+        "foliage"
+      ]
+    }
+  ]
+}

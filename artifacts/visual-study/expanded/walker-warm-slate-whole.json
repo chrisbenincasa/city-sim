@@ -1,0 +1,49 @@
+{
+  "subject": "walker",
+  "palette": "warm-slate",
+  "view": "whole",
+  "comparison": "expanded-kit-1",
+  "instances": [
+    {
+      "asset": "walker",
+      "palette": "warm-slate",
+      "anchor": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -0.3444939,
+        0,
+        -0.195
+      ],
+      "boundsSize": [
+        0.6889878,
+        1.7850001,
+        0.45999998
+      ],
+      "triangles": 1308,
+      "surfaces": 5
+    }
+  ],
+  "camera": "(2.6775002, 2.76675, 3.5157504)",
+  "target": "(0, 0.89250004, 0.034999996)",
+  "fov": 40,
+  "viewport": "(1440, 960)",
+  "sunRotation": "(-61.999992, -27.999998, 0)",
+  "sunEnergy": 1.15,
+  "sunAngularDistance": 0.5,
+  "ambientEnergy": 0.55,
+  "ssao": true,
+  "taa": true,
+  "exposure": 1,
+  "light": "noon",
+  "triangles": 1308,
+  "surfaces": 5,
+  "tick": null,
+  "population": null,
+  "godot": "4.7.2-stable (official)",
+  "renderer": "forward_plus"
+}

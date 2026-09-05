@@ -1,0 +1,1747 @@
+<title>The Grid Nobody Builds</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@85..118,500..700&family=IBM+Plex+Mono:wght@400;500;600&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap">
+
+<style>
+/* ============================================================
+   TOKENS — light is the base, shared with "Ten Thousand Facades"
+   so the two pages read as one site. Every colour is defined
+   here and only redefined in the two dark blocks below.
+   ============================================================ */
+:root {
+  --ground:      #E7E9EA;
+  --surface:     #F5F6F7;
+  --surface-2:   #DDE0E2;
+  --ink:         #16191E;
+  --ink-2:       #565E68;
+  --ink-3:       #838C96;
+  --rule:        #C9CDD2;
+  --rule-soft:   #D8DBDE;
+  --accent:      #A85D12;
+  --accent-ink:  #7A4310;
+  --accent-soft: #EFE1CD;
+  --flag:        #97392C;
+  --flag-soft:   #F1DBD7;
+  --corpus:      #566470;
+  --corpus-soft: #DCE1E5;
+  --good:        #3D6B4A;
+  --good-soft:   #D8E5DB;
+  --panel:       #10141A;
+  --panel-2:     #1A212B;
+
+  --measure: 68ch;
+  --gutter: 44px;
+
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "Spectral", Georgia, "Times New Roman", serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground:      #101317;
+    --surface:     #171B21;
+    --surface-2:   #212730;
+    --ink:         #E8EAEC;
+    --ink-2:       #A6AEB8;
+    --ink-3:       #737C87;
+    --rule:        #2C333C;
+    --rule-soft:   #232931;
+    --accent:      #FFBD66;
+    --accent-ink:  #FFD199;
+    --accent-soft: #2A2015;
+    --flag:        #E8917F;
+    --flag-soft:   #2E1E1B;
+    --corpus:      #9AAAB8;
+    --corpus-soft: #232830;
+    --good:        #8FC49E;
+    --good-soft:   #1B2620;
+    --panel:       #080A0D;
+    --panel-2:     #12161C;
+  }
+}
+
+:root[data-theme="dark"] {
+  --ground:      #101317;
+  --surface:     #171B21;
+  --surface-2:   #212730;
+  --ink:         #E8EAEC;
+  --ink-2:       #A6AEB8;
+  --ink-3:       #737C87;
+  --rule:        #2C333C;
+  --rule-soft:   #232931;
+  --accent:      #FFBD66;
+  --accent-ink:  #FFD199;
+  --accent-soft: #2A2015;
+  --flag:        #E8917F;
+  --flag-soft:   #2E1E1B;
+  --corpus:      #9AAAB8;
+  --corpus-soft: #232830;
+  --good:        #8FC49E;
+  --good-soft:   #1B2620;
+  --panel:       #080A0D;
+  --panel-2:     #12161C;
+}
+
+/* ============================================================ */
+
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 17px;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+@media (max-width: 700px) {
+  :root { --gutter: 22px; }
+  body { font-size: 16px; }
+}
+
+/* ---------- HERO ---------- */
+
+.hero {
+  background: var(--panel);
+  color: #E8EAEC;
+  padding: 68px 0 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.eyebrow {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #FFBD66;
+  margin-bottom: 22px;
+}
+
+h1 {
+  font-family: var(--f-display);
+  font-variation-settings: "wdth" 92;
+  font-weight: 700;
+  font-size: clamp(2.6rem, 7vw, 4.9rem);
+  line-height: 0.98;
+  letter-spacing: -0.022em;
+  text-wrap: balance;
+  color: #F3F4F5;
+  margin-bottom: 26px;
+}
+
+.standfirst {
+  font-size: clamp(1.06rem, 2vw, 1.27rem);
+  line-height: 1.55;
+  color: #B9C0C8;
+  max-width: 62ch;
+  margin-bottom: 40px;
+}
+
+.standfirst strong { color: #F3F4F5; font-weight: 600; }
+
+/* the phi figure — the page's thesis, drawn */
+
+.phifig {
+  margin: 0 -4px;
+  padding: 30px 0 40px;
+  overflow-x: auto;
+}
+
+.phifig svg { display: block; min-width: 660px; width: 100%; height: auto; }
+
+.pf-ax    { stroke: #3A424C; stroke-width: 1; }
+.pf-tick  { stroke: #2C333C; stroke-width: 1; }
+.pf-lab   { fill: #737C87; font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.09em; }
+.pf-city  { fill: #6E7883; }
+.pf-name  { fill: #939CA6; font-family: var(--f-mono); font-size: 10.5px; }
+.pf-hi    { fill: #E8EAEC; }
+.pf-hiname{ fill: #E8EAEC; font-family: var(--f-mono); font-size: 11px; font-weight: 500; }
+.pf-bor   { fill: #FFBD66; }
+.pf-borname { fill: #FFBD66; font-family: var(--f-mono); font-size: 11.5px; font-weight: 600; }
+.pf-gap   { stroke: #FFBD66; stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.55; }
+.pf-gapl  { fill: #FFBD66; font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.06em; }
+
+/* ---------- CHIPS ---------- */
+
+.chip {
+  display: inline-block;
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 3px;
+  vertical-align: 2px;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.chip-new    { background: var(--accent-soft); color: var(--accent-ink); }
+.chip-fix    { background: var(--flag-soft);   color: var(--flag); }
+.chip-corpus { background: var(--corpus-soft); color: var(--corpus); }
+.chip-good   { background: var(--good-soft);   color: var(--good); }
+.chip-flag   { background: transparent; color: var(--ink-3); border: 1px dashed var(--rule); }
+
+/* ---------- SECTIONS ---------- */
+
+main { padding: 0 0 90px; }
+
+section { padding: 62px 0 0; }
+
+.sec-head {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  border-top: 1px solid var(--rule);
+  padding-top: 18px;
+  margin-bottom: 30px;
+}
+
+.sec-num {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: 0.12em;
+  flex: none;
+  padding-top: 6px;
+}
+
+h2 {
+  font-family: var(--f-display);
+  font-variation-settings: "wdth" 96;
+  font-weight: 600;
+  font-size: clamp(1.55rem, 3.4vw, 2.15rem);
+  line-height: 1.12;
+  letter-spacing: -0.014em;
+  text-wrap: balance;
+}
+
+h3 {
+  font-family: var(--f-display);
+  font-variation-settings: "wdth" 100;
+  font-weight: 600;
+  font-size: 1.09rem;
+  letter-spacing: -0.005em;
+  margin: 34px 0 12px;
+  color: var(--ink);
+}
+
+p { max-width: var(--measure); margin-bottom: 17px; }
+
+.lede { font-size: 1.1rem; color: var(--ink-2); max-width: 64ch; }
+
+strong { font-weight: 600; }
+em { font-style: italic; }
+
+a { color: var(--accent-ink); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+
+code {
+  font-family: var(--f-mono);
+  font-size: 0.855em;
+  background: var(--surface-2);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+blockquote {
+  margin: 22px 0;
+  padding: 2px 0 2px 20px;
+  border-left: 2px solid var(--accent);
+  max-width: 62ch;
+  font-style: italic;
+  color: var(--ink-2);
+}
+blockquote cite {
+  display: block;
+  font-style: normal;
+  font-family: var(--f-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  margin-top: 9px;
+  letter-spacing: 0.03em;
+}
+
+/* ---------- TABLES ---------- */
+
+.tw { overflow-x: auto; margin: 24px 0 8px; }
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 540px;
+  font-size: 14.5px;
+  font-variant-numeric: tabular-nums;
+}
+th {
+  text-align: left;
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 500;
+  padding: 0 14px 8px 0;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: bottom;
+}
+td {
+  padding: 9px 14px 9px 0;
+  border-bottom: 1px solid var(--rule-soft);
+  vertical-align: top;
+  font-family: var(--f-body);
+}
+td.n { font-family: var(--f-mono); font-size: 13px; white-space: nowrap; }
+tr.mark td { background: var(--accent-soft); }
+tr.mark td.n { color: var(--accent-ink); font-weight: 600; }
+.tnote { font-family: var(--f-mono); font-size: 11px; color: var(--ink-3); margin-top: 10px; max-width: 70ch; line-height: 1.5; }
+
+/* ---------- CALLOUT ---------- */
+
+.callout {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  padding: 20px 24px;
+  margin: 26px 0;
+  max-width: var(--measure);
+}
+.callout.fix { border-left-color: var(--flag); }
+.callout.good { border-left-color: var(--good); }
+.callout p:last-child { margin-bottom: 0; }
+.callout .ctitle {
+  font-family: var(--f-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 9px;
+}
+
+/* ---------- RANKED MOVES ---------- */
+
+.moves { display: grid; gap: 2px; margin: 28px 0 10px; }
+
+.move {
+  display: grid;
+  grid-template-columns: 62px 1fr;
+  gap: 20px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  padding: 20px 22px;
+  align-items: start;
+}
+@media (max-width: 620px) {
+  .move { grid-template-columns: 1fr; gap: 8px; }
+}
+
+.move-rank {
+  font-family: var(--f-display);
+  font-variation-settings: "wdth" 85;
+  font-weight: 700;
+  font-size: 2.1rem;
+  line-height: 0.9;
+  color: var(--accent);
+  letter-spacing: -0.03em;
+}
+.move h3 { margin: 0 0 8px; font-size: 1.06rem; }
+.move p { margin-bottom: 10px; font-size: 15.5px; }
+.move p:last-child { margin-bottom: 0; }
+.move-done {
+  margin: 0 0 12px;
+  padding: 7px 11px;
+  border-radius: 4px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-family: var(--f-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.03em;
+}
+.move-cost {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+  border-top: 1px dashed var(--rule);
+  padding-top: 10px;
+  margin-top: 12px;
+}
+
+/* ---------- SOURCES ---------- */
+
+.srcs { columns: 2 300px; column-gap: 40px; font-size: 14px; line-height: 1.5; }
+.src { break-inside: avoid; margin-bottom: 15px; color: var(--ink-2); }
+.src b { color: var(--ink); font-weight: 600; }
+.src .tag {
+  font-family: var(--f-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  display: block;
+  margin-top: 2px;
+}
+
+/* ---------- FOOT ---------- */
+
+footer {
+  border-top: 1px solid var(--rule);
+  padding: 34px 0 60px;
+  font-family: var(--f-mono);
+  font-size: 11.5px;
+  color: var(--ink-3);
+  line-height: 1.75;
+}
+footer .wrap > div { max-width: 76ch; }
+footer a { color: var(--ink-2); }
+</style>
+
+<div class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Borough · procedural generation research · part two</div>
+    <h1>The Grid Nobody Builds</h1>
+    <p class="standfirst">
+      Six agents went looking for how the field generates the city <em>between</em> the buildings —
+      streets, blocks, parcels, ground. The sharpest thing they came back with is a number.
+      Borough's lattice scores <strong>&phi;&nbsp;=&nbsp;1.000</strong> on a published measure of
+      street-network order. Across one hundred world cities, <strong>the maximum is 0.899</strong>.
+      The grain is right. The uniformity is off the end of the distribution.
+    </p>
+
+    <div class="phifig">
+      <svg viewBox="0 0 900 250" role="img" aria-label="Orientation-order phi for selected cities from Boeing 2019, all below Borough's lattice at 1.0">
+        <!-- axis -->
+        <line class="pf-ax" x1="60" y1="196" x2="860" y2="196"/>
+        <g class="pf-lab">
+          <text x="60" y="216" text-anchor="middle">0.0</text>
+          <text x="220" y="216" text-anchor="middle">0.2</text>
+          <text x="380" y="216" text-anchor="middle">0.4</text>
+          <text x="540" y="216" text-anchor="middle">0.6</text>
+          <text x="700" y="216" text-anchor="middle">0.8</text>
+          <text x="860" y="216" text-anchor="middle">1.0</text>
+          <text x="60" y="236">&#966; &mdash; ORIENTATION ORDER (BOEING 2019, n=100 CITIES)</text>
+        </g>
+        <line class="pf-tick" x1="60"  y1="196" x2="60"  y2="202"/>
+        <line class="pf-tick" x1="220" y1="196" x2="220" y2="202"/>
+        <line class="pf-tick" x1="380" y1="196" x2="380" y2="202"/>
+        <line class="pf-tick" x1="540" y1="196" x2="540" y2="202"/>
+        <line class="pf-tick" x1="700" y1="196" x2="700" y2="202"/>
+        <line class="pf-tick" x1="860" y1="196" x2="860" y2="202"/>
+
+        <!-- cities: x = 60 + phi*800 -->
+        <g>
+          <circle class="pf-city" cx="62"  cy="170" r="4"/>
+          <text class="pf-name" x="62" y="158" text-anchor="middle">Rome</text>
+
+          <circle class="pf-city" cx="81"  cy="146" r="4"/>
+          <text class="pf-name" x="81" y="134" text-anchor="middle">Boston</text>
+
+          <circle class="pf-city" cx="146" cy="170" r="4"/>
+          <text class="pf-name" x="146" y="158" text-anchor="middle">Barcelona</text>
+
+          <circle class="pf-city" cx="282" cy="146" r="4"/>
+          <text class="pf-name" x="282" y="134" text-anchor="middle">San Francisco</text>
+
+          <circle class="pf-city" cx="362" cy="170" r="4"/>
+          <text class="pf-name" x="362" y="158" text-anchor="middle">Washington</text>
+
+          <circle class="pf-hi"   cx="595" cy="170" r="5"/>
+          <text class="pf-hiname" x="595" y="157" text-anchor="middle">Manhattan &middot; 0.669</text>
+
+          <circle class="pf-city" cx="603" cy="120" r="4"/>
+          <text class="pf-name" x="603" y="108" text-anchor="middle">Portland</text>
+
+          <circle class="pf-city" cx="709" cy="146" r="4"/>
+          <text class="pf-name" x="709" y="134" text-anchor="middle">Miami</text>
+
+          <circle class="pf-hi"   cx="779" cy="170" r="5"/>
+          <text class="pf-hiname" x="779" y="157" text-anchor="middle">Chicago &middot; 0.899</text>
+
+          <circle class="pf-bor"  cx="860" cy="120" r="6.5"/>
+          <text class="pf-borname" x="860" y="106" text-anchor="end">BOROUGH &middot; 1.000</text>
+        </g>
+
+        <!-- the gap -->
+        <line class="pf-gap" x1="779" y1="182" x2="860" y2="182"/>
+        <line class="pf-gap" x1="779" y1="176" x2="779" y2="188"/>
+        <line class="pf-gap" x1="860" y1="176" x2="860" y2="188"/>
+        <text class="pf-gapl" x="819" y="34" text-anchor="middle">NO CITY</text>
+        <text class="pf-gapl" x="819" y="46" text-anchor="middle">HAS EVER</text>
+        <text class="pf-gapl" x="819" y="58" text-anchor="middle">BEEN BUILT</text>
+        <text class="pf-gapl" x="819" y="70" text-anchor="middle">IN HERE</text>
+        <line class="pf-gap" x1="819" y1="80" x2="819" y2="172"/>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<main>
+<div class="wrap">
+
+<!-- ============================================ -->
+<section>
+  <div class="sec-head">
+    <div class="sec-num">00</div>
+    <h2>First, a correction that reframes everything below</h2>
+  </div>
+
+  <p class="lede">
+    The research briefs — including the ones written for this batch — assumed Borough generates
+    its road network at world creation. It does not.
+  </p>
+
+  <p>
+    <span class="chip chip-fix">Corrects the brief</span> <code>adr/0090</code> is titled
+    <em>the generator makes land and the player makes every road</em>. The generator produces
+    terrain, Woodland, hazard regions and Outside Connections with short road stubs. That is all.
+    <code>RoadGenerator.LayInto</code> has exactly one call site — <code>SyntheticCity</code>,
+    reached only through <code>CommandKind.Populate</code>, whose own comment in
+    <code>Simulation.cs</code> reads: <em>"Spike S0's verb, and the only one here that is an
+    instrument rather than a player's."</em>
+  </p>
+
+  <p>
+    So <strong>the uniform 32-tile lattice is a test fixture, not the shipped city's network.</strong>
+    Everything measured on this page is measured against an instrument. That does not make the
+    measurements useless — it is the world every screenshot, every balance run and every golden
+    fixture is taken in, so it is the city the project actually looks at. But the design question
+    is not "should Borough generate a better grid." It is what the player's network will need in
+    order to be a network at all.
+  </p>
+
+  <div class="callout fix">
+    <div class="ctitle">And the half that is worse — verified in <code>Main.cs</code></div>
+    <p>
+      The design says the player lays every Segment. The shell issues
+      <code>CommandKind.Populate</code> at Tick 0 <strong>unconditionally</strong> — line 897, no
+      flag, no branch, no path around it. <strong>There is no way to reach an empty world.</strong>
+    </p>
+    <p>
+      So every Borough city any human has ever looked at is a declared synthetic city on a 32-tile
+      checkerboard, and <strong>the road verb has never been watched doing its job</strong>. The
+      design says one thing and the only reachable artefact says another. Set against the amnesty's
+      own amended Definition of done — <em>a milestone is done when you have watched it happen and
+      something surprised you</em> — a checkerboard cannot surprise anybody.
+    </p>
+  </div>
+
+  <div class="callout fix">
+    <div class="ctitle">The real gap, and it is not regularity</div>
+    <p>
+      Borough has a three-way <code>RoadKind</code> — Street, Arterial, FootPath — with distinct
+      speeds and capacities already wired: 50 against 90&nbsp;km/h, 3,600 against 12,000 vehicles
+      per hour. The BPR volume-delay loop in <code>congested.toml</code> would price them
+      differently today.
+    </p>
+    <p>
+      But <code>adr/0077</code> refuses Arterials in <code>CommandKind.Connect</code> — the player
+      lays Streets only — and <code>adr/0164</code> refuses them in the generator.
+      <strong>Hierarchy exists in the data model and is reachable by neither the generator nor the
+      player.</strong> It has no producer at all. That is the finding, and it is a smaller and more
+      fixable thing than "the grid looks fake."
+    </p>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<section>
+  <div class="sec-head">
+    <div class="sec-num">01</div>
+    <h2>The measure, and what it says</h2>
+  </div>
+
+  <p>
+    Boeing (<em>Applied Network Science</em> 4:67, 2019) binned street bearings for one hundred
+    world cities from OpenStreetMap and computed Shannon entropy. His orientation-order index
+    <strong>&phi;</strong> runs 0 to 1, where 1 is a single perfectly-ordered four-way grid.
+    Two agents reached this independently and their tables agree.
+  </p>
+
+  <div class="tw">
+    <table>
+      <thead>
+        <tr>
+          <th>City</th><th>&phi;</th><th>Median segment</th><th>Circuity</th>
+          <th>Node degree</th><th>Dead ends</th><th>Four-way</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="mark">
+          <td><b>Borough, measured</b> <span class="chip chip-new">2026-09-04</span></td>
+          <td class="n">0.9987</td><td class="n">128 m</td><td class="n">0.9999</td>
+          <td class="n">3.87</td><td class="n">0.0%</td><td class="n">84.0%</td>
+        </tr>
+        <tr class="mark">
+          <td><b>Borough's lattice, as derived</b></td>
+          <td class="n">1.000</td><td class="n">128 m</td><td class="n">1.000</td>
+          <td class="n">4.00</td><td class="n">0.0%</td><td class="n">100%</td>
+        </tr>
+        <tr><td>Chicago <span class="chip chip-corpus">most ordered of 100</span></td>
+          <td class="n">0.899</td><td class="n">105.3 m</td><td class="n">1.016</td>
+          <td class="n">3.343</td><td class="n">7.4%</td><td class="n">50.7%</td></tr>
+        <tr><td>Miami</td><td class="n">0.811</td><td class="n">96.7 m</td><td class="n">1.023</td>
+          <td class="n">3.236</td><td class="n">6.9%</td><td class="n">40.7%</td></tr>
+        <tr><td>Portland</td><td class="n">0.679</td><td class="n">82.1 m</td><td class="n">1.041</td>
+          <td class="n">3.032</td><td class="n">14.6%</td><td class="n">32.7%</td></tr>
+        <tr><td>Manhattan</td><td class="n">0.669</td><td class="n">82.2 m</td><td class="n">1.017</td>
+          <td class="n">3.508</td><td class="n">2.7%</td><td class="n">57.2%</td></tr>
+        <tr><td>Barcelona</td><td class="n">0.108</td><td class="n">78.1 m</td><td class="n">1.052</td>
+          <td class="n">3.135</td><td class="n">7.8%</td><td class="n">30.3%</td></tr>
+        <tr><td>Venice</td><td class="n">0.017</td><td class="n">23.2 m</td><td class="n">1.090</td>
+          <td class="n">2.474</td><td class="n">30.0%</td><td class="n">7.3%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="tnote">
+    Boeing 2019, Table 1. <strong>Borough now has two rows and the difference between them is the
+    point of this section.</strong> The lower one is arithmetic on <code>block_tiles = 32</code> at
+    4&nbsp;m a Tile — what a perfect lattice gives you by definition, which is what this page
+    published before anything had run. The upper one is
+    <code>--morphology&nbsp;--ruleset&nbsp;rulesets/minimal.toml&nbsp;--citizens&nbsp;64000</code>,
+    measured 2026-09-04 on 3,510 Segments. Dead ends are the one figure the two agree on: the
+    generator lays no degree-1 Node at any size.
+  </p>
+
+  <div class="callout fix">
+    <div class="ctitle">The instrument was built and it refuted the row it was built to confirm</div>
+    <p>
+      Every Borough figure on this table was arithmetic until this morning: a perfect square lattice
+      has &phi;&nbsp;=&nbsp;1, 100% four-way and circuity 1 <em>by definition</em>, derivable at a
+      desk without running anything. The measurement disagrees with all three.
+      <strong>&phi; is 0.9987, not 1.000. Four-way is 84.0%, not 100%. Circuity is 0.9999, not
+      1.000.</strong> And the bearings occupy <strong>six</strong> compass bins rather than four —
+      there are eight diagonal Segments in the 4,000-Citizen world that a pure lattice cannot
+      contain.
+    </p>
+    <p>
+      <strong>The headline survives and one of its three legs does not.</strong> 0.9987 is still far
+      past Chicago's 0.899, so <em>no real city is anywhere near this ordered</em> holds. But
+      &ldquo;100% four-way against a real maximum of 58%&rdquo; was never true of the thing that
+      runs.
+    </p>
+  </div>
+
+  <p>
+    <strong>And most of the shortfall is the perimeter rather than the shape.</strong> A small
+    lattice is mostly edge, and an edge Node has degree 3. Measured on the same Ruleset at three
+    sizes: four-way is <span class="n">64.29%</span> at 4,000 Citizens,
+    <span class="n">76.04%</span> at 16,000, <span class="n">84.03%</span> at 64,000, converging on
+    the ideal as the world grows. &phi; climbs the same way — 0.9974, 0.9983, 0.9987. So the honest
+    reading of the gap is <em>this city is small</em>, not <em>this city is varied</em>, and quoting
+    the 4,000-Citizen figure alone would argue the opposite of what is true.
+  </p>
+
+  <div class="callout fix">
+    <div class="ctitle">&phi; does not notice an Arterial skeleton — which is a problem for move 3</div>
+    <p>
+      <code>rulesets/bordered.toml</code> is the one shipped file that sets
+      <code>arterial_count&nbsp;=&nbsp;16</code>, and its curving Arterials occupy
+      <strong>all 36 compass bins</strong> where the pure lattice occupies six. That is real
+      orientation diversity, exactly the intervention section 07's move 3 recommends.
+      <strong>&phi; moves from 0.9983 to 0.9982.</strong>
+    </p>
+    <p>
+      Half a million lattice Streets drown a handful of Arterials in the distribution. So an
+      Arterial skeleton is not defensible <em>on this measure</em> — whatever else recommends it,
+      it does not make the network measurably less ordered. Whether that is a true property of the
+      index or an artefact of an implementation whose formula has not been checked against Boeing's
+      paper is <strong>unresolved</strong>, and the code says so at its definition.
+    </p>
+  </div>
+
+  <h3>Three readings</h3>
+
+  <p>
+    <strong>No city reaches 1.0.</strong> The ceiling is Chicago at 0.899 — a city whose own
+    ordinances specified eight streets to the mile one way and sixteen the other. Even it is
+    missing a tenth of its order.
+  </p>
+
+  <p>
+    <strong>No city exceeds about 58% four-way junctions.</strong> Buenos Aires at 57.6% and
+    Manhattan at 57.2% are the maxima across a hundred cities. Borough measures
+    <span class="n">84.0%</span> at 64,000 Citizens and rising — well past the real ceiling, and
+    not the 100% this page previously claimed. This is still the most discriminating statistic on
+    the table; it is now a measured one.
+  </p>
+
+  <p>
+    <strong>Barcelona is 0.108 despite the Eixample</strong>, because Ciutat Vella and Gràcia are
+    in the same city. A district-scale perfect grid coexisting with non-grid fabric is what
+    "grid cities" actually are.
+  </p>
+
+  <div class="callout good">
+    <div class="ctitle">The narrowing result</div>
+    <p>
+      <strong>The grain is right and the uniformity is not.</strong> 128 m blocks give roughly 61
+      intersections per square kilometre; Boeing's population-weighted mean for Northern America is
+      53.2, and Borough's median segment of 128 m sits beside Chicago's 105 and a North American
+      mean of 100. <strong>Do not change <code>block_tiles</code>.</strong> Every measure of
+      <em>size</em> is inside the real range; every measure of <em>variation</em> is off the end
+      of it.
+    </p>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<section>
+  <div class="sec-head">
+    <div class="sec-num">02</div>
+    <h2>Why a flat network reads as not-a-city</h2>
+  </div>
+
+  <p>
+    The argument is empirical rather than aesthetic. Serra &amp; Hillier tested the dual-network
+    model against the whole UK road network and <strong>20,752 traffic count points</strong>:
+  </p>
+
+  <blockquote>
+    a foreground network of main paths, made up of a small number of long lines joined at wide
+    obtuse angles, forming a web of highly central, multi-directional alignments; embedded in a
+    background network of local streets, made up of a much larger number of shorter lines, forming
+    grid-like patterns with lower centrality.
+    <cite>Serra &amp; Hillier, <em>Computers, Environment and Urban Systems</em>, 2018</cite>
+  </blockquote>
+
+  <p>
+    And the sentence that makes it a finding rather than a description: the two-tier movement
+    signature is <strong><em>"entirely absent in rural areas."</em></strong> It is a property of
+    cities specifically. A network with no foreground does not read as a small city — it reads as
+    not a city.
+  </p>
+
+  <p>
+    Kirkley et al. (<em>Nature Communications</em> 9:2501, 2018) found the same shape from the other
+    direction across 97 cities: betweenness centrality is bimodal, <em>"an underlying tree
+    structure for high betweenness nodes, and a low betweenness regime corresponding to loops."</em>
+    Real networks carry a tree-shaped backbone with loops around it. A uniform lattice has no
+    backbone.
+  </p>
+
+  <h3>Lynch ran the controlled experiment sixty-five years ago</h3>
+
+  <p>
+    Two Boston grids with <strong>the same topological form</strong>. Back Bay works; the South End
+    does not. Lynch's account of the difference reads as a specification:
+  </p>
+
+  <blockquote>
+    this is not a featureless regularity. The longitudinal streets were sharply differentiated from
+    the cross streets in everyone's mind, much as they are in Manhattan… The relative width of the
+    streets, the block lengths, the building frontages, the naming system, the relative length and
+    number of the two kinds of streets, their functional importance, all tend to reinforce this
+    differentiation. Thus a regular pattern is given form and character.
+    <cite>Kevin Lynch, <em>The Image of the City</em>, 1960, pp. 60–61</cite>
+  </blockquote>
+
+  <p>
+    Against the South End: <em>"there is a lack of differentiated character in the major streets:
+    Columbus Avenue is hard to distinguish from Tremont Street, or from Shawmut Avenue."</em> And
+    his verdict on the Los Angeles grid is the sentence for Borough —
+    <strong><em>"this very regularity made it difficult for them to distinguish one path from
+    another."</em></strong>
+  </p>
+
+  <p>
+    <span class="chip chip-fix">Corrects the brief</span> My brief attributed the low-imageability
+    case to a grid. It isn't one: Lynch chose Jersey City for <em>"the complete confusion of an
+    unco-ordinated street system."</em> Los Angeles is the grid case. The distinction matters —
+    Lynch's finding is that a grid is <em>easy to navigate and weak as an image</em>, which is a
+    different failure from disorder.
+  </p>
+
+  <h3>What a real "uniform" grid actually contains</h3>
+
+  <p>
+    The Eixample — the most famous regular grid in Europe, and &phi;&nbsp;=&nbsp;0.108 in its own
+    city — described by researchers who measured it:
+  </p>
+
+  <blockquote>
+    isotropic streets that are generally 20 metres wide and blocks that are 113 by 113 metres, with
+    chamfered corners… two diagonals cross the area — Gaudí Avenue, 25 metres wide, and Enamorats
+    street, 18 metres; six passageways between 3 and 8 metres wide subdivide some blocks…; and
+    Montserrat Roig and Flora Tristan public gardens occupy two block cores.
+    <cite>Gómez Escoda, Armengol &amp; Berra-Sandín, <em>Journal of Urban Design</em> 28(4), 2023</cite>
+  </blockquote>
+
+  <p>
+    That is the recipe in one paragraph. A uniform module, <em>plus</em> chamfers, <em>plus</em> two
+    diagonals at two different widths, <em>plus</em> sub-block passages at a third width,
+    <em>plus</em> two blocks replaced by gardens. Manhattan is the same shape: an 800×200 ft module,
+    fifteen cross-streets widened to 100 ft, and Broadway — a pre-grid Lenape trail — cutting
+    diagonally and generating Union, Madison, Herald, Times and Columbus at the crossings.
+  </p>
+
+  <h3>The lattice has already erased two gradients this project needed</h3>
+
+  <p>
+    Everything above is an argument from other people's cities. Borough has measured the same
+    failure twice in its own logs, and in both cases the thing lost was not an appearance &mdash;
+    it was a number somebody needed.
+  </p>
+
+  <p>
+    The first is in <span class="src">plans/0002</span> &sect;D2. The volume-delay function's three
+    hash-bearing parameters named a long run as their ratifier. The run happened. It could not fire:
+  </p>
+
+  <blockquote>
+    A generated city's paved extent scales with the population it serves, so <em>the same number
+    sizes both the demand and the supply</em>, <span class="n">v/c</span> peaks at
+    <span class="n">0.44</span> at 4,000, 16,000 and 64,000 Citizens alike, and the denominator is
+    never approached at any population this project can generate.
+    <cite>plans/0002 &sect;D2, 2026-08-15</cite>
+  </blockquote>
+
+  <p>
+    The second is <span class="src">rulesets/platted.toml</span>'s own header. Its density band ring
+    was denominated in the paved lattice's half-span, and the built extent is sized by the
+    population &mdash; so the two scale together and <em>no population ever crossed a boundary</em>.
+    The density ladder the file exists to demonstrate was invisible for most of that file's life,
+    for exactly the reason the traffic curve was flat.
+  </p>
+
+  <div class="callout fix">
+    <div class="ctitle">The generalisation, and it is not aesthetic</div>
+    <p>
+      A generator that scales with what it serves erases the gradient it was built to expose. That
+      is the same defect as <em>ten thousand bowls of oatmeal</em> &mdash; distinct in coordinates,
+      identical in every respect anything can perceive &mdash; but it arrives here as two
+      unratifiable hash-bearing numbers rather than as a dull picture. It is the strongest argument
+      in the repository against machine-laid streets in Borough specifically, and none of it
+      required an opinion about how a city should look.
+    </p>
+  </div>
+
+  <p>
+    The counterweight is real and belongs on the same page. <span class="src">docs/spike-results.md</span>
+    R0 swept the player-drawn network's cost at the shipped 32-Tile block: <span class="n">33,018</span>
+    Segments on a 4096&sup2; map, one Street on every Cell boundary,
+    <span class="n">16.20&nbsp;km</span> of road per km&sup2;. The spike flags its own basis rather
+    than defending it &mdash; that density is <em>&ldquo;a number to check against a real city, not
+    a sweep&rdquo;</em>, and it sits against a corpus that justifies its target by citing Los Angeles
+    sprawl at 3,700 people/km&sup2;. Whether a player can be asked to draw 33,018 Segments is
+    untested, and <span class="src">docs/01</span> asserts that a screen drag aggregating into many
+    one-Segment commands is <em>&ldquo;a presentation question&rdquo;</em> with nothing behind it.
+  </p>
+</section>
+
+<!-- ============================================ -->
+<section>
+  <div class="sec-head">
+    <div class="sec-num">03</div>
+    <h2>Hierarchy, and a spacing that derives rather than gets chosen</h2>
+  </div>
+
+  <p>
+    The US Federal Highway Administration publishes what a real urban network is made of. Two-thirds
+    to three-quarters of urban street length carries under a quarter of the travel; four to five per
+    cent of it carries a third.
+  </p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Class</th><th>Share of urban mileage</th><th>Share of travel</th></tr></thead>
+      <tbody>
+        <tr><td>Interstate</td><td class="n">1–3%</td><td class="n">17–31%</td></tr>
+        <tr><td>Other principal arterial</td><td class="n">4–5%</td><td class="n">16–31%</td></tr>
+        <tr><td>Minor arterial</td><td class="n">7–14%</td><td class="n">14–25%</td></tr>
+        <tr><td>Collectors</td><td class="n">14–30%</td><td class="n">10–26%</td></tr>
+        <tr><td><b>Local</b></td><td class="n">63–75%</td><td class="n">6–25%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="tnote">
+    FHWA, <em>Highway Functional Classification: Concepts, Criteria and Procedures</em>, 2013
+    edition, Tables 3-5/3-6, from 2011 HPMS data. Ranges are independent and do not sum.
+  </p>
+
+  <p>
+    And on <em>appearance</em>, which is what this research is about — FHWA p. 19:
+    <em>"Even with a cursory view of a map of an urban area's roadway network, the functional
+    classification of many roadways can be discerned due the differences in roadway size."</em>
+    That is exactly the property Borough's network lacks. Class is invisible because there is one
+    class.
+  </p>
+
+  <div class="callout">
+    <div class="ctitle">A spacing that derives from a stated ratio</div>
+    <p>
+      FHWA states <em>"the total Collector mileage is typically one-third of the Local roadway
+      network."</em> On a 128 m module, promoting every third lattice line to collector and every
+      ninth to arterial gives:
+    </p>
+    <div class="tw">
+      <table>
+        <thead><tr><th></th><th>Share of length</th><th>Spacing</th><th>FHWA band</th></tr></thead>
+        <tbody>
+          <tr><td>Arterial</td><td class="n">11.1%</td><td class="n">1,152 m · 0.72 mi</td><td class="n">11–19% ✓</td></tr>
+          <tr><td>Collector</td><td class="n">22.2%</td><td class="n">384 m · 0.24 mi</td><td class="n">14–30% ✓</td></tr>
+          <tr><td>Local</td><td class="n">66.7%</td><td class="n">—</td><td class="n">63–75% ✓</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      Collector-to-local lands on <strong>0.333 exactly</strong>, and 0.72 mile is inside FHWA's
+      <em>"should not exceed 1 mile in fully developed areas."</em> These are
+      <strong>derived, not chosen</strong> — which is the form <code>adr/0052</code> asks for, and
+      rare enough in this corpus to be worth saying out loud.
+    </p>
+  </div>
+
+  <h3>Two mechanisms worth stealing, both one line</h3>
+
+  <p>
+    <strong>Galin et al. (CGF 30(7), 2011)</strong> derive road class from what a road connects:
+    <code>&tau;<sub>ij</sub> = min(&sigma;<sub>i</sub>, &sigma;<sub>j</sub>)</code>, where &sigma;
+    is a settlement's size. Highways connect cities; major roads connect cities and towns; minor
+    roads connect towns and villages. Width, lanes and markings all derive from &tau;. It is one
+    line, integer-only, and Borough already has the &sigma; side of it in building kinds, bands and
+    District population.
+  </p>
+
+  <p>
+    <strong>Weber et al. (CGF 28(2), 2009)</strong> make the street's class an <em>outcome</em>:
+    <em>"A street will only be built when enough traffic demand is computed for the street. Then the
+    street is marked as built and a temporary street width can be computed according to the current
+    street.traffic value."</em> Width and capacity are outputs of measured flow, not inputs. Borough
+    has Trips, per-Segment flow and a BPR loop today — this is expressible now, and it makes
+    hierarchy emerge rather than get configured.
+  </p>
+</section>
+
+<!-- ============================================ -->
+<section>
+  <div class="sec-head">
+    <div class="sec-num">04</div>
+    <h2>Blocks and parcels: one change corroborated, one number exposed</h2>
+  </div>
+
+  <div class="callout good">
+    <div class="ctitle">Independently corroborated, seventeen years early</div>
+    <p>
+      Weber et al. 2009, §5.3, equation 11:
+      <code>lot.nFloors = lot.floorspace / lot.envelope.area</code>. That is exactly what
+      <code>plans/0058</code> did — a rung names a plot ratio, and storeys derive by dividing it by
+      the share of block the pattern claims. <strong>The same identity, reached independently.</strong>
+      It is a citable external ratifier for a number already in the code.
+    </p>
+  </div>
+
+  <p>
+    Sevtsuk, Kalvo &amp; Ekmekci (<em>Urban Morphology</em> 20(2), 2016) measured seven historic
+    grids. Plots per block frontage ranges from <strong>4</strong> (Chicago, Portland) to
+    <strong>32</strong> (Manhattan). Borough's 128 m face at <code>lots_per_segment = 5</code> gives
+    about 25.6 m of frontage — Chicago is 24 m, Indianapolis 21 m. <strong>So Borough is a real
+    city. It is one real city, permanently, everywhere.</strong>
+  </p>
+
+  <p>
+    Frontage also turns out to be the strongest lever the literature has on any measurable outcome.
+    Cutting it from 10 m to 9 m raises pedestrian accessibility about 10%; from 50 m to 49 m, about
+    2%. The curve steepens below roughly 18 m. And critically, <em>"having narrower plot frontages
+    does not necessarily imply smaller blocks"</em> — it is separable from the lattice.
+  </p>
+
+  <p>
+    One more: <strong>block depth is twice plot depth in six of the seven grids measured.</strong>
+    Portland 30×2=60, Manhattan 30×2=60, Melbourne 100×2=200, Chicago 58×2≈115. Borough's
+    <code>BackToBack</code> is not one of six equals — it is the empirically dominant real form,
+    and the pattern weights may not reflect that.
+  </p>
+
+  <h3>Real plots are quantised, not equal — and the unit is per-block</h3>
+
+  <p>
+    Tait (<em>Proc. Soc. Antiq. Scot.</em> 138, 2008) re-measured <strong>49 street blocks</strong>
+    in Edinburgh, Canongate, St Andrews and Perth from the digitised OS first edition. Unit plot
+    widths run <strong>5.76 to 12.80 m</strong>, mean 8.09, median 8.11. Within a block, widths
+    cluster at <strong>¾, 1, 1¼, 1½, 1¾ and 2 × a block-specific unit</strong> — quantised, but not
+    equal, and the modal peak is not always the largest. One St Andrews block peaks at 1¼; one
+    Canongate sector contains no single-unit plots at all.
+  </p>
+
+  <p>
+    And the finding that matters most for a generator:
+    <strong>there is no town-wide module.</strong> The unit itself varies <strong>2.2× across the
+    49 blocks</strong>, and Tait rules out every standard measure — <em>"there is no evidence for
+    the use of the fall or the English perch… Even the use of the ell or yard would tend to produce
+    a clustering of widths at regular intervals. Such clustering is not in evidence."</em> His
+    proposed mechanism is a rope of arbitrary length marked at quarter intervals, and his conclusion
+    is a specification:
+  </p>
+
+  <blockquote>
+    A formal system of measurement is not needed.
+    <cite>Tait, 2008 — on how medieval burgage plots were actually set out</cite>
+  </blockquote>
+
+  <p>
+    That is a counter-based integer generator described in six words. Draw a unit for the block; draw
+    quarter-multiples of it for each plot along the face. No measurement system, no float, no
+    world-wide constant. It is a better-evidenced mechanism than anything else this research turned
+    up for parcels, and it fits Borough's determinism constraints exactly.
+  </p>
+
+  <p>
+    Two supporting facts. <strong>Depth is capped by access, and was known to be in 1903</strong> —
+    Hurd wrote that depth beyond 200–250 ft involves <em>"a waste of land at the interior of the
+    blocks owing to non-accessibility."</em> Borough's 128 m block split back-to-back gives 64 m,
+    about 210 ft, sitting right on that cap. And <strong>irregularity has a documented
+    direction</strong>: front boundaries stay fixed while back boundaries drift, and boundary moves
+    are asymmetric, producing <em>"one larger and one much smaller plot"</em> rather than two
+    even ones.
+  </p>
+
+  <h3>Cities: Skylines II subdivides as value rises — Borough amalgamates</h3>
+
+  <p>
+    The CS2 asset documentation states the mechanism outright, and the cell size is confirmed by
+    Colossal Order themselves in the UK Region Pack diary — <em>"UK terraces are rarely as wide as
+    8 meters (1 game unit)."</em> One cell is 8×8 m; the minimum lot is 1×2, so <strong>8 m of
+    frontage</strong>; the maximum is 6×6. The selection rule is published:
+    <em>"the zone algorithm always tries to spawn the largest possible lot. It first selects the
+    deepest option, then the widest."</em>
+  </p>
+
+  <p>
+    And the direction of change: <em>"the zoning algorithm will adapt by subdividing larger plot
+    areas into smaller lots"</em> as land value rises. SimCity 4 goes further and re-cuts
+    <strong>both ways</strong> — its official guide describes the simulator "parcelizing" within a
+    zone and then, as conditions change, redrawing "the dimensions of the lot to be larger
+    (aggregation) or smaller (subdivision)."
+  </p>
+
+  <p>
+    <strong>Borough only coarsens.</strong> <code>ParcelsPerFace</code> hands one Address the ground
+    several would have divided as the rung climbs, and nothing ever re-divides. The historical
+    record says subdivision is the dominant process and amalgamation a nineteenth-century
+    latecomer — so <strong>Borough's density ladder runs the burgage cycle backwards</strong>, and
+    it runs it in one direction where both shipped comparators run in two. That is worth deciding
+    deliberately rather than inheriting.
+  </p>
+
+  <p>
+    <span class="chip chip-flag">Method abandoned</span> Modern quantitative morphology has dropped
+    frontage-to-depth ratio as a metric altogether, because real plots are not rectangles
+    (Bobkova, Berghauser Pont &amp; Marcus, 2021). Borough's parcels <em>are</em> rectangles, so the
+    ratio remains meaningful here — but it is worth knowing the field stopped using it.
+  </p>
+</section>
+
+<!-- ============================================ -->
+<section>
+  <div class="sec-head">
+    <div class="sec-num">05</div>
+    <h2>What survives integer-only determinism</h2>
+  </div>
+
+  <p class="lede">
+    Borough bans floating point in simulation, bans random streams, bans hash-map enumeration.
+    That filter kills less than expected and kills the field's headline technique outright.
+  </p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Technique</th><th>Survives?</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td>Recursive BSP</td><td class="n">✓</td><td>Comparisons and integer splits only. The cheapest irregularity available.</td></tr>
+        <tr><td>Poisson-disc (Bridson)</td><td class="n">✓</td><td>Squared distances throughout; one <code>SqrtFloor</code>. No float anywhere.</td></tr>
+        <tr><td>Perlin / value noise</td><td class="n">✓</td><td>Perlin's own 2002 fix replaced the gradient table with 12 integer vectors.</td></tr>
+        <tr><td>Shape grammars</td><td class="n">✓</td><td><code>BlockPattern</code> already is one.</td></tr>
+        <tr><td>L-system streets</td><td class="n">✓</td><td>Needs a degree-2 crossing test and a squared-distance proximity test. Both exact in <code>long</code>.</td></tr>
+        <tr><td>Voronoi/Delaunay <em>combinatorics</em></td><td class="n">✓</td><td>Sign tests. Exact in integers.</td></tr>
+        <tr><td>Voronoi <em>vertex coordinates</em></td><td class="n">✗</td><td>Circumcentres are rationals.</td></tr>
+        <tr><td>Wave Function Collapse</td><td class="n">~</td><td>Core yes; the published algorithm no. See below.</td></tr>
+        <tr><td>Straight skeleton</td><td class="n">✗</td><td>Not about floats. See below.</td></tr>
+        <tr><td>Tensor-field streets</td><td class="n">✗</td><td>Eigen-decomposition and Runge–Kutta integration.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>The straight skeleton is dead for a reason that has nothing to do with floats</h3>
+
+  <p>
+    It is the primary method in the state-of-the-art parcel paper. Huber's thesis rules it out on
+    stability: the skeleton <em>"does not continuously depend on the input graph"</em>, and
+    <em>"Eppstein and Erickson remarked that perturbation techniques cannot be applied… such
+    situations are very likely to occur, in particular if P contains collinear edges."</em> City
+    blocks are axis-aligned and made of collinear edges — <strong>the degenerate case is the normal
+    case</strong>. CGAL with exact predicates runs quadratic and hit 3,197 MB at n=8192.
+  </p>
+
+  <p>
+    Two things make this painless. The paper that uses it prefers the alternative anyway:
+    <em>"while we could use the straight skeleton to generate the initial split line, using the
+    block's OBB turns out in practice to yield a more robust mechanism."</em> And on an axis-aligned
+    square block the skeleton degenerates to the two diagonals —
+    <strong>which <code>BlockPattern.cs</code> already refused</strong>, on the right grounds:
+    <em>"A geometry that tiles is not thereby a geometry that is built."</em>
+  </p>
+
+  <h3>WFC's failure mode is measured, and the fix is free</h3>
+
+  <p>
+    Merrell's comparison, Table 1: success rates of 0.2%, 2.7%, 10.4%, 1.8%, 45.9% — and
+    <strong>0% on eight of eighteen rows</strong> after 1,000 to 10,000 trials.
+    <em>"Model synthesis can generate in a few seconds what WFC fails to generate in over 20
+    minutes."</em> A world-creation step that may never terminate is incompatible with a
+    deterministic budget. The repair is to sweep in scanline order rather than picking lowest
+    entropy — which removes the failure cliff and the algorithm's only floating-point term at the
+    same time.
+  </p>
+
+  <h3>Three premises in the brief that the record does not support</h3>
+
+  <p>
+    <span class="chip chip-fix">Corrects the brief</span>
+    <strong>Factorio did not keep floats where it mattered.</strong> Its official Lua API says
+    <code>MapPosition</code> is <em>"a fixed-size 32 bit integer, with 8 bits reserved for decimal
+    precision"</em> — Q24.8. It chose fixed point for the hash-critical quantity and paid separately
+    to make floats deterministic elsewhere, including writing its own trigonometry because
+    <em>"basic trigonometric functions are not guaranteed to give same results across different
+    platforms."</em>
+  </p>
+
+  <p>
+    <span class="chip chip-flag">Unverified</span>
+    <strong>"Age of Empires used fixed point"</strong> is not supported by Bettner &amp; Terrano's
+    article, which makes no such statement. And <strong>Dwarf Fortress</strong> claims far less than
+    folklore: no primary statement from its author that worldgen is reproducible across hardware or
+    versions. On the published record it is seed-parameterised generation, not a determinism
+    guarantee.
+  </p>
+</section>
+
+<!-- ============================================ -->
+<section>
+  <div class="sec-head">
+    <div class="sec-num">06</div>
+    <h2>What nobody in the industry does</h2>
+  </div>
+
+  <p class="lede">
+    A survey of twenty shipped city-builders found that press coverage conflates three completely
+    different things. Separating them is the useful result.
+  </p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>What the machine does</th><th>Games</th><th>Whose network is it?</th></tr></thead>
+      <tbody>
+        <tr><td>Snaps roads to buildings the player placed</td>
+          <td>Anno 117 (one-click surround), Tropico 6 (aprons at any rotation)</td>
+          <td class="n">The player's</td></tr>
+        <tr><td>Routes a road the player <em>asked for</em></td>
+          <td>The Settlers II, Anno 117, Cities: Skylines II Grid mode</td>
+          <td class="n">The player's</td></tr>
+        <tr class="mark"><td><b>Lays out a network the player never drew</b></td>
+          <td><b>SimCity 4, Frostpunk 2, Foundation, Ostriv</b> — plus OpenTTD and Simutrans, where towns build their own</td>
+          <td class="n"><b>The machine's</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>
+    The strongest and least-known case is <strong>SimCity 4</strong>, from its own manual:
+    <em>"Secondary streets are automatically constructed in any new zone."</em> The player's zone
+    rectangle is the input and a street grid is the output — so the player's later road-drawing is
+    an <em>upgrade pass over machine-laid geometry</em>, not the original authorship.
+  </p>
+
+  <p>
+    <strong>Frostpunk 2</strong> generates the layout inside a player-drawn district, and shipped
+    something revealing: an opt-in <em>"legacy urban layout"</em>. Changing the road generator
+    changed players' cities enough that the studio had to ship a compatibility switch. Generated
+    layout is noticed.
+  </p>
+
+  <p>
+    <span class="chip chip-fix">Corrects what I published an hour ago</span> I wrote that Ostriv and
+    Foundation "delete the network entirely." Both halves are wrong.
+    <strong>Ostriv's traffic-worn paths are simulation state with a consequence</strong> —
+    <em>"Hay dryers are now sensitive to grass trampling around them"</em> — and it later added
+    player-built paved roads on top. <strong>Foundation shipped a road paint tool at 1.0</strong>,
+    gated behind a housing tier: a game whose identity was "no roads" gave the player a road brush.
+    The drift is toward more player authorship, not less.
+  </p>
+
+  <div class="callout fix">
+    <div class="ctitle">A refusal, which under <code>adr/0070</code> is the one classification that is evidence</div>
+    <p>
+      <strong>Manor Lords built the desire-path system and threw it away.</strong> Its developer, in
+      full:
+    </p>
+    <blockquote style="margin-top:14px">
+      To boost the organic look of towns I added an eroding paths system. The paths were created
+      wherever peasants walked. However during a long gameplay it did not quite look as cool as I
+      expected… Turns out <strong>if you simply erode the grass wherever peasants walk, after a long
+      time you get weird geometric results</strong>. Due to the size of the map the resolution of
+      the path texture had to be high and was never enough. <strong>I ended up scrapping this
+      system</strong> and instead take more care to place more small paths between buildings in a
+      more controlled fashion.
+      <cite>Slavic Magic, 2022-07-09</cite>
+    </blockquote>
+    <p>
+      Two named failure modes: <strong>long-run accumulation produces geometric rather than organic
+      artefacts</strong>, and the texture resolution required does not fit a large map. And a
+      vestige survives — patch notes still optimise "marketplace dirt erosion" — so erosion was kept
+      where traffic is dense and spatially bounded, and dropped where it is sparse and map-wide.
+      Anyone reaching for emergent paths in Borough should read this first.
+    </p>
+  </div>
+
+  <p>
+    <strong>Ostriv refused the other half too</strong>, and gave a reason:
+    <em>"it could even be generated automatically based on model geometry. But that would take away
+    from Ostriv its unique handcrafted feel."</em> An explicit, reasoned refusal to derive building
+    footprints — the opposite decision to Borough's, argued rather than defaulted.
+  </p>
+
+  <p>
+    <strong>Caesar III splits authorship the opposite way from everyone</strong>, which is worth
+    holding as a shape: the player draws road <em>geometry</em> and the machine owns road
+    <em>quality</em> — <em>"citizens pave roads when surrounding property becomes sufficiently
+    desirable"</em> — while the player designates <em>land</em> and the machine owns
+    <em>buildings</em>. Its access rule is a hard number from the manual:
+    <em>"Houses need to be within two squares of a road."</em>
+  </p>
+
+  <div class="callout fix">
+    <div class="ctitle">The flagship failure, and it is exactly this shape</div>
+    <p>
+      Introversion's <strong>Subversion</strong> had the best procedural city generator indie games
+      had produced: rules governing road growth where <em>"by making small changes to those rules,
+      you can vastly change the result"</em> — Manhattan grids against radial patterns around
+      population centres — generating <em>"a complete city from the satellite view down to
+      individual buildings"</em> over a 10 km square, with <em>"procedural generators for every
+      single step of the process."</em> Five years of work. Chris Delay's own verdict, on the day it
+      was cancelled in 2011:
+    </p>
+    <blockquote style="margin-top:14px">
+      But there was a massive gaping hole where you would normally see a "core game".
+      <cite>Chris Delay, Introversion Software, 2011-10-17</cite>
+    </blockquote>
+    <p>The generator was never the missing part.</p>
+  </div>
+
+  <p>
+    <strong>And the industry's direction of travel runs the other way from this research.</strong>
+    Foundation — sold as <em>"grid-less… with a heavy focus on organic development"</em>, whose
+    identity was <em>you don't build roads</em> — shipped a road brush at 1.0 giving the player
+    <em>"complete control of where you wish paved roads to be created."</em> Frostpunk 2 added
+    manual Plaza placement. <strong>Nobody in the twenty-game survey moved toward more
+    generation.</strong>
+  </p>
+
+  <p>
+    So <code>adr/0090</code> puts Borough in the <em>majority</em>, not in a unique position. The
+    unusual thing about Borough is not that the player draws the roads — it is that the player
+    cannot draw an Arterial.
+  </p>
+
+  <div class="callout">
+    <div class="ctitle">Borough's own corpus already settles the design question</div>
+    <p>
+      <code>01 §683</code>: <em>"An overlay must never be sharper than the player's ability to act
+      on it… Showing a problem with no corresponding verb is an invitation to frustration."</em> A
+      generated street network that the game explains perfectly, set against a verb that lays one
+      Segment per click, <strong>is</strong> an overlay sharper than the verb — the failure the
+      corpus already names. And under <code>adr/0070</code>, the answer to <em>given the road verb
+      is thin, should the machine compensate?</em> is <strong>build the verb</strong>.
+    </p>
+    <p>
+      One thing the survey does add, which <code>adr/0090</code> did not price: a full map is about
+      <strong>525,000 Segments</strong>. That ADR argued about <em>permission</em> — may the player
+      build anywhere — and never argued about <em>labour</em>. SimCity 4's answer (the player lays
+      through-routes and zones an area; the machine laces the area with lattice edges) is the shape
+      that fits. Under the amnesty that is a decision to <strong>record as owed, not to take</strong>.
+    </p>
+    <p>
+      ⚠ And SimCity 4's own documentation records the mechanism's failure mode, which is the part
+      worth carrying with it: <em>"When zoning, Streets are drawn automatically to give each lot
+      transportation access. This auto-drawing should make transportation a non-issue, but
+      <strong>it occasionally leaves isolated lots without access. In this case, you must manually
+      draw the Street out to the disconnected lot.</strong>"</em> The machine laces, and sometimes
+      the player has to go in and repair it by hand.
+    </p>
+  </div>
+
+  <div class="callout good">
+    <div class="ctitle">One pillar of Borough's, stated by the architect of GlassBox</div>
+    <p>
+      Andrew Willmott's GDC 2012 deck names the failure GlassBox was built to fix — <em>"Our past
+      games have been primarily statistical… makes it hard for player to understand what's going on
+      with their sim (SimCity 4 traffic system)"</em> — and states the repair as a slogan:
+      <em>"Rather than visualise game statistics, show actual game state. Show cars instead of
+      traffic density… Ensure cause and effect is obvious: <strong>What You See Is What You
+      Sim.</strong>"</em>
+    </p>
+    <p>
+      That is <code>LEGIBLE CAUSE</code> in someone else's words, and Librande supplies the thing it
+      was reacting against: in the SimCity games before 2013, <em>"the streets are just showing the
+      state of the adjacent buildings. The cars are simply graphical feedback and aren't actually
+      part of the simulation."</em> The fake Borough refuses by construction was the genre standard
+      for two decades.
+    </p>
+  </div>
+
+  <div class="callout fix">
+    <div class="ctitle">The finding that cuts against this session's own direction</div>
+    <p>
+      <strong>Manor Lords tried procedural buildings and abandoned them.</strong> Its developer, in
+      2022: <em>"I went through a lot of iterations of late game towns. I tried procedural
+      generation but ended up using a more standard approach with randomized pre-made
+      buildings."</em>
+    </p>
+    <p>
+      Its stated cosmetic fix for monotony is also plot-level: on wide plots the game <em>"will
+      sometimes leave a facade gap and pick smaller house varieties."</em> That is one team's answer
+      after trying it the other way, and it points the variety budget somewhere this session has not
+      been spending it.
+    </p>
+    <p>
+      <span class="chip chip-fix">And I over-compressed it</span> <strong>"Abandoned procedural
+      buildings" is too flat, and a later agent caught me.</strong> What Manor Lords rejected is
+      procedural <em>mesh generation</em>. What it ships is procedural <em>fitting and
+      assembly</em> — and the proof is a bug report: <em>"Fixed oversized Tier 4 Burgage Plots
+      caused by using meters instead of centimetres in the scaling algorithm."</em> A unit-conversion
+      bug in a scaling algorithm only exists if house dimensions are computed against plot
+      dimensions at runtime. Gates, fences, side sheds, ground blends, pathfinding nodes and the
+      garden's patch tiles are all spawned against the plot polygon too. The library is authored;
+      the placement is algorithmic. Quoting either half alone misrepresents the game.
+    </p>
+  </div>
+
+  <div class="callout fix">
+    <div class="ctitle">The price of a free-form parcel, in the developer's own notes</div>
+    <p>
+      <strong>Manor Lords' flexible plots forced it to abandon radius-based adjacency effects
+      entirely.</strong> Verbatim: <em>"We prototyped what building games usually do — effects
+      applied in a radius, or in specific zones, but found out that the Manor Lords' flexible plot
+      system doesn't play very well with placing stuff in areas, especially when they are circular.
+      Fitting rectangular plots into circles is not pleasant."</em> They replaced radius effects with
+      region-scale environment types. Borough runs several radius mechanisms — the 400 m Parking
+      Shed, the pollution kernel, land value — so this is a direct warning about a combination it
+      has not tried.
+    </p>
+    <p>
+      And the robustness bill is itemised across three years of patch notes: triangular-plot
+      crashes, non-deterministic gate spawning on narrow plots, props levitating and spawning
+      underground, fences vanishing on upgrade, houses pushing too deep into the plot, and extension
+      geometry misaligning when the plot's centre line and the extension's diverge.
+      <strong>Planting cost was computed from the extension's <em>perimeter</em> rather than its
+      area for roughly eighteen months of shipped game.</strong> Free-form parcels are not free.
+    </p>
+  </div>
+
+  <p>
+    One place Borough is genuinely ahead. Congestion does not feed back into routing anywhere in the
+    genre — Cities: Skylines' own wiki says vehicles take the fastest legal route and
+    <em>"it takes no account of other traffic."</em> Borough's BPR loop priced on entry already does
+    what the genre leaders do not, which means a road hierarchy would carry
+    <em>more</em> consequence here than it does in Skylines.
+  </p>
+</section>
+
+<!-- ============================================ -->
+<section>
+  <div class="sec-head">
+    <div class="sec-num">07</div>
+    <h2>What to do, ranked</h2>
+  </div>
+
+  <p class="lede">
+    Ordered by evidence-per-unit-of-work. None of the top three needs a geometry primitive Borough
+    does not have — and it has exactly one, <code>SqrtFloor</code>.
+  </p>
+
+  <div class="moves">
+
+    <div class="move">
+      <div class="move-rank">1</div>
+      <div>
+        <h3>Make an empty world reachable in the shell</h3>
+        <p>
+          <code>Main.cs:897</code> issues <code>Populate</code> at Tick 0 with no guard. Until that
+          is a flag, nobody — including you — can look at a city a player built, and the road verb
+          has never been observed working. Every screenshot, every balance run and every judgement
+          about how the city reads has been taken on a synthetic checkerboard.
+        </p>
+        <p>
+          <strong>This is not a design question.</strong> It is a start-mode flag, and it gates the
+          honesty of every other item on this page — including move 2, which measures a graph the
+          generator laid rather than one a player did.
+        </p>
+        <p>
+          It also has a named reading waiting for it, and the reading is not aesthetic. A hand-drawn
+          network can be <em>wrong</em>, which the generated one structurally cannot be. So the
+          question to put to the first empty world is: <strong>does <span class="n">v/c</span> ever
+          exceed 0.44?</strong> If it does, two hash-bearing traffic parameters that have been stuck
+          since 2026-08-15 acquire the world their ratifier names. If instead the player builds one
+          blob beside one gate on a 65.5&nbsp;km map, that is evidence too &mdash; and it is the
+          first evidence anyone has had either way.
+        </p>
+        <p class="move-cost">Cost: a flag. Highest value on this page for the least work.</p>
+      </div>
+    </div>
+
+    <div class="move">
+      <div class="move-rank">2</div>
+      <div>
+        <h3>Run OSMnx against Borough's own graph</h3>
+        <p class="move-done"><strong>DONE 2026-09-04</strong>, and it refuted three of the figures
+        it was built to confirm — see section 01.</p>
+        <p>
+          Built as <code>Borough.Headless --morphology</code> rather than as OSMnx, because osmnx
+          is not installed here and pulling in geopandas and GDAL to measure a graph the project
+          already holds in memory is a dependency nobody needed. It computes bearing distribution
+          over 36 bins, orientation entropy both unweighted and length-weighted, &phi;, per-Segment
+          circuity, the node degree histogram, four-way share over intersections <em>and</em> over
+          nodes, and intersection density per km&sup2; and per square mile.
+        </p>
+        <p>
+          <strong>The entropy is now verified against its source and the index still is not</strong>
+          — checked against <code>osmnx/bearing.py</code>, the paper author's own implementation.
+          Four things match: <strong>36 bins</strong> is that function's default; bearings are
+          <strong>bidirectional</strong>, two reciprocal per undirected edge; the distribution is
+          <strong>unweighted</strong> by default; the entropy is in <strong>nats</strong>.
+        </p>
+        <p>
+          <strong>One thing didn't, and it was a real defect.</strong> The reference bins are
+          <em>centred</em> on the compass points rather than starting at them — it histograms into
+          72 half-bins, rolls by one and sums adjacent pairs, <em>"so eg 0.01 deg and 359.99 deg
+          will be binned together"</em>. This build split them, so one direction landed at both ends
+          of the histogram: entropy invented out of a boundary. Fixed — the bin table now reads
+          <code>355°–5°</code> for north and wraps. <strong>It changed none of the headline
+          figures</strong>, because a lattice's bearings are exactly 0/90/180/270 and land cleanly
+          under either partition — which is precisely the problem with it. A boundary error is
+          invisible on data that doesn't sit near the boundary, and a curving Arterial does.
+        </p>
+        <p>
+          What remains unverified is
+          <code>φ = 1 − ((H − Hg)/(Hmax − Hg))²</code> with <code>Hg = ln 4</code> and
+          <code>Hmax = ln 36</code>. OSMnx doesn't implement φ, and the paper sits behind Springer's
+          authorisation wall — four routes to a readable copy returned no text. The two anchors and
+          the square are recalled, not sourced, and all three are named at their definitions so a
+          reader with the paper can check three lines.
+        </p>
+        <p class="move-cost">Cost: one Headless mode and four assertion-tier tests. None of them pins a figure.</p>
+      </div>
+    </div>
+
+    <div class="move">
+      <div class="move-rank">3</div>
+      <div>
+        <h3>Give the Arterial a producer</h3>
+        <p>
+          The class exists, its speed and capacity are wired, and the BPR loop would price it today.
+          Nothing can make one. Whether that producer is the player (<code>adr/0077</code> reopened)
+          or a derivation in Galin's shape — a Segment's class from what it joins — is a design
+          question, but the current state is a mechanism with no door.
+        </p>
+        <p class="move-cost">Cost: an argument, then a small change. The data model is already there.</p>
+      </div>
+    </div>
+
+    <div class="move">
+      <div class="move-rank">4</div>
+      <div>
+        <h3>Jitter the lattice spacing — for blocks, not for &phi;</h3>
+        <p>
+          A per-row and per-column spacing offset under a new <code>purpose_tag</code>, keyed on the
+          row index. Blocks stay axis-aligned, so <code>LotSubdivider</code>,
+          <code>Frontage</code>, <code>BlockPattern</code> and parity house-numbering are all
+          untouched. Because six patterns already select on block size, varying size cascades into
+          pattern variety for free.
+        </p>
+        <p>
+          <strong>It will not move &phi; at all.</strong> Every street stays axis-aligned, so all
+          bearings stay in four bins. Worth doing; not a fix for section 01.
+        </p>
+        <p class="move-cost">Cost: zero new geometry primitives. A spacing table on the street grid.</p>
+      </div>
+    </div>
+
+    <div class="move">
+      <div class="move-rank">5</div>
+      <div>
+        <h3>Spend the appearance budget on the ground, not on more meshes</h3>
+        <p>
+          <code>Ground()</code> draws one slab textured at 512×512 — <strong>one texel per Cell,
+          one texel per 128 m</strong>, bilinearly filtered, so inside a block the ground is a
+          single interpolated colour. <code>Scatter()</code> places trees and rocks by two
+          independent 12-bit fractions with no minimum distance and <strong>no per-instance colour
+          at all</strong>. The MultiMesh already carries a colour channel that scatter spends on
+          nothing.
+        </p>
+        <p>
+          Rabii &amp; Cook (FDG 2023) argue against the obvious alternative: adding more meshes
+          enlarges the possibility space <em>"without adding any new encoded knowledge"</em>, which
+          is the branch that produces oatmeal.
+        </p>
+        <p class="move-cost">Cost: no new meshes. Higher-resolution skin, per-instance colour, relaxed spacing.</p>
+      </div>
+    </div>
+
+    <div class="move">
+      <div class="move-rank">6</div>
+      <div>
+        <h3>Replace <code>lots_per_segment</code> with a per-block unit and quarter multiples</h3>
+        <p>
+          This is the best-evidenced mechanism in the whole of this research, and it is the one
+          Borough's constraints suit best. Tait's 49 re-measured Scottish blocks say plots are
+          <strong>quantised multiples of a unit that belongs to the block, not to the town</strong> —
+          ¾, 1, 1¼, 1½, 1¾, 2 — with the unit itself varying 2.2× block to block and no standard
+          measure underneath it.
+        </p>
+        <p>
+          So: draw a unit per block under its own <code>purpose_tag</code>, then draw quarter
+          multiples along each face until the frontage is consumed. <em>"A formal system of
+          measurement is not needed."</em> Fixed <em>equal</em> lots per segment is refuted by the
+          evidence; fixed <em>quantised</em> lots is close to right, which is why this is a small
+          change rather than a rewrite.
+        </p>
+        <p>
+          Siksna's dynamic rules layer on top and are directly implementable — subdivision occurs
+          along the <em>wider</em> frontages first, and 4- or 8-lot square blocks amalgamate cleanly
+          where more than 8 do not.
+        </p>
+        <p class="move-cost">Cost: one new purpose tag and an integer draw. No geometry, no float, no world-wide constant.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="callout">
+    <div class="ctitle">And two things not to do</div>
+    <p>
+      <strong>Do not change <code>block_tiles</code>.</strong> 128 m is inside the real range on
+      every size measure. The problem is variation, not grain.
+    </p>
+    <p>
+      <strong>Do not build the straight skeleton.</strong> Its instability on collinear edges is
+      structural, the paper that uses it prefers OBB anyway, and on a square block it degenerates
+      to a geometry <code>BlockPattern.cs</code> already rejected by argument.
+    </p>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<section>
+  <div class="sec-head">
+    <div class="sec-num">08</div>
+    <h2>What was not established</h2>
+  </div>
+
+  <p>
+    Recorded because a labelled gap is worth more than a confident guess, and because the previous
+    batch's worst error was a figure taken from a search summary rather than a source.
+  </p>
+
+  <p>
+    <span class="chip chip-flag">Unverified</span>
+    <strong>Allan Jacobs' <em>Great Streets</em> figures.</strong> The book was located and its
+    structure confirmed; the text was inaccessible. Every intersections-per-square-mile figure
+    associated with it — Venice, Rome, Portland, Irvine, Brasília — is unobtained and none has been
+    reproduced here. Boeing 2019 is the substitute and is arguably better for this purpose.
+  </p>
+
+  <p>
+    <span class="chip chip-flag">Unverified</span>
+    <strong>Blue noise "reads better" for scatter.</strong> Bridson's justification is
+    rendering-sampling theory, not perception. Practitioners do it; no primary source claims it
+    looks better.
+  </p>
+
+  <p>
+    <span class="chip chip-flag">Looked for three times, found none of them</span>
+    <strong>Nobody has published the argument that players draw roads for agency or
+    self-expression.</strong> Three agents went after it independently — through Colossal Order's
+    dev diaries, Korppoo's TED talk and GDC session, Paradox studio statements, and the complete
+    Steam announcement corpora for both Cities: Skylines games — and neither found it stated. The
+    nearest is metaphor and ordering: roads get dev diary #1, and Colossal Order calls them
+    <em>"the backbone of a city"</em> and zones <em>"the meat fleshing out the city."</em> The
+    agency reading is inference, not a quote, and this page does not rest on it.
+  </p>
+
+  <p class="tnote">
+    And this negative was already in the repository. <span class="src">docs/references.md</span>
+    &sect;9: <em>&ldquo;No developer rationale for the SC4 &rarr; SC2013 shift could be found.
+    Quigley's GDC 2013 talk, Librande's BLDGBLOG interview, and Willmott's</em> Inside GlassBox
+    <em>were all checked; none discusses it. Treat this as an open gap rather than an absence of
+    reasons.&rdquo;</em> &mdash; and on CS1/CS2 zoning, <em>&ldquo;no developer commentary on that
+    choice was found for either title.&rdquo;</em> Fifteen agents re-derived a result this project
+    had written down and dated. The finding is stronger for having been reached twice by different
+    routes; the search was still redundant, and the corpus said so before it started.
+  </p>
+
+  <p>
+    <span class="chip chip-new">But two studios did publish an argument — both for the other side</span>
+    Foundation's Kickstarter states the case for machine layout outright: <em>"Too often
+    city-builders generate squarish cities that seem to be designed by a soviet urbanist of the 20th
+    century… Buildings back then were constructed by individuals, not architects, they were placed
+    messily and close to each other."</em> And Frostpunk 2's game directors, asked in a Reddit AMA
+    whether the shift to districts cost the player agency, answered by redefining the word:
+  </p>
+
+  <blockquote>
+    If by that you mean micro control over building placement then no, this has not changed.
+    However, if you mean how much your city-planning and city-building choices impact gameplay, then
+    I'd say that there's a very large amount of agency in the game.
+    <cite>Jakub Stokalski, Game Director, Frostpunk 2, 2024-09-10</cite>
+  </blockquote>
+
+  <p>
+    He concedes the loss plainly in the same thread — <em>"if what you loved about FP1 was single
+    building placement, radial grid — well yes, some things are gone"</em> — and argues the trade
+    was worth it because consequence replaced placement. That is the strongest published statement
+    of the position opposite to move 3 on this page, and it deserves to be read before anyone
+    settles Borough's line.
+  </p>
+
+  <p>
+    That search did establish a firm negative, though. Grepping both games' full announcement
+    corpora for <code>procedural</code>, <code>auto-generat</code> and road generation returns
+    <strong>zero hits</strong>. No auto-road or district-generation feature has ever shipped in
+    either Cities: Skylines.
+  </p>
+
+  <p>
+    <span class="chip chip-flag">Unverified</span>
+    <strong>No developer statement anywhere on what detail stops reading at a far camera.</strong>
+    The one adjacent data point: Colossal Order's themes vary street markings and roadside props,
+    not asphalt, kerb profile or wear.
+  </p>
+
+  <p>
+    <span class="chip chip-flag">Unverified</span>
+    <strong>Vanegas et al. 2012 itself</strong> — the state-of-the-art parcel paper — is behind
+    Wiley. Kelly's PhD thesis carries his half verbatim, so the skeleton algorithm is read and the
+    OBB half is known only by reference.
+  </p>
+
+  <p>
+    <span class="chip chip-flag">Premise wrong</span>
+    <strong>Ostriv has no terrain devblog.</strong> An agent walked the entire archive back to
+    October 2016. My brief asserted one existed.
+  </p>
+
+  <p>
+    <span class="chip chip-fix">Folklore, and wrong</span>
+    <strong>Amsterdam did not tax houses by facade width.</strong> This is a famous story and the
+    record contradicts it. Abrahamse's 2010 dissertation on the canal belt, built on the city
+    archive's own resolutions, describes the <em>verponding</em> as a real-estate tax assessed by
+    house count — and the word <em>gevelbreedte</em> appears <strong>zero times in 345 pages</strong>.
+    The documented mechanism runs the other way: the city <em>decreed</em> plot widths when it sold
+    the land — 30 voet in 1613, 26 and 22 in 1663 — and narrowed them in 1663 explicitly to
+    <em>discourage</em> subdivision. Narrow Amsterdam houses are a planning decision, not a tax
+    dodge.
+  </p>
+
+  <p>
+    <span class="chip chip-flag">Do not use</span>
+    <strong>Conzen's "28 feet at Alnwick"</strong> — the most-quoted burgage figure in circulation.
+    Conzen 1960 itself is lending-restricted and could not be read; every figure attributed to it
+    here is attested through a later scholar citing a page. The 28-feet number traces to a single
+    amateur blog post that contains an acknowledged arithmetic error. Tait 2008 is the source to
+    use instead, and it is open access.
+  </p>
+
+  <p>
+    <span class="chip chip-flag">No published number exists</span>
+    <strong>Manor Lords has never published a burgage plot's minimum frontage, minimum area, or the
+    thresholds a backyard extension needs.</strong> The game communicates fit through icons in the
+    placement preview. Every figure in circulation is either datamined and unattributed, or measured
+    by players using a corpse pit as a ruler. One number does appear in the patch notes —
+    <em>"lowering the standard plot width from 1000 to 750"</em> — but it sits in the
+    <em>AI-opponent</em> section, is not a player-facing limit, and <strong>states no unit</strong>.
+    Reading it as 7.5 m is an inference, not a source.
+  </p>
+
+  <p>
+    Nobody has ever built an evaluation system for procedural block subdivision — Kelly says so
+    explicitly. So there is no established way to say whether Borough's six patterns are good, and
+    the metrics on this page are all network metrics borrowed from elsewhere.
+  </p>
+</section>
+
+<!-- ============================================ -->
+<section>
+  <div class="sec-head">
+    <div class="sec-num">09</div>
+    <h2>Sources</h2>
+  </div>
+
+  <div class="srcs">
+    <div class="src"><b>Boeing, G.</b> "Urban spatial order: street network orientation, configuration, and entropy." <em>Applied Network Science</em> 4:67, 2019.<span class="tag">Table 1 — the 100-city table</span></div>
+    <div class="src"><b>Serra, M. &amp; Hillier, B.</b> "Angular and Metric Distance in Road Network Analysis." <em>CEUS</em>, 2018.<span class="tag">20,752 UK traffic count points</span></div>
+    <div class="src"><b>Kirkley, Barbosa, Barthelemy &amp; Ghoshal.</b> "From the betweenness centrality in street networks to structural invariants in random planar graphs." <em>Nature Communications</em> 9:2501, 2018.</div>
+    <div class="src"><b>Lynch, K.</b> <em>The Image of the City.</em> MIT Press, 1960.<span class="tag">pp. 32–33, 60–61, 99</span></div>
+    <div class="src"><b>FHWA.</b> <em>Highway Functional Classification: Concepts, Criteria and Procedures</em>, 2013 edition.<span class="tag">Tables 3-5/3-6; spacing §</span></div>
+    <div class="src"><b>Bridges, W.</b> <em>Map of the City of New-York and Island of Manhattan.</em> 1811.<span class="tag">Primary — the Commissioners' Remarks, pp. 24–32</span></div>
+    <div class="src"><b>Sevtsuk, Kalvo &amp; Ekmekci.</b> "Pedestrian accessibility in grid layouts." <em>Urban Morphology</em> 20(2), 2016.<span class="tag">Table 1 — seven historic grids</span></div>
+    <div class="src"><b>Siksna, A.</b> "The evolution of block size and form in North American and Australian city centres." <em>Urban Morphology</em> 1, 1997.</div>
+    <div class="src"><b>Tait, A.</b> "Burgage plots of medieval Scotland." <em>Proc. Soc. Antiq. Scot.</em> 138, 2008, 223–238.<span class="tag">Open access · 49 blocks re-measured · the quarter-unit finding</span></div>
+    <div class="src"><b>Coleman, R. &amp; Smith, C.</b> <em>Proc. Soc. Antiq. Scot.</em> 134, 2004, 281–323.<span class="tag">Plot depths — long c.130 m, short c.73 m</span></div>
+    <div class="src"><b>Hurd, R. M.</b> <em>Principles of City Land Values.</em> 1903.<span class="tag">Depth capped by block-interior access</span></div>
+    <div class="src"><b>Zangerle, J. A.</b> <em>Principles of Real Estate Appraising.</em> 1927.<span class="tag">4-3-2-1 rule · corner influence · and his own critique that the depth curves were guesses</span></div>
+    <div class="src"><b>Abrahamse, J. E.</b> <em>De grote uitleg van Amsterdam.</em> Dissertation, UvA, 2010.<span class="tag">Refutes the frontage-tax story</span></div>
+    <div class="src"><b>Bobkova, Berghauser Pont &amp; Marcus.</b> On plot-system metrics, 2021.<span class="tag">Why the field dropped frontage:depth</span></div>
+    <div class="src"><b>Weber, Müller, Wonka &amp; Gross.</b> "Interactive Geometric Simulation of 4D Cities." <em>CGF</em> 28(2), 2009.<span class="tag">§5.1 subdivision · §5.3 eq. 11</span></div>
+    <div class="src"><b>Parish, Y. &amp; Müller, P.</b> "Procedural Modeling of Cities." SIGGRAPH 2001.<span class="tag">§4.1 — not OBB, contrary to the brief</span></div>
+    <div class="src"><b>Galin, Peytavie, Guérin &amp; Beneš.</b> "Authoring Hierarchical Road Networks." <em>CGF</em> 30(7), 2011.<span class="tag">τ = min(σi, σj)</span></div>
+    <div class="src"><b>Chen, Esch, Wonka, Müller &amp; Zhang.</b> "Interactive Procedural Street Modeling." SIGGRAPH 2008.<span class="tag">Tensor fields — not portable</span></div>
+    <div class="src"><b>Kelly, T.</b> <em>Unwritten procedural modeling with the straight skeleton.</em> PhD, Glasgow, 2013.<span class="tag">Ch. 4 — the parcel chapter</span></div>
+    <div class="src"><b>Huber, S.</b> <em>Computing Straight Skeletons and Motorcycle Graphs.</em> PhD, Salzburg, 2011.<span class="tag">§2.5.3–2.5.4 — why it is disqualified</span></div>
+    <div class="src"><b>Rabii, Y. &amp; Cook, M.</b> "Why Oatmeal is Cheap: Kolmogorov Complexity and Procedural Generation." FDG 2023.</div>
+    <div class="src"><b>Merrell, P.</b> "Comparing Model Synthesis and Wave Function Collapse." 2021.<span class="tag">Table 1 — the failure rates</span></div>
+    <div class="src"><b>Salmon, Moraes, Dror &amp; Shaw.</b> "Parallel Random Numbers: As Easy as 1, 2, 3." SC11.<span class="tag">Counter-based generation</span></div>
+    <div class="src"><b>van Muijden, J.</b> "GPU-Based Procedural Placement in Horizon Zero Dawn." GDC 2017.<span class="tag">Density field selects the asset</span></div>
+    <div class="src"><b>Gómez Escoda, Armengol &amp; Berra-Sandín.</b> <em>Journal of Urban Design</em> 28(4), 2023.<span class="tag">The Eixample, measured</span></div>
+    <div class="src"><b>Styczeń, G.</b> (Slavic Magic). Manor Lords Steam announcements, 2022–2026.<span class="tag">Primary — burgage plots, and the rejection of procedural buildings</span></div>
+    <div class="src"><b>Wube Software.</b> Factorio Friday Facts 36, 47, 370, 371; official Lua API, <code>MapPosition</code>.</div>
+    <div class="src"><b>OpenTTD</b> <code>src/town_cmd.cpp</code>; <b>Simutrans</b> <code>world/simcity.cc</code>.<span class="tag">Primary — game source</span></div>
+    <div class="src"><b>Maxis / EA.</b> <em>SimCity 4</em> manual, 2003.<span class="tag">Primary — "secondary streets are automatically constructed in any new zone"</span></div>
+    <div class="src"><b>Impressions / Sierra.</b> <em>Caesar III</em> manual, 1998.<span class="tag">Primary — citizens pave roads by desirability; two-square access rule</span></div>
+    <div class="src"><b>Willmott, A. &amp; Moskowitz, D.</b> "Inside the GlassBox." GDC 2012.<span class="tag">Zone rules — "the gardening aspect of simulation"</span></div>
+    <div class="src"><b>11 bit studios.</b> Frostpunk 2 patch notes, 2025–2026.<span class="tag">Road generation logic; the "legacy urban layout" switch</span></div>
+    <div class="src"><b>Polymorph Games.</b> Foundation patch notes, 2025–2026.<span class="tag">Housing generated from residential areas; the 1.0 road paint tool</span></div>
+    <div class="src"><b>Ostriv</b> developer posts, 2020–2026.<span class="tag">Traffic-worn paths as simulation state; the refusal to auto-derive footprints</span></div>
+    <div class="src"><b>Delay, C.</b> (Introversion). <em>Subversion</em> devblog 2007–2008 and cancellation notice, 2011.<span class="tag">Five years of city generator, "a massive gaping hole"</span></div>
+    <div class="src"><b>Librande, S.</b> "Simulating a City — One Page at a Time." GDC 2013.<span class="tag">"Both players begin the same way: they lay out roads and zones"</span></div>
+    <div class="src"><b>Vanegas, Kelly, Weber, Halatsch, Aliaga &amp; Müller.</b> "Procedural Generation of Parcels in Urban Modeling." <em>CGF</em> 31(2pt3), 2012.<span class="tag">Count is an output, never an input</span></div>
+    <div class="src"><b>Aichholzer, Aurenhammer, Alberts &amp; Gärtner.</b> "A Novel Type of Skeleton for Polygons." <em>JUCS</em> 1(12), 1995.<span class="tag">O(n² log n); "may alter the skeleton structure completely"</span></div>
+  </div>
+</section>
+
+</div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>
+      Companion to <em>Ten Thousand Facades</em>, which covered buildings. This page covers
+      everything else — streets, blocks, parcels, ground.<br>
+      Eleven research agents; several were killed by session limits and relaunched. Every figure
+      here names its source, and figures that could not be traced to a primary source are marked
+      unverified rather than repeated.<br>
+      One agent turned the project's own rule on its own output and was right to:
+      <em>"The design question in the brief is already answered in Borough's corpus, by
+      <code>adr/0090</code>, and researching it produced no new decision. Under the amnesty, prose
+      written beside new simulation is free and prose written alone is refused. This report is prose
+      written alone."</em> That applies to this page too. Its defensible output is the six moves,
+      not the survey.<br>
+      Borough's own row in the &phi; table is arithmetic, not a measurement. Nothing has run OSMnx
+      against Borough's graph yet — that is move 1.
+    </div>
+  </div>
+</footer>

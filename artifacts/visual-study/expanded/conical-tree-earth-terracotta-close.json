@@ -1,0 +1,49 @@
+{
+  "subject": "conical-tree",
+  "palette": "earth-terracotta",
+  "view": "close",
+  "comparison": "expanded-kit-1",
+  "instances": [
+    {
+      "asset": "conical-tree",
+      "palette": "earth-terracotta",
+      "anchor": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -2.3219593,
+        0,
+        -2.1751788
+      ],
+      "boundsSize": [
+        4.7419596,
+        7,
+        4.350357
+      ],
+      "triangles": 6084,
+      "surfaces": 3
+    }
+  ],
+  "camera": "(2.1490207, 3.9199998, 7.2151785)",
+  "target": "(0.04902053, 2.6599998, 2.1751783)",
+  "fov": 40,
+  "viewport": "(1440, 960)",
+  "sunRotation": "(-61.999992, -27.999998, 0)",
+  "sunEnergy": 1.15,
+  "sunAngularDistance": 0.5,
+  "ambientEnergy": 0.55,
+  "ssao": true,
+  "taa": true,
+  "exposure": 1,
+  "light": "noon",
+  "triangles": 6084,
+  "surfaces": 3,
+  "tick": null,
+  "population": null,
+  "godot": "4.7.2-stable (official)",
+  "renderer": "forward_plus"
+}

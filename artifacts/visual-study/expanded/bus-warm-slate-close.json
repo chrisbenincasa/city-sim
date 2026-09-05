@@ -1,0 +1,49 @@
+{
+  "subject": "bus",
+  "palette": "warm-slate",
+  "view": "close",
+  "comparison": "expanded-kit-1",
+  "instances": [
+    {
+      "asset": "bus",
+      "palette": "warm-slate",
+      "anchor": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -1.3175,
+        0,
+        -6.06
+      ],
+      "boundsSize": [
+        2.645,
+        3.38,
+        12.120001
+      ],
+      "triangles": 3816,
+      "surfaces": 7
+    }
+  ],
+  "camera": "(3.6410003, 3.4660003, 14.786402)",
+  "target": "(0.004999995, 1.2844, 6.060001)",
+  "fov": 40,
+  "viewport": "(1440, 960)",
+  "sunRotation": "(-61.999992, -27.999998, 0)",
+  "sunEnergy": 1.15,
+  "sunAngularDistance": 0.5,
+  "ambientEnergy": 0.55,
+  "ssao": true,
+  "taa": true,
+  "exposure": 1,
+  "light": "noon",
+  "triangles": 3816,
+  "surfaces": 7,
+  "tick": null,
+  "population": null,
+  "godot": "4.7.2-stable (official)",
+  "renderer": "forward_plus"
+}

@@ -1,0 +1,49 @@
+{
+  "subject": "mixed-use-tower",
+  "palette": "warm-slate",
+  "view": "whole",
+  "comparison": "expanded-kit-1",
+  "instances": [
+    {
+      "asset": "mixed-use-tower",
+      "palette": "warm-slate",
+      "anchor": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -13.15,
+        0,
+        -10.15
+      ],
+      "boundsSize": [
+        26.3,
+        37.51,
+        21.529999
+      ],
+      "triangles": 28344,
+      "surfaces": 5
+    }
+  ],
+  "camera": "(56.265, 58.140495, 73.7595)",
+  "target": "(0, 18.755, 0.6149998)",
+  "fov": 40,
+  "viewport": "(1440, 960)",
+  "sunRotation": "(-61.999992, -27.999998, 0)",
+  "sunEnergy": 1.15,
+  "sunAngularDistance": 0.5,
+  "ambientEnergy": 0.55,
+  "ssao": true,
+  "taa": true,
+  "exposure": 1,
+  "light": "noon",
+  "triangles": 28344,
+  "surfaces": 5,
+  "tick": null,
+  "population": null,
+  "godot": "4.7.2-stable (official)",
+  "renderer": "forward_plus"
+}

@@ -1,0 +1,49 @@
+{
+  "subject": "attached-townhouse",
+  "palette": "warm-slate",
+  "view": "whole",
+  "comparison": "construction-study-1",
+  "instances": [
+    {
+      "asset": "attached-townhouse",
+      "palette": "warm-slate",
+      "anchor": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -9.175,
+        0,
+        -5.8425
+      ],
+      "boundsSize": [
+        18.35,
+        12.12,
+        11.685
+      ],
+      "triangles": 35172,
+      "surfaces": 9
+    }
+  ],
+  "camera": "(27.93, 25.701, 36.549004)",
+  "target": "(0, 6.15, 0.24000025)",
+  "fov": 40,
+  "viewport": "(1440, 960)",
+  "sunRotation": "(-61.999992, -27.999998, 0)",
+  "sunEnergy": 1.15,
+  "sunAngularDistance": 0.5,
+  "ambientEnergy": 0.55,
+  "ssao": true,
+  "taa": true,
+  "exposure": 1,
+  "light": "noon",
+  "triangles": 35172,
+  "surfaces": 9,
+  "tick": null,
+  "population": null,
+  "godot": "4.7.2-stable (official)",
+  "renderer": "forward_plus"
+}

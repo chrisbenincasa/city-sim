@@ -1,0 +1,49 @@
+{
+  "subject": "round-tree",
+  "palette": "earth-terracotta",
+  "view": "close",
+  "comparison": "expanded-kit-1",
+  "instances": [
+    {
+      "asset": "round-tree",
+      "palette": "earth-terracotta",
+      "anchor": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -2.8285632,
+        0,
+        -2.6446304
+      ],
+      "boundsSize": [
+        5.678563,
+        7.0499997,
+        5.246551
+      ],
+      "triangles": 1872,
+      "surfaces": 3
+    }
+  ],
+  "camera": "(2.1257184, 3.948, 7.677921)",
+  "target": "(0.010718346, 2.679, 2.6019206)",
+  "fov": 40,
+  "viewport": "(1440, 960)",
+  "sunRotation": "(-61.999992, -27.999998, 0)",
+  "sunEnergy": 1.15,
+  "sunAngularDistance": 0.5,
+  "ambientEnergy": 0.55,
+  "ssao": true,
+  "taa": true,
+  "exposure": 1,
+  "light": "noon",
+  "triangles": 1872,
+  "surfaces": 3,
+  "tick": null,
+  "population": null,
+  "godot": "4.7.2-stable (official)",
+  "renderer": "forward_plus"
+}

@@ -1,0 +1,20 @@
+{
+  "specimen": "car",
+  "treatment": "sculpted-extreme",
+  "camera": "(2.65, 1.75, 3.5)",
+  "target": "(0.65, 0.75, 1)",
+  "fov": 40,
+  "viewport": "(1440, 960)",
+  "light": "noon",
+  "exposure": 1,
+  "triangles": 3736,
+  "surfaces": 5,
+  "bounds": "(-1.1, 0, -2.2), (2.2, 1.5125, 4.4375)",
+  "comparison": "extremes",
+  "view": "detail",
+  "shading": "three-band diffuse; specular disabled",
+  "tick": null,
+  "population": null,
+  "godot": "4.7.2-stable (official)",
+  "renderer": "forward_plus"
+}

@@ -1,0 +1,307 @@
+{
+  "comparison": "fidelity-1",
+  "controls_checked": [
+    "camera",
+    "target",
+    "fov",
+    "viewport",
+    "sunRotation",
+    "sunEnergy",
+    "sunAngularDistance",
+    "ambientEnergy",
+    "ssao",
+    "taa",
+    "exposure",
+    "light",
+    "godot",
+    "renderer",
+    "tick",
+    "population"
+  ],
+  "captures": [
+    {
+      "subject": "attached-townhouse",
+      "palette": "warm-slate",
+      "view": "whole",
+      "comparison": "fidelity-1",
+      "instances": [
+        {
+          "asset": "attached-townhouse",
+          "palette": "warm-slate",
+          "anchor": false,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0,
+          "boundsMin": [
+            -9.175,
+            0,
+            -5.8425
+          ],
+          "boundsSize": [
+            18.35,
+            12.12,
+            13.6175
+          ],
+          "triangles": 88936,
+          "surfaces": 20
+        }
+      ],
+      "camera": "(27.93, 25.701, 36.549004)",
+      "target": "(0, 6.15, 0.24000025)",
+      "fov": 40,
+      "viewport": "(1440, 960)",
+      "sunRotation": "(-61.999992, -27.999998, 0)",
+      "sunEnergy": 1.15,
+      "sunAngularDistance": 0.5,
+      "ambientEnergy": 0.55,
+      "ssao": true,
+      "taa": true,
+      "exposure": 1,
+      "light": "noon",
+      "triangles": 88936,
+      "surfaces": 20,
+      "tick": null,
+      "population": null,
+      "godot": "4.7.2-stable (official)",
+      "renderer": "forward_plus"
+    },
+    {
+      "subject": "attached-townhouse",
+      "palette": "warm-slate",
+      "view": "close",
+      "comparison": "fidelity-1",
+      "instances": [
+        {
+          "asset": "attached-townhouse",
+          "palette": "warm-slate",
+          "anchor": false,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0,
+          "boundsMin": [
+            -9.175,
+            0,
+            -5.8425
+          ],
+          "boundsSize": [
+            18.35,
+            12.12,
+            13.6175
+          ],
+          "triangles": 88936,
+          "surfaces": 20
+        }
+      ],
+      "camera": "(5.5860004, 8.0256, 19.706402)",
+      "target": "(0, 4.674, 6.3000007)",
+      "fov": 40,
+      "viewport": "(1440, 960)",
+      "sunRotation": "(-61.999992, -27.999998, 0)",
+      "sunEnergy": 1.15,
+      "sunAngularDistance": 0.5,
+      "ambientEnergy": 0.55,
+      "ssao": true,
+      "taa": true,
+      "exposure": 1,
+      "light": "noon",
+      "triangles": 88936,
+      "surfaces": 20,
+      "tick": null,
+      "population": null,
+      "godot": "4.7.2-stable (official)",
+      "renderer": "forward_plus"
+    },
+    {
+      "subject": "attached-townhouse",
+      "palette": "earth-terracotta",
+      "view": "whole",
+      "comparison": "fidelity-1",
+      "instances": [
+        {
+          "asset": "attached-townhouse",
+          "palette": "earth-terracotta",
+          "anchor": false,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0,
+          "boundsMin": [
+            -9.175,
+            0,
+            -5.8425
+          ],
+          "boundsSize": [
+            18.35,
+            12.12,
+            13.6175
+          ],
+          "triangles": 88936,
+          "surfaces": 20
+        }
+      ],
+      "camera": "(27.93, 25.701, 36.549004)",
+      "target": "(0, 6.15, 0.24000025)",
+      "fov": 40,
+      "viewport": "(1440, 960)",
+      "sunRotation": "(-61.999992, -27.999998, 0)",
+      "sunEnergy": 1.15,
+      "sunAngularDistance": 0.5,
+      "ambientEnergy": 0.55,
+      "ssao": true,
+      "taa": true,
+      "exposure": 1,
+      "light": "noon",
+      "triangles": 88936,
+      "surfaces": 20,
+      "tick": null,
+      "population": null,
+      "godot": "4.7.2-stable (official)",
+      "renderer": "forward_plus"
+    },
+    {
+      "subject": "attached-townhouse",
+      "palette": "earth-terracotta",
+      "view": "close",
+      "comparison": "fidelity-1",
+      "instances": [
+        {
+          "asset": "attached-townhouse",
+          "palette": "earth-terracotta",
+          "anchor": false,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0,
+          "boundsMin": [
+            -9.175,
+            0,
+            -5.8425
+          ],
+          "boundsSize": [
+            18.35,
+            12.12,
+            13.6175
+          ],
+          "triangles": 88936,
+          "surfaces": 20
+        }
+      ],
+      "camera": "(5.5860004, 8.0256, 19.706402)",
+      "target": "(0, 4.674, 6.3000007)",
+      "fov": 40,
+      "viewport": "(1440, 960)",
+      "sunRotation": "(-61.999992, -27.999998, 0)",
+      "sunEnergy": 1.15,
+      "sunAngularDistance": 0.5,
+      "ambientEnergy": 0.55,
+      "ssao": true,
+      "taa": true,
+      "exposure": 1,
+      "light": "noon",
+      "triangles": 88936,
+      "surfaces": 20,
+      "tick": null,
+      "population": null,
+      "godot": "4.7.2-stable (official)",
+      "renderer": "forward_plus"
+    }
+  ],
+  "source_sha256": {
+    "scripts/art/fidelity-study.py": "8d54cbb59ac931511aade5bc7bfcb66f60f1cc19e198545fd63781bf2c19ec51",
+    "scripts/art/fidelity-gallery.py": "00b6edc3ea5c87a34b6cbfc14a7658f9c4022a3d83b0edd5fd1611076dfc8698",
+    "scripts/art/construction-study.py": "af298e2ffdab5ea7f47c62330d0f0589276e0469a0f35dfa81ed67198aa6be2b",
+    "scripts/art/expanded-kit.py": "a8352158ad29278fd64cf44dceb1e5fbb6b9c748048e22eb78405d29d842eca4",
+    "scripts/art/model-round.py": "f24b8fc6fb860d79e1381c66b95d0c7d6a418c2aeb54170efb12cb773e5edf77",
+    "scripts/art/review.sh": "d67a3b8af5675668f66ac9cc2e93a02260ab3aca1154cb3a3ca02b35863fde4c",
+    "src/Borough.Godot/ExpandedStudy.cs": "fa312f0fcb7ff8a5a8c76203d0417dbdfdb83069ca71c4ad66450c9636f4d42a",
+    "art/visual-study/fidelity-1/manifest.json": "7997c42693314454906f0a8f6f0d0f0cb6d32b11bb9645adb968da3a4be161f2",
+    "art/visual-study/fidelity-1/research.json": "12bea8ec25c5bcb37851cc6a083930e536e65b3ce5981fb3f1ded0e369ce7a0a",
+    "art/visual-study/preferences.json": "1d64cca36c206f632d21b0595196f39867940cd61ba36b659460af08ae347f10",
+    "art/visual-study/palettes.json": "ad323132515e317d2678539e86f5ba4f91f74ff026febd682577327a97d411b2",
+    "src/Borough.Godot/assets/visual-study/fidelity/attached-townhouse.glb": "f34623ad132994760bdbb9db02c2bbed7731cd36918b03a3b02ac92aeb688063",
+    "art/visual-study/fidelity-1/textures/brick_wall_001_nor_gl_2k.jpg": "62cc36d391b2f73c3855fd745a5815686db59d73bf3ef9db2ad96ca27eb97e32",
+    "art/visual-study/fidelity-1/textures/brick_wall_001_rough_2k.jpg": "96a124344ee8ace616cf4397324b7b2e47c4f07b6961d12bc19a7b90d2bf61a0",
+    "art/visual-study/fidelity-1/textures/brick_wall_001_diffuse_2k.jpg": "aefa7f3743282de2c7df4e4282c868de204239ac3c94e818b1ef74f2a2d74f1a"
+  },
+  "capture_sha256": {
+    "artifacts/visual-study/construction/attached-townhouse-warm-slate-whole.png": "e7d6309d1f5a5a23b199ad35e3a3dca7a3fc20408b31bddf69b947bbd8164b8a",
+    "artifacts/visual-study/fidelity/attached-townhouse-warm-slate-whole.png": "1d412df32114c1ae4b2c988873dafb6b5aeaf7311d778ccfa94049b85a0ba127",
+    "artifacts/visual-study/construction/attached-townhouse-warm-slate-close.png": "8fadb546f02f92ed82701396c5b405200600f73759ccf856d0aff5540d69cde2",
+    "artifacts/visual-study/fidelity/attached-townhouse-warm-slate-close.png": "4877bcc81952f6dbeb09eb0d537ee22c3d21454d5a1d683be3f7a63ce13711c2",
+    "artifacts/visual-study/construction/attached-townhouse-earth-terracotta-whole.png": "317885971a40e8d12b9aeb859b0311fc5c82270467755e29f3bc60c22395fadd",
+    "artifacts/visual-study/fidelity/attached-townhouse-earth-terracotta-whole.png": "c4fa47e91cf40db1f6550ebcff828091c24ba131c27da822bd3acae7dc192c42",
+    "artifacts/visual-study/construction/attached-townhouse-earth-terracotta-close.png": "b3cdb220327c4eebed8a92e3b2de1a6ecaa9763ff0b1ed0626f20b050b42802f",
+    "artifacts/visual-study/fidelity/attached-townhouse-earth-terracotta-close.png": "86a92277c6ba12af52da5d30e16b23103c7818382cca5c9effb1000c16c9517f"
+  },
+  "research": {
+    "sources": [
+      {
+        "title": "SimCity 2013 player screenshots",
+        "url": "https://www.reddit.com/r/SimCity/comments/wf98pe/some_random_simcity_2013_screenshots/",
+        "finding": "Visually inspected town and downtown: roof equipment, facade hierarchy, planted lots and a strong colour range. Interpretation from images, not a polygon-cost measurement."
+      },
+      {
+        "title": "SimCity pre-release screenshots, November 2012",
+        "url": "https://infinitemirai.wordpress.com/2012/11/17/sim-city-2013-screenshots/",
+        "finding": "Visually inspected the city overview. Pre-release reference; the article itself questions whether an early image is concept work. Not a shipped-quality guarantee."
+      },
+      {
+        "title": "Cities: Skylines II Steam screenshot post, June 2023",
+        "url": "https://www.reddit.com/r/CitiesSkylines2/comments/1470y1t/new_screenshots_on_cities_skylines_2_steam_page/",
+        "finding": "Visually inspected overview and street: fine facade divisions, window/interior variation, signage and detailed street edges. Promotional images, not performance evidence."
+      },
+      {
+        "title": "Eugene Wong \u2014 SimCity 2013 building art direction",
+        "url": "https://eugenewong.artstation.com/projects/dD5Ae",
+        "finding": "Primary source: geometry/texturing benchmarks, procedural atlas overlays and ground textures/props were part of the building workflow."
+      },
+      {
+        "title": "Colossal Order \u2014 Creating an Asset Pack",
+        "url": "https://www.paradoxinteractive.com/games/cities-skylines-ii/news/beach-properties-creating-an-asset-pack",
+        "finding": "Primary source: references and scale blockouts precede iterative architectural details. Visually inspected the waterfront example for railings, paving, roof articulation and planting."
+      },
+      {
+        "title": "Poly Haven \u2014 Brick Wall 001",
+        "url": "https://polyhaven.com/a/brick_wall_001",
+        "finding": "CC0 photographed brick, 3 metre width; Dimitrios Savva photography and Rob Tuytel processing. The pilot embeds 2K diffuse, OpenGL normal and roughness maps."
+      },
+      {
+        "title": "Poly Haven asset licence",
+        "url": "https://polyhaven.com/license",
+        "finding": "CC0 applies to downloaded asset files. Source credit retained."
+      }
+    ],
+    "textures": [
+      {
+        "file": "art/visual-study/fidelity-1/textures/brick_wall_001_nor_gl_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/brick_wall_001/brick_wall_001_nor_gl_2k.jpg",
+        "sha256": "62cc36d391b2f73c3855fd745a5815686db59d73bf3ef9db2ad96ca27eb97e32",
+        "license": "CC0-1.0"
+      },
+      {
+        "file": "art/visual-study/fidelity-1/textures/brick_wall_001_rough_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/brick_wall_001/brick_wall_001_rough_2k.jpg",
+        "sha256": "96a124344ee8ace616cf4397324b7b2e47c4f07b6961d12bc19a7b90d2bf61a0",
+        "license": "CC0-1.0"
+      },
+      {
+        "file": "art/visual-study/fidelity-1/textures/brick_wall_001_diffuse_2k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/brick_wall_001/brick_wall_001_diffuse_2k.jpg",
+        "sha256": "aefa7f3743282de2c7df4e4282c868de204239ac3c94e818b1ef74f2a2d74f1a",
+        "license": "CC0-1.0"
+      }
+    ],
+    "conclusion": "Increase construction hierarchy, material variation and lot detail together; establish achievable quality with actual imported captures. No production-quality or performance equivalence claimed.",
+    "texture_application": "The brick image has about five stretchers across. The pilot maps it over 1.2 metres to obtain approximately 24 cm courses horizontally, rather than using the catalogue 3 m width literally."
+  }
+}

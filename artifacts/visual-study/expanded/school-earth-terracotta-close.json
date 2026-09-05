@@ -1,0 +1,49 @@
+{
+  "subject": "school",
+  "palette": "earth-terracotta",
+  "view": "close",
+  "comparison": "expanded-kit-1",
+  "instances": [
+    {
+      "asset": "school",
+      "palette": "earth-terracotta",
+      "anchor": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -17.31,
+        0,
+        -12.31
+      ],
+      "boundsSize": [
+        34.62,
+        8.893192,
+        22.62
+      ],
+      "triangles": 11968,
+      "surfaces": 6
+    }
+  ],
+  "camera": "(10.386, 9.611013, 35.2364)",
+  "target": "(0, 3.3794131, 10.31)",
+  "fov": 40,
+  "viewport": "(1440, 960)",
+  "sunRotation": "(-61.999992, -27.999998, 0)",
+  "sunEnergy": 1.15,
+  "sunAngularDistance": 0.5,
+  "ambientEnergy": 0.55,
+  "ssao": true,
+  "taa": true,
+  "exposure": 1,
+  "light": "noon",
+  "triangles": 11968,
+  "surfaces": 6,
+  "tick": null,
+  "population": null,
+  "godot": "4.7.2-stable (official)",
+  "renderer": "forward_plus"
+}

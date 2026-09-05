@@ -1,0 +1,30 @@
+{
+  "authority": "scripts/art/facade.py",
+  "blender": "5.2.1 LTS",
+  "script_sha256": "463b4a1d169ac703ce9e4ac00656de2eb941f40116a029a83fb3a821eb690938",
+  "units": "metres",
+  "blender_up": "+Z",
+  "godot_up": "+Y",
+  "godot_front": "+Z",
+  "origin": "bottom centre",
+  "width": 4.0,
+  "height": 3.5,
+  "wall_rgb": [
+    0.7254901960784313,
+    0.6862745098039216,
+    0.6274509803921569
+  ],
+  "material_slots": [
+    "wall",
+    "trim",
+    "glazing"
+  ],
+  "export": {
+    "format": "GLB",
+    "yup": true,
+    "apply": true,
+    "materials": "EXPORT"
+  },
+  "source": "art/visual-study/facade.blend",
+  "asset": "src/Borough.Godot/assets/visual-study/facade.glb"
+}

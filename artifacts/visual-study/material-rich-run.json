@@ -1,0 +1,166 @@
+{
+  "sources": {
+    "scripts/art/facade.py": "ae7aee4e4319ba4ad5c24f74f27ea3f466e6e880d782c76b8e0c06c9af5f337d",
+    "src/Borough.Godot/VisualStudy.cs": "476dc439cb6883410987a7612a1d427d6efed14557505393a01aa25bd1d5f98f",
+    "src/Borough.Godot/VisualStudy.Materials.cs": "99584b73a0dad44b1485a42a23675e1c1b733cc682abb894ac174a27f0deb983",
+    "art/visual-study/specimen.json": "b1bdb2d49242727aeacf53d1c00d163c3471e7dbb66845ba34745568a870dca0",
+    "art/visual-study/facade-material-rich.json": "d7cc8cacdaf31fafdca636a766cab0d77ae7fb91bf08742dbd4baf746af11750",
+    "src/Borough.Godot/assets/visual-study/facade.glb": "4c149a1ebf24877cb26454a2225a71dc57c6e0a5111e81daa359a819272efa70",
+    "src/Borough.Godot/assets/visual-study/facade-material-rich.glb": "899347144f5ff788bf5f443c0899e1b20cb01130cef79d93c78103060af0be80"
+  },
+  "captures": {
+    "block": {
+      "blockout": {
+        "specimen": "plain-blockout-v1",
+        "treatment": "blockout",
+        "view": "block",
+        "camera": "(75, 70, 105)",
+        "target": "(0, 0, 0)",
+        "fov": 48,
+        "viewport": "(1440, 960)",
+        "light": "noon",
+        "exposure": 1,
+        "tick": null,
+        "simulatedCitizens": 0,
+        "buildings": 9,
+        "renderer": "forward_plus",
+        "godot": "4.7.2-stable (official)"
+      },
+      "material-rich": {
+        "specimen": "plain-blockout-v1",
+        "treatment": "material-rich",
+        "view": "block",
+        "camera": "(75, 70, 105)",
+        "target": "(0, 0, 0)",
+        "fov": 48,
+        "viewport": "(1440, 960)",
+        "light": "noon",
+        "exposure": 1,
+        "tick": null,
+        "simulatedCitizens": 0,
+        "buildings": 9,
+        "renderer": "forward_plus",
+        "godot": "4.7.2-stable (official)"
+      }
+    },
+    "street": {
+      "blockout": {
+        "specimen": "plain-blockout-v1",
+        "treatment": "blockout",
+        "view": "street",
+        "camera": "(42, 9, 63)",
+        "target": "(0, 5, 7)",
+        "fov": 48,
+        "viewport": "(1440, 960)",
+        "light": "noon",
+        "exposure": 1,
+        "tick": null,
+        "simulatedCitizens": 0,
+        "buildings": 9,
+        "renderer": "forward_plus",
+        "godot": "4.7.2-stable (official)"
+      },
+      "material-rich": {
+        "specimen": "plain-blockout-v1",
+        "treatment": "material-rich",
+        "view": "street",
+        "camera": "(42, 9, 63)",
+        "target": "(0, 5, 7)",
+        "fov": 48,
+        "viewport": "(1440, 960)",
+        "light": "noon",
+        "exposure": 1,
+        "tick": null,
+        "simulatedCitizens": 0,
+        "buildings": 9,
+        "renderer": "forward_plus",
+        "godot": "4.7.2-stable (official)"
+      }
+    },
+    "facade": {
+      "blockout": {
+        "specimen": "plain-blockout-v1",
+        "treatment": "blockout",
+        "view": "facade",
+        "camera": "(-18, 5, 29)",
+        "target": "(-22, 5, 17)",
+        "fov": 48,
+        "viewport": "(1440, 960)",
+        "light": "noon",
+        "exposure": 1,
+        "tick": null,
+        "simulatedCitizens": 0,
+        "buildings": 9,
+        "renderer": "forward_plus",
+        "godot": "4.7.2-stable (official)"
+      },
+      "material-rich": {
+        "specimen": "plain-blockout-v1",
+        "treatment": "material-rich",
+        "view": "facade",
+        "camera": "(-18, 5, 29)",
+        "target": "(-22, 5, 17)",
+        "fov": 48,
+        "viewport": "(1440, 960)",
+        "light": "noon",
+        "exposure": 1,
+        "tick": null,
+        "simulatedCitizens": 0,
+        "buildings": 9,
+        "renderer": "forward_plus",
+        "godot": "4.7.2-stable (official)"
+      }
+    },
+    "neighbourhood": {
+      "blockout": {
+        "specimen": "plain-blockout-v1",
+        "treatment": "blockout",
+        "view": "neighbourhood",
+        "camera": "(230, 240, 300)",
+        "target": "(0, 0, 0)",
+        "fov": 48,
+        "viewport": "(1440, 960)",
+        "light": "noon",
+        "exposure": 1,
+        "tick": null,
+        "simulatedCitizens": 0,
+        "buildings": 81,
+        "renderer": "forward_plus",
+        "godot": "4.7.2-stable (official)"
+      },
+      "material-rich": {
+        "specimen": "plain-blockout-v1",
+        "treatment": "material-rich",
+        "view": "neighbourhood",
+        "camera": "(230, 240, 300)",
+        "target": "(0, 0, 0)",
+        "fov": 48,
+        "viewport": "(1440, 960)",
+        "light": "noon",
+        "exposure": 1,
+        "tick": null,
+        "simulatedCitizens": 0,
+        "buildings": 81,
+        "renderer": "forward_plus",
+        "godot": "4.7.2-stable (official)"
+      }
+    }
+  },
+  "single_module_geometry": {
+    "facade": {
+      "triangles": 96,
+      "mesh_primitives": 8,
+      "materials": 3,
+      "embedded_images": 0,
+      "file_bytes": 12764
+    },
+    "facade-material-rich": {
+      "triangles": 1236,
+      "mesh_primitives": 15,
+      "materials": 4,
+      "embedded_images": 2,
+      "file_bytes": 728580
+    }
+  },
+  "limitations": "First architectural test only. Trees, car and walker retain blockout shapes. No motion, state response or performance acceptance."
+}

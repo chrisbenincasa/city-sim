@@ -1,0 +1,49 @@
+{
+  "subject": "factory-with-office",
+  "palette": "warm-slate",
+  "view": "whole",
+  "comparison": "expanded-kit-1",
+  "instances": [
+    {
+      "asset": "factory-with-office",
+      "palette": "warm-slate",
+      "anchor": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -18.32,
+        0,
+        -13.15
+      ],
+      "boundsSize": [
+        32.63,
+        8.7,
+        30.46
+      ],
+      "triangles": 5400,
+      "surfaces": 6
+    }
+  ],
+  "camera": "(46.940002, 38.6115, 65.7085)",
+  "target": "(-2.0049992, 4.35, 2.08)",
+  "fov": 40,
+  "viewport": "(1440, 960)",
+  "sunRotation": "(-61.999992, -27.999998, 0)",
+  "sunEnergy": 1.15,
+  "sunAngularDistance": 0.5,
+  "ambientEnergy": 0.55,
+  "ssao": true,
+  "taa": true,
+  "exposure": 1,
+  "light": "noon",
+  "triangles": 5400,
+  "surfaces": 6,
+  "tick": null,
+  "population": null,
+  "godot": "4.7.2-stable (official)",
+  "renderer": "forward_plus"
+}

@@ -533,3 +533,14 @@ tests/Borough.Tests/alloc-probe-archive/alloc-probe.csv
 # Hand-played sessions written by the Godot shell's w key (plans/0045 15d). The round trip
 # is run from one and then it is rubbish; a recorded session worth keeping gets a real name.
 session-*.borough
+
+# Retained visual-review evidence; other run outputs remain disposable.
+!artifacts/
+artifacts/*
+!artifacts/visual-study/
+artifacts/visual-study/*
+!artifacts/visual-study/**/
+!artifacts/visual-study/**/*.html
+!artifacts/visual-study/**/*.json
+!artifacts/visual-study/**/*.png
+artifacts/visual-study/fidelity-research/

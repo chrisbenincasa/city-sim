@@ -1,0 +1,17 @@
+{
+  "specimen": "detached-house",
+  "treatment": "material-rich",
+  "camera": "(17, 12, 22)",
+  "target": "(0, 3.3, 0)",
+  "fov": 40,
+  "viewport": "(1440, 960)",
+  "light": "noon",
+  "exposure": 1,
+  "triangles": 14024,
+  "surfaces": 5,
+  "bounds": "(-4.35, 0, -5.35), (8.885, 8.227841, 11.549999)",
+  "tick": null,
+  "population": null,
+  "godot": "4.7.2-stable (official)",
+  "renderer": "forward_plus"
+}

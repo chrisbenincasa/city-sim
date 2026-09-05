@@ -1,0 +1,15 @@
+{
+  "specimen": "plain-blockout-v1",
+  "view": "block",
+  "camera": "(75, 70, 105)",
+  "target": "(0, 0, 0)",
+  "fov": 48,
+  "viewport": "(1440, 960)",
+  "light": "noon",
+  "exposure": 1,
+  "tick": null,
+  "simulatedCitizens": 0,
+  "buildings": 9,
+  "renderer": "forward_plus",
+  "godot": "4.7.2-stable (official)"
+}

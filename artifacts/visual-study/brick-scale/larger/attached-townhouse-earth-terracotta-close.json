@@ -1,0 +1,50 @@
+{
+  "subject": "attached-townhouse",
+  "palette": "earth-terracotta",
+  "view": "close",
+  "comparison": "fidelity-1",
+  "instances": [
+    {
+      "asset": "attached-townhouse",
+      "palette": "earth-terracotta",
+      "anchor": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -9.175,
+        0,
+        -5.8425
+      ],
+      "boundsSize": [
+        18.35,
+        12.12,
+        13.6175
+      ],
+      "triangles": 88936,
+      "surfaces": 20
+    }
+  ],
+  "brickScale": 1.25,
+  "camera": "(5.5860004, 8.0256, 19.706402)",
+  "target": "(0, 4.674, 6.3000007)",
+  "fov": 40,
+  "viewport": "(1440, 960)",
+  "sunRotation": "(-61.999992, -27.999998, 0)",
+  "sunEnergy": 1.15,
+  "sunAngularDistance": 0.5,
+  "ambientEnergy": 0.55,
+  "ssao": true,
+  "taa": true,
+  "exposure": 1,
+  "light": "noon",
+  "triangles": 88936,
+  "surfaces": 20,
+  "tick": null,
+  "population": null,
+  "godot": "4.7.2-stable (official)",
+  "renderer": "forward_plus"
+}

@@ -1,0 +1,647 @@
+{
+  "comparison": "brick-scale-1",
+  "controls_checked": [
+    "subject",
+    "palette",
+    "view",
+    "instances",
+    "camera",
+    "target",
+    "fov",
+    "viewport",
+    "sunRotation",
+    "sunEnergy",
+    "sunAngularDistance",
+    "ambientEnergy",
+    "ssao",
+    "taa",
+    "exposure",
+    "light",
+    "godot",
+    "renderer",
+    "tick",
+    "population"
+  ],
+  "captures": [
+    {
+      "subject": "attached-townhouse",
+      "palette": "warm-slate",
+      "view": "whole",
+      "comparison": "fidelity-1",
+      "instances": [
+        {
+          "asset": "attached-townhouse",
+          "palette": "warm-slate",
+          "anchor": false,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0,
+          "boundsMin": [
+            -9.175,
+            0,
+            -5.8425
+          ],
+          "boundsSize": [
+            18.35,
+            12.12,
+            13.6175
+          ],
+          "triangles": 88936,
+          "surfaces": 20
+        }
+      ],
+      "brickScale": 0.75,
+      "camera": "(27.93, 25.701, 36.549004)",
+      "target": "(0, 6.15, 0.24000025)",
+      "fov": 40,
+      "viewport": "(1440, 960)",
+      "sunRotation": "(-61.999992, -27.999998, 0)",
+      "sunEnergy": 1.15,
+      "sunAngularDistance": 0.5,
+      "ambientEnergy": 0.55,
+      "ssao": true,
+      "taa": true,
+      "exposure": 1,
+      "light": "noon",
+      "triangles": 88936,
+      "surfaces": 20,
+      "tick": null,
+      "population": null,
+      "godot": "4.7.2-stable (official)",
+      "renderer": "forward_plus"
+    },
+    {
+      "subject": "attached-townhouse",
+      "palette": "warm-slate",
+      "view": "whole",
+      "comparison": "fidelity-1",
+      "instances": [
+        {
+          "asset": "attached-townhouse",
+          "palette": "warm-slate",
+          "anchor": false,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0,
+          "boundsMin": [
+            -9.175,
+            0,
+            -5.8425
+          ],
+          "boundsSize": [
+            18.35,
+            12.12,
+            13.6175
+          ],
+          "triangles": 88936,
+          "surfaces": 20
+        }
+      ],
+      "camera": "(27.93, 25.701, 36.549004)",
+      "target": "(0, 6.15, 0.24000025)",
+      "fov": 40,
+      "viewport": "(1440, 960)",
+      "sunRotation": "(-61.999992, -27.999998, 0)",
+      "sunEnergy": 1.15,
+      "sunAngularDistance": 0.5,
+      "ambientEnergy": 0.55,
+      "ssao": true,
+      "taa": true,
+      "exposure": 1,
+      "light": "noon",
+      "triangles": 88936,
+      "surfaces": 20,
+      "tick": null,
+      "population": null,
+      "godot": "4.7.2-stable (official)",
+      "renderer": "forward_plus"
+    },
+    {
+      "subject": "attached-townhouse",
+      "palette": "warm-slate",
+      "view": "whole",
+      "comparison": "fidelity-1",
+      "instances": [
+        {
+          "asset": "attached-townhouse",
+          "palette": "warm-slate",
+          "anchor": false,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0,
+          "boundsMin": [
+            -9.175,
+            0,
+            -5.8425
+          ],
+          "boundsSize": [
+            18.35,
+            12.12,
+            13.6175
+          ],
+          "triangles": 88936,
+          "surfaces": 20
+        }
+      ],
+      "brickScale": 1.25,
+      "camera": "(27.93, 25.701, 36.549004)",
+      "target": "(0, 6.15, 0.24000025)",
+      "fov": 40,
+      "viewport": "(1440, 960)",
+      "sunRotation": "(-61.999992, -27.999998, 0)",
+      "sunEnergy": 1.15,
+      "sunAngularDistance": 0.5,
+      "ambientEnergy": 0.55,
+      "ssao": true,
+      "taa": true,
+      "exposure": 1,
+      "light": "noon",
+      "triangles": 88936,
+      "surfaces": 20,
+      "tick": null,
+      "population": null,
+      "godot": "4.7.2-stable (official)",
+      "renderer": "forward_plus"
+    },
+    {
+      "subject": "attached-townhouse",
+      "palette": "warm-slate",
+      "view": "close",
+      "comparison": "fidelity-1",
+      "instances": [
+        {
+          "asset": "attached-townhouse",
+          "palette": "warm-slate",
+          "anchor": false,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0,
+          "boundsMin": [
+            -9.175,
+            0,
+            -5.8425
+          ],
+          "boundsSize": [
+            18.35,
+            12.12,
+            13.6175
+          ],
+          "triangles": 88936,
+          "surfaces": 20
+        }
+      ],
+      "brickScale": 0.75,
+      "camera": "(5.5860004, 8.0256, 19.706402)",
+      "target": "(0, 4.674, 6.3000007)",
+      "fov": 40,
+      "viewport": "(1440, 960)",
+      "sunRotation": "(-61.999992, -27.999998, 0)",
+      "sunEnergy": 1.15,
+      "sunAngularDistance": 0.5,
+      "ambientEnergy": 0.55,
+      "ssao": true,
+      "taa": true,
+      "exposure": 1,
+      "light": "noon",
+      "triangles": 88936,
+      "surfaces": 20,
+      "tick": null,
+      "population": null,
+      "godot": "4.7.2-stable (official)",
+      "renderer": "forward_plus"
+    },
+    {
+      "subject": "attached-townhouse",
+      "palette": "warm-slate",
+      "view": "close",
+      "comparison": "fidelity-1",
+      "instances": [
+        {
+          "asset": "attached-townhouse",
+          "palette": "warm-slate",
+          "anchor": false,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0,
+          "boundsMin": [
+            -9.175,
+            0,
+            -5.8425
+          ],
+          "boundsSize": [
+            18.35,
+            12.12,
+            13.6175
+          ],
+          "triangles": 88936,
+          "surfaces": 20
+        }
+      ],
+      "camera": "(5.5860004, 8.0256, 19.706402)",
+      "target": "(0, 4.674, 6.3000007)",
+      "fov": 40,
+      "viewport": "(1440, 960)",
+      "sunRotation": "(-61.999992, -27.999998, 0)",
+      "sunEnergy": 1.15,
+      "sunAngularDistance": 0.5,
+      "ambientEnergy": 0.55,
+      "ssao": true,
+      "taa": true,
+      "exposure": 1,
+      "light": "noon",
+      "triangles": 88936,
+      "surfaces": 20,
+      "tick": null,
+      "population": null,
+      "godot": "4.7.2-stable (official)",
+      "renderer": "forward_plus"
+    },
+    {
+      "subject": "attached-townhouse",
+      "palette": "warm-slate",
+      "view": "close",
+      "comparison": "fidelity-1",
+      "instances": [
+        {
+          "asset": "attached-townhouse",
+          "palette": "warm-slate",
+          "anchor": false,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0,
+          "boundsMin": [
+            -9.175,
+            0,
+            -5.8425
+          ],
+          "boundsSize": [
+            18.35,
+            12.12,
+            13.6175
+          ],
+          "triangles": 88936,
+          "surfaces": 20
+        }
+      ],
+      "brickScale": 1.25,
+      "camera": "(5.5860004, 8.0256, 19.706402)",
+      "target": "(0, 4.674, 6.3000007)",
+      "fov": 40,
+      "viewport": "(1440, 960)",
+      "sunRotation": "(-61.999992, -27.999998, 0)",
+      "sunEnergy": 1.15,
+      "sunAngularDistance": 0.5,
+      "ambientEnergy": 0.55,
+      "ssao": true,
+      "taa": true,
+      "exposure": 1,
+      "light": "noon",
+      "triangles": 88936,
+      "surfaces": 20,
+      "tick": null,
+      "population": null,
+      "godot": "4.7.2-stable (official)",
+      "renderer": "forward_plus"
+    },
+    {
+      "subject": "attached-townhouse",
+      "palette": "earth-terracotta",
+      "view": "whole",
+      "comparison": "fidelity-1",
+      "instances": [
+        {
+          "asset": "attached-townhouse",
+          "palette": "earth-terracotta",
+          "anchor": false,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0,
+          "boundsMin": [
+            -9.175,
+            0,
+            -5.8425
+          ],
+          "boundsSize": [
+            18.35,
+            12.12,
+            13.6175
+          ],
+          "triangles": 88936,
+          "surfaces": 20
+        }
+      ],
+      "brickScale": 0.75,
+      "camera": "(27.93, 25.701, 36.549004)",
+      "target": "(0, 6.15, 0.24000025)",
+      "fov": 40,
+      "viewport": "(1440, 960)",
+      "sunRotation": "(-61.999992, -27.999998, 0)",
+      "sunEnergy": 1.15,
+      "sunAngularDistance": 0.5,
+      "ambientEnergy": 0.55,
+      "ssao": true,
+      "taa": true,
+      "exposure": 1,
+      "light": "noon",
+      "triangles": 88936,
+      "surfaces": 20,
+      "tick": null,
+      "population": null,
+      "godot": "4.7.2-stable (official)",
+      "renderer": "forward_plus"
+    },
+    {
+      "subject": "attached-townhouse",
+      "palette": "earth-terracotta",
+      "view": "whole",
+      "comparison": "fidelity-1",
+      "instances": [
+        {
+          "asset": "attached-townhouse",
+          "palette": "earth-terracotta",
+          "anchor": false,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0,
+          "boundsMin": [
+            -9.175,
+            0,
+            -5.8425
+          ],
+          "boundsSize": [
+            18.35,
+            12.12,
+            13.6175
+          ],
+          "triangles": 88936,
+          "surfaces": 20
+        }
+      ],
+      "camera": "(27.93, 25.701, 36.549004)",
+      "target": "(0, 6.15, 0.24000025)",
+      "fov": 40,
+      "viewport": "(1440, 960)",
+      "sunRotation": "(-61.999992, -27.999998, 0)",
+      "sunEnergy": 1.15,
+      "sunAngularDistance": 0.5,
+      "ambientEnergy": 0.55,
+      "ssao": true,
+      "taa": true,
+      "exposure": 1,
+      "light": "noon",
+      "triangles": 88936,
+      "surfaces": 20,
+      "tick": null,
+      "population": null,
+      "godot": "4.7.2-stable (official)",
+      "renderer": "forward_plus"
+    },
+    {
+      "subject": "attached-townhouse",
+      "palette": "earth-terracotta",
+      "view": "whole",
+      "comparison": "fidelity-1",
+      "instances": [
+        {
+          "asset": "attached-townhouse",
+          "palette": "earth-terracotta",
+          "anchor": false,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0,
+          "boundsMin": [
+            -9.175,
+            0,
+            -5.8425
+          ],
+          "boundsSize": [
+            18.35,
+            12.12,
+            13.6175
+          ],
+          "triangles": 88936,
+          "surfaces": 20
+        }
+      ],
+      "brickScale": 1.25,
+      "camera": "(27.93, 25.701, 36.549004)",
+      "target": "(0, 6.15, 0.24000025)",
+      "fov": 40,
+      "viewport": "(1440, 960)",
+      "sunRotation": "(-61.999992, -27.999998, 0)",
+      "sunEnergy": 1.15,
+      "sunAngularDistance": 0.5,
+      "ambientEnergy": 0.55,
+      "ssao": true,
+      "taa": true,
+      "exposure": 1,
+      "light": "noon",
+      "triangles": 88936,
+      "surfaces": 20,
+      "tick": null,
+      "population": null,
+      "godot": "4.7.2-stable (official)",
+      "renderer": "forward_plus"
+    },
+    {
+      "subject": "attached-townhouse",
+      "palette": "earth-terracotta",
+      "view": "close",
+      "comparison": "fidelity-1",
+      "instances": [
+        {
+          "asset": "attached-townhouse",
+          "palette": "earth-terracotta",
+          "anchor": false,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0,
+          "boundsMin": [
+            -9.175,
+            0,
+            -5.8425
+          ],
+          "boundsSize": [
+            18.35,
+            12.12,
+            13.6175
+          ],
+          "triangles": 88936,
+          "surfaces": 20
+        }
+      ],
+      "brickScale": 0.75,
+      "camera": "(5.5860004, 8.0256, 19.706402)",
+      "target": "(0, 4.674, 6.3000007)",
+      "fov": 40,
+      "viewport": "(1440, 960)",
+      "sunRotation": "(-61.999992, -27.999998, 0)",
+      "sunEnergy": 1.15,
+      "sunAngularDistance": 0.5,
+      "ambientEnergy": 0.55,
+      "ssao": true,
+      "taa": true,
+      "exposure": 1,
+      "light": "noon",
+      "triangles": 88936,
+      "surfaces": 20,
+      "tick": null,
+      "population": null,
+      "godot": "4.7.2-stable (official)",
+      "renderer": "forward_plus"
+    },
+    {
+      "subject": "attached-townhouse",
+      "palette": "earth-terracotta",
+      "view": "close",
+      "comparison": "fidelity-1",
+      "instances": [
+        {
+          "asset": "attached-townhouse",
+          "palette": "earth-terracotta",
+          "anchor": false,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0,
+          "boundsMin": [
+            -9.175,
+            0,
+            -5.8425
+          ],
+          "boundsSize": [
+            18.35,
+            12.12,
+            13.6175
+          ],
+          "triangles": 88936,
+          "surfaces": 20
+        }
+      ],
+      "camera": "(5.5860004, 8.0256, 19.706402)",
+      "target": "(0, 4.674, 6.3000007)",
+      "fov": 40,
+      "viewport": "(1440, 960)",
+      "sunRotation": "(-61.999992, -27.999998, 0)",
+      "sunEnergy": 1.15,
+      "sunAngularDistance": 0.5,
+      "ambientEnergy": 0.55,
+      "ssao": true,
+      "taa": true,
+      "exposure": 1,
+      "light": "noon",
+      "triangles": 88936,
+      "surfaces": 20,
+      "tick": null,
+      "population": null,
+      "godot": "4.7.2-stable (official)",
+      "renderer": "forward_plus"
+    },
+    {
+      "subject": "attached-townhouse",
+      "palette": "earth-terracotta",
+      "view": "close",
+      "comparison": "fidelity-1",
+      "instances": [
+        {
+          "asset": "attached-townhouse",
+          "palette": "earth-terracotta",
+          "anchor": false,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0,
+          "boundsMin": [
+            -9.175,
+            0,
+            -5.8425
+          ],
+          "boundsSize": [
+            18.35,
+            12.12,
+            13.6175
+          ],
+          "triangles": 88936,
+          "surfaces": 20
+        }
+      ],
+      "brickScale": 1.25,
+      "camera": "(5.5860004, 8.0256, 19.706402)",
+      "target": "(0, 4.674, 6.3000007)",
+      "fov": 40,
+      "viewport": "(1440, 960)",
+      "sunRotation": "(-61.999992, -27.999998, 0)",
+      "sunEnergy": 1.15,
+      "sunAngularDistance": 0.5,
+      "ambientEnergy": 0.55,
+      "ssao": true,
+      "taa": true,
+      "exposure": 1,
+      "light": "noon",
+      "triangles": 88936,
+      "surfaces": 20,
+      "tick": null,
+      "population": null,
+      "godot": "4.7.2-stable (official)",
+      "renderer": "forward_plus"
+    }
+  ],
+  "capture_sha256": {
+    "artifacts/visual-study/brick-scale/smaller/attached-townhouse-warm-slate-whole.png": "a0ffe7e9ba1b78f868feb629e8dc2b824ed406a2b184c5426be30af98f7b94cd",
+    "artifacts/visual-study/fidelity/attached-townhouse-warm-slate-whole.png": "1d412df32114c1ae4b2c988873dafb6b5aeaf7311d778ccfa94049b85a0ba127",
+    "artifacts/visual-study/brick-scale/larger/attached-townhouse-warm-slate-whole.png": "1ece8117f7adf5128e6cf18c4802834da543192dc33ea23a8085c1b9b174058a",
+    "artifacts/visual-study/brick-scale/smaller/attached-townhouse-warm-slate-close.png": "c347b85db59fff10bf02d3572a5776fa73ed7c5b0d1611984adad268b9540474",
+    "artifacts/visual-study/fidelity/attached-townhouse-warm-slate-close.png": "4877bcc81952f6dbeb09eb0d537ee22c3d21454d5a1d683be3f7a63ce13711c2",
+    "artifacts/visual-study/brick-scale/larger/attached-townhouse-warm-slate-close.png": "43c97e273488577b7579817cde30156e713f87cb9129ea5e9113b7a2bbef2498",
+    "artifacts/visual-study/brick-scale/smaller/attached-townhouse-earth-terracotta-whole.png": "caaa1da5a426573255df21a2aae646a6e6f362d007d90da0050ad2127e38774a",
+    "artifacts/visual-study/fidelity/attached-townhouse-earth-terracotta-whole.png": "c4fa47e91cf40db1f6550ebcff828091c24ba131c27da822bd3acae7dc192c42",
+    "artifacts/visual-study/brick-scale/larger/attached-townhouse-earth-terracotta-whole.png": "f4d0f5a6709a2a5ffc728d0cf4a5b06ca718b48fb8abc3bec6e583796f91fd58",
+    "artifacts/visual-study/brick-scale/smaller/attached-townhouse-earth-terracotta-close.png": "f902e800698f59f8b4c1975755f43f72f415376defd309be1e8ea91661ac5da4",
+    "artifacts/visual-study/fidelity/attached-townhouse-earth-terracotta-close.png": "86a92277c6ba12af52da5d30e16b23103c7818382cca5c9effb1000c16c9517f",
+    "artifacts/visual-study/brick-scale/larger/attached-townhouse-earth-terracotta-close.png": "7513ab7f5525fa30aac7d121815edac6a0acc06b0ab94e4d9beb06b7bc3e0c6f"
+  },
+  "source_sha256": {
+    "src/Borough.Godot/assets/visual-study/fidelity/attached-townhouse.glb": "f34623ad132994760bdbb9db02c2bbed7731cd36918b03a3b02ac92aeb688063",
+    "src/Borough.Godot/ExpandedStudy.cs": "b6339c32eb0927af36dccefb23eeba0642c46c7bd42f66471b88460d542df3d2",
+    "scripts/art/brick-scale-gallery.py": "fca42726911644aa76ee8afb7a53b73e5678323c9bebd5137c94fd7217cd9fec",
+    "scripts/art/review.sh": "f726eba3c1174577e1d2a0f0a7bc68f20b278368b35184e318656480fef0e273",
+    "art/visual-study/preferences.json": "60182e108660f8c8ad5c32960e11f750e01b9e2bfde3cb1b4fde751c9d8c8e58",
+    "art/visual-study/fidelity-1/research.json": "12bea8ec25c5bcb37851cc6a083930e536e65b3ce5981fb3f1ded0e369ce7a0a"
+  },
+  "geometry": "Unchanged GLB, verified against positively reviewed fidelity pilot.",
+  "texture_scaling": "Diffuse, normal and roughness use the same uniform UV scale. Brick and mortar scale together. Approximate apparent brick lengths: 18, 24, 30 cm; inferred from image, not measured masonry."
+}

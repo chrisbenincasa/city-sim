@@ -1,0 +1,338 @@
+{
+  "authority": "scripts/art/expanded-kit.py",
+  "source_sha256": "4af88e460216ed05354e8fd1956b4d631cd867fe05e6eddea2831ad28f80e672",
+  "helper_sha256": "f24b8fc6fb860d79e1381c66b95d0c7d6a418c2aeb54170efb12cb773e5edf77",
+  "blender": "5.2.1 LTS",
+  "units": "metres",
+  "front": "Blender -Y, Godot +Z",
+  "assets": [
+    {
+      "specimen": "attached-townhouse",
+      "asset": "attached-townhouse.glb",
+      "geometry_sha256": "ab948cbaa8f8f34dc46e4c063563406fed9cb932b36940a98b6b082f18d63afa",
+      "bounds_blender": [
+        [
+          -9.3100004196167,
+          -6.300000190734863,
+          0.0
+        ],
+        [
+          9.3100004196167,
+          5.820000171661377,
+          12.300000190734863
+        ]
+      ],
+      "polygons": 3867,
+      "materials": [
+        "wall",
+        "stone",
+        "roof",
+        "glass",
+        "frame",
+        "accent"
+      ]
+    },
+    {
+      "specimen": "walk-up-apartment",
+      "asset": "walk-up-apartment.glb",
+      "geometry_sha256": "849893de1e6fecf9359a67afbe2a83eb9fc8860c7a803d33a6d87f5f45f25642",
+      "bounds_blender": [
+        [
+          -10.479776382446289,
+          -7.710000038146973,
+          0.0
+        ],
+        [
+          10.479776382446289,
+          7.0,
+          15.399999618530273
+        ]
+      ],
+      "polygons": 6081,
+      "materials": [
+        "wall",
+        "stone",
+        "glass",
+        "frame",
+        "accent",
+        "roof"
+      ]
+    },
+    {
+      "specimen": "courtyard-apartment",
+      "asset": "courtyard-apartment.glb",
+      "geometry_sha256": "c045092693179be9019a01eace7b92b3b3ef69a65a05ddca7e1a1c56559d6487",
+      "bounds_blender": [
+        [
+          -15.3100004196167,
+          -13.3100004196167,
+          0.0
+        ],
+        [
+          15.3100004196167,
+          13.3100004196167,
+          14.600000381469727
+        ]
+      ],
+      "polygons": 13255,
+      "materials": [
+        "wall",
+        "stone",
+        "glass",
+        "frame",
+        "roof",
+        "accent"
+      ]
+    },
+    {
+      "specimen": "office-tower",
+      "asset": "office-tower.glb",
+      "geometry_sha256": "3900ff65d9eda804802f7aee43df2f7eed79d902f88d857a1d9dab4b971add79",
+      "bounds_blender": [
+        [
+          -12.149999618530273,
+          -12.699999809265137,
+          0.0
+        ],
+        [
+          12.149999618530273,
+          10.149999618530273,
+          49.400001525878906
+        ]
+      ],
+      "polygons": 31512,
+      "materials": [
+        "stone",
+        "glass",
+        "frame",
+        "roof",
+        "wall"
+      ]
+    },
+    {
+      "specimen": "mixed-use-tower",
+      "asset": "mixed-use-tower.glb",
+      "geometry_sha256": "a179383f06931b6a0921214701b0333712ab252b028d43f35fe41d720ae532a4",
+      "bounds_blender": [
+        [
+          -13.149999618530273,
+          -11.380000114440918,
+          0.0
+        ],
+        [
+          13.149999618530273,
+          10.149999618530273,
+          37.5099983215332
+        ]
+      ],
+      "polygons": 14172,
+      "materials": [
+        "stone",
+        "glass",
+        "frame",
+        "roof",
+        "wall"
+      ]
+    },
+    {
+      "specimen": "small-shop",
+      "asset": "small-shop.glb",
+      "geometry_sha256": "15f54d9467f601cf8727017e3634ae59ebc042402c0ad84bbab53058cbfd3f58",
+      "bounds_blender": [
+        [
+          -5.320000171661377,
+          -5.389999866485596,
+          0.0
+        ],
+        [
+          5.320000171661377,
+          4.349999904632568,
+          5.9942450523376465
+        ]
+      ],
+      "polygons": 767,
+      "materials": [
+        "wall",
+        "stone",
+        "glass",
+        "frame",
+        "roof"
+      ]
+    },
+    {
+      "specimen": "corner-shop",
+      "asset": "corner-shop.glb",
+      "geometry_sha256": "912499622a80b41d77d1b6bf793904996123ba03823e0c5fd13d6e3d194f1691",
+      "bounds_blender": [
+        [
+          -7.320000171661377,
+          -6.320000171661377,
+          0.0
+        ],
+        [
+          7.320000171661377,
+          6.320000171661377,
+          7.349999904632568
+        ]
+      ],
+      "polygons": 1173,
+      "materials": [
+        "wall",
+        "stone",
+        "glass",
+        "frame",
+        "roof"
+      ]
+    },
+    {
+      "specimen": "factory-with-office",
+      "asset": "factory-with-office.glb",
+      "geometry_sha256": "54763c966c7a140005fb8acf69940d578d2ce65b6aa5a2e72739a7c45a7c295d",
+      "bounds_blender": [
+        [
+          -18.31999969482422,
+          -17.309999465942383,
+          0.0
+        ],
+        [
+          14.3100004196167,
+          13.149999618530273,
+          8.699999809265137
+        ]
+      ],
+      "polygons": 2700,
+      "materials": [
+        "accent",
+        "stone",
+        "roof",
+        "glass",
+        "frame",
+        "wall"
+      ]
+    },
+    {
+      "specimen": "school",
+      "asset": "school.glb",
+      "geometry_sha256": "08fcf004d6687fa83f7f8bdcdca8afea318e1e38fddcee8ef175c4869b50fadb",
+      "bounds_blender": [
+        [
+          -17.309999465942383,
+          -10.3100004196167,
+          0.0
+        ],
+        [
+          17.309999465942383,
+          12.3100004196167,
+          8.893192291259766
+        ]
+      ],
+      "polygons": 5986,
+      "materials": [
+        "accent",
+        "stone",
+        "wall",
+        "glass",
+        "frame",
+        "roof"
+      ]
+    },
+    {
+      "specimen": "bus",
+      "asset": "bus.glb",
+      "geometry_sha256": "b0d3bb9d4ad263f924265d2e110a862b4be1efca0493f62f54a7e631985fc21c",
+      "bounds_blender": [
+        [
+          -1.3174999952316284,
+          -6.059999942779541,
+          0.0
+        ],
+        [
+          1.3274999856948853,
+          6.059999942779541,
+          3.380000114440918
+        ]
+      ],
+      "polygons": 1680,
+      "materials": [
+        "paint",
+        "stone",
+        "glass",
+        "rubber",
+        "frame",
+        "lamp",
+        "roof"
+      ]
+    },
+    {
+      "specimen": "walker",
+      "asset": "walker.glb",
+      "geometry_sha256": "dc6a72fbc4ba956e59e3d1fa7943506dcb00bce8c59f7b31ca35dbb96c65fa2f",
+      "bounds_blender": [
+        [
+          -0.34449389576911926,
+          -0.26499998569488525,
+          0.0
+        ],
+        [
+          0.34449389576911926,
+          0.19499999284744263,
+          1.7850000858306885
+        ]
+      ],
+      "polygons": 672,
+      "materials": [
+        "rubber",
+        "cloth",
+        "paint",
+        "skin",
+        "bark"
+      ]
+    },
+    {
+      "specimen": "round-tree",
+      "asset": "round-tree.glb",
+      "geometry_sha256": "f7559fc2238cd328af23bc6228daeaa619d7a9aa89ba9e06a33b40cb98fb817b",
+      "bounds_blender": [
+        [
+          -2.8285632133483887,
+          -2.6019208431243896,
+          0.0
+        ],
+        [
+          2.8499999046325684,
+          2.6446304321289062,
+          7.049999713897705
+        ]
+      ],
+      "polygons": 984,
+      "materials": [
+        "bark",
+        "foliage-dark",
+        "foliage"
+      ]
+    },
+    {
+      "specimen": "conical-tree",
+      "asset": "conical-tree.glb",
+      "geometry_sha256": "e00ecf903540474d1472be21349a50bd941170faa56c78138b5aee140ef8785f",
+      "bounds_blender": [
+        [
+          -2.3219592571258545,
+          -2.1751785278320312,
+          0.0
+        ],
+        [
+          2.4200000762939453,
+          2.1751787662506104,
+          7.0
+        ]
+      ],
+      "polygons": 3468,
+      "materials": [
+        "bark",
+        "foliage-dark",
+        "foliage"
+      ]
+    }
+  ]
+}

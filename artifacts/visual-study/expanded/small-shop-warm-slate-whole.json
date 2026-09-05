@@ -1,0 +1,49 @@
+{
+  "subject": "small-shop",
+  "palette": "warm-slate",
+  "view": "whole",
+  "comparison": "expanded-kit-1",
+  "instances": [
+    {
+      "asset": "small-shop",
+      "palette": "warm-slate",
+      "anchor": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -5.32,
+        0,
+        -4.35
+      ],
+      "boundsSize": [
+        10.64,
+        5.994245,
+        9.74
+      ],
+      "triangles": 1532,
+      "surfaces": 5
+    }
+  ],
+  "camera": "(15.960001, 14.169123, 21.268002)",
+  "target": "(0, 2.9971225, 0.52)",
+  "fov": 40,
+  "viewport": "(1440, 960)",
+  "sunRotation": "(-61.999992, -27.999998, 0)",
+  "sunEnergy": 1.15,
+  "sunAngularDistance": 0.5,
+  "ambientEnergy": 0.55,
+  "ssao": true,
+  "taa": true,
+  "exposure": 1,
+  "light": "noon",
+  "triangles": 1532,
+  "surfaces": 5,
+  "tick": null,
+  "population": null,
+  "godot": "4.7.2-stable (official)",
+  "renderer": "forward_plus"
+}

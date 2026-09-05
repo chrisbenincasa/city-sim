@@ -1,0 +1,96 @@
+{
+  "authority": "scripts/art/construction-study.py",
+  "source_sha256": "156fa4b063009b511db926aa35186c18b3ba1b466f885386cd21ede52984f4f2",
+  "helper_sha256": "f24b8fc6fb860d79e1381c66b95d0c7d6a418c2aeb54170efb12cb773e5edf77",
+  "blender": "5.2.1 LTS",
+  "units": "metres",
+  "front": "Blender -Y, Godot +Z",
+  "assets": [
+    {
+      "specimen": "attached-townhouse",
+      "asset": "attached-townhouse.glb",
+      "geometry_sha256": "6518b6605d59dfa948a2923bd4038004c2b9417ddf49557a9f69d92d647652df",
+      "bounds_blender": [
+        [
+          -9.175000190734863,
+          -5.84250020980835,
+          0.0
+        ],
+        [
+          9.175000190734863,
+          5.84250020980835,
+          12.119999885559082
+        ]
+      ],
+      "polygons": 17587,
+      "materials": [
+        "wall",
+        "frame",
+        "roof",
+        "glass",
+        "stone",
+        "room",
+        "blind",
+        "metal",
+        "accent"
+      ]
+    },
+    {
+      "specimen": "small-shop",
+      "asset": "small-shop.glb",
+      "geometry_sha256": "e2c91cf1c1bdd76eb0fccaa4aff457079a931866e567f18ccad37ef9b42135fd",
+      "bounds_blender": [
+        [
+          -5.317500114440918,
+          -4.949999809265137,
+          0.0
+        ],
+        [
+          5.317500114440918,
+          4.199999809265137,
+          5.494999885559082
+        ]
+      ],
+      "polygons": 3995,
+      "materials": [
+        "wall",
+        "frame",
+        "glass",
+        "stone",
+        "room",
+        "blind",
+        "roof",
+        "metal"
+      ]
+    },
+    {
+      "specimen": "factory-with-office",
+      "asset": "factory-with-office.glb",
+      "geometry_sha256": "12d46792e86049a3a3315653f9cecbea48c887482efda71a0427ead7b3abe078",
+      "bounds_blender": [
+        [
+          -18.174999237060547,
+          -17.174999237060547,
+          0.0
+        ],
+        [
+          14.175000190734863,
+          13.0,
+          7.755000114440918
+        ]
+      ],
+      "polygons": 11862,
+      "materials": [
+        "accent",
+        "frame",
+        "roof",
+        "glass",
+        "stone",
+        "room",
+        "wall",
+        "blind",
+        "metal"
+      ]
+    }
+  ]
+}

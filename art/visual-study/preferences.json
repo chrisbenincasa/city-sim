@@ -1,0 +1,112 @@
+{
+  "status": "working preferences; keep exploring, no final selection",
+  "preferred": {
+    "detached-house": "material-rich",
+    "residential-tower": "material-rich",
+    "car": "middle"
+  },
+  "user_observation": "almost like the details should be on the buildings in this game",
+  "next": "Review construction-study-1 beside the first expanded pass before propagating the realism adjustment across the kit.",
+  "positive_candidates": {
+    "detached-house": [
+      "material-rich",
+      "detailed-extreme",
+      "model-round-1/realistic"
+    ],
+    "residential-tower": [
+      "material-rich",
+      "model-round-1/realistic",
+      "model-round-1/city-builder"
+    ],
+    "car": [
+      "middle",
+      "detailed-extreme",
+      "model-round-1/realistic"
+    ]
+  },
+  "quieter_vehicle_hypothesis": "Not a rule: the player also liked the extra-detailed car.",
+  "latest_feedback": {
+    "detail": "Naturalistic construction detail and extra-detailed house/car liked.",
+    "palette": "Palette round 1: all three colours work for the realistic car; warm-slate and earth-terracotta work very well for the realistic house; all three schemes and both realistic/city-builder tower models liked. No single citywide palette selected.",
+    "shape": "Rounded/smooth clay miniature disliked. Voxel must be crisp and stepped.",
+    "comparison": "Different model designs and proportions are authorised; shader-only variants do not answer the question.",
+    "selection": "Model-round-1 realistic models generally liked for all three specimens; city-builder tower also liked. No final choice.",
+    "realism": "Fidelity pilot strongly liked and generally the right direction. Next comparison varies brick scale using the same texture maps."
+  },
+  "model_round_1_feedback": {
+    "user_words": "I didnt really like any of the low poly models. I thought that the voxel outputs would be a bit more... voxel-y and with more cubes, however this was something another agent warned me about; that voxels would only really show themselves off in the terrain. I generally liked the \"realistic\" models of every type. The city-builder tower was also nice.",
+    "liked": {
+      "detached-house": [
+        "realistic"
+      ],
+      "residential-tower": [
+        "realistic",
+        "city-builder"
+      ],
+      "car": [
+        "realistic"
+      ]
+    },
+    "disliked": {
+      "low-poly": "All three executions."
+    },
+    "voxel": "Expected more visible cubes and a more voxel-like construction. Current execution did not meet that expectation; direction not explicitly rejected.",
+    "terrain_claim": "Player reported another assistant suggesting voxels primarily show themselves in terrain. Not established by this comparison.",
+    "unresolved": [
+      "No explicit verdict on city-builder house or car.",
+      "No final art direction selected."
+    ]
+  },
+  "palette_round_1_feedback": {
+    "user_words": "all of the color options work for the car. warm slate and earth work super well for the house. i like all of the schemes AND both models for the tower",
+    "liked": {
+      "detached-house": {
+        "realistic": [
+          "warm-slate",
+          "earth-terracotta"
+        ]
+      },
+      "car": {
+        "realistic": [
+          "original",
+          "warm-slate",
+          "earth-terracotta"
+        ]
+      },
+      "residential-tower": {
+        "realistic": [
+          "original",
+          "warm-slate",
+          "earth-terracotta"
+        ],
+        "city-builder": [
+          "original",
+          "warm-slate",
+          "earth-terracotta"
+        ]
+      }
+    },
+    "limits": "Positive feedback on isolated specimens, not final production acceptance. Original house palette not explicitly rejected; no single palette or tower model needs to win."
+  },
+  "construction_balance_feedback": {
+    "user_words": "I think there is just something slightly aesthetically \"cartoonish\" about them. not that it is bad, I think I just imagined everything slightly more realistic. looking for a balance",
+    "response_under_review": "Three-specimen pilot changes openings, frame proportions, roof construction and material depth while holding the slate/earth palettes, camera and noon light comparable. No approval inferred."
+  },
+  "fidelity_feedback": {
+    "user_words": "seeing everything all together is great. i still think we need to improve fidelity a bit though, unless you do not foresee this as \"end state\". it is the right direction, in terms of the structure of the buildings and the colors are quite nice, for a first cut. but i think we need to do some research and see how far we can push your modeling capabilities.",
+    "interpretation": "Building structure and colours are a promising first cut. Research and a substantially more finished sample are requested; current kit is not production acceptance.",
+    "response_under_review": "Reference-led terrace pilot with constructed details, photographed brick, layered glazing and entrance courts. No approval inferred.",
+    "review": "This looks amazing - i think it would be cool to vary the size of the bricks too, using the same textures. Poly Haven seems to have a TON of materials and textures that we can use. Semms like a really great resource in general though. But i think this is generally the right direction",
+    "standing": "Positive direction feedback on the fidelity pilot. Explore brick sizes using the same texture maps; Poly Haven welcomed as a material resource. No final production acceptance or single brick size selected."
+  },
+  "neighbourhood_review": {
+    "authorised": "Build a finished street corner with terrace, corner shop and a liked tower; detailed surroundings; street, neighbourhood and city-distance review.",
+    "material_resources": [
+      "https://polyhaven.com/",
+      "https://ambientcg.com/",
+      "https://www.sharetextures.com/",
+      "https://www.cgbookcase.com/"
+    ],
+    "standing": "New neighbourhood sample awaits visual feedback. Prior fidelity direction and palette preferences stand."
+  }
+}

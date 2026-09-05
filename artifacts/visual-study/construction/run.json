@@ -1,0 +1,652 @@
+{
+  "comparison": "construction-study-1",
+  "controls_checked": [
+    "camera",
+    "target",
+    "fov",
+    "viewport",
+    "sunRotation",
+    "sunEnergy",
+    "sunAngularDistance",
+    "ambientEnergy",
+    "ssao",
+    "taa",
+    "exposure",
+    "light",
+    "godot",
+    "renderer",
+    "tick",
+    "population"
+  ],
+  "captures": [
+    {
+      "subject": "attached-townhouse",
+      "palette": "warm-slate",
+      "view": "whole",
+      "comparison": "construction-study-1",
+      "instances": [
+        {
+          "asset": "attached-townhouse",
+          "palette": "warm-slate",
+          "anchor": false,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0,
+          "boundsMin": [
+            -9.175,
+            0,
+            -5.8425
+          ],
+          "boundsSize": [
+            18.35,
+            12.12,
+            11.685
+          ],
+          "triangles": 35172,
+          "surfaces": 9
+        }
+      ],
+      "camera": "(27.93, 25.701, 36.549004)",
+      "target": "(0, 6.15, 0.24000025)",
+      "fov": 40,
+      "viewport": "(1440, 960)",
+      "sunRotation": "(-61.999992, -27.999998, 0)",
+      "sunEnergy": 1.15,
+      "sunAngularDistance": 0.5,
+      "ambientEnergy": 0.55,
+      "ssao": true,
+      "taa": true,
+      "exposure": 1,
+      "light": "noon",
+      "triangles": 35172,
+      "surfaces": 9,
+      "tick": null,
+      "population": null,
+      "godot": "4.7.2-stable (official)",
+      "renderer": "forward_plus"
+    },
+    {
+      "subject": "attached-townhouse",
+      "palette": "warm-slate",
+      "view": "close",
+      "comparison": "construction-study-1",
+      "instances": [
+        {
+          "asset": "attached-townhouse",
+          "palette": "warm-slate",
+          "anchor": false,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0,
+          "boundsMin": [
+            -9.175,
+            0,
+            -5.8425
+          ],
+          "boundsSize": [
+            18.35,
+            12.12,
+            11.685
+          ],
+          "triangles": 35172,
+          "surfaces": 9
+        }
+      ],
+      "camera": "(5.5860004, 8.0256, 19.706402)",
+      "target": "(0, 4.674, 6.3000007)",
+      "fov": 40,
+      "viewport": "(1440, 960)",
+      "sunRotation": "(-61.999992, -27.999998, 0)",
+      "sunEnergy": 1.15,
+      "sunAngularDistance": 0.5,
+      "ambientEnergy": 0.55,
+      "ssao": true,
+      "taa": true,
+      "exposure": 1,
+      "light": "noon",
+      "triangles": 35172,
+      "surfaces": 9,
+      "tick": null,
+      "population": null,
+      "godot": "4.7.2-stable (official)",
+      "renderer": "forward_plus"
+    },
+    {
+      "subject": "attached-townhouse",
+      "palette": "earth-terracotta",
+      "view": "whole",
+      "comparison": "construction-study-1",
+      "instances": [
+        {
+          "asset": "attached-townhouse",
+          "palette": "earth-terracotta",
+          "anchor": false,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0,
+          "boundsMin": [
+            -9.175,
+            0,
+            -5.8425
+          ],
+          "boundsSize": [
+            18.35,
+            12.12,
+            11.685
+          ],
+          "triangles": 35172,
+          "surfaces": 9
+        }
+      ],
+      "camera": "(27.93, 25.701, 36.549004)",
+      "target": "(0, 6.15, 0.24000025)",
+      "fov": 40,
+      "viewport": "(1440, 960)",
+      "sunRotation": "(-61.999992, -27.999998, 0)",
+      "sunEnergy": 1.15,
+      "sunAngularDistance": 0.5,
+      "ambientEnergy": 0.55,
+      "ssao": true,
+      "taa": true,
+      "exposure": 1,
+      "light": "noon",
+      "triangles": 35172,
+      "surfaces": 9,
+      "tick": null,
+      "population": null,
+      "godot": "4.7.2-stable (official)",
+      "renderer": "forward_plus"
+    },
+    {
+      "subject": "attached-townhouse",
+      "palette": "earth-terracotta",
+      "view": "close",
+      "comparison": "construction-study-1",
+      "instances": [
+        {
+          "asset": "attached-townhouse",
+          "palette": "earth-terracotta",
+          "anchor": false,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0,
+          "boundsMin": [
+            -9.175,
+            0,
+            -5.8425
+          ],
+          "boundsSize": [
+            18.35,
+            12.12,
+            11.685
+          ],
+          "triangles": 35172,
+          "surfaces": 9
+        }
+      ],
+      "camera": "(5.5860004, 8.0256, 19.706402)",
+      "target": "(0, 4.674, 6.3000007)",
+      "fov": 40,
+      "viewport": "(1440, 960)",
+      "sunRotation": "(-61.999992, -27.999998, 0)",
+      "sunEnergy": 1.15,
+      "sunAngularDistance": 0.5,
+      "ambientEnergy": 0.55,
+      "ssao": true,
+      "taa": true,
+      "exposure": 1,
+      "light": "noon",
+      "triangles": 35172,
+      "surfaces": 9,
+      "tick": null,
+      "population": null,
+      "godot": "4.7.2-stable (official)",
+      "renderer": "forward_plus"
+    },
+    {
+      "subject": "small-shop",
+      "palette": "warm-slate",
+      "view": "whole",
+      "comparison": "construction-study-1",
+      "instances": [
+        {
+          "asset": "small-shop",
+          "palette": "warm-slate",
+          "anchor": false,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0,
+          "boundsMin": [
+            -5.3175,
+            0,
+            -4.2
+          ],
+          "boundsSize": [
+            10.635,
+            5.495,
+            9.15
+          ],
+          "triangles": 8012,
+          "surfaces": 8
+        }
+      ],
+      "camera": "(15.960001, 14.169123, 21.268002)",
+      "target": "(0, 2.9971225, 0.52)",
+      "fov": 40,
+      "viewport": "(1440, 960)",
+      "sunRotation": "(-61.999992, -27.999998, 0)",
+      "sunEnergy": 1.15,
+      "sunAngularDistance": 0.5,
+      "ambientEnergy": 0.55,
+      "ssao": true,
+      "taa": true,
+      "exposure": 1,
+      "light": "noon",
+      "triangles": 8012,
+      "surfaces": 8,
+      "tick": null,
+      "population": null,
+      "godot": "4.7.2-stable (official)",
+      "renderer": "forward_plus"
+    },
+    {
+      "subject": "small-shop",
+      "palette": "warm-slate",
+      "view": "close",
+      "comparison": "construction-study-1",
+      "instances": [
+        {
+          "asset": "small-shop",
+          "palette": "warm-slate",
+          "anchor": false,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0,
+          "boundsMin": [
+            -5.3175,
+            0,
+            -4.2
+          ],
+          "boundsSize": [
+            10.635,
+            5.495,
+            9.15
+          ],
+          "triangles": 8012,
+          "surfaces": 8
+        }
+      ],
+      "camera": "(3.1920002, 4.193013, 13.0508)",
+      "target": "(0, 2.2778132, 5.39)",
+      "fov": 40,
+      "viewport": "(1440, 960)",
+      "sunRotation": "(-61.999992, -27.999998, 0)",
+      "sunEnergy": 1.15,
+      "sunAngularDistance": 0.5,
+      "ambientEnergy": 0.55,
+      "ssao": true,
+      "taa": true,
+      "exposure": 1,
+      "light": "noon",
+      "triangles": 8012,
+      "surfaces": 8,
+      "tick": null,
+      "population": null,
+      "godot": "4.7.2-stable (official)",
+      "renderer": "forward_plus"
+    },
+    {
+      "subject": "small-shop",
+      "palette": "earth-terracotta",
+      "view": "whole",
+      "comparison": "construction-study-1",
+      "instances": [
+        {
+          "asset": "small-shop",
+          "palette": "earth-terracotta",
+          "anchor": false,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0,
+          "boundsMin": [
+            -5.3175,
+            0,
+            -4.2
+          ],
+          "boundsSize": [
+            10.635,
+            5.495,
+            9.15
+          ],
+          "triangles": 8012,
+          "surfaces": 8
+        }
+      ],
+      "camera": "(15.960001, 14.169123, 21.268002)",
+      "target": "(0, 2.9971225, 0.52)",
+      "fov": 40,
+      "viewport": "(1440, 960)",
+      "sunRotation": "(-61.999992, -27.999998, 0)",
+      "sunEnergy": 1.15,
+      "sunAngularDistance": 0.5,
+      "ambientEnergy": 0.55,
+      "ssao": true,
+      "taa": true,
+      "exposure": 1,
+      "light": "noon",
+      "triangles": 8012,
+      "surfaces": 8,
+      "tick": null,
+      "population": null,
+      "godot": "4.7.2-stable (official)",
+      "renderer": "forward_plus"
+    },
+    {
+      "subject": "small-shop",
+      "palette": "earth-terracotta",
+      "view": "close",
+      "comparison": "construction-study-1",
+      "instances": [
+        {
+          "asset": "small-shop",
+          "palette": "earth-terracotta",
+          "anchor": false,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0,
+          "boundsMin": [
+            -5.3175,
+            0,
+            -4.2
+          ],
+          "boundsSize": [
+            10.635,
+            5.495,
+            9.15
+          ],
+          "triangles": 8012,
+          "surfaces": 8
+        }
+      ],
+      "camera": "(3.1920002, 4.193013, 13.0508)",
+      "target": "(0, 2.2778132, 5.39)",
+      "fov": 40,
+      "viewport": "(1440, 960)",
+      "sunRotation": "(-61.999992, -27.999998, 0)",
+      "sunEnergy": 1.15,
+      "sunAngularDistance": 0.5,
+      "ambientEnergy": 0.55,
+      "ssao": true,
+      "taa": true,
+      "exposure": 1,
+      "light": "noon",
+      "triangles": 8012,
+      "surfaces": 8,
+      "tick": null,
+      "population": null,
+      "godot": "4.7.2-stable (official)",
+      "renderer": "forward_plus"
+    },
+    {
+      "subject": "factory-with-office",
+      "palette": "warm-slate",
+      "view": "whole",
+      "comparison": "construction-study-1",
+      "instances": [
+        {
+          "asset": "factory-with-office",
+          "palette": "warm-slate",
+          "anchor": false,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0,
+          "boundsMin": [
+            -18.175,
+            0,
+            -13
+          ],
+          "boundsSize": [
+            32.35,
+            7.755,
+            30.175
+          ],
+          "triangles": 23724,
+          "surfaces": 9
+        }
+      ],
+      "camera": "(46.940002, 38.6115, 65.7085)",
+      "target": "(-2.0049992, 4.35, 2.08)",
+      "fov": 40,
+      "viewport": "(1440, 960)",
+      "sunRotation": "(-61.999992, -27.999998, 0)",
+      "sunEnergy": 1.15,
+      "sunAngularDistance": 0.5,
+      "ambientEnergy": 0.55,
+      "ssao": true,
+      "taa": true,
+      "exposure": 1,
+      "light": "noon",
+      "triangles": 23724,
+      "surfaces": 9,
+      "tick": null,
+      "population": null,
+      "godot": "4.7.2-stable (official)",
+      "renderer": "forward_plus"
+    },
+    {
+      "subject": "factory-with-office",
+      "palette": "warm-slate",
+      "view": "close",
+      "comparison": "construction-study-1",
+      "instances": [
+        {
+          "asset": "factory-with-office",
+          "palette": "warm-slate",
+          "anchor": false,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0,
+          "boundsMin": [
+            -18.175,
+            0,
+            -13
+          ],
+          "boundsSize": [
+            32.35,
+            7.755,
+            30.175
+          ],
+          "triangles": 23724,
+          "surfaces": 9
+        }
+      ],
+      "camera": "(7.7840014, 9.1794, 40.8036)",
+      "target": "(-2.0049992, 3.306, 17.31)",
+      "fov": 40,
+      "viewport": "(1440, 960)",
+      "sunRotation": "(-61.999992, -27.999998, 0)",
+      "sunEnergy": 1.15,
+      "sunAngularDistance": 0.5,
+      "ambientEnergy": 0.55,
+      "ssao": true,
+      "taa": true,
+      "exposure": 1,
+      "light": "noon",
+      "triangles": 23724,
+      "surfaces": 9,
+      "tick": null,
+      "population": null,
+      "godot": "4.7.2-stable (official)",
+      "renderer": "forward_plus"
+    },
+    {
+      "subject": "factory-with-office",
+      "palette": "earth-terracotta",
+      "view": "whole",
+      "comparison": "construction-study-1",
+      "instances": [
+        {
+          "asset": "factory-with-office",
+          "palette": "earth-terracotta",
+          "anchor": false,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0,
+          "boundsMin": [
+            -18.175,
+            0,
+            -13
+          ],
+          "boundsSize": [
+            32.35,
+            7.755,
+            30.175
+          ],
+          "triangles": 23724,
+          "surfaces": 9
+        }
+      ],
+      "camera": "(46.940002, 38.6115, 65.7085)",
+      "target": "(-2.0049992, 4.35, 2.08)",
+      "fov": 40,
+      "viewport": "(1440, 960)",
+      "sunRotation": "(-61.999992, -27.999998, 0)",
+      "sunEnergy": 1.15,
+      "sunAngularDistance": 0.5,
+      "ambientEnergy": 0.55,
+      "ssao": true,
+      "taa": true,
+      "exposure": 1,
+      "light": "noon",
+      "triangles": 23724,
+      "surfaces": 9,
+      "tick": null,
+      "population": null,
+      "godot": "4.7.2-stable (official)",
+      "renderer": "forward_plus"
+    },
+    {
+      "subject": "factory-with-office",
+      "palette": "earth-terracotta",
+      "view": "close",
+      "comparison": "construction-study-1",
+      "instances": [
+        {
+          "asset": "factory-with-office",
+          "palette": "earth-terracotta",
+          "anchor": false,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "yaw": 0,
+          "boundsMin": [
+            -18.175,
+            0,
+            -13
+          ],
+          "boundsSize": [
+            32.35,
+            7.755,
+            30.175
+          ],
+          "triangles": 23724,
+          "surfaces": 9
+        }
+      ],
+      "camera": "(7.7840014, 9.1794, 40.8036)",
+      "target": "(-2.0049992, 3.306, 17.31)",
+      "fov": 40,
+      "viewport": "(1440, 960)",
+      "sunRotation": "(-61.999992, -27.999998, 0)",
+      "sunEnergy": 1.15,
+      "sunAngularDistance": 0.5,
+      "ambientEnergy": 0.55,
+      "ssao": true,
+      "taa": true,
+      "exposure": 1,
+      "light": "noon",
+      "triangles": 23724,
+      "surfaces": 9,
+      "tick": null,
+      "population": null,
+      "godot": "4.7.2-stable (official)",
+      "renderer": "forward_plus"
+    }
+  ],
+  "source_sha256": {
+    "scripts/art/construction-study.py": "156fa4b063009b511db926aa35186c18b3ba1b466f885386cd21ede52984f4f2",
+    "scripts/art/expanded-kit.py": "95ec3e6bcbd38f7ff994d3066bb994c85847c1bd6ac706ed5009b889ca5a9cd0",
+    "scripts/art/model-round.py": "f24b8fc6fb860d79e1381c66b95d0c7d6a418c2aeb54170efb12cb773e5edf77",
+    "scripts/art/construction-gallery.py": "cb2a8d3348a416adf81a14855d3966c3f7351d0535c4952552df8b9df844cc11",
+    "scripts/art/review.sh": "f0793d93627a2420b018ee80475330f41bdfc90708c5057d4e9ef30217cf9887",
+    "src/Borough.Godot/ExpandedStudy.cs": "bef5724c5f5b0b3273d393f0226c9365e088046a3556e37537d42018ddc3c2f4",
+    "src/Borough.Godot/ExpandedStudy.tscn": "893654b53b72b71537218402a6d1035cda27e2a39ea2b527694b682fdb0c4899",
+    "art/visual-study/construction-study-1/manifest.json": "7fb08d6a7e10f3fcd12edf4c1ad74c8d109be680b952b8b678399dd1a77e5d8c",
+    "art/visual-study/palettes.json": "ad323132515e317d2678539e86f5ba4f91f74ff026febd682577327a97d411b2",
+    "art/visual-study/preferences.json": "3c435f404e29603a92ed0c63a12e357dd635b6aa48c5d08ba9f702ba37e4d58b",
+    "src/Borough.Godot/assets/visual-study/construction/attached-townhouse.glb": "98e3cf0c759cf10d27e7f6b78c1724766f60c6ec4b16e6f970a2a76d9ed196ad",
+    "src/Borough.Godot/assets/visual-study/construction/small-shop.glb": "a85cf2c01a30283d3a7c55e4828b1be483c287a77b312e99872750048cd51fcb",
+    "src/Borough.Godot/assets/visual-study/construction/factory-with-office.glb": "34354c311ad9965f2d2f90a34fba05632e154524adfe6763562728d58c962f02"
+  },
+  "capture_sha256": {
+    "artifacts/visual-study/expanded/attached-townhouse-warm-slate-whole.png": "72cdf46f58789d9a6730cce9b0a785ca1e2fa008304af07bb3a5c625563c58c4",
+    "artifacts/visual-study/construction/attached-townhouse-warm-slate-whole.png": "e7d6309d1f5a5a23b199ad35e3a3dca7a3fc20408b31bddf69b947bbd8164b8a",
+    "artifacts/visual-study/expanded/attached-townhouse-warm-slate-close.png": "af4190237ebfe261246beb24c4def8c8af85ab639595e8e6132b28eead17be02",
+    "artifacts/visual-study/construction/attached-townhouse-warm-slate-close.png": "8fadb546f02f92ed82701396c5b405200600f73759ccf856d0aff5540d69cde2",
+    "artifacts/visual-study/expanded/attached-townhouse-earth-terracotta-whole.png": "a3f8c79a62e1e901917c70a5dec955eac0ba100bdd287ede6da650e316d86d65",
+    "artifacts/visual-study/construction/attached-townhouse-earth-terracotta-whole.png": "317885971a40e8d12b9aeb859b0311fc5c82270467755e29f3bc60c22395fadd",
+    "artifacts/visual-study/expanded/attached-townhouse-earth-terracotta-close.png": "a6497f0e8d06c74f1116e6f56ff2223c33e213cb38a8a6f95a9aa990eeed883d",
+    "artifacts/visual-study/construction/attached-townhouse-earth-terracotta-close.png": "b3cdb220327c4eebed8a92e3b2de1a6ecaa9763ff0b1ed0626f20b050b42802f",
+    "artifacts/visual-study/expanded/small-shop-warm-slate-whole.png": "e5f43d27d42e68652b9a492b026547e985fe7fff0a3a43098fc2fd892bd6bcd1",
+    "artifacts/visual-study/construction/small-shop-warm-slate-whole.png": "fb5fbd508e4c33d67b92dee56d1fd50c746940d99a9f83aab6da4335d3b134bf",
+    "artifacts/visual-study/expanded/small-shop-warm-slate-close.png": "f8cb5cc3f3a9b57f27670904fdb97c879c6bbdcd05295dddba2eabe94255d323",
+    "artifacts/visual-study/construction/small-shop-warm-slate-close.png": "c09107db24e79c1ae423d253f99c097d6afc6ca37e429a7f1db677214b458cfc",
+    "artifacts/visual-study/expanded/small-shop-earth-terracotta-whole.png": "aa582ab02635a3482e17abfe317861a8a5283ff55a9c85609c81566ebe1eca7d",
+    "artifacts/visual-study/construction/small-shop-earth-terracotta-whole.png": "31b81f2dd44330a997664b4a6e2611187795e79d4fc14ef698e4757010cda679",
+    "artifacts/visual-study/expanded/small-shop-earth-terracotta-close.png": "af16314079973cdd21432c0e6aae065ed63e40990ca2acfac71b7a37ee5b0610",
+    "artifacts/visual-study/construction/small-shop-earth-terracotta-close.png": "0d138824234bda68684a97f2ade335abe80970b31c8502c3682e0f3d21b40e10",
+    "artifacts/visual-study/expanded/factory-with-office-warm-slate-whole.png": "50b6c4c602012fd9a9dd923686a73db209d5ad5a811420fb14a9b661c18cc686",
+    "artifacts/visual-study/construction/factory-with-office-warm-slate-whole.png": "a12661ce71bf9c770dae4b3de3688903626eb837d09e23bd9630e4b2e4c64589",
+    "artifacts/visual-study/expanded/factory-with-office-warm-slate-close.png": "05bd771542ac49f968498a69d6d9d54a4151888444e30ef15289b519b89d9b79",
+    "artifacts/visual-study/construction/factory-with-office-warm-slate-close.png": "bf39df1caaf9d7aff972cdb83c1ffca4819844f45862cac5ddef93e2d58b5021",
+    "artifacts/visual-study/expanded/factory-with-office-earth-terracotta-whole.png": "45f87740d455d34ca2ec0aceb5d8ab260bec7e0190c0fadbc99c5e7a0de18567",
+    "artifacts/visual-study/construction/factory-with-office-earth-terracotta-whole.png": "3fb0ff763a3c21eb2dbb445e014a90ca94dd893251ff0d1acb600b5269a1279b",
+    "artifacts/visual-study/expanded/factory-with-office-earth-terracotta-close.png": "fd0c671fe3403b8de0120cc071ae83b11bff1ccffefa3a02e6d39ff4e68e213d",
+    "artifacts/visual-study/construction/factory-with-office-earth-terracotta-close.png": "1802cf579b7c780e6e492373851066e973c4867d15a2866ad3103a8923fbdf19"
+  }
+}

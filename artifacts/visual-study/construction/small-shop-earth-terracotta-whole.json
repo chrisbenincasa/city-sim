@@ -1,0 +1,49 @@
+{
+  "subject": "small-shop",
+  "palette": "earth-terracotta",
+  "view": "whole",
+  "comparison": "construction-study-1",
+  "instances": [
+    {
+      "asset": "small-shop",
+      "palette": "earth-terracotta",
+      "anchor": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -5.3175,
+        0,
+        -4.2
+      ],
+      "boundsSize": [
+        10.635,
+        5.495,
+        9.15
+      ],
+      "triangles": 8012,
+      "surfaces": 8
+    }
+  ],
+  "camera": "(15.960001, 14.169123, 21.268002)",
+  "target": "(0, 2.9971225, 0.52)",
+  "fov": 40,
+  "viewport": "(1440, 960)",
+  "sunRotation": "(-61.999992, -27.999998, 0)",
+  "sunEnergy": 1.15,
+  "sunAngularDistance": 0.5,
+  "ambientEnergy": 0.55,
+  "ssao": true,
+  "taa": true,
+  "exposure": 1,
+  "light": "noon",
+  "triangles": 8012,
+  "surfaces": 8,
+  "tick": null,
+  "population": null,
+  "godot": "4.7.2-stable (official)",
+  "renderer": "forward_plus"
+}

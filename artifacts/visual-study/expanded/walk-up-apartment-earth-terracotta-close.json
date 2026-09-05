@@ -1,0 +1,49 @@
+{
+  "subject": "walk-up-apartment",
+  "palette": "earth-terracotta",
+  "view": "close",
+  "comparison": "expanded-kit-1",
+  "instances": [
+    {
+      "asset": "walk-up-apartment",
+      "palette": "earth-terracotta",
+      "anchor": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -10.479776,
+        0,
+        -7
+      ],
+      "boundsSize": [
+        20.959553,
+        15.4,
+        14.710001
+      ],
+      "triangles": 12160,
+      "surfaces": 6
+    }
+  ],
+  "camera": "(6.287866, 9.62472, 22.80088)",
+  "target": "(0, 5.8519998, 7.710001)",
+  "fov": 40,
+  "viewport": "(1440, 960)",
+  "sunRotation": "(-61.999992, -27.999998, 0)",
+  "sunEnergy": 1.15,
+  "sunAngularDistance": 0.5,
+  "ambientEnergy": 0.55,
+  "ssao": true,
+  "taa": true,
+  "exposure": 1,
+  "light": "noon",
+  "triangles": 12160,
+  "surfaces": 6,
+  "tick": null,
+  "population": null,
+  "godot": "4.7.2-stable (official)",
+  "renderer": "forward_plus"
+}

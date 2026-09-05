@@ -1,0 +1,1490 @@
+{
+  "street": {
+    "ground": [
+      {
+        "name": "land",
+        "position": [
+          0,
+          -0.18,
+          -30
+        ],
+        "size": [
+          200,
+          0.24,
+          180
+        ],
+        "color": "92977d"
+      },
+      {
+        "name": "avenue",
+        "position": [
+          0,
+          -0.03,
+          0
+        ],
+        "size": [
+          190,
+          0.06,
+          10
+        ],
+        "color": "50565a"
+      },
+      {
+        "name": "cross street",
+        "position": [
+          33,
+          -0.03,
+          -30
+        ],
+        "size": [
+          10,
+          0.06,
+          160
+        ],
+        "color": "50565a"
+      },
+      {
+        "name": "courtyard paving",
+        "position": [
+          -49,
+          -0.03,
+          -38
+        ],
+        "size": [
+          13,
+          0.06,
+          23
+        ],
+        "color": "b2ad9e"
+      },
+      {
+        "name": "avenue pavement",
+        "position": [
+          -33.5,
+          0.06,
+          -6.5
+        ],
+        "size": [
+          123,
+          0.12,
+          3
+        ],
+        "color": "b8b4a7"
+      },
+      {
+        "name": "avenue pavement",
+        "position": [
+          66.5,
+          0.06,
+          -6.5
+        ],
+        "size": [
+          57,
+          0.12,
+          3
+        ],
+        "color": "b8b4a7"
+      },
+      {
+        "name": "avenue pavement",
+        "position": [
+          -33.5,
+          0.06,
+          6.5
+        ],
+        "size": [
+          123,
+          0.12,
+          3
+        ],
+        "color": "b8b4a7"
+      },
+      {
+        "name": "avenue pavement",
+        "position": [
+          66.5,
+          0.06,
+          6.5
+        ],
+        "size": [
+          57,
+          0.12,
+          3
+        ],
+        "color": "b8b4a7"
+      },
+      {
+        "name": "cross pavement",
+        "position": [
+          26.5,
+          0.06,
+          -57.5
+        ],
+        "size": [
+          3,
+          0.12,
+          105
+        ],
+        "color": "b8b4a7"
+      },
+      {
+        "name": "cross pavement",
+        "position": [
+          26.5,
+          0.06,
+          27.5
+        ],
+        "size": [
+          3,
+          0.12,
+          45
+        ],
+        "color": "b8b4a7"
+      },
+      {
+        "name": "cross pavement",
+        "position": [
+          39.5,
+          0.06,
+          -57.5
+        ],
+        "size": [
+          3,
+          0.12,
+          105
+        ],
+        "color": "b8b4a7"
+      },
+      {
+        "name": "cross pavement",
+        "position": [
+          39.5,
+          0.06,
+          27.5
+        ],
+        "size": [
+          3,
+          0.12,
+          45
+        ],
+        "color": "b8b4a7"
+      }
+    ],
+    "instances": [
+      {
+        "asset": "attached-townhouse",
+        "position": [
+          -49,
+          0,
+          -13.9
+        ],
+        "yaw": 0,
+        "palette": "earth-terracotta",
+        "anchor": false
+      },
+      {
+        "asset": "walk-up-apartment",
+        "position": [
+          -26,
+          0,
+          -15
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "small-shop",
+        "position": [
+          -8,
+          0,
+          -12.5
+        ],
+        "yaw": 0,
+        "palette": "earth-terracotta",
+        "anchor": false
+      },
+      {
+        "asset": "corner-shop",
+        "position": [
+          9,
+          0,
+          -14.5
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "detached-house-realistic",
+        "position": [
+          49,
+          0,
+          -14
+        ],
+        "yaw": 0,
+        "palette": "earth-terracotta",
+        "anchor": true
+      },
+      {
+        "asset": "detached-house-realistic",
+        "position": [
+          63,
+          0,
+          -14
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": true
+      },
+      {
+        "asset": "attached-townhouse",
+        "position": [
+          -45,
+          0,
+          14
+        ],
+        "yaw": 180,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "small-shop",
+        "position": [
+          -23,
+          0,
+          12.5
+        ],
+        "yaw": 180,
+        "palette": "earth-terracotta",
+        "anchor": false
+      },
+      {
+        "asset": "detached-house-realistic",
+        "position": [
+          -7,
+          0,
+          14
+        ],
+        "yaw": 180,
+        "palette": "earth-terracotta",
+        "anchor": true
+      },
+      {
+        "asset": "walk-up-apartment",
+        "position": [
+          12,
+          0,
+          15
+        ],
+        "yaw": 180,
+        "palette": "earth-terracotta",
+        "anchor": false
+      },
+      {
+        "asset": "courtyard-apartment",
+        "position": [
+          -49,
+          0,
+          -43
+        ],
+        "yaw": 0,
+        "palette": "earth-terracotta",
+        "anchor": false
+      },
+      {
+        "asset": "office-tower",
+        "position": [
+          -20,
+          0,
+          -68
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "residential-tower-realistic",
+        "position": [
+          4,
+          0,
+          -64
+        ],
+        "yaw": 0,
+        "palette": "original",
+        "anchor": true
+      },
+      {
+        "asset": "residential-tower-city-builder",
+        "position": [
+          53,
+          0,
+          -66
+        ],
+        "yaw": 0,
+        "palette": "earth-terracotta",
+        "anchor": true
+      },
+      {
+        "asset": "mixed-use-tower",
+        "position": [
+          5,
+          0,
+          -39
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "school",
+        "position": [
+          65,
+          0,
+          -39
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "factory-with-office",
+        "position": [
+          -71,
+          0,
+          -79
+        ],
+        "yaw": 0,
+        "palette": "earth-terracotta",
+        "anchor": false
+      },
+      {
+        "asset": "round-tree",
+        "position": [
+          -53,
+          0,
+          -40
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "round-tree",
+        "position": [
+          -45,
+          0,
+          -36
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "round-tree",
+        "position": [
+          -74,
+          0,
+          -13
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "round-tree",
+        "position": [
+          -62,
+          0,
+          -13
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "round-tree",
+        "position": [
+          -16,
+          0,
+          -33
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "round-tree",
+        "position": [
+          19,
+          0,
+          -32
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "round-tree",
+        "position": [
+          46,
+          0,
+          -35
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "round-tree",
+        "position": [
+          83,
+          0,
+          -35
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "round-tree",
+        "position": [
+          -66,
+          0,
+          11
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "round-tree",
+        "position": [
+          55,
+          0,
+          12
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "round-tree",
+        "position": [
+          75,
+          0,
+          12
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "conical-tree",
+        "position": [
+          -88,
+          0,
+          -60
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "conical-tree",
+        "position": [
+          -84,
+          0,
+          -66
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "conical-tree",
+        "position": [
+          82,
+          0,
+          -62
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "conical-tree",
+        "position": [
+          86,
+          0,
+          -73
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "car-realistic",
+        "position": [
+          -62,
+          0,
+          2
+        ],
+        "yaw": 90,
+        "palette": "original",
+        "anchor": true
+      },
+      {
+        "asset": "car-realistic",
+        "position": [
+          -32,
+          0,
+          2
+        ],
+        "yaw": 90,
+        "palette": "warm-slate",
+        "anchor": true
+      },
+      {
+        "asset": "car-realistic",
+        "position": [
+          -2,
+          0,
+          2
+        ],
+        "yaw": 90,
+        "palette": "earth-terracotta",
+        "anchor": true
+      },
+      {
+        "asset": "car-realistic",
+        "position": [
+          58,
+          0,
+          2
+        ],
+        "yaw": 90,
+        "palette": "original",
+        "anchor": true
+      },
+      {
+        "asset": "car-realistic",
+        "position": [
+          78,
+          0,
+          2
+        ],
+        "yaw": 90,
+        "palette": "warm-slate",
+        "anchor": true
+      },
+      {
+        "asset": "bus",
+        "position": [
+          8,
+          0,
+          -2
+        ],
+        "yaw": -90,
+        "palette": "earth-terracotta",
+        "anchor": false
+      },
+      {
+        "asset": "walker",
+        "position": [
+          -49,
+          0.12,
+          -6.5
+        ],
+        "yaw": 90,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "walker",
+        "position": [
+          -26,
+          0.12,
+          -6.5
+        ],
+        "yaw": 90,
+        "palette": "earth-terracotta",
+        "anchor": false
+      },
+      {
+        "asset": "walker",
+        "position": [
+          -8,
+          0.12,
+          -6.5
+        ],
+        "yaw": 90,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "walker",
+        "position": [
+          10,
+          0.12,
+          -6.5
+        ],
+        "yaw": 90,
+        "palette": "earth-terracotta",
+        "anchor": false
+      },
+      {
+        "asset": "walker",
+        "position": [
+          49,
+          0.12,
+          -6.5
+        ],
+        "yaw": 90,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "walker",
+        "position": [
+          63,
+          0.12,
+          -6.5
+        ],
+        "yaw": 90,
+        "palette": "earth-terracotta",
+        "anchor": false
+      },
+      {
+        "asset": "walker",
+        "position": [
+          -34,
+          0.12,
+          6.5
+        ],
+        "yaw": -90,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "walker",
+        "position": [
+          -12,
+          0.12,
+          6.5
+        ],
+        "yaw": -90,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "walker",
+        "position": [
+          5,
+          0.12,
+          6.5
+        ],
+        "yaw": -90,
+        "palette": "warm-slate",
+        "anchor": false
+      }
+    ]
+  },
+  "repetition": {
+    "ground": [
+      {
+        "name": "land",
+        "position": [
+          0,
+          -0.18,
+          0
+        ],
+        "size": [
+          164,
+          0.24,
+          116
+        ],
+        "color": "92977d"
+      },
+      {
+        "name": "residential street",
+        "position": [
+          0,
+          -0.03,
+          -38
+        ],
+        "size": [
+          156,
+          0.06,
+          8
+        ],
+        "color": "50565a"
+      },
+      {
+        "name": "residential pavement",
+        "position": [
+          0,
+          0.06,
+          -43.5
+        ],
+        "size": [
+          156,
+          0.12,
+          3
+        ],
+        "color": "b8b4a7"
+      },
+      {
+        "name": "residential street",
+        "position": [
+          0,
+          -0.03,
+          -6
+        ],
+        "size": [
+          156,
+          0.06,
+          8
+        ],
+        "color": "50565a"
+      },
+      {
+        "name": "residential pavement",
+        "position": [
+          0,
+          0.06,
+          -11.5
+        ],
+        "size": [
+          156,
+          0.12,
+          3
+        ],
+        "color": "b8b4a7"
+      },
+      {
+        "name": "residential street",
+        "position": [
+          0,
+          -0.03,
+          26
+        ],
+        "size": [
+          156,
+          0.06,
+          8
+        ],
+        "color": "50565a"
+      },
+      {
+        "name": "residential pavement",
+        "position": [
+          0,
+          0.06,
+          20.5
+        ],
+        "size": [
+          156,
+          0.12,
+          3
+        ],
+        "color": "b8b4a7"
+      }
+    ],
+    "instances": [
+      {
+        "asset": "detached-house-realistic",
+        "position": [
+          -60,
+          0,
+          -51.0
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": true
+      },
+      {
+        "asset": "round-tree",
+        "position": [
+          -50,
+          0,
+          -46.5
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "car-realistic",
+        "position": [
+          -57,
+          0,
+          -38
+        ],
+        "yaw": 90,
+        "palette": "original",
+        "anchor": true
+      },
+      {
+        "asset": "walker",
+        "position": [
+          -60,
+          0.12,
+          -43.5
+        ],
+        "yaw": 90,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "attached-townhouse",
+        "position": [
+          -36,
+          0,
+          -51.0
+        ],
+        "yaw": 0,
+        "palette": "earth-terracotta",
+        "anchor": false
+      },
+      {
+        "asset": "car-realistic",
+        "position": [
+          -33,
+          0,
+          -38
+        ],
+        "yaw": 90,
+        "palette": "warm-slate",
+        "anchor": true
+      },
+      {
+        "asset": "walker",
+        "position": [
+          -36,
+          0.12,
+          -43.5
+        ],
+        "yaw": 90,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "walk-up-apartment",
+        "position": [
+          -12,
+          0,
+          -51.9
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "round-tree",
+        "position": [
+          -2,
+          0,
+          -46.5
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "car-realistic",
+        "position": [
+          -9,
+          0,
+          -38
+        ],
+        "yaw": 90,
+        "palette": "earth-terracotta",
+        "anchor": true
+      },
+      {
+        "asset": "walker",
+        "position": [
+          -12,
+          0.12,
+          -43.5
+        ],
+        "yaw": 90,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "detached-house-realistic",
+        "position": [
+          12,
+          0,
+          -51.0
+        ],
+        "yaw": 0,
+        "palette": "earth-terracotta",
+        "anchor": true
+      },
+      {
+        "asset": "car-realistic",
+        "position": [
+          15,
+          0,
+          -38
+        ],
+        "yaw": 90,
+        "palette": "original",
+        "anchor": true
+      },
+      {
+        "asset": "walker",
+        "position": [
+          12,
+          0.12,
+          -43.5
+        ],
+        "yaw": 90,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "attached-townhouse",
+        "position": [
+          36,
+          0,
+          -51.0
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "round-tree",
+        "position": [
+          46,
+          0,
+          -46.5
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "car-realistic",
+        "position": [
+          39,
+          0,
+          -38
+        ],
+        "yaw": 90,
+        "palette": "warm-slate",
+        "anchor": true
+      },
+      {
+        "asset": "walker",
+        "position": [
+          36,
+          0.12,
+          -43.5
+        ],
+        "yaw": 90,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "walk-up-apartment",
+        "position": [
+          60,
+          0,
+          -51.9
+        ],
+        "yaw": 0,
+        "palette": "earth-terracotta",
+        "anchor": false
+      },
+      {
+        "asset": "car-realistic",
+        "position": [
+          63,
+          0,
+          -38
+        ],
+        "yaw": 90,
+        "palette": "earth-terracotta",
+        "anchor": true
+      },
+      {
+        "asset": "walker",
+        "position": [
+          60,
+          0.12,
+          -43.5
+        ],
+        "yaw": 90,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "attached-townhouse",
+        "position": [
+          -60,
+          0,
+          -19.0
+        ],
+        "yaw": 0,
+        "palette": "earth-terracotta",
+        "anchor": false
+      },
+      {
+        "asset": "round-tree",
+        "position": [
+          -50,
+          0,
+          -14.5
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "car-realistic",
+        "position": [
+          -57,
+          0,
+          -6
+        ],
+        "yaw": 90,
+        "palette": "warm-slate",
+        "anchor": true
+      },
+      {
+        "asset": "walker",
+        "position": [
+          -60,
+          0.12,
+          -11.5
+        ],
+        "yaw": 90,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "walk-up-apartment",
+        "position": [
+          -36,
+          0,
+          -19.9
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "car-realistic",
+        "position": [
+          -33,
+          0,
+          -6
+        ],
+        "yaw": 90,
+        "palette": "earth-terracotta",
+        "anchor": true
+      },
+      {
+        "asset": "walker",
+        "position": [
+          -36,
+          0.12,
+          -11.5
+        ],
+        "yaw": 90,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "detached-house-realistic",
+        "position": [
+          -12,
+          0,
+          -19.0
+        ],
+        "yaw": 0,
+        "palette": "earth-terracotta",
+        "anchor": true
+      },
+      {
+        "asset": "round-tree",
+        "position": [
+          -2,
+          0,
+          -14.5
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "car-realistic",
+        "position": [
+          -9,
+          0,
+          -6
+        ],
+        "yaw": 90,
+        "palette": "original",
+        "anchor": true
+      },
+      {
+        "asset": "walker",
+        "position": [
+          -12,
+          0.12,
+          -11.5
+        ],
+        "yaw": 90,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "attached-townhouse",
+        "position": [
+          12,
+          0,
+          -19.0
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "car-realistic",
+        "position": [
+          15,
+          0,
+          -6
+        ],
+        "yaw": 90,
+        "palette": "warm-slate",
+        "anchor": true
+      },
+      {
+        "asset": "walker",
+        "position": [
+          12,
+          0.12,
+          -11.5
+        ],
+        "yaw": 90,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "walk-up-apartment",
+        "position": [
+          36,
+          0,
+          -19.9
+        ],
+        "yaw": 0,
+        "palette": "earth-terracotta",
+        "anchor": false
+      },
+      {
+        "asset": "round-tree",
+        "position": [
+          46,
+          0,
+          -14.5
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "car-realistic",
+        "position": [
+          39,
+          0,
+          -6
+        ],
+        "yaw": 90,
+        "palette": "earth-terracotta",
+        "anchor": true
+      },
+      {
+        "asset": "walker",
+        "position": [
+          36,
+          0.12,
+          -11.5
+        ],
+        "yaw": 90,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "detached-house-realistic",
+        "position": [
+          60,
+          0,
+          -19.0
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": true
+      },
+      {
+        "asset": "car-realistic",
+        "position": [
+          63,
+          0,
+          -6
+        ],
+        "yaw": 90,
+        "palette": "original",
+        "anchor": true
+      },
+      {
+        "asset": "walker",
+        "position": [
+          60,
+          0.12,
+          -11.5
+        ],
+        "yaw": 90,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "walk-up-apartment",
+        "position": [
+          -60,
+          0,
+          12.100000000000001
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "round-tree",
+        "position": [
+          -50,
+          0,
+          17.5
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "car-realistic",
+        "position": [
+          -57,
+          0,
+          26
+        ],
+        "yaw": 90,
+        "palette": "earth-terracotta",
+        "anchor": true
+      },
+      {
+        "asset": "walker",
+        "position": [
+          -60,
+          0.12,
+          20.5
+        ],
+        "yaw": 90,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "detached-house-realistic",
+        "position": [
+          -36,
+          0,
+          13.000000000000002
+        ],
+        "yaw": 0,
+        "palette": "earth-terracotta",
+        "anchor": true
+      },
+      {
+        "asset": "car-realistic",
+        "position": [
+          -33,
+          0,
+          26
+        ],
+        "yaw": 90,
+        "palette": "original",
+        "anchor": true
+      },
+      {
+        "asset": "walker",
+        "position": [
+          -36,
+          0.12,
+          20.5
+        ],
+        "yaw": 90,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "attached-townhouse",
+        "position": [
+          -12,
+          0,
+          13.000000000000002
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "round-tree",
+        "position": [
+          -2,
+          0,
+          17.5
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "car-realistic",
+        "position": [
+          -9,
+          0,
+          26
+        ],
+        "yaw": 90,
+        "palette": "warm-slate",
+        "anchor": true
+      },
+      {
+        "asset": "walker",
+        "position": [
+          -12,
+          0.12,
+          20.5
+        ],
+        "yaw": 90,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "walk-up-apartment",
+        "position": [
+          12,
+          0,
+          12.100000000000001
+        ],
+        "yaw": 0,
+        "palette": "earth-terracotta",
+        "anchor": false
+      },
+      {
+        "asset": "car-realistic",
+        "position": [
+          15,
+          0,
+          26
+        ],
+        "yaw": 90,
+        "palette": "earth-terracotta",
+        "anchor": true
+      },
+      {
+        "asset": "walker",
+        "position": [
+          12,
+          0.12,
+          20.5
+        ],
+        "yaw": 90,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "detached-house-realistic",
+        "position": [
+          36,
+          0,
+          13.000000000000002
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": true
+      },
+      {
+        "asset": "round-tree",
+        "position": [
+          46,
+          0,
+          17.5
+        ],
+        "yaw": 0,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "car-realistic",
+        "position": [
+          39,
+          0,
+          26
+        ],
+        "yaw": 90,
+        "palette": "original",
+        "anchor": true
+      },
+      {
+        "asset": "walker",
+        "position": [
+          36,
+          0.12,
+          20.5
+        ],
+        "yaw": 90,
+        "palette": "warm-slate",
+        "anchor": false
+      },
+      {
+        "asset": "attached-townhouse",
+        "position": [
+          60,
+          0,
+          13.000000000000002
+        ],
+        "yaw": 0,
+        "palette": "earth-terracotta",
+        "anchor": false
+      },
+      {
+        "asset": "car-realistic",
+        "position": [
+          63,
+          0,
+          26
+        ],
+        "yaw": 90,
+        "palette": "warm-slate",
+        "anchor": true
+      },
+      {
+        "asset": "walker",
+        "position": [
+          60,
+          0.12,
+          20.5
+        ],
+        "yaw": 90,
+        "palette": "warm-slate",
+        "anchor": false
+      }
+    ]
+  }
+}

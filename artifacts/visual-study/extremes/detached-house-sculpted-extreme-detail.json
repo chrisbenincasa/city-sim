@@ -1,0 +1,20 @@
+{
+  "specimen": "detached-house",
+  "treatment": "sculpted-extreme",
+  "camera": "(6.3, 6.2, 11.3)",
+  "target": "(2.3, 4.7, 5.3)",
+  "fov": 40,
+  "viewport": "(1440, 960)",
+  "light": "noon",
+  "exposure": 1,
+  "triangles": 4868,
+  "surfaces": 4,
+  "bounds": "(-4.35, 0, -5.3), (8.905, 8.2, 11.5)",
+  "comparison": "extremes",
+  "view": "detail",
+  "shading": "three-band diffuse; specular disabled",
+  "tick": null,
+  "population": null,
+  "godot": "4.7.2-stable (official)",
+  "renderer": "forward_plus"
+}

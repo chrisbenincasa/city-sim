@@ -626,9 +626,10 @@ public partial class Main
         ("hip", _hips, true, _hipIds),
         ("mansard", _mansards, true, _mansardIds),
         ("yard", _yards, true, _yardIds),
-        ("tree", _trees, false, null),
+        ("tree", _trees, true, null),
         ("rock", _rocks, false, null),
-        ("traveller", _travellers, false, _travellerIds),
+        ("traveller", _travellers, true, _travellerIds),
+        ("car", _cars, true, _carIds),
     ];
 
     /// <summary>

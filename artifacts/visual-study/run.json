@@ -1,0 +1,71 @@
+{
+  "sources": {
+    "scripts/art/facade.py": "463b4a1d169ac703ce9e4ac00656de2eb941f40116a029a83fb3a821eb690938",
+    "src/Borough.Godot/VisualStudy.cs": "160541054ff4517b998239515f1693c4865b72cf044a7fca00535d6718daf38f",
+    "art/visual-study/specimen.json": "b1bdb2d49242727aeacf53d1c00d163c3471e7dbb66845ba34745568a870dca0",
+    "art/visual-study/facade.json": "485b3ead1fc1e03d35a48f062f91b47024fed976e86c005c376a6e6920e0daf2",
+    "src/Borough.Godot/assets/visual-study/facade.glb": "4c149a1ebf24877cb26454a2225a71dc57c6e0a5111e81daa359a819272efa70"
+  },
+  "captures": [
+    {
+      "specimen": "plain-blockout-v1",
+      "view": "block",
+      "camera": "(75, 70, 105)",
+      "target": "(0, 0, 0)",
+      "fov": 48,
+      "viewport": "(1440, 960)",
+      "light": "noon",
+      "exposure": 1,
+      "tick": null,
+      "simulatedCitizens": 0,
+      "buildings": 9,
+      "renderer": "forward_plus",
+      "godot": "4.7.2-stable (official)"
+    },
+    {
+      "specimen": "plain-blockout-v1",
+      "view": "street",
+      "camera": "(42, 9, 63)",
+      "target": "(0, 5, 7)",
+      "fov": 48,
+      "viewport": "(1440, 960)",
+      "light": "noon",
+      "exposure": 1,
+      "tick": null,
+      "simulatedCitizens": 0,
+      "buildings": 9,
+      "renderer": "forward_plus",
+      "godot": "4.7.2-stable (official)"
+    },
+    {
+      "specimen": "plain-blockout-v1",
+      "view": "facade",
+      "camera": "(-18, 5, 29)",
+      "target": "(-22, 5, 17)",
+      "fov": 48,
+      "viewport": "(1440, 960)",
+      "light": "noon",
+      "exposure": 1,
+      "tick": null,
+      "simulatedCitizens": 0,
+      "buildings": 9,
+      "renderer": "forward_plus",
+      "godot": "4.7.2-stable (official)"
+    },
+    {
+      "specimen": "plain-blockout-v1",
+      "view": "neighbourhood",
+      "camera": "(230, 240, 300)",
+      "target": "(0, 0, 0)",
+      "fov": 48,
+      "viewport": "(1440, 960)",
+      "light": "noon",
+      "exposure": 1,
+      "tick": null,
+      "simulatedCitizens": 0,
+      "buildings": 81,
+      "renderer": "forward_plus",
+      "godot": "4.7.2-stable (official)"
+    }
+  ]
+}

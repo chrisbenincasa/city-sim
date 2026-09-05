@@ -1,0 +1,1508 @@
+<title>Ten Thousand Facades</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@85..118,500..700&family=IBM+Plex+Mono:wght@400;500;600&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap">
+
+<style>
+/* ============================================================
+   TOKENS — light is the base. Every colour is defined here and
+   only redefined (never first-defined) in the two dark blocks.
+   ============================================================ */
+:root {
+  --ground:      #E7E9EA;
+  --surface:     #F5F6F7;
+  --surface-2:   #DDE0E2;
+  --ink:         #16191E;
+  --ink-2:       #565E68;
+  --ink-3:       #838C96;
+  --rule:        #C9CDD2;
+  --rule-soft:   #D8DBDE;
+  --accent:      #A85D12;
+  --accent-ink:  #7A4310;
+  --accent-soft: #EFE1CD;
+  --flag:        #97392C;
+  --flag-soft:   #F1DBD7;
+  --corpus:      #566470;
+  --corpus-soft: #DCE1E5;
+  --panel:       #10141A;
+  --panel-2:     #1A212B;
+
+  --measure: 68ch;
+  --rail: 190px;
+  --gutter: 44px;
+
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "Spectral", Georgia, "Times New Roman", serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground:      #14171B;
+    --surface:     #1B1F25;
+    --surface-2:   #242A31;
+    --ink:         #E6E9EC;
+    --ink-2:       #9BA4AE;
+    --ink-3:       #6C7681;
+    --rule:        #2C323A;
+    --rule-soft:   #232830;
+    --accent:      #FFBD66;
+    --accent-ink:  #FFD199;
+    --accent-soft: #2A2015;
+    --flag:        #E0917E;
+    --flag-soft:   #2E1E1B;
+    --corpus:      #98A3AE;
+    --corpus-soft: #232830;
+  }
+}
+
+:root[data-theme="dark"] {
+  --ground:      #14171B;
+  --surface:     #1B1F25;
+  --surface-2:   #242A31;
+  --ink:         #E6E9EC;
+  --ink-2:       #9BA4AE;
+  --ink-3:       #6C7681;
+  --rule:        #2C323A;
+  --rule-soft:   #232830;
+  --accent:      #FFBD66;
+  --accent-ink:  #FFD199;
+  --accent-soft: #2A2015;
+  --flag:        #E0917E;
+  --flag-soft:   #2E1E1B;
+  --corpus:      #98A3AE;
+  --corpus-soft: #232830;
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 17px;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: var(--accent); color: var(--ground); }
+
+a { color: inherit; text-decoration-color: var(--accent); text-underline-offset: 3px; }
+a:hover { color: var(--accent-ink); }
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 1px;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--f-display);
+  font-variation-settings: "wdth" 108;
+  text-wrap: balance;
+  margin: 0;
+  line-height: 1.12;
+  letter-spacing: -0.012em;
+}
+
+p { margin: 0; }
+
+code, .mono { font-family: var(--f-mono); }
+
+code {
+  font-size: 0.855em;
+  background: var(--surface-2);
+  padding: 0.1em 0.36em;
+  border-radius: 2px;
+  word-break: break-word;
+}
+
+strong { font-weight: 600; }
+em { font-style: italic; }
+
+.wrap {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 0 28px;
+}
+
+/* ============================================================
+   HERO
+   ============================================================ */
+.hero { padding: 64px 0 0; }
+
+.eyebrow {
+  font-family: var(--f-mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0 0 20px;
+}
+
+.hero h1 {
+  font-size: clamp(44px, 7.4vw, 86px);
+  font-weight: 700;
+  font-variation-settings: "wdth" 112;
+  letter-spacing: -0.028em;
+  max-width: 15ch;
+}
+
+.hero-thesis {
+  margin-top: 26px;
+  max-width: 56ch;
+  font-size: 20.5px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.hero-meta {
+  margin-top: 32px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 26px;
+  font-family: var(--f-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+}
+.hero-meta b { color: var(--ink-2); font-weight: 500; }
+
+/* the night panel — deliberately single-look in both themes,
+   because it is a picture of the city at night. */
+.night {
+  margin: 46px 0 0;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  position: relative;
+  overflow: hidden;
+}
+.night canvas { display: block; width: 100%; height: auto; }
+.night-cap {
+  position: absolute;
+  left: 16px;
+  bottom: 13px;
+  font-family: var(--f-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #6A7482;
+  pointer-events: none;
+}
+
+/* ============================================================
+   LEGEND
+   ============================================================ */
+.legend {
+  margin-top: 22px;
+  padding: 18px 0 0;
+  border-top: 1px solid var(--rule-soft);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 30px;
+  align-items: baseline;
+}
+.legend-note {
+  font-size: 14.5px;
+  color: var(--ink-3);
+  max-width: 40ch;
+}
+
+/* ============================================================
+   CHIPS — provenance is the one thing worth encoding in form
+   ============================================================ */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--f-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  padding: 3px 9px 3px 7px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  white-space: nowrap;
+  line-height: 1.5;
+}
+.chip::before {
+  content: "";
+  width: 6px; height: 6px;
+  background: currentColor;
+  flex: none;
+}
+.chip-corpus { color: var(--corpus); background: var(--corpus-soft); }
+.chip-new    { color: var(--accent); background: var(--accent-soft); }
+.chip-fix    { color: var(--flag);   background: var(--flag-soft); }
+.chip-flag   { color: var(--ink-3);  background: transparent; border-style: dashed; }
+.chip-new::before  { border-radius: 50%; }
+.chip-fix::before  { transform: rotate(45deg); }
+.chip-flag::before { background: transparent; border: 1px solid currentColor; }
+
+/* ============================================================
+   THE FACADE GRID — storeys divided by hairlines, each split
+   into a rail bay and a reading bay
+   ============================================================ */
+.storey {
+  border-top: 1px solid var(--rule);
+  padding: 60px 0 62px;
+  display: grid;
+  grid-template-columns: var(--rail) minmax(0, 1fr);
+  gap: 0 var(--gutter);
+  align-items: start;
+}
+.storey:first-of-type { margin-top: 56px; }
+
+.rail { position: sticky; top: 34px; }
+.rail-label {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 12px;
+}
+.rail-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.bay { max-width: var(--measure); }
+
+.bay h2 {
+  font-size: clamp(29px, 3.5vw, 39px);
+  font-weight: 600;
+  margin-bottom: 22px;
+}
+.bay h3 {
+  font-size: 21px;
+  font-weight: 600;
+  font-variation-settings: "wdth" 100;
+  letter-spacing: -0.004em;
+  margin: 38px 0 12px;
+}
+.bay h3:first-child { margin-top: 0; }
+
+.bay p + p { margin-top: 17px; }
+.bay h2 + p, .bay h3 + p { margin-top: 0; }
+
+.lede {
+  font-size: 19.5px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+.bay ul, .bay ol {
+  margin: 18px 0 0;
+  padding-left: 1.15em;
+}
+.bay li { margin-bottom: 11px; padding-left: 4px; }
+.bay li::marker { color: var(--ink-3); }
+.bay ol li::marker { font-family: var(--f-mono); font-size: 0.85em; }
+
+/* pull-quote / key claim — a hairline bracket, not a card */
+.claim {
+  margin: 30px 0;
+  padding: 20px 0 20px 22px;
+  border-left: 2px solid var(--accent);
+  font-size: 19px;
+  line-height: 1.5;
+}
+.claim-flag { border-left-color: var(--flag); }
+.claim .src {
+  display: block;
+  margin-top: 12px;
+  font-family: var(--f-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.05em;
+  color: var(--ink-3);
+  text-transform: uppercase;
+}
+
+/* ============================================================
+   SPEC TABLES — drawing schedules, hairline cells, no rounding
+   ============================================================ */
+.sheet {
+  margin: 28px 0 0;
+  overflow-x: auto;
+  border: 1px solid var(--rule);
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 560px;
+  font-size: 15.5px;
+  background: var(--surface);
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--rule-soft);
+  border-right: 1px solid var(--rule-soft);
+}
+th:last-child, td:last-child { border-right: 0; }
+tbody tr:last-child td { border-bottom: 0; }
+thead th {
+  font-family: var(--f-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  background: var(--surface-2);
+  border-bottom-color: var(--rule);
+  white-space: nowrap;
+}
+tbody th {
+  font-family: var(--f-display);
+  font-variation-settings: "wdth" 100;
+  font-weight: 600;
+  font-size: 16px;
+  width: 21%;
+  color: var(--ink);
+}
+td .tag {
+  display: block;
+  margin-top: 7px;
+  font-family: var(--f-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.verdict-yes { color: var(--accent-ink); font-weight: 600; }
+.v-wrong { color: var(--flag); font-weight: 600; font-family: var(--f-display); font-variation-settings: "wdth" 100; }
+.v-part  { color: var(--ink-2); font-weight: 600; font-family: var(--f-display); font-variation-settings: "wdth" 100; }
+.v-ok    { color: var(--corpus); font-weight: 600; font-family: var(--f-display); font-variation-settings: "wdth" 100; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ============================================================
+   FIGURE — the two-mesh LOD problem, drawn
+   ============================================================ */
+.fig {
+  margin: 32px 0 0;
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  padding: 26px 24px 20px;
+}
+.fig svg { display: block; width: 100%; height: auto; overflow: visible; }
+
+/* SVG fills come from classes, never from var() in a presentation
+   attribute — Chrome and Safari do not substitute there. */
+.fig .s-lab   { fill: var(--ink-3); font-family: var(--f-mono); font-size: 10.5px; letter-spacing: 1.4px; }
+.fig .s-box   { fill: none; stroke: var(--rule); }
+.fig .s-h     { fill: var(--ink); font-family: var(--f-display); font-size: 14px; font-weight: 600; }
+.fig .s-sub   { fill: var(--ink-2); font-family: var(--f-body); font-size: 12.5px; }
+.fig .s-body  { fill: var(--ink); font-family: var(--f-body); font-size: 14px; }
+.fig .s-body2 { fill: var(--ink-2); font-family: var(--f-body); font-size: 14px; }
+.fig .s-x     { fill: var(--flag); font-family: var(--f-mono); font-size: 16px; }
+.fig .s-rule  { stroke: var(--rule-soft); }
+.fig .s-arw   { stroke: var(--accent); stroke-width: 1.4; fill: none; }
+.fig .s-mk    { fill: var(--accent); }
+
+.fig figcaption {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule-soft);
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+/* ============================================================
+   NEXT STEPS — the one genuine sequence on the page
+   ============================================================ */
+.steps { list-style: none; margin: 30px 0 0; padding: 0; counter-reset: step; }
+.steps li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 46px 1fr;
+  gap: 0 16px;
+  padding: 20px 0;
+  border-top: 1px solid var(--rule-soft);
+  margin: 0;
+}
+.steps li:last-child { border-bottom: 1px solid var(--rule-soft); }
+.steps li::before {
+  content: counter(step, decimal-leading-zero);
+  font-family: var(--f-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  padding-top: 3px;
+  font-variant-numeric: tabular-nums;
+}
+.steps h4 {
+  font-size: 18px;
+  font-weight: 600;
+  font-variation-settings: "wdth" 100;
+  margin-bottom: 6px;
+}
+.steps .cost {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-top: 8px;
+  display: block;
+}
+
+/* ============================================================
+   SOURCES + FOOT
+   ============================================================ */
+.sources { list-style: none; margin: 24px 0 0; padding: 0; }
+.sources li {
+  padding: 13px 0;
+  border-top: 1px solid var(--rule-soft);
+  font-size: 15.5px;
+  margin: 0;
+}
+.sources li:last-child { border-bottom: 1px solid var(--rule-soft); }
+.sources .host {
+  display: block;
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+  margin-top: 3px;
+}
+
+.foot {
+  border-top: 1px solid var(--rule);
+  padding: 34px 0 70px;
+  font-family: var(--f-mono);
+  font-size: 11.5px;
+  line-height: 1.75;
+  letter-spacing: 0.05em;
+  color: var(--ink-3);
+  max-width: 62ch;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 900px) {
+  .storey { grid-template-columns: 1fr; gap: 0; }
+  .rail {
+    position: static;
+    margin-bottom: 24px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+  }
+  .rail-label { margin-bottom: 0; }
+  body { font-size: 16.5px; }
+  .hero { padding-top: 44px; }
+  tbody th { width: auto; }
+}
+@media (max-width: 560px) {
+  .wrap { padding: 0 20px; }
+  .steps li { grid-template-columns: 34px 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+</style>
+
+<main>
+  <div class="wrap">
+
+    <header class="hero">
+      <p class="eyebrow">Borough &mdash; research note &mdash; 3 September 2026</p>
+      <h1>Ten Thousand Facades</h1>
+      <p class="hero-thesis">
+        Borough can&rsquo;t fake its buildings much longer. This is what procedural
+        generation can do about that, what it can&rsquo;t, and which of the corpus&rsquo;s
+        reference citations survive being checked.
+      </p>
+      <div class="hero-meta">
+        <span><b>Scope</b> &nbsp;generation &middot; city buildings &middot; fit for Borough</span>
+        <span><b>Status</b> &nbsp;research only, nothing written to the corpus</span>
+      </div>
+
+      <figure class="night">
+        <canvas id="facade" role="img" width="1600" height="520" aria-label="A row of procedurally generated buildings at night. Each is split into storeys and repeated bays; every window draws its own hour to switch on and off, so the block fills and empties across the night."></canvas>
+        <figcaption class="night-cap">split &rarr; storeys &nbsp;&middot;&nbsp; repeat &rarr; bays &nbsp;&middot;&nbsp; every window draws its own night</figcaption>
+      </figure>
+
+      <div class="legend">
+        <span class="chip chip-corpus">In the corpus</span>
+        <span class="chip chip-new">New here</span>
+        <span class="chip chip-fix">Corrects the corpus</span>
+        <span class="chip chip-flag">Unverified</span>
+        <p class="legend-note">
+          Every section says where its claims come from. The reference audit corrects
+          <code>docs/07 &sect;4</code> extensively &mdash; of seven citations, one survives intact.
+        </p>
+      </div>
+    </header>
+
+    <!-- ===================================================== -->
+    <section class="storey">
+      <div class="rail">
+        <p class="rail-label">The verdict</p>
+        <div class="rail-chips"><span class="chip chip-corpus">In the corpus</span></div>
+      </div>
+      <div class="bay">
+        <h2>Procedural is right for Borough, and it isn&rsquo;t really a choice</h2>
+        <p class="lede">
+          <code>docs/07-the-drawing.md</code> &sect;3 already decided this. It picks pipeline&nbsp;C:
+          hand-author pieces at a fixed module, assemble them with code. Nothing found here
+          overturns that decision.
+        </p>
+        <p>
+          What did not survive is the evidence the document cites for it. Seven reference games
+          are named in &sect;4, each &ldquo;cited for a specific property,&rdquo; under an explicit
+          caveat that none had been re-checked against a running copy. That caveat turns out to
+          have been carrying the whole table.
+        </p>
+        <p>
+          And the corpus argues the case on the wrong ground. &sect;3 prices the three pipelines by
+          <em>labour and scale</em> &mdash; you can&rsquo;t author enough buildings, and a million
+          can&rsquo;t each carry a mesh. True, and pillar 1.4 makes it binding, but that argument
+          would hold for a city builder with no simulation under it. The stronger version is in
+          <a href="#fit">Fit for Borough</a>.
+        </p>
+      </div>
+    </section>
+
+    <!-- ===================================================== -->
+    <section class="storey">
+      <div class="rail">
+        <p class="rail-label">Generation, generally</p>
+        <div class="rail-chips"><span class="chip chip-new">New here</span></div>
+      </div>
+      <div class="bay">
+        <h2>The useful frame isn&rsquo;t &ldquo;how do I generate a building&rdquo;</h2>
+        <p class="lede">
+          It&rsquo;s <strong>generative space</strong> &mdash; the set of everything a generator can
+          produce &mdash; and the two ways that space fails.
+        </p>
+
+        <h3>Failure one: the space is too small</h3>
+        <p>
+          Everything looks the same. Obvious and self-correcting. You see it in a screenshot and
+          go widen a range.
+        </p>
+
+        <h3>Failure two: the space is enormous and nobody can tell</h3>
+        <p>
+          Kate Compton named this the <em>10,000 bowls of oatmeal</em> problem. You can generate
+          ten thousand bowls in which every oat sits at a mathematically unique position, and a
+          player sees porridge. <strong>Mathematical uniqueness is free; perceptual uniqueness is
+          the only one that counts, and it is hard.</strong>
+        </p>
+
+        <div class="claim">
+          A shader that varies bay width, storey count, roof pitch and paint across a hundred
+          thousand boxes produces enormous variety and may still read as one texture at the
+          camera height <code>docs/07 &sect;2</code> commits to.
+        </div>
+
+        <h3>The consequence for Borough&rsquo;s grammar, which is specific</h3>
+        <p>
+          Every quantity the shader varies today is <strong>continuous</strong>, and every one of
+          them varies a single template. That is the exact recipe for oatmeal: jitter parameters
+          on one shape and you get objects that are each unique and collectively identical.
+        </p>
+        <p>
+          The fix is not a wider range. It is <strong>categorical branches</strong> &mdash;
+          different massing and roofline <em>rules</em> per kind, so a school and a terrace differ
+          in shape rather than in dimensions. That is a change to the grammar&rsquo;s structure,
+          not to its constants, and it is the cheapest unspent lever on kind identity. Roofline
+          before colour, because silhouette reads first at distance.
+        </p>
+        <p>
+          The other half of the standard fix is <strong>authored landmarks against a procedural
+          field</strong> &mdash; a few hand-made things that break the field and give the eye
+          somewhere to land. That is <code>docs/07 &sect;3.1</code>&rsquo;s tier 2, and the oatmeal
+          argument makes it more load-bearing than &ldquo;kinds announce themselves&rdquo; sounds:
+          it is the specific defence against the failure mode tier 1 has by construction.
+        </p>
+
+        <h3>The trade underneath all of it</h3>
+        <p>
+          Procedural generation is a <strong>compression</strong> technique. Pay authoring cost
+          once for a rule, get many outputs. What you give up is the ability to art-direct any
+          individual output: if one building looks wrong you cannot fix that building, you fix the
+          rule and move all of them. That trade is the entire decision, regardless of engine,
+          style or scale.
+        </p>
+      </div>
+    </section>
+
+    <!-- ===================================================== -->
+    <section class="storey" id="audit">
+      <div class="rail">
+        <p class="rail-label">The reference audit</p>
+        <div class="rail-chips">
+          <span class="chip chip-fix">Corrects the corpus</span>
+        </div>
+      </div>
+      <div class="bay">
+        <h2>Seven citations checked. One holds, and it&rsquo;s the one nothing rests on.</h2>
+        <p class="lede">
+          <code>docs/07 &sect;4</code> lists reference games &ldquo;cited for a specific property
+          and not recommended wholesale,&rdquo; warning that &ldquo;none of these has been
+          re-checked against a running copy.&rdquo; Each was checked against primary sources.
+        </p>
+
+        <div class="sheet">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Cited</th>
+                <th scope="col">For</th>
+                <th scope="col">Verdict</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Manor Lords</th>
+                <td>&ldquo;Closest shipped analogue &mdash; buildings <em>generated</em> on plots&rdquo;</td>
+                <td class="v-wrong">Wrong<span class="tag">Prefabs keyed to tier</span></td>
+              </tr>
+              <tr>
+                <th scope="row">Townscaper</th>
+                <td>&ldquo;Procedural massing with effectively no unique assets&rdquo;</td>
+                <td class="v-wrong">Wrong<span class="tag">~500 authored tiles</span></td>
+              </tr>
+              <tr>
+                <th scope="row">SimCity&nbsp;4</th>
+                <td>&ldquo;Silhouette and colour alone &mdash; solved in sprites&rdquo;</td>
+                <td class="v-wrong">Wrong<span class="tag">It&rsquo;s a 3D engine</span></td>
+              </tr>
+              <tr>
+                <th scope="row">Cities: Skylines</th>
+                <td>Hand-authored pools; &ldquo;CS2&rsquo;s occupancy-driven window lighting&rdquo;</td>
+                <td class="v-part">Half<span class="tag">Pools yes. Lighting no.</span></td>
+              </tr>
+              <tr>
+                <th scope="row">Anno 1800</th>
+                <td>&ldquo;Kinds announcing themselves at a high camera, with a night cycle&rdquo;</td>
+                <td class="v-part">Partly<span class="tag">~24 meshes; night is cosmetic</span></td>
+              </tr>
+              <tr>
+                <th scope="row">Dorfromantik, Islanders</th>
+                <td>&ldquo;Flat-shaded low-poly done properly&rdquo;</td>
+                <td class="v-part">Partly<span class="tag">Islanders unverifiable</span></td>
+              </tr>
+              <tr>
+                <th scope="row">Mini Metro, Mini Motorways</th>
+                <td>The diagrammatic pole, named so the refusal is legible</td>
+                <td class="v-ok">Holds</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="claim claim-flag">
+          Three flatly wrong, three partly wrong, one intact &mdash; and the intact one is a
+          <em>refusal</em>, where nothing is being learned from the game at all. This is no longer
+          a set of bad rows. It is a finding about the section.
+          <span class="src">Six research passes &middot; primary sources &middot; 3 Sept 2026</span>
+        </div>
+
+        <h3>Manor Lords does not generate its buildings</h3>
+        <p>
+          It draws <strong>plots</strong> procedurally and stamps a small set of hand-made house
+          meshes onto them, chosen by upgrade tier. Four converging lines:
+        </p>
+        <ul>
+          <li>
+            <strong>Frontage is a module.</strong> A single-width plot is one family slot at about
+            <span class="num">9&nbsp;m</span>. A double-width plot holds <em>two houses</em>, not
+            one wide one. Width adds instances; a grammar would stretch the facade.
+          </li>
+          <li>
+            <strong>The mesh is keyed to tier.</strong> Levels 1, 2 and 3 are distinct models, with
+            artisan workshop pieces added separately.
+          </li>
+          <li>
+            <strong>The complaint is the signature.</strong> &ldquo;Stamps out rows of identical
+            looking plots with identical houses in the exact same orientation.&rdquo;
+          </li>
+          <li>
+            <strong>The fix shipped as art.</strong> Patch <span class="num">0.8.017</span> updated
+            residential visuals for Levels 1 and 2. Somebody remade meshes.
+          </li>
+        </ul>
+        <p>
+          What <em>is</em> procedural there is the ground: plots drawn from four points, edges
+          conforming to the roads, leftover depth filling with gardens and sheds. So the closest
+          shipped analogue is strong evidence for pillar&nbsp;<strong>1.2</strong> and none at all
+          for tier&nbsp;1.
+        </p>
+
+        <h3>Townscaper is a kit of parts, not a massing proof</h3>
+        <p>
+          Stålberg&rsquo;s own description: he builds square tiles by hand, skews them to fit, and
+          feeds them to wave function collapse, which &ldquo;figures out how to create a coherent
+          environment without any gaps.&rdquo; He is explicit that tile count scales with variety
+          &mdash; &ldquo;the more things it has to support, the more puzzle pieces you need to
+          build.&rdquo; Roughly 500 pieces, authored in Maya, edge-scanned on import to derive
+          adjacency rules.
+        </p>
+        <p>
+          So &ldquo;effectively no unique assets&rdquo; is false, and the citation points at the
+          wrong tier. Townscaper is evidence <em>for</em> the kit of parts &mdash; pipeline C, which
+          Borough already picked. What is genuinely procedural is the <strong>grid</strong>: a hex
+          chunk filled with triangles, randomly paired into quads, then relaxed. A placement
+          technique with nothing to do with mesh generation.
+        </p>
+
+        <h3>SimCity 4 is not sprites</h3>
+        <p>
+          It was the first main-series SimCity to use a 3D engine: real-time polygonal buildings
+          with textures adding doors and windows, under a fixed trimetric orthographic camera,
+          billboards only for the cheapest clutter. The sprite description belongs to SimCity 3000.
+        </p>
+        <p>
+          Which improves the citation rather than destroying it. The doc credits SC4 for a
+          technique Borough cannot use; the mechanism SC4 <em>actually</em> used &mdash; real-time
+          textured geometry, fixed high camera, billboards for clutter &mdash; is close to what
+          Borough does today.
+        </p>
+
+        <h3>The window-lighting claim is the one that matters</h3>
+        <p>
+          <code>docs/07 &sect;2</code> says a lit city at night is wanted and &ldquo;the windows are
+          lit from <strong>occupancy</strong>,&rdquo; and &sect;4 cites CS2 as the precedent.
+          Borough has since built exactly that.
+        </p>
+
+        <div class="claim claim-flag">
+          There is no precedent. CS2&rsquo;s window glow is a screen-space emissive post-process
+          driven by a greyscale illumination texture, with lit-ness &ldquo;randomized for values
+          within 128 and 255&rdquo; &mdash; a time-of-day cosmetic, inherited in shape from CS1. A
+          later patch note describes assets &ldquo;configured with windows that should always
+          remain lit or unlit,&rdquo; which is an author-time flag, not a simulation hook.
+          <span class="src">Negative result, searched deliberately &middot; no source supports the claim</span>
+        </div>
+
+        <p>
+          And Anno&rsquo;s developers <em>considered and rejected</em> the idea outright:
+          &ldquo;we played around with ideas how the shift from day to the midst of the night could
+          affect gameplay, and while it would open many possibilities, we realized that doing so
+          would simply add a lot of unnecessary micromanagement.&rdquo; Its night cycle added
+          &ldquo;new glowing textures for illuminated windows&rdquo; and over a thousand light
+          sources, all cosmetic.
+        </p>
+
+        <div class="claim">
+          Both citations lean on the same idea and neither game does it. So Borough&rsquo;s
+          occupancy-lit windows are not a copy of anything &mdash; they are original, and the
+          corpus was giving away credit it had earned.
+        </div>
+
+        <h3>What Anno actually proves, and it isn&rsquo;t what the citation says</h3>
+        <p>
+          Tier distinction is real and deliberate: &ldquo;Every house, public and even production
+          building for each tier should convey a certain character,&rdquo; and &ldquo;not only the
+          3D models, the right palette of colour and material also defines look and feeling of a
+          tier.&rdquo; But the model counts are published &mdash; tiers 1&ndash;3 have four models
+          each, tiers 4 and 5 have six, so roughly <span class="num">24</span> hand-authored
+          residential meshes for the Old World.
+        </p>
+        <p>
+          That is a curated library, and it is the pipeline Borough cannot afford. The transferable
+          half is the <strong>colour and material coding by kind</strong>, which is cheap,
+          shader-friendly and scales.
+        </p>
+
+        <h3>What &sect;4 should become</h3>
+        <p>
+          The rewrite is structural rather than row-by-row. Each surviving citation needs splitting
+          into <em>the outcome</em> (which is usually real and worth wanting) and <em>the
+          mechanism</em> (which is usually a hand-authored library Borough cannot copy). Manor
+          Lords moves to pillar 1.2 and the ground. Townscaper moves to tier 2 and the kit.
+          SimCity 4 keeps its property and loses its explanation. The CS2 lighting line is deleted
+          and the credit reassigned to Borough.
+        </p>
+      </div>
+    </section>
+
+    <!-- ===================================================== -->
+    <section class="storey">
+      <div class="rail">
+        <p class="rail-label">The shader ceiling</p>
+        <div class="rail-chips"><span class="chip chip-new">New here</span></div>
+      </div>
+      <div class="bay">
+        <h2>The ceiling is silhouette, and that explains everyone else&rsquo;s pipeline</h2>
+        <p class="lede">
+          A fragment shader cannot move the rasterised outline of a cube. Roofs, chimneys, spires,
+          parapets, setbacks, balconies &mdash; geometry or nothing.
+        </p>
+        <p>
+          Which answers a question the grammar research raised. <strong>Nobody ships a live
+          shape-grammar interpreter</strong>: Watch Dogs wrote CGA-like split rules and baked
+          textures and LODs offline; CityEngine&rsquo;s Unreal plugin is in practice an editor-time
+          bake tool; Spider-Man used procedural authoring tools and shipped baked levels; Cyberpunk
+          2077 went fully hand-made, on the record &mdash; &ldquo;nothing is procedural in our
+          world&rdquo;; Citybound used a grammar and never shipped.
+        </p>
+        <p>
+          They all bake because they treat runtime procedural as <em>regenerating geometry</em>,
+          and they want geometry because they want silhouette. Borough&rsquo;s shader evaluates the
+          grammar as a shading function over a fixed box, which sidesteps that cost model
+          entirely &mdash; and hits precisely the wall the baking bought them past.
+        </p>
+
+        <div class="claim">
+          So the approach is genuinely novel in the region where silhouette doesn&rsquo;t matter,
+          and structurally incapable in the region where it does. No free lunch, and no missed
+          trick either.
+        </div>
+
+        <h3>Interior mapping is the technique worth taking</h3>
+        <p>
+          Van Dongen, 2008. Model the interior as evenly-spaced axis-aligned planes, which turns
+          the problem into closed-form ray&ndash;plane intersection rather than iterative
+          raymarching: for each axis compute where the ray next crosses a boundary, take the
+          smallest positive <code>t</code>, use the hit&rsquo;s local coordinate as a UV. It is
+          <em>cheaper</em> than parallax occlusion mapping precisely because it is exact rather
+          than stepped.
+        </p>
+        <p>
+          It lands on a pixel Borough already owns. The shader has decided a pane is lit; instead
+          of filling a warm rectangle, cast the ray and shade the hit. A handful of divides and
+          compares per lit fragment, behind a branch that already exists, touching nothing in
+          daylight or on an unlit wall.
+        </p>
+        <p>
+          Two honesties. Every documented implementation samples a texture at the hit point &mdash;
+          a texture-free variant (tint by axis, plus a hashed SDF furniture blob) is a synthesis,
+          not something anyone has published. And the known failure is corner rooms showing the
+          same interior through both windows, plus flat furniture close up. Neither survives
+          contact with the 500&ndash;1100&nbsp;m fade.
+        </p>
+
+        <h3>The cheapest silhouette variety is more roof meshes</h3>
+        <p>
+          Borough already instances a prism gable separately. That is the well-trodden route, not a
+          stopgap: SimCity and Watch Dogs both used a small library of feature meshes placed onto
+          procedurally-subdivided blockouts, explicitly to solve the roofs and non-rectangular
+          faces a shader could not reach. No shipped example of vertex-shader box displacement for
+          roofline variety turned up.
+        </p>
+        <p>
+          So the marginal move is <strong>more roof archetypes</strong> &mdash; hip, gable, flat,
+          mansard as separate small meshes &mdash; rather than a cleverer shader. Which is the same
+          lever the legibility research pointed at for kind identity, arrived at from the opposite
+          direction.
+        </p>
+
+        <h3>Control grammars: the idea transfers, the code does not exist</h3>
+        <p>
+          Wonka&rsquo;s 2003 control grammar has essentially one follow-up &mdash; inverse design of
+          urban procedural models, 2012 &mdash; and it is one lab&rsquo;s prototype with no public
+          library. Twenty years, and nobody built the reusable version.
+        </p>
+        <p>
+          The minimal implementation is cheap and fits what Borough has: derive a style-parameter
+          vector deterministically from each District&rsquo;s own id, and let the shader read it
+          beside the transform. That <em>is</em> a control grammar. It costs a design decision, not
+          a pipeline.
+        </p>
+      </div>
+    </section>
+
+    <!-- ===================================================== -->
+    <section class="storey">
+      <div class="rail">
+        <p class="rail-label">Findings that bite</p>
+        <div class="rail-chips"><span class="chip chip-new">New here</span></div>
+      </div>
+      <div class="bay">
+        <h2>Four engine constraints the plan doesn&rsquo;t know about</h2>
+
+        <h3>1. Shadow casting is per-node, not per-instance</h3>
+        <p>
+          <code>cast_shadow</code> lives on <code>GeometryInstance3D</code>, and a
+          <code>MultiMeshInstance3D</code> is one node covering its whole instance set. There is no
+          way to say &ldquo;this building casts, that one doesn&rsquo;t.&rdquo;
+        </p>
+        <p>
+          Given that CS2 died in the shadow pass and Borough now has a moving sun, the consequence
+          is structural: <strong>the shadow-caster radius must be a separate, smaller set of Chunks
+          than the render radius</strong>, tuned against
+          <code>directional_shadow_max_distance</code>. That wants deciding before the chunked
+          renderer is built. And distance fade cannot do the job &mdash; issue #97537 has Distance
+          Fade stopping shadow casting outright; the docs recommend <code>DISABLED</code> fade mode
+          anyway, since the alternatives force alpha-blend transparency.
+        </p>
+
+        <div class="sheet">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Cities: Skylines 2</th>
+                <th scope="col">Shadow pass</th>
+                <th scope="col">Everything else</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Draw calls</th>
+                <td class="num"><strong>4,828</strong> &mdash; 72%</td>
+                <td class="num">1,877</td>
+              </tr>
+              <tr>
+                <th scope="row">Frame time</th>
+                <td class="num"><strong>~40 ms</strong></td>
+                <td class="num">~48 ms of an 87.8 ms frame</td>
+              </tr>
+              <tr>
+                <th scope="row">Cause</th>
+                <td colspan="2">Every 3D object treated as a potential caster regardless of size or distance, no shadow LOD, no occlusion culling<span class="tag">RTX 3080, Ryzen 7 5800X, 5120&times;1440, single RenderDoc frame &mdash; quote the machine or don&rsquo;t quote it</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>2. No per-instance LOD, and chunking is the engine&rsquo;s own answer</h3>
+        <p>
+          Godot&rsquo;s MultiMesh docs state it directly: there is no screen or frustum culling
+          possible for individual instances, and &ldquo;millions of objects will be always or never
+          drawn, depending on the visibility of the whole MultiMesh.&rdquo; The documented fix is
+          &ldquo;several MultiMeshes for different areas of the world.&rdquo;
+        </p>
+        <p>
+          That is <code>05 &sect;5</code> validated by the engine&rsquo;s own documentation rather
+          than by inference. Proposal #10669, asking for per-instance culling and LOD, is open with
+          no maintainer engagement. Its benchmark figures name no machine and no thread count, so
+          they are unquotable under <code>adr/0106</code>; they indicate a direction and nothing
+          more.
+        </p>
+
+        <figure class="fig">
+          <svg viewBox="0 0 720 190" role="img" aria-labelledby="lodtitle">
+            <title id="lodtitle">Without per-instance LOD, a building cannot be a kit near and a box far within one MultiMesh; the swap becomes a per-frame move between two buffers, and it cannot be pushed to the GPU.</title>
+            <defs>
+              <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path class="s-mk" d="M0,1 L9,5 L0,9 z"/>
+              </marker>
+            </defs>
+            <text class="s-lab" x="0" y="14">WANTED</text>
+            <rect class="s-box" x="0" y="26" width="326" height="52"/>
+            <text class="s-h" x="16" y="49">One MultiMesh</text>
+            <text class="s-sub" x="16" y="66">engine picks kit or box per instance</text>
+            <text class="s-x" x="352" y="59" text-anchor="middle">&#215;</text>
+
+            <text class="s-lab" x="394" y="14">ACTUAL</text>
+            <rect class="s-box" x="394" y="26" width="155" height="52"/>
+            <text class="s-h" x="408" y="49">Kit MultiMesh</text>
+            <text class="s-sub" x="408" y="66">near band</text>
+
+            <rect class="s-box" x="565" y="26" width="155" height="52"/>
+            <text class="s-h" x="579" y="49">Box MultiMesh</text>
+            <text class="s-sub" x="579" y="66">far band</text>
+
+            <path class="s-arw" d="M552,44 L562,44" marker-end="url(#arw)"/>
+            <path class="s-arw" d="M562,61 L552,61" marker-end="url(#arw)"/>
+
+            <line class="s-rule" x1="0" y1="106" x2="720" y2="106"/>
+            <text class="s-lab" x="0" y="130">WHAT MOVES THE INSTANCE</text>
+            <text class="s-body" x="0" y="154">The CPU, rewriting buffers as the camera moves &mdash; per Chunk, per frame.</text>
+            <text class="s-body2" x="0" y="176">And it cannot be handed to a compute shader. See below.</text>
+          </svg>
+          <figcaption>
+            <code>docs/07 &sect;3.2</code> argues the authored kit &ldquo;cannot break a frame that
+            works today.&rdquo; The geometry claim survives. The bookkeeping claim does not.
+          </figcaption>
+        </figure>
+
+        <h3>3. Godot 4 has no working GPU-driven culling path</h3>
+        <p>
+          Writing a MultiMesh transform buffer from a compute shader does not render unless
+          <code>multimesh_set_buffer</code> is also called with a CPU-side array &mdash; three open
+          issues confirm the GPU&rarr;GPU path lacks synchronisation and forces a round trip. So
+          every culling and LOD decision is <strong>CPU-side, per Chunk</strong>, at whatever
+          cadence the frame can afford. There is no Nanite-style escape.
+        </p>
+        <p>
+          That makes the bookkeeping cost above real rather than theoretical.
+          <code>RenderingServer.multimesh_set_buffer()</code> is the fast bulk path, and
+          <code>visible_instance_count</code> shrinks an active set without reallocating.
+        </p>
+
+        <h3>4. <code>INSTANCE_CUSTOM</code> is four floats, and Borough has spent all four</h3>
+        <p>
+          One <code>Color</code> per instance, confirmed current, with proposal #8666 open and
+          unresolved. Godot&rsquo;s own documentation names the escape hatch: <strong>a
+          floating-point Image indexed per instance</strong>, not a second custom-data channel.
+          Instance uniforms will not help &mdash; they cap around 16 scalars and cannot carry a
+          sampler.
+        </p>
+        <p>
+          So the route to a fifth channel exists and is available now rather than pending a
+          proposal. Worth knowing before the next thing that needs one, which on current evidence
+          is the control-grammar style vector.
+        </p>
+
+        <p style="margin-top:26px">
+          One honest non-answer. Whether procedural-in-shader beats sampled textures at high
+          instance counts has <strong>no sourced conclusion either way</strong>. That is a
+          measurement Borough would have to take.
+        </p>
+      </div>
+    </section>
+
+    <!-- ===================================================== -->
+    <section class="storey" id="fit">
+      <div class="rail">
+        <p class="rail-label">Fit for Borough</p>
+        <div class="rail-chips">
+          <span class="chip chip-new">New here</span>
+          <span class="chip chip-corpus">In the corpus</span>
+        </div>
+      </div>
+      <div class="bay">
+        <h2>The real argument isn&rsquo;t cost. It&rsquo;s that an authored building is mute.</h2>
+        <p class="lede">
+          Pillar 1.3 says <em>the picture says what the simulation knows</em>. The corpus never uses
+          that pillar as the pipeline argument, and it is the one that actually decides.
+        </p>
+        <p>
+          <code>adr/0150</code> derives appearance from six live simulation quantities: declared
+          occupancy, the tenant&rsquo;s trade, Failure Pressure, frontage, the land-value Cell under
+          the footprint, and a per-Building draw. <strong>A hand-authored mesh cannot express any of
+          them.</strong>
+        </p>
+
+        <div class="sheet">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">What the city knows</th>
+                <th scope="col">An authored mesh</th>
+                <th scope="col">A grammar</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Storeys</th>
+                <td>Fixed at author time &mdash; cannot report the ladder <code>plans/0056</code> just made variable</td>
+                <td class="verdict-yes">Recovered exactly from the box height</td>
+              </tr>
+              <tr>
+                <th scope="row">Occupancy</th>
+                <td>Fixed window count &mdash; cannot show a quarter half-let</td>
+                <td class="verdict-yes">Share of openings shuttered</td>
+              </tr>
+              <tr>
+                <th scope="row">Condition</th>
+                <td>Needs a swap to a &ldquo;derelict&rdquo; variant<span class="tag">Asset pools, through the art door</span></td>
+                <td class="verdict-yes">Read off the paint, recovers instantly</td>
+              </tr>
+              <tr>
+                <th scope="row">Frontage</th>
+                <td>Needs the world quantised to fit the mesh</td>
+                <td class="verdict-yes">Whatever width the Lot has</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          The third row is the trap worth naming. Making condition a variant swap is
+          <code>adr/0025</code>&rsquo;s mutually-exclusive asset pools arriving through the art
+          door &mdash; what <code>adr/0150</code> warned about, reached by a route it wasn&rsquo;t
+          watching.
+        </p>
+
+        <div class="claim">
+          Procedural isn&rsquo;t the affordable option for Borough. It&rsquo;s the only one that can
+          satisfy pillar&nbsp;1.3 at all. The authored library isn&rsquo;t rejected because it&rsquo;s
+          expensive. It&rsquo;s rejected because it can&rsquo;t say anything.
+        </div>
+
+        <p>
+          The audit strengthens this rather than weakening it. Every game checked that looks good
+          does it with a curated library &mdash; Anno&rsquo;s 24 meshes, Townscaper&rsquo;s 500
+          tiles, Manor Lords&rsquo; tier prefabs, CS&rsquo;s pooled growables &mdash; and not one of
+          them reports anything about its simulation through the building&rsquo;s appearance. The
+          two that were cited as reporting occupancy turn out not to.
+        </p>
+
+        <h3>Three caveats, all real</h3>
+        <ul>
+          <li>
+            It holds for <strong>massing and condition</strong>. It holds not at all for
+            <strong>identity</strong> &mdash; no grammar says <em>school</em>. That is tier 2, it
+            must be authored, and the oatmeal argument says it is more load-bearing than
+            <code>docs/07 &sect;2</code> makes it sound.
+          </li>
+          <li>
+            The <strong>ceiling on charm</strong> in &sect;3&rsquo;s row A is real, and it is now
+            named precisely: it is the silhouette. What changed since 2006 is not the technique but
+            that GPUs made per-fragment grammars viable at all.
+          </li>
+          <li>
+            <strong>The closest analogues all chose prefabs and they look better.</strong> That is
+            evidence and it does not disappear because the reason is scale. Manor Lords is a few
+            hundred buildings; Borough targets a million and prefabs do not survive that. But the
+            trade reversing at scale is Borough&rsquo;s <em>bet</em>, and nobody has shipped a proof.
+          </li>
+        </ul>
+
+        <div class="claim">
+          The warning about timing is the one to hold onto. Manor Lords&rsquo; &ldquo;identical
+          houses in the exact same orientation&rdquo; complaint arrives at a <em>few hundred</em>
+          buildings. Sameness reads far earlier than instance counts suggest.
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================== -->
+    <section class="storey">
+      <div class="rail">
+        <p class="rail-label">Next</p>
+        <div class="rail-chips"><span class="chip chip-new">New here</span></div>
+      </div>
+      <div class="bay">
+        <h2>Five things, cheapest first</h2>
+        <p class="lede">
+          Two are free, two are code, one is blocked. The order is by cost, not by importance.
+        </p>
+
+        <ol class="steps">
+          <li>
+            <div>
+              <h4>Photograph the city and ask the oatmeal question</h4>
+              <p>
+                Does the current city at the default camera read as varied, or as one texture?
+                Nobody has recorded that judgement, and it decides how much tier 2 is worth. The
+                Manor Lords finding says the answer arrives earlier than you&rsquo;d expect.
+              </p>
+              <span class="cost">One screenshot &middot; no code</span>
+            </div>
+          </li>
+          <li>
+            <div>
+              <h4>Rewrite <code>docs/07 &sect;4</code>, splitting outcome from mechanism</h4>
+              <p>
+                Six of seven rows need work, and row-by-row edits will not do it. Each citation
+                splits into the outcome (usually real) and the mechanism (usually a library Borough
+                can&rsquo;t copy). Delete the CS2 lighting line and reassign the credit.
+              </p>
+              <span class="cost">A section &middot; blocked by the amnesty</span>
+            </div>
+          </li>
+          <li>
+            <div>
+              <h4>Add categorical branches to the grammar, starting with rooflines</h4>
+              <p>
+                More roof archetypes as separate instanced meshes &mdash; hip, gable, flat, mansard
+                &mdash; selected by kind rather than by a continuous draw. This is the cheapest
+                unspent lever on both kind identity and the oatmeal problem, and it is the one axis
+                the shader structurally cannot touch.
+              </p>
+              <span class="cost">Simulation-adjacent shell work &middot; passes the amnesty</span>
+            </div>
+          </li>
+          <li>
+            <div>
+              <h4>Try interior mapping behind the lit windows</h4>
+              <p>
+                Closed-form, cheap, and it lands on a branch that already exists. The texture-free
+                variant is unproven, so this is a spike rather than a feature &mdash; but the
+                downside is bounded and the night frame is where Borough&rsquo;s picture already
+                does its best work.
+              </p>
+              <span class="cost">A shader spike &middot; bounded</span>
+            </div>
+          </li>
+          <li>
+            <div>
+              <h4>Run the render spike <code>plans/0002 &sect;B</code> owes, with a third number</h4>
+              <p>
+                The row names frame time at target instance count and the rebuild cost of one
+                Chunk&rsquo;s merged mesh. Add <strong>the shadow pass&rsquo;s share of the
+                frame</strong>, and settle the shadow-caster radius while measuring. The row&rsquo;s
+                own warning stands: <em>a measurement that prices only draw calls has not answered
+                this question.</em>
+              </p>
+              <span class="cost">Blocked behind board session L</span>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ===================================================== -->
+    <section class="storey">
+      <div class="rail">
+        <p class="rail-label">Sources</p>
+      </div>
+      <div class="bay">
+        <h2>Where this came from</h2>
+        <p class="lede">
+          Read at source unless marked. Several sites block automated fetching &mdash;
+          unrealengine.com, parts of Steam, the Internet Archive &mdash; and claims that could only
+          be reached second-hand are flagged as such in the text above rather than laundered here.
+        </p>
+        <ul class="sources">
+          <li>
+            <a href="https://galaxykate0.tumblr.com/post/139774965871/so-you-want-to-build-a-generator">Kate Compton &mdash; So you want to build a generator&hellip;</a>
+            <span class="host">galaxykate0.tumblr.com &middot; generative space, the oatmeal problem</span>
+          </li>
+          <li>
+            <a href="https://mcvuk.com/business-news/when-we-made-townscaper/">When we made Townscaper &mdash; Oskar Stålberg</a>
+            <span class="host">mcvuk.com &middot; hand-built tiles fed to WFC, in his own words</span>
+          </li>
+          <li>
+            <a href="https://boristhebrave.com/docs/sylves/1/articles/tutorials/townscaper.html">Townscaper&rsquo;s irregular grid, reimplemented</a>
+            <span class="host">boristhebrave.com &middot; triangles paired into quads, then relaxed</span>
+          </li>
+          <li>
+            <a href="https://www.anno-union.com/devblog-residential-tiers/">Anno 1800 DevBlog &mdash; Residential Tiers</a>
+            <span class="host">anno-union.com &middot; character per tier, colour and material coding</span>
+          </li>
+          <li>
+            <a href="https://www.anno-union.com/bringing-light-into-darkness/">Anno 1800 DevBlog &mdash; Day &amp; Night</a>
+            <span class="host">anno-union.com &middot; simulation-linked lighting considered and rejected</span>
+          </li>
+          <li>
+            <a href="https://cs2.paradoxwikis.com/Assets:_Setting_Up_Emissive">Cities: Skylines 2 &mdash; Setting Up Emissive</a>
+            <span class="host">cs2.paradoxwikis.com &middot; window glow is a screen-space post-process</span>
+          </li>
+          <li>
+            <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=524027632">Illumination Map Value Overview</a>
+            <span class="host">steamcommunity.com &middot; lit-ness randomised between 128 and 255</span>
+          </li>
+          <li>
+            <a href="https://en.wikipedia.org/wiki/SimCity_4">SimCity 4</a>
+            <span class="host">wikipedia.org &middot; first main-series entry to use a 3D engine</span>
+          </li>
+          <li>
+            <a href="https://citybuilder.tools/tools/manor-lords/burgage-planner">Manor Lords Burgage Planner &mdash; plot size rules</a>
+            <span class="host">citybuilder.tools &middot; single vs double width, ~9 m frontage, family slots</span>
+          </li>
+          <li>
+            <a href="https://steamcommunity.com/app/1363080/discussions/3/592882992704241697/">House models &mdash; Manor Lords feedback thread</a>
+            <span class="host">steamcommunity.com &middot; the mesh is keyed to upgrade tier</span>
+          </li>
+          <li>
+            <a href="https://joostdevblog.blogspot.com/2018/09/interior-mapping-real-rooms-without.html">Interior Mapping &mdash; Joost van Dongen</a>
+            <span class="host">joostdevblog.blogspot.com &middot; rooms behind windows, no geometry</span>
+          </li>
+          <li>
+            <a href="https://andrewgotow.com/2018/09/09/interior-mapping-part-1/">Interior Mapping, part 1 &mdash; Andrew Gotow</a>
+            <span class="host">andrewgotow.com &middot; closed-form, cheaper than parallax occlusion</span>
+          </li>
+          <li>
+            <a href="https://www.gdcvault.com/play/1012655/">Building Blocks: Artist-Driven Procedural Buildings</a>
+            <span class="host">gdcvault.com &middot; Watch Dogs &mdash; CGA-like rules, baked offline</span>
+          </li>
+          <li>
+            <a href="https://docs.godotengine.org/en/stable/tutorials/performance/using_multimesh.html">Godot &mdash; Using MultiMesh</a>
+            <span class="host">docs.godotengine.org &middot; no per-instance culling; chunking is the documented fix</span>
+          </li>
+          <li>
+            <a href="https://docs.godotengine.org/en/stable/classes/class_geometryinstance3d.html">Godot &mdash; GeometryInstance3D</a>
+            <span class="host">docs.godotengine.org &middot; cast_shadow is per node, not per instance</span>
+          </li>
+          <li>
+            <a href="https://github.com/godotengine/godot-proposals/issues/10669">Per-instance frustum culling and mesh LOD for MultiMeshInstance3D</a>
+            <span class="host">github.com &middot; proposal #10669, open, no maintainer engagement</span>
+          </li>
+          <li>
+            <a href="https://github.com/godotengine/godot-proposals/issues/8666">More per-instance custom data for MultiMesh</a>
+            <span class="host">github.com &middot; proposal #8666, open &mdash; four floats is the current cap</span>
+          </li>
+          <li>
+            <a href="https://github.com/godotengine/godot/issues/97537">Distance Fade stops shadow casting</a>
+            <span class="host">github.com &middot; why visibility_range can&rsquo;t do shadow LOD</span>
+          </li>
+          <li>
+            <a href="https://blog.paavo.me/cities-skylines-2-performance/">Why Cities: Skylines 2 performs poorly</a>
+            <span class="host">blog.paavo.me &middot; the shadow-pass autopsy, with its machine named</span>
+          </li>
+          <li>
+            <a href="https://arxiv.org/abs/2412.07660">Proc-GS: procedural building generation with 3D Gaussians</a>
+            <span class="host">arxiv.org &middot; read and ruled out &mdash; wrong paradigm, wrong input, wrong output</span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <footer class="foot">
+      Research note only. Nothing here has been written into the corpus &mdash; the amnesty in
+      <code>CLAUDE.md</code> refuses prose written alone. When it lifts: <code>docs/07 &sect;4</code>
+      needs rewriting rather than editing; the MultiMesh, shadow and GPU-culling constraints belong
+      in <code>plans/0002 &sect;B</code> against the spike row and in <code>05 &sect;5</code>; the
+      shadow figures beside the vertex count in <code>05 &sect;10</code>; and the trim-sheet and
+      interior-mapping notes in <code>docs/07 &sect;3</code>. &sect;4&rsquo;s own caveat &mdash;
+      <em>none of these has been re-checked against a running copy</em> &mdash; is what kept six
+      wrong citations honest until somebody checked.
+    </footer>
+
+  </div>
+</main>
+
+<script>
+/* ------------------------------------------------------------
+   The hero facade. This is buildings.gdshader's own logic run on
+   a canvas: split a box into storeys, repeat bays along it, then
+   let every window draw its own ever / in_tonight / wakes /
+   sleeps and switch itself on and off across the night.
+   ------------------------------------------------------------ */
+(function () {
+  var cv = document.getElementById("facade");
+  if (!cv) return;
+  var ctx = cv.getContext("2d");
+
+  var LATEST_ON = 0.48;   // the last of the night a lamp may come on
+  var MIN_LIT = 0.17;     // the least time it stays lit once lit
+  var MAX_STOREYS = 9;
+
+  var cssW = 0, cssH = 0, STOREY = 26, BAY = 22, ground = 0;
+
+  function fract(x) { return x - Math.floor(x); }
+  function draw(a, b, c) { return fract(Math.sin(a * 12.9898 + b * 78.233 + c * 37.719) * 43758.5453); }
+
+  // A block of buildings, derived once from an index — the same
+  // "variation between neighbours" a monotonic id would give.
+  // Sizes are in bays and storeys, so the block survives a resize.
+  var block = [];
+  (function build() {
+    for (var i = 0; i < 90; i++) {
+      block.push({
+        bays: 3 + Math.floor(draw(i, 3, 11) * 6),
+        storeys: 2 + Math.floor(draw(i, 7, 23) * (MAX_STOREYS - 1)),
+        gapBays: draw(i, 41, 9) * 0.7,
+        gable: draw(i, 13, 5) > 0.55 && draw(i, 7, 23) * (MAX_STOREYS - 1) < 4,
+        tone: 0.10 + draw(i, 17, 29) * 0.09,
+        seed: draw(i, 31, 3)
+      });
+    }
+  })();
+
+  function lit(b, bay, floorAt, phase, nightIndex) {
+    var ever = draw(bay, floorAt, 13 + b.seed * 57);
+    var inTonight = draw(bay, floorAt, 101 + b.seed * 19 + nightIndex * 7.31);
+    if (ever > 0.80 || inTonight > 0.62) return false;
+    var wakes = draw(bay, floorAt, 29 + b.seed * 23 + nightIndex * 4.17);
+    var sleeps = draw(floorAt, bay, 71 + b.seed * 41 + nightIndex * 2.53);
+    var onAt = 0.02 + wakes * (LATEST_ON - 0.02);
+    var offAt = Math.max(onAt + MIN_LIT, 0.18 + 0.68 * sleeps * sleeps * sleeps);
+    return phase >= onAt && phase < offAt;
+  }
+
+  function render(phase, nightIndex) {
+    var sky = ctx.createLinearGradient(0, 0, 0, ground);
+    sky.addColorStop(0, "#0C1017");
+    sky.addColorStop(0.72, "#141B25");
+    sky.addColorStop(1, "#1E212A");
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, cssW, cssH);
+
+    ctx.fillStyle = "#0A0D12";
+    ctx.fillRect(0, ground, cssW, cssH - ground);
+
+    var paneW = BAY * 0.42, paneH = STOREY * 0.46;
+    var x = -BAY;
+
+    for (var n = 0; n < block.length && x < cssW; n++) {
+      var b = block[n];
+      var w = b.bays * BAY;
+      var h = b.storeys * STOREY;
+      var top = ground - h;
+
+      var g = ctx.createLinearGradient(0, top, 0, ground);
+      g.addColorStop(0, "rgb(" + Math.round(b.tone * 300) + "," + Math.round(b.tone * 310) + "," + Math.round(b.tone * 340) + ")");
+      g.addColorStop(1, "rgb(" + Math.round(b.tone * 200) + "," + Math.round(b.tone * 208) + "," + Math.round(b.tone * 232) + ")");
+      ctx.fillStyle = g;
+      ctx.fillRect(x, top, w, h);
+
+      if (b.gable) {
+        ctx.beginPath();
+        ctx.moveTo(x - 3, top);
+        ctx.lineTo(x + w / 2, top - STOREY * 0.55);
+        ctx.lineTo(x + w + 3, top);
+        ctx.closePath();
+        ctx.fillStyle = "rgb(" + Math.round(b.tone * 250) + "," + Math.round(b.tone * 240) + "," + Math.round(b.tone * 260) + ")";
+        ctx.fill();
+      }
+
+      for (var f = 0; f < b.storeys; f++) {
+        for (var bay = 0; bay < b.bays; bay++) {
+          var px = x + bay * BAY + (BAY - paneW) / 2;
+          var py = ground - (f + 1) * STOREY + (STOREY - paneH) * 0.42;
+          if (lit(b, bay, f, phase, nightIndex)) {
+            ctx.shadowColor = "rgba(255,189,102,0.55)";
+            ctx.shadowBlur = Math.max(6, STOREY * 0.42);
+            ctx.fillStyle = "#FFBD66";
+          } else {
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = "rgba(10,14,20,0.72)";
+          }
+          ctx.fillRect(px, py, paneW, paneH);
+          ctx.shadowBlur = 0;
+        }
+      }
+
+      x += w + 4 + b.gapBays * BAY;
+    }
+  }
+
+  function fit() {
+    var box = cv.parentElement;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    cssW = Math.max(300, box.clientWidth || 800);
+    cssH = Math.round(Math.min(330, Math.max(186, cssW * 0.30)));
+
+    cv.style.width = cssW + "px";
+    cv.style.height = cssH + "px";
+    cv.width = Math.round(cssW * dpr);
+    cv.height = Math.round(cssH * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // The storey is what everything else is derived from, so the
+    // tallest building always clears the top of the frame.
+    ground = cssH - Math.round(cssH * 0.11);
+    STOREY = (ground - cssH * 0.10) / MAX_STOREYS;
+    BAY = STOREY * 0.85;
+  }
+
+  var still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var t0 = null, NIGHT_MS = 26000;
+
+  function frame(ts) {
+    if (t0 === null) t0 = ts;
+    var elapsed = ts - t0;
+    var phase = (elapsed % NIGHT_MS) / NIGHT_MS;
+    var nightIndex = Math.floor(elapsed / NIGHT_MS) % 64;
+    render(phase, nightIndex);
+    requestAnimationFrame(frame);
+  }
+
+  function boot() {
+    fit();
+    if (still) { render(0.34, 0); }
+    else { requestAnimationFrame(frame); }
+  }
+
+  var resizeTimer;
+  window.addEventListener("resize", function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () {
+      fit();
+      if (still) render(0.34, 0);
+    }, 140);
+  });
+
+  boot();
+})();
+</script>

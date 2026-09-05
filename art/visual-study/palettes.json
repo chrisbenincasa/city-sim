@@ -1,0 +1,13 @@
+{
+  "original": {},
+  "warm-slate": {
+    "wall": "b9ad97", "stone": "d2c9b8", "roof": "353e44",
+    "glass": "26383d", "paint": "38554c", "frame": "555650",
+    "rubber": "242729", "lamp": "e1d9bd", "accent": "8d5542"
+  },
+  "earth-terracotta": {
+    "wall": "c4b9a2", "stone": "c8bea8", "roof": "79503e",
+    "glass": "303b3c", "paint": "8b4937", "frame": "514b43",
+    "rubber": "242729", "lamp": "e1d9bd", "accent": "8b7860"
+  }
+}

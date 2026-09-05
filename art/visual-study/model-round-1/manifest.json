@@ -1,0 +1,236 @@
+{
+  "authority": "scripts/art/model-round.py",
+  "source_sha256": "5ef3183edc131e9939dccd26f4090de39db588468fdc2342fdefed47b6e94e9b",
+  "comparison": "model-round-1",
+  "controls": "same role, approximate scale, warm material palette; geometry deliberately varies",
+  "assets": [
+    {
+      "specimen": "detached-house",
+      "treatment": "realistic",
+      "asset": "detached-house-realistic.glb",
+      "geometry_sha256": "2d2bb52afebbb3ce9069a0c69ba7e2fe554a2f904aab6a0a909974b59471be09",
+      "bounds_blender": [
+        [
+          -4.281001091003418,
+          -6.0,
+          0.0
+        ],
+        [
+          4.320000171661377,
+          5.349999904632568,
+          8.300000190734863
+        ]
+      ],
+      "polygons": 1372
+    },
+    {
+      "specimen": "residential-tower",
+      "treatment": "realistic",
+      "asset": "residential-tower-realistic.glb",
+      "geometry_sha256": "70f90e22ad37d663dd24ef3ece7598ca1c305e17f75cc81a4706cec8ae1dc847",
+      "bounds_blender": [
+        [
+          -11.5,
+          -10.319999694824219,
+          0.0
+        ],
+        [
+          11.5,
+          10.0,
+          43.599998474121094
+        ]
+      ],
+      "polygons": 7770
+    },
+    {
+      "specimen": "car",
+      "treatment": "realistic",
+      "asset": "car-realistic.glb",
+      "geometry_sha256": "54589fd0bd0313fa94a00da1ed12ce8690f77538ca435fedd559befe7b97f925",
+      "bounds_blender": [
+        [
+          -1.0595999956130981,
+          -2.252500057220459,
+          0.0
+        ],
+        [
+          1.0595999956130981,
+          2.2249999046325684,
+          1.524999976158142
+        ]
+      ],
+      "polygons": 2335
+    },
+    {
+      "specimen": "detached-house",
+      "treatment": "city-builder",
+      "asset": "detached-house-city-builder.glb",
+      "geometry_sha256": "5c90bc27b98c8a90b85cdd8afcc79540be8d545e7c8224159453c271f094e348",
+      "bounds_blender": [
+        [
+          -4.48028564453125,
+          -6.699999809265137,
+          0.0
+        ],
+        [
+          4.48028564453125,
+          5.300000190734863,
+          8.850000381469727
+        ]
+      ],
+      "polygons": 1688
+    },
+    {
+      "specimen": "residential-tower",
+      "treatment": "city-builder",
+      "asset": "residential-tower-city-builder.glb",
+      "geometry_sha256": "67f481cdffb7c7160d81685742b39d42bf9b8e6ded23df5d4aece8274d470eaa",
+      "bounds_blender": [
+        [
+          -11.5,
+          -10.319999694824219,
+          0.0
+        ],
+        [
+          11.5,
+          10.0,
+          44.599998474121094
+        ]
+      ],
+      "polygons": 9288
+    },
+    {
+      "specimen": "car",
+      "treatment": "city-builder",
+      "asset": "car-city-builder.glb",
+      "geometry_sha256": "1dde1bdba63da52b23dc1214c1e631f6124a9e698f46abba6b4e5d3c8b8bf71a",
+      "bounds_blender": [
+        [
+          -1.1232000589370728,
+          -2.2249999046325684,
+          0.0
+        ],
+        [
+          1.1232000589370728,
+          2.2249999046325684,
+          1.7649999856948853
+        ]
+      ],
+      "polygons": 2653
+    },
+    {
+      "specimen": "detached-house",
+      "treatment": "voxel",
+      "asset": "detached-house-voxel.glb",
+      "geometry_sha256": "5bd129d9508393144c244f6720560b978bb1002c8026c5ff117e08ac0a0b15ca",
+      "bounds_blender": [
+        [
+          -4.5,
+          -6.699999809265137,
+          0.0
+        ],
+        [
+          4.5,
+          5.199999809265137,
+          8.600000381469727
+        ]
+      ],
+      "polygons": 288
+    },
+    {
+      "specimen": "residential-tower",
+      "treatment": "voxel",
+      "asset": "residential-tower-voxel.glb",
+      "geometry_sha256": "e844b39546505ce0b32bee7bc3f0d3783d66cf7377146e5d7a69d705c395c8b5",
+      "bounds_blender": [
+        [
+          -11.5,
+          -10.15250015258789,
+          0.0
+        ],
+        [
+          11.5,
+          10.0,
+          44.599998474121094
+        ]
+      ],
+      "polygons": 1950
+    },
+    {
+      "specimen": "car",
+      "treatment": "voxel",
+      "asset": "car-voxel.glb",
+      "geometry_sha256": "8a94ff1e17d1eb5bbe9b8a8b1b02a84e6974b412a71b3971e4ef99334df8cded",
+      "bounds_blender": [
+        [
+          -1.027500033378601,
+          -2.2249999046325684,
+          -1.1102230246251565e-16
+        ],
+        [
+          1.027500033378601,
+          2.2249999046325684,
+          1.5
+        ]
+      ],
+      "polygons": 120
+    },
+    {
+      "specimen": "detached-house",
+      "treatment": "low-poly",
+      "asset": "detached-house-low-poly.glb",
+      "geometry_sha256": "7a378946467265227d8a58549d7a97c7969e0f17f28f230df060cd1a3d0fc76a",
+      "bounds_blender": [
+        [
+          -4.599999904632568,
+          -6.699999809265137,
+          0.0
+        ],
+        [
+          4.5,
+          5.5,
+          8.600000381469727
+        ]
+      ],
+      "polygons": 132
+    },
+    {
+      "specimen": "residential-tower",
+      "treatment": "low-poly",
+      "asset": "residential-tower-low-poly.glb",
+      "geometry_sha256": "123cb73afc0b7f812b0cecf820bc7ff32b589097cc9b5db13d527e422a5bd445",
+      "bounds_blender": [
+        [
+          -11.5,
+          -10.319999694824219,
+          0.0
+        ],
+        [
+          11.5,
+          10.0,
+          44.29999923706055
+        ]
+      ],
+      "polygons": 1212
+    },
+    {
+      "specimen": "car",
+      "treatment": "low-poly",
+      "asset": "car-low-poly.glb",
+      "geometry_sha256": "c2ef036f9465f3cef251572ed180786a35cc10e3a6760dd8ef5bbd01fd4a9d62",
+      "bounds_blender": [
+        [
+          -1.0595999956130981,
+          -2.2249999046325684,
+          0.0
+        ],
+        [
+          1.0595999956130981,
+          2.2249999046325684,
+          1.3849999904632568
+        ]
+      ],
+      "polygons": 274
+    }
+  ]
+}

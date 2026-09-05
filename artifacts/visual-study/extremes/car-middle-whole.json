@@ -1,0 +1,20 @@
+{
+  "specimen": "car",
+  "treatment": "middle",
+  "camera": "(6.4, 3.4, 7.7)",
+  "target": "(0, 0.7, 0)",
+  "fov": 40,
+  "viewport": "(1440, 960)",
+  "light": "noon",
+  "exposure": 1,
+  "triangles": 4384,
+  "surfaces": 5,
+  "bounds": "(-1.1, 0, -2.2), (2.2, 1.5125, 4.4375)",
+  "comparison": "extremes",
+  "view": "whole",
+  "shading": "standard PBR",
+  "tick": null,
+  "population": null,
+  "godot": "4.7.2-stable (official)",
+  "renderer": "forward_plus"
+}

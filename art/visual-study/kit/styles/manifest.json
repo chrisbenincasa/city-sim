@@ -1,0 +1,94 @@
+{
+  "version": "comparison-kit-v1",
+  "authority": "scripts/art/kit.py",
+  "blender": "5.2.1 LTS",
+  "units": "metres",
+  "godot_up": "+Y",
+  "godot_front": "+Z",
+  "origin": "ground centre",
+  "palette": {
+    "wall": "b9afa0",
+    "stone": "c4beb0",
+    "roof": "666d72",
+    "glass": "354c59",
+    "frame": "777f80",
+    "paint": "77949b",
+    "rubber": "303639",
+    "lamp": "dad5bd"
+  },
+  "source_sha256": "6a5ba6cf9c6fb19e3fa2d4ad45abf205037e6e6059eab114c05b1b9ef0eb0f3b",
+  "assets": [
+    {
+      "specimen": "detached-house",
+      "treatment": "painterly",
+      "core_sha256": "4a076542ca2ceeb0c458373c3e604c51c72ba2dfdbe7d2e861525c6ab29d412d",
+      "asset": "detached-house-painterly.glb"
+    },
+    {
+      "specimen": "detached-house",
+      "treatment": "graphic",
+      "core_sha256": "4a076542ca2ceeb0c458373c3e604c51c72ba2dfdbe7d2e861525c6ab29d412d",
+      "asset": "detached-house-graphic.glb"
+    },
+    {
+      "specimen": "detached-house",
+      "treatment": "miniature",
+      "core_sha256": "4a076542ca2ceeb0c458373c3e604c51c72ba2dfdbe7d2e861525c6ab29d412d",
+      "asset": "detached-house-miniature.glb"
+    },
+    {
+      "specimen": "detached-house",
+      "treatment": "naturalistic",
+      "core_sha256": "4a076542ca2ceeb0c458373c3e604c51c72ba2dfdbe7d2e861525c6ab29d412d",
+      "asset": "detached-house-naturalistic.glb"
+    },
+    {
+      "specimen": "residential-tower",
+      "treatment": "painterly",
+      "core_sha256": "1015c4a61b19bd13cf2fbdf2fbc8f0c271aa71dbe0fd8557bff77181b5662c87",
+      "asset": "residential-tower-painterly.glb"
+    },
+    {
+      "specimen": "residential-tower",
+      "treatment": "graphic",
+      "core_sha256": "1015c4a61b19bd13cf2fbdf2fbc8f0c271aa71dbe0fd8557bff77181b5662c87",
+      "asset": "residential-tower-graphic.glb"
+    },
+    {
+      "specimen": "residential-tower",
+      "treatment": "miniature",
+      "core_sha256": "1015c4a61b19bd13cf2fbdf2fbc8f0c271aa71dbe0fd8557bff77181b5662c87",
+      "asset": "residential-tower-miniature.glb"
+    },
+    {
+      "specimen": "residential-tower",
+      "treatment": "naturalistic",
+      "core_sha256": "1015c4a61b19bd13cf2fbdf2fbc8f0c271aa71dbe0fd8557bff77181b5662c87",
+      "asset": "residential-tower-naturalistic.glb"
+    },
+    {
+      "specimen": "car",
+      "treatment": "painterly",
+      "core_sha256": "43082b500bfd4345dcc678d988ae4547401279b4bfb7c5623f4c82c6073319ad",
+      "asset": "car-painterly.glb"
+    },
+    {
+      "specimen": "car",
+      "treatment": "graphic",
+      "core_sha256": "43082b500bfd4345dcc678d988ae4547401279b4bfb7c5623f4c82c6073319ad",
+      "asset": "car-graphic.glb"
+    },
+    {
+      "specimen": "car",
+      "treatment": "miniature",
+      "core_sha256": "43082b500bfd4345dcc678d988ae4547401279b4bfb7c5623f4c82c6073319ad",
+      "asset": "car-miniature.glb"
+    },
+    {
+      "specimen": "car",
+      "treatment": "naturalistic",
+      "core_sha256": "43082b500bfd4345dcc678d988ae4547401279b4bfb7c5623f4c82c6073319ad",
+      "asset": "car-naturalistic.glb"
+    }
+  ]
+}

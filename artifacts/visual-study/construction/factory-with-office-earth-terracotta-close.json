@@ -1,0 +1,49 @@
+{
+  "subject": "factory-with-office",
+  "palette": "earth-terracotta",
+  "view": "close",
+  "comparison": "construction-study-1",
+  "instances": [
+    {
+      "asset": "factory-with-office",
+      "palette": "earth-terracotta",
+      "anchor": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -18.175,
+        0,
+        -13
+      ],
+      "boundsSize": [
+        32.35,
+        7.755,
+        30.175
+      ],
+      "triangles": 23724,
+      "surfaces": 9
+    }
+  ],
+  "camera": "(7.7840014, 9.1794, 40.8036)",
+  "target": "(-2.0049992, 3.306, 17.31)",
+  "fov": 40,
+  "viewport": "(1440, 960)",
+  "sunRotation": "(-61.999992, -27.999998, 0)",
+  "sunEnergy": 1.15,
+  "sunAngularDistance": 0.5,
+  "ambientEnergy": 0.55,
+  "ssao": true,
+  "taa": true,
+  "exposure": 1,
+  "light": "noon",
+  "triangles": 23724,
+  "surfaces": 9,
+  "tick": null,
+  "population": null,
+  "godot": "4.7.2-stable (official)",
+  "renderer": "forward_plus"
+}

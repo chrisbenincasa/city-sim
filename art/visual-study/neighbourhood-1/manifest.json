@@ -1,0 +1,124 @@
+{
+  "authority": "scripts/art/neighbourhood.py",
+  "source_sha256": "dab33c154f280d025156223d106d303aa9fdeb705eef186e0dedae0e0d706740",
+  "helper_sha256": "f24b8fc6fb860d79e1381c66b95d0c7d6a418c2aeb54170efb12cb773e5edf77",
+  "blender": "5.2.1 LTS",
+  "units": "metres",
+  "front": "Blender -Y, Godot +Z",
+  "assets": [
+    {
+      "specimen": "corner-shop",
+      "asset": "corner-shop.glb",
+      "geometry_sha256": "bee15f90b12a9b62a0c64148c741aa60a433bef89a70e7c2bde5132336e15045",
+      "bounds_blender": [
+        [
+          -7.199999809265137,
+          -7.0625,
+          0.0
+        ],
+        [
+          7.400000095367432,
+          6.175000190734863,
+          10.77750015258789
+        ]
+      ],
+      "polygons": 13214,
+      "materials": [
+        "brick",
+        "frame",
+        "glass",
+        "stone",
+        "room",
+        "wall",
+        "roof",
+        "metal",
+        "blind",
+        "curtain",
+        "interior",
+        "bark",
+        "accent",
+        "paint"
+      ]
+    },
+    {
+      "specimen": "residential-tower",
+      "asset": "residential-tower.glb",
+      "geometry_sha256": "40fd714799b577f5dfdbd0a945e820d19f3a7fef4c0925e597757e009c1018db",
+      "bounds_blender": [
+        [
+          -11.675000190734863,
+          -10.175000190734863,
+          0.0
+        ],
+        [
+          11.675000190734863,
+          10.175000190734863,
+          43.400001525878906
+        ]
+      ],
+      "polygons": 87246,
+      "materials": [
+        "stone",
+        "frame",
+        "glass",
+        "room",
+        "wall",
+        "blind",
+        "curtain",
+        "interior",
+        "bark",
+        "roof",
+        "metal",
+        "brick",
+        "foliage"
+      ]
+    },
+    {
+      "specimen": "street-tree",
+      "asset": "street-tree.glb",
+      "geometry_sha256": "5c6d7e93309d7d691de33cb62904e97d69ac4c7fbae6ee9ffda66f78c52de2ee",
+      "bounds_blender": [
+        [
+          -2.5442256927490234,
+          -2.8050801753997803,
+          -0.004089832305908203
+        ],
+        [
+          2.724667549133301,
+          2.897050619125366,
+          6.271129608154297
+        ]
+      ],
+      "polygons": 15708,
+      "materials": [
+        "bark",
+        "foliage"
+      ]
+    },
+    {
+      "specimen": "walker",
+      "asset": "walker.glb",
+      "geometry_sha256": "7d278dd760a8193fdd368dfd1b3ccfc6b85ec0ecb4cd2548fbdf9def26b92657",
+      "bounds_blender": [
+        [
+          -0.34449389576911926,
+          -0.26499998569488525,
+          0.0
+        ],
+        [
+          0.34449389576911926,
+          0.19499999284744263,
+          1.7850000858306885
+        ]
+      ],
+      "polygons": 1344,
+      "materials": [
+        "rubber",
+        "cloth",
+        "paint",
+        "skin",
+        "bark"
+      ]
+    }
+  ]
+}

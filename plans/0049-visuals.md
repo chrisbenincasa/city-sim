@@ -68,6 +68,19 @@ here that spends the frame budget rather than the work budget (**F46**) and is o
 
 ---
 
+## Next visual work
+
+[0063 — Visual exploration and neighbourhood fidelity](0063-the-visual-treatment-comparison.md) owns the
+player-requested comparison, asset workflow, findings and live continuation list.
+
+## Visual finish pass, 2026-09-04
+
+`Main.Assets`, `Main.Travellers` and `Main.Foliage` add shared car/walker meshes, clustered tree
+crowns and clearance from rendered Buildings. `surfaces.gdshader`, `ground.gdshader` and the wall
+shader add provisional material finish. Row 11 has distinct shapes now; continuous driving and
+lane placement remain absent from the visible-position query. This does not close row 10.
+[Direction and proposed next task](../published-artifacts/visual-direction.md).
+
 ## What is already there, so that nobody rebuilds it
 
 **More than the picture suggests.** `Main.Buildings()` already varies height, varies frontage,

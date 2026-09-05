@@ -1,0 +1,49 @@
+{
+  "subject": "courtyard-apartment",
+  "palette": "earth-terracotta",
+  "view": "whole",
+  "comparison": "expanded-kit-1",
+  "instances": [
+    {
+      "asset": "courtyard-apartment",
+      "palette": "earth-terracotta",
+      "anchor": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "yaw": 0,
+      "boundsMin": [
+        -15.31,
+        0,
+        -13.31
+      ],
+      "boundsSize": [
+        30.62,
+        14.6,
+        26.62
+      ],
+      "triangles": 26504,
+      "surfaces": 6
+    }
+  ],
+  "camera": "(45.93, 39.451, 59.709003)",
+  "target": "(0, 7.3, 0)",
+  "fov": 40,
+  "viewport": "(1440, 960)",
+  "sunRotation": "(-61.999992, -27.999998, 0)",
+  "sunEnergy": 1.15,
+  "sunAngularDistance": 0.5,
+  "ambientEnergy": 0.55,
+  "ssao": true,
+  "taa": true,
+  "exposure": 1,
+  "light": "noon",
+  "triangles": 26504,
+  "surfaces": 6,
+  "tick": null,
+  "population": null,
+  "godot": "4.7.2-stable (official)",
+  "renderer": "forward_plus"
+}

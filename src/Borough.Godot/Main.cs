@@ -675,6 +675,8 @@ public partial class Main : Node3D
     private MultiMeshInstance3D _trees = null!;
     private MultiMeshInstance3D _rocks = null!;
     private MultiMeshInstance3D _travellers = null!;
+    private MultiMeshInstance3D _cars = null!;
+    private readonly List<ulong> _carIds = [];
     private MultiMeshInstance3D _roads = null!;
     private MultiMeshInstance3D _footways = null!;
     private MultiMeshInstance3D _kerbs = null!;
@@ -758,7 +760,7 @@ public partial class Main : Node3D
     private StandardMaterial3D? _categorical;
 
     /// <summary>The ground's ordinary material, kept so an overlay can be taken off again.</summary>
-    private StandardMaterial3D _skinned = null!;
+    private Material _skinned = null!;
 
     /// <summary>The Tick the wash was last built from, and the reading that anchors its ramp.</summary>
     /// <remarks>
@@ -1249,6 +1251,7 @@ public partial class Main : Node3D
         // the kind's declared room is occupied, which is how many openings are shuttered.
         _buildings = Layer(
             Standing, new BoxMesh { Size = Vector3.One }, true, "res://buildings.gdshader");
+        _paint!.SetShaderParameter("storey_metres", StoreyMetres);
 
         // A SECOND MESH AND NOT A SECOND BOX. A roof is the only part of a Building that is not a
         // cuboid, and a silhouette is what reads at the camera this game is played at -- so the
@@ -1305,9 +1308,11 @@ public partial class Main : Node3D
         // is DepthFillLow's own bargain -- geometry the city does not have, invented so the
         // picture reads as a city, and labelled so nobody promotes it to a Ruleset key.
         _yards = Layer(Outbuilding, Vector3.One, perInstance: true);
-        _trees = Layer(Crown, new SphereMesh { Radius = 0.5f, Height = 1f, RadialSegments = 6, Rings = 3 });
-        _rocks = Layer(Boulder, Vector3.One);
-        _travellers = Layer(new Color(1.0f, 0.45f, 0.15f), new Vector3(3f, 3f, 3f));
+        _trees = Layer(Colors.White, TreeMesh(), perInstance: true);
+        _rocks = Layer(Boulder, new SphereMesh { Radius = 0.5f, Height = 1f, RadialSegments = 7, Rings = 3 });
+        _travellers = Layer(Colors.White, WalkerMesh(), perInstance: true);
+        _cars = Layer(Colors.White, CarMesh(), perInstance: true);
+        DressSurfaces();
 
         Ground();
         Hazard();
@@ -1808,7 +1813,9 @@ public partial class Main : Node3D
         int moving = VisibleAgents.In(_world, CellRect.World, alpha, _agents);
         int under = Fill(_flood, Anonymous(Inundated()));
 
-        Fill(_travellers, Travellers(moving), _travellerIds);
+        TravellerHeadings();
+        Fill(_travellers, Travellers(moving, false), _travellerIds);
+        Fill(_cars, Travellers(moving, true), _carIds);
         Cursor();
 
         ulong tick = _world.Tick.Raw;
@@ -1926,7 +1933,7 @@ public partial class Main : Node3D
     /// </param>
     private MultiMeshInstance3D Layer(
         Color colour,
-        PrimitiveMesh mesh,
+        Mesh mesh,
         bool perInstance = false,
         string? painted = null,
         bool casts = true,
@@ -1952,7 +1959,14 @@ public partial class Main : Node3D
             material = _paint;
         }
 
-        mesh.Material = material;
+        if (mesh is PrimitiveMesh primitive)
+        {
+            primitive.Material = material;
+        }
+        else if (mesh is ArrayMesh assembled)
+        {
+            assembled.SurfaceSetMaterial(0, material);
+        }
 
         var multi = new MultiMesh
         {

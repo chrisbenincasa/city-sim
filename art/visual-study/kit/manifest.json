@@ -1,0 +1,76 @@
+{
+  "version": "comparison-kit-v1",
+  "authority": "scripts/art/kit.py",
+  "blender": "5.2.1 LTS",
+  "units": "metres",
+  "godot_up": "+Y",
+  "godot_front": "+Z",
+  "origin": "ground centre",
+  "palette": {
+    "wall": "b9afa0",
+    "stone": "c4beb0",
+    "roof": "666d72",
+    "glass": "354c59",
+    "frame": "777f80",
+    "paint": "77949b",
+    "rubber": "303639",
+    "lamp": "dad5bd"
+  },
+  "source_sha256": "0cdfa3f970beee210f4410c54d916072e7d90fc709260d606656a80638ca50d9",
+  "assets": [
+    {
+      "specimen": "detached-house",
+      "treatment": "material-rich",
+      "core_sha256": "4a076542ca2ceeb0c458373c3e604c51c72ba2dfdbe7d2e861525c6ab29d412d",
+      "asset": "detached-house-material-rich.glb"
+    },
+    {
+      "specimen": "detached-house",
+      "treatment": "sculpted",
+      "core_sha256": "4a076542ca2ceeb0c458373c3e604c51c72ba2dfdbe7d2e861525c6ab29d412d",
+      "asset": "detached-house-sculpted.glb"
+    },
+    {
+      "specimen": "detached-house",
+      "treatment": "middle",
+      "core_sha256": "4a076542ca2ceeb0c458373c3e604c51c72ba2dfdbe7d2e861525c6ab29d412d",
+      "asset": "detached-house-middle.glb"
+    },
+    {
+      "specimen": "residential-tower",
+      "treatment": "material-rich",
+      "core_sha256": "1015c4a61b19bd13cf2fbdf2fbc8f0c271aa71dbe0fd8557bff77181b5662c87",
+      "asset": "residential-tower-material-rich.glb"
+    },
+    {
+      "specimen": "residential-tower",
+      "treatment": "sculpted",
+      "core_sha256": "1015c4a61b19bd13cf2fbdf2fbc8f0c271aa71dbe0fd8557bff77181b5662c87",
+      "asset": "residential-tower-sculpted.glb"
+    },
+    {
+      "specimen": "residential-tower",
+      "treatment": "middle",
+      "core_sha256": "1015c4a61b19bd13cf2fbdf2fbc8f0c271aa71dbe0fd8557bff77181b5662c87",
+      "asset": "residential-tower-middle.glb"
+    },
+    {
+      "specimen": "car",
+      "treatment": "material-rich",
+      "core_sha256": "43082b500bfd4345dcc678d988ae4547401279b4bfb7c5623f4c82c6073319ad",
+      "asset": "car-material-rich.glb"
+    },
+    {
+      "specimen": "car",
+      "treatment": "sculpted",
+      "core_sha256": "43082b500bfd4345dcc678d988ae4547401279b4bfb7c5623f4c82c6073319ad",
+      "asset": "car-sculpted.glb"
+    },
+    {
+      "specimen": "car",
+      "treatment": "middle",
+      "core_sha256": "43082b500bfd4345dcc678d988ae4547401279b4bfb7c5623f4c82c6073319ad",
+      "asset": "car-middle.glb"
+    }
+  ]
+}
