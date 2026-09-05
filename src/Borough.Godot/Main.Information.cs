@@ -21,11 +21,11 @@ public partial class Main
     private (Tiles East, Tiles North)? _selectedGround;
     private readonly Dictionary<string, bool> _expanded = new();
     private PanelContainer? _inspector;
-    private PanelContainer _synopsis = null!, _debugPanel = null!, _informationBar = null!;
+    private PanelContainer _debugPanel = null!;
     private ScrollContainer _inspectionScroll = null!;
     private VBoxContainer _inspectionBody = null!;
     private Label _inspectionCondition = null!;
-    private Label _inspectionTitle = null!, _inspectionIdentity = null!, _debugText = null!, _cityStatus = null!;
+    private Label _inspectionTitle = null!, _inspectionIdentity = null!, _debugText = null!;
     private Button _inspectionBack = null!, _themeButton = null!, _debugButton = null!;
     private MeshInstance3D _selectionRing = null!, _hoverRing = null!;
     private bool _lightUi, _debugShown, _toolsShown;
@@ -47,9 +47,6 @@ public partial class Main
     private void Information()
     {
         GetWindow().MinSize = new Vector2I(480, 640);
-        _synopsis = InformationPanel();
-        _hover.LabelSettings = null;
-        _synopsis.AddChild(_hover);
         _debugPanel = InformationPanel();
         var debugScroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Auto };
         _debugText = new Label { MouseFilter = Control.MouseFilterEnum.Ignore };
@@ -57,20 +54,7 @@ public partial class Main
         debugScroll.AddChild(_debugText);
         _debugPanel.AddChild(debugScroll);
 
-        _informationBar = InformationPanel();
-        var bar = new HBoxContainer();
-        _cityStatus = InformationLabel(string.Empty);
-        _cityStatus.MaxLinesVisible = 2;
-        _cityStatus.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
-        _cityStatus.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        bar.AddChild(_cityStatus);
-        _themeButton = InformationButton("Light", () => Ui(_lightUi ? "theme dark" : "theme light"));
-        _debugButton = InformationButton("Debug", () => Ui(_debugShown ? "debug off" : "debug on"));
-        bar.AddChild(_themeButton);
-        bar.AddChild(_debugButton);
-        _toolsButton = InformationButton("Tools", () => Ui(_toolsShown ? "tools off" : "tools on"));
-        bar.AddChild(_toolsButton);
-        _informationBar.AddChild(bar);
+        Console();
 
         _inspector = InformationPanel();
         _inspector.Size = new Vector2(406, 600);
@@ -195,7 +179,12 @@ public partial class Main
             };
             _type.SetStylebox(state, "Button", box);
         }
-        foreach (Control panel in _informationPanels.Concat(new Control[] { _palette, _policyPanel, _tuner }))
+        // ⚠ _palette is NOT in this list any more. It is inside the console now, so a second panel
+        // stylebox would draw a box inside a box; it gets an empty one instead. The two that can be
+        // null are the ones Panels() rebuilds -- ThemeInformation runs before the first rebuild.
+        _palette?.AddThemeStyleboxOverride("panel", new StyleBoxEmpty());
+        foreach (Control panel in _informationPanels.Concat(new Control?[] { _policyPanel, _tuner })
+            .Where(p => p is not null).Select(p => p!))
         {
             panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
             {
@@ -207,6 +196,37 @@ public partial class Main
                 ContentMarginTop = 18, ContentMarginBottom = 18,
             });
         }
+        // ⚠ THE CONSOLE IS THE ONE PANEL WITH ITS OWN MARGINS. The inspector's 22/18 is right for a
+        // column of prose and wrong for a strip of controls: 36 px of it is vertical padding around
+        // a 30 px button, on every frame, in the panel this row exists to make smaller.
+        _console.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        {
+            BgColor = paper, BorderColor = line,
+            BorderWidthBottom = 1, BorderWidthLeft = 1, BorderWidthRight = 1, BorderWidthTop = 1,
+            CornerRadiusBottomLeft = 7, CornerRadiusBottomRight = 7,
+            CornerRadiusTopLeft = 7, CornerRadiusTopRight = 7,
+            ContentMarginLeft = 16, ContentMarginRight = 16,
+            ContentMarginTop = 10, ContentMarginBottom = 10,
+        });
+
+        _skyArc.Ink = ink;
+        _skyArc.Paper = paper;
+        _skyArc.QueueRedraw();
+
+        // 🔴 THE REFUSAL IS THE ONE THING IN THE CONSOLE THAT IS NOT THE PANEL'S COLOUR. Row 6 asks
+        // that an unsuccessful action explain itself without hiding the inspection context, and a
+        // sentence in the same ink as every other sentence beside it is one nobody looks at.
+        _refusalRow.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        {
+            BgColor = paper.Lerp(new Color(_lightUi ? "9a3412" : "f0a868"), 0.14f),
+            BorderColor = new Color(_lightUi ? "9a3412" : "f0a868"),
+            BorderWidthBottom = 1, BorderWidthLeft = 3, BorderWidthRight = 1, BorderWidthTop = 1,
+            CornerRadiusBottomLeft = 4, CornerRadiusBottomRight = 4,
+            CornerRadiusTopLeft = 4, CornerRadiusTopRight = 4,
+            ContentMarginLeft = 12, ContentMarginRight = 12,
+            ContentMarginTop = 8, ContentMarginBottom = 8,
+        });
+
         _themeButton.Text = _lightUi ? "Dark" : "Light";
         _themeButton.TooltipText = "Switch interface theme";
         _debugButton.Text = _debugShown ? "Debug ✓" : "Debug";
@@ -214,6 +234,22 @@ public partial class Main
         _debugPanel.Visible = _debugShown;
     }
 
+    /// <summary>
+    /// Where every panel sits. <b>One console along the bottom, and the rest of the frame is the
+    /// picture.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// ⚠ <b>The console's height is ASKED FOR rather than stated.</b> It carries a legend only
+    /// while a layer is on and a refusal only while one stands, so a constant would be wrong in
+    /// three of the four states — and wrong in the direction that reserves space nothing is using.
+    /// <see cref="Control.GetCombinedMinimumSize"/> is the container's own answer.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Absolute pixels and no anchors</b>, as before: <see cref="LayoutInformation"/> runs
+    /// every frame and an anchor would be a second opinion about the same rectangle.
+    /// </para>
+    /// </remarks>
     private void LayoutInformation()
     {
         if (_inspector is null) return;
@@ -222,23 +258,36 @@ public partial class Main
         bool narrow = size.X < 900;
         float width = Math.Min(406, size.X - margin * 2);
         _toolsButton.Visible = narrow;
-        _palette.Visible = !narrow || _toolsShown;
-        SetPanel(_informationBar, margin, margin, size.X - margin * 2, 84);
-        // Existing tools remain available in a horizontal scroller on a narrow window.
-        _palette.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
-        SetPanel(_palette, margin, size.Y - 116 - margin, size.X - margin * 2, 116);
-        float hoverHeight = 142;
-        float contentBottom = _palette.Visible ? _palette.Position.Y - margin : size.Y - margin;
-        float hoverY = contentBottom - hoverHeight;
-        SetPanel(_synopsis, margin, hoverY, Math.Min(336, size.X - margin * 2), hoverHeight);
-        float bottom = narrow ? hoverY - margin : contentBottom;
-        float top = narrow ? Math.Max(160, bottom - size.Y * .43f) : 96 + margin;
+        _toolSlot.Visible = !narrow || _toolsShown;
+
+        // 🔴 THE CONSOLE IS THE ONE PANEL THAT SIZES ITSELF, and it has to be. Its height is its
+        // content's -- a legend appears with a layer, a hint with a tool, a refusal with a refusal --
+        // and a height computed HERE is always one frame behind the change that caused it, which is
+        // exactly the frame a driven `shoot` catches. Anchored to the bottom edge and grown upward,
+        // the container answers the question itself and there is no second opinion to be stale.
+        _console.AnchorLeft = 0f;
+        _console.AnchorRight = 1f;
+        _console.AnchorTop = 1f;
+        _console.AnchorBottom = 1f;
+        _console.GrowVertical = Control.GrowDirection.Begin;
+        _console.OffsetLeft = margin;
+        _console.OffsetRight = -margin;
+        _console.OffsetBottom = -margin;
+        _console.OffsetTop = 0f;
+        SizeConsole(Math.Max(160f, size.X - (margin * 2) - 32f));
+        float consoleTop = Math.Max(margin * 2,
+            size.Y - margin - Math.Max(_console.Size.Y, _console.GetCombinedMinimumSize().Y));
+
+        // The debug overlay stays independent and stays top-left. On a narrow window it is the one
+        // thing above the inspector rather than beside it, because there is no beside.
+        float debugHeight = _debugShown ? Math.Min(narrow ? 160 : 230, consoleTop - margin * 2) : 0;
+        SetPanel(_debugPanel, margin, margin,
+            Math.Min(400, narrow ? size.X - margin * 2 : size.X - width - margin * 3),
+            Math.Max(36, debugHeight));
+
+        float top = narrow && _debugShown ? margin + debugHeight + margin : margin;
         SetPanel(_inspector, narrow ? margin : size.X - width - margin, top,
-            narrow ? size.X - margin * 2 : width, Math.Max(90, bottom - top));
-        float debugBottom = narrow && _inspector.Visible ? top - margin : hoverY - margin;
-        SetPanel(_debugPanel, margin, 96 + margin,
-            Math.Min(400, narrow ? Math.Min(300, size.X - margin * 2) : size.X - width - margin * 3),
-            Math.Max(36, Math.Min(230, debugBottom - 96 - margin)));
+            narrow ? size.X - margin * 2 : width, Math.Max(90, consoleTop - margin - top));
     }
 
     private static void SetPanel(Control panel, float x, float y, float width, float height)
@@ -281,6 +330,9 @@ public partial class Main
                 break;
             case "tools" when words.Length == 2 && words[1] is "on" or "off":
                 _toolsShown = words[1] == "on";
+                break;
+            case "layers" when words.Length == 2 && words[1] is "on" or "off":
+                _layersShown = words[1] == "on";
                 break;
             case "debug" when words.Length == 2 && words[1] is "on" or "off":
                 _debugShown = words[1] == "on";
@@ -374,7 +426,7 @@ public partial class Main
                 GetWindow().Mode = Window.ModeEnum.Windowed;
                 GetWindow().Size = new Vector2I(w, h);
                 break;
-            default: _refused = "ui: use close, back, theme light|dark, debug on|off, tools on|off, building ID, road ID, frontage ID, household ID, section KEY on|off, point EAST NORTH, scroll PIXELS, read PATH, press X Y, or size WIDTH HEIGHT (minimum 480 × 640)."; break;
+            default: _refused = "ui: use close, back, theme light|dark, debug on|off, tools on|off, layers on|off, building ID, road ID, frontage ID, household ID, section KEY on|off, point EAST NORTH, scroll PIXELS, read PATH, press X Y, or size WIDTH HEIGHT (minimum 480 × 640)."; break;
         }
         LayoutInformation();
     }
@@ -418,17 +470,14 @@ public partial class Main
         + $"inspector {_inspector.GetGlobalRect()} min={_inspector.GetCombinedMinimumSize()}\n"
         + $"body {_inspectionBody.GetGlobalRect()} min={_inspectionBody.GetCombinedMinimumSize()}\n"
         + $"scroll {_inspectionScroll.GetGlobalRect()} min={_inspectionScroll.GetCombinedMinimumSize()}\n"
-        + $"hover {_synopsis.GetGlobalRect()} debug {_debugPanel.GetGlobalRect()} tools {_palette.GetGlobalRect()}";
+        + $"hover {_pointerRow.GetGlobalRect()} debug {_debugPanel.GetGlobalRect()} console {_console.GetGlobalRect()}";
 
     private string SectionKey(string key) => $"road{RowId(_world.Roads.Segments.Rows, _selectedRoad)}:building{RowId(_world.Buildings.Rows, _selectedBuilding)}:household{RowId(_world.Households.Rows, _selectedHousehold)}:{key}";
 
     private void RefreshInformation()
     {
         if (_inspector is null) return;
-        string status = _refused.Length > 0 ? "Action refused · hover here for details"
-            : $"{_world.Citizens.Rows.LiveCount:N0} Citizens";
-        _cityStatus.Text = $"Day {_world.Tick.Raw / (ulong)Ticks.PerDay} · {Pace(_rung)}\n{status}";
-        _informationBar.TooltipText = _refused.Length > 0 ? _refused : Legend();
+        RefreshConsole();
         _debugText.Text = "DEBUG · UNDER POINTER\n" + Pointing() + RoadDebug() + "\n\nCITY READOUT\n" + _readout.Text;
         if (_aimed is not null || !OverInformation(GetViewport().GetMousePosition()))
             _hover.Text = Synopsis();
@@ -443,7 +492,7 @@ public partial class Main
     {
         _hoverRing.Visible = false;
         if (_roadHover is not null) _roadHover.Visible = false;
-        if (Aim() is not { } at) return "UNDER POINTER\nOutside the map";
+        if (Aim() is not { } at) return "Outside the map";
         var picked = PickInformation();
         if (_world.Roads.Segments.Rows.TryResolve(picked.Road, out int road))
         {
@@ -451,8 +500,8 @@ public partial class Main
             return RoadSynopsis(road);
         }
         if (!_world.Buildings.Rows.TryResolve(picked.Building, out int slot))
-            return "UNDER POINTER\nOpen ground · " + _world.Layers.Terrain.At(CellGrid.ToCells(at.East), CellGrid.ToCells(at.North)).ToString().ToLowerInvariant()
-                + "\nClick to inspect";
+            return "Open ground · " + _world.Layers.Terrain.At(CellGrid.ToCells(at.East), CellGrid.ToCells(at.North)).ToString().ToLowerInvariant()
+                + " — click to inspect";
         Handle<Building> handle = _world.Buildings.Rows.At(slot);
         MarkInformation(_hoverRing, handle);
         int households = _world.Occupants.Length(slot);
@@ -474,7 +523,7 @@ public partial class Main
                 break;
             }
         }
-        return $"UNDER POINTER · Building\n{_names.Kind(_world.Buildings.Kind[slot]) ?? "Building"}\n{state}\n{_synopsisIssue}";
+        return $"{_names.Kind(_world.Buildings.Kind[slot]) ?? "Building"} · {state} · {_synopsisIssue}";
     }
 
     private void MarkInformation(MeshInstance3D marker, Handle<Building> handle)
@@ -534,7 +583,7 @@ public partial class Main
             bool expanded = _expanded.GetValueOrDefault(SectionKey(section.Key), section.Open);
             var group = new VBoxContainer();
             group.AddThemeConstantOverride("separation", 12);
-            var toggle = InformationButton($"{(expanded ? "⌄" : "›")}  {section.Title}",
+            var toggle = InformationButton($"{(expanded ? "▾" : "▸")}  {section.Title}",
                 () => Ui($"section {section.Key} {(expanded ? "off" : "on")}"));
             toggle.Alignment = HorizontalAlignment.Left;
             group.AddChild(toggle);
@@ -706,7 +755,12 @@ public partial class Main
             MapTargets = InformationMapTargets(),
             Road = RowId(_world.Roads.Segments.Rows, _selectedRoad),
             InspectorVisible = _inspector!.Visible, Inspector = Rect(_inspector),
-            Hover = Rect(_synopsis), DebugPanel = Rect(_debugPanel), ToolsVisible = _palette.Visible, Tools = Rect(_palette),
+            Hover = Rect(_pointerRow), DebugPanel = Rect(_debugPanel), ToolsVisible = _toolSlot.Visible, Tools = Rect(_toolSlot),
+            Console = Rect(_console), Pace = RungName(), Layer = _washing.ToString(),
+            Tool = _verb.ToString(), LayersShown = _layersShown,
+            Legend = _legendTitle.Visible ? $"{_legendTitle.Text} {_legendBody.Text}" : string.Empty,
+            Refused = _refusalRow.Visible ? _refusalLabel.Text : string.Empty,
+            Refusal = Rect(_refusalRow), Day = _dayLabel.Text, DayLength = _dayLengthLabel.Text,
             Scroll = _inspectionScroll.ScrollVertical, Expanded = _expanded,
             Text = _inspectionCaption, Synopsis = _hover.Text,
             Buttons = InformationDescendants(_hud).OfType<Button>().Where(b => b.IsVisibleInTree())

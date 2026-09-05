@@ -47,7 +47,12 @@ public partial class Main
         _palette?.QueueFree();
 
         Governing(_hud);
-        Palette(_hud);
+        Palette();
+
+        // ⚠ The rebuild re-enters the theme. A Ruleset reload rebuilds both panels, and before this
+        // line they came back in the DEFAULT Godot colours until the next theme toggle -- a bug that
+        // only showed after a reload, which is why it survived so long.
+        ThemeInformation();
     }
 
     /// <summary>A backing panel in the shell's one panel style.</summary>
@@ -380,19 +385,14 @@ public partial class Main
     /// run can only check the palette against a line of the readout.***
     /// </para>
     /// </remarks>
-    private void Palette(CanvasLayer layer)
+    private void Palette()
     {
-        // BOTTOM CENTRE, which is the one edge nothing else claims: the readout is top-left, the
-        // hover bottom-left and the two panels open at (14, 108).
-        _palette = Backed(Vector2.Zero);
-        _palette.Theme = _type;
-        _palette.AnchorLeft = 0.5f;
-        _palette.AnchorRight = 0.5f;
-        _palette.AnchorTop = 1f;
-        _palette.AnchorBottom = 1f;
-        _palette.GrowHorizontal = Control.GrowDirection.Both;
-        _palette.GrowVertical = Control.GrowDirection.Begin;
-        _palette.OffsetBottom = -16f;
+        // 🔴 IT IS NO LONGER A PANEL AT THE BOTTOM EDGE. It sits in the console's centre slot
+        // (plans/0064 row 3, composition C), so it has no anchors, no position and no backing of its
+        // own -- the console is the panel. ***A strip 116 px tall on every frame is what the
+        // condensing was for***, and the tools now claim the height of one row of buttons.
+        _palette = new PanelContainer { Theme = _type };
+        _palette.AddThemeStyleboxOverride("panel", new StyleBoxEmpty());
 
         var box = new VBoxContainer();
 
@@ -440,14 +440,17 @@ public partial class Main
         _policiesButton.Pressed += Govern;
 
         _tools.AddChild(_policiesButton);
+        // ⚠ NO STATED HEIGHT. Vertical scrolling is off, so the ScrollContainer's own minimum in
+        // that axis is its content's -- which is one row of buttons while nothing is armed and two
+        // while something is. ***The tray shrinking when there is nothing to say is the point***,
+        // and a CustomMinimumSize here would have reserved the taller of the two for ever.
         var paletteScroll = new ScrollContainer
         {
             VerticalScrollMode = ScrollContainer.ScrollMode.Disabled,
-            CustomMinimumSize = new Vector2(0, 78),
         };
         paletteScroll.AddChild(box);
         _palette.AddChild(paletteScroll);
-        layer.AddChild(_palette);
+        _toolSlot.AddChild(_palette);
 
         ShowTools();
     }
@@ -561,10 +564,31 @@ public partial class Main
                 break;
 
             default:
-                _choices.AddChild(new Label { Text = Doing() });
+                // 🔴 LOOK SAYS NOTHING. Every other verb explains what a click will do, and Look's
+                // sentence was "reads the city and changes nothing" -- a line of type, on every
+                // frame, to report that the default is the default. The hint appears when a tool is
+                // armed and the row disappears when one is not.
+                if (_verb != Verb.Look) _choices.AddChild(new Label { Text = Doing() });
 
                 break;
         }
+
+        // ⚠ CANCEL EXISTS ONLY WHILE THERE IS SOMETHING TO CANCEL (plans/0064 row 6). Clicking LOOK
+        // is what a player had to do instead, and that reads as choosing a sixth tool rather than
+        // putting the fifth down.
+        //
+        // 🔴 FIRST IN THE ROW AND NOT LAST. The row scrolls horizontally, and DEMOLISH's hint is a
+        // full sentence -- so a Cancel appended after it was off the right edge of the scroll in the
+        // one state that most wants it. ***The way out of a tool is not something to scroll for.***
+        if (_verb != Verb.Look)
+        {
+            var cancel = new Button { Text = "Cancel  ✕" };
+            cancel.Pressed += () => Apply(Held("look", 0));
+            _choices.AddChild(cancel);
+            _choices.MoveChild(cancel, 0);
+        }
+
+        _choices.Visible = _choices.GetChildCount() > 0;
     }
 
     /// <summary>One selectable choice under the held tool.</summary>

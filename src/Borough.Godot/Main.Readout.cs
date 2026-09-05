@@ -662,7 +662,11 @@ public partial class Main
         _readout.Visible = false;
         AddChild(_hud);
         Tuner(_hud);
-        Panels();
+
+        // ⚠ INFORMATION FIRST, and the order is load-bearing now. Palette() builds into the
+        // console's tool slot, and the console is built by Information(). It used to be the other
+        // way round because the palette owned its own corner of the screen and nothing owned it.
         Information();
+        Panels();
     }
 }
