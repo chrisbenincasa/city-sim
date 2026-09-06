@@ -1,0 +1,295 @@
+# The insolvent Ruleset. It is `shopping.toml` with ONE KEY ADDED and TWO REMOVED -- so the diff is
+# the whole demonstration -- and it is the first shipped file in which a Business can FAIL.
+#
+# plans/0065. Every world before it had money flowing BOTH ways and failure flowing NEITHER: a
+# Business could take in less than it paid out at every payday for the life of the world, and the
+# only trace was a readout counter that survived one Tick.
+#
+# ---------------------------------------------------------------------------------------------------
+# WHAT IT CHANGES, against `shopping.toml`:
+#
+#   [[business]] grocer  goes_bankrupt_after_short_paydays = 4   -- ADDED. Four paydays running
+#                        without meeting payroll in full and the trade is wound up: the staff are
+#                        dismissed, and the premises are LEFT STANDING and empty for somebody else.
+#   [[business]] grocer  wage_per_day 4096 -> 512                -- LOWERED, see BIMODAL below.
+#   [[business]] shop    wage_per_day, pay_period_days           -- REMOVED, see P1 below.
+#
+# 🔴 BOTH NUMBERS ARE PROVISIONAL, chosen by taste under the amnesty with no ratifier and no
+# plans/0002 §D row -- which is what suspending adr/0052 is for. Read them as "numbers that let the
+# mechanism run", never as a claim about what a wage or an insolvency is worth.
+#
+# ---------------------------------------------------------------------------------------------------
+# WHAT IT EXISTS TO SHOW: that a city can go BALANCE -> UNBALANCE -> BALANCE in one run.
+# ---------------------------------------------------------------------------------------------------
+# `grocer` tenants the `shopfront`, holds a money Bin, sells sundries to Households who walk in, and
+# pays its staff out of that till. So it is the one trade in the corpus that both EARNS and PAYS, and
+# therefore the only one that can be caught between the two.
+#
+# Measured at 2,000 Citizens over 245,760 Ticks (120 Days): about 160 live Businesses throughout, and
+# 44 trades wound up. ***The population is STABLE across those failures*** -- new trades are
+# instantiated as the city builds -- which is the whole point: the run does not decline, it churns.
+#
+# ---------------------------------------------------------------------------------------------------
+# 🔴 BIMODAL, AND THAT IS THE FILE'S SHARPEST FINDING. THE WAGE IS NOT THE BINDING CONSTRAINT.
+# ---------------------------------------------------------------------------------------------------
+# `wage_per_day` was swept 512 / 1024 / 2048 / 4096 -- a FOURFOLD range -- and the number of trades
+# wound up moved 44 / 44 / 46 / 46. The shortfall scales with the wage and the DEATHS DO NOT.
+#
+# So these failures are STRUCTURAL rather than marginal: a fixed subset of grocers has essentially no
+# custom whatever its payroll, and the rest cover even the highest wage tried. ***The city decides
+# which shops fail, by where they are*** -- which is a spatial cause and not an economic one.
+#
+# ⚠ SO "THIN MARGIN" IS NOT WHAT THIS FILE SHOWS, and the header says so rather than letting the
+# numbers imply it. 512 is chosen because it is the value at which the city's payroll obligation is
+# roughly met in aggregate (2.9M paid against 3.6M owed) instead of dwarfed by it (10.8M against
+# 37.8M at 4096) -- an honest AGGREGATE, not a knob that tunes who dies.
+#
+# ---------------------------------------------------------------------------------------------------
+# ⚠ WHY `shop` LOST ITS WAGE -- plans/0065 P1, and it is a DEFECT this file refuses to inherit.
+# ---------------------------------------------------------------------------------------------------
+# `shopping.toml` declares `wage_per_day = 4096` on `shop`, and `shop` tenants the `dwelling`, which
+# declares NO money Bin. A trade's Bins come from its premises, so that shop has no till: it can
+# neither pay anybody nor ever come up short, and it reads as perfectly solvent for ever.
+#
+# That is not refusable where the Ruleset is parsed -- a trade is not statically bound to a building
+# kind, so the loader cannot know which premises it will end up in (adr/0048's reach ending rather
+# than its rule bending). `--business` REPORTS it instead, on the `declare a wage and hold no till`
+# row, and this file removes the keys so that its own demonstration is not measuring one.
+#
+# ---------------------------------------------------------------------------------------------------
+# ⚠ WHAT IT MUST NOT BE READ AS.
+# ---------------------------------------------------------------------------------------------------
+# Not a claim about the rate at which real shops fail, not a balance target, and not evidence about
+# either number it states. It demonstrates that the MECHANISM runs, terminates and leaves a city
+# standing. ⚠ It says NOTHING about what a survivable margin looks like, because the sweep above shows
+# this world does not have one to measure -- a world where a trade can earn a LITTLE and not enough
+# does not exist yet, and building one is what would make a decline threshold ratifiable.
+#
+# ⚠ It inherits two [[lattice]] centres and a [districts] table from `shopping.toml`, for that file's
+# reason and not for one of its own. TwinLatticeTests and DistrictWatershedTests exempt it by name.
+#
+# ⚠ IT IS NOT HASH-BEARING. It is not in GoldenFixtures and no committed .borough log replays it.
+#
+
+[[resource]]
+name = "sundries"
+family = "good"
+need = "sustenance"
+
+[[resource]]
+name = "repairs"
+family = "good"
+
+[[resource]]
+name = "money"
+family = "money"
+
+[[business]]
+name = "shop"
+work_days = 31
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+[[business]]
+name = "grocer"
+work_days = 124
+open_days = 127
+opens_hour = 7
+closes_hour = 21
+wage_per_day    = 512
+pay_period_days = 7
+goes_bankrupt_after_short_paydays = 4
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+[[building]]
+name = "dwelling"
+bins = [
+    { resource = "sundries", capacity = 128, owner = "occupant" },
+    { resource = "repairs",  capacity = 4 },
+]
+houses   = true
+premises = true
+parked = true
+business = "shop"
+
+[[building]]
+name = "shopfront"
+bins = [
+    { resource = "sundries", capacity = 1024, owner = "business" },
+    { resource = "repairs",  capacity = 4 },
+    { resource = "money",    owner = "business" },
+]
+houses   = true
+premises = true
+business = "grocer"
+
+[[rule]]
+name    = "restock"
+kind    = "dwelling"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = [ { scope = "pool", resource = "sundries", amount = 4 } ]
+outputs = [ { scope = "local", resource = "sundries", amount = 4 } ]
+
+[[rule]]
+name    = "consume"
+kind    = "dwelling"
+rate    = 256
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "sundries", amount = 4 } ]
+outputs = []
+
+[[rule]]
+name    = "upkeep"
+kind    = "dwelling"
+rate    = 16
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "repairs", amount = 4 } ]
+outputs = []
+
+[[rule]]
+name    = "stock"
+kind    = "shopfront"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = []
+outputs = [ { scope = "local", resource = "sundries", amount = 8 } ]
+
+[[rule]]
+name    = "rates"
+kind    = "shopfront"
+rate    = 2048
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local",  resource = "money", amount = 16384 } ]
+outputs = [ { scope = "global", resource = "money", amount = 16384 } ]
+
+[[zone_rule]]
+name          = "housing"
+kind          = "dwelling"
+zone          = 0
+interval      = 32
+revisit_ticks = 2048
+
+[[zone_rule]]
+name          = "trade"
+kind          = "shopfront"
+zone          = 1
+interval      = 32
+revisit_ticks = 2048
+build_threshold_days = 1
+cooldown_days        = 1
+
+[placement]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+
+[layers]
+noise_range_metres            = 300
+noise_intensity_percent       = 400
+desirability_pollution_percent = 100
+desirability_noise_percent     = 100
+pollution_period      = 64
+pollution_offset      = 0
+land_value_period     = 256
+land_value_offset     = 16
+kernel_metres         = 1024
+pollution_decay_ticks = 2048
+land_value_tau        = 8
+
+[roads]
+block_tiles                    = 32
+arterial_count                 = 0
+arterial_junction_tiles        = 512
+foot_crossing_every            = 4
+foot_paths_per_thousand_blocks = 40
+street_speed_kph               = 50
+arterial_speed_kph             = 90
+walk_speed_kph                 = 5
+street_capacity_per_hour       = 3600
+arterial_capacity_per_hour     = 12000
+foot_path_capacity_per_hour    = 1000
+
+[lots]
+lots_per_segment = 5
+setback_tiles = 2
+
+[capacity]
+floor_tiles_per_occupant      = 25
+floor_tiles_per_job           = 3
+floor_tiles_per_parking_space = 12
+
+[parking]
+radius_metres = 400
+shed_keeps = 24
+
+[trips]
+crossing_seconds = 30
+commute_fast_minutes = 20
+commute_moderate_minutes = 40
+commute_budget_minutes = 50
+
+[jobs]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+shift_hours_min = 6
+shift_hours_max = 10
+arrive_early_max_minutes = 15
+
+[households]
+car_ownership_percent = 0
+opening_balance_min = 12800
+opening_balance_max = 25600
+
+[[lattice]]
+origin_east_tiles  = 0
+origin_north_tiles = 0
+
+[[lattice]]
+origin_east_tiles  = 2048
+origin_north_tiles = 0
+
+[districts]
+prominence_percent = 50
+revisit_ticks = 2048
+hysteresis_percent = 50
+migrate_cells = 16
+
+[[hinterland]]
+edge = "north"
+emigrant_balance_min = 0
+emigrant_balance_max = 0
+prices = [
+  { resource = "sundries", price = 100 },
+  { resource = "repairs",  price = 250 },
+]
+
+[[hinterland]]
+edge = "east"
+emigrant_balance_min = 0
+emigrant_balance_max = 0
+prices = [
+  { resource = "sundries", price = 120 },
+  { resource = "repairs",  price = 200 },
+]
+
+[market]
+decay_percent = 50
+move_cap_percent = 10
+[needs]
+sustenance_degrade = 4
+sustenance_recover = 4
+satisfaction_degrade = 4
+satisfaction_recover = 4
+floor = -100
+
+[shopping]
+interval = 64
+low_days = 1
+target_days = 3
+severe_need = -16
+known_shops = 3
+search_candidates = 32
+retry_ticks = 128

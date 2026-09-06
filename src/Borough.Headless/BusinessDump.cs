@@ -94,11 +94,32 @@ internal static class BusinessDump
         long premised = 0;
         long retired = 0;
 
+        // 🔴 THE PAYROLL TOTALS ARE KEPT BY HAND FOR `founded`'s REASON, ONE PANEL ALONG, AND IT IS
+        // A SHARPER CASE OF IT. PayrollReading is produced on a Day boundary and overwritten on the
+        // next, so a sampled census cannot see a payday it did not land on -- and unlike a founding,
+        // a BANKRUPTCY is a row that stops existing. ***A flow nobody accumulates is a flow the dump
+        // can only under-report***, so these are summed every Tick rather than on the cadence.
+        long paid = 0;
+        long workersPaid = 0;
+        long shortfall = 0;
+        long underpaid = 0;
+        long bankrupted = 0;
+        long tilless = 0;
+
         Accumulate(simulation, census, ref founded, ref premised, ref retired);
 
         for (ulong tick = 0; tick < options.Ticks; tick++)
         {
             simulation.Step(default);
+
+            PayrollReading payroll = simulation.LastPayroll;
+
+            paid += payroll.Paid;
+            workersPaid += payroll.Workers;
+            shortfall += payroll.Shortfall;
+            underpaid += payroll.Underpaying;
+            bankrupted += payroll.Bankrupted;
+            tilless = long.Max(tilless, payroll.Tilless);
 
             if (simulation.Tick.Raw % cadence == 0)
             {
@@ -121,6 +142,8 @@ internal static class BusinessDump
         Held(output, world, rules, names);
         output.WriteLine();
         Staff(output, world, census, window);
+        output.WriteLine();
+        Payroll(output, rules, paid, workersPaid, shortfall, underpaid, bankrupted, tilless);
         output.WriteLine();
         Read(output, rules, census, window);
 
@@ -563,6 +586,93 @@ internal static class BusinessDump
 
         output.WriteLine(Row(
             label, Count(samples[0].Value), Count(samples[^1].Value), Count(low), Count(high)));
+    }
+
+    /// <summary>
+    /// Panel five: what a payday moved, and what it could not.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>Wages had NO readout at all until <c>plans/0065</c>, in any mode</b> —
+    /// <c>PayrollReading</c> was reachable only through <c>Simulation.LastPayroll</c> in a unit test.
+    /// ***A mechanism whose only instrument is a test cannot be watched***, and this project's
+    /// Definition of done asks for exactly that.
+    /// </para>
+    /// <para>
+    /// ⚠ <b><c>trades wound up</c> is the row this panel exists for.</b> Before it, a Business could
+    /// take in less than it paid out at every payday for the life of the world and nothing anywhere
+    /// said so — the shortfall was recomputed each payday and discarded, so ***an insolvency was an
+    /// instant and never a condition.***
+    /// </para>
+    /// <para>
+    /// 🔴 <b><c>declare a wage and hold no till</c> IS A DEFECT ROW AND NOT A CENSUS</b> —
+    /// <c>plans/0065</c> <b>P1</b>. A trade's Bins come from its premises, so whether it can hold
+    /// money depends on which building kind it ends up tenanting, and <b>nothing checks the
+    /// pairing</b>: such a trade can neither pay nor come up short, so it reads as perfectly solvent
+    /// in every other row here. ⚠ <b>It is not refusable at the parse site</b> — a trade is not
+    /// statically bound to a building kind — which is why it is reported rather than refused
+    /// (<c>adr/0048</c>). ***A silent zero reads as health***, and that is the whole reason for the
+    /// line. <b>It is a HIGH-WATER MARK rather than a sum</b>, because the same trades recur every
+    /// payday and adding them up would count one defect once per Day.
+    /// </para>
+    /// </remarks>
+    private static void Payroll(
+        TextWriter output, Ruleset rules, long paid, long workers, long shortfall,
+        long underpaid, long bankrupted, long tilless)
+    {
+        output.WriteLine("What a payday moved");
+        output.WriteLine();
+        output.WriteLine(Flow("money that reached a Household", paid));
+        output.WriteLine(Flow("wage payments made", workers));
+        output.WriteLine(Flow("owed and not covered", shortfall));
+        output.WriteLine(Flow("paydays an employer came up short", underpaid));
+        output.WriteLine(Flow("trades wound up", bankrupted));
+        output.WriteLine(Flow("declare a wage and hold no till", tilless));
+        output.WriteLine();
+
+        int threshold = 0;
+
+        for (int kind = 1; kind <= rules.BusinessKindCount; kind++)
+        {
+            threshold = int.Max(
+                threshold, rules.BusinessKind((byte)kind).GoesBankruptAfterShortPaydays);
+        }
+
+        if (tilless > 0)
+        {
+            output.WriteLine(
+                F($"  \U0001F534 {tilless:N0} TRADE(S) DECLARE A WAGE AND HAVE NOWHERE TO HOLD MONEY,"));
+            output.WriteLine(
+                "  so they can neither pay nor come up short, and every other row above reads them");
+            output.WriteLine(
+                "  as solvent. A trade's Bins come from its premises: check that the building kind");
+            output.WriteLine(
+                "  it tenants declares a money Bin owned by `business`. plans/0065 P1.");
+            output.WriteLine();
+        }
+
+        if (threshold == 0)
+        {
+            output.WriteLine(
+                "  No trade here states `goes_bankrupt_after_short_paydays`, so nothing in this world");
+            output.WriteLine(
+                "  can be wound up for failing to pay. Absent means never, and it is reached by");
+            output.WriteLine(
+                "  omitting the key rather than by defaulting one. rulesets/insolvent.toml states it.");
+
+            return;
+        }
+
+        output.WriteLine(
+            "  \u26A0 `trades wound up` IS NOT `Businesses retired` ONE PANEL UP, and the two count");
+        output.WriteLine(
+            "  different failures. A trade that lost its premises is solvent with nowhere to trade");
+        output.WriteLine(
+            "  from, and waits in the unpremised pool under [placement] gives_up_after_days. A trade");
+        output.WriteLine(
+            "  wound up here could not pay its staff. They share an END and not a route -- and the");
+        output.WriteLine(
+            "  premises a bankruptcy empties are LEFT STANDING for somebody else to take.");
     }
 
     private static string Row(string label, string a, string b, string c, string d) =>

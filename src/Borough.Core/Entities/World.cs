@@ -2584,6 +2584,18 @@ public sealed class World
             UnpremisedPool.Leave(Businesses, Businesses.PoolPosition(slot));
         }
 
+        // 🔴 ITS RULE INSTANCES FIRST, and this line was missing until plans/0065 called this on a
+        // trade that was STILL PREMISED. Both prior callers hid it: Depart asserts the row is already
+        // in the pool, so Unpremise has unfitted it on the way in; and DestroyBuilding is taking the
+        // premises down anyway. ***A bankruptcy is the first case where a premised trade dies and its
+        // Building survives***, and without this the Building's Rule list keeps Instances naming a
+        // freed row -- StaleHandleException out of World.FindLocalBin on the very next Evaluate,
+        // which is the failure milestone 27 task 9 died of arriving from a third side.
+        //
+        // ⚠ A no-op when the handle is already severed, which is what makes it safe to hoist here
+        // rather than special-case: it resolves the Building first and does nothing without one.
+        UnfitBusiness(business);
+
         if (Buildings.Rows.TryResolve(Businesses.Building[slot], out int buildingSlot))
         {
             BuildingBusinesses.Remove(buildingSlot, slot);

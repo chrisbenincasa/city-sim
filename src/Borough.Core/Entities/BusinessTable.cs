@@ -86,6 +86,22 @@ public sealed class BusinessTable
         Origin = _rows.SavedHandle("origin", buildings.Rows, reference: Reference.Severable);
         BinHead = _rows.SavedHandle("bin_head", bins.Rows);
         BinTail = _rows.SavedHandle("bin_tail", bins.Rows);
+        // 🔴 How many CONSECUTIVE paydays this Business has failed to meet in full. Saved and
+        // hashed, because it is the only thing in the build that remembers a trade is in trouble --
+        // WageEngine's `owed` is computed fresh every payday and forgotten, and Underpaying is a
+        // readout counter that survives one Tick. ***A city whose failures are all instantaneous has
+        // no economic middle***, which is CLAUDE.md's standing `balance -> unbalance -> balance`
+        // constraint restated at the Business.
+        //
+        // ⚠ SATURATING, and the byte is the bound rather than an estimate of one. A trade whose
+        // Ruleset states no GoesBankruptAfterShortPaydays never goes bankrupt, so nothing would stop this climbing
+        // for the life of the world -- adr/0006's magnitude trending upward at steady state, in the
+        // column added to give a failure a consequence. It stops at 255 and means `at least 255`.
+        //
+        // ⚠ Saved rather than derived, and the distinction is load-bearing: it cannot be rebuilt.
+        // Nothing else records that last payday was short, so a reload that recomputed this would
+        // hand every insolvent Business a clean slate and reset the city's decline on every load.
+        ShortPaydays = _rows.Saved<byte>("short_paydays");
         Balance = _rows.DerivedHandle("balance", bins.Rows, reference: Reference.Required);
         BuildingNext = _rows.Derived<int>("building_next");
         PoolSlot = _rows.Derived<int>("pool_slot");
@@ -156,6 +172,24 @@ public sealed class BusinessTable
     /// </para>
     /// </remarks>
     public Column<byte> Kind { get; }
+
+    /// <summary>
+    /// Consecutive paydays this Business has failed to meet in full, saturating at <c>255</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Zero is solvent, and a payroll met in full writes zero.</b> The count is of consecutive
+    /// failures rather than total ones, so recovery is a real state a Business can reach and not
+    /// merely a slower decline — see
+    /// <see cref="Rules.BusinessKindDefinition.GoesBankruptAfterShortPaydays"/>, which carries why.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It counts OCCASIONS and not Days.</b> One increment is one payday, so what a given
+    /// value means in elapsed time is <see cref="Rules.BusinessKindDefinition.PayPeriodDays"/>
+    /// times it. <b>Reading it as a duration is a unit error the column name is chosen to prevent.</b>
+    /// </para>
+    /// </remarks>
+    public Column<byte> ShortPaydays { get; }
 
     /// <summary>
     /// This Business's money Bin — its balance (<c>adr/0114</c>).
