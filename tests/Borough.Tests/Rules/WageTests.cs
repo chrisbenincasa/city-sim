@@ -125,7 +125,7 @@ public sealed class WageTests(ITestOutputHelper output)
     [Fact]
     public void Unpaid_wages_do_not_accrue_for_ever()
     {
-        (_, Simulation simulation) = Start(Rules(1));
+        (World world, Simulation simulation) = Start(Rules(1));
 
         long worst = 0;
         long lastSeen = 0;
@@ -141,18 +141,24 @@ public sealed class WageTests(ITestOutputHelper output)
 
             lastSeen = simulation.LastPayroll.Shortfall;
             worst = long.Max(worst, lastSeen);
+
+            long payrollCeiling = 0;
+            for (int worker = 0; worker < world.Citizens.Rows.SlotCount; worker++)
+            {
+                if (!world.Citizens.Rows.IsLive(worker)
+                    || !world.Businesses.Rows.TryResolve(world.Citizens.Workplace[worker], out int employer))
+                    continue;
+                var trade = world.Rules.BusinessKind(world.Businesses.Kind[employer]);
+                long cap = (long)trade.WagePerDay * trade.PayPeriodDays;
+                payrollCeiling += cap;
+                Assert.InRange(world.Citizens.EarnedWage[worker], 0, cap);
+            }
+            Assert.InRange(lastSeen, 0, payrollCeiling);
         }
 
         _output.WriteLine($"worst shortfall on any one payday: {worst}; last seen: {lastSeen}.");
 
-        // One period's worth for a handful of workers, and nowhere near the half-million the
-        // uncapped version reached by Day 56. The ceiling is deliberately loose -- what it catches is
-        // a debt that grows with elapsed time, which passes no ceiling at all.
-        Assert.True(
-            worst < 200_000,
-            $"the worst single-payday shortfall was {worst}. Arrears are capped at one pay period "
-            + "(WageEngine.Pay), so a figure this size means the cap is not holding and unpaid work "
-            + "is accruing without a sink -- adr/0006.");
+        Assert.True(worst > 0, "The run must exercise unpaid wages.");
     }
 
     /// <summary>A trade that states a rate and no period, and one that states neither.</summary>

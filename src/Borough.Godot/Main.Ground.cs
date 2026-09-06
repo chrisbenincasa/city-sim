@@ -613,7 +613,7 @@ public partial class Main
     }
 
     /// <summary>Whether a point stands far enough into a block to be behind the Buildings.</summary>
-    private static bool InAYard(float east, float north, int block, int lots)
+    private bool InAYard(float east, float north, int block, int lots)
     {
         if (block <= 0)
         {

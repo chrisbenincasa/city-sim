@@ -2546,13 +2546,36 @@ public readonly record struct CapacityRuleset(
 /// The most ground a Building leaves on each side of its parcel, in Tiles.
 /// </param>
 public readonly record struct LotRuleset(
-    int LotsPerSegment, int SetbackTiles, int StoreysPerRung = 1, int PatternSpread = 0)
+    int LotsPerSegment, int SetbackTiles, int StoreysPerRung = 1, int PatternSpread = 0,
+    int StreetHalfWidthTiles = 1)
 {
     /// <summary>A Ruleset whose land cannot be subdivided at all.</summary>
     public static LotRuleset None => default;
 
     /// <summary>Whether the subdivider runs.</summary>
     public bool Runs => LotsPerSegment > 0;
+
+    /// <summary>Clips the drawn setbacks to the block's reserved Street edges.</summary>
+    public (Quantities.Tiles East, Quantities.Tiles North, Quantities.Tiles Wide, Quantities.Tiles Deep)
+        Footprint(WorldKey key, Space.Parcel parcel, Space.BlockGround ground)
+    {
+        var footprint = Footprint(key, parcel.East, parcel.North, parcel.Wide, parcel.Deep);
+        int east = footprint.East.Raw;
+        int north = footprint.North.Raw;
+        int right = east + footprint.Wide.Raw;
+        int top = north + footprint.Deep.Raw;
+        int westEdge = ground.East + StreetHalfWidthTiles;
+        int southEdge = ground.North + StreetHalfWidthTiles;
+        int eastEdge = ground.East + ground.Wide - StreetHalfWidthTiles;
+        int northEdge = ground.North + ground.Deep - StreetHalfWidthTiles;
+        if (east < westEdge) east = westEdge;
+        if (north < southEdge) north = southEdge;
+        if (right > eastEdge) right = eastEdge;
+        if (top > northEdge) top = northEdge;
+        if (right <= east || top <= north)
+            return (Quantities.Tiles.Zero, Quantities.Tiles.Zero, Quantities.Tiles.Zero, Quantities.Tiles.Zero);
+        return (new(east), new(north), new(right - east), new(top - north));
+    }
 
     /// <summary>
     /// <b>The footprint one parcel carries</b> — the parcel inset by four independently drawn
@@ -2571,7 +2594,7 @@ public readonly record struct LotRuleset(
     /// at <c>block_tiles = 4</c> a parcel is one Tile across.
     /// </para>
     /// </remarks>
-    public (Quantities.Tiles East, Quantities.Tiles North, Quantities.Tiles Wide, Quantities.Tiles Deep)
+    private (Quantities.Tiles East, Quantities.Tiles North, Quantities.Tiles Wide, Quantities.Tiles Deep)
         Footprint(WorldKey key, Quantities.Tiles east, Quantities.Tiles north,
             Quantities.Tiles wide, Quantities.Tiles deep)
     {

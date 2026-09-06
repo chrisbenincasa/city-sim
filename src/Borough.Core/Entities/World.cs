@@ -931,6 +931,9 @@ public sealed class World
     {
         ArgumentNullException.ThrowIfNull(rules);
 
+        if (rules.Lots.StreetHalfWidthTiles != Rules.Lots.StreetHalfWidthTiles)
+            throw new NotSupportedException("Street width is fixed when the world is created.");
+
         RulesetChange change = RulesetShape.Compare(Rules, rules);
         RulesetMigration? migration = null;
 
@@ -3420,7 +3423,7 @@ public sealed class World
                 // built to end, arriving one level in.
                 (Quantities.Tiles east, Quantities.Tiles north, Quantities.Tiles wide,
                     Quantities.Tiles deep) = Rules.Lots.Footprint(
-                        Key, parcels[i].East, parcels[i].North, parcels[i].Wide, parcels[i].Deep);
+                        Key, parcels[i], Space.BlockGround.At(Roads.Streets.Lattice, column, row));
 
                 Lots.FootprintEast[slot] = east;
                 Lots.FootprintNorth[slot] = north;

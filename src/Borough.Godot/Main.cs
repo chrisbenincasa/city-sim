@@ -73,40 +73,15 @@ public partial class Main : Node3D
     /// <summary>What one notch of zoom in multiplies the eye's standoff by.</summary>
     private const float DollyPerStep = 0.92f;
 
-    /// <summary>
-    /// <b>How wide a Street's whole right of way is drawn</b> — kerb to kerb <em>and</em> the
-    /// pavements, which together spend it.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// 🔴 <b>THIS WAS <c>RoadWidthMetres</c> AND IT WAS DOING TWO JOBS.</b> It was the width of the
-    /// asphalt <em>and</em> the width of the ground a Street claims, and those were the same number
-    /// only because nothing but asphalt was drawn on a Street. <see cref="Footways"/> put something
-    /// else there, so they separated — and the split is what makes the row cost no ground: the
-    /// carriageway gives up what the pavements take, and 8 m of street stays 8 m of street.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>It is what <see cref="YardMargin"/> and <see cref="Edge"/> meant all along.</b> Both
-    /// asked <em>how far from the centre line is the road's edge</em>, which is this and never the
-    /// carriageway. Leaving them on the carriageway would have moved a scatter margin and a cursor
-    /// as a side effect of repainting a kerb.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>8 m is a Tile and a Tile is what the setback moves in.</b> <c>[lots] setback_tiles</c>
-    /// is 2 on every shipped file and each side is drawn on <c>[0, 2]</c> Tiles, so a Building's
-    /// front wall stands at <b>0, 4 or 8 m</b> from the centre line — and a half-street of 4 m puts
-    /// the back of the pavement exactly on the middle rung. ***The street's edge and the setback's
-    /// quantum are the same length on purpose.***
-    /// </para>
-    /// </remarks>
-    private const float StreetWidthMetres = 8f;
+    // The same reserved ground that bounds LotRuleset.Footprint.
+    private float StreetWidthMetres => (_world.Rules.Lots.Runs ? _world.Rules.Lots.StreetHalfWidthTiles : 1) * 2f * MetresPerTile;
 
     /// <summary>How wide a <b>Street's</b> asphalt is drawn — the right of way, less two pavements.</summary>
     /// <remarks>
     /// ⚠ <b>Derived rather than chosen</b>, so the two cannot drift apart and leave the street a
     /// different width than the ground it claims.
     /// </remarks>
-    private const float CarriagewayWidthMetres =
+    private float CarriagewayWidthMetres =>
         StreetWidthMetres - (2f * FootwayWidthMetres);
 
     /// <summary>
@@ -307,7 +282,7 @@ public partial class Main : Node3D
     /// margin to do it.
     /// </para>
     /// </remarks>
-    private static float YardMargin(int block, int lots) =>
+    private float YardMargin(int block, int lots) =>
         (StreetWidthMetres * 0.5f) + (BlockPatterns.StripTiles(block, lots) * MetresPerTile) + 1f;
 
     /// <summary>Above this, a Building gets a flat roof. <b>Tall things are not gabled.</b></summary>

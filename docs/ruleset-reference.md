@@ -25,7 +25,7 @@ dotnet run --project src/Borough.Headless -- \
 
 ## The sections
 
-37 sections, 228 keys.
+37 sections, 229 keys.
 
 - [`[[band]]`](#band) — 2 keys
 - [`[[building]]`](#building) — 18 keys
@@ -53,7 +53,7 @@ dotnet run --project src/Borough.Headless -- \
 - [`[households]`](#households) — 3 keys
 - [`[jobs]`](#jobs) — 6 keys
 - [`[layers]`](#layers) — 20 keys
-- [`[lots]`](#lots) — 4 keys
+- [`[lots]`](#lots) — 5 keys
 - [`[market]`](#market) — 2 keys
 - [`[needs]`](#needs) — 9 keys
 - [`[parking]`](#parking) — 2 keys
@@ -883,11 +883,15 @@ How many rungs either side of its band's own rung a block's pattern may be drawn
 
 **`setback_tiles`** · *whole number*
 
-The most ground a Building leaves on each side of its parcel, in Tiles. It is a length and not a fraction, so how much of a plot gets built on rises with the plot: a detached parcel keeps under half of itself and a slab's covers most of its site. The four sides are drawn independently per patch of ground, so a street varies and some walls stand on the pavement. Zero means every Building covers its whole parcel.
+The most ground a Building leaves on each side of its parcel, in Tiles. It is a length and not a fraction, so how much of a plot gets built on rises with the plot: a detached parcel keeps under half of itself and a slab's covers most of its site. The four sides are drawn independently per patch of ground, so a street varies and some walls stand on the pavement. Street ground remains reserved even at zero setback.
 
 **`storeys_per_rung`** · *whole number*
 
 How much plot ratio one step up the density ladder is worth. A block's pattern gives it a rung, and the rung times this plus two is the floor area its Buildings put on each unit of block — so how tall they stand depends on how much of the block the pattern leaves open. A form that spreads out is short and a form that stands back is tall, at the same density. Two is a floor rather than a step, because a building with no upper floor is a shed. Omitting it means one step per rung.
+
+**`street_half_width_tiles`** · *whole number*
+
+Ground reserved on each side of a Street centreline, in Tiles. Footprints clear this strip on all four block edges; the shell draws the same Street width. Fixed at world creation.
 
 ---
 
