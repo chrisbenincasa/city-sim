@@ -253,10 +253,11 @@ highlighted pause state instead of a separate “paused” label, and removal of
 The continuous day/night path is agreed: dawn at the left, daylight above the horizon and night
 below. It is a clock diagram, not the moon’s physical position in the sky.
 
-Typography is reduced to metadata, body/controls and titles, with consistent spacing. Menu color
-requires comparison before implementation. Three standalone light/dark studies are in
-`artifacts/visual-study/interface-palettes/index.html`: quiet teal, civic blue and warm ledger.
-The palette choice is pending; the studies are not an implemented theme.
+Typography is reduced to metadata, body/controls and titles. The player selected **Civic blue**
+from `artifacts/visual-study/interface-palettes/index.html`. `InformationUi` owns the shared light/dark
+palette, text roles, spacing, buttons, links and section cards; the inspector and Help compose those
+components. New screens inherit the shared Theme. Blue marks sections and active controls; amber
+marks blocked activity and refusals.
 
 `check-sky.py` checks the marker at 05:00, 06:00, noon, 18:00 and midnight in fresh driven runs.
 The console check also asserts pace order, pause highlight and absence of the removed captions.

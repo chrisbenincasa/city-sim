@@ -7,11 +7,11 @@ namespace Borough.Shell;
 
 public partial class Main
 {
-    private const int CaptionPoints = 14;
-    private const int SecondaryPoints = 14;
-    private const int BodyPoints = 16;
-    private const int HeadingPoints = 16;
-    private const int TitlePoints = 22;
+    private const int CaptionPoints = InformationUi.MetadataPoints;
+    private const int SecondaryPoints = InformationUi.MetadataPoints;
+    private const int BodyPoints = InformationUi.BodyPoints;
+    private const int HeadingPoints = InformationUi.BodyPoints;
+    private const int TitlePoints = InformationUi.TitlePoints;
     private ScrollContainer _helpScroll = null!;
     private int _textPercent = 118; // PROVISIONAL readability default.
     private PanelContainer _helpPanel = null!;
@@ -22,6 +22,7 @@ public partial class Main
     private void SizeLabel(Label label, int points)
     {
         label.SetMeta("type_points", points);
+        if (points == InformationUi.MetadataPoints) label.ThemeTypeVariation = InformationUi.Metadata;
         label.AddThemeFontSizeOverride("font_size", Typed(points));
     }
 
@@ -87,7 +88,7 @@ public partial class Main
         _helpShade = new Control { MouseFilter = Control.MouseFilterEnum.Stop };
         _hud.AddChild(_helpShade);
         _helpPanel = InformationPanel();
-        var body = new VBoxContainer();
+        var body = InformationUi.Stack();
         var heading = new HBoxContainer();
         var title = InformationLabel("Help", TitlePoints);
         title.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
@@ -104,17 +105,17 @@ public partial class Main
         body.AddChild(sizing);
         _helpScroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled, SizeFlagsVertical = Control.SizeFlags.ExpandFill };
         var content = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-        content.AddThemeConstantOverride("separation", 12);
-        content.AddChild(InformationLabel("Mouse & trackpad", HeadingPoints));
-        content.AddChild(InformationLabel("Click to inspect or use the selected tool. Right or middle drag to pan. Two-finger scroll pans; pinch or the mouse wheel zooms. The window edges pan the camera. Shift-click with Street removes a Street."));
-        content.AddChild(InformationLabel("Windows", HeadingPoints));
-        content.AddChild(InformationLabel("? (Shift+/) opens Help. Escape closes the topmost window, then the inspector, then cancels the selected tool. Help leaves time running at your chosen pace."));
-        foreach (var section in Shortcuts().GroupBy(s => s.Group))
+        content.AddThemeConstantOverride("separation", InformationUi.SectionGap);
+        void Section(string title, params string[] lines)
         {
-            content.AddChild(InformationLabel(section.Key, HeadingPoints));
-            foreach (var shortcut in section)
-                content.AddChild(InformationLabel($"{shortcut.Binding} — {shortcut.Label}"));
+            var card = InformationUi.Section(InformationLabel(title), true, false, out var rows);
+            foreach (string line in lines) rows.AddChild(InformationLabel(line));
+            content.AddChild(card);
         }
+        Section("Mouse & trackpad", "Click to inspect or use the selected tool. Right or middle drag to pan. Two-finger scroll pans; pinch or the mouse wheel zooms. The window edges pan the camera. Shift-click with Street removes a Street.");
+        Section("Windows", "? (Shift+/) opens Help. Escape closes the topmost window, then the inspector, then cancels the selected tool. Help leaves time running at your chosen pace.");
+        foreach (var section in Shortcuts().GroupBy(s => s.Group))
+            Section(section.Key, section.Select(s => $"{s.Binding} — {s.Label}").ToArray());
         _helpScroll.AddChild(content);
         body.AddChild(_helpScroll);
         _helpPanel.AddChild(body);

@@ -205,6 +205,7 @@ public partial class Main
             string want = name;
             var choice = ConsoleButton(label, () => Apply(new DriveCommand(
                 _world.Tick.Raw, DriveVerb.Overlay, 0, want)));
+            choice.ToggleMode = true;
             _layerChoices.AddChild(choice);
         }
         layerHead.AddChild(_layerChoices);
@@ -259,13 +260,16 @@ public partial class Main
         _hover.LabelSettings = null;
         _hover.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         _pointerRow.AddChild(_hover);
+        _consoleBody.AddChild(new HSeparator());
         _consoleBody.AddChild(_pointerRow);
 
         _refusalRow = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         var refusal = new VBoxContainer();
         refusal.AddThemeConstantOverride("separation", 3);
         var refusalHead = ConsoleLabel("REFUSED", CaptionPoints);
+        refusalHead.ThemeTypeVariation = InformationUi.WarningText;
         _refusalLabel = ConsoleLabel(string.Empty, SecondaryPoints);
+        _refusalLabel.ThemeTypeVariation = InformationUi.WarningText;
         _refusalLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         refusal.AddChild(refusalHead);
         refusal.AddChild(_refusalLabel);
@@ -298,14 +302,7 @@ public partial class Main
     /// </remarks>
     private static Button ConsoleButton(string text, Action action)
     {
-        var button = new Button
-        {
-            Text = text,
-            CustomMinimumSize = new Vector2(0, 30),
-            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
-        };
-        button.Pressed += action;
-        return button;
+        return InformationUi.Button(text, action, compact: true);
     }
 
     /// <summary>
@@ -320,14 +317,7 @@ public partial class Main
     /// </remarks>
     private Label ConsoleLabel(string text, int size)
     {
-        var label = new Label
-        {
-            Text = text,
-            AutowrapMode = TextServer.AutowrapMode.Off,
-            VerticalAlignment = VerticalAlignment.Center,
-            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-        };
+        var label = InformationUi.Label(text, size, compact: true);
         SizeLabel(label, size);
         return label;
     }

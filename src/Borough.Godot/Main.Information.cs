@@ -91,7 +91,7 @@ public partial class Main
             SizeFlagsVertical = Control.SizeFlags.ExpandFill,
         };
         _inspectionBody = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-        _inspectionBody.AddThemeConstantOverride("separation", 16);
+        _inspectionBody.AddThemeConstantOverride("separation", InformationUi.SectionGap);
         _inspectionScroll.AddChild(_inspectionBody);
         column.AddChild(_inspectionScroll);
         _inspector.AddChild(column);
@@ -122,20 +122,14 @@ public partial class Main
 
     private Label InformationLabel(string text, int size = BodyPoints)
     {
-        var label = new Label
-        {
-            Text = text, AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-        };
+        var label = InformationUi.Label(text, size);
         SizeLabel(label, size);
         return label;
     }
 
     private static Button InformationButton(string text, Action action)
     {
-        var button = new Button { Text = text, CustomMinimumSize = new Vector2(0, 36) };
-        button.Pressed += action;
-        return button;
+        return InformationUi.Button(text, action);
     }
 
     private MeshInstance3D InformationRing(Color colour)
@@ -157,31 +151,8 @@ public partial class Main
     private void ThemeInformation()
     {
         if (_inspector is null) return;
-        Color paper = new(_lightUi ? "f5f2e9" : "222c30");
-        Color ink = new(_lightUi ? "273632" : "f1f1e9");
-        Color line = new(_lightUi ? "d4d8cd" : "435052");
-        Color accent = new(_lightUi ? "31695b" : "9ed3c4");
-        foreach (string type in new[] { "Label", "Button", "CheckButton", "LineEdit" })
-        {
-            _type.SetColor("font_color", type, ink);
-            _type.SetColor("font_hover_color", type, ink);
-            _type.SetColor("font_pressed_color", type, accent);
-            _type.SetColor("font_focus_color", type, ink);
-            _type.SetColor("font_disabled_color", type, new Color(ink, 0.5f));
-        }
-        foreach (string state in new[] { "normal", "hover", "pressed", "focus", "disabled" })
-        {
-            var box = new StyleBoxFlat
-            {
-                BgColor = state == "hover" || state == "pressed" ? paper.Lerp(accent, .14f) : paper,
-                BorderColor = state == "focus" ? accent : line,
-                BorderWidthBottom = 1, BorderWidthLeft = 1, BorderWidthRight = 1, BorderWidthTop = 1,
-                CornerRadiusBottomLeft = 4, CornerRadiusBottomRight = 4,
-                CornerRadiusTopLeft = 4, CornerRadiusTopRight = 4,
-                ContentMarginLeft = 10, ContentMarginRight = 10, ContentMarginTop = 6, ContentMarginBottom = 6,
-            };
-            _type.SetStylebox(state, "Button", box);
-        }
+        var colors = InformationUi.Apply(_type, _lightUi);
+        Color paper = colors.Paper, ink = colors.Ink, line = colors.Line;
         // ⚠ _palette is NOT in this list any more. It is inside the console now, so a second panel
         // stylebox would draw a box inside a box; it gets an empty one instead. The two that can be
         // null are the ones Panels() rebuilds -- ThemeInformation runs before the first rebuild.
@@ -189,40 +160,19 @@ public partial class Main
         foreach (Control panel in _informationPanels.Concat(new Control?[] { _policyPanel, _tuner })
             .Where(p => p is not null).Select(p => p!))
         {
-            panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
-            {
-                BgColor = paper, BorderColor = line,
-                BorderWidthBottom = 1, BorderWidthLeft = 1, BorderWidthRight = 1, BorderWidthTop = 1,
-                CornerRadiusBottomLeft = 7, CornerRadiusBottomRight = 7,
-                CornerRadiusTopLeft = 7, CornerRadiusTopRight = 7,
-                ContentMarginLeft = 22, ContentMarginRight = 22,
-                ContentMarginTop = 18, ContentMarginBottom = 18,
-            });
+            panel.AddThemeStyleboxOverride("panel", InformationUi.Box(paper, line, InformationUi.PanelInsetX, InformationUi.PanelInsetY));
         }
-        // ⚠ THE CONSOLE IS THE ONE PANEL WITH ITS OWN MARGINS. The inspector's 22/18 is right for a
-        // column of prose and wrong for a strip of controls: 36 px of it is vertical padding around
-        // a 30 px button, on every frame, in the panel this row exists to make smaller.
-        _console.AddThemeStyleboxOverride("panel", new StyleBoxFlat
-        {
-            BgColor = paper, BorderColor = line,
-            BorderWidthBottom = 1, BorderWidthLeft = 1, BorderWidthRight = 1, BorderWidthTop = 1,
-            CornerRadiusBottomLeft = 7, CornerRadiusBottomRight = 7,
-            CornerRadiusTopLeft = 7, CornerRadiusTopRight = 7,
-            ContentMarginLeft = 16, ContentMarginRight = 16,
-            ContentMarginTop = 10, ContentMarginBottom = 10,
-        });
+        _console.AddThemeStyleboxOverride("panel", InformationUi.Box(paper, line, InformationUi.ConsoleInsetX, InformationUi.ConsoleInsetY));
 
         _skyArc.Ink = ink;
         _skyArc.Paper = paper;
         _skyArc.QueueRedraw();
 
-        // 🔴 THE REFUSAL IS THE ONE THING IN THE CONSOLE THAT IS NOT THE PANEL'S COLOUR. Row 6 asks
-        // that an unsuccessful action explain itself without hiding the inspection context, and a
-        // sentence in the same ink as every other sentence beside it is one nobody looks at.
+        // Refusals retain their fixed strip below the controls.
         _refusalRow.AddThemeStyleboxOverride("panel", new StyleBoxFlat
         {
-            BgColor = paper.Lerp(new Color(_lightUi ? "9a3412" : "f0a868"), 0.14f),
-            BorderColor = new Color(_lightUi ? "9a3412" : "f0a868"),
+            BgColor = colors.Warning,
+            BorderColor = colors.Warn,
             BorderWidthBottom = 1, BorderWidthLeft = 3, BorderWidthRight = 1, BorderWidthTop = 1,
             CornerRadiusBottomLeft = 4, CornerRadiusBottomRight = 4,
             CornerRadiusTopLeft = 4, CornerRadiusTopRight = 4,
@@ -617,24 +567,19 @@ public partial class Main
         {
             if (section.Key == "summary" && section.Rows.Count == 1) continue;
             bool expanded = _expanded.GetValueOrDefault(SectionKey(section.Key), section.Open);
-            var group = new VBoxContainer();
-            group.AddThemeConstantOverride("separation", 12);
+            bool attention = section.Key == "attention" && section.Open;
             var toggle = InformationButton($"{(expanded ? "▾" : "▸")}  {section.Title}",
                 () => Ui($"section {section.Key} {(expanded ? "off" : "on")}"));
             toggle.Alignment = HorizontalAlignment.Left;
-            group.AddChild(toggle);
+            var card = InformationUi.Section(toggle, expanded, attention, out var rows);
             if (expanded)
                 foreach (InformationRow row in section.Rows)
                 {
                     if (row.Action is { } action)
-                    {
-                        var link = InformationButton(row.Text, () => Ui(action));
-                        link.Alignment = HorizontalAlignment.Left;
-                        group.AddChild(link);
-                    }
-                    else group.AddChild(InformationLabel(row.Text));
+                        rows.AddChild(InformationUi.Link(row.Text, () => Ui(action)));
+                    else rows.AddChild(InformationLabel(row.Text));
                 }
-            _inspectionBody.AddChild(group);
+            _inspectionBody.AddChild(card);
         }
         RestoreInspectionScroll(scroll);
     }
