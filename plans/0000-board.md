@@ -1,7 +1,7 @@
 # 0000 — The board
 
-**Read this first.** A flat, scannable status of everything planned and everything done, and the one
-place that orders the three tracks against each other.
+**Amnesty in force: read [the active queue](0045-amnesty.md#the-queue) first.** It supersedes the
+older priorities below. Shopping status belongs to row 20 there.
 
 ---
 
