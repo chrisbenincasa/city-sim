@@ -58,7 +58,7 @@ public partial class Main
         new("Tools", "Demolish", "B", [Key.B], () => Apply(Held("demolish", 0))),
         new("Tools", "Service / next kind", "S", [Key.S], () => Apply(Held("service", NextService(_verb == Verb.Service ? _serviceKind : (byte)0)))),
         new("Tools", "Policies", "P", [Key.P], Govern),
-        new("Views", "Next map layer", "O", [Key.O], () => Apply(new DriveCommand(_world.Tick.Raw, DriveVerb.Overlay, 0, _washing switch { Wash.None => "pollution", Wash.Pollution => "value", Wash.Value => "sealing", Wash.Sealed => "rung", Wash.Rung => "age", _ => "off" }))),
+        new("Views", "Next map layer", "O", [Key.O], () => Apply(new DriveCommand(_world.Tick.Raw, DriveVerb.Overlay, 0, _washing switch { Wash.None => "pollution", Wash.Pollution => "value", Wash.Value => "sealing", Wash.Sealed => "health", Wash.Health => "rung", Wash.Rung => "age", _ => "off" }))),
         new("Views", "Photograph view", "L", [Key.L], () => ViewCommand(DriveVerb.Lens, _photographing ? 0 : 1)),
         new("Views", "Road drawing", "G", [Key.G], () => ViewCommand(DriveVerb.Roads, _roads.Visible ? 0 : 1)),
         new("Developer", "Cell grid", "C", [Key.C], () => ViewCommand(DriveVerb.Cells, _cells.Visible ? 0 : 1)),

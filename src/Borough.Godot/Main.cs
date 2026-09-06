@@ -489,6 +489,7 @@ public partial class Main : Node3D
 
         /// <summary>Sealing — how much of a Cell is under paving and roof.</summary>
         Sealed,
+        Health,
 
         /// <summary>
         /// A Building's rung on <c>BlockPatterns.Ladder</c>. <b>A DEBUG VIEW AND NOT A SHIPPING
@@ -1730,7 +1731,7 @@ public partial class Main : Node3D
             + $"{minute / 60:00}:{minute % 60:00}\n"
             + $"Citizens {_world.Citizens.Rows.LiveCount:N0}   Buildings {drawn:N0}   "
             + $"vacant Lots {vacant:N0}   "
-            + $"travelling {moving:N0}{Weather(under)}{ShoppingCaption()}\n"
+            + $"travelling {moving:N0}{Weather(under)}{ShoppingCaption()}{HealthCaption()}\n"
             + $"speed {Pace(_rung)}   "
             + $"mode {Holding()}   "
             + "[ ] speed, space pause, w write log, g roads, c cells, tab tune\n"
@@ -1740,6 +1741,7 @@ public partial class Main : Node3D
             + (_refused.Length > 0 ? $"\nREFUSED — {_refused}" : string.Empty);
 
         RefreshInformation();
+        RefreshHealthMarkers();
     }
 
     /// <summary>

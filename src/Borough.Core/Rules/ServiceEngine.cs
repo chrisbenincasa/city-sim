@@ -95,6 +95,7 @@ public sealed class ServiceEngine
 {
     private readonly World _world;
     private readonly TripEngine _trips;
+    private readonly CivicEngine? _civic;
 
     /// <summary>Reused between passes: the service Buildings standing in this world, by slot.</summary>
     /// <remarks>
@@ -185,13 +186,14 @@ public sealed class ServiceEngine
 
     /// <param name="world">The world whose Households attend.</param>
     /// <param name="trips">The one door a Trip is created through.</param>
-    public ServiceEngine(World world, TripEngine trips)
+    public ServiceEngine(World world, TripEngine trips, CivicEngine? civic = null)
     {
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(trips);
 
         _world = world;
         _trips = trips;
+        _civic = civic;
     }
 
     /// <summary>Why an occasion found nobody to send its traveller to.</summary>
@@ -351,8 +353,9 @@ public sealed class ServiceEngine
 
         // Ordered by Need id rather than by anything meaningful, and it must stay fixed: both passes
         // create Trips, and swapping them renumbers every Trip id the State Hash folds.
-        AttendAll(Need.Education, radius, needs, trips, tick, day);
-        AttendAll(Need.Health, radius, needs, trips, tick, day);
+        if (!_world.Rules.School.Runs || new WeeklyHours(_world.Rules.School.Days, 0, 24).Includes(WeeklyHours.DayOf((long)tick.Raw)))
+            AttendAll(Need.Education, radius, needs, trips, tick, day);
+        if (!_world.Rules.Care.Runs) { AttendAll(Need.Health, radius, needs, trips, tick, day); }
     }
 
     /// <summary>One Day's attendance for one Need, across the whole population.</summary>
@@ -469,6 +472,21 @@ public sealed class ServiceEngine
                 continue;
             }
 
+            if (need == Need.Education && _world.Rules.School.Runs)
+            {
+                foreach (int child in _world.Members.Walk(slot))
+                {
+                    if (_world.Citizens.Age[child] != 0 || CivicEngine.TooIllToWork(_world, child)
+                        || (CitizenActivity)_world.Citizens.Activity[child] != CitizenActivity.AtHome) { continue; }
+                    int existing = _civic?.RowOf(child) ?? -1;
+                    if (existing >= 0 && (VisitStage)_world.Civic.Stage[existing] != VisitStage.None) { continue; }
+                    int first = _candidateCount;
+                    Miss refusal = Candidates(home, _world.ModeOf(child), radius, trips);
+                    if (refusal != Miss.None) { _candidateCount = first; Fail(refusal, need, depth, slot, needs); continue; }
+                    Enqueue(slot, child, home, first, _candidateCount - first);
+                }
+                continue;
+            }
             int start = _candidateCount;
             Miss miss = Candidates(home, _world.ModeOf(traveller), radius, trips);
 
@@ -815,6 +833,12 @@ public sealed class ServiceEngine
         TravelMode mode = _world.ModeOf(traveller);
 
         _world.TakeServicePlace(provider, day);
+
+        if (need == Need.Education && _world.Rules.School.Runs && _civic is not null)
+        {
+            if (_civic.ScheduleSchool(traveller, _homes[entry], provider, tick, day)) { _tickAttended++; }
+            return;
+        }
 
         // ⚠ ACTIVITY IS DELIBERATELY NOT WRITTEN, and the enum deliberately does not grow. A school
         // run's RETURN journey is unbuilt -- exactly where the commute stood at 5b-bis -- so an

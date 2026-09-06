@@ -298,6 +298,8 @@ public static class RulesetLoader
 
         private TableSyntaxBase? _needsTable;
         private TableSyntaxBase? _shoppingTable;
+        private TableSyntaxBase? _schoolTable;
+        private TableSyntaxBase? _careTable;
 
         /// <summary>The parsed document, kept only so <see cref="Surface"/> can walk it after.</summary>
         /// <remarks>
@@ -374,6 +376,8 @@ public static class RulesetLoader
             // that declares none (adr/0130's rule for gives_up_after_days, one table along).
             NeedRuleset needs = ReadNeeds(kinds);
             ShoppingRuleset shopping = ReadShopping(trips, needs, rules, inputs, outputs);
+            SchoolRuleset school = ReadSchool(trips, needs);
+            CareRuleset care = ReadCare(trips, needs);
             placement = placement with { MoveAtNeed = ReadMoveAtNeed(placement, needs) };
             // After ReadPlacement, because the founding pass rides its trigger and the refusal for a
             // file stating [founding] with no [placement] is a property of the pair.
@@ -461,6 +465,8 @@ public static class RulesetLoader
                     Market = market,
                     Needs = needs,
                     Shopping = shopping,
+                    School = school,
+                    Care = care,
                     ResourceNeeds = [.. _resourceNeeds],
                     Founding = founding,
                     ResourceKeys = Keys(_resources),
@@ -809,6 +815,12 @@ public static class RulesetLoader
                         _foundingTable = table;
                         break;
 
+                    case "school":
+                        if (_schoolTable is not null) { Refuse(LineOf(table), null, "duplicate [school]"); }
+                        _schoolTable = table; break;
+                    case "care":
+                        if (_careTable is not null) { Refuse(LineOf(table), null, "duplicate [care]"); }
+                        _careTable = table; break;
                     case "shopping":
                         if (_shoppingTable is not null) { Refuse(LineOf(table), null, "duplicate [shopping]"); }
                         _shoppingTable = table;
@@ -1312,6 +1324,76 @@ public static class RulesetLoader
                 { Refuse(LineOf(_shoppingTable), null, "shopping Household pool Rules must transfer one Good unchanged into one local Bin"); }
             }
             return new ShoppingRuleset(interval, low, target, severe, known, search, retry);
+        }
+
+        private int CivicInt(TableSyntaxBase table, string key, int min, int max, bool required = true)
+        {
+            if (!TryInteger(table, key, out long value, required: required)) { return required ? min : 0; }
+            if (value < min || value > max)
+            { Refuse(LineOf(table), null, $"{key} must be between {min} and {max}"); return min; }
+            return (int)value;
+        }
+        private WeeklyHours ReadCareHours(TableSyntaxBase table, Need serves)
+        {
+            bool required = serves == Need.Health && _careTable is not null;
+            int days = CivicInt(table, "care_days", 1, 127, required);
+            int opens = CivicInt(table, "care_opens_hour", 0, 23, required);
+            int closes = CivicInt(table, "care_closes_hour", 1, 24, required);
+            if (days != 0 && (serves != Need.Health || closes <= opens))
+                Refuse(LineOf(table), null, "care hours require a Health service and closing after opening");
+            return new WeeklyHours(days, opens, closes);
+        }
+        private SchoolRuleset ReadSchool(TripRuleset trips, NeedRuleset needs)
+        {
+            if (_schoolTable is null) { return default; }
+            var result = new SchoolRuleset(
+                CivicInt(_schoolTable, "days", 1, 127),
+                CivicInt(_schoolTable, "bell_earliest_minute", 360, 720),
+                CivicInt(_schoolTable, "bell_latest_minute", 360, 720),
+                CivicInt(_schoolTable, "dismiss_earliest_minute", 721, 1439),
+                CivicInt(_schoolTable, "dismiss_latest_minute", 721, 1439),
+                CivicInt(_schoolTable, "retry_ticks", 1, 2048),
+                CivicInt(_schoolTable, "history_keeps", 16, 65536));
+            if (!trips.HasCommuteBudget || needs.EducationDegrade <= 0
+                || result.BellLatest < result.BellEarliest || result.DismissLatest < result.DismissEarliest
+                || result.DismissEarliest <= result.BellLatest)
+                Refuse(LineOf(_schoolTable), null, "school requires Education, Trips and ordered bell/dismissal bands");
+            return result;
+        }
+        private CareRuleset ReadCare(TripRuleset trips, NeedRuleset needs)
+        {
+            if (_careTable is null) { return default; }
+            var result = new CareRuleset(
+                CivicInt(_careTable, "interval", 1, 2048),
+                CivicInt(_careTable, "routine_days", 1, 365),
+                CivicInt(_careTable, "illness_per_thousand", 0, 1000),
+                CivicInt(_careTable, "health_risk_per_thousand", 0, 1000),
+                CivicInt(_careTable, "initial_severity", 1, 1000),
+                CivicInt(_careTable, "serious_severity", 1, 1000),
+                CivicInt(_careTable, "admission_severity", 1, 1000),
+                CivicInt(_careTable, "recovery_per_day", 1, 1000),
+                CivicInt(_careTable, "treated_recovery_per_day", 1, 1000),
+                CivicInt(_careTable, "deterioration_per_day", 1, 1000),
+                CivicInt(_careTable, "deterioration_percent", 0, 100),
+                CivicInt(_careTable, "death_severity", 1, 1000),
+                CivicInt(_careTable, "death_per_thousand", 0, 1000),
+                CivicInt(_careTable, "visit_minutes", 1, 720),
+                CivicInt(_careTable, "wait_days", 1, 365),
+                CivicInt(_careTable, "urgent_wait_days", 0, 365),
+                CivicInt(_careTable, "priority_every_days", 1, 365),
+                CivicInt(_careTable, "switch_after_waits", 1, 365),
+                CivicInt(_careTable, "known_clinics", 1, 32),
+                CivicInt(_careTable, "search_candidates", 1, 65536),
+                CivicInt(_careTable, "history_keeps", 16, 65536),
+                CivicInt(_careTable, "booking_days", 1, 30),
+                CivicInt(_careTable, "floor_tiles_per_treatment", 1, 1000000),
+                CivicInt(_careTable, "floor_tiles_per_bed", 1, 1000000),
+                CivicInt(_careTable, "report_days", 1, 365));
+            if (!trips.HasCommuteBudget || needs.HealthDegrade <= 0 || result.InitialSeverity >= result.SeriousSeverity
+                || result.SeriousSeverity >= result.AdmissionSeverity || result.AdmissionSeverity >= result.DeathSeverity
+                || result.TreatedRecoveryPerDay < result.RecoveryPerDay || result.UrgentWaitDays > result.WaitDays)
+                Refuse(LineOf(_careTable), null, "care requires Health, Trips, increasing severity thresholds and stronger treatment");
+            return result;
         }
 
         private NeedRuleset ReadNeeds(KindDefinition[] kinds)
@@ -2388,6 +2470,8 @@ public static class RulesetLoader
                     Rent = rent,
                     ArrivalsPerDay = arrivalsPerDay,
                     Serves = serves,
+                    CareHours = ReadCareHours(table, serves),
+                    BedPercent = CivicInt(table, "bed_percent", 0, 100, required: false),
                 };
             }
 

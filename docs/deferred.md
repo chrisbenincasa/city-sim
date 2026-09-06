@@ -280,6 +280,22 @@ Ship with role and routine. Income, expenses, savings, and purchases-missed are 
 
 ---
 
+## Named diseases
+
+**Status:** deferred by the player during row 19's care design. The agreed starting model is generic
+illness with severity and recovery; individual illness episodes and inpatient care are not yet built.
+Named diseases could add distinct causes, progression and treatment, with outbreaks and prevention
+as potential play rather than committed features.
+
+**Why parked:** first make routine care, urgent visits and bed capacity work with generic illness.
+**Trigger:** revisit once that care cycle is playable, when distinct diseases could give the player
+different problems to recognise and actions to take.
+**Retrofit cost:** a disease identifier and Ruleset definitions would extend individual illness state;
+transmission, exposure tracking, immunity and disease-specific treatment would need additional
+mechanisms. Generic severity and recovery alone do not provide them.
+
+---
+
 ## ~~Education and Health as degrading Needs~~ — **BUILT**
 
 **Status:** 🔴 **UN-PARKED 2026-08-30 by `plans/0045` queue item 10**, on the trigger this entry named
@@ -302,4 +318,3 @@ rather than a subscription, so the per-occasion step already *is* the per-Day ra
   nothing sizes a payroll from one. *Unbuilt.*
 - **The drop-off is unbuilt.** `adr/0032` puts a child who cannot walk on a parent's commute; only the
   walk is built, so a car-owning family is under-served in a way the design says it should not be.
-

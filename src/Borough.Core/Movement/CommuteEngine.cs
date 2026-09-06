@@ -175,6 +175,7 @@ public sealed class CommuteEngine
         // A Citizen mid-journey is excluded by the same test, which is the second thing it buys: a
         // roster phase arriving while somebody is still walking would otherwise start a second Trip
         // under the first.
+        if (!homeward && CivicEngine.TooIllToWork(_world, citizen)) { return; }
         var standing = (CitizenActivity)citizens.Activity[citizen];
 
         if (standing != (homeward ? CitizenActivity.AtWork : CitizenActivity.AtHome))

@@ -848,4 +848,12 @@ public enum PurposeTag : ulong
     BlockSpacing = 42,
     ShoppingDiscovery = 43,
     ShoppingSettleOrder = 44,
+    SchoolBell = 45,
+    SchoolDismissal = 46,
+    RoutineCare = 47,
+    IllnessOnset = 48,
+    IllnessProgress = 49,
+    IllnessDeath = 50,
+    ClinicDiscovery = 51,
+    IllnessCadence = 52,
 }

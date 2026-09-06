@@ -198,7 +198,8 @@ public sealed class TripEngine
         if ((Entities.CitizenActivity)_world.Citizens.Activity[citizen]
             is not (Entities.CitizenActivity.TravellingToWork
                 or Entities.CitizenActivity.TravellingHome
-                or Entities.CitizenActivity.ShoppingTravelling))
+                or Entities.CitizenActivity.ShoppingTravelling
+                or Entities.CitizenActivity.ServiceTravelling))
         {
             _world.Citizens.Activity[citizen] = (byte)Entities.CitizenActivity.Travelling;
         }

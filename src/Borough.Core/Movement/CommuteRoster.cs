@@ -73,56 +73,32 @@ public sealed class CommuteRoster
     /// The Tick of the Day the jobs in <paramref name="employerId"/> start at.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// <b>Drawn on the <em>Building</em>, which is what makes hours a property of the job</b>
-    /// (<c>adr/0101</c>). A Citizen who changes employer changes their hours with nothing written on
-    /// the Citizen and nothing to invalidate, because they never held the fact in the first place.
-    /// </para>
-    /// <para>
-    /// <b>Uniform inside the kind's band, in whole in-world hours.</b> Hours rather than Ticks because
-    /// that is what a designer means and what a workplace does — offices open on the hour, not at
-    /// 08:17. <see cref="Ticks.AtHour"/> rounds, since an hour is 85.33 Ticks.
-    /// </para>
+    /// A stable triangular draw on the Business id, at Tick resolution inside its trade's
+    /// clock-hour band. The band may cross the simulation's 05:00 Day boundary.
     /// </remarks>
     /// <param name="key">The world seed, as the draw's first coordinate.</param>
     /// <param name="employerId">The employing Business's monotonic, never-reused id.</param>
     /// <param name="kind">The trade, as the Ruleset in force declares it.</param>
     public static int ShiftStartOf(WorldKey key, ulong employerId, BusinessKindDefinition kind)
     {
-        int span = kind.ShiftStartLatestHour - kind.ShiftStartEarliestHour + 1;
-
-        if (span < 1)
+        if (kind.ShiftStartLatestHour < kind.ShiftStartEarliestHour)
         {
             return 0;
         }
 
-        // ⚠ TWO draws summed and halved, not one, and the measurement is what asked for it. A single
-        // uniform draw over the band gave five near-equal clumps -- a PLATEAU with holes between them
-        // -- while the return time next to it came out properly peaked. The two differ in exactly one
-        // way: a return is `start + shift`, the SUM OF TWO uniform draws, and the sum of two uniforms
-        // is triangular. So the peak in the evening was never authored, and the flatness in the
-        // morning was the absence of the same trick rather than a missing curve.
-        //
-        // *** The shape is borrowed from inside the mechanism rather than invented at the write
-        // site***, which is the whole reason it is allowable under adr/0043: it is not a distribution
-        // somebody guessed, it is the one the other half of this same arithmetic already produces.
-        //
-        // Second coordinate mixed with the golden ratio, on EmploymentEngine's candidate-loop
-        // precedent: one decision drawing twice, not two decisions sharing a stream.
+        int start = Ticks.AtClock(kind.ShiftStartEarliestHour);
+        int end = Ticks.AtClock(kind.ShiftStartLatestHour);
+        int width = (end - start + Ticks.PerDay) % Ticks.PerDay;
+        int span = width + 1;
+
         ulong first = Randomness.Draw(
             key, Randomness.Mix(employerId), Ticks.Zero, PurposeTag.ShiftStart);
-
         ulong second = Randomness.Draw(
             key, Randomness.Mix(employerId ^ 0x9E37_79B9_7F4A_7C15UL), Ticks.Zero,
             PurposeTag.ShiftStart);
 
-        int hours = (int)(first % (ulong)(uint)span) + (int)(second % (ulong)(uint)span);
-
-        // ⚠ AtClock AND NOT AtHour: a Shift START is a time of day, and a Day begins at 05:00. The
-        // three other callers of AtHour are LENGTHS -- a Shift's hours, a punctuality margin, a whole
-        // Day -- and must not be phased. This is the only site in the build where the two meanings
-        // had to be told apart.
-        return Ticks.AtClock(kind.ShiftStartEarliestHour + IntegerMath.RoundDiv(hours, 2));
+        int offsets = (int)(first % (ulong)(uint)span) + (int)(second % (ulong)(uint)span);
+        return (start + IntegerMath.RoundDiv(offsets, 2)) % Ticks.PerDay;
     }
 
     /// <summary>

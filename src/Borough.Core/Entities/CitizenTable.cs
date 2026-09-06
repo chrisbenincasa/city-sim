@@ -108,6 +108,7 @@ public sealed class CitizenTable
 
         EarnedWage = _rows.Saved<long>("earned_wage");
         WageRemainder = _rows.Saved<long>("wage_remainder");
+        IllnessSeverity = _rows.Saved<int>("illness_severity");
         _rows.Seal();
     }
 
@@ -513,6 +514,7 @@ public sealed class CitizenTable
     /// </para>
     /// </remarks>
     public Column<ushort> LastPaidDay { get; }
+    public Column<int> IllnessSeverity { get; }
     public Column<long> EarnedWage { get; }
     public Column<long> WageRemainder { get; }
 }

@@ -37,6 +37,10 @@
             "description": "How many Households a Building of this kind admits from the Outside each Day. Stating this is what makes the kind an Outside Connection, so absence means the kind is not a gate; a stated zero is refused, because a door that never opens loads clean and does nothing.",
             "type": "integer"
           },
+          "bed_percent": {
+            "description": "Share of facility floor area reserved for inpatient beds; the rest supports outpatient treatment.",
+            "type": "integer"
+          },
           "bins": {
             "description": "The stores a Building of this kind carries, one entry per Resource. A Rule's local scope draws on these.",
             "type": "array",
@@ -61,6 +65,18 @@
           "business": {
             "description": "The trade a Building of this kind comes with when it is raised, naming a [[business]]. Absent means it comes with none, which is almost every kind that has ever shipped.",
             "type": "string"
+          },
+          "care_closes_hour": {
+            "description": "Civil closing hour for outpatient appointments.",
+            "type": "integer"
+          },
+          "care_days": {
+            "description": "Weekdays offering outpatient appointments.",
+            "type": "integer"
+          },
+          "care_opens_hour": {
+            "description": "Civil opening hour for outpatient appointments.",
+            "type": "integer"
           },
           "collapses_after_days": {
             "description": "How many Days an abandoned Building stands as a shell before it collapses and the Lot is clear again. Required of any kind that can be abandoned, because shells with no sink are a collection that grows with elapsed time.",
@@ -170,6 +186,111 @@
         },
         "floor_tiles_per_place": {
           "description": "How much floor one attendance a Day takes at a service Building, in Tiles. A school's places are its floor area divided by this, so a bigger school teaches more children and where the schools stand matters as much as how many there are. It is the one rate in this table whose absence means the OPPOSITE of the other three: it is a ceiling rather than a supply, so omitting it means no service Building is ever full. It is refused in a Ruleset where no kind declares serves, because a ceiling nothing can reach would sit there reading as a mechanism this world has.",
+          "type": "integer"
+        }
+      }
+    },
+    "care": {
+      "type": "object",
+      "properties": {
+        "admission_severity": {
+          "description": "Severity at which inpatient care is needed.",
+          "type": "integer"
+        },
+        "booking_days": {
+          "description": "The forward appointment calendar horizon.",
+          "type": "integer"
+        },
+        "death_per_thousand": {
+          "description": "Daily fatality risk at critical severity, multiplied by illness duration.",
+          "type": "integer"
+        },
+        "death_severity": {
+          "description": "Severity at which untreated illness can become fatal.",
+          "type": "integer"
+        },
+        "deterioration_per_day": {
+          "description": "Severity gained on a day of deterioration.",
+          "type": "integer"
+        },
+        "deterioration_percent": {
+          "description": "Daily chance of deterioration without treatment.",
+          "type": "integer"
+        },
+        "floor_tiles_per_bed": {
+          "description": "Floor area needed for one inpatient bed.",
+          "type": "integer"
+        },
+        "floor_tiles_per_treatment": {
+          "description": "Floor area needed for one simultaneous outpatient treatment.",
+          "type": "integer"
+        },
+        "health_risk_per_thousand": {
+          "description": "Additional daily illness chance per point of Household Health deficit.",
+          "type": "integer"
+        },
+        "history_keeps": {
+          "description": "Maximum care events retained city-wide, including events for deceased Citizens.",
+          "type": "integer"
+        },
+        "illness_per_thousand": {
+          "description": "Daily baseline chance of a generic illness episode.",
+          "type": "integer"
+        },
+        "initial_severity": {
+          "description": "Severity at illness onset.",
+          "type": "integer"
+        },
+        "interval": {
+          "description": "How often appointments are assigned and providers are discovered.",
+          "type": "integer"
+        },
+        "known_clinics": {
+          "description": "Maximum clinics retained in a Household provider list.",
+          "type": "integer"
+        },
+        "priority_every_days": {
+          "description": "Waiting duration that adds one point to appointment priority.",
+          "type": "integer"
+        },
+        "recovery_per_day": {
+          "description": "Natural improvement on a day without deterioration.",
+          "type": "integer"
+        },
+        "report_days": {
+          "description": "Reporting window for deaths and missed work; independent of detailed trace retention.",
+          "type": "integer"
+        },
+        "routine_days": {
+          "description": "Time between completed routine visits.",
+          "type": "integer"
+        },
+        "search_candidates": {
+          "description": "Maximum Buildings examined per clinic discovery pass.",
+          "type": "integer"
+        },
+        "serious_severity": {
+          "description": "Severity that prevents work and shopping.",
+          "type": "integer"
+        },
+        "switch_after_waits": {
+          "description": "Excessive-wait days before successful fallback can change the habitual clinic.",
+          "type": "integer"
+        },
+        "treated_recovery_per_day": {
+          "description": "Improvement under treatment.",
+          "type": "integer"
+        },
+        "urgent_wait_days": {
+          "description": "Acceptable wait at the habitual clinic for serious illness.",
+          "type": "integer"
+        },
+        "visit_minutes": {
+          "description": "Duration of an outpatient consultation.",
+          "type": "integer"
+        },
+        "wait_days": {
+          "description": "Acceptable routine wait at the habitual clinic.",
           "type": "integer"
         }
       }
@@ -515,10 +636,12 @@
           "type": "integer"
         },
         "health_degrade": {
-          "description": "How far Health falls on one occasion. Conditional on a kind serving health, exactly as education's pair is."
+          "description": "How far Health falls on one occasion. Conditional on a kind serving health, exactly as education's pair is.",
+          "type": "integer"
         },
         "health_recover": {
-          "description": "How far Health rises when a Household attends a health service."
+          "description": "How far Health rises when a Household attends a health service.",
+          "type": "integer"
         },
         "satisfaction_degrade": {
           "description": "How far Satisfaction falls on one occasion.",
@@ -813,6 +936,39 @@
             "description": "The name of the Condition this Rule's failure reports under, which is what the diagnosis panel groups by. Absent means the failure is not reported by name.",
             "type": "string"
           }
+        }
+      }
+    },
+    "school": {
+      "type": "object",
+      "properties": {
+        "bell_earliest_minute": {
+          "description": "Earliest civil minute for a school bell.",
+          "type": "integer"
+        },
+        "bell_latest_minute": {
+          "description": "Latest civil minute for a school bell.",
+          "type": "integer"
+        },
+        "days": {
+          "description": "Weekdays on which children attend school.",
+          "type": "integer"
+        },
+        "dismiss_earliest_minute": {
+          "description": "Earliest civil minute for school dismissal.",
+          "type": "integer"
+        },
+        "dismiss_latest_minute": {
+          "description": "Latest civil minute for school dismissal.",
+          "type": "integer"
+        },
+        "history_keeps": {
+          "description": "Maximum care events retained city-wide, including events for deceased Citizens.",
+          "type": "integer"
+        },
+        "retry_ticks": {
+          "description": "Delay before retrying an interrupted service return journey.",
+          "type": "integer"
         }
       }
     },

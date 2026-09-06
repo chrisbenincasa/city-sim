@@ -107,6 +107,7 @@ public partial class Main
 
     private void SelectInformation(Handle<Building> building, Handle<RoadSegment> road, (Tiles East, Tiles North)? ground = null)
     {
+        _healthInspection = false;
         if (building == _selectedBuilding && road == _selectedRoad && (!building.IsNone || !road.IsNone)
             && _selectedHousehold.IsNone) return;
         _selectedBuilding = building;

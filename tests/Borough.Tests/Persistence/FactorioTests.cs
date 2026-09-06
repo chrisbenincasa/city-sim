@@ -211,6 +211,11 @@ public sealed class FactorioTests(ITestOutputHelper output)
         // fixtures rather than about a mechanism.
         Scan(WithFloods(4_200), reached, []);
 
+        var (careWorld, careSimulation) = Borough.Tests.Rules.CivicTests.Start();
+        Borough.Tests.Rules.CivicTests.Place(careWorld, 3);
+        for (int tick = 0; tick < 512; tick++) careSimulation.Step(default);
+        Scan(careWorld, reached, []);
+
         List<string> unreachable = [.. every.Where(name => !reached.Contains(name))];
 
         _output.WriteLine($"{reached.Count} of {every.Count} columns corrupted and observed");

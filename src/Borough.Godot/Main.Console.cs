@@ -288,7 +288,7 @@ public partial class Main
     private static readonly (string Name, string Label)[] Washes =
     [
         ("off", "Off"), ("pollution", "Pollution"), ("value", "Land value"), ("sealing", "Sealing"),
-        ("rung", "Rung"), ("age", "Age"),
+        ("health", "Health"), ("rung", "Rung"), ("age", "Age"),
     ];
 
     private static bool DebugWash(string name) => name is "rung" or "age";
@@ -451,6 +451,7 @@ public partial class Main
         Wash.Pollution => "pollution",
         Wash.Value => "value",
         Wash.Sealed => "sealing",
+        Wash.Health => "health",
         Wash.Rung => "rung",
         _ => "age",
     };
