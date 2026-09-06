@@ -111,6 +111,16 @@ public sealed class CommuteEngine
             return;
         }
 
+        if (WorkSchedule.Runs(_world))
+        {
+            for (int who = 0; who < _world.Citizens.Rows.SlotCount; who++)
+            {
+                if (_world.Citizens.Rows.IsLive(who)
+                    && (CitizenActivity)_world.Citizens.Activity[who] == CitizenActivity.AtWork
+                    && !WorkSchedule.AwayTime(_world, who, tick))
+                { Travel(who, true, tick); }
+            }
+        }
         int phase = (int)(tick.Raw % Ticks.PerDay);
         CitizenTable citizens = _world.Citizens;
 
@@ -121,7 +131,10 @@ public sealed class CommuteEngine
         // exists to produce.
         foreach (int citizen in _world.Commutes.Departing(citizens, phase))
         {
-            Travel(citizen, homeward: false, tick);
+            if (!WorkSchedule.Runs(_world) || WorkSchedule.DepartsToday(_world, citizen, tick))
+            {
+                Travel(citizen, homeward: false, tick);
+            }
         }
 
         foreach (int citizen in _world.Commutes.Returning(citizens, phase))
@@ -137,6 +150,11 @@ public sealed class CommuteEngine
     /// refusals -- is identical, so a second copy would be two places for the Commute Budget to be
     /// applied differently.
     /// </remarks>
+    public void Resume(int citizen, Ticks tick)
+    {
+        if (WorkSchedule.OnDuty(_world, citizen, tick)) { Travel(citizen, false, tick); }
+    }
+
     private void Travel(int citizen, bool homeward, Ticks tick)
     {
         CitizenTable citizens = _world.Citizens;

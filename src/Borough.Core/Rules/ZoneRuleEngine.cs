@@ -498,6 +498,21 @@ public sealed class ZoneRuleEngine
         Array.Clear(_demand, 0, rows);
         Array.Clear(_claimed, 0, rows);
 
+        for (int shopping = 0; shopping < _world.Shopping.Rows.SlotCount; shopping++)
+        {
+            var outings = _world.Shopping;
+            if (!outings.Rows.IsLive(shopping) || outings.UnservedSince[shopping].Raw == 0
+                || tick.Raw + 1 < outings.UnservedSince[shopping].Raw
+                || !_world.Households.Rows.TryResolve(outings.Household[shopping], out int hh)
+                || !_world.Buildings.Rows.TryResolve(_world.Households.Dwelling[hh], out int home)
+                || !_world.Lots.Rows.TryResolve(_world.Buildings.Lot[home], out int lot)) { continue; }
+            var district = _world.DistrictsInCells.Of(_world.DistrictCells,
+                CellGrid.ToCells(_world.Lots.East[lot]), CellGrid.ToCells(_world.Lots.North[lot]));
+            if (!_world.Districts.Rows.TryResolve(district, out int area)) { continue; }
+            int market = _world.Markets.Row(_world, area, outings.Good[shopping]);
+            if (market >= 0) { _demand[market] += (long)(tick.Raw + 1 - outings.UnservedSince[shopping].Raw); }
+        }
+
         int instances = _world.RuleInstances.Rows.SlotCount;
 
         for (int slot = 0; slot < instances; slot++)

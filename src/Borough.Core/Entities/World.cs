@@ -272,6 +272,8 @@ public sealed class World
         Legs = new Movement.LegTable(64, Roads.Segments);
         RouteHops = new Movement.RouteHopTable(64, Roads.Segments);
         Travellers = new Movement.TravellerTable(64, Citizens, Trips);
+        Shopping = new Movement.ShoppingTable(Households, Citizens, Buildings, Businesses);
+        KnownShops = new Movement.KnownShopTable(Businesses);
 
         // The registry is built before the Wheel rather than after the tables, because EventWheel.Arm
         // reports a double arming through it, and after the Clock, because it reads the Tick from this
@@ -432,7 +434,7 @@ public sealed class World
             // names in its own remarks. Saved rather than derived for one column's sake: `pattern` is a
             // historical fact about conditions that are gone and cannot be recomputed from a world
             // that has moved on.
-            Blocks.Rows,
+            Blocks.Rows, Shopping.Rows, KnownShops.Rows,
         ];
 
         // The same list minus the tables no Tick phase can write, for the Decide guard alone. See
@@ -874,6 +876,8 @@ public sealed class World
     /// this slice loads one at world creation and leaves it.
     /// </remarks>
     public Ruleset Rules { get; private set; }
+    public Movement.ShoppingTable Shopping { get; }
+    public Movement.KnownShopTable KnownShops { get; }
 
     /// <summary>
     /// Puts a different Ruleset in force, degrading whatever the new one cannot describe.
@@ -6752,6 +6756,8 @@ public sealed class World
         Commutes.Remove(Citizens, slot);
 
         Citizens.Workplace[slot] = workplace;
+        Citizens.EarnedWage[slot] = 0;
+        Citizens.WageRemainder[slot] = 0;
         Citizens.PlannedCommute[slot] = plannedCommute;
 
         // adr/0097: the reach-failure count resets on employment and on nothing else. It is here
@@ -6884,6 +6890,7 @@ public sealed class World
                 // non-commute purpose at once -- so there is no second place a failed journey could
                 // leave somebody. An arrival, a shop and a school run all end at home.
                 CitizenActivity.Travelling => CitizenActivity.AtHome,
+                CitizenActivity.ShoppingTravelling => CitizenActivity.ShoppingStopped,
 
                 CitizenActivity other => other,
             });
@@ -6920,6 +6927,8 @@ public sealed class World
         // -- unroster, then rewrite -- and it is written the same way round so the two read alike.
         Commutes.Remove(Citizens, slot);
         Citizens.Workplace[slot] = default;
+        Citizens.EarnedWage[slot] = 0;
+        Citizens.WageRemainder[slot] = 0;
     }
 
     /// <summary>

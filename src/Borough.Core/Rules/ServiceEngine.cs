@@ -1055,7 +1055,8 @@ public sealed class ServiceEngine
 
         foreach (int member in _world.Members.Walk(slot))
         {
-            if (!wantsChild || _world.Citizens.Age[member] == 0)
+            if ((CitizenActivity)_world.Citizens.Activity[member] == CitizenActivity.AtHome
+                && (!wantsChild || _world.Citizens.Age[member] == 0))
             {
                 return member;
             }

@@ -167,7 +167,7 @@ public sealed class TwinLatticeTests
             // and the two towns are smudges (plans/0051 F4). ***It ratifies nothing and must never
             // be cited for a number***, which is what makes exempting it cheap: there is no figure
             // in it for an exemption to protect.
-            if (file is "provisioned.toml" or "oversupplied.toml" or "waged.toml" or "pictured.toml")
+            if (file is "provisioned.toml" or "oversupplied.toml" or "waged.toml" or "pictured.toml" or "shopping.toml")
             {
                 Assert.Equal(2, Shipped(file).Lattices.Length);
                 continue;

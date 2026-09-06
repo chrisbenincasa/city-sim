@@ -37,6 +37,7 @@ internal enum Mode
     /// no generator that will ever site a school, so a dump of the mechanism has to play the game.
     /// </remarks>
     School,
+    Shopping,
 
     /// <summary>
     /// Frames of the city as ASCII, Travellers over Buildings. <c>plans/0045</c>'s queue item 11a.
@@ -538,6 +539,7 @@ internal sealed class Options
         bool flood = false;
         bool stages = false;
         bool school = false;
+        bool shopping = false;
         int schools = DefaultSchools;
         bool watch = false;
         int frames = DefaultFrames;
@@ -690,6 +692,11 @@ internal sealed class Options
                 // the run, but the reading is a per-Day FLOW off ServiceEngine, which is zero on
                 // every Tick that is not a Day boundary. A snapshot of an unstepped world would find
                 // the counters at their initial zero and report a city nobody had asked anything of.
+                case "--shopping":
+                    shopping = true;
+                    session = true;
+                    continue;
+
                 case "--school":
                     school = true;
                     session = true;
@@ -1457,9 +1464,19 @@ internal sealed class Options
             return false;
         }
 
+        if (shopping && (rulesets.Count != 1 || log is not null || save is not null
+            || school || stages || day || money || market || business || arrivals || landValue
+            || parking || evidence || traffic || commute || trips || roads || morphology || zones
+            || kinds || dump is not null || watch || schema || keyReference || census))
+        {
+            complaint = "--shopping requires one --ruleset and cannot be combined with another run mode, save or log.";
+            return false;
+        }
+
         options = new Options
         {
-            Mode = keyReference ? Mode.KeyReference
+            Mode = shopping ? Mode.Shopping
+                 : keyReference ? Mode.KeyReference
                  : schema ? Mode.Schema
                  : day ? Mode.Day
                  : watch ? Mode.Watch
@@ -1517,6 +1534,7 @@ internal sealed class Options
           --log PATH            replay a session recorded in a .borough file
           --seed N              run a fresh session with this seed and no commands
           --citizens N          Citizen sizing, for a fresh session or the report
+          --shopping            shopping outings, carried Goods and weekly work; needs a [shopping] Ruleset
           --ticks N             how many Ticks to run
           --hash-every N        trace sampling cadence, in Ticks
           --ruleset PATH        the Rules to run under. Loaded and put in force, and
