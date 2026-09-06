@@ -57,6 +57,85 @@ the new neighbourhood models have not been substituted into the live simulation 
   by shop windows, sparse surroundings and simpler people/trees. The first two were corrected.
   Triangle/surface counts describe assets; they do not measure rendering cost.
 
+### The study reached the city — 2026-09-06
+
+**Everything above this section happened to a specimen.** Nine rounds compared shading languages,
+palettes, model designs and authored geometry, and every one of them was rendered in an isolated art
+fixture — `KitStudy`, `ExpandedStudy`, `VisualStudy` — that the running game has never loaded. The
+plan said so plainly: *the new neighbourhood models have not been substituted into the live
+simulation renderer.* Two findings have now crossed that line, and the crossing is the point:
+***a treatment nobody can see while playing has not been adopted, however well it was reviewed.***
+
+**The structural reason the crossing is not a substitution.** The study authors buildings at one
+size. `neighbourhood.py`'s `shop()` writes a 14 × 12 × 9.65 m corner with its window positions
+listed out by hand; `tower()` writes eleven floors and exports 174,492 triangles. `Main.Massing`
+draws every Building as a **unit box scaled** to `LotTable`'s footprint and storey count, and
+`buildings.gdshader` derives the openings back out of that transform. ***A specimen has a size and a
+city has a distribution***, so no study GLB can be dropped in as it stands. The kit is what bridges
+them, and it is a separate slice.
+
+**What crossed, and what it cost.** Both are shell-side; no State Hash moves.
+
+| Landed | Where | What it changes |
+|---|---|---|
+| Photographed masonry | `buildings.gdshader`, `assets/city/` | Poly Haven CC0 brick, sampled per fragment and applied as a **ratio over each Building's own paint**. Costs no instance, no mesh and no draw call |
+| Woodland order | `Main.Ground.Scatter` | The Cell walk is sorted by distance from the standing city, so the layer's ceiling drops the furthest crowns rather than an arbitrary band |
+
+⚠ **The masonry is a ratio and not an albedo, and that is the whole reason it can go citywide.**
+`Main.Massing.Rendered` spends a Building's scramble on value and warmth so a terrace reads as one
+stone weathered differently. A photograph pasted flat over that gives **every masonry Building in the
+city the same red** and throws the terrace away — which is exactly what the study's own terrace did,
+correctly, because a specimen may borrow a photograph's colour and a city may not. `masonry_hue` is
+the dial between the two readings and neither end is right.
+
+**F1 — the city had no trees at all, and the tree layer was full.** Measured on `pictured.toml` at
+2,000 Citizens, Tick 4,696: the tree layer stood at **65,536 of 65,536** — its ceiling — and **not
+one crown was within a kilometre of the city**. Trees spanned z −16,128 to −11,648 m while the
+Buildings stood at z ≈ −19,563 m, so the budget was exhausted three to eight kilometres short of the
+city's own latitude and the settlement stood on bare green in every photograph ever taken of it.
+⚠ **The ceiling is not the defect and the ORDER is**: whatever the ceiling is, some world exceeds it,
+so the only question a scatter answers well is *which* crowns it gives up. Sorted from the city
+outward the truncation becomes a horizon instead of a guillotine. Within 1 km of the city centre:
+**0 → 1,358**. ⚠ **The anchor is `_foliageBuildings` and not `_paved`** — a single long arterial drags
+the Road Graph's centre kilometres into open country.
+
+**F2 — the brick scale in the corpus was a rounding, and the catalogue figure is not a scale at
+all.** `fidelity-1/research.json` recorded *about five stretchers across, mapped over 1.2 m*. Counted
+on the file: **5 stretchers across and 15 courses down**, which against a 215 mm brick with a 10 mm
+perpend and a 65 mm brick with a 10 mm bed is **1.125 m on both axes** — the image is square in the
+world as well as in pixels. The pilot counted right and then rounded, and the 6% is the difference
+between a 225 mm brick and a 240 mm one. Poly Haven's own **3 m** is the size of the *wall that was
+photographed*; read as an instruction it gives bricks the size of a door. ⚠ **None of these is a
+CHOSEN apparent brick size** — the brick-scale round compared three and the player selected none, so
+`masonry_metres` is the size a brick is and not a size anybody preferred.
+
+**F3 — the sample's mean has to be taken in linear light, and the two differ by the whole transfer
+curve.** `masonry_albedo` is declared `source_color`, so a sample is decoded before it is divided
+out. The brick image averages **(0.396, 0.290, 0.239)** as stored and **(0.140, 0.078, 0.052)**
+decoded; dividing by the stored average leaves every brick wall in the city roughly three times too
+bright and wrongly warm. `MASONRY_MEAN` is a property of the file, the command that retakes it is in
+`assets/city/materials.json`, and ⚠ **nothing checks that the two agree.**
+
+**F4 — the layer ceiling is pinned by the per-frame rebuild and not by memory, which reorders the
+kit against the renderer.** `LayerInstances = 65_536` is one shared `const` across eighteen layers
+with no argument behind it, and its own remark concedes `bordered.toml`'s 535,817 Segments exceed it
+eightfold. But `Main.Draw` runs from `_Process` — **every frame** — and `Massings(Buildings())` walks
+every Building slot and rewrites every instance transform and colour from scratch. ***So the ceiling
+is an `O(world)`-per-frame CPU cost wearing a memory constant's clothes***, and raising the `const`
+alone buys a frame-rate collapse rather than a bigger city. ⚠ **A modular kit multiplies instances
+per Building**, so it makes this worse — which puts incremental, culled drawing **ahead** of the kit
+in the queue rather than after it. ⚠ **No timing figure is claimed here and none was taken**
+(`adr/0106`, `adr/0121`); this is a statement about what the code does per frame, not about how long
+it takes.
+
+**Materials are shipped under `src/Borough.Godot/assets/city/`, separately from `art/visual-study/`,
+and the split is deliberate**: a file there is evidence of a comparison already made, and a file here
+is drawn every frame. `assets/city/materials.json` carries the author, URL, licence and SHA-256 of
+each image, and the SHA-256s match the fidelity pilot's recorded downloads byte for byte.
+⚠ **ShareTextures is NOT interchangeable with the CC0 three** — its licence permits commercial use
+but restricts redistribution and automated downloading, so a file from it may not be committed to
+this tree on the reasoning that admits a Poly Haven one.
+
 ### Live work list
 
 Update these boxes here as work lands; record player judgements in `preferences.json`.
@@ -77,8 +156,49 @@ Update these boxes here as work lands; record player judgements in `preferences.
   detail transitions. Add appropriate LODs and texture mip/filter choices based on visible failures.
 - [ ] Compare ordinary daylight, evening and night with the same scene; establish window and street
   lighting without using attractive lighting to hide geometry defects.
-- [ ] Integrate approved assets/materials into the live shell and verify occupied/partly occupied/
+- [~] Integrate approved assets/materials into the live shell and verify occupied/partly occupied/
   abandoned appearances, overlays on/off and frontage/storey changes against actual state.
+  **Started 2026-09-06** — the masonry crossed and the woodland order was fixed; the state
+  responses have **not** been re-verified against the new surface and remain the open half.
+- [ ] **The shopfront and the render family** — the two things a street of these visibly still lacks.
+  A commerce ground floor and a plaster/stucco family beside the brick one, both off the same draw
+  that already picks `masonry`. This is the rest of the shader path.
+- [x] **Remove the fixed instance ceiling and retain spatial batches** — implemented in
+  [`0065`](0065-retained-spatial-rendering.md), which owns verification and the remaining renderer
+  costs. The paused camera-sorted prototype is superseded by that implementation.
+- [ ] **Zoom-dependent rendering detail and update cadence** — requested by the player 2026-09-06;
+  owned by [`0065`](0065-retained-spatial-rendering.md). Use projected screen size to simplify distant
+  geometry, materials, shadows and Traveller presentation; refresh distant visual state less often
+  where the delay is imperceptible. Bound that delay, refresh when approaching or inspecting, and
+  use hysteresis to prevent detail levels oscillating. Camera distance must never reduce simulation
+  updates or change the State Hash. Verify a repeatable near-to-city camera path for popping,
+  stale state and legibility, and compare CPU update/upload cost and GPU cost at each scale.
+  Thresholds and cadences remain PROVISIONAL until measured.
+- [ ] **Spatial picking** — query nearby Chunks before testing individual geometry for hover or
+  selection. Preserve nearest-hit and tie-breaking behaviour; verify picking after edits and
+  detail transitions. The batch query is implemented; `0065` owns verification and remaining costs.
+- [ ] **Event-driven UI refresh** — update panels when their inputs change and throttle aggregate
+  readouts, avoiding per-frame string construction and full-world summaries. Selection and player
+  actions must refresh promptly; bounded display delays must not conceal stale information.
+- [ ] **Bounded streaming and uploads** — budget geometry preparation and uploads per frame,
+  prioritising visible areas. Exercise rapid zooms and camera jumps; inspect stalls and missing
+  geometry as well as average frame cost. Thresholds remain PROVISIONAL until measured.
+- [ ] **Renderer regression checks** — retain repeatable camera paths and counters for rebuilds,
+  uploads, allocations and visible batches. Assert that an unchanged paused scene performs no
+  geometry rebuilds or uploads; keep performance captures separate from behavioural assertions.
+- [ ] **Occlusion culling — PROFILE BEFORE IMPLEMENTING.** Pursue only if captures show geometry
+  hidden behind other geometry costs enough to justify occluder maintenance and culling overhead.
+  Compare against the spatial batching and distance-detail baseline, including shallow views.
+- [ ] **GPU-driven rendering — PROFILE BEFORE IMPLEMENTING.** Pursue only if CPU visibility,
+  submission or instance preparation remains limiting after retained batching. Establish renderer
+  compatibility and a fallback before investing in a GPU-managed visibility and draw pipeline.
+- [ ] **Multithreaded geometry preparation — PROFILE BEFORE IMPLEMENTING.** Pursue only if geometry
+  preparation still causes material CPU cost or stalls after incremental updates. Workers must read
+  immutable snapshots; discard stale results and apply them through a bounded upload path that
+  respects Godot's thread restrictions. Measure snapshot, scheduling and synchronisation costs too.
+- [ ] **The modular kit** — the study's construction re-authored as parts snapped to a Lot's frontage
+  and storey count rather than a building modelled at one size, with an LOD chain. ⚠ **Gated on the
+  incremental, culled renderer item above.**
 - [ ] Measure baseline versus candidate frame/update/shadow costs and memory on a quiet machine,
   recording renderer, resolution, scene and camera path. Optimise the limiting work, then remeasure.
 - [ ] Consolidate the reusable visual brief, material library and export/LOD conventions after

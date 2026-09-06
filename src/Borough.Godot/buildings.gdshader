@@ -79,6 +79,77 @@ uniform float night_phase = 1.0;
 // is keyed on.
 uniform float night_index = 0.0;
 
+// ---- the photographed masonry -----------------------------------------------------------------
+//
+// 🔴 THE ONE THING plans/0063 ESTABLISHED THAT NO PROCEDURAL MARK REPLACES. Nine rounds of the
+// visual study moved from painted boxes to shader variants to authored geometry, and the round the
+// player called *amazing* was the one that put a PHOTOGRAPH on the wall -- Poly Haven's CC0 brick,
+// mapped at a real course height. Everything below this line in the old file was a procedural
+// approximation of what these two images are: `joint` drew one mortar line every 0.32 m and nothing
+// else, and a single ruled line is a wall of the same grey with a stripe on it.
+//
+// ⚠ IT MODULATES THE BUILDING'S OWN PAINT AND DOES NOT REPLACE IT, which is the whole reason this
+// can be turned on across a city rather than on one specimen. `Main.Massing.Rendered` spends a
+// Building's scramble on VALUE and WARMTH so that a terrace reads as one stone weathered
+// differently -- and a texture pasted flat over that gives every wall in the city the same red and
+// throws the terrace away. So the image is divided by its own mean and applied as a RATIO: the
+// grain, the courses and the weathering are the photograph's, the colour stays the city's.
+//
+// ⚠ AND IT IS A FAMILY AND NOT A FINISH. `masonry` below already picks roughly the cheaper third
+// of Buildings off the same draw; those get brick and the rest keep the smooth render. Two
+// families is what a street has.
+uniform sampler2D masonry_albedo : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2D masonry_normal : hint_normal, filter_linear_mipmap, repeat_enable;
+
+// How much wall one width of the image covers, in metres.
+//
+// 🔴 MEASURED OFF THE IMAGE AND NOT TAKEN FROM A CATALOGUE. Counted on the file itself: five
+// stretchers across its width and fifteen courses down its height. Against a standard brick --
+// 215 mm plus a 10 mm perpend, 65 mm plus a 10 mm bed -- that is 5 x 0.225 = 1.125 m wide and
+// 15 x 0.075 = 1.125 m tall, so the photograph happens to be square in the world as well as in
+// pixels and ONE number scales both axes without stretching a brick.
+//
+// ⚠ IT IS NOT THE CATALOGUE'S 3 m, which is the size of the wall that was photographed rather than
+// an instruction: read literally it gives bricks the size of a door. ⚠ AND IT IS NOT THE FIDELITY
+// PILOT'S 1.2 either -- that round wrote down five stretchers and then rounded, and the 6% it lost
+// is the difference between a 225 mm brick and a 240 mm one.
+//
+// ⚠ NOBODY HAS CHOSEN AN APPARENT BRICK SIZE. plans/0063 ran a brick-scale round comparing three
+// against these same maps and the player selected none, so this is the size a real brick is and
+// not a size anybody preferred. It is the dial to turn when that round is finally settled.
+uniform float masonry_metres = 1.125;
+
+// How much of the photograph's relief reaches the surface normal.
+uniform float masonry_relief = 0.7;
+
+// How much of the photograph's own COLOUR is kept, against how much is taken as light and dark only.
+//
+// 🔴 IT IS THE DIAL BETWEEN THE STUDY'S WALL AND THIS CITY'S PALETTE, and both readings are wrong
+// at the ends. At 1 the sample is divided by its mean channel by channel, so the photograph's
+// chroma rides on top of the paint -- and `brick_wall_001` is a MIXED brick with grey and blue in
+// it, so a pale Building comes out mottled cold grey rather than the warm terrace the fidelity
+// round was praised for. At 0 only the luminance survives, which keeps every Building exactly the
+// colour `Rendered` drew and makes the wall a grey-scale rubbing of a brick.
+//
+// ⚠ WHAT THE STUDY DID IS NOT AVAILABLE HERE AND THAT IS THE POINT. Its terrace used the image as
+// the albedo outright, which is why it looked like that photograph -- and a city drawn that way is
+// one red for every masonry Building in it. ***A specimen may borrow a photograph's colour; a city
+// has to keep its own.***
+uniform float masonry_hue : hint_range(0.0, 1.0) = 0.55;
+
+// The masonry image's own average, in LINEAR light, which is what divides it back out to a ratio.
+//
+// ⚠ LINEAR AND NOT sRGB, and the two are far enough apart to matter: this image averages
+// (0.396, 0.290, 0.239) as stored and (0.140, 0.078, 0.052) once decoded, because the transfer
+// curve is not linear and an average does not survive it. `masonry_albedo` is declared
+// `source_color`, so a sample is ALREADY decoded by the time it is divided -- dividing it by the
+// stored average would leave every brick wall in the city roughly three times too bright and
+// wrongly warm.
+//
+// ⚠ IT IS A PROPERTY OF THE FILE. Replacing `brick-wall-diffuse.jpg` means retaking this number;
+// the command is recorded in `assets/city/materials.json`.
+const vec3 MASONRY_MEAN = vec3(0.1401, 0.0776, 0.0515);
+
 varying vec3 v_local;
 varying vec3 v_size;
 varying vec3 v_face;
@@ -254,10 +325,52 @@ void fragment() {
 
     // PROVISIONAL masonry and joinery; these add construction detail, not condition.
     float close_detail = 1.0 - smoothstep(0.10, 0.55, max(grain.x, grain.y));
-    float course = mod(up, 0.32);
-    float joint = 1.0 - smoothstep(0.012 - grain.y, 0.012 + grain.y, min(course, 0.32 - course));
     float masonry = step(v_custom.a, 0.38) * upright * close_detail;
-    body *= 1.0 - joint * masonry * 0.13;
+
+    // 🔴 THE PHOTOGRAPH, AND IT IS APPLIED AS A RATIO RATHER THAN AS A COLOUR. Dividing the sample
+    // by the image's own mean leaves only what varies across it -- the courses, the mortar, the
+    // weathering, the fired unevenness of one brick against the next -- so the wall keeps the value
+    // and warmth `Rendered` drew for it and gains the grain it never had. ***Pasted flat instead,
+    // every masonry Building in the city comes out the same red***, which is the terrace argument
+    // in `Main.Massing.Rendered` thrown away by the renderer that is supposed to serve it.
+    //
+    // ⚠ THE MEAN IS A CONSTANT AND NOT A SECOND FETCH. It is this image's average linear value,
+    // taken once off the file; a `textureLod` at the top of the chain would cost a sample a pixel
+    // to recover a number that cannot change.
+    //
+    // ⚠ AND IT FADES ON `close_detail` LIKE EVERY OTHER MARK HERE. A 2K image on a wall four
+    // pixels tall is noise however good the mip chain is, and the city is looked at from up there
+    // most of the time.
+    vec2 wall_uv = vec2(u, -up) / masonry_metres;
+    vec3 sampled = texture(masonry_albedo, wall_uv).rgb;
+    vec3 tinted = sampled / MASONRY_MEAN;
+
+    // ⚠ THE LUMINANCE RATIO USES THE SAME WEIGHTS ON BOTH SIDES, so a neutral pixel comes out at
+    // exactly 1 and a wall with `masonry_hue` at zero is the paint untouched but for the courses.
+    const vec3 EYE = vec3(0.299, 0.587, 0.114);
+    float lit = dot(sampled, EYE) / dot(MASONRY_MEAN, EYE);
+    vec3 grain_rgb = mix(vec3(lit), tinted, masonry_hue);
+    body *= mix(vec3(1.0), grain_rgb, masonry * far * 0.85);
+
+    // 🔴 THE RELIEF, AND THE TANGENT FRAME IS BUILT HERE RATHER THAN TAKEN FROM THE MESH. Godot's
+    // `NORMAL_MAP` uses the mesh's own TANGENT/BINORMAL, and this mesh is a UNIT BoxMesh scaled
+    // per instance to the Building's footprint and height -- so the frame arrives skewed by a
+    // non-uniform scale, and the UV sampled above is not the box's UV in any case. ***A tangent
+    // frame that disagrees with the UV it lights lights the brick from the wrong side.***
+    //
+    // ⚠ IT IS EXACT BECAUSE A WALL IS VERTICAL. The tangent is the horizontal direction lying in
+    // the wall, which is the cross product of world up with the face normal, and no varying or
+    // matrix is needed to get it. A face that is not upright takes no masonry, so the degenerate
+    // case is masked out rather than guarded against.
+    vec3 shaded = normalize(NORMAL);
+    vec3 up_view = normalize((VIEW_MATRIX * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
+    vec3 along = normalize(cross(up_view, shaded));
+    vec3 down = cross(shaded, along);
+    vec3 relief = (texture(masonry_normal, wall_uv).xyz * 2.0) - 1.0;
+    NORMAL = normalize(mix(
+        shaded,
+        normalize((along * relief.x) + (down * relief.y) + (shaded * relief.z)),
+        masonry * far * masonry_relief));
     float cornice = smoothstep(v_size.y - 0.32 - grain.y, v_size.y - 0.32 + grain.y, up) * upright;
     body = mix(body, wall * 1.22, cornice * far);
     float barX = 1.0 - smoothstep(0.045 - grain.x, 0.045 + grain.x, abs(withinX - wide * 0.5));

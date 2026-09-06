@@ -1,0 +1,12 @@
+config_version=5
+[application]
+config/name="Renderer checks"
+run/main_scene="res://Checks.tscn"
+config/features=PackedStringArray("4.7", "C#")
+[dotnet]
+project/assembly_name="Borough.Renderer.Tests"
+[display]
+window/size/viewport_width=320
+window/size/viewport_height=240
+[rendering]
+renderer/rendering_method="forward_plus"

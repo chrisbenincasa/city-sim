@@ -54,18 +54,22 @@ public partial class Main
         _picked = (InformationHandle(_world.Buildings.Rows, building), InformationHandle(_world.Roads.Segments.Rows, road));
         return _picked;
 
-        void Hit(MultiMeshInstance3D layer, List<ulong> ids, bool isRoad)
+        void Hit(InstanceLayer layer, List<ulong> ids, bool isRoad)
         {
-            if (!layer.IsVisibleInTree() || ids.Count == 0) return;
-            MultiMesh instances = layer.Multimesh;
+            if (!layer.IsVisibleInTree() || layer.Multimesh.VisibleInstanceCount == 0) return;
+            InstanceBuffer instances = layer.Multimesh;
             Mesh mesh = instances.Mesh;
             if (!_pickingFaces.TryGetValue(mesh, out Vector3[]? faces))
                 _pickingFaces[mesh] = faces = mesh.GetFaces();
             Aabb bounds = mesh.GetAabb();
-            int count = Math.Min(ids.Count, instances.VisibleInstanceCount < 0 ? instances.InstanceCount : instances.VisibleInstanceCount);
-            for (int i = 0; i < count; i++)
+            foreach (var batch in instances.Batches)
             {
-                Transform3D transform = layer.GlobalTransform * instances.GetInstanceTransform(i);
+                Transform3D inverseLayer = layer.GlobalTransform.AffineInverse();
+                if (!RayBounds(inverseLayer * origin, inverseLayer.Basis * direction, batch.Bounds, distance)) continue;
+                foreach (var entry in batch.Instances)
+                {
+                int i = entry.Index;
+                Transform3D transform = layer.GlobalTransform * entry.Transform;
                 if (Math.Abs(transform.Basis.Determinant()) < .000001f) continue;
                 Transform3D inverse = transform.AffineInverse();
                 Vector3 from = inverse * origin, along = inverse.Basis * direction;
@@ -77,10 +81,11 @@ public partial class Main
                     float depth = ((transform * hit.AsVector3()) - origin).Dot(direction);
                     if (depth < 0 || depth > distance + .001f) continue;
                     // Shared junction surfaces have a stable tie; a Building wins a coplanar tie.
-                    if (Math.Abs(depth - distance) <= .001f && (building != 0 || isRoad && road != 0 && ids[i] >= road)) continue;
+                    if (Math.Abs(depth - distance) <= .001f && (building != 0 || isRoad && road != 0 && instances.IdAt(i) >= road)) continue;
                     distance = depth;
-                    building = isRoad ? 0 : ids[i];
-                    road = isRoad ? ids[i] : 0;
+                    building = isRoad ? 0 : instances.IdAt(i);
+                    road = isRoad ? instances.IdAt(i) : 0;
+                }
                 }
             }
         }
@@ -240,15 +245,15 @@ public partial class Main
         Add(_buildings, _buildingIds, "building", new Vector3(0, .5f, 0));
         return targets.ToArray();
 
-        void Add(MultiMeshInstance3D layer, List<ulong> ids, string kind, Vector3 local)
+        void Add(InstanceLayer layer, List<ulong> ids, string kind, Vector3 local)
         {
-            for (int i = 0; i < ids.Count; i++)
+            for (int i = 0; i < layer.Multimesh.VisibleInstanceCount; i++)
             {
                 Vector3 point = layer.GlobalTransform * (layer.Multimesh.GetInstanceTransform(i) * local);
                 if (_camera.IsPositionBehind(point)) continue;
                 Vector2 pixel = _camera.UnprojectPosition(point);
-                string name = kind == "road" ? roadNames.GetValueOrDefault(ids[i], kind) : kind;
-                targets.Add(new { Kind = kind, Name = name, Id = ids[i], X = pixel.X, Y = pixel.Y,
+                string name = kind == "road" ? roadNames.GetValueOrDefault(layer.Multimesh.IdAt(i), kind) : kind;
+                targets.Add(new { Kind = kind, Name = name, Id = layer.Multimesh.IdAt(i), X = pixel.X, Y = pixel.Y,
                     East = point.X / MetresPerTile, North = -point.Z / MetresPerTile });
             }
         }

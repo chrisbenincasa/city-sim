@@ -35,6 +35,8 @@ using Borough.Core.Tables;
 /// </remarks>
 public sealed class World
 {
+    public WorldChanges? Changes { get; set; }
+
     /// <summary>
     /// The State Hash's starting value: <c>"Borough"</c> in ASCII, with a version byte.
     /// </summary>
@@ -929,6 +931,7 @@ public sealed class World
     /// <returns>What the reload cost the city, for the shell to turn into a warning.</returns>
     internal RulesetDegradation Adopt(Ruleset rules, ulong contentHash, Ticks now, WorldKey key)
     {
+        Changes?.Invalidate();
         ArgumentNullException.ThrowIfNull(rules);
 
         if (rules.Lots.StreetHalfWidthTiles != Rules.Lots.StreetHalfWidthTiles)
@@ -3965,6 +3968,7 @@ public sealed class World
         Buildings.MarkRaised(Buildings.Rows.Resolve(building), now);
 
         Fit(building, kind, now, key);
+        Changes?.Building(Buildings.Rows.Resolve(building));
 
         return building;
     }
@@ -6177,7 +6181,11 @@ public sealed class World
     /// is already unanswerable there and every spelling of it is a second copy of the join's own
     /// bookkeeping.
     /// </remarks>
-    private void SomebodyLivesHere(int buildingSlot) => Buildings.MarkOccupied(buildingSlot);
+    private void SomebodyLivesHere(int buildingSlot)
+    {
+        Buildings.MarkOccupied(buildingSlot);
+        Changes?.Building(buildingSlot);
+    }
 
     /// <summary>
     /// Starts this Building's empty clock if the Household that just left was the last one.
@@ -6196,6 +6204,7 @@ public sealed class World
     /// </remarks>
     private void NobodyLivesHere(int buildingSlot)
     {
+        Changes?.Building(buildingSlot);
         if (Occupants.IsEmpty(buildingSlot))
         {
             Buildings.MarkEmpty(buildingSlot, Tick);
@@ -7322,6 +7331,7 @@ public sealed class World
             }
         }
 
+        Changes?.Building(slot);
         Buildings.Rows.Free(building);
     }
 
@@ -7477,6 +7487,7 @@ public sealed class World
         // After the emptying rather than before it, so that a reader of this column during the walk
         // above cannot see a half-emptied Building calling itself abandoned.
         Buildings.AbandonedSince[slot] = tick;
+        Changes?.Building(slot);
     }
 
     /// <summary>Which of a Bin's two wait lists a given blocking reason queues on.</summary>
