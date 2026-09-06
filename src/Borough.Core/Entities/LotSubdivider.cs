@@ -261,7 +261,7 @@ public static class LotSubdivider
             // line on it -- and recomputed identically by World.RebuildParcels.
             (Quantities.Tiles footEast, Quantities.Tiles footNorth, Quantities.Tiles footWide,
                 Quantities.Tiles footDeep) = world.Rules.Lots.Footprint(
-                    world.Key, parcel.East, parcel.North, parcel.Wide, parcel.Deep);
+                    world.Key, parcel, ground);
 
             world.Lots.FootprintEast[slot] = footEast;
             world.Lots.FootprintNorth[slot] = footNorth;

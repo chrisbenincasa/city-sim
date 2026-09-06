@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using Borough.Core;
@@ -130,7 +131,6 @@ public partial class Main
         const float depth = 4f;
         float side = CellGrid.WorldTiles * MetresPerTile;
 
-        _ground.Multimesh.InstanceCount = 1;
         _ground.Multimesh.SetInstanceTransform(
             0,
             new Transform3D(
@@ -148,7 +148,7 @@ public partial class Main
     /// <b>Refilled every frame, unlike <see cref="Flood"/>'s sea</b> — these rows are created as a
     /// surge rises and freed as it recedes, which is the whole of what there is to watch.
     /// </remarks>
-    private System.Collections.Generic.IEnumerable<Transform3D> Inundated()
+    private System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where)> Inundated()
     {
         InundationTable wet = _world.Inundations;
 
@@ -156,7 +156,7 @@ public partial class Main
         {
             if (wet.Rows.IsLive(slot))
             {
-                yield return Tile(wet.East[slot], wet.North[slot], WaterMetres * 1.4f);
+                yield return (wet.Rows.IdAt(slot), Tile(wet.East[slot], wet.North[slot], WaterMetres * 1.4f));
             }
         }
     }
@@ -295,7 +295,7 @@ public partial class Main
     /// ⚠ <b>Only <c>coastal.toml</c> and <c>flooded.toml</c> have any</b>, and on every other shipped
     /// world this lays nothing. ⚠ <b>It is bounded by <see cref="Layer"/>'s buffer</b> — 65,536 Cells
     /// against a 262,144-Cell map, so a world with more than a quarter of its ground at risk would
-    /// truncate. <see cref="Fill(MultiMeshInstance3D, System.Collections.Generic.IEnumerable{Transform3D})"/>
+    /// truncate. <see cref="Fill(InstanceLayer, System.Collections.Generic.IEnumerable{Transform3D})"/>
     /// stops rather than throwing, which is <see cref="MapLayers.LayerCells"/>' disposition, and the
     /// measured worlds sit at 3–9%.
     /// </para>
@@ -366,7 +366,7 @@ public partial class Main
         int drawn = 0;
 
         for (int slot = 0;
-             slot < cells.Rows.SlotCount && drawn < _water.Multimesh.InstanceCount;
+             slot < cells.Rows.SlotCount;
              slot++)
         {
             if (cells.Rows.IsLive(slot))
@@ -543,6 +543,10 @@ public partial class Main
         Rect2 paved = _paved.Grow(block * MetresPerTile);
         WoodlandCellTable trees = _world.Layers.Woodland;
         TerrainCellTable ground = _world.Layers.Terrain;
+        var submerged = new HashSet<Vector2I>();
+        var water = _world.WaterCells;
+        for (int slot = 0; slot < water.Rows.SlotCount; slot++)
+            if (water.Rows.IsLive(slot)) submerged.Add(new Vector2I(water.East[slot].Raw, water.North[slot].Raw));
         int crowns = 0;
         int stones = 0;
 
@@ -551,10 +555,37 @@ public partial class Main
         int toEast = Mathf.Min(CellGrid.WorldCells - 1, (int)(window.End.X / CellGrid.MetresPerCell));
         int toNorth = Mathf.Min(CellGrid.WorldCells - 1, (int)(window.End.Y / CellGrid.MetresPerCell));
 
+        // Stable city-centred order; residency and upload priority belong to InstanceBuffer.
+        Vector2 anchor = CityAnchor(paved);
+        var cells = new List<Vector2I>((toEast - fromEast + 1) * (toNorth - fromNorth + 1));
+
         for (int north = fromNorth; north <= toNorth; north++)
         {
             for (int east = fromEast; east <= toEast; east++)
             {
+                cells.Add(new Vector2I(east, north));
+            }
+        }
+
+        cells.Sort((left, right) =>
+        {
+            int order = CellReach(left, anchor).CompareTo(CellReach(right, anchor));
+
+            // ⚠ TIES BROKEN ON THE INDEX so the order is total. `List.Sort` is introsort and is not
+            // stable, and an unstable order here is a woodland that rearranges itself whenever a
+            // Building is put up -- the one thing `Scramble` was chosen to prevent.
+            return order != 0 ? order
+                : left.Y != right.Y ? left.Y.CompareTo(right.Y)
+                : left.X.CompareTo(right.X);
+        });
+
+        foreach (Vector2I cell in cells)
+        {
+            if (submerged.Contains(cell)) continue;
+            {
+                int east = cell.X;
+                int north = cell.Y;
+
                 var at = new Cells(east);
                 var up = new Cells(north);
                 ulong key = Scramble(((ulong)(uint)north << 20) | (uint)east);
@@ -565,6 +596,7 @@ public partial class Main
 
                 for (int i = 0; i < wants + rocky; i++)
                 {
+                    ulong identity = ((ulong)(uint)north << 32) | ((ulong)(uint)east << 16) | (uint)(i + 1);
                     ulong draw = Scramble(key + (ulong)i);
                     float x = (east * CellGrid.MetresPerCell) + ((draw & 0xFFFu) / 4095f * CellGrid.MetresPerCell);
                     float z = (north * CellGrid.MetresPerCell) + (((draw >> 12) & 0xFFFu) / 4095f * CellGrid.MetresPerCell);
@@ -577,14 +609,10 @@ public partial class Main
 
                     if (i < wants)
                     {
-                        if (crowns >= _trees.Multimesh.InstanceCount)
-                        {
-                            continue;
-                        }
-
                         float tall = 7f + (((draw >> 24) & 0xFFu) / 255f * 9f);
                         float broad = tall * (0.45f + (((draw >> 32) & 0x3Fu) / 63f * 0.3f));
 
+                        _trees.Multimesh.Identity(crowns, identity);
                         _trees.Multimesh.SetInstanceTransform(
                             crowns,
                             new Transform3D(
@@ -594,10 +622,11 @@ public partial class Main
                         float shade = 0.88f + ((draw >> 40) & 255) / 255f * 0.24f;
                         _trees.Multimesh.SetInstanceColor(crowns++, new Color(shade, shade, shade));
                     }
-                    else if (stones < _rocks.Multimesh.InstanceCount)
+                    else
                     {
                         float lump = 1.6f + (((draw >> 24) & 0xFFu) / 255f * 3.4f);
 
+                        _rocks.Multimesh.Identity(stones, identity);
                         _rocks.Multimesh.SetInstanceTransform(
                             stones++,
                             new Transform3D(
@@ -612,8 +641,48 @@ public partial class Main
         _rocks.Multimesh.VisibleInstanceCount = stones;
     }
 
+    /// <summary>Where the standing city is, in metres, as the point a scatter should work out from.</summary>
+    /// <remarks>
+    /// ⚠ <b>It is the Buildings' own bounding box and the paving is only the fallback.</b> A Road
+    /// Graph may be laid far wider than it is built on — <c>pictured.toml</c> runs an arterial out
+    /// into open country — so its centre is a statement about where roads reach and not about where
+    /// anybody lives. <see cref="_foliageBuildings"/> is already the standing city, rebuilt by
+    /// <see cref="FoliageFootprint"/> on the same pass that draws it, so this costs a walk and no
+    /// second source of truth.
+    /// </remarks>
+    private Vector2 CityAnchor(Rect2 paved)
+    {
+        if (_foliageBuildings.Count == 0)
+        {
+            return paved.Position + (paved.Size * 0.5f);
+        }
+
+        Rect2 held = _foliageBuildings[0];
+
+        for (int at = 1; at < _foliageBuildings.Count; at++)
+        {
+            held = held.Merge(_foliageBuildings[at]);
+        }
+
+        return held.Position + (held.Size * 0.5f);
+    }
+
+    /// <summary>How far a Cell's centre stands from a point, squared, in metres.</summary>
+    /// <remarks>
+    /// ⚠ <b>Squared, so nothing takes a root to answer a comparison</b> — and in <c>float</c>
+    /// deliberately, because this orders a drawing and enters no State Hash. A whole-map window is
+    /// 262,144 Cells and this runs once per sort comparison.
+    /// </remarks>
+    private static float CellReach(Vector2I cell, Vector2 anchor)
+    {
+        float east = ((cell.X + 0.5f) * CellGrid.MetresPerCell) - anchor.X;
+        float north = ((cell.Y + 0.5f) * CellGrid.MetresPerCell) - anchor.Y;
+
+        return (east * east) + (north * north);
+    }
+
     /// <summary>Whether a point stands far enough into a block to be behind the Buildings.</summary>
-    private static bool InAYard(float east, float north, int block, int lots)
+    private bool InAYard(float east, float north, int block, int lots)
     {
         if (block <= 0)
         {
@@ -724,7 +793,7 @@ public partial class Main
             VertexColorUseAsAlbedo = true,
         };
 
-        foreach ((string name, MultiMeshInstance3D over, bool _, List<ulong>? _) in Layers())
+        foreach ((string name, InstanceLayer over, bool _, List<ulong>? _) in Layers())
         {
             over.MaterialOverride = _washing switch
             {
@@ -1895,7 +1964,7 @@ public partial class Main
 
         int drawn = 0;
 
-        for (int column = first; column <= last && drawn + 1 < _cells.Multimesh.InstanceCount;
+        for (int column = first; column <= last;
              column++)
         {
             _cells.Multimesh.SetInstanceTransform(
@@ -1905,7 +1974,7 @@ public partial class Main
                     new Vector3(column * CellMetres, above, -(bottom + top) * 0.5f)));
         }
 
-        for (int row = lowest; row <= highest && drawn + 1 < _cells.Multimesh.InstanceCount; row++)
+        for (int row = lowest; row <= highest; row++)
         {
             _cells.Multimesh.SetInstanceTransform(
                 drawn++,

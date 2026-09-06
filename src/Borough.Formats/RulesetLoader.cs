@@ -5905,7 +5905,17 @@ public static class RulesetLoader
                 return LotRuleset.None;
             }
 
-            return new LotRuleset((int)value, (int)setback, (int)step, (int)spread);
+            // PROVISIONAL: retain the shell's existing eight-metre Street width.
+            if (!TryInteger(_lotsTable, "street_half_width_tiles", out long streetHalfWidth, required: false))
+                streetHalfWidth = 1;
+            if (streetHalfWidth < 1 || streetHalfWidth > widest)
+            {
+                Refuse(LineOfLot("street_half_width_tiles"), null,
+                    $"street_half_width_tiles must be between 1 and {widest}.");
+                return LotRuleset.None;
+            }
+
+            return new LotRuleset((int)value, (int)setback, (int)step, (int)spread, (int)streetHalfWidth);
         }
 
         /// <summary>Reads <c>[capacity]</c> — how much floor one tenancy, job, car or pupil takes.</summary>

@@ -45,6 +45,7 @@ public partial class Main
         }
 
         Command[] raised = [.. _queued];
+        _world.Changes?.Invalidate();
 
         // 🔴 THE ROAD GRAPH IS LAID ONCE AND A PLAYER CAN CHANGE IT, WHICH IS THE WHOLE DEFECT.
         // Pave() ran in _Ready and on a tuner rebuild and nowhere else, so a Street laid by Connect

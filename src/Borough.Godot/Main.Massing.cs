@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using Borough.Core;
@@ -30,6 +31,9 @@ namespace Borough.Shell;
 
 public partial class Main
 {
+    private (ulong Tick, Wash Washing) _built = (ulong.MaxValue, Wash.None);
+    private int _drawnBuildings, _vacantLots, _underWater;
+
     /// <summary>What one Building's walls are, which is <see cref="Standing"/> and a wander.</summary>
     /// <remarks>
     /// ⚠ <b>Value and warmth, and not hue.</b> Moving the hue gives a painted street; moving how
@@ -86,18 +90,15 @@ public partial class Main
     /// decisions, and a shape nobody in the city can perceive is not one.
     /// </para>
     /// </remarks>
-    private System.Collections.Generic.IEnumerable<Massing> Buildings()
+    private System.Collections.Generic.IEnumerable<Massing> Buildings(int only = -1)
     {
         BuildingTable table = _world.Buildings;
         LotTable lots = _world.Lots;
         BlockLattice lattice = _world.Roads.Streets.Lattice;
 
-        for (int slot = 0; slot < table.Rows.SlotCount; slot++)
+        for (int slot = only < 0 ? 0 : only; slot < (only < 0 ? table.Rows.SlotCount : only + 1); slot++)
         {
-            if (!table.Rows.IsLive(slot) || !lots.Rows.TryResolve(table.Lot[slot], out int lot))
-            {
-                continue;
-            }
+            if (!table.Rows.IsLive(slot) || !lots.Rows.TryResolve(table.Lot[slot], out int lot)) continue;
 
             // 🔴 THE GROUND IS THE CITY'S NOW AND THE SHELL NO LONGER INVENTS IT
             // (plans/0052 stage 1). A Lot carries a PARCEL -- a rectangle of Tiles derived on the
@@ -732,8 +733,8 @@ public partial class Main
         int mansards = 0;
         int yards = 0;
         int buildings = 0;
-        int foliageFootprints = 0;
         ulong last = 0;
+        int footprints = 0;
 
         _buildingIds.Clear();
         _roofIds.Clear();
@@ -743,26 +744,23 @@ public partial class Main
 
         foreach (Massing one in massing)
         {
-            if (bodies >= _buildings.Multimesh.InstanceCount)
-            {
-                break;
-            }
-
             if (bodies == 0 || one.Id != last)
             {
                 buildings++;
                 last = one.Id;
             }
 
-            FoliageFootprint(one.Body, foliageFootprints++);
-            if (one.Outhoused) FoliageFootprint(one.Yard, foliageFootprints++);
+            FoliageFootprint(one.Body, footprints++);
+            if (one.Outhoused) FoliageFootprint(one.Yard, footprints++);
+            _buildings.Multimesh.Identity(bodies, one.Id);
             _buildingIds.Add(one.Id);
             _buildings.Multimesh.SetInstanceTransform(bodies, one.Body);
             _buildings.Multimesh.SetInstanceColor(bodies, one.Paint);
             _buildings.Multimesh.SetInstanceCustomData(bodies++, one.Reads);
 
-            if (one.Outhoused && yards < _yards.Multimesh.InstanceCount)
+            if (one.Outhoused)
             {
+                _yards.Multimesh.Identity(yards, one.Id);
                 _yardIds.Add(one.Id);
                 _yards.Multimesh.SetInstanceTransform(yards, one.Yard);
                 _yards.Multimesh.SetInstanceColor(
@@ -775,7 +773,7 @@ public partial class Main
             // Buildings cost two draw calls -- so the three pitched families cannot share a buffer
             // however alike their transforms look. ***What varies per instance is a transform;
             // what varies per family is a mesh.***
-            (MultiMeshInstance3D layer, List<ulong> ids, int at) = one.Cap switch
+            (InstanceLayer layer, List<ulong> ids, int at) = one.Cap switch
             {
                 Cap.Gable => (_roofs, _roofIds, roofs),
                 Cap.Hip => (_hips, _hipIds, hips),
@@ -783,11 +781,12 @@ public partial class Main
                 _ => (null!, null!, 0),
             };
 
-            if (one.Cap == Cap.Flat || at >= layer.Multimesh.InstanceCount)
+            if (one.Cap == Cap.Flat)
             {
                 continue;
             }
 
+            layer.Multimesh.Identity(at, one.Id);
             ids.Add(one.Id);
             layer.Multimesh.SetInstanceTransform(at, one.Roof);
 
@@ -810,7 +809,7 @@ public partial class Main
         _mansards.Multimesh.VisibleInstanceCount = mansards;
         _yards.Multimesh.VisibleInstanceCount = yards;
 
-        RefreshFoliage(foliageFootprints);
+        RefreshFoliage(footprints);
         return buildings;
     }
 
@@ -822,7 +821,7 @@ public partial class Main
     /// with no cross-streets.
     /// </remarks>
     private static int Fill(
-        MultiMeshInstance3D into,
+        InstanceLayer into,
         System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where, Color What)> places,
         List<ulong>? ids = null)
     {
@@ -832,11 +831,7 @@ public partial class Main
 
         foreach ((ulong id, Transform3D where, Color what) in places)
         {
-            if (painted >= into.Multimesh.InstanceCount)
-            {
-                break;
-            }
-
+            into.Multimesh.Identity(painted, id);
             ids?.Add(id);
             into.Multimesh.SetInstanceTransform(painted, where);
             into.Multimesh.SetInstanceColor(painted++, what);
@@ -847,10 +842,10 @@ public partial class Main
         return painted;
     }
 
-    /// <inheritdoc cref="Fill(MultiMeshInstance3D, System.Collections.Generic.IEnumerable{ValueTuple{Transform3D, Color}})"/>
+    /// <inheritdoc cref="Fill(InstanceLayer, System.Collections.Generic.IEnumerable{ValueTuple{Transform3D, Color}})"/>
     /// <summary>The same, for a layer whose colour belongs to the layer rather than the box.</summary>
     private static int Fill(
-        MultiMeshInstance3D into,
+        InstanceLayer into,
         System.Collections.Generic.IEnumerable<(ulong Id, Transform3D Where)> places,
         List<ulong>? ids = null)
     {
@@ -860,11 +855,7 @@ public partial class Main
 
         foreach ((ulong id, Transform3D place) in places)
         {
-            if (count >= into.Multimesh.InstanceCount)
-            {
-                break;
-            }
-
+            into.Multimesh.Identity(count, id);
             ids?.Add(id);
             into.Multimesh.SetInstanceTransform(count++, place);
         }

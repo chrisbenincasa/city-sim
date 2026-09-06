@@ -543,6 +543,7 @@ public partial class Main
     {
         // Recomposed for Caption's reason: Draw ran before this frame's commands did.
         Draw(_alpha);
+        FlushInstances(immediate: true);
 
         var text = new System.Text.StringBuilder();
 
@@ -551,15 +552,24 @@ public partial class Main
             CultureInfo.InvariantCulture,
             $"ruleset\t{Path.GetFileName(_rulesetPath)}\n");
         text.Append(CultureInfo.InvariantCulture, $"{Ruler()}\n");
+        if (System.Environment.GetEnvironmentVariable("BOROUGH_RENDER_PROFILE") is not null)
+        {
+            var profile = new System.Text.StringBuilder();
+            RendererStatistics(profile);
+            File.WriteAllText(Globalize(path) + ".profile.tsv", profile.ToString());
+        }
         text.Append("# layer\tname\tinstances\tcapacity\tvisible\n");
 
-        foreach ((string name, MultiMeshInstance3D layer, bool _, List<ulong>? _) in Layers())
+        foreach ((string name, InstanceLayer layer, bool _, List<ulong>? _) in Layers())
         {
             text.Append(
                 CultureInfo.InvariantCulture,
-                $"layer\t{name}\t{layer.Multimesh.VisibleInstanceCount}\t"
+                $"layer\t{name}\t{layer.Multimesh.ResidentInstances}\t"
                     + $"{layer.Multimesh.InstanceCount}\t{(layer.Visible ? 1 : 0)}\n");
         }
+
+        foreach (var layer in Layers())
+            text.Append(CultureInfo.InvariantCulture, $"retained\t{layer.Name}\t{layer.Layer.Multimesh.VisibleInstanceCount}\t{layer.Layer.Multimesh.BatchCount}\n");
 
         // 🔴 UNDER --headless EVERY TRANSFORM READS BACK AS THE IDENTITY, AND THE FILE STILL LOOKS
         // RIGHT. The counts above are CPU-side and stay true, so a headless dump came out with the
@@ -583,20 +593,21 @@ public partial class Main
 
         text.Append("# row\tlayer\tindex\tid\tx\ty\tz\tsx\tsy\tsz\tyaw\tr\tg\tb\n");
 
-        foreach ((string name, MultiMeshInstance3D layer, bool colours, List<ulong>? ids)
+        foreach ((string name, InstanceLayer layer, bool colours, List<ulong>? ids)
             in Layers())
         {
-            MultiMesh mesh = layer.Multimesh;
+            InstanceBuffer mesh = layer.Multimesh;
 
             for (int at = 0; at < mesh.VisibleInstanceCount; at++)
             {
-                Transform3D where = mesh.GetInstanceTransform(at);
+                if (!mesh.IsResident(at)) continue;
+                Transform3D where = mesh.UploadedTransform(at);
                 Vector3 size = where.Basis.Scale;
-                Color paint = colours ? mesh.GetInstanceColor(at) : default;
+                Color paint = colours ? mesh.UploadedColour(at) : default;
 
                 text.Append(
                     CultureInfo.InvariantCulture,
-                    $"row\t{name}\t{at}\t{(ids is not null && at < ids.Count ? ids[at].ToString(CultureInfo.InvariantCulture) : "-")}\t"
+                    $"row\t{name}\t{at}\t{(ids is not null && at < mesh.VisibleInstanceCount ? mesh.IdAt(at).ToString(CultureInfo.InvariantCulture) : "-")}\t"
                         + $"{Figure(where.Origin.X)}\t{Figure(where.Origin.Y)}\t{Figure(where.Origin.Z)}\t"
                         + $"{Figure(size.X)}\t{Figure(size.Y)}\t{Figure(size.Z)}\t"
                         + $"{Figure(where.Basis.GetEuler().Y)}\t"
@@ -609,7 +620,7 @@ public partial class Main
     }
 
     /// <summary>Every layer, in draw order, with whether it paints per instance and who it is.</summary>
-    private (string Name, MultiMeshInstance3D Layer, bool Colours, List<ulong>? Ids)[] Layers() =>
+    private (string Name, InstanceLayer Layer, bool Colours, List<ulong>? Ids)[] Layers() =>
     [
         ("ground", _ground, false, null),
         ("hazard", _hazard, false, null),

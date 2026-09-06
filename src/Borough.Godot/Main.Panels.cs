@@ -752,7 +752,7 @@ public partial class Main
         var key = WorldKey.FromSeed(seed);
 
         CloseInspection();
-        _world = new World(citizens, loaded.Ruleset, key);
+        _world = new World(citizens, loaded.Ruleset, key) { Changes = new WorldChanges() };
         _simulation = new Simulation(_world, key) { VerifyDecideWritesNothing = false };
 
         _log = new InputLogBuilder(

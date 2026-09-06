@@ -22,14 +22,8 @@ namespace Borough.Shell;
 /// </summary>
 /// <remarks>
 /// <para>
-/// ⚠ <b>The scene is built in code and the <c>.tscn</c> holds one node.</b> Everything drawn here
-/// is derived from the world every frame, so an authored scene would be a second description of the
-/// city that could disagree with the first.
-/// </para>
-/// <para>
-/// ⚠ <b>One <see cref="MultiMeshInstance3D"/> per kind of thing, not per Chunk.</b> <c>05 §2</c>
-/// asks for per-Chunk and that is a claim about a million Citizens; at the sizes this shell has ever
-/// been run at it would be structure with nothing behind it.
+/// Geometry is retained in spatial batches by <see cref="InstanceLayer"/>. Camera movement
+/// does not regenerate the city; Godot culls each batch using its complete geometry bounds.
 /// </para>
 /// <para>
 /// <b>The clock is the host's and the Tick is not.</b> <c>05</c>'s fixed-Tick/interpolated-render
@@ -74,40 +68,15 @@ public partial class Main : Node3D
     /// <summary>What one notch of zoom in multiplies the eye's standoff by.</summary>
     private const float DollyPerStep = 0.92f;
 
-    /// <summary>
-    /// <b>How wide a Street's whole right of way is drawn</b> — kerb to kerb <em>and</em> the
-    /// pavements, which together spend it.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// 🔴 <b>THIS WAS <c>RoadWidthMetres</c> AND IT WAS DOING TWO JOBS.</b> It was the width of the
-    /// asphalt <em>and</em> the width of the ground a Street claims, and those were the same number
-    /// only because nothing but asphalt was drawn on a Street. <see cref="Footways"/> put something
-    /// else there, so they separated — and the split is what makes the row cost no ground: the
-    /// carriageway gives up what the pavements take, and 8 m of street stays 8 m of street.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>It is what <see cref="YardMargin"/> and <see cref="Edge"/> meant all along.</b> Both
-    /// asked <em>how far from the centre line is the road's edge</em>, which is this and never the
-    /// carriageway. Leaving them on the carriageway would have moved a scatter margin and a cursor
-    /// as a side effect of repainting a kerb.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>8 m is a Tile and a Tile is what the setback moves in.</b> <c>[lots] setback_tiles</c>
-    /// is 2 on every shipped file and each side is drawn on <c>[0, 2]</c> Tiles, so a Building's
-    /// front wall stands at <b>0, 4 or 8 m</b> from the centre line — and a half-street of 4 m puts
-    /// the back of the pavement exactly on the middle rung. ***The street's edge and the setback's
-    /// quantum are the same length on purpose.***
-    /// </para>
-    /// </remarks>
-    private const float StreetWidthMetres = 8f;
+    // The same reserved ground that bounds LotRuleset.Footprint.
+    private float StreetWidthMetres => (_world.Rules.Lots.Runs ? _world.Rules.Lots.StreetHalfWidthTiles : 1) * 2f * MetresPerTile;
 
     /// <summary>How wide a <b>Street's</b> asphalt is drawn — the right of way, less two pavements.</summary>
     /// <remarks>
     /// ⚠ <b>Derived rather than chosen</b>, so the two cannot drift apart and leave the street a
     /// different width than the ground it claims.
     /// </remarks>
-    private const float CarriagewayWidthMetres =
+    private float CarriagewayWidthMetres =>
         StreetWidthMetres - (2f * FootwayWidthMetres);
 
     /// <summary>
@@ -308,7 +277,7 @@ public partial class Main : Node3D
     /// margin to do it.
     /// </para>
     /// </remarks>
-    private static float YardMargin(int block, int lots) =>
+    private float YardMargin(int block, int lots) =>
         (StreetWidthMetres * 0.5f) + (BlockPatterns.StripTiles(block, lots) * MetresPerTile) + 1f;
 
     /// <summary>Above this, a Building gets a flat roof. <b>Tall things are not gabled.</b></summary>
@@ -669,20 +638,20 @@ public partial class Main : Node3D
 
     private Simulation _simulation = null!;
     private World _world = null!;
-    private MultiMeshInstance3D _buildings = null!;
-    private MultiMeshInstance3D _roofs = null!;
-    private MultiMeshInstance3D _hips = null!;
-    private MultiMeshInstance3D _mansards = null!;
-    private MultiMeshInstance3D _yards = null!;
-    private MultiMeshInstance3D _trees = null!;
-    private MultiMeshInstance3D _rocks = null!;
-    private MultiMeshInstance3D _travellers = null!;
-    private MultiMeshInstance3D _cars = null!;
+    private InstanceLayer _buildings = null!;
+    private InstanceLayer _roofs = null!;
+    private InstanceLayer _hips = null!;
+    private InstanceLayer _mansards = null!;
+    private InstanceLayer _yards = null!;
+    private InstanceLayer _trees = null!;
+    private InstanceLayer _rocks = null!;
+    private InstanceLayer _travellers = null!;
+    private InstanceLayer _cars = null!;
     private readonly List<ulong> _carIds = [];
-    private MultiMeshInstance3D _roads = null!;
-    private MultiMeshInstance3D _footways = null!;
-    private MultiMeshInstance3D _kerbs = null!;
-    private MultiMeshInstance3D _plots = null!;
+    private InstanceLayer _roads = null!;
+    private InstanceLayer _footways = null!;
+    private InstanceLayer _kerbs = null!;
+    private InstanceLayer _plots = null!;
     private PanelContainer _tuner = null!;
 
     private LineEdit[] _fields = [];
@@ -708,7 +677,7 @@ public partial class Main : Node3D
 
     private ulong _seed;
 
-    private MultiMeshInstance3D _cells = null!;
+    private InstanceLayer _cells = null!;
 
     /// <summary>The sun, kept because it follows the clock (<c>plans/0051</c> row 2).</summary>
     private DirectionalLight3D _light = null!;
@@ -736,7 +705,7 @@ public partial class Main : Node3D
     /// </remarks>
     private Rect2 _paved;
 
-    private MultiMeshInstance3D _ground = null!;
+    private InstanceLayer _ground = null!;
     private MeshInstance3D _land = null!;
     private ImageTexture _skin = null!;
 
@@ -781,10 +750,10 @@ public partial class Main : Node3D
     /// <inheritdoc cref="_washedAt"/>
     private int _washCells;
 
-    private MultiMeshInstance3D _water = null!;
-    private MultiMeshInstance3D _flood = null!;
-    private MultiMeshInstance3D _hazard = null!;
-    private MultiMeshInstance3D _cursor = null!;
+    private InstanceLayer _water = null!;
+    private InstanceLayer _flood = null!;
+    private InstanceLayer _hazard = null!;
+    private InstanceLayer _cursor = null!;
 
     /// <summary>Every human-readable name in the Ruleset. <b>The shell owns these, not the core.</b></summary>
     private RulesetNames _names = RulesetNames.None;
@@ -1082,7 +1051,7 @@ public partial class Main : Node3D
 
         var key = WorldKey.FromSeed(_seed);
 
-        _world = new World(citizens, loaded.Ruleset, key);
+        _world = new World(citizens, loaded.Ruleset, key) { Changes = new WorldChanges() };
         _simulation = new Simulation(_world, key) { VerifyDecideWritesNothing = false };
 
         _log = new InputLogBuilder(
@@ -1201,16 +1170,7 @@ public partial class Main : Node3D
         // ⚠ THE STEP AT THE CHANNEL IS THE KERB'S FACE AND THE BAND IS `_kerbs` BELOW. This layer
         // is the paving BEHIND the kerb, which is why it is PavementWidthMetres and not the whole
         // foot half: the kerb took its band out of it, at the same top, so the two are flush.
-        _footways = Layer(Flagstone, new Vector3(1f, 0.3f, 1f), perInstance: true, casts: false,
-
-            // FOUR A SEGMENT, which is a bound and not a count: two strips, plus a cap across the
-            // head at each end that is a DEAD END. It was twice the road layer's while two was the
-            // whole story, and the ceiling has to hold the bound rather than the ordinary case --
-            // on bordered.toml the roads layer is ALREADY at its ceiling with 535,817 Segments, and
-            // a pavement layer that stopped at half of what the asphalt covered would be the
-            // failure §5 names: a layer at capacity has silently dropped what did not fit, and the
-            // picture shows a smaller city with nothing to say so.
-            instances: 4 * LayerInstances);
+        _footways = Layer(Flagstone, new Vector3(1f, 0.3f, 1f), perInstance: true, casts: false);
 
         // THE KERB, AND IT IS ONE MESH FOR TWO THINGS AT TWO HEIGHTS. A band is drawn with its top
         // flush with the pavement -- 0.15 m, so the only step in the street is at the channel -- and
@@ -1221,13 +1181,7 @@ public partial class Main : Node3D
         // ⚠ TWO CENTIMETRES AND NOT ZERO, because a drop flush with the carriageway is two coplanar
         // faces and the depth test picks between them per pixel. ***A dropped kerb that z-fights
         // reads as a rendering fault and not as a kerb.***
-        _kerbs = Layer(Kerbstone, new Vector3(1f, 0.3f, 1f), perInstance: true, casts: false,
-
-            // FOUR TIMES, and it is a bound rather than a count: two band runs a Segment before any
-            // Address breaks them, plus one run and one drop for every Address that does, plus a
-            // cap across each end that is a dead end. On pictured.toml that is ~800 for 194 Streets
-            // and 208 Lots.
-            instances: 4 * LayerInstances);
+        _kerbs = Layer(Kerbstone, new Vector3(1f, 0.3f, 1f), perInstance: true, casts: false);
 
         // 🔴 A VACANT LOT DREW NOTHING AT ALL, so Zone -- which creates Lots and never a Building --
         // had NO visible result on any world. Buildings() walks the Building table, and a Lot with
@@ -1254,6 +1208,27 @@ public partial class Main : Node3D
         _buildings = Layer(
             Standing, new BoxMesh { Size = Vector3.One }, true, "res://buildings.gdshader");
         _paint!.SetShaderParameter("storey_metres", StoreyMetres);
+
+        // 🔴 THE PHOTOGRAPHED MASONRY, WHICH IS plans/0063'S ONE FINDING THAT REACHED THE CITY.
+        // Nine rounds of that study compared shading languages, palettes and authored geometry on
+        // isolated specimens, and the round the player called *amazing* was the one that put a real
+        // photograph on a wall. ***Every other round changed a specimen and this changes the city***:
+        // the shader applies it as a ratio over each Building's own paint, so it costs no instance,
+        // no mesh and no draw call, and a million Buildings get it for the price of one.
+        //
+        // ⚠ TWO MAPS AND NOT THREE. Roughness is not sampled, because `buildings.gdshader` already
+        // decides roughness from what a surface IS -- glass, a shutter, a shell with no glass left
+        // in it -- and a photograph of one wall cannot know any of that. ***A texture that overrode
+        // it would flatten three readings the shader is deliberately making.***
+        //
+        // ⚠ CC0, AND THE PROVENANCE IS A FILE RATHER THAN THIS SENTENCE. `assets/city/materials.json`
+        // carries the author, the URL, the licence and the SHA-256 of each image, and is the thing
+        // to update when one is replaced -- along with the shader's `MASONRY_MEAN`, which is a
+        // property of the file and which nothing checks.
+        _paint.SetShaderParameter(
+            "masonry_albedo", GD.Load<Texture2D>("res://assets/city/brick-wall-diffuse.jpg"));
+        _paint.SetShaderParameter(
+            "masonry_normal", GD.Load<Texture2D>("res://assets/city/brick-wall-normal.jpg"));
 
         // A SECOND MESH AND NOT A SECOND BOX. A roof is the only part of a Building that is not a
         // cuboid, and a silhouette is what reads at the camera this game is played at -- so the
@@ -1314,6 +1289,12 @@ public partial class Main : Node3D
         _rocks = Layer(Boulder, new SphereMesh { Radius = 0.5f, Height = 1f, RadialSegments = 7, Rings = 3 });
         _travellers = Layer(Colors.White, WalkerMesh(), perInstance: true);
         _cars = Layer(Colors.White, CarMesh(), perInstance: true);
+        // PROVISIONAL detail distances. Woodland remains represented by the ground texture.
+        _trees.DetailDistance = 8000f;
+        _rocks.DetailDistance = 4000f;
+        _kerbs.DetailDistance = 5000f;
+        _travellers.DetailDistance = 3000f;
+        _cars.DetailDistance = 5000f;
         DressSurfaces();
 
         Ground();
@@ -1360,6 +1341,7 @@ public partial class Main : Node3D
             return;
         }
 
+        long frameStarted = System.Diagnostics.Stopwatch.GetTimestamp();
         _owed += delta * Ladder[_rung];
 
         // 🔴 A QUEUED COMMAND BUYS ONE TICK, EVEN PAUSED, and that is a decision rather than a slip.
@@ -1418,6 +1400,10 @@ public partial class Main : Node3D
         Draw(_alpha);
         Drive();
         Answer();
+        double elapsed = System.Diagnostics.Stopwatch.GetElapsedTime(frameStarted).TotalMilliseconds;
+        _frameCount++;
+        _frameMilliseconds += elapsed;
+        _frameMaximum = Math.Max(_frameMaximum, elapsed);
     }
 
     public override void _UnhandledInput(InputEvent @event)
@@ -1691,18 +1677,25 @@ public partial class Main : Node3D
     private static string Globalize(string path) =>
         Path.IsPathRooted(path) ? path : ProjectSettings.GlobalizePath($"res://../../{path}");
 
-    /// <summary>Reads the world into the two meshes that change, and writes the readout.</summary>
+    /// <summary>Apply world changes, interpolate movement, and retain the standing geometry.</summary>
     private void Draw(Ratio alpha)
     {
-        int drawn = Massings(Buildings());
-        int vacant = Fill(_plots, Plots(), _plotIds);
-        int moving = VisibleAgents.In(_world, CellRect.World, alpha, _agents);
-        int under = Fill(_flood, Anonymous(Inundated()));
+        var key = (_world.Tick.Raw, _washing);
+        if (key != _built || _world.Changes!.Full)
+        {
+            _built = key;
+            UpdateBuildings();
+            _underWater = Fill(_flood, Inundated());
+            TravellerHeadings();
+        }
 
-        TravellerHeadings();
-        Fill(_travellers, Travellers(moving, false), _travellerIds);
-        Fill(_cars, Travellers(moving, true), _carIds);
+        int drawn = _drawnBuildings;
+        int vacant = _vacantLots;
+        int moving = DrawMovement(alpha);
+        int under = _underWater;
+
         Cursor();
+        FlushInstances();
 
         ulong tick = _world.Tick.Raw;
 
@@ -1729,7 +1722,7 @@ public partial class Main : Node3D
             $"{System.IO.Path.GetFileName(_rulesetPath)}   Tick {tick:N0}   "
             + $"Day {tick / (ulong)Ticks.PerDay}   {Weekday(tick)}   "
             + $"{minute / 60:00}:{minute % 60:00}\n"
-            + $"Citizens {_world.Citizens.Rows.LiveCount:N0}   Buildings {drawn:N0}   "
+            + $"Citizens {_world.Citizens.Rows.LiveCount:N0}   Buildings {Counted(drawn)}   "
             + $"vacant Lots {vacant:N0}   "
             + $"travelling {moving:N0}{Weather(under)}{ShoppingCaption()}{HealthCaption()}\n"
             + $"speed {Pace(_rung)}   "
@@ -1742,6 +1735,31 @@ public partial class Main : Node3D
 
         RefreshInformation();
         RefreshHealthMarkers();
+    }
+
+    /// <summary>
+    /// How many Buildings the city holds, <b>and how many of them were drawn where they differ</b>.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>THE READOUT SAID <em>Buildings</em> AND PRINTED THE DRAWN COUNT.</b> The two agreed
+    /// closely enough to pass unnoticed while the massing walked the whole world — they were never
+    /// equal, because a Building on too narrow a frontage has always been skipped — and culling to
+    /// the frustum makes the gap enormous and camera-dependent. ***A number that changes when you
+    /// turn the camera is not a count of the city***, and a player reading <em>Buildings 40</em> on a
+    /// city of ten thousand would be reading a fact about the renderer.
+    /// <para>
+    /// ⚠ <b>Both, and only when they differ.</b> The drawn figure is worth keeping — it is the one
+    /// that says the layer filled up — but it is a parenthesis on the city's own number rather than a
+    /// replacement for it.
+    /// </para>
+    /// </remarks>
+    private string Counted(int drawn)
+    {
+        int live = _world.Buildings.Rows.LiveCount;
+
+        return drawn == live
+            ? live.ToString("N0", CultureInfo.InvariantCulture)
+            : $"{live:N0} ({drawn:N0} drawn)";
     }
 
     /// <summary>
@@ -1778,21 +1796,9 @@ public partial class Main : Node3D
     /// <c>InstanceCount</c></b> — Godot allocates the instance buffer on the count, and a format
     /// changed afterwards is a resize the engine declines to do.
     /// </remarks>
-    private MultiMeshInstance3D Layer(
-        Color colour, Vector3 size, bool perInstance = false, bool casts = true,
-        int instances = LayerInstances) =>
-        Layer(colour, new BoxMesh { Size = size }, perInstance, casts: casts, instances: instances);
-
-    /// <summary>
-    /// How many instances a layer holds unless it says otherwise — <b>a ceiling and not a count</b>.
-    /// </summary>
-    /// <remarks>
-    /// ⚠ <b>A layer at its ceiling has dropped whatever did not fit and the picture cannot say
-    /// so</b>, which is why <c>draw</c> prints this beside the instance count
-    /// (<c>plans/0048</c> §5). It is <b>reached</b> on <c>bordered.toml</c>, whose 535,817 Segments
-    /// are more than eight times it.
-    /// </remarks>
-    private const int LayerInstances = 65_536;
+    private InstanceLayer Layer(
+        Color colour, Vector3 size, bool perInstance = false, bool casts = true) =>
+        Layer(colour, new BoxMesh { Size = size }, perInstance, casts: casts);
 
     /// <inheritdoc cref="Layer(Color, Vector3, bool)"/>
     /// <summary>The same, for a layer whose instances are not boxes.</summary>
@@ -1814,17 +1820,12 @@ public partial class Main : Node3D
     /// because the flat ones are unit boxes squashed by their instance transforms and the mesh
     /// does not know.
     /// </param>
-    /// <param name="instances">
-    /// The layer's ceiling. Defaults to <see cref="LayerInstances"/>; raised only by a layer that
-    /// draws more than one instance per thing, which today is the pavements.
-    /// </param>
-    private MultiMeshInstance3D Layer(
+    private InstanceLayer Layer(
         Color colour,
         Mesh mesh,
         bool perInstance = false,
         string? painted = null,
-        bool casts = true,
-        int instances = LayerInstances)
+        bool casts = true)
     {
         Material material;
 
@@ -1855,18 +1856,10 @@ public partial class Main : Node3D
             assembled.SurfaceSetMaterial(0, material);
         }
 
-        var multi = new MultiMesh
-        {
-            TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
-            UseColors = perInstance,
-            UseCustomData = painted is not null,
-        };
-
-        multi.Mesh = mesh;
-        multi.InstanceCount = instances;
-        multi.VisibleInstanceCount = 0;
-
-        var node = new MultiMeshInstance3D { Multimesh = multi };
+        var node = new InstanceLayer();
+        node.Multimesh.Mesh = mesh;
+        node.Multimesh.UseColors = perInstance;
+        node.Multimesh.UseCustomData = painted is not null;
 
         if (!casts)
         {

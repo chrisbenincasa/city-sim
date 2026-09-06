@@ -206,6 +206,9 @@ arterial_capacity_per_hour     = 12000
 foot_path_capacity_per_hour    = 1000
 
 [lots]
+# PROVISIONAL: reserve the existing eight-metre Street, including its pavements.
+# Fixed at world creation; setbacks cannot put a wall inside this ground.
+street_half_width_tiles = 1
 # DERIVED, not chosen: CONTEXT.md -> Address's own "five Buildings share a Segment". A Lot has no
 # depth and there is no depth key.
 lots_per_segment = 5
@@ -221,8 +224,7 @@ lots_per_segment = 5
 #
 # ⚠ AND IT IS A CEILING RATHER THAN A SETBACK LINE. The four sides are drawn independently on
 # [0, setback_tiles] per patch of ground, so a street varies and some walls stand on the pavement --
-# which is what a terrace is. 0 means every Building covers its whole parcel, which is what the
-# simulation did before this key existed, while the shell drew something smaller.
+# which is what a terrace is. Street ground stays reserved even when the drawn setback is zero.
 setback_tiles = 2
 
 [capacity]

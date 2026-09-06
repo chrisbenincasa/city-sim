@@ -55,21 +55,9 @@ public static class VisibleAgents
 
         for (int slot = 0; slot < travellers.Rows.SlotCount && written < into.Length; slot++)
         {
-            if (!travellers.Rows.IsLive(slot))
-            {
-                continue;
-            }
-
-            int leg = travellers.CurrentLeg[slot];
-            var mode = (TravelMode)legs.Mode[leg];
-
-            if (!TryPlace(world, slot, leg, mode, alpha, out SubTiles east, out SubTiles north))
-            {
-                continue;
-            }
-
-            Cells atEast = CellGrid.ToCells(east.ToTilesFloor());
-            Cells atNorth = CellGrid.ToCells(north.ToTilesFloor());
+            if (!TryGet(world, slot, alpha, out VisibleAgent visible)) continue;
+            Cells atEast = CellGrid.ToCells(visible.East.ToTilesFloor());
+            Cells atNorth = CellGrid.ToCells(visible.North.ToTilesFloor());
 
             if (atEast < box.East || atEast >= box.EastEnd
                 || atNorth < box.North || atNorth >= box.NorthEnd)
@@ -77,15 +65,23 @@ public static class VisibleAgents
                 continue;
             }
 
-            into[written++] = new VisibleAgent(
-                travellers.Citizen[slot],
-                east,
-                north,
-                mode,
-                Purpose(world, travellers.Trip[slot]));
+            into[written++] = visible;
         }
 
         return written;
+    }
+
+    public static bool TryGet(World world, int slot, Ratio alpha, out VisibleAgent visible)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        visible = default;
+        TravellerTable travellers = world.Travellers;
+        if (slot < 0 || slot >= travellers.Rows.SlotCount || !travellers.Rows.IsLive(slot)) return false;
+        int leg = travellers.CurrentLeg[slot];
+        var mode = (TravelMode)world.Legs.Mode[leg];
+        if (!TryPlace(world, slot, leg, mode, alpha, out SubTiles east, out SubTiles north)) return false;
+        visible = new VisibleAgent(travellers.Citizen[slot], east, north, mode, Purpose(world, travellers.Trip[slot]));
+        return true;
     }
 
     /// <summary>Where a Traveller is, or false where the graph beneath it has gone.</summary>
