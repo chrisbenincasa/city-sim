@@ -7,130 +7,53 @@ using Godot;
 
 namespace Borough.Shell;
 
-/// <summary>
-/// The sky's arc, with the sun on it by day and the moon by night.
-/// </summary>
-/// <remarks>
-/// <para>
-/// <c>01 §7</c>: <em>time of day is an arc with named phases, and never a clock</em>, because a
-/// numeric clock makes a claim that can be checked against what the player is watching and under
-/// any workable tick rate that claim is false. The arc makes no numeric claim, so it cannot be
-/// caught lying.
-/// </para>
-/// <para>
-/// ⚠ <b>What is read off the clock and what is drawing convention.</b> The light's position along
-/// the arc and the spent share of daylight are the clock. <b>The two horizon crossings are a
-/// CONVENTION</b> — 06:00 and 18:00, not the sun's real height, which
-/// <see cref="Main.Daylight"/> computes and this does not ask for. The quarter ticks carry no
-/// labels because <c>01 §7</c>'s five phase names have no boundaries anywhere in the build
-/// (<c>07 §1.3</c>: a mark either reports a fact or is labelled as invention).
-/// </para>
-/// <para>
-/// 🔴 <b>THE MOON IS FULL BECAUSE THE CITY'S MOON IS FULL.</b> <see cref="Main.Daylight"/> aims one
-/// <c>DirectionalLight3D</c> from the sun while it is up and from the sun's <em>antipode</em> while
-/// it is down, and its own remark calls that <em>"a full moon every single night, and is a
-/// fib"</em>. <see cref="Phase"/> can draw a crescent and <b>nothing sets it</b>: a waxing moon
-/// here would be a HUD contradicting the picture behind it, which is the one thing <c>07 §1.3</c>
-/// refuses. ***It becomes honest the moment <c>Daylight()</c> scales the moon's energy by the same
-/// phase***, and the cycle length is then an authored constant. Filed as its own row rather than
-/// taken here.
-/// </para>
-/// </remarks>
+// A clock diagram: daylight above the horizon, night below, dawn at the left.
 internal sealed partial class SkyArc : Control
 {
-    /// <summary>Sunrise and sunset as this drawing places them. A convention, not the sun.</summary>
-    private const int Sunrise = 6 * 60, Sunset = 18 * 60;
-
-    private const int Samples = 28;
-
     internal Color Ink = Colors.White, Paper = Colors.Black;
-
-    /// <summary>Minute of the day, 0 to 1,439, from <see cref="Ticks.MinuteOfDay"/>.</summary>
     internal int Minute;
+    internal bool Daytime => Minute >= 360 && Minute < 1080;
+    internal Vector2 Marker => At(((Minute - 360 + 1440) % 1440) / 1440f);
 
-    /// <summary>0 new, .5 full, 1 new again. <b>Negative draws the full moon the sky lights.</b></summary>
-    internal float Phase = -1f;
-
-    private Vector2 At(float t)
+    private Vector2 At(float progress)
     {
-        float w = Size.X, h = Size.Y, horizon = h * 0.76f;
-        Vector2 a = new(w * 0.18f, horizon), b = new(w * 0.5f, -h * 0.26f), c = new(w * 0.82f, horizon);
-        float u = 1f - t;
-        return (u * u * a) + (2f * u * t * b) + (t * t * c);
+        float angle = Mathf.Pi - progress * Mathf.Tau;
+        return new Vector2(Size.X * .5f + Mathf.Cos(angle) * Size.X * .38f,
+            Size.Y * .5f - Mathf.Sin(angle) * Size.Y * .34f);
     }
 
     public override void _Draw()
     {
-        float w = Size.X, horizon = Size.Y * 0.76f;
-        bool daytime = Minute >= Sunrise && Minute <= Sunset;
-        float along = daytime
-            ? (Minute - Sunrise) / (float)(Sunset - Sunrise)
-            : ((Minute - Sunset + 1440) % 1440) / (float)(1440 - (Sunset - Sunrise));
-
-        // Night, either side of the crossings. Dashed while the sun is up, solid while it is not,
-        // so the horizon reads as the part of the day you are in.
-        var edge = new Color(Ink, daytime ? 0.20f : 0.55f);
-        DrawLine(new Vector2(2f, horizon), At(0f), edge, 1.5f, true);
-        DrawLine(At(1f), new Vector2(w - 2f, horizon), edge, 1.5f, true);
-
-        var path = new Vector2[Samples + 1];
-        for (int i = 0; i <= Samples; i++) path[i] = At(i / (float)Samples);
-
-        if (daytime)
+        const int samples = 48;
+        var day = new Vector2[samples / 2 + 1];
+        var night = new Vector2[samples / 2 + 1];
+        for (int i = 0; i <= samples / 2; i++)
         {
-            // The sky under the arc, brightest at noon. Body without a claim.
-            for (int i = 0; i < Samples; i++)
+            day[i] = At(i / (float)samples);
+            night[i] = At(.5f + i / (float)samples);
+        }
+        DrawColoredPolygon(day, new Color(Ink, Daytime ? .12f : .04f));
+        DrawColoredPolygon(night, new Color(Ink, Daytime ? .03f : .10f));
+        DrawPolyline(day, new Color(Ink, Daytime ? .65f : .25f), 1.5f, true);
+        DrawPolyline(night, new Color(Ink, Daytime ? .25f : .65f), 1.5f, true);
+        DrawLine(new Vector2(2, Size.Y * .5f), new Vector2(Size.X - 2, Size.Y * .5f), new Color(Ink, .3f), 1, true);
+        Vector2 at = Marker;
+        DrawCircle(at, 6, Paper);
+        DrawCircle(at, 3.5f, Ink);
+        if (Daytime)
+            for (int i = 0; i < 8; i++)
             {
-                float mid = (i + 0.5f) / Samples;
-                float lit = 0.05f + (0.25f * Mathf.Sin(mid * Mathf.Pi));
-                DrawColoredPolygon(
-                    [path[i], path[i + 1], new Vector2(path[i + 1].X, horizon), new Vector2(path[i].X, horizon)],
-                    new Color(Ink, lit));
+                var ray = Vector2.FromAngle(i * Mathf.Tau / 8);
+                DrawLine(at + ray * 5, at + ray * 7, Ink, 1, true);
             }
-        }
-
-        DrawPolyline(path, new Color(Ink, daytime ? 0.28f : 0.14f), 1.6f, true);
-
-        if (daytime)
-        {
-            // The day already spent, drawn solid over the faint whole.
-            int spent = Math.Max(2, Mathf.CeilToInt(along * Samples) + 1);
-            DrawPolyline(path[..Math.Min(spent, path.Length)], new Color(Ink, 0.80f), 1.6f, true);
-        }
-
-        for (int k = 0; k <= 4; k++)
-        {
-            Vector2 tick = At(k / 4f);
-            DrawLine(tick, tick + new Vector2(0f, 4f), new Color(Ink, 0.30f), 1f, true);
-        }
-
-        Vector2 light = At(Mathf.Clamp(along, 0f, 1f));
-        if (daytime)
-        {
-            DrawCircle(light, Size.Y * 0.23f, new Color(Ink, 0.14f));
-            DrawCircle(light, Size.Y * 0.14f, new Color(Ink, 0.28f));
-            DrawCircle(light, Size.Y * 0.085f, Ink);
-            return;
-        }
-
-        float r = Size.Y * 0.105f;
-        DrawCircle(light, Size.Y * 0.20f, new Color(Ink, 0.10f));
-        DrawCircle(light, r, Ink);
-        if (Phase >= 0f)
-        {
-            // The shadow is drawn in the panel's own colour, which is what makes a crescent
-            // possible without a mask. It only works because the console is opaque.
-            float d = 2f * r * (1f - Mathf.Abs((2f * Phase) - 1f));
-            DrawCircle(light + new Vector2(Phase < 0.5f ? -d : d, 0f), r, Paper);
-        }
-
-        DrawCircle(light, r, new Color(Ink, 0.38f), false, 1f, true);
+        else DrawArc(at, 5, 0, Mathf.Tau, 20, Ink, 1, true);
     }
 }
 
 public partial class Main
 {
     private PanelContainer _console = null!;
+    private ScrollContainer _consoleScroll = null!;
     private VBoxContainer _consoleBody = null!, _layerGroup = null!;
     private HFlowContainer _consoleTop = null!;
     private HBoxContainer _pointerRow = null!;
@@ -139,7 +62,6 @@ public partial class Main
     private SkyArc _skyArc = null!;
     private Label _rungLabel = null!, _dayLengthLabel = null!, _dayLabel = null!;
     private Label _legendTitle = null!, _legendBody = null!, _refusalLabel = null!;
-    private Label _pointerHead = null!;
     private LegendRamp _legendRamp = null!;
     private Button _layerButton = null!, _pauseButton = null!, _slowerButton = null!, _fasterButton = null!;
     private PanelContainer _refusalRow = null!;
@@ -196,31 +118,32 @@ public partial class Main
         _consoleBody.AddThemeConstantOverride("separation", 8);
 
         _consoleTop = new HFlowContainer();
-        _consoleTop.AddThemeConstantOverride("h_separation", 14);
+        _consoleTop.AddThemeConstantOverride("h_separation", 16);
         _consoleTop.AddThemeConstantOverride("v_separation", 8);
 
         // ---- time -------------------------------------------------------------------------------
         var pace = new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
-        pace.AddThemeConstantOverride("separation", 6);
+        pace.AddThemeConstantOverride("separation", 8);
         // ⚠ THE STEPPERS ARE DOUBLED ARROWS and the pause button is single. Both were single, and
         // a paused console then read ▶ ◀ paused ▶ -- two different verbs wearing one glyph, side by
         // side, one of which is the only way back to a running city.
         _pauseButton = ConsoleButton("⏸", () => Apply(new DriveCommand(
             _world.Tick.Raw, _rung == 0 ? DriveVerb.Resume : DriveVerb.Pause, 0, null)));
         _pauseButton.TooltipText = "Pause and resume (space)";
+        _pauseButton.ToggleMode = true;
         _slowerButton = ConsoleButton("◀◀", () => Apply(new DriveCommand(
             _world.Tick.Raw, DriveVerb.Speed, Math.Max(1, _rung - 1), null)));
         _slowerButton.TooltipText = "Slower ([)";
-        _rungLabel = ConsoleLabel(string.Empty, 19);
+        _rungLabel = ConsoleLabel(string.Empty, BodyPoints);
         _rungLabel.HorizontalAlignment = HorizontalAlignment.Center;
         _rungLabel.CustomMinimumSize = new Vector2(46, 0);
         _fasterButton = ConsoleButton("▶▶", () => Apply(new DriveCommand(
             _world.Tick.Raw, DriveVerb.Speed, Math.Min(Ladder.Length - 1, _rung + 1), null)));
         _fasterButton.TooltipText = "Faster (])";
-        _dayLengthLabel = ConsoleLabel(string.Empty, 13);
-        pace.AddChild(_pauseButton);
-        pace.AddChild(_slowerButton);
+        _dayLengthLabel = ConsoleLabel(string.Empty, SecondaryPoints);
         pace.AddChild(_rungLabel);
+        pace.AddChild(_slowerButton);
+        pace.AddChild(_pauseButton);
         pace.AddChild(_fasterButton);
         pace.AddChild(_dayLengthLabel);
         _consoleTop.AddChild(pace);
@@ -228,8 +151,8 @@ public partial class Main
         // ---- the sky ----------------------------------------------------------------------------
         var sky = new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
         sky.AddThemeConstantOverride("separation", 8);
-        _skyArc = new SkyArc { CustomMinimumSize = new Vector2(124, 36), MouseFilter = Control.MouseFilterEnum.Ignore };
-        _dayLabel = ConsoleLabel(string.Empty, 13);
+        _skyArc = new SkyArc { CustomMinimumSize = new Vector2(112, 44), MouseFilter = Control.MouseFilterEnum.Stop, TooltipText = "Day/night clock: dawn left, noon above, dusk right, midnight below." };
+        _dayLabel = ConsoleLabel(string.Empty, SecondaryPoints);
         sky.AddChild(_skyArc);
         sky.AddChild(_dayLabel);
         _consoleTop.AddChild(sky);
@@ -260,7 +183,7 @@ public partial class Main
         };
         _layerGroup.AddThemeConstantOverride("separation", 7);
         var layerHead = new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
-        layerHead.AddThemeConstantOverride("separation", 6);
+        layerHead.AddThemeConstantOverride("separation", 8);
         _layerButton = ConsoleButton(string.Empty, () => Ui(_layersShown ? "layers off" : "layers on"));
         _layerButton.TooltipText = "Choose a map layer (o cycles)";
         layerHead.AddChild(_layerButton);
@@ -275,20 +198,21 @@ public partial class Main
             // button -- and four washes come back as four rows.
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
         };
-        _layerChoices.AddThemeConstantOverride("h_separation", 6);
-        _layerChoices.AddThemeConstantOverride("v_separation", 6);
+        _layerChoices.AddThemeConstantOverride("h_separation", 8);
+        _layerChoices.AddThemeConstantOverride("v_separation", 8);
         foreach ((string name, string label) in Washes)
         {
             string want = name;
             var choice = ConsoleButton(label, () => Apply(new DriveCommand(
                 _world.Tick.Raw, DriveVerb.Overlay, 0, want)));
+            choice.ToggleMode = true;
             _layerChoices.AddChild(choice);
         }
         layerHead.AddChild(_layerChoices);
         _layerGroup.AddChild(layerHead);
         var legend = new VBoxContainer();
         legend.AddThemeConstantOverride("separation", 4);
-        _legendTitle = ConsoleLabel(string.Empty, 11);
+        _legendTitle = ConsoleLabel(string.Empty, CaptionPoints);
         // ⚠ A STATED WIDTH AND NOT AN EXPANDING ONE. A ramp drawn the width of the console reads as
         // a rule between two rows rather than as a scale, which is the opposite of what a legend is
         // for -- it was 1,300 px in the drawings before anybody noticed.
@@ -298,7 +222,7 @@ public partial class Main
             SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin,
             MouseFilter = Control.MouseFilterEnum.Ignore,
         };
-        _legendBody = ConsoleLabel(string.Empty, 13);
+        _legendBody = ConsoleLabel(string.Empty, SecondaryPoints);
         _legendBody.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         _legendBody.CustomMinimumSize = new Vector2(300, 0);
         _legendBody.SizeFlagsVertical = Control.SizeFlags.ShrinkBegin;
@@ -310,33 +234,42 @@ public partial class Main
 
         // ---- chrome -----------------------------------------------------------------------------
         var trim = new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
-        trim.AddThemeConstantOverride("separation", 6);
+        trim.AddThemeConstantOverride("separation", 8);
         _themeButton = ConsoleButton("Light", () => Ui(_lightUi ? "theme dark" : "theme light"));
         _debugButton = ConsoleButton("Debug", () => Ui(_debugShown ? "debug off" : "debug on"));
         _toolsButton = ConsoleButton("Tools", () => Ui(_toolsShown ? "tools off" : "tools on"));
         trim.AddChild(_themeButton);
         trim.AddChild(_debugButton);
         trim.AddChild(_toolsButton);
+        trim.AddChild(ConsoleButton("Help ?", () => Ui("help on")));
         _consoleTop.AddChild(trim);
+        _consoleTop.AddChild(CameraControls());
 
-        _consoleBody.AddChild(_consoleTop);
+        _consoleTop.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        _consoleScroll = new ScrollContainer
+        {
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+            VerticalScrollMode = ScrollContainer.ScrollMode.Reserve,
+        };
+        _consoleScroll.AddChild(_consoleTop);
+        _consoleBody.AddChild(_consoleScroll);
 
         // ---- the pointer reading, and any refusal ------------------------------------------------
         _pointerRow = new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
-        _pointerRow.AddThemeConstantOverride("separation", 9);
-        _pointerHead = ConsoleLabel("UNDER POINTER", 11);
-        _pointerHead.CustomMinimumSize = new Vector2(112, 0);
+        _pointerRow.AddThemeConstantOverride("separation", 8);
         _hover.LabelSettings = null;
         _hover.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        _pointerRow.AddChild(_pointerHead);
         _pointerRow.AddChild(_hover);
+        _consoleBody.AddChild(new HSeparator());
         _consoleBody.AddChild(_pointerRow);
 
         _refusalRow = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         var refusal = new VBoxContainer();
         refusal.AddThemeConstantOverride("separation", 3);
-        var refusalHead = ConsoleLabel("REFUSED", 11);
-        _refusalLabel = ConsoleLabel(string.Empty, 13);
+        var refusalHead = ConsoleLabel("REFUSED", CaptionPoints);
+        refusalHead.ThemeTypeVariation = InformationUi.WarningText;
+        _refusalLabel = ConsoleLabel(string.Empty, SecondaryPoints);
+        _refusalLabel.ThemeTypeVariation = InformationUi.WarningText;
         _refusalLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         refusal.AddChild(refusalHead);
         refusal.AddChild(_refusalLabel);
@@ -369,14 +302,7 @@ public partial class Main
     /// </remarks>
     private static Button ConsoleButton(string text, Action action)
     {
-        var button = new Button
-        {
-            Text = text,
-            CustomMinimumSize = new Vector2(0, 30),
-            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
-        };
-        button.Pressed += action;
-        return button;
+        return InformationUi.Button(text, action, compact: true);
     }
 
     /// <summary>
@@ -389,17 +315,10 @@ public partial class Main
     /// console every reading is short and the container is asking each child how narrow it can be.
     /// A wrapping Label answers <em>one character</em>, and the console grew to 460 px.
     /// </remarks>
-    private static Label ConsoleLabel(string text, int size)
+    private Label ConsoleLabel(string text, int size)
     {
-        var label = new Label
-        {
-            Text = text,
-            AutowrapMode = TextServer.AutowrapMode.Off,
-            VerticalAlignment = VerticalAlignment.Center,
-            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-        };
-        label.AddThemeFontSizeOverride("font_size", size);
+        var label = InformationUi.Label(text, size, compact: true);
+        SizeLabel(label, size);
         return label;
     }
 
@@ -415,14 +334,10 @@ public partial class Main
     /// </remarks>
     private void SizeConsole(float inner)
     {
-        // ⚠ The pointer's fixed caption goes at the minimum window. It costs 112 px of a 416 px
-        // row to say what the sentence beside it already reads as, and the sentence wraps to two
-        // lines to pay for it.
-        _pointerHead.Visible = inner > 440f;
         _toolSlot.CustomMinimumSize = new Vector2(Math.Min(560f, inner), 0f);
         _legendBody.CustomMinimumSize = new Vector2(Math.Min(300f, inner), 0f);
         _legendRamp.CustomMinimumSize = new Vector2(Math.Min(300f, inner), 7f);
-        _hover.CustomMinimumSize = new Vector2(Math.Max(120f, inner - (_pointerHead.Visible ? 124f : 0f)), 0f);
+        _hover.CustomMinimumSize = new Vector2(Math.Max(120f, inner), 0f);
     }
 
     /// <summary>What the current rung is called.</summary>
@@ -439,8 +354,7 @@ public partial class Main
     /// </remarks>
     private string DayLength()
     {
-        // ⚠ EMPTY AND NOT "paused". The rung beside it already says the word, and the two labels
-        // reading it together was one state saying its own name twice.
+        // Hide the real-time Day duration while paused.
         if (Ladder[_rung] <= 0.0) return string.Empty;
         int seconds = (int)Math.Round(Ticks.PerDay / Ladder[_rung]);
         return seconds < 60 ? $"a Day in {seconds}s" : $"a Day in {seconds / 60}m{seconds % 60:00}s";
@@ -484,11 +398,12 @@ public partial class Main
     /// </remarks>
     private void RefreshConsole()
     {
-        _rungLabel.Text = RungName();
+        _rungLabel.Text = Rungs[_rung == 0 ? _resume : _rung];
         _rungLabel.TooltipText = Pace(_rung);
         _dayLengthLabel.Text = DayLength();
         _dayLengthLabel.TooltipText = Pace(_rung);
         _pauseButton.Text = _rung == 0 ? "▶" : "⏸";
+        _pauseButton.SetPressedNoSignal(_rung == 0);
         _slowerButton.Disabled = _rung <= 1;
         _fasterButton.Disabled = _rung >= Ladder.Length - 1;
 

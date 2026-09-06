@@ -50,7 +50,7 @@ public partial class Main
         _debugPanel = InformationPanel();
         var debugScroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Auto };
         _debugText = new Label { MouseFilter = Control.MouseFilterEnum.Ignore };
-        _debugText.AddThemeFontSizeOverride("font_size", 13);
+        SizeLabel(_debugText, SecondaryPoints);
         debugScroll.AddChild(_debugText);
         _debugPanel.AddChild(debugScroll);
 
@@ -64,16 +64,16 @@ public partial class Main
         var identity = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         _inspectionBack = InformationButton("‹ Building", () => Ui("back"));
         identity.AddChild(_inspectionBack);
-        _inspectionIdentity = InformationLabel(string.Empty, 12);
+        _inspectionIdentity = InformationLabel(string.Empty, CaptionPoints);
         _inspectionIdentity.AutowrapMode = TextServer.AutowrapMode.Off;
         _inspectionIdentity.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
         identity.AddChild(_inspectionIdentity);
-        _inspectionTitle = InformationLabel(string.Empty, 26);
+        _inspectionTitle = InformationLabel(string.Empty, TitlePoints);
         _inspectionTitle.Size = new Vector2(300, 36);
         _inspectionTitle.AutowrapMode = TextServer.AutowrapMode.Off;
         _inspectionTitle.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
         identity.AddChild(_inspectionTitle);
-        _inspectionCondition = InformationLabel(string.Empty, 14);
+        _inspectionCondition = InformationLabel(string.Empty, SecondaryPoints);
         _inspectionCondition.AutowrapMode = TextServer.AutowrapMode.Off;
         _inspectionCondition.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
         identity.AddChild(_inspectionCondition);
@@ -91,7 +91,7 @@ public partial class Main
             SizeFlagsVertical = Control.SizeFlags.ExpandFill,
         };
         _inspectionBody = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-        _inspectionBody.AddThemeConstantOverride("separation", 16);
+        _inspectionBody.AddThemeConstantOverride("separation", InformationUi.SectionGap);
         _inspectionScroll.AddChild(_inspectionBody);
         column.AddChild(_inspectionScroll);
         _inspector.AddChild(column);
@@ -104,7 +104,10 @@ public partial class Main
         {
             _lightUi = (bool)preferences.GetValue("ui", "light", false);
             _debugShown = (bool)preferences.GetValue("ui", "debug", false);
+            _textPercent = Math.Clamp((int)preferences.GetValue("ui", "text_percent", 118), 100, 150);
         }
+        BuildDiscovery();
+        Retype();
         ThemeInformation();
         LayoutInformation();
     }
@@ -117,22 +120,16 @@ public partial class Main
         return panel;
     }
 
-    private static Label InformationLabel(string text, int size = 16)
+    private Label InformationLabel(string text, int size = BodyPoints)
     {
-        var label = new Label
-        {
-            Text = text, AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-        };
-        label.AddThemeFontSizeOverride("font_size", size);
+        var label = InformationUi.Label(text, size);
+        SizeLabel(label, size);
         return label;
     }
 
     private static Button InformationButton(string text, Action action)
     {
-        var button = new Button { Text = text, CustomMinimumSize = new Vector2(0, 36) };
-        button.Pressed += action;
-        return button;
+        return InformationUi.Button(text, action);
     }
 
     private MeshInstance3D InformationRing(Color colour)
@@ -154,31 +151,8 @@ public partial class Main
     private void ThemeInformation()
     {
         if (_inspector is null) return;
-        Color paper = new(_lightUi ? "f5f2e9" : "222c30");
-        Color ink = new(_lightUi ? "273632" : "f1f1e9");
-        Color line = new(_lightUi ? "d4d8cd" : "435052");
-        Color accent = new(_lightUi ? "31695b" : "9ed3c4");
-        foreach (string type in new[] { "Label", "Button", "CheckButton", "LineEdit" })
-        {
-            _type.SetColor("font_color", type, ink);
-            _type.SetColor("font_hover_color", type, ink);
-            _type.SetColor("font_pressed_color", type, accent);
-            _type.SetColor("font_focus_color", type, ink);
-            _type.SetColor("font_disabled_color", type, new Color(ink, 0.5f));
-        }
-        foreach (string state in new[] { "normal", "hover", "pressed", "focus", "disabled" })
-        {
-            var box = new StyleBoxFlat
-            {
-                BgColor = state == "hover" || state == "pressed" ? paper.Lerp(accent, .14f) : paper,
-                BorderColor = state == "focus" ? accent : line,
-                BorderWidthBottom = 1, BorderWidthLeft = 1, BorderWidthRight = 1, BorderWidthTop = 1,
-                CornerRadiusBottomLeft = 4, CornerRadiusBottomRight = 4,
-                CornerRadiusTopLeft = 4, CornerRadiusTopRight = 4,
-                ContentMarginLeft = 10, ContentMarginRight = 10, ContentMarginTop = 6, ContentMarginBottom = 6,
-            };
-            _type.SetStylebox(state, "Button", box);
-        }
+        var colors = InformationUi.Apply(_type, _lightUi);
+        Color paper = colors.Paper, ink = colors.Ink, line = colors.Line;
         // ⚠ _palette is NOT in this list any more. It is inside the console now, so a second panel
         // stylebox would draw a box inside a box; it gets an empty one instead. The two that can be
         // null are the ones Panels() rebuilds -- ThemeInformation runs before the first rebuild.
@@ -186,40 +160,19 @@ public partial class Main
         foreach (Control panel in _informationPanels.Concat(new Control?[] { _policyPanel, _tuner })
             .Where(p => p is not null).Select(p => p!))
         {
-            panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
-            {
-                BgColor = paper, BorderColor = line,
-                BorderWidthBottom = 1, BorderWidthLeft = 1, BorderWidthRight = 1, BorderWidthTop = 1,
-                CornerRadiusBottomLeft = 7, CornerRadiusBottomRight = 7,
-                CornerRadiusTopLeft = 7, CornerRadiusTopRight = 7,
-                ContentMarginLeft = 22, ContentMarginRight = 22,
-                ContentMarginTop = 18, ContentMarginBottom = 18,
-            });
+            panel.AddThemeStyleboxOverride("panel", InformationUi.Box(paper, line, InformationUi.PanelInsetX, InformationUi.PanelInsetY));
         }
-        // ⚠ THE CONSOLE IS THE ONE PANEL WITH ITS OWN MARGINS. The inspector's 22/18 is right for a
-        // column of prose and wrong for a strip of controls: 36 px of it is vertical padding around
-        // a 30 px button, on every frame, in the panel this row exists to make smaller.
-        _console.AddThemeStyleboxOverride("panel", new StyleBoxFlat
-        {
-            BgColor = paper, BorderColor = line,
-            BorderWidthBottom = 1, BorderWidthLeft = 1, BorderWidthRight = 1, BorderWidthTop = 1,
-            CornerRadiusBottomLeft = 7, CornerRadiusBottomRight = 7,
-            CornerRadiusTopLeft = 7, CornerRadiusTopRight = 7,
-            ContentMarginLeft = 16, ContentMarginRight = 16,
-            ContentMarginTop = 10, ContentMarginBottom = 10,
-        });
+        _console.AddThemeStyleboxOverride("panel", InformationUi.Box(paper, line, InformationUi.ConsoleInsetX, InformationUi.ConsoleInsetY));
 
         _skyArc.Ink = ink;
         _skyArc.Paper = paper;
         _skyArc.QueueRedraw();
 
-        // 🔴 THE REFUSAL IS THE ONE THING IN THE CONSOLE THAT IS NOT THE PANEL'S COLOUR. Row 6 asks
-        // that an unsuccessful action explain itself without hiding the inspection context, and a
-        // sentence in the same ink as every other sentence beside it is one nobody looks at.
+        // Refusals retain their fixed strip below the controls.
         _refusalRow.AddThemeStyleboxOverride("panel", new StyleBoxFlat
         {
-            BgColor = paper.Lerp(new Color(_lightUi ? "9a3412" : "f0a868"), 0.14f),
-            BorderColor = new Color(_lightUi ? "9a3412" : "f0a868"),
+            BgColor = colors.Warning,
+            BorderColor = colors.Warn,
             BorderWidthBottom = 1, BorderWidthLeft = 3, BorderWidthRight = 1, BorderWidthTop = 1,
             CornerRadiusBottomLeft = 4, CornerRadiusBottomRight = 4,
             CornerRadiusTopLeft = 4, CornerRadiusTopRight = 4,
@@ -256,7 +209,8 @@ public partial class Main
         Vector2 size = GetViewport().GetVisibleRect().Size;
         float margin = size.X < 1000 || size.Y < 800 ? 10 : 24;
         bool narrow = size.X < 900;
-        float width = Math.Min(406, size.X - margin * 2);
+        float width = Math.Min(406 * _textPercent / 100f, size.X - margin * 2);
+        LayoutDiscovery(size, margin);
         _toolsButton.Visible = narrow;
         _toolSlot.Visible = !narrow || _toolsShown;
 
@@ -274,7 +228,14 @@ public partial class Main
         _console.OffsetRight = -margin;
         _console.OffsetBottom = -margin;
         _console.OffsetTop = 0f;
-        SizeConsole(Math.Max(160f, size.X - (margin * 2) - 32f));
+        float scrollbar = _consoleScroll.GetVScrollBar().GetCombinedMinimumSize().X;
+        SizeConsole(Math.Max(160f, size.X - (margin * 2) - 32f - scrollbar));
+        float inspectionRoom = _inspector.Visible
+            ? Math.Max(_inspector.GetCombinedMinimumSize().Y + 64, 190 * _textPercent / 100f) + (narrow && _debugShown ? 160 + margin : 0) : 0;
+        float consoleRoom = Math.Max(100, size.Y - margin * 3 - inspectionRoom - 20);
+        float footer = _consoleBody.GetCombinedMinimumSize().Y - _consoleScroll.GetCombinedMinimumSize().Y;
+        _consoleScroll.CustomMinimumSize = new Vector2(0,
+            Math.Min(_consoleTop.GetCombinedMinimumSize().Y, Math.Max(40, consoleRoom - footer)));
         float consoleTop = Math.Max(margin * 2,
             size.Y - margin - Math.Max(_console.Size.Y, _console.GetCombinedMinimumSize().Y));
 
@@ -296,7 +257,11 @@ public partial class Main
         panel.Size = new Vector2(Math.Max(1, width), Math.Max(1, height));
     }
 
-    private bool OverInformation(Vector2 at) => _hud.Visible && _informationPanels.Any(p => p.Visible && p.GetGlobalRect().HasPoint(at));
+    private bool OverInformation(Vector2 at) => _hud.Visible && (
+        _helpShade is not null && _helpShade.Visible
+        || _informationPanels.Any(p => p.Visible && p.GetGlobalRect().HasPoint(at))
+        || _tuner.Visible && _tuner.GetGlobalRect().HasPoint(at)
+        || _policyPanel is not null && _policyPanel.Visible && _policyPanel.GetGlobalRect().HasPoint(at));
 
     private void Ui(string action) => Apply(new DriveCommand(_world.Tick.Raw, DriveVerb.Ui, 0, action));
 
@@ -306,6 +271,14 @@ public partial class Main
         if (words.Length == 0) return;
         switch (words[0])
         {
+            case "help" when words.Length == 2 && words[1] is "on" or "off":
+                ShowHelp(words[1] == "on"); break;
+            case "text-size" when words.Length == 2 && int.TryParse(words[1], out int percent):
+                SetTextSize(percent); break;
+            case "key" when words.Length >= 2 && Enum.TryParse(words[1], true, out Key key):
+                Input.ParseInputEvent(new InputEventKey { Keycode = key, Pressed = true, ShiftPressed = words.Length == 3 && words[2] == "shift" });
+                Input.ParseInputEvent(new InputEventKey { Keycode = key, Pressed = false });
+                break;
             case "health" when words.Length == 1:
                 _healthInspection = true;
                 _selectedGround = (new Tiles(0), new Tiles(0));
@@ -424,10 +397,22 @@ public partial class Main
                     _refused = "ui press must address a visible panel.";
                     break;
                 }
+                Input.ParseInputEvent(new InputEventMouseMotion { Position = position, GlobalPosition = position });
                 Input.ParseInputEvent(new InputEventMouseButton { Position = position, GlobalPosition = position,
                     ButtonIndex = MouseButton.Left, Pressed = true });
                 Input.ParseInputEvent(new InputEventMouseButton { Position = position, GlobalPosition = position,
                     ButtonIndex = MouseButton.Left, Pressed = false });
+                break;
+            case "wheel" when words.Length == 4 && int.TryParse(words[1], out int wx)
+                && int.TryParse(words[2], out int wy) && int.TryParse(words[3], out int steps):
+                var wheelPosition = new Vector2(wx, wy);
+                if (!OverInformation(wheelPosition)) break;
+                Input.ParseInputEvent(new InputEventMouseMotion { Position = wheelPosition, GlobalPosition = wheelPosition });
+                Input.ParseInputEvent(new InputEventMouseButton { Position = wheelPosition, GlobalPosition = wheelPosition,
+                    ButtonIndex = steps < 0 ? MouseButton.WheelUp : MouseButton.WheelDown,
+                    Factor = Math.Max(1, Math.Abs(Math.Clamp(steps, -20, 20))), Pressed = true });
+                Input.ParseInputEvent(new InputEventMouseButton { Position = wheelPosition, GlobalPosition = wheelPosition,
+                    ButtonIndex = steps < 0 ? MouseButton.WheelUp : MouseButton.WheelDown, Pressed = false });
                 break;
             case "scroll" when words.Length == 2 && int.TryParse(words[1], out int scroll):
                 _inspectionScroll.ScrollVertical = Math.Max(0, scroll);
@@ -447,6 +432,7 @@ public partial class Main
         var preferences = new ConfigFile();
         preferences.SetValue("ui", "light", _lightUi);
         preferences.SetValue("ui", "debug", _debugShown);
+        preferences.SetValue("ui", "text_percent", _textPercent);
         preferences.Save("user://information.cfg");
     }
 
@@ -596,24 +582,19 @@ public partial class Main
         {
             if (section.Key == "summary" && section.Rows.Count == 1) continue;
             bool expanded = _expanded.GetValueOrDefault(SectionKey(section.Key), section.Open);
-            var group = new VBoxContainer();
-            group.AddThemeConstantOverride("separation", 12);
+            bool attention = section.Key == "attention" && section.Open;
             var toggle = InformationButton($"{(expanded ? "▾" : "▸")}  {section.Title}",
                 () => Ui($"section {section.Key} {(expanded ? "off" : "on")}"));
             toggle.Alignment = HorizontalAlignment.Left;
-            group.AddChild(toggle);
+            var card = InformationUi.Section(toggle, expanded, attention, out var rows);
             if (expanded)
                 foreach (InformationRow row in section.Rows)
                 {
                     if (row.Action is { } action)
-                    {
-                        var link = InformationButton(row.Text, () => Ui(action));
-                        link.Alignment = HorizontalAlignment.Left;
-                        group.AddChild(link);
-                    }
-                    else group.AddChild(InformationLabel(row.Text));
+                        rows.AddChild(InformationUi.Link(row.Text, () => Ui(action)));
+                    else rows.AddChild(InformationLabel(row.Text));
                 }
-            _inspectionBody.AddChild(group);
+            _inspectionBody.AddChild(card);
         }
         RestoreInspectionScroll(scroll);
     }
@@ -766,6 +747,13 @@ public partial class Main
         {
             Tick = _world.Tick.Raw, Hash = _world.HashState().ToString("X16"),
             Theme = _lightUi ? "light" : "dark", Debug = _debugShown,
+            TextPercent = _textPercent, HelpVisible = _helpPanel.Visible, Help = Rect(_helpPanel),
+            HelpScroll = _helpScroll.ScrollVertical, HelpContent = Rect(_helpScroll),
+            SpeedLabel = _rungLabel.Text, PauseHighlighted = _pauseButton.ButtonPressed,
+            Sky = new { _skyArc.Minute, _skyArc.Daytime, X = _skyArc.Marker.X / _skyArc.Size.X, Y = _skyArc.Marker.Y / _skyArc.Size.Y },
+            Camera = new { Yaw = _yaw, Pitch = _pitch, Distance = _distance },
+            Fonts = InformationDescendants(_hud).OfType<Label>().Where(l => l.IsVisibleInTree())
+                .Select(l => new { l.Text, Size = l.GetThemeFontSize("font_size") }).ToArray(),
             Viewport = new { Width = GetViewport().GetVisibleRect().Size.X, Height = GetViewport().GetVisibleRect().Size.Y },
             Selected = RowId(_world.Buildings.Rows, _selectedBuilding), Household = RowId(_world.Households.Rows, _selectedHousehold),
             Pointer = new { X = GetViewport().GetMousePosition().X, Y = GetViewport().GetMousePosition().Y },
@@ -773,15 +761,18 @@ public partial class Main
             Road = RowId(_world.Roads.Segments.Rows, _selectedRoad),
             InspectorVisible = _inspector!.Visible, Inspector = Rect(_inspector),
             Hover = Rect(_pointerRow), DebugPanel = Rect(_debugPanel), ToolsVisible = _toolSlot.Visible, Tools = Rect(_toolSlot),
-            Console = Rect(_console), Pace = RungName(), Layer = _washing.ToString(),
+            Console = Rect(_console), ConsoleScroll = _consoleScroll.ScrollVertical, ConsoleContent = Rect(_consoleScroll), Pace = RungName(), Layer = _washing.ToString(),
             Tool = _verb.ToString(), LayersShown = _layersShown,
             Legend = _legendTitle.Visible ? $"{_legendTitle.Text} {_legendBody.Text}" : string.Empty,
             Refused = _refusalRow.Visible ? _refusalLabel.Text : string.Empty,
             Refusal = Rect(_refusalRow), Day = _dayLabel.Text, DayLength = _dayLengthLabel.Text,
             Scroll = _inspectionScroll.ScrollVertical, Expanded = _expanded,
             Text = _inspectionCaption, Synopsis = _hover.Text,
+            Inputs = InformationDescendants(_hud).OfType<LineEdit>().Where(f => f.IsVisibleInTree())
+                .Select(f => new { f.Text, Rect = Rect(f), Focused = f.HasFocus() }).ToArray(),
+            TunerVisible = _tuner.Visible, PoliciesVisible = _governing,
             Buttons = InformationDescendants(_hud).OfType<Button>().Where(b => b.IsVisibleInTree())
-                .Select(b => new { b.Text, Rect = Rect(b) }).ToArray(),
+                .Select(b => new { b.Text, Pressed = b.ButtonPressed, Rect = Rect(b) }).ToArray(),
         };
         System.IO.File.WriteAllText(Globalize(path), System.Text.Json.JsonSerializer.Serialize(state,
             InformationJson));

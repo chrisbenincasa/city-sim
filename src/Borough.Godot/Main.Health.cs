@@ -39,7 +39,7 @@ public partial class Main
         {
             _healthSummary = InformationPanel();
             var column = new VBoxContainer();
-            _healthSummaryText = InformationLabel("", 15); column.AddChild(_healthSummaryText);
+            _healthSummaryText = InformationLabel("", SecondaryPoints); column.AddChild(_healthSummaryText);
             column.AddChild(InformationButton("Care history →", () => Ui("health")));
             _healthSummary.AddChild(column);
             ThemeInformation();

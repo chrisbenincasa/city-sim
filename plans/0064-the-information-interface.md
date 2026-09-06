@@ -15,7 +15,7 @@ below is the next proposed sequence; individual open choices do not block indepe
 | 4 | Complete | Visible pause/resume and speed buttons with an unmistakable current state | `check-console.py` below |
 | 5 | Complete | Named map-layer picker and persistent legend | `check-console.py` below |
 | 6 | Complete | Clear active tool, mouse-accessible cancel and readable action refusals | `check-console.py` below |
-| 8 | Next: proposed | Larger text and shared sizing; keyboard help; visible camera controls | All text responds to sizing; help opens with `?`; rotate, tilt and zoom work with the mouse |
+| 8 | Complete | Larger text and shared sizing; keyboard help; visible camera controls | `check-discovery.py`; both themes at 1440 × 960 and 480 × 640, including 150% text and preference restoration after restart |
 | 9 | Direction agreed; interaction design next | Expandable tool browser, tool icons and contextual options; paint-to-zone with automatic subdivision | Choose, preview, paint and cancel without shortcuts; adding tools does not widen the console |
 | 10 | Proposed | Game menu: Settings, Save, Load, Quit, Help and Credits | Save/load continues the same city; failed loads preserve it; menu is usable entirely with the mouse |
 | 11 | Proposed | Citizen names and sex; Life Stage in inspection | Stable identity across replay/load and row reuse; inspection updates when the Household changes Stage |
@@ -33,8 +33,8 @@ Rows 8–12 promote the requested interface work, including tool icon assets and
 
 ## Proposed next passes — 2026-09-06
 
-These rows cover the player's ten requests. They are plans, not completed work. Preserve the chosen
-bottom console and both themes. Start with row 8 while resolving the Zoning and naming choices.
+These rows cover the player's ten requests. Row 8 is built; rows 9–12 remain planned. Preserve the
+chosen bottom console and both themes. Row 9 starts with the focused tool and Zoning design choices below.
 
 **8 — Readability and discovery (requests 2, 6, 8).** Increase text by roughly 15–20%, PROVISIONAL,
 and use shared typography roles across the console, inspector, tooltips and auxiliary panels.
@@ -192,6 +192,28 @@ belong in Activities: a full stock is not, by itself, a warning. Missing subject
 message instead of resolving a recycled slot. `Main.CloseInspection` also clears selection when the
 tuner creates a new World.
 
+## Row 8 — implemented 2026-09-06
+
+`Main.Discovery` owns shared typography roles, the saved text-size preference, Help and the shortcut
+catalogue used by keyboard actions and camera buttons. The default is 118%, PROVISIONAL; Help offers
+100–150% and Reset size. Settings can reuse this preference when row 10 is built. Help leaves pace
+unchanged, consumes map clicks, and keeps its heading and size controls above scrolling content.
+Escape closes Help, then the frontmost auxiliary panel, then inspection, then the editing tool.
+Focused text inputs retain their keys. Auxiliary panels now scroll within the viewport. An overfull
+console scrolls its controls vertically while reserving inspection space. The pointer reading and
+refusal stay fixed beneath them; the existing tool tray still scrolls horizontally.
+
+`check-discovery.py` exercises actual button rectangles, injected keys and wheel input through the
+socket. It checks camera movement, text changes, Help scrolling and shielding, focused input, Escape
+order, inspector coexistence, both themes and window sizes, Help at a running pace, and an expanded
+console with tools and layers at maximum text size. Run it with
+an additional `128` argument after restarting Godot to verify the preference it leaves saved; that
+check restores 118%. `check-console.py` and `check-information.py` also passed, as did the Godot Debug
+build and the assertion lane. Captures are under `artifacts/hud-live/discovery-*.png`.
+
+At 480 × 640 with 150% text, the inspector and console remain bounded but leave little city visible.
+The scalable tool browser remains row 9; this pass retains the existing tool tray.
+
 ## Verification
 
 Build Debug before launching Godot:
@@ -222,3 +244,22 @@ inspector stays open and un-covered, and a bounded console clear of the inspecto
 links, both themes and narrow layouts. `ui map-press X Y` exercises viewport clicks with Look held;
 real selections record subject ids. `road-lifecycle.drive` watches removal and replacement without
 letting the inspector adopt a recycled slot.
+
+
+## Review — pace, clock and visual hierarchy
+
+The player requested speed at the left, play/pause between the slower and faster controls, a
+highlighted pause state instead of a separate “paused” label, and removal of “UNDER POINTER.”
+The continuous day/night path is agreed: dawn at the left, daylight above the horizon and night
+below. It is a clock diagram, not the moon’s physical position in the sky.
+
+Typography is reduced to metadata, body/controls and titles. The player selected **Civic blue**
+from `artifacts/visual-study/interface-palettes/index.html`. `InformationUi` owns the shared light/dark
+palette, text roles, spacing, buttons, links and section cards; the inspector and Help compose those
+components. New screens inherit the shared Theme. Blue marks sections and active controls; amber
+marks blocked activity and refusals.
+
+`check-sky.py` checks the marker at 05:00, 06:00, noon, 18:00 and midnight in fresh driven runs.
+The console check also asserts pace order, pause highlight and absence of the removed captions.
+Console scrollbar space is reserved even when hidden: changing its available width while the
+layer picker wrapped produced an unbounded Godot layout queue at the new text sizes.

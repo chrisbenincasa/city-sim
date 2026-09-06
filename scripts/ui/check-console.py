@@ -54,10 +54,15 @@ command('hold look')
 # ---- row 4: the pace changes entirely with the mouse, and the console says what the city is doing.
 state = read('console-paused')
 assert state['Pace'] == 'paused', state['Pace']
-assert state['DayLength'] == '', state['DayLength']       # the rung already says the word
+assert state['DayLength'] == '', state['DayLength']
+assert state['SpeedLabel'] == '1x' and state['PauseHighlighted']
+assert not any(f['Text'] in ['paused', 'UNDER POINTER'] for f in state['Fonts'])
+buttons = {b['Text']: b for b in state['Buttons']}
+assert buttons['◀◀']['Rect']['X'] < buttons['▶']['Rect']['X'] < buttons['▶▶']['Rect']['X']
 press(state, '▶')                                         # resume, which is not the ▶▶ beside it
 state = read('console-running')
 assert state['Pace'] == '1x', state['Pace']
+assert not state['PauseHighlighted']
 assert 'a Day in' in state['DayLength'], state['DayLength']
 faster = state['Pace']
 press(state, '▶▶')
