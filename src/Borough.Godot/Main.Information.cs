@@ -306,7 +306,18 @@ public partial class Main
         if (words.Length == 0) return;
         switch (words[0])
         {
-            case "close" when words.Length == 1: CloseInspection(); break;
+            case "health" when words.Length == 1:
+                _healthInspection = true;
+                _selectedGround = (new Tiles(0), new Tiles(0));
+                _selectedHousehold = default;
+                _selectedBuilding = default;
+                _selectedRoad = default;
+                _roadParent = default;
+                _inspectionSignature = string.Empty;
+                RefreshInspection(true);
+                LayoutInformation();
+                break;
+            case "close" when words.Length == 1: _healthInspection = false; CloseInspection(); break;
             case "back" when words.Length == 1:
                 if (_selectedHousehold.IsNone && !_roadParent.IsNone)
                 {
@@ -426,7 +437,7 @@ public partial class Main
                 GetWindow().Mode = Window.ModeEnum.Windowed;
                 GetWindow().Size = new Vector2I(w, h);
                 break;
-            default: _refused = "ui: use close, back, theme light|dark, debug on|off, tools on|off, layers on|off, building ID, road ID, frontage ID, household ID, section KEY on|off, point EAST NORTH, scroll PIXELS, read PATH, press X Y, or size WIDTH HEIGHT (minimum 480 × 640)."; break;
+            default: _refused = "ui: use health, close, back, theme light|dark, debug on|off, tools on|off, layers on|off, building ID, road ID, frontage ID, household ID, section KEY on|off, point EAST NORTH, scroll PIXELS, read PATH, press X Y, or size WIDTH HEIGHT (minimum 480 × 640)."; break;
         }
         LayoutInformation();
     }
@@ -448,6 +459,7 @@ public partial class Main
 
     private void CloseInspection()
     {
+        _healthInspection = false;
         _selectedBuilding = default;
         _selectedHousehold = default;
         _selectedGround = null;
@@ -546,7 +558,9 @@ public partial class Main
         var sections = new List<InformationSection>();
         string title, identity;
         _inspectionBack.Visible = !_selectedHousehold.IsNone || !_roadParent.IsNone;
-        if (!_selectedHousehold.IsNone)
+        if (_healthInspection)
+            HealthInformation(sections, out title, out identity);
+        else if (!_selectedHousehold.IsNone)
             HouseholdInformation(sections, out title, out identity);
         else if (!_selectedRoad.IsNone)
             RoadInformation(sections, out title, out identity);
@@ -560,6 +574,7 @@ public partial class Main
             var rows = new List<string>();
             Underfoot(rows, CellGrid.ToCells(ground.East), CellGrid.ToCells(ground.North));
             sections.Add(new("ground", "Ground", true, rows.Select(t => new InformationRow(t)).ToList()));
+            AddAreaHealth(sections, ground.East.Raw, ground.North.Raw);
         }
         string signature = title + identity + string.Join("\n", sections.Select(s => s.Key + s.Title + string.Join("\n", s.Rows.Select(r => r.Text + r.Action))));
         _inspectionCaption = title + "\n" + identity + "\n" + string.Join("\n", sections.Select(s => s.Title + "\n" + string.Join("\n", s.Rows.Select(r => r.Text))));
@@ -622,6 +637,7 @@ public partial class Main
         [new(_world.Buildings.IsAbandoned(slot) ? "Abandoned" : evidence.IsDeclared ? "Occupied places: " + occupants + " / " + evidence.DeclaredOccupancy : "Kind no longer declared")]));
         sections.Add(Attention(evidence, default, false));
         sections.Add(Attention(evidence, default, false, true));
+        AddFacilityHealth(sections, slot);
         var households = new List<InformationRow>();
         foreach (Handle<Household> household in evidence.Occupants.Span)
         {
@@ -713,6 +729,7 @@ public partial class Main
             sections.Add(new("needs", "Household Needs", false,
                 [new($"Sustenance: {_world.Households.Sustenance[slot]:N0}\n0 is ideal; negative values indicate a deficit.")]));
         }
+        AddHouseholdHealth(sections, slot);
         var citizens = new List<InformationRow>();
         Money? balance = null;
         foreach (int member in _world.Members.Walk(slot))

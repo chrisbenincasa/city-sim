@@ -266,6 +266,7 @@ public partial class Main
             // second site would be a second answer to "what colour is this Building".
             Color paint = _washing switch
             {
+                Wash.Health => HealthColour(slot).SrgbToLinear(),
                 Wash.Rung => Patterns[RungOf(lot)].SrgbToLinear(),
                 Wash.Age => Shade(Vintage(slot)).SrgbToLinear(),
                 _ => (table.IsAbandoned(slot) ? Derelict : Rendered(shape)).SrgbToLinear(),
@@ -274,7 +275,7 @@ public partial class Main
             // ⚠ The roof takes the SAME colour under a debug wash. A slate that stayed slate would
             // put a second, meaningless hue on top of every reading, and from the shallow tilt the
             // shell opens at the roof is most of what a tall Building shows.
-            Color slate = _washing is Wash.Rung or Wash.Age
+            Color slate = _washing is Wash.Rung or Wash.Age or Wash.Health
                 ? paint
                 : Slate(shape).SrgbToLinear();
             float lit = table.IsAbandoned(slot) ? 0f : taken;
