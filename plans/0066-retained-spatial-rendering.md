@@ -1,4 +1,4 @@
-# 0065 — Retained spatial rendering
+# 0066 — Retained spatial rendering
 
 Owns the shell's rendering work and diagnostics, split from `0063` at the player's request.
 The instance-cap repair is implemented; the broader performance work below remains open.

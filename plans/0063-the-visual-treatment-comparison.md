@@ -185,10 +185,10 @@ Update these boxes here as work lands; record player judgements in `preferences.
 - [x] **Stop the masonry repeating** — bond-snapped stochastic tiling in `buildings.gdshader`,
   landed 2026-09-06. **F5** owns the finding and the reason the generic technique needed changing.
 - [x] **Remove the fixed instance ceiling and retain spatial batches** — implemented in
-  [`0065`](0065-retained-spatial-rendering.md), which owns verification and the remaining renderer
+  [`0066`](0066-retained-spatial-rendering.md), which owns verification and the remaining renderer
   costs. The paused camera-sorted prototype is superseded by that implementation.
 - [ ] **Zoom-dependent rendering detail and update cadence** — requested by the player 2026-09-06;
-  owned by [`0065`](0065-retained-spatial-rendering.md). Use projected screen size to simplify distant
+  owned by [`0066`](0066-retained-spatial-rendering.md). Use projected screen size to simplify distant
   geometry, materials, shadows and Traveller presentation; refresh distant visual state less often
   where the delay is imperceptible. Bound that delay, refresh when approaching or inspecting, and
   use hysteresis to prevent detail levels oscillating. Camera distance must never reduce simulation
@@ -197,7 +197,7 @@ Update these boxes here as work lands; record player judgements in `preferences.
   Thresholds and cadences remain PROVISIONAL until measured.
 - [ ] **Spatial picking** — query nearby Chunks before testing individual geometry for hover or
   selection. Preserve nearest-hit and tie-breaking behaviour; verify picking after edits and
-  detail transitions. The batch query is implemented; `0065` owns verification and remaining costs.
+  detail transitions. The batch query is implemented; `0066` owns verification and remaining costs.
 - [ ] **Event-driven UI refresh** — update panels when their inputs change and throttle aggregate
   readouts, avoiding per-frame string construction and full-world summaries. Selection and player
   actions must refresh promptly; bounded display delays must not conceal stale information.
