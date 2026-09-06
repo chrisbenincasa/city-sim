@@ -521,21 +521,17 @@ public partial class Main
         _cursor.Multimesh.VisibleInstanceCount = 1;
     }
 
-    /// <summary>Re-states every panel's point size against the window as it now is.</summary>
-    /// <remarks>
-    /// ⚠ <b>It replaces <see cref="LabelSettings"/> rather than editing it</b>, because the two
-    /// Labels are given separate instances and a shared one would tie the hover's size to the
-    /// readout's the first time somebody reached for the obvious tidy-up. The Controls are the
-    /// other way round on purpose — <b>one shared <see cref="Theme"/></b>, because there is no
-    /// reason a Button in the tool strip should ever be a different size from a Button in the
-    /// Policy panel, and a shared object is what makes that unsayable rather than merely untrue.
-    /// </remarks>
+    // Shared typography retains each label’s role when the preference or viewport changes.
     private void Retype()
     {
         _readout.LabelSettings = new LabelSettings { FontSize = Typed(ReadoutPoints) };
         _hover.LabelSettings = null;
         _hover.AddThemeFontSizeOverride("font_size", Typed(HoverPoints));
         _type.DefaultFontSize = Typed(ControlPoints);
+        _type.SetFontSize("font_size", "TooltipLabel", Typed(ControlPoints));
+        foreach (Node node in InformationDescendants(_hud))
+            if (node is Label label && label.HasMeta("type_points"))
+                label.AddThemeFontSizeOverride("font_size", Typed((int)label.GetMeta("type_points")));
         LayoutInformation();
     }
 
@@ -556,7 +552,7 @@ public partial class Main
     /// <b>It stays two points under the readout</b> so the two panels keep their order of
     /// importance — the city's state is the one you read without looking for it.
     /// </remarks>
-    private const int HoverPoints = 16;
+    private const int HoverPoints = BodyPoints;
 
     /// <summary>Every Control panel's size at the reference window, in points.</summary>
     /// <remarks>
@@ -567,7 +563,7 @@ public partial class Main
     /// <see cref="HoverPoints"/> rather than the readout's</b>: these are things you look at when
     /// you want them, which is the hover's standing and not the readout's.
     /// </remarks>
-    private const int ControlPoints = 16;
+    private const int ControlPoints = BodyPoints;
 
     /// <summary>The window height every size above is stated at.</summary>
     private const float ReferenceHeight = 1080f;
@@ -626,7 +622,7 @@ public partial class Main
         }
 
         return Mathf.RoundToInt(
-            points * Mathf.Clamp(tall / ReferenceHeight, SmallestScale, LargestScale));
+            points * _textPercent / 100f * Mathf.Clamp(tall / ReferenceHeight, SmallestScale, LargestScale));
     }
 
     /// <summary>The panel, which is every string a human reads (<c>adr/0002</c>).</summary>

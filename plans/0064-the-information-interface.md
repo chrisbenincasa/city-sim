@@ -4,7 +4,8 @@
 
 This plan owns the UX work queue. Keep outstanding work, agreed scope changes and completion checks
 here as decisions develop; recommendations in conversation must be carried into this queue.
-Queued work starts with design agreement before implementation.
+Queued work starts with design agreement before implementation. The player's 2026-09-06 expansion
+below is the next proposed sequence; individual open choices do not block independent work.
 
 | Order | Status | Work | Completion check |
 |---|---|---|---|
@@ -14,6 +15,11 @@ Queued work starts with design agreement before implementation.
 | 4 | Complete | Visible pause/resume and speed buttons with an unmistakable current state | `check-console.py` below |
 | 5 | Complete | Named map-layer picker and persistent legend | `check-console.py` below |
 | 6 | Complete | Clear active tool, mouse-accessible cancel and readable action refusals | `check-console.py` below |
+| 8 | Complete | Larger text and shared sizing; keyboard help; visible camera controls | `check-discovery.py`; both themes at 1440 × 960 and 480 × 640, including 150% text and preference restoration after restart |
+| 9 | Direction agreed; interaction design next | Expandable tool browser, tool icons and contextual options; paint-to-zone with automatic subdivision | Choose, preview, paint and cancel without shortcuts; adding tools does not widen the console |
+| 10 | Proposed | Game menu: Settings, Save, Load, Quit, Help and Credits | Save/load continues the same city; failed loads preserve it; menu is usable entirely with the mouse |
+| 11 | Proposed | Citizen names and sex; Life Stage in inspection | Stable identity across replay/load and row reuse; inspection updates when the Household changes Stage |
+| 12 | Proposed | Vary Building setbacks within the authoritative footprint model | Visible variation without parcel escapes or disagreement between drawing, picking and occupied ground |
 | 7 | Later: design | Citywide “what needs attention,” with links into the existing inspectors | Agree which evidence qualifies, how repeated issues are grouped and how resolved issues leave the view; demonstrate discovering an issue and opening its affected subject |
 
 Rows 4–6 were one implementation slice and it is built. Its shared acceptance check — pause, change
@@ -22,9 +28,80 @@ both themes and at narrow sizes, with hover, inspector navigation and the indepe
 intact — is `scripts/ui/check-console.py`, and it presses real button rectangles rather than issuing
 the actions, so a control that is drawn but unreachable fails exactly as a missing one does.
 
-Broader dashboards, graphs, notifications, persistent Pins, Policy/tuner redesign and new art assets
-remain deferred. They are not commitments in this queue; promote them explicitly when a concrete
-player task calls for them. Row 7 expands the follow-up scope beyond the completed inspection pass.
+Broader dashboards, graphs, notifications, persistent Pins and tuner redesign remain deferred.
+Rows 8–12 promote the requested interface work, including tool icon assets and access to Policies.
+
+## Proposed next passes — 2026-09-06
+
+These rows cover the player's ten requests. Row 8 is built; rows 9–12 remain planned. Preserve the
+chosen bottom console and both themes. Row 9 starts with the focused tool and Zoning design choices below.
+
+**8 — Readability and discovery (requests 2, 6, 8).** Increase text by roughly 15–20%, PROVISIONAL,
+and use shared typography roles across the console, inspector, tooltips and auxiliary panels.
+`Main.Information.InformationLabel` and the debug label currently override the shared sizing;
+changing `Main.Readout`'s point constants alone will miss them. Persist a text-size preference and
+resize containers with it. Add a scrollable Help window opened by `?` (including Shift+/), with
+mouse gestures and shortcuts grouped by task. Escape closes the topmost window first; typing in
+an input must not fire game shortcuts. Keep shortcut descriptions and bindings together.
+Add a compact camera group with rotate left/right, tilt up/down and zoom in/out; show shortcuts
+in tooltips and reuse the existing camera actions. Help and modal panels must consume clicks.
+
+**9 — Tools that can grow (requests 3, 4, 5, 9).** A compact Tools button opens a browser above the
+console. Categories: Roads, Zoning, Services and Policies. The console retains the selected tool
+and Cancel; the browser owns tool choices and their contextual options. Services can gain Schools,
+Health, utilities and other special Building kinds as they become available. Use scrollable groups
+and search when the list warrants it; do not put every future tool permanently in the console.
+Policies opens its own panel. Keep developer Ruleset editing separate from ordinary tool options.
+
+Use a consistent SVG icon family with visible labels, selected states and shortcut tooltips;
+icons alone are insufficient. A tool definition should supply its label, icon, category,
+availability, shortcut, options and action so browser and help cannot quietly disagree.
+
+**Agreed 2026-09-06:** replace Subdivide with the familiar paint-to-zone interaction. The player
+chooses permitted development and paints land; subdivision happens automatically. This supersedes
+the proposed block-click interaction above. `LotSubdivider.SubdivideAt` is an implementation starting
+point, not a constraint on the brush: it currently creates Lots and does not repaint claimed frontage.
+
+Tools needing behavioural decisions get focused design sessions before implementation. For Zoning,
+settle brush shape/size, snapping and paintable ground, drag preview and commit/cancel, erasing,
+rezoning and treatment of existing Buildings. Preserving existing Buildings while new permissions
+govern future development remains a proposal. These details are open; the paint-to-zone direction is
+settled. Refusals and no-ops must explain the affected ground, not expose bitmasks or TOML declarations.
+Other tools' behaviour is not approved merely by assigning them a category in the browser.
+
+**10 — Game menu (request 10).** A visible menu button opens Save, Load, Settings, Help, Credits and
+Quit. Settings contains text size and theme initially. Opening this menu pauses the city and closing
+it restores the previous pace. Help alone leaves the pace unchanged. Load and Quit protect unsaved
+progress; saving reports success only after writing completes. Use the Core save mechanism already
+used by `Borough.Headless.Session`, with a file picker, explicit errors and safe replacement of saves.
+Validate a loaded world before replacing the live one, then rebuild rendering and clear stale
+selection. Preserve the required Ruleset/name data. Credits should read a maintained asset list
+with creator, source and licence information, including the 3D models, and scroll as it grows.
+
+**11 — People (request 7).** Draw name identity and sex at Citizen creation, including arrivals and
+births, through deterministic distinct draws. Keep numeric identity in Core and name text in content
+resolved by the shell. Persist identity so a renamed/reordered name pool cannot rename an existing
+Citizen. Names need not be unique. Sex is descriptive in this pass, with no new behavioural effects.
+**Open:** the setting of the first name pool; contemporary English-language names are the provisional
+fallback. Sex categories and distribution need a concrete content choice before this row starts.
+Show names consistently wherever Citizens appear. Show the current Household Life Stage under that
+label: `HouseholdTable.LifeStage` owns it, and `CitizenTable.Age` is not a live age clock. Do not invent
+a personal age or Stage. Undeclared Life Stages get an explicit unavailable reading.
+
+**12 — Setbacks (request 1).** Vary front-wall distance by built form, with coherent attached
+frontages and more variation among detached Buildings. Ranges are PROVISIONAL. First trace footprint
+derivation and the imported-model placement in `Main.Assets`; `Main.Massing.Buildings` reads the
+Lot footprint directly. Keep the footprint within its parcel and preserve coherent corner geometry.
+Do not shift only the mesh. Prefer shifting an unchanged footprint where room permits; any resizing
+must also update the simulation quantities derived from its area. Variation must survive reload and
+remain stable while the Building stands. Review street-level and wider views before tuning further.
+
+**Checks per pass.** Build Godot Debug and use the drive skill to inspect the result. Extend the
+existing real-button UI checks for new interactions; check both themes at 1440×960 and 480×640,
+including enlarged text, scrolling, focus, Escape, tool cancellation and inspector coexistence.
+Exercise Save → Load → continue against an uninterrupted run. Identity and footprint changes need
+targeted determinism, save/reload and invariant checks. Run `scripts/test.sh` before committing;
+update golden fixtures through their recorder when simulation changes move the State Hash.
 
 ## Agreed design and implementation
 
@@ -114,6 +191,28 @@ Supply shortfalls appear in the main explanation. Scheduled activities and waits
 belong in Activities: a full stock is not, by itself, a warning. Missing subjects retain an explicit
 message instead of resolving a recycled slot. `Main.CloseInspection` also clears selection when the
 tuner creates a new World.
+
+## Row 8 — implemented 2026-09-06
+
+`Main.Discovery` owns shared typography roles, the saved text-size preference, Help and the shortcut
+catalogue used by keyboard actions and camera buttons. The default is 118%, PROVISIONAL; Help offers
+100–150% and Reset size. Settings can reuse this preference when row 10 is built. Help leaves pace
+unchanged, consumes map clicks, and keeps its heading and size controls above scrolling content.
+Escape closes Help, then the frontmost auxiliary panel, then inspection, then the editing tool.
+Focused text inputs retain their keys. Auxiliary panels now scroll within the viewport. An overfull
+console scrolls its controls vertically while reserving inspection space. The pointer reading and
+refusal stay fixed beneath them; the existing tool tray still scrolls horizontally.
+
+`check-discovery.py` exercises actual button rectangles, injected keys and wheel input through the
+socket. It checks camera movement, text changes, Help scrolling and shielding, focused input, Escape
+order, inspector coexistence, both themes and window sizes, Help at a running pace, and an expanded
+console with tools and layers at maximum text size. Run it with
+an additional `128` argument after restarting Godot to verify the preference it leaves saved; that
+check restores 118%. `check-console.py` and `check-information.py` also passed, as did the Godot Debug
+build and the assertion lane. Captures are under `artifacts/hud-live/discovery-*.png`.
+
+At 480 × 640 with 150% text, the inspector and console remain bounded but leave little city visible.
+The scalable tool browser remains row 9; this pass retains the existing tool tray.
 
 ## Verification
 

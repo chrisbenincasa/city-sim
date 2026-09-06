@@ -131,6 +131,7 @@ internal sealed partial class SkyArc : Control
 public partial class Main
 {
     private PanelContainer _console = null!;
+    private ScrollContainer _consoleScroll = null!;
     private VBoxContainer _consoleBody = null!, _layerGroup = null!;
     private HFlowContainer _consoleTop = null!;
     private HBoxContainer _pointerRow = null!;
@@ -211,13 +212,13 @@ public partial class Main
         _slowerButton = ConsoleButton("◀◀", () => Apply(new DriveCommand(
             _world.Tick.Raw, DriveVerb.Speed, Math.Max(1, _rung - 1), null)));
         _slowerButton.TooltipText = "Slower ([)";
-        _rungLabel = ConsoleLabel(string.Empty, 19);
+        _rungLabel = ConsoleLabel(string.Empty, HeadingPoints);
         _rungLabel.HorizontalAlignment = HorizontalAlignment.Center;
         _rungLabel.CustomMinimumSize = new Vector2(46, 0);
         _fasterButton = ConsoleButton("▶▶", () => Apply(new DriveCommand(
             _world.Tick.Raw, DriveVerb.Speed, Math.Min(Ladder.Length - 1, _rung + 1), null)));
         _fasterButton.TooltipText = "Faster (])";
-        _dayLengthLabel = ConsoleLabel(string.Empty, 13);
+        _dayLengthLabel = ConsoleLabel(string.Empty, SecondaryPoints);
         pace.AddChild(_pauseButton);
         pace.AddChild(_slowerButton);
         pace.AddChild(_rungLabel);
@@ -229,7 +230,7 @@ public partial class Main
         var sky = new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
         sky.AddThemeConstantOverride("separation", 8);
         _skyArc = new SkyArc { CustomMinimumSize = new Vector2(124, 36), MouseFilter = Control.MouseFilterEnum.Ignore };
-        _dayLabel = ConsoleLabel(string.Empty, 13);
+        _dayLabel = ConsoleLabel(string.Empty, SecondaryPoints);
         sky.AddChild(_skyArc);
         sky.AddChild(_dayLabel);
         _consoleTop.AddChild(sky);
@@ -288,7 +289,7 @@ public partial class Main
         _layerGroup.AddChild(layerHead);
         var legend = new VBoxContainer();
         legend.AddThemeConstantOverride("separation", 4);
-        _legendTitle = ConsoleLabel(string.Empty, 11);
+        _legendTitle = ConsoleLabel(string.Empty, CaptionPoints);
         // ⚠ A STATED WIDTH AND NOT AN EXPANDING ONE. A ramp drawn the width of the console reads as
         // a rule between two rows rather than as a scale, which is the opposite of what a legend is
         // for -- it was 1,300 px in the drawings before anybody noticed.
@@ -298,7 +299,7 @@ public partial class Main
             SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin,
             MouseFilter = Control.MouseFilterEnum.Ignore,
         };
-        _legendBody = ConsoleLabel(string.Empty, 13);
+        _legendBody = ConsoleLabel(string.Empty, SecondaryPoints);
         _legendBody.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         _legendBody.CustomMinimumSize = new Vector2(300, 0);
         _legendBody.SizeFlagsVertical = Control.SizeFlags.ShrinkBegin;
@@ -317,14 +318,23 @@ public partial class Main
         trim.AddChild(_themeButton);
         trim.AddChild(_debugButton);
         trim.AddChild(_toolsButton);
+        trim.AddChild(ConsoleButton("Help ?", () => Ui("help on")));
         _consoleTop.AddChild(trim);
+        _consoleTop.AddChild(CameraControls());
 
-        _consoleBody.AddChild(_consoleTop);
+        _consoleTop.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        _consoleScroll = new ScrollContainer
+        {
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+            VerticalScrollMode = ScrollContainer.ScrollMode.Auto,
+        };
+        _consoleScroll.AddChild(_consoleTop);
+        _consoleBody.AddChild(_consoleScroll);
 
         // ---- the pointer reading, and any refusal ------------------------------------------------
         _pointerRow = new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
         _pointerRow.AddThemeConstantOverride("separation", 9);
-        _pointerHead = ConsoleLabel("UNDER POINTER", 11);
+        _pointerHead = ConsoleLabel("UNDER POINTER", CaptionPoints);
         _pointerHead.CustomMinimumSize = new Vector2(112, 0);
         _hover.LabelSettings = null;
         _hover.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
@@ -335,8 +345,8 @@ public partial class Main
         _refusalRow = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         var refusal = new VBoxContainer();
         refusal.AddThemeConstantOverride("separation", 3);
-        var refusalHead = ConsoleLabel("REFUSED", 11);
-        _refusalLabel = ConsoleLabel(string.Empty, 13);
+        var refusalHead = ConsoleLabel("REFUSED", CaptionPoints);
+        _refusalLabel = ConsoleLabel(string.Empty, SecondaryPoints);
         _refusalLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         refusal.AddChild(refusalHead);
         refusal.AddChild(_refusalLabel);
@@ -389,7 +399,7 @@ public partial class Main
     /// console every reading is short and the container is asking each child how narrow it can be.
     /// A wrapping Label answers <em>one character</em>, and the console grew to 460 px.
     /// </remarks>
-    private static Label ConsoleLabel(string text, int size)
+    private Label ConsoleLabel(string text, int size)
     {
         var label = new Label
         {
@@ -399,7 +409,7 @@ public partial class Main
             SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
             MouseFilter = Control.MouseFilterEnum.Ignore,
         };
-        label.AddThemeFontSizeOverride("font_size", size);
+        SizeLabel(label, size);
         return label;
     }
 

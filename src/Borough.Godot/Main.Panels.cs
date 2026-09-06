@@ -261,7 +261,7 @@ public partial class Main
         _tunerStatus = new Label { Text = "tab closes. a regenerate is a NEW city, not a reload." };
         box.AddChild(_tunerStatus);
 
-        _tuner.AddChild(box);
+        ScrollAuxiliary(_tuner, box);
         layer.AddChild(_tuner);
     }
 
@@ -351,7 +351,7 @@ public partial class Main
         _policyStatus = new Label { Text = "a governed amount is saved state and survives a reload." };
 
         box.AddChild(_policyStatus);
-        _policyPanel.AddChild(box);
+        ScrollAuxiliary(_policyPanel, box);
         layer.AddChild(_policyPanel);
     }
 
@@ -464,6 +464,7 @@ public partial class Main
 
         if (_governing)
         {
+            _hud.MoveChild(_policyPanel, -1);
             ShowPolicies();
         }
     }

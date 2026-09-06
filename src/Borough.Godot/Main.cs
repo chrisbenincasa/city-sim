@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Globalization;
 using System.IO;
 using Borough.Core;
@@ -1420,6 +1421,7 @@ public partial class Main : Node3D
 
     public override void _UnhandledInput(InputEvent @event)
     {
+        if (_helpPanel.Visible) return;
         if (@event is InputEventMouseButton button)
         {
             if (button is { Pressed: true, ButtonIndex: MouseButton.WheelUp })
@@ -1545,148 +1547,16 @@ public partial class Main : Node3D
             return;
         }
 
-        // The keys with no DriveVerb behind them, which is what puts them ahead of the command
-        // switch rather than in it. The tuner's two are an editing UI rather than a view of the
-        // city, and a script has no panel to open.
-        //
-        // 🔴 THE FOUR VERB KEYS USED TO BE AMONG THEM, ON THE GROUND THAT HOLDING A TOOL MOVES
-        // NOTHING IN THE WORLD. That was true and it made a recorded session UNREPLAYABLE: a click
-        // means whatever is held, so a session recording the click and not the choice replays as a
-        // different verb. ***What a recording needs is not everything that changed the city, it is
-        // everything a replay has to know*** -- and the tool is the second half of every click.
-        switch (key.Keycode)
-        {
-            case Key.Escape:
-                Ui("close");
+        if (GetViewport().GuiGetFocusOwner() is LineEdit or TextEdit || _helpPanel.Visible) return;
+        if (key.CtrlPressed || key.AltPressed || key.MetaPressed || key.Echo) return;
+        foreach (var shortcut in Shortcuts())
+            if (shortcut.Keys.Contains(key.Keycode))
+            {
+                shortcut.Action();
+                GetViewport().SetInputAsHandled();
                 return;
+            }
 
-            case Key.F3:
-                Ui(_debugShown ? "debug off" : "debug on");
-                return;
-
-            case Key.Tab:
-                _tuner.Visible = !_tuner.Visible;
-
-                return;
-
-            case Key.Enter:
-            case Key.KpEnter:
-                // Only while the panel is open, so the key is free everywhere else.
-                if (_tuner.Visible)
-                {
-                    Regenerate();
-                }
-
-                return;
-
-            case Key.V:
-                Apply(Held("look", 0));
-
-                return;
-
-            case Key.Z:
-                // ⚠ PRESSING IT AGAIN CYCLES THE ZONE rather than doing nothing, which is what makes
-                // a Ruleset with two [[zone_rule]]s reachable without a second key. A zone word is a
-                // BITMASK of which rules may build (ZoneRuleDefinition.Admits), so what the brush
-                // paints is one rule's permission and never a category the city knows about.
-                Apply(Held(
-                    "zone",
-                    _verb == Verb.Zone && _world.Rules.ZoneRules.Length > 0
-                        ? (_zoneChoice + 1) % _world.Rules.ZoneRules.Length
-                        : 0));
-
-                return;
-
-            case Key.X:
-                Apply(Held("street", 0));
-
-                return;
-
-            case Key.B:
-                Apply(Held("demolish", 0));
-
-                return;
-
-            case Key.S:
-                // ⚠ CYCLES ON REPEAT, exactly as Z does, because a Ruleset may declare more than one
-                // `serves` kind and there is no second key to spend on choosing between them.
-                Apply(Held(
-                    "service", NextService(_verb == Verb.Service ? _serviceKind : (byte)0)));
-
-                return;
-
-            case Key.P:
-                // THE GOVERNING PANEL, and it is deliberately NOT the tuner. The tuner regenerates a
-                // world from Ruleset text -- world-creation, a NEW city -- while this sets a declared
-                // Policy's amount on the city that is running, through a Command, at a Tick, in the
-                // order a replay reproduces. ***One panel edits the world's premises and the other
-                // plays the game***, and putting them on one key would blur exactly that line.
-                Govern();
-
-                return;
-
-            case Key.W:
-                Record();
-
-                return;
-        }
-
-        // 🔴 A KEY TOGGLES AND A COMMAND IS ABSOLUTE, SO THE CURRENT STATE IS READ HERE AND NEVER
-        // IN Apply. g asks for the opposite of what the carriageway is doing; space asks to resume
-        // if the clock is stopped. That reading is the whole difference between the two surfaces,
-        // and keeping it on this side is what leaves exactly one applier to go wrong.
-        //
-        // ⚠ The Tick is the world's rather than zero, and it is unused today. It is what tier 4
-        // needs: a socket that stamps each arriving command with the Tick it landed on writes a
-        // drive script, which is what makes an interactive session replayable as a batch one.
-        DriveCommand? command = key.Keycode switch
-        {
-            Key.Q => Made(DriveVerb.Turn, -1),
-            Key.E => Made(DriveVerb.Turn, 1),
-
-            // ⚠ THE KEYBOARD STEPS AND THE VERB IS STILL ABSOLUTE, which is this file's rule for
-            // every toggle: read what is held, work out where it goes, and ask for that. So a
-            // recorded session replays the ANGLE and not the keypress, and a step size changed
-            // later cannot re-aim somebody's old script.
-            Key.R => Made(DriveVerb.Tilt, Tipped(5)),
-            Key.F => Made(DriveVerb.Tilt, Tipped(-5)),
-            Key.L => Made(DriveVerb.Lens, _photographing ? 0 : 1),
-            Key.G => Made(DriveVerb.Roads, _roads.Visible ? 0 : 1),
-            Key.C => Made(DriveVerb.Cells, _cells.Visible ? 0 : 1),
-
-            // ⚠ THE KEY CYCLES AND THE VERB IS ABSOLUTE, which is this file's rule for every
-            // toggle. `o` asks for the next overlay by NAME, so a recorded session replays the
-            // layer somebody was looking at and not the number of times they pressed a key.
-            Key.O => new DriveCommand(_world.Tick.Raw, DriveVerb.Overlay, 0, Next()),
-            Key.Equal or Key.KpAdd => Made(DriveVerb.Zoom, 4),
-            Key.Minus or Key.KpSubtract => Made(DriveVerb.Zoom, -4),
-            Key.Space => Made(_rung == 0 ? DriveVerb.Resume : DriveVerb.Pause),
-            Key.Bracketleft => Made(DriveVerb.Speed, Math.Max(1, _rung - 1)),
-            Key.Bracketright => Made(DriveVerb.Speed, Math.Min(Ladder.Length - 1, _rung + 1)),
-            Key.Key1 => Made(DriveVerb.Speed, DesignSpeed),
-            Key.Key2 => Made(DriveVerb.Speed, DesignSpeed + 1),
-            Key.Key3 => Made(DriveVerb.Speed, DesignSpeed + 2),
-            Key.Key4 => Made(DriveVerb.Speed, DesignSpeed + 3),
-            _ => null,
-        };
-
-        if (command is not null)
-        {
-            Apply(command.Value);
-        }
-
-        DriveCommand Made(DriveVerb verb, int amount = 0) =>
-            new(_world.Tick.Raw, verb, amount, null);
-
-        string Next() => _washing switch
-        {
-            Wash.None => "pollution",
-            Wash.Pollution => "value",
-            Wash.Value => "sealing",
-            Wash.Sealed => "rung",
-            Wash.Rung => "age",
-            _ => "off",
-        };
     }
 
     /// <summary>
