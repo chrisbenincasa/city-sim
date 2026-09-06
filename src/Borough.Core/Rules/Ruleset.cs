@@ -853,6 +853,8 @@ public readonly record struct KindDefinition(
     /// </para>
     /// </remarks>
     public Need Serves { get; init; }
+    public WeeklyHours CareHours { get; init; }
+    public int BedPercent { get; init; }
 
     /// <summary>Whether a Building of this kind is attended for some Need.</summary>
     public bool IsService => Serves != Need.None;
@@ -3707,6 +3709,8 @@ public sealed class Ruleset
     public NeedRuleset Needs { get; init; } = NeedRuleset.None;
 
     public ShoppingRuleset Shopping { get; init; }
+    public SchoolRuleset School { get; init; }
+    public CareRuleset Care { get; init; }
 
     /// <summary>Which Need each Resource feeds, indexed by <c>resource - 1</c>.</summary>
     /// <remarks>
@@ -4163,6 +4167,8 @@ public sealed class Ruleset
             PolicyKeys = PolicyKeys,
             Needs = Needs,
             Shopping = Shopping,
+            School = School,
+            Care = Care,
             ResourceNeeds = ResourceNeeds,
             LifeStages = LifeStages,
         };

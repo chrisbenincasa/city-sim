@@ -69,4 +69,9 @@ public enum CitizenActivity : byte
     Travelling = 4,
     ShoppingTravelling = 5,
     ShoppingStopped = 6,
+    ServiceTravelling = 7,
+    ServiceStopped = 8,
+    AtSchool = 9,
+    InTreatment = 10,
+    InHospital = 11,
 }

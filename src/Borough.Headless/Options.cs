@@ -38,6 +38,7 @@ internal enum Mode
     /// </remarks>
     School,
     Shopping,
+    Care,
 
     /// <summary>
     /// Frames of the city as ASCII, Travellers over Buildings. <c>plans/0045</c>'s queue item 11a.
@@ -365,6 +366,8 @@ internal sealed class Options
     /// that half lives.
     /// </remarks>
     public int Schools { get; private init; } = DefaultSchools;
+    public int Clinics { get; private init; } = 2;
+    public int Hospitals { get; private init; } = 1;
 
     /// <summary>
     /// What <c>--schools</c> places when nobody says. <b>Deliberately too few to cover a city.</b>
@@ -540,6 +543,8 @@ internal sealed class Options
         bool stages = false;
         bool school = false;
         bool shopping = false;
+        bool care = false;
+        int clinics = 2, hospitals = 1;
         int schools = DefaultSchools;
         bool watch = false;
         int frames = DefaultFrames;
@@ -692,6 +697,8 @@ internal sealed class Options
                 // the run, but the reading is a per-Day FLOW off ServiceEngine, which is zero on
                 // every Tick that is not a Day boundary. A snapshot of an unstepped world would find
                 // the counters at their initial zero and report a city nobody had asked anything of.
+                case "--care":
+                    care = true; session = true; continue;
                 case "--shopping":
                     shopping = true;
                     session = true;
@@ -758,6 +765,14 @@ internal sealed class Options
 
             switch (flag)
             {
+                case "--clinics":
+                    if (!int.TryParse(value, out clinics) || clinics < 0 || clinics > 1000)
+                    { complaint = "--clinics must be between 0 and 1000"; return false; }
+                    break;
+                case "--hospitals":
+                    if (!int.TryParse(value, out hospitals) || hospitals < 0 || hospitals > 1000)
+                    { complaint = "--hospitals must be between 0 and 1000"; return false; }
+                    break;
                 case "--log":
                     log = value;
                     session = true;
@@ -1464,18 +1479,19 @@ internal sealed class Options
             return false;
         }
 
-        if (shopping && (rulesets.Count != 1 || log is not null || save is not null
+        if ((shopping || care) && (shopping && care || flood || rulesets.Count != 1 || log is not null || save is not null
             || school || stages || day || money || market || business || arrivals || landValue
             || parking || evidence || traffic || commute || trips || roads || morphology || zones
             || kinds || dump is not null || watch || schema || keyReference || census))
         {
-            complaint = "--shopping requires one --ruleset and cannot be combined with another run mode, save or log.";
+            complaint = "--shopping/--care requires one --ruleset and cannot be combined with another run mode, save or log.";
             return false;
         }
 
         options = new Options
         {
-            Mode = shopping ? Mode.Shopping
+            Mode = care ? Mode.Care
+                 : shopping ? Mode.Shopping
                  : keyReference ? Mode.KeyReference
                  : schema ? Mode.Schema
                  : day ? Mode.Day
@@ -1509,6 +1525,7 @@ internal sealed class Options
             Seed = seed,
             Citizens = citizens,
             Schools = schools,
+            Clinics = clinics, Hospitals = hospitals,
             Frames = frames,
             Ticks = ticks,
             HashEvery = hashEvery,
@@ -1535,6 +1552,9 @@ internal sealed class Options
           --seed N              run a fresh session with this seed and no commands
           --citizens N          Citizen sizing, for a fresh session or the report
           --shopping            shopping outings, carried Goods and weekly work; needs a [shopping] Ruleset
+          --care                illness, appointments, beds and care traces; needs a [care] Ruleset
+          --clinics N           outpatient clinics placed by --care
+          --hospitals N         hospitals placed by --care; zero demonstrates unmet admission
           --ticks N             how many Ticks to run
           --hash-every N        trace sampling cadence, in Ticks
           --ruleset PATH        the Rules to run under. Loaded and put in force, and

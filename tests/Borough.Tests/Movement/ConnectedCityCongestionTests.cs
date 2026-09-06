@@ -158,6 +158,10 @@ public sealed class ConnectedCityCongestionTests(ITestOutputHelper output)
     /// </remarks>
     private static Plan Crossing => new(3);
 
+    // Tick-resolution starts spread the old 8x8 rung below the clamp. Keep the same density,
+    // capacity and assertions; larger districts feed more commuters into the single corridor.
+    private static Plan Heavy => new(12);
+
     /// <summary>
     /// How far below capacity <see cref="Small"/> must sit for its equality to mean anything.
     /// </summary>
@@ -295,7 +299,7 @@ public sealed class ConnectedCityCongestionTests(ITestOutputHelper output)
             Run(plan, free, connected: true, $"{Name(plan)} free-flow"));
 
         (Reading Loaded, Reading Free) flat = At(Small);
-        (Reading Loaded, Reading Free) loadedUp = At(new Plan(8));
+        (Reading Loaded, Reading Free) loadedUp = At(Heavy);
 
         Assert.True(
             flat.Loaded.VehicleTicks > 0 && loadedUp.Loaded.VehicleTicks > 0,
@@ -323,7 +327,7 @@ public sealed class ConnectedCityCongestionTests(ITestOutputHelper output)
         // city DID: a journey priced dearer occupies its Segments for longer.
         Assert.True(
             loadedUp.Loaded.VehicleTicks > loadedUp.Free.VehicleTicks,
-            $"at {Name(new Plan(8))} the loaded run held {loadedUp.Loaded.VehicleTicks} Vehicle-Ticks "
+            $"at {Name(Heavy)} the loaded run held {loadedUp.Loaded.VehicleTicks} Vehicle-Ticks "
             + $"against the free-flow control's {loadedUp.Free.VehicleTicks}. The two runs are the same "
             + "city priced with and without the volume-delay function, so equal totals mean the "
             + "function is decorative here too and this fixture has not moved the ratifier on.");
@@ -342,7 +346,7 @@ public sealed class ConnectedCityCongestionTests(ITestOutputHelper output)
         Assert.Equal(0, flat.Loaded.ClampedSegmentTicks);
         Assert.True(
             loadedUp.Loaded.ClampedSegmentTicks > 0,
-            "nothing reached the clamp even at a peak past ten times capacity, so clamp_percent is "
+            "nothing reached the clamp on the heavy rung, so clamp_percent is "
             + "unreachable on this fixture and its refuting reading cannot be taken here.");
 
         // ⚠ And the free-flow control must never clamp, which is the guard the Runs check earns: a
@@ -403,7 +407,7 @@ public sealed class ConnectedCityCongestionTests(ITestOutputHelper output)
     [Fact]
     public void The_clamp_catches_a_tail_and_does_not_bind_routinely()
     {
-        Plan plan = new(8);
+        Plan plan = Heavy;
         Reading loaded = Run(plan, Connected(), connected: true, $"{Name(plan)} loaded");
         Reading free = Run(plan, ConnectedWithoutTraffic(), connected: true, $"{Name(plan)} free-flow");
 

@@ -9,7 +9,7 @@ public static class WorkSchedule
 {
     public static bool Runs(World world)
     {
-        if (world.Rules.Shopping.Runs) { return true; }
+        if (world.Rules.Shopping.Runs || world.Rules.Care.Runs) { return true; }
         for (int kind = 1; kind <= world.Rules.BusinessKindCount; kind++)
         { if (world.Rules.BusinessKind((byte)kind).WorkDays != 0) { return true; } }
         return false;
@@ -58,7 +58,7 @@ public static class WorkSchedule
         {
             if (!world.Citizens.Rows.IsLive(citizen)
                 || (CitizenActivity)world.Citizens.Activity[citizen] != CitizenActivity.AtWork
-                || !OnDuty(world, citizen, tick)) { continue; }
+                || CivicEngine.TooIllToWork(world, citizen) || !OnDuty(world, citizen, tick)) { continue; }
             int job = world.Businesses.Rows.Resolve(world.Citizens.Workplace[citizen]);
             BusinessKindDefinition trade = world.Rules.BusinessKind(world.Businesses.Kind[job]);
             long length = (long)world.Rules.Jobs.ShiftLengthOf(world.Key, world.Citizens.Rows.IdAt(citizen)).Raw;

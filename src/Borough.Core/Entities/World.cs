@@ -274,6 +274,11 @@ public sealed class World
         Travellers = new Movement.TravellerTable(64, Citizens, Trips);
         Shopping = new Movement.ShoppingTable(Households, Citizens, Buildings, Businesses);
         KnownShops = new Movement.KnownShopTable(Businesses);
+        Civic = new Rules.CivicTable(Citizens, Households, Buildings);
+        FamilyCare = new Rules.FamilyCareTable(Citizens, Households, Buildings);
+        KnownClinics = new Rules.KnownClinicTable(Citizens, Households, Buildings);
+        CareHistory = new Rules.CareHistoryTable(Citizens, Households, Buildings);
+        CareDays = new Rules.CareDayTable();
 
         // The registry is built before the Wheel rather than after the tables, because EventWheel.Arm
         // reports a double arming through it, and after the Clock, because it reads the Tick from this
@@ -434,7 +439,7 @@ public sealed class World
             // names in its own remarks. Saved rather than derived for one column's sake: `pattern` is a
             // historical fact about conditions that are gone and cannot be recomputed from a world
             // that has moved on.
-            Blocks.Rows, Shopping.Rows, KnownShops.Rows,
+            Blocks.Rows, Shopping.Rows, KnownShops.Rows, Civic.Rows, FamilyCare.Rows, KnownClinics.Rows, CareHistory.Rows, CareDays.Rows,
         ];
 
         // The same list minus the tables no Tick phase can write, for the Decide guard alone. See
@@ -877,6 +882,11 @@ public sealed class World
     /// </remarks>
     public Ruleset Rules { get; private set; }
     public Movement.ShoppingTable Shopping { get; }
+    public Rules.CivicTable Civic { get; }
+    public Rules.FamilyCareTable FamilyCare { get; }
+    public Rules.KnownClinicTable KnownClinics { get; }
+    public Rules.CareHistoryTable CareHistory { get; }
+    public Rules.CareDayTable CareDays { get; }
     public Movement.KnownShopTable KnownShops { get; }
 
     /// <summary>
@@ -6891,6 +6901,7 @@ public sealed class World
                 // leave somebody. An arrival, a shop and a school run all end at home.
                 CitizenActivity.Travelling => CitizenActivity.AtHome,
                 CitizenActivity.ShoppingTravelling => CitizenActivity.ShoppingStopped,
+                CitizenActivity.ServiceTravelling => CitizenActivity.ServiceStopped,
 
                 CitizenActivity other => other,
             });
