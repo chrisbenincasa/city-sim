@@ -244,3 +244,21 @@ inspector stays open and un-covered, and a bounded console clear of the inspecto
 links, both themes and narrow layouts. `ui map-press X Y` exercises viewport clicks with Look held;
 real selections record subject ids. `road-lifecycle.drive` watches removal and replacement without
 letting the inspector adopt a recycled slot.
+
+
+## Review — pace, clock and visual hierarchy
+
+The player requested speed at the left, play/pause between the slower and faster controls, a
+highlighted pause state instead of a separate “paused” label, and removal of “UNDER POINTER.”
+The continuous day/night path is agreed: dawn at the left, daylight above the horizon and night
+below. It is a clock diagram, not the moon’s physical position in the sky.
+
+Typography is reduced to metadata, body/controls and titles, with consistent spacing. Menu color
+requires comparison before implementation. Three standalone light/dark studies are in
+`artifacts/visual-study/interface-palettes/index.html`: quiet teal, civic blue and warm ledger.
+The palette choice is pending; the studies are not an implemented theme.
+
+`check-sky.py` checks the marker at 05:00, 06:00, noon, 18:00 and midnight in fresh driven runs.
+The console check also asserts pace order, pause highlight and absence of the removed captions.
+Console scrollbar space is reserved even when hidden: changing its available width while the
+layer picker wrapped produced an unbounded Godot layout queue at the new text sizes.

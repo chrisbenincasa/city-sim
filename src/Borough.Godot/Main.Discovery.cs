@@ -7,11 +7,11 @@ namespace Borough.Shell;
 
 public partial class Main
 {
-    private const int CaptionPoints = 11;
-    private const int SecondaryPoints = 13;
+    private const int CaptionPoints = 14;
+    private const int SecondaryPoints = 14;
     private const int BodyPoints = 16;
-    private const int HeadingPoints = 20;
-    private const int TitlePoints = 26;
+    private const int HeadingPoints = 16;
+    private const int TitlePoints = 22;
     private ScrollContainer _helpScroll = null!;
     private int _textPercent = 118; // PROVISIONAL readability default.
     private PanelContainer _helpPanel = null!;

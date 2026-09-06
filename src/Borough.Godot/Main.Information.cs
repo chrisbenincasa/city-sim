@@ -278,7 +278,7 @@ public partial class Main
         _console.OffsetRight = -margin;
         _console.OffsetBottom = -margin;
         _console.OffsetTop = 0f;
-        float scrollbar = _consoleScroll.GetVScrollBar().Visible ? _consoleScroll.GetVScrollBar().Size.X : 0;
+        float scrollbar = _consoleScroll.GetVScrollBar().GetCombinedMinimumSize().X;
         SizeConsole(Math.Max(160f, size.X - (margin * 2) - 32f - scrollbar));
         float inspectionRoom = _inspector.Visible
             ? Math.Max(_inspector.GetCombinedMinimumSize().Y + 64, 190 * _textPercent / 100f) + (narrow && _debugShown ? 160 + margin : 0) : 0;
@@ -787,6 +787,8 @@ public partial class Main
             Theme = _lightUi ? "light" : "dark", Debug = _debugShown,
             TextPercent = _textPercent, HelpVisible = _helpPanel.Visible, Help = Rect(_helpPanel),
             HelpScroll = _helpScroll.ScrollVertical, HelpContent = Rect(_helpScroll),
+            SpeedLabel = _rungLabel.Text, PauseHighlighted = _pauseButton.ButtonPressed,
+            Sky = new { _skyArc.Minute, _skyArc.Daytime, X = _skyArc.Marker.X / _skyArc.Size.X, Y = _skyArc.Marker.Y / _skyArc.Size.Y },
             Camera = new { Yaw = _yaw, Pitch = _pitch, Distance = _distance },
             Fonts = InformationDescendants(_hud).OfType<Label>().Where(l => l.IsVisibleInTree())
                 .Select(l => new { l.Text, Size = l.GetThemeFontSize("font_size") }).ToArray(),
@@ -808,7 +810,7 @@ public partial class Main
                 .Select(f => new { f.Text, Rect = Rect(f), Focused = f.HasFocus() }).ToArray(),
             TunerVisible = _tuner.Visible, PoliciesVisible = _governing,
             Buttons = InformationDescendants(_hud).OfType<Button>().Where(b => b.IsVisibleInTree())
-                .Select(b => new { b.Text, Rect = Rect(b) }).ToArray(),
+                .Select(b => new { b.Text, Pressed = b.ButtonPressed, Rect = Rect(b) }).ToArray(),
         };
         System.IO.File.WriteAllText(Globalize(path), System.Text.Json.JsonSerializer.Serialize(state,
             InformationJson));
