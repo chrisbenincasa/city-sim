@@ -106,6 +106,8 @@ public sealed class CitizenTable
         Health = _rows.Saved<byte>("health", Touch.Cold);
         LastPaidDay = _rows.Saved<ushort>("last_paid_day", Touch.Cold);
 
+        EarnedWage = _rows.Saved<long>("earned_wage");
+        WageRemainder = _rows.Saved<long>("wage_remainder");
         _rows.Seal();
     }
 
@@ -511,4 +513,6 @@ public sealed class CitizenTable
     /// </para>
     /// </remarks>
     public Column<ushort> LastPaidDay { get; }
+    public Column<long> EarnedWage { get; }
+    public Column<long> WageRemainder { get; }
 }

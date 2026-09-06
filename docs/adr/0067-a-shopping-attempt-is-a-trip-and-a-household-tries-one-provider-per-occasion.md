@@ -1,5 +1,7 @@
 # A shopping attempt is a Trip, and a Household tries one provider per occasion
 
+> Amended by the player for amnesty row 20: severe hunger permits one additional known shop after an empty-handed attempt, then the Household returns home. A useful partial purchase ends the search. Shops have fixed weekly operating hours, independent of staffing. Purchases pay the seller's District price and travel home as Shopping cargo. The implementation and demonstration are in `plans/0045` → *What shopping found*.
+
 **Step 4 of `04 §6` is a **Trip**. A Household travels to a shop on its Provider List, and finding the
 shelf empty is a **transaction** outcome recorded on the Household — a consecutive-failed-occasions
 count and a refusal reason — never a fifth `Trip Fate`, because the journey succeeded. **A failed

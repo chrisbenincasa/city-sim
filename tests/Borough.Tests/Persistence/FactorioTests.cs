@@ -137,6 +137,9 @@ public sealed class FactorioTests(ITestOutputHelper output)
         Scan(Stepped(GoldenFixtures.Rules(), GoldenFixtures.Population, 512).World, reached, every);
         Scan(Stepped(Congested(), GoldenFixtures.Population, 512).World, reached, []);
         Scan(WithLayerCells(512), reached, []);
+        var shopping = Borough.Tests.Rules.ShoppingTests.Start();
+        for (int tick = 0; tick < 1024; tick++) { shopping.Sim.Step(default); }
+        Scan(shopping.World, reached, []);
 
         // The golden fixture, milestone 10 task 4b, and it is here for the reason the paragraph above
         // gives rather than a new one: `business` has no production writer -- no pass places one,

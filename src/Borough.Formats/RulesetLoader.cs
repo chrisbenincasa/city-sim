@@ -297,6 +297,7 @@ public static class RulesetLoader
         private TableSyntaxBase? _marketTable;
 
         private TableSyntaxBase? _needsTable;
+        private TableSyntaxBase? _shoppingTable;
 
         /// <summary>The parsed document, kept only so <see cref="Surface"/> can walk it after.</summary>
         /// <remarks>
@@ -372,6 +373,7 @@ public static class RulesetLoader
             // the pair: they are owed by a file declaring a kind that serves one and refused of a file
             // that declares none (adr/0130's rule for gives_up_after_days, one table along).
             NeedRuleset needs = ReadNeeds(kinds);
+            ShoppingRuleset shopping = ReadShopping(trips, needs, rules, inputs, outputs);
             placement = placement with { MoveAtNeed = ReadMoveAtNeed(placement, needs) };
             // After ReadPlacement, because the founding pass rides its trigger and the refusal for a
             // file stating [founding] with no [placement] is a property of the pair.
@@ -458,6 +460,7 @@ public static class RulesetLoader
                     Districts = districts,
                     Market = market,
                     Needs = needs,
+                    Shopping = shopping,
                     ResourceNeeds = [.. _resourceNeeds],
                     Founding = founding,
                     ResourceKeys = Keys(_resources),
@@ -804,6 +807,11 @@ public static class RulesetLoader
                         }
 
                         _foundingTable = table;
+                        break;
+
+                    case "shopping":
+                        if (_shoppingTable is not null) { Refuse(LineOf(table), null, "duplicate [shopping]"); }
+                        _shoppingTable = table;
                         break;
 
                     case "needs":
@@ -1197,6 +1205,59 @@ public static class RulesetLoader
         /// and a number authored to satisfy a loader is the one nobody chose.
         /// </para>
         /// </remarks>
+        private int ReadDays(TableSyntaxBase table, string key)
+        {
+            if (!TryInteger(table, key, out long value, required: false)) { return 0; }
+            if (value < 1 || value > 127)
+            { Refuse(LineOf(table), null, $"{key} must be a weekday bit mask from 1 to 127; Monday is bit 0."); return 0; }
+            return (int)value;
+        }
+
+        private WeeklyHours ReadShopHours(TableSyntaxBase table)
+        {
+            int days = ReadDays(table, "open_days");
+            bool from = TryInteger(table, "opens_hour", out long opens, required: false);
+            bool to = TryInteger(table, "closes_hour", out long closes, required: false);
+            if (days == 0 && !from && !to) { return default; }
+            if (days == 0 || !from || !to || opens < 0 || closes > 24 || opens >= closes)
+            { Refuse(LineOf(table), null, "shop hours require open_days and 0 <= opens_hour < closes_hour <= 24"); return default; }
+            return new WeeklyHours(days, (int)opens, (int)closes);
+        }
+
+        private ShoppingRuleset ReadShopping(TripRuleset trips, NeedRuleset needs,
+            RuleDefinition[] rules, Term[] inputs, Term[] outputs)
+        {
+            if (_shoppingTable is null) { return default; }
+            int Read(string key, int min, int max)
+            {
+                if (!TryInteger(_shoppingTable, key, out long value, required: true)) { return min; }
+                if (value < min || value > max)
+                { Refuse(LineOf(_shoppingTable), null, $"shopping {key} must be between {min} and {max}"); return min; }
+                return (int)value;
+            }
+            int interval = Read("interval", 1, Ticks.PerDay);
+            int low = Read("low_days", 1, 365);
+            int target = Read("target_days", 1, 365);
+            int severe = Read("severe_need", -1000000, -1);
+            int known = Read("known_shops", 1, 32);
+            int search = Read("search_candidates", 1, 1024);
+            int retry = Read("retry_ticks", 1, Ticks.PerDay);
+            if (!trips.Runs || !needs.Runs || target <= low || severe < needs.Floor)
+            { Refuse(LineOf(_shoppingTable), null, "shopping requires Trips, Needs, target_days > low_days and severe_need within the Need floor"); }
+            foreach (RuleDefinition rule in rules)
+            {
+                bool pool = false;
+                for (int i = 0; i < rule.InputCount; i++) { pool |= inputs[rule.InputFirst + i].Bin.Scope == Scope.Pool; }
+                if (!pool || rule.Tenancy != BinTenancy.Occupant) { continue; }
+                if (rule.InputCount != 1 || rule.OutputCount != 1 || rule.EmissionCount != 0
+                    || outputs[rule.OutputFirst].Bin.Scope != Scope.Local
+                    || inputs[rule.InputFirst].Bin.Resource != outputs[rule.OutputFirst].Bin.Resource
+                    || inputs[rule.InputFirst].Amount != outputs[rule.OutputFirst].Amount)
+                { Refuse(LineOf(_shoppingTable), null, "shopping Household pool Rules must transfer one Good unchanged into one local Bin"); }
+            }
+            return new ShoppingRuleset(interval, low, target, severe, known, search, retry);
+        }
+
         private NeedRuleset ReadNeeds(KindDefinition[] kinds)
         {
             if (_needsTable is null)
@@ -2442,6 +2503,8 @@ public static class RulesetLoader
                     ShiftStartLatestHour = shiftTo,
                     WagePerDay = wagePerDay,
                     PayPeriodDays = payPeriodDays,
+                    WorkDays = ReadDays(table, "work_days"),
+                    ShopHours = ReadShopHours(table),
                 };
             }
 

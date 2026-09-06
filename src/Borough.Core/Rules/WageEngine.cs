@@ -225,7 +225,8 @@ internal sealed class WageEngine(World world, WorldKey key)
                 continue;
             }
 
-            long due = days * trade.WagePerDay;
+            long due = Borough.Core.Movement.WorkSchedule.Runs(_world)
+                ? _world.Citizens.EarnedWage[worker] : days * trade.WagePerDay;
             long available = _world.Bins.LevelAt(till);
 
             if (available < due)
@@ -251,6 +252,12 @@ internal sealed class WageEngine(World world, WorldKey key)
             // Only as far as what was paid for. Integer division is exact when the employer paid in
             // full and truncates toward the last whole Day covered otherwise, so a part payment
             // leaves the remainder owed rather than rounding it away.
+            if (Borough.Core.Movement.WorkSchedule.Runs(_world))
+            {
+                _world.Citizens.EarnedWage[worker] -= due;
+                _world.Citizens.LastPaidDay[worker] = (ushort)today;
+                continue;
+            }
             long covered = IntegerMath.FloorDiv(due, trade.WagePerDay);
             long upTo = _world.Citizens.LastPaidDay[worker] + covered;
 

@@ -1,0 +1,230 @@
+# Shopping, weekly work and Goods carried home. All new tuning is PROVISIONAL.
+# Demonstrates physical Household purchases; shop supply is synthetic and opening ignores staff.
+# Two lattice centres are inherited from the market fixture so District prices exist.
+# This is not a balance or performance ratifier.
+
+
+
+[[resource]]
+name = "sundries"
+family = "good"
+need = "sustenance"
+
+[[resource]]
+name = "repairs"
+family = "good"
+
+[[resource]]
+name = "money"
+family = "money"
+
+[[business]]
+name = "shop"
+work_days = 31
+wage_per_day = 4096
+pay_period_days = 7
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+[[business]]
+name = "grocer"
+work_days = 124
+open_days = 127
+opens_hour = 7
+closes_hour = 21
+wage_per_day    = 4096
+pay_period_days = 7
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+[[building]]
+name = "dwelling"
+bins = [
+    { resource = "sundries", capacity = 128, owner = "occupant" },
+    { resource = "repairs",  capacity = 4 },
+]
+houses   = true
+premises = true
+parked = true
+business = "shop"
+
+[[building]]
+name = "shopfront"
+bins = [
+    { resource = "sundries", capacity = 1024, owner = "business" },
+    { resource = "repairs",  capacity = 4 },
+    { resource = "money",    owner = "business" },
+]
+houses   = true
+premises = true
+business = "grocer"
+
+[[rule]]
+name    = "restock"
+kind    = "dwelling"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = [ { scope = "pool", resource = "sundries", amount = 4 } ]
+outputs = [ { scope = "local", resource = "sundries", amount = 4 } ]
+
+[[rule]]
+name    = "consume"
+kind    = "dwelling"
+rate    = 256
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "sundries", amount = 4 } ]
+outputs = []
+
+[[rule]]
+name    = "upkeep"
+kind    = "dwelling"
+rate    = 16
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "repairs", amount = 4 } ]
+outputs = []
+
+[[rule]]
+name    = "stock"
+kind    = "shopfront"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = []
+outputs = [ { scope = "local", resource = "sundries", amount = 8 } ]
+
+[[rule]]
+name    = "rates"
+kind    = "shopfront"
+rate    = 2048
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local",  resource = "money", amount = 16384 } ]
+outputs = [ { scope = "global", resource = "money", amount = 16384 } ]
+
+[[zone_rule]]
+name          = "housing"
+kind          = "dwelling"
+zone          = 0
+interval      = 32
+revisit_ticks = 2048
+
+[[zone_rule]]
+name          = "trade"
+kind          = "shopfront"
+zone          = 1
+interval      = 32
+revisit_ticks = 2048
+build_threshold_days = 1
+cooldown_days        = 1
+
+[placement]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+
+[layers]
+noise_range_metres            = 300
+noise_intensity_percent       = 400
+desirability_pollution_percent = 100
+desirability_noise_percent     = 100
+pollution_period      = 64
+pollution_offset      = 0
+land_value_period     = 256
+land_value_offset     = 16
+kernel_metres         = 1024
+pollution_decay_ticks = 2048
+land_value_tau        = 8
+
+[roads]
+block_tiles                    = 32
+arterial_count                 = 0
+arterial_junction_tiles        = 512
+foot_crossing_every            = 4
+foot_paths_per_thousand_blocks = 40
+street_speed_kph               = 50
+arterial_speed_kph             = 90
+walk_speed_kph                 = 5
+street_capacity_per_hour       = 3600
+arterial_capacity_per_hour     = 12000
+foot_path_capacity_per_hour    = 1000
+
+[lots]
+lots_per_segment = 5
+setback_tiles = 2
+
+[capacity]
+floor_tiles_per_occupant      = 25
+floor_tiles_per_job           = 3
+floor_tiles_per_parking_space = 12
+
+[parking]
+radius_metres = 400
+shed_keeps = 24
+
+[trips]
+crossing_seconds = 30
+commute_fast_minutes = 20
+commute_moderate_minutes = 40
+commute_budget_minutes = 50
+
+[jobs]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+shift_hours_min = 6
+shift_hours_max = 10
+arrive_early_max_minutes = 15
+
+[households]
+car_ownership_percent = 0
+opening_balance_min = 12800
+opening_balance_max = 25600
+
+[[lattice]]
+origin_east_tiles  = 0
+origin_north_tiles = 0
+
+[[lattice]]
+origin_east_tiles  = 2048
+origin_north_tiles = 0
+
+[districts]
+prominence_percent = 50
+revisit_ticks = 2048
+hysteresis_percent = 50
+migrate_cells = 16
+
+[[hinterland]]
+edge = "north"
+emigrant_balance_min = 0
+emigrant_balance_max = 0
+prices = [
+  { resource = "sundries", price = 100 },
+  { resource = "repairs",  price = 250 },
+]
+
+[[hinterland]]
+edge = "east"
+emigrant_balance_min = 0
+emigrant_balance_max = 0
+prices = [
+  { resource = "sundries", price = 120 },
+  { resource = "repairs",  price = 200 },
+]
+
+[market]
+decay_percent = 50
+move_cap_percent = 10
+[needs]
+sustenance_degrade = 4
+sustenance_recover = 4
+satisfaction_degrade = 4
+satisfaction_recover = 4
+floor = -100
+
+[shopping]
+interval = 64
+low_days = 1
+target_days = 3
+severe_need = -16
+known_shops = 3
+search_candidates = 32
+retry_ticks = 128

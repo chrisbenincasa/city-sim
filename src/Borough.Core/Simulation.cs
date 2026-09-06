@@ -127,6 +127,7 @@ public sealed class Simulation
         _placement = new PlacementEngine(world, key, _trips);
         _commutes = new CommuteEngine(world, _trips);
         _services = new ServiceEngine(world, _trips);
+        _shopping = new ShoppingEngine(world, _trips, _commutes);
         _rulesets = rulesets;
     }
 
@@ -223,6 +224,8 @@ public sealed class Simulation
     public DisasterReading LastDisasters => _lastDisasters;
 
     /// <summary>Tick phase 4, and the Trip Fate counters the Census drains.</summary>
+    private readonly ShoppingEngine _shopping;
+    public ShoppingEngine Shopping => _shopping;
     public TripEngine Trips => _trips;
 
     /// <summary>The world seed, as <see cref="Randomness.Draw"/>'s first coordinate.</summary>
@@ -1383,6 +1386,7 @@ public sealed class Simulation
         // it departed rather than a Tick later. adr/0071: travel time is sub-Tick, so a walk across the
         // street genuinely costs less than one integration step, and a phase that advanced first would
         // hold such a Trip in flight for a whole Tick for no reason in the city.
+        _shopping.Step(tick);
         _commutes.Generate(tick);
 
         // adr/0032's Attended Services, and BEHIND the commute rather than in front of it. Both
@@ -1397,6 +1401,7 @@ public sealed class Simulation
         // Phase 4 is one of adr/0037's two double-buffered tables, and neither the buffering nor the
         // measurement that would justify it exists.
         _trips.Advance(tick);
+        WorkSchedule.Accrue(_world, tick);
     }
 
     /// <summary>Phase 5 — Map Layer diffusion for whatever is scheduled this Tick.</summary>

@@ -896,6 +896,9 @@ public readonly record struct KindDefinition(
 /// </remarks>
 public readonly record struct BusinessKindDefinition
 {
+    public int WorkDays { get; init; }
+    public WeeklyHours ShopHours { get; init; }
+
     /// <summary>
     /// The earliest in-world hour a job of this trade starts at. Paired with
     /// <see cref="ShiftStartLatestHour"/>.
@@ -3703,6 +3706,8 @@ public sealed class Ruleset
     /// </remarks>
     public NeedRuleset Needs { get; init; } = NeedRuleset.None;
 
+    public ShoppingRuleset Shopping { get; init; }
+
     /// <summary>Which Need each Resource feeds, indexed by <c>resource - 1</c>.</summary>
     /// <remarks>
     /// <b>On the Resource rather than on the Rule, because it is a property of the thing consumed.</b>
@@ -4157,6 +4162,7 @@ public sealed class Ruleset
             LifeStageKeys = LifeStageKeys,
             PolicyKeys = PolicyKeys,
             Needs = Needs,
+            Shopping = Shopping,
             ResourceNeeds = ResourceNeeds,
             LifeStages = LifeStages,
         };
