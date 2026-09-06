@@ -770,8 +770,10 @@ public sealed class DistrictWatershedTests
             // a world to photograph rather than a demonstration, and TwinLatticeTests carries the
             // whole argument for exempting it. It ratifies nothing, so there is no figure here for
             // the exemption to protect.
+            // insolvent.toml IS shopping.toml with one [[business]] key added, so it inherits
+            // [districts] for that file's reason and not for one of its own -- plans/0065.
             bool expected = file is "twinned.toml" or "provisioned.toml" or "oversupplied.toml"
-                or "waged.toml" or "pictured.toml" or "shopping.toml";
+                or "waged.toml" or "pictured.toml" or "shopping.toml" or "insolvent.toml";
 
             Assert.Equal(expected, states);
         }

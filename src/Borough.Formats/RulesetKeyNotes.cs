@@ -219,6 +219,11 @@ public static class RulesetKeyNotes
             "How many Days pass between paydays at this trade. One is daily; zero would be a payday "
             + "that never comes round.",
 
+        ["[[business]] goes_bankrupt_after_short_paydays"] =
+            "How many paydays running this trade may fail to pay its workers in full before it is "
+            + "wound up: the staff are dismissed and the premises are left standing and empty. A "
+            + "payroll met in full resets the count. Absent means it never goes bankrupt.",
+
         // ---- [[rule]] -------------------------------------------------------------------------
         ["[[rule]] name"] =
             "What this Rule is called. on_fail names another Rule by this.",

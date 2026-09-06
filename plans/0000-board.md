@@ -1,11 +1,17 @@
 # 0000 — The board
 
 **Amnesty in force: read [the active queue](0045-amnesty.md#the-queue) first.** It supersedes the
-older priorities below. Shopping status belongs to row 20 there.
+older priorities below. Shopping status belongs to row 20 there, insolvency to row 27.
 
 ---
 
 ## What is next
+
+🔴 **A BUSINESS CAN FAIL AS OF 2026-09-06 — [`0045`](0045-amnesty.md) row 27,
+[`0065`](0065-business-insolvency.md), [PR #6](https://github.com/chrisbenincasa/city-sim/pull/6).**
+⚠ **This section asserted the opposite for ten days** and the correction is below, struck in place.
+⚠ **The §D1 decline numbers are still unratifiable and the REASON CHANGED** — read `0065` decision 3
+rather than any sentence here about it.
 
 ✅ **MILESTONE 27 CLOSED 2026-08-24 — ALL FIVE TASKS, AND THE BUSINESS IS NOW A THING THE CITY CONTAINS**
 ([`0041`](0041-the-business-is-a-thing-the-city-contains.md)). The city creates one **two ways** —
@@ -34,10 +40,13 @@ kept at [`0037`](0037-goods-between-buildings-the-district-pool.md) 7–10.
 kind's three decisions** (a second `[[zone_rule]]`, a second decline Rule, a land-use split) and **a world
 where a Building genuinely runs out of money**. ⚠ ***[`0002`](0002-open-questions.md) §A says outright that
 nobody owns either***, which is why they are in §A rather than in a ledger.
-⚠ **The bankrupt world was CHECKED at task 10 rather than assumed, and the answer was no**: **7,165
+~~⚠ **The bankrupt world was CHECKED at task 10 rather than assumed, and the answer was no**: **7,165
 premisings against ZERO give-ups** over 131,072 Ticks, so ***nothing in the build drains a Business's money
-and the world is still unwritten.*** **The gate is an argument sitting, and the standing rule is satisfied
-by a milestone being blocked on it rather than by its being available.**
+and the world is still unwritten.***~~ ✅ **DISCHARGED 2026-09-06 by [`0045`](0045-amnesty.md) row 27.**
+⚠ **The reading is kept because it was TRUE WHEN TAKEN**; `WageEngine` and shopping landed either side
+of it. ***A figure with a date is a record; the sentence drawn from it expired.***
+🔴 **The gate is NOT discharged with it — the reason changed rather than went**, and
+[`0065`](0065-business-insolvency.md) decision 3 owns what it is now. **Still an argument sitting.**
 
 ✅ **MILESTONE 12 IS CAPPED AT TASK 6 AND CLOSES THERE, 2026-08-22.** Its risk is rewritten to what
 tasks 1–6 actually retire — ***that a District is an administrative label rather than a derived thing
