@@ -25,10 +25,10 @@ dotnet run --project src/Borough.Headless -- \
 
 ## The sections
 
-35 sections, 192 keys.
+37 sections, 228 keys.
 
 - [`[[band]]`](#band) — 2 keys
-- [`[[building]]`](#building) — 14 keys
+- [`[[building]]`](#building) — 18 keys
 - [`[[building]] bins`](#building-bins) — 3 keys
 - [`[[business]]`](#business) — 10 keys
 - [`[[hinterland]]`](#hinterland) — 4 keys
@@ -46,6 +46,7 @@ dotnet run --project src/Borough.Headless -- \
 - [`[[terrain]]`](#terrain) — 3 keys
 - [`[[zone_rule]]`](#zone_rule) — 7 keys
 - [`[capacity]`](#capacity) — 4 keys
+- [`[care]`](#care) — 25 keys
 - [`[disasters]`](#disasters) — 3 keys
 - [`[districts]`](#districts) — 4 keys
 - [`[founding]`](#founding) — 2 keys
@@ -58,6 +59,7 @@ dotnet run --project src/Borough.Headless -- \
 - [`[parking]`](#parking) — 2 keys
 - [`[placement]`](#placement) — 6 keys
 - [`[roads]`](#roads) — 12 keys
+- [`[school]`](#school) — 7 keys
 - [`[shopping]`](#shopping) — 7 keys
 - [`[traffic]`](#traffic) — 3 keys
 - [`[trips]`](#trips) — 4 keys
@@ -91,6 +93,10 @@ How many Days a Building of this kind may house nobody before the city gives up 
 
 How many Households a Building of this kind admits from the Outside each Day. Stating this is what makes the kind an Outside Connection, so absence means the kind is not a gate; a stated zero is refused, because a door that never opens loads clean and does nothing.
 
+**`bed_percent`** · *whole number*
+
+Share of facility floor area reserved for inpatient beds; the rest supports outpatient treatment.
+
 **`bins`** · *array of inline tables*
 
 The stores a Building of this kind carries, one entry per Resource. A Rule's local scope draws on these.
@@ -98,6 +104,18 @@ The stores a Building of this kind carries, one entry per Resource. A Rule's loc
 **`business`** · *quoted string*
 
 The trade a Building of this kind comes with when it is raised, naming a [[business]]. Absent means it comes with none, which is almost every kind that has ever shipped.
+
+**`care_closes_hour`** · *whole number*
+
+Civil closing hour for outpatient appointments.
+
+**`care_days`** · *whole number*
+
+Weekdays offering outpatient appointments.
+
+**`care_opens_hour`** · *whole number*
+
+Civil opening hour for outpatient appointments.
 
 **`collapses_after_days`** · *whole number*
 
@@ -573,6 +591,110 @@ How much floor one attendance a Day takes at a service Building, in Tiles. A sch
 
 ---
 
+## `[care]`
+
+**`admission_severity`** · *whole number*
+
+Severity at which inpatient care is needed.
+
+**`booking_days`** · *whole number*
+
+The forward appointment calendar horizon.
+
+**`death_per_thousand`** · *whole number*
+
+Daily fatality risk at critical severity, multiplied by illness duration.
+
+**`death_severity`** · *whole number*
+
+Severity at which untreated illness can become fatal.
+
+**`deterioration_per_day`** · *whole number*
+
+Severity gained on a day of deterioration.
+
+**`deterioration_percent`** · *whole number*
+
+Daily chance of deterioration without treatment.
+
+**`floor_tiles_per_bed`** · *whole number*
+
+Floor area needed for one inpatient bed.
+
+**`floor_tiles_per_treatment`** · *whole number*
+
+Floor area needed for one simultaneous outpatient treatment.
+
+**`health_risk_per_thousand`** · *whole number*
+
+Additional daily illness chance per point of Household Health deficit.
+
+**`history_keeps`** · *whole number*
+
+Maximum care events retained city-wide, including events for deceased Citizens.
+
+**`illness_per_thousand`** · *whole number*
+
+Daily baseline chance of a generic illness episode.
+
+**`initial_severity`** · *whole number*
+
+Severity at illness onset.
+
+**`interval`** · *whole number*
+
+How often appointments are assigned and providers are discovered.
+
+**`known_clinics`** · *whole number*
+
+Maximum clinics retained in a Household provider list.
+
+**`priority_every_days`** · *whole number*
+
+Waiting duration that adds one point to appointment priority.
+
+**`recovery_per_day`** · *whole number*
+
+Natural improvement on a day without deterioration.
+
+**`report_days`** · *whole number*
+
+Reporting window for deaths and missed work; independent of detailed trace retention.
+
+**`routine_days`** · *whole number*
+
+Time between completed routine visits.
+
+**`search_candidates`** · *whole number*
+
+Maximum Buildings examined per clinic discovery pass.
+
+**`serious_severity`** · *whole number*
+
+Severity that prevents work and shopping.
+
+**`switch_after_waits`** · *whole number*
+
+Excessive-wait days before successful fallback can change the habitual clinic.
+
+**`treated_recovery_per_day`** · *whole number*
+
+Improvement under treatment.
+
+**`urgent_wait_days`** · *whole number*
+
+Acceptable wait at the habitual clinic for serious illness.
+
+**`visit_minutes`** · *whole number*
+
+Duration of an outpatient consultation.
+
+**`wait_days`** · *whole number*
+
+Acceptable routine wait at the habitual clinic.
+
+---
+
 ## `[disasters]`
 
 **`flood_every_days`** · *whole number*
@@ -795,11 +917,11 @@ How far Education rises when a Household attends a school.
 
 The deepest deficit any Need may reach. A Need is a relative scalar where 0 is ideal, so this is negative. It is required because an unbounded magnitude is the thing a long run exists to catch.
 
-**`health_degrade`** · *unasserted*
+**`health_degrade`** · *whole number*
 
 How far Health falls on one occasion. Conditional on a kind serving health, exactly as education's pair is.
 
-**`health_recover`** · *unasserted*
+**`health_recover`** · *whole number*
 
 How far Health rises when a Household attends a health service.
 
@@ -910,6 +1032,38 @@ Free-flow speed on a Street, in km/h, converted exactly at load because the libr
 **`walk_speed_kph`** · *whole number*
 
 Walking speed on foot. It is also what turns the Commute Budget into the box the job search draws candidates from.
+
+---
+
+## `[school]`
+
+**`bell_earliest_minute`** · *whole number*
+
+Earliest civil minute for a school bell.
+
+**`bell_latest_minute`** · *whole number*
+
+Latest civil minute for a school bell.
+
+**`days`** · *whole number*
+
+Weekdays on which children attend school.
+
+**`dismiss_earliest_minute`** · *whole number*
+
+Earliest civil minute for school dismissal.
+
+**`dismiss_latest_minute`** · *whole number*
+
+Latest civil minute for school dismissal.
+
+**`history_keeps`** · *whole number*
+
+Maximum care events retained city-wide, including events for deceased Citizens.
+
+**`retry_ticks`** · *whole number*
+
+Delay before retrying an interrupted service return journey.
 
 ---
 

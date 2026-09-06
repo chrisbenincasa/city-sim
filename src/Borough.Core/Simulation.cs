@@ -126,7 +126,8 @@ public sealed class Simulation
         _disasters = new DisasterEngine(world, key);
         _placement = new PlacementEngine(world, key, _trips);
         _commutes = new CommuteEngine(world, _trips);
-        _services = new ServiceEngine(world, _trips);
+        _civic = new CivicEngine(world, _trips, _commutes);
+        _services = new ServiceEngine(world, _trips, _civic);
         _shopping = new ShoppingEngine(world, _trips, _commutes);
         _rulesets = rulesets;
     }
@@ -180,6 +181,8 @@ public sealed class Simulation
     /// dump and fatal in <c>StageDump</c>.
     /// </remarks>
     public ServiceEngine Services => _services;
+    private readonly CivicEngine _civic;
+    public CivicEngine Civic => _civic;
 
     /// <summary>
     /// <c>adr/0081</c>: a Citizen with no Workplace taking one near home, in phase 6 behind
@@ -1386,6 +1389,7 @@ public sealed class Simulation
         // it departed rather than a Tick later. adr/0071: travel time is sub-Tick, so a walk across the
         // street genuinely costs less than one integration step, and a phase that advanced first would
         // hold such a Trip in flight for a whole Tick for no reason in the city.
+        _civic.Step(tick);
         _shopping.Step(tick);
         _commutes.Generate(tick);
 

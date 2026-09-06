@@ -330,6 +330,51 @@ public sealed class CommuteTests
     }
 
 
+    [Theory]
+    [InlineData(6, 10)]
+    [InlineData(0, 23)]
+    [InlineData(3, 7)]
+    public void Workplace_starts_fill_the_band_between_whole_hours(int earliest, int latest)
+    {
+        BusinessKindDefinition kind = new()
+        {
+            ShiftStartEarliestHour = earliest,
+            ShiftStartLatestHour = latest,
+        };
+        WorldKey key = WorldKey.FromSeed(0);
+        int first = Ticks.AtClock(earliest);
+        int width = (Ticks.AtClock(latest) - first + Ticks.PerDay) % Ticks.PerDay;
+        HashSet<int> starts = [];
+        for (ulong employer = 1; employer <= 2_000; employer++)
+        {
+            int start = CommuteRoster.ShiftStartOf(key, employer, kind);
+            Assert.InRange(start, 0, Ticks.PerDay - 1);
+            Assert.InRange((start - first + Ticks.PerDay) % Ticks.PerDay, 0, width);
+            starts.Add(start);
+        }
+        Assert.True(starts.Count > 100,
+            $"Only {starts.Count} start times across 2,000 Workplaces: departures still clump.");
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(5)]
+    [InlineData(9)]
+    [InlineData(23)]
+    public void A_fixed_workplace_band_keeps_its_exact_clock_time(int hour)
+    {
+        BusinessKindDefinition kind = new()
+        {
+            ShiftStartEarliestHour = hour,
+            ShiftStartLatestHour = hour,
+        };
+        for (ulong employer = 1; employer <= 100; employer++)
+        {
+            Assert.Equal(Ticks.AtClock(hour),
+                CommuteRoster.ShiftStartOf(WorldKey.FromSeed(17), employer, kind));
+        }
+    }
+
     // ---- the fixture ------------------------------------------------------------------------------
 
     private static Simulation Run(Ruleset rules)

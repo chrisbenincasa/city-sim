@@ -189,7 +189,7 @@ non-comment references, **19 headless dumps against a three-line on-screen reado
 | ~~17~~ | ~~🔴 **Nobody moves house.**~~ **Folded into 16b, 2026-09-01.** ⚠ **The number stays as a tombstone rather than closing the gap**: two cross-references below already broke when this queue last shifted, and a struck row costs a line where a renumber costs a citation | — |
 | ~~18~~ | ~~🔴 **A dwelling costs nothing.**~~ **Folded into 16a, 2026-09-01**, for 17's reason | — |
 | 20 | **A CITIZEN GOES SHOPPING.** Before 19: a second Trip generator changes the daily activity that row will measure. | ✅ Implemented in [PR #5](https://github.com/chrisbenincasa/city-sim/pull/5); see *What shopping found*. |
-| 19 | ⚠ **THE CITY HAS SOMEBODY OUTSIDE AT EVERY HOUR IT IS AWAKE.** Today the Day is a **comb** and two mechanisms cut the teeth: `CommuteRoster.ShiftStartOf` sums two draws, halves them and rounds the result to an **hour**; `ServiceEngine.Attend` returns unless `tick.Raw % Ticks.PerDay == 0`, so ***every school Trip in the city starts on one Tick of 2,048***. Measured on `minimal.toml` at 1,000 Citizens: **1,341 of 2,047 Ticks with nobody out at all**, longest empty run 486. ⚠ **Last, because it is the only row here that repairs something that already runs** — and ⚠ **20 lands in front of it for a second reason**: a second Trip generator changes what the comb's teeth are made of, so measuring the Day before shopping exists measures one generator's shape | |
+| 19 | Daily schedules and care: `CommuteRoster.ShiftStartOf`, `CivicEngine`, `Main.Health`. | ✅ See *Row 19 — implementation and findings* below. |
 | 21 | 🔴 **A PLAYER-BUILT WORLD HAS NO PEOPLE, AND THE DOOR WAS BUILT FOR IT ON 2026-08-15.** `CommandKind.Ground` landed 2026-09-04 and made [`adr/0090`](../docs/adr/0090-the-generator-makes-land-and-the-player-makes-every-road.md)'s world reachable for the first time — terrain, Woodland, water and hazard, with no lattice, no Lots and nobody. ⚠ **A player can now lay Streets and carve Lots and NOTHING IS EVER BUILT**: measured on `minimal.toml`, 40 Street clicks and 16 zone clicks gave 40 Segments and 128 Lots, and **five in-world Days later the readout said 0 Buildings and 0 Citizens**. The chain is Households → the Unplaced Pool → placement → Buildings, and ***an empty world has an empty Pool, which is the Pool working rather than failing***. `SyntheticCity.PeopleInto` is `PopulateInto`'s other half and its own remark names this exact case — *"a city whose Streets were laid by `CommandKind.Connect` wants the people half without the land half and could not ask for it"* — and it still has no verb. `CommandKind.People` is `Ground`'s shape exactly: no payload, no format version move, one `Simulation` case. ⚠ **Everything that would be learned by playing the empty world is blocked on this row**, including the world `plans/0002` §D2 names as the ratifier for `[traffic]`'s three hash-bearing numbers | ✅ 26-09-04 |
 | 22 | ⚠ **THE STREET TOOL CANNOT BE AIMED, AND IT IS THE ONLY VERB THAT CHANGES THE GROUND WITH NO HOVER.** Raised by the player 2026-09-04, unprompted, on the first session with a world worth building in. **Two invisible rules compose.** `Simulation.ApplyConnect` **floors** the Tile to the lattice, so the edit lands on the **south-west corner of the block clicked in** and never on the nearest corner; `Main.Lay` then picks the axis on `east % block >= north % block`, which is a diagonal split of that same block. ***So a click near a block's top-right corner lays a Street at its bottom-left one.*** ⚠ **Face midpoints work perfectly and the interior does not**, which is why every driven run so far missed it — the playtest's 40 clicks were all on midpoints and produced 40 Segments with no surprise. ⚠ **`Main.Pointing` gives `Zone` a `Virgin` line, `Service` a Lot line and `Demolish` a resolved Building; `Street` gets the Tile coordinate and nothing else.** Row 15g one level down: ***a verb you cannot aim is a verb you cannot test***, and this one can be aimed only by arithmetic the player is doing in their head ✅ **FIXED 2026-09-04, IN THE SHELL AND NOT IN THE FLOOR.** `StreetGrid.NearestEdge` takes a Tile to the lattice edge it is *nearest* by perpendicular distance — which answers the axis as a by-product rather than as a second rule — and `StreetGrid.IntersectionTile` addresses it, so `Main.Lay` now sends the intersection's own Tile and ***`ApplyConnect`'s floor is a no-op on what arrives***. ⚠ **The floor is deliberately untouched**: it is `adr/0014`'s snap, and moving it would change what every already-recorded `.borough` replays to — [`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md) prices a hash move at nothing and does not license changing a recorded log's meaning. **Measured by driving `--empty`**: nine clicks in nine blocks — four corners, four face midpoints, the dead centre — laid nine Segments, and the `draw` list put every one on the edge nearest its click. 🔴 **The row's *face midpoints work perfectly* is true only ON the face line**, and five of those nine differ from what the old rule would have laid. **The hover gained a `Connect` arm** naming the Segment, the edge and which of lay/bulldoze a click is; **the ghost draws the edge rather than the block**. `StreetAimTests` — 16 assertions, in `Borough.Core`, because that is where the aim now lives | ✅ 26-09-04 |
 | 23 | ⚠ **THERE ARE NO DIAGONAL STREETS AND THE REFUSAL NEVER REACHES THE PLAYER.** `StreetAxis` declares exactly `East` and `North`; `RefuseConnect` rejects any `RoadKind` that is not `Street`; [`adr/0077`](../docs/adr/0077-a-road-edit-is-one-segment-and-the-player-lays-streets-only.md) refuses Arterials by name because *"a spline is many control points and is not one command at all"*. So *how do I build a diagonal road* has the answer **you cannot**, which is a **refusal** and therefore the one classification [`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) counts as evidence. ⚠ **What is owed is a sentence and not a mechanism**: 15e gave the shell a refusal vocabulary and this is not in it, so the tool declines silently. 🔴 **And the generated world DOES contain diagonals** — six occupied compass bins where a pure lattice has four, measured by `--morphology` on 2026-09-04, laid by `[roads] foot_paths_per_thousand_blocks`. ***A player who has seen a diagonal on screen will reasonably ask for the tool that made it***, and the honest answer is that no tool did ✅ **ANSWERED 2026-09-04, AND THE ANSWER IS THREE SENTENCES AND A GESTURE TO TRIGGER THEM.** 🔴 **The tool never DECLINED — it SUBSTITUTED**, which is worse than the row said: a diagonal is not expressible as a `Command` at all, so `Simulation.Refuses` is never asked, there is no `Refusal` to word, and `Sentence` could not have carried this however complete it was. ***A refusal with no gesture that provokes it is a refusal nobody can be shown***, so the gesture came first: **a drag**, which is what every reference game binds to a road and what the player will reach for. `StreetGrid.Between` classifies one — `OneEdge`, `OneLine` or **`TwoAxes`**, the diagonal and the dog-leg together because they differ in shape and not in what is owed — and `Main.Dragged` says so and lays nothing, the press having already acted. **And the hover names the diagonal you are pointing at**: `Main.Crossing` walks the block's own off-lattice bucket and reports *a FOOT PATH cuts this block corner to corner — foot only, laid when the world was made. No tool lays one*. ⚠ **The drawing was checked rather than assumed** — the two foot paths on `minimal.toml` at 1,000 Citizens draw at yaw 2.356 rad and 181 m long against 42 and 42 Streets at 1.571 and 3.142, so ***the player really has seen one***. 🔴 **AND THE SENTENCE COULD NOT BE WATCHED HAPPENING, WHICH IS A SECOND DEFECT AND THE REASON THE FIRST DRAFT LOOKED FINE.** `readout`, `shoot` and the socket reply all carried the readout panel alone; **the hover is a second `Control` and was in none of them**, so every arm of `Pointing` — the Street tool's edge, `Zone`'s free frontage, `Demolish`'s Building — was unassertable from a driven run. `Main.Captioned` puts it in the caption; [`0048`](0048-driving-the-shell.md) **F29** owns it. ⚠ **The first draft of the refusal ran the full width of a 3,024-pixel frame and collided with the hover**, found by shooting it and not by reading it — it is two lines now. `StreetDragTests` (11 assertions, in `Borough.Core` beside the aim) and `StreetDiagonalTests` hold both halves: what a drag is, and that every diagonal the generator lays is a `FootPath` and not one of them is on the Street lattice | ✅ 26-09-04 |
@@ -1219,6 +1219,79 @@ a balance or performance claim.
 dotnet run -c Release --project src/Borough.Headless -- --census --series \
   --ruleset rulesets/restless.toml --reload-at 8192 --ruleset rulesets/restless-fed.toml \
   --citizens 64 --ticks 16384
+```
+
+## Row 19 — implementation and findings
+
+The player expanded this row from departure timing into school schedules and care. The target is
+plausible daily activity, not guaranteed traffic at every hour. Hours, durations, thresholds and
+rates remain PROVISIONAL; no new ADR is required under the amnesty.
+
+- **Work:** retain stable Workplace starts and the weekly calendar; remove whole-hour rounding
+  within the existing start band.
+- **School:** weekdays, with stable bell and dismissal times drawn per school from Ruleset bands.
+  Travel time determines departure; children stay and make a real return Trip. Travel is independent
+  initially. Parent drop-off and pickup remain deferred, including coordination with work journeys
+  and their traffic effect; existing multi-Leg Trips are a foundation, not that coordination itself.
+- **Care requests:** periodic routine care plus illness-driven requests. Household Health affects
+  individual illness risk; each Citizen has their own generic illness severity, treatment and
+  recovery. One active care request per Citizen; worsening illness updates it. Several Household
+  members may need care simultaneously. Treatment acts on the patient, not every member.
+- **Continuity:** the Household shares a habitual clinic in its provider list, established by a
+  successful visit. Excessive offered waits trigger a search among other known, reachable clinics;
+  acceptable waits shorten with urgency. Occasional fallback preserves the habitual clinic;
+  repeated excessive waits can cause a lasting switch.
+- **Appointments:** opening hours, visit duration and simultaneous treatment capacity determine
+  availability. Urgency takes priority, waiting time breaks ties and gradually raises priority.
+  Urgent requests may postpone appointments before departure. Travelling patients and treatment
+  underway are protected; postponement preserves original waiting time. Booking provides no Health
+  benefit. Completed routine care resets its interval.
+- **Beds:** separate from consultation capacity. Small clinics may have none; larger facilities
+  can provide inpatient care. Consultation can recommend admission based on illness severity and
+  underlying Health; low Household Health alone does not admit a member. Admission occupies a bed
+  until discharge. An unavailable bed prompts a search for another reachable facility without
+  replacing the family doctor. With none available, the Citizen waits at home while illness evolves;
+  outpatient care may help but does not substitute for a needed bed.
+- **Consequences:** mild illness permits work and can recover naturally; serious illness keeps a
+  Citizen home, and admission makes them unavailable until discharge. Treatment improves recovery
+  and reduces deterioration risk. Severe unmet care can become fatal through increasing risk,
+  not a fixed waiting deadline. Discharge follows the end of inpatient need; recovery may continue
+  at home. Missed work and attendance-based lost wages are visible consequences.
+- **Evidence:** a Health overlay colours homes by Household Health, with facility markers showing
+  treatment load, beds and admission waits. Area summaries and Household inspection expose sickness,
+  waits, missed work, lost wages and outcomes. Traces identify the Citizen, time and relevant
+  facility through illness, requests, refusals, treatment and outcomes. Report deaths while awaiting
+  admission; calling a death preventable requires evidence beyond that coincidence.
+
+Named diseases, possible outbreaks and prevention are filed in [`deferred`](../docs/deferred.md#named-diseases).
+Implementation is on `codex/daily-schedules`. `CommuteRoster.ShiftStartOf` now draws at Tick
+resolution within the existing band; fixed-hour bands remain exact. `CivicEngine` now owns school visits, care scheduling, individual illness and inpatient stays;
+its tables participate in saves and State Hashes. `[school]` and `[care]` enable these mechanisms;
+`scheduled-school.toml` and `care.toml` demonstrate them. Existing Rulesets without these tables
+retain their previous service behaviour.
+The schedule change intentionally moves replay State Hashes. `ConnectedCityCongestionTests.Heavy`
+restores clamp coverage with larger districts at unchanged density and capacity. `LandValueLongRun`
+uses a less sparse population and civil-morning sampling; its variation and flow assertions stand.
+
+`CivicTests` exercises triage and protected journeys, fallback and family-doctor switching, multiple
+children, natural recovery, lost earnings, bed limits, retained death evidence and save/reload.
+`FactorioTests` now reaches the care tables in its corruption audit. New saved illness state and
+work timing move the golden State Hashes; baseline Ruleset content hashes are unchanged.
+
+The driven shell at Tick 512, seed 0, 128 Citizens showed a consultation in progress, sickness,
+missed work and lost earnings in the Health overlay and city inspector. Watching it exposed an
+unthemed summary panel and pitched roofs outside the overlay material switch; both were fixed.
+`Main.Health` owns the overlay, facility labels, area and Household summaries and care history.
+
+A 102,400-Tick headless run at that population, with one clinic and no hospital, completed its
+end-of-run invariants and produced admission waits and deaths while awaiting admission. It used
+`care.toml` with illness probability 300 per thousand, initial severity 39, deterioration probability
+85 percent, four-hour consultations and 60 floor Tiles per treatment place. Those are a distress
+fixture, not balance or timing claims. `CareDayTable` preserves rolling outcomes independently of
+the bounded event trace. School matching and care costs remain unmeasured in `plans/0013`.
+
+```sh
+dotnet run --project src/Borough.Headless -- --care --ruleset rulesets/care.toml --citizens 128 --ticks 32768 --schools 1 --clinics 1 --hospitals 1
 ```
 
 ## What shopping found

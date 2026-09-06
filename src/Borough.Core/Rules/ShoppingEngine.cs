@@ -107,6 +107,7 @@ public sealed class ShoppingEngine
         foreach (int member in _world.Members.Walk(hh))
         {
             if ((_world.Rules.DeclaresLifeStages && _world.Citizens.Age[member] == 0)
+                || CivicEngine.TooIllToWork(_world, member)
                 || (CitizenActivity)_world.Citizens.Activity[member] != CitizenActivity.AtHome) { continue; }
             if (!severe && WorkSchedule.OnDuty(_world, member, tick)) { continue; }
             citizen = member; break;

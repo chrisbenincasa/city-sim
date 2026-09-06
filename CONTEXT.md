@@ -414,6 +414,14 @@ The complete body of Rules, Zone Rules, and tuning constants, loaded from data f
 
 ---
 
+## Care Request, Appointment, Illness Episode
+
+A **Care Request** belongs to one Citizen and retains its original waiting time through postponement.
+An **Appointment** reserves an outpatient visit; travelling patients and treatment underway are protected.
+An **Illness Episode** is an individual period of illness with severity and recovery, distinct from
+Household Health. The Household shares a habitual clinic in its Provider List. A bed holds one admitted
+Citizen until discharge; it is separate from outpatient treatment capacity. Named diseases are deferred.
+
 ## Economy
 
 **Resource**

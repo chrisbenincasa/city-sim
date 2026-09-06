@@ -36,10 +36,9 @@ namespace Borough.Tests.Space;
 /// terms have literally the same source.
 /// </para>
 /// <para>
-/// <b>1,000 Citizens rather than 4,000</b>, matching <c>MoneyLongRunTests</c>, because the run is the
-/// expensive part and every reading here is qualitative. ⚠ <b>The cost of the small city is that the
-/// commute is sparse</b> — see <see cref="LandValueLongRun.ReadAt"/>, where the instrument had to be
-/// widened twice before the noise reading stopped depending on the sampling.
+/// Tick-resolution Workplace starts changed the spatial field on the sparse 1,000-Citizen fixture.
+/// The fixture now uses 2,000 Citizens with the same variation floor and flow assertions.
+/// <see cref="LandValueLongRun.ReadAt"/> samples civil morning hours, including the 05:00 Day offset.
 /// </para>
 /// </remarks>
 public sealed class LandValueLongRunTests(LandValueLongRun run) : IClassFixture<LandValueLongRun>
@@ -300,10 +299,10 @@ public sealed class LandValueLongRunTests(LandValueLongRun run) : IClassFixture<
 public sealed class LandValueLongRun
 {
     private const int Ticks = 100_000;
-    private const int Population = 1_000;
+    private const int Population = 2_000;
 
     /// <summary>
-    /// The Ticks within a Day a reading is attempted at — <b>07:00 to 10:00, and not midnight.</b>
+    /// The Ticks within a Day a reading is attempted at — <b>06:00 to 12:00 civil time.</b>
     /// </summary>
     /// <remarks>
     /// <para>
@@ -325,8 +324,8 @@ public sealed class LandValueLongRun
     /// before the quantity it measures stopped depending on the sampling.***
     /// </para>
     /// </remarks>
-    internal static ReadOnlySpan<int> ReadAt =>
-        [512, 544, 576, 608, 640, 672, 704, 736, 768, 800, 832, 864, 896, 928, 960, 992, 1024];
+    internal static readonly int[] ReadAt = Enumerable.Range(0, 17)
+        .Select(sample => Core.Quantities.Ticks.AtClock(6) + sample * 32).ToArray();
 
     public Reading[] Readings { get; } = Run();
 
@@ -378,9 +377,8 @@ public sealed class LandValueLongRun
             Reading candidate = Read(
                 world, weights, tick, intoDay == ReadAt[0], ref previous, ref seen);
 
-            // The loudest of the Day's four attempts. The first one carries the land value figures,
-            // which are a stored column and do not move between them; the later ones can only
-            // improve the two term peaks and the concordance, which are the fragile half.
+            // Keep land value and flow at the first daily sample; use the loudest morning sample
+            // for the instantaneous noise comparison.
             if (intoDay == ReadAt[0])
             {
                 readings.Add(candidate);

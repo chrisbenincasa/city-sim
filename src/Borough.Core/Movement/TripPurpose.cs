@@ -188,4 +188,5 @@ public enum TripPurpose : byte
     /// </para>
     /// </remarks>
     School = 5,
+    Care = 6,
 }
