@@ -1,0 +1,11 @@
+{
+  "sources": {
+    "RoofMeshes.cs": "8a6953a2655670bd1ff4a62b11c314536303c2539193ac6751ce35e5a679aebf",
+    "RoofStudy.cs": "d5cc7df40096772c9e96ecc7046df6271951ca234d79954cf87ad479a3c851bd",
+    "overlay-buildings.gdshader": "ce07d320c79a7cd3e95b0efc7fb02b44e3483c123c29b0d84fd0d1b4f3ce1f28",
+    "surfaces.gdshader": "9956f57b56302099f8de0ba33f41de057c7382e3fe2c6432f8b1b7135a658b19",
+    "Main.cs": "d645a00d365034335c8863d33770e32a256edc3b30ca8fdd14166b8fa5956996",
+    "Main.Assets.cs": "1bb743d664159202d26cf0554337120577211173e8870b4ac47a454660122810"
+  },
+  "standing": "Roof crease repair; procedural surface candidate, not final roof art. Historic before images predate the repair."
+}

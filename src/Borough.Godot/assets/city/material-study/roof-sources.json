@@ -1,0 +1,31 @@
+{
+  "asset": "Roof Slates 02",
+  "author": "Rob Tuytel",
+  "source": "https://polyhaven.com/a/roof_slates_02",
+  "license": "https://polyhaven.com/license",
+  "license_name": "CC0",
+  "width_metres": 3,
+  "standing": "Source scale; albedo modulates existing roof palette. Candidate, not final acceptance.",
+  "files": [
+    {
+      "file": "roof-slates-albedo.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/roof_slates_02/roof_slates_02_diff_2k.jpg",
+      "sha256": "5be7e739997e9f5560b07ee42f335d7ad70213359d48cbffc9c04ad129e9a2c4"
+    },
+    {
+      "file": "roof-slates-normal.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/roof_slates_02/roof_slates_02_nor_gl_2k.jpg",
+      "sha256": "4ff2618aa5f2eac52f728b8b4f7e715d87c410719effc66eb6f528378ef9f49e"
+    },
+    {
+      "file": "roof-slates-roughness.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/roof_slates_02/roof_slates_02_rough_2k.jpg",
+      "sha256": "641b51370745e7e990c93542716bf46219e7415808a4cea999bb3f0683ec01bf"
+    }
+  ],
+  "linear_albedo_mean": [
+    0.297526776417879,
+    0.25410678142268,
+    0.1948734053963924
+  ]
+}

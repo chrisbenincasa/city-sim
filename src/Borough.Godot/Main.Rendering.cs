@@ -8,7 +8,7 @@ namespace Borough.Shell;
 public partial class Main
 {
     private readonly Dictionary<int, (ulong Id, bool Drawn)> _renderedBuildings = [];
-    private readonly List<InstanceValue> _bodyEdits = [], _roofEdits = [], _hipEdits = [], _mansardEdits = [], _yardEdits = [];
+    private readonly List<InstanceValue> _bodyEdits = [], _roofEdits = [], _hipEdits = [], _pairedRoofEdits = [], _yardEdits = [];
     private Wash _visualWash;
     private long _fullBuildingPasses, _buildingEdits, _movementQueries, _movementIndexVisits;
     private long _frameCount;
@@ -37,7 +37,7 @@ public partial class Main
             foreach (int slot in changes.Buildings)
             {
                 _buildingEdits++;
-                _bodyEdits.Clear(); _roofEdits.Clear(); _hipEdits.Clear(); _mansardEdits.Clear(); _yardEdits.Clear();
+                _bodyEdits.Clear(); _roofEdits.Clear(); _hipEdits.Clear(); _pairedRoofEdits.Clear(); _yardEdits.Clear();
                 bool live = _world.Buildings.Rows.IsLive(slot);
                 ulong id = live ? _world.Buildings.Rows.IdAt(slot) : 0;
                 if (_renderedBuildings.Remove(slot, out var old))
@@ -50,9 +50,9 @@ public partial class Main
                 {
                     _bodyEdits.Add(new(one.Body, one.Paint, one.Reads));
                     if (one.Outhoused) _yardEdits.Add(new(one.Yard,
-                        one.Paint == Derelict.SrgbToLinear() ? one.Paint : Outbuilding.SrgbToLinear()));
-                    var roof = one.Cap switch { Cap.Gable => _roofEdits, Cap.Hip => _hipEdits, Cap.Mansard => _mansardEdits, _ => null };
-                    roof?.Add(new(one.Roof, one.Paint == Derelict.SrgbToLinear() ? one.Paint : one.Slate));
+                        YardPaint(one)));
+                    var roof = one.Cap switch { Cap.Gable => _roofEdits, Cap.Hip => _hipEdits, Cap.PairedGable => _pairedRoofEdits, _ => null };
+                    roof?.Add(new(one.Roof, RoofPaint(one), RoofWall(one)));
                 }
                 geometry |= ReplaceBuilding(id);
                 bool drawn = _bodyEdits.Count != 0;
@@ -76,7 +76,7 @@ public partial class Main
 
     private void VerifyBuildingDrawing()
     {
-        InstanceLayer[] layers = [_buildings, _roofs, _hips, _mansards, _yards];
+        InstanceLayer[] layers = [_buildings, _roofs, _hips, _pairedRoofs, _yards];
         var before = new List<Dictionary<(ulong Id, int Part), InstanceValue>>();
         foreach (var layer in layers) before.Add(layer.Multimesh.Snapshot());
         int fresh = Massings(Buildings());
@@ -97,7 +97,7 @@ public partial class Main
         geometry |= _yards.Multimesh.Replace(id, _yardEdits);
         _roofs.Multimesh.Replace(id, _roofEdits);
         _hips.Multimesh.Replace(id, _hipEdits);
-        _mansards.Multimesh.Replace(id, _mansardEdits);
+        _pairedRoofs.Multimesh.Replace(id, _pairedRoofEdits);
         return geometry;
     }
 

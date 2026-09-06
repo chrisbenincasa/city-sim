@@ -1,0 +1,23 @@
+tick 600
+shopping.toml   Tick 600   Day 0   Monday   12:01
+Citizens 400   Buildings 52   vacant Lots 32   travelling 1
+At work 105   Shopping 2 Households   Goods being carried 32 — bringing home 32 sundries
+speed paused   mode look   [ ] speed, space pause, w write log, g roads, c cells, tab tune
+click acts   right-drag or two-finger scroll pans   edge of screen pans   pinch or -/= zooms   q/e turns   r/f tilts   l lens   o overlay
+hover —
+dwelling · 1 Household · 1 Business · Waiting for repairs
+debug —
+Tile (97, 80)    Cell (3, 2)
+dwelling — 2 of 3 occupied, 6 Tiles off
+    shop
+Lot 28, zone 0x0001
+ground: ordinary
+pollution 0    land value 0    sealing 115
+District 1
+inspector —
+closed
+ui theme=dark debug=False visible=False scroll=0
+inspector (2594, 24), (406, 1654) min=(203, 175)
+body (2594, 24), (0, 0) min=(0, 0)
+scroll (2594, 24), (0, 0) min=(0, 0)
+hover (40, 1770), (2944, 30) debug (24, 24), (400, 36) console (24, 1702), (2976, 108)

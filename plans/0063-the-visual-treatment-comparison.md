@@ -155,6 +155,84 @@ each image, and the SHA-256s match the fidelity pilot's recorded downloads byte 
 but restricts redistribution and automated downloading, so a file from it may not be committed to
 this tree on the reasoning that admits a Poly Haven one.
 
+### Player review and comparison round — 2026-09-06
+
+The player rejected the flat overlay and plaster treatment, and asked for visible abandonment
+wear consistent with the base material. The first live-facade gallery is a rejected/provisional
+comparison, not final art. `preferences.json` retains the feedback verbatim. This review takes
+priority over spreading the current treatment across more assets.
+
+The [second comparison](../artifacts/visual-study/surfaces-2/index.html) switches among flat fill,
+fixed face shading, and face shading with edges on the same live city at two distances. Neutral
+surroundings retain shape. `overlay-buildings.gdshader` uses a fixed diagram light independent of
+Daylight. This historical gallery predates the roof-crease repair below.
+The publisher's [Cities: Skylines II electricity view](https://www.paradoxinteractive.com/games/cities-skylines-ii/features/electricity-water)
+is a visual reference for shaded categorical colour and visible context, not evidence about its
+shader implementation. [SimCity's manual](https://akamai.cdn.ea.com/eadownloads/u/f/manuals/GAME-SIMCITY/SimCity_2013.pdf)
+supplies the task-specific Data Map/system-information reference.
+
+`FacadeMaterials` compares untreated, photographed painted plaster and worn plaster. Abandonment
+keeps the Building's paint and layers grime, chipped render revealing the existing masonry, and
+worn trim through its explicit condition flag. Photographed normals and roughness replace the
+plaster's procedural grain. All maps are Poly Haven CC0; `material-study/sources.json` records
+source URLs, byte hashes and linear-light means. Scales and wear strengths remain PROVISIONAL.
+The worn-plaster candidate is visibly busy even on occupied premises; it is an alternative, not
+an accepted default. This is a facade study: damaged roof geometry and time-evolving wear are unbuilt.
+
+Reproduce with `python3 scripts/compare-surfaces.py` after a Godot Debug build and texture import.
+The gallery holds the camera, geometry and paint constant; its manifest identifies source bytes.
+The driven overlay runs compare full/incremental geometry and repeated paused uploads. Texture
+choice, scale, wear strength and overlay style still need player judgement. A dedicated material
+review now has a repeatable comparison surface; none of these samples declares final-stage art.
+
+### Roof review — 2026-09-06
+
+The player rejected the roof art and identified missing overlay lines. `RoofMeshes.Create` supplies
+physical crease metadata to `overlay-buildings.gdshader`; coplanar triangulation edges are suppressed.
+`Checks.CheckRoofs` covers all three production families. `RoofStudy` and
+`scripts/compare-roofs.py` retain the [roof comparison](../artifacts/visual-study/roofs/index.html),
+including the original failure, corrected normals, a provisional course-aligned surface, and driven
+Age/Rung views. The live checks compare repeated geometry and uploads. Roof construction and
+proportions still need review; neither primitive shapes nor procedural tiles are final art.
+
+The follow-up rejected the general roof art despite improved overlays. The
+[proportion comparison](../artifacts/visual-study/roof-proportions/index.html) pairs the same city
+camera with smaller roof spans, a short-ridge hip, wall-coloured gable ends and photographed slates.
+`RoofMaterials` uses Poly Haven's source scale; `material-study/roof-sources.json` records provenance.
+`RoofStudy` includes enlarged tiles and human-height references. Footprints remain simulation-owned;
+the comparison separates their scale from the former oversized roof volumes. No roof art is accepted.
+
+The player found the proportion comparison better and authorised a checkpoint. Next, ground the
+model families in measured architecture: choose a geographic/period reference, study ordinary
+building types and their street relationships, then compare a small kit in-game before expanding it.
+The footprint-to-occupancy relationship belongs in that review alongside construction and materials.
+
+### Priority and implementation pass — 2026-09-06
+
+1. Repair roof outlines and compare roof surfaces alongside materials and layered wear before propagating the treatment.
+2. Keep repeatable camera evidence and renderer assertions, then choose projected-size detail and
+   update cadence from observed failures. UI refresh can proceed independently of asset authoring.
+3. Review the neighbourhood with the player before propagating its construction across the roster
+   and modular kit. Repetition, moving-camera and lighting studies accompany that work.
+4. Profile before occlusion, GPU-driven rendering or worker preparation; their gates remain.
+
+`FacadeAppearance`, `Main.Massing` and `buildings.gdshader` implement the first group provisionally.
+Commercial Goods storage in the Building kind selects a shopfront, even while vacant; it does not
+promise stock or opening hours. Household and Business tenants both contribute to occupancy.
+Abandonment has its own flag, independent of paint. Tower shafts suppress shopfronts. Debug washes
+use the existing unshaded override; hip and mansard roofs now receive it alongside gables. Plaster keeps the stable
+material-family draw and adds restrained surface variation.
+
+`FacadeStudy` and `scripts/check-facades.py` retain the [review gallery](../artifacts/visual-study/live-facades/index.html):
+four occupancy/condition samples across two materials, residential/commercial fronts and day/night/
+debug wash, plus the live shopping city. The captures exposed disabled mipmaps on both masonry
+images; their import settings now enable them. Brick relief no longer crosses onto glazing.
+The script checks repeated paused draws for unchanged geometry and uploads. Renderer checks cover
+mixed-tenancy occupancy, explicit condition, upper-part flags and GPU custom-data packing.
+A separate driven shopping run compared incremental and full regeneration through Ticks 600–664.
+These are behavioural and visual checks, not a cost measurement or player acceptance.
+Live frontage/storey edits, continuous camera motion and broader lighting review remain open.
+
 ### Live work list
 
 Update these boxes here as work lands; record player judgements in `preferences.json`.
@@ -178,10 +256,11 @@ Update these boxes here as work lands; record player judgements in `preferences.
 - [~] Integrate approved assets/materials into the live shell and verify occupied/partly occupied/
   abandoned appearances, overlays on/off and frontage/storey changes against actual state.
   **Started 2026-09-06** — the masonry crossed and the woodland order was fixed; the state
-  responses have **not** been re-verified against the new surface and remain the open half.
-- [ ] **The shopfront and the render family** — the two things a street of these visibly still lacks.
-  A commerce ground floor and a plaster/stucco family beside the brick one, both off the same draw
-  that already picks `masonry`. This is the rest of the shader path.
+  responses now have controlled facade samples and live overlay checks above; live frontage/storey
+  edits and broader state-transition coverage remain open.
+- [~] **The shopfront and the render family** — implemented, then reopened by player review above.
+  Commercial premises select the frontage; the stable material draw selects brick or plaster.
+  Visual acceptance remains with the player.
 - [x] **Stop the masonry repeating** — bond-snapped stochastic tiling in `buildings.gdshader`,
   landed 2026-09-06. **F5** owns the finding and the reason the generic technique needed changing.
 - [x] **Remove the fixed instance ceiling and retain spatial batches** — implemented in

@@ -764,11 +764,8 @@ public partial class Main
             TextureFilter = BaseMaterial3D.TextureFilterEnum.Linear,
         };
 
-        _muted ??= new StandardMaterial3D
-        {
-            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-            AlbedoColor = Muted,
-        };
+        _muted ??= new ShaderMaterial { Shader = GD.Load<Shader>("res://overlay-buildings.gdshader") };
+        _muted.SetShaderParameter("context_only", true);
 
         if (_washing == Wash.Rung)
         {
@@ -783,15 +780,12 @@ public partial class Main
             }
         }
 
-        _categorical ??= new StandardMaterial3D
-        {
-            // The same unshaded argument the ground overlay makes, spent on the MASSING instead:
-            // a rung read against a sunset is a rung multiplied by the time of day. Instance
-            // colour has to be the albedo, because a MultiMesh's per-instance colour is the only
-            // channel that survives one material over thousands of Buildings.
-            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-            VertexColorUseAsAlbedo = true,
-        };
+        _categorical ??= new ShaderMaterial { Shader = GD.Load<Shader>("res://overlay-buildings.gdshader") };
+        int style = int.TryParse(System.Environment.GetEnvironmentVariable("BOROUGH_OVERLAY_STYLE"), out int chosen)
+            ? Math.Clamp(chosen, 0, 2) : 2;
+        _categorical.SetShaderParameter("treatment", style);
+        _muted.SetShaderParameter("treatment", style == 0 ? 0 : 1);
+        _muted.SetShaderParameter("context_colour", style == 0 ? Muted : new Color(0.43f, 0.46f, 0.44f));
 
         foreach ((string name, InstanceLayer over, bool _, List<ulong>? _) in Layers())
         {
@@ -803,7 +797,7 @@ public partial class Main
                 // difference between these two and the three ground ones. A ground overlay mutes
                 // everything and lets the plane carry the reading; a building overlay mutes
                 // everything EXCEPT the thing being measured.
-                Wash.Rung or Wash.Age or Wash.Health when name is "building" or "roof" or "hip" or "mansard" => _categorical,
+                Wash.Rung or Wash.Age or Wash.Health when name is "building" or "roof" or "hip" or "paired-roof" => _categorical,
                 _ => _muted,
             };
         }

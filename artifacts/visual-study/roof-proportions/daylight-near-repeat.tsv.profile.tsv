@@ -1,0 +1,21 @@
+render_work	1	0	24	1
+render_frames	2	403.030	402.736
+# render	layer	batches	uploads	uploaded_instances	uploaded_bytes	upload_ms	pending
+render	ground	1	1	1	768	1.119	0
+render	hazard	0	0	0	0	0.000	0
+render	water	0	0	0	0	0.000	0
+render	flood	0	0	0	0	0.000	0
+render	road	11	11	111	13312	0.266	0
+render	footway	19	19	218	25600	0.242	0
+render	kerb	19	13	222	28672	0.405	0
+render	cell	9	9	70	6912	0.081	0
+render	plot	2	2	32	2048	0.029	0
+render	building	2	2	52	5120	0.051	0
+render	roof	2	2	9	2560	0.016	0
+render	hip	1	1	1	1280	0.004	0
+render	paired-roof	2	2	42	5120	0.050	0
+render	yard	2	2	40	4096	0.036	0
+render	tree	308	85	48599	5013504	115.086	0
+render	rock	61	0	0	0	4.266	0
+render	traveller	1	1	1	1024	0.009	0
+render	car	0	0	0	0	0.000	0

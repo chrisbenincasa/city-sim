@@ -1,0 +1,106 @@
+{
+  "license": "CC0-1.0",
+  "license_url": "https://polyhaven.com/license",
+  "standing": "Comparison candidates; no material or scale approved.",
+  "files": [
+    {
+      "asset": "painted_plaster_wall",
+      "channel": "Diffuse",
+      "path": "painted-plaster-albedo.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/painted_plaster_wall/painted_plaster_wall_diff_2k.jpg",
+      "sha256": "6fd812ed8dd5be1873c29aeef38ce9bf1fb30a22c6d4b3a12db725e98c26a1be",
+      "linear_mean": [
+        0.4080700827121964,
+        0.36641045054928967,
+        0.35170243392906414
+      ]
+    },
+    {
+      "asset": "painted_plaster_wall",
+      "channel": "nor_gl",
+      "path": "painted-plaster-normal.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/painted_plaster_wall/painted_plaster_wall_nor_gl_2k.jpg",
+      "sha256": "2d601a46ed5ce2af866741c53cafa3cba472620c272e633b6484d4de16a80eb1"
+    },
+    {
+      "asset": "painted_plaster_wall",
+      "channel": "Rough",
+      "path": "painted-plaster-roughness.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/painted_plaster_wall/painted_plaster_wall_rough_2k.jpg",
+      "sha256": "35aad595469533cc3b7cc209cc6c7e065d660211f02c867f4492d3b371b1fee1"
+    },
+    {
+      "asset": "painted_plaster_wall",
+      "channel": "Displacement",
+      "path": "painted-plaster-height.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/painted_plaster_wall/painted_plaster_wall_disp_2k.jpg",
+      "sha256": "80859875e00fde2c883d37a4eb47728bece60f9eb7c8a907ce40b20d8faf5ed1"
+    },
+    {
+      "asset": "damaged_plaster",
+      "channel": "Diffuse",
+      "path": "damaged-plaster-albedo.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/damaged_plaster/damaged_plaster_diff_2k.jpg",
+      "sha256": "7bb34e3829bac09d9bc7d667998e7d02b19ffda50b8be3452f9edfdfedb3012f",
+      "linear_mean": [
+        0.30162697203746625,
+        0.23224213091444196,
+        0.17701528957981258
+      ]
+    },
+    {
+      "asset": "damaged_plaster",
+      "channel": "nor_gl",
+      "path": "damaged-plaster-normal.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/damaged_plaster/damaged_plaster_nor_gl_2k.jpg",
+      "sha256": "75ddabef98424d57d7b9ab44890532dba886e3f3fca10264b36de0640386d9ab"
+    },
+    {
+      "asset": "damaged_plaster",
+      "channel": "Rough",
+      "path": "damaged-plaster-roughness.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/damaged_plaster/damaged_plaster_rough_2k.jpg",
+      "sha256": "379c15ca1b5aab8e693bee78ecf586ea2240511d4c687be5e902250a2342b1c2"
+    },
+    {
+      "asset": "damaged_plaster",
+      "channel": "Displacement",
+      "path": "damaged-plaster-height.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/damaged_plaster/damaged_plaster_disp_2k.jpg",
+      "sha256": "48badca01ab4f5250054b592612b5222c8d570991d6fee6a079a6ba39ef189bb"
+    },
+    {
+      "asset": "worn_plaster_wall",
+      "channel": "Diffuse",
+      "path": "worn-plaster-albedo.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/worn_plaster_wall/worn_plaster_wall_diff_2k.jpg",
+      "sha256": "1cf28fcd1a0aa5873055fbfaf791e4a1528e03d3eeea8f66af23aba651e71f54",
+      "linear_mean": [
+        0.1843054209161041,
+        0.15584883828417337,
+        0.11288087732033385
+      ]
+    },
+    {
+      "asset": "worn_plaster_wall",
+      "channel": "nor_gl",
+      "path": "worn-plaster-normal.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/worn_plaster_wall/worn_plaster_wall_nor_gl_2k.jpg",
+      "sha256": "ffc110c57a6f98416a9cec390aeee80e1c6a3e6be627cfabfa041a55ccf96546"
+    },
+    {
+      "asset": "worn_plaster_wall",
+      "channel": "Rough",
+      "path": "worn-plaster-roughness.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/worn_plaster_wall/worn_plaster_wall_rough_2k.jpg",
+      "sha256": "1063b53b2cba33f791b895f0d7ac0ee5f3434a54a674164e53405d9cf358f7b1"
+    }
+  ],
+  "asset_pages": [
+    "https://polyhaven.com/a/damaged_plaster",
+    "https://polyhaven.com/a/painted_plaster_wall",
+    "https://polyhaven.com/a/worn_plaster_wall"
+  ],
+  "means": "Diffuse means decode sRGB before averaging all source JPEG pixels, using ffmpeg rgb24 and the sRGB transfer curve.",
+  "applied_scale": "PROVISIONAL: plaster 4 metres per repeat; wear mask 5 metres. Existing masonry stays at its own 1.125 metre repeat."
+}

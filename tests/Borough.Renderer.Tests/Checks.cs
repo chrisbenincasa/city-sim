@@ -11,6 +11,8 @@ public partial class Checks : Node
     {
         try
         {
+            CheckFacades();
+            CheckRoofs();
             var layer = new InstanceLayer();
             AddChild(layer);
             InstanceBuffer b = layer.Multimesh;
@@ -44,7 +46,7 @@ public partial class Checks : Node
             b.Identity(0, 999999);
             b.SetInstanceTransform(0, transform);
             b.SetInstanceColor(0, new Color(.2f, .4f, .6f, 1));
-            b.SetInstanceCustomData(0, new Color(.1f, .3f, .5f, .7f));
+            b.SetInstanceCustomData(0, new Color(.1f, .3f, .5f, 2047f));
             b.VisibleInstanceCount = 1;
             b.Flush();
             Require(b.BatchCount == 1 && b.InstanceCount == 16, "empty batches released and capacity shrinks");
@@ -53,7 +55,7 @@ public partial class Checks : Node
             {
                 Require(b.UploadedTransform(0).IsEqualApprox(transform), "bulk transform layout");
                 Require(b.UploadedColour(0).IsEqualApprox(new Color(.2f, .4f, .6f, 1)), "bulk colour layout");
-                Require(b.Batches.Single().Node.Multimesh.GetInstanceCustomData(0).IsEqualApprox(new Color(.1f, .3f, .5f, .7f)), "bulk custom layout");
+                Require(b.Batches.Single().Node.Multimesh.GetInstanceCustomData(0).IsEqualApprox(new Color(.1f, .3f, .5f, 2047f)), "bulk custom layout");
             }
             // Multiple components per entity, then relocation and one component disappearing.
             Write(b, 0, 5, Vector3.Zero); Write(b, 1, 5, new Vector3(2048, 0, 0));

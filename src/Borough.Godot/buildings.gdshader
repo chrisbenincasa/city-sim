@@ -11,16 +11,28 @@
 // dividing it back out returns the city's number exactly. ⚠ A window is still invented geometry;
 // HOW MANY ROWS OF THEM there are is not.
 //
-// ⚠ TWO CHANNELS OF INSTANCE_CUSTOM ARE THE CITY'S AND THE OTHER TWO ARE THE DRAWING'S.
+// INSTANCE_CUSTOM carries frontage, occupancy and packed appearance flags.
 //   r, g  the street face's outward normal, remapped from -1..1 — which kerb the Lot is on
 //         (adr/0074), and therefore where the front door goes
-//   b     occupancy as a share of the kind's declared room — held / occupants
-//   a     the Building's own draw off its scramble, so two identical boxes are not identical
+//   b     tenants / declared capacity, zero when abandoned
+//   a     FacadeAppearance: byte seed, commercial premises, abandonment and upper-part flags
 shader_type spatial;
 render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 
 // Set by the shell from the same height used to draw each storey.
 uniform float storey_metres = 3.5;
+
+// PROVISIONAL material comparisons. Source files and linear means live beside the maps.
+uniform sampler2D plaster_albedo : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D plaster_normal : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D plaster_roughness : filter_linear_mipmap, repeat_enable;
+uniform sampler2D wear_height : filter_linear_mipmap, repeat_enable;
+uniform sampler2D wear_normal : hint_normal, filter_linear_mipmap, repeat_enable;
+uniform vec3 plaster_mean = vec3(0.40807008, 0.36641045, 0.35170243);
+uniform float plaster_metres = 4.0;
+uniform float plaster_mix = 1.0;
+uniform float wear_strength = 1.0;
+
 
 // How wide a window bay is, kerb to kerb along the wall.
 const float BAY = 3.6;
@@ -185,11 +197,18 @@ varying vec3 v_local;
 varying vec3 v_size;
 varying vec3 v_face;
 varying vec4 v_custom;
+varying float v_shop;
+varying float v_ruin;
 
 void vertex() {
     v_local = VERTEX;
     v_face = NORMAL;
     v_custom = INSTANCE_CUSTOM;
+    // FacadeAppearance packs an exact byte seed and independent state flags.
+    float flags = floor(v_custom.a / 256.0);
+    v_custom.a = mod(v_custom.a, 256.0) / 255.0;
+    v_shop = mod(flags, 2.0) * (1.0 - step(4.0, flags));
+    v_ruin = mod(floor(flags / 2.0), 2.0);
 
     // The instance transform's own column lengths, which is the box's size in metres. A unit
     // BoxMesh is what every Building shares, so this is the only place the real size exists.
@@ -392,11 +411,8 @@ void fragment() {
     float lived = draw(vec3(floorAt, bayAt, dot(n, vec3(1.0, 3.0, 7.0)) + v_custom.a * 91.0));
     float shut = step(v_custom.b, lived);
 
-    // ⚠ A SHELL IS READ OFF ITS OWN PAINT AND NOT OUT OF A CHANNEL. The C# side already darkens
-    // an abandoned Building to Derelict, and that is a luminance no standing wall reaches — so
-    // the openings can tell a ruin from a house without a fifth thing to pack and keep in step.
-    // A ruin's openings are HOLES: nothing is shuttered, because nobody is there to shutter it.
-    float ruin = 1.0 - smoothstep(0.06, 0.13, dot(wall, vec3(0.299, 0.587, 0.114)));
+    // Condition survives palette and overlay changes.
+    float ruin = v_ruin;
     shut *= 1.0 - ruin;
 
     // The pane itself: darker than its wall always, so a standing Building's openings read as
@@ -471,6 +487,27 @@ void fragment() {
     vec3 grain_rgb = mix(vec3(lit), tinted, masonry_hue);
     body *= mix(vec3(1.0), grain_rgb, masonry * far * 0.85);
 
+    float rendered = (1.0 - step(v_custom.a, 0.38)) * upright;
+    vec2 plaster_uv = vec2(u, -up) / plaster_metres + vec2(v_custom.a * 11.0, v_custom.a * 7.0);
+    vec3 plaster_sample = texture(plaster_albedo, plaster_uv).rgb;
+    // Luminance modulation retains the paint; a plaster photograph does not choose the palette.
+    float plaster_grain = dot(plaster_sample, EYE) / max(dot(plaster_mean, EYE), 0.001);
+    body *= mix(1.0, clamp(plaster_grain, 0.25, 1.9), rendered * plaster_mix * far * 0.85);
+
+    vec2 wear_uv = vec2(u, -up) / 5.0 + vec2(v_custom.a * 17.0, v_custom.a * 23.0);
+    float wear = texture(wear_height, wear_uv).r;
+    float broken = (1.0 - smoothstep(0.75, 0.81, wear)) * ruin * wear_strength * upright;
+    // The height map supplies missing plaster, while the exposed brick stays our existing brick.
+    vec3 exposed_brick = wall * grain_rgb * vec3(0.78, 0.67, 0.56);
+    body = mix(body, exposed_brick, broken * rendered * far);
+    float damp = (1.0 - smoothstep(0.0, 2.4, up)) * (0.35 + 0.65 * wear);
+    float streaks = 1.0 - texture(wear_height, vec2(wear_uv.x, wear_uv.y * 0.17)).r;
+    float under_sill = smoothstep(sill - 1.2, sill, withinY) * (1.0 - step(sill, withinY));
+    float runoff = streaks * under_sill * 2.0;
+    float grime = ruin * wear_strength * upright * far
+        * clamp(0.30 + broken * 0.50 + damp * 0.35 + runoff * 0.18, 0.0, 0.90);
+    body = mix(body, body * vec3(0.25, 0.29, 0.22), grime);
+
     // 🔴 THE RELIEF, AND THE TANGENT FRAME IS BUILT HERE RATHER THAN TAKEN FROM THE MESH. Godot's
     // `NORMAL_MAP` uses the mesh's own TANGENT/BINORMAL, and this mesh is a UNIT BoxMesh scaled
     // per instance to the Building's footprint and height -- so the frame arrives skewed by a
@@ -483,7 +520,8 @@ void fragment() {
     // case is masked out rather than guarded against.
     vec3 shaded = normalize(NORMAL);
     vec3 up_view = normalize((VIEW_MATRIX * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
-    vec3 along = normalize(cross(up_view, shaded));
+    vec3 tangent = cross(up_view, shaded);
+    vec3 along = length(tangent) > 0.0001 ? normalize(tangent) : vec3(1.0, 0.0, 0.0);
     vec3 down = cross(shaded, along);
     // ⚠ ONE TAP FOR THE RELIEF AND THREE FOR THE COLOUR, WHICH IS NOT AN OVERSIGHT. The relief this
     // image carries is almost entirely the MORTAR RECESS, and the offsets are bonded — so every draw
@@ -498,7 +536,17 @@ void fragment() {
     NORMAL = normalize(mix(
         shaded,
         normalize((along * relief.x) + (down * relief.y) + (shaded * relief.z)),
-        masonry * far * masonry_relief));
+        masonry * far * masonry_relief * (1.0 - opening) * (1.0 - doorcase)
+            * (1.0 - v_shop * frontage * step(up, lift))));
+    vec3 render_relief = texture(plaster_normal, plaster_uv).xyz * 2.0 - 1.0;
+    vec3 damage_relief = texture(wear_normal, wear_uv).xyz * 2.0 - 1.0;
+    render_relief = normalize(mix(render_relief, damage_relief, broken * (1.0 - broken) * 4.0));
+    render_relief = normalize(mix(render_relief, relief, broken));
+    float solid_wall = upright * (1.0 - opening) * (1.0 - doorcase)
+        * (1.0 - v_shop * frontage * step(up, lift));
+    NORMAL = normalize(mix(NORMAL,
+        normalize(along * render_relief.x + down * render_relief.y + shaded * render_relief.z),
+        rendered * plaster_mix * solid_wall * close_detail * far));
     float cornice = smoothstep(v_size.y - 0.32 - grain.y, v_size.y - 0.32 + grain.y, up) * upright;
     body = mix(body, wall * 1.22, cornice * far);
     float barX = 1.0 - smoothstep(0.045 - grain.x, 0.045 + grain.x, abs(withinX - wide * 0.5));
@@ -510,6 +558,29 @@ void fragment() {
     painted = mix(painted, (wall * 1.45) + 0.03, cased);
     painted = mix(painted, mix(wall * 0.30, vec3(0.05, 0.055, 0.06), 0.4), doored);
 
+    // Commercial ground-floor glazing stays on the Street face and below the first floor.
+    float shop_floor = v_shop * frontage * (1.0 - smoothstep(lift - 0.15, lift, up)) * far;
+    float shop_x = smoothstep(0.22 - grain.x, 0.22 + grain.x, withinX)
+        * (1.0 - smoothstep(wide - 0.22 - grain.x, wide - 0.22 + grain.x, withinX));
+    float shop_y = smoothstep(0.28 - grain.y, 0.28 + grain.y, up)
+        * (1.0 - smoothstep(lift - 0.85 - grain.y, lift - 0.85 + grain.y, up));
+    float display = shop_x * shop_y * shop_floor;
+    float fascia = smoothstep(lift - 0.78 - grain.y, lift - 0.78 + grain.y, up)
+        * (1.0 - smoothstep(lift - 0.22 - grain.y, lift - 0.22 + grain.y, up)) * shop_floor;
+    vec3 joinery = mix(vec3(0.045, 0.075, 0.065), wall * 0.36, v_custom.a);
+    float shutter_line = 1.0 - smoothstep(0.012, 0.012 + grain.y, abs(mod(up, 0.12) - 0.06));
+    vec3 display_glass = mix(pane, wall * (0.58 - 0.09 * shutter_line * close_detail), shut);
+    display_glass = mix(display_glass, vec3(0.010, 0.011, 0.013), ruin);
+    painted = mix(painted, joinery, shop_floor);
+    painted = mix(painted, display_glass, display);
+    painted = mix(painted, joinery * 1.7, fascia);
+    // Keep the entrance distinguishable from display windows, without invented shop text.
+    painted = mix(painted, wall * 0.22, doored * shop_floor);
+    glazed = mix(glazed, display, shop_floor);
+    frame *= 1.0 - shop_floor;
+    float trim_wear = ruin * wear_strength * far * (0.22 + 0.45 * broken);
+    float trim = clamp(cased + reveal * far + fascia + frame * glazed, 0.0, 1.0);
+    painted = mix(painted, painted * vec3(0.38, 0.37, 0.31), trim_wear * trim);
     ALBEDO = painted;
 
     // 🔴 A RUIN'S OPENINGS CAME OUT LIGHTER THAN ITS WALLS AND THE ALBEDO WAS NOT THE REASON.
@@ -526,7 +597,9 @@ void fragment() {
     //
     // ⚠ A SHUT PANE STAYS ROUGH AND SO DOES A RUIN. A shutter is boards and a shell has no glass
     // left in it, which is the fact the material is being told rather than a look being chosen.
-    ROUGHNESS = mix(0.9, mix(0.06, 0.85, max(shut, ruin)), glazed);
+    float wall_roughness = mix(0.9, texture(plaster_roughness, plaster_uv).r,
+        rendered * plaster_mix * far * (1.0 - ruin));
+    ROUGHNESS = mix(wall_roughness, mix(0.06, 0.85, max(shut, ruin)), glazed);
     SPECULAR = mix(0.5, 0.9, glazed * (1.0 - shut) * (1.0 - ruin));
 
     // 🔴 THE LIT WINDOW IS THE OCCUPANCY SAYING SOMETHING A DAYTIME PICTURE CANNOT. By day a shut

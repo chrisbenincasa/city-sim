@@ -52,7 +52,7 @@ def main():
     original = rows(Path(str(before) + '.profile.tsv'), 'render')
     for path in [turned, far, after]:
         current = rows(Path(str(path) + '.profile.tsv'), 'render')
-        for name in ['building', 'roof', 'hip', 'mansard', 'yard', 'road']:
+        for name in ['building', 'roof', 'hip', 'paired-roof', 'yard', 'road']:
             assert original[name] == current[name], (name, 'camera movement uploaded standing geometry')
     assert int(rows(far, 'layer')['tree'][0]) == 0, 'far detail buffers remained resident'
     assert int(rows(after, 'layer')['tree'][0]) > 0, 'returning camera lost foliage'

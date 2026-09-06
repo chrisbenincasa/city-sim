@@ -65,11 +65,16 @@ public partial class Main
 
     private void DressSurfaces()
     {
-        foreach (var layer in new[] { _roofs, _hips, _mansards, _roads, _footways, _kerbs })
+        foreach (var layer in new[] { _roofs, _hips, _pairedRoofs, _roads, _footways, _kerbs })
         {
             var material = new ShaderMaterial { Shader = GD.Load<Shader>("res://surfaces.gdshader") };
             material.SetShaderParameter("surface_kind", layer == _roads ? 0 : layer == _footways || layer == _kerbs ? 1 : 2);
-            ((PrimitiveMesh)layer.Multimesh.Mesh).Material = material;
+            if (layer.Multimesh.Mesh is ArrayMesh roof)
+            {
+                RoofMaterials.Configure(material);
+                roof.SurfaceSetMaterial(0, material);
+            }
+            else ((PrimitiveMesh)layer.Multimesh.Mesh).Material = material;
         }
     }
 }

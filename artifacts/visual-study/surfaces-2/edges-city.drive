@@ -1,0 +1,8 @@
+600 pause
+600 focus 88 92 900
+600 tilt 32
+600 overlay age
+600 draw /private/tmp/city-sim-visual-treatment/artifacts/visual-study/surfaces-2/edges-city.tsv
+600 draw /private/tmp/city-sim-visual-treatment/artifacts/visual-study/surfaces-2/edges-city-repeat.tsv
+600 shoot /private/tmp/city-sim-visual-treatment/artifacts/visual-study/surfaces-2/edges-city.png
+600 quit

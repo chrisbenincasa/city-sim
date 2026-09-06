@@ -1,0 +1,75 @@
+{
+  "status": "Comparison only. No texture, wear strength, scale or overlay style approved.",
+  "live": {
+    "ruleset": "shopping.toml",
+    "seed": 0,
+    "citizens": 400,
+    "tick": 600,
+    "focus": [
+      88,
+      92
+    ],
+    "tilt": 32
+  },
+  "material_columns": [
+    "brick occupied",
+    "brick abandoned",
+    "plaster occupied",
+    "plaster abandoned"
+  ],
+  "material_variants": [
+    "untreated",
+    "painted plaster",
+    "worn plaster"
+  ],
+  "hashes": {
+    "src/Borough.Godot/buildings.gdshader": "fe479cf55d409992006adee929c7ac00c0567074b5eb805e6ec20454232dfae0",
+    "src/Borough.Godot/overlay-buildings.gdshader": "9f71612482308cb982d833303e36bd424c5200fcc214c168d24725065c837b7b",
+    "src/Borough.Godot/FacadeMaterials.cs": "5fa1c9179904289614027b3040e46ff0e8ca452821cf40a6fcecfccfa82e7f07",
+    "src/Borough.Godot/FacadeStudy.cs": "6e6304b6632658585aa4b690fb33441bc28fc00f009a718c72bc4844d14bcaf2",
+    "src/Borough.Godot/Main.Ground.cs": "38e757aaf2caec8aa63a7c4f940f73b8179aafe923f4008c3c1820137ce684f3",
+    "src/Borough.Godot/Main.Massing.cs": "cdf0ba6fa66f6c1eb09e7de661105fe04c50b3519125c2cb24217f160f6236b5",
+    "src/Borough.Godot/Main.Rendering.cs": "fc8af531c83d443104cdf1f63627567f48756641f3e55e8b522890346d1e2518"
+  },
+  "sources": [
+    [
+      "Cities: Skylines II \u2014 electricity infoview",
+      "https://www.paradoxinteractive.com/games/cities-skylines-ii/features/electricity-water"
+    ],
+    [
+      "SimCity \u2014 Data Maps, manual pp. 8\u20139",
+      "https://akamai.cdn.ea.com/eadownloads/u/f/manuals/GAME-SIMCITY/SimCity_2013.pdf"
+    ],
+    [
+      "Painted Plaster Wall",
+      "https://polyhaven.com/a/painted_plaster_wall"
+    ],
+    [
+      "Worn Plaster Wall",
+      "https://polyhaven.com/a/worn_plaster_wall"
+    ],
+    [
+      "Damaged Plaster \u2014 used as a wear mask",
+      "https://polyhaven.com/a/damaged_plaster"
+    ],
+    [
+      "Poly Haven CC0 licence",
+      "https://polyhaven.com/license"
+    ]
+  ],
+  "images": [
+    "material-00.png",
+    "material-01.png",
+    "material-02.png",
+    "material-03.png",
+    "material-04.png",
+    "material-05.png",
+    "flat-near.png",
+    "flat-city.png",
+    "faces-near.png",
+    "faces-city.png",
+    "edges-near.png",
+    "edges-city.png"
+  ],
+  "performance_claim": false
+}

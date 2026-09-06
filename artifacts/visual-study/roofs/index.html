@@ -1,0 +1,18 @@
+<!doctype html><meta charset="utf-8"><title>Roof comparison</title>
+<style>body{background:#202528;color:#e5e4df;font:17px system-ui;margin:28px}button,select{font:inherit;padding:8px;margin:5px}img{display:block;width:100%;max-width:1500px}p{max-width:950px}a{color:#bdcfdf}</style>
+<h1>Roof comparison — provisional art</h1>
+<p>The crease repair draws physical roof edges without triangulation diagonals. Flat face normals replace the rounded shading on hip and mansard primitives. The surface candidate aligns courses to each slope, adds tile variation and softer joints. Roof proportions, ridge construction, gutters and a photographed roofing material remain art work to review.</p>
+<select id="choice">
+<option value="after/roof-1.png">Repaired roof outlines</option>
+<option value="before/roof-1.png">Missing roof outlines — historical capture</option>
+<option value="after/roof-0.png">Face shading without outlines</option>
+<option value="after/roof-2.png">Previous surface, repaired normals</option>
+<option value="after/roof-3.png">Surface candidate, same geometry and paint</option>
+<option value="before/roof-2.png">Original surface and rounded normals — historical capture</option>
+<option value="age-near.png">Live city — Age overlay, near</option>
+<option value="age-city.png">Live city — Age overlay, city distance</option>
+<option value="rung-near.png">Live city — Rung overlay</option>
+<option value="daylight-near.png">Live city — surface candidate</option>
+</select><img id="shot" src="after/roof-1.png">
+<p><a href="../surfaces-2/index.html">Plaster, wear and overlay comparison</a> · <a href="manifest.json">Capture source hashes</a></p>
+<script>choice.onchange=()=>shot.src=choice.value;</script>

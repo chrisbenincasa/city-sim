@@ -1,0 +1,38 @@
+{
+  "fixture": "FacadeStudy: brick/plaster \u00d7 residential/commercial \u00d7 day/night/debug wash",
+  "columns": [
+    "vacant",
+    "half occupied",
+    "fully occupied",
+    "abandoned"
+  ],
+  "live": {
+    "ruleset": "shopping.toml",
+    "citizens": 400,
+    "seed": 0,
+    "tick": 600,
+    "focus": [
+      88,
+      92
+    ]
+  },
+  "images": [
+    "facade-00.png",
+    "facade-01.png",
+    "facade-02.png",
+    "facade-03.png",
+    "facade-04.png",
+    "facade-05.png",
+    "facade-06.png",
+    "facade-07.png",
+    "facade-08.png",
+    "facade-09.png",
+    "facade-10.png",
+    "facade-11.png",
+    "near.png",
+    "rung.png",
+    "age.png",
+    "city.png"
+  ],
+  "performance_claim": false
+}

@@ -1,0 +1,20 @@
+<!doctype html><meta charset="utf-8"><title>Roof proportions and scale</title>
+<style>body{background:#202528;color:#e5e4df;font:17px system-ui;margin:28px}button,select{font:inherit;padding:8px;margin:5px}img{display:block;width:100%;max-width:1500px}p{max-width:1050px}a{color:#bdcfdf}</style>
+<h1>Roof proportions and scale — comparison</h1>
+<p>The live fixture contains large blocks: its median drawn width and depth are 28 m and 22 m; walls are 7–10.5 m high. Broad footprints now have two narrower roof spans. The truncated pyramid is replaced; hips have a short ridge; gable ends continue the walls. The city footprints stay identical so the shape change can be judged against the original.</p>
+<p>The material is <a href="https://polyhaven.com/a/roof_slates_02">Rob Tuytel’s Roof Slates 02 (CC0)</a>, at the source’s documented 3 m width. The specimen view includes a deliberately doubled texture scale and 1.75 m figures. Surface colour follows the existing roof palette; this remains a material candidate. The previous procedural tiles were 32 × 24 cm.</p>
+<select id="choice">
+<option value="daylight-near.png">New roof forms + photographed surface — live city</option>
+<option value="../roofs/daylight-near.png">Previous roof forms + procedural surface — same city/camera</option>
+<option value="after/roof-4.png">New forms — photographed surface at source scale</option>
+<option value="after/roof-5.png">New forms — photographed surface enlarged 2×</option>
+<option value="after/roof-3.png">New forms — previous procedural courses</option>
+<option value="after/roof-2.png">New forms — original grid surface</option>
+<option value="after/roof-1.png">New forms — crease outlines</option>
+<option value="age-near.png">Live city — Age overlay</option>
+<option value="age-city.png">Live city — Age overlay at city distance</option>
+<option value="rung-near.png">Live city — Rung overlay</option>
+</select><img id="shot" src="daylight-near.png">
+<p>These changes address oversized roof volumes and surface noise. Continuous gutters, built ridge fittings, roof junctions and variety still need art review. The large Building footprints are a separate question from tile scale.</p>
+<p><a href="../surfaces-2/index.html">Plaster and wear comparison</a> · <a href="manifest.json">Capture source hashes</a></p>
+<script>choice.onchange=()=>shot.src=choice.value;</script>

@@ -194,35 +194,16 @@ public partial class Main
                 ? new Vector3(along, tall, deep)
                 : new Vector3(deep, tall, along);
 
-            // ⚠ A GABLE IS A PRISM EXTRUDED ALONG ITS OWN Z, so the ridge runs north-south as
-            // authored and the horizontal case is the one that turns. Rotation composed on the LEFT
-            // of the scale, because R*S scales first and then turns the result -- the other order
-            // scales an already-turned box on the wrong axes, which is Fill's own warning one
-            // transform up.
-            // ⚠ WHICH WAY THE RIDGE RUNS IS A DRAW, and it is the one roof variation that changes
-            // the SILHOUETTE rather than the slope. A ridge along the Street is what makes a
-            // terrace read as a terrace, so it stays the common case; a minority turn the gable to
-            // face the kerb, which is what a row of them actually looks like. It is refused on a
-            // Building much wider than it is deep, because turning that gable puts the ridge over
-            // a fifty-metre span and the roof ends up taller than the house.
-            bool crossed = ((shape >> 34) & 7u) == 0u && along <= deep * 1.2f;
+            // Put ridges along the long axis so the roof crosses the shorter span.
+            bool crossed = deep > along;
             float slope = crossed ? along : deep;
             float ridge = crossed ? deep : along;
 
-            // ⚠ THE RISE IS A SHARE OF THE SPAN THE ROOF CROSSES AND NOT OF THE DEPTH, which is
-            // what makes the band an ANGLE rather than a height: 0.25 to 0.85 of a half-span is
-            // 27° to 60° off the horizontal, and it has to be measured against the span the ridge
-            // is actually turned across or a cross-gabled roof reads at the wrong pitch entirely.
-            //
-            // 🔴 THE UNCLAMPED RISE IS KEPT AND IT IS EVIDENCE. CapFor needs to know whether the
-            // clamp WOULD have bitten, and a clamped number cannot report that it clamped -- so the
-            // ceiling is applied after the question is asked rather than inside the expression.
-            // ***The value that gets thrown away is the one carrying the finding.***
             float wanted = slope * (RoofRiseLow
                 + (((shape >> 40) & 0xFFu) / 255f * (RoofRiseHigh - RoofRiseLow)));
 
-            Cap cap = CapFor(tall, along, deep, wanted);
-            float rise = Mathf.Min(wanted, RoofRiseCeilingMetres);
+            Cap cap = CapFor(tall, along, deep);
+            float rise = RoofHeight(cap, wanted);
 
             // THE OUTBUILDING, standing further from the Street than its Building is. `back` is
             // which way that is -- the same sign the setback above already chose, kept rather than
@@ -254,13 +235,7 @@ public partial class Main
             float faceEast = horizontal ? 0f : -back;
             float faceSouth = horizontal ? back : 0f;
 
-            // HOW MUCH OF THE KIND'S ROOM IS TAKEN, which the panel already prints as "3 of 4
-            // occupied" and which nothing in the picture has ever said. ⚠ The ceiling counts
-            // tenants of any kind (adr/0147), so a shop takes one of them.
-            int room = _world.DeclaredOccupancy(slot);
-            float taken = room > 0
-                ? Mathf.Clamp(_world.Occupants.Length(slot) / (float)room, 0f, 1f)
-                : 1f;
+            float taken = FacadeAppearance.Occupancy(_world, slot);
 
             // 🔴 THE ONE PAINT DERIVATION, and the two debug washes take it over here rather than
             // anywhere downstream -- both Massing construction sites read these two locals, so a
@@ -270,7 +245,7 @@ public partial class Main
                 Wash.Health => HealthColour(slot).SrgbToLinear(),
                 Wash.Rung => Patterns[RungOf(lot)].SrgbToLinear(),
                 Wash.Age => Shade(Vintage(slot)).SrgbToLinear(),
-                _ => (table.IsAbandoned(slot) ? Derelict : Rendered(shape)).SrgbToLinear(),
+                _ => Rendered(shape).SrgbToLinear(),
             };
 
             // ⚠ The roof takes the SAME colour under a debug wash. A slate that stayed slate would
@@ -280,7 +255,8 @@ public partial class Main
                 ? paint
                 : Slate(shape).SrgbToLinear();
             float lit = table.IsAbandoned(slot) ? 0f : taken;
-            float draw = ((shape >> 56) & 0xFFu) / 255f;
+            float draw = FacadeAppearance.Pack((byte)(shape >> 56),
+                FacadeAppearance.HasShopfront(_world, slot), table.IsAbandoned(slot));
 
             // A TOWER IS TWO BODIES FROM THE SAME PLAN THE CITY COUNTS. The Lot owns the whole
             // site; its low podium closes the street wall, and the centred half-plan shaft rises
@@ -319,8 +295,8 @@ public partial class Main
                         + (tower.ShaftDeep * 0.5f)) * MetresPerTile;
                     float shaftWanted = Math.Min(shaftWide, shaftDeep) * (RoofRiseLow
                         + (((shape >> 40) & 0xFFu) / 255f * (RoofRiseHigh - RoofRiseLow)));
-                    Cap shaftCap = CapFor(tall, shaftWide, shaftDeep, shaftWanted);
-                    float shaftRise = Mathf.Min(shaftWanted, RoofRiseCeilingMetres);
+                    Cap shaftCap = CapFor(tall, shaftWide, shaftDeep);
+                    float shaftRise = RoofHeight(shaftCap, shaftWanted);
 
                     yield return new Massing(
                         id,
@@ -341,7 +317,7 @@ public partial class Main
                         default,
                         paint,
                         slate,
-                        reads,
+                        new Color(reads.R, reads.G, reads.B, reads.A + FacadeAppearance.UpperPart),
                         shaftCap,
                         false);
                 }
@@ -474,19 +450,9 @@ public partial class Main
             float wanted = slope * (RoofRiseLow
                 + (((shape >> 40) & 0xFFu) / 255f * (RoofRiseHigh - RoofRiseLow)));
 
-            // 🔴 A WING ASKS FOR ITS OWN ROOF AND DOES NOT INHERIT THE RING'S, which is the one
-            // place this change had a choice to make. The ring's own plan is big and close to
-            // square, so CapFor would call it a HIP -- and a hip is the right answer for the
-            // building and the wrong one for the strip: each wing is a corridor about 16 m across,
-            // and four hipped corridors is not what a mansion block looks like. ***The plan a roof
-            // is derived from has to be the plan the roof actually sits on.*** The Flat answer is
-            // still shared, because it comes from `tall` and every wing has the ring's height.
-            //
-            // ⚠ IN PRACTICE A WING IS ALWAYS GABLED OR FLAT and the call is still made rather than
-            // shortcut: the ratio that would make a wing square is reachable -- a small courtyard on
-            // a deep parcel -- and a rule written as a rule reports that case instead of hiding it.
-            Cap cap = CapFor(tall, wingWide, wingDeep, wanted);
-            float rise = Mathf.Min(wanted, RoofRiseCeilingMetres);
+            // Each courtyard wing chooses a roof from its own footprint.
+            Cap cap = CapFor(tall, wingWide, wingDeep);
+            float rise = RoofHeight(cap, wanted);
 
             // A PrismMesh runs its ridge along its own Z, which is north-south here because a
             // position is composed with -north. So the quarter turn is owed exactly when the ridge
@@ -562,122 +528,30 @@ public partial class Main
         /// <summary>One ridge along the long axis. <b>The terrace, and the common case.</b></summary>
         Gable,
 
-        /// <summary>Four slopes to a point. <b>What a plan with no long axis gets.</b></summary>
+        /// <summary>Four slopes meeting a short ridge.</summary>
         Hip,
 
-        /// <summary>Four slopes to a flat top. <b>What a span too wide for one pitch gets.</b></summary>
-        Mansard,
+        /// <summary>Two parallel ridges across a broad footprint.</summary>
+        PairedGable,
     }
 
-    /// <summary>
-    /// Which roof a Building asks for. <b>Three questions, in order</b> — and 🔴 <b>only the first
-    /// two are about the rectangle.</b>
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// 🔴 <b>THE THIRD QUESTION CARRIES A DRAW, AND THE FIRST TWO DO NOT.</b> Flat and Hip are
-    /// decided by the plan alone, so every Building with the same footprint gets the same answer.
-    /// The Gable/Mansard split is decided by <paramref name="rise"/>, which is the span crossed with
-    /// that Building's own pitch share — so <b>two Buildings with identical footprints can cap
-    /// differently</b>, and the observed city does exactly that. ⚠ <b>That is deliberate and it is
-    /// not the oatmeal failure it resembles.</b> The pitch share was always a per-Building draw and
-    /// always varied the roof; what changed is that its extreme is now <i>announced</i> as a
-    /// different roof instead of being silently flattened. ***A category that reports a clamp is
-    /// saying something; a category rolled for its own sake is not.*** The distinction is the whole
-    /// argument for archetypes over jitter, so the line between them is worth stating and not
-    /// blurring.
-    /// </para>
-    /// <para>
-    /// <b>1. Can it be pitched at all?</b> <see cref="PitchCeilingMetres"/>, unchanged and the only
-    /// rule that survives from the coin flip this replaces.
-    /// </para>
-    /// <para>
-    /// <b>2. Is there a long axis for a ridge to run along?</b> <see cref="HipSquareness"/>. If the
-    /// plan is within a fifth of square there is no direction worth choosing, and the answer real
-    /// buildings give is a hip.
-    /// </para>
-    /// <para>
-    /// 🔴 <b>3. Would the pitch be CLAMPED? — and this question was already in the file, asked and
-    /// unanswered.</b> <see cref="RoofRiseCeilingMetres"/>'s own remark says it: <i>"Real buildings
-    /// do not solve this by flattening the pitch; they stop using one ridge and break the roof up,
-    /// which is geometry this shell does not have."</i> ***The mansard IS that geometry.*** So the
-    /// third branch costs no new number — it fires exactly when the existing clamp would have bitten,
-    /// which is the shell admitting it has flattened a slope it should have broken. A remark
-    /// describing a defect is a specification nobody had read as one.
-    /// </para>
-    /// <para>
-    /// ⚠ <b><paramref name="rise"/> is the UNCLAMPED rise</b> and has to be, because the clamped one
-    /// cannot report that it clamped.
-    /// </para>
-    /// </remarks>
-    private static Cap CapFor(float tall, float along, float deep, float rise)
+    // Appearance only: broad blocks have two narrower roof spans, not a truncated pyramid.
+    private static Cap CapFor(float tall, float along, float deep)
     {
-        if (tall > PitchCeilingMetres)
-        {
-            return Cap.Flat;
-        }
-
-        float longer = Mathf.Max(along, deep);
-
-        if (longer <= 0f)
-        {
-            return Cap.Flat;
-        }
-
-        if (Mathf.Min(along, deep) / longer >= HipSquareness)
-        {
-            return Cap.Hip;
-        }
-
-        return rise > RoofRiseCeilingMetres ? Cap.Mansard : Cap.Gable;
+        if (tall > PitchCeilingMetres || Mathf.Min(along, deep) <= 0) return Cap.Flat;
+        if (Mathf.Min(along, deep) > 18f) return Cap.PairedGable;
+        return Mathf.Min(along, deep) / Mathf.Max(along, deep) >= HipSquareness ? Cap.Hip : Cap.Gable;
     }
 
-    /// <summary>
-    /// The transform basis a roof of this shape wants. <b>One place, because both call sites
-    /// build the same roof.</b>
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// 🔴 <b>THE TWO FAMILIES COMPOSE THEIR ROTATION IN OPPOSITE ORDERS, AND GETTING IT BACKWARDS
-    /// IS SILENT.</b> A gable is scaled in its OWN frame — slope across X, ridge along Z — and then
-    /// turned into the world, so the turn goes on the left: <c>R * S</c>. A cone has to be turned
-    /// FIRST, to bring its faces off the diagonal, and only then scaled along the world's axes:
-    /// <c>S * R</c>. ***Scaling a shape and then turning it 45° makes a rectangle into a
-    /// rhombus***, which is the failure this ordering exists to avoid and which would read as roofs
-    /// that do not sit on their walls.
-    /// </para>
-    /// <para>
-    /// ⚠ <b><paramref name="turned"/> means the same thing to both and is answered once</b>, by the
-    /// caller, because it is a question about the STREET rather than about the roof — which way the
-    /// Building faces. A cone has no ridge to turn, so it uses the answer only to work out which of
-    /// its two spans is the world's X.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>The eaves are added to every family</b>, for <see cref="EavesMetres"/>' own reason: the
-    /// overhang is the line an angle is read against, and a hip cut flush with its wall is as mute
-    /// as a gable was.
-    /// </para>
-    /// </remarks>
+    private static Color RoofWall(Massing one) => new(one.Paint.R, one.Paint.G, one.Paint.B, one.Reads.A);
+
+    private static float RoofHeight(Cap cap, float wanted) =>
+        Mathf.Min(wanted / (cap == Cap.PairedGable ? 2f : 1f), RoofRiseCeilingMetres);
+
     private static Basis CapBasis(Cap cap, bool turned, float slope, float ridge, float rise)
     {
-        float eaves = EavesMetres * 2f;
-
-        if (cap == Cap.Gable)
-        {
-            var wedge = Basis.FromScale(new Vector3(slope + eaves, rise, ridge + eaves));
-
-            return turned ? Quarter * wedge : wedge;
-        }
-
-        // The quarter turn swaps the two plan axes, so asking it here is how a span in the
-        // Building's frame becomes a span in the world's without the caller measuring twice.
-        float spanX = (turned ? ridge : slope) + eaves;
-        float spanZ = (turned ? slope : ridge) + eaves;
-
-        // ⚠ THE DIAGONAL IS NOT A FUDGE. Eighth leaves the squared-up base spanning 1/√2 rather
-        // than 1, so every span owes the reciprocal of that — which is √2 — or the roof sits inside
-        // its own walls. See Diagonal.
-        return Basis.FromScale(new Vector3(spanX * Diagonal, rise, spanZ * Diagonal)) * Eighth;
+        var basis = Basis.FromScale(new Vector3(slope + EavesMetres * 2f, rise, ridge + EavesMetres * 2f));
+        return turned ? Quarter * basis : basis;
     }
 
     /// <summary>One Building's drawing: a body, a roof it may not have, and the paint for both.</summary>
@@ -706,7 +580,16 @@ public partial class Main
         Color Slate,
         Color Reads,
         Cap Cap,
-        bool Outhoused);
+        bool Outhoused)
+    {
+        public bool Abandoned => ((int)Reads.A & 512) != 0;
+    }
+
+    private Color RoofPaint(Massing one) => one.Abandoned && _washing is not (Wash.Rung or Wash.Age or Wash.Health)
+        ? one.Slate.Darkened(0.35f) : one.Slate;
+
+    private static Color YardPaint(Massing one) => one.Abandoned
+        ? Outbuilding.SrgbToLinear().Darkened(0.35f) : Outbuilding.SrgbToLinear();
 
     /// <summary>Fills the body layer and the roof layer from one walk. Returns the Buildings.</summary>
     /// <remarks>
@@ -730,7 +613,7 @@ public partial class Main
         int bodies = 0;
         int roofs = 0;
         int hips = 0;
-        int mansards = 0;
+        int pairedRoofs = 0;
         int yards = 0;
         int buildings = 0;
         ulong last = 0;
@@ -739,7 +622,7 @@ public partial class Main
         _buildingIds.Clear();
         _roofIds.Clear();
         _hipIds.Clear();
-        _mansardIds.Clear();
+        _pairedRoofIds.Clear();
         _yardIds.Clear();
 
         foreach (Massing one in massing)
@@ -765,7 +648,7 @@ public partial class Main
                 _yards.Multimesh.SetInstanceTransform(yards, one.Yard);
                 _yards.Multimesh.SetInstanceColor(
                     yards++,
-                    one.Paint == Derelict.SrgbToLinear() ? one.Paint : Outbuilding.SrgbToLinear());
+                    YardPaint(one));
             }
 
             // 🔴 A ROOF FAMILY IS A MESH, SO IT IS A DIFFERENT MULTIMESH AND A DIFFERENT COUNTER.
@@ -777,7 +660,7 @@ public partial class Main
             {
                 Cap.Gable => (_roofs, _roofIds, roofs),
                 Cap.Hip => (_hips, _hipIds, hips),
-                Cap.Mansard => (_mansards, _mansardIds, mansards),
+                Cap.PairedGable => (_pairedRoofs, _pairedRoofIds, pairedRoofs),
                 _ => (null!, null!, 0),
             };
 
@@ -789,24 +672,25 @@ public partial class Main
             layer.Multimesh.Identity(at, one.Id);
             ids.Add(one.Id);
             layer.Multimesh.SetInstanceTransform(at, one.Roof);
+            layer.Multimesh.SetInstanceCustomData(at, RoofWall(one));
 
             // ⚠ THE ROOF OF A SHELL IS THE SHELL'S COLOUR AND NOT THE ROOFING. An abandoned
             // Building that kept a warm red roof would read as the liveliest thing on the street.
             layer.Multimesh.SetInstanceColor(
-                at, one.Paint == Derelict.SrgbToLinear() ? one.Paint : one.Slate);
+                at, RoofPaint(one));
 
             switch (one.Cap)
             {
                 case Cap.Gable: roofs++; break;
                 case Cap.Hip: hips++; break;
-                default: mansards++; break;
+                default: pairedRoofs++; break;
             }
         }
 
         _buildings.Multimesh.VisibleInstanceCount = bodies;
         _roofs.Multimesh.VisibleInstanceCount = roofs;
         _hips.Multimesh.VisibleInstanceCount = hips;
-        _mansards.Multimesh.VisibleInstanceCount = mansards;
+        _pairedRoofs.Multimesh.VisibleInstanceCount = pairedRoofs;
         _yards.Multimesh.VisibleInstanceCount = yards;
 
         RefreshFoliage(footprints);

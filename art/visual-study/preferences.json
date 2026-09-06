@@ -108,5 +108,15 @@
       "https://www.cgbookcase.com/"
     ],
     "standing": "New neighbourhood sample awaits visual feedback. Prior fidelity direction and palette preferences stand."
+  },
+  "live_facade_feedback": {
+    "user_words": "I think that the overlay shader should not be flat like that. we could show the outline of the house or something. maybe we explore what other sims too, but the current style is kind of strange. not sure if these are meant to be \"final stage art\" either, but abandoned buildings should definitely show wear, probably some textures we could find or overlay on top of the existing one to keep consistency. i dont like the flatness of the plaster. maybe we need a whole other session just looking at / comparing textures or something",
+    "standing": "Flat overlays and flat plaster rejected. Abandonment needs layered wear consistent with the base material. Compare textures and overlay treatments before production acceptance."
+  },
+  "roof_feedback": {
+    "user_words": "looks like the lines are missing on the roof as well, for the overlay. as an side - the roofs kinda look awful too",
+    "standing": "Roof proportion comparison improved and checkpoint authorised. Deeper research into realistic city architecture requested before further model expansion; no final art approval inferred.",
+    "followup": "Looking better for the overlay, i meant like the roofs in general kinda look hideous. i can't quite tell if the roof tiles are scaled too small or the buildings are just enormous or something. but also the roof that has a flat top just looks off. i'm not quite sure what's wrong with it just that they looks pretty awful and unrealistic.",
+    "checkpoint_review": "that's looking better. commit everything we have so far."
   }
 }

@@ -1,0 +1,8 @@
+600 pause
+600 focus 88 92 160
+600 tilt 32
+600 overlay rung
+600 draw /private/tmp/city-sim-visual-treatment/artifacts/visual-study/live-facades/rung.tsv
+600 draw /private/tmp/city-sim-visual-treatment/artifacts/visual-study/live-facades/rung-repeat.tsv
+600 shoot /private/tmp/city-sim-visual-treatment/artifacts/visual-study/live-facades/rung.png
+600 quit

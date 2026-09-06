@@ -641,7 +641,7 @@ public partial class Main
         ("building", _buildings, true, _buildingIds),
         ("roof", _roofs, true, _roofIds),
         ("hip", _hips, true, _hipIds),
-        ("mansard", _mansards, true, _mansardIds),
+        ("paired-roof", _pairedRoofs, true, _pairedRoofIds),
         ("yard", _yards, true, _yardIds),
         ("tree", _trees, true, null),
         ("rock", _rocks, false, null),

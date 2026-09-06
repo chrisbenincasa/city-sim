@@ -195,44 +195,11 @@ public partial class Main : Node3D
     // being the same share of every plot -- which is what DepthFillLow's own remark said the old
     // arrangement got wrong. The shell reads LotTable.Footprint* and invents nothing.
 
-    /// <summary>How far a pitched roof rises, as a share of the Building's depth.</summary>
-    /// <remarks>
-    /// ⚠ <b><see cref="DepthFillLow"/>' class of thing and labelled as one</b> — the city holds
-    /// no roof. A silhouette is all that reads at a high-level camera, so this is the cheapest
-    /// variety in the drawing and the one that costs the simulation nothing at all.
-    /// </remarks>
-    /// <remarks>
-    /// ⚠ <b>It is a share of the span the roof CROSSES, so the band is an ANGLE.</b> A gable rises
-    /// over half its span, so a share <c>s</c> is <c>atan(2s)</c> off the horizontal and
-    /// 0.18–0.45 is <b>20° to 42°</b> — a low pantile at one end and a steep slate at the other,
-    /// which is the band English streets are actually built in. 🔴 <b>It was 0.30–0.75 and the
-    /// band was never the reason every roof looked alike</b>: the roof was cut flush with its own
-    /// wall, so there was no eave line for the eye to measure an angle against. See
-    /// <see cref="EavesMetres"/> — <i>widening a band that nothing renders is not a change.</i>
-    /// </remarks>
-    private const float RoofRiseLow = 0.18f;
-
-    /// <inheritdoc cref="RoofRiseLow"/>
-    private const float RoofRiseHigh = 0.45f;
-
-    /// <summary>The tallest a gable rises, whatever its span. <b>A cap and not a band.</b></summary>
-    /// <remarks>
-    /// 🔴 <b>A SHARE OF THE SPAN ALONE PUT A MOUNTAIN ON A DEEP BUILDING.</b> The share is an
-    /// angle, and an angle held over a 36 m span is a 16 m roof — taller than the house under it.
-    /// Real buildings do not solve this by flattening the pitch; they stop using one ridge and
-    /// break the roof up, which is geometry this shell does not have. So the pitch is held and the
-    /// rise is clamped, which reads as the shallow roof a deep building actually has.
-    /// </remarks>
-    private const float RoofRiseCeilingMetres = 7.5f;
-
-    /// <summary>How far a roof oversails its wall. <b>What makes a pitch legible.</b></summary>
-    /// <remarks>
-    /// <see cref="DepthFillLow"/>' class of thing and labelled as one — the city holds no eaves.
-    /// A real overhang is 300–600 mm; this is larger because the camera is fifty metres up and a
-    /// half-metre line is a pixel. What it buys is a <b>shadow at the wall head</b>, which is the
-    /// edge a roof's angle is actually read against.
-    /// </remarks>
-    private const float EavesMetres = 0.9f;
+    // Provisional roof proportions, in metres. Broad footprints divide this pitch over two spans.
+    private const float RoofRiseLow = .25f;
+    private const float RoofRiseHigh = .35f;
+    private const float RoofRiseCeilingMetres = 4.5f;
+    private const float EavesMetres = .35f;
 
     /// <summary>The two roofing tones a Building draws between, in sRGB.</summary>
     /// <remarks>
@@ -561,28 +528,6 @@ public partial class Main : Node3D
     /// <summary>A quarter turn about the vertical, for the gable whose ridge runs east-west.</summary>
     private static readonly Basis Quarter = Basis.FromEuler(new Vector3(0f, Mathf.Pi * 0.5f, 0f));
 
-    /// <summary>An eighth turn, which is what squares up a four-sided <c>CylinderMesh</c>.</summary>
-    /// <remarks>
-    /// 🔴 <b>A FOUR-SEGMENT CYLINDER IS A DIAMOND AND NOT A SQUARE.</b> Godot places a
-    /// <see cref="CylinderMesh"/>'s vertices at 0°, 90°, 180° and 270° on a circle, so at four
-    /// segments the corners land on the axes and the FACES point diagonally — a roof turned 45° to
-    /// the building under it. The eighth turn puts the faces back on the axes, and
-    /// <see cref="Diagonal"/> is the scale correction that turn owes.
-    /// </remarks>
-    private static readonly Basis Eighth = Basis.FromEuler(new Vector3(0f, Mathf.Pi * 0.25f, 0f));
-
-    /// <summary>
-    /// What a turned four-sided cone's radius has to be scaled by to span a unit square.
-    /// </summary>
-    /// <remarks>
-    /// ⚠ <b>The radius is a HALF-DIAGONAL and the span wanted is a SIDE.</b> Once <see cref="Eighth"/>
-    /// has turned the faces onto the axes, a base of radius <c>r</c> is a square of side
-    /// <c>r√2</c> — so a mesh authored at radius 0.5 spans 0.707 and every hipped roof would sit
-    /// inside its own walls by three tenths of its width. ***A rotation that changes what a
-    /// dimension MEANS owes a scale***, and this is it.
-    /// </remarks>
-    private static readonly float Diagonal = Mathf.Sqrt(2f);
-
     /// <summary>How near an edge the pointer has to be, in pixels, before the camera follows.</summary>
     /// <remarks>
     /// ⚠ <b>Pixels and not a share of the window</b>, because it is sized by how accurately a hand
@@ -641,7 +586,7 @@ public partial class Main : Node3D
     private InstanceLayer _buildings = null!;
     private InstanceLayer _roofs = null!;
     private InstanceLayer _hips = null!;
-    private InstanceLayer _mansards = null!;
+    private InstanceLayer _pairedRoofs = null!;
     private InstanceLayer _yards = null!;
     private InstanceLayer _trees = null!;
     private InstanceLayer _rocks = null!;
@@ -725,10 +670,10 @@ public partial class Main : Node3D
     private StandardMaterial3D? _instrument;
 
     /// <inheritdoc cref="_wash"/>
-    private StandardMaterial3D? _muted;
+    private ShaderMaterial? _muted;
 
     /// <inheritdoc cref="_wash"/>
-    private StandardMaterial3D? _categorical;
+    private ShaderMaterial? _categorical;
 
     /// <summary>The ground's ordinary material, kept so an overlay can be taken off again.</summary>
     private Material _skinned = null!;
@@ -915,7 +860,7 @@ public partial class Main : Node3D
 
     private readonly List<ulong> _roofIds = [];
     private readonly List<ulong> _hipIds = [];
-    private readonly List<ulong> _mansardIds = [];
+    private readonly List<ulong> _pairedRoofIds = [];
 
     private readonly List<ulong> _yardIds = [];
 
@@ -1208,6 +1153,7 @@ public partial class Main : Node3D
         _buildings = Layer(
             Standing, new BoxMesh { Size = Vector3.One }, true, "res://buildings.gdshader");
         _paint!.SetShaderParameter("storey_metres", StoreyMetres);
+        FacadeMaterials.Configure(_paint);
 
         // 🔴 THE PHOTOGRAPHED MASONRY, WHICH IS plans/0063'S ONE FINDING THAT REACHED THE CITY.
         // Nine rounds of that study compared shading languages, palettes and authored geometry on
@@ -1230,55 +1176,11 @@ public partial class Main : Node3D
         _paint.SetShaderParameter(
             "masonry_normal", GD.Load<Texture2D>("res://assets/city/brick-wall-normal.jpg"));
 
-        // A SECOND MESH AND NOT A SECOND BOX. A roof is the only part of a Building that is not a
-        // cuboid, and a silhouette is what reads at the camera this game is played at -- so the
-        // gable is a PrismMesh off the shelf (adr/0018) rather than geometry anybody wrote.
-        //
-        // 🔴 THREE MESHES NOW, AND THE COUNT IS THE POINT. `docs/07 §1.4` prices this exactly --
-        // ***an appearance family costs a mesh; a building costs a transform*** -- so the whole of
-        // the roofline's variety is three draw calls whatever the city's size. A fourth family
-        // would be a fourth call and no more; a per-Building roof would be a mesh per Building and
-        // is what that pillar exists to refuse.
-        //
-        // ⚠ ALL THREE ARE OFF THE SHELF (adr/0018) AND THE LAST TWO ARE CONES. Godot ships no
-        // pyramid, and a CylinderMesh at four segments IS one: `TopRadius = 0` closes it to a
-        // point for the hip, and a top radius that is not zero truncates it into the mansard. So
-        // the two new families cost one parameter between them rather than any authored geometry.
-        //
-        // ⚠ A HIP ON A RECTANGLE IS A PAVILION AND NOT A TRUE HIP, and the difference is stated
-        // rather than hidden: a real hip keeps a short ridge where the two half-hips meet, and a
-        // stretched cone comes to a point instead. It is PlotDepthMetres' class of thing -- geometry
-        // the city does not hold, invented so the picture reads -- and at fifty metres up what
-        // reads is that the roof has four slopes rather than two.
-        _roofs = Layer(Roofing, new PrismMesh { Size = Vector3.One }, perInstance: true);
-
-        _hips = Layer(
-            Roofing,
-            new CylinderMesh
-            {
-                TopRadius = 0f,
-                BottomRadius = 0.5f,
-                Height = 1f,
-                RadialSegments = 4,
-                Rings = 0,
-            },
-            perInstance: true);
-
-        // ⚠ THE TOP RADIUS IS HALF THE BOTTOM AND THAT IS THE ONLY DIFFERENCE FROM THE HIP. A
-        // mansard's upper slope is shallow to the point of being flat from above, so what has to
-        // read is the BREAK -- the line where the steep lower pitch stops. Half the span is where
-        // that line falls on a real one.
-        _mansards = Layer(
-            Roofing,
-            new CylinderMesh
-            {
-                TopRadius = 0.25f,
-                BottomRadius = 0.5f,
-                Height = 1f,
-                RadialSegments = 4,
-                Rings = 0,
-            },
-            perInstance: true);
+        // Shared roof families: one mesh per family, transforms per Building.
+        _roofs = Layer(Roofing, RoofMeshes.Create(0), perInstance: true);
+        _hips = Layer(Roofing, RoofMeshes.Create(1), perInstance: true);
+        _pairedRoofs = Layer(Roofing, RoofMeshes.Create(2), perInstance: true);
+        foreach (var roof in new[] { _roofs, _hips, _pairedRoofs }) roof.Multimesh.UseCustomData = true;
 
         // THE COURTYARD. A block's middle cannot hold a Lot (adr/0078) and these are not Lots: an
         // outbuilding belongs to the Building in front of it and is drawn from its scramble, which

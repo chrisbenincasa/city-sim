@@ -1,0 +1,8 @@
+600 pause
+600 focus 88 92 160
+600 tilt 32
+600 overlay age
+600 draw /private/tmp/city-sim-visual-treatment/artifacts/visual-study/roofs/age-near.tsv
+600 draw /private/tmp/city-sim-visual-treatment/artifacts/visual-study/roofs/age-near-repeat.tsv
+600 shoot /private/tmp/city-sim-visual-treatment/artifacts/visual-study/roofs/age-near.png
+600 quit

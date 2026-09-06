@@ -1,0 +1,15 @@
+{
+  "sources": {
+    "RoofMeshes.cs": "095c04b3bddb198b702c575a96c06104b79d3b64f3e9594262b5cb3881300af7",
+    "RoofMaterials.cs": "14db72adf6b6297e5ca9ce5d9fb750965490e5d64c81cd05012beb6e3e323e2a",
+    "RoofStudy.cs": "5f01872da1fe3130c705273e2cfa75f37fa3dd2df6c235a3e5de0b485d15a95c",
+    "overlay-buildings.gdshader": "ce07d320c79a7cd3e95b0efc7fb02b44e3483c123c29b0d84fd0d1b4f3ce1f28",
+    "surfaces.gdshader": "da625fb26330e492c6fc009e06407c16cdea2bb836b3dfe2e65fcf27f96eab98",
+    "Main.cs": "880add0eb3331dec18a6d48c8d98effa48d656958065e73ceef71507d9c9dfca",
+    "Main.Assets.cs": "d05948aaeaf7313c80414fb191d1eb20281b9f09722f50d8c488f74b66ce5006",
+    "Main.Massing.cs": "e4b550ee1515a980b72d6dbd3a9a40b43952ee3c907ae8980e15399cc4be7c85",
+    "Main.Rendering.cs": "c4941a9ea978c68e0d5e0bae17960e0adaa887ba1d1cd0f531355b8654fc9303",
+    "assets/city/material-study/roof-sources.json": "5a6dd2b71331b92325ae08a752263bd33e775c1001b4fdbc122a96f5369a6170"
+  },
+  "standing": "Smaller roof spans, wall-coloured gable ends and photographed slate at source scale; provisional art."
+}

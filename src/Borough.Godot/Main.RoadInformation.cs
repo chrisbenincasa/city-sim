@@ -46,7 +46,7 @@ public partial class Main
         Hit(_buildings, _buildingIds, false);
         Hit(_roofs, _roofIds, false);
         Hit(_hips, _hipIds, false);
-        Hit(_mansards, _mansardIds, false);
+        Hit(_pairedRoofs, _pairedRoofIds, false);
         Hit(_yards, _yardIds, false);
         Hit(_roads, _roadIds, true);
         Hit(_footways, _footwayIds, true);
