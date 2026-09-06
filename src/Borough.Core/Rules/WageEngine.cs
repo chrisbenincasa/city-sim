@@ -18,8 +18,17 @@ namespace Borough.Core.Rules;
 /// <param name="Shortfall">Money owed on a payday that the employer could not cover.</param>
 /// <param name="Employers">Businesses whose payday came round this Day.</param>
 /// <param name="Underpaying">Businesses that could not pay everybody in full.</param>
+/// <param name="Bankrupted">Businesses wound up on this Day for coming up short too often.</param>
+/// <param name="Tilless">
+/// Businesses that declare a wage and hold no money Bin, so they can neither pay nor come up short.
+/// ⚠ <b>It is a DEFECT ROW and not a census</b> — <c>plans/0065</c> <b>P1</b>. A trade's Bins come
+/// from its premises, so whether it has a till depends on which building kind it ends up tenanting,
+/// and nothing checks the pairing. ***A silent zero in every other row reads as health***, which is
+/// why this one is reported rather than skipped.
+/// </param>
 public readonly record struct PayrollReading(
-    long Paid, int Workers, long Shortfall, int Employers, int Underpaying);
+    long Paid, int Workers, long Shortfall, int Employers, int Underpaying,
+    int Bankrupted, int Tilless);
 
 /// <summary>
 /// <b>Pays wages: the one edge in the money loop that ran in no direction until 2026-08-27.</b>
@@ -87,6 +96,8 @@ internal sealed class WageEngine(World world, WorldKey key)
         int workers = 0;
         int employers = 0;
         int underpaying = 0;
+        int bankrupted = 0;
+        int tilless = 0;
 
         for (int slot = 0; slot < _world.Businesses.Rows.SlotCount; slot++)
         {
@@ -122,6 +133,14 @@ internal sealed class WageEngine(World world, WorldKey key)
 
             employers++;
 
+            // plans/0065 P1: a wage against no till. Counted HERE rather than inside Pay, because
+            // Pay's early return cannot tell `this Business has no money Bin` from `this world names
+            // no money at all` -- and only one of those is a defect.
+            if (!_world.Bins.Rows.TryResolve(_world.Businesses.Balance[slot], out _))
+            {
+                tilless++;
+            }
+
             (long moved, int reached, long owed) = Pay(slot, trade, today, tick);
 
             paid += moved;
@@ -131,10 +150,48 @@ internal sealed class WageEngine(World world, WorldKey key)
             if (owed > 0)
             {
                 underpaying++;
+
+                // 🔴 THE CONSEQUENCE, and before this line there was none. A Business could take in
+                // less than it paid out at every payday for the life of the world, and the only
+                // trace was `underpaying` in a readout that survives one Tick. Measured on the build
+                // before it: 7,165 premisings against ZERO give-ups over 131,072 Ticks -- nothing
+                // drained a Business's money, so no shipped world could express decline and recovery
+                // in one run, and every decline number in plans/0002 §D1 was unratifiable for it.
+                //
+                // ⚠ Saturating rather than wrapping. A trade stating no threshold never folds, so
+                // this climbs unbounded without the clamp -- and a byte wrapping to 0 at 256 would
+                // hand an insolvent Business a clean slate on a schedule, which is worse than
+                // unbounded because it is invisible.
+                byte standing = _world.Businesses.ShortPaydays[slot];
+
+                if (standing < byte.MaxValue)
+                {
+                    _world.Businesses.ShortPaydays[slot] = (byte)(standing + 1);
+                }
+
+                if (GoesBankrupt(slot, trade))
+                {
+                    // ⚠ LAST, and nothing may read this slot afterwards. Rows.FreeSlot zeroes every
+                    // column in place and pushes the slot on a free list -- it does NOT swap another
+                    // row down into it -- so the sweep is safe to continue, and `underpaying` above
+                    // was already counted for this payday. The bankruptcy IS this payday's outcome.
+                    Bankrupt(slot);
+                    bankrupted++;
+                    continue;
+                }
+            }
+            else
+            {
+                // ⚠ RECOVERY, and it is unconditional rather than guarded on the current value.
+                // A guard would save a write on the common path and cost the branch its meaning:
+                // the column's contract is `consecutive`, and the only way to keep that true is that
+                // every payroll met in full ends a run. Writing zero over zero moves no hash.
+                _world.Businesses.ShortPaydays[slot] = 0;
             }
         }
 
-        return new PayrollReading(paid, workers, shortfall, employers, underpaying);
+        return new PayrollReading(
+            paid, workers, shortfall, employers, underpaying, bankrupted, tilless);
     }
 
     /// <summary>Whether <paramref name="slot"/>'s payday falls on <paramref name="today"/>.</summary>
@@ -151,6 +208,65 @@ internal sealed class WageEngine(World world, WorldKey key)
             % (ulong)period;
 
         return (today + (long)offset) % period == 0;
+    }
+
+    /// <summary>
+    /// Whether <paramref name="slot"/> has come up short often enough to be wound up.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Zero means never, and it is reached by omitting the key rather than by defaulting one.</b>
+    /// <c>CLAUDE.md</c>'s idiom for exactly this shape — <em>absent means nobody ever gives up</em> —
+    /// so a Ruleset that says nothing about insolvency keeps the behaviour the build had before this
+    /// mechanism existed.
+    /// </remarks>
+    private bool GoesBankrupt(int slot, in BusinessKindDefinition trade) =>
+        trade.GoesBankruptAfterShortPaydays > 0
+        && _world.Businesses.ShortPaydays[slot] >= trade.GoesBankruptAfterShortPaydays;
+
+    /// <summary>
+    /// Winds up a Business that cannot pay its staff.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THIS IS NOT UNPREMISING, AND <c>plans/0065</c> EXISTS BECAUSE A FIRST DRAFT THOUGHT IT
+    /// WAS.</b> Losing your premises and going bankrupt are two different failures that share an END
+    /// rather than a route. A trade whose premises came down is <em>solvent with nowhere to trade
+    /// from</em> and waits in the Unpremised Pool under <c>[placement] gives_up_after_days</c>;
+    /// ***a bankrupt one is finished***. <see cref="World.UnfitBusiness"/> sends a trade's Rules and
+    /// Bins away with its premises, so an unpremised trade holds no stock and runs no Rule — which is
+    /// the question that separated them: <em>if a shop failed, how can it still do business?</em>
+    /// </para>
+    /// <para>
+    /// <b>The staff are DISMISSED, and <see cref="World.DestroyBusiness"/> already spells that.</b>
+    /// It pops every worker off the employer's list and leaves <c>CitizenTable.Workplace</c> — declared
+    /// <c>Reference.Severable</c> for exactly this — answering ***my employer is gone*** rather than
+    /// <em>I never had one</em>. ⚠ <b>It also frees every Bin the trade owned</b>, so the till goes
+    /// with it, which is why the money supply is settled first.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The <c>MoneySupply.Issued</c> decrement is the CALLER's, and this is
+    /// <see cref="World.Depart(Handle{Business})"/>'s own line and its reason</b> —
+    /// <c>DestroyBusiness</c> is the table operation with no economics in it. <b>Before the free, not
+    /// after</b>: reading the level out of a freed Bin reads a zeroed row and the supply would drift
+    /// by exactly the till's contents, which <c>Invariant.MoneyIsConserved</c> would then report at
+    /// end of run with nothing pointing at the cause.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The PREMISES ARE LEFT STANDING.</b> A bankruptcy empties a Building; it does not demolish
+    /// one. <c>DestroyBusiness</c> takes the trade off <c>BuildingBusinesses</c> and stops there, so
+    /// the vacancy is real and a solvent trade may take it — which is what makes a run able to go
+    /// <em>balance → unbalance → balance</em> rather than merely to decline.
+    /// </para>
+    /// </remarks>
+    private void Bankrupt(int slot)
+    {
+        if (_world.Bins.Rows.TryResolve(_world.Businesses.Balance[slot], out int till))
+        {
+            _world.MoneySupply.Issued[MoneySupplyTable.Slot] -=
+                new Money(_world.Bins.LevelAt(till));
+        }
+
+        _world.DestroyBusiness(_world.Businesses.Rows.At(slot));
     }
 
     /// <summary>Pays one Business's workers, in worker-list order, until the money runs out.</summary>

@@ -114,6 +114,10 @@
             "description": "The daily closing hour; purchases arriving at or after closing fail.",
             "type": "integer"
           },
+          "goes_bankrupt_after_short_paydays": {
+            "description": "How many paydays running this trade may fail to pay its workers in full before it is wound up: the staff are dismissed and the premises are left standing and empty. A payroll met in full resets the count. Absent means it never goes bankrupt.",
+            "type": "integer"
+          },
           "name": {
             "description": "What this trade is called. [[building]] business names it.",
             "type": "string"

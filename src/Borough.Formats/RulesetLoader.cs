@@ -1006,6 +1006,62 @@ public static class RulesetLoader
                 (int)(period > int.MaxValue ? int.MaxValue : period));
         }
 
+        /// <summary>
+        /// Reads <c>goes_bankrupt_after_short_paydays</c>, refused on a trade that pays nobody.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Absent means never, on <c>gives_up_after_days</c>'s idiom</b> — <c>CLAUDE.md</c>'s
+        /// <em>absent means nobody ever gives up</em>, reached by omitting the key rather than by
+        /// defaulting one, so a Ruleset silent on insolvency keeps the behaviour the build had
+        /// before the mechanism existed.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>Refused without a wage, and that is the whole validation.</b> A trade that pays
+        /// nothing cannot fail to pay it, so the key on such a trade is a threshold nothing can
+        /// ever cross — it would load clean and do nothing, which is
+        /// <c>adr/0048</c>'s reason for refusing at the parse site rather than tolerating in the
+        /// core. ⚠ <b>Zero is not the same as absent here and is refused as such</b>: written out,
+        /// it reads as <em>folds immediately</em>, which is not what it does.
+        /// </para>
+        /// </remarks>
+        private int ReadGoesBankruptAfterShortPaydays(
+            TableSyntaxBase table, string? name, int wagePerDay, int payPeriodDays)
+        {
+            if (!TryInteger(
+                    table, "goes_bankrupt_after_short_paydays", out long paydays, required: false, name))
+            {
+                return 0;
+            }
+
+            if (wagePerDay <= 0 || payPeriodDays <= 0)
+            {
+                Refuse(
+                    LineOf((SyntaxNodeBase?)Find(table, "goes_bankrupt_after_short_paydays") ?? table), name,
+                    "this trade states `goes_bankrupt_after_short_paydays` and pays no wage. It counts the "
+                    + "paydays a trade fails to meet IN FULL, and a trade with no `wage_per_day` "
+                    + "and `pay_period_days` has no payday to fail -- so the threshold could never "
+                    + "be reached and the key would load clean and do nothing. State a wage, or "
+                    + "delete this key.");
+
+                return 0;
+            }
+
+            if (paydays <= 0)
+            {
+                Refuse(
+                    LineOf((SyntaxNodeBase?)Find(table, "goes_bankrupt_after_short_paydays") ?? table), name,
+                    $"goes_bankrupt_after_short_paydays is {paydays}. It is how many paydays running this "
+                    + "trade may come up short before it is wound up, so it is at least 1. "
+                    + "Omit the key for a trade that never goes bankrupt -- 0 reads as `goes bankrupt immediately` "
+                    + "and does the opposite.");
+
+                return 0;
+            }
+
+            return (int)(paydays > byte.MaxValue ? byte.MaxValue : paydays);
+        }
+
         private uint ReadRate(TableSyntaxBase table, string? rule)
         {
             if (!TryInteger(table, "rate", out long rate, required: true, rule))
@@ -2503,6 +2559,8 @@ public static class RulesetLoader
                     ShiftStartLatestHour = shiftTo,
                     WagePerDay = wagePerDay,
                     PayPeriodDays = payPeriodDays,
+                    GoesBankruptAfterShortPaydays = ReadGoesBankruptAfterShortPaydays(
+                        table, name, wagePerDay, payPeriodDays),
                     WorkDays = ReadDays(table, "work_days"),
                     ShopHours = ReadShopHours(table),
                 };
