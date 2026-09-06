@@ -137,6 +137,37 @@ uniform float masonry_relief = 0.7;
 // has to keep its own.***
 uniform float masonry_hue : hint_range(0.0, 1.0) = 0.55;
 
+// How many texture tiles across one cell of the shuffling grid below.
+//
+// 🔴 THE IMAGE IS 1.125 m ACROSS AND A TERRACE IS TWENTY, so a wall shows the same photograph
+// EIGHTEEN TIMES SIDE BY SIDE and the eye locks onto it immediately. What it locks onto is not the
+// courses -- those are supposed to repeat, that is what brickwork is -- but the CONSTELLATION of
+// burnt and pale bricks, which is a landmark, and a landmark that recurs every 1.125 m reads as
+// wallpaper. ***A tiling artefact is a large-scale feature repeating, never a small one.***
+//
+// ⚠ SMALL MEANS MORE SHUFFLING AND MORE BLENDING, and both cost. At 1 nearly every pixel sits in a
+// blend between two draws; at 6 the grid is coarse enough that whole panels come from one draw and
+// the repeat comes back at the grid's own scale instead of the tile's.
+uniform float masonry_spread : hint_range(1.0, 8.0) = 3.0;
+
+// How hard the three-way blend is pushed toward whichever draw is nearest.
+//
+// 🔴 A LINEAR BLEND OF TWO PHOTOGRAPHS IS NEITHER PHOTOGRAPH. Averaging two brick images halves the
+// contrast between brick and mortar wherever the weights are even, so a soft blend lays a grey
+// wash in a band across every cell boundary -- the defect the stochastic-texturing literature calls
+// variance loss, arriving here as ***a wall that looks rubbed out along diagonal seams.*** Raising
+// the weights to a power and renormalising narrows those bands until only one draw is showing over
+// nearly all of the wall.
+uniform float masonry_bias : hint_range(1.0, 12.0) = 6.0;
+
+// Whether the shuffling happens at all — <b>0 is the plain tiled wall</b>.
+//
+// ⚠ IT EXISTS SO THE TWO CAN BE PHOTOGRAPHED FROM ONE CAMERA. At zero every cell draws the image at
+// the same offset, so the three taps are the same tap and the result is bit-for-bit the tiled wall
+// this was written to cure. ***A repetition artefact is a thing you either see or do not, and an
+// A/B taken from two different camera positions cannot settle it.***
+uniform float masonry_shuffle : hint_range(0.0, 1.0) = 1.0;
+
 // The masonry image's own average, in LINEAR light, which is what divides it back out to a ratio.
 //
 // ⚠ LINEAR AND NOT sRGB, and the two are far enough apart to matter: this image averages
@@ -172,6 +203,65 @@ void vertex() {
 // draws on no purpose_tag: nobody in the city can perceive a window.
 float draw(vec3 seed) {
     return fract(sin(dot(seed, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+}
+
+// ---- breaking the tile ------------------------------------------------------------------------
+//
+// The image is shuffled across a triangular grid: every cell draws the photograph at its own offset,
+// and a fragment blends the three cells whose corners surround it. Nothing repeats until the grid
+// does, and the grid is as large as you care to make it.
+//
+// 🔴 THE OFFSETS ARE SNAPPED TO THE BRICK AND THIS IS THE WHOLE DIFFICULTY. The published technique
+// assumes a STOCHASTIC texture -- gravel, bark, rust -- where any offset is as good as any other. A
+// brick wall is the opposite: it is a STRUCTURE, and an arbitrary offset slides one draw's courses
+// off another's, so the blend band shows two sets of mortar lines crossing at a few centimetres'
+// separation. ***Doubled mortar reads as damage, and it is worse than the repetition it cures.***
+//
+// ⚠ SO AN OFFSET IS A WHOLE NUMBER OF BRICKS. Horizontally the image is five stretchers, so fifths
+// of it land a draw exactly on the bond. Vertically it is fifteen courses and the bond alternates
+// every course, so the step is TWO courses -- 2/15 -- and an odd number of courses would put a
+// perpend over the middle of the brick below it. Five by seven is 35 arrangements, all of them
+// correctly bonded, and the blend then cross-fades brick COLOUR against brick colour, which reads
+// as another brick rather than as a smear.
+vec2 masonry_hash(vec2 cell) {
+    vec2 seed = vec2(dot(cell, vec2(127.1, 311.7)), dot(cell, vec2(269.5, 183.3)));
+
+    return fract(sin(seed) * 43758.5453);
+}
+
+vec2 masonry_offset(vec2 cell) {
+    vec2 drawn = masonry_hash(cell);
+
+    return vec2(floor(drawn.x * 5.0) / 5.0, floor(drawn.y * 7.0) * 2.0 / 15.0)
+        * masonry_shuffle;
+}
+
+// The three cells around a point on the triangular grid, and how much each is owed.
+//
+// ⚠ A TRIANGLE GRID AND NOT A SQUARE ONE, because a square grid meets four cells at every corner
+// and its seams run along two straight lines a person can see. Three-way blending has no such
+// alignment: the seams are diagonals of two different slopes and never form a lattice.
+void masonry_grid(vec2 uv, out vec2 first, out vec2 second, out vec2 third, out vec3 weight) {
+    vec2 skewed = mat2(vec2(1.0, 0.0), vec2(-0.57735027, 1.15470054))
+        * (uv * (3.4641016 / max(masonry_spread, 0.5)));
+    vec2 base = floor(skewed);
+    vec3 part = vec3(fract(skewed), 0.0);
+    part.z = 1.0 - part.x - part.y;
+
+    if (part.z > 0.0) {
+        weight = vec3(part.z, part.y, part.x);
+        first = base;
+        second = base + vec2(0.0, 1.0);
+        third = base + vec2(1.0, 0.0);
+    } else {
+        weight = vec3(-part.z, 1.0 - part.y, 1.0 - part.x);
+        first = base + vec2(1.0, 1.0);
+        second = base + vec2(1.0, 0.0);
+        third = base + vec2(0.0, 1.0);
+    }
+
+    weight = pow(weight, vec3(masonry_bias));
+    weight /= weight.x + weight.y + weight.z;
 }
 
 void fragment() {
@@ -341,8 +431,37 @@ void fragment() {
     // ⚠ AND IT FADES ON `close_detail` LIKE EVERY OTHER MARK HERE. A 2K image on a wall four
     // pixels tall is noise however good the mip chain is, and the city is looked at from up there
     // most of the time.
-    vec2 wall_uv = vec2(u, -up) / masonry_metres;
-    vec3 sampled = texture(masonry_albedo, wall_uv).rgb;
+    // ⚠ THE WALL IS OFFSET BY ITS OWN BUILDING BEFORE ANYTHING ELSE. `u` is measured from the box's
+    // CENTRE, not from anywhere in the world, so without this every Building in the city starts its
+    // brickwork at the same phase and lands on the same cell of the grid below -- and the shuffling
+    // would then repeat perfectly from house to house while looking varied within each one.
+    // ⚠ Snapped to two courses for the same reason the cell offsets are, and so that the bottom
+    // course still meets the ground rather than starting half a brick up.
+    vec2 wall_uv = (vec2(u, -up) / masonry_metres)
+        + vec2(floor(v_custom.a * 37.0) / 5.0, floor(v_custom.a * 53.0) * 2.0 / 15.0);
+
+    // 🔴 THE DERIVATIVES ARE TAKEN ONCE AND HANDED TO EVERY TAP. An offset that jumps between cells
+    // makes the automatic mip derivative jump with it, so `texture` would pick a wildly wrong level
+    // along every seam -- ***a blurred or aliased line exactly where the join is supposed to be
+    // invisible.*** The unshuffled coordinate has the derivative the surface actually has.
+    vec2 stride_x = dFdx(wall_uv);
+    vec2 stride_y = dFdy(wall_uv);
+
+    vec2 cell_a;
+    vec2 cell_b;
+    vec2 cell_c;
+    vec3 share;
+    masonry_grid(wall_uv, cell_a, cell_b, cell_c, share);
+
+    vec2 draw_a = masonry_offset(cell_a);
+    vec2 draw_b = masonry_offset(cell_b);
+    vec2 draw_c = masonry_offset(cell_c);
+
+    vec3 sampled =
+        (textureGrad(masonry_albedo, wall_uv + draw_a, stride_x, stride_y).rgb * share.x)
+        + (textureGrad(masonry_albedo, wall_uv + draw_b, stride_x, stride_y).rgb * share.y)
+        + (textureGrad(masonry_albedo, wall_uv + draw_c, stride_x, stride_y).rgb * share.z);
+
     vec3 tinted = sampled / MASONRY_MEAN;
 
     // ⚠ THE LUMINANCE RATIO USES THE SAME WEIGHTS ON BOTH SIDES, so a neutral pixel comes out at
@@ -366,7 +485,16 @@ void fragment() {
     vec3 up_view = normalize((VIEW_MATRIX * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
     vec3 along = normalize(cross(up_view, shaded));
     vec3 down = cross(shaded, along);
-    vec3 relief = (texture(masonry_normal, wall_uv).xyz * 2.0) - 1.0;
+    // ⚠ ONE TAP FOR THE RELIEF AND THREE FOR THE COLOUR, WHICH IS NOT AN OVERSIGHT. The relief this
+    // image carries is almost entirely the MORTAR RECESS, and the offsets are bonded — so every draw
+    // puts its mortar in the same place and the dominant one is indistinguishable from a blend of
+    // three. ***What repeats visibly is which bricks are burnt, and that is colour.*** Blending the
+    // normal as well would double the fetch count to serve a difference nobody can see.
+    vec2 relief_draw = share.x > share.y
+        ? (share.x > share.z ? draw_a : draw_c)
+        : (share.y > share.z ? draw_b : draw_c);
+    vec3 relief =
+        (textureGrad(masonry_normal, wall_uv + relief_draw, stride_x, stride_y).xyz * 2.0) - 1.0;
     NORMAL = normalize(mix(
         shaded,
         normalize((along * relief.x) + (down * relief.y) + (shaded * relief.z)),

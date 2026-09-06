@@ -128,6 +128,25 @@ in the queue rather than after it. ⚠ **No timing figure is claimed here and no
 (`adr/0106`, `adr/0121`); this is a statement about what the code does per frame, not about how long
 it takes.
 
+**F5 — the photograph tiled visibly, and the generic repair is wrong for brick.** At
+`masonry_metres` 1.125 a wall repeats every 1.1 m, and a pale patch in the image becomes a grid of
+pale patches marching up the elevation — plainly readable at the distance a player edits at. The
+standing repair is stochastic tiling: skew the UV onto a triangular lattice, draw a random offset
+per lattice cell, sample three times and blend by the barycentric weights. ⚠ **That technique
+assumes a STOCHASTIC texture and brickwork is the opposite of one.** Brick is a lattice with a
+running bond, so an arbitrary offset lands a course half a brick out of register and the blend
+draws the mortar line twice. The offsets are therefore **snapped to the bond**: whole stretchers
+across — the image is five wide, so 1/5 — and **even numbers of courses** down — fifteen tall and
+the bond alternates every course, so 2/15. Every draw then lands on a brick that could have been
+there, and the three taps have nothing to disagree about. ⚠ **The tap count is 3 for albedo and 1
+for the normal map**: relief is bond-aligned across every offset by construction, so blending it
+buys a difference nobody can see for a third again as many fetches. The same lattice gives each
+Building its own starting brick from `v_custom.a`, so neighbours do not begin the pattern together.
+⚠ **Verified by eye and by nothing else** — an A/B from one camera with `masonry_shuffle` at 0 and
+1, cropped at the same region; the patch grid is in the first and absent from the second, with no
+blend seam and no doubled mortar. ***There is no assertion that a wall does not tile***, and a
+screenshot is a spot check (`plans/0048` §7).
+
 **Materials are shipped under `src/Borough.Godot/assets/city/`, separately from `art/visual-study/`,
 and the split is deliberate**: a file there is evidence of a comparison already made, and a file here
 is drawn every frame. `assets/city/materials.json` carries the author, URL, licence and SHA-256 of
@@ -163,6 +182,8 @@ Update these boxes here as work lands; record player judgements in `preferences.
 - [ ] **The shopfront and the render family** — the two things a street of these visibly still lacks.
   A commerce ground floor and a plaster/stucco family beside the brick one, both off the same draw
   that already picks `masonry`. This is the rest of the shader path.
+- [x] **Stop the masonry repeating** — bond-snapped stochastic tiling in `buildings.gdshader`,
+  landed 2026-09-06. **F5** owns the finding and the reason the generic technique needed changing.
 - [x] **Remove the fixed instance ceiling and retain spatial batches** — implemented in
   [`0065`](0065-retained-spatial-rendering.md), which owns verification and the remaining renderer
   costs. The paused camera-sorted prototype is superseded by that implementation.
