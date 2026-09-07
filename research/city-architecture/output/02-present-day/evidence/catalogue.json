@@ -1,0 +1,250 @@
+[
+  {
+    "example_id": "US01",
+    "name": "Narrow house",
+    "family": "House / duplex",
+    "place": "South Bend, Indiana",
+    "era": "2025 design",
+    "status": "Documented proposal",
+    "source_ids": [
+      "US1"
+    ],
+    "sheet_page": "PDF12 / p11",
+    "findings": "Side stair; front porch and rear entrance.",
+    "gaps": "Roof height/pitch and structural assembly unmeasured.",
+    "shape": {
+      "w": 6.096,
+      "d": 8.5344
+    }
+  },
+  {
+    "example_id": "US02",
+    "name": "Stacked duplex",
+    "family": "House / duplex",
+    "place": "South Bend, Indiana",
+    "era": "2025 design",
+    "status": "Documented proposal",
+    "source_ids": [
+      "US1"
+    ],
+    "sheet_page": "PDF20 / p19",
+    "findings": "Two homes share one narrow building volume.",
+    "gaps": "No measured eaves/ridge; porch-depth schedule rounded.",
+    "shape": {
+      "w": 6.7056,
+      "d": 12.192
+    }
+  },
+  {
+    "example_id": "US03",
+    "name": "Sixplex",
+    "family": "Apartment",
+    "place": "South Bend, Indiana",
+    "era": "2025 design",
+    "status": "Documented proposal",
+    "source_ids": [
+      "US1"
+    ],
+    "sheet_page": "PDF22 / p21",
+    "findings": "Central vestibule, stair and corridor; rear body narrows.",
+    "gaps": "Height and roof assembly missing; finished area differs from envelope.",
+    "shape": {
+      "w": 12.192,
+      "d": 20.1168,
+      "rear_w": 10.3632,
+      "front_d": 12.192
+    }
+  },
+  {
+    "example_id": "US04",
+    "name": "4205–4209 NE 6th Avenue",
+    "family": "Attached housing",
+    "place": "Portland, Oregon",
+    "era": "1999",
+    "status": "Documented built profile",
+    "source_ids": [
+      "US2"
+    ],
+    "sheet_page": "PDF129 / C-9",
+    "findings": "Paired houses share a roof; separate porches; side parking.",
+    "gaps": "No measured envelope, height or rear survey.",
+    "shape": null
+  },
+  {
+    "example_id": "US05",
+    "name": "Thurman Street Condominiums",
+    "family": "Apartment",
+    "place": "Portland, Oregon",
+    "era": "2001",
+    "status": "Documented built profile",
+    "source_ids": [
+      "US2"
+    ],
+    "sheet_page": "PDF153 / C-33",
+    "findings": "Brick block apartments with bays and basement garage.",
+    "gaps": "Unit areas are not gross Building area; no envelope dimensions.",
+    "shape": null
+  },
+  {
+    "example_id": "US06",
+    "name": "355 15th Avenue live/work",
+    "family": "Mixed use",
+    "place": "Seattle, Washington",
+    "era": "2013 design",
+    "status": "Documented proposal",
+    "source_ids": [
+      "US3"
+    ],
+    "sheet_page": "PDF13,16,17,22",
+    "findings": "Separate street doors and stairs; roof decks, headhouses and services.",
+    "gaps": "Local slope/datums matter; roof falls and built status unverified.",
+    "shape": {
+      "w": 4.8768,
+      "d": 9.144
+    }
+  },
+  {
+    "example_id": "NL01",
+    "name": "Hogekwartier 4A / 4B comparison",
+    "family": "Attached housing",
+    "place": "Amersfoort, Netherlands",
+    "era": "2018 design",
+    "status": "Documented proposal",
+    "source_ids": [
+      "NL1"
+    ],
+    "sheet_page": "PDF15 / p14",
+    "findings": "Same bay/depth pairing supports flat and pitched variants with different usable areas.",
+    "gaps": "Beukmaat is not verified exterior width; cap height missing.",
+    "shape": {
+      "w": 5.1,
+      "d": 9.4,
+      "module": true
+    }
+  },
+  {
+    "example_id": "NL02",
+    "name": "Hogekwartier 6A",
+    "family": "Attached housing",
+    "place": "Amersfoort, Netherlands",
+    "era": "2018 design",
+    "status": "Documented proposal",
+    "source_ids": [
+      "NL1"
+    ],
+    "sheet_page": "PDF15 / p14",
+    "findings": "Three flat-roof levels in the same coordinated block.",
+    "gaps": "Not an independent project; exterior wall thickness missing.",
+    "shape": {
+      "w": 5.1,
+      "d": 10.6,
+      "module": true
+    }
+  },
+  {
+    "example_id": "NL03",
+    "name": "Het Larense Veld",
+    "family": "Attached housing",
+    "place": "Almere Haven, Netherlands",
+    "era": "2019",
+    "status": "Builder-reported built project",
+    "source_ids": [
+      "NL2"
+    ],
+    "sheet_page": "Project description",
+    "findings": "Small groups face green interior ground; terraces and semi-detached homes.",
+    "gaps": "Areas and widths are ranges across types, not paired unit measurements.",
+    "shape": null
+  },
+  {
+    "example_id": "DE01",
+    "name": "RH_F terrace example",
+    "family": "Attached housing",
+    "place": "Germany typology",
+    "era": "1969–1978",
+    "status": "Documented energy-typology example",
+    "source_ids": [
+      "DE1"
+    ],
+    "sheet_page": "PDF172",
+    "findings": "Postwar repetition and restrained entrance thresholds.",
+    "gaps": "Heated living area cannot determine exterior dimensions.",
+    "shape": null
+  },
+  {
+    "example_id": "DE02",
+    "name": "MFH_E apartment example",
+    "family": "Apartment",
+    "place": "Germany typology",
+    "era": "1958–1968",
+    "status": "Documented energy-typology example",
+    "source_ids": [
+      "DE1"
+    ],
+    "sheet_page": "PDF240",
+    "findings": "Four full floors and balconies; same example repeated under heating variants.",
+    "gaps": "No width/depth or measured floor-to-floor height.",
+    "shape": null
+  },
+  {
+    "example_id": "DE03",
+    "name": "cb19 courtyard infill",
+    "family": "Courtyard / infill",
+    "place": "Berlin, Germany",
+    "era": "2014",
+    "status": "Architect-reported built project",
+    "source_ids": [
+      "DE2"
+    ],
+    "sheet_page": "Project text",
+    "findings": "Two buildings; courtyard balconies serve access/escape as well as outdoor space.",
+    "gaps": "Court width and building envelopes unverified; not a complete perimeter block.",
+    "shape": null
+  },
+  {
+    "example_id": "DE04",
+    "name": "Wohnregal",
+    "family": "Mixed use",
+    "place": "Berlin, Germany",
+    "era": "2018–2019",
+    "status": "Architect-reported built project",
+    "source_ids": [
+      "DE3",
+      "DE4"
+    ],
+    "sheet_page": "ARQ pp95,96,98,100",
+    "findings": "Precast warehouse-derived framing; exterior stair/lift; flexible live/work interior.",
+    "gaps": "Clear span is not exterior depth; roof drainage and total height not measured.",
+    "shape": null
+  },
+  {
+    "example_id": "FR01",
+    "name": "Grand Parc transformation",
+    "family": "Retrofit",
+    "place": "Bordeaux, France",
+    "era": "1960s; transformation 2016/17",
+    "status": "Documented built transformation",
+    "source_ids": [
+      "FR1"
+    ],
+    "sheet_page": "Project text",
+    "findings": "Winter-garden/balcony addition changes usable space while retaining much of the structure.",
+    "gaps": "Exceptional large project, not ordinary size default; date/area conflicts retained.",
+    "shape": null
+  },
+  {
+    "example_id": "NF01",
+    "name": "Nottingham retrofit pilot",
+    "family": "Retrofit",
+    "place": "Nottingham, England",
+    "era": "2017 pilot",
+    "status": "Documented built retrofit",
+    "source_ids": [
+      "NF1"
+    ],
+    "sheet_page": "Measures / pilot",
+    "findings": "Replacement facade and solar roof packages; systems differ between phases.",
+    "gaps": "No dimensional control; does not establish universal external energy-pod appearance.",
+    "shape": null
+  }
+]

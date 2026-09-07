@@ -1,0 +1,402 @@
+[
+  [
+    "sacramento",
+    "Sacramento / postwar tract + later infill",
+    "CA1 / CA2 / CA3 \u00b7 proposals, not surveyed streets",
+    [
+      {
+        "x": 2,
+        "y": 10,
+        "w": 14,
+        "d": 10,
+        "n": 1,
+        "k": "house",
+        "r": "gable",
+        "name": "ranch",
+        "height": 3.2
+      },
+      {
+        "x": 22,
+        "y": 10,
+        "w": 12,
+        "d": 12,
+        "n": 2,
+        "k": "range",
+        "r": "flat",
+        "name": "duplex",
+        "height": 6.4
+      },
+      {
+        "x": 40,
+        "y": 8,
+        "w": 6,
+        "d": 19,
+        "n": 2,
+        "k": "range",
+        "r": "gable",
+        "name": "court wing",
+        "height": 6.4
+      },
+      {
+        "x": 58,
+        "y": 8,
+        "w": 6,
+        "d": 19,
+        "n": 2,
+        "k": "range",
+        "r": "gable",
+        "name": "court wing",
+        "height": 6.4
+      },
+      {
+        "x": 46,
+        "y": 21,
+        "w": 12,
+        "d": 6,
+        "n": 2,
+        "k": "range",
+        "r": "gable",
+        "name": "court rear",
+        "height": 6.4
+      },
+      {
+        "x": 67,
+        "y": 10,
+        "w": 12,
+        "d": 16,
+        "n": 1,
+        "k": "shop",
+        "r": "flat",
+        "name": "retail",
+        "height": 3.2
+      },
+      {
+        "x": 3,
+        "y": 43,
+        "w": 22,
+        "d": 12,
+        "n": 1,
+        "k": "workshop",
+        "r": "low",
+        "name": "workshop",
+        "height": 3.2
+      }
+    ],
+    "Driveways beside houses; open apartment forecourt; public shop door and side delivery route."
+  ],
+  [
+    "south-bend",
+    "South Bend / incremental infill",
+    "US1 \u00b7 catalogue-derived relationships, all street dimensions proposed",
+    [
+      {
+        "x": 2,
+        "y": 5,
+        "w": 12,
+        "d": 20,
+        "n": 2,
+        "k": "range",
+        "r": "gable",
+        "name": "sixplex analogue",
+        "height": 6.4
+      },
+      {
+        "x": 20,
+        "y": 5,
+        "w": 12,
+        "d": 12,
+        "n": 2,
+        "k": "row",
+        "r": "gable",
+        "name": "duplex",
+        "height": 6.4
+      },
+      {
+        "x": 38,
+        "y": 5,
+        "w": 24,
+        "d": 12,
+        "n": 2,
+        "k": "row",
+        "r": "gable",
+        "name": "attached row",
+        "height": 6.4
+      },
+      {
+        "x": 66,
+        "y": 2,
+        "w": 14,
+        "d": 18,
+        "n": 3,
+        "k": "shop",
+        "r": "flat",
+        "name": "corner shop",
+        "height": 9.600000000000001
+      },
+      {
+        "x": 4,
+        "y": 40,
+        "w": 20,
+        "d": 12,
+        "n": 2,
+        "k": "office",
+        "r": "flat",
+        "name": "small office",
+        "height": 6.4
+      }
+    ],
+    "Front stoops and side paths; continuous rear lane; corner commerce is a proposed addition."
+  ],
+  [
+    "amersfoort",
+    "Amersfoort / planned extension",
+    "NL1 \u00b7 beukmaat constrains rhythm, not our proposed external widths",
+    [
+      {
+        "x": 2,
+        "y": 3,
+        "w": 30,
+        "d": 10,
+        "n": 2,
+        "k": "row",
+        "r": "gable",
+        "name": "five-house row",
+        "height": 6.4
+      },
+      {
+        "x": 38,
+        "y": 3,
+        "w": 12,
+        "d": 10,
+        "n": 2,
+        "k": "row",
+        "r": "gable",
+        "name": "semi pair",
+        "height": 6.4
+      },
+      {
+        "x": 56,
+        "y": 3,
+        "w": 24,
+        "d": 12,
+        "n": 3,
+        "k": "range",
+        "r": "flat",
+        "name": "apartment end",
+        "height": 9.600000000000001
+      },
+      {
+        "x": 2,
+        "y": 43,
+        "w": 30,
+        "d": 10,
+        "n": 2,
+        "k": "row",
+        "r": "flat",
+        "name": "later row",
+        "height": 6.4
+      },
+      {
+        "x": 40,
+        "y": 43,
+        "w": 18,
+        "d": 12,
+        "n": 2,
+        "k": "office",
+        "r": "flat",
+        "name": "office",
+        "height": 6.4
+      }
+    ],
+    "Private rear gardens meet a connected path; parking/servicing on block edge, not inside gardens."
+  ],
+  [
+    "tingbjerg",
+    "Tingbjerg / low ranges + selective infill",
+    "DK1 / DK2 \u00b7 proposals, not the adopted plan reproduced",
+    [
+      {
+        "x": 3,
+        "y": 12,
+        "w": 32,
+        "d": 12,
+        "n": 3,
+        "k": "stairs",
+        "r": "low",
+        "name": "range",
+        "height": 9.600000000000001
+      },
+      {
+        "x": 43,
+        "y": 12,
+        "w": 32,
+        "d": 12,
+        "n": 3,
+        "k": "stairs",
+        "r": "low",
+        "name": "range",
+        "height": 9.600000000000001
+      },
+      {
+        "x": 3,
+        "y": 45,
+        "w": 24,
+        "d": 10,
+        "n": 2,
+        "k": "row",
+        "r": "flat",
+        "name": "infill row",
+        "height": 6.4
+      },
+      {
+        "x": 45,
+        "y": 45,
+        "w": 24,
+        "d": 12,
+        "n": 1,
+        "k": "shop",
+        "r": "flat",
+        "name": "local shop",
+        "height": 3.2
+      }
+    ],
+    "Shared open ground behind ranges; front stair paths; service route stays clear of shared green."
+  ],
+  [
+    "valencia",
+    "Valencia / compact Mediterranean infill",
+    "ES1 / ES2 \u00b7 evidence limits in atlas; all geometry proposed",
+    [
+      {
+        "x": 0,
+        "y": 0,
+        "w": 28,
+        "d": 12,
+        "n": 4,
+        "k": "med",
+        "r": "flat",
+        "name": "shop + flats",
+        "height": 12.8
+      },
+      {
+        "x": 28,
+        "y": 0,
+        "w": 28,
+        "d": 12,
+        "n": 4,
+        "k": "med",
+        "r": "flat",
+        "name": "infill",
+        "height": 12.8
+      },
+      {
+        "x": 56,
+        "y": 0,
+        "w": 24,
+        "d": 12,
+        "n": 4,
+        "k": "med",
+        "r": "flat",
+        "name": "corner",
+        "height": 12.8
+      },
+      {
+        "x": 0,
+        "y": 12,
+        "w": 12,
+        "d": 20,
+        "n": 4,
+        "k": "med",
+        "r": "flat",
+        "name": "side wing",
+        "height": 12.8
+      },
+      {
+        "x": 68,
+        "y": 12,
+        "w": 12,
+        "d": 20,
+        "n": 4,
+        "k": "med",
+        "r": "flat",
+        "name": "side wing",
+        "height": 12.8
+      },
+      {
+        "x": 24,
+        "y": 47,
+        "w": 32,
+        "d": 12,
+        "n": 1,
+        "k": "workshop",
+        "r": "flat",
+        "name": "separate workshop",
+        "height": 3.2
+      }
+    ],
+    "Three-sided block, open court counted separately; entrances from street; service passage at open end."
+  ],
+  [
+    "fictional",
+    "Fictional / compact temperate starting street",
+    "P1 \u00b7 designed mixture, not an existing place",
+    [
+      {
+        "x": 0,
+        "y": 3,
+        "w": 24,
+        "d": 12,
+        "n": 2,
+        "k": "row",
+        "r": "gable",
+        "name": "attached homes",
+        "height": 6.4
+      },
+      {
+        "x": 28,
+        "y": 3,
+        "w": 24,
+        "d": 16,
+        "n": 3,
+        "k": "corridor",
+        "r": "flat",
+        "name": "A1 apartment",
+        "height": 9.600000000000001
+      },
+      {
+        "x": 56,
+        "y": 0,
+        "w": 24,
+        "d": 16,
+        "n": 3,
+        "k": "shop",
+        "r": "flat",
+        "name": "corner mixed use",
+        "height": 9.600000000000001
+      },
+      {
+        "x": 0,
+        "y": 40,
+        "w": 36,
+        "d": 20,
+        "n": 2,
+        "k": "office",
+        "r": "flat",
+        "name": "G001 workplace",
+        "height": 7
+      },
+      {
+        "x": 44,
+        "y": 43,
+        "w": 32,
+        "d": 16,
+        "n": 2,
+        "k": "workshop",
+        "r": "low",
+        "name": "workshop",
+        "height": 6.4
+      }
+    ],
+    "Stable front line with one setback transition; one rear lane; workplace rear faces stay accessible."
+  ]
+]

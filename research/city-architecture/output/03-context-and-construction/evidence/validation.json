@@ -1,0 +1,30 @@
+{
+  "local_links_checked": 221,
+  "broken_local_links": [],
+  "svg_xml_and_titles": 33,
+  "dimension_rows_verified": 231,
+  "source_records": 26,
+  "street_body_nonoverlap_and_lane_clear": 6,
+  "proposed_street_gross_envelopes_m2": {
+    "sacramento": 1484,
+    "south-bend": 2580,
+    "amersfoort": 2736,
+    "tingbjerg": 3072,
+    "valencia": 6144,
+    "fictional": 5344
+  },
+  "controlled_floor_envelope_equal": true,
+  "archived_rows_arithmetic": 52,
+  "retained_source_hashes_match": [
+    "US1",
+    "NL1"
+  ],
+  "no_fresh_simulation_run": true,
+  "render_records": [
+    "render-checks-corrections.json",
+    "render-checks-final.json",
+    "render-checks.json"
+  ],
+  "rendered_viewport_checks": true,
+  "visual_inspection": "Sampled; listed in VALIDATION.md, not claimed exhaustive."
+}

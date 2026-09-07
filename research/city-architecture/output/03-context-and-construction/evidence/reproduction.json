@@ -1,0 +1,39 @@
+{
+  "checkpoint": "d9addc3e04d600f58990b2a8036d03cf852445b7",
+  "head": "7916db4022066a741531087aa1ed6325a448303f",
+  "draw_sha256": "918824632344f4cadf63bab85017be95b15b26f3f128d142511e45705f21aa32",
+  "archived_repeat_identical": true,
+  "fresh_simulation_run": false,
+  "files": {
+    "src/Borough.Godot/Main.Massing.cs": {
+      "checkpoint_sha256": "e4b550ee1515a980b72d6dbd3a9a40b43952ee3c907ae8980e15399cc4be7c85",
+      "working_sha256": "7ba5187878101ff32b07f0366c6091e1a841b3c94d78f74965051d02ad1f4c14",
+      "identical": false
+    },
+    "src/Borough.Godot/RoofMeshes.cs": {
+      "checkpoint_sha256": "095c04b3bddb198b702c575a96c06104b79d3b64f3e9594262b5cb3881300af7",
+      "working_sha256": "095c04b3bddb198b702c575a96c06104b79d3b64f3e9594262b5cb3881300af7",
+      "identical": true
+    },
+    "src/Borough.Core/Space/BuildingPlan.cs": {
+      "checkpoint_sha256": "4e3ac1a54626df8a9c2815ed7e04cef8c625150b83d220d95f505ce3d7359a83",
+      "working_sha256": "4e3ac1a54626df8a9c2815ed7e04cef8c625150b83d220d95f505ce3d7359a83",
+      "identical": true
+    },
+    "src/Borough.Core/Rules/Ruleset.cs": {
+      "checkpoint_sha256": "5f8df2bf3df365ba57d49b864ba3faf3657bd6b6a708dc44b2e5777ae5b5a9d0",
+      "working_sha256": "27d3bceecdcb520992da773bc20e6613d47523fb19278ebdc168366dd7a34152",
+      "identical": false
+    },
+    "src/Borough.Core/Entities/World.cs": {
+      "checkpoint_sha256": "f77dc77dc63072540c87cfc1ba54939e8d8f7f59c4974481a0541eed2e0359c3",
+      "working_sha256": "7815f666a704fa843cfbe44f2480b9001ea7f33848f43796b4d8cc9bd3e39ca0",
+      "identical": false
+    },
+    "rulesets/shopping.toml": {
+      "checkpoint_sha256": "3c28d496564b0eb33b577f9812e2caf365f3bb36d039b7bc1fd09c1632f8c260",
+      "working_sha256": "3c28d496564b0eb33b577f9812e2caf365f3bb36d039b7bc1fd09c1632f8c260",
+      "identical": true
+    }
+  }
+}

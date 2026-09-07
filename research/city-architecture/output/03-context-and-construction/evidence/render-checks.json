@@ -1,0 +1,90 @@
+[
+  {
+    "title": "A — Equal area, different access",
+    "width": 1160,
+    "scrollWidth": 1160,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "drawings/controlled-housing.svg"
+  },
+  {
+    "title": "Fictional / compact temperate starting street",
+    "width": 1160,
+    "scrollWidth": 1160,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "drawings/fictional.svg"
+  },
+  {
+    "title": "Valencia / compact Mediterranean infill",
+    "width": 1160,
+    "scrollWidth": 1160,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "drawings/valencia.svg"
+  },
+  {
+    "title": "C — Workplaces need floor structure and service ground",
+    "width": 1160,
+    "scrollWidth": 1160,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "drawings/workplace.svg"
+  },
+  {
+    "title": "D — Roof construction and scale",
+    "width": 1160,
+    "scrollWidth": 1160,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "drawings/construction.svg"
+  },
+  {
+    "title": "F — Low housing and service sides",
+    "width": 1160,
+    "scrollWidth": 1160,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "drawings/low-housing.svg"
+  },
+  {
+    "title": "G — Retail layout and accumulated history",
+    "width": 1160,
+    "scrollWidth": 1160,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "drawings/retail-history.svg"
+  },
+  {
+    "title": "E — What the sources actually dimension",
+    "width": 1160,
+    "scrollWidth": 1160,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "drawings/evidence-controls.svg"
+  },
+  {
+    "title": "City architecture — illustrated review pass03",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "index.html"
+  },
+  {
+    "title": "Evidence atlas — city architecture pass03",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "atlas/index.html"
+  },
+  {
+    "title": "REPORT",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "REPORT.html"
+  }
+]

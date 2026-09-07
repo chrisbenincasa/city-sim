@@ -1,0 +1,92 @@
+[
+  {
+    "title": "Sacramento / postwar tract + later infill",
+    "width": 1160,
+    "scrollWidth": 1160,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "drawings/sacramento.svg",
+    "scroll": "top",
+    "artifact_sha256": "dde22812f5bf79ea98cd8209f6d52383c0ae9ed90d4f2f9d7bbbfe774cb22e54"
+  },
+  {
+    "title": "South Bend / incremental infill",
+    "width": 1160,
+    "scrollWidth": 1160,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "drawings/south-bend.svg",
+    "scroll": "top",
+    "artifact_sha256": "ff187fc152cde1a83c1db2674fd3f07f3677a780b3ca5a066b2c3c1ba79274d7"
+  },
+  {
+    "title": "Amersfoort / planned extension",
+    "width": 1160,
+    "scrollWidth": 1160,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "drawings/amersfoort.svg",
+    "scroll": "top",
+    "artifact_sha256": "890738c41f5c10ed166246d90f226d244071d75381794096a0f6a6ff65fd71b5"
+  },
+  {
+    "title": "Tingbjerg / low ranges + selective infill",
+    "width": 1160,
+    "scrollWidth": 1160,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "drawings/tingbjerg.svg",
+    "scroll": "top",
+    "artifact_sha256": "c7e0ea2f5e5ba241e50dc27a920728af76cc5a29cb8468a69722e7c4d69cd8ee"
+  },
+  {
+    "title": "Valencia / compact Mediterranean infill",
+    "width": 1160,
+    "scrollWidth": 1160,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "drawings/valencia.svg",
+    "scroll": "top",
+    "artifact_sha256": "27ca723de06a8279137d3267f57334a323aec5e95e3324b83e83404863361066"
+  },
+  {
+    "title": "Fictional / compact temperate starting street",
+    "width": 1160,
+    "scrollWidth": 1160,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "drawings/fictional.svg",
+    "scroll": "top",
+    "artifact_sha256": "f30d4494ba2976b530088afe0ad8cee63d095af2775d619134e57c59075cd628"
+  },
+  {
+    "title": "Fictional / compact temperate starting street",
+    "width": 1160,
+    "scrollWidth": 1160,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "drawings/fictional-materials.svg",
+    "scroll": "top",
+    "artifact_sha256": "85bf17bbb3f076734a449b86ef5a0df2b05a8e3f5c69896bbe6d584f89cbdf47"
+  },
+  {
+    "title": "C \u2014 Workplaces need floor structure and service ground",
+    "width": 1160,
+    "scrollWidth": 1160,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "drawings/workplace.svg",
+    "scroll": "top",
+    "artifact_sha256": "5547df369bb8f136d147748e19f1c1f55466e18c40583295ff8b75700d7ba0c1"
+  },
+  {
+    "title": "D \u2014 Roof construction and scale",
+    "width": 1160,
+    "scrollWidth": 1160,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "drawings/construction.svg",
+    "scroll": "top",
+    "artifact_sha256": "c032f7e5b4cf3d29f50354dc9d2b8e32853b67f7b5a01e2cbe3524743bc1bc99"
+  }
+]

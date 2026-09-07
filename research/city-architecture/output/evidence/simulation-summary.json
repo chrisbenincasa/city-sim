@@ -1,0 +1,43 @@
+{
+  "components": 52,
+  "distinct_building_ids": 52,
+  "repeat_draw_byte_identical": true,
+  "axes": {
+    "east_west_m": {
+      "min": 16.0,
+      "median": 28.0,
+      "max": 60.0
+    },
+    "south_north_m": {
+      "min": 16.0,
+      "median": 22.0,
+      "max": 60.0
+    },
+    "wall_m": {
+      "min": 7.0,
+      "median": 10.5,
+      "max": 10.5
+    },
+    "footprint_m2": {
+      "min": 320.0,
+      "median": 640.0,
+      "max": 1680.0
+    }
+  },
+  "roof_counts": {
+    "roof": 9,
+    "hip": 1,
+    "paired-roof": 42
+  },
+  "tenancy_capacity_range": [
+    2,
+    11
+  ],
+  "sample_ids": [
+    1,
+    2,
+    3,
+    4,
+    8
+  ]
+}

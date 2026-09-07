@@ -1,0 +1,123 @@
+example_id,source_id,quantity,value,units,metric_value,metric_units,evidence_status,evidence_kind,method,sheet_page,caveat
+US01,US1,main_width,20,ft,6.096,m,documented,design model,Published explicit dimension or schedule,PDF12 / p11,"Preapproved design, not as-built."
+US01,US1,main_depth,28,ft,8.5344,m,documented,design model,Published explicit dimension or schedule,PDF12 / p11,"Preapproved design, not as-built."
+US01,US1,full_storeys,2,storeys,2,storeys,documented,design model,Published explicit dimension or schedule,PDF12 / p11,"Preapproved design, not as-built."
+US01,US1,finished_gross,1120,ft2,104.0514048,m2,documented,design model,Published explicit dimension or schedule,PDF12 / p11,"Preapproved design, not as-built."
+US01,US1,dwellings,1,dwellings,1,dwellings,documented,design model,Published explicit dimension or schedule,PDF12 / p11,"Preapproved design, not as-built."
+US02,US1,main_width,22,ft,6.7056,m,documented,design model,Published explicit dimension or schedule,PDF20 / p19,"Preapproved design, not as-built."
+US02,US1,main_depth,40,ft,12.192,m,documented,design model,Published explicit dimension or schedule,PDF20 / p19,"Preapproved design, not as-built."
+US02,US1,full_storeys,2,storeys,2,storeys,documented,design model,Published explicit dimension or schedule,PDF20 / p19,"Preapproved design, not as-built."
+US02,US1,finished_gross,1760,ft2,163.5093504,m2,documented,design model,Published explicit dimension or schedule,PDF20 / p19,"Preapproved design, not as-built."
+US02,US1,dwellings,2,dwellings,2,dwellings,documented,design model,Published explicit dimension or schedule,PDF20 / p19,"Preapproved design, not as-built."
+US01,US1,overall_depth_schedule,36,ft,10.9728,m,documented,published value,Published explicit dimension or schedule,PDF12 / p11,Includes porch; drawn body plus 8 ft 1 in porch is one inch longer.
+US01,US1,porch_depth_drawn,97,in,2.4638,m,documented,published value,Published explicit dimension or schedule,PDF12 / p11,One-inch difference from schedule retained.
+US02,US1,overall_depth_schedule,48,ft,14.6304,m,documented,published value,Published explicit dimension or schedule,PDF20 / p19,Includes porch; drawn body plus 8 ft 1 in porch is one inch longer.
+US02,US1,porch_depth_drawn,97,in,2.4638,m,documented,published value,Published explicit dimension or schedule,PDF20 / p19,One-inch difference from schedule retained.
+US03,US1,max_main_width,40,ft,12.192,m,documented,design model,Published explicit dimension or schedule,PDF22 / p21,Stepped body; schedule overall 72 ft differs from drawn 66 ft + 5 ft 8 in. Never use max box as floor area.
+US03,US1,main_depth,66,ft,20.1168,m,documented,design model,Published explicit dimension or schedule,PDF22 / p21,Stepped body; schedule overall 72 ft differs from drawn 66 ft + 5 ft 8 in. Never use max box as floor area.
+US03,US1,front_part_depth,40,ft,12.192,m,documented,design model,Published explicit dimension or schedule,PDF22 / p21,Stepped body; schedule overall 72 ft differs from drawn 66 ft + 5 ft 8 in. Never use max box as floor area.
+US03,US1,rear_part_width,34,ft,10.3632,m,documented,design model,Published explicit dimension or schedule,PDF22 / p21,Stepped body; schedule overall 72 ft differs from drawn 66 ft + 5 ft 8 in. Never use max box as floor area.
+US03,US1,rear_part_depth,26,ft,7.9248,m,documented,design model,Published explicit dimension or schedule,PDF22 / p21,Stepped body; schedule overall 72 ft differs from drawn 66 ft + 5 ft 8 in. Never use max box as floor area.
+US03,US1,stoop_projection,68,in,1.7272,m,documented,design model,Published explicit dimension or schedule,PDF22 / p21,Stepped body; schedule overall 72 ft differs from drawn 66 ft + 5 ft 8 in. Never use max box as floor area.
+US03,US1,overall_depth_schedule,72,ft,21.9456,m,documented,design model,Published explicit dimension or schedule,PDF22 / p21,Stepped body; schedule overall 72 ft differs from drawn 66 ft + 5 ft 8 in. Never use max box as floor area.
+US03,US1,finished_gross,4840,ft2,449.6507136,m2,documented,design model,Published explicit dimension or schedule,PDF22 / p21,Stepped body; schedule overall 72 ft differs from drawn 66 ft + 5 ft 8 in. Never use max box as floor area.
+US03,US1,full_storeys,2,storeys,2,storeys,documented,design model,Published explicit dimension or schedule,PDF22 / p21,Stepped body; schedule overall 72 ft differs from drawn 66 ft + 5 ft 8 in. Never use max box as floor area.
+US03,US1,dwellings,6,dwellings,6,dwellings,documented,design model,Published explicit dimension or schedule,PDF22 / p21,Stepped body; schedule overall 72 ft differs from drawn 66 ft + 5 ft 8 in. Never use max box as floor area.
+US04,US2,site_area,5000,ft2,464.5152,m2,documented,published value,Published explicit dimension or schedule,PDF129 / C-9,Built profile; site area is not building footprint.
+US04,US2,unit_area,1332,ft2,123.74684928,m2,documented,published value,Published explicit dimension or schedule,PDF129 / C-9,Built profile; site area is not building footprint.
+US04,US2,dwellings,2,dwellings,2,dwellings,documented,published value,Published explicit dimension or schedule,PDF129 / C-9,Built profile; site area is not building footprint.
+US04,US2,parking,4,spaces,4,spaces,documented,published value,Published explicit dimension or schedule,PDF129 / C-9,Built profile; site area is not building footprint.
+US05,US2,site_area,6144,ft2,570.79627776,m2,documented,published value,Published explicit dimension or schedule,PDF153 / C-33,Built profile; site area is not building footprint.
+US05,US2,unit_area_min,747,ft2,69.39857088,m2,documented,published value,Published explicit dimension or schedule,PDF153 / C-33,Built profile; site area is not building footprint.
+US05,US2,unit_area_max,1017,ft2,94.48239168,m2,documented,published value,Published explicit dimension or schedule,PDF153 / C-33,Built profile; site area is not building footprint.
+US05,US2,dwellings,12,dwellings,12,dwellings,documented,published value,Published explicit dimension or schedule,PDF153 / C-33,Built profile; site area is not building footprint.
+US05,US2,basement_parking,12,spaces,12,spaces,documented,published value,Published explicit dimension or schedule,PDF153 / C-33,Built profile; site area is not building footprint.
+US06,US3,unit_ground_width,16,ft,4.8768,m,documented,design proposal,Published explicit dimension or schedule,PDF13 / sheet12,"Proposal. Ground A–C plans; height values left datum D, not entire sloping row."
+US06,US3,unit_ground_depth,30,ft,9.144,m,documented,design proposal,Published explicit dimension or schedule,PDF13 / sheet12,"Proposal. Ground A–C plans; height values left datum D, not entire sloping row."
+US06,US3,local_ground_floor_height,13,ft,3.9624,m,documented,design proposal,Published explicit dimension or schedule,PDF17 / sheet16,"Proposal. Ground A–C plans; height values left datum D, not entire sloping row."
+US06,US3,local_upper_floor_height,10,ft,3.048,m,documented,design proposal,Published explicit dimension or schedule,PDF17 / sheet16,"Proposal. Ground A–C plans; height values left datum D, not entire sloping row."
+US06,US3,local_parapet_above_deck,3,ft,0.9144,m,documented,design proposal,Published explicit dimension or schedule,PDF17 / sheet16,"Proposal. Ground A–C plans; height values left datum D, not entire sloping row."
+US06,US3,project_live_work_units,8,units,8,units,documented,design proposal,Published explicit dimension or schedule,Project programme,"Proposal. Ground A–C plans; height values left datum D, not entire sloping row."
+US06,US3,standing_seam_module,24,in,0.6096,m,documented,design proposal,Published explicit dimension or schedule,PDF17 / sheet16,"Proposal. Ground A–C plans; height values left datum D, not entire sloping row."
+NL01,NL1,4A_beukmaat,5.1,m,5.1,m,documented,design proposal,Published explicit dimension or schedule,PDF15 / p14,Beukmaat not established exterior width. 4B has an additional pitched cap; GBO not gross area.
+NL01,NL1,4A_depth,9.4,m,9.4,m,documented,design proposal,Published explicit dimension or schedule,PDF15 / p14,Beukmaat not established exterior width. 4B has an additional pitched cap; GBO not gross area.
+NL01,NL1,4A_GBO_per_home,83,m2,83,m2,documented,design proposal,Published explicit dimension or schedule,PDF15 / p14,Beukmaat not established exterior width. 4B has an additional pitched cap; GBO not gross area.
+NL01,NL1,4A_homes_in_block,3,dwellings,3,dwellings,documented,design proposal,Published explicit dimension or schedule,PDF15 / p14,Beukmaat not established exterior width. 4B has an additional pitched cap; GBO not gross area.
+NL01,NL1,4A_full_storeys,2,storeys,2,storeys,documented,design proposal,Published explicit dimension or schedule,PDF15 / p14,Beukmaat not established exterior width. 4B has an additional pitched cap; GBO not gross area.
+NL01,NL1,4B_beukmaat,5.1,m,5.1,m,documented,design proposal,Published explicit dimension or schedule,PDF15 / p14,Beukmaat not established exterior width. 4B has an additional pitched cap; GBO not gross area.
+NL01,NL1,4B_depth,9.4,m,9.4,m,documented,design proposal,Published explicit dimension or schedule,PDF15 / p14,Beukmaat not established exterior width. 4B has an additional pitched cap; GBO not gross area.
+NL01,NL1,4B_GBO_per_home,109,m2,109,m2,documented,design proposal,Published explicit dimension or schedule,PDF15 / p14,Beukmaat not established exterior width. 4B has an additional pitched cap; GBO not gross area.
+NL01,NL1,4B_homes_in_block,4,dwellings,4,dwellings,documented,design proposal,Published explicit dimension or schedule,PDF15 / p14,Beukmaat not established exterior width. 4B has an additional pitched cap; GBO not gross area.
+NL01,NL1,4B_full_storeys,2,storeys,2,storeys,documented,design proposal,Published explicit dimension or schedule,PDF15 / p14,Beukmaat not established exterior width. 4B has an additional pitched cap; GBO not gross area.
+NL02,NL1,6A_beukmaat,5.1,m,5.1,m,documented,design proposal,Published explicit dimension or schedule,PDF15 / p14,Beukmaat not established exterior width. 4B has an additional pitched cap; GBO not gross area.
+NL02,NL1,6A_depth,10.6,m,10.6,m,documented,design proposal,Published explicit dimension or schedule,PDF15 / p14,Beukmaat not established exterior width. 4B has an additional pitched cap; GBO not gross area.
+NL02,NL1,6A_GBO_per_home,143,m2,143,m2,documented,design proposal,Published explicit dimension or schedule,PDF15 / p14,Beukmaat not established exterior width. 4B has an additional pitched cap; GBO not gross area.
+NL02,NL1,6A_homes_in_block,2,dwellings,2,dwellings,documented,design proposal,Published explicit dimension or schedule,PDF15 / p14,Beukmaat not established exterior width. 4B has an additional pitched cap; GBO not gross area.
+NL02,NL1,6A_full_storeys,3,storeys,3,storeys,documented,design proposal,Published explicit dimension or schedule,PDF15 / p14,Beukmaat not established exterior width. 4B has an additional pitched cap; GBO not gross area.
+NL03,NL2,terrace_C_beukmaat,5.4,m,5.4,m,documented,published value,Published explicit dimension or schedule,Project description,Different types; approximate values/ranges not paired individual-unit measurements.
+NL03,NL2,terrace_D_beukmaat,5.7,m,5.7,m,documented,published value,Published explicit dimension or schedule,Project description,Different types; approximate values/ranges not paired individual-unit measurements.
+NL03,NL2,terrace_B_approx_width,6,m,6,m,documented,published value,Published explicit dimension or schedule,Project description,Different types; approximate values/ranges not paired individual-unit measurements.
+NL03,NL2,terrace_area_min,130,m2,130,m2,documented,published value,Published explicit dimension or schedule,Project description,Different types; approximate values/ranges not paired individual-unit measurements.
+NL03,NL2,terrace_area_max,160,m2,160,m2,documented,published value,Published explicit dimension or schedule,Project description,Different types; approximate values/ranges not paired individual-unit measurements.
+NL03,NL2,terrace_approx_plot,150,m2,150,m2,documented,published value,Published explicit dimension or schedule,Project description,Different types; approximate values/ranges not paired individual-unit measurements.
+NL03,NL2,semidetached_approx_width,6,m,6,m,documented,published value,Published explicit dimension or schedule,Project description,Different types; approximate values/ranges not paired individual-unit measurements.
+NL03,NL2,semidetached_approx_plot,250,m2,250,m2,documented,published value,Published explicit dimension or schedule,Project description,Different types; approximate values/ranges not paired individual-unit measurements.
+DE01,DE1,heated_living_area,97,m2,97,m2,documented,published value,Published explicit dimension or schedule,PDF172 RH_F,"IEE Projects TABULA + EPISCOPE (www.episcope.eu). Energy example, not exterior geometry."
+DE01,DE1,full_storeys,2,storeys,2,storeys,documented,published value,Published explicit dimension or schedule,PDF172 RH_F,"IEE Projects TABULA + EPISCOPE (www.episcope.eu). Energy example, not exterior geometry."
+DE01,DE1,dwellings,1,dwellings,1,dwellings,documented,published value,Published explicit dimension or schedule,PDF172 RH_F,"IEE Projects TABULA + EPISCOPE (www.episcope.eu). Energy example, not exterior geometry."
+DE02,DE1,heated_living_area,2845,m2,2845,m2,documented,published value,Published explicit dimension or schedule,PDF240 MFH_E,"IEE Projects TABULA + EPISCOPE (www.episcope.eu). Energy example, not exterior geometry."
+DE02,DE1,full_storeys,4,storeys,4,storeys,documented,published value,Published explicit dimension or schedule,PDF240 MFH_E,"IEE Projects TABULA + EPISCOPE (www.episcope.eu). Energy example, not exterior geometry."
+DE02,DE1,dwellings,32,dwellings,32,dwellings,documented,published value,Published explicit dimension or schedule,PDF240 MFH_E,"IEE Projects TABULA + EPISCOPE (www.episcope.eu). Energy example, not exterior geometry."
+DE03,DE2,project_dwellings,27,dwellings,27,dwellings,documented,published value,Published explicit dimension or schedule,Project text,Two-building totals; courtyard width missing.
+DE03,DE2,project_commercial_units,1,units,1,units,documented,published value,Published explicit dimension or schedule,Project text,Two-building totals; courtyard width missing.
+DE03,DE2,residential_area_two_buildings,2872,m2,2872,m2,documented,published value,Published explicit dimension or schedule,Project text,Two-building totals; courtyard width missing.
+DE04,DE3,approx_clear_span,13,m,13,m,documented,published value,Published explicit dimension or schedule,PDF2 / p95,"Approximate span is clear facade-to-facade, not exterior depth; no inferred occupancy."
+DE04,DE3,built_area,1088,m2,1088,m2,documented,published value,Published explicit dimension or schedule,PDF3 / p96,"Approximate span is clear facade-to-facade, not exterior depth; no inferred occupancy."
+DE04,DE3,site_area,328,m2,328,m2,documented,published value,Published explicit dimension or schedule,PDF3 / p96,"Approximate span is clear facade-to-facade, not exterior depth; no inferred occupancy."
+DE04,DE3,storeys,6,storeys,6,storeys,documented,published value,Published explicit dimension or schedule,Project description,"Approximate span is clear facade-to-facade, not exterior depth; no inferred occupancy."
+FR01,FR1,addition_depth,3.8,m,3.8,m,documented,published value,Published explicit dimension or schedule,Project text,"Specified H/I south and both G facades; winter gardens and balconies, not entire building depth."
+FR01,FR1,transformed_dwellings,530,dwellings,530,dwellings,documented,published value,Published explicit dimension or schedule,Programme,Across three existing buildings; excludes 8 new dwellings.
+STOCK,ST1,EU_buildings_pre2000_share,85,percent,85,percent,documented,published value,Published explicit dimension or schedule,Key facts,"EU-wide buildings; not households, heritage share or chosen city distribution."
+CON01,CON1,typical_frame_span_min,15,m,15,m,documented,published value,Published explicit dimension or schedule,Main frame,Industry guidance; not hard limits or measured population range.
+CON01,CON1,typical_frame_span_max,50,m,50,m,documented,published value,Published explicit dimension or schedule,Main frame,Industry guidance; not hard limits or measured population range.
+CON01,CON1,typical_roof_pitch_min,5,degrees,5,degrees,documented,published value,Published explicit dimension or schedule,Main frame,Industry guidance; not hard limits or measured population range.
+CON01,CON1,typical_roof_pitch_max,10,degrees,10,degrees,documented,published value,Published explicit dimension or schedule,Main frame,Industry guidance; not hard limits or measured population range.
+CON01,CON1,typical_frame_spacing_min,6,m,6,m,documented,published value,Published explicit dimension or schedule,Main frame,Industry guidance; not hard limits or measured population range.
+CON01,CON1,typical_frame_spacing_max,8,m,8,m,documented,published value,Published explicit dimension or schedule,Main frame,Industry guidance; not hard limits or measured population range.
+CON02,CON2,element_width,2.4,m,2.4,m,documented,manufacturer calculation,Published explicit dimension or schedule,"PDF25, first T-element row",Five 45×200 mm ribs +25 mm plate; listed load assumptions; fire resistance excluded; NL/BE annex scope.
+CON02,CON2,element_depth,225,mm,0.225,m,documented,manufacturer calculation,Published explicit dimension or schedule,"PDF25, first T-element row",Five 45×200 mm ribs +25 mm plate; listed load assumptions; fire resistance excluded; NL/BE annex scope.
+CON02,CON2,roof_max_span,7,m,7,m,documented,manufacturer calculation,Published explicit dimension or schedule,"PDF25, first T-element row",Five 45×200 mm ribs +25 mm plate; listed load assumptions; fire resistance excluded; NL/BE annex scope.
+CON02,CON2,residential_floor_max_span,5.25,m,5.25,m,documented,manufacturer calculation,Published explicit dimension or schedule,"PDF25, first T-element row",Five 45×200 mm ribs +25 mm plate; listed load assumptions; fire resistance excluded; NL/BE annex scope.
+MAT01,MAT1,brick_length,215,mm,0.215,m,documented,published value,Published explicit dimension or schedule,Standard format,Modern product; not measured historic masonry.
+MAT01,MAT1,brick_height,65,mm,0.065,m,documented,published value,Published explicit dimension or schedule,Standard format,Modern product; not measured historic masonry.
+MAT01,MAT1,brick_depth,102.5,mm,0.1025,m,documented,published value,Published explicit dimension or schedule,Standard format,Modern product; not measured historic masonry.
+MAT02,MAT2,tile_length,265,mm,0.265,m,documented,published value,Published explicit dimension or schedule,800CPT35 rev A,Product-specific detail; full tile is not exposed course.
+MAT02,MAT2,tile_width,165,mm,0.165,m,documented,published value,Published explicit dimension or schedule,800CPT35 rev A,Product-specific detail; full tile is not exposed course.
+MAT02,MAT2,minimum_headlap,65,mm,0.065,m,documented,published value,Published explicit dimension or schedule,800CPT35 rev A,Product-specific detail; full tile is not exposed course.
+N1,P1,width,24,m,24,m,proposed,game proposal,Authored research brief,N1,
+N1,P1,depth,12,m,12,m,proposed,game proposal,Authored research brief,N1,
+N1,P1,wall_height,6,m,6,m,proposed,game proposal,Authored research brief,N1,
+N2,P1,width,16,m,16,m,proposed,game proposal,Authored research brief,N2,
+N2,P1,depth,12,m,12,m,proposed,game proposal,Authored research brief,N2,
+N2,P1,wall_height,10.5,m,10.5,m,proposed,game proposal,Authored research brief,N2,
+N3,P1,width,24,m,24,m,proposed,game proposal,Authored research brief,N3,
+N3,P1,depth,16,m,16,m,proposed,game proposal,Authored research brief,N3,
+N3,P1,wall_height,10.5,m,10.5,m,proposed,game proposal,Authored research brief,N3,
+N1,P1,unit_frontage,6,m,6,m,proposed,game proposal,Authored research brief,N1,"Architectural proposal, not content allocation or engineering certification."
+N1,P1,roof_pitch,25,degrees,25,degrees,proposed,game proposal,Authored research brief,N1,"Architectural proposal, not content allocation or engineering certification."
+N1,P1,dwellings,4,dwellings,4,dwellings,proposed,game proposal,Authored research brief,N1,"Architectural proposal, not content allocation or engineering certification."
+N2,P1,ground_floor_height,4.2,m,4.2,m,proposed,game proposal,Authored research brief,N2,"Architectural proposal, not content allocation or engineering certification."
+N2,P1,upper_floor_height,3.15,m,3.15,m,proposed,game proposal,Authored research brief,N2,"Architectural proposal, not content allocation or engineering certification."
+N2,P1,dwellings,4,dwellings,4,dwellings,proposed,game proposal,Authored research brief,N2,"Architectural proposal, not content allocation or engineering certification."
+N2,P1,shops,2,units,2,units,proposed,game proposal,Authored research brief,N2,"Architectural proposal, not content allocation or engineering certification."
+N3,P1,floor_height,3.5,m,3.5,m,proposed,game proposal,Authored research brief,N3,"Architectural proposal, not content allocation or engineering certification."
+N3,P1,corridor_width,2,m,2,m,proposed,game proposal,Authored research brief,N3,"Architectural proposal, not content allocation or engineering certification."
+N3,P1,stair_width_reservation,4,m,4,m,proposed,game proposal,Authored research brief,N3,"Architectural proposal, not content allocation or engineering certification."
+N3,P1,stair_depth_reservation,5,m,5,m,proposed,game proposal,Authored research brief,N3,"Architectural proposal, not content allocation or engineering certification."
+N3,P1,dwellings,12,dwellings,12,dwellings,proposed,game proposal,Authored research brief,N3,"Architectural proposal, not content allocation or engineering certification."
+N3,P1,parapet,0.45,m,0.45,m,proposed,game proposal,Authored research brief,N3,"Architectural proposal, not content allocation or engineering certification."
+N3,P1,fall_run,8,m,8,m,proposed,game proposal,Authored research brief,N3,"Architectural proposal, not content allocation or engineering certification."
+N3,P1,fall_rise,0.2,m,0.2,m,proposed,game proposal,Authored research brief,N3,"Architectural proposal, not content allocation or engineering certification."
+N3,P1,window_width,1.2,m,1.2,m,proposed,game proposal,Authored research brief,N3,"Architectural proposal, not content allocation or engineering certification."
+N3,P1,window_height,1.5,m,1.5,m,proposed,game proposal,Authored research brief,N3,"Architectural proposal, not content allocation or engineering certification."
+N3,P1,roof_headhouse_height,2.4,m,2.4,m,proposed,game proposal,Authored research brief,N3,"Architectural proposal, not content allocation or engineering certification."

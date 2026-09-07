@@ -1,0 +1,37 @@
+{
+  "US1": {
+    "sha256": "f1bab1c302d695726c96f2cc04c1c072e109e5e2ff16c03cacb1356ad688568b",
+    "bytes": 36879023,
+    "redistributed": false
+  },
+  "US2": {
+    "sha256": "c2eb6b159f325316032d6ec34bd364a63c5f8afae51c33da6cf65ba184e02929",
+    "bytes": 35112126,
+    "redistributed": false
+  },
+  "US3": {
+    "sha256": "67dd4d9c251e5c0e489c052eb95454fde877ea0831f98850a85b9bad0ff790d3",
+    "bytes": 8341118,
+    "redistributed": false
+  },
+  "NL1": {
+    "sha256": "7fede0b892936504fd96a980b719afa352865501bdcacb292d16de06694b3640",
+    "bytes": 32040437,
+    "redistributed": false
+  },
+  "DE1": {
+    "sha256": "76f78c17807f931ece788552429ab80ff6ba9adab72814181fb45acbcb547c18",
+    "bytes": 19721690,
+    "redistributed": false
+  },
+  "DE3": {
+    "sha256": "6693f9c55bf29afd5dffd50ecee03ce86af7dc3c95ba97ce3a9705abf308f480",
+    "bytes": 2549660,
+    "redistributed": false
+  },
+  "CON2": {
+    "sha256": "cafb7247b0cad56fca9dda67642101740b17c9e5dfd6a39d8681d1d261a7f4fb",
+    "bytes": 12431423,
+    "redistributed": false
+  }
+}

@@ -1,0 +1,42 @@
+[
+  {
+    "id": 0,
+    "kind": "N1",
+    "threshold": 12.5
+  },
+  {
+    "id": 1,
+    "kind": "N1",
+    "threshold": 12.5
+  },
+  {
+    "id": 2,
+    "kind": "N2",
+    "threshold": 37.5
+  },
+  {
+    "id": 3,
+    "kind": "N2",
+    "threshold": 37.5
+  },
+  {
+    "id": 4,
+    "kind": "N3",
+    "threshold": 62.5
+  },
+  {
+    "id": 5,
+    "kind": "N3",
+    "threshold": 62.5
+  },
+  {
+    "id": 6,
+    "kind": "N3",
+    "threshold": 87.5
+  },
+  {
+    "id": 7,
+    "kind": "N3",
+    "threshold": 87.5
+  }
+]

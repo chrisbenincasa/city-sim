@@ -1,0 +1,155 @@
+[
+  {
+    "title": "A — Equal area, different access",
+    "width": 1160,
+    "scrollWidth": 1160,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "drawings/controlled-housing.svg",
+    "scroll": "top"
+  },
+  {
+    "title": "Sacramento / postwar tract + later infill",
+    "width": 1160,
+    "scrollWidth": 1160,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "drawings/sacramento.svg",
+    "scroll": "top"
+  },
+  {
+    "title": "South Bend / incremental infill",
+    "width": 1160,
+    "scrollWidth": 1160,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "drawings/south-bend.svg",
+    "scroll": "top"
+  },
+  {
+    "title": "Amersfoort / planned extension",
+    "width": 1160,
+    "scrollWidth": 1160,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "drawings/amersfoort.svg",
+    "scroll": "top"
+  },
+  {
+    "title": "Tingbjerg / low ranges + selective infill",
+    "width": 1160,
+    "scrollWidth": 1160,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "drawings/tingbjerg.svg",
+    "scroll": "top"
+  },
+  {
+    "title": "Valencia / compact Mediterranean infill",
+    "width": 1160,
+    "scrollWidth": 1160,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "drawings/valencia.svg",
+    "scroll": "top"
+  },
+  {
+    "title": "Fictional / compact temperate starting street",
+    "width": 1160,
+    "scrollWidth": 1160,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "drawings/fictional.svg",
+    "scroll": "top"
+  },
+  {
+    "title": "Fictional / compact temperate starting street",
+    "width": 1160,
+    "scrollWidth": 1160,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "drawings/fictional-materials.svg",
+    "scroll": "top"
+  },
+  {
+    "title": "C — Workplaces need floor structure and service ground",
+    "width": 1160,
+    "scrollWidth": 1160,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "drawings/workplace.svg",
+    "scroll": "top"
+  },
+  {
+    "title": "F — Low housing and service sides",
+    "width": 1160,
+    "scrollWidth": 1160,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "drawings/low-housing.svg",
+    "scroll": "top"
+  },
+  {
+    "title": "G — Retail layout and accumulated history",
+    "width": 1160,
+    "scrollWidth": 1160,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "drawings/retail-history.svg",
+    "scroll": "top"
+  },
+  {
+    "title": "E — What the sources actually dimension",
+    "width": 1160,
+    "scrollWidth": 1160,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "drawings/evidence-controls.svg",
+    "scroll": "top"
+  },
+  {
+    "title": "Evidence atlas — city architecture pass03",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "atlas/index.html",
+    "scroll": "top"
+  },
+  {
+    "title": "City architecture — illustrated review pass03",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "index.html",
+    "scroll": "bottom"
+  },
+  {
+    "title": "Evidence atlas — city architecture pass03",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "atlas/index.html",
+    "scroll": "#C2"
+  },
+  {
+    "title": "simulation-audit",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "simulation-audit.html",
+    "scroll": "table"
+  },
+  {
+    "title": "City architecture — illustrated review pass03",
+    "width": 390,
+    "scrollWidth": 390,
+    "brokenImages": [],
+    "svgOverflow": [],
+    "file": "index.html",
+    "scroll": "top"
+  }
+]

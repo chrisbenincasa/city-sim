@@ -1,0 +1,309 @@
+[
+  {
+    "id": "D01",
+    "family": "Detached",
+    "name": "HTA four-bedroom study house",
+    "place": "England; generic private house type",
+    "period": "2009 / published 2012",
+    "sources": [
+      "S01"
+    ],
+    "observed": "Two storeys; internal envelope 6.9 \u00d7 8.2 m (approximate schedule). LTH 207 has front entrance, central stair, rear kitchen/utility exit.",
+    "lesson": "A wide-front house still has a room-and-stair plan, not a window grid.",
+    "gaps": "Unlocated archetype, not independent built survey; roof, setbacks, opening dimensions unknown.",
+    "diagram": "house",
+    "dims": [
+      6.9,
+      8.2
+    ],
+    "standing": "Published design archetype; internal envelope only",
+    "views": "Ground/first plans LTH 207 inspected; no built photographs or section."
+  },
+  {
+    "id": "D02",
+    "family": "Detached",
+    "name": "33 Porson Road, existing house",
+    "place": "Cambridge",
+    "period": "1950s origin reported in representations; altered",
+    "sources": [
+      "S02"
+    ],
+    "observed": "Existing detached house: width 15.9 m, unequal depths 11.4 / 15.2 m; eaves 5.4 m, roof 8.2 m.",
+    "lesson": "Even a large house can be an assembly of unequal wings. A bounding box is not sealed footprint area.",
+    "gaps": "No as-built survey supplied; no opening or roof-span dimensions; do not equate proposal to existing house.",
+    "diagram": "house",
+    "dims": [
+      15.9,
+      15.2
+    ],
+    "standing": "Existing dimensions reported in planning assessment; bounding extent",
+    "views": "Report table; plans listed but not inspected; rear and roof photographs missing."
+  },
+  {
+    "id": "D03",
+    "family": "Detached",
+    "name": "Mill Road Block E",
+    "place": "Epsom",
+    "period": "2018 proposal",
+    "sources": [
+      "S03"
+    ],
+    "observed": "Detached proposal; 9.5 \u00d7 9.5 m; eaves 5.5 m and ridge 7.8 m; described as three storeys.",
+    "lesson": "Storey counts can include roof accommodation; eaves height / storeys is not floor-to-floor height.",
+    "gaps": "Completion unverified; section, roof form and opening sizes missing.",
+    "diagram": "house",
+    "dims": [
+      9.5,
+      9.5
+    ],
+    "standing": "Documented proposal, not measured as-built",
+    "views": "Dimension schedule visually checked; plans/photographs not acquired."
+  },
+  {
+    "id": "T01",
+    "family": "Terraces",
+    "name": "17\u201323 Constance Street",
+    "place": "Saltaire, West Yorkshire",
+    "period": "Completed by 1861",
+    "sources": [
+      "S04"
+    ],
+    "observed": "Two storeys and two bays per house; stone walls, Welsh slate; projecting gabled ends, gutter brackets and a level step.",
+    "lesson": "Keep the row coherent; let end conditions and terrain account for variations.",
+    "gaps": "Metric frontage, pitch, plot and access plan missing. Listing is not a measured survey.",
+    "diagram": "terrace",
+    "dims": null,
+    "standing": "Built example; metric survey incomplete",
+    "views": "Source-linked exterior; rear/roof/section not independently verified"
+  },
+  {
+    "id": "T02",
+    "family": "Terraces",
+    "name": "HTA two-bedroom study house",
+    "place": "England; generic private house type",
+    "period": "2009 / published 2012",
+    "sources": [
+      "S01"
+    ],
+    "observed": "Approximate internal width/depth 3.9 / 8.0 m; two storeys; 62 m\u00b2 GIA; stated external frontage 4500 mm.",
+    "lesson": "A narrow plan locates stairs and separate front/rear rooms.",
+    "gaps": "Not a northern historic sample; external depth and roof dimensions missing.",
+    "diagram": "terrace",
+    "dims": [
+      3.9,
+      8.0
+    ],
+    "standing": "Published design archetype; internal envelope only",
+    "views": "Ground/first plans LTH 201 inspected; no photos or roof section."
+  },
+  {
+    "id": "T03",
+    "family": "Terraces",
+    "name": "Goldsmith Street",
+    "place": "Norwich",
+    "period": "Contemporary; 2019 award",
+    "sources": [
+      "S05",
+      "S25"
+    ],
+    "observed": "Architect specifies 14 m wide streets. Viewed photo shows repeated entrances, deep opening surrounds, rainwater pipes and asymmetric roof lines.",
+    "lesson": "Later infill can keep the street rhythm while changing wall/roof construction.",
+    "gaps": "Street-width endpoints not defined here; not a carriageway width. Individual footprint, heights and pitch unmeasured.",
+    "diagram": "terrace",
+    "dims": null,
+    "standing": "Built example; metric survey incomplete",
+    "views": "Street photo visually inspected; linked project images; rear and measured section unavailable."
+  },
+  {
+    "id": "M01",
+    "family": "Corner / mixed use",
+    "name": "Shirley Street and 107 Saltaire Road",
+    "place": "Saltaire",
+    "period": "Completed by 1861",
+    "sources": [
+      "S06"
+    ],
+    "observed": "Two-storey row with shopfronts at ends; No107 is a single-storey rear attachment with rounded corner.",
+    "lesson": "A corner can be made by an attached shop; it need not inflate the entire house.",
+    "gaps": "No verified shop/residential internal separation, metric widths or capacity.",
+    "diagram": "corner",
+    "dims": null,
+    "standing": "Built example; metric survey incomplete",
+    "views": "Source-linked exterior; rear/roof/section not independently verified"
+  },
+  {
+    "id": "M02",
+    "family": "Corner / mixed use",
+    "name": "15\u201317 Victoria Road",
+    "place": "Saltaire",
+    "period": "Completed by 1868",
+    "sources": [
+      "S07"
+    ],
+    "observed": "Two-storey houses and shops; nine bays across the composition; central shop entrance and parapet.",
+    "lesson": "Shop scale and the upper facade composition differ. Parapet is not proof of a flat roof.",
+    "gaps": "Not independently established as a corner; retained as a mixed-use range control. Footprint, stairs and dwelling counts missing.",
+    "diagram": "shop",
+    "dims": null,
+    "standing": "Built example; metric survey incomplete",
+    "views": "Source-linked exterior; rear/roof/section not independently verified"
+  },
+  {
+    "id": "M03",
+    "family": "Corner / mixed use",
+    "name": "1 West Parade / West Parade corner condition",
+    "place": "Lincoln",
+    "period": "Historic streets with later alterations; precise date not extracted",
+    "sources": [
+      "S08"
+    ],
+    "observed": "Character study identifies rounded corner at No1 and larger corner compositions; documents modern shopfront insertions nearby.",
+    "lesson": "Turn the frontage around the junction; later shopfront changes belong to specific bays.",
+    "gaps": "Mixed use at No1 not established; public-house and shop evidence belongs to nearby examples. No metre dimensions.",
+    "diagram": "corner",
+    "dims": null,
+    "standing": "Local character example; use and metric gaps",
+    "views": "Source-linked exterior; rear/roof/section not independently verified"
+  },
+  {
+    "id": "A01",
+    "family": "Small apartments",
+    "name": "Mill Road Blocks A\u2013C",
+    "place": "Epsom",
+    "period": "2018 proposal",
+    "sources": [
+      "S03"
+    ],
+    "observed": "C: 24 \u00d7 7.8 m, eaves 6.5 m, ridge 8.5 m, six flats; B/B1: 18 \u00d7 9.8 m; A: 18.5 \u00d7 16 m.",
+    "lesson": "Width alone does not make a giant house. Keep the dimensional pairs and access questions together.",
+    "gaps": "Same project, not three independent examples. Roof storeys and stair layouts unverified.",
+    "diagram": "apartments",
+    "dims": [
+      24,
+      7.8
+    ],
+    "standing": "Documented proposal; C drawn, A/B retained in table",
+    "views": "Dimension schedule visually inspected; not a verified built elevation."
+  },
+  {
+    "id": "A02",
+    "family": "Small apartments",
+    "name": "Isokon Flats",
+    "place": "Hampstead, London",
+    "period": "1933\u201334; subsequent alterations",
+    "sources": [
+      "S09"
+    ],
+    "observed": "Reinforced concrete; flat roof; four storeys and penthouse; gallery access and stair tower; listing describes 36 flats.",
+    "lesson": "Flat roofs belong to an assembly with edges, access and drainage; galleries explain repeated units.",
+    "gaps": "Not ordinary northern vernacular; deliberate construction contrast. Historical listing count not current occupancy; metre dimensions absent.",
+    "diagram": "gallery",
+    "dims": null,
+    "standing": "Built example; metric survey incomplete",
+    "views": "Source-linked exterior; rear/roof/section not independently verified"
+  },
+  {
+    "id": "A03",
+    "family": "Small apartments",
+    "name": "Marmalade Lane apartments",
+    "place": "Cambridge",
+    "period": "Completed development; 2018/19 period",
+    "sources": [
+      "S10",
+      "S26"
+    ],
+    "observed": "Documented 75 m\u00b2 apartment type with shared lobby/lift; separate paired-flat types have their own front doors. Timber construction.",
+    "lesson": "Both shared and individual access exist: choose a plan before placing doors.",
+    "gaps": "Type D illustration has no scale; unit area does not establish whole-block footprint or occupancy.",
+    "diagram": "apartments",
+    "dims": null,
+    "standing": "Built example; metric survey incomplete",
+    "views": "Unscaled Type D axonometric inspected; project photos linked; measured plans/sections missing."
+  },
+  {
+    "id": "C01",
+    "family": "Courtyard / grouped blocks",
+    "name": "Peabody Estate Blackfriars",
+    "place": "London",
+    "period": "1871 with later additions",
+    "sources": [
+      "S11"
+    ],
+    "observed": "Original four-storey blocks: seven-window court fronts, six-window backs with stair recesses; two connected courts, later five-storey additions.",
+    "lesson": "A courtyard may be formed by separate blocks with gaps, not a continuous hollow rectangle.",
+    "gaps": "Court dimensions, wing depth and dwelling areas missing; no northern replication justified.",
+    "diagram": "court",
+    "dims": null,
+    "standing": "Built example; metric survey incomplete",
+    "views": "Source-linked exterior; rear/roof/section not independently verified"
+  },
+  {
+    "id": "C02",
+    "family": "Courtyard / grouped blocks",
+    "name": "Lichfield Court",
+    "place": "Richmond, London",
+    "period": "1934\u201335",
+    "sources": [
+      "S12"
+    ],
+    "observed": "211 flats over 17 shops across two blocks; courtyard galleries, multiple stairs/lifts; lower ground on falling site; flat roofs.",
+    "lesson": "Large perimeter forms need an access system and explicit corner/level handling.",
+    "gaps": "Estate-level counts not per wing; no court or structural span dimensions; scale exceeds the initial small block.",
+    "diagram": "court",
+    "dims": null,
+    "standing": "Built example; metric survey incomplete",
+    "views": "Source-linked exterior; rear/roof/section not independently verified"
+  },
+  {
+    "id": "C03",
+    "family": "Courtyard / grouped blocks",
+    "name": "Marmalade Lane shared garden",
+    "place": "Cambridge",
+    "period": "Contemporary",
+    "sources": [
+      "S10"
+    ],
+    "observed": "Terraces and apartments frame shared garden and car-free lane; 42 homes across whole scheme.",
+    "lesson": "Adapt family to grouped garden blocks; a continuous ring is not required.",
+    "gaps": "Same project as A03: not independent evidence. Shared-garden dimensions unavailable.",
+    "diagram": "court",
+    "dims": null,
+    "standing": "Built grouped housing; cross-listed, counted once as a project",
+    "views": "Project garden and lane photographs linked; not a measured site plan."
+  },
+  {
+    "id": "W01",
+    "family": "Workshops",
+    "name": "J W Evans, 54\u201357 Albion Street",
+    "place": "Birmingham Jewellery Quarter",
+    "period": "1836 houses; later nineteenth-century workshops",
+    "sources": [
+      "S13",
+      "S14"
+    ],
+    "observed": "Narrow brick/slate rear ranges and later glazed yard roofs; aerial photograph shows several roof assemblies behind domestic fronts.",
+    "lesson": "Add a workshop range because production and access need it; valleys, chimneys and glazed links follow that history.",
+    "gaps": "No measured spans, heights or worker area; perspective photo not scaled.",
+    "diagram": "workshop",
+    "dims": null,
+    "standing": "Built example; metric survey incomplete",
+    "views": "Fig4 aerial (front/rear/roof) visually inspected; DP045426 roof photograph linked; section missing."
+  },
+  {
+    "id": "W02",
+    "family": "Workshops",
+    "name": "Newman Brothers Coffin Works",
+    "place": "13\u201315 Fleet Street, Birmingham",
+    "period": "Listing dates 1892; conservation account says built 1894",
+    "sources": [
+      "S15"
+    ],
+    "observed": "Nine-bay, three-storey front; waggon entrance; narrow rear court and workshop ranges; red brick, blue plinth, slate.",
+    "lesson": "Distinguish loading passage, office stair and workroom access. Parallel roofs alone do not describe a factory.",
+    "gaps": "Date discrepancy retained; footprint, pitch, openings and structural dimensions missing.",
+    "diagram": "workshop",
+    "dims": null,
+    "standing": "Built example; metric survey incomplete",
+    "views": "Source-linked exterior; rear/roof/section not independently verified"
+  }
+]

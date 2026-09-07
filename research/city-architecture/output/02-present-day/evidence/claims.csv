@@ -1,0 +1,13 @@
+claim_id,claim,source_ids,confidence_and_method,limitation
+Q1,Everyday stock needs multiple housing and workplace families,US1 US2 DE1,Supported as typology selection; prevalence unmeasured,"Regional mix is proposed, not a stock distribution"
+Q2,Both flat and pitched assemblies occur within selected contexts,US2 US3 NL1,"High: source-bias statement, roof plan and paired Dutch schedule",US and Dutch are not roof-shape endpoints
+Q3,Access and structural organisation govern building-scale credibility,US1 US3 DE3 CON1 CON2,High for selected plans/systems; broader rule is design inference,Not engineering certification
+Q4,Coherence depends on shared street/access constraints,US2 NL1 NL2 DE2,Moderate: synthesis from selected relationships,Preference requires moving-camera prototype
+Q5,Blend complete eligible designs rather than dimensions,US1 NL1 DE3 P1,Proposed selection policy supported by discrete plan differences,Slider weights and clustering remain design choices
+Q6a,Present day need not mean newly built,ST1 DE1,High for source scope; user age preference is separate,No US numeric age distribution verified
+Q6b,Near-future variation can draw on existing retrofit practice,NF1 FR1 NF2,Built exemplars and development-stage research separated,"No universal adoption, cost or performance forecast"
+Q7,G003 counted floor and tenancy ceiling differ from N3 dwelling hypothesis,R1 P1,High for archived reconstruction and proposal arithmetic,Not fresh game inventory or approved content
+C1,South Bend schedule envelopes include attachments and rounding,US1,High: plans visually inspected,No rectangular max-box floor-area calculation
+C2,Hogekwartier beukmaat is not established outside wall width,NL1,High: original schedule visually inspected,GBO and gross/countable floor not interchangeable
+C3,Wohnregal approximately13m is a clear span,DE3 DE4,High: explicit architect text and section,No outside depth inferred
+C4,Metsa floor and roof span limits differ,CON2,High: table and assumptions visually inspected,Product-specific calculated limits; fire resistance excluded

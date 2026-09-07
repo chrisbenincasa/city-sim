@@ -1,0 +1,232 @@
+example,source_id,quantity,original_value,original_unit,metric_value,metric_unit,evidence_class,page,uncertainty
+SacramentoCourt,CA2,wing_frontage,18,ft,5.486400000000001,m,representative proposal,49,Only street-facing wing width
+SacramentoCourt,CA2,overall_width,67,ft,20.4216,m,representative proposal,49,Not photographed building
+SacramentoCourt,CA2,front_lot_line_depth,40,ft,12.192,m,representative proposal,49,NOT building depth
+ShopWalk,CA3,clear_walk,8,ft,2.4384,m,guidance,4,Not measured existing pavement
+ElCentro,CA5,roof_horizontal_extent,84.75,ft,25.8318,m,existing extent on retrofit design,A201,Stepped roof; completion unverified
+Sixplex,US1,front_width,40,ft,12.192,m,published proposal,21,Stepped body
+Sixplex,US1,rear_width,34,ft,10.3632,m,published proposal,21,Rear26ft portion
+Sixplex,US1,body_depth,66,ft,20.1168,m,published proposal,21,Stoop excluded
+Sixplex,US1,rear_depth,26,ft,7.9248,m,published proposal,21,Part of66ft body
+Sixplex,US1,finished_gross,4840,sq ft,449.6507136,m²,published proposal,21,2450 ground +2390 upper; not exterior polygon area
+Sixplex,US1,exterior_polygon_one_floor,2484,sq ft,230.77115136,m²,derived geometry,21,"40×40+34×26; differs from published finished gross, do not reconcile silently"
+TypeB,NL1,beukmaat,5.1,m,5.1,m,published proposal,14,Module not established external width
+TypeB,NL1,depth,9.4,m,9.4,m,published proposal,14,Schedule dimension
+TypeB,NL1,GBO,109,m²,109,m² GBO,published proposal,14,"Usable area, not gross/game floor"
+Tingbjerg,DK1,roof_pitch,11,degrees,11,degrees,documented existing typology,6,No measured span adopted
+TingbjergInfill,DK1,two_storey_max_depth,8.5,m,8.5,m,adopted envelope,47,Named exceptions; not existing range depth
+Typehouse,DK2,wall_min,29,cm,0.29,m,construction typology,3,Excludes any claim to footprint
+Typehouse,DK2,wall_max,35,cm,0.35,m,construction typology,3,System-dependent
+ES_ME_MFH04,ES1,habitable_area,1089.7,m²,1089.7,m² S.Habitable,energy example,45,Not gross; no footprint conversion
+ES_ME_MFH04,ES1,dwellings,16,dwellings,16,dwellings,energy example,45,Not inhabitants
+ES_ME_MFH04,ES1,floors,4,floors,4,floors,energy example,45,Do not derive height from volume
+ES_ME_MFH04,ES1,RC_floor_depth,200,mm,0.2,m,construction typology,45,"Assembly member, not floor-to-floor"
+Sump,CA6,slope,0.25,in/ft,2.0833333333333335,percent,manufacturer calculation,article,Exact1:48; article rounds to2%
+Brick,MAT1,length,215,mm,0.215,m,product dimension,product,"UK product, not all brick"
+A1,P1,width,24,m,24,m,proposed research geometry,drawings,No net area or population inference
+A1,P1,depth,16,m,16,m,proposed research geometry,drawings,No net area or population inference
+A1,P1,floors,3,floors,3,floors,proposed research geometry,drawings,No net area or population inference
+A1,P1,gross_envelope,1152,m²,1152,m²,proposed research geometry,drawings,No net area or population inference
+A2,P1,width,32,m,32,m,proposed research geometry,drawings,No net area or population inference
+A2,P1,depth,12,m,12,m,proposed research geometry,drawings,No net area or population inference
+A2,P1,floors,3,floors,3,floors,proposed research geometry,drawings,No net area or population inference
+A2,P1,gross_envelope,1152,m²,1152,m²,proposed research geometry,drawings,No net area or population inference
+W1,P1,width,36,m,36,m,proposed research geometry,drawings,No net area or population inference
+W1,P1,depth,20,m,20,m,proposed research geometry,drawings,No net area or population inference
+W1,P1,floors,2,floors,2,floors,proposed research geometry,drawings,No net area or population inference
+W1,P1,gross_envelope,1440,m²,1440,m²,proposed research geometry,drawings,No net area or population inference
+RoofHouse,P1,rise,2.331538290774993,m,2.331538290774993,m,proposed calculated geometry,construction.svg,half of 10m ×tan(25degrees)
+RoofRange,P1,rise,1.1662818548263107,m,1.1662818548263107,m,proposed calculated geometry,construction.svg,half of 12m ×tan(11degrees)
+RoofHall,P1,rise,1.2612508231881177,m,1.2612508231881177,m,proposed calculated geometry,construction.svg,half of 24m ×tan(6degrees)
+sacramento-1,P1,x,2,m,2,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-1,P1,y,10,m,10,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-1,P1,w,14,m,14,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-1,P1,d,10,m,10,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-1,P1,n,1,floors,1,floors,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-1,P1,height,3.2,m,3.2,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-2,P1,x,22,m,22,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-2,P1,y,10,m,10,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-2,P1,w,12,m,12,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-2,P1,d,12,m,12,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-2,P1,n,2,floors,2,floors,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-2,P1,height,6.4,m,6.4,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-3,P1,x,40,m,40,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-3,P1,y,8,m,8,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-3,P1,w,6,m,6,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-3,P1,d,19,m,19,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-3,P1,n,2,floors,2,floors,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-3,P1,height,6.4,m,6.4,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-4,P1,x,58,m,58,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-4,P1,y,8,m,8,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-4,P1,w,6,m,6,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-4,P1,d,19,m,19,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-4,P1,n,2,floors,2,floors,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-4,P1,height,6.4,m,6.4,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-5,P1,x,46,m,46,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-5,P1,y,21,m,21,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-5,P1,w,12,m,12,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-5,P1,d,6,m,6,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-5,P1,n,2,floors,2,floors,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-5,P1,height,6.4,m,6.4,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-6,P1,x,67,m,67,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-6,P1,y,10,m,10,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-6,P1,w,12,m,12,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-6,P1,d,16,m,16,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-6,P1,n,1,floors,1,floors,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-6,P1,height,3.2,m,3.2,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-7,P1,x,3,m,3,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-7,P1,y,43,m,43,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-7,P1,w,22,m,22,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-7,P1,d,12,m,12,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-7,P1,n,1,floors,1,floors,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+sacramento-7,P1,height,3.2,m,3.2,m,proposed context geometry,sacramento.svg,Study ground; G001 dimensions separately checked against R1
+south-bend-1,P1,x,2,m,2,m,proposed context geometry,south-bend.svg,Study ground; G001 dimensions separately checked against R1
+south-bend-1,P1,y,5,m,5,m,proposed context geometry,south-bend.svg,Study ground; G001 dimensions separately checked against R1
+south-bend-1,P1,w,12,m,12,m,proposed context geometry,south-bend.svg,Study ground; G001 dimensions separately checked against R1
+south-bend-1,P1,d,20,m,20,m,proposed context geometry,south-bend.svg,Study ground; G001 dimensions separately checked against R1
+south-bend-1,P1,n,2,floors,2,floors,proposed context geometry,south-bend.svg,Study ground; G001 dimensions separately checked against R1
+south-bend-1,P1,height,6.4,m,6.4,m,proposed context geometry,south-bend.svg,Study ground; G001 dimensions separately checked against R1
+south-bend-2,P1,x,20,m,20,m,proposed context geometry,south-bend.svg,Study ground; G001 dimensions separately checked against R1
+south-bend-2,P1,y,5,m,5,m,proposed context geometry,south-bend.svg,Study ground; G001 dimensions separately checked against R1
+south-bend-2,P1,w,12,m,12,m,proposed context geometry,south-bend.svg,Study ground; G001 dimensions separately checked against R1
+south-bend-2,P1,d,12,m,12,m,proposed context geometry,south-bend.svg,Study ground; G001 dimensions separately checked against R1
+south-bend-2,P1,n,2,floors,2,floors,proposed context geometry,south-bend.svg,Study ground; G001 dimensions separately checked against R1
+south-bend-2,P1,height,6.4,m,6.4,m,proposed context geometry,south-bend.svg,Study ground; G001 dimensions separately checked against R1
+south-bend-3,P1,x,38,m,38,m,proposed context geometry,south-bend.svg,Study ground; G001 dimensions separately checked against R1
+south-bend-3,P1,y,5,m,5,m,proposed context geometry,south-bend.svg,Study ground; G001 dimensions separately checked against R1
+south-bend-3,P1,w,24,m,24,m,proposed context geometry,south-bend.svg,Study ground; G001 dimensions separately checked against R1
+south-bend-3,P1,d,12,m,12,m,proposed context geometry,south-bend.svg,Study ground; G001 dimensions separately checked against R1
+south-bend-3,P1,n,2,floors,2,floors,proposed context geometry,south-bend.svg,Study ground; G001 dimensions separately checked against R1
+south-bend-3,P1,height,6.4,m,6.4,m,proposed context geometry,south-bend.svg,Study ground; G001 dimensions separately checked against R1
+south-bend-4,P1,x,66,m,66,m,proposed context geometry,south-bend.svg,Study ground; G001 dimensions separately checked against R1
+south-bend-4,P1,y,2,m,2,m,proposed context geometry,south-bend.svg,Study ground; G001 dimensions separately checked against R1
+south-bend-4,P1,w,14,m,14,m,proposed context geometry,south-bend.svg,Study ground; G001 dimensions separately checked against R1
+south-bend-4,P1,d,18,m,18,m,proposed context geometry,south-bend.svg,Study ground; G001 dimensions separately checked against R1
+south-bend-4,P1,n,3,floors,3,floors,proposed context geometry,south-bend.svg,Study ground; G001 dimensions separately checked against R1
+south-bend-4,P1,height,9.600000000000001,m,9.600000000000001,m,proposed context geometry,south-bend.svg,Study ground; G001 dimensions separately checked against R1
+south-bend-5,P1,x,4,m,4,m,proposed context geometry,south-bend.svg,Study ground; G001 dimensions separately checked against R1
+south-bend-5,P1,y,40,m,40,m,proposed context geometry,south-bend.svg,Study ground; G001 dimensions separately checked against R1
+south-bend-5,P1,w,20,m,20,m,proposed context geometry,south-bend.svg,Study ground; G001 dimensions separately checked against R1
+south-bend-5,P1,d,12,m,12,m,proposed context geometry,south-bend.svg,Study ground; G001 dimensions separately checked against R1
+south-bend-5,P1,n,2,floors,2,floors,proposed context geometry,south-bend.svg,Study ground; G001 dimensions separately checked against R1
+south-bend-5,P1,height,6.4,m,6.4,m,proposed context geometry,south-bend.svg,Study ground; G001 dimensions separately checked against R1
+amersfoort-1,P1,x,2,m,2,m,proposed context geometry,amersfoort.svg,Study ground; G001 dimensions separately checked against R1
+amersfoort-1,P1,y,3,m,3,m,proposed context geometry,amersfoort.svg,Study ground; G001 dimensions separately checked against R1
+amersfoort-1,P1,w,30,m,30,m,proposed context geometry,amersfoort.svg,Study ground; G001 dimensions separately checked against R1
+amersfoort-1,P1,d,10,m,10,m,proposed context geometry,amersfoort.svg,Study ground; G001 dimensions separately checked against R1
+amersfoort-1,P1,n,2,floors,2,floors,proposed context geometry,amersfoort.svg,Study ground; G001 dimensions separately checked against R1
+amersfoort-1,P1,height,6.4,m,6.4,m,proposed context geometry,amersfoort.svg,Study ground; G001 dimensions separately checked against R1
+amersfoort-2,P1,x,38,m,38,m,proposed context geometry,amersfoort.svg,Study ground; G001 dimensions separately checked against R1
+amersfoort-2,P1,y,3,m,3,m,proposed context geometry,amersfoort.svg,Study ground; G001 dimensions separately checked against R1
+amersfoort-2,P1,w,12,m,12,m,proposed context geometry,amersfoort.svg,Study ground; G001 dimensions separately checked against R1
+amersfoort-2,P1,d,10,m,10,m,proposed context geometry,amersfoort.svg,Study ground; G001 dimensions separately checked against R1
+amersfoort-2,P1,n,2,floors,2,floors,proposed context geometry,amersfoort.svg,Study ground; G001 dimensions separately checked against R1
+amersfoort-2,P1,height,6.4,m,6.4,m,proposed context geometry,amersfoort.svg,Study ground; G001 dimensions separately checked against R1
+amersfoort-3,P1,x,56,m,56,m,proposed context geometry,amersfoort.svg,Study ground; G001 dimensions separately checked against R1
+amersfoort-3,P1,y,3,m,3,m,proposed context geometry,amersfoort.svg,Study ground; G001 dimensions separately checked against R1
+amersfoort-3,P1,w,24,m,24,m,proposed context geometry,amersfoort.svg,Study ground; G001 dimensions separately checked against R1
+amersfoort-3,P1,d,12,m,12,m,proposed context geometry,amersfoort.svg,Study ground; G001 dimensions separately checked against R1
+amersfoort-3,P1,n,3,floors,3,floors,proposed context geometry,amersfoort.svg,Study ground; G001 dimensions separately checked against R1
+amersfoort-3,P1,height,9.600000000000001,m,9.600000000000001,m,proposed context geometry,amersfoort.svg,Study ground; G001 dimensions separately checked against R1
+amersfoort-4,P1,x,2,m,2,m,proposed context geometry,amersfoort.svg,Study ground; G001 dimensions separately checked against R1
+amersfoort-4,P1,y,43,m,43,m,proposed context geometry,amersfoort.svg,Study ground; G001 dimensions separately checked against R1
+amersfoort-4,P1,w,30,m,30,m,proposed context geometry,amersfoort.svg,Study ground; G001 dimensions separately checked against R1
+amersfoort-4,P1,d,10,m,10,m,proposed context geometry,amersfoort.svg,Study ground; G001 dimensions separately checked against R1
+amersfoort-4,P1,n,2,floors,2,floors,proposed context geometry,amersfoort.svg,Study ground; G001 dimensions separately checked against R1
+amersfoort-4,P1,height,6.4,m,6.4,m,proposed context geometry,amersfoort.svg,Study ground; G001 dimensions separately checked against R1
+amersfoort-5,P1,x,40,m,40,m,proposed context geometry,amersfoort.svg,Study ground; G001 dimensions separately checked against R1
+amersfoort-5,P1,y,43,m,43,m,proposed context geometry,amersfoort.svg,Study ground; G001 dimensions separately checked against R1
+amersfoort-5,P1,w,18,m,18,m,proposed context geometry,amersfoort.svg,Study ground; G001 dimensions separately checked against R1
+amersfoort-5,P1,d,12,m,12,m,proposed context geometry,amersfoort.svg,Study ground; G001 dimensions separately checked against R1
+amersfoort-5,P1,n,2,floors,2,floors,proposed context geometry,amersfoort.svg,Study ground; G001 dimensions separately checked against R1
+amersfoort-5,P1,height,6.4,m,6.4,m,proposed context geometry,amersfoort.svg,Study ground; G001 dimensions separately checked against R1
+tingbjerg-1,P1,x,3,m,3,m,proposed context geometry,tingbjerg.svg,Study ground; G001 dimensions separately checked against R1
+tingbjerg-1,P1,y,12,m,12,m,proposed context geometry,tingbjerg.svg,Study ground; G001 dimensions separately checked against R1
+tingbjerg-1,P1,w,32,m,32,m,proposed context geometry,tingbjerg.svg,Study ground; G001 dimensions separately checked against R1
+tingbjerg-1,P1,d,12,m,12,m,proposed context geometry,tingbjerg.svg,Study ground; G001 dimensions separately checked against R1
+tingbjerg-1,P1,n,3,floors,3,floors,proposed context geometry,tingbjerg.svg,Study ground; G001 dimensions separately checked against R1
+tingbjerg-1,P1,height,9.600000000000001,m,9.600000000000001,m,proposed context geometry,tingbjerg.svg,Study ground; G001 dimensions separately checked against R1
+tingbjerg-2,P1,x,43,m,43,m,proposed context geometry,tingbjerg.svg,Study ground; G001 dimensions separately checked against R1
+tingbjerg-2,P1,y,12,m,12,m,proposed context geometry,tingbjerg.svg,Study ground; G001 dimensions separately checked against R1
+tingbjerg-2,P1,w,32,m,32,m,proposed context geometry,tingbjerg.svg,Study ground; G001 dimensions separately checked against R1
+tingbjerg-2,P1,d,12,m,12,m,proposed context geometry,tingbjerg.svg,Study ground; G001 dimensions separately checked against R1
+tingbjerg-2,P1,n,3,floors,3,floors,proposed context geometry,tingbjerg.svg,Study ground; G001 dimensions separately checked against R1
+tingbjerg-2,P1,height,9.600000000000001,m,9.600000000000001,m,proposed context geometry,tingbjerg.svg,Study ground; G001 dimensions separately checked against R1
+tingbjerg-3,P1,x,3,m,3,m,proposed context geometry,tingbjerg.svg,Study ground; G001 dimensions separately checked against R1
+tingbjerg-3,P1,y,45,m,45,m,proposed context geometry,tingbjerg.svg,Study ground; G001 dimensions separately checked against R1
+tingbjerg-3,P1,w,24,m,24,m,proposed context geometry,tingbjerg.svg,Study ground; G001 dimensions separately checked against R1
+tingbjerg-3,P1,d,10,m,10,m,proposed context geometry,tingbjerg.svg,Study ground; G001 dimensions separately checked against R1
+tingbjerg-3,P1,n,2,floors,2,floors,proposed context geometry,tingbjerg.svg,Study ground; G001 dimensions separately checked against R1
+tingbjerg-3,P1,height,6.4,m,6.4,m,proposed context geometry,tingbjerg.svg,Study ground; G001 dimensions separately checked against R1
+tingbjerg-4,P1,x,45,m,45,m,proposed context geometry,tingbjerg.svg,Study ground; G001 dimensions separately checked against R1
+tingbjerg-4,P1,y,45,m,45,m,proposed context geometry,tingbjerg.svg,Study ground; G001 dimensions separately checked against R1
+tingbjerg-4,P1,w,24,m,24,m,proposed context geometry,tingbjerg.svg,Study ground; G001 dimensions separately checked against R1
+tingbjerg-4,P1,d,12,m,12,m,proposed context geometry,tingbjerg.svg,Study ground; G001 dimensions separately checked against R1
+tingbjerg-4,P1,n,1,floors,1,floors,proposed context geometry,tingbjerg.svg,Study ground; G001 dimensions separately checked against R1
+tingbjerg-4,P1,height,3.2,m,3.2,m,proposed context geometry,tingbjerg.svg,Study ground; G001 dimensions separately checked against R1
+valencia-1,P1,x,0,m,0,m,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-1,P1,y,0,m,0,m,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-1,P1,w,28,m,28,m,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-1,P1,d,12,m,12,m,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-1,P1,n,4,floors,4,floors,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-1,P1,height,12.8,m,12.8,m,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-2,P1,x,28,m,28,m,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-2,P1,y,0,m,0,m,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-2,P1,w,28,m,28,m,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-2,P1,d,12,m,12,m,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-2,P1,n,4,floors,4,floors,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-2,P1,height,12.8,m,12.8,m,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-3,P1,x,56,m,56,m,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-3,P1,y,0,m,0,m,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-3,P1,w,24,m,24,m,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-3,P1,d,12,m,12,m,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-3,P1,n,4,floors,4,floors,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-3,P1,height,12.8,m,12.8,m,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-4,P1,x,0,m,0,m,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-4,P1,y,12,m,12,m,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-4,P1,w,12,m,12,m,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-4,P1,d,20,m,20,m,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-4,P1,n,4,floors,4,floors,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-4,P1,height,12.8,m,12.8,m,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-5,P1,x,68,m,68,m,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-5,P1,y,12,m,12,m,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-5,P1,w,12,m,12,m,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-5,P1,d,20,m,20,m,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-5,P1,n,4,floors,4,floors,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-5,P1,height,12.8,m,12.8,m,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-6,P1,x,24,m,24,m,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-6,P1,y,47,m,47,m,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-6,P1,w,32,m,32,m,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-6,P1,d,12,m,12,m,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-6,P1,n,1,floors,1,floors,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+valencia-6,P1,height,3.2,m,3.2,m,proposed context geometry,valencia.svg,Study ground; G001 dimensions separately checked against R1
+fictional-1,P1,x,0,m,0,m,proposed context geometry,fictional.svg,Study ground; G001 dimensions separately checked against R1
+fictional-1,P1,y,3,m,3,m,proposed context geometry,fictional.svg,Study ground; G001 dimensions separately checked against R1
+fictional-1,P1,w,24,m,24,m,proposed context geometry,fictional.svg,Study ground; G001 dimensions separately checked against R1
+fictional-1,P1,d,12,m,12,m,proposed context geometry,fictional.svg,Study ground; G001 dimensions separately checked against R1
+fictional-1,P1,n,2,floors,2,floors,proposed context geometry,fictional.svg,Study ground; G001 dimensions separately checked against R1
+fictional-1,P1,height,6.4,m,6.4,m,proposed context geometry,fictional.svg,Study ground; G001 dimensions separately checked against R1
+fictional-2,P1,x,28,m,28,m,proposed context geometry,fictional.svg,Study ground; G001 dimensions separately checked against R1
+fictional-2,P1,y,3,m,3,m,proposed context geometry,fictional.svg,Study ground; G001 dimensions separately checked against R1
+fictional-2,P1,w,24,m,24,m,proposed context geometry,fictional.svg,Study ground; G001 dimensions separately checked against R1
+fictional-2,P1,d,16,m,16,m,proposed context geometry,fictional.svg,Study ground; G001 dimensions separately checked against R1
+fictional-2,P1,n,3,floors,3,floors,proposed context geometry,fictional.svg,Study ground; G001 dimensions separately checked against R1
+fictional-2,P1,height,9.600000000000001,m,9.600000000000001,m,proposed context geometry,fictional.svg,Study ground; G001 dimensions separately checked against R1
+fictional-3,P1,x,56,m,56,m,proposed context geometry,fictional.svg,Study ground; G001 dimensions separately checked against R1
+fictional-3,P1,y,0,m,0,m,proposed context geometry,fictional.svg,Study ground; G001 dimensions separately checked against R1
+fictional-3,P1,w,24,m,24,m,proposed context geometry,fictional.svg,Study ground; G001 dimensions separately checked against R1
+fictional-3,P1,d,16,m,16,m,proposed context geometry,fictional.svg,Study ground; G001 dimensions separately checked against R1
+fictional-3,P1,n,3,floors,3,floors,proposed context geometry,fictional.svg,Study ground; G001 dimensions separately checked against R1
+fictional-3,P1,height,9.600000000000001,m,9.600000000000001,m,proposed context geometry,fictional.svg,Study ground; G001 dimensions separately checked against R1
+fictional-4,P1,x,0,m,0,m,proposed context geometry,fictional.svg,Study ground; G001 dimensions separately checked against R1
+fictional-4,P1,y,40,m,40,m,proposed context geometry,fictional.svg,Study ground; G001 dimensions separately checked against R1
+fictional-4,P1,w,36,m,36,m,proposed context geometry,fictional.svg,Study ground; G001 dimensions separately checked against R1
+fictional-4,P1,d,20,m,20,m,proposed context geometry,fictional.svg,Study ground; G001 dimensions separately checked against R1
+fictional-4,P1,n,2,floors,2,floors,proposed context geometry,fictional.svg,Study ground; G001 dimensions separately checked against R1
+fictional-4,P1,height,7,m,7,m,proposed context geometry,fictional.svg,Study ground; G001 dimensions separately checked against R1
+fictional-5,P1,x,44,m,44,m,proposed context geometry,fictional.svg,Study ground; G001 dimensions separately checked against R1
+fictional-5,P1,y,43,m,43,m,proposed context geometry,fictional.svg,Study ground; G001 dimensions separately checked against R1
+fictional-5,P1,w,32,m,32,m,proposed context geometry,fictional.svg,Study ground; G001 dimensions separately checked against R1
+fictional-5,P1,d,16,m,16,m,proposed context geometry,fictional.svg,Study ground; G001 dimensions separately checked against R1
+fictional-5,P1,n,2,floors,2,floors,proposed context geometry,fictional.svg,Study ground; G001 dimensions separately checked against R1
+fictional-5,P1,height,6.4,m,6.4,m,proposed context geometry,fictional.svg,Study ground; G001 dimensions separately checked against R1

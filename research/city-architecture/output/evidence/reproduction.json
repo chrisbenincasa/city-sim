@@ -1,0 +1,18 @@
+{
+  "checkpoint": "d9addc3e04d600f58990b2a8036d03cf852445b7",
+  "audited_head": "7916db4022066a741531087aa1ed6325a448303f",
+  "method": "Historical captured geometry recalculated, not a fresh run",
+  "sha256_at_checkpoint": {
+    "artifacts/visual-study/roof-proportions/daylight-near.tsv": "918824632344f4cadf63bab85017be95b15b26f3f128d142511e45705f21aa32",
+    "artifacts/visual-study/roof-proportions/daylight-near.txt": "a56733e4a072e33a0d06024ea33f3744e57e338233453a2c83ba645eb0ff8f4d",
+    "artifacts/visual-study/roof-proportions/daylight-near.png": "be56547bf06861fa5c3188f1976608d32b2dc05ea4da601fa670cecb8b98207d",
+    "src/Borough.Godot/Main.Massing.cs": "e4b550ee1515a980b72d6dbd3a9a40b43952ee3c907ae8980e15399cc4be7c85",
+    "src/Borough.Godot/Main.cs": "880add0eb3331dec18a6d48c8d98effa48d656958065e73ceef71507d9c9dfca",
+    "src/Borough.Godot/Main.Channels.cs": "de726f982a1e79a8e20b80bd2b1702db5e327315cbda989b29c104f73430790d",
+    "src/Borough.Godot/RoofMeshes.cs": "095c04b3bddb198b702c575a96c06104b79d3b64f3e9594262b5cb3881300af7",
+    "src/Borough.Core/Space/BuildingPlan.cs": "4e3ac1a54626df8a9c2815ed7e04cef8c625150b83d220d95f505ce3d7359a83",
+    "src/Borough.Core/Rules/Ruleset.cs": "5f8df2bf3df365ba57d49b864ba3faf3657bd6b6a708dc44b2e5777ae5b5a9d0",
+    "src/Borough.Core/Entities/World.cs": "f77dc77dc63072540c87cfc1ba54939e8d8f7f59c4974481a0541eed2e0359c3",
+    "rulesets/shopping.toml": "3c28d496564b0eb33b577f9812e2caf365f3bb36d039b7bc1fd09c1632f8c260"
+  }
+}

@@ -1,0 +1,218 @@
+[
+  {
+    "source_id": "CA1",
+    "url": "https://www.cityofsacramento.gov/content/dam/portal/cdd/Planning/Urban-Design/Preservation/MCM-Context-Statement-Report_Update-WEBSITE.pdf",
+    "method": "HEAD",
+    "status": 200,
+    "final_url": "https://www.cityofsacramento.gov/content/dam/portal/cdd/Planning/Urban-Design/Preservation/MCM-Context-Statement-Report_Update-WEBSITE.pdf",
+    "content_type": "application/pdf",
+    "note": "Availability check only; not fresh content inspection."
+  },
+  {
+    "source_id": "CA2",
+    "url": "https://www.cityofsacramento.gov/content/dam/portal/cdd/Planning/Housing/Missing-Middle-Housing/Report4_MMHRecommendations_Final_Optimized.pdf",
+    "method": "HEAD",
+    "status": 200,
+    "final_url": "https://www.cityofsacramento.gov/content/dam/portal/cdd/Planning/Housing/Missing-Middle-Housing/Report4_MMHRecommendations_Final_Optimized.pdf",
+    "content_type": "application/pdf",
+    "note": "Availability check only; not fresh content inspection."
+  },
+  {
+    "source_id": "CA3",
+    "url": "https://landuse.saccounty.gov/dg/ch4/",
+    "method": "HEAD",
+    "status": 200,
+    "final_url": "https://landuse.saccounty.gov/dg/ch4/",
+    "content_type": "text/html",
+    "note": "Availability check only; not fresh content inspection."
+  },
+  {
+    "source_id": "CA4",
+    "url": "https://landuse.saccounty.gov/dg/ch5/",
+    "method": "HEAD",
+    "status": 200,
+    "final_url": "https://landuse.saccounty.gov/dg/ch5/",
+    "content_type": "text/html",
+    "note": "Availability check only; not fresh content inspection."
+  },
+  {
+    "source_id": "CA5",
+    "url": "https://www.cityoflorain.org/DocumentCenter/View/6720/CAP0002100---El-Centro-Opportunity-Center-Roof---20250807?bidId=",
+    "method": "HEAD",
+    "status": 404,
+    "error": "HTTP Error 404: Not Found",
+    "note": "HEAD404, but coordinator GET succeeded and is byte-identical to inspected PDF.",
+    "get_verified": true,
+    "get_status": 200,
+    "get_sha256": "ee80d36b60a43a06073ca9695ed4263764de00f86544736fc42c345fd5d11a64"
+  },
+  {
+    "source_id": "CA6",
+    "url": "https://ch-cd.carlislesyntec.com/en/Resources/Media/Blog-Landing-Page/SpecTopics/2021/05/17/Energy-Codes-and-Roof-Drains",
+    "method": "HEAD",
+    "status": null,
+    "error": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1129)>",
+    "note": "Researcher read primary text; final HEAD failed and coordinator web GET returned502. Current availability unverified."
+  },
+  {
+    "source_id": "LA1",
+    "url": "https://hpla.lacity.org/reports/e44a47b9-8d0f-4ed7-8a7f-42db91273b0e",
+    "method": "HEAD",
+    "status": 200,
+    "final_url": "https://hpla.lacity.org/report/e44a47b9-8d0f-4ed7-8a7f-42db91273b0e",
+    "content_type": "text/html; charset=utf-8",
+    "note": "Availability check only; not fresh content inspection."
+  },
+  {
+    "source_id": "LA2",
+    "url": "https://planning.lacity.gov/odocument/1a7b1647-4516-45da-9cff-db2db3b9b440/Multi-FamilyResidentialDevelopment_1910-1980.pdf",
+    "method": "HEAD",
+    "status": 200,
+    "final_url": "https://planning.lacity.gov/odocument/1a7b1647-4516-45da-9cff-db2db3b9b440/Multi-FamilyResidentialDevelopment_1910-1980.pdf",
+    "content_type": "application/pdf",
+    "note": "Availability check only; not fresh content inspection."
+  },
+  {
+    "source_id": "US1",
+    "url": "https://southbendin.gov/wp-content/uploads/2023/06/SBBT_Catalog_23-0506-lowres.pdf",
+    "method": "HEAD",
+    "status": 200,
+    "final_url": "https://southbendin.gov/wp-content/uploads/2023/06/SBBT_Catalog_23-0506-lowres.pdf",
+    "content_type": "application/pdf",
+    "note": "Availability check only; not fresh content inspection."
+  },
+  {
+    "source_id": "NL1",
+    "url": "https://www.amersfoort.nl/ro-online/NL.IMRO.0307.BP00141-0301/b_NL.IMRO.0307.BP00141-0301_rb3.pdf",
+    "method": "HEAD",
+    "status": 200,
+    "final_url": "https://www.amersfoort.nl/ro-online/NL.IMRO.0307.BP00141-0301/b_NL.IMRO.0307.BP00141-0301_rb3.pdf",
+    "content_type": "application/pdf",
+    "note": "Availability check only; not fresh content inspection."
+  },
+  {
+    "source_id": "PNW1",
+    "url": "https://www.seattle.gov/dpd/AppDocs/GroupMeetings/DRProposal3012121AgendaID4348.pdf",
+    "method": "HEAD",
+    "status": 200,
+    "final_url": "https://www.seattle.gov/dpd/AppDocs/GroupMeetings/DRProposal3012121AgendaID4348.pdf",
+    "content_type": "application/pdf",
+    "note": "Availability check only; not fresh content inspection."
+  },
+  {
+    "source_id": "NL2",
+    "url": "https://www.bamwonen.nl/projecten/51-gasloze-en-energieneutrale-woningen-het-larense-veld-in-almere-haven",
+    "method": "HEAD",
+    "status": 200,
+    "final_url": "https://www.bamwonen.nl/projecten/51-gasloze-en-energieneutrale-woningen-het-larense-veld-in-almere-haven",
+    "content_type": "text/html; charset=UTF-8",
+    "note": "Availability check only; not fresh content inspection."
+  },
+  {
+    "source_id": "RFT1",
+    "url": "https://www.lacatonvassal.com/index.php?idp=80",
+    "method": "HEAD",
+    "status": 200,
+    "final_url": "https://www.lacatonvassal.com/index.php?idp=80",
+    "content_type": "text/html",
+    "note": "Availability check only; not fresh content inspection."
+  },
+  {
+    "source_id": "RFT2",
+    "url": "https://www.energiesprong.uk/projects/nottingham",
+    "method": "HEAD",
+    "status": 200,
+    "final_url": "https://www.energiesprong.uk/projects/nottingham",
+    "content_type": "text/html; charset=utf-8",
+    "note": "Availability check only; not fresh content inspection."
+  },
+  {
+    "source_id": "MAT1",
+    "url": "https://www.wienerberger.co.uk/products/brick/standard-format-bricks.html",
+    "method": "HEAD",
+    "status": 200,
+    "final_url": "https://www.wienerberger.co.uk/products/brick/standard-format-bricks.html",
+    "content_type": "text/html;charset=utf-8",
+    "note": "Availability check only; not fresh content inspection."
+  },
+  {
+    "source_id": "C4",
+    "url": "https://www.metsagroup.com/globalassets/metsa-wood/attachments/others/metsa-kerto-ripa-prefabricated-building-elements.pdf.pdf",
+    "method": "HEAD",
+    "status": 200,
+    "final_url": "https://www.metsagroup.com/globalassets/metsa-wood/attachments/others/metsa-kerto-ripa-workbook/",
+    "content_type": "application/pdf",
+    "note": "Availability check only; not fresh content inspection."
+  },
+  {
+    "source_id": "DK1",
+    "url": "https://tingbjerg-bydel.dk/assets/dokumenter/Byudviklingsteamet/Rammelokalplan-og-lokalplan-609-for-Tingbjerg.pdf",
+    "method": "HEAD",
+    "status": 200,
+    "final_url": "https://tingbjerg-bydel.dk/assets/dokumenter/Byudviklingsteamet/Rammelokalplan-og-lokalplan-609-for-Tingbjerg.pdf",
+    "content_type": "application/pdf",
+    "note": "Availability check only; not fresh content inspection."
+  },
+  {
+    "source_id": "DK2",
+    "url": "https://www.mur-tag.dk/fileadmin/user_upload/Editor/filer/EUDP-I_Parcel_Materiale/Typehuset_1960-79_Ver_II.pdf",
+    "method": "HEAD",
+    "status": 200,
+    "final_url": "https://www.mur-tag.dk/fileadmin/user_upload/Editor/filer/EUDP-I_Parcel_Materiale/Typehuset_1960-79_Ver_II.pdf",
+    "content_type": "application/pdf",
+    "note": "Availability check only; not fresh content inspection."
+  },
+  {
+    "source_id": "DK3",
+    "url": "https://www.danskebygningsmodeller.dk/english/pages/type5.html",
+    "method": "HEAD",
+    "status": 200,
+    "final_url": "https://www.danskebygningsmodeller.dk/english/pages/type5.html",
+    "content_type": "text/html",
+    "note": "Availability check only; not fresh content inspection."
+  },
+  {
+    "source_id": "ES1",
+    "url": "https://descargas.five.es/archivos/BibliotecaIVE/C_TER.pdf",
+    "method": "HEAD",
+    "status": 200,
+    "final_url": "https://descargas.five.es/archivos/BibliotecaIVE/C_TER.pdf",
+    "content_type": "application/pdf",
+    "note": "Availability check only; not fresh content inspection."
+  },
+  {
+    "source_id": "ES2",
+    "url": "https://www.valencia.es/documents/20142/629631/10.%2BNormas%2BUrban%EF%BF%BDsticas.%2B%28Transcripci%EF%BF%BDn%29.pdf/ba78c368-ab86-c719-b9c4-e504111b3863",
+    "method": "HEAD",
+    "status": 200,
+    "final_url": "https://www.valencia.es/documents/20142/629631/10.%2BNormas%2BUrban%EF%BF%BDsticas.%2B%28Transcripci%EF%BF%BDn%29.pdf/ba78c368-ab86-c719-b9c4-e504111b3863",
+    "content_type": "application/pdf",
+    "note": "Availability check only; not fresh content inspection."
+  },
+  {
+    "source_id": "C1",
+    "url": "https://www.steelconstruction.info/images/4/44/SS048a.pdf",
+    "method": "HEAD",
+    "status": 200,
+    "final_url": "https://steelconstruction.info/upload/Wiki-Files/4/44/SS048a.pdf",
+    "content_type": "application/pdf",
+    "note": "Availability check only; not fresh content inspection."
+  },
+  {
+    "source_id": "C2",
+    "url": "https://admin.bauder.co.uk/getcontentasset/fd2f10bc-9f25-47d2-971d-3d262269bff2/7d6e2dfa-e012-4c99-925b-dc695a20fab7/bs6229-2025update_baudercomment_may2026.pdf?language=en",
+    "method": "HEAD",
+    "status": 200,
+    "final_url": "https://admin.bauder.co.uk/getcontentasset/fd2f10bc-9f25-47d2-971d-3d262269bff2/7d6e2dfa-e012-4c99-925b-dc695a20fab7/bs6229-2025update_baudercomment_may2026.pdf?language=en",
+    "content_type": "application/pdf",
+    "note": "Availability check only; not fresh content inspection."
+  },
+  {
+    "source_id": "C3",
+    "url": "https://www.bauder.co.uk/technical-centre/standards-and-knowledge/flat-roof-design-considerations",
+    "method": "HEAD",
+    "status": 403,
+    "error": "HTTP Error 403: Forbidden",
+    "note": "HEAD403; coordinator previously read page through web tool this pass. No fresh HEAD availability claim."
+  }
+]
