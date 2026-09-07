@@ -535,7 +535,20 @@ void fragment() {
     // would then repeat perfectly from house to house while looking varied within each one.
     // ⚠ Snapped to two courses for the same reason the cell offsets are, and so that the bottom
     // course still meets the ground rather than starting half a brick up.
-    vec2 wall_uv = (vec2(u, -up) / masonry_metres)
+    //
+    // 🔴 AND ALL FOUR FACES OF ONE BUILDING STILL STARTED THE PHOTOGRAPH AT ONE PHASE. The offset
+    // above is the BUILDING's, so it separates a house from its neighbour and does nothing for the
+    // CORNER where two walls of the same house meet — which is the one place two walls are seen at
+    // once. ***A per-Building offset cannot break a per-Building repeat.***
+    //
+    // ⚠ MIRRORING IS FREE AND THE BOND SURVIVES IT. A running bond is symmetric about a vertical
+    // line, so the mirrored image is a wall that could have been built: the courses stay level, the
+    // perpends stay plumb, and what changes is which bricks are burnt — which is the thing F5 says
+    // the eye actually locks onto. Two of the four faces take it, chosen off the outward normal so
+    // it is a property of the wall rather than a draw.
+    float mirror = step(dot(n.xz, vec2(1.0, 1.0)), 0.0);
+    float across = mix(u, -u, mirror);
+    vec2 wall_uv = (vec2(across, -up) / masonry_metres)
         + vec2(floor(v_custom.a * 37.0) / 5.0, floor(v_custom.a * 53.0) * 2.0 / 15.0);
 
     // 🔴 THE DERIVATIVES ARE TAKEN ONCE AND HANDED TO EVERY TAP. An offset that jumps between cells
@@ -615,6 +628,12 @@ void fragment() {
         : (share.y > share.z ? draw_b : draw_c);
     vec3 relief =
         (textureGrad(masonry_normal, wall_uv + relief_draw, stride_x, stride_y).xyz * 2.0) - 1.0;
+
+    // 🔴 THE RELIEF'S X FLIPS WITH THE UV OR THE BRICK IS LIT FROM THE WRONG SIDE. This file's own
+    // tangent-frame remark is about exactly this failure, and a mirrored coordinate paired with an
+    // unmirrored normal IS that disagreement — the mortar recess would come out proud on half the
+    // walls in the city, and only on the two faces the mirror took.
+    relief.x *= mix(1.0, -1.0, mirror);
     NORMAL = normalize(mix(
         shaded,
         normalize((along * relief.x) + (down * relief.y) + (shaded * relief.z)),
@@ -664,43 +683,54 @@ void fragment() {
     //
     // ⚠ A SHUT PANE AND A RUIN SHOW NO ROOM, for the reason they take no highlight below — boards
     // have nothing behind them and a shell has nothing in it.
+    //
+    // ⚠ IT IS BRANCHED, AND THE BRANCH IS SAFE BECAUSE NOTHING INSIDE TAKES A DERIVATIVE. There is
+    // no texture fetch and no `dFdx` in the trace — `grain` was taken above, outside — so the whole
+    // block may be skipped without the undefined mip level a fetch in divergent control flow gets.
+    // ⚠ **WHAT IT SAVES IS A WHOLE WARP AND NOT A FRAGMENT**: the wall a kilometre off, the
+    // shuttered Building, the shell with no glass in it. A pane at the edge of the fade shares its
+    // warp with wall around it and pays anyway. ***A branch on a smoothly-varying mask buys the
+    // extremes and not the middle.*** ⚠ **No timing figure is claimed and none was taken**
+    // (`adr/0106`); this is a statement about what is skipped, not about what it costs.
     float room_on = step(0.01, interior_depth) * close_detail * far * (1.0 - shut) * (1.0 - ruin);
-    vec3 dir = normalize(-VIEW);
-    vec3 r = vec3(dot(dir, along), dot(dir, down), dot(dir, shaded));
-    vec3 d = vec3(r.x, r.y, -r.z);
-    d.xy += (1.0 - step(0.0001, abs(d.xy))) * 0.0001;
-    vec3 sz = vec3(max(paneW, 0.05), max(paneH, 0.05), interior_depth);
-    vec3 at = vec3(clamp(withinX - jamb, 0.0, sz.x), clamp(withinY - sill, 0.0, sz.y), 0.0);
-    vec3 far_t = max((vec3(0.0) - at) / d, (sz - at) / d);
-    float hit_t = min(min(far_t.x, far_t.y), far_t.z);
+    if (room_on > 0.0) {
+        vec3 dir = normalize(-VIEW);
+        vec3 r = vec3(dot(dir, along), dot(dir, down), dot(dir, shaded));
+        vec3 d = vec3(r.x, r.y, -r.z);
+        d.xy += (1.0 - step(0.0001, abs(d.xy))) * 0.0001;
+        vec3 sz = vec3(max(paneW, 0.05), max(paneH, 0.05), interior_depth);
+        vec3 at = vec3(clamp(withinX - jamb, 0.0, sz.x), clamp(withinY - sill, 0.0, sz.y), 0.0);
+        vec3 far_t = max((vec3(0.0) - at) / d, (sz - at) / d);
+        float hit_t = min(min(far_t.x, far_t.y), far_t.z);
 
-    // Which slab was hit. The back is the common case; a side, floor or ceiling only appears at an
-    // angle, which is exactly what makes the effect read as depth rather than as a picture.
-    float on_back = step(far_t.z, hit_t + 0.0001);
-    float on_side = step(far_t.x, hit_t + 0.0001) * (1.0 - on_back);
-    float on_cap = clamp(1.0 - on_back - on_side, 0.0, 1.0);
-    float looking_up = step(0.0, d.y);
+        // Which slab was hit. The back is the common case; a side, floor or ceiling only appears at an
+        // angle, which is exactly what makes the effect read as depth rather than as a picture.
+        float on_back = step(far_t.z, hit_t + 0.0001);
+        float on_side = step(far_t.x, hit_t + 0.0001) * (1.0 - on_back);
+        float on_cap = clamp(1.0 - on_back - on_side, 0.0, 1.0);
+        float looking_up = step(0.0, d.y);
 
-    // The room's own draw — a dwelling has warm lamps and bare ceilings, and no two rooms on a wall
-    // are the same room. ⚠ THE DRAW IS THE CELL'S, not the fragment's, so a room is one room.
-    float room_draw = draw(vec3(floorAt, bayAt, dot(n, vec3(5.0, 11.0, 2.0)) + v_custom.a * 47.0));
-    vec3 room_wall = mix(vec3(0.088, 0.079, 0.066), vec3(0.185, 0.163, 0.131), room_draw);
+        // The room's own draw — a dwelling has warm lamps and bare ceilings, and no two rooms on a wall
+        // are the same room. ⚠ THE DRAW IS THE CELL'S, not the fragment's, so a room is one room.
+        float room_draw = draw(vec3(floorAt, bayAt, dot(n, vec3(5.0, 11.0, 2.0)) + v_custom.a * 47.0));
+        vec3 room_wall = mix(vec3(0.088, 0.079, 0.066), vec3(0.185, 0.163, 0.131), room_draw);
 
-    // 🔴 THE FOUR FACES NEED CONTRAST BETWEEN THEM OR THE BOX IS A DARK PATCH. Measured on the
-    // first version: every face within a factor of two of every other, and the whole effect read
-    // as ***the windows went darker*** rather than as depth. What makes a real room legible
-    // through a window is that its CEILING catches light and its floor does not, so the spread
-    // between the two is the effect and the average of them is not.
-    vec3 back = room_wall;
-    vec3 side = room_wall * 0.46;
-    vec3 cap = mix(room_wall * 0.30, room_wall * 2.10, looking_up);
-    vec3 room = (back * on_back) + (side * on_side) + (cap * on_cap);
+        // 🔴 THE FOUR FACES NEED CONTRAST BETWEEN THEM OR THE BOX IS A DARK PATCH. Measured on the
+        // first version: every face within a factor of two of every other, and the whole effect read
+        // as ***the windows went darker*** rather than as depth. What makes a real room legible
+        // through a window is that its CEILING catches light and its floor does not, so the spread
+        // between the two is the effect and the average of them is not.
+        vec3 back = room_wall;
+        vec3 side = room_wall * 0.46;
+        vec3 cap = mix(room_wall * 0.30, room_wall * 2.10, looking_up);
+        vec3 room = (back * on_back) + (side * on_side) + (cap * on_cap);
 
-    // Depth darkens what is furthest in, which is what sells the box as a volume.
-    room *= mix(1.0, 0.58, clamp(hit_t / max(interior_depth, 0.05), 0.0, 1.0));
-    // ⚠ INTO `glass` AND NOT INTO `painted`, so the room is masked by `glazed` exactly as the flat
-    // pane was — the shopfront's `display_glass` is a separate surface and keeps its own treatment.
-    glass = mix(glass, room, room_on);
+        // Depth darkens what is furthest in, which is what sells the box as a volume.
+        room *= mix(1.0, 0.58, clamp(hit_t / max(interior_depth, 0.05), 0.0, 1.0));
+        // ⚠ INTO `glass` AND NOT INTO `painted`, so the room is masked by `glazed` exactly as the flat
+        // pane was — the shopfront's `display_glass` is a separate surface and keeps its own treatment.
+        glass = mix(glass, room, room_on);
+    }
 
     float barX = 1.0 - smoothstep(0.045 - grain.x, 0.045 + grain.x, abs(withinX - wide * 0.5));
     float barY = 1.0 - smoothstep(0.035 - grain.y, 0.035 + grain.y, abs(withinY - sill - paneH * 0.55));

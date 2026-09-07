@@ -342,6 +342,54 @@ check (`plans/0048` §7). What did change is that the comparison is now **re-run
 binary**: `Main.FacadeDial` reads all three dials from the environment, so a leg is a command line
 rather than a source edit.
 
+**F8 — a per-Building offset cannot break a per-Building repeat, and the corner is where that shows.**
+F5's bond-snapped offset is drawn once per Building, so it separates a house from its neighbour and
+does **nothing** for the two walls of one house meeting at a corner — which is the one place two
+walls are seen at once. Two of the four faces now **mirror** the coordinate, chosen off the outward
+normal so it is a property of the wall rather than a draw. ⚠ **The bond survives a mirror**: a
+running bond is symmetric about a vertical line, so the courses stay level, the perpends stay plumb,
+and what changes is which bricks are burnt — F5's own statement of what the eye locks onto.
+🔴 **The relief's x flips with it or the brick lights from the wrong side**, which is precisely the
+failure this file's tangent-frame remark is about. **Checked on a mirrored face at 60 m**: courses
+level, no doubled mortar, no inverted embossing.
+
+**The slab trace is branched, and the branch is safe for a reason worth stating.** Nothing inside it
+takes a derivative — no texture fetch, no `dFdx`; `grain` was taken outside — so the block may be
+skipped without the undefined mip level a fetch in divergent control flow would get. ⚠ **What it
+skips is a whole warp and not a fragment**: the distant wall, the shuttered Building, the shell with
+no glass in it. A pane at the edge of the fade shares its warp with wall and pays anyway.
+***A branch on a smoothly-varying mask buys the extremes and not the middle.*** ⚠ **No timing figure
+was taken and none is claimed** (`adr/0106`).
+
+🔴 **F9 — WHAT A NIGHT FRAME VERIFIES IS NOT THE DAYTIME READ, AND IT WAS NOT RUN FOR ONE.** It
+answers two questions daylight cannot ask at all.
+
+1. **Whether the room composes with the lit-window emission.** `night_phase` lights panes from an
+   emission that knows nothing about a box behind the glass, and the two had never met.
+2. **Whether the changed opening arithmetic leaks at a seam.** ⚠ **This file has already had that
+   defect and its own comment says night is where it was reported** — a quarter-open pane is grey on
+   grey by day and a quarter of a lamp on black at night. **F6's repair moved every opening's size
+   and position**, so it is the cheapest check that the new arithmetic does not leak.
+
+**Both answers, on `pictured.toml` at Tick 3,542 — Day 1, 22:30 — one camera, `interior_depth` 0
+against 4:**
+
+- ✅ **No seam leaked.** No hairline of light at any bay or storey boundary, on any wall in frame.
+- 🔴 **The room is invisible at night in BOTH directions.** A lit pane's emission swamps it entirely;
+  an unlit pane is crushed to black by the dim before any face of the box can be told from another.
+  ***So `interior_depth` is a daylight mark, and at night it is a trace that buys nothing*** —
+  `room_on` does not carry `night_phase` and could. ⚠ **Not done here**, because gating on night
+  would foreclose the lit room the emission ought eventually to show; it is a choice and not a
+  cleanup.
+
+⚠ **AND AN OBSERVATION THIS SECTION CANNOT EXPLAIN.** The two night captures differ in the **ground**
+— one shows a pale road and pavement, the other a dark road with a single lamp pool — at the same
+Tick, the same camera and the same Ruleset. `buildings.gdshader` draws neither, so it is not this
+change; **it is recorded rather than explained, and nobody has looked.**
+
+⚠ **The night pair does NOT discharge the daylight/evening/night box below.** It is one hour, one
+camera, and street lighting was not the subject.
+
 ### Live work list
 
 Update these boxes here as work lands; record player judgements in `preferences.json`.
@@ -381,6 +429,10 @@ Update these boxes here as work lands; record player judgements in `preferences.
   **F7** owns the readings. ⚠ **The ordering claim this item used to make was wrong** and F7 says why:
   an A/B needs a dial, and a dial does not exist until the variation does. What it gates is player
   ACCEPTANCE, which is still open. ⚠ **Still no assertion that a wall does not repeat.**
+- [x] **Stop one Building's four walls sharing a phase** — two of the four faces mirror the masonry
+  coordinate, with the relief's x flipped to match, landed 2026-09-07. **F8** owns it. ⚠ **This is
+  the INSTANCE scale and F5's offset never reached it** — that offset is per Building, and a corner
+  is two walls of one Building.
 - [x] **Vary the facade's composition** — landed 2026-09-07 behind `facade_variety`, whose zero end is
   bit-for-bit the facade **F6** measured. The bay is drawn per Building from a 3.0–5.2 m band and
   fitted to the span; pane width, pane height and sill each take their own independent draw; the
@@ -389,15 +441,14 @@ Update these boxes here as work lands; record player judgements in `preferences.
   storey COUNT and the pitch are untouched** — a Building three storeys tall still has three rows of
   windows, and the exact recovery F6 rests on is unchanged. No Ruleset data, no State Hash movement.
   ⚠ **Every band and share here is PROVISIONAL and none was chosen against a reference.**
-- [~] **Interior mapping behind the glazing** — landed 2026-09-07 behind `interior_depth`, whose zero
+- [x] **Interior mapping behind the glazing** — landed 2026-09-07 behind `interior_depth`, whose zero
   end is the flat pane. A slab trace against a box whose front face is the window's own aperture,
   resolved in the tangent frame the relief already builds; four flat faces, a per-window room draw,
   no texture and therefore no asset and no licence record. **F7** owns what it buys and where it
-  stops buying it. ⚠ **Two things remain open.** The trace is **not branched**, so it runs per
-  fragment on every wall whether or not `room_on` keeps the result — which belongs with the
-  profiling item below. And ⚠ **the night frame has not been looked at**: `night_phase` lights panes
-  from an emission that knows nothing about a room behind the glass, and what a lit room should look
-  like through this trace is unexamined.
+  stops buying it; the trace is branched and the night frame is looked at, both in **F8**/**F9**.
+  ⚠ **What F9 leaves open is a CHOICE and not a gap**: the room is invisible at night in both
+  directions, so the trace buys nothing after dark, and whether `room_on` should carry `night_phase`
+  depends on whether a lit room is wanted later.
 - [x] **Remove the fixed instance ceiling and retain spatial batches** — implemented in
   [`0066`](0066-retained-spatial-rendering.md), which owns verification and the remaining renderer
   costs. The paused camera-sorted prototype is superseded by that implementation.
