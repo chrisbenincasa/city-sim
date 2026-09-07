@@ -233,6 +233,115 @@ A separate driven shopping run compared incremental and full regeneration throug
 These are behavioural and visual checks, not a cost measurement or player acceptance.
 Live frontage/storey edits, continuous camera motion and broader lighting review remain open.
 
+### Repetition beyond the tile — 2026-09-07
+
+**F5 repaired the material and the walls still read as repetitive, because repetition has four
+scales and F5 owns one of them.** A survey of what other city games and open-world city renderers
+ship separates the four cleanly, and the separation is the finding: ***the repair for one scale does
+nothing for the other three.***
+
+| Scale | What repeats | The published repair | Where this build stands |
+|---|---|---|---|
+| **Material** — a metre | the photograph, every `masonry_metres` | stochastic tiling (Heitz & Neyret, HPG 2018); the practical form is Mikkelsen's hex-tiling (JCGT 2022), which restores the contrast plain blending loses | **landed** — `masonry_grid`, bond-snapped, **F5** |
+| **Instance** — a Building | one wall against its neighbour's | per-instance colour masks; a per-instance offset into an atlas of facades | **landed in part** — `Main.Massing.Rendered`'s paint, and `v_custom.a`'s starting brick |
+| **Composition** — a facade | the window grid itself | authored modular parts; a varied bay, a differentiated ground storey, a cornice and a string course | **unbuilt** — and **F6** is what is identical today |
+| **Depth** — a pane | a flat wall reads as wallpaper however varied its colour | interior mapping (Oliveira & Policarpo 2006) | **unbuilt** |
+
+**F6 — every window in the city is the same window, at the same height, on the same pitch.** Read
+off `buildings.gdshader` against `Main.StoreyMetres`, on every wall the massing builds from a storey
+count. `Main.Massing` writes a height of `storeys * StoreyMetres` exactly and the shader recovers the
+count exactly, so `lift` is **3.5 m citywide, without exception**. `paneH = min(1.6, lift * 0.52)` is
+then `min(1.6, 1.82)` = **1.6 m**; `sill = (lift - paneH) * 0.62` = **1.178 m**; and
+`paneW = min(1.15, wide * 0.42)` is **1.15 m** for every bay wider than 2.74 m, which `BAY` all but
+guarantees because `wide = span / floor(span / BAY)` is never below **3.6 m**. ⚠ **So the only thing
+that varies across the whole city's glazing is the horizontal spacing** — `jamb = (wide - paneW) * 0.5`
+— and it is a function of the footprint alone. ***Two Buildings on one footprint have one facade***,
+but for which panes the occupancy draw shuts and which bay takes the door.
+
+⚠ **F6 IS A READING OF THE CODE AND NOT OF A PICTURE.** It establishes what is identical; it does not
+establish that identity is what the eye reports, and the two are different claims. Which scale
+dominates is *measurable* under `adr/0043` — the A/B F5 already ran for `masonry_shuffle`, repeated
+once per scale — and it has not been run. **No figure in this section is a measurement of this
+build.**
+
+**What other teams ship, and which of it is cheap here.**
+
+- **Cities: Skylines**, both games, spends the variety budget on **authoring** rather than on the
+  sampler: three colour masks per asset, mapped to mutually exclusive regions and multiplied over the
+  diffuse, with the colours drawn per instance from the asset's own list. CS2's building pipeline
+  permits a facade to tile outside 0–1 **only on the condition that the image carry no repetitive
+  visual element** — the repetition is authored out of the source rather than blended out at the
+  fragment.
+  [buildings](https://cs2.paradoxwikis.com/index.php?title=Asset_Pipeline%3A_Buildings),
+  [surfaces](https://cs2.paradoxwikis.com/Asset_Pipeline:_Surfaces),
+  [asset creation](https://cslmodding.info/asset/building/)
+- **SimCity 2013** textured some 900 building models through one shader that **overlays two UV regions
+  from a single atlas**, each independently offset to space windows and detail elements. It is the
+  nearest published thing to what this build derives procedurally from the transform.
+  [GDC 2013](https://gdcvault.com/play/1017823/Building-SimCity-Art-in-the),
+  [pipeline](https://eugenewong.artstation.com/projects/dD5Ae)
+- **Interior mapping** — raycast into a virtual box behind the glass and sample a room from a cube or
+  an atlas. Shipped in SimCity 2013, GTA V, Watch_Dogs, BioShock Infinite, Spider-Man PS4 and Forza
+  Horizon. ⚠ **It costs no instance, no mesh and no draw call**, which is the property that let the
+  masonry cross into the city at all. Against **F6** it is the strongest single item here, and for a
+  reason worth stating plainly: ***it does not change the grid, it makes every cell of the grid
+  different.***
+  [technique](https://www.gamedeveloper.com/programming/interior-mapping-rendering-real-rooms-without-geometry),
+  [implementation](https://halisavakis.com/my-take-on-shaders-interior-mapping/)
+- **Macro variation** — very-low-frequency noise multiplied over albedo at 50–200 m — is the standard
+  landscape repair and is **weak here**. The largest wall is tens of metres, so at that scale it
+  degenerates into a per-instance tint, and `Rendered` already draws one.
+  [stochastic texturing](https://unity.com/blog/engine-platform/procedural-stochastic-texturing-in-unity),
+  [hex-tiling](https://jcgt.org/published/0011/03/05/paper-lowres.pdf),
+  [histogram-preserving blending](https://eheitzresearch.wordpress.com/722-2/)
+
+⚠ **These are what other teams shipped and none of them is evidence about this build's picture.** The
+standing sentence in *What we discovered* is unchanged: commercial-game reference quality remains an
+aspiration, not an achieved or measured equivalence.
+
+### The three scales, built and photographed — 2026-09-07
+
+**Built in the order composition → depth → measurement, and the plan's own ordering claim was wrong.**
+The item above said the measurement gated the other two. It cannot: F5's A/B worked because
+`masonry_shuffle` was a dial that could be set to 0, and neither composition nor depth had one.
+***There is nothing to turn off until it is built.*** What the measurement gates is ACCEPTANCE.
+
+**F7 — the two dials exist, they are drivable, and each buys something at a different distance.**
+`pictured.toml`, seed 0, 2,000 Citizens, Tick 2,731 — Day 1, Tuesday, 13:00, 176 Buildings — one
+camera per distance, three legs differing in **nothing but the environment**.
+
+| Leg | `BOROUGH_FACADE_VARIETY` | `BOROUGH_INTERIOR_DEPTH` |
+|---|---|---|
+| A | 0 | 0 — the facade **F6** measured |
+| B | 1 | 0 — composition alone |
+| C | 1 | 2.6 m — both |
+
+| Distance | `scale` | What the comparison shows |
+|---|---|---|
+| **45 m**, tilt 12° | — | **Composition is plain.** The bay differs Building to Building, the ground storey reads as a ground storey, and the string course and cornice give the elevation a count and a top. **Depth reads as depth** once the room's faces have contrast between them |
+| **130 m** | **40.6 / 39.2 px a Tile** | Composition is visible and modest. ⚠ **Depth makes no difference the eye reports at all** |
+| **420 m** — where a player edits | — | Composition still separates one Building's grid from its neighbour's, and the cornice is the mark that survives. ⚠ **What dominates at this distance is roof colour, massing and footprint**, none of which this touches |
+
+🔴 **THE ROOM'S FACES NEED CONTRAST BETWEEN THEM AND THE FIRST VERSION HAD NONE.** Every face was
+within a factor of two of every other, and the whole effect read at 45 m as ***the windows went
+darker*** rather than as depth — a correct trace, a correct perspective, and no legibility. What
+makes a room read through a window is that its ceiling catches light and its floor does not, so
+***the effect is the SPREAD between the faces and not the average of them.*** The ceiling is now
+7× the floor.
+
+⚠ **SO INTERIOR MAPPING IS A NEAR-CAMERA MARK AND THE PLAN SAID SO BEFORE IT WAS BUILT** — *a room
+nobody can resolve is a fetch nobody sees.* The measurement puts the line between 45 m and 130 m and
+does not narrow it further. ⚠ **AND THE TRACE IS NOT BRANCHED.** `room_on` masks the RESULT at
+distance; the slab test runs at every fragment of every wall regardless. **No timing figure was
+taken and none is claimed** (`adr/0106`, `adr/0121`); this is a statement about what the code does
+per fragment. It belongs with the profiling item below, not ahead of it.
+
+⚠ **VERIFIED BY EYE, FROM SIX CAPTURES, AND BY NOTHING ELSE** — which is exactly what F5 says about
+itself. ***There is still no assertion that a wall does not repeat***, and a screenshot is a spot
+check (`plans/0048` §7). What did change is that the comparison is now **re-runnable from one
+binary**: `Main.FacadeDial` reads all three dials from the environment, so a leg is a command line
+rather than a source edit.
+
 ### Live work list
 
 Update these boxes here as work lands; record player judgements in `preferences.json`.
@@ -244,11 +353,14 @@ Update these boxes here as work lands; record player judgements in `preferences.
 - [ ] Review the neighbourhood with the player; record strengths and weak executions before
   propagating the treatment. No single tower design or brick size must win by default.
 - [ ] Refine people, tree branching/foliage, window/interior variation, blank end elevations,
-  roof/site detail and the building-to-ground junctions identified by review.
+  roof/site detail and the building-to-ground junctions identified by review. **Window and interior
+  variation is now specified** by the two composition and depth items below; the rest stands.
 - [ ] Apply the accepted construction/material workflow across the remaining agreed roster in
   `comparison-kit.json`; retain genuine differences between building families and earlier anchors.
 - [ ] Test deliberate block/city repetition with controlled variations in massing, material and
-  brick scale. The current city-distance image is a small corner viewed farther away.
+  brick scale. The current city-distance image is a small corner viewed farther away. ⚠ **Vary one
+  scale at a time** — *Repetition beyond the tile* names four, and a block that varies all of them
+  together reports which picture was preferred and never which change bought it.
 - [ ] Capture a repeatable moving camera path; inspect shimmer, transparent surfaces, shadows and
   detail transitions. Add appropriate LODs and texture mip/filter choices based on visible failures.
 - [ ] Compare ordinary daylight, evening and night with the same scene; establish window and street
@@ -263,6 +375,29 @@ Update these boxes here as work lands; record player judgements in `preferences.
   Visual acceptance remains with the player.
 - [x] **Stop the masonry repeating** — bond-snapped stochastic tiling in `buildings.gdshader`,
   landed 2026-09-06. **F5** owns the finding and the reason the generic technique needed changing.
+  ⚠ **It is the MATERIAL scale and only that one.** The other three scales repetition has are in
+  *Repetition beyond the tile* above; closing this box did not close them.
+- [x] **Measure which scale the repetition is at** — done 2026-09-07, three legs at three distances,
+  **F7** owns the readings. ⚠ **The ordering claim this item used to make was wrong** and F7 says why:
+  an A/B needs a dial, and a dial does not exist until the variation does. What it gates is player
+  ACCEPTANCE, which is still open. ⚠ **Still no assertion that a wall does not repeat.**
+- [x] **Vary the facade's composition** — landed 2026-09-07 behind `facade_variety`, whose zero end is
+  bit-for-bit the facade **F6** measured. The bay is drawn per Building from a 3.0–5.2 m band and
+  fitted to the span; pane width, pane height and sill each take their own independent draw; the
+  ground storey drops its sill clear of the plinth and grows the opening upward; and the existing
+  cornice gained a shadow while a string course marks every storey line above the first. ⚠ **The
+  storey COUNT and the pitch are untouched** — a Building three storeys tall still has three rows of
+  windows, and the exact recovery F6 rests on is unchanged. No Ruleset data, no State Hash movement.
+  ⚠ **Every band and share here is PROVISIONAL and none was chosen against a reference.**
+- [~] **Interior mapping behind the glazing** — landed 2026-09-07 behind `interior_depth`, whose zero
+  end is the flat pane. A slab trace against a box whose front face is the window's own aperture,
+  resolved in the tangent frame the relief already builds; four flat faces, a per-window room draw,
+  no texture and therefore no asset and no licence record. **F7** owns what it buys and where it
+  stops buying it. ⚠ **Two things remain open.** The trace is **not branched**, so it runs per
+  fragment on every wall whether or not `room_on` keeps the result — which belongs with the
+  profiling item below. And ⚠ **the night frame has not been looked at**: `night_phase` lights panes
+  from an emission that knows nothing about a room behind the glass, and what a lit room should look
+  like through this trace is unexamined.
 - [x] **Remove the fixed instance ceiling and retain spatial batches** — implemented in
   [`0066`](0066-retained-spatial-rendering.md), which owns verification and the remaining renderer
   costs. The paused camera-sorted prototype is superseded by that implementation.

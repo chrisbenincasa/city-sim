@@ -35,7 +35,14 @@ uniform float wear_strength = 1.0;
 
 
 // How wide a window bay is, kerb to kerb along the wall.
+//
+// ⚠ IT IS THE ZERO END OF `facade_variety` AND NOT A WIDTH ANYBODY CHOSE. Every wall in the city
+// used this one number, which is half of why every wall in the city was the same wall.
 const float BAY = 3.6;
+
+// The band a bay is drawn from when the dial is up.
+const float BAY_LEAST = 3.0;
+const float BAY_MOST = 5.2;
 
 // Below this a wall is a plinth rather than a storey, and takes no opening.
 const float PLINTH = 0.9;
@@ -180,6 +187,31 @@ uniform float masonry_bias : hint_range(1.0, 12.0) = 6.0;
 // A/B taken from two different camera positions cannot settle it.***
 uniform float masonry_shuffle : hint_range(0.0, 1.0) = 1.0;
 
+// Whether the facade's COMPOSITION varies at all — <b>0 is the one facade the whole city had</b>.
+//
+// 🔴 IT IS `masonry_shuffle`'S ARGUMENT APPLIED TO A DIFFERENT SCALE OF THE SAME COMPLAINT.
+// `plans/0063` separates four: the material repeats every `masonry_metres`, an instance repeats
+// against its neighbour, a facade repeats its own window grid, and a flat pane repeats itself down
+// the elevation. The shuffling above closed the first and touched none of the other three.
+//
+// ⚠ AT ZERO THIS IS BIT-FOR-BIT THE FACADE F6 MEASURED — `BAY` exactly, and the three `min`
+// expressions that saturate at a 3.5 m storey — so the two can be photographed from ONE camera.
+// ***A repetition artefact is a thing you either see or do not, and an A/B taken from two
+// different camera positions cannot settle it.***
+uniform float facade_variety : hint_range(0.0, 1.0) = 1.0;
+
+// How deep the room behind a pane is, in metres — <b>0 is the flat pane the city had</b>.
+//
+// 🔴 IT IS THE FOURTH SCALE, AND IT IS THE ONE THE OTHER THREE CANNOT REACH. `facade_variety`
+// varies the grid; this varies what is IN the grid. A pane was one constant colour, so a wall of
+// forty windows was one mark stamped forty times however irregularly the marks were placed —
+// ***a varied arrangement of identical things is still a repetition.***
+//
+// ⚠ IT COSTS NO INSTANCE, NO MESH AND NO DRAW CALL, which is the property that let the masonry
+// cross into the city (`plans/0063`). It is a slab trace against a box and four flat colours; there
+// is no room texture, so there is no asset and no licence record to keep.
+uniform float interior_depth : hint_range(0.0, 6.0) = 2.6;
+
 // The masonry image's own average, in LINEAR light, which is what divides it back out to a ratio.
 //
 // ⚠ LINEAR AND NOT sRGB, and the two are far enough apart to matter: this image averages
@@ -319,14 +351,66 @@ void fragment() {
     float floorAt = floor(up / lift);
     float withinY = mod(up, lift);
 
-    float bays = max(1.0, floor(span / BAY));
+    // ---- the facade's composition -------------------------------------------------------------
+    //
+    // 🔴 EVERY WINDOW IN THE CITY WAS THE SAME WINDOW, AT THE SAME HEIGHT, ON THE SAME PITCH, and
+    // the four expressions this replaces are where that came from. `Main.Massing` writes a height
+    // of `storeys * StoreyMetres` exactly, so `lift` is 3.5 m on every wall WITHOUT EXCEPTION; at
+    // 3.5 all three `min` calls saturate, and `paneH`, `paneW` and `sill` came out at a fixed 1.6,
+    // 1.15 and 1.178 m citywide. Only `jamb` moved, and it moved with the FOOTPRINT alone — so
+    // ***two Buildings on one footprint had one facade***, but for which panes the occupancy draw
+    // shut and which bay took the door. `plans/0063` **F6**.
+    //
+    // 🔴 THE STOREY PITCH IS NOT WHAT MOVES HERE AND MUST NOT. `lift` is the city's own storey
+    // count divided back out of the city's own height, and the exactness of that recovery is what
+    // F6 is a statement about. What varies below is the OPENING drawn inside a storey and the BAY
+    // it is drawn in, both of which are invented geometry under this file's opening rule.
+    // ***A Building three storeys tall still has three rows of windows.***
+    //
+    // ⚠ THE FRONTAGE IS COMPUTED HERE RATHER THAN BELOW because the ground storey needs it: a
+    // commercial premises already has `shop_floor` on its Street face and must not get a second,
+    // different ground-floor treatment fighting it.
+    vec2 street = (v_custom.rg * 2.0) - 1.0;
+    float frontage = step(0.5, dot(n.xz, street)) * upright;
+
+    // ⚠ THREE INDEPENDENT DRAWS OFF ONE SEED AND NOT ONE DRAW SPENT THREE TIMES. A wall whose bay,
+    // pane and sill all move together is one dial wearing three names, and a street of them reads
+    // as a slider rather than as a street.
+    float seed = v_custom.a * 255.0;
+    float bay_draw = draw(vec3(seed, 13.0, 29.0));
+    float pane_draw = draw(vec3(seed, 47.0, 5.0));
+    float sill_draw = draw(vec3(seed, 3.0, 61.0));
+
+    // ⚠ THE DRAWN BAY IS A WANT AND NOT A WIDTH. The fit still has to divide the span, so what a
+    // Building actually gets is the nearest whole number of bays to what it asked for — which is
+    // how a real elevation works and is why two Buildings on one footprint can now differ.
+    float want = mix(BAY, mix(BAY_LEAST, BAY_MOST, bay_draw), facade_variety);
+    float bays = max(1.0, floor(span / want));
     float wide = span / bays;
     float bayAt = floor((u + (span * 0.5)) / wide);
     float withinX = mod(u + (span * 0.5), wide);
 
-    float paneH = min(1.6, lift * 0.52);
-    float paneW = min(1.15, wide * 0.42);
-    float sill = (lift - paneH) * 0.62;
+    // 🔴 A TALLER GROUND STOREY IS THE OPENING AND NOT THE FLOOR. Making the bottom storey
+    // physically taller is the one thing here that would break the recovery above, so the pitch
+    // stays and the WINDOW grows inside it — which is what the eye reads as a ground floor anyway.
+    float ground = (1.0 - step(0.5, floorAt)) * (1.0 - v_shop * frontage);
+
+    float plainH = min(1.6, lift * 0.52);
+    float plainW = min(1.15, wide * 0.42);
+    float plainSill = (lift - plainH) * 0.62;
+
+    float upperH = clamp(lift * mix(0.44, 0.60, pane_draw), 1.15, lift - 1.00);
+    float upperSill = (lift - upperH) * mix(0.44, 0.72, sill_draw);
+
+    // ⚠ THE GROUND SILL CLEARS THE PLINTH AND THE PANE GROWS UPWARD FROM IT. A sill drawn as a
+    // share of the leftover lands below `PLINTH` on a tall opening, and `above` then masks the
+    // window off entirely — ***a ground floor that is drawn taller and shows nothing.***
+    float groundSill = PLINTH + 0.22;
+    float groundH = min(upperH + 0.42, lift - groundSill - 0.30);
+
+    float paneH = mix(plainH, mix(upperH, groundH, ground), facade_variety);
+    float paneW = mix(plainW, clamp(wide * mix(0.28, 0.42, pane_draw), 0.85, 2.30), facade_variety);
+    float sill = mix(plainSill, mix(upperSill, groundSill, ground), facade_variety);
     float jamb = (wide - paneW) * 0.5;
 
     // Smoothed against the pixel's own footprint, so a wall a hundred metres off does not sparkle.
@@ -381,8 +465,6 @@ void fragment() {
     // Side decides which kerb the Building steps to, so the face carrying the door is the face
     // on the Street — which makes a block's four rows read as four rows facing outward rather
     // than as a field of boxes at arbitrary angles.
-    vec2 street = (v_custom.rg * 2.0) - 1.0;
-    float frontage = step(0.5, dot(n.xz, street)) * upright;
     float doorBay = floor(bays * 0.5) + floor(v_custom.a * 2.0) * step(2.5, bays);
     float onDoorBay = 1.0 - step(0.5, abs(bayAt - doorBay));
     float doorW = min(1.2, wide * 0.4);
@@ -547,8 +629,79 @@ void fragment() {
     NORMAL = normalize(mix(NORMAL,
         normalize(along * render_relief.x + down * render_relief.y + shaded * render_relief.z),
         rendered * plaster_mix * solid_wall * close_detail * far));
-    float cornice = smoothstep(v_size.y - 0.32 - grain.y, v_size.y - 0.32 + grain.y, up) * upright;
-    body = mix(body, wall * 1.22, cornice * far);
+    // 🔴 THE CORNICE WAS ALREADY HERE AND IT WAS A TONE. A pale band on a pale wall is the reveal's
+    // failure repeated at the roofline — it vanishes on a Building in shadow, which is the half of
+    // the city the sun is not on at any hour. Under `facade_variety` it deepens and gains its own
+    // shadow beneath, so the top of an elevation becomes a light–dark PAIR and reads at a distance
+    // and in a dim. ⚠ **It does NOT fade on `close_detail`**: half a metre of parapet is the shape
+    // of the roofline, and the roofline is what a city is read by from up there.
+    float capTop = mix(v_size.y - 0.32, v_size.y - 0.46, facade_variety);
+    float capShade = capTop - 0.16;
+    float cornice = smoothstep(capTop - grain.y, capTop + grain.y, up) * upright;
+    float corniceShade = smoothstep(capShade - grain.y, capShade + grain.y, up)
+        * (1.0 - smoothstep(capTop - grain.y, capTop + grain.y, up))
+        * upright * far * facade_variety;
+    body = mix(body, wall * mix(1.22, 1.32, facade_variety), cornice * far);
+    body = mix(body, wall * 0.66, corniceShade);
+    // ---- the room behind the pane -----------------------------------------------------------
+    //
+    // 🔴 INTERIOR MAPPING, AND THE FRAME IT NEEDS IS THE ONE THE RELIEF ALREADY BUILT. `along`,
+    // `down` and `shaded` are an orthonormal view-space basis for this wall — and ⚠ **`down` is
+    // world UP despite its name**: it is `cross(shaded, cross(up_view, shaded))`, which reduces to
+    // `up_view` on a vertical wall. So the incoming view direction resolves into the wall's own
+    // (across, up, outward) axes with three dot products and no matrix.
+    //
+    // The window's aperture IS the room's front face, so the box is `paneW` × `paneH` × depth and
+    // the entry point is where the fragment sits inside the pane. A slab test gives the far
+    // intersection; whichever slab it lands on is the wall, floor, ceiling or back that is being
+    // seen. ⚠ **`r.z` is negative on a front face** — the ray goes in against the outward normal —
+    // so it is flipped once, and `d.z` is then positive by construction and the z slab cannot
+    // divide by zero. The other two are nudged off zero for the head-on case.
+    //
+    // ⚠ EVERY WINDOW DRAWS ITS OWN ROOM, keyed on the same cell the shutter draw uses, so the grid
+    // stops being one mark repeated. ⚠ AND IT IS BOUNDED BY `close_detail` AND `far` LIKE EVERY
+    // OTHER MARK HERE: ***a room nobody can resolve is a trace nobody sees.***
+    //
+    // ⚠ A SHUT PANE AND A RUIN SHOW NO ROOM, for the reason they take no highlight below — boards
+    // have nothing behind them and a shell has nothing in it.
+    float room_on = step(0.01, interior_depth) * close_detail * far * (1.0 - shut) * (1.0 - ruin);
+    vec3 dir = normalize(-VIEW);
+    vec3 r = vec3(dot(dir, along), dot(dir, down), dot(dir, shaded));
+    vec3 d = vec3(r.x, r.y, -r.z);
+    d.xy += (1.0 - step(0.0001, abs(d.xy))) * 0.0001;
+    vec3 sz = vec3(max(paneW, 0.05), max(paneH, 0.05), interior_depth);
+    vec3 at = vec3(clamp(withinX - jamb, 0.0, sz.x), clamp(withinY - sill, 0.0, sz.y), 0.0);
+    vec3 far_t = max((vec3(0.0) - at) / d, (sz - at) / d);
+    float hit_t = min(min(far_t.x, far_t.y), far_t.z);
+
+    // Which slab was hit. The back is the common case; a side, floor or ceiling only appears at an
+    // angle, which is exactly what makes the effect read as depth rather than as a picture.
+    float on_back = step(far_t.z, hit_t + 0.0001);
+    float on_side = step(far_t.x, hit_t + 0.0001) * (1.0 - on_back);
+    float on_cap = clamp(1.0 - on_back - on_side, 0.0, 1.0);
+    float looking_up = step(0.0, d.y);
+
+    // The room's own draw — a dwelling has warm lamps and bare ceilings, and no two rooms on a wall
+    // are the same room. ⚠ THE DRAW IS THE CELL'S, not the fragment's, so a room is one room.
+    float room_draw = draw(vec3(floorAt, bayAt, dot(n, vec3(5.0, 11.0, 2.0)) + v_custom.a * 47.0));
+    vec3 room_wall = mix(vec3(0.088, 0.079, 0.066), vec3(0.185, 0.163, 0.131), room_draw);
+
+    // 🔴 THE FOUR FACES NEED CONTRAST BETWEEN THEM OR THE BOX IS A DARK PATCH. Measured on the
+    // first version: every face within a factor of two of every other, and the whole effect read
+    // as ***the windows went darker*** rather than as depth. What makes a real room legible
+    // through a window is that its CEILING catches light and its floor does not, so the spread
+    // between the two is the effect and the average of them is not.
+    vec3 back = room_wall;
+    vec3 side = room_wall * 0.46;
+    vec3 cap = mix(room_wall * 0.30, room_wall * 2.10, looking_up);
+    vec3 room = (back * on_back) + (side * on_side) + (cap * on_cap);
+
+    // Depth darkens what is furthest in, which is what sells the box as a volume.
+    room *= mix(1.0, 0.58, clamp(hit_t / max(interior_depth, 0.05), 0.0, 1.0));
+    // ⚠ INTO `glass` AND NOT INTO `painted`, so the room is masked by `glazed` exactly as the flat
+    // pane was — the shopfront's `display_glass` is a separate surface and keeps its own treatment.
+    glass = mix(glass, room, room_on);
+
     float barX = 1.0 - smoothstep(0.045 - grain.x, 0.045 + grain.x, abs(withinX - wide * 0.5));
     float barY = 1.0 - smoothstep(0.035 - grain.y, 0.035 + grain.y, abs(withinY - sill - paneH * 0.55));
     float frame = max(barX, barY) * close_detail;
@@ -557,6 +710,32 @@ void fragment() {
     painted = mix(painted, (wall * 1.32) + 0.02, clamp(reveal * far, 0.0, 1.0) * (1.0 - cased));
     painted = mix(painted, (wall * 1.45) + 0.03, cased);
     painted = mix(painted, mix(wall * 0.30, vec3(0.05, 0.055, 0.06), 0.4), doored);
+
+    // ---- the horizontal marks -------------------------------------------------------------
+    //
+    // 🔴 A WALL'S VERTICAL RHYTHM WAS ONE PITCH AND NOTHING ELSE, so a Building six storeys tall
+    // read as one row of windows stacked six times — which is **F6** showing up in the direction
+    // the bay above cannot reach. A cornice gives the elevation a TOP and a string course gives it
+    // a COUNT, and neither is a window.
+    //
+    // ⚠ BOTH ARE PAIRS RATHER THAN TONES, for the reason the reveal is: a mark drawn only as a
+    // shade vanishes on a wall that is already dark, and ***what survives a dim is an edge.*** The
+    // cornice is a pale band with its own shadow under it; the course is a shadow with a light
+    // above it.
+    //
+    // ⚠ THE COURSE FADES ON `close_detail` AND THE CORNICE ABOVE DOES NOT. A ten-centimetre line is
+    // noise from a kilometre up; half a metre of parapet is still the roofline. ***They are marks
+    // at two different scales and they must not share a fade.***
+    //
+    // ⚠ NOT ON THE GROUND FLOOR'S OWN LINE, which is the plinth's, and never over glazing.
+    float course = (1.0 - smoothstep(0.09 - grain.y, 0.09 + grain.y, withinY))
+        * step(0.5, floorAt) * upright * close_detail * facade_variety * (1.0 - glazed);
+    float courseLip = smoothstep(0.09 - grain.y, 0.09 + grain.y, withinY)
+        * (1.0 - smoothstep(0.15 - grain.y, 0.15 + grain.y, withinY))
+        * step(0.5, floorAt) * upright * close_detail * facade_variety * (1.0 - glazed);
+
+    painted = mix(painted, wall * 0.74, course);
+    painted = mix(painted, (wall * 1.16) + 0.01, courseLip);
 
     // Commercial ground-floor glazing stays on the Street face and below the first floor.
     float shop_floor = v_shop * frontage * (1.0 - smoothstep(lift - 0.15, lift, up)) * far;
