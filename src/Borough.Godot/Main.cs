@@ -938,6 +938,25 @@ public partial class Main : Node3D
     private bool _photographing;
 
     /// <summary>The Buildings' shader, kept because the hour is a uniform on it.</summary>
+
+    /// <summary>Overrides one facade dial on the Building material from the environment.</summary>
+    /// <remarks>
+    /// ⚠ <b>An absent or unparseable variable sets NOTHING</b>, deliberately: the shipped value is
+    /// the shader's own default, and this must not become a second place it lives. It exists so a
+    /// repetition A/B can be taken twice from one binary and one camera — see the call site.
+    /// </remarks>
+    private void FacadeDial(string variable, string parameter)
+    {
+        if (float.TryParse(
+                System.Environment.GetEnvironmentVariable(variable),
+                System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out float setting))
+        {
+            _paint!.SetShaderParameter(parameter, setting);
+        }
+    }
+
     private ShaderMaterial? _paint;
 
     public override void _Ready()
@@ -1153,6 +1172,20 @@ public partial class Main : Node3D
         _buildings = Layer(
             Standing, new BoxMesh { Size = Vector3.One }, true, "res://buildings.gdshader");
         _paint!.SetShaderParameter("storey_metres", StoreyMetres);
+
+        // 🔴 THE THREE REPETITION DIALS, READ FROM THE ENVIRONMENT, AND THE REASON IS AN A/B THAT
+        // COULD NOT BE RE-RUN. `plans/0063` F5 records the stochastic-tiling comparison as
+        // "verified by eye and by nothing else" -- and the way it was taken was by editing
+        // `masonry_shuffle`'s default in the shader, so the capture is not reproducible from a
+        // command line and the two halves of it are not reproducible from the same binary.
+        // ***An A/B whose control needs a source edit is a screenshot and not a comparison.***
+        // One run per setting, one camera, one drive script, and the shader is untouched between.
+        //
+        // ⚠ AN ABSENT VARIABLE SETS NOTHING, so the shipped value is the shader's own default and
+        // this is an override rather than a second place the value lives.
+        FacadeDial("BOROUGH_FACADE_VARIETY", "facade_variety");
+        FacadeDial("BOROUGH_INTERIOR_DEPTH", "interior_depth");
+        FacadeDial("BOROUGH_MASONRY_SHUFFLE", "masonry_shuffle");
         FacadeMaterials.Configure(_paint);
 
         // 🔴 THE PHOTOGRAPHED MASONRY, WHICH IS plans/0063'S ONE FINDING THAT REACHED THE CITY.
