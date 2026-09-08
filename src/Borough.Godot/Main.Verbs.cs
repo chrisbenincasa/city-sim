@@ -138,13 +138,7 @@ public partial class Main
     /// <summary>What the current verb is called, and for Zone which permission it paints.</summary>
     private string Holding() => _verb switch
     {
-        // ⚠ "SUBDIVIDE" AND NOT "ZONE", because the verb is not a brush. LotSubdivider.Face returns
-        // zero on a frontage Frontage has already claimed, so this creates Lots on virgin ground and
-        // can never repaint an existing block. ***A label that promised a brush would make the
-        // commonest misuse -- clicking a block that already has Lots -- look like a bug.***
-        Verb.Zone => _world.Rules.ZoneRules.Length > 0
-            ? $"SUBDIVIDE 0x{_world.Rules.ZoneRules[_zoneChoice].Admits:X4} (z cycles)"
-            : "SUBDIVIDE — no [[zone_rule]] declared",
+        Verb.Zone => ZoneName(),
         Verb.Connect => "STREET (shift-click bulldozes)",
         Verb.Demolish => "DEMOLISH — abandoned only",
         Verb.Service => _serviceKind != 0
@@ -218,12 +212,12 @@ public partial class Main
 
         switch (_verb)
         {
-            case Verb.Zone when _world.Rules.ZoneRules.Length > 0:
+            case Verb.Zone when _world.Rules.ZoneRules.Length > 0 || _zoneErase:
                 Send(new Command(
                     CommandKind.Zone,
                     at.East,
                     at.North,
-                    _world.Rules.ZoneRules[_zoneChoice].Admits));
+                    ZonePermission()));
                 break;
 
             case Verb.Zone:
@@ -263,6 +257,9 @@ public partial class Main
     private void Hold(string tool, int choice)
     {
         _refused = string.Empty;
+        _zoneStart = null;
+        _zoneFeedback = string.Empty;
+        _zoneErase = tool == "erase";
 
         switch (tool)
         {
@@ -271,6 +268,7 @@ public partial class Main
 
                 break;
 
+            case "erase":
             case "zone":
                 _verb = Verb.Zone;
                 _zoneChoice = _world.Rules.ZoneRules.Length > 0
@@ -312,6 +310,13 @@ public partial class Main
                 break;
         }
 
+        _toolCategory = tool switch
+        {
+            "zone" or "erase" => "Zoning",
+            "street" or "demolish" => "Roads",
+            "service" => "Services",
+            _ => _toolCategory,
+        };
         ShowTools();
     }
 

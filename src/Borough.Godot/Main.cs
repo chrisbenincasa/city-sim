@@ -777,8 +777,8 @@ public partial class Main : Node3D
     /// </remarks>
     private PanelContainer _palette = null!;
 
-    private HBoxContainer _tools = null!;
-    private HBoxContainer _choices = null!;
+    private VBoxContainer _tools = null!;
+    private VBoxContainer _choices = null!;
     private Button _policiesButton = null!;
     private CanvasLayer _hud = null!;
 
@@ -1071,6 +1071,7 @@ public partial class Main : Node3D
 
     private void FinishReady(bool govern)
     {
+
         // THE SEA FIRST AND THE FLOOD ON TOP OF IT, and the order is the draw order. A Hazard
         // Region Cell is dry ground that a flood reaches, so the two never cover the same Cell --
         // 🔴 THE GROUND IS PAINTED FIRST AND IT IS NOT DECORATION. Without it dry land is the
@@ -1091,7 +1092,8 @@ public partial class Main : Node3D
         // and vanishes at any zoom that shows a neighbourhood; a Cell is 128 m and is the box the
         // pick actually resolves Buildings against (BuildingResidency.In). ***A marker that is not
         // the thing the query used is a marker that lies at the edges.***
-        _cursor = Layer(new Color(0.95f, 0.80f, 0.25f), new Vector3(1f, 1f, 1f), casts: false);
+        _cursor = Layer(Colors.White, Vector3.One, perInstance: true, casts: false);
+        _zones = Layer(Colors.White, Vector3.One, perInstance: true, casts: false);
 
         // but they sit at almost the same height, and painting the standing water last is what makes
         // a rising tide read as arriving rather than as flickering.
@@ -1351,6 +1353,8 @@ public partial class Main : Node3D
         }
         if (@event is InputEventMouseButton button)
         {
+            if (button.ButtonIndex is MouseButton.WheelUp or MouseButton.WheelDown
+                && OverInformation(button.Position)) return;
             if (button is { Pressed: true, ButtonIndex: MouseButton.WheelUp })
             {
                 Dolly(1f);
@@ -1388,6 +1392,11 @@ public partial class Main : Node3D
                 }
                 else if (Aim(button.Position) is { } at)
                 {
+                    if (_verb == Verb.Zone)
+                    {
+                        Ui($"zone-begin {at.East.Raw} {at.North.Raw}");
+                        return;
+                    }
                     Apply(new DriveCommand(
                         _world.Tick.Raw,
                         DriveVerb.Click,
@@ -1409,6 +1418,13 @@ public partial class Main : Node3D
             // sentence, so an ordinary click records exactly what it always did.
             if (button is { Pressed: false, ButtonIndex: MouseButton.Left })
             {
+                if (_verb == Verb.Zone && _zoneStart is not null)
+                {
+                    _aimed = null;
+                    if (Aim(button.Position) is { } end) Ui($"zone-end {end.East.Raw} {end.North.Raw}");
+                    else Ui("zone-cancel");
+                    return;
+                }
                 if (Dragging(Aim(button.Position)) is { } upTo)
                 {
                     Apply(new DriveCommand(
@@ -1476,6 +1492,13 @@ public partial class Main : Node3D
 
         if (GetViewport().GuiGetFocusOwner() is LineEdit or TextEdit || _helpPanel.Visible) return;
         if (key.CtrlPressed || key.AltPressed || key.MetaPressed || key.Echo) return;
+        if (_stepThread?.OwnsWorld == true)
+        {
+            var copy = (InputEventKey)key.Duplicate();
+            AtBoundary(() => { try { _UnhandledInput(copy); } finally { copy.Dispose(); } });
+            GetViewport().SetInputAsHandled();
+            return;
+        }
         foreach (var shortcut in Shortcuts())
             if (shortcut.Keys.Contains(key.Keycode))
             {
@@ -1631,6 +1654,7 @@ public partial class Main : Node3D
         if (key != _built || _world.Changes!.Full)
         {
             _built = key;
+            if (_world.Changes!.Full) Fill(_zones, ZonedBlocks());
             UpdateBuildings();
             _underWater = Fill(_flood, Inundated());
             TravellerHeadings();

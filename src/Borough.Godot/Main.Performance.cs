@@ -19,6 +19,7 @@ public partial class Main
     private void PerformanceDisplay()
     {
         _fpsLabel = ConsoleLabel("— FPS", SecondaryPoints);
+        _fpsLabel.ThemeTypeVariation = InformationUi.Reading;
         _fpsLabel.MouseFilter = Control.MouseFilterEnum.Stop;
         _fpsLabel.CustomMinimumSize = new Vector2(84, 0);
         _consoleTop.AddChild(_fpsLabel);

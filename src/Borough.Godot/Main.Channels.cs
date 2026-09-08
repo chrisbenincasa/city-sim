@@ -645,6 +645,8 @@ public partial class Main
         ("kerb", _kerbs, true, _kerbIds),
         ("cell", _cells, false, null),
         ("plot", _plots, true, _plotIds),
+        ("zone", _zones, true, null),
+        ("cursor", _cursor, true, null),
         ("building", _buildings, true, _buildingIds),
         ("roof", _roofs, true, _roofIds),
         ("hip", _hips, true, _hipIds),
