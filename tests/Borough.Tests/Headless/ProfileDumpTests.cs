@@ -13,6 +13,35 @@ namespace Borough.Tests.Headless;
 public sealed class ProfileDumpTests
 {
     [Fact]
+    public void Payroll_counts_distinguish_shared_employers_and_unrostered_work()
+    {
+        var (world, sim) = Borough.Tests.Rules.ShoppingTests.Start();
+        for (int t = 0; t < Ticks.PerDay; t++) { sim.Step(default); }
+        int[] staff = Enumerable.Range(0, world.Citizens.Rows.SlotCount)
+            .Where(c => world.Citizens.Rows.IsLive(c) && !world.Citizens.Workplace[c].IsNone)
+            .GroupBy(c => world.Citizens.Workplace[c]).First(g => g.Count() >= 2).Take(2).ToArray();
+        for (int c = 0; c < world.Citizens.Rows.SlotCount; c++)
+        { if (world.Citizens.Rows.IsLive(c)) { world.Citizens.Activity[c] = (byte)CitizenActivity.AtHome; } }
+        foreach (int c in staff) { world.Citizens.Activity[c] = (byte)CitizenActivity.AtWork; }
+        var employer = world.Citizens.Workplace[staff[0]];
+        int job = world.Businesses.Rows.Resolve(employer);
+        int start = CommuteRoster.ShiftStartOf(world.Key, world.Businesses.Rows.IdAt(job),
+            world.Rules.BusinessKind(world.Businesses.Kind[job]));
+        Ticks tick = Enumerable.Range(0, 7).Select(d => new Ticks((ulong)(d * Ticks.PerDay + start)))
+            .First(t => WorkSchedule.OnDuty(world, staff[0], t));
+        var probe = new ProfilePayroll(world);
+        var expected = new ProfilePayroll.Reading(world.Citizens.Rows.SlotCount,
+            world.Citizens.Rows.LiveCount, 2, 0, 2, 1, 2, 2);
+        ulong hash = world.HashState();
+        probe.Read(tick);
+        Assert.Equal(expected, probe.Last);
+        Assert.Equal(hash, world.HashState());
+        world.Unpremise(employer, world.Tick);
+        probe.Read(tick);
+        Assert.Equal(expected with { RosteredWorkers = 0 }, probe.Last);
+    }
+
+    [Fact]
     public void Cross_tick_reuse_is_bounded_versioned_and_counts_saved_search_work()
     {
         var graph = RoadFixtures.Chain(4);
@@ -232,6 +261,28 @@ public sealed class ProfileDumpTests
         foreach (var row in rows)
         {
             var root = row.RootElement;
+            var payroll = root.GetProperty("payrollWork");
+            int Pay(string name) => payroll.GetProperty(name).GetInt32();
+            Assert.InRange(Pay("AtWork"), 0, Pay("LiveCitizens"));
+            Assert.InRange(Pay("TooIll"), 0, Pay("AtWork"));
+            Assert.InRange(Pay("DeclaredWorkers"), 0, Pay("AtWork") - Pay("TooIll"));
+            Assert.InRange(Pay("DistinctEmployers"), 0, Pay("DeclaredWorkers"));
+            Assert.InRange(Pay("RosteredWorkers"), 0, Pay("DeclaredWorkers"));
+            Assert.InRange(Pay("OnDuty"), 0, Pay("DeclaredWorkers"));
+            Assert.True(Pay("CitizenSlots") >= Pay("LiveCitizens"));
+            var timing = root.GetProperty("payrollTiming");
+            if (WorkSchedule.PayrollAttributionEnabled && root.GetProperty("tick").GetUInt64() % 67 == 0)
+            {
+                Assert.Equal(Pay("AtWork") - Pay("TooIll"), timing.GetProperty("ScheduleCalls").GetInt32());
+                Assert.Equal(Pay("OnDuty"), timing.GetProperty("WageCalls").GetInt32());
+                double ReadMs(string name) => timing.GetProperty(name).GetDouble();
+                Assert.True(ReadMs("ScanResidualMs") >= 0);
+                Assert.Equal(ReadMs("TotalMs"), ReadMs("ScheduleMs") + ReadMs("WageMs") + ReadMs("ScanResidualMs"), 6);
+                var calibration = root.GetProperty("payrollCalibration");
+                Assert.Equal(timing.GetProperty("ScheduleCalls").GetInt32(), calibration.GetProperty("ScheduleCalls").GetInt32());
+                Assert.Equal(timing.GetProperty("WageCalls").GetInt32(), calibration.GetProperty("WageCalls").GetInt32());
+            }
+            else { Assert.Equal(System.Text.Json.JsonValueKind.Null, timing.ValueKind); }
             var discovery = root.GetProperty("shoppingWork");
             long Read(string name) => discovery.GetProperty(name).GetInt64();
             Assert.Equal(Read("BusinessesChecked"), Read("NoSaleBin") + Read("AlreadyKnown")
@@ -247,7 +298,10 @@ public sealed class ProfileDumpTests
         }
         Assert.True(rows.Sum(r => r.RootElement.GetProperty("shoppingWork").GetProperty("NoSaleBin").GetInt64()) > 0);
         Assert.True(rows.Sum(r => r.RootElement.GetProperty("shoppingWork").GetProperty("ProvidersAdded").GetInt64()) > 0);
+        Assert.True(rows.Sum(r => r.RootElement.GetProperty("payrollWork").GetProperty("OnDuty").GetInt32()) > 0);
         foreach (var row in rows) { row.Dispose(); }
+        Assert.Null(sim.PayrollStarting);
+        Assert.Null(sim.PayrollMeasuring);
         Assert.Null(sim.PhaseCompleted);
         Assert.Null(sim.Shopping.Work);
         Assert.Null(sim.Trips.ShoppingRouteWork);

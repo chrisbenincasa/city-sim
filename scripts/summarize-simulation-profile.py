@@ -8,7 +8,7 @@ from pathlib import Path
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('trace', type=Path)
 parser.add_argument('--output', type=Path, required=True)
-parser.add_argument('--scope', choices=['step', 'layers', 'move'], default='step')
+parser.add_argument('--scope', choices=['step', 'layers', 'move', 'payroll', 'commute'], default='step')
 args = parser.parse_args()
 data = json.loads(args.trace.read_text())
 frames = [frame['name'] for frame in data['shared']['frames']]
@@ -30,13 +30,16 @@ for profile in data['profiles']:
             raise ValueError('Events are not ordered.')
         roots = [i for i, frame in enumerate(stack) if frame in root_frames]
         if duration > 0 and roots:
-            active = [frames[i] for i in stack[roots[0]:] if frames[i] != 'UNMANAGED_CODE_TIME']
+            active = [frames[i] for i in stack[roots[0]:]
+                      if frames[i] not in ('UNMANAGED_CODE_TIME', 'CPU_TIME')]
             in_move = any(marker in name for name in active for marker in
                 ('Simulation.Move(', 'CivicEngine.Step(', 'ShoppingEngine.Step(',
                  'CommuteEngine.Generate(', 'ServiceEngine.Attend(', 'TripEngine.Advance(',
                  'TripEngine.AdvanceTravellers(', 'TripEngine.ReleaseEnded(', 'TripEngine.CloseTick(',
                  'WorkSchedule.Accrue('))
             in_scope = args.scope == 'step' or (args.scope == 'move' and in_move) or (
+                args.scope == 'payroll' and any('WorkSchedule.Accrue(' in name for name in active)) or (
+                args.scope == 'commute' and any('CommuteEngine.Generate(' in name for name in active)) or (
                 args.scope == 'layers' and any(marker in name for name in active for marker in
                 ('Simulation.Layers(', 'MapLayers.Step(', 'MapLayers.SetLandValueTargets(', 'MapLayers.DriftLandValue(')))
             if in_scope and not any('System.Diagnostics.Stopwatch.GetTimestamp(' in name for name in active):

@@ -7,6 +7,10 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(PayrollAttribution)' == 'true'">
+    <DefineConstants>$(DefineConstants);PAYROLL_ATTRIBUTION</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <!--
       The committed exp/log tables are verified against a double-precision oracle the core is not

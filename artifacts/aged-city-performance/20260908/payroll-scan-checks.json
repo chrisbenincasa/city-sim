@@ -1,0 +1,248 @@
+{
+  "runs": [
+    {
+      "file": "run-1.jsonl",
+      "samples": 30,
+      "sampled_slots": 3000000,
+      "schedule_calls": 670726,
+      "wage_calls": 666683,
+      "timing": {
+        "TotalMs": {
+          "actual_sum": 187.946061,
+          "empty_sum": 64.988886,
+          "difference_sum": 122.95717499999999
+        },
+        "ScheduleMs": {
+          "actual_sum": 81.007172,
+          "empty_sum": 20.20668,
+          "difference_sum": 60.800492
+        },
+        "WageMs": {
+          "actual_sum": 59.031738999999995,
+          "empty_sum": 14.550637,
+          "difference_sum": 44.48110199999999
+        },
+        "ScanResidualMs": {
+          "actual_sum": 47.907149999999994,
+          "empty_sum": 30.231568999999997,
+          "difference_sum": 17.675580999999998
+        }
+      },
+      "activity_hash_matches": true,
+      "daily": {
+        "StartTick": 18432,
+        "Ticks": 2048,
+        "Citizens": 100000,
+        "Buildings": 8738,
+        "Employed": 75993,
+        "MeanMs": 18.69648500976561,
+        "P95Ms": 44.5019,
+        "P99Ms": 53.4171,
+        "MaxMs": 167.9756,
+        "MaxTick": 18704,
+        "AllocatedBytes": 3855696,
+        "PeakTravellers": 43641,
+        "PeakVehicles": 37381,
+        "VehicleTicks": 27917977,
+        "LoadedSegmentTicks": 1655415,
+        "CongestedSegmentTicks": 1395343,
+        "PeakVolumeCapacity": 125.98141479492188,
+        "CompletedTrips": 425111,
+        "NoRoute": 0,
+        "OverBudget": 0,
+        "DriveLegs": 293907,
+        "WalkLegs": 719018,
+        "ShoppingOutings": 106595,
+        "Purchases": 3035,
+        "DeliveredGoods": 111848,
+        "Wages": 141321,
+        "RuleEvaluations": 62089,
+        "Gen0Collections": 0,
+        "Gen1Collections": 0,
+        "Gen2Collections": 0,
+        "ManagedHeapBytes": 213694640,
+        "WorkingSetBytes": 251953152,
+        "RoutePrepared": 0,
+        "RouteUsed": 0,
+        "RouteFallback": 0,
+        "CivicEvents": {
+          "Ill": 0,
+          "Worsened": 0,
+          "Requested": 0,
+          "Booked": 0,
+          "Postponed": 0,
+          "Unreachable": 0,
+          "NoBed": 0,
+          "Admitted": 0,
+          "Treated": 0,
+          "Discharged": 0,
+          "Recovered": 0,
+          "DiedAwaitingBed": 0,
+          "Died": 0,
+          "MissedWork": 0,
+          "SwitchedClinic": 0,
+          "SchoolDeparted": 0,
+          "SchoolAttended": 0,
+          "Returned": 0,
+          "FacilityLost": 0,
+          "NoAppointment": 0
+        }
+      },
+      "idle_scan": {
+        "samples": 12,
+        "min_ms": 0.18179499999999998,
+        "median_ms": 0.21557199999999999,
+        "max_ms": 0.22861099999999998
+      }
+    },
+    {
+      "file": "run-2.jsonl",
+      "samples": 30,
+      "sampled_slots": 3000000,
+      "schedule_calls": 670726,
+      "wage_calls": 666683,
+      "timing": {
+        "TotalMs": {
+          "actual_sum": 156.97946,
+          "empty_sum": 54.578334,
+          "difference_sum": 102.40112599999999
+        },
+        "ScheduleMs": {
+          "actual_sum": 68.40922499999999,
+          "empty_sum": 13.948991,
+          "difference_sum": 54.46023399999999
+        },
+        "WageMs": {
+          "actual_sum": 47.620357,
+          "empty_sum": 13.418408999999999,
+          "difference_sum": 34.201948
+        },
+        "ScanResidualMs": {
+          "actual_sum": 40.949878,
+          "empty_sum": 27.210933999999998,
+          "difference_sum": 13.738944
+        }
+      },
+      "activity_hash_matches": true,
+      "daily": {
+        "StartTick": 18432,
+        "Ticks": 2048,
+        "Citizens": 100000,
+        "Buildings": 8738,
+        "Employed": 75993,
+        "MeanMs": 18.94487866210935,
+        "P95Ms": 40.9459,
+        "P99Ms": 50.37,
+        "MaxMs": 132.0588,
+        "MaxTick": 18704,
+        "AllocatedBytes": 3904896,
+        "PeakTravellers": 43641,
+        "PeakVehicles": 37381,
+        "VehicleTicks": 27917977,
+        "LoadedSegmentTicks": 1655415,
+        "CongestedSegmentTicks": 1395343,
+        "PeakVolumeCapacity": 125.98141479492188,
+        "CompletedTrips": 425111,
+        "NoRoute": 0,
+        "OverBudget": 0,
+        "DriveLegs": 293907,
+        "WalkLegs": 719018,
+        "ShoppingOutings": 106595,
+        "Purchases": 3035,
+        "DeliveredGoods": 111848,
+        "Wages": 141321,
+        "RuleEvaluations": 62089,
+        "Gen0Collections": 0,
+        "Gen1Collections": 0,
+        "Gen2Collections": 0,
+        "ManagedHeapBytes": 213769032,
+        "WorkingSetBytes": 251744256,
+        "RoutePrepared": 0,
+        "RouteUsed": 0,
+        "RouteFallback": 0,
+        "CivicEvents": {
+          "Ill": 0,
+          "Worsened": 0,
+          "Requested": 0,
+          "Booked": 0,
+          "Postponed": 0,
+          "Unreachable": 0,
+          "NoBed": 0,
+          "Admitted": 0,
+          "Treated": 0,
+          "Discharged": 0,
+          "Recovered": 0,
+          "DiedAwaitingBed": 0,
+          "Died": 0,
+          "MissedWork": 0,
+          "SwitchedClinic": 0,
+          "SchoolDeparted": 0,
+          "SchoolAttended": 0,
+          "Returned": 0,
+          "FacilityLost": 0,
+          "NoAppointment": 0
+        }
+      },
+      "idle_scan": {
+        "samples": 12,
+        "min_ms": 0.187044,
+        "median_ms": 0.22832199999999997,
+        "max_ms": 0.304619
+      }
+    }
+  ],
+  "per_tick_payroll_counts_equal": true,
+  "calibration": "Empty-body subtraction is a diagnostic model, not an exact correction or predicted optimization saving.",
+  "conditions": {
+    "command": [
+      "taskset",
+      "-c",
+      "2",
+      "dotnet",
+      "/tmp/borough-payroll-scan-20260908/normal/Borough.Headless.dll",
+      "--profile",
+      "--ruleset",
+      "rulesets/stress-shopping.toml",
+      "--citizens",
+      "100000",
+      "--seed",
+      "0",
+      "--profile-load",
+      "/tmp/borough-payroll/seed0.save",
+      "--warmup-ticks",
+      "18432",
+      "--ticks",
+      "2048",
+      "--no-decide-guard"
+    ],
+    "cwd": "/home/christian/Code/city-sim",
+    "sha256": {
+      "/tmp/borough-payroll-scan-20260908/normal/Borough.Headless.dll": "ee515d758ac45bfdb2faca8f3ba6402b8be1b65faf062c7d36edb34930586112",
+      "/tmp/borough-payroll-scan-20260908/normal/Borough.Core.dll": "a4b38247978d1b81de718d31e4cfe79d35b2218588f34f02dfe81dc291ccc077",
+      "/tmp/borough-payroll-scan-20260908/normal/Borough.Formats.dll": "fe4859cee13af694dab9a92a6ca2b5d842c5500e6fa562d6e655adea5d8725d5",
+      "/home/christian/Code/city-sim/rulesets/stress-shopping.toml": "2de63becd3932f2bbbba77163f32b2ca4cde0dffc688a95f0ded9676f52914b8",
+      "/tmp/borough-payroll/seed0.save": "a3a296cf33c4bcadd4159a8574e68f8325d9fd40e7bc5fd4743ae2c0ce05b954"
+    },
+    "siblings": "2,8",
+    "policy": {
+      "scaling_driver": "intel_pstate",
+      "scaling_governor": "powersave",
+      "scaling_min_freq": "800000",
+      "scaling_max_freq": "4300000"
+    },
+    "turbo_disabled": "0",
+    "exception": "Frequency policy is observed, not changed; host workloads are not isolated."
+  },
+  "trace_activity_hash_matches": true,
+  "tests": {
+    "diagnostic": "18 passed, borough-test-20260908-142958.log",
+    "normal": "18 passed, borough-test-20260908-143038.log"
+  },
+  "limitations": [
+    "Desktop host interference remains.",
+    "Empty-body calibration does not exactly reproduce real boundary overhead.",
+    "Normal builds omit diagnostic boundaries.",
+    "Frozen measured build precedes removal of the obsolete payrollScheduleNoInlining metadata field; attribution algorithm is unchanged.",
+    "No retained simulation optimization."
+  ]
+}

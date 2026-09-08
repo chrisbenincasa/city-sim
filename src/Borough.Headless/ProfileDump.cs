@@ -57,12 +57,16 @@ internal static class ProfileDump
             assemblySha256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(typeof(ProfileDump).Assembly.Location))),
             configuration = typeof(ProfileDump).Assembly.GetCustomAttribute<AssemblyConfigurationAttribute>()?.Configuration,
             runtime = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
+            processorCount = Environment.ProcessorCount,
+            serverGc = System.Runtime.GCSettings.IsServerGC,
+            payrollAttribution = Borough.Core.Movement.WorkSchedule.PayrollAttributionEnabled,
             os = System.Runtime.InteropServices.RuntimeInformation.OSDescription,
             stepThreads = options.RouteWorkers,
             threading = "one coordinator; route worker limit includes caller; all world writes remain serial",
             allocationScope = "process-wide allocation delta during Step, including workers",
             routeWorkScope = "synchronous queries only; routeBatch reports prepared/used/fallback queries",
             reuseScope = "Trip, Shopping and civic searches; shared FIFO across categories; cold at capture start",
+            payrollWorkScope = "diagnostic population scan immediately before accrual; intrusive, not function-internal counters",
             timing = "Step only; setup, counters, hashes and end invariants excluded"
         }));
         output.Write(servicesLog.ToString());
@@ -154,6 +158,11 @@ internal static class ProfileDump
         sim.Shopping.Work = shoppingWork;
         sim.Trips.RouteWork = routes;
         sim.Trips.ShoppingRouteWork = shoppingRoutes;
+        var payroll = workOutput is null ? null : new ProfilePayroll(sim.World);
+        sim.PayrollStarting = payroll is null ? null : payroll.Read;
+        var payrollClock = workOutput is not null && Borough.Core.Movement.WorkSchedule.PayrollAttributionEnabled
+            ? new PayrollClock() : null;
+        sim.PayrollMeasuring = payrollClock is null ? null : payrollClock.Select;
         var phases = workOutput is null ? null : new PhaseClock();
         sim.PhaseCompleted = phases is null ? null : phases.Mark;
         var civicEvents = new long[Enum.GetValues<CareEventKind>().Length];
@@ -211,7 +220,9 @@ internal static class ProfileDump
             {
                 workOutput.WriteLine(JsonSerializer.Serialize(new { type = "work", tick = start + (ulong)i,
                     ms, allocated = tickAllocated, travellers = world.Travellers.Rows.LiveCount, vehicles,
-                    shopping, shoppingWork, shoppingRoutes, civicRoutes, otherRoutes = routes, phaseMs = phases!.Reading(),
+                    shopping, shoppingWork, shoppingRoutes, civicRoutes, payrollWork = payroll!.Last,
+                    payrollTiming = payrollClock?.Last, payrollCalibration = payrollClock?.Calibrate(),
+                    otherRoutes = routes, phaseMs = phases!.Reading(),
                     tableGrowth = growth!.Read(), routeBatch = batch,
                     routeReuse = new { estimates = estimateReuse!.Reading(), shopping = shoppingReuse!.Reading(),
                         other = otherReuse!.Reading() } }));
@@ -220,6 +231,8 @@ internal static class ProfileDump
         sim.Civic.EventObserved = null;
         sim.Civic.RouteWork = null;
         sim.PhaseCompleted = null;
+        sim.PayrollStarting = null;
+        sim.PayrollMeasuring = null;
         sim.Shopping.Work = null; sim.Trips.RouteWork = null; sim.Trips.ShoppingRouteWork = null;
         Array.Sort(elapsed);
         int employed = 0;

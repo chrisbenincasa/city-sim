@@ -1,0 +1,472 @@
+{
+  "retainedOptimization": false,
+  "reason": "Employer-list iteration regressed seed 0. Roster timing reuse had mixed seed results and failed the two-seed retention gate; both removed.",
+  "conditions": "Release .NET 10.0.11, Ubuntu 24.04, Intel Core i5-10400, one simulation thread, guard disabled. Unpinned desktop diagnostics, not a quiet-machine budget ratification. Focused tests/builds overlapped portions of ageing; no deliberate overlap with measured windows. No CPU-frequency or external-workload control.",
+  "employerLists": {
+    "beforeFile": "before-seed0.jsonl",
+    "afterFile": "after-seed0.jsonl",
+    "end": {
+      "type": "end",
+      "tick": 16384,
+      "hash": "D551BD2FA385894A",
+      "invariants": "passed"
+    },
+    "activityMatches": true,
+    "days": [
+      {
+        "start": 14336,
+        "before": {
+          "AllocatedBytes": 3836440,
+          "Gen0Collections": 0,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "ManagedHeapBytes": 266629264,
+          "MaxMs": 81.2198,
+          "MaxTick": 14608,
+          "MeanMs": 12.342814404296861,
+          "P95Ms": 24.1142,
+          "P99Ms": 25.8042,
+          "WorkingSetBytes": 248659968
+        },
+        "after": {
+          "AllocatedBytes": 3836440,
+          "Gen0Collections": 0,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "ManagedHeapBytes": 266630752,
+          "MaxMs": 91.8915,
+          "MaxTick": 15376,
+          "MeanMs": 13.932995556640643,
+          "P95Ms": 26.8076,
+          "P99Ms": 30.5021,
+          "WorkingSetBytes": 248545280
+        },
+        "meanReductionPercent": -12.88345672434479
+      }
+    ]
+  },
+  "rosterSeed0": {
+    "beforeFile": "before-seed0.jsonl",
+    "afterFile": "roster-seed0.jsonl",
+    "end": {
+      "type": "end",
+      "tick": 16384,
+      "hash": "D551BD2FA385894A",
+      "invariants": "passed"
+    },
+    "activityMatches": true,
+    "days": [
+      {
+        "start": 14336,
+        "before": {
+          "AllocatedBytes": 3836440,
+          "Gen0Collections": 0,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "ManagedHeapBytes": 266629264,
+          "MaxMs": 81.2198,
+          "MaxTick": 14608,
+          "MeanMs": 12.342814404296861,
+          "P95Ms": 24.1142,
+          "P99Ms": 25.8042,
+          "WorkingSetBytes": 248659968
+        },
+        "after": {
+          "AllocatedBytes": 3836440,
+          "Gen0Collections": 0,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "ManagedHeapBytes": 266626808,
+          "MaxMs": 89.0907,
+          "MaxTick": 14608,
+          "MeanMs": 12.521341455078083,
+          "P95Ms": 24.6538,
+          "P99Ms": 29.4934,
+          "WorkingSetBytes": 248729600
+        },
+        "meanReductionPercent": -1.4464047253199608
+      }
+    ]
+  },
+  "rosterSeed1": {
+    "beforeFile": "before-seed1.jsonl",
+    "afterFile": "roster-seed1.jsonl",
+    "end": {
+      "type": "end",
+      "tick": 16384,
+      "hash": "FDD1DBA842295351",
+      "invariants": "passed"
+    },
+    "activityMatches": true,
+    "days": [
+      {
+        "start": 14336,
+        "before": {
+          "AllocatedBytes": 3842088,
+          "Gen0Collections": 0,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "ManagedHeapBytes": 266709736,
+          "MaxMs": 92.1829,
+          "MaxTick": 14608,
+          "MeanMs": 15.317610449218767,
+          "P95Ms": 32.2175,
+          "P99Ms": 39.6553,
+          "WorkingSetBytes": 251461632
+        },
+        "after": {
+          "AllocatedBytes": 3842088,
+          "Gen0Collections": 0,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "ManagedHeapBytes": 266698752,
+          "MaxMs": 84.8971,
+          "MaxTick": 14608,
+          "MeanMs": 12.794789941406245,
+          "P95Ms": 24.965,
+          "P99Ms": 27.6702,
+          "WorkingSetBytes": 249962496
+        },
+        "meanReductionPercent": 16.470065720604556
+      }
+    ]
+  },
+  "rosterSmallWeek": {
+    "beforeFile": "before-small.jsonl",
+    "afterFile": "roster-small.jsonl",
+    "end": {
+      "type": "end",
+      "tick": 28672,
+      "hash": "C1A2B61439767EC2",
+      "invariants": "passed"
+    },
+    "activityMatches": true,
+    "days": [
+      {
+        "start": 14336,
+        "before": {
+          "AllocatedBytes": 2166200,
+          "Gen0Collections": 0,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "ManagedHeapBytes": 89835616,
+          "MaxMs": 1.5985,
+          "MaxTick": 14336,
+          "MeanMs": 0.0815078613281252,
+          "P95Ms": 0.1846,
+          "P99Ms": 0.2268,
+          "WorkingSetBytes": 93839360
+        },
+        "after": {
+          "AllocatedBytes": 2166200,
+          "Gen0Collections": 0,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "ManagedHeapBytes": 89822920,
+          "MaxMs": 1.8363,
+          "MaxTick": 14336,
+          "MeanMs": 0.06831259765624996,
+          "P95Ms": 0.1549,
+          "P99Ms": 0.197,
+          "WorkingSetBytes": 95776768
+        },
+        "meanReductionPercent": 16.188946019274418
+      },
+      {
+        "start": 16384,
+        "before": {
+          "AllocatedBytes": 2113424,
+          "Gen0Collections": 0,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "ManagedHeapBytes": 92321784,
+          "MaxMs": 1.6269,
+          "MaxTick": 16384,
+          "MeanMs": 0.08532109375000015,
+          "P95Ms": 0.1901,
+          "P99Ms": 0.2364,
+          "WorkingSetBytes": 95944704
+        },
+        "after": {
+          "AllocatedBytes": 2113424,
+          "Gen0Collections": 0,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "ManagedHeapBytes": 92336792,
+          "MaxMs": 2.4033,
+          "MaxTick": 17728,
+          "MeanMs": 0.06619492187499991,
+          "P95Ms": 0.1458,
+          "P99Ms": 0.188,
+          "WorkingSetBytes": 98279424
+        },
+        "meanReductionPercent": 22.41669795167177
+      },
+      {
+        "start": 18432,
+        "before": {
+          "AllocatedBytes": 2121584,
+          "Gen0Collections": 0,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "ManagedHeapBytes": 94468072,
+          "MaxMs": 1.7047,
+          "MaxTick": 18432,
+          "MeanMs": 0.0954064941406249,
+          "P95Ms": 0.2208,
+          "P99Ms": 0.2643,
+          "WorkingSetBytes": 97050624
+        },
+        "after": {
+          "AllocatedBytes": 2121584,
+          "Gen0Collections": 0,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "ManagedHeapBytes": 94482840,
+          "MaxMs": 1.6053,
+          "MaxTick": 18432,
+          "MeanMs": 0.06836523437499992,
+          "P95Ms": 0.1531,
+          "P99Ms": 0.1866,
+          "WorkingSetBytes": 99401728
+        },
+        "meanReductionPercent": 28.343206622567408
+      },
+      {
+        "start": 20480,
+        "before": {
+          "AllocatedBytes": 2113528,
+          "Gen0Collections": 0,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "ManagedHeapBytes": 96614600,
+          "MaxMs": 1.7117,
+          "MaxTick": 20480,
+          "MeanMs": 0.09259501953124992,
+          "P95Ms": 0.2156,
+          "P99Ms": 0.2438,
+          "WorkingSetBytes": 99151872
+        },
+        "after": {
+          "AllocatedBytes": 2113504,
+          "Gen0Collections": 0,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "ManagedHeapBytes": 96621144,
+          "MaxMs": 1.4282,
+          "MaxTick": 20480,
+          "MeanMs": 0.0767584472656249,
+          "P95Ms": 0.1761,
+          "P99Ms": 0.2324,
+          "WorkingSetBytes": 100511744
+        },
+        "meanReductionPercent": 17.103049759906717
+      },
+      {
+        "start": 22528,
+        "before": {
+          "AllocatedBytes": 2121776,
+          "Gen0Collections": 0,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "ManagedHeapBytes": 98769040,
+          "MaxMs": 1.5442,
+          "MaxTick": 22528,
+          "MeanMs": 0.09877680664062502,
+          "P95Ms": 0.2263,
+          "P99Ms": 0.2628,
+          "WorkingSetBytes": 100311040
+        },
+        "after": {
+          "AllocatedBytes": 2121800,
+          "Gen0Collections": 0,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "ManagedHeapBytes": 98775840,
+          "MaxMs": 1.6867,
+          "MaxTick": 22528,
+          "MeanMs": 0.0799594238281252,
+          "P95Ms": 0.1747,
+          "P99Ms": 0.2235,
+          "WorkingSetBytes": 102555648
+        },
+        "meanReductionPercent": 19.05040611503287
+      },
+      {
+        "start": 24576,
+        "before": {
+          "AllocatedBytes": 2121904,
+          "Gen0Collections": 0,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "ManagedHeapBytes": 100915568,
+          "MaxMs": 1.5741,
+          "MaxTick": 24576,
+          "MeanMs": 0.0464714843750001,
+          "P95Ms": 0.1281,
+          "P99Ms": 0.1616,
+          "WorkingSetBytes": 101437440
+        },
+        "after": {
+          "AllocatedBytes": 2121904,
+          "Gen0Collections": 0,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "ManagedHeapBytes": 100921904,
+          "MaxMs": 1.7908,
+          "MaxTick": 24576,
+          "MeanMs": 0.04733544921875017,
+          "P95Ms": 0.1287,
+          "P99Ms": 0.1617,
+          "WorkingSetBytes": 103682048
+        },
+        "meanReductionPercent": -1.859129002160409
+      },
+      {
+        "start": 26624,
+        "before": {
+          "AllocatedBytes": 2174064,
+          "Gen0Collections": 0,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "ManagedHeapBytes": 103111472,
+          "MaxMs": 1.6378,
+          "MaxTick": 26624,
+          "MeanMs": 0.04936420898437528,
+          "P95Ms": 0.1573,
+          "P99Ms": 0.2112,
+          "WorkingSetBytes": 102903808
+        },
+        "after": {
+          "AllocatedBytes": 2174064,
+          "Gen0Collections": 0,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "ManagedHeapBytes": 103125776,
+          "MaxMs": 1.6861,
+          "MaxTick": 26624,
+          "MeanMs": 0.04247954101562518,
+          "P95Ms": 0.1349,
+          "P99Ms": 0.1706,
+          "WorkingSetBytes": 104849408
+        },
+        "meanReductionPercent": 13.94667940679295
+      }
+    ]
+  },
+  "observerDisabled": {
+    "beforeFile": "before-resumed.jsonl",
+    "afterFile": "observer-resumed.jsonl",
+    "end": {
+      "type": "end",
+      "tick": 20480,
+      "hash": "853C7070AA58EE03",
+      "invariants": "passed"
+    },
+    "activityMatches": true,
+    "days": [
+      {
+        "start": 18432,
+        "before": {
+          "AllocatedBytes": 3836696,
+          "Gen0Collections": 0,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "ManagedHeapBytes": 201298600,
+          "MaxMs": 93.7758,
+          "MaxTick": 18704,
+          "MeanMs": 14.415409082031234,
+          "P95Ms": 28.7267,
+          "P99Ms": 31.4869,
+          "WorkingSetBytes": 240345088
+        },
+        "after": {
+          "AllocatedBytes": 3836696,
+          "Gen0Collections": 0,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "ManagedHeapBytes": 201293816,
+          "MaxMs": 98.4828,
+          "MaxTick": 18704,
+          "MeanMs": 14.185221533203116,
+          "P95Ms": 27.4984,
+          "P99Ms": 31.8837,
+          "WorkingSetBytes": 239706112
+        },
+        "meanReductionPercent": 1.5968159316064545
+      }
+    ]
+  },
+  "observerEnabled": {
+    "beforeFile": "observer-resumed.jsonl",
+    "afterFile": "observer-counted.jsonl",
+    "end": {
+      "type": "end",
+      "tick": 20480,
+      "hash": "853C7070AA58EE03",
+      "invariants": "passed"
+    },
+    "activityMatches": true,
+    "days": [
+      {
+        "start": 18432,
+        "before": {
+          "AllocatedBytes": 3836696,
+          "Gen0Collections": 0,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "ManagedHeapBytes": 201293816,
+          "MaxMs": 98.4828,
+          "MaxTick": 18704,
+          "MeanMs": 14.185221533203116,
+          "P95Ms": 27.4984,
+          "P99Ms": 31.8837,
+          "WorkingSetBytes": 239706112
+        },
+        "after": {
+          "AllocatedBytes": 3904488,
+          "Gen0Collections": 0,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "ManagedHeapBytes": 213258712,
+          "MaxMs": 99.7552,
+          "MaxTick": 18704,
+          "MeanMs": 16.518501123046857,
+          "P95Ms": 32.8712,
+          "P99Ms": 35.7966,
+          "WorkingSetBytes": 251801600
+        },
+        "meanReductionPercent": -16.4486651433837
+      }
+    ]
+  },
+  "payroll": {
+    "startTick": 18432,
+    "ticks": 2048,
+    "totals": {
+      "CitizenSlots": 204800000,
+      "LiveCitizens": 204800000,
+      "AtWork": 44923890,
+      "TooIll": 0,
+      "DeclaredWorkers": 44923890,
+      "DistinctEmployers": 7055762,
+      "RosteredWorkers": 44923890,
+      "OnDuty": 44644836
+    },
+    "peaks": {
+      "CitizenSlots": 100000,
+      "LiveCitizens": 100000,
+      "AtWork": 71012,
+      "TooIll": 0,
+      "DeclaredWorkers": 71012,
+      "DistinctEmployers": 8501,
+      "RosteredWorkers": 71012,
+      "OnDuty": 71012
+    },
+    "scope": "Diagnostic population scan immediately before accrual. Counts are Tick-summed visits, not distinct Citizens over the Day. OnDuty means entitlement, not wages paid. Counted Step timings and allocations include the additional scan."
+  },
+  "validationLogs": [
+    "borough-test-20260908-122903.log",
+    "borough-test-20260908-123427.log"
+  ]
+}

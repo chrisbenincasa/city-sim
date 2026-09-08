@@ -27,14 +27,15 @@ measured cost without changing the city. Earlier `minimal.toml` readings do not 
 ## Outstanding work
 
 Work in the priority order below; item numbers remain stable identifiers. Apply step 4's
-retention gate to every optimization. Start each candidate with a real-boundary regression and
-one bounded implementation, then check untraced timings early. Stop candidates without a clear
-benefit before refining them. Rejection does not close the targeted cost.
+retention gate to every optimization. Establish repeatability, attribute and count before selecting
+a candidate. Only then add a real-boundary regression and one bounded implementation, checking
+untraced timings early. Stop candidates without a clear benefit before refining them. Rejection
+does not close the targeted cost; inconclusive timings do not establish a regression.
 
 | Priority | Item | Open work | Completion evidence |
 |---|---|---|---|
-| 1 | 11 | Payroll first, then commute scheduling: attribute whole-population scans in `WorkSchedule.Accrue` and `CommuteEngine.Generate`; investigate ordered working-Citizen iteration and reusable derived schedules. | Fewer scans/recalculations with unchanged per-Tick wages, departure order, activity and hashes; two-seed Step benefit. Schedule invalidation and save/reload must pass. |
-| 2 | 12 | Reduce unsuccessful Shopping discovery work at its source; investigate repeated sale-Bin eligibility checks. Row-total reuse is rejected below. | Preserve sampling/provider order for an optimization. Changing eligible candidates requires a separate behavior decision; it is not authorized by this row. |
+| 1 | 11 | Sampled payroll boundaries below lower the priority of replacing the contiguous scan. Shift-length reuse failed the repeatability gate below; establish stable paired controls before more payroll candidates. | Measured baseline variation, attributed costs and a bounded savings opportunity justify one candidate or lowering payroll's priority. Any subsequent optimization must preserve per-Tick wages, departure order, activity and hashes, pass schedule invalidation/save-reload, and show two-seed Step benefit. |
+| 2 | 12 | Reduce unsuccessful Shopping discovery work at its source; sale-Bin indexing and row-total reuse are rejected below. Investigate a larger measured source of unsuccessful discovery work. | Preserve sampling/provider order for an optimization. Changing eligible candidates requires a separate behavior decision; it is not authorized by this row. |
 | 3 | 1 | Target remaining redundant routing work. Commute workers, cross-Tick reuse and directed routing have findings below; broader parallelism remains untested. | Name the avoidable work first; require two-seed benefit, matching activity/hashes and worker equivalence. Existing probes do not justify a general exact cache. |
 | 4 | 8 | Finish scene preparation and independent view snapshots. Dedicated Step thread and background startup/regeneration are implemented. | Driven frame/responsiveness evidence at recorded population, age, speed and view; headless throughput alone is insufficient. Promote this row if responsiveness becomes the priority. |
 | 5 | 6 | Broaden functioning care, school and other systems, including a functioning economy alongside distress. | Activity assertions and attributed costs for systems actually running. |
@@ -46,6 +47,32 @@ benefit before refining them. Rejection does not close the targeted cost.
 Completed: row-prefix optimization and initial population ladder; item 2, restoration headroom
 (two-seed and million-Citizen controls below); item 3, Shopping attribution and discovery counts
 (not elimination of discovery cost); item 10, durable evidence with verified manifests.
+
+### Next investigation — before another payroll implementation
+
+The payroll sitting selected work from M4 attribution, tried implementations on the i5 before
+adding payroll counts, and compared individual captures without CPU-frequency or external-load
+control. That did not complete the attribute → count → control sequence. The retention gate
+correctly refused the candidates, but the measurements do not explain their outcomes.
+
+1. **Establish repeatability.** Repeat the unchanged Release build from one checkpoint, with the
+   same warmup, measurement window, seed, worker count and guard setting. Control CPU affinity,
+   frequency policy and competing workloads; record the conditions and exceptions. Preserve
+   mean/tail variation, allocations, activity and hashes before judging any improvement. If the
+   baseline is unstable, resolve that before changing implementation.
+2. **Attribute on this machine.** Capture fresh i5 attribution within aged-city Steps. Separate
+   payroll and commute costs into scanning, schedule calculations and routing; distinguish
+   inclusive and self costs. Collect work counts before choosing a candidate. Keep intrusive
+   diagnostics separate from untraced throughput readings.
+3. **Bound the opportunity.** Identify the avoidable work and estimate the maximum Step saving
+   from eliminating it, including the proposed replacement's maintenance and memory costs.
+   Implement one candidate only when its expected benefit clearly exceeds measured variation.
+   Use repeated paired comparisons with reversed order, then apply the existing two-seed
+   retention gate. Classify results as improvement, regression or inconclusive.
+
+This investigation ends with a supported optimization target or evidence that payroll deserves
+lower priority. Another speculative payroll rewrite is not its deliverable. Fewer visits alone
+do not establish a saving: contiguous scanning can outperform fewer scattered accesses.
 
 ### Threading decision gate
 
@@ -932,3 +959,204 @@ Evidence, frozen builds, commands, raw traces, counted logs and source are prese
 `artifacts/aged-city-performance/20260908/shopping-evidence.tar.gz`; `shopping-checks.json` exposes
 the comparisons and `shopping-manifest.json` verifies archive and per-file fingerprints. Large
 reproducible saves are excluded, with checkpoint hashes and commands retained.
+
+
+## Payroll experiments and boundary counts — 2026-09-08
+
+Neither payroll candidate is retained. Release .NET 10.0.11, Ubuntu 24.04, Intel Core i5-10400,
+one simulation thread, `stress-shopping.toml`, fresh worlds aged to Tick 14,336 and measured
+through 16,384; Decide guard off. These are unpinned desktop diagnostics with no CPU-frequency
+or external-workload control, not quiet-machine budget ratification. Builds and focused tests
+ran during portions of ageing; capture programs ran sequentially.
+
+| Candidate | Seed | Before mean Step ms | Candidate mean Step ms |
+|---|---:|---:|---:|
+| Iterate existing employer worker lists | 0 | 12.34281 | 13.93300 |
+| Reuse return buckets while retaining Citizen order | 0 | 12.34281 | 12.52134 |
+| Reuse return buckets while retaining Citizen order | 1 | 15.31761 | 12.79479 |
+
+The first candidate calculated shift start and weekday eligibility once per employer; the second
+reconstructed shift start from the return bucket and calculated shift length once per worker.
+Both preserve the compared 100,000-Citizen activity, allocations and end hashes. The roster
+candidate also preserves the small seven-Day control's activity and hashes. Neither establishes
+consistent two-seed Step benefit; both were removed without further refinement. These screening
+results do not isolate why either candidate costs what it does. Full tails and memory readings
+remain in the evidence.
+
+`Simulation.PayrollStarting` now exposes the accrual boundary to optional diagnostics.
+`ProfilePayroll` supplies `payrollWork` under `--profile-work`: a duplicate population scan
+immediately before accrual, **not counters inside the implementation**. Its timings and allocations
+are intrusive. `PayrollAccrualTests` compares each worker's wages and remainder per Tick through a
+week, dismissal, rehiring, loss/restoration of premises, rebuilding, save/reload and changed night
+shifts, wage rates and shift lengths. Exact-count and profiling-equivalence assertions cover the
+observer and its removal after capture.
+
+On the same machine/thread/runtime conditions, seed 0, resume Tick 16,384, warm to 18,432 and
+measure through 20,480: **204,800,000 Citizen-slot visits, 44,923,890 AtWork visits and 44,644,836
+OnDuty visits**. All AtWork visits have a declared employer and a commute bucket; no illness
+refusal occurs. Distinct employers summed per Tick total 7,055,762. These are **Tick-summed visits,
+not distinct people over the Day**, and OnDuty means entitlement, not wages paid. They form a
+hypothesis about inactive-Citizen scanning; they establish neither its cost nor the benefit of
+ordered AtWork membership. The next investigation above must settle the target before implementation.
+
+Original, observer-disabled and counted captures match activity and end hash `853C7070AA58EE03`.
+Original/observer-disabled mean Step costs are 14.41541/14.18522 ms, with equal allocations and
+mixed tail differences: no speed or zero-overhead claim. No isolated consumer cost is filed in
+`0013`. Commands, frozen binaries, rejected source, raw readings, regression logs and verified file
+fingerprints are retained in `artifacts/aged-city-performance/20260908/payroll-evidence.tar.gz`,
+with `payroll-checks.json` and `payroll-manifest.json`. The reproducible save is excluded, with its
+fingerprint and command retained. Item 11 remains open.
+
+Validation: all 2,971 assertions pass through `scripts/test.sh`; the complete log is retained in
+the payroll evidence archive. This is the assertion lane, not the unfiltered milestone suite.
+
+## Pinned repeatability and i5 attribution — 2026-09-08
+
+Release .NET 10.0.11, Ubuntu 24.04, i5-10400, one simulation thread pinned to logical CPU 2;
+100,000 Citizens, seed 0, `stress-shopping.toml`. Four sequential runs use the frozen payroll
+observer build and identical Tick-16,384 checkpoint, warm to 18,432 and measure through 20,480.
+Decide guard off. No builds/tests overlap these captures. This is a later Day than the original
+14,336–16,384 control, and remains a desktop diagnostic.
+
+| Repeat | Mean ms | p95 ms | p99 ms | Max ms | Step allocation bytes |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 15.34530 | 31.3993 | 39.2874 | 97.7839 | 3,836,696 |
+| 2 | 15.33742 | 32.0475 | 39.5920 | 96.8045 | 3,836,696 |
+| 3 | 15.55748 | 32.2848 | 37.4439 | 92.4390 | 3,861,320 |
+| 4 | 15.74976 | 33.1182 | 39.8975 | 100.9434 | 3,836,696 |
+
+Activity and end hash `853C7070AA58EE03` match throughout; end invariants pass and no collections
+occur. The extra 24,624 allocated bytes in repeat 3 remain unexplained. Mean range is 0.41233 ms,
+2.69% of the minimum, not a confidence interval. `intel_pstate` remains in `powersave`, turbo enabled;
+frequency is observed rather than locked. CPU 2's sibling, CPU 8, is busy 33.92–43.34% across each
+whole run. Host samples include setup, warmup and ending checks, so they do not isolate interference
+inside the measurement window. Affinity has not established quiet-machine repeatability.
+
+A separate pinned trace of that frozen build matches activity/hash. It runs outside the sandbox,
+which blocks diagnostic sockets. `summarize-simulation-profile.py` now excludes Linux's synthetic
+`CPU_TIME` leaf, previously misreported as almost all self weight; the regression includes that
+marker and the new payroll/commute scopes. Corrected Step weights:
+
+| Function | Managed leaf % | Inclusive % |
+|---|---:|---:|
+| `WorkSchedule.Accrue` | 20.34 | 20.34 |
+| `CommuteEngine.Generate` | 15.60 | 23.25 |
+| `WalkScratch.Search` | 14.98 | 18.30 |
+| `TripEngine.AdvanceTravellers` | 6.63 | 10.30 |
+| `BuildingResidency.NthIn` | 3.36 | 3.36 |
+
+Inclusive rows overlap. Inlining leaves payroll's scanning, schedule calculations and writes in one
+frame; its leaf weight is not a scan price. Eliminating *all* payroll would imply roughly 3.14 ms
+at the baseline median if sample shares represented elapsed costs. That is only an upper-bound
+model, not an achievable saving. Existing boundary counts cannot divide it further. Payroll keeps
+its priority, but no implementation target or speed improvement is established. Next: isolate those
+subcosts and host interference before the paired, two-seed candidate gate.
+
+`scripts/repeat-profile.py` preserves commands, input/assembly hashes, raw captures and host samples;
+it checks activity/hash separately from allocation variation. `ProfileDump` now reports runtime
+processor count and GC mode; these metadata fields postdate the frozen timing build. Validation:
+16 `ProfileDump` assertions, attribution regressions, and replay of captured logs through the repeat
+checker, including a deliberate hash mismatch. Evidence and verified per-file fingerprints are in
+`artifacts/aged-city-performance/20260908/repeatability-evidence.tar.gz` and
+`repeatability-manifest.json`; `repeatability-checks.json` retains the comparisons. No `0013` cost changes.
+
+## Payroll scan boundaries — 2026-09-08
+
+The contiguous scan is no longer the leading payroll hypothesis. `WorkSchedule.Accrue` repeats
+`JobRuleset.ShiftLengthOf` for every entitled worker: `OnDuty` already computed it before returning
+true. Investigate that avoidable calculation before replacing the scan with indirect membership.
+Its isolated cost and a candidate's retained benefit are not yet established.
+
+`-p:PayrollAttribution=true` compiles timing boundaries into actual accrual. Normal builds omit
+them. `PayrollClock` samples every 67th Tick under `--profile-work`, separating schedule checks,
+wage calculation/writes, and the residual loop/filter work. Empty-body boundary calibration runs
+outside Step. The output identifies diagnostic builds; these are not throughput measurements.
+An earlier `NoInlining` attempt produced no `OnDuty` samples despite a disassembled call, so it
+could not separate the costs and was removed. The evidence retains that unsuccessful trace.
+
+Release .NET 10.0.11, Ubuntu 24.04, i5-10400, one simulation thread pinned to CPU 2; seed 0,
+100,000 Citizens, `stress-shopping.toml`, resume Tick 16,384, warm to 18,432, measure 2,048 Ticks,
+Decide guard off. Captures run sequentially without overlapping builds/tests. Two fresh normal
+controls have mean/p95/p99/max of **15.20798/31.2082/38.0982/101.3936 ms** and
+**15.49167/32.6334/41.0062/129.8400 ms**, each allocating 3,836,696 Step bytes. Host isolation
+remains incomplete: CPU 8, the sibling, is busy 38.50%/42.41% across the respective whole runs.
+`powersave` and turbo remain active; these are desktop diagnostics, not budget ratification.
+
+Each diagnostic repeat samples the same 30 Ticks, 3,000,000 Citizen-slot visits, 670,726 schedule
+calls and 666,683 wage updates. Values below are **sums over those sampled Ticks**, not per-Tick
+prices or whole-Day totals.
+
+| Component | Repeat 1 actual / empty ms | Repeat 2 actual / empty ms |
+|---|---:|---:|
+| Schedule eligibility | 81.007 / 20.207 | 68.409 / 13.949 |
+| Wage calculation and writes | 59.032 / 14.551 | 47.620 / 13.418 |
+| Scan/filter residual | 47.907 / 30.232 | 40.950 / 27.211 |
+
+Subtracting the empty calibration gives a **diagnostic model**, not an exact overhead correction:
+roughly 49–53% schedule, 33–36% wage work and 13–14% residual. Calibration has different loop/cache
+conditions; some individual residual differences are negative. Do not clip those differences or
+translate these shares into predicted Step savings. The boundary counter pass also warms data
+before accrual. Twelve sampled Ticks per repeat have no schedule calls at all: their 100,000-slot
+scan medians are 0.215572/0.228322 ms. Those idle-Tick readings do not price an active-Tick scan.
+Together, the observations lower the priority of a scan replacement; they do not price an index.
+
+Both controls, the unsuccessful trace and both direct diagnostic captures preserve activity and
+end hash `853C7070AA58EE03`; end invariants pass. Per-Tick payroll counts match between diagnostic
+repeats, and sampled schedule/wage counts match the independent boundary probe. Diagnostic Step
+allocations are 3,855,696/3,904,896 bytes; no collections occur. Diagnostic mean Steps are
+18.69649/18.94488 ms and are not used for a performance comparison.
+
+Validation: 18 focused payroll/profiling assertions pass in each final build configuration,
+including boundary counts, timing partition, observer cleanup and city equivalence. The normal
+build is restored. No simulation optimization is retained and `0013` is unchanged. Commands,
+frozen builds, traces, raw samples, calibration, checks and source are retained in
+`artifacts/aged-city-performance/20260908/payroll-scan-evidence.tar.gz`, with
+`payroll-scan-checks.json` and verified per-file hashes in `payroll-scan-manifest.json`.
+
+```sh
+scripts/test.sh --filter 'tier!=instrument&(FullyQualifiedName~PayrollAccrual|FullyQualifiedName~ProfileDump)' -- -p:PayrollAttribution=true
+# Freeze this build before restoring a normal build; --profile-work emits payrollTiming/calibration.
+scripts/test.sh --filter 'tier!=instrument&(FullyQualifiedName~PayrollAccrual|FullyQualifiedName~ProfileDump)'
+```
+
+
+## Sale-Bin indexing and shift-length reuse — 2026-09-08
+
+Neither candidate is retained. A `DistrictMarkets` lookup replacing Shopping's owner-Bin walk
+passed 30 Shopping assertions but its seed-0 screen reduced mean Step only from 12.65337 to
+12.54435 ms, below the observed noise, while adding 272,064 allocated Step bytes. Source and
+regressions are archived; the index is removed.
+
+A separate `WorkSchedule.OnDuty` overload returned its already-computed shift length to `Accrue`,
+avoiding a second deterministic draw per entitled worker without persistent state. It passed
+83 focused payroll, Shopping, replay, save/reload, derived rebuild and Civic assertions, plus three
+payroll/profiling assertions in the diagnostic build. Its paired timings did not establish a
+repeatable two-seed benefit, so it too is removed.
+
+Release .NET 10.0.11, Ubuntu 24.04, i5-10400, one simulation thread pinned to CPU 2;
+100,000 Citizens, `stress-shopping.toml`, resume Tick 16,384, warm to 18,432, measure 2,048 Ticks,
+Decide guard off. Each cell is **mean / p95 / p99 / max Step milliseconds**. These desktop
+comparisons are not quiet-machine budget ratification.
+
+| Seed / order | Baseline | Shift-length reuse |
+|---|---|---|
+| 0 / candidate first | 12.47097 / 24.0665 / 26.5118 / 84.3628 | 12.17665 / 23.6203 / 25.9532 / 100.7181 |
+| 0 / baseline first | 12.49709 / 24.3048 / 26.4313 / 83.7872 | 12.07077 / 23.4636 / 25.6443 / 83.4170 |
+| 1 / baseline first, browser isolated | 13.41032 / 25.9013 / 28.5621 / 88.7227 | 12.69595 / 24.1936 / 27.6277 / 88.8538 |
+| 1 / candidate first, browser isolated | 14.92344 / 27.4261 / 32.4203 / 86.8054 | 16.57375 / 36.9802 / 40.5514 / 129.1462 |
+
+Six earlier seed-1 captures encountered changing host load and are preserved separately from these
+pairs. Temporarily excluding Chrome threads from CPUs 2/8 did not make the final comparisons agree;
+all affected affinities were restored, with no restoration errors or remaining restricted threads.
+The contradictory result cannot establish either a code speedup or a code regression. Stop repeating
+small candidates under these conditions; stable unchanged-build controls are the next requirement.
+
+Activity and hashes match within each seed throughout: seed 0 `853C7070AA58EE03`, seed 1
+`ABB33231E5EB4570`; end invariants pass. The first seed-0 candidate allocates 24,624 bytes more,
+a variation also seen in unchanged controls earlier; other paired allocations match. No collections
+occur. Raw captures, commands, host samples, frozen binaries, both discarded implementations and
+test logs are in `artifacts/aged-city-performance/20260908/reuse-evidence.tar.gz`; checks and verified
+fingerprints are in `reuse-checks.json` and `reuse-manifest.json`. `0013` is unchanged.
+
+Restored-build validation: 24 payroll, profiling and corpus-budget assertions pass; a normal
+profile smoke run reports attribution disabled and passing end invariants.

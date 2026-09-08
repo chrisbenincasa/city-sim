@@ -1,0 +1,401 @@
+{
+  "archive": "payroll-evidence.tar.gz",
+  "baselineCommit": "41f87dd",
+  "files": {
+    "after/Borough.Core.dll": {
+      "sha256": "7fbff95b65e4a9c43e433c52f5c6332f173bdd57bae022163acf2eaf8373a2db",
+      "bytes": 694784
+    },
+    "after/Borough.Core.pdb": {
+      "sha256": "95ab9a52bdb8303dbcf7435bde0f09395bef882de2d7462eacab33ed4cbf1c36",
+      "bytes": 233988
+    },
+    "after/Borough.Formats.dll": {
+      "sha256": "a9bebdea1555084bd2d277833ccae7a0cae24d14402cf16fdfda347a2271e46b",
+      "bytes": 323072
+    },
+    "after/Borough.Formats.pdb": {
+      "sha256": "19ad52ebea562e5023c5ae0b89ae5f55d829d586adba7637dd8146344aa27d2b",
+      "bytes": 44204
+    },
+    "after/Borough.Headless": {
+      "sha256": "c9e1833d80c625ca4588e41bd3418df964c19575a4efabb3d8ca4c8b08d0af85",
+      "bytes": 79832
+    },
+    "after/Borough.Headless.deps.json": {
+      "sha256": "89252d4cf47de09666c91c9ce1b46a888399f895e26c904097e1c672469cae56",
+      "bytes": 1709
+    },
+    "after/Borough.Headless.dll": {
+      "sha256": "01d6f147d79f9dcf91140aea5d9b0b7529fc1a4b016ff8a1caa5d88af4ba6e37",
+      "bytes": 451584
+    },
+    "after/Borough.Headless.pdb": {
+      "sha256": "61bbe95f37db2eef9987bd46c106571c60c9f107c1948b73f7153e1c1b7c659b",
+      "bytes": 82804
+    },
+    "after/Borough.Headless.runtimeconfig.json": {
+      "sha256": "52eccff0b97c55480c64b3a6d8dcb244f5fd098d0645dba8581d3e2190d4ea4a",
+      "bytes": 435
+    },
+    "after/Tomlyn.dll": {
+      "sha256": "2366b14ae842bf9d4eadf206c8b20c7c2217ff75b5f4567999c5c7a9caae6dea",
+      "bytes": 323072
+    },
+    "after-seed0-reproduction.json": {
+      "sha256": "0cc6cf06945f605c80cbd18c617485736aee8da84421d255c353aa6f8587880c",
+      "bytes": 521
+    },
+    "after-seed0.jsonl": {
+      "sha256": "66776fb731f9f996b1b932a26e220d9b43d20831b83af8a7a6a81701e3d2fd51",
+      "bytes": 3033
+    },
+    "baseline-WorkSchedule.cs": {
+      "sha256": "bdb8bf5d032cea4a8055e6bf355b61b806dc2f9666d0b09e2ed462bca15a6072",
+      "bytes": 3924
+    },
+    "before/Borough.Core.dll": {
+      "sha256": "f1bdcdb02377e70dc9710f44e4930101c484dd4b46d6f398b4921da184db50d1",
+      "bytes": 694784
+    },
+    "before/Borough.Core.pdb": {
+      "sha256": "497e13bc743d4cda8f881a104f870016b8e0c4fae577fb3453782a1b648aa606",
+      "bytes": 233876
+    },
+    "before/Borough.Formats.dll": {
+      "sha256": "a9bebdea1555084bd2d277833ccae7a0cae24d14402cf16fdfda347a2271e46b",
+      "bytes": 323072
+    },
+    "before/Borough.Formats.pdb": {
+      "sha256": "19ad52ebea562e5023c5ae0b89ae5f55d829d586adba7637dd8146344aa27d2b",
+      "bytes": 44204
+    },
+    "before/Borough.Headless": {
+      "sha256": "c9e1833d80c625ca4588e41bd3418df964c19575a4efabb3d8ca4c8b08d0af85",
+      "bytes": 79832
+    },
+    "before/Borough.Headless.deps.json": {
+      "sha256": "89252d4cf47de09666c91c9ce1b46a888399f895e26c904097e1c672469cae56",
+      "bytes": 1709
+    },
+    "before/Borough.Headless.dll": {
+      "sha256": "01d6f147d79f9dcf91140aea5d9b0b7529fc1a4b016ff8a1caa5d88af4ba6e37",
+      "bytes": 451584
+    },
+    "before/Borough.Headless.pdb": {
+      "sha256": "61bbe95f37db2eef9987bd46c106571c60c9f107c1948b73f7153e1c1b7c659b",
+      "bytes": 82804
+    },
+    "before/Borough.Headless.runtimeconfig.json": {
+      "sha256": "52eccff0b97c55480c64b3a6d8dcb244f5fd098d0645dba8581d3e2190d4ea4a",
+      "bytes": 435
+    },
+    "before/Tomlyn.dll": {
+      "sha256": "2366b14ae842bf9d4eadf206c8b20c7c2217ff75b5f4567999c5c7a9caae6dea",
+      "bytes": 323072
+    },
+    "before-resumed-command.json": {
+      "sha256": "40f8eba3b7e59cfc5494ae7e5235bc4a0f75767c82c06c07afb4443c79e8d922",
+      "bytes": 488
+    },
+    "before-resumed.err": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "before-resumed.jsonl": {
+      "sha256": "0f27b53464fd36fc23a55b3ee788a8f3a98139ff1d5d09b633a431da8a2575f8",
+      "bytes": 2675
+    },
+    "before-seed0-reproduction.json": {
+      "sha256": "54e6b6ada61e14a4eae17cd4f32d17c39b0782c5fce6c77668cf79547e600a06",
+      "bytes": 583
+    },
+    "before-seed0.jsonl": {
+      "sha256": "7d88de08c1a46c6390f0b6924ad3dab1ae0860c8a1e2b3e6525251d85680ec78",
+      "bytes": 3062
+    },
+    "before-seed1-reproduction.json": {
+      "sha256": "696fcf4a913f7b1024f2a0c8c1d3103c7c4fb1becff5167b41b23854bd10c173",
+      "bytes": 522
+    },
+    "before-seed1.err": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "before-seed1.jsonl": {
+      "sha256": "7610165fc51d40db1f45455970342511927cb460480c9e17e56762438179ecab",
+      "bytes": 3033
+    },
+    "before-small-command.json": {
+      "sha256": "5520db7ccd4909da480a4d86d24a5b6b00c127357af877269a9efecac8134a77",
+      "bytes": 425
+    },
+    "before-small.err": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "before-small.jsonl": {
+      "sha256": "225fc4e17ae89ec100ea9c29d6060aca1ca5ae182b343240a434fdba5e103066",
+      "bytes": 10180
+    },
+    "capture-observer.py": {
+      "sha256": "ff7ea64acf0a89be1b7331109645145d1651a30984710aaa15a58fc858110b6d",
+      "bytes": 1110
+    },
+    "capture-rest.py": {
+      "sha256": "decf7570c30bd6b0b97327e8066aee63e36caed1c5a77c8bc0c2c9f863abb6f3",
+      "bytes": 1122
+    },
+    "capture-roster.py": {
+      "sha256": "07b4a4e06c22fa1075f665fb872d2836b13dae73b7d95493c776f727d97b121d",
+      "bytes": 1101
+    },
+    "checkpoint.json": {
+      "sha256": "9912e7f1803dc8285b72a4c88ee3787fd3a419e1ae601f4339a173765d98a0a1",
+      "bytes": 240
+    },
+    "checks.json": {
+      "sha256": "3fbfd06e3160286054a8c7d4604b65176d85e40c23a6d488c30a03cd7ff60ff0",
+      "bytes": 13666
+    },
+    "machine.txt": {
+      "sha256": "a3c413b7bee012d16fea3f9a5561e6eccb331d97b1e934266901af1532e1b48f",
+      "bytes": 3356
+    },
+    "observer/Borough.Core.dll": {
+      "sha256": "776733c2fc90a224fa6cbe5fa251ba524ca41c40e3e0c8aaf0bafe9034f3cfe4",
+      "bytes": 694784
+    },
+    "observer/Borough.Core.pdb": {
+      "sha256": "4eb9e2ecd83faf4fa948ebb8f10231b49dde356db1194f68a8c188fcb3de5659",
+      "bytes": 233936
+    },
+    "observer/Borough.Formats.dll": {
+      "sha256": "fe4859cee13af694dab9a92a6ca2b5d842c5500e6fa562d6e655adea5d8725d5",
+      "bytes": 323072
+    },
+    "observer/Borough.Formats.pdb": {
+      "sha256": "f9aa299b8c9954718154dea6258b55d7b87a2eb7296a3d4d4b16ffb14c79a7d7",
+      "bytes": 44204
+    },
+    "observer/Borough.Headless": {
+      "sha256": "c9e1833d80c625ca4588e41bd3418df964c19575a4efabb3d8ca4c8b08d0af85",
+      "bytes": 79832
+    },
+    "observer/Borough.Headless.deps.json": {
+      "sha256": "89252d4cf47de09666c91c9ce1b46a888399f895e26c904097e1c672469cae56",
+      "bytes": 1709
+    },
+    "observer/Borough.Headless.dll": {
+      "sha256": "9ed7daa8f7c80af66087154ea209548f8b761b4c90e40150e1e2cfa60fe0cfc9",
+      "bytes": 456192
+    },
+    "observer/Borough.Headless.pdb": {
+      "sha256": "ffb5bfb073fb01ecd4a4e22148b261edc616ad2f2ea28f2e5a1a573319fa13c5",
+      "bytes": 83784
+    },
+    "observer/Borough.Headless.runtimeconfig.json": {
+      "sha256": "52eccff0b97c55480c64b3a6d8dcb244f5fd098d0645dba8581d3e2190d4ea4a",
+      "bytes": 435
+    },
+    "observer/Tomlyn.dll": {
+      "sha256": "2366b14ae842bf9d4eadf206c8b20c7c2217ff75b5f4567999c5c7a9caae6dea",
+      "bytes": 323072
+    },
+    "observer-counted-command.json": {
+      "sha256": "d78066ab0425e96d97b26aacc0c8175e80d2146200e34aebdfb327059dd4d462",
+      "bytes": 513
+    },
+    "observer-counted.err": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "observer-counted.jsonl": {
+      "sha256": "d3dbffc04799fc22cf20b249d58b557708bf9207e7356e00b216fd42d5b34d9a",
+      "bytes": 3199707
+    },
+    "observer-resumed-command.json": {
+      "sha256": "f6e4e55bec33cee4a121f21bf71ce4d6e5156676be135f21a2073ecc58a7914d",
+      "bytes": 491
+    },
+    "observer-resumed.err": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "observer-resumed.jsonl": {
+      "sha256": "256838e85c6dfe61f0210cd359ae4a58318013dd2fb9a2c0f45e4f6d1e1ba6fe",
+      "bytes": 2793
+    },
+    "package.py": {
+      "sha256": "dd04b71147f6e10df31ce67f07c271408df33b52446291effb90510fea44e7d7",
+      "bytes": 6398
+    },
+    "rejected-employer-lists.cs": {
+      "sha256": "42534b729ce6cf93dce21702c88721a267bcb860fec3ac098e0481f5b28fdc3d",
+      "bytes": 4653
+    },
+    "rejected-roster.cs": {
+      "sha256": "5260c6670226c40907ff82f57e59478a497c453d0055f5b3c0db571c2b3af638",
+      "bytes": 4789
+    },
+    "roster/Borough.Core.dll": {
+      "sha256": "54aed6861e2b125d5517fa6dc611df1e0cae50267e0aaf48ff5f0a93ec464dc3",
+      "bytes": 694784
+    },
+    "roster/Borough.Core.pdb": {
+      "sha256": "c8500c309fe09dadd5f4ddafa8030d5e1044b91202c42cf28f315315bbc7b6aa",
+      "bytes": 233940
+    },
+    "roster/Borough.Formats.dll": {
+      "sha256": "a9bebdea1555084bd2d277833ccae7a0cae24d14402cf16fdfda347a2271e46b",
+      "bytes": 323072
+    },
+    "roster/Borough.Formats.pdb": {
+      "sha256": "19ad52ebea562e5023c5ae0b89ae5f55d829d586adba7637dd8146344aa27d2b",
+      "bytes": 44204
+    },
+    "roster/Borough.Headless": {
+      "sha256": "c9e1833d80c625ca4588e41bd3418df964c19575a4efabb3d8ca4c8b08d0af85",
+      "bytes": 79832
+    },
+    "roster/Borough.Headless.deps.json": {
+      "sha256": "89252d4cf47de09666c91c9ce1b46a888399f895e26c904097e1c672469cae56",
+      "bytes": 1709
+    },
+    "roster/Borough.Headless.dll": {
+      "sha256": "01d6f147d79f9dcf91140aea5d9b0b7529fc1a4b016ff8a1caa5d88af4ba6e37",
+      "bytes": 451584
+    },
+    "roster/Borough.Headless.pdb": {
+      "sha256": "61bbe95f37db2eef9987bd46c106571c60c9f107c1948b73f7153e1c1b7c659b",
+      "bytes": 82804
+    },
+    "roster/Borough.Headless.runtimeconfig.json": {
+      "sha256": "52eccff0b97c55480c64b3a6d8dcb244f5fd098d0645dba8581d3e2190d4ea4a",
+      "bytes": 435
+    },
+    "roster/Tomlyn.dll": {
+      "sha256": "2366b14ae842bf9d4eadf206c8b20c7c2217ff75b5f4567999c5c7a9caae6dea",
+      "bytes": 323072
+    },
+    "roster-seed0-reproduction.json": {
+      "sha256": "6346072e8735e07c76b2e4a80b355aa5b6b26e0d11cbfd662dbab7633ebf43e3",
+      "bytes": 522
+    },
+    "roster-seed0.jsonl": {
+      "sha256": "8ec6d21e69e1a1605cb98c14dec3de5ad62337ff5cc471cdb134bcead1ed0c87",
+      "bytes": 3033
+    },
+    "roster-seed1-command.json": {
+      "sha256": "f2ae0fb22145ceaa7df4ff15eb77cd4b3694d2e2a884cbc480614ad8f4148624",
+      "bytes": 427
+    },
+    "roster-seed1.err": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "roster-seed1.jsonl": {
+      "sha256": "e999141e5406cb468abf7343d470fa8151c5662fccc58a2382c1c6d90d2abd51",
+      "bytes": 3032
+    },
+    "roster-small-command.json": {
+      "sha256": "146cac005053eae1532f5c0fd1832abea022ff804719ad0fcaba98072330a3df",
+      "bytes": 426
+    },
+    "roster-small.err": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "roster-small.jsonl": {
+      "sha256": "4d9f927938265f3005a42b1bd64c185b5ff53f94c9f94afabbc4470e614dda9f",
+      "bytes": 10180
+    },
+    "source/plans/0067-aged-city-performance.md": {
+      "sha256": "e6111bce52b174c526c46fc9fb4f5ca30447fecfe148256d065b135c8b48130d",
+      "bytes": 72448
+    },
+    "source/rulesets/stress-shopping.toml": {
+      "sha256": "2de63becd3932f2bbbba77163f32b2ca4cde0dffc688a95f0ded9676f52914b8",
+      "bytes": 4969
+    },
+    "source/src/Borough.Core/Movement/WorkSchedule.cs": {
+      "sha256": "bdb8bf5d032cea4a8055e6bf355b61b806dc2f9666d0b09e2ed462bca15a6072",
+      "bytes": 3924
+    },
+    "source/src/Borough.Core/Simulation.cs": {
+      "sha256": "f6063f2766e7a7985a9fe5c61f1d2600e34ee370f5aaf10a479ffe413dec4d6c",
+      "bytes": 89883
+    },
+    "source/src/Borough.Headless/ProfileDump.cs": {
+      "sha256": "1c1058d545bbd1cd805ed4b44a3ad921ee57c5a4df10e639cfa1c9b970667591",
+      "bytes": 15700
+    },
+    "source/src/Borough.Headless/ProfilePayroll.cs": {
+      "sha256": "0f25dbb610a8b6331c8ab9855d98a38f2123fbeb9054c20838a0a3742b540d81",
+      "bytes": 1896
+    },
+    "source/tests/Borough.Tests/Headless/ProfileDumpTests.cs": {
+      "sha256": "64840e7432e8bfa3965b7d708c4119d851e46a73fb3b30b5892986cfde6547dc",
+      "bytes": 19403
+    },
+    "source/tests/Borough.Tests/Rules/PayrollAccrualTests.cs": {
+      "sha256": "fed1e296e1272916db27e437ab019f9f6cf68989838954abe0519a1b7ae553f1",
+      "bytes": 4659
+    },
+    "tests/borough-test-20260908-114612.log": {
+      "sha256": "fe4a7f16957226aed670b60153bcd0a3c9980bae09464462e67819a96e998043",
+      "bytes": 766
+    },
+    "tests/borough-test-20260908-114737.log": {
+      "sha256": "20e28caa5bee2e0253b12c8ceee9e2cf50ab8edb43cb6ecfa46f6fa50b910e12",
+      "bytes": 1007
+    },
+    "tests/borough-test-20260908-114829.log": {
+      "sha256": "1dca9ba4b94230a9ab5f2c6a2614f44ffc963084937dc4d3c760e0ac14888bed",
+      "bytes": 1007
+    },
+    "tests/borough-test-20260908-114959.log": {
+      "sha256": "2a646e4b55cc6af921a52082dbfc4e694378fca8e02d4b8232ee590fc3c4b01f",
+      "bytes": 819
+    },
+    "tests/borough-test-20260908-115124.log": {
+      "sha256": "20e28caa5bee2e0253b12c8ceee9e2cf50ab8edb43cb6ecfa46f6fa50b910e12",
+      "bytes": 1007
+    },
+    "tests/borough-test-20260908-115224.log": {
+      "sha256": "28323e1a89022a9a205a484d5a082b4ed529a1097370106cb61d4f779f65857e",
+      "bytes": 1008
+    },
+    "tests/borough-test-20260908-120149.log": {
+      "sha256": "1dca9ba4b94230a9ab5f2c6a2614f44ffc963084937dc4d3c760e0ac14888bed",
+      "bytes": 1007
+    },
+    "tests/borough-test-20260908-120419.log": {
+      "sha256": "b3bb521022b9fade95a3bc4500b26892c4aec6dc2239797109280afc3ff0766e",
+      "bytes": 1008
+    },
+    "tests/borough-test-20260908-120531.log": {
+      "sha256": "acf6d926a086e016f947edf3a23f8a1bcdf69b963a4f3cf55fee6d7b7c5ab126",
+      "bytes": 1007
+    },
+    "tests/borough-test-20260908-121323.log": {
+      "sha256": "c4874a4de72f9ac444dd8f9809e066b9905e5e2eb3fa3a65404fe2161e529792",
+      "bytes": 1007
+    },
+    "tests/borough-test-20260908-121639.log": {
+      "sha256": "a0c540d90e33471f5c1e4deca0cdf4502e0deb10b442641d006fd58c930680a5",
+      "bytes": 1007
+    },
+    "tests/borough-test-20260908-122903.log": {
+      "sha256": "c05fc5b06c0b5d471908c93d76c8f7b9ffd5a2257a23a0c5585c9c54809fb58f",
+      "bytes": 1012
+    },
+    "tests/borough-test-20260908-123427.log": {
+      "sha256": "e1beb5d989bbbd63dec7ceb63f9d8cbfaa082e7afe45555b325b8abf8f9fde88",
+      "bytes": 1007
+    }
+  },
+  "archiveSha256": "d2a19245b34bdd62da8bbb8e93ef8c7f3140c16a9e07c784f9d524bfc45c3bf2",
+  "archiveBytes": 3735988,
+  "verified": true
+}
