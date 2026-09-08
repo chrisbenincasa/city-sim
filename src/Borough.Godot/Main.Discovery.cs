@@ -13,7 +13,7 @@ public partial class Main
     private const int HeadingPoints = InformationUi.BodyPoints;
     private const int TitlePoints = InformationUi.TitlePoints;
     private ScrollContainer _helpScroll = null!;
-    private int _textPercent = 118; // PROVISIONAL readability default.
+    private int _textPercent = 100;
     private PanelContainer _helpPanel = null!;
     private Control _helpShade = null!;
     private Label _textSizeLabel = null!;
@@ -52,12 +52,8 @@ public partial class Main
         new("Time", "2×", "2", [Key.Key2], () => ViewCommand(DriveVerb.Speed, DesignSpeed + 1)),
         new("Time", "3×", "3", [Key.Key3], () => ViewCommand(DriveVerb.Speed, DesignSpeed + 2)),
         new("Time", "4×", "4", [Key.Key4], () => ViewCommand(DriveVerb.Speed, DesignSpeed + 3)),
-        new("Tools", "Look / cancel tool", "V", [Key.V], () => Apply(Held("look", 0))),
-        new("Tools", "Subdivide / next permission", "Z", [Key.Z], () => Apply(Held("zone", _verb == Verb.Zone && _world.Rules.ZoneRules.Length > 0 ? (_zoneChoice + 1) % _world.Rules.ZoneRules.Length : 0))),
-        new("Tools", "Street", "X", [Key.X], () => Apply(Held("street", 0))),
-        new("Tools", "Demolish", "B", [Key.B], () => Apply(Held("demolish", 0))),
-        new("Tools", "Service / next kind", "S", [Key.S], () => Apply(Held("service", NextService(_verb == Verb.Service ? _serviceKind : (byte)0)))),
-        new("Tools", "Policies", "P", [Key.P], Govern),
+        .. ToolDefinitions().Where(t => t.Key != Key.None).Select(t => new Shortcut("Tools", t.Label,
+            t.Key.ToString(), [t.Key], () => { if (t.Available) t.Select(t.NextChoice); })),
         new("Views", "Next map layer", "O", [Key.O], () => Apply(new DriveCommand(_world.Tick.Raw, DriveVerb.Overlay, 0, _washing switch { Wash.None => "pollution", Wash.Pollution => "value", Wash.Value => "sealing", Wash.Sealed => "health", Wash.Health => "rung", Wash.Rung => "age", _ => "off" }))),
         new("Views", "Photograph view", "L", [Key.L], () => ViewCommand(DriveVerb.Lens, _photographing ? 0 : 1)),
         new("Views", "Road drawing", "G", [Key.G], () => ViewCommand(DriveVerb.Roads, _roads.Visible ? 0 : 1)),
@@ -95,14 +91,6 @@ public partial class Main
         heading.AddChild(title);
         heading.AddChild(InformationButton("Close Help ×", () => Ui("help off")));
         body.AddChild(heading);
-        var sizing = new HFlowContainer();
-        _textSizeLabel = InformationLabel($"Text size: {_textPercent}%");
-        _textSizeLabel.AutowrapMode = TextServer.AutowrapMode.Off;
-        sizing.AddChild(_textSizeLabel);
-        sizing.AddChild(InformationButton("A−", () => SetTextSize(_textPercent - 10)));
-        sizing.AddChild(InformationButton("A+", () => SetTextSize(_textPercent + 10)));
-        sizing.AddChild(InformationButton("Reset size", () => SetTextSize(118)));
-        body.AddChild(sizing);
         _helpScroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled, SizeFlagsVertical = Control.SizeFlags.ExpandFill };
         var content = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         content.AddThemeConstantOverride("separation", InformationUi.SectionGap);
@@ -130,6 +118,7 @@ public partial class Main
 
     private void ShowHelp(bool shown)
     {
+        if (shown) _settingsPanel.Visible = false;
         _helpShade.Visible = shown;
         _helpPanel.Visible = shown;
         if (shown)
@@ -138,6 +127,7 @@ public partial class Main
             _hud.MoveChild(_helpPanel, -1);
             GetViewport().GuiGetFocusOwner()?.ReleaseFocus();
             _pressed = null;
+            _zoneStart = null;
         }
     }
 
@@ -183,6 +173,17 @@ public partial class Main
             return;
         }
         if (_helpPanel is null) return;
+        if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } down
+            && _verb == Verb.Zone && !OverInformation(down.Position)) _zoneMouseDown = true;
+        if (@event is InputEventMouseButton { Pressed: false, ButtonIndex: MouseButton.Left } up
+            && (_zoneStart is not null || _zoneMouseDown) && OverInformation(up.Position))
+        {
+            _zoneMouseDown = false;
+            Ui("zone-cancel");
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+        if (@event is InputEventMouseButton { Pressed: false, ButtonIndex: MouseButton.Left }) _zoneMouseDown = false;
         if (@event is not InputEventKey { Pressed: true, Echo: false } key) return;
         if (_stepThread?.OwnsWorld == true && (key.Keycode == Key.Escape
             || key.Keycode == Key.Question || key.Keycode == Key.Slash && key.ShiftPressed))
@@ -194,9 +195,12 @@ public partial class Main
         }
         if (key.Keycode == Key.Escape)
         {
-            if (_helpPanel.Visible) Ui("help off");
+            if (_zoneStart is not null) Ui("zone-cancel");
+            else if (_helpPanel.Visible) Ui("help off");
+            else if (_settingsPanel.Visible) Ui("settings off");
             else if (_tuner.Visible && (!_governing || _tuner.GetIndex() > _policyPanel.GetIndex())) _tuner.Visible = false;
             else if (_governing) Govern();
+            else if (_toolsShown) Ui("tools off");
             else if (_inspector!.Visible) Ui("close");
             else Apply(Held("look", 0));
             GetViewport().GuiGetFocusOwner()?.ReleaseFocus();

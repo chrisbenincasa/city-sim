@@ -68,19 +68,23 @@ public partial class Main
         var heading = new HBoxContainer();
         var identity = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         _inspectionBack = InformationButton("‹ Building", () => Ui("back"));
+        _inspectionBack.ClipText = true;
         identity.AddChild(_inspectionBack);
         _inspectionIdentity = InformationLabel(string.Empty, CaptionPoints);
         _inspectionIdentity.AutowrapMode = TextServer.AutowrapMode.Off;
         _inspectionIdentity.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+        _inspectionIdentity.ClipText = true;
         identity.AddChild(_inspectionIdentity);
         _inspectionTitle = InformationLabel(string.Empty, TitlePoints);
         _inspectionTitle.Size = new Vector2(300, 36);
         _inspectionTitle.AutowrapMode = TextServer.AutowrapMode.Off;
         _inspectionTitle.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+        _inspectionTitle.ClipText = true;
         identity.AddChild(_inspectionTitle);
         _inspectionCondition = InformationLabel(string.Empty, SecondaryPoints);
         _inspectionCondition.AutowrapMode = TextServer.AutowrapMode.Off;
         _inspectionCondition.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+        _inspectionCondition.ClipText = true;
         identity.AddChild(_inspectionCondition);
         heading.AddChild(identity);
         var close = InformationButton("×", () => Ui("close"));
@@ -109,9 +113,10 @@ public partial class Main
         {
             _lightUi = (bool)preferences.GetValue("ui", "light", false);
             _debugShown = (bool)preferences.GetValue("ui", "debug", false);
-            _textPercent = Math.Clamp((int)preferences.GetValue("ui", "text_percent", 118), 100, 150);
+            _textPercent = Math.Clamp((int)preferences.GetValue("ui", "text_percent", 100), 100, 150);
         }
         BuildDiscovery();
+        BuildSettings();
         Retype();
         ThemeInformation();
         LayoutInformation();
@@ -134,7 +139,9 @@ public partial class Main
 
     private Button InformationButton(string text, Action action)
     {
-        return InformationUi.Button(text, () => AtBoundary(action));
+        var button = InformationUi.Button(text, () => AtBoundary(action));
+        button.TooltipText = text;
+        return button;
     }
 
     private MeshInstance3D InformationRing(Color colour)
@@ -156,18 +163,31 @@ public partial class Main
     private void ThemeInformation()
     {
         if (_inspector is null) return;
+        // Publish one theme change after all colors and styles have been set.
+        _type.SetBlockSignals(true);
         var colors = InformationUi.Apply(_type, _lightUi);
         Color paper = colors.Paper, ink = colors.Ink, line = colors.Line;
-        // ⚠ _palette is NOT in this list any more. It is inside the console now, so a second panel
-        // stylebox would draw a box inside a box; it gets an empty one instead. The two that can be
-        // null are the ones Panels() rebuilds -- ThemeInformation runs before the first rebuild.
-        _palette?.AddThemeStyleboxOverride("panel", new StyleBoxEmpty());
+        _type.SetColor("icon_disabled_color", "Button", colors.Muted);
+        _type.SetColor("icon_normal_color", "Button", colors.Active);
+        _type.SetColor("icon_hover_color", "Button", colors.Active);
+        _type.SetColor("icon_pressed_color", "Button", colors.OnActive);
+        _type.SetColor("icon_hover_pressed_color", "Button", colors.OnActive);
+        _type.SetBlockSignals(false);
+        _type.EmitChanged();
+        // Every panel casts a shadow. A flat panel over the city reads as a hole cut in the picture
+        // rather than a thing resting above it, and weak clickability signifiers cost real reading
+        // time (Nielsen Norman Group, 22% longer and 25% more fixations) — plans/0064 row 18.
+        Color shadow = colors.Shadow;
+        _palette?.AddThemeStyleboxOverride("panel",
+            InformationUi.Box(paper, line, 16, 12, InformationUi.PanelRadius, shadow));
         foreach (Control panel in _informationPanels.Concat(new Control?[] { _policyPanel, _tuner })
             .Where(p => p is not null).Select(p => p!))
         {
-            panel.AddThemeStyleboxOverride("panel", InformationUi.Box(paper, line, InformationUi.PanelInsetX, InformationUi.PanelInsetY));
+            panel.AddThemeStyleboxOverride("panel", InformationUi.Box(paper, line,
+                InformationUi.PanelInsetX, InformationUi.PanelInsetY, InformationUi.PanelRadius, shadow));
         }
-        _console.AddThemeStyleboxOverride("panel", InformationUi.Box(paper, line, InformationUi.ConsoleInsetX, InformationUi.ConsoleInsetY));
+        _console.AddThemeStyleboxOverride("panel", InformationUi.Box(paper, line,
+            InformationUi.ConsoleInsetX, InformationUi.ConsoleInsetY, InformationUi.PanelRadius, shadow));
 
         _skyArc.Ink = ink;
         _skyArc.Paper = paper;
@@ -179,15 +199,15 @@ public partial class Main
             BgColor = colors.Warning,
             BorderColor = colors.Warn,
             BorderWidthBottom = 1, BorderWidthLeft = 3, BorderWidthRight = 1, BorderWidthTop = 1,
-            CornerRadiusBottomLeft = 4, CornerRadiusBottomRight = 4,
-            CornerRadiusTopLeft = 4, CornerRadiusTopRight = 4,
+            CornerRadiusBottomLeft = InformationUi.CardRadius, CornerRadiusBottomRight = InformationUi.CardRadius,
+            CornerRadiusTopLeft = InformationUi.CardRadius, CornerRadiusTopRight = InformationUi.CardRadius,
             ContentMarginLeft = 12, ContentMarginRight = 12,
             ContentMarginTop = 8, ContentMarginBottom = 8,
         });
 
-        _themeButton.Text = _lightUi ? "Dark" : "Light";
+        _themeButton.ButtonPressed = _lightUi;
         _themeButton.TooltipText = "Switch interface theme";
-        _debugButton.Text = _debugShown ? "Debug ✓" : "Debug";
+        _debugButton.ButtonPressed = _debugShown;
         _debugButton.TooltipText = "Toggle technical readout (F3)";
         _debugPanel.Visible = _debugShown;
     }
@@ -216,8 +236,12 @@ public partial class Main
         bool narrow = size.X < 900;
         float width = Math.Min(406 * _textPercent / 100f, size.X - margin * 2);
         LayoutDiscovery(size, margin);
-        _toolsButton.Visible = narrow;
-        _toolSlot.Visible = !narrow || _toolsShown;
+        _toolsButton.Visible = !_toolsShown;
+        _toolsButton.Position = new Vector2(margin, margin);
+        _toolsButton.Size = new Vector2(110, 40);
+        LayoutSettings(size, margin);
+        _toolSlot.Visible = true;
+        if (_palette is not null) _palette.Visible = _toolsShown;
 
         // 🔴 THE CONSOLE IS THE ONE PANEL THAT SIZES ITSELF, and it has to be. Its height is its
         // content's -- a legend appears with a layer, a hint with a tool, a refusal with a refusal --
@@ -244,19 +268,25 @@ public partial class Main
         float consoleTop = Math.Max(margin * 2,
             size.Y - margin - Math.Max(_console.Size.Y, _console.GetCombinedMinimumSize().Y));
 
+        LayoutToolBrowser(size, margin, consoleTop, narrow, width);
+
         // The debug overlay stays independent and stays top-left. On a narrow window it is the one
         // thing above the inspector rather than beside it, because there is no beside.
+        float debugTop = !_toolsShown ? margin + 50 : margin;
         float debugHeight = _debugShown
-            ? Math.Min(narrow && _inspector.Visible ? 160 : 720 * _textPercent / 100f, consoleTop - margin * 2)
+            ? Math.Min(narrow && _inspector.Visible ? 160 : 720 * _textPercent / 100f, consoleTop - debugTop - margin)
             : 0;
-        SetPanel(_debugPanel, margin, margin,
+        float left = _toolsShown ? _palette!.Position.X + _palette.Size.X + margin : margin;
+        SetPanel(_debugPanel, left, debugTop,
             Math.Min(840 * _textPercent / 100f,
-                !narrow && _inspector.Visible ? size.X - width - margin * 3 : size.X - margin * 2),
+                !narrow && _inspector.Visible ? size.X - width - left - margin * 2 : size.X - left - margin),
             Math.Max(36, debugHeight));
 
-        float top = narrow && _debugShown ? margin + debugHeight + margin : margin;
-        SetPanel(_inspector, narrow ? margin : size.X - width - margin, top,
-            narrow ? size.X - margin * 2 : width, Math.Max(90, consoleTop - margin - top));
+        float top = narrow && _debugShown ? debugTop + debugHeight + margin
+            : narrow && !_toolsShown ? margin + 50 : margin;
+        FitPanel(_inspector, _inspectionScroll, _inspectionBody,
+            narrow ? left : size.X - width - margin, top,
+            narrow ? size.X - left - margin : width, 90, Math.Max(90, consoleTop - margin - top));
     }
 
     private static void SetPanel(Control panel, float x, float y, float width, float height)
@@ -265,9 +295,35 @@ public partial class Main
         panel.Size = new Vector2(Math.Max(1, width), Math.Max(1, height));
     }
 
+    /// <summary>
+    /// Places a scrolling panel at the height its content actually needs, never taller than the room
+    /// it has. <b>A panel stretched to the frame covers the city with nothing</b> — measured at
+    /// 1440 × 960 the tool browser held 325 px of content in 728 px and the inspector 519 px, so
+    /// 12% of the whole frame was blank opaque panel over the picture (plans/0064 row 18).
+    /// </summary>
+    /// <remarks>
+    /// The scroll container reports a small minimum whatever it holds, so the content height is the
+    /// panel's own minimum with the scroll's subtracted and the scrolled body's added back — the
+    /// same arithmetic the console already uses for its footer. A body that wraps its text answers
+    /// for the width it was given last frame, so a panel whose content changes settles over one
+    /// frame rather than immediately; it is clamped both ways, so the intermediate frame is short
+    /// or tall, never wrong.
+    /// </remarks>
+    private static void FitPanel(Control panel, Control scroll, Control body,
+        float x, float y, float width, float floor, float available)
+    {
+        panel.Position = new Vector2(x, y);
+        panel.Size = new Vector2(Math.Max(1, width), Math.Max(1, available));
+        float chrome = panel.GetCombinedMinimumSize().Y - scroll.GetCombinedMinimumSize().Y;
+        float wanted = chrome + body.GetCombinedMinimumSize().Y;
+        panel.Size = new Vector2(Math.Max(1, width), Math.Clamp(wanted, Math.Min(floor, available), available));
+    }
+
     private bool OverInformation(Vector2 at) => _hud.Visible && (
         _helpShade is not null && _helpShade.Visible
         || _informationPanels.Any(p => p.Visible && p.GetGlobalRect().HasPoint(at))
+        || _toolsButton.Visible && _toolsButton.GetGlobalRect().HasPoint(at)
+        || _palette is not null && _palette.Visible && _palette.GetGlobalRect().HasPoint(at)
         || _tuner.Visible && _tuner.GetGlobalRect().HasPoint(at)
         || _policyPanel is not null && _policyPanel.Visible && _policyPanel.GetGlobalRect().HasPoint(at));
 
@@ -277,12 +333,24 @@ public partial class Main
     {
         string[] words = action.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (words.Length == 0) return;
+        if (ZoningAction(words)) return;
         switch (words[0])
         {
             case "help" when words.Length == 2 && words[1] is "on" or "off":
                 ShowHelp(words[1] == "on"); break;
             case "text-size" when words.Length == 2 && int.TryParse(words[1], out int percent):
                 SetTextSize(percent); break;
+            case "pointer" when words.Length == 4 && words[1] is "down" or "move" or "up"
+                && float.TryParse(words[2], out float pointerX) && float.TryParse(words[3], out float pointerY):
+                var pointerPosition = new Vector2(pointerX, pointerY);
+                _aimed = null;
+                if (words[1] == "move")
+                    Input.ParseInputEvent(new InputEventMouseMotion { Position = pointerPosition,
+                        GlobalPosition = pointerPosition, ButtonMask = _zoneStart is null ? 0 : MouseButtonMask.Left });
+                else
+                    Input.ParseInputEvent(new InputEventMouseButton { Position = pointerPosition,
+                        GlobalPosition = pointerPosition, ButtonIndex = MouseButton.Left, Pressed = words[1] == "down" });
+                break;
             case "key" when words.Length >= 2 && Enum.TryParse(words[1], true, out Key key):
                 Input.ParseInputEvent(new InputEventKey { Keycode = key, Pressed = true, ShiftPressed = words.Length == 3 && words[2] == "shift" });
                 Input.ParseInputEvent(new InputEventKey { Keycode = key, Pressed = false });
@@ -323,6 +391,10 @@ public partial class Main
                 ThemeInformation();
                 SaveInformationPreferences();
                 break;
+            case "settings" when words.Length == 2 && words[1] is "on" or "off":
+                _settingsPanel.Visible = words[1] == "on";
+                if (_settingsPanel.Visible) { _zoneStart = null; _hud.MoveChild(_settingsPanel, -1); }
+                break;
             case "tools" when words.Length == 2 && words[1] is "on" or "off":
                 _toolsShown = words[1] == "on";
                 break;
@@ -331,7 +403,8 @@ public partial class Main
                 break;
             case "debug" when words.Length == 2 && words[1] is "on" or "off":
                 _debugShown = words[1] == "on";
-                ThemeInformation();
+                _debugPanel.Visible = _debugShown;
+                _debugButton.ButtonPressed = _debugShown;
                 SaveInformationPreferences();
                 break;
             case "ground" when words.Length == 3 && int.TryParse(words[1], out int groundEast)
@@ -503,6 +576,9 @@ public partial class Main
         _hoverRing.Visible = false;
         if (_roadHover is not null) _roadHover.Visible = false;
         if (Aim() is not { } at) return "Outside the map";
+        if (_verb == Verb.Zone)
+            return _zoneStart is not null ? $"{ZoneSelectionCount()} blocks · {ZoneName()} · release to apply; Escape cancels"
+                : _zoneFeedback.Length > 0 ? _zoneFeedback : $"{ZoneName()} · drag a rectangle of whole blocks";
         var picked = PickInformation();
         if (_world.Roads.Segments.Rows.TryResolve(picked.Road, out int road))
         {
@@ -759,6 +835,7 @@ public partial class Main
         {
             Tick = _world.Tick.Raw, Hash = _world.HashState().ToString("X16"),
             Theme = _lightUi ? "light" : "dark", Debug = _debugShown,
+            SettingsVisible = _settingsPanel.Visible, Settings = Rect(_settingsPanel),
             TextPercent = _textPercent, HelpVisible = _helpPanel.Visible, Help = Rect(_helpPanel),
             HelpScroll = _helpScroll.ScrollVertical, HelpContent = Rect(_helpScroll),
             SpeedLabel = _rungLabel.Text, PauseHighlighted = _pauseButton.ButtonPressed,
@@ -778,8 +855,9 @@ public partial class Main
             MapTargets = InformationMapTargets(),
             Road = RowId(_world.Roads.Segments.Rows, _selectedRoad),
             InspectorVisible = _inspector!.Visible, Inspector = Rect(_inspector),
-            Hover = Rect(_pointerRow), DebugPanel = Rect(_debugPanel), ToolsVisible = _toolSlot.Visible, Tools = Rect(_toolSlot),
+            Hover = Rect(_pointerRow), DebugPanel = Rect(_debugPanel), ToolsVisible = _toolsShown, Tools = Rect(_palette), ToolContent = Rect(_toolScroll),
             Console = Rect(_console), ConsoleScroll = _consoleScroll.ScrollVertical, ConsoleContent = Rect(_consoleScroll), Pace = RungName(), Layer = _washing.ToString(),
+            Zoning = new { Dragging = _zoneStart is not null, Blocks = ZoneSelectionCount(), Erasing = _zoneErase, Feedback = _zoneFeedback },
             Tool = _verb.ToString(), LayersShown = _layersShown,
             Legend = _legendTitle.Visible ? $"{_legendTitle.Text} {_legendBody.Text}" : string.Empty,
             Refused = _refusalRow.Visible ? _refusalLabel.Text : string.Empty,

@@ -492,6 +492,8 @@ public partial class Main
     /// </remarks>
     private void Cursor()
     {
+        _zones.Visible = _verb == Verb.Zone && _washing == Wash.None;
+        _plots.Visible = !_zones.Visible;
         if (_verb == Verb.Look || OverInformation(GetViewport().GetMousePosition()))
         {
             _cursor.Multimesh.VisibleInstanceCount = 0;
@@ -505,6 +507,11 @@ public partial class Main
         }
 
         int block = _world.Roads.Streets.BlockTiles;
+        if (_verb == Verb.Zone && block > 0)
+        {
+            ZonePreview(at);
+            return;
+        }
 
         // 🔴 THE STREET TOOL GETS THE EDGE AND EVERY OTHER VERB GETS THE BLOCK, because those are
         // the things the two act on. Connect edits ONE lattice edge (adr/0077) and the block was the
@@ -518,6 +525,7 @@ public partial class Main
                 : block > 0
                     ? Block(at, _world.Roads.Streets.Lattice, 0.03f)
                     : Tile(CellGrid.ToCells(at.East), CellGrid.ToCells(at.North), 0.03f));
+        _cursor.Multimesh.SetInstanceColor(0, new Color(.95f, .80f, .25f).SrgbToLinear());
         _cursor.Multimesh.VisibleInstanceCount = 1;
     }
 

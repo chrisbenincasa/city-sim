@@ -68,6 +68,29 @@ public static class LotSubdivider
         return SubdivideBlock(world, column, row, zone);
     }
 
+    public static int PaintAt(World world, Tiles east, Tiles north, ushort zone)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        StreetGrid streets = world.Roads.Streets;
+        if (streets.Blocks <= 0) return 0;
+        int column = streets.Lattice.LineAt(east.Raw);
+        int row = streets.Lattice.LineAt(north.Raw);
+        if (column < 0 || row < 0 || column >= streets.Blocks || row >= streets.Blocks) return 0;
+        world.ZoneBlock(column, row, zone);
+        bool changed = false;
+        for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
+        {
+            if (!world.Lots.Rows.IsLive(slot) || world.Lots.Zone[slot] == zone
+                || !Frontage.BlockOf(streets, world.Lots.East[slot], world.Lots.North[slot],
+                    (StreetSide)world.Lots.Side[slot], out int at, out int on)
+                || at != column || on != row) continue;
+            world.Lots.Zone[slot] = zone;
+            changed = true;
+        }
+        if (changed) world.LotsAdmitting.Invalidate();
+        return zone == 0 ? 0 : SubdivideBlock(world, column, row, zone);
+    }
+
     /// <summary>
     /// How much of a Segment's length at each junction belongs to the cross street, in Tiles.
     /// </summary>

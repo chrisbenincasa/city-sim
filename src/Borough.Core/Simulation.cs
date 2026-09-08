@@ -438,7 +438,7 @@ public sealed class Simulation
                 // it against its own four faces. A block with no Street on any face yields **no Lots
                 // at all**, which is that section's third rule and the whole of what makes a bad
                 // street layout punish the player mechanically rather than through a penalty number.
-                LotSubdivider.SubdivideAt(_world, command.East, command.North, command.Zone);
+                LotSubdivider.PaintAt(_world, command.East, command.North, command.Zone);
                 break;
 
             case CommandKind.Connect:

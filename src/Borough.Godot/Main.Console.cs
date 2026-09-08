@@ -153,6 +153,7 @@ public partial class Main
         sky.AddThemeConstantOverride("separation", 8);
         _skyArc = new SkyArc { CustomMinimumSize = new Vector2(112, 44), MouseFilter = Control.MouseFilterEnum.Stop, TooltipText = "Day/night clock: dawn left, noon above, dusk right, midnight below." };
         _dayLabel = ConsoleLabel(string.Empty, SecondaryPoints);
+        _dayLabel.ThemeTypeVariation = InformationUi.Reading;
         sky.AddChild(_skyArc);
         sky.AddChild(_dayLabel);
         _consoleTop.AddChild(sky);
@@ -167,7 +168,7 @@ public partial class Main
             // made the tools eat the whole first line's slack, which pushed the chrome onto a second
             // line while the layer picker stayed on the first -- the console's five groups reading
             // in an order nobody chose. Wrapping in order is worth more than a flush right edge.
-            CustomMinimumSize = new Vector2(560, 0),
+            CustomMinimumSize = new Vector2(270, 0),
         };
         _consoleTop.AddChild(_toolSlot);
 
@@ -236,13 +237,12 @@ public partial class Main
         // ---- chrome -----------------------------------------------------------------------------
         var trim = new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
         trim.AddThemeConstantOverride("separation", 8);
-        _themeButton = ConsoleButton("Light", () => Ui(_lightUi ? "theme dark" : "theme light"));
-        _debugButton = ConsoleButton("Debug", () => Ui(_debugShown ? "debug off" : "debug on"));
-        _toolsButton = ConsoleButton("Tools", () => Ui(_toolsShown ? "tools off" : "tools on"));
-        trim.AddChild(_themeButton);
-        trim.AddChild(_debugButton);
-        trim.AddChild(_toolsButton);
-        trim.AddChild(ConsoleButton("Help ?", () => Ui("help on")));
+        _toolsButton = ConsoleButton("Tools", () => Ui("tools on"));
+        _toolsButton.Icon = ToolIcon("Zoning");
+        _toolsButton.AddThemeConstantOverride("icon_max_width", 22);
+        _toolsButton.Theme = _type;
+        _hud.AddChild(_toolsButton);
+        trim.AddChild(ConsoleButton("Settings", () => Ui(_settingsPanel.Visible ? "settings off" : "settings on")));
         _consoleTop.AddChild(trim);
         _consoleTop.AddChild(CameraControls());
 
@@ -335,7 +335,7 @@ public partial class Main
     /// </remarks>
     private void SizeConsole(float inner)
     {
-        _toolSlot.CustomMinimumSize = new Vector2(Math.Min(560f, inner), 0f);
+        _toolSlot.CustomMinimumSize = new Vector2(Math.Min(270f, inner), 0f);
         _legendBody.CustomMinimumSize = new Vector2(Math.Min(300f, inner), 0f);
         _legendRamp.CustomMinimumSize = new Vector2(Math.Min(300f, inner), 7f);
         _hover.CustomMinimumSize = new Vector2(Math.Max(120f, inner), 0f);

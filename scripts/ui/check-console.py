@@ -28,8 +28,15 @@ def command(text):
 
 def read(name):
     path = output / (name + '.json')
-    command('ui read ' + str(path))
-    return json.loads(path.read_text())
+    previous = None
+    for _ in range(12):
+        command('ui read ' + str(path))
+        state = json.loads(path.read_text())
+        layout = [(b['Text'], b['Rect']) for b in state['Buttons']]
+        if layout == previous:
+            return state
+        previous = layout
+    raise AssertionError('Console layout did not settle')
 
 
 def press(state, label):
@@ -48,6 +55,9 @@ command('pause')
 command('ui size 1440 960')
 command('ui theme light')
 command('ui debug off')
+command('overlay off')
+command('ui layers off')
+command('ui tools off')
 command('ui close')
 command('hold look')
 
@@ -93,7 +103,13 @@ assert state['Layer'] == 'None' and state['Legend'] == ''
 command('click 68 36')
 state = read('console-selected')
 assert state['InspectorVisible'] and state['Selected'] != 0
-press(state, 'DEMOLISH  (b)')
+press(state, 'Tools')
+state = read('console-tools')
+press(state, 'Roads')
+state = read('console-road-tools')
+press(state, 'Demolish')
+state = read('console-tool-chosen')
+press(state, 'Close')
 state = read('console-armed')
 assert state['Tool'] == 'Demolish', state['Tool']
 command('click 68 36')                                     # occupied ground, which is refused
@@ -101,10 +117,10 @@ state = read('console-refused')
 assert 'still lives there' in state['Refused'], state['Refused']
 assert clear(state['Refusal'], state['Inspector']), (state['Refusal'], state['Inspector'])
 assert state['InspectorVisible'] and state['Selected'] != 0
-press(state, 'Cancel  ✕')
+press(state, 'Cancel')
 state = read('console-cancelled')
 assert state['Tool'] == 'Look', state['Tool']
-assert 'Cancel  ✕' not in [b['Text'] for b in state['Buttons']]
+assert 'Cancel' not in [b['Text'] for b in state['Buttons']]
 
 # ---- both themes and every asserted size: the console stays inside the window and clear of the
 # inspector, which is the one thing rows 4-6 may not cost row 1.

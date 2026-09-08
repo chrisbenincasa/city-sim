@@ -6,24 +6,37 @@ namespace Borough.Shell;
 // Shared shell components: apply the theme to a screen's root, then compose cards and controls.
 internal static class InformationUi
 {
-    public const int MetadataPoints = 14, BodyPoints = 16, TitlePoints = 22;
+    public const int MetadataPoints = 13, BodyPoints = 16, TitlePoints = 24;
     public const int RowGap = 8, SectionGap = 16;
-    public const int PanelInsetX = 22, PanelInsetY = 18, ConsoleInsetX = 16, ConsoleInsetY = 10;
+    public const int PanelInsetX = 20, PanelInsetY = 16, ConsoleInsetX = 16, ConsoleInsetY = 12;
+
+    // Nested radii step down by the padding between them; equal radii leave an uneven gap between
+    // the two curves. A control inside a card inside a panel is 4 inside 6 inside 10.
+    public const int PanelRadius = 10, CardRadius = 6, ControlRadius = 4;
+    public const int PanelShadow = 14;
+
     public const string Metadata = "InformationMetadata", WarningText = "InformationWarningText";
+    public const string Reading = "InformationReading";
     private const string Card = "InformationCard", Heading = "InformationHeading";
     private const string WarningHeading = "InformationWarningHeading", LinkStyle = "InformationLink";
     private const string HeadingLabel = "InformationHeadingLabel";
 
     internal sealed record Palette(Color Paper, Color Surface, Color Ink, Color Muted, Color Line,
-        Color Active, Color OnActive, Color Section, Color SectionInk, Color Warning, Color Warn, Color WarnInk);
+        Color Active, Color OnActive, Color Section, Color SectionInk, Color Warning, Color Warn, Color WarnInk,
+        Color Shadow);
 
     public static Palette Apply(Theme theme, bool light)
     {
         var p = light
             ? new Palette(new("f1f4f8"), new("ffffff"), new("243249"), new("5e6d82"), new("c4cfdf"),
-                new("2458a3"), new("ffffff"), new("d9e6f7"), new("214e89"), new("fff0d6"), new("a36508"), new("714606"))
+                new("2458a3"), new("ffffff"), new("d9e6f7"), new("214e89"), new("fff0d6"), new("a36508"), new("714606"),
+                new(0.06f, 0.11f, 0.20f, 0.20f))
             : new Palette(new("202938"), new("273447"), new("eff3fb"), new("a8b8ce"), new("455976"),
-                new("82b2ff"), new("172d50"), new("304968"), new("c1dafe"), new("473a25"), new("f2c06b"), new("ffe0a9"));
+                new("82b2ff"), new("172d50"), new("304968"), new("c1dafe"), new("473a25"), new("f2c06b"), new("ffe0a9"),
+                new(0f, 0f, 0f, 0.45f));
+        theme.SetTypeVariation(Reading, "Label");
+        theme.SetFont("font", Reading, TabularFont());
+        theme.SetColor("font_color", Reading, p.Muted);
         theme.SetConstant("separation", "VBoxContainer", RowGap);
         theme.SetConstant("separation", "HBoxContainer", RowGap);
         foreach (string type in new[] { "Label", "Button", "CheckButton", "LineEdit" })
@@ -40,25 +53,43 @@ internal static class InformationUi
         theme.SetTypeVariation(HeadingLabel, "Label");
         theme.SetColor("font_color", HeadingLabel, p.SectionInk);
         ButtonStyles(theme, "Button", p.Surface, p.Ink, p.Active, p.OnActive, p.Line);
+
+        // A section heading sits inside a card that already has a border, so it draws neither its
+        // own border nor its own fill: an accent carried by every section marks none of them, and
+        // the amber attention band is left as the one filled heading in the inspector.
         theme.SetTypeVariation(Heading, "Button");
-        ButtonStyles(theme, Heading, p.Section, p.SectionInk, p.Section, p.SectionInk, p.Section);
+        ButtonStyles(theme, Heading, p.Surface, p.SectionInk, p.Section, p.SectionInk, p.Surface);
         theme.SetTypeVariation(WarningHeading, "Button");
         ButtonStyles(theme, WarningHeading, p.Warning, p.WarnInk, p.Warning, p.WarnInk, p.Warn);
         theme.SetTypeVariation(LinkStyle, "Button");
         ButtonStyles(theme, LinkStyle, p.Surface, p.Active, p.Section, p.SectionInk, p.Surface, horizontal: 0);
         theme.SetTypeVariation(Card, "PanelContainer");
-        theme.SetStylebox("panel", Card, Box(p.Surface, p.Line, 1, 1));
-        theme.SetStylebox("normal", "LineEdit", Box(p.Surface, p.Line, 10, 6));
-        theme.SetStylebox("focus", "LineEdit", Box(Colors.Transparent, p.Active, 10, 6));
+        theme.SetStylebox("panel", Card, Box(p.Surface, p.Line, 1, 1, CardRadius));
+        theme.SetStylebox("normal", "LineEdit", Box(p.Surface, p.Line, 12, 8));
+        theme.SetStylebox("focus", "LineEdit", Box(Colors.Transparent, p.Active, 12, 8));
         theme.SetColor("caret_color", "LineEdit", p.Ink);
         theme.SetColor("selection_color", "LineEdit", p.Active);
         theme.SetColor("font_selected_color", "LineEdit", p.OnActive);
         theme.SetStylebox("separator", "HSeparator", new StyleBoxLine { Color = p.Line, Thickness = 1 });
         theme.SetTypeVariation("InformationWarningPanel", "PanelContainer");
-        theme.SetStylebox("panel", "InformationWarningPanel", Box(p.Warning, p.Warn, 12, 10));
+        theme.SetStylebox("panel", "InformationWarningPanel", Box(p.Warning, p.Warn, 12, 10, CardRadius));
         theme.SetTypeVariation("InformationHeadingPanel", "PanelContainer");
-        theme.SetStylebox("panel", "InformationHeadingPanel", Box(p.Section, p.Section, 12, 10));
+        theme.SetStylebox("panel", "InformationHeadingPanel", Box(p.Surface, p.Surface, 12, 10, CardRadius));
         return p;
+    }
+
+    /// <summary>
+    /// The face used for readings that change while the player watches. Proportional digits have
+    /// different widths, so a clock or a frame counter shifts the text beside it every time a digit
+    /// turns over; <c>tnum</c> gives every digit one advance width and the row stops moving.
+    /// </summary>
+    private static FontVariation TabularFont()
+    {
+        var features = new Godot.Collections.Dictionary
+        {
+            { TextServerManager.GetPrimaryInterface().NameToTag("tnum"), 1 },
+        };
+        return new FontVariation { BaseFont = ThemeDB.FallbackFont, OpentypeFeatures = features };
     }
 
     private static void ButtonStyles(Theme theme, string type, Color surface, Color ink,
@@ -73,7 +104,7 @@ internal static class InformationUi
                 "focus" => Colors.Transparent,
                 _ => surface,
             };
-            theme.SetStylebox(state, type, Box(fill, state == "focus" ? active : line, horizontal, 6));
+            theme.SetStylebox(state, type, Box(fill, state == "focus" ? active : line, horizontal, 8));
         }
         foreach (string state in new[] { "font_color", "font_hover_color", "font_focus_color" })
             theme.SetColor(state, type, ink);
@@ -81,14 +112,18 @@ internal static class InformationUi
         theme.SetColor("font_hover_pressed_color", type, onActive);
     }
 
-    public static StyleBoxFlat Box(Color fill, Color line, int horizontal, int vertical) => new()
+    public static StyleBoxFlat Box(Color fill, Color line, int horizontal, int vertical,
+        int radius = ControlRadius, Color? shadow = null) => new()
     {
         BgColor = fill, BorderColor = line,
         BorderWidthBottom = 1, BorderWidthTop = 1, BorderWidthLeft = 1, BorderWidthRight = 1,
-        CornerRadiusBottomLeft = 4, CornerRadiusBottomRight = 4,
-        CornerRadiusTopLeft = 4, CornerRadiusTopRight = 4,
+        CornerRadiusBottomLeft = radius, CornerRadiusBottomRight = radius,
+        CornerRadiusTopLeft = radius, CornerRadiusTopRight = radius,
         ContentMarginLeft = horizontal, ContentMarginRight = horizontal,
         ContentMarginTop = vertical, ContentMarginBottom = vertical,
+        ShadowSize = shadow is null ? 0 : PanelShadow,
+        ShadowColor = shadow ?? Colors.Transparent,
+        ShadowOffset = shadow is null ? Vector2.Zero : new Vector2(0, PanelShadow / 3f),
     };
 
     public static VBoxContainer Stack(int gap = SectionGap)
@@ -114,7 +149,7 @@ internal static class InformationUi
 
     public static Button Button(string text, Action action, bool compact = false)
     {
-        var button = new Button { Text = text, CustomMinimumSize = new Vector2(0, compact ? 30 : 36),
+        var button = new Button { Text = text, TooltipText = text, CustomMinimumSize = new Vector2(0, compact ? 30 : 36),
             SizeFlagsVertical = compact ? Control.SizeFlags.ShrinkCenter : Control.SizeFlags.Fill };
         button.Pressed += action;
         return button;
@@ -123,6 +158,8 @@ internal static class InformationUi
     public static Button Link(string text, Action action)
     {
         var link = Button(text, action);
+        link.ClipText = true;
+        link.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
         link.ThemeTypeVariation = LinkStyle;
         link.Alignment = HorizontalAlignment.Left;
         return link;
@@ -135,6 +172,8 @@ internal static class InformationUi
         card.AddChild(stack);
         if (header is Button button)
         {
+            button.ClipText = true;
+            button.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
             button.ThemeTypeVariation = attention ? WarningHeading : Heading;
             stack.AddChild(button);
         }
