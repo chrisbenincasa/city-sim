@@ -54,6 +54,46 @@ public sealed class PlacementChoiceTests
             ?? throw new InvalidOperationException($"chosen.toml was refused:\n{result.Describe()}");
     }
 
+    /// <summary>chosen.toml with what a family will pay to stay put replaced.</summary>
+    private static Ruleset Settled(int movingCostsRent)
+    {
+        string toml = System.Text.RegularExpressions.Regex.Replace(
+            Source(), @"moving_costs_rent\s*=\s*-?\d+",
+            $"moving_costs_rent = {movingCostsRent}");
+
+        RulesetLoadResult result = RulesetLoader.Parse(toml, "chosen.toml");
+
+        return result.Ruleset
+            ?? throw new InvalidOperationException($"chosen.toml was refused:\n{result.Describe()}");
+    }
+
+    private static (World World, PlacementActivity Activity) Measure(Ruleset rules)
+    {
+        World world = new(Citizens, rules, Key);
+        Simulation simulation = new(world, Key);
+
+        SyntheticCity.PopulateInto(world, Key, Core.Quantities.Ticks.Zero);
+
+        long moved = 0;
+        long reassessed = 0;
+
+        for (ulong tick = 0; tick < Ticks; tick++)
+        {
+            simulation.Step(default);
+
+            PlacementActivity slice = simulation.Placement.Drain();
+
+            moved += slice.PreferredMoves.Sum;
+            reassessed += slice.Reassessed.Sum;
+        }
+
+        return (world, new PlacementActivity(
+            default, default, default, default, default, default,
+            default(RuleFlow).Fold((int)reassessed),
+            default,
+            default(RuleFlow).Fold((int)moved)));
+    }
+
     private static World Run(Ruleset rules)
     {
         World world = new(Citizens, rules, Key);
@@ -150,6 +190,74 @@ public sealed class PlacementChoiceTests
     public void Mu_is_hash_bearing()
     {
         Assert.NotEqual(Run(At(100)).HashState(), Run(At(2_000)).HashState());
+    }
+
+    /// <summary>
+    /// A Household leaves a home it can do better than, which nothing in this city could do before.
+    /// </summary>
+    /// <remarks>
+    /// <b>Every other departure is a threshold and this one is a comparison.</b> Priced out,
+    /// starved out, evicted, condemned over — each is the city crossing a line on the family's
+    /// behalf. This counter is the family deciding.
+    /// </remarks>
+    [Fact]
+    public void Some_household_leaves_a_home_it_can_do_better_than()
+    {
+        Assert.True(
+            Measure(Settled(720)).Activity.PreferredMoves.Sum > 0,
+            "no Household preferred anywhere it was shown over where it lives, so the stay-put row "
+                + "is the only one ever drawn and the comparison decides nothing.");
+    }
+
+    /// <summary>
+    /// The whole usable band, measured, because both ends of it are surprising.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Two utility units of stickiness is a city playing musical chairs and twenty is a city
+    /// nobody can leave.</b> Over 20,480 Ticks at 12,000 Citizens: <b>240 a Day (2 units) moves
+    /// 9,388 Households, 720 (6 units) moves 324, 960 (8 units) moves 42, and 2,400 (20 units)
+    /// moves none at all.</b> Roughly 2,100 Households are housed, so the first figure is every
+    /// family moving four times in ten Days.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>The zero at the top is adr/0038's horizon reaching gameplay for the first time.</b>
+    /// Twenty units is past <c>11.09 / μ</c>, so every alternative has weight EXACTLY zero and
+    /// moving is impossible rather than rare. ***The stickiness key therefore has a ceiling nobody
+    /// authored***, it moves with μ, and a designer turning it up would find the city stop dead
+    /// rather than slow down.
+    /// </para>
+    /// </remarks>
+    [Theory]
+    [InlineData(240, 720)]
+    [InlineData(720, 960)]
+    public void Stickiness_is_a_taper_until_it_is_a_wall(int footlooseRent, int settledRent)
+    {
+        Assert.True(
+            Measure(Settled(settledRent)).Activity.PreferredMoves.Sum
+                < Measure(Settled(footlooseRent)).Activity.PreferredMoves.Sum,
+            $"paying {settledRent} to stay put moved at least as many Households as paying "
+                + $"{footlooseRent} did.");
+    }
+
+    /// <summary>
+    /// Making the incumbent worth more keeps more families where they are.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is what says the stay-put row is a ROW and not a special case.</b> It is scored,
+    /// weighed and drawn like every other candidate, so moving its utility moves how often it wins
+    /// — which a hard threshold on "is anything better" could not do continuously.
+    /// </remarks>
+    [Fact]
+    public void A_settled_city_moves_house_less_than_a_footloose_one()
+    {
+        long footloose = Measure(Settled(0)).Activity.PreferredMoves.Sum;
+        long settled = Measure(Settled(2_400)).Activity.PreferredMoves.Sum;
+
+        Assert.True(
+            settled < footloose,
+            $"a city where staying is worth 2,400 a Day moved {settled} Households and one where "
+                + $"it is worth nothing moved {footloose}. The stay-put row is not being weighed.");
     }
 
     /// <summary>

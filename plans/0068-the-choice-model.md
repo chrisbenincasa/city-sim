@@ -10,14 +10,16 @@
 
 ## Status
 
-✅ **TASK 1 BUILT 2026-09-08 and it moved no recorded hash**, which was the point of decision D1: every
-shipped world states no μ and keeps the argmax it had. Three failures in the working lane were the
-generated schema, the generated key reference and `adr/0048`'s refusal count, all regenerated or
-updated. **Tasks 2 and 3 unstarted.**
+✅ **TASKS 1 AND 2 BUILT 2026-09-08 and neither moved a recorded hash**, which was the point of
+decision D1: every shipped world states no μ and keeps the argmax it had. **Task 3 unstarted.**
 
-🔴 **AND THE HALF THAT DID NOT LAND IS THE FINDING** — see *What the second term found*. Rent is in
-the utility function, is read every time a candidate is scored, and **has no world in which it can
-differ between two candidates.** Decision D4 is what that costs and it is open.
+✅ **D4 IS CLOSED AND THE ANSWER WAS NEITHER OPTION.** `rent_per_unit` stays required, and task 2
+gave it a difference to weigh without any second housing kind: **`moving_costs_rent` is denominated
+in the same money and only one candidate ever carries it**, so it does not cancel the way a uniform
+rent does. ***The inert key was made load-bearing by the next task rather than by a decision about
+the key.***
+
+🔴 **AND TASK 2 FOUND A CEILING NOBODY AUTHORED** — see *What stickiness found*.
 
 **Scope** set by the user on the opening call:
 **full row 28, Hinterland included** — the softmax, the stay-put alternative, and
@@ -89,11 +91,20 @@ choice model arrive with a taste axis it does not depend on.
 the `gives_up_after_days` pattern: a world that opts into a utility comparison owes the units the
 comparison is in.
 
-**D4 — Does `rent_per_unit` stay required, given nothing can exercise it?** Open, and it is the
-first decision task 2 runs into. Keeping it required is a key every choosing world must state and no
-world can use; making it conditional needs a condition, and *a world where two housing kinds stand*
-is not a thing the loader can check. ⚠ **The third option is to fix the world rather than the key** —
-see the finding below, whose cause is the populator and not the format.
+**D4 — Does `rent_per_unit` stay required, given nothing can exercise it?** ✅ **Closed 2026-09-08:
+it stays, and the question dissolved.** Task 2's `moving_costs_rent` is authored in rent and
+converts through this scale, and **the incumbent is the only candidate carrying it**, so the term
+has a difference whether or not any world stands two housing kinds. ⚠ **The finding below still
+stands** — no world can price two homes differently — and it is now a limit on what the model can
+express rather than on whether a key is read.
+
+**D5 — What bounds `moving_costs_rent` from above?** Open. `adr/0038`'s horizon puts a hard ceiling
+at `11.09 / μ` utility units, past which moving is impossible rather than rare, and **nothing
+refuses a file that states one.** ⚠ **The two obvious repairs are both wrong**: a fixed ceiling
+cannot be checked, because μ and `rent_per_unit` are both in the same table and the product is what
+matters; and clamping would silently give a designer a different city from the one they authored.
+***A refusal that reads three keys against each other is the shape, and what it should say is the
+open part.***
 
 **D3 — Does `CommandKind.Arrive` survive task 3?** Open. Interest becoming emergent does not by
 itself remove a door a player or an Input Log can push somebody through, and `ArrivalDump` and every
@@ -132,3 +143,41 @@ which is not evidence).
 *moving here* is a rent difference between two rows of the same utility function without any second
 kind standing anywhere. ***The term acquires a difference from the Outside before it acquires one
 from the city.***
+
+---
+
+## What stickiness found
+
+**Two utility units of stickiness is a city playing musical chairs and twenty is a city nobody can
+leave.** Measured on `chosen.toml` over 20,480 Ticks at 12,000 Citizens, against roughly 2,100
+housed Households:
+
+| `moving_costs_rent` | Utility units | Preferred moves | What that is |
+|---:|---:|---:|---|
+| 240 | 2 | **9,388** | every family moving four times in ten Days |
+| 720 | 6 | 324 | a move about every 65 Days — **shipped** |
+| 960 | 8 | 42 | a move about every 500 Days |
+| 2,400 | 20 | **0** | nobody can leave at all |
+
+⚠ **The first row is `adr/0017`'s churn pathology arriving through a channel that ADR does not
+mention.** That decision argues stickiness against the *provider list* — which shop, which
+workplace — and the housing move is a different recurring choice with the same disease. A two-unit
+incumbency bonus at μ = 1 leaves the incumbent about a 70% chance against three alternatives, and
+the sweep runs twice a Day.
+
+🔴 **The last row is `adr/0038`'s horizon reaching gameplay for the first time.** Twenty units is
+past `11.09 / μ`, so `exp` underflows and every alternative weighs **exactly zero** — moving is
+impossible rather than rare. ***The stickiness key therefore has a ceiling nobody authored, it moves
+with μ, and a designer turning it up finds the city stop dead rather than slow down.*** That ADR
+asked for this consequence to be argued with rather than the resolution; this is the first argument
+it has had from a running city. **D5 owns what to do about it.**
+
+## What task 2 did NOT build, and why
+
+**A Household in the Unplaced Pool still takes the best of what it was shown, always.** The stay-put
+row landed on the *reassessment* side only. ⚠ **The Pool side needs the Hinterland and cannot be
+faked**: the utility of *remaining in the Pool* is the utility of not living in this city, and
+[`adr/0023`](../docs/adr/0023-immigration-arrives-through-the-gate.md) rejects a hand-authored
+`V_outside` **by name** — *"it has no referent; neither a designer nor a playtester nor a player can
+say whether it is too generous."* ***So the second half of task 2 is inside task 3***, and that is
+the ordering rather than an omission.

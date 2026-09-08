@@ -1687,8 +1687,41 @@ public readonly record struct PlacementRuleset(
     /// </summary>
     public int RentPerUnit { get; init; }
 
+    /// <summary>
+    /// The daily rent a Household will pay to avoid moving; zero means moving costs it nothing.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>adr/0017's switching threshold, authored as money rather than as utility.</b> That ADR
+    /// requires a Household to switch <i>"only when a known alternative is substantially better"</i>,
+    /// and *substantially* is the number. Stating it as rent gives it the referent adr/0023 demands:
+    /// <i>would this family pay 40 a Day to stay where it is</i> is a question a designer can answer
+    /// and a player can read off a panel, where <i>is the incumbency bonus 0.7 utility units</i> is
+    /// not.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is a term in the utility function and never a gate.</b> A threshold would make moving
+    /// impossible below it and certain above it; a term shifts the probability, which is what keeps
+    /// two identical Households facing the same marginal improvement from both moving on the same
+    /// Tick. 02 section 5.4's <i>soft trade-offs are utility</i>, and being settled somewhere is the
+    /// softest trade-off in the model.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>This is what gives <see cref="RentPerUnit"/> a difference to weigh.</b> Rent is per kind
+    /// and no world stands two housing kinds, so the rent term cancels across candidates — but the
+    /// incumbent's advantage is denominated in the same money and does not cancel, because only one
+    /// candidate has it.
+    /// </para>
+    /// </remarks>
+    public int MovingCostsRent { get; init; }
+
     /// <summary>Whether the file states 02 section 5.4's choice model.</summary>
     public bool Chooses => MuPercent > 0;
+
+    /// <summary>What staying where you are is worth, in Q16.16 utility units.</summary>
+    public int StayingPut => RentPerUnit == 0
+        ? 0
+        : (int)IntegerMath.FloorDiv((long)MovingCostsRent * Fixed.One, RentPerUnit);
 
     /// <summary>The scale parameter in Q16.16.</summary>
     public int Mu => (int)IntegerMath.FloorDiv((long)MuPercent * Fixed.One, 100);

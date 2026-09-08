@@ -228,6 +228,16 @@ public enum PlacementCounter : byte
 
     /// <summary>Reassessed Households leaving because of a continuing Need shortage.</summary>
     ShortageMoves,
+
+    /// <summary>
+    /// Reassessed Households leaving because they preferred somewhere they were shown.
+    /// </summary>
+    /// <remarks>
+    /// <b>The only counter here whose reason is a comparison rather than a threshold.</b> Every
+    /// other departure is the city crossing a line on a family's behalf; this one is the family
+    /// deciding, so <i>reassessed out</i> minus this is <i>pushed out</i> and this is <i>moved on</i>.
+    /// </remarks>
+    PreferredMoves,
 }
 
 /// <summary>

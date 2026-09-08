@@ -31,7 +31,31 @@
 # two must not be collapsed: as a steep coefficient the filter would let a rich family outbid its own
 # budget, and as a filter alone every affordable home would be identically priced.
 #
-# ⚠ THE THREE NUMBERS UNDER [placement] ARE PROVISIONAL AND NAME NO RATIFIER. plans/0045 standing
+# ⚠ moving_costs_rent = 720 IS WHY THE RENT SCALE IS NOT INERT AFTER ALL. adr/0017 has a Household
+# switch only when an alternative is SUBSTANTIALLY better, and that word is this number. Denominated
+# in rent, it converts through rent_per_unit into six utility units of advantage for the home a
+# family already has -- and only ONE candidate ever carries it, which is why it does not cancel the
+# way a uniform rent does.
+#
+# 🔴 THE VALUE WAS 240 FOR AN HOUR AND THE CITY PLAYED MUSICAL CHAIRS. Measured over 20,480 Ticks at
+# 12,000 Citizens, against roughly 2,100 housed Households:
+#
+#     240 a Day   2 units    9,388 moves    every family moving four times in ten Days
+#     720 a Day   6 units      324 moves    a move about every 65 Days
+#     960 a Day   8 units       42 moves    a move about every 500 Days
+#   2,400 a Day  20 units        0 moves    nobody can leave at all
+#
+# ⚠ THE ZERO AT THE BOTTOM IS NOT THE TREND CONTINUING. Twenty units is past adr/0038's horizon of
+# 11.09 / mu, where exp underflows and an alternative has weight EXACTLY zero -- so moving becomes
+# IMPOSSIBLE rather than rare. ***This key has a ceiling nobody authored, and it moves with mu.***
+# A designer turning stickiness up finds the city stop dead rather than slow down.
+#
+# ⚠ IT IS A TERM AND NOT A GATE. Below it moving is unlikely rather than impossible, above it likely
+# rather than certain. A threshold would make two identical Households facing the same marginal
+# improvement both move on the same Tick, which is the stampede mu exists to prevent arriving
+# through the back door.
+#
+# ⚠ THE FOUR NUMBERS UNDER [placement] ARE PROVISIONAL AND NAME NO RATIFIER. plans/0045 standing
 # order 4 suspends adr/0052 for exactly this. What would ratify mu is A PERSON AT THE CONTROLS and
 # nothing else -- 02 section 5.4 says so itself, "when the city feels too herdy or too random, tune
 # mu, not the coefficients" -- so it is a FEEL parameter and no headless run can settle it.
@@ -122,6 +146,7 @@ gives_up_after_days = 60
 mu_percent                = 100
 centrality_tiles_per_unit = 2048
 rent_per_unit             = 120
+moving_costs_rent         = 720
 
 [layers]
 noise_range_metres            = 300

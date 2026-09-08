@@ -29,6 +29,14 @@ public sealed class ChoiceModelRulesetLoadTests
 
     private static string With(string extra) => $"{Nothing}\n\n[placement]\n{Whole}\n{extra}";
 
+    /// <summary>Every choice-model key, well-formed.</summary>
+    private const string Model = """
+        mu_percent                = 100
+        centrality_tiles_per_unit = 2048
+        rent_per_unit             = 120
+        moving_costs_rent         = 240
+        """;
+
     private static Ruleset Accepted(string toml)
     {
         RulesetLoadResult result = RulesetLoader.Parse(toml, "test.toml");
@@ -66,20 +74,24 @@ public sealed class ChoiceModelRulesetLoadTests
             mu_percent                = 250
             centrality_tiles_per_unit = 2048
             rent_per_unit             = 120
+            moving_costs_rent         = 240
             """)).Placement;
 
         Assert.True(placement.Chooses);
         Assert.Equal(Fixed.One * 5 / 2, placement.Mu);
         Assert.Equal(2048, placement.CentralityTilesPerUnit);
         Assert.Equal(120, placement.RentPerUnit);
+        Assert.Equal(240, placement.MovingCostsRent);
+        Assert.Equal(Fixed.One * 2, placement.StayingPut);
     }
 
     [Fact]
     public void A_mu_with_no_centrality_scale_is_refused()
     {
         RulesetRefusal refusal = Refused(With("""
-            mu_percent    = 100
-            rent_per_unit = 120
+            mu_percent        = 100
+            rent_per_unit     = 120
+            moving_costs_rent = 240
             """));
 
         Assert.Contains("centrality_tiles_per_unit", refusal.Reason);
@@ -91,6 +103,7 @@ public sealed class ChoiceModelRulesetLoadTests
         RulesetRefusal refusal = Refused(With("""
             mu_percent                = 100
             centrality_tiles_per_unit = 2048
+            moving_costs_rent         = 240
             """));
 
         Assert.Contains("rent_per_unit", refusal.Reason);
@@ -101,6 +114,7 @@ public sealed class ChoiceModelRulesetLoadTests
     {
         Assert.Contains("mu_percent", Refused(With("centrality_tiles_per_unit = 2048")).Reason);
         Assert.Contains("mu_percent", Refused(With("rent_per_unit = 120")).Reason);
+        Assert.Contains("mu_percent", Refused(With("moving_costs_rent = 240")).Reason);
     }
 
     [Theory]
@@ -113,6 +127,7 @@ public sealed class ChoiceModelRulesetLoadTests
             mu_percent                = {mu}
             centrality_tiles_per_unit = 2048
             rent_per_unit             = 120
+            moving_costs_rent         = 240
             """));
 
         Assert.Contains("mu_percent", refusal.Reason);
@@ -128,12 +143,55 @@ public sealed class ChoiceModelRulesetLoadTests
             mu_percent                = 100
             centrality_tiles_per_unit = 0
             rent_per_unit             = 120
+            moving_costs_rent         = 240
             """)).Reason);
 
         Assert.Contains("rent_per_unit", Refused(With("""
             mu_percent                = 100
             centrality_tiles_per_unit = 2048
             rent_per_unit             = 0
+            moving_costs_rent         = 240
             """)).Reason);
+    }
+
+    [Fact]
+    public void A_mu_with_no_moving_cost_is_refused()
+    {
+        RulesetRefusal refusal = Refused(With("""
+            mu_percent                = 100
+            centrality_tiles_per_unit = 2048
+            rent_per_unit             = 120
+            """));
+
+        Assert.Contains("moving_costs_rent", refusal.Reason);
+    }
+
+    /// <summary>
+    /// Zero is a city where moving costs nothing, which is why it is accepted and still required.
+    /// </summary>
+    /// <remarks>
+    /// <b>The contrast with the two scales is the point.</b> A scale is a divisor and its zero
+    /// divides by nothing; this is an amount, and its zero is a world somebody could mean. What the
+    /// file may not do is state a choice model and leave a reader guessing which it meant.
+    /// </remarks>
+    [Fact]
+    public void A_moving_cost_of_zero_is_a_world_and_not_an_omission()
+    {
+        PlacementRuleset placement = Accepted(With(Model.Replace(
+            "moving_costs_rent         = 240",
+            "moving_costs_rent         = 0",
+            StringComparison.Ordinal))).Placement;
+
+        Assert.True(placement.Chooses);
+        Assert.Equal(0, placement.StayingPut);
+    }
+
+    [Fact]
+    public void A_negative_moving_cost_is_refused()
+    {
+        Assert.Contains("moving_costs_rent", Refused(With(Model.Replace(
+            "moving_costs_rent         = 240",
+            "moving_costs_rent         = -1",
+            StringComparison.Ordinal))).Reason);
     }
 }

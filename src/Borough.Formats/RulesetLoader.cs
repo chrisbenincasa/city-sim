@@ -5426,13 +5426,14 @@ public static class RulesetLoader
 
             RefuseEmptyClockUnderTheRevisit(kinds, revisit);
 
-            (int mu, int tilesPerUnit, int rentPerUnit) = ReadChoiceModel();
+            (int mu, int tilesPerUnit, int rentPerUnit, int movingCosts) = ReadChoiceModel();
 
             return new PlacementRuleset(interval, revisit, candidates, givesUp, reconsider)
             {
                 MuPercent = mu,
                 CentralityTilesPerUnit = tilesPerUnit,
                 RentPerUnit = rentPerUnit,
+                MovingCostsRent = movingCosts,
             };
         }
 
@@ -5455,7 +5456,8 @@ public static class RulesetLoader
         /// difference a designer can argue about; <c>rent_weight = 0.7</c> is not.
         /// </para>
         /// </remarks>
-        private (int MuPercent, int CentralityTilesPerUnit, int RentPerUnit) ReadChoiceModel()
+        private (int MuPercent, int CentralityTilesPerUnit, int RentPerUnit, int MovingCostsRent)
+            ReadChoiceModel()
         {
             bool stated = Find(_placementTable!, "mu_percent") is not null;
 
@@ -5468,14 +5470,16 @@ public static class RulesetLoader
                 "It is the daily rent difference worth one utility unit, so it is at least 1 -- a "
                 + "scale of zero makes any rent difference at all decide the whole choice.");
 
+            int movingCosts = ReadMovingCosts(stated);
+
             if (!stated)
             {
-                return (0, 0, 0);
+                return (0, 0, 0, 0);
             }
 
             if (!TryInteger(_placementTable!, "mu_percent", out long mu, required: true))
             {
-                return (0, 0, 0);
+                return (0, 0, 0, 0);
             }
 
             if (mu < 1 || mu > 100_000)
@@ -5488,10 +5492,66 @@ public static class RulesetLoader
                     + "which is what omitting the key already means in the other direction. Above "
                     + "100000 the horizon is under a thousandth of a utility unit and every "
                     + "candidate but the best is impossible.");
-                return (0, 0, 0);
+                return (0, 0, 0, 0);
             }
 
-            return ((int)mu, tilesPerUnit, rentPerUnit);
+            return ((int)mu, tilesPerUnit, rentPerUnit, movingCosts);
+        }
+
+        /// <summary>
+        /// <c>moving_costs_rent</c> — adr/0017's switching threshold, in the money a rent is in.
+        /// </summary>
+        /// <remarks>
+        /// <b>Zero is accepted where the two scales' zero is refused, and the difference is what the
+        /// key IS.</b> A scale is a divisor and a zero divides by nothing; this is an amount, and
+        /// zero is a coherent world in which a Household is exactly as happy to move as to stay.
+        /// ***An absent key and a zero one are the same city here, so the key is still required***:
+        /// what a file must not be able to do is state a choice model and leave the reader guessing
+        /// whether it meant frictionless moving or forgot.
+        /// </remarks>
+        private int ReadMovingCosts(bool stated)
+        {
+            if (Find(_placementTable!, "moving_costs_rent") is null)
+            {
+                if (stated)
+                {
+                    Refuse(LineOf((SyntaxNodeBase?)Find(_placementTable!, "mu_percent")
+                            ?? _placementTable!), null,
+                        "this [placement] table states mu_percent and no moving_costs_rent. adr/0017 "
+                        + "has a Household switch only when an alternative is SUBSTANTIALLY better, "
+                        + "and that word is this number -- without it the model has nothing to say "
+                        + "how settled anybody is. State 0 for a city where moving costs nothing.");
+                }
+
+                return 0;
+            }
+
+            if (!stated)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(_placementTable!, "moving_costs_rent")
+                        ?? _placementTable!), null,
+                    "this [placement] table states moving_costs_rent and no mu_percent. It weighs "
+                    + "staying put against moving in a comparison this file does not ask for, so "
+                    + "nothing would read it -- state mu_percent, or remove the key.");
+                return 0;
+            }
+
+            if (!TryInteger(_placementTable!, "moving_costs_rent", out long costs, required: true))
+            {
+                return 0;
+            }
+
+            if (costs < 0 || costs > int.MaxValue)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(_placementTable!, "moving_costs_rent")
+                        ?? _placementTable!), null,
+                    $"moving_costs_rent = {costs} is out of range. It is the daily rent a Household "
+                    + "would pay to stay where it is, so it is not negative -- a negative one would "
+                    + "pay families to move and every Household would churn for ever.");
+                return 0;
+            }
+
+            return (int)costs;
         }
 
         /// <summary>One domain-unit scale, required with the choice model and refused without it.</summary>

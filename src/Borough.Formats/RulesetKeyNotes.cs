@@ -552,6 +552,13 @@ public static class RulesetKeyNotes
             + "affordability test, which stays a filter. Required beside mu_percent and refused "
             + "without it.",
 
+        ["[placement] moving_costs_rent"] =
+            "The daily rent a Household would pay to stay where it is rather than move. It is what "
+            + "makes a home it already has worth more to it than the same home would be to a "
+            + "stranger, so a marginal improvement elsewhere does not empty the city every time the "
+            + "reassessment sweep runs. Zero means moving costs a family nothing. Required beside "
+            + "mu_percent and refused without it.",
+
         // ---- [jobs] ---------------------------------------------------------------------------
         ["[jobs] interval"] =
             "How many Ticks between passes that assign work to Citizens who have none. Omitting the "

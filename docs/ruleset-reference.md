@@ -25,7 +25,7 @@ dotnet run --project src/Borough.Headless -- \
 
 ## The sections
 
-37 sections, 232 keys.
+37 sections, 233 keys.
 
 - [`[[band]]`](#band) — 2 keys
 - [`[[building]]`](#building) — 18 keys
@@ -57,7 +57,7 @@ dotnet run --project src/Borough.Headless -- \
 - [`[market]`](#market) — 2 keys
 - [`[needs]`](#needs) — 9 keys
 - [`[parking]`](#parking) — 2 keys
-- [`[placement]`](#placement) — 9 keys
+- [`[placement]`](#placement) — 10 keys
 - [`[roads]`](#roads) — 12 keys
 - [`[school]`](#school) — 7 keys
 - [`[shopping]`](#shopping) — 7 keys
@@ -980,6 +980,10 @@ How many Ticks between passes that drain the Unplaced Pool into standing dwellin
 **`move_at_need`** · *whole number*
 
 The Sustenance or Satisfaction deficit at which a continuing shortage can prompt a move. Requires reassessment and Needs; each tenancy must endure its own shortage long enough to reach this depth. Absent means shortages never prompt moves.
+
+**`moving_costs_rent`** · *whole number*
+
+The daily rent a Household would pay to stay where it is rather than move. It is what makes a home it already has worth more to it than the same home would be to a stranger, so a marginal improvement elsewhere does not empty the city every time the reassessment sweep runs. Zero means moving costs a family nothing. Required beside mu_percent and refused without it.
 
 **`mu_percent`** · *whole number*
 

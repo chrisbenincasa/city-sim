@@ -701,6 +701,10 @@
           "description": "The Sustenance or Satisfaction deficit at which a continuing shortage can prompt a move. Requires reassessment and Needs; each tenancy must endure its own shortage long enough to reach this depth. Absent means shortages never prompt moves.",
           "type": "integer"
         },
+        "moving_costs_rent": {
+          "description": "The daily rent a Household would pay to stay where it is rather than move. It is what makes a home it already has worth more to it than the same home would be to a stranger, so a marginal improvement elsewhere does not empty the city every time the reassessment sweep runs. Zero means moving costs a family nothing. Required beside mu_percent and refused without it.",
+          "type": "integer"
+        },
         "mu_percent": {
           "description": "How sharply a Household acts on what it prefers, as a percent, where 100 is the scale the choice model is written around. Higher is more decisive and also narrower: an option far enough below the best stops being possible rather than becoming unlikely. Absent means the best-scoring candidate is taken outright.",
           "type": "integer"

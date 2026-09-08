@@ -62,6 +62,7 @@ public sealed class PlacementEngine
     private int _tickPremised;
     private int _tickReassessed;
     private int _tickShortageMoves;
+    private int _tickPreferredMoves;
 
     private RuleFlow _consideredFlow;
     private RuleFlow _placedFlow;
@@ -71,6 +72,7 @@ public sealed class PlacementEngine
     private RuleFlow _premisedFlow;
     private RuleFlow _reassessedFlow;
     private RuleFlow _shortageMovesFlow;
+    private RuleFlow _preferredMovesFlow;
 
     /// <param name="world">The tables this drains, and the Ruleset it drains under. Not copied.</param>
     /// <param name="key">The world seed, as the draws' first coordinate.</param>
@@ -104,7 +106,7 @@ public sealed class PlacementEngine
     {
         var activity = new PlacementActivity(
             _consideredFlow, _placedFlow, _departedFlow, _retiredFlow, _foundedFlow,
-            _premisedFlow, _reassessedFlow, _shortageMovesFlow);
+            _premisedFlow, _reassessedFlow, _shortageMovesFlow, _preferredMovesFlow);
 
         _consideredFlow = default;
         _placedFlow = default;
@@ -114,6 +116,7 @@ public sealed class PlacementEngine
         _premisedFlow = default;
         _reassessedFlow = default;
         _shortageMovesFlow = default;
+        _preferredMovesFlow = default;
 
         return activity;
     }
@@ -449,51 +452,21 @@ public sealed class PlacementEngine
             int lot = _world.LotsAdmitting.Nth(
                 _world.Lots, LotTable.Housing, (int)(value % (ulong)(uint)lots));
 
-            int building = _world.Lots.BuildingOn(lot);
+            int building = Consider(lot, seeker, out bool costsALook, out bool shown);
 
-            // The shell. Not a look, not a disappointment, and not counted as either.
-            if (building != Rows.NoSlot && _world.Buildings.IsAbandoned(building))
+            if (!costsALook)
             {
                 continue;
             }
 
             looks++;
 
-            // A vacant Lot is a look that found nothing, which is a real thing to happen to somebody
-            // looking for somewhere to live and is why the draw is over Lots at all. ⚠ It is a real
-            // thing only because this Lot ADMITS a dwelling -- see ZonedLots, which draws the line
-            // between a home not yet built and land that will never hold one.
+            if (shown)
+            {
+                _world.UnplacedPool.Considered[position]++;
+            }
+
             if (building == Rows.NoSlot)
-            {
-                continue;
-            }
-
-            // Counted HERE and not after the room test, because a full dwelling is one this family
-            // looked at and could not have -- which is the whole content of "considered 20 dwellings"
-            // in a city with a housing shortage. Counting only the ones with room would make the
-            // Evidence line read zero in exactly the city it exists to describe, and a look that
-            // found a vacant Lot is still not counted, because nobody was shown a home.
-            //
-            // ⚠ A SHELL IS NOT COUNTED HERE EITHER, AND IT USED TO BE. `considered N dwellings` was
-            // counting ruins nobody could be shown, so on a declining world the Evidence line
-            // overstated what a Household had been offered by roughly the blight share.
-            _world.UnplacedPool.Considered[position]++;
-
-            // plans/0054 F1: the HOUSEHOLD's question. A free tenancy in a kind that admits only
-            // trades is a free tenancy and not a home, and asking the shared predicate here would
-            // put a family in the warehouse the moment a warehouse existed.
-            if (!_world.HasRoomForHousehold(building))
-            {
-                continue;
-            }
-
-            // 02 §5.2 step 2b: affordable? A dwelling whose rent exceeds the seeker's balance is
-            // skipped -- a hard filter, not a score. The Household was SHOWN the dwelling (Considered
-            // is already incremented), which is a real thing that happens to somebody who cannot
-            // afford the home they looked at.
-            Money kindRent = _world.Rules.Kind(_world.Buildings.Kind[building]).Rent;
-
-            if (kindRent.Raw > 0 && _world.BalanceOf(seeker).Raw < kindRent.Raw)
             {
                 continue;
             }
@@ -562,6 +535,67 @@ public sealed class PlacementEngine
         MoveIn(slot, chosen, best, tick);
 
         return true;
+    }
+
+    /// <summary>
+    /// What a Household drawing <paramref name="lot"/> was shown, and whether it could live there.
+    /// </summary>
+    /// <param name="lot">A Lot admitting a dwelling, drawn by the caller.</param>
+    /// <param name="seeker">Whose balance the affordability filter reads.</param>
+    /// <param name="costsALook">
+    /// False only for a shell. <b>Draws and looks are different things and an abandoned Building is
+    /// the reason</b> — <c>adr/0091</c> leaves it standing, <c>World.HasRoom</c> refuses it
+    /// unconditionally, so spending a look on one makes <c>candidates</c> mean
+    /// <c>candidates × (1 − blight)</c>. Nobody flat-hunting ever viewed a demolition site.
+    /// </param>
+    /// <param name="shown">
+    /// Whether a dwelling was actually put in front of the family. <b>A full one counts and a vacant
+    /// Lot does not</b>: <i>considered 20 dwellings</i> is the whole content of a housing shortage,
+    /// and counting only the ones with room would read zero in exactly the city it describes.
+    /// </param>
+    /// <returns>The Building this Household could move into, or <see cref="Rows.NoSlot"/>.</returns>
+    /// <remarks>
+    /// <b>Shared by the seeker and the mover, which is what makes the two comparable.</b> A housed
+    /// Household weighing somewhere else must be shown it on the same terms a Pool member is, or the
+    /// stay-put row would be scored against a candidate set nobody else could have drawn.
+    /// </remarks>
+    private int Consider(int lot, Handle<Household> seeker, out bool costsALook, out bool shown)
+    {
+        costsALook = true;
+        shown = false;
+
+        int building = _world.Lots.BuildingOn(lot);
+
+        if (building != Rows.NoSlot && _world.Buildings.IsAbandoned(building))
+        {
+            costsALook = false;
+
+            return Rows.NoSlot;
+        }
+
+        // A vacant Lot is a look that found nothing, which is a real thing to happen to somebody
+        // looking for somewhere to live and is why the draw is over Lots at all.
+        if (building == Rows.NoSlot)
+        {
+            return Rows.NoSlot;
+        }
+
+        shown = true;
+
+        // plans/0054 F1: the HOUSEHOLD's question. A free tenancy in a kind that admits only trades
+        // is a free tenancy and not a home.
+        if (!_world.HasRoomForHousehold(building))
+        {
+            return Rows.NoSlot;
+        }
+
+        // 02 §5.2 step 2b: affordable? A hard filter, not a score. The Household was SHOWN the
+        // dwelling, which is a real thing that happens to somebody who cannot afford what they saw.
+        Money kindRent = _world.Rules.Kind(_world.Buildings.Kind[building]).Rent;
+
+        return kindRent.Raw > 0 && _world.BalanceOf(seeker).Raw < kindRent.Raw
+            ? Rows.NoSlot
+            : building;
     }
 
     /// <summary>Sizes the candidate buffers to one occasion's looks.</summary>
@@ -1133,17 +1167,133 @@ public sealed class PlacementEngine
             Handle<Household> household = _world.Households.Rows.At(slot);
             bool pricedOut = kindRent.Raw > 0 && _world.BalanceOf(household).Raw < kindRent.Raw;
             bool shortage = !pricedOut && ShortagePromptsMove(household, buildingSlot, tick);
+            bool prefers = !pricedOut && !shortage && PrefersSomewhereElse(slot, buildingSlot, tick);
 
-            if (pricedOut || shortage)
+            if (pricedOut || shortage || prefers)
             {
                 _world.Unplace(household);
                 _tickReassessed++;
+
                 if (shortage)
                 {
                     _tickShortageMoves++;
                 }
+
+                if (prefers)
+                {
+                    _tickPreferredMoves++;
+                }
             }
         }
+    }
+
+    /// <summary>
+    /// Whether this housed Household, shown what a seeker would be shown, would rather be elsewhere.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>02 section 5.4's stay-put alternative, and the reason it is not optional.</b> Only utility
+    /// DIFFERENCES matter in a logit, so adding a constant to every alternative changes nothing —
+    /// which makes <i>everything available is terrible and nobody moves</i> inexpressible until one
+    /// row in the comparison is <em>not moving</em>. Here that row is the home the family already
+    /// has, scored by the identical function and carrying
+    /// <see cref="PlacementRuleset.StayingPut"/> on top.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>Every other reason a Household leaves is a THRESHOLD and this one is a COMPARISON.</b>
+    /// Priced out, starved out, evicted, condemned over — each is a line the city crosses on the
+    /// family's behalf. ***This is the first time a Household leaves a home it can do better than***,
+    /// which is the sentence <c>plans/0045</c> row 16 is titled with and which the threshold-shaped
+    /// version of that row could not produce.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It runs only after the two hard tests have declined to fire</b>, because 02 section 5.4
+    /// is categorical that hard constraints are filters and soft trade-offs are utility. A family
+    /// that cannot pay its rent leaves whatever it would prefer, and asking it to prefer first would
+    /// put a probability in front of an eviction.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Preferring elsewhere returns the Household to the Pool rather than moving it there.</b>
+    /// The Pool is the one door into housing and the demand signal both — a move routed around it is
+    /// demand no readout can see — so what this decides is <em>to leave</em>, and where the family
+    /// ends up is the next pass's question. ***So a Household can leave a home for a better one and
+    /// be housed somewhere worse***, which is a real risk somebody moving takes.
+    /// </para>
+    /// </remarks>
+    private bool PrefersSomewhereElse(int slot, int building, Ticks tick)
+    {
+        PlacementRuleset placement = _world.Rules.Placement;
+
+        if (!placement.Chooses)
+        {
+            return false;
+        }
+
+        int lots = _world.LotsAdmitting.Count(_world.Lots, LotTable.Housing);
+
+        if (lots == 0 || !_world.Lots.Rows.TryResolve(_world.Buildings.Lot[building], out int home))
+        {
+            return false;
+        }
+
+        int candidates = placement.Candidates;
+        Handle<Household> household = _world.Households.Rows.At(slot);
+        ulong id = _world.Households.Rows.IdAt(slot);
+
+        long weight = _world.Rules.CentralityVaries
+            ? (2L * _world.Rules.CentralityTaste(_key, id, _world.Households.LifeStage[slot]))
+                - Fixed.One
+            : 0L;
+
+        Retain(candidates + 1);
+
+        // Position 0 is the incumbent, so a draw landing there is the family staying. It is not a
+        // special case anywhere below: it is scored, weighed and drawn exactly like the others.
+        _candidateBuildings[0] = building;
+        _candidateUtilities[0] = Utility(home, building, weight) + placement.StayingPut;
+
+        int found = 1;
+        int budget = candidates * 2;
+
+        for (int draw = 0; draw < budget && found <= candidates; draw++)
+        {
+            ulong entity = Randomness.Mix(id ^ ((ulong)(uint)draw << 32));
+            ulong value = Randomness.Draw(_key, entity, tick, PurposeTag.PlacementCandidate);
+
+            int lot = _world.LotsAdmitting.Nth(
+                _world.Lots, LotTable.Housing, (int)(value % (ulong)(uint)lots));
+
+            int alternative = Consider(lot, household, out bool costsALook, out _);
+
+            if (!costsALook)
+            {
+                continue;
+            }
+
+            // The home the family is already in is not an alternative to itself. Without this a
+            // Household could draw its own dwelling, score it WITHOUT the staying-put term, and be
+            // recorded as preferring somewhere else when the somewhere else is here.
+            if (alternative == Rows.NoSlot || alternative == building)
+            {
+                continue;
+            }
+
+            _candidateBuildings[found] = alternative;
+            _candidateUtilities[found] = Utility(lot, alternative, weight);
+            found++;
+        }
+
+        if (found == 1)
+        {
+            return false;
+        }
+
+        int taken = Choice.Draw(
+            _candidateUtilities.AsSpan(0, found),
+            placement.Mu,
+            Randomness.Draw(_key, id, tick, PurposeTag.ChoiceDraw));
+
+        return taken != 0;
     }
 
     private bool ShortagePromptsMove(Handle<Household> household, int building, Ticks tick)
@@ -1204,6 +1354,7 @@ public sealed class PlacementEngine
         _premisedFlow = _premisedFlow.Fold(_tickPremised);
         _reassessedFlow = _reassessedFlow.Fold(_tickReassessed);
         _shortageMovesFlow = _shortageMovesFlow.Fold(_tickShortageMoves);
+        _preferredMovesFlow = _preferredMovesFlow.Fold(_tickPreferredMoves);
 
         _tickConsidered = 0;
         _tickPlaced = 0;
@@ -1213,6 +1364,7 @@ public sealed class PlacementEngine
         _tickPremised = 0;
         _tickReassessed = 0;
         _tickShortageMoves = 0;
+        _tickPreferredMoves = 0;
     }
 }
 
@@ -1242,4 +1394,5 @@ public sealed class PlacementEngine
 /// </param>
 public readonly record struct PlacementActivity(
     RuleFlow Considered, RuleFlow Placed, RuleFlow Departed, RuleFlow Retired, RuleFlow Founded,
-    RuleFlow Premised, RuleFlow Reassessed, RuleFlow ShortageMoves = default);
+    RuleFlow Premised, RuleFlow Reassessed, RuleFlow ShortageMoves = default,
+    RuleFlow PreferredMoves = default);
