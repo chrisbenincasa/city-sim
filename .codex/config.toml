@@ -2,3 +2,6 @@
 type = "stdio"
 command = "tessl"
 args = [ "mcp", "start" ]
+
+default_permissions = ":workspace"
+

@@ -1,0 +1,358 @@
+{
+  "activity_hash_equal": true,
+  "original_runner_exit": "Failed combined allocation/activity check because run 3 allocated 24,624 more bytes. No capture rerun; allocations are now reported separately.",
+  "runs": [
+    {
+      "daily": {
+        "StartTick": 18432,
+        "Ticks": 2048,
+        "Citizens": 100000,
+        "Buildings": 8738,
+        "Employed": 75993,
+        "MeanMs": 15.345304833984382,
+        "P95Ms": 31.3993,
+        "P99Ms": 39.2874,
+        "MaxMs": 97.7839,
+        "MaxTick": 18704,
+        "AllocatedBytes": 3836696,
+        "PeakTravellers": 43641,
+        "PeakVehicles": 37381,
+        "VehicleTicks": 27917977,
+        "LoadedSegmentTicks": 1655415,
+        "CongestedSegmentTicks": 1395343,
+        "PeakVolumeCapacity": 125.98141479492188,
+        "CompletedTrips": 425111,
+        "NoRoute": 0,
+        "OverBudget": 0,
+        "DriveLegs": 293907,
+        "WalkLegs": 719018,
+        "ShoppingOutings": 106595,
+        "Purchases": 3035,
+        "DeliveredGoods": 111848,
+        "Wages": 141321,
+        "RuleEvaluations": 62089,
+        "Gen0Collections": 0,
+        "Gen1Collections": 0,
+        "Gen2Collections": 0,
+        "ManagedHeapBytes": 201296560,
+        "WorkingSetBytes": 239738880,
+        "RoutePrepared": 0,
+        "RouteUsed": 0,
+        "RouteFallback": 0,
+        "CivicEvents": {
+          "Ill": 0,
+          "Worsened": 0,
+          "Requested": 0,
+          "Booked": 0,
+          "Postponed": 0,
+          "Unreachable": 0,
+          "NoBed": 0,
+          "Admitted": 0,
+          "Treated": 0,
+          "Discharged": 0,
+          "Recovered": 0,
+          "DiedAwaitingBed": 0,
+          "Died": 0,
+          "MissedWork": 0,
+          "SwitchedClinic": 0,
+          "SchoolDeparted": 0,
+          "SchoolAttended": 0,
+          "Returned": 0,
+          "FacilityLost": 0,
+          "NoAppointment": 0
+        }
+      },
+      "end": {
+        "type": "end",
+        "tick": 20480,
+        "hash": "853C7070AA58EE03",
+        "invariants": "passed"
+      }
+    },
+    {
+      "daily": {
+        "StartTick": 18432,
+        "Ticks": 2048,
+        "Citizens": 100000,
+        "Buildings": 8738,
+        "Employed": 75993,
+        "MeanMs": 15.337424609375022,
+        "P95Ms": 32.0475,
+        "P99Ms": 39.592,
+        "MaxMs": 96.8045,
+        "MaxTick": 18704,
+        "AllocatedBytes": 3836696,
+        "PeakTravellers": 43641,
+        "PeakVehicles": 37381,
+        "VehicleTicks": 27917977,
+        "LoadedSegmentTicks": 1655415,
+        "CongestedSegmentTicks": 1395343,
+        "PeakVolumeCapacity": 125.98141479492188,
+        "CompletedTrips": 425111,
+        "NoRoute": 0,
+        "OverBudget": 0,
+        "DriveLegs": 293907,
+        "WalkLegs": 719018,
+        "ShoppingOutings": 106595,
+        "Purchases": 3035,
+        "DeliveredGoods": 111848,
+        "Wages": 141321,
+        "RuleEvaluations": 62089,
+        "Gen0Collections": 0,
+        "Gen1Collections": 0,
+        "Gen2Collections": 0,
+        "ManagedHeapBytes": 201271912,
+        "WorkingSetBytes": 239468544,
+        "RoutePrepared": 0,
+        "RouteUsed": 0,
+        "RouteFallback": 0,
+        "CivicEvents": {
+          "Ill": 0,
+          "Worsened": 0,
+          "Requested": 0,
+          "Booked": 0,
+          "Postponed": 0,
+          "Unreachable": 0,
+          "NoBed": 0,
+          "Admitted": 0,
+          "Treated": 0,
+          "Discharged": 0,
+          "Recovered": 0,
+          "DiedAwaitingBed": 0,
+          "Died": 0,
+          "MissedWork": 0,
+          "SwitchedClinic": 0,
+          "SchoolDeparted": 0,
+          "SchoolAttended": 0,
+          "Returned": 0,
+          "FacilityLost": 0,
+          "NoAppointment": 0
+        }
+      },
+      "end": {
+        "type": "end",
+        "tick": 20480,
+        "hash": "853C7070AA58EE03",
+        "invariants": "passed"
+      }
+    },
+    {
+      "daily": {
+        "StartTick": 18432,
+        "Ticks": 2048,
+        "Citizens": 100000,
+        "Buildings": 8738,
+        "Employed": 75993,
+        "MeanMs": 15.557475439453121,
+        "P95Ms": 32.2848,
+        "P99Ms": 37.4439,
+        "MaxMs": 92.439,
+        "MaxTick": 19728,
+        "AllocatedBytes": 3861320,
+        "PeakTravellers": 43641,
+        "PeakVehicles": 37381,
+        "VehicleTicks": 27917977,
+        "LoadedSegmentTicks": 1655415,
+        "CongestedSegmentTicks": 1395343,
+        "PeakVolumeCapacity": 125.98141479492188,
+        "CompletedTrips": 425111,
+        "NoRoute": 0,
+        "OverBudget": 0,
+        "DriveLegs": 293907,
+        "WalkLegs": 719018,
+        "ShoppingOutings": 106595,
+        "Purchases": 3035,
+        "DeliveredGoods": 111848,
+        "Wages": 141321,
+        "RuleEvaluations": 62089,
+        "Gen0Collections": 0,
+        "Gen1Collections": 0,
+        "Gen2Collections": 0,
+        "ManagedHeapBytes": 201288304,
+        "WorkingSetBytes": 239722496,
+        "RoutePrepared": 0,
+        "RouteUsed": 0,
+        "RouteFallback": 0,
+        "CivicEvents": {
+          "Ill": 0,
+          "Worsened": 0,
+          "Requested": 0,
+          "Booked": 0,
+          "Postponed": 0,
+          "Unreachable": 0,
+          "NoBed": 0,
+          "Admitted": 0,
+          "Treated": 0,
+          "Discharged": 0,
+          "Recovered": 0,
+          "DiedAwaitingBed": 0,
+          "Died": 0,
+          "MissedWork": 0,
+          "SwitchedClinic": 0,
+          "SchoolDeparted": 0,
+          "SchoolAttended": 0,
+          "Returned": 0,
+          "FacilityLost": 0,
+          "NoAppointment": 0
+        }
+      },
+      "end": {
+        "type": "end",
+        "tick": 20480,
+        "hash": "853C7070AA58EE03",
+        "invariants": "passed"
+      }
+    },
+    {
+      "daily": {
+        "StartTick": 18432,
+        "Ticks": 2048,
+        "Citizens": 100000,
+        "Buildings": 8738,
+        "Employed": 75993,
+        "MeanMs": 15.749758544921896,
+        "P95Ms": 33.1182,
+        "P99Ms": 39.8975,
+        "MaxMs": 100.9434,
+        "MaxTick": 19216,
+        "AllocatedBytes": 3836696,
+        "PeakTravellers": 43641,
+        "PeakVehicles": 37381,
+        "VehicleTicks": 27917977,
+        "LoadedSegmentTicks": 1655415,
+        "CongestedSegmentTicks": 1395343,
+        "PeakVolumeCapacity": 125.98141479492188,
+        "CompletedTrips": 425111,
+        "NoRoute": 0,
+        "OverBudget": 0,
+        "DriveLegs": 293907,
+        "WalkLegs": 719018,
+        "ShoppingOutings": 106595,
+        "Purchases": 3035,
+        "DeliveredGoods": 111848,
+        "Wages": 141321,
+        "RuleEvaluations": 62089,
+        "Gen0Collections": 0,
+        "Gen1Collections": 0,
+        "Gen2Collections": 0,
+        "ManagedHeapBytes": 201278104,
+        "WorkingSetBytes": 239570944,
+        "RoutePrepared": 0,
+        "RouteUsed": 0,
+        "RouteFallback": 0,
+        "CivicEvents": {
+          "Ill": 0,
+          "Worsened": 0,
+          "Requested": 0,
+          "Booked": 0,
+          "Postponed": 0,
+          "Unreachable": 0,
+          "NoBed": 0,
+          "Admitted": 0,
+          "Treated": 0,
+          "Discharged": 0,
+          "Recovered": 0,
+          "DiedAwaitingBed": 0,
+          "Died": 0,
+          "MissedWork": 0,
+          "SwitchedClinic": 0,
+          "SchoolDeparted": 0,
+          "SchoolAttended": 0,
+          "Returned": 0,
+          "FacilityLost": 0,
+          "NoAppointment": 0
+        }
+      },
+      "end": {
+        "type": "end",
+        "tick": 20480,
+        "hash": "853C7070AA58EE03",
+        "invariants": "passed"
+      }
+    }
+  ],
+  "variation": {
+    "MeanMs": {
+      "min": 15.337424609375022,
+      "max": 15.749758544921896,
+      "median": 15.451390136718752
+    },
+    "P95Ms": {
+      "min": 31.3993,
+      "max": 33.1182,
+      "median": 32.16615
+    },
+    "P99Ms": {
+      "min": 37.4439,
+      "max": 39.8975,
+      "median": 39.4397
+    },
+    "MaxMs": {
+      "min": 92.439,
+      "max": 100.9434,
+      "median": 97.2942
+    }
+  },
+  "host_scope": "Setup, warmup, measurement and ending checks combined; one-second samples, not exact measurement-window isolation.",
+  "host": [
+    {
+      "file": "run-1.host.jsonl",
+      "busy_percent": {
+        "cpu": 28.6826594222233,
+        "cpu2": 99.04299385802028,
+        "cpu8": 36.128182616330115
+      },
+      "frequency_khz": {
+        "min": 3999802,
+        "median": 4000000,
+        "max": 4191390
+      }
+    },
+    {
+      "file": "run-2.host.jsonl",
+      "busy_percent": {
+        "cpu": 28.237104518035206,
+        "cpu2": 99.40605533825872,
+        "cpu8": 35.41202672605791
+      },
+      "frequency_khz": {
+        "min": 3999783,
+        "median": 4000000.5,
+        "max": 4080772
+      }
+    },
+    {
+      "file": "run-3.host.jsonl",
+      "busy_percent": {
+        "cpu": 28.41187346959172,
+        "cpu2": 99.38244375827084,
+        "cpu8": 33.92427884615385
+      },
+      "frequency_khz": {
+        "min": 800000,
+        "median": 3999999,
+        "max": 4100029
+      }
+    },
+    {
+      "file": "run-4.host.jsonl",
+      "busy_percent": {
+        "cpu": 28.41867307761312,
+        "cpu2": 99.83103351168685,
+        "cpu8": 43.33716255025847
+      },
+      "frequency_khz": {
+        "min": 3999958,
+        "median": 4000001.5,
+        "max": 4000044
+      }
+    }
+  ],
+  "trace_activity_hash_equal": true,
+  "trace_execution": "taskset -c 2; outside sandbox for diagnostic socket access; fresh trace with frozen observer binary and checkpoint, commands in capture.json; intrusive timing excluded",
+  "validation": {
+    "ProfileDump": 16,
+    "summary_script": "passed CPU_TIME and UNMANAGED_CODE_TIME coverage, timestamp exclusion and scopes",
+    "repeat_script": "replayed original captures; allocation difference accepted separately; deliberately changed hash refused"
+  }
+}

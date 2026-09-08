@@ -15,6 +15,13 @@ public static class WorkSchedule
         return false;
     }
 
+    public static bool PayrollAttributionEnabled =>
+#if PAYROLL_ATTRIBUTION
+        true;
+#else
+        false;
+#endif
+
     public static bool OnDuty(World world, int citizen, Ticks tick)
     {
         if (!world.Businesses.Rows.TryResolve(world.Citizens.Workplace[citizen], out int job)
@@ -52,23 +59,56 @@ public static class WorkSchedule
     }
 
     public static void Accrue(World world, Ticks tick)
+#if PAYROLL_ATTRIBUTION
+        => AccrueMeasured(world, tick, null);
+
+    public static void AccrueMeasured(World world, Ticks tick, Action<PayrollStage>? observe)
+#endif
     {
         if (!Runs(world)) { return; }
+#if PAYROLL_ATTRIBUTION
+        observe?.Invoke(PayrollStage.Begin);
+#endif
         for (int citizen = 0; citizen < world.Citizens.Rows.SlotCount; citizen++)
         {
             if (!world.Citizens.Rows.IsLive(citizen)
                 || (CitizenActivity)world.Citizens.Activity[citizen] != CitizenActivity.AtWork
-                || CivicEngine.TooIllToWork(world, citizen) || !OnDuty(world, citizen, tick)) { continue; }
+                || CivicEngine.TooIllToWork(world, citizen)
+#if !PAYROLL_ATTRIBUTION
+                || !OnDuty(world, citizen, tick)
+#endif
+                ) { continue; }
+#if PAYROLL_ATTRIBUTION
+            observe?.Invoke(PayrollStage.ScheduleBegin);
+            bool onDuty = OnDuty(world, citizen, tick);
+            observe?.Invoke(PayrollStage.ScheduleEnd);
+            if (!onDuty) { continue; }
+            observe?.Invoke(PayrollStage.WageBegin);
+#endif
             int job = world.Businesses.Rows.Resolve(world.Citizens.Workplace[citizen]);
             BusinessKindDefinition trade = world.Rules.BusinessKind(world.Businesses.Kind[job]);
             long length = (long)world.Rules.Jobs.ShiftLengthOf(world.Key, world.Citizens.Rows.IdAt(citizen)).Raw;
-            if (length <= 0) { continue; }
+            if (length <= 0)
+            {
+#if PAYROLL_ATTRIBUTION
+                observe?.Invoke(PayrollStage.WageEnd);
+#endif
+                continue;
+            }
             long scaled = world.Citizens.WageRemainder[citizen] + trade.WagePerDay;
             long whole = IntegerMath.FloorDiv(scaled, length);
             world.Citizens.WageRemainder[citizen] = scaled % length;
             long cap = (long)trade.WagePerDay * trade.PayPeriodDays;
             long earned = world.Citizens.EarnedWage[citizen] + whole;
             world.Citizens.EarnedWage[citizen] = earned > cap ? cap : earned;
+#if PAYROLL_ATTRIBUTION
+            observe?.Invoke(PayrollStage.WageEnd);
+#endif
         }
+#if PAYROLL_ATTRIBUTION
+        observe?.Invoke(PayrollStage.End);
+#endif
     }
 }
+
+public enum PayrollStage : byte { Begin, ScheduleBegin, ScheduleEnd, WageBegin, WageEnd, End }

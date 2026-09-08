@@ -64,6 +64,8 @@ public sealed class Simulation
 
     // Optional diagnostics; the observer owns timing and must not mutate the simulation.
     public Action<TickPhase>? PhaseCompleted { get; set; }
+    public Action<Ticks>? PayrollStarting { get; set; }
+    public Func<Ticks, Action<PayrollStage>?>? PayrollMeasuring { get; set; }
     private ulong _inForce;
     private bool _opened;
     private int _reloads;
@@ -1413,7 +1415,12 @@ public sealed class Simulation
         // Phase 4 is one of adr/0037's two double-buffered tables, and neither the buffering nor the
         // measurement that would justify it exists.
         _trips.Advance(tick);
+        PayrollStarting?.Invoke(tick);
+#if PAYROLL_ATTRIBUTION
+        WorkSchedule.AccrueMeasured(_world, tick, PayrollMeasuring?.Invoke(tick));
+#else
         WorkSchedule.Accrue(_world, tick);
+#endif
     }
 
     /// <summary>Phase 5 — Map Layer diffusion for whatever is scheduled this Tick.</summary>

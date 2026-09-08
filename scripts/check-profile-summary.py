@@ -10,7 +10,8 @@ names = ['host', 'Borough.Headless.ProfileDump.TimedStep(sim)', 'ShoppingEngine.
          'WalkScratch.Search(graph)', 'BuildingResidency.NthIn(area)', 'UNMANAGED_CODE_TIME',
          'System.Diagnostics.Stopwatch.GetTimestamp()', 'reporting',
          'Borough.Core.Simulation.Layers()', 'Borough.Core.Space.LineSourceQueries.Level(graph)',
-         'TripEngine.Start(citizen)', 'CommuteEngine.Generate(tick)', 'TripEngine.AdvanceTravellers(tick)']
+         'TripEngine.Start(citizen)', 'CommuteEngine.Generate(tick)', 'TripEngine.AdvanceTravellers(tick)',
+         'CPU_TIME']
 events = []
 def interval(start, end, frames):
     events.extend({'type': 'O', 'at': start, 'frame': frame} for frame in frames)
@@ -21,7 +22,7 @@ interval(120, 130, [0, 1, 2, 4, 5])
 interval(130, 230, [0, 1, 6, 5])
 interval(230, 240, [0, 1, 8, 9, 5])
 interval(240, 255, [0, 1, 2, 10, 3, 5])
-interval(255, 280, [0, 1, 11, 10, 3, 5])
+interval(255, 280, [0, 1, 11, 10, 3, 13])
 interval(280, 285, [0, 1, 12, 5])
 source = {'shared': {'frames': [{'name': name} for name in names]},
           'profiles': [{'type': 'evented', 'unit': 'milliseconds', 'startValue': 0, 'endValue': 285, 'events': events}]}
@@ -39,6 +40,7 @@ with tempfile.TemporaryDirectory(prefix='borough-profile-summary-test-') as fold
     assert leaf['WalkScratch.Search(graph)'] == 60
     assert leaf['BuildingResidency.NthIn(area)'] == 10
     assert 'reporting' not in leaf and 'UNMANAGED_CODE_TIME' not in leaf
+    assert 'CPU_TIME' not in leaf
     assert 'System.Diagnostics.Stopwatch.GetTimestamp()' not in leaf
     subprocess.run([sys.executable, str(Path(__file__).with_name('summarize-simulation-profile.py')),
                     str(path / 'input.json'), '--scope', 'layers', '--output', str(path / 'layers.json')],
@@ -57,4 +59,18 @@ with tempfile.TemporaryDirectory(prefix='borough-profile-summary-test-') as fold
     assert move['move_weight_ms_by_work'] == {
         'shopping_estimate_search': 20, 'recorded_shopping_search': 15,
         'other_recorded_search': 25, 'non_search_move': 15}
+    subprocess.run([sys.executable, str(Path(__file__).with_name('summarize-simulation-profile.py')),
+                    str(path / 'input.json'), '--scope', 'commute', '--output', str(path / 'commute.json')],
+                   stdout=subprocess.DEVNULL, check=True)
+    commute = json.loads((path / 'commute.json').read_text())
+    assert commute['step_weight_ms'] == 25
+    assert commute['route_weight_ms_by_caller'] == {'commuting': 25}
+    source['shared']['frames'][11]['name'] = 'WorkSchedule.Accrue(world,tick)'
+    (path / 'payroll-input.json').write_text(json.dumps(source))
+    subprocess.run([sys.executable, str(Path(__file__).with_name('summarize-simulation-profile.py')),
+                    str(path / 'payroll-input.json'), '--scope', 'payroll', '--output', str(path / 'payroll.json')],
+                   stdout=subprocess.DEVNULL, check=True)
+    payroll = json.loads((path / 'payroll.json').read_text())
+    assert payroll['step_weight_ms'] == 25
+    assert all(row['method'] != 'CPU_TIME' for row in payroll['methods'])
 print('PASS: excludes reporting and timestamps; handles inlined Step and native leaf markers.')
