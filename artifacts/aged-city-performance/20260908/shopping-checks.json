@@ -1,0 +1,513 @@
+{
+  "hundred-0-before": {
+    "MeanMs": 4.789322363281249,
+    "P95Ms": 9.3772,
+    "P99Ms": 10.5368,
+    "MaxMs": 28.2954,
+    "AllocatedBytes": 3836440,
+    "hash": "D551BD2FA385894A"
+  },
+  "hundred-0-observed": {
+    "MeanMs": 4.954133398437502,
+    "P95Ms": 9.6191,
+    "P99Ms": 10.9845,
+    "MaxMs": 28.6759,
+    "AllocatedBytes": 3836464,
+    "hash": "D551BD2FA385894A"
+  },
+  "hundred-0-counted": {
+    "MeanMs": 5.081554150390619,
+    "P95Ms": 9.9798,
+    "P99Ms": 11.4969,
+    "MaxMs": 29.67,
+    "AllocatedBytes": 3836992,
+    "hash": "D551BD2FA385894A",
+    "discovery": {
+      "Considered": 442548,
+      "Starts": 265154,
+      "NoKnownShop": 218870,
+      "Unreachable": 0,
+      "DiscoveryCalls": 325977,
+      "DiscoveryWithoutAddition": 311745,
+      "Draws": 10289995,
+      "DrawsWithoutBusiness": 279272,
+      "BusinessesChecked": 10010723,
+      "NoSaleBin": 9992528,
+      "AlreadyKnown": 3709,
+      "DiscoveryRouteRejected": 124,
+      "ProvidersAdded": 14362,
+      "indexReads": 502249051,
+      "discoveryRouteChecks": 14486,
+      "failedDiscoveryShare": 0.9563404780091846,
+      "noSaleBinShareOfBusinesses": 0.9981824489599802,
+      "drawsPerAddedProvider": 716.4736805458849,
+      "hash": "D551BD2FA385894A",
+      "activity": {
+        "StartTick": 14336,
+        "Ticks": 2048,
+        "Citizens": 100000,
+        "Buildings": 8734,
+        "Employed": 75958,
+        "PeakTravellers": 42763,
+        "PeakVehicles": 36560,
+        "VehicleTicks": 26584258,
+        "LoadedSegmentTicks": 1599970,
+        "CongestedSegmentTicks": 1335441,
+        "PeakVolumeCapacity": 143.56021118164062,
+        "CompletedTrips": 416610,
+        "NoRoute": 0,
+        "OverBudget": 0,
+        "DriveLegs": 288391,
+        "WalkLegs": 705001,
+        "ShoppingOutings": 106876,
+        "Purchases": 2448,
+        "DeliveredGoods": 89976,
+        "Wages": 243205,
+        "RuleEvaluations": 48963,
+        "RoutePrepared": 0,
+        "RouteUsed": 0,
+        "RouteFallback": 0,
+        "CivicEvents": {
+          "Ill": 0,
+          "Worsened": 0,
+          "Requested": 0,
+          "Booked": 0,
+          "Postponed": 0,
+          "Unreachable": 0,
+          "NoBed": 0,
+          "Admitted": 0,
+          "Treated": 0,
+          "Discharged": 0,
+          "Recovered": 0,
+          "DiedAwaitingBed": 0,
+          "Died": 0,
+          "MissedWork": 0,
+          "SwitchedClinic": 0,
+          "SchoolDeparted": 0,
+          "SchoolAttended": 0,
+          "Returned": 0,
+          "FacilityLost": 0,
+          "NoAppointment": 0
+        }
+      }
+    },
+    "tracedActivityAndHashMatch": true
+  },
+  "hundred-1-before": {
+    "MeanMs": 5.090149511718741,
+    "P95Ms": 9.9636,
+    "P99Ms": 11.3973,
+    "MaxMs": 29.5227,
+    "AllocatedBytes": 3842112,
+    "hash": "FDD1DBA842295351"
+  },
+  "hundred-1-observed": {
+    "MeanMs": 5.024609326171884,
+    "P95Ms": 9.8414,
+    "P99Ms": 11.3907,
+    "MaxMs": 28.811,
+    "AllocatedBytes": 3842088,
+    "hash": "FDD1DBA842295351"
+  },
+  "hundred-1-counted": {
+    "MeanMs": 5.163241015624988,
+    "P95Ms": 10.0766,
+    "P99Ms": 11.9683,
+    "MaxMs": 30.3557,
+    "AllocatedBytes": 3893544,
+    "hash": "FDD1DBA842295351",
+    "discovery": {
+      "Considered": 441712,
+      "Starts": 256479,
+      "NoKnownShop": 218989,
+      "Unreachable": 0,
+      "DiscoveryCalls": 323292,
+      "DiscoveryWithoutAddition": 309230,
+      "Draws": 10209522,
+      "DrawsWithoutBusiness": 256520,
+      "BusinessesChecked": 9953002,
+      "NoSaleBin": 9934942,
+      "AlreadyKnown": 3785,
+      "DiscoveryRouteRejected": 99,
+      "ProvidersAdded": 14176,
+      "indexReads": 495743197,
+      "discoveryRouteChecks": 14275,
+      "failedDiscoveryShare": 0.956503718001064,
+      "noSaleBinShareOfBusinesses": 0.9981854720816895,
+      "drawsPerAddedProvider": 720.197658013544,
+      "hash": "FDD1DBA842295351",
+      "activity": {
+        "StartTick": 14336,
+        "Ticks": 2048,
+        "Citizens": 100000,
+        "Buildings": 8822,
+        "Employed": 76961,
+        "PeakTravellers": 42913,
+        "PeakVehicles": 36546,
+        "VehicleTicks": 26968516,
+        "LoadedSegmentTicks": 1596653,
+        "CongestedSegmentTicks": 1323055,
+        "PeakVolumeCapacity": 133.79420471191406,
+        "CompletedTrips": 409899,
+        "NoRoute": 0,
+        "OverBudget": 0,
+        "DriveLegs": 284192,
+        "WalkLegs": 694091,
+        "ShoppingOutings": 104002,
+        "Purchases": 2402,
+        "DeliveredGoods": 88896,
+        "Wages": 276070,
+        "RuleEvaluations": 48346,
+        "RoutePrepared": 0,
+        "RouteUsed": 0,
+        "RouteFallback": 0,
+        "CivicEvents": {
+          "Ill": 0,
+          "Worsened": 0,
+          "Requested": 0,
+          "Booked": 0,
+          "Postponed": 0,
+          "Unreachable": 0,
+          "NoBed": 0,
+          "Admitted": 0,
+          "Treated": 0,
+          "Discharged": 0,
+          "Recovered": 0,
+          "DiedAwaitingBed": 0,
+          "Died": 0,
+          "MissedWork": 0,
+          "SwitchedClinic": 0,
+          "SchoolDeparted": 0,
+          "SchoolAttended": 0,
+          "Returned": 0,
+          "FacilityLost": 0,
+          "NoAppointment": 0
+        }
+      }
+    }
+  },
+  "million-0-counted": {
+    "discovery": {
+      "Considered": 5948166,
+      "Starts": 423695,
+      "NoKnownShop": 4283570,
+      "Unreachable": 0,
+      "DiscoveryCalls": 4486175,
+      "DiscoveryWithoutAddition": 4467880,
+      "Draws": 143544987,
+      "DrawsWithoutBusiness": 3730005,
+      "BusinessesChecked": 139814982,
+      "NoSaleBin": 139792675,
+      "AlreadyKnown": 1203,
+      "DiscoveryRouteRejected": 2722,
+      "ProvidersAdded": 18382,
+      "indexReads": 10891898189,
+      "discoveryRouteChecks": 21104,
+      "failedDiscoveryShare": 0.9959219156631206,
+      "noSaleBinShareOfBusinesses": 0.9998404534358127,
+      "drawsPerAddedProvider": 7808.99722554673,
+      "hash": "FAE56437750E05C7",
+      "activity": {
+        "StartTick": 14336,
+        "Ticks": 2048,
+        "Citizens": 1000000,
+        "Buildings": 86938,
+        "Employed": 756929,
+        "PeakTravellers": 358826,
+        "PeakVehicles": 340862,
+        "VehicleTicks": 212898240,
+        "LoadedSegmentTicks": 18408979,
+        "CongestedSegmentTicks": 15423096,
+        "PeakVolumeCapacity": 161.13906860351562,
+        "CompletedTrips": 1929265,
+        "NoRoute": 0,
+        "OverBudget": 0,
+        "DriveLegs": 1456161,
+        "WalkLegs": 3385426,
+        "ShoppingOutings": 201792,
+        "Purchases": 2461,
+        "DeliveredGoods": 89624,
+        "Wages": 74133,
+        "RuleEvaluations": 48274,
+        "RoutePrepared": 0,
+        "RouteUsed": 0,
+        "RouteFallback": 0,
+        "CivicEvents": {
+          "Ill": 0,
+          "Worsened": 0,
+          "Requested": 0,
+          "Booked": 0,
+          "Postponed": 0,
+          "Unreachable": 0,
+          "NoBed": 0,
+          "Admitted": 0,
+          "Treated": 0,
+          "Discharged": 0,
+          "Recovered": 0,
+          "DiedAwaitingBed": 0,
+          "Died": 0,
+          "MissedWork": 0,
+          "SwitchedClinic": 0,
+          "SchoolDeparted": 0,
+          "SchoolAttended": 0,
+          "Returned": 0,
+          "FacilityLost": 0,
+          "NoAppointment": 0
+        }
+      }
+    },
+    "tracedActivityAndHashMatch": true
+  },
+  "previousPerTickCountersMatch": true,
+  "trace": {
+    "step_weight_ms": 10787.041944447294,
+    "move_weight_ms_by_work": {
+      "non_search_move": 7636.533520648318,
+      "shopping_estimate_search": 644.433126272969,
+      "other_recorded_search": 743.8947961874992,
+      "recorded_shopping_search": 1439.289410212871
+    },
+    "building_selection_weight_ms_by_caller": {
+      "shopping": 658.0757054044534
+    },
+    "methods": [
+      {
+        "method": "Borough.Core!Borough.Core.Movement.WalkScratch.Search(class Borough.Core.Space.RoadGraph,value class Borough.Core.Space.TravelMode,int32,int32,value class Borough.Core.Quantities.TravelTime,value class Borough.Core.Quantities.TravelTime)",
+        "self_weight_ms": 2338.3953795216735,
+        "self_percent": 21.677818548998776,
+        "inclusive_weight_ms": 2827.617332673339,
+        "inclusive_percent": 26.21309296130878
+      },
+      {
+        "method": "Borough.Core!Borough.Core.Movement.WorkSchedule.Accrue(class Borough.Core.Entities.World,value class Borough.Core.Quantities.Ticks)",
+        "self_weight_ms": 1278.836231165534,
+        "self_percent": 11.8553004405793,
+        "inclusive_weight_ms": 1544.894638581624,
+        "inclusive_percent": 14.321763524585807
+      },
+      {
+        "method": "Borough.Core!Borough.Core.Movement.CommuteEngine.Generate(value class Borough.Core.Quantities.Ticks)",
+        "self_weight_ms": 1241.0034451532727,
+        "self_percent": 11.50457606028025,
+        "inclusive_weight_ms": 2304.5809442351297,
+        "inclusive_percent": 21.364345815132655
+      },
+      {
+        "method": "Borough.Core!Borough.Core.Movement.TripEngine.AdvanceTravellers(value class Borough.Core.Quantities.Ticks)",
+        "self_weight_ms": 738.8904044940962,
+        "self_percent": 6.84979634175285,
+        "inclusive_weight_ms": 1163.0979719993447,
+        "inclusive_percent": 10.78236256046133
+      },
+      {
+        "method": "Borough.Core!Borough.Core.Space.BuildingResidency.NthIn(value class Borough.Core.Space.CellRect,class Borough.Core.Entities.BuildingTable,int32,class Borough.Core.Space.BuildingQueryWork)",
+        "self_weight_ms": 658.0757054044534,
+        "self_percent": 6.100613206043965,
+        "inclusive_weight_ms": 658.0757054044534,
+        "inclusive_percent": 6.100613206043965
+      },
+      {
+        "method": "System.Private.CoreLib!System.Collections.Generic.GenericArraySortHelper`2[System.UInt64,System.Int32].IntroSort(value class System.Span`1<!0>,value class System.Span`1<!1>,int32)",
+        "self_weight_ms": 642.7536418717887,
+        "self_percent": 5.958571823322247,
+        "inclusive_weight_ms": 642.7536418717887,
+        "inclusive_percent": 5.958571823322247
+      },
+      {
+        "method": "Borough.Core!Borough.Core.Movement.TripEngine.ReleaseEnded()",
+        "self_weight_ms": 632.5059774356623,
+        "self_percent": 5.8635720588928395,
+        "inclusive_weight_ms": 648.6742688680042,
+        "inclusive_percent": 6.013458297544805
+      },
+      {
+        "method": "Borough.Core!Borough.Core.Movement.WalkScratch.Push(value class Borough.Core.Quantities.TravelTime,int32)",
+        "self_weight_ms": 487.7620373067096,
+        "self_percent": 4.521740434668362,
+        "inclusive_weight_ms": 487.7620373067096,
+        "inclusive_percent": 4.521740434668362
+      },
+      {
+        "method": "Borough.Core!Borough.Core.Parking.ParkingShed.Expand(class Borough.Core.Space.RoadGraph,class Borough.Core.Parking.CarParkTable,class Borough.Core.Parking.CarParkResidency,class Borough.Core.Parking.ShedScratch,value class Borough.Core.Quantities.Tiles,int32,int32&)",
+        "self_weight_ms": 486.94498486636763,
+        "self_percent": 4.5141660463925986,
+        "inclusive_weight_ms": 520.9145241293584,
+        "inclusive_percent": 4.829076653377647
+      },
+      {
+        "method": "Borough.Core!Borough.Core.Rules.ShoppingEngine.Step(value class Borough.Core.Quantities.Ticks)",
+        "self_weight_ms": 364.4870147173947,
+        "self_percent": 3.3789338782076115,
+        "inclusive_weight_ms": 4802.903029637555,
+        "inclusive_percent": 44.524746027430474
+      },
+      {
+        "method": "Borough.Core!Borough.Core.Parking.ParkingShed.Nearest(class Borough.Core.Space.RoadGraph,class Borough.Core.Parking.CarParkTable,class Borough.Core.Parking.CarParkResidency,value class Borough.Core.Space.Address,value class Borough.Core.Quantities.Tiles,class Borough.Core.Parking.ShedScratch,value class System.Span`1<int32>,int32&)",
+        "self_weight_ms": 294.64278364995596,
+        "self_percent": 2.7314511723172212,
+        "inclusive_weight_ms": 818.3131414655566,
+        "inclusive_percent": 7.5860754568289135
+      },
+      {
+        "method": "Borough.Core!Borough.Core.Movement.WorkSchedule.OnDuty(class Borough.Core.Entities.World,int32,value class Borough.Core.Quantities.Ticks)",
+        "self_weight_ms": 267.6999903258576,
+        "self_percent": 2.48168118474461,
+        "inclusive_weight_ms": 267.6999903258576,
+        "inclusive_percent": 2.48168118474461
+      },
+      {
+        "method": "Borough.Core!Borough.Core.Movement.TripEngine.RecordRoute(int32,value class Borough.Core.Space.Address,value class Borough.Core.Space.Address,value class System.ReadOnlySpan`1<int32>)",
+        "self_weight_ms": 187.29958071678772,
+        "self_percent": 1.7363386707993798,
+        "inclusive_weight_ms": 187.29958071678772,
+        "inclusive_percent": 1.7363386707993798
+      },
+      {
+        "method": "Borough.Core!Borough.Core.Rules.ShoppingEngine.Discover(int32,int32,int32,value class Borough.Core.Quantities.Ticks)",
+        "self_weight_ms": 114.29442445026113,
+        "self_percent": 1.0595529806861927,
+        "inclusive_weight_ms": 931.2957117878082,
+        "inclusive_percent": 8.633467048556339
+      },
+      {
+        "method": "System.Private.CoreLib!System.Collections.Generic.GenericArraySortHelper`2[System.UInt64,System.Int32].Sort(value class System.Span`1<!0>,value class System.Span`1<!1>,class System.Collections.Generic.IComparer`1<!0>)",
+        "self_weight_ms": 104.54950412782978,
+        "self_percent": 0.9692138462634549,
+        "inclusive_weight_ms": 747.3031459996184,
+        "inclusive_percent": 6.927785669585702
+      }
+    ]
+  },
+  "million-trace": {
+    "step_weight_ms": 114111.20244994278,
+    "move_weight_ms_by_work": {
+      "non_search_move": 80422.07470483641,
+      "shopping_estimate_search": 3108.6446736248695,
+      "other_recorded_search": 21618.67770913452,
+      "recorded_shopping_search": 6322.439516790273
+    },
+    "building_selection_weight_ms_by_caller": {
+      "shopping": 14137.101350893863
+    },
+    "methods": [
+      {
+        "method": "Borough.Core!Borough.Core.Movement.WalkScratch.Search(class Borough.Core.Space.RoadGraph,value class Borough.Core.Space.TravelMode,int32,int32,value class Borough.Core.Quantities.TravelTime,value class Borough.Core.Quantities.TravelTime)",
+        "self_weight_ms": 26044.636982272856,
+        "self_percent": 22.8239089792239,
+        "inclusive_weight_ms": 31051.362191517055,
+        "inclusive_percent": 27.211493284490075
+      },
+      {
+        "method": "Borough.Core!Borough.Core.Space.BuildingResidency.NthIn(value class Borough.Core.Space.CellRect,class Borough.Core.Entities.BuildingTable,int32,class Borough.Core.Space.BuildingQueryWork)",
+        "self_weight_ms": 14137.101350893863,
+        "self_percent": 12.388881238102273,
+        "inclusive_weight_ms": 14137.101350893863,
+        "inclusive_percent": 12.388881238102273
+      },
+      {
+        "method": "Borough.Core!Borough.Core.Movement.CommuteEngine.Generate(value class Borough.Core.Quantities.Ticks)",
+        "self_weight_ms": 13779.849572736533,
+        "self_percent": 12.075807875901884,
+        "inclusive_weight_ms": 41040.793627648636,
+        "inclusive_percent": 35.96561314446934
+      },
+      {
+        "method": "Borough.Core!Borough.Core.Movement.WorkSchedule.Accrue(class Borough.Core.Entities.World,value class Borough.Core.Quantities.Ticks)",
+        "self_weight_ms": 13554.677832585903,
+        "self_percent": 11.8784812898032,
+        "inclusive_weight_ms": 16171.17076211776,
+        "inclusive_percent": 14.171413862027766
+      },
+      {
+        "method": "Borough.Core!Borough.Core.Movement.TripEngine.AdvanceTravellers(value class Borough.Core.Quantities.Ticks)",
+        "self_weight_ms": 7096.621472163625,
+        "self_percent": 6.219040129102753,
+        "inclusive_weight_ms": 11921.019167320252,
+        "inclusive_percent": 10.44684387805803
+      },
+      {
+        "method": "Borough.Core!Borough.Core.Movement.TripEngine.ReleaseEnded()",
+        "self_weight_ms": 5959.738302561673,
+        "self_percent": 5.2227460359784,
+        "inclusive_weight_ms": 5959.738302561673,
+        "inclusive_percent": 5.2227460359784
+      },
+      {
+        "method": "Borough.Core!Borough.Core.Movement.WalkScratch.Push(value class Borough.Core.Quantities.TravelTime,int32)",
+        "self_weight_ms": 4836.800624472549,
+        "self_percent": 4.238672909081219,
+        "inclusive_weight_ms": 4836.800624472549,
+        "inclusive_percent": 4.238672909081219
+      },
+      {
+        "method": "Borough.Core!Borough.Core.Rules.ShoppingEngine.Step(value class Borough.Core.Quantities.Ticks)",
+        "self_weight_ms": 3398.410828207835,
+        "self_percent": 2.9781570566646316,
+        "inclusive_weight_ms": 36379.114744737744,
+        "inclusive_percent": 31.880406098337446
+      },
+      {
+        "method": "Borough.Core!Borough.Core.Parking.ParkingShed.Expand(class Borough.Core.Space.RoadGraph,class Borough.Core.Parking.CarParkTable,class Borough.Core.Parking.CarParkResidency,class Borough.Core.Parking.ShedScratch,value class Borough.Core.Quantities.Tiles,int32,int32&)",
+        "self_weight_ms": 3332.2561492034574,
+        "self_percent": 2.9201831876806486,
+        "inclusive_weight_ms": 3624.886264528302,
+        "inclusive_percent": 3.17662612145239
+      },
+      {
+        "method": "Borough.Core!Borough.Core.Movement.WorkSchedule.OnDuty(class Borough.Core.Entities.World,int32,value class Borough.Core.Quantities.Ticks)",
+        "self_weight_ms": 2624.2990133535186,
+        "self_percent": 2.299773341276218,
+        "inclusive_weight_ms": 2624.2990133535186,
+        "inclusive_percent": 2.299773341276218
+      },
+      {
+        "method": "Borough.Core!Borough.Core.Movement.TripEngine.RecordRoute(int32,value class Borough.Core.Space.Address,value class Borough.Core.Space.Address,value class System.ReadOnlySpan`1<int32>)",
+        "self_weight_ms": 2576.6918562513056,
+        "self_percent": 2.2580533733150556,
+        "inclusive_weight_ms": 2576.6918562513056,
+        "inclusive_percent": 2.2580533733150556
+      },
+      {
+        "method": "Borough.Core!Borough.Core.Parking.ParkingShed.Nearest(class Borough.Core.Space.RoadGraph,class Borough.Core.Parking.CarParkTable,class Borough.Core.Parking.CarParkResidency,value class Borough.Core.Space.Address,value class Borough.Core.Quantities.Tiles,class Borough.Core.Parking.ShedScratch,value class System.Span`1<int32>,int32&)",
+        "self_weight_ms": 2158.7796273340755,
+        "self_percent": 1.891820943943754,
+        "inclusive_weight_ms": 5819.004556747358,
+        "inclusive_percent": 5.099415685589664
+      },
+      {
+        "method": "System.Private.CoreLib!System.Collections.Generic.GenericArraySortHelper`2[System.UInt64,System.Int32].IntroSort(value class System.Span`1<!0>,value class System.Span`1<!1>,int32)",
+        "self_weight_ms": 2078.143788113004,
+        "self_percent": 1.8211566818118707,
+        "inclusive_weight_ms": 2078.143788113004,
+        "inclusive_percent": 1.8211566818118707
+      },
+      {
+        "method": "Borough.Core!Borough.Core.Rules.ShoppingEngine.Consider(int32,int32,int32,value class Borough.Core.Quantities.Ticks)",
+        "self_weight_ms": 1836.7727962309286,
+        "self_percent": 1.60963407342646,
+        "inclusive_weight_ms": 25715.538868773085,
+        "inclusive_percent": 22.535507747413085
+      },
+      {
+        "method": "Borough.Core!Borough.Core.Movement.TripEngine.Enter(int32)",
+        "self_weight_ms": 1777.710200711457,
+        "self_percent": 1.5578752677602237,
+        "inclusive_weight_ms": 1777.710200711457,
+        "inclusive_percent": 1.5578752677602237
+      }
+    ]
+  },
+  "validation": {
+    "focused": {
+      "passed": 15,
+      "log": "borough-test-20260908-081414.log"
+    },
+    "assertionLane": {
+      "passed": 2968,
+      "failed": 0,
+      "log": "borough-test-20260908-082421.log"
+    },
+    "milestoneSuite": false,
+    "finalBinariesMatchCaptured": true
+  }
+}

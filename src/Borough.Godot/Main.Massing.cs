@@ -251,9 +251,13 @@ public partial class Main
             // ⚠ The roof takes the SAME colour under a debug wash. A slate that stayed slate would
             // put a second, meaningless hue on top of every reading, and from the shallow tilt the
             // shell opens at the roof is most of what a tall Building shows.
+            // ⚠ THE COVERING FOLLOWS THE FAMILY AND NOT THE SCRAMBLE, for a parapet only. See
+            // Membrane: the two tones Slate() draws between are both PITCHED coverings, so a flat
+            // deck reaching into that draw comes up clay tile one time in five and slate the rest,
+            // and neither is what is on it.
             Color slate = _washing is Wash.Rung or Wash.Age or Wash.Health
                 ? paint
-                : Slate(shape).SrgbToLinear();
+                : (cap == Cap.Parapet ? Membrane : Slate(shape)).SrgbToLinear();
             float lit = table.IsAbandoned(slot) ? 0f : taken;
             float draw = FacadeAppearance.Pack((byte)(shape >> 56),
                 FacadeAppearance.HasShopfront(_world, slot), table.IsAbandoned(slot));
@@ -533,24 +537,94 @@ public partial class Main
 
         /// <summary>Two parallel ridges across a broad footprint.</summary>
         PairedGable,
+
+        /// <summary>
+        /// A coping round a flat tray. <b>The broad low body, which cannot wear a pitch.</b>
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// 🔴 <b>IT IS THE ONE CAP THAT WAS FOUND BY LOOKING RATHER THAN BY READING.</b> Research
+        /// pass 03 reconstructed the shopping fixture and named G001 — 36×20 m, two floors, 7 m
+        /// walls — as the strongest test of whether a wide body reads as a building family. Driven
+        /// at Tick 600 it came back wearing <see cref="PairedGable"/>: 2.68 m of pitched tile on a
+        /// 7 m wall, a roof 38% the height of what it sits on, over a 36 m frontage. ***A shed in
+        /// a hat.*** 42 of the fixture's 52 Buildings were in one, and 16 of those were two
+        /// storeys — so the family meant for the broad exception was the city's ordinary case.
+        /// </para>
+        /// <para>
+        /// 🔴 <b>IT SAYS NOTHING ABOUT WHAT THE BUILDING IS FOR, AND THE FIRST VERSION DID.</b> This
+        /// began as *the broad low body is a workplace*, carrying a workplace facade with it —
+        /// structural bays, a receiving door at the back. ⚠ <b>Driving <c>minimal.toml</c> refuted
+        /// it in one frame</b>: 41 of 88 Buildings matched, and half a residential demonstration
+        /// city read as an industrial estate. ***The footprints are identical*** — <c>minimal</c>
+        /// draws 36×20 and 52×24 at two storeys exactly as <c>shopping</c> does — so no reading of
+        /// the plan can separate a workplace from a dwelling in this build, because the city does
+        /// not draw them differently. ⚠ <b>And nothing in the content set is a workplace</b>: across
+        /// all 41 shipped Rulesets declaring a <c>[[building]]</c>, <b>zero</b> kinds set
+        /// <c>premises</c> without <c>houses</c>. pass 03's *wide game bodies should use
+        /// non-domestic types* is a hypothesis about content, and what survives here is the
+        /// narrower claim the geometry supports on its own — ***a span this broad on a wall this
+        /// low takes no pitch***, whoever is inside.
+        /// </para>
+        /// </remarks>
+        Parapet,
     }
 
-    // Appearance only: broad blocks have two narrower roof spans, not a truncated pyramid.
+    /// <summary>Which roof family a plan implies. <b>Five now, and the fifth is not a pitch.</b></summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THE BROAD CASE SPLITS ON THE STOREY COUNT, AND IT IS THE PLAN ANSWERING.</b> Past
+    /// <see cref="BroadSpanMetres"/> a body is too wide for one domestic span, and this used to
+    /// answer that in one way — halve it and pitch twice. That is right for a body deep enough to
+    /// BE two ranges and wrong for one that is a single low volume, which is the difference between
+    /// a perimeter block and a workshop. ***The storeys are what tell them apart***, and they are
+    /// the city's own number (<c>LotTable.Storeys</c>), reached the same way the shader reaches it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>IT IS NOT A KIND LOOKUP</b>, which <c>adr/0150</c> forbids by name — and it is not an
+    /// inference about use either. It asks how wide the shortest span is and how many floors stack
+    /// on it, and answers <em>what roof</em>. See <see cref="Cap.Parapet"/> for what asking it to
+    /// answer <em>what building</em> cost.
+    /// </para>
+    /// </remarks>
     private static Cap CapFor(float tall, float along, float deep)
     {
         if (tall > PitchCeilingMetres || Mathf.Min(along, deep) <= 0) return Cap.Flat;
-        if (Mathf.Min(along, deep) > 18f) return Cap.PairedGable;
+        if (Mathf.Min(along, deep) > BroadSpanMetres)
+        {
+            return tall < RangeStoreysLeast * StoreyMetres ? Cap.Parapet : Cap.PairedGable;
+        }
+
         return Mathf.Min(along, deep) / Mathf.Max(along, deep) >= HipSquareness ? Cap.Hip : Cap.Gable;
     }
 
     private static Color RoofWall(Massing one) => new(one.Paint.R, one.Paint.G, one.Paint.B, one.Reads.A);
 
-    private static float RoofHeight(Cap cap, float wanted) =>
-        Mathf.Min(wanted / (cap == Cap.PairedGable ? 2f : 1f), RoofRiseCeilingMetres);
+    /// <remarks>
+    /// ⚠ <b>A PARAPET IS A HEIGHT AND NOT A RISE, so it ignores what the span asked for.</b> Every
+    /// other family here scales with the span it crosses, because a pitch is an angle. A parapet
+    /// crosses nothing — it is an upstand at an edge, and a 60 m body's is the same height as a
+    /// 20 m body's.
+    /// </remarks>
+    private static float RoofHeight(Cap cap, float wanted) => cap switch
+    {
+        Cap.Parapet => ParapetMetres,
+        Cap.PairedGable => Mathf.Min(wanted / 2f, RoofRiseCeilingMetres),
+        _ => Mathf.Min(wanted, RoofRiseCeilingMetres),
+    };
 
+    /// <remarks>
+    /// ⚠ <b>A PARAPET HAS NO EAVES AND THE SIGN IS THE POINT.</b> An eave throws water clear of the
+    /// wall and overhangs to do it; a parapet stands the wall up PAST the roof and drains behind
+    /// itself. Handing it <see cref="EavesMetres"/> would put a 0.35 m lip round a flat roof, which
+    /// is a pitched roof's detail on an assembly that refuses it — pass 03's *low membrane range
+    /// fitted with steep-roof clay details* in one line of arithmetic. It stands slightly proud
+    /// instead, which is what a coping does.
+    /// </remarks>
     private static Basis CapBasis(Cap cap, bool turned, float slope, float ridge, float rise)
     {
-        var basis = Basis.FromScale(new Vector3(slope + EavesMetres * 2f, rise, ridge + EavesMetres * 2f));
+        float out_ = cap == Cap.Parapet ? CopingMetres : EavesMetres;
+        var basis = Basis.FromScale(new Vector3(slope + out_ * 2f, rise, ridge + out_ * 2f));
         return turned ? Quarter * basis : basis;
     }
 
@@ -614,6 +688,7 @@ public partial class Main
         int roofs = 0;
         int hips = 0;
         int pairedRoofs = 0;
+        int parapets = 0;
         int yards = 0;
         int buildings = 0;
         ulong last = 0;
@@ -623,6 +698,7 @@ public partial class Main
         _roofIds.Clear();
         _hipIds.Clear();
         _pairedRoofIds.Clear();
+        _parapetIds.Clear();
         _yardIds.Clear();
 
         foreach (Massing one in massing)
@@ -661,6 +737,7 @@ public partial class Main
                 Cap.Gable => (_roofs, _roofIds, roofs),
                 Cap.Hip => (_hips, _hipIds, hips),
                 Cap.PairedGable => (_pairedRoofs, _pairedRoofIds, pairedRoofs),
+                Cap.Parapet => (_parapets, _parapetIds, parapets),
                 _ => (null!, null!, 0),
             };
 
@@ -683,6 +760,7 @@ public partial class Main
             {
                 case Cap.Gable: roofs++; break;
                 case Cap.Hip: hips++; break;
+                case Cap.Parapet: parapets++; break;
                 default: pairedRoofs++; break;
             }
         }
@@ -691,6 +769,7 @@ public partial class Main
         _roofs.Multimesh.VisibleInstanceCount = roofs;
         _hips.Multimesh.VisibleInstanceCount = hips;
         _pairedRoofs.Multimesh.VisibleInstanceCount = pairedRoofs;
+        _parapets.Multimesh.VisibleInstanceCount = parapets;
         _yards.Multimesh.VisibleInstanceCount = yards;
 
         RefreshFoliage(footprints);

@@ -1,0 +1,40 @@
+{
+  "final-visible": {
+    "tick": 643,
+    "hash": "F16D16115FDC7D8B",
+    "paused_edits": 2,
+    "busy_frames": 0,
+    "replay": "equal",
+    "paused_drawing": "equal",
+    "clean_shutdown": true
+  },
+  "final-serial": {
+    "tick": 611,
+    "hash": "7A74E0F054665237",
+    "paused_edits": 2,
+    "busy_frames": 0,
+    "replay": "equal",
+    "paused_drawing": "equal",
+    "clean_shutdown": true
+  },
+  "aged-16000": {
+    "tick": 14570,
+    "hash": "56EC463FA1F121EE",
+    "paused_edits": 2,
+    "busy_frames": 11,
+    "replay": "equal",
+    "paused_drawing": "equal",
+    "clean_shutdown": true
+  },
+  "drive_barriers": "Drive barriers at 7 and 8; byte-identical Input Logs and hash 8AA9A92A5A7C508E",
+  "channel_cancellation": "accept cancelled and exited normally\npartial-line cancelled and exited normally",
+  "final-pointer": {
+    "tick": 612,
+    "hash": "B230ED40E4C64CEB",
+    "paused_edits": 2,
+    "busy_frames": 1,
+    "replay": "equal",
+    "paused_drawing": "equal",
+    "clean_shutdown": true
+  }
+}

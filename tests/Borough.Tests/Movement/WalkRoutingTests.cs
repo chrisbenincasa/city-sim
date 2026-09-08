@@ -19,6 +19,30 @@ namespace Borough.Tests.Movement;
 /// </remarks>
 public sealed class WalkRoutingTests
 {
+    [Fact]
+    public void Work_counts_requests_without_reusing_the_previous_search_on_a_shortcut()
+    {
+        var graph = RoadFixtures.Chain(4);
+        var work = new RouteWork();
+        var scratch = new WalkScratch { Work = work };
+        var from = Address.On(0, new Tiles(4), StreetSide.Left);
+        var to = Address.On(2, new Tiles(20), StreetSide.Left);
+        var measured = WalkRouting.Cost(graph, TravelMode.Foot, from, to, Crossing, scratch);
+        Assert.Equal(WalkRouting.Cost(graph, TravelMode.Foot, from, to, Crossing, new WalkScratch()), measured);
+        Assert.Equal(1, work.Requests);
+        Assert.Equal(1, work.Searches);
+        Assert.Equal(scratch.Relaxed, work.Settled);
+        Assert.True(work.Pops >= work.Settled);
+        Assert.True(work.Pushes >= work.Pops);
+        work.Reset();
+        WalkRouting.Cost(graph, TravelMode.Foot, from, from, Crossing, scratch);
+        Assert.Equal(1, work.Requests);
+        Assert.Equal(0, work.Searches);
+        Assert.Equal(0, work.Settled);
+        Assert.Equal(0, work.Pops);
+        Assert.Equal(0, work.Pushes);
+    }
+
     /// <summary>The fixture Chain's Segment length, and the spacing of its nodes.</summary>
     private static readonly Tiles Span = new(32);
 

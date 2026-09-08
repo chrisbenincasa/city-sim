@@ -1,0 +1,266 @@
+{
+  "archive": "move-and-growth-evidence.tar.gz",
+  "sha256": "64720967f3e98252f4acced436ebed1f2d26284a0520326db1dcc16a3ea6e259",
+  "files": [
+    {
+      "path": "borough-move-20260907/capture.json",
+      "bytes": 1194,
+      "sha256": "00211815574071e464458ac227d355514eddbbf8a307507afc8d39bd41921a54"
+    },
+    {
+      "path": "borough-move-20260907/errors.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "borough-move-20260907/run.jsonl",
+      "bytes": 997,
+      "sha256": "055840c4926653cce408271a8d354756f7655fe74ff8b58307d46f6b68d16e7f"
+    },
+    {
+      "path": "borough-move-20260907/trace.log",
+      "bytes": 2640,
+      "sha256": "c621b0c2a80f43b007a3f5799a951c839ed46011eb52a1676d500884ec8ad3bc"
+    },
+    {
+      "path": "borough-move-20260907-retry/capture.json",
+      "bytes": 1200,
+      "sha256": "5073b3713910a8e23c7ead640700bbd32527f52f173121f7417648946c8bdaa6"
+    },
+    {
+      "path": "borough-move-20260907-retry/errors.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "borough-move-20260907-retry/inclusive.txt",
+      "bytes": 4879,
+      "sha256": "9ccef8d4140234cdeb527b9b05514e7b49bb83fb78535e4d10125c1ff4985579"
+    },
+    {
+      "path": "borough-move-20260907-retry/move.json",
+      "bytes": 22008,
+      "sha256": "7c862fabd86629cc133089096e6af14aad34aa0ca71382b5bd41fa0c7cf23cfd"
+    },
+    {
+      "path": "borough-move-20260907-retry/move.txt",
+      "bytes": 3744,
+      "sha256": "047aa2e0e7daaafd18601e4a42157a11b795eea428718fdcbc25ecb453f36652"
+    },
+    {
+      "path": "borough-move-20260907-retry/run.jsonl",
+      "bytes": 1769,
+      "sha256": "70a60005e09634ed86847a1d663e65023c7b337fbd5c8ea8ae7728aa97733749"
+    },
+    {
+      "path": "borough-move-20260907-retry/self.txt",
+      "bytes": 4879,
+      "sha256": "e8f26f15c8bc1e41c528e1b1b974f5e56cb064d29b106c2a6cc80155139b1cd4"
+    },
+    {
+      "path": "borough-move-20260907-retry/simulation.nettrace",
+      "bytes": 15736422,
+      "sha256": "da93788152fb20425bf0ec1b0bc3424b40ffeacdf7046facb83e6216183d37be"
+    },
+    {
+      "path": "borough-move-20260907-retry/simulation.nettrace.etlx",
+      "bytes": 101388446,
+      "sha256": "35cce58845977467b45032ee55a07d687beded7e59871cbb1ff93b6c8f7174e6"
+    },
+    {
+      "path": "borough-move-20260907-retry/simulation.speedscope.json",
+      "bytes": 33501599,
+      "sha256": "f7b9bb20439b4350fa0f6558d9a953ba7732f7f3e62ef89e242b28dadad0a941"
+    },
+    {
+      "path": "borough-move-20260907-retry/step.json",
+      "bytes": 39841,
+      "sha256": "c68fde8de9d2213f51a4d912ad3f34274a301174d7f7139a218130884ca54652"
+    },
+    {
+      "path": "borough-move-20260907-retry/step.txt",
+      "bytes": 3993,
+      "sha256": "e5bed7a66b97b3f4d6740aeff75d1e213cc6afd1820aecb0b4428950b7b91fad"
+    },
+    {
+      "path": "borough-move-20260907-retry/trace.log",
+      "bytes": 418,
+      "sha256": "56fce1ba97a40df0512c85fa28e103621819af2d804d6a1511b7e77ba6d0e7fb"
+    },
+    {
+      "path": "borough-growth-20260907/analysis-source/scripts/check-profile-summary.py",
+      "bytes": 3620,
+      "sha256": "b63f7b6cc6feb527d0879e41e8c526a7cb402681446bcc7b2275254c887bed06"
+    },
+    {
+      "path": "borough-growth-20260907/analysis-source/scripts/summarize-simulation-profile.py",
+      "bytes": 5228,
+      "sha256": "8cd351c98d883e3b0465e5a193b8e2259132a29682f73bab62901e33dbd5e564"
+    },
+    {
+      "path": "borough-growth-20260907/analysis-source/scripts/summarize-work-profile.py",
+      "bytes": 4011,
+      "sha256": "fd7d123a2f45ddd864486054b229403ffc7cb2cd5359554e42534c2123243eb5"
+    },
+    {
+      "path": "borough-growth-20260907/analysis-source/tests/Borough.Tests/Headless/ProfileDumpTests.cs",
+      "bytes": 12936,
+      "sha256": "05374a7db9bcb5e2384d55858f9e23982100b628a6dd6f2f0817e6e6cf696990"
+    },
+    {
+      "path": "borough-growth-20260907/checks.json",
+      "bytes": 9811,
+      "sha256": "2394e167a7fa11e7005a5308de4cec0db887f6846fdb98c84c603cef2ce28aef"
+    },
+    {
+      "path": "borough-growth-20260907/command.json",
+      "bytes": 525,
+      "sha256": "c3936cdddd228311ab3eb01c6e8f6cecda9e6b2cc34aeaa766f75b0f9bcc13c2"
+    },
+    {
+      "path": "borough-growth-20260907/comparison-command.json",
+      "bytes": 474,
+      "sha256": "f275a3d7f2ca133ec175239b3286316aac69d994af0b2163d8595c129a868471"
+    },
+    {
+      "path": "borough-growth-20260907/conditions-note.json",
+      "bytes": 290,
+      "sha256": "327ec5c9226248109e554353d2b664d0135238671910be63dfd0bf0e80d48e38"
+    },
+    {
+      "path": "borough-growth-20260907/control-errors.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "borough-growth-20260907/control.jsonl",
+      "bytes": 2415,
+      "sha256": "7c479998e17fd413e119abc84556a9770ab94184fd168a74ab86375d418da6c8"
+    },
+    {
+      "path": "borough-growth-20260907/counted-build/Borough.Core.dll",
+      "bytes": 681472,
+      "sha256": "37f1030c1e69e5014a6a920d4240e0f918f5e79c88af270f6a974ec4a6839561"
+    },
+    {
+      "path": "borough-growth-20260907/counted-build/Borough.Core.pdb",
+      "bytes": 229280,
+      "sha256": "a2cf14f61e9ce602257d021ecec79246932d78e514ef580a19f24f2c4ed7de5b"
+    },
+    {
+      "path": "borough-growth-20260907/counted-build/Borough.Formats.dll",
+      "bytes": 323072,
+      "sha256": "c16f8862d1cebaab20e76a9ddfdf068cef2dac10147c631f03f14d37e88afdbf"
+    },
+    {
+      "path": "borough-growth-20260907/counted-build/Borough.Formats.pdb",
+      "bytes": 44196,
+      "sha256": "528722b64bf32af61cf7c2d91eaaceb486634f9a677c0864a598e07dec42b1fc"
+    },
+    {
+      "path": "borough-growth-20260907/counted-build/Borough.Headless",
+      "bytes": 124712,
+      "sha256": "ed7beb189f7e1ee21aca162054584ea2ac450aad2359cf29f293e905f9119148"
+    },
+    {
+      "path": "borough-growth-20260907/counted-build/Borough.Headless.deps.json",
+      "bytes": 1709,
+      "sha256": "89252d4cf47de09666c91c9ce1b46a888399f895e26c904097e1c672469cae56"
+    },
+    {
+      "path": "borough-growth-20260907/counted-build/Borough.Headless.dll",
+      "bytes": 434176,
+      "sha256": "224e65728cf97ee0c8bcda9c3f348805aa4dc34e188943b29b9026e400f7c291"
+    },
+    {
+      "path": "borough-growth-20260907/counted-build/Borough.Headless.pdb",
+      "bytes": 80012,
+      "sha256": "920c1b62bbfa68793a51f008c0861643eb6fe931350d80879c152c7f80dbc5e4"
+    },
+    {
+      "path": "borough-growth-20260907/counted-build/Borough.Headless.runtimeconfig.json",
+      "bytes": 435,
+      "sha256": "52eccff0b97c55480c64b3a6d8dcb244f5fd098d0645dba8581d3e2190d4ea4a"
+    },
+    {
+      "path": "borough-growth-20260907/counted-build/Tomlyn.dll",
+      "bytes": 323072,
+      "sha256": "2366b14ae842bf9d4eadf206c8b20c7c2217ff75b5f4567999c5c7a9caae6dea"
+    },
+    {
+      "path": "borough-growth-20260907/errors.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "borough-growth-20260907/focused-tests.log",
+      "bytes": 991,
+      "sha256": "83edda90a3c905d4be1b7f7797d73fef4d31d7fee4a936f04969b268c7afc9b2"
+    },
+    {
+      "path": "borough-growth-20260907/legacy-summary.json",
+      "bytes": 48793,
+      "sha256": "70e06da4218b28f7746f63c33afe184e2fd06edebd2cfac25a2c41d680ec49f9"
+    },
+    {
+      "path": "borough-growth-20260907/legacy-summary.txt",
+      "bytes": 3624,
+      "sha256": "f1ec6ba150518544b74a2486b04259a5df8ce0232f2c4859afa324845db80fed"
+    },
+    {
+      "path": "borough-growth-20260907/run.jsonl",
+      "bytes": 4522983,
+      "sha256": "aec9e4e369f7b7e6e12425aa7d773219befcd2c910cbcf401fd4b60e7f367b0a"
+    },
+    {
+      "path": "borough-growth-20260907/source/scripts/check-profile-summary.py",
+      "bytes": 3548,
+      "sha256": "6ddac23b3e9972989781c83fa39fa46fa53ebf7a0bfae487dc1042548a2d1b86"
+    },
+    {
+      "path": "borough-growth-20260907/source/scripts/summarize-simulation-profile.py",
+      "bytes": 5125,
+      "sha256": "2394d1bff7f61ccf48ee2db7806a06b17438e697085e0283d830660782cbace3"
+    },
+    {
+      "path": "borough-growth-20260907/source/src/Borough.Core/Movement/RouteWork.cs",
+      "bytes": 817,
+      "sha256": "2f200cb974d2a522c36a28e0e097cef8a4bb1a3dd6526334f6bde3543d0e2033"
+    },
+    {
+      "path": "borough-growth-20260907/source/src/Borough.Core/Movement/WalkRouting.cs",
+      "bytes": 16099,
+      "sha256": "344f516c3901fecc3ae7363bd96f4213de41b19405a350f9a507d968d16dcd2f"
+    },
+    {
+      "path": "borough-growth-20260907/source/src/Borough.Headless/ProfileDump.cs",
+      "bytes": 12953,
+      "sha256": "eb4818528250ff8dc24e4d4fef49c443c8664e69cdfda14858083c357d91f5c4"
+    },
+    {
+      "path": "borough-growth-20260907/source/src/Borough.Headless/RouteReuseProbe.cs",
+      "bytes": 1103,
+      "sha256": "b1ff52ebb86bf809d4b2c59d0c8756a0b3d49e06dd4147cd281eeb8e6cf3a251"
+    },
+    {
+      "path": "borough-growth-20260907/source/src/Borough.Headless/TableGrowthProbe.cs",
+      "bytes": 2423,
+      "sha256": "1fd4b512d443240a7a3ca2097cca9e673ee2b4392cb5644e7d637fa549846c1c"
+    },
+    {
+      "path": "borough-growth-20260907/summary.json",
+      "bytes": 115875,
+      "sha256": "1b079fa79b01ae0ee146510cafd77b4986461740c9611d0cd5504c23a5a5a18c"
+    },
+    {
+      "path": "borough-growth-20260907/summary.txt",
+      "bytes": 4564,
+      "sha256": "0acf64453fd79858a24ced5e9175cc572df86f3a0b33115b0a79b20b88136b13"
+    },
+    {
+      "path": "borough-growth-20260907/verify.py",
+      "bytes": 2791,
+      "sha256": "74549dd6ec21f8a3ef94a8f307df8e2910348bc288add1189054e1cba6799dd5"
+    }
+  ]
+}

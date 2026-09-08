@@ -101,6 +101,8 @@ internal static class Program
 
                 case Mode.Care:
                     return CareDump.Run(options, Console.Out);
+                case Mode.Profile:
+                    return ProfileDump.Run(options, Console.Out);
                 case Mode.Shopping:
                     return ShoppingDump.Run(options, Console.Out);
                 case Mode.School:

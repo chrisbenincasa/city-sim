@@ -1,0 +1,374 @@
+{
+  "end": {
+    "type": "end",
+    "tick": 18432,
+    "hash": "0540B89003B50764",
+    "invariants": "passed"
+  },
+  "activityMatches": true,
+  "firstDayWorkMatches": true,
+  "days": [
+    {
+      "start": 14336,
+      "reuse": {
+        "estimates": {
+          "Searches": 223713,
+          "Repeats": 6739,
+          "Untracked": 0
+        },
+        "shopping": {
+          "Searches": 563465,
+          "Repeats": 88928,
+          "Untracked": 0
+        },
+        "other": {
+          "Searches": 1522277,
+          "Repeats": 230,
+          "Untracked": 0
+        }
+      },
+      "growth": [
+        {
+          "tick": 14626,
+          "stepAllocatedBytes": 73109304,
+          "Table": "trip",
+          "Before": 338465,
+          "After": 676930,
+          "Slots": 338751,
+          "Live": 336841,
+          "Growths": 1,
+          "PayloadBytes": 37908080,
+          "Columns": [
+            {
+              "Name": "id",
+              "BytesPerRow": 8,
+              "Copies": 1,
+              "PayloadBytes": 5415440
+            },
+            {
+              "Name": "generation",
+              "BytesPerRow": 4,
+              "Copies": 1,
+              "PayloadBytes": 2707720
+            },
+            {
+              "Name": "free_next",
+              "BytesPerRow": 4,
+              "Copies": 1,
+              "PayloadBytes": 2707720
+            },
+            {
+              "Name": "purpose",
+              "BytesPerRow": 1,
+              "Copies": 1,
+              "PayloadBytes": 676930
+            },
+            {
+              "Name": "origin_segment",
+              "BytesPerRow": 8,
+              "Copies": 1,
+              "PayloadBytes": 5415440
+            },
+            {
+              "Name": "origin_offset",
+              "BytesPerRow": 4,
+              "Copies": 1,
+              "PayloadBytes": 2707720
+            },
+            {
+              "Name": "origin_side",
+              "BytesPerRow": 1,
+              "Copies": 1,
+              "PayloadBytes": 676930
+            },
+            {
+              "Name": "destination_segment",
+              "BytesPerRow": 8,
+              "Copies": 1,
+              "PayloadBytes": 5415440
+            },
+            {
+              "Name": "destination_offset",
+              "BytesPerRow": 4,
+              "Copies": 1,
+              "PayloadBytes": 2707720
+            },
+            {
+              "Name": "destination_side",
+              "BytesPerRow": 1,
+              "Copies": 1,
+              "PayloadBytes": 676930
+            },
+            {
+              "Name": "leg_head",
+              "BytesPerRow": 4,
+              "Copies": 1,
+              "PayloadBytes": 2707720
+            },
+            {
+              "Name": "leg_tail",
+              "BytesPerRow": 4,
+              "Copies": 1,
+              "PayloadBytes": 2707720
+            },
+            {
+              "Name": "fate",
+              "BytesPerRow": 1,
+              "Copies": 1,
+              "PayloadBytes": 676930
+            },
+            {
+              "Name": "failing_leg",
+              "BytesPerRow": 4,
+              "Copies": 1,
+              "PayloadBytes": 2707720
+            }
+          ]
+        },
+        {
+          "tick": 14626,
+          "stepAllocatedBytes": 73109304,
+          "Table": "traveller",
+          "Before": 338465,
+          "After": 676930,
+          "Slots": 338751,
+          "Live": 336841,
+          "Growths": 1,
+          "PayloadBytes": 35200360,
+          "Columns": [
+            {
+              "Name": "id",
+              "BytesPerRow": 8,
+              "Copies": 1,
+              "PayloadBytes": 5415440
+            },
+            {
+              "Name": "generation",
+              "BytesPerRow": 4,
+              "Copies": 1,
+              "PayloadBytes": 2707720
+            },
+            {
+              "Name": "free_next",
+              "BytesPerRow": 4,
+              "Copies": 1,
+              "PayloadBytes": 2707720
+            },
+            {
+              "Name": "citizen",
+              "BytesPerRow": 8,
+              "Copies": 1,
+              "PayloadBytes": 5415440
+            },
+            {
+              "Name": "trip",
+              "BytesPerRow": 8,
+              "Copies": 1,
+              "PayloadBytes": 5415440
+            },
+            {
+              "Name": "current_leg",
+              "BytesPerRow": 4,
+              "Copies": 1,
+              "PayloadBytes": 2707720
+            },
+            {
+              "Name": "current_hop",
+              "BytesPerRow": 4,
+              "Copies": 1,
+              "PayloadBytes": 2707720
+            },
+            {
+              "Name": "carry",
+              "BytesPerRow": 4,
+              "Copies": 1,
+              "PayloadBytes": 2707720
+            },
+            {
+              "Name": "arrives_at",
+              "BytesPerRow": 8,
+              "Copies": 1,
+              "PayloadBytes": 5415440
+            }
+          ]
+        },
+        {
+          "tick": 14635,
+          "stepAllocatedBytes": 116490512,
+          "Table": "leg",
+          "Before": 987200,
+          "After": 1974400,
+          "Slots": 987993,
+          "Live": 983787,
+          "Growths": 1,
+          "PayloadBytes": 116489600,
+          "Columns": [
+            {
+              "Name": "id",
+              "BytesPerRow": 8,
+              "Copies": 1,
+              "PayloadBytes": 15795200
+            },
+            {
+              "Name": "generation",
+              "BytesPerRow": 4,
+              "Copies": 1,
+              "PayloadBytes": 7897600
+            },
+            {
+              "Name": "free_next",
+              "BytesPerRow": 4,
+              "Copies": 1,
+              "PayloadBytes": 7897600
+            },
+            {
+              "Name": "mode",
+              "BytesPerRow": 1,
+              "Copies": 1,
+              "PayloadBytes": 1974400
+            },
+            {
+              "Name": "from_segment",
+              "BytesPerRow": 8,
+              "Copies": 1,
+              "PayloadBytes": 15795200
+            },
+            {
+              "Name": "from_offset",
+              "BytesPerRow": 4,
+              "Copies": 1,
+              "PayloadBytes": 7897600
+            },
+            {
+              "Name": "from_side",
+              "BytesPerRow": 1,
+              "Copies": 1,
+              "PayloadBytes": 1974400
+            },
+            {
+              "Name": "to_segment",
+              "BytesPerRow": 8,
+              "Copies": 1,
+              "PayloadBytes": 15795200
+            },
+            {
+              "Name": "to_offset",
+              "BytesPerRow": 4,
+              "Copies": 1,
+              "PayloadBytes": 7897600
+            },
+            {
+              "Name": "to_side",
+              "BytesPerRow": 1,
+              "Copies": 1,
+              "PayloadBytes": 1974400
+            },
+            {
+              "Name": "travel_time",
+              "BytesPerRow": 4,
+              "Copies": 1,
+              "PayloadBytes": 7897600
+            },
+            {
+              "Name": "next",
+              "BytesPerRow": 4,
+              "Copies": 1,
+              "PayloadBytes": 7897600
+            },
+            {
+              "Name": "route_head",
+              "BytesPerRow": 4,
+              "Copies": 1,
+              "PayloadBytes": 7897600
+            },
+            {
+              "Name": "route_tail",
+              "BytesPerRow": 4,
+              "Copies": 1,
+              "PayloadBytes": 7897600
+            }
+          ]
+        },
+        {
+          "tick": 14640,
+          "stepAllocatedBytes": 716767040,
+          "Table": "route_hop",
+          "Before": 12358040,
+          "After": 24716080,
+          "Slots": 12379330,
+          "Live": 12337557,
+          "Growths": 1,
+          "PayloadBytes": 716766320,
+          "Columns": [
+            {
+              "Name": "id",
+              "BytesPerRow": 8,
+              "Copies": 1,
+              "PayloadBytes": 197728640
+            },
+            {
+              "Name": "generation",
+              "BytesPerRow": 4,
+              "Copies": 1,
+              "PayloadBytes": 98864320
+            },
+            {
+              "Name": "free_next",
+              "BytesPerRow": 4,
+              "Copies": 1,
+              "PayloadBytes": 98864320
+            },
+            {
+              "Name": "segment",
+              "BytesPerRow": 8,
+              "Copies": 1,
+              "PayloadBytes": 197728640
+            },
+            {
+              "Name": "forward",
+              "BytesPerRow": 1,
+              "Copies": 1,
+              "PayloadBytes": 24716080
+            },
+            {
+              "Name": "next",
+              "BytesPerRow": 4,
+              "Copies": 1,
+              "PayloadBytes": 98864320
+            }
+          ]
+        }
+      ],
+      "countedAllocation": 925811480,
+      "controlAllocation": 925778216,
+      "countedHeap": 1524125040,
+      "controlHeap": 1502690240
+    },
+    {
+      "start": 16384,
+      "reuse": {
+        "estimates": {
+          "Searches": 256464,
+          "Repeats": 6628,
+          "Untracked": 0
+        },
+        "shopping": {
+          "Searches": 654783,
+          "Repeats": 101600,
+          "Untracked": 0
+        },
+        "other": {
+          "Searches": 1519976,
+          "Repeats": 268,
+          "Untracked": 0
+        }
+      },
+      "growth": [],
+      "countedAllocation": 19423280,
+      "controlAllocation": 19423280,
+      "countedHeap": 1549699176,
+      "controlHeap": 1522997400
+    }
+  ],
+  "limitations": "Overlapping diagnostic captures; no timing claim. Reuse is exact searches within one Tick and category, not a cross-Tick cache hit rate. Growth payload excludes array headers and alignment. Control resumes the same save, not a continuous run from creation."
+}

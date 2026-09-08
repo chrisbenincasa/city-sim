@@ -22,6 +22,59 @@ namespace Borough.Tests.Space;
 /// </remarks>
 public sealed class BuildingResidencyTests
 {
+    [Fact]
+    public void Ordinal_queries_match_enumeration_after_warm_reads_edits_and_rebuilds()
+    {
+        var world = new World(1000);
+        int first = Build(world, east: 1, north: 1);
+        Build(world, east: 95, north: 1);
+        Build(world, east: 65, north: 65);
+        Build(world, east: 66, north: 66);
+        Build(world, east: CellGrid.WorldTiles - 1, north: CellGrid.WorldTiles - 1);
+        Check();
+        world.DestroyBuilding(world.Buildings.Rows.At(first), Ticks.Zero);
+        Build(world, east: 35, north: 1);
+        Check();
+        world.BuildingsInCells.Rebuild(world.Buildings, world.Lots);
+        Check();
+
+        void Check()
+        {
+            var boxes = new List<CellRect>();
+            for (int north = 0; north < 4; north++)
+                for (int east = 0; east < 4; east++)
+                    boxes.Add(new CellRect(new Cells(east), new Cells(north), new Cells(4 - east), new Cells(4 - north)));
+            boxes.Add(new CellRect(new Cells(510), new Cells(510), new Cells(8), new Cells(8)));
+            boxes.Add(new CellRect(Cells.Zero, Cells.Zero, Cells.Zero, new Cells(2)));
+            foreach (var box in boxes)
+            {
+                var expected = Query(world, box);
+                Assert.Equal(expected.Length, world.BuildingsInCells.CountIn(box));
+                for (int i = 0; i < expected.Length; i++)
+                    Assert.Equal(expected[i], world.BuildingsInCells.NthIn(box, world.Buildings, i));
+                Assert.Equal(Rows.NoSlot, world.BuildingsInCells.NthIn(box, world.Buildings, expected.Length));
+            }
+        }
+    }
+
+    [Fact]
+    public void Work_counts_empty_cells_and_stops_at_the_selected_building()
+    {
+        var world = new World(1000);
+        Build(world, east: 32, north: 0);
+        int selected = Build(world, east: 33, north: 0);
+        var work = new BuildingQueryWork();
+        var box = new CellRect(Cells.Zero, Cells.Zero, new Cells(3), new Cells(1));
+        Assert.Equal(2, world.BuildingsInCells.CountIn(box, work));
+        Assert.Equal(selected, world.BuildingsInCells.NthIn(box, world.Buildings, 1, work));
+        Assert.Equal(1, work.CountCalls);
+        Assert.Equal(0, work.CountCells);
+        Assert.Equal(CellGrid.WorldCells, work.RebuiltCells);
+        Assert.Equal(1, work.CandidateCalls);
+        Assert.Equal(0, work.CandidateCells);
+        Assert.Equal(1, work.CandidateLinks);
+    }
+
     /// <summary>A Building is findable in the Cell its Lot stands in, and not in the next one.</summary>
     [Fact]
     public void A_building_is_in_the_cell_its_lot_stands_in()

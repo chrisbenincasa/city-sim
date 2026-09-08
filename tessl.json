@@ -1,0 +1,22 @@
+{
+  "name": "city-sim",
+  "mode": "vendored",
+  "dependencies": {
+    "openai/skills": {
+      "version": "49f948faa9258a0c61caceaf225e179651397431",
+      "source": "https://github.com/openai/skills",
+      "include": {
+        "skills": [
+          "screenshot"
+        ]
+      }
+    }
+  },
+  "agents": [
+    "claude-code",
+    "gemini",
+    "codex",
+    "copilot",
+    "copilot-vscode"
+  ]
+}

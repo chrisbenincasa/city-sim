@@ -156,6 +156,7 @@ public partial class Main
         sky.AddChild(_skyArc);
         sky.AddChild(_dayLabel);
         _consoleTop.AddChild(sky);
+        PerformanceDisplay();
 
         // ---- tools ------------------------------------------------------------------------------
         _toolSlot = new VBoxContainer
@@ -300,9 +301,9 @@ public partial class Main
     /// as their tallest member — so a Fill button beside a two-line label became a two-line-tall
     /// button, and beside a wrapped one it became the height of the console.
     /// </remarks>
-    private static Button ConsoleButton(string text, Action action)
+    private Button ConsoleButton(string text, Action action)
     {
-        return InformationUi.Button(text, action, compact: true);
+        return InformationUi.Button(text, () => AtBoundary(action), compact: true);
     }
 
     /// <summary>
@@ -408,8 +409,11 @@ public partial class Main
         _fasterButton.Disabled = _rung >= Ladder.Length - 1;
 
         int minute = Ticks.MinuteOfDay(_world.Tick.Raw);
-        _skyArc.Minute = minute;
-        _skyArc.QueueRedraw();
+        if (_skyArc.Minute != minute)
+        {
+            _skyArc.Minute = minute;
+            _skyArc.QueueRedraw();
+        }
         _dayLabel.Text = $"Day {_world.Tick.Raw / (ulong)Ticks.PerDay} · {PhaseOfDay(minute)}"
             + $"  {minute / 60:00}:{minute % 60:00}";
 

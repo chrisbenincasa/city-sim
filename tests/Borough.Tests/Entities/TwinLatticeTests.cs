@@ -170,8 +170,9 @@ public sealed class TwinLatticeTests
             // insolvent.toml IS shopping.toml with one [[business]] key added -- the bankruptcy
             // threshold on the one trade that both earns and pays -- so it inherits both lattices for
             // shopping.toml's reason. plans/0065, and its header says so.
+            // stress-shopping.toml deliberately combines two centres; its header and plans/0067 own the fixture.
             if (file is "provisioned.toml" or "oversupplied.toml" or "waged.toml" or "pictured.toml"
-                or "shopping.toml" or "insolvent.toml")
+                or "shopping.toml" or "insolvent.toml" or "stress-shopping.toml" or "profile-services.toml")
             {
                 Assert.Equal(2, Shipped(file).Lattices.Length);
                 continue;
@@ -197,8 +198,7 @@ public sealed class TwinLatticeTests
 
             Assert.True(
                 authored == 0,
-                $"{file} authors a [[lattice]]. Every world but twinned.toml, provisioned.toml, "
-                + "oversupplied.toml, pictured.toml and coastal.toml is one "
+                $"{file} authors a [[lattice]]. Every world outside the explicit exemptions above is one "
                 + "lattice at the origin corner, and authoring one moves that file's State Hash. If "
                 + "this is deliberate, say why in the file's header and add it to the exemptions "
                 + "above rather than widening the test.");

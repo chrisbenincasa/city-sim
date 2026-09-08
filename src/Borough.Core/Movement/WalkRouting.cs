@@ -101,6 +101,7 @@ public static class WalkRouting
         // and a caller reading WalkScratch.Arrived on one of those paths was reading the PREVIOUS
         // journey's destination -- so a drive Leg between two Addresses on one Segment recorded another
         // Traveller's route and attributed adr/0041's volume along it. See WalkScratch.Forget.
+        if (scratch.Work is { } work) { work.Requests++; }
         scratch.Forget();
 
         // A Building with no frontage, or an endpoint whose Segment was bulldozed and which the read
@@ -234,6 +235,7 @@ public static class WalkRouting
         Tiles fromLength = segments.LengthTiles[fromSegment];
         Tiles toLength = segments.LengthTiles[toSegment];
 
+        scratch.Work?.StartingSearch(graph, mode, from, to);
         scratch.Begin(nodes.Rows.SlotCount, recordPath);
         scratch.Seed(fromA, TravelTime.Over(from.Offset, fromSpeed));
         scratch.Seed(fromB, TravelTime.Over(fromLength - from.Offset, fromSpeed));
@@ -241,7 +243,9 @@ public static class WalkRouting
         TravelTime inA = TravelTime.Over(to.Offset, toSpeed);
         TravelTime inB = TravelTime.Over(toLength - to.Offset, toSpeed);
 
-        return scratch.Search(graph, mode, toA, toB, inA, inB);
+        TravelTime result = scratch.Search(graph, mode, toA, toB, inA, inB);
+        scratch.Work?.FinishedSearch(scratch.Relaxed);
+        return result;
     }
 
     /// <summary>Whether a Segment admits this mode in either direction.</summary>

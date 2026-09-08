@@ -50,6 +50,7 @@ public abstract class Rows
     private readonly Column<ulong> _id;
     private readonly Column<uint> _generation;
     private readonly Column<int> _freeNext;
+    private readonly bool _amortizeRestore;
 
     private int _capacity;
     private int _slotCount;
@@ -57,12 +58,13 @@ public abstract class Rows
     private int _freeHead = NoSlot;
     private ulong _nextId = 1;
 
-    private protected Rows(string name, int capacity, Buffering buffering)
+    private protected Rows(string name, int capacity, Buffering buffering, bool amortizeRestore)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(capacity);
 
         Name = name;
         Buffering = buffering;
+        _amortizeRestore = amortizeRestore;
         _capacity = capacity < MinimumCapacity ? MinimumCapacity : capacity;
 
         // The three intrinsic columns are declared first, so they fold first. They go through the
@@ -668,24 +670,7 @@ public abstract class Rows
         }
     }
 
-    /// <summary>Widens the table to hold <paramref name="slots"/>. A restore's growth, not the allocator's.</summary>
-    /// <remarks>
-    /// <para>
-    /// <b>⚠ It grows to the exact size, where the allocator doubles, and the difference is that this
-    /// caller knows where it is going.</b> <see cref="Grow"/> doubles to amortise a cost that is about
-    /// to recur; a restore is told the final slot count up front, so doubling here would round a
-    /// 132-slot table up to 256 and hold the difference for the life of the world. **Capacity is not
-    /// folded and the tail beyond <c>_slotCount</c> is cleared either way**, so the size is free to be
-    /// exact.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>Task 3 shipped this as a doubling loop and it did not terminate from a capacity of zero</b>
-    /// — <c>0 × 2</c> is <c>0</c> — which a load into a <c>new World(0)</c> reaches directly, since
-    /// every table is sized per thousand Citizens. <see cref="Grow"/> carries the same premise and
-    /// fails differently: it returns a capacity of zero and the allocator then indexes past the end.
-    /// ***A doubling growth rule assumes a non-zero base, and neither site said so.***
-    /// </para>
-    /// </remarks>
+    /// <summary>Restores exact storage unless the table opts into the allocator's growth headroom.</summary>
     private void GrowTo(int slots)
     {
         if (slots <= _capacity)
@@ -693,7 +678,16 @@ public abstract class Rows
             return;
         }
 
-        _capacity = slots;
+        if (_amortizeRestore)
+        {
+            // Compute the final capacity first, then allocate each column once. Capacity and its
+            // zeroed tail are absent from saves and hashes; allocator slots and free-list order stay exact.
+            while (_capacity < slots)
+            {
+                _capacity = _capacity > int.MaxValue - _capacity ? slots : _capacity * 2;
+            }
+        }
+        else { _capacity = slots; }
 
         foreach (Column column in _columns)
         {
@@ -763,8 +757,9 @@ public sealed class Rows<T> : Rows
     /// <param name="name">The table's schema name.</param>
     /// <param name="capacity">Initial slot count. A sizing hint; the table grows as needed.</param>
     /// <param name="buffering">adr/0037's per-table property. Single unless a parallel phase writes it.</param>
-    public Rows(string name, int capacity, Buffering buffering = Buffering.OneCopy)
-        : base(name, capacity, buffering)
+    /// <param name="amortizeRestore">Restore growth headroom for tables whose high-water mark keeps rising.</param>
+    public Rows(string name, int capacity, Buffering buffering = Buffering.OneCopy, bool amortizeRestore = false)
+        : base(name, capacity, buffering, amortizeRestore)
     {
     }
 

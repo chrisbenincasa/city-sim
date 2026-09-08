@@ -29,6 +29,8 @@ namespace Borough.Shell;
 
 public partial class Main
 {
+    private System.Threading.CancellationTokenSource? _channelStop;
+    private System.Threading.Thread? _channelThread;
     /// <summary>Apply every command the world has reached, in file order.</summary>
     /// <remarks>
     /// ⚠ <b>Nothing runs before the third frame, and that is not pedantry.</b> A <c>Control</c>
@@ -431,7 +433,12 @@ public partial class Main
 
         _door = path;
 
-        new System.Threading.Thread(Serve) { IsBackground = true }.Start();
+        _channelStop = new System.Threading.CancellationTokenSource();
+        var listener = _listener;
+        var cancellation = _channelStop.Token;
+        _channelThread = new System.Threading.Thread(() => Serve(listener, cancellation))
+            { IsBackground = true, Name = "Borough drive" };
+        _channelThread.Start();
         GD.Print($"listening on {path}");
 
         return true;
@@ -443,21 +450,21 @@ public partial class Main
     /// therefore send and read in lock step without a clock of its own — which is the only way a
     /// client can know that what it reads is the state <em>after</em> what it sent.
     /// </remarks>
-    private void Serve()
+    private void Serve(System.Net.Sockets.Socket listener, System.Threading.CancellationToken cancellation)
     {
-        while (_listener is not null)
+        while (!cancellation.IsCancellationRequested)
         {
             try
             {
-                using System.Net.Sockets.Socket client = _listener.Accept();
+                using System.Net.Sockets.Socket client = listener.AcceptAsync(cancellation).AsTask().GetAwaiter().GetResult();
                 using var stream = new System.Net.Sockets.NetworkStream(client);
                 using var reader = new StreamReader(stream);
                 using var writer = new StreamWriter(stream) { AutoFlush = true };
 
-                while (reader.ReadLine() is { } line)
+                while (reader.ReadLineAsync(cancellation).AsTask().GetAwaiter().GetResult() is { } line)
                 {
-                    _asked.Add(line);
-                    writer.WriteLine(_answered.Take());
+                    _asked.Add(line, cancellation);
+                    writer.WriteLineAsync(_answered.Take(cancellation).AsMemory(), cancellation).GetAwaiter().GetResult();
                 }
             }
             catch (Exception)
@@ -642,6 +649,7 @@ public partial class Main
         ("roof", _roofs, true, _roofIds),
         ("hip", _hips, true, _hipIds),
         ("paired-roof", _pairedRoofs, true, _pairedRoofIds),
+        ("parapet", _parapets, true, _parapetIds),
         ("yard", _yards, true, _yardIds),
         ("tree", _trees, true, null),
         ("rock", _rocks, false, null),

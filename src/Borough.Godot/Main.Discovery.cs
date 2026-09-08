@@ -173,8 +173,25 @@ public partial class Main
 
     public override void _Input(InputEvent @event)
     {
+        if (_preparation is not null)
+        {
+            if (@event is InputEventKey { Pressed: true, Keycode: Key.Escape })
+            {
+                CancelPreparation();
+                GetViewport().SetInputAsHandled();
+            }
+            return;
+        }
         if (_helpPanel is null) return;
         if (@event is not InputEventKey { Pressed: true, Echo: false } key) return;
+        if (_stepThread?.OwnsWorld == true && (key.Keycode == Key.Escape
+            || key.Keycode == Key.Question || key.Keycode == Key.Slash && key.ShiftPressed))
+        {
+            var copy = (InputEventKey)key.Duplicate();
+            AtBoundary(() => { try { _Input(copy); } finally { copy.Dispose(); } });
+            GetViewport().SetInputAsHandled();
+            return;
+        }
         if (key.Keycode == Key.Escape)
         {
             if (_helpPanel.Visible) Ui("help off");

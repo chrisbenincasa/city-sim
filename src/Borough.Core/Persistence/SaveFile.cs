@@ -188,9 +188,8 @@ public static class SaveFile
     /// file. Deciding here would give <c>Borough.Godot</c> the headless runner's policy.
     /// </para>
     /// <para>
-    /// <b>The world is built at zero capacity and every table grown to exactly what the file says.</b>
-    /// Nothing in the header records how big the world was, because nothing needs to: each table
-    /// carries its own slot count, which is a better answer than one number for the whole world.
+    /// The world starts at its minimum capacities. Each table restores its saved slots through
+    /// Rows.Restore; tables opting into amortized restoration also allocate unsaved growth headroom.
     /// </para>
     /// </remarks>
     public static World Read(ISaveSource source, Ruleset rules, out SaveHeader header)

@@ -75,15 +75,31 @@ public sealed class TripEngine
     /// <summary>How many bands the cost histogram has.</summary>
     private const int Buckets = (int)TripCostBucket.ThirtyTwoMinutesOrMore + 1;
 
-    /// <summary>
-    /// The Dijkstra's scratch, reused across every Trip this engine starts.
-    /// </summary>
-    /// <remarks>
-    /// <b>One per engine rather than one per call</b>, which is what keeps <see cref="Start"/>
-    /// allocation-free on the hot path — the commute generator calls it once per departing Citizen
-    /// and there are as many of those a Day as there are workers.
-    /// </remarks>
+    /// <summary>Reusable scratch for synchronous searches; RouteBatch owns worker scratch.</summary>
     private readonly WalkScratch _walk = new();
+    public RouteWork? RouteWork { get; set; }
+    public RouteWork? ShoppingRouteWork { get; set; }
+    private RouteBatch? _preparedBatch;
+    private int _preparedTrip;
+
+    internal void PrepareRoutes(RouteBatch batch, int index, int citizen, int origin, int destination, TravelMode mode)
+    {
+        Address from = _world.PedestrianAccessPoint(origin), to = _world.PedestrianAccessPoint(destination);
+        if (!from.Exists || !to.Exists) { return; }
+        Span<Address> waypoints = stackalloc Address[4];
+        Span<TravelMode> modes = stackalloc TravelMode[3];
+        int count = Itinerary(citizen, origin, destination, from, to, mode, waypoints, modes);
+        for (int i = 0; i < count; i++)
+        { batch.Add(index, i, modes[i], waypoints[i], waypoints[i + 1], _world.Rules.Trips.CrossingCost); }
+    }
+
+    internal TripFate StartPrepared(int citizen, int origin, int destination, TravelMode mode,
+        Ticks tick, RouteBatch batch, int index)
+    {
+        _preparedBatch = batch; _preparedTrip = index;
+        try { return Start(citizen, origin, destination, mode, TripPurpose.Commute, tick); }
+        finally { _preparedBatch = null; }
+    }
 
     /// <summary>
     /// The Parking Shed's scratch. <b>One per engine, never shared</b>, on <see cref="_walk"/>'s rule.
@@ -178,6 +194,7 @@ public sealed class TripEngine
         int citizen, int fromBuilding, int toBuilding, TravelMode mode, TripPurpose purpose,
         Ticks tick)
     {
+        _walk.Work = purpose == TripPurpose.Shopping ? ShoppingRouteWork : RouteWork;
         TripRuleset rules = _world.Rules.Trips;
 
         // 🔴 ON THE ROAD, WHOEVER SENT THEM. CommuteEngine wrote a travelling Activity before calling
@@ -256,7 +273,9 @@ public sealed class TripEngine
             // never entered or left. What the route buys is that a walking Traveller HAS A PLACE --
             // without it the only thing stored about one is that it left one Address for another,
             // and VisibleAgents drew it on a straight line through the middle of the blocks.
-            TravelTime step = WalkRouting.Cost(
+            var prepared = _preparedBatch?.Take(_preparedTrip, i, modes[i], waypoints[i],
+                waypoints[i + 1], rules.CrossingCost);
+            TravelTime step = prepared is not null ? prepared.Cost : WalkRouting.Cost(
                 _world.Roads, modes[i], waypoints[i], waypoints[i + 1], rules.CrossingCost, _walk,
                 recordPath: true);
 
@@ -269,13 +288,12 @@ public sealed class TripEngine
 
             _world.Trips.Append(_world.Legs, tripSlot, legSlot);
 
-            // Read immediately, because _walk is one reusable scratch and the next iteration
-            // overwrites it. adr/0041 needs this route every Tick a vehicle is moving, which is why
-            // it goes into a saved table rather than being looked up again later; a walk's is read
-            // by the shell rather than by the Tick, and is stored for the same reason.
+            // Serial scratch must be read before the next query; prepared results hold copied Arcs.
+            // Both paths append to the same saved table in Trip/Leg order.
             if (!step.IsImpassable)
             {
-                RecordRoute(legSlot, waypoints[i], waypoints[i + 1]);
+                if (prepared is null) { RecordRoute(legSlot, waypoints[i], waypoints[i + 1]); }
+                else { RecordRoute(legSlot, waypoints[i], waypoints[i + 1], prepared.Arcs); }
             }
 
             if (driving)
@@ -358,15 +376,20 @@ public sealed class TripEngine
     /// </remarks>
     private void RecordRoute(int legSlot, Address from, Address to)
     {
+        int length = _walk.Arrived == WalkScratch.NoNode ? 0 : _walk.ArcsTo(_walk.Arrived, []);
+        if (length <= 0) { RecordRoute(legSlot, from, to, []); return; }
+        Span<int> route = length <= 64 ? stackalloc int[length] : new int[length];
+        _walk.ArcsTo(_walk.Arrived, route);
+        RecordRoute(legSlot, from, to, route);
+    }
+
+    private void RecordRoute(int legSlot, Address from, Address to, ReadOnlySpan<int> route)
+    {
         RoadArcs arcs = _world.Roads.Arcs;
         RoadSegmentTable segments = _world.Roads.Segments;
         RouteHopTable hops = _world.RouteHops;
 
-        int length = _walk.Arrived == WalkScratch.NoNode
-            ? WalkScratch.NoPath
-            : _walk.ArcsTo(_walk.Arrived, []);
-
-        if (length <= 0)
+        if (route.IsEmpty)
         {
             // No Arc between the two ends -- the same Segment, or two that meet at a node. Nothing
             // determines a direction, so both endpoint hops take the convention. RouteHopTable.Forward
@@ -376,10 +399,6 @@ public sealed class TripEngine
 
             return;
         }
-
-        Span<int> route = length <= 64 ? stackalloc int[length] : new int[length];
-
-        _walk.ArcsTo(_walk.Arrived, route);
 
         // The vehicle leaves its own Segment by whichever node the first Arc departs from, and that
         // node is the end of the first Arc's Segment that the Arc does not point at. Reading it back

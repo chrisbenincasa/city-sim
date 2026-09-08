@@ -25,8 +25,10 @@ namespace Borough.Core.Movement;
 /// because the tools report success.
 /// </para>
 /// </remarks>
-public sealed class WalkScratch
+public sealed partial class WalkScratch
 {
+    public RouteWork? Work { get; set; }
+
     private TravelTime[] _distance = [];
     private int[] _stamp = [];
     private bool[] _settled = [];
@@ -130,6 +132,7 @@ public sealed class WalkScratch
     /// </remarks>
     public void Begin(int nodeCount, bool recordPath = false)
     {
+        if (Work is { } work) { work.Searches++; }
         _recording = recordPath;
 
         if (recordPath && _via.Length < nodeCount)
@@ -144,9 +147,11 @@ public sealed class WalkScratch
             _stamp = new int[nodeCount];
             _settled = new bool[nodeCount];
             _heapCost = new TravelTime[nodeCount + 1];
+            _heapPriority = new long[nodeCount + 1];
             _heapNode = new int[nodeCount + 1];
         }
 
+        _directed = false;
         _nodes = nodeCount;
         _heapCount = 0;
         Relaxed = 0;
@@ -173,13 +178,8 @@ public sealed class WalkScratch
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Dijkstra rather than A*, and the reason is that this search has two sources and two
-    /// targets.</b> A* wants an admissible heuristic toward <em>one</em> goal; the walk out of a
-    /// Segment may leave by either end and enter the destination's by either, so the four
-    /// combinations are resolved by seeding both origins and reading both targets. On the foot
-    /// subgraph at a Building's scale the settled set is small, which is what makes the plain search
-    /// affordable — and if a measurement ever says otherwise, the heuristic to add is straight-line
-    /// distance over the node grid, which <c>RoadNodeTable</c> already stores.
+    /// Destination-directed search uses a consistent lower bound toward both endpoints. Equal-cost
+    /// predecessors and arrivals retain Dijkstra's ordering; zero-cost Arcs use Dijkstra directly.
     /// </para>
     /// <para>
     /// <b>The stopping rule is the standard one and is worth stating, because a walk search is
@@ -208,6 +208,7 @@ public sealed class WalkScratch
         RoadNodeTable nodes = graph.Nodes;
         RoadArcs arcs = graph.Arcs;
 
+        Direct(graph, mode, targetA, targetB, inA, inB);
         TravelTime best = TravelTime.Impassable;
         TravelTime cheapestEntry = inA < inB ? inA : inB;
 
@@ -217,7 +218,9 @@ public sealed class WalkScratch
         {
             TravelTime cost = _heapCost[0];
             int node = _heapNode[0];
+            long priority = _heapPriority[0];
 
+            if (Work is { } popped) { popped.Pops++; }
             PopRoot();
 
             if (_settled[node])
@@ -225,23 +228,25 @@ public sealed class WalkScratch
                 continue;
             }
 
+            if (_directed && priority > best.Raw) { break; }
             _settled[node] = true;
             Relaxed++;
+            if (Work is { } settled) { settled.Settled++; }
 
-            if (node == targetA && cost + inA < best)
+            if (node == targetA && BetterArrival(node, cost + inA, best))
             {
                 best = cost + inA;
                 Arrived = node;
             }
 
-            if (node == targetB && cost + inB < best)
+            if (node == targetB && BetterArrival(node, cost + inB, best))
             {
                 best = cost + inB;
                 Arrived = node;
             }
 
             // Nothing still on the frontier can beat what we already hold.
-            if (!best.IsImpassable && cost + cheapestEntry >= best)
+            if (!_directed && !best.IsImpassable && cost + cheapestEntry >= best)
             {
                 break;
             }
@@ -312,6 +317,7 @@ public sealed class WalkScratch
             TravelTime cost = _heapCost[0];
             int node = _heapNode[0];
 
+            if (Work is { } popped) { popped.Pops++; }
             PopRoot();
 
             if (_settled[node])
@@ -321,6 +327,7 @@ public sealed class WalkScratch
 
             _settled[node] = true;
             Relaxed++;
+            if (Work is { } settled) { settled.Settled++; }
 
             int start = nodes.ArcStart[node];
             int count = nodes.ArcCount[node];
@@ -493,6 +500,12 @@ public sealed class WalkScratch
 
         if (seen && (_settled[node] || _distance[node] <= cost))
         {
+            // Positive edges put every shortest predecessor before its child. Preserve Dijkstra's
+            // first predecessor (distance, then node slot), regardless of heuristic expansion order.
+            if (_directed && _recording && !_settled[node] && _distance[node] == cost
+                && from != NoNode && _previous[node] != NoNode
+                && Precedes(_distance[from], from, _distance[_previous[node]], _previous[node]))
+            { _via[node] = arc; _previous[node] = from; }
             return;
         }
 
@@ -526,26 +539,31 @@ public sealed class WalkScratch
         if (_heapCount == _heapCost.Length)
         {
             Array.Resize(ref _heapCost, _heapCost.Length * 2);
+            Array.Resize(ref _heapPriority, _heapCost.Length);
             Array.Resize(ref _heapNode, _heapNode.Length * 2);
         }
 
+        long priority = cost.Raw + Heuristic(node);
         int i = _heapCount;
         _heapCount++;
+        if (Work is { } pushed) { pushed.Pushes++; }
 
         while (i > 0)
         {
             int parent = (i - 1) >> 1;
 
-            if (!Precedes(cost, node, _heapCost[parent], _heapNode[parent]))
+            if (!HeapPrecedes(priority, cost, node, _heapPriority[parent], _heapCost[parent], _heapNode[parent]))
             {
                 break;
             }
 
+            _heapPriority[i] = _heapPriority[parent];
             _heapCost[i] = _heapCost[parent];
             _heapNode[i] = _heapNode[parent];
             i = parent;
         }
 
+        _heapPriority[i] = priority;
         _heapCost[i] = cost;
         _heapNode[i] = node;
     }
@@ -559,42 +577,27 @@ public sealed class WalkScratch
             return;
         }
 
-        TravelTime cost = _heapCost[_heapCount];
-        int node = _heapNode[_heapCount];
+        SiftDown(0, _heapPriority[_heapCount], _heapCost[_heapCount], _heapNode[_heapCount]);
+    }
 
-        int i = 0;
-
+    private void SiftDown(int i, long priority, TravelTime cost, int node)
+    {
         while (true)
         {
             int left = (i << 1) + 1;
-
-            if (left >= _heapCount)
-            {
-                break;
-            }
-
-            int child = left;
-            int right = left + 1;
-
-            if (right < _heapCount
-                && Precedes(_heapCost[right], _heapNode[right], _heapCost[left], _heapNode[left]))
-            {
-                child = right;
-            }
-
-            if (!Precedes(_heapCost[child], _heapNode[child], cost, node))
-            {
-                break;
-            }
-
-            _heapCost[i] = _heapCost[child];
-            _heapNode[i] = _heapNode[child];
-            i = child;
+            if (left >= _heapCount) { break; }
+            int child = left, right = left + 1;
+            if (right < _heapCount && HeapPrecedes(_heapPriority[right], _heapCost[right], _heapNode[right],
+                _heapPriority[left], _heapCost[left], _heapNode[left])) { child = right; }
+            if (!HeapPrecedes(_heapPriority[child], _heapCost[child], _heapNode[child], priority, cost, node)) { break; }
+            _heapPriority[i] = _heapPriority[child];
+            _heapCost[i] = _heapCost[child]; _heapNode[i] = _heapNode[child]; i = child;
         }
-
-        _heapCost[i] = cost;
-        _heapNode[i] = node;
+        _heapPriority[i] = priority; _heapCost[i] = cost; _heapNode[i] = node;
     }
+
+    private static bool HeapPrecedes(long lp, TravelTime lc, int ln, long rp, TravelTime rc, int rn) =>
+        lp == rp ? Precedes(lc, ln, rc, rn) : lp < rp;
 
     /// <summary>
     /// The heap order: cheaper first, and <b>the lower node slot when two costs are equal</b>.

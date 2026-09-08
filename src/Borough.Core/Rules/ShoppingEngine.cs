@@ -20,6 +20,7 @@ public sealed class ShoppingEngine
     private ulong[] _order = [];
     private int[] _active = [];
     private ShoppingReading _reading;
+    public ShoppingWork? Work { get; set; }
     public ShoppingReading Last => _reading;
     private ShoppingTable State => _world.Shopping;
     private KnownShopTable Known => _world.KnownShops;
@@ -47,6 +48,7 @@ public sealed class ShoppingEngine
 
     public void Step(Ticks tick)
     {
+        _walk.Work = Work?.Estimates;
         _reading = default;
         int count = State.Rows.SlotCount;
         if (_active.Length < count) { _active = new int[count]; _order = new ulong[count]; }
@@ -82,6 +84,7 @@ public sealed class ShoppingEngine
 
     private void Consider(int row, int hh, int home, Ticks tick)
     {
+        if (Work is { } work) { work.Considered++; }
         ShoppingRuleset rules = _world.Rules.Shopping;
         int chosen = -1;
         long chosenDaily = 0;
@@ -200,19 +203,30 @@ public sealed class ShoppingEngine
         if (count >= _world.Rules.Shopping.KnownShops || !_world.Lots.Rows.TryResolve(_world.Buildings.Lot[home], out int lot)) { return; }
         Cells radius = EmploymentEngine.Radius(_world.Rules.Trips.CommuteBudget, _world.Rules.Roads.WalkSpeed);
         CellRect box = CellRect.At(CellGrid.ToCells(_world.Lots.East[lot]), CellGrid.ToCells(_world.Lots.North[lot])).Dilate(radius).Clamp();
-        int buildings = _world.BuildingsInCells.CountIn(box);
+        int buildings = _world.BuildingsInCells.CountIn(box, Work?.Selection);
         if (buildings == 0) { return; }
+        ShoppingWork? work = Work;
+        if (work is not null) { work.DiscoveryCalls++; }
+        int added = 0;
         for (int attempt = 0; attempt < _world.Rules.Shopping.SearchCandidates && count < _world.Rules.Shopping.KnownShops; attempt++)
         {
             ulong entity = Randomness.Mix(State.Rows.IdAt(row) ^ ((ulong)(uint)attempt << 32));
             ulong draw = Randomness.Draw(_world.Key, entity, tick, PurposeTag.ShoppingDiscovery);
-            int building = _world.BuildingsInCells.NthIn(box, _world.Buildings, (int)(draw % (ulong)buildings));
+            int building = _world.BuildingsInCells.NthIn(box, _world.Buildings, (int)(draw % (ulong)buildings), Work?.Selection);
+            if (work is not null) { work.Draws++; }
             if (building < 0) { continue; }
+            bool hasBusiness = false;
             foreach (int business in _world.BuildingBusinesses.Walk(building))
             {
-                if (StockBin(business, State.Good[row]) < 0 || Knows(row, business)) { continue; }
+                hasBusiness = true;
+                if (work is not null) { work.BusinessesChecked++; }
+                if (StockBin(business, State.Good[row]) < 0)
+                { if (work is not null) { work.NoSaleBin++; } continue; }
+                if (Knows(row, business))
+                { if (work is not null) { work.AlreadyKnown++; } continue; }
                 TravelTime cost = Cost(home, building, citizen);
-                if (cost.IsImpassable || !_world.Rules.Trips.WithinBudget(cost)) { continue; }
+                if (cost.IsImpassable || !_world.Rules.Trips.WithinBudget(cost))
+                { if (work is not null) { work.DiscoveryRouteRejected++; } continue; }
                 int entry = Known.Rows.Resolve(Known.Rows.Allocate());
                 Known.Business[entry] = _world.Businesses.Rows.At(business);
                 if (count == 0) { State.ProviderHead[row] = entry + 1; }
@@ -223,9 +237,13 @@ public sealed class ShoppingEngine
                     Known.Next[tail] = entry + 1;
                 }
                 count++;
+                added++;
+                if (work is not null) { work.ProvidersAdded++; }
                 if (count >= _world.Rules.Shopping.KnownShops) { break; }
             }
+            if (!hasBusiness && work is not null) { work.DrawsWithoutBusiness++; }
         }
+        if (added == 0 && work is not null) { work.DiscoveryWithoutAddition++; }
     }
 
     private bool Knows(int row, int business)
@@ -390,6 +408,7 @@ public sealed class ShoppingEngine
         _world.Citizens.Activity[citizen] = (byte)CitizenActivity.ShoppingTravelling;
         _world.Citizens.LastTripFate[citizen] = (byte)TripFate.InFlight;
         _reading = _reading with { Searches = _reading.Searches + 1 };
+        if (Work is { } work) { work.Starts++; }
         _trips.Start(citizen, from, to, _world.ModeOf(citizen), TripPurpose.Shopping, tick);
     }
 
@@ -420,6 +439,11 @@ public sealed class ShoppingEngine
 
     private void Failure(int row, ShoppingFailure reason)
     {
+        if (Work is { } work)
+        {
+            if (reason == ShoppingFailure.NoKnownShop) { work.NoKnownShop++; }
+            if (reason == ShoppingFailure.Unreachable) { work.Unreachable++; }
+        }
         State.Reason[row] = (byte)reason;
     }
 

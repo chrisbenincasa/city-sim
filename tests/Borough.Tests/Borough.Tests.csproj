@@ -24,6 +24,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="../../src/Borough.Godot/CityPreparation.cs" Link="Shell/CityPreparation.cs" />
+    <Compile Include="../../src/Borough.Godot/SimulationThread.cs" Link="Shell/SimulationThread.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 

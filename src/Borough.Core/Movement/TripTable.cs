@@ -55,7 +55,7 @@ public sealed class TripTable
     {
         ArgumentNullException.ThrowIfNull(segments);
 
-        _rows = new Rows<Trip>("trip", capacity, Buffering.OneCopy);
+        _rows = new Rows<Trip>("trip", capacity, Buffering.OneCopy, amortizeRestore: true);
 
         Purpose = _rows.Saved<byte>("purpose");
 

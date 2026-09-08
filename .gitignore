@@ -544,3 +544,6 @@ artifacts/visual-study/*
 !artifacts/visual-study/**/*.json
 !artifacts/visual-study/**/*.png
 artifacts/visual-study/fidelity-research/
+
+!artifacts/aged-city-performance/
+!artifacts/aged-city-performance/**

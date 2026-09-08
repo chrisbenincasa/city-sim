@@ -64,7 +64,7 @@ public sealed class LegTable
     {
         ArgumentNullException.ThrowIfNull(segments);
 
-        _rows = new Rows<Leg>("leg", capacity, Buffering.OneCopy);
+        _rows = new Rows<Leg>("leg", capacity, Buffering.OneCopy, amortizeRestore: true);
 
         Mode = _rows.Saved<byte>("mode");
 

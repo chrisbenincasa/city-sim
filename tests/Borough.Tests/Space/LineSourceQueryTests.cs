@@ -18,6 +18,32 @@ namespace Borough.Tests.Space;
 /// </remarks>
 public sealed class LineSourceQueryTests
 {
+    [Fact]
+    public void Equal_floored_distances_keep_the_first_frontage_street()
+    {
+        var graph = OnTheLattice(3);
+        graph.Segments.VolumeForward[0] = 10;
+        graph.Segments.VolumeForward[1] = 20;
+        var source = new LineSource(new Tiles(16), Fixed.One);
+        // Both Streets floor to eight Tiles on either side of their shared endpoint.
+        // Choosing the geometrically closer Street would change which flow sets the background.
+        int left = LineSourceQueries.Noise(graph, source, new Tiles(30), new Tiles(8));
+        int right = LineSourceQueries.Noise(graph, source, new Tiles(34), new Tiles(8));
+        Assert.True(left > 0);
+        Assert.Equal(left, right);
+    }
+
+    [Fact]
+    public void Range_is_checked_after_distance_is_floored()
+    {
+        var graph = OnTheLattice(2);
+        graph.Segments.VolumeForward[0] = 10;
+        var source = new LineSource(new Tiles(8), Fixed.One);
+        // sqrt(2^2 + 8^2) floors to eight, so the point beyond the endpoint is still in range.
+        Assert.True(LineSourceQueries.Noise(graph, source, new Tiles(34), new Tiles(8)) > 0);
+        Assert.Equal(0, LineSourceQueries.Noise(graph, source, new Tiles(37), new Tiles(8)));
+    }
+
     private static readonly LineSource Noise = new(new Tiles(75), Fixed.One);
 
     /// <summary>

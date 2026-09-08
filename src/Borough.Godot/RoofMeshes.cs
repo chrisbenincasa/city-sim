@@ -50,10 +50,67 @@ public static class RoofMeshes
         Vector3 Face(int t) => (vertices[indices[t+1]] - vertices[indices[t]])
             .Cross(vertices[indices[t+2]] - vertices[indices[t]]).Normalized();
     }
+    // How much of a parapet's own width the upstand takes, each side. Small on purpose: it is a
+    // FRACTION of the body and a real coping is a thickness, so the two only agree at one span.
+    // At the fixture's broad bodies -- 20 m to 60 m -- it draws 0.30 m to 0.90 m of upstand, which
+    // is the plausible band. It would be wrong on a body far outside it.
+    private const float Upstand = 0.015f;
+
+    // Where the deck sits between the wall head and the coping, as a share of the parapet's height.
+    // ⚠ THE DECK IS FLAT AND THE RESEARCH'S FALL IS NOT DRAWN. pass03 proposes 1:60 across a 10 m
+    // run, which is 167 mm -- less than the upstand it drains behind, and under a pixel at every
+    // distance this city is looked at from. ***Drawing it would be asserting a gradient nobody can
+    // see***; what reads is that the deck is BELOW the coping and the roof is a tray rather than
+    // a lid.
+    private const float Deck = 0.30f;
+
     private static Mesh Source(int family)
     {
         if (family == 0) return new PrismMesh { Size = Vector3.One };
         var surface = new SurfaceTool(); surface.Begin(Mesh.PrimitiveType.Triangles);
+        if (family == 3)
+        {
+            float outer = .5f, inner = .5f - Upstand, deck = -.5f + Deck;
+
+            // The coping, the two skins it caps, and the tray inside them. Four sides, and each is
+            // the same four quads turned -- so the seams fall on the corners rather than across a
+            // face, which is where a real coping's joints are.
+            for (int side = 0; side < 4; side++)
+            {
+                // (ex, ez) runs ALONG this side; (nx, nz) is its outward normal.
+                float nx = side == 0 ? 0 : side == 1 ? 1 : side == 2 ? 0 : -1;
+                float nz = side == 0 ? -1 : side == 1 ? 0 : side == 2 ? 1 : 0;
+                float ex = -nz, ez = nx;
+
+                // ⚠ THE CORNER BELONGS TO THE ±Z SIDES, and it is the same partition Wings() takes
+                // for the same reason. Two copings meeting at a corner are COPLANAR, so a shared
+                // corner square is z-fighting rather than a seam -- 0.3 m of it flickering on every
+                // roof in the city. The outer skins are perpendicular and meet at an edge, so they
+                // keep their full run.
+                float end = side % 2 == 0 ? outer : inner;
+
+                Vector3 At(float across, float along, float y) =>
+                    new(nx * across + ex * along, y, nz * across + ez * along);
+
+                // The outer skin, full height.
+                Quad(At(outer, -outer, -.5f), At(outer, outer, -.5f),
+                     At(outer, outer, .5f), At(outer, -outer, .5f));
+
+                // The coping, from the outer edge in to the upstand's inner face.
+                Quad(At(outer, -end, .5f), At(outer, end, .5f),
+                     At(inner, end, .5f), At(inner, -end, .5f));
+
+                // The inner skin, from the coping down to the deck, facing IN across the tray.
+                Quad(At(inner, end, .5f), At(inner, end, deck),
+                     At(inner, -end, deck), At(inner, -end, .5f));
+            }
+
+            // The tray. Flat, and see Deck.
+            Quad(new Vector3(-inner, deck, -inner), new Vector3(inner, deck, -inner),
+                 new Vector3(inner, deck, inner), new Vector3(-inner, deck, inner));
+
+            surface.Index(); return surface.Commit();
+        }
         if (family == 1)
         {
             Vector3 a = new(-.5f,-.5f,-.5f), b = new(.5f,-.5f,-.5f);
@@ -81,6 +138,11 @@ public static class RoofMeshes
         {
             Vector3 normal = (c-a).Cross(b-a).Normalized();
             surface.SetNormal(normal); surface.AddVertex(a); surface.AddVertex(b); surface.AddVertex(c);
+        }
+
+        void Quad(Vector3 a, Vector3 b, Vector3 c, Vector3 d)
+        {
+            Triangle(a, b, c); Triangle(a, c, d);
         }
     }
 

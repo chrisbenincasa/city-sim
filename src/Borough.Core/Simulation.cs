@@ -29,11 +29,8 @@ namespace Borough.Core;
 /// identical worlds, and the Tick they were reached on is a property of the run.
 /// </para>
 /// <para>
-/// <b>Which thread runs this is deliberately not decided here.</b> <c>05 §6</c> never says, and
-/// <c>adr/0037</c> made it consequential by leaving one live state. Phase 1 does not need the answer —
-/// it is single-threaded and headless — and the shape of this class does not foreclose it: nothing
-/// here owns a thread, so the recommendation on the table (the simulation owns a thread, and
-/// <c>threads=1</c> means it runs on the caller's) remains available.
+/// The caller owns Step. Commute route searches may use workers; all world mutations remain on
+/// the caller, and each search batch completes before its results are consumed.
 /// </para>
 /// </remarks>
 public sealed class Simulation
@@ -64,6 +61,9 @@ public sealed class Simulation
     private WorldSnapshot? _snapshot;
 
     private TickPhase _phase = TickPhase.Commit;
+
+    // Optional diagnostics; the observer owns timing and must not mutate the simulation.
+    public Action<TickPhase>? PhaseCompleted { get; set; }
     private ulong _inForce;
     private bool _opened;
     private int _reloads;
@@ -230,6 +230,9 @@ public sealed class Simulation
     private readonly ShoppingEngine _shopping;
     public ShoppingEngine Shopping => _shopping;
     public TripEngine Trips => _trips;
+    /// <summary>Commute search concurrency limit; change only between Steps on the owning caller.</summary>
+    public int RouteWorkerCount { get => _commutes.RouteWorkerCount; set => _commutes.RouteWorkerCount = value; }
+    public RouteBatchReading LastRouteBatch => _commutes.LastBatch;
 
     /// <summary>The world seed, as <see cref="Randomness.Draw"/>'s first coordinate.</summary>
     public WorldKey Key => _key;
@@ -287,13 +290,21 @@ public sealed class Simulation
 
         Reload(input, tick);
         ApplyInput(input, tick);
+        PhaseCompleted?.Invoke(TickPhase.Input);
         Wake(tick);
+        PhaseCompleted?.Invoke(TickPhase.Wake);
         Decide(tick);
+        PhaseCompleted?.Invoke(TickPhase.Decide);
         Settle(tick);
+        PhaseCompleted?.Invoke(TickPhase.Settle);
         Move(tick);
+        PhaseCompleted?.Invoke(TickPhase.Move);
         Layers(tick);
+        PhaseCompleted?.Invoke(TickPhase.Layers);
         Growth(tick);
+        PhaseCompleted?.Invoke(TickPhase.Growth);
         Commit(tick);
+        PhaseCompleted?.Invoke(TickPhase.Commit);
 
         _world.Advance();
 
@@ -1376,11 +1387,8 @@ public sealed class Simulation
         _rules.Apply(tick);
     }
 
-    /// <summary>Phase 4 — Lanes advance Vehicles; Statistical trips check arrival.</summary>
-    /// <remarks>
-    /// Permitted parallel, and one of <c>adr/0037</c>'s two double-buffered tables when it exists,
-    /// because it is a parallel phase that both reads and writes. Empty until Phase 2 of the roadmap.
-    /// </remarks>
+    /// <summary>Phase 4 — generate journeys, advance Travellers and accrue attendance.</summary>
+    /// <remarks>Commute searches may run in parallel; generators and world writes remain ordered.</remarks>
     private void Move(Ticks tick)
     {
         _phase = TickPhase.Move;

@@ -1,0 +1,704 @@
+{
+  "hundred-0": {
+    "hash": "D551BD2FA385894A",
+    "activityEqual": true,
+    "days": [
+      {
+        "start": 14336,
+        "before": {
+          "MeanMs": 8.605593212890637,
+          "P95Ms": 19.0165,
+          "P99Ms": 23.4961,
+          "MaxMs": 42.5137,
+          "AllocatedBytes": 3836440
+        },
+        "after": {
+          "MeanMs": 5.278556494140633,
+          "P95Ms": 10.1858,
+          "P99Ms": 11.7296,
+          "MaxMs": 30.3991,
+          "AllocatedBytes": 3836440
+        },
+        "meanReductionPercent": 38.661329166318396,
+        "p99ReductionPercent": 50.078523669885634
+      }
+    ]
+  },
+  "hundred-1": {
+    "hash": "FDD1DBA842295351",
+    "activityEqual": true,
+    "days": [
+      {
+        "start": 14336,
+        "before": {
+          "MeanMs": 8.838194775390583,
+          "P95Ms": 20.3442,
+          "P99Ms": 24.8689,
+          "MaxMs": 41.3894,
+          "AllocatedBytes": 3842112
+        },
+        "after": {
+          "MeanMs": 5.263162500000001,
+          "P95Ms": 10.2618,
+          "P99Ms": 11.9832,
+          "MaxMs": 30.0813,
+          "AllocatedBytes": 3842112
+        },
+        "meanReductionPercent": 40.44980186842049,
+        "p99ReductionPercent": 51.81451531832933
+      }
+    ]
+  },
+  "million-8": {
+    "hash": "FAE56437750E05C7",
+    "activityEqual": true,
+    "days": [
+      {
+        "start": 14336,
+        "before": {
+          "MeanMs": 81.3676817871094,
+          "P95Ms": 216.6975,
+          "P99Ms": 242.7592,
+          "MaxMs": 391.7738,
+          "AllocatedBytes": 64027008
+        },
+        "after": {
+          "MeanMs": 50.15503789062514,
+          "P95Ms": 92.7966,
+          "P99Ms": 107.6003,
+          "MaxMs": 259.1818,
+          "AllocatedBytes": 65858720
+        },
+        "meanReductionPercent": 38.36000142925185,
+        "p99ReductionPercent": 55.676118556989806
+      }
+    ]
+  },
+  "hundred-counted": {
+    "hash": "D551BD2FA385894A",
+    "activityEqual": true,
+    "days": [
+      {
+        "start": 14336,
+        "before": {
+          "MeanMs": 8.621944140625013,
+          "P95Ms": 19.7748,
+          "P99Ms": 23.7931,
+          "MaxMs": 42.3699,
+          "AllocatedBytes": 3837016
+        },
+        "after": {
+          "MeanMs": 5.2709153808593765,
+          "P95Ms": 10.4134,
+          "P99Ms": 12.1197,
+          "MaxMs": 30.3737,
+          "AllocatedBytes": 3837016
+        },
+        "meanReductionPercent": 38.86627778039301,
+        "p99ReductionPercent": 49.062123052481596
+      }
+    ],
+    "routeWork": {
+      "before": {
+        "estimates": {
+          "Requests": 122104,
+          "Searches": 122080,
+          "Settled": 49174355,
+          "Pops": 49182645,
+          "Pushes": 53963201
+        },
+        "shoppingRoutes": {
+          "Requests": 614044,
+          "Searches": 356608,
+          "Settled": 110196776,
+          "Pops": 110214750,
+          "Pushes": 121206159
+        },
+        "otherRoutes": {
+          "Requests": 379348,
+          "Searches": 155288,
+          "Settled": 66441382,
+          "Pops": 66447674,
+          "Pushes": 72360099
+        }
+      },
+      "after": {
+        "estimates": {
+          "Requests": 122104,
+          "Searches": 122080,
+          "Settled": 9350559,
+          "Pops": 9706917,
+          "Pushes": 13737346
+        },
+        "shoppingRoutes": {
+          "Requests": 614044,
+          "Searches": 356608,
+          "Settled": 20050983,
+          "Pops": 21022221,
+          "Pushes": 30075639
+        },
+        "otherRoutes": {
+          "Requests": 379348,
+          "Searches": 155288,
+          "Settled": 11466517,
+          "Pops": 11771326,
+          "Pushes": 16847078
+        }
+      }
+    }
+  },
+  "small": {
+    "hash": "C1A2B61439767EC2",
+    "activityEqual": true,
+    "days": [
+      {
+        "start": 14336,
+        "before": {
+          "MeanMs": 0.1759103027343748,
+          "P95Ms": 0.6061,
+          "P99Ms": 0.7503,
+          "MaxMs": 3.3347,
+          "AllocatedBytes": 2167616
+        },
+        "after": {
+          "MeanMs": 0.19021928710937505,
+          "P95Ms": 0.6115,
+          "P99Ms": 0.7627,
+          "MaxMs": 3.3226,
+          "AllocatedBytes": 2167616
+        },
+        "meanReductionPercent": -8.13425032677413,
+        "p99ReductionPercent": -1.6526722644275793
+      },
+      {
+        "start": 16384,
+        "before": {
+          "MeanMs": 0.03207158203124995,
+          "P95Ms": 0.0569,
+          "P99Ms": 0.08,
+          "MaxMs": 2.2481,
+          "AllocatedBytes": 2113424
+        },
+        "after": {
+          "MeanMs": 0.029286572265625026,
+          "P95Ms": 0.0546,
+          "P99Ms": 0.0782,
+          "MaxMs": 2.3368,
+          "AllocatedBytes": 2113424
+        },
+        "meanReductionPercent": 8.683730546598111,
+        "p99ReductionPercent": 2.2499999999999964
+      },
+      {
+        "start": 18432,
+        "before": {
+          "MeanMs": 0.0295741210937499,
+          "P95Ms": 0.0575,
+          "P99Ms": 0.0779,
+          "MaxMs": 2.1826,
+          "AllocatedBytes": 2121584
+        },
+        "after": {
+          "MeanMs": 0.030666113281250046,
+          "P95Ms": 0.058,
+          "P99Ms": 0.0806,
+          "MaxMs": 2.141,
+          "AllocatedBytes": 2121584
+        },
+        "meanReductionPercent": -3.6923910064428744,
+        "p99ReductionPercent": -3.4659820282413545
+      },
+      {
+        "start": 20480,
+        "before": {
+          "MeanMs": 0.03071376953125004,
+          "P95Ms": 0.061,
+          "P99Ms": 0.083,
+          "MaxMs": 2.0258,
+          "AllocatedBytes": 2113528
+        },
+        "after": {
+          "MeanMs": 0.030462402343750014,
+          "P95Ms": 0.0605,
+          "P99Ms": 0.0824,
+          "MaxMs": 1.966,
+          "AllocatedBytes": 2113528
+        },
+        "meanReductionPercent": 0.8184185508205655,
+        "p99ReductionPercent": 0.7228915662650603
+      },
+      {
+        "start": 22528,
+        "before": {
+          "MeanMs": 0.030387353515625055,
+          "P95Ms": 0.0685,
+          "P99Ms": 0.093,
+          "MaxMs": 0.6872,
+          "AllocatedBytes": 2121800
+        },
+        "after": {
+          "MeanMs": 0.029436230468749984,
+          "P95Ms": 0.0665,
+          "P99Ms": 0.0863,
+          "MaxMs": 0.4893,
+          "AllocatedBytes": 2146424
+        },
+        "meanReductionPercent": 3.1299963202982006,
+        "p99ReductionPercent": 7.204301075268815
+      },
+      {
+        "start": 24576,
+        "before": {
+          "MeanMs": 0.014896337890624983,
+          "P95Ms": 0.0348,
+          "P99Ms": 0.0415,
+          "MaxMs": 0.4985,
+          "AllocatedBytes": 2121904
+        },
+        "after": {
+          "MeanMs": 0.014563330078125004,
+          "P95Ms": 0.0341,
+          "P99Ms": 0.0397,
+          "MaxMs": 0.4677,
+          "AllocatedBytes": 2121904
+        },
+        "meanReductionPercent": 2.23550120133591,
+        "p99ReductionPercent": 4.337349397590373
+      },
+      {
+        "start": 26624,
+        "before": {
+          "MeanMs": 0.015285644531250031,
+          "P95Ms": 0.0431,
+          "P99Ms": 0.0522,
+          "MaxMs": 0.4222,
+          "AllocatedBytes": 2174064
+        },
+        "after": {
+          "MeanMs": 0.015346386718750028,
+          "P95Ms": 0.0424,
+          "P99Ms": 0.0512,
+          "MaxMs": 0.4477,
+          "AllocatedBytes": 2174064
+        },
+        "meanReductionPercent": -0.39738061012615233,
+        "p99ReductionPercent": 1.9157088122605415
+      }
+    ]
+  },
+  "small-repeat": {
+    "hash": "C1A2B61439767EC2",
+    "activityEqual": true,
+    "days": [
+      {
+        "start": 14336,
+        "before": {
+          "MeanMs": 0.18100805664062494,
+          "P95Ms": 0.5945,
+          "P99Ms": 0.7444,
+          "MaxMs": 3.1447,
+          "AllocatedBytes": 2167616
+        },
+        "after": {
+          "MeanMs": 0.1913788574218749,
+          "P95Ms": 0.5875,
+          "P99Ms": 0.721,
+          "MaxMs": 3.1928,
+          "AllocatedBytes": 2167616
+        },
+        "meanReductionPercent": -5.729469159397826,
+        "p99ReductionPercent": 3.14347125201504
+      },
+      {
+        "start": 16384,
+        "before": {
+          "MeanMs": 0.031724218749999956,
+          "P95Ms": 0.0562,
+          "P99Ms": 0.0754,
+          "MaxMs": 2.2459,
+          "AllocatedBytes": 2113424
+        },
+        "after": {
+          "MeanMs": 0.02969707031250003,
+          "P95Ms": 0.0536,
+          "P99Ms": 0.0825,
+          "MaxMs": 2.47,
+          "AllocatedBytes": 2113424
+        },
+        "meanReductionPercent": 6.389908143915857,
+        "p99ReductionPercent": -9.416445623342184
+      },
+      {
+        "start": 18432,
+        "before": {
+          "MeanMs": 0.029736816406250022,
+          "P95Ms": 0.0562,
+          "P99Ms": 0.0775,
+          "MaxMs": 2.144,
+          "AllocatedBytes": 2121584
+        },
+        "after": {
+          "MeanMs": 0.02957939453125001,
+          "P95Ms": 0.0566,
+          "P99Ms": 0.0769,
+          "MaxMs": 2.1713,
+          "AllocatedBytes": 2121584
+        },
+        "meanReductionPercent": 0.5293837539613877,
+        "p99ReductionPercent": 0.7741935483871032
+      },
+      {
+        "start": 20480,
+        "before": {
+          "MeanMs": 0.030779785156250013,
+          "P95Ms": 0.0603,
+          "P99Ms": 0.0788,
+          "MaxMs": 1.9242,
+          "AllocatedBytes": 2113504
+        },
+        "after": {
+          "MeanMs": 0.031257861328125,
+          "P95Ms": 0.0602,
+          "P99Ms": 0.0823,
+          "MaxMs": 1.8948,
+          "AllocatedBytes": 2113504
+        },
+        "meanReductionPercent": -1.5532147786220252,
+        "p99ReductionPercent": -4.441624365482233
+      },
+      {
+        "start": 22528,
+        "before": {
+          "MeanMs": 0.03026054687500007,
+          "P95Ms": 0.0663,
+          "P99Ms": 0.0896,
+          "MaxMs": 0.9887,
+          "AllocatedBytes": 2121824
+        },
+        "after": {
+          "MeanMs": 0.03032905273437514,
+          "P95Ms": 0.0662,
+          "P99Ms": 0.0856,
+          "MaxMs": 1.1122,
+          "AllocatedBytes": 2121824
+        },
+        "meanReductionPercent": -0.22638671950658829,
+        "p99ReductionPercent": 4.464285714285721
+      },
+      {
+        "start": 24576,
+        "before": {
+          "MeanMs": 0.014493896484374944,
+          "P95Ms": 0.0346,
+          "P99Ms": 0.0436,
+          "MaxMs": 0.4602,
+          "AllocatedBytes": 2121904
+        },
+        "after": {
+          "MeanMs": 0.014233593749999947,
+          "P95Ms": 0.0332,
+          "P99Ms": 0.0397,
+          "MaxMs": 0.4376,
+          "AllocatedBytes": 2121904
+        },
+        "meanReductionPercent": 1.7959472434180501,
+        "p99ReductionPercent": 8.944954128440363
+      },
+      {
+        "start": 26624,
+        "before": {
+          "MeanMs": 0.014813085937500053,
+          "P95Ms": 0.0417,
+          "P99Ms": 0.0492,
+          "MaxMs": 0.4318,
+          "AllocatedBytes": 2174064
+        },
+        "after": {
+          "MeanMs": 0.014648632812499965,
+          "P95Ms": 0.0409,
+          "P99Ms": 0.0493,
+          "MaxMs": 0.4342,
+          "AllocatedBytes": 2174064
+        },
+        "meanReductionPercent": 1.1101881518405743,
+        "p99ReductionPercent": -0.20325203252031798
+      }
+    ]
+  },
+  "small-no-tiering": {
+    "hash": "C1A2B61439767EC2",
+    "activityEqual": true,
+    "days": [
+      {
+        "start": 14336,
+        "before": {
+          "MeanMs": 0.034475878906249924,
+          "P95Ms": 0.08,
+          "P99Ms": 0.0915,
+          "MaxMs": 0.7302,
+          "AllocatedBytes": 2167616
+        },
+        "after": {
+          "MeanMs": 0.034277148437500043,
+          "P95Ms": 0.0784,
+          "P99Ms": 0.0867,
+          "MaxMs": 0.7742,
+          "AllocatedBytes": 2167616
+        },
+        "meanReductionPercent": 0.5764333645859709,
+        "p99ReductionPercent": 5.245901639344264
+      },
+      {
+        "start": 16384,
+        "before": {
+          "MeanMs": 0.034510986328125035,
+          "P95Ms": 0.079,
+          "P99Ms": 0.0865,
+          "MaxMs": 0.4418,
+          "AllocatedBytes": 2113424
+        },
+        "after": {
+          "MeanMs": 0.034260253906249906,
+          "P95Ms": 0.079,
+          "P99Ms": 0.0892,
+          "MaxMs": 0.453,
+          "AllocatedBytes": 2113424
+        },
+        "meanReductionPercent": 0.7265292840117787,
+        "p99ReductionPercent": -3.1213872832370093
+      },
+      {
+        "start": 18432,
+        "before": {
+          "MeanMs": 0.03788139648437505,
+          "P95Ms": 0.0873,
+          "P99Ms": 0.094,
+          "MaxMs": 0.4136,
+          "AllocatedBytes": 2121584
+        },
+        "after": {
+          "MeanMs": 0.03781337890625001,
+          "P95Ms": 0.0866,
+          "P99Ms": 0.0963,
+          "MaxMs": 0.4182,
+          "AllocatedBytes": 2121584
+        },
+        "meanReductionPercent": 0.17955404086831273,
+        "p99ReductionPercent": -2.4468085106382986
+      },
+      {
+        "start": 20480,
+        "before": {
+          "MeanMs": 0.038109033203125024,
+          "P95Ms": 0.0872,
+          "P99Ms": 0.0946,
+          "MaxMs": 0.4045,
+          "AllocatedBytes": 2113504
+        },
+        "after": {
+          "MeanMs": 0.037762744140624985,
+          "P95Ms": 0.0865,
+          "P99Ms": 0.0933,
+          "MaxMs": 0.436,
+          "AllocatedBytes": 2113504
+        },
+        "meanReductionPercent": 0.9086797365188581,
+        "p99ReductionPercent": 1.374207188160681
+      },
+      {
+        "start": 22528,
+        "before": {
+          "MeanMs": 0.03859956054687508,
+          "P95Ms": 0.0884,
+          "P99Ms": 0.0958,
+          "MaxMs": 0.3965,
+          "AllocatedBytes": 2121776
+        },
+        "after": {
+          "MeanMs": 0.03804243164062515,
+          "P95Ms": 0.0863,
+          "P99Ms": 0.0965,
+          "MaxMs": 0.4185,
+          "AllocatedBytes": 2121776
+        },
+        "meanReductionPercent": 1.4433555676711673,
+        "p99ReductionPercent": -0.7306889352818535
+      },
+      {
+        "start": 24576,
+        "before": {
+          "MeanMs": 0.016119091796874953,
+          "P95Ms": 0.0395,
+          "P99Ms": 0.0464,
+          "MaxMs": 0.3892,
+          "AllocatedBytes": 2121904
+        },
+        "after": {
+          "MeanMs": 0.015800439453124974,
+          "P95Ms": 0.039,
+          "P99Ms": 0.0471,
+          "MaxMs": 0.4109,
+          "AllocatedBytes": 2121904
+        },
+        "meanReductionPercent": 1.9768628888369277,
+        "p99ReductionPercent": -1.5086206896551824
+      },
+      {
+        "start": 26624,
+        "before": {
+          "MeanMs": 0.016687060546875045,
+          "P95Ms": 0.049,
+          "P99Ms": 0.06,
+          "MaxMs": 0.3726,
+          "AllocatedBytes": 2174064
+        },
+        "after": {
+          "MeanMs": 0.016368115234375032,
+          "P95Ms": 0.0474,
+          "P99Ms": 0.0579,
+          "MaxMs": 0.3841,
+          "AllocatedBytes": 2174064
+        },
+        "meanReductionPercent": 1.9113331050970572,
+        "p99ReductionPercent": 3.499999999999992
+      }
+    ]
+  },
+  "crossTickReuse": {
+    "type": "crossTickReuse",
+    "cumulative": [
+      {
+        "Capacity": 65536,
+        "Entries": 65536,
+        "Searches": 4740678,
+        "Hits": 513496,
+        "Settled": 7299667383,
+        "HitSettled": 233893488,
+        "Evictions": 4161646
+      },
+      {
+        "Capacity": 1048576,
+        "Entries": 1048576,
+        "Searches": 4740678,
+        "Hits": 949224,
+        "Settled": 7299667383,
+        "HitSettled": 763114162,
+        "Evictions": 2742878
+      }
+    ]
+  },
+  "services": {
+    "hash": "861164B19A310450",
+    "events": {
+      "Ill": 2284,
+      "Worsened": 0,
+      "Requested": 8866,
+      "Booked": 8930,
+      "Postponed": 6509,
+      "Unreachable": 35,
+      "NoBed": 0,
+      "Admitted": 0,
+      "Treated": 8821,
+      "Discharged": 0,
+      "Recovered": 2268,
+      "DiedAwaitingBed": 0,
+      "Died": 0,
+      "MissedWork": 3530,
+      "SwitchedClinic": 0,
+      "SchoolDeparted": 2245,
+      "SchoolAttended": 2245,
+      "Returned": 11101,
+      "FacilityLost": 0,
+      "NoAppointment": 0
+    },
+    "purchases": [
+      109,
+      92,
+      101,
+      233,
+      251,
+      246,
+      96
+    ],
+    "wages": [
+      364845,
+      205048,
+      801920,
+      378558,
+      911868,
+      577135,
+      186855
+    ],
+    "days": [
+      {
+        "StartTick": 65536,
+        "Citizens": 11087,
+        "MeanMs": 1.4552407714843723,
+        "P99Ms": 8.7036,
+        "AllocatedBytes": 2854904
+      },
+      {
+        "StartTick": 67584,
+        "Citizens": 11087,
+        "MeanMs": 1.3314606933593744,
+        "P99Ms": 8.744,
+        "AllocatedBytes": 2815376
+      },
+      {
+        "StartTick": 69632,
+        "Citizens": 11087,
+        "MeanMs": 1.2458257324218764,
+        "P99Ms": 7.4467,
+        "AllocatedBytes": 2790384
+      },
+      {
+        "StartTick": 71680,
+        "Citizens": 11087,
+        "MeanMs": 1.3744480957031233,
+        "P99Ms": 7.843,
+        "AllocatedBytes": 2702928
+      },
+      {
+        "StartTick": 73728,
+        "Citizens": 11087,
+        "MeanMs": 1.3620185546875014,
+        "P99Ms": 7.7203,
+        "AllocatedBytes": 2775448
+      },
+      {
+        "StartTick": 75776,
+        "Citizens": 11087,
+        "MeanMs": 1.3863761718750005,
+        "P99Ms": 8.3275,
+        "AllocatedBytes": 2734296
+      },
+      {
+        "StartTick": 77824,
+        "Citizens": 11087,
+        "MeanMs": 1.3945632812499988,
+        "P99Ms": 8.0892,
+        "AllocatedBytes": 2743136
+      }
+    ]
+  },
+  "civicInstrumentation": {
+    "hash": "B76386656D3F434D",
+    "civicSearches": 16578,
+    "activityEqual": true,
+    "conditions": "Matching final builds and inputs, with/without work counters; timings not used."
+  },
+  "finalBinary": {
+    "hash": "D551BD2FA385894A",
+    "activityEqual": true,
+    "MeanMs": 4.975386767578122,
+    "P99Ms": 11.0365,
+    "coreAssemblySha256": "DCA4DF8ABF0950EE8081A2A29B9FD73A9268D02639E51E993F294E5D18553CE9"
+  },
+  "validation": {
+    "assertionsPassed": 2968,
+    "assertionsLog": "logs/borough-test-20260908-002157.log",
+    "corpusPassed": 52,
+    "corpusLog": "logs/borough-test-20260908-002828.log",
+    "missingTargetAndExactRouteTests": true
+  }
+}

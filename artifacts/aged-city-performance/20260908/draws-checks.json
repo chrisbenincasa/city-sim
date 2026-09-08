@@ -1,0 +1,1433 @@
+{
+  "retained": false,
+  "reason": "No consistent Step benefit without unexplained regressions. Candidate removed; previous implementation restored.",
+  "conditions": "Release .NET 10.0.2, M4 Pro desktop; captures sequential without overlapping builds/tests. stress-shopping.toml unless specified; resume Tick 12288, warm to 14336, measure 2048 Ticks. Small control measures seven Days. Local diagnostics, not budget ratification.",
+  "adaptive": {
+    "hundred-0": {
+      "end": {
+        "type": "end",
+        "tick": 16384,
+        "hash": "D551BD2FA385894A",
+        "invariants": "passed"
+      },
+      "activityMatches": true,
+      "days": [
+        {
+          "start": 14336,
+          "before": {
+            "MeanMs": 4.996723779296875,
+            "P95Ms": 9.6255,
+            "P99Ms": 11.1719,
+            "MaxMs": 29.0092,
+            "MaxTick": 14608,
+            "AllocatedBytes": 3836464,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 200071200,
+            "WorkingSetBytes": 246480896
+          },
+          "after": {
+            "MeanMs": 5.142912499999998,
+            "P95Ms": 9.8462,
+            "P99Ms": 11.3705,
+            "MaxMs": 29.9092,
+            "MaxTick": 14608,
+            "AllocatedBytes": 3836440,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 200062480,
+            "WorkingSetBytes": 248725504
+          },
+          "meanReductionPercent": -2.9256914562464376
+        }
+      ]
+    },
+    "hundred-1": {
+      "end": {
+        "type": "end",
+        "tick": 16384,
+        "hash": "FDD1DBA842295351",
+        "invariants": "passed"
+      },
+      "activityMatches": true,
+      "days": [
+        {
+          "start": 14336,
+          "before": {
+            "MeanMs": 5.168945166015628,
+            "P95Ms": 10.1188,
+            "P99Ms": 11.6587,
+            "MaxMs": 29.8719,
+            "MaxTick": 14608,
+            "AllocatedBytes": 3842088,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 199958528,
+            "WorkingSetBytes": 246038528
+          },
+          "after": {
+            "MeanMs": 5.189062402343742,
+            "P95Ms": 10.0818,
+            "P99Ms": 11.7171,
+            "MaxMs": 29.6492,
+            "MaxTick": 14608,
+            "AllocatedBytes": 3842112,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 199964792,
+            "WorkingSetBytes": 246005760
+          },
+          "meanReductionPercent": -0.38919422980880913
+        }
+      ]
+    },
+    "small": {
+      "end": {
+        "type": "end",
+        "tick": 28672,
+        "hash": "C1A2B61439767EC2",
+        "invariants": "passed"
+      },
+      "activityMatches": true,
+      "days": [
+        {
+          "start": 14336,
+          "before": {
+            "MeanMs": 0.18835346679687492,
+            "P95Ms": 0.6006,
+            "P99Ms": 0.7276,
+            "MaxMs": 3.3152,
+            "MaxTick": 15146,
+            "AllocatedBytes": 2167616,
+            "Gen0Collections": 1,
+            "Gen1Collections": 1,
+            "Gen2Collections": 1,
+            "ManagedHeapBytes": 79656840,
+            "WorkingSetBytes": 142606336
+          },
+          "after": {
+            "MeanMs": 0.18750175781249998,
+            "P95Ms": 0.6077,
+            "P99Ms": 0.7328,
+            "MaxMs": 3.3865,
+            "MaxTick": 15177,
+            "AllocatedBytes": 2192240,
+            "Gen0Collections": 1,
+            "Gen1Collections": 1,
+            "Gen2Collections": 1,
+            "ManagedHeapBytes": 79681312,
+            "WorkingSetBytes": 142245888
+          },
+          "meanReductionPercent": 0.4521865187081753
+        },
+        {
+          "start": 16384,
+          "before": {
+            "MeanMs": 0.03025805664062499,
+            "P95Ms": 0.0552,
+            "P99Ms": 0.0783,
+            "MaxMs": 2.2793,
+            "MaxTick": 16656,
+            "AllocatedBytes": 2113424,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 82207584,
+            "WorkingSetBytes": 144441344
+          },
+          "after": {
+            "MeanMs": 0.032201855468749964,
+            "P95Ms": 0.0564,
+            "P99Ms": 0.0779,
+            "MaxMs": 2.3155,
+            "MaxTick": 16656,
+            "AllocatedBytes": 2113424,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 82201248,
+            "WorkingSetBytes": 144080896
+          },
+          "meanReductionPercent": -6.424070293778206
+        },
+        {
+          "start": 18432,
+          "before": {
+            "MeanMs": 0.030811523437500002,
+            "P95Ms": 0.0583,
+            "P99Ms": 0.0786,
+            "MaxMs": 2.1553,
+            "MaxTick": 18704,
+            "AllocatedBytes": 2121584,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 84345888,
+            "WorkingSetBytes": 145620992
+          },
+          "after": {
+            "MeanMs": 0.030047119140625047,
+            "P95Ms": 0.0569,
+            "P99Ms": 0.0772,
+            "MaxMs": 2.143,
+            "MaxTick": 18704,
+            "AllocatedBytes": 2121584,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 84347776,
+            "WorkingSetBytes": 145276928
+          },
+          "meanReductionPercent": 2.4809039333141714
+        },
+        {
+          "start": 20480,
+          "before": {
+            "MeanMs": 0.03213320312500004,
+            "P95Ms": 0.0604,
+            "P99Ms": 0.0815,
+            "MaxMs": 1.9932,
+            "MaxTick": 20752,
+            "AllocatedBytes": 2113504,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 86484192,
+            "WorkingSetBytes": 146882560
+          },
+          "after": {
+            "MeanMs": 0.0302736328125,
+            "P95Ms": 0.0588,
+            "P99Ms": 0.0811,
+            "MaxMs": 2.0107,
+            "MaxTick": 20752,
+            "AllocatedBytes": 2113528,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 86482760,
+            "WorkingSetBytes": 146653184
+          },
+          "meanReductionPercent": 5.7870679909071026
+        },
+        {
+          "start": 22528,
+          "before": {
+            "MeanMs": 0.03116293945312496,
+            "P95Ms": 0.0644,
+            "P99Ms": 0.0873,
+            "MaxMs": 1.118,
+            "MaxTick": 23072,
+            "AllocatedBytes": 2121824,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 88638232,
+            "WorkingSetBytes": 149340160
+          },
+          "after": {
+            "MeanMs": 0.029745263671875067,
+            "P95Ms": 0.0648,
+            "P99Ms": 0.088,
+            "MaxMs": 0.4919,
+            "MaxTick": 22528,
+            "AllocatedBytes": 2121800,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 88628976,
+            "WorkingSetBytes": 149012480
+          },
+          "meanReductionPercent": 4.549236388250044
+        },
+        {
+          "start": 24576,
+          "before": {
+            "MeanMs": 0.014772119140624986,
+            "P95Ms": 0.0338,
+            "P99Ms": 0.0405,
+            "MaxMs": 0.4804,
+            "MaxTick": 24576,
+            "AllocatedBytes": 2121904,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 90776536,
+            "WorkingSetBytes": 150519808
+          },
+          "after": {
+            "MeanMs": 0.014624658203124984,
+            "P95Ms": 0.0344,
+            "P99Ms": 0.0402,
+            "MaxMs": 0.5005,
+            "MaxTick": 24576,
+            "AllocatedBytes": 2121904,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 90775504,
+            "WorkingSetBytes": 150224896
+          },
+          "meanReductionPercent": 0.9982382087243447
+        },
+        {
+          "start": 26624,
+          "before": {
+            "MeanMs": 0.015323535156250014,
+            "P95Ms": 0.0432,
+            "P99Ms": 0.0519,
+            "MaxMs": 0.455,
+            "MaxTick": 26624,
+            "AllocatedBytes": 2174064,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 92972440,
+            "WorkingSetBytes": 151748608
+          },
+          "after": {
+            "MeanMs": 0.014956445312500021,
+            "P95Ms": 0.042,
+            "P99Ms": 0.0485,
+            "MaxMs": 0.4374,
+            "MaxTick": 26624,
+            "AllocatedBytes": 2174064,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 92971408,
+            "WorkingSetBytes": 151453696
+          },
+          "meanReductionPercent": 2.3955950112482194
+        }
+      ]
+    },
+    "million-1": {
+      "end": {
+        "type": "end",
+        "tick": 16384,
+        "hash": "FAE56437750E05C7",
+        "invariants": "passed"
+      },
+      "activityMatches": true,
+      "days": [
+        {
+          "start": 14336,
+          "before": {
+            "MeanMs": 54.59126176757819,
+            "P95Ms": 116.3345,
+            "P99Ms": 130.1146,
+            "MaxMs": 279.5387,
+            "MaxTick": 14608,
+            "AllocatedBytes": 19412800,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 1353152536,
+            "WorkingSetBytes": 1293172736
+          },
+          "after": {
+            "MeanMs": 54.28640019531242,
+            "P95Ms": 118.1985,
+            "P99Ms": 132.1923,
+            "MaxMs": 278.5264,
+            "MaxTick": 14608,
+            "AllocatedBytes": 19412800,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 1353150648,
+            "WorkingSetBytes": 1293631488
+          },
+          "meanReductionPercent": 0.5584439018165854
+        }
+      ]
+    },
+    "million-8": {
+      "end": {
+        "type": "end",
+        "tick": 16384,
+        "hash": "FAE56437750E05C7",
+        "invariants": "passed"
+      },
+      "activityMatches": true,
+      "days": [
+        {
+          "start": 14336,
+          "before": {
+            "MeanMs": 47.45585834960938,
+            "P95Ms": 87.2143,
+            "P99Ms": 101.699,
+            "MaxMs": 247.4557,
+            "MaxTick": 14608,
+            "AllocatedBytes": 65840408,
+            "Gen0Collections": 6,
+            "Gen1Collections": 2,
+            "Gen2Collections": 1,
+            "ManagedHeapBytes": 1212561656,
+            "WorkingSetBytes": 1301708800
+          },
+          "after": {
+            "MeanMs": 46.943625683593744,
+            "P95Ms": 87.7747,
+            "P99Ms": 100.9155,
+            "MaxMs": 252.8279,
+            "MaxTick": 14608,
+            "AllocatedBytes": 65826272,
+            "Gen0Collections": 6,
+            "Gen1Collections": 2,
+            "Gen2Collections": 1,
+            "ManagedHeapBytes": 1212540608,
+            "WorkingSetBytes": 1301200896
+          },
+          "meanReductionPercent": 1.0793876326964602
+        }
+      ]
+    },
+    "hundred-0-counted": {
+      "end": {
+        "type": "end",
+        "tick": 16384,
+        "hash": "D551BD2FA385894A",
+        "invariants": "passed"
+      },
+      "activityMatches": true,
+      "days": [
+        {
+          "start": 14336,
+          "before": {
+            "MeanMs": 5.232014794921865,
+            "P95Ms": 10.2657,
+            "P99Ms": 11.7567,
+            "MaxMs": 30.9027,
+            "MaxTick": 14608,
+            "AllocatedBytes": 3837352,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 204361616,
+            "WorkingSetBytes": 261128192
+          },
+          "after": {
+            "MeanMs": 5.204601855468761,
+            "P95Ms": 10.2237,
+            "P99Ms": 11.7032,
+            "MaxMs": 30.6234,
+            "MaxTick": 14608,
+            "AllocatedBytes": 3837016,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 204451808,
+            "WorkingSetBytes": 261210112
+          },
+          "meanReductionPercent": 0.5239461379144106
+        }
+      ],
+      "selection": {
+        "before": {
+          "PrefixReads": 502248027,
+          "RebuiltCells": 1024,
+          "CountCalls": 325977,
+          "CountCells": 0,
+          "CandidateCalls": 10289995,
+          "CandidateCells": 0,
+          "CandidateLinks": 32152112
+        },
+        "after": {
+          "PrefixReads": 502248027,
+          "RebuiltCells": 1024,
+          "CountCalls": 325977,
+          "CountCells": 0,
+          "CandidateCalls": 10289995,
+          "CandidateCells": 0,
+          "CandidateLinks": 32152112,
+          "PreparedCalls": 0
+        }
+      },
+      "otherPerTickCountersMatch": true
+    },
+    "hundred-0-repeat": {
+      "end": {
+        "type": "end",
+        "tick": 16384,
+        "hash": "D551BD2FA385894A",
+        "invariants": "passed"
+      },
+      "activityMatches": true,
+      "before": {
+        "MeanMs": 5.208249365234371,
+        "P95Ms": 10.1964,
+        "P99Ms": 11.5625,
+        "MaxMs": 30.355,
+        "MaxTick": 14608,
+        "AllocatedBytes": 3836440,
+        "Gen0Collections": 0,
+        "Gen1Collections": 0,
+        "Gen2Collections": 0,
+        "ManagedHeapBytes": 200058784,
+        "WorkingSetBytes": 248872960
+      },
+      "after": {
+        "MeanMs": 5.050246484375005,
+        "P95Ms": 9.8559,
+        "P99Ms": 10.8802,
+        "MaxMs": 29.5743,
+        "MaxTick": 14608,
+        "AllocatedBytes": 3836440,
+        "Gen0Collections": 0,
+        "Gen1Collections": 0,
+        "Gen2Collections": 0,
+        "ManagedHeapBytes": 200058768,
+        "WorkingSetBytes": 247431168
+      },
+      "meanReductionPercent": 3.0337042215000887
+    },
+    "hundred-1-repeat": {
+      "end": {
+        "type": "end",
+        "tick": 16384,
+        "hash": "FDD1DBA842295351",
+        "invariants": "passed"
+      },
+      "activityMatches": true,
+      "before": {
+        "MeanMs": 5.247227343750005,
+        "P95Ms": 10.2787,
+        "P99Ms": 11.8352,
+        "MaxMs": 30.4917,
+        "MaxTick": 14608,
+        "AllocatedBytes": 3842088,
+        "Gen0Collections": 0,
+        "Gen1Collections": 0,
+        "Gen2Collections": 0,
+        "ManagedHeapBytes": 199986432,
+        "WorkingSetBytes": 245891072
+      },
+      "after": {
+        "MeanMs": 5.338335302734374,
+        "P95Ms": 10.4079,
+        "P99Ms": 12.5643,
+        "MaxMs": 31.6025,
+        "MaxTick": 14608,
+        "AllocatedBytes": 3842088,
+        "Gen0Collections": 0,
+        "Gen1Collections": 0,
+        "Gen2Collections": 0,
+        "ManagedHeapBytes": 199958512,
+        "WorkingSetBytes": 246235136
+      },
+      "meanReductionPercent": -1.7363066819067408
+    }
+  },
+  "adaptiveWideStreets": {
+    "0": {
+      "before": {
+        "sample": {
+          "StartTick": 14336,
+          "Ticks": 2048,
+          "Citizens": 10000,
+          "Buildings": 100,
+          "Employed": 800,
+          "MeanMs": 0.09847919921874998,
+          "P95Ms": 0.1445,
+          "P99Ms": 0.2593,
+          "MaxMs": 2.7955,
+          "MaxTick": 14608,
+          "AllocatedBytes": 2178624,
+          "PeakTravellers": 855,
+          "PeakVehicles": 656,
+          "VehicleTicks": 395634,
+          "LoadedSegmentTicks": 21220,
+          "CongestedSegmentTicks": 6200,
+          "PeakVolumeCapacity": 34.4239501953125,
+          "CompletedTrips": 22815,
+          "NoRoute": 0,
+          "OverBudget": 0,
+          "DriveLegs": 17143,
+          "WalkLegs": 39958,
+          "ShoppingOutings": 10784,
+          "Purchases": 2467,
+          "DeliveredGoods": 91432,
+          "Wages": 519231,
+          "RuleEvaluations": 53017,
+          "Gen0Collections": 0,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "ManagedHeapBytes": 55663472,
+          "WorkingSetBytes": 107528192,
+          "RoutePrepared": 0,
+          "RouteUsed": 0,
+          "RouteFallback": 0,
+          "CivicEvents": {
+            "Ill": 0,
+            "Worsened": 0,
+            "Requested": 0,
+            "Booked": 0,
+            "Postponed": 0,
+            "Unreachable": 0,
+            "NoBed": 0,
+            "Admitted": 0,
+            "Treated": 0,
+            "Discharged": 0,
+            "Recovered": 0,
+            "DiedAwaitingBed": 0,
+            "Died": 0,
+            "MissedWork": 0,
+            "SwitchedClinic": 0,
+            "SchoolDeparted": 0,
+            "SchoolAttended": 0,
+            "Returned": 0,
+            "FacilityLost": 0,
+            "NoAppointment": 0
+          }
+        },
+        "end": {
+          "type": "end",
+          "tick": 16384,
+          "hash": "E4091C9EDD0F53C7",
+          "invariants": "passed"
+        }
+      },
+      "after": {
+        "sample": {
+          "StartTick": 14336,
+          "Ticks": 2048,
+          "Citizens": 10000,
+          "Buildings": 100,
+          "Employed": 800,
+          "MeanMs": 0.09816933593750043,
+          "P95Ms": 0.1437,
+          "P99Ms": 0.2535,
+          "MaxMs": 2.9853,
+          "MaxTick": 14608,
+          "AllocatedBytes": 2178624,
+          "PeakTravellers": 855,
+          "PeakVehicles": 656,
+          "VehicleTicks": 395634,
+          "LoadedSegmentTicks": 21220,
+          "CongestedSegmentTicks": 6200,
+          "PeakVolumeCapacity": 34.4239501953125,
+          "CompletedTrips": 22815,
+          "NoRoute": 0,
+          "OverBudget": 0,
+          "DriveLegs": 17143,
+          "WalkLegs": 39958,
+          "ShoppingOutings": 10784,
+          "Purchases": 2467,
+          "DeliveredGoods": 91432,
+          "Wages": 519231,
+          "RuleEvaluations": 53017,
+          "Gen0Collections": 0,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "ManagedHeapBytes": 55663576,
+          "WorkingSetBytes": 107446272,
+          "RoutePrepared": 0,
+          "RouteUsed": 0,
+          "RouteFallback": 0,
+          "CivicEvents": {
+            "Ill": 0,
+            "Worsened": 0,
+            "Requested": 0,
+            "Booked": 0,
+            "Postponed": 0,
+            "Unreachable": 0,
+            "NoBed": 0,
+            "Admitted": 0,
+            "Treated": 0,
+            "Discharged": 0,
+            "Recovered": 0,
+            "DiedAwaitingBed": 0,
+            "Died": 0,
+            "MissedWork": 0,
+            "SwitchedClinic": 0,
+            "SchoolDeparted": 0,
+            "SchoolAttended": 0,
+            "Returned": 0,
+            "FacilityLost": 0,
+            "NoAppointment": 0
+          }
+        },
+        "end": {
+          "type": "end",
+          "tick": 16384,
+          "hash": "E4091C9EDD0F53C7",
+          "invariants": "passed"
+        }
+      }
+    },
+    "1": {
+      "after": {
+        "sample": {
+          "StartTick": 14336,
+          "Ticks": 2048,
+          "Citizens": 10000,
+          "Buildings": 91,
+          "Employed": 728,
+          "MeanMs": 0.09965742187499999,
+          "P95Ms": 0.1403,
+          "P99Ms": 0.2584,
+          "MaxMs": 1.7793,
+          "MaxTick": 14608,
+          "AllocatedBytes": 2116984,
+          "PeakTravellers": 831,
+          "PeakVehicles": 620,
+          "VehicleTicks": 377584,
+          "LoadedSegmentTicks": 19192,
+          "CongestedSegmentTicks": 4981,
+          "PeakVolumeCapacity": 37.84193420410156,
+          "CompletedTrips": 22885,
+          "NoRoute": 0,
+          "OverBudget": 368,
+          "DriveLegs": 17155,
+          "WalkLegs": 40040,
+          "ShoppingOutings": 11049,
+          "Purchases": 2053,
+          "DeliveredGoods": 76370,
+          "Wages": 162749,
+          "RuleEvaluations": 50425,
+          "Gen0Collections": 0,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "ManagedHeapBytes": 55438656,
+          "WorkingSetBytes": 107823104,
+          "RoutePrepared": 0,
+          "RouteUsed": 0,
+          "RouteFallback": 0,
+          "CivicEvents": {
+            "Ill": 0,
+            "Worsened": 0,
+            "Requested": 0,
+            "Booked": 0,
+            "Postponed": 0,
+            "Unreachable": 0,
+            "NoBed": 0,
+            "Admitted": 0,
+            "Treated": 0,
+            "Discharged": 0,
+            "Recovered": 0,
+            "DiedAwaitingBed": 0,
+            "Died": 0,
+            "MissedWork": 0,
+            "SwitchedClinic": 0,
+            "SchoolDeparted": 0,
+            "SchoolAttended": 0,
+            "Returned": 0,
+            "FacilityLost": 0,
+            "NoAppointment": 0
+          }
+        },
+        "end": {
+          "type": "end",
+          "tick": 16384,
+          "hash": "028156206685F366",
+          "invariants": "passed"
+        }
+      },
+      "before": {
+        "sample": {
+          "StartTick": 14336,
+          "Ticks": 2048,
+          "Citizens": 10000,
+          "Buildings": 91,
+          "Employed": 728,
+          "MeanMs": 0.10054921875000002,
+          "P95Ms": 0.1419,
+          "P99Ms": 0.2608,
+          "MaxMs": 2.0461,
+          "MaxTick": 14608,
+          "AllocatedBytes": 2116984,
+          "PeakTravellers": 831,
+          "PeakVehicles": 620,
+          "VehicleTicks": 377584,
+          "LoadedSegmentTicks": 19192,
+          "CongestedSegmentTicks": 4981,
+          "PeakVolumeCapacity": 37.84193420410156,
+          "CompletedTrips": 22885,
+          "NoRoute": 0,
+          "OverBudget": 368,
+          "DriveLegs": 17155,
+          "WalkLegs": 40040,
+          "ShoppingOutings": 11049,
+          "Purchases": 2053,
+          "DeliveredGoods": 76370,
+          "Wages": 162749,
+          "RuleEvaluations": 50425,
+          "Gen0Collections": 0,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "ManagedHeapBytes": 55434616,
+          "WorkingSetBytes": 108822528,
+          "RoutePrepared": 0,
+          "RouteUsed": 0,
+          "RouteFallback": 0,
+          "CivicEvents": {
+            "Ill": 0,
+            "Worsened": 0,
+            "Requested": 0,
+            "Booked": 0,
+            "Postponed": 0,
+            "Unreachable": 0,
+            "NoBed": 0,
+            "Admitted": 0,
+            "Treated": 0,
+            "Discharged": 0,
+            "Recovered": 0,
+            "DiedAwaitingBed": 0,
+            "Died": 0,
+            "MissedWork": 0,
+            "SwitchedClinic": 0,
+            "SchoolDeparted": 0,
+            "SchoolAttended": 0,
+            "Returned": 0,
+            "FacilityLost": 0,
+            "NoAppointment": 0
+          }
+        },
+        "end": {
+          "type": "end",
+          "tick": 16384,
+          "hash": "028156206685F366",
+          "invariants": "passed"
+        }
+      }
+    }
+  },
+  "branchFreeAlwaysPrepared": {
+    "hundred-0": {
+      "end": {
+        "type": "end",
+        "tick": 16384,
+        "hash": "D551BD2FA385894A",
+        "invariants": "passed"
+      },
+      "activityMatches": true,
+      "days": [
+        {
+          "start": 14336,
+          "before": {
+            "MeanMs": 4.927721777343742,
+            "P95Ms": 9.7532,
+            "P99Ms": 10.8712,
+            "MaxMs": 29.1334,
+            "MaxTick": 14608,
+            "AllocatedBytes": 3836464,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 200090200,
+            "WorkingSetBytes": 249954304
+          },
+          "after": {
+            "MeanMs": 5.084296972656255,
+            "P95Ms": 9.7099,
+            "P99Ms": 11.2066,
+            "MaxMs": 29.7145,
+            "MaxTick": 14608,
+            "AllocatedBytes": 3836464,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 200066880,
+            "WorkingSetBytes": 246382592
+          },
+          "meanReductionPercent": -3.1774357885301363
+        }
+      ]
+    },
+    "hundred-1": {
+      "end": {
+        "type": "end",
+        "tick": 16384,
+        "hash": "FDD1DBA842295351",
+        "invariants": "passed"
+      },
+      "activityMatches": true,
+      "days": [
+        {
+          "start": 14336,
+          "before": {
+            "MeanMs": 5.149663720703135,
+            "P95Ms": 10.029,
+            "P99Ms": 11.7671,
+            "MaxMs": 30.5092,
+            "MaxTick": 14608,
+            "AllocatedBytes": 3866712,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 199983016,
+            "WorkingSetBytes": 246153216
+          },
+          "after": {
+            "MeanMs": 5.038490966796872,
+            "P95Ms": 9.6976,
+            "P99Ms": 11.1155,
+            "MaxMs": 29.1519,
+            "MaxTick": 14608,
+            "AllocatedBytes": 3842112,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 199966552,
+            "WorkingSetBytes": 245940224
+          },
+          "meanReductionPercent": 2.158835215964028
+        }
+      ]
+    },
+    "small": {
+      "end": {
+        "type": "end",
+        "tick": 28672,
+        "hash": "C1A2B61439767EC2",
+        "invariants": "passed"
+      },
+      "activityMatches": true,
+      "days": [
+        {
+          "start": 14336,
+          "before": {
+            "MeanMs": 0.17692690429687494,
+            "P95Ms": 0.5896,
+            "P99Ms": 0.7335,
+            "MaxMs": 3.42,
+            "MaxTick": 15165,
+            "AllocatedBytes": 2167616,
+            "Gen0Collections": 1,
+            "Gen1Collections": 1,
+            "Gen2Collections": 1,
+            "ManagedHeapBytes": 79657176,
+            "WorkingSetBytes": 142213120
+          },
+          "after": {
+            "MeanMs": 0.17972143554687464,
+            "P95Ms": 0.5972,
+            "P99Ms": 0.7162,
+            "MaxMs": 3.4267,
+            "MaxTick": 15186,
+            "AllocatedBytes": 2167616,
+            "Gen0Collections": 1,
+            "Gen1Collections": 1,
+            "Gen2Collections": 1,
+            "ManagedHeapBytes": 79666768,
+            "WorkingSetBytes": 142884864
+          },
+          "meanReductionPercent": -1.579483494104772
+        },
+        {
+          "start": 16384,
+          "before": {
+            "MeanMs": 0.028499121093750086,
+            "P95Ms": 0.0529,
+            "P99Ms": 0.0732,
+            "MaxMs": 2.2615,
+            "MaxTick": 16656,
+            "AllocatedBytes": 2113424,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 82177800,
+            "WorkingSetBytes": 144080896
+          },
+          "after": {
+            "MeanMs": 0.03238447265624998,
+            "P95Ms": 0.0568,
+            "P99Ms": 0.0811,
+            "MaxMs": 2.2762,
+            "MaxTick": 16656,
+            "AllocatedBytes": 2113424,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 82165656,
+            "WorkingSetBytes": 144670720
+          },
+          "meanReductionPercent": -13.63323293275862
+        },
+        {
+          "start": 18432,
+          "before": {
+            "MeanMs": 0.03015717773437499,
+            "P95Ms": 0.0563,
+            "P99Ms": 0.0768,
+            "MaxMs": 2.1577,
+            "MaxTick": 18704,
+            "AllocatedBytes": 2121584,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 84316104,
+            "WorkingSetBytes": 145276928
+          },
+          "after": {
+            "MeanMs": 0.029590332031250055,
+            "P95Ms": 0.0563,
+            "P99Ms": 0.0786,
+            "MaxMs": 2.1321,
+            "MaxTick": 18704,
+            "AllocatedBytes": 2121584,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 84303960,
+            "WorkingSetBytes": 145850368
+          },
+          "meanReductionPercent": 1.8796377702108735
+        },
+        {
+          "start": 20480,
+          "before": {
+            "MeanMs": 0.030277099609374993,
+            "P95Ms": 0.0614,
+            "P99Ms": 0.086,
+            "MaxMs": 1.9702,
+            "MaxTick": 20752,
+            "AllocatedBytes": 2113528,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 86462632,
+            "WorkingSetBytes": 146669568
+          },
+          "after": {
+            "MeanMs": 0.029475292968749966,
+            "P95Ms": 0.0585,
+            "P99Ms": 0.0785,
+            "MaxMs": 1.8497,
+            "MaxTick": 20752,
+            "AllocatedBytes": 2113504,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 86450488,
+            "WorkingSetBytes": 147193856
+          },
+          "meanReductionPercent": 2.6482280369311106
+        },
+        {
+          "start": 22528,
+          "before": {
+            "MeanMs": 0.028921923828125043,
+            "P95Ms": 0.064,
+            "P99Ms": 0.0831,
+            "MaxMs": 0.4629,
+            "MaxTick": 22528,
+            "AllocatedBytes": 2121800,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 88600272,
+            "WorkingSetBytes": 148865024
+          },
+          "after": {
+            "MeanMs": 0.029935937500000183,
+            "P95Ms": 0.0657,
+            "P99Ms": 0.0849,
+            "MaxMs": 0.9977,
+            "MaxTick": 22592,
+            "AllocatedBytes": 2121800,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 88588136,
+            "WorkingSetBytes": 149585920
+          },
+          "meanReductionPercent": -3.506038111092269
+        },
+        {
+          "start": 24576,
+          "before": {
+            "MeanMs": 0.014343066406249994,
+            "P95Ms": 0.0335,
+            "P99Ms": 0.0403,
+            "MaxMs": 0.4633,
+            "MaxTick": 24576,
+            "AllocatedBytes": 2121904,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 90746800,
+            "WorkingSetBytes": 150028288
+          },
+          "after": {
+            "MeanMs": 0.014511376953124957,
+            "P95Ms": 0.0347,
+            "P99Ms": 0.0407,
+            "MaxMs": 0.471,
+            "MaxTick": 24576,
+            "AllocatedBytes": 2121904,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 90734664,
+            "WorkingSetBytes": 150749184
+          },
+          "meanReductionPercent": -1.1734627875781278
+        },
+        {
+          "start": 26624,
+          "before": {
+            "MeanMs": 0.015034082031250026,
+            "P95Ms": 0.042,
+            "P99Ms": 0.0533,
+            "MaxMs": 0.4472,
+            "MaxTick": 26624,
+            "AllocatedBytes": 2174064,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 92942704,
+            "WorkingSetBytes": 151257088
+          },
+          "after": {
+            "MeanMs": 0.015226171875000048,
+            "P95Ms": 0.0418,
+            "P99Ms": 0.0501,
+            "MaxMs": 0.4543,
+            "MaxTick": 26624,
+            "AllocatedBytes": 2174064,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 92930568,
+            "WorkingSetBytes": 151994368
+          },
+          "meanReductionPercent": -1.2776958603175181
+        }
+      ]
+    },
+    "million-1": {
+      "end": {
+        "type": "end",
+        "tick": 16384,
+        "hash": "FAE56437750E05C7",
+        "invariants": "passed"
+      },
+      "activityMatches": true,
+      "days": [
+        {
+          "start": 14336,
+          "before": {
+            "MeanMs": 54.94372875976565,
+            "P95Ms": 118.3247,
+            "P99Ms": 132.1615,
+            "MaxMs": 284.1955,
+            "MaxTick": 14608,
+            "AllocatedBytes": 19412800,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 1353183216,
+            "WorkingSetBytes": 1291304960
+          },
+          "after": {
+            "MeanMs": 54.17424902343747,
+            "P95Ms": 116.4034,
+            "P99Ms": 130.5172,
+            "MaxMs": 278.0352,
+            "MaxTick": 14608,
+            "AllocatedBytes": 19412800,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 1353152408,
+            "WorkingSetBytes": 1291042816
+          },
+          "meanReductionPercent": 1.4004869230711092
+        }
+      ]
+    },
+    "million-8": {
+      "end": {
+        "type": "end",
+        "tick": 16384,
+        "hash": "FAE56437750E05C7",
+        "invariants": "passed"
+      },
+      "activityMatches": true,
+      "days": [
+        {
+          "start": 14336,
+          "before": {
+            "MeanMs": 47.75014296875002,
+            "P95Ms": 88.7668,
+            "P99Ms": 102.0773,
+            "MaxMs": 250.2809,
+            "MaxTick": 14608,
+            "AllocatedBytes": 65845624,
+            "Gen0Collections": 6,
+            "Gen1Collections": 2,
+            "Gen2Collections": 1,
+            "ManagedHeapBytes": 1212554344,
+            "WorkingSetBytes": 1116274688
+          },
+          "after": {
+            "MeanMs": 46.69893911132815,
+            "P95Ms": 87.1422,
+            "P99Ms": 100.2435,
+            "MaxMs": 253.9217,
+            "MaxTick": 14608,
+            "AllocatedBytes": 65772176,
+            "Gen0Collections": 6,
+            "Gen1Collections": 2,
+            "Gen2Collections": 1,
+            "ManagedHeapBytes": 1212517656,
+            "WorkingSetBytes": 1301872640
+          },
+          "meanReductionPercent": 2.2014674555211777
+        }
+      ]
+    },
+    "hundred-0-counted": {
+      "end": {
+        "type": "end",
+        "tick": 16384,
+        "hash": "D551BD2FA385894A",
+        "invariants": "passed"
+      },
+      "activityMatches": true,
+      "days": [
+        {
+          "start": 14336,
+          "before": {
+            "MeanMs": 4.901003808593747,
+            "P95Ms": 9.4127,
+            "P99Ms": 11.0104,
+            "MaxMs": 28.6107,
+            "MaxTick": 14608,
+            "AllocatedBytes": 3837016,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 204308416,
+            "WorkingSetBytes": 262848512
+          },
+          "after": {
+            "MeanMs": 5.184392431640614,
+            "P95Ms": 10.0297,
+            "P99Ms": 11.4927,
+            "MaxMs": 30.1414,
+            "MaxTick": 14608,
+            "AllocatedBytes": 3837712,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 204311320,
+            "WorkingSetBytes": 263847936
+          },
+          "meanReductionPercent": -5.782256739934666
+        }
+      ],
+      "selection": {
+        "before": {
+          "PrefixReads": 502248027,
+          "RebuiltCells": 1024,
+          "CountCalls": 325977,
+          "CountCells": 0,
+          "CandidateCalls": 10289995,
+          "CandidateCells": 0,
+          "CandidateLinks": 32152112
+        },
+        "after": {
+          "PrefixReads": 185387354,
+          "RebuiltCells": 1024,
+          "CountCalls": 325977,
+          "CountCells": 0,
+          "CandidateCalls": 10289995,
+          "CandidateCells": 0,
+          "CandidateLinks": 32152112
+        }
+      },
+      "otherPerTickCountersMatch": true
+    },
+    "hundred-0-repeat": {
+      "end": {
+        "type": "end",
+        "tick": 16384,
+        "hash": "D551BD2FA385894A",
+        "invariants": "passed"
+      },
+      "activityMatches": true,
+      "before": {
+        "MeanMs": 5.203862109374997,
+        "P95Ms": 10.1606,
+        "P99Ms": 11.3243,
+        "MaxMs": 30.415,
+        "MaxTick": 14608,
+        "AllocatedBytes": 3836464,
+        "Gen0Collections": 0,
+        "Gen1Collections": 0,
+        "Gen2Collections": 0,
+        "ManagedHeapBytes": 200071712,
+        "WorkingSetBytes": 246644736
+      },
+      "after": {
+        "MeanMs": 5.583863525390611,
+        "P95Ms": 10.8164,
+        "P99Ms": 11.9647,
+        "MaxMs": 30.8294,
+        "MaxTick": 14608,
+        "AllocatedBytes": 3836464,
+        "Gen0Collections": 0,
+        "Gen1Collections": 0,
+        "Gen2Collections": 0,
+        "ManagedHeapBytes": 200066880,
+        "WorkingSetBytes": 246415360
+      },
+      "meanReductionPercent": -7.30229602608079
+    },
+    "hundred-1-repeat": {
+      "end": {
+        "type": "end",
+        "tick": 16384,
+        "hash": "FDD1DBA842295351",
+        "invariants": "passed"
+      },
+      "activityMatches": true,
+      "before": {
+        "MeanMs": 5.285818261718734,
+        "P95Ms": 10.288,
+        "P99Ms": 11.8,
+        "MaxMs": 30.4165,
+        "MaxTick": 14608,
+        "AllocatedBytes": 3842112,
+        "Gen0Collections": 0,
+        "Gen1Collections": 0,
+        "Gen2Collections": 0,
+        "ManagedHeapBytes": 199964864,
+        "WorkingSetBytes": 245710848
+      },
+      "after": {
+        "MeanMs": 5.295585253906254,
+        "P95Ms": 10.268,
+        "P99Ms": 12.064,
+        "MaxMs": 30.7959,
+        "MaxTick": 14608,
+        "AllocatedBytes": 3842112,
+        "Gen0Collections": 0,
+        "Gen1Collections": 0,
+        "Gen2Collections": 0,
+        "ManagedHeapBytes": 199970872,
+        "WorkingSetBytes": 245760000
+      },
+      "meanReductionPercent": -0.18477729849806224
+    }
+  },
+  "packed": {
+    "hundred-0": {
+      "end": {
+        "type": "end",
+        "tick": 16384,
+        "hash": "D551BD2FA385894A",
+        "invariants": "passed"
+      },
+      "activityMatches": true,
+      "days": [
+        {
+          "start": 14336,
+          "before": {
+            "MeanMs": 4.803723437499998,
+            "P95Ms": 9.3636,
+            "P99Ms": 10.494,
+            "MaxMs": 28.9048,
+            "MaxTick": 14608,
+            "AllocatedBytes": 3836464,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 200071720,
+            "WorkingSetBytes": 249020416
+          },
+          "after": {
+            "MeanMs": 4.984835546875003,
+            "P95Ms": 9.6052,
+            "P99Ms": 10.9942,
+            "MaxMs": 29.1434,
+            "MaxTick": 14608,
+            "AllocatedBytes": 3836464,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 200066752,
+            "WorkingSetBytes": 250593280
+          },
+          "meanReductionPercent": -3.770244305930781
+        }
+      ]
+    },
+    "hundred-1": {
+      "end": {
+        "type": "end",
+        "tick": 16384,
+        "hash": "FDD1DBA842295351",
+        "invariants": "passed"
+      },
+      "activityMatches": true,
+      "days": [
+        {
+          "start": 14336,
+          "before": {
+            "MeanMs": 5.031444775390613,
+            "P95Ms": 9.8006,
+            "P99Ms": 11.2862,
+            "MaxMs": 29.0699,
+            "MaxTick": 14608,
+            "AllocatedBytes": 3866712,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 199981000,
+            "WorkingSetBytes": 245825536
+          },
+          "after": {
+            "MeanMs": 5.0961225585937475,
+            "P95Ms": 9.8803,
+            "P99Ms": 11.6999,
+            "MaxMs": 30.0918,
+            "MaxTick": 14608,
+            "AllocatedBytes": 3842088,
+            "Gen0Collections": 0,
+            "Gen1Collections": 0,
+            "Gen2Collections": 0,
+            "ManagedHeapBytes": 199958272,
+            "WorkingSetBytes": 245907456
+          },
+          "meanReductionPercent": -1.2854713922227923
+        }
+      ]
+    }
+  },
+  "testEvidence": {
+    "baselineBoundaryFailure": "borough-test-20260908-101928.log",
+    "candidateFocusedPass": "borough-test-20260908-102049.log",
+    "candidatePassed": 67,
+    "restoredAssertionLane": {
+      "passed": 2968,
+      "failed": 0,
+      "log": "borough-test-20260908-103817.log",
+      "command": "scripts/test.sh"
+    }
+  },
+  "sourceRestoration": {
+    "src/Borough.Core/Space/BuildingResidency.cs": "byte-identical to pre-experiment snapshot",
+    "src/Borough.Core/Rules/ShoppingEngine.cs": "byte-identical to pre-experiment snapshot"
+  },
+  "restoredAssemblies": {
+    "Borough.Core.dll": {
+      "before": "7dfb00729cc455ad04c30d6a8fdc80197d63a56bf55cebd93b901ff4202b8ae6",
+      "restored": "7dfb00729cc455ad04c30d6a8fdc80197d63a56bf55cebd93b901ff4202b8ae6",
+      "identical": true
+    },
+    "Borough.Headless.dll": {
+      "before": "81c974cf6097b8c899ca5a02122ff239414cf169d3b16350c5888bd16f16e476",
+      "restored": "81c974cf6097b8c899ca5a02122ff239414cf169d3b16350c5888bd16f16e476",
+      "identical": true
+    }
+  }
+}

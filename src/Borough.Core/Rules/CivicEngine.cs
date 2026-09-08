@@ -22,6 +22,8 @@ public readonly record struct CareReading(int Sick, int Serious, int Waiting, in
 
 public sealed class CivicEngine : IComparer<int>
 {
+    public RouteWork? RouteWork { get => _walk.Work; set => _walk.Work = value; }
+    public Action<CareEventKind>? EventObserved { get; set; }
     private readonly World _world;
     private readonly TripEngine _trips;
     private readonly CommuteEngine _commutes;
@@ -656,6 +658,7 @@ public sealed class CivicEngine : IComparer<int>
     }
     private void Trace(int row, CareEventKind kind, Ticks tick, long value = 0)
     {
+        EventObserved?.Invoke(kind);
         State.Reason[row] = (byte)kind;
         if (Rules.Runs && kind is CareEventKind.DiedAwaitingBed or CareEventKind.Died)
         {

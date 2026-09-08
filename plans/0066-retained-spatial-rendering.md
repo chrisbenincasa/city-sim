@@ -64,6 +64,21 @@ selection, hover, resizing and paused State Hash assertions against the new batc
 
 ## Remaining performance work
 
+`Main.Performance` adds an FPS indicator, tooltip and F3 timing breakdown. Simulation CPU is
+reported per second; shell and viewport rendering CPU/GPU are per frame. An unsupported GPU
+counter says unavailable. `BOROUGH_PERFORMANCE_LOG=PATH` writes one-second CSV windows;
+`python3 scripts/measure-shell.py` captures running/paused `minimal.toml` with 1,000 Citizens
+and checks paused drawing/uploads and the indicator. This is a development diagnostic, not a
+reference-machine benchmark. Build the shell before running it.
+Some driven runs acknowledged `quit` but stalled during shutdown; the capture script records
+that separately and terminates its own process after preserving the measurements.
+
+The provisional default frame limit is 60; Godot's `--max-fps 0` removes it and `--max-fps 30`
+provides a lower-power comparison. `Daylight` retains unchanged paused lighting, the clock arc
+redraws when its displayed minute changes, and hidden debug text is not rebuilt. These changes
+preserve visual quality and simulation cadence. Metal returned no GPU timing samples during
+verification; no GPU-time or power reduction is claimed. Pass-level GPU profiling remains open.
+
 - Incremental foliage exclusion/scatter and vacant-Lot updates: a structural Building edit still
   refreshes these broadly. Geometry preparation itself is synchronous; the transfer allowance does
   not budget it. Road edits still regenerate paving.
@@ -77,3 +92,34 @@ selection, hover, resizing and paused State Hash assertions against the new batc
 
 These remain owned here; lifting the fixed instance limit is not a claim that arbitrary scene
 complexity meets a frame budget.
+
+## Rendering comparison, 2026-09-07
+
+`InstanceLayer.ChunkMetres` now defaults to 256 m. In a local Release comparison on the Apple
+M4 Pro, Godot 4.7.2 Metal Forward+, `minimal.toml`, seed 0, 1,000 Citizens and 88 Buildings,
+paused at Tick 422, the median of three window medians was 189.6 FPS against 176.5 FPS after
+returning to the original 1024 m batches. Camera: focus Tile (136,104), distance 608 m,
+35° tilt, 45° yaw; viewport 3024×1834. VSync and the frame limit were disabled. A low-load
+editor remained open: this is a local throughput comparison, not a reference-machine budget
+reading, GPU duration or power measurement. The ordinary frame limit remains 60.
+
+The paired images were inspected; no geometry or material simplification was applied. Renderer
+GPU-readback checks and the large-world count/upload/camera checks passed. Smaller batches trade
+tighter culling for more nodes; larger-world throughput and memory still need comparison.
+
+With the original batches, isolated resolution and shadow-removal experiments improved throughput;
+shrinking the atlas and reducing foliage range bought much less. These quality reductions remain
+diagnostic probes rather than defaults. The early probes accidentally changed shadow depth precision;
+the accepted comparison preserves `directional_shadow/16_bits` from ProjectSettings.
+
+`scripts/compare-rendering.py --chunk-metres 1024` and `--chunk-metres 256` retain images, raw
+windows, effective settings, build configuration, assembly hash and fixed-world/camera assertions.
+`Main.RenderProbe` supplies the guarded `ui render-probe NAME` commands. They require
+`BOROUGH_RENDER_PROFILE=1`; `BOROUGH_RENDER_CHUNK_METRES` accepts 256, 512 or 1024 for comparisons.
+FPS sampling now uses measured wall time rather than Godot's smoothed frame delta.
+
+For Release captures, build with `dotnet build src/Borough.Godot -c Release
+-p:OutputPath=ABSOLUTE_PATH_TO/src/Borough.Godot/.godot/mono/temp/bin/Debug/` so the assembly Godot
+loads is the one measured. Restore the normal Debug build afterwards with `dotnet build
+src/Borough.Godot -t:Rebuild`. Godot's GPU counters were unavailable, Metal log timing fields were
+redacted, and Screen Recording permission was absent; no native GPU-time comparison was obtained.

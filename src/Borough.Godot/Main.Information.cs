@@ -48,8 +48,13 @@ public partial class Main
     {
         GetWindow().MinSize = new Vector2I(480, 640);
         _debugPanel = InformationPanel();
-        var debugScroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Auto };
-        _debugText = new Label { MouseFilter = Control.MouseFilterEnum.Ignore };
+        var debugScroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        _debugText = new Label
+        {
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+        };
         SizeLabel(_debugText, SecondaryPoints);
         debugScroll.AddChild(_debugText);
         _debugPanel.AddChild(debugScroll);
@@ -127,9 +132,9 @@ public partial class Main
         return label;
     }
 
-    private static Button InformationButton(string text, Action action)
+    private Button InformationButton(string text, Action action)
     {
-        return InformationUi.Button(text, action);
+        return InformationUi.Button(text, () => AtBoundary(action));
     }
 
     private MeshInstance3D InformationRing(Color colour)
@@ -241,9 +246,12 @@ public partial class Main
 
         // The debug overlay stays independent and stays top-left. On a narrow window it is the one
         // thing above the inspector rather than beside it, because there is no beside.
-        float debugHeight = _debugShown ? Math.Min(narrow ? 160 : 230, consoleTop - margin * 2) : 0;
+        float debugHeight = _debugShown
+            ? Math.Min(narrow && _inspector.Visible ? 160 : 720 * _textPercent / 100f, consoleTop - margin * 2)
+            : 0;
         SetPanel(_debugPanel, margin, margin,
-            Math.Min(400, narrow ? size.X - margin * 2 : size.X - width - margin * 3),
+            Math.Min(840 * _textPercent / 100f,
+                !narrow && _inspector.Visible ? size.X - width - margin * 3 : size.X - margin * 2),
             Math.Max(36, debugHeight));
 
         float top = narrow && _debugShown ? margin + debugHeight + margin : margin;
@@ -263,7 +271,7 @@ public partial class Main
         || _tuner.Visible && _tuner.GetGlobalRect().HasPoint(at)
         || _policyPanel is not null && _policyPanel.Visible && _policyPanel.GetGlobalRect().HasPoint(at));
 
-    private void Ui(string action) => Apply(new DriveCommand(_world.Tick.Raw, DriveVerb.Ui, 0, action));
+    private void Ui(string action) => AtBoundary(() => Apply(new DriveCommand(_world.Tick.Raw, DriveVerb.Ui, 0, action)));
 
     private void InformationAction(string action)
     {
@@ -278,6 +286,9 @@ public partial class Main
             case "key" when words.Length >= 2 && Enum.TryParse(words[1], true, out Key key):
                 Input.ParseInputEvent(new InputEventKey { Keycode = key, Pressed = true, ShiftPressed = words.Length == 3 && words[2] == "shift" });
                 Input.ParseInputEvent(new InputEventKey { Keycode = key, Pressed = false });
+                break;
+            case "render-probe" when words.Length == 2:
+                RenderProbe(words[1]);
                 break;
             case "health" when words.Length == 1:
                 _healthInspection = true;
@@ -476,7 +487,8 @@ public partial class Main
     {
         if (_inspector is null) return;
         RefreshConsole();
-        _debugText.Text = "DEBUG · UNDER POINTER\n" + Pointing() + RoadDebug() + "\n\nCITY READOUT\n" + _readout.Text;
+        if (_debugShown)
+            _debugText.Text = _performanceReading + "\n\nDEBUG · UNDER POINTER\n" + Pointing() + RoadDebug() + "\n\nCITY READOUT\n" + _readout.Text;
         if (_aimed is not null || !OverInformation(GetViewport().GetMousePosition()))
             _hover.Text = Synopsis();
         RefreshInspection(false);
@@ -751,7 +763,13 @@ public partial class Main
             HelpScroll = _helpScroll.ScrollVertical, HelpContent = Rect(_helpScroll),
             SpeedLabel = _rungLabel.Text, PauseHighlighted = _pauseButton.ButtonPressed,
             Sky = new { _skyArc.Minute, _skyArc.Daytime, X = _skyArc.Marker.X / _skyArc.Size.X, Y = _skyArc.Marker.Y / _skyArc.Size.Y },
-            Camera = new { Yaw = _yaw, Pitch = _pitch, Distance = _distance },
+            Camera = new { Yaw = _yaw, Pitch = _pitch, Distance = _distance,
+                Focus = new { _focus.X, _focus.Y, _focus.Z } },
+            Rendering = new { Probe = _renderProbe, ChunkMetres = InstanceLayer.ChunkMetres,
+                Scale = GetViewport().Scaling3DScale, FrameLimit = Engine.MaxFps,
+                Vsync = DisplayServer.WindowGetVsyncMode().ToString(),
+                Shadow16Bits = (bool)ProjectSettings.GetSetting("rendering/lights_and_shadows/directional_shadow/16_bits"),
+                Configuration = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<System.Reflection.AssemblyConfigurationAttribute>(typeof(Main).Assembly)?.Configuration },
             Fonts = InformationDescendants(_hud).OfType<Label>().Where(l => l.IsVisibleInTree())
                 .Select(l => new { l.Text, Size = l.GetThemeFontSize("font_size") }).ToArray(),
             Viewport = new { Width = GetViewport().GetVisibleRect().Size.X, Height = GetViewport().GetVisibleRect().Size.Y },

@@ -19,13 +19,13 @@ public partial class Checks : Node
             b.Mesh = new BoxMesh();
             b.UseColors = true;
             b.UseCustomData = true;
-            for (int i = 0; i < 70000; i++) Write(b, i, (ulong)i + 1, new Vector3(i % 100, 0, i / 100));
+            for (int i = 0; i < 70000; i++) Write(b, i, (ulong)i + 1, new Vector3(i % 100, 0, (i / 100) * .25f));
             b.VisibleInstanceCount = 70000;
             b.Flush();
             Require(b.VisibleInstanceCount == 70000 && b.InstanceCount >= 70000, "dense batch exceeds old cap");
             Require(b.BatchCount == 1, "one dense Chunk");
             long uploads = b.Uploads;
-            for (int i = 0; i < 70000; i++) Write(b, i, (ulong)i + 1, new Vector3(i % 100, 0, i / 100));
+            for (int i = 0; i < 70000; i++) Write(b, i, (ulong)i + 1, new Vector3(i % 100, 0, (i / 100) * .25f));
             b.VisibleInstanceCount = 70000;
             b.Flush();
             Require(b.Uploads == uploads, "unchanged pass uploads nothing");
@@ -33,14 +33,14 @@ public partial class Checks : Node
             for (int i = 0; i < 70000; i++)
             {
                 int original = 69999 - i;
-                Write(b, i, (ulong)original + 1, new Vector3(original % 100, 0, original / 100));
+                Write(b, i, (ulong)original + 1, new Vector3(original % 100, 0, (original / 100) * .25f));
             }
             b.VisibleInstanceCount = 70000;
             b.Flush();
             Require(b.Uploads == uploads, "enumeration order does not repack batches");
-            Require(b.GetInstanceTransform(0).Origin == new Vector3(99, 0, 699), "CPU identity follows order");
+            Require(b.GetInstanceTransform(0).Origin == new Vector3(99, 0, 174.75f), "CPU identity follows order");
             if (DisplayServer.GetName() != "headless")
-                Require(b.UploadedTransform(0).Origin.IsEqualApprox(new Vector3(99, 0, 699)), "GPU identity follows order");
+                Require(b.UploadedTransform(0).Origin.IsEqualApprox(new Vector3(99, 0, 174.75f)), "GPU identity follows order");
             // Same count, new identity, different Chunk, rotated geometry spanning its boundary.
             var transform = new Transform3D(Basis.FromEuler(new Vector3(.2f, .7f, .1f)) * Basis.FromScale(new Vector3(90, 20, 30)), new Vector3(1025, 10, -5));
             b.Identity(0, 999999);

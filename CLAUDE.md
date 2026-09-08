@@ -132,8 +132,8 @@ declaration). `BOR08xx`
 and `BOR0901` are not among the seven lints; the count stays seven. Lint 5 is live via `ReplayTests`
 and the golden baseline. **Lint 6 is live** — `FactorioTests`, and stronger than a suite: a save's
 header carries the State Hash of the world it holds, folded from the **copy**, so every load restores,
-rebuilds, recomputes and refuses a mismatch (`adr/0112`). **Lint 4 alone still needs machinery that
-does not exist yet.**
+rebuilds, recomputes and refuses a mismatch (`adr/0112`). **Lint 4 is exercised by
+`RouteWorkerTests` against `Simulation.RouteWorkerCount`; `plans/0067` owns its measured scope.**
 
 **Every diagnostic ships with a test that writes the violation and watches it fire** — do not add one
 without.
@@ -366,3 +366,7 @@ necessary yet or not understood well enough to start.
 - **Prefer off-the-shelf infrastructure.** `adr/0018` — Citybound shipped ten bespoke libraries, three
   engine rewrites, and no game. A bespoke component requires a written exception naming the property no
   library provides.
+
+# Agent Rules <!-- tessl-managed -->
+
+@.tessl/RULES.md follow the [instructions](.tessl/RULES.md)

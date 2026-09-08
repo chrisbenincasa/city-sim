@@ -38,6 +38,7 @@ internal enum Mode
     /// </remarks>
     School,
     Shopping,
+    Profile,
     Care,
 
     /// <summary>
@@ -448,6 +449,16 @@ internal sealed class Options
     /// </remarks>
     public bool DecideGuard { get; private init; } = true;
 
+    public ulong WarmupTicks { get; private init; } = 7UL * Borough.Core.Quantities.Ticks.PerDay;
+    public bool ProfileWait { get; private init; }
+    public bool ProfileReuse { get; private init; }
+    public bool ProfileServices { get; private init; }
+    public bool ProfileWork { get; private init; }
+    public int RouteWorkers { get; private init; } = 1;
+    public int? ProfilePopulation { get; private init; }
+    public string? ProfileLoadPath { get; private init; }
+    public string? ProfileSavePath { get; private init; }
+
     /// <summary>
     /// Where to write a save of the world at the end of the run, or null to write none.
     /// </summary>
@@ -542,6 +553,15 @@ internal sealed class Options
         bool flood = false;
         bool stages = false;
         bool school = false;
+        bool profile = false;
+        bool profileWait = false;
+        bool profileWork = false, profileReuse = false, profileServices = false;
+        int routeWorkers = 1;
+        bool routeWorkersGiven = false;
+        int? profilePopulation = null;
+        string? profileLoad = null, profileSave = null;
+        ulong warmupTicks = 7UL * Borough.Core.Quantities.Ticks.PerDay;
+        bool warmupGiven = false;
         bool shopping = false;
         bool care = false;
         int clinics = 2, hospitals = 1;
@@ -699,6 +719,17 @@ internal sealed class Options
                 // the counters at their initial zero and report a city nobody had asked anything of.
                 case "--care":
                     care = true; session = true; continue;
+                case "--profile":
+                    profile = true;
+                    continue;
+                case "--profile-reuse": profileReuse = true; continue;
+                case "--profile-services": profileServices = true; continue;
+                case "--profile-work":
+                    profileWork = true;
+                    continue;
+                case "--profile-wait":
+                    profileWait = true;
+                    continue;
                 case "--shopping":
                     shopping = true;
                     session = true;
@@ -765,6 +796,18 @@ internal sealed class Options
 
             switch (flag)
             {
+                case "--route-workers":
+                    if (!TryCount(value, out routeWorkers) || routeWorkers < 1 || routeWorkers > 8)
+                    { complaint = "--route-workers must be 1..8."; return false; }
+                    routeWorkersGiven = true;
+                    break;
+                case "--profile-load": profileLoad = value; break;
+                case "--profile-save": profileSave = value; break;
+                case "--warmup-ticks":
+                    if (!TryNumber(value, out warmupTicks))
+                    { complaint = "--warmup-ticks needs a nonnegative Tick count."; return false; }
+                    warmupGiven = true;
+                    break;
                 case "--clinics":
                     if (!int.TryParse(value, out clinics) || clinics < 0 || clinics > 1000)
                     { complaint = "--clinics must be between 0 and 1000"; return false; }
@@ -834,6 +877,12 @@ internal sealed class Options
                     }
 
                     seeded = true;
+                    break;
+
+                case "--profile-population":
+                    if (!TryCount(value, out int initialPopulation))
+                    { complaint = "--profile-population needs a positive count."; return false; }
+                    profilePopulation = initialPopulation;
                     break;
 
                 case "--citizens":
@@ -1479,6 +1528,23 @@ internal sealed class Options
             return false;
         }
 
+        if ((routeWorkersGiven || warmupGiven || profileWait || profileWork || profileReuse || profileServices || profilePopulation.HasValue || profileLoad is not null || profileSave is not null) && !profile)
+        { complaint = "Profiling controls require --profile."; return false; }
+        if (profileReuse && routeWorkers != 1)
+        { complaint = "--profile-reuse requires --route-workers 1 so commute searches remain on the observed synchronous path."; return false; }
+        if (profileServices && profileLoad is not null)
+        { complaint = "--profile-services places services only in a new city."; return false; }
+        if (profileLoad is not null && profilePopulation.HasValue)
+        { complaint = "--profile-load already contains its population."; return false; }
+        if (profilePopulation > citizens)
+        { complaint = "--profile-population must not exceed --citizens (network sizing)."; return false; }
+        if (profile && (rulesets.Count != 1 || ticks == 0 || ticks > int.MaxValue
+            || warmupTicks > ulong.MaxValue - ticks
+            || arguments.Any(arg => arg.StartsWith("--", StringComparison.Ordinal)
+                && arg is not ("--profile" or "--ruleset" or "--citizens" or "--seed" or "--ticks"
+                    or "--profile-reuse" or "--profile-services" or "--route-workers" or "--warmup-ticks" or "--profile-wait" or "--profile-work" or "--profile-population" or "--profile-load" or "--profile-save" or "--no-decide-guard"))))
+        { complaint = "--profile accepts only --profile-reuse, --profile-services, --route-workers, --ruleset, --citizens, --seed, --ticks, --warmup-ticks, --profile-wait, --profile-work, --profile-population, --profile-load, --profile-save and --no-decide-guard; supply one Ruleset and 1..2147483647 measured Ticks."; return false; }
+
         if ((shopping || care) && (shopping && care || flood || rulesets.Count != 1 || log is not null || save is not null
             || school || stages || day || money || market || business || arrivals || landValue
             || parking || evidence || traffic || commute || trips || roads || morphology || zones
@@ -1490,7 +1556,17 @@ internal sealed class Options
 
         options = new Options
         {
-            Mode = care ? Mode.Care
+            WarmupTicks = warmupTicks,
+            ProfileWait = profileWait,
+            ProfileWork = profileWork,
+            ProfileReuse = profileReuse,
+            ProfileServices = profileServices,
+            RouteWorkers = routeWorkers,
+            ProfilePopulation = profilePopulation,
+            ProfileLoadPath = profileLoad,
+            ProfileSavePath = profileSave,
+            Mode = profile ? Mode.Profile
+                 : care ? Mode.Care
                  : shopping ? Mode.Shopping
                  : keyReference ? Mode.KeyReference
                  : schema ? Mode.Schema
@@ -1551,6 +1627,16 @@ internal sealed class Options
           --log PATH            replay a session recorded in a .borough file
           --seed N              run a fresh session with this seed and no commands
           --citizens N          Citizen sizing, for a fresh session or the report
+          --profile             age a city, then report daily Tick timings and workload counters
+          --profile-load PATH   resume a profiling save; --warmup-ticks is the absolute capture Tick
+          --profile-save PATH   save after capture/invariants to a new file for later profiling runs
+          --profile-population N populate N Citizens on the network sized by --citizens (profiling only)
+          --profile-reuse       count cross-Tick FIFO reuse at 65,536/1,048,576 entries; one worker only
+          --profile-services    distribute schools, clinics and hospitals before ageing; needs school/care
+          --profile-work        emit work, route reuse and table growth (instrumented timings)
+          --route-workers N     1..8 concurrent commute route workers including caller; profile only
+          --profile-wait        after ageing, print ready/PID and wait for 'go' on stdin to attach a profiler
+          --warmup-ticks N       unmeasured ageing before --profile (default 14336, seven Days)
           --shopping            shopping outings, carried Goods and weekly work; needs a [shopping] Ruleset
           --care                illness, appointments, beds and care traces; needs a [care] Ruleset
           --clinics N           outpatient clinics placed by --care

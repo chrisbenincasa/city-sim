@@ -52,7 +52,7 @@ public sealed class TravellerTable
         ArgumentNullException.ThrowIfNull(citizens);
         ArgumentNullException.ThrowIfNull(trips);
 
-        _rows = new Rows<Traveller>("traveller", capacity, Buffering.OneCopy);
+        _rows = new Rows<Traveller>("traveller", capacity, Buffering.OneCopy, amortizeRestore: true);
 
         // Required on both: a Traveller whose Citizen or Trip has been freed is not a state the
         // design models, it is a leak — the row should have been released when the journey ended.

@@ -265,7 +265,7 @@ public static class SyntheticCity
     /// <param name="key">The world key, which the Rule arming stagger draws against.</param>
     /// <param name="now">The Tick the population arrives on, which arming is relative to.</param>
     /// <exception cref="InvalidOperationException">The world already has a population.</exception>
-    public static void PopulateInto(World world, WorldKey key, Ticks now)
+    public static void PopulateInto(World world, WorldKey key, Ticks now, int? initialPopulation = null)
     {
         ArgumentNullException.ThrowIfNull(world);
 
@@ -277,7 +277,7 @@ public static class SyntheticCity
         GroundInto(world, key);
 
         LayLand(world, key);
-        PeopleInto(world, key, now);
+        PeopleInto(world, key, now, initialPopulation);
 
         // The Districts, once the ground has Buildings on it -- there is nothing for a watershed to
         // find over an empty field. adr/0134, milestone 12 task 3.
@@ -330,14 +330,16 @@ public static class SyntheticCity
     /// <param name="key">The world key, which the Rule arming stagger draws against.</param>
     /// <param name="now">The Tick the population arrives on, which arming is relative to.</param>
     /// <exception cref="InvalidOperationException">The world already has a population.</exception>
-    public static void PeopleInto(World world, WorldKey key, Ticks now)
+    public static void PeopleInto(World world, WorldKey key, Ticks now, int? initialPopulation = null)
     {
         ArgumentNullException.ThrowIfNull(world);
 
         RefuseIfPopulated(world);
 
-        int population = world.Citizens.Rows.Capacity;
-        int households = Households(world);
+        int population = initialPopulation ?? world.Citizens.Rows.Capacity;
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(population);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(population, world.Citizens.Rows.Capacity);
+        int households = HouseholdCount(population);
 
         // 🔴 NO BUILDING COUNT IS COMPUTED HERE ANY MORE (plans/0053). It was WantedBuildings, the
         // population over the one ceiling every Building shared. Occupancy divides the ground now, so
@@ -915,7 +917,9 @@ public static class SyntheticCity
     /// Households the configured population comes in, at S4 task 2's ratio.
     /// </summary>
     private static int Households(World world) =>
-        IntegerMath.FloorDiv(world.Citizens.Rows.Capacity * 360, 1_000);
+        HouseholdCount(world.Citizens.Rows.Capacity);
+
+    private static int HouseholdCount(int population) => IntegerMath.FloorDiv(population * 360, 1_000);
 
     /// <summary>
     /// How far the Street lattice reaches from the origin corner, in Tiles: enough ground to carry

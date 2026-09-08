@@ -8,7 +8,7 @@ namespace Borough.Shell;
 public partial class Main
 {
     private readonly Dictionary<int, (ulong Id, bool Drawn)> _renderedBuildings = [];
-    private readonly List<InstanceValue> _bodyEdits = [], _roofEdits = [], _hipEdits = [], _pairedRoofEdits = [], _yardEdits = [];
+    private readonly List<InstanceValue> _bodyEdits = [], _roofEdits = [], _hipEdits = [], _pairedRoofEdits = [], _parapetEdits = [], _yardEdits = [];
     private Wash _visualWash;
     private long _fullBuildingPasses, _buildingEdits, _movementQueries, _movementIndexVisits;
     private long _frameCount;
@@ -37,7 +37,7 @@ public partial class Main
             foreach (int slot in changes.Buildings)
             {
                 _buildingEdits++;
-                _bodyEdits.Clear(); _roofEdits.Clear(); _hipEdits.Clear(); _pairedRoofEdits.Clear(); _yardEdits.Clear();
+                _bodyEdits.Clear(); _roofEdits.Clear(); _hipEdits.Clear(); _pairedRoofEdits.Clear(); _parapetEdits.Clear(); _yardEdits.Clear();
                 bool live = _world.Buildings.Rows.IsLive(slot);
                 ulong id = live ? _world.Buildings.Rows.IdAt(slot) : 0;
                 if (_renderedBuildings.Remove(slot, out var old))
@@ -51,7 +51,7 @@ public partial class Main
                     _bodyEdits.Add(new(one.Body, one.Paint, one.Reads));
                     if (one.Outhoused) _yardEdits.Add(new(one.Yard,
                         YardPaint(one)));
-                    var roof = one.Cap switch { Cap.Gable => _roofEdits, Cap.Hip => _hipEdits, Cap.PairedGable => _pairedRoofEdits, _ => null };
+                    var roof = one.Cap switch { Cap.Gable => _roofEdits, Cap.Hip => _hipEdits, Cap.PairedGable => _pairedRoofEdits, Cap.Parapet => _parapetEdits, _ => null };
                     roof?.Add(new(one.Roof, RoofPaint(one), RoofWall(one)));
                 }
                 geometry |= ReplaceBuilding(id);
@@ -76,7 +76,7 @@ public partial class Main
 
     private void VerifyBuildingDrawing()
     {
-        InstanceLayer[] layers = [_buildings, _roofs, _hips, _pairedRoofs, _yards];
+        InstanceLayer[] layers = [_buildings, _roofs, _hips, _pairedRoofs, _parapets, _yards];
         var before = new List<Dictionary<(ulong Id, int Part), InstanceValue>>();
         foreach (var layer in layers) before.Add(layer.Multimesh.Snapshot());
         int fresh = Massings(Buildings());
@@ -98,6 +98,7 @@ public partial class Main
         _roofs.Multimesh.Replace(id, _roofEdits);
         _hips.Multimesh.Replace(id, _hipEdits);
         _pairedRoofs.Multimesh.Replace(id, _pairedRoofEdits);
+        _parapets.Multimesh.Replace(id, _parapetEdits);
         return geometry;
     }
 
@@ -119,6 +120,7 @@ public partial class Main
     private void RendererStatistics(StringBuilder text)
     {
         if (System.Environment.GetEnvironmentVariable("BOROUGH_RENDER_PROFILE") is null) return;
+        text.Append($"render_probe\t{_renderProbe}\n");
         text.Append(CultureInfo.InvariantCulture, $"render_work\t{_fullBuildingPasses}\t{_buildingEdits}\t{_movementIndexVisits}\t{_movementQueries}\n");
         text.Append(CultureInfo.InvariantCulture, $"render_frames\t{_frameCount}\t{_frameMilliseconds:F3}\t{_frameMaximum:F3}\n");
         text.Append("# render\tlayer\tbatches\tuploads\tuploaded_instances\tuploaded_bytes\tupload_ms\tpending\n");

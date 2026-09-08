@@ -813,6 +813,9 @@ into scalars-then-columns was considered and refused**, because task 3's own rem
 has a forgettable half; the price is that `Rows` now names a `Persistence` type, and the door being
 indivisible was the argued property.
 
+> Restoration-capacity policy amended by [0067](0067-aged-city-performance.md): `Rows.GrowTo`
+> supports amortized restoration for movement tables. The exact-size argument below is historical.
+
 ⚠ **Two growth defects, and one of them was mine from task 3.** `Rows.GrowTo` doubled from the declared
 capacity, and **`0 × 2` is `0`, so it did not terminate** — reachable directly, because the loader builds
 its world at zero capacity and every table is sized per thousand Citizens. It now grows to the **exact**

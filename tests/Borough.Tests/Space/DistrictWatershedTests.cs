@@ -772,8 +772,9 @@ public sealed class DistrictWatershedTests
             // the exemption to protect.
             // insolvent.toml IS shopping.toml with one [[business]] key added, so it inherits
             // [districts] for that file's reason and not for one of its own -- plans/0065.
+            // stress-shopping.toml combines the two-centre Shopping mechanisms for plans/0067.
             bool expected = file is "twinned.toml" or "provisioned.toml" or "oversupplied.toml"
-                or "waged.toml" or "pictured.toml" or "shopping.toml" or "insolvent.toml";
+                or "waged.toml" or "pictured.toml" or "shopping.toml" or "insolvent.toml" or "stress-shopping.toml" or "profile-services.toml";
 
             Assert.Equal(expected, states);
         }

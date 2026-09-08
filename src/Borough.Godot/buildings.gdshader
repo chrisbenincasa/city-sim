@@ -207,8 +207,16 @@ void vertex() {
     // FacadeAppearance packs an exact byte seed and independent state flags.
     float flags = floor(v_custom.a / 256.0);
     v_custom.a = mod(v_custom.a, 256.0) / 255.0;
-    v_shop = mod(flags, 2.0) * (1.0 - step(4.0, flags));
     v_ruin = mod(floor(flags / 2.0), 2.0);
+
+    // 🔴 THE UPPER-PART TEST WAS `step(4.0, flags)` AND THAT IS NOT A BIT TEST. It reads *flags is
+    // 4 or more*, which agrees with *bit 2 is set* only for as long as bit 2 is the highest bit
+    // there is. ***The next flag added above it silently takes the shopfront off every Building
+    // that sets it*** -- measured on the sitting that found this, by adding one and watching the
+    // shopfronts go. A test that is correct only while it is the last one written is a defect
+    // whose fuse is lit by a change somewhere else, so it is a bit test now.
+    float upper = mod(floor(flags / 4.0), 2.0);
+    v_shop = mod(flags, 2.0) * (1.0 - upper);
 
     // The instance transform's own column lengths, which is the box's size in metres. A unit
     // BoxMesh is what every Building shares, so this is the only place the real size exists.
@@ -403,6 +411,7 @@ void fragment() {
         * (1.0 - smoothstep(caseJamb + caseW - grain.x, caseJamb + caseW + grain.x, withinX));
     float caseY = 1.0 - smoothstep(2.55 - grain.y, 2.55 + grain.y, up);
     float doorcase = caseX * caseY * onDoorBay * frontage;
+
 
     // ⚠ A SHUTTERED OPENING IS THE OCCUPANCY AND NOT ONE HOUSEHOLD. The share of openings left
     // shut is `held / occupants`; which ones is the drawing's own draw. A Building nobody lives

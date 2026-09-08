@@ -1,0 +1,650 @@
+{
+  "base": "ca0d3dd1eae8be9722153fa78d465dc3b5b5fc99",
+  "files": {
+    "README.txt": {
+      "bytes": 705,
+      "sha256": "dd6ae26f958c681ef0c08b0d020f36a5cbb99d4e7df7c2eba10897c3cdfd8b1e"
+    },
+    "aged/boot.drive": {
+      "bytes": 12,
+      "sha256": "3c9e0ed6c8103224d844440711fb1e404db41984ec33f3ce6ba26dee61c25078"
+    },
+    "aged/checks.json": {
+      "bytes": 166,
+      "sha256": "54b198107fbb433839545bd5d99703d25fdca6646301be1fff865fbe6e1eaf93"
+    },
+    "aged/commands.drive": {
+      "bytes": 618,
+      "sha256": "97fdf50284058efd9e3a62801b4ba814a22d8a0a2c9179ca99bd4c3cff8540ec"
+    },
+    "aged/frames.csv": {
+      "bytes": 677,
+      "sha256": "57707d2732730cd5c34ffb8b5a409ce1cf644c901135c280e8f359bf629b44c4"
+    },
+    "aged/game.log": {
+      "bytes": 807,
+      "sha256": "a4ba78cdc097c735b168fc4f36f9b6deb84cbd1b63cffa3b3d9109c088d42639"
+    },
+    "aged/paused-after.tsv": {
+      "bytes": 2793338,
+      "sha256": "a68e7367e9e5855bae4ce7f16c0e25f7b15968a277e31da4204e110cf1e6843a"
+    },
+    "aged/paused-before.tsv": {
+      "bytes": 2793338,
+      "sha256": "a68e7367e9e5855bae4ce7f16c0e25f7b15968a277e31da4204e110cf1e6843a"
+    },
+    "aged/replay.txt": {
+      "bytes": 275,
+      "sha256": "13ede972e299ed29b06bb61b7586177fc76610610b3a5105509264830e1186c4"
+    },
+    "aged/run.json": {
+      "bytes": 602,
+      "sha256": "5e596dc082f589c1d6ef03e5827b85b579b8dff6f37ac679c26798c33397ca11"
+    },
+    "aged/screen.png": {
+      "bytes": 1374051,
+      "sha256": "50b216faa5cc9acff98aa2a68a09f813ad65f653ef1f4d4f5914d95d02847c4a"
+    },
+    "aged/screen.txt": {
+      "bytes": 1585,
+      "sha256": "d5bd841d3506a455e4bf84f6520458e57a959972951662a8142c7c83c430a579"
+    },
+    "aged/session.borough": {
+      "bytes": 144,
+      "sha256": "078a127827ad4912392a82bef4f4abd960a6db74d8af0665e2ea814c0d50f795"
+    },
+    "aged/ui.json": {
+      "bytes": 16738,
+      "sha256": "fc39e932fe9cc2c43b4120e6a66f6f64ff7514d7514528503e51491a8a051ccf"
+    },
+    "aged-driver.log": {
+      "bytes": 151,
+      "sha256": "fc5c8851673c6aacce690bdb23257fa235c324b4d895a4ebbb92bc4f87c2a01b"
+    },
+    "borough-preparation-assertions.log": {
+      "bytes": 1387,
+      "sha256": "d4ef5a1bc46323901847e269d48b8caae9c5b002070371f3fe3aa28db87691b1"
+    },
+    "borough-preparation-build.log": {
+      "bytes": 587,
+      "sha256": "2bf07811b4e709956148c79d8570fc259c5b55121053b285ecae6266a8dbb5a4"
+    },
+    "borough-preparation-corpus.log": {
+      "bytes": 1409,
+      "sha256": "305fd12ed6d694d44557e7fd57d0a7ef11f4fd9ffd0b5c3a9bf6151ec40c58ac"
+    },
+    "borough-preparation-tests.log": {
+      "bytes": 1417,
+      "sha256": "b24b13bcb077119d79b30e9d8bf1cd04270407a7efe71616148249b25dfde766"
+    },
+    "borough-test-20260907-194337.log": {
+      "bytes": 994,
+      "sha256": "7b7178e3a4e16cdf3162c72db8dd9d11517076ae6feb3cfb08e1e3ad3bca454e"
+    },
+    "borough-test-20260907-195231.log": {
+      "bytes": 996,
+      "sha256": "4c926378fa26f595dface939a9849458beed76e8853439ad00bc768c11305468"
+    },
+    "final-source/Directory.Build.props": {
+      "bytes": 644,
+      "sha256": "3abd9ca7a3647d8ba454c3174a026e5e21e069309222c7911a7007e91e37a4f6"
+    },
+    "final-source/plans/0067-aged-city-performance.md": {
+      "bytes": 57021,
+      "sha256": "784993316766d9d2fa10b8d3cdbfc399b8c70265ff532e9d822aa6143c6c1ecf"
+    },
+    "final-source/rulesets/stress-shopping.toml": {
+      "bytes": 4969,
+      "sha256": "2de63becd3932f2bbbba77163f32b2ca4cde0dffc688a95f0ded9676f52914b8"
+    },
+    "final-source/scripts/check-city-preparation.py": {
+      "bytes": 2572,
+      "sha256": "62b13f143bc5b57d9834d3afb699736a7dbfb71aa5f890b16d580799744914da"
+    },
+    "final-source/scripts/check-shell-threading.py": {
+      "bytes": 7566,
+      "sha256": "1046dd7715e40059e7ba3c014dbd234c7866590f5da2fbbab46668e7fb3b6405"
+    },
+    "final-source/src/Borough.Godot/Borough.Godot.csproj": {
+      "bytes": 661,
+      "sha256": "1abc82ee8c247089011d78f16fd033ff2d8848c361d97a161806ab8b3bca4755"
+    },
+    "final-source/src/Borough.Godot/CityPreparation.cs": {
+      "bytes": 2309,
+      "sha256": "fcc2efc61635f2b686dc8cd0b89f8332d066cfa62e41d136417c6be5516fdbcc"
+    },
+    "final-source/src/Borough.Godot/ExpandedStudy.Neighbourhood.cs": {
+      "bytes": 6446,
+      "sha256": "4036d3755f2480a9315e2396d0fd8882bf5e0245f266afd0d00823866968f799"
+    },
+    "final-source/src/Borough.Godot/ExpandedStudy.Neighbourhood.cs.uid": {
+      "bytes": 20,
+      "sha256": "662dddd71d24d5031b02e9074e43c25a04c9a78045fc841fcebda19727277198"
+    },
+    "final-source/src/Borough.Godot/ExpandedStudy.cs": {
+      "bytes": 17192,
+      "sha256": "c36ef506420d04a3c1879d131e73545442149f1409523b7b1d2accb3a171dff9"
+    },
+    "final-source/src/Borough.Godot/ExpandedStudy.cs.uid": {
+      "bytes": 20,
+      "sha256": "f811f5bc90cceca3c1538e8e25e412cda9f953fb246c79c79f9add61f99cb28e"
+    },
+    "final-source/src/Borough.Godot/ExpandedStudy.tscn": {
+      "bytes": 169,
+      "sha256": "893654b53b72b71537218402a6d1035cda27e2a39ea2b527694b682fdb0c4899"
+    },
+    "final-source/src/Borough.Godot/FacadeAppearance.cs": {
+      "bytes": 1071,
+      "sha256": "1c472ac9cd7357d11656b7143528f7a55f43d7285f437e29d9214b3eb7ae8574"
+    },
+    "final-source/src/Borough.Godot/FacadeAppearance.cs.uid": {
+      "bytes": 20,
+      "sha256": "84700c84eaad6744a956c19fc306a2472a26b715599bf3787663a00f22149677"
+    },
+    "final-source/src/Borough.Godot/FacadeMaterials.cs": {
+      "bytes": 1196,
+      "sha256": "5fa1c9179904289614027b3040e46ff0e8ca452821cf40a6fcecfccfa82e7f07"
+    },
+    "final-source/src/Borough.Godot/FacadeMaterials.cs.uid": {
+      "bytes": 20,
+      "sha256": "ae90f425cf4367c17af58e41abc17ef627aa728d99834e4943ab7c1a71ee405a"
+    },
+    "final-source/src/Borough.Godot/FacadeStudy.cs": {
+      "bytes": 6320,
+      "sha256": "6e6304b6632658585aa4b690fb33441bc28fc00f009a718c72bc4844d14bcaf2"
+    },
+    "final-source/src/Borough.Godot/FacadeStudy.cs.uid": {
+      "bytes": 20,
+      "sha256": "4d677aa43e71bbf8f130dd98a918be11f0596e50797793a49f025001ed909b12"
+    },
+    "final-source/src/Borough.Godot/FacadeStudy.tscn": {
+      "bytes": 165,
+      "sha256": "665e29b0715a6be2d953a0420a5b318fc9b946d8b368e244875963f0e071a8bb"
+    },
+    "final-source/src/Borough.Godot/InformationUi.cs": {
+      "bytes": 7882,
+      "sha256": "4d47c6f8f97ed76e53d434bc4c47fcabf67e6e012b79bb2cdbe82fe78b62f871"
+    },
+    "final-source/src/Borough.Godot/InformationUi.cs.uid": {
+      "bytes": 19,
+      "sha256": "f4bf4e2e3724837a930c51aaf671936c570bde2e225de4101f804e9244fcb383"
+    },
+    "final-source/src/Borough.Godot/InstanceLayer.cs": {
+      "bytes": 15078,
+      "sha256": "e274afb649855a26c8fd305e211283ebeab6f2e1ce0c021cd74965ca58df735d"
+    },
+    "final-source/src/Borough.Godot/InstanceLayer.cs.uid": {
+      "bytes": 20,
+      "sha256": "7ccc1f5451e37db8dd7086e652b47c3fd3519705bde8595684c41779e6672118"
+    },
+    "final-source/src/Borough.Godot/KitStudy.Palettes.cs": {
+      "bytes": 1495,
+      "sha256": "2110a09fb9771c8a39b6b8d21e9b591ea70054afd2f82e753e9bfd68c517686b"
+    },
+    "final-source/src/Borough.Godot/KitStudy.Palettes.cs.uid": {
+      "bytes": 20,
+      "sha256": "263283902a3656cf5b3f97db1831165726a728b6997c85cf08d5646f6aeb4440"
+    },
+    "final-source/src/Borough.Godot/KitStudy.Styles.cs": {
+      "bytes": 4835,
+      "sha256": "719d823b4b641ec1c52715260282119ea35871293ed49048b7c1f127197a7b14"
+    },
+    "final-source/src/Borough.Godot/KitStudy.Styles.cs.uid": {
+      "bytes": 20,
+      "sha256": "af0de2e00e6830b829c8dbd80f91c7e9c5924fff4832f9c50941e3fac0b250d2"
+    },
+    "final-source/src/Borough.Godot/KitStudy.cs": {
+      "bytes": 11890,
+      "sha256": "6e9943434599288909bb57ab866f942986fd4bb4369f076284a563ef1ef401ff"
+    },
+    "final-source/src/Borough.Godot/KitStudy.cs.uid": {
+      "bytes": 19,
+      "sha256": "c697daef491256462b107b8ab989d71b1b8a646a8997d72fbfb57fa9ab801248"
+    },
+    "final-source/src/Borough.Godot/KitStudy.tscn": {
+      "bytes": 157,
+      "sha256": "24cb22cdd38d29119f718b499fd8f0ce9b3fcf1c98fb85053bea0b7037e62e55"
+    },
+    "final-source/src/Borough.Godot/Main.Assets.cs": {
+      "bytes": 4289,
+      "sha256": "75dbf2583362b9948f8462b9b8214faf36ad8078dc63011607778fd7deace5bb"
+    },
+    "final-source/src/Borough.Godot/Main.Assets.cs.uid": {
+      "bytes": 20,
+      "sha256": "46b400493c139351789bb266eefd9f1e39a69c23e5e74298a49de90dca954727"
+    },
+    "final-source/src/Borough.Godot/Main.Camera.cs": {
+      "bytes": 16575,
+      "sha256": "a57ed392629b26ccde6fc7e0731e6c546f06fdd3c787da4f08ff594cb2e681c8"
+    },
+    "final-source/src/Borough.Godot/Main.Camera.cs.uid": {
+      "bytes": 20,
+      "sha256": "a0700e5e2005b46ebfc1e1fb8f6b42b4d6d7cb8e03937ef39ad05647d39afc3f"
+    },
+    "final-source/src/Borough.Godot/Main.Channels.cs": {
+      "bytes": 32513,
+      "sha256": "228935c033d3a73eddbdf584fd51130cbd8660041234603e814477e9a1d85f06"
+    },
+    "final-source/src/Borough.Godot/Main.Channels.cs.uid": {
+      "bytes": 20,
+      "sha256": "65398a70cbdca9c18f4a040589b5acd96edf212834778e1a474c49558901d115"
+    },
+    "final-source/src/Borough.Godot/Main.Console.cs": {
+      "bytes": 23032,
+      "sha256": "038035502ca0b0dc3e232fbe802a905076aaf3c1ad4323267ec6ab2030eeea55"
+    },
+    "final-source/src/Borough.Godot/Main.Console.cs.uid": {
+      "bytes": 19,
+      "sha256": "4bdfcd8d30a50ee8a104ad542171e7b635104d88d3683e29e62dc6c6b12f8dd3"
+    },
+    "final-source/src/Borough.Godot/Main.Discovery.cs": {
+      "bytes": 11069,
+      "sha256": "ad8081fff4137d01a1ee21109f159b67f68d9647b389d4c8a6cd90d8921615bc"
+    },
+    "final-source/src/Borough.Godot/Main.Discovery.cs.uid": {
+      "bytes": 20,
+      "sha256": "68c9a094cdcf7175a5439f775a2f9895c3a899364635c2045d64647c48269095"
+    },
+    "final-source/src/Borough.Godot/Main.Foliage.cs": {
+      "bytes": 2363,
+      "sha256": "5a982125e4a4e5e4b1aba4351259b16033c58c00892fcd06512d42560ec7e469"
+    },
+    "final-source/src/Borough.Godot/Main.Foliage.cs.uid": {
+      "bytes": 20,
+      "sha256": "ce83ee9a37ed06ea106f9566c02bb83275a2fc0af2057160d54009254b7a140f"
+    },
+    "final-source/src/Borough.Godot/Main.Ground.cs": {
+      "bytes": 95101,
+      "sha256": "13aacd94e736bb7e1ef728e63a9764c8f786e440d9ad1f06f09aed40d2e97937"
+    },
+    "final-source/src/Borough.Godot/Main.Ground.cs.uid": {
+      "bytes": 20,
+      "sha256": "71194f0a53ae7e9547325b0cc1074b0970d1ef5f8a0d42c401541a841b413251"
+    },
+    "final-source/src/Borough.Godot/Main.Health.cs": {
+      "bytes": 13498,
+      "sha256": "a17848d8e7f01054c78c32a0c4a1a68c2761eba1365a7b4a5de7907552294758"
+    },
+    "final-source/src/Borough.Godot/Main.Health.cs.uid": {
+      "bytes": 20,
+      "sha256": "d02993b3bb2a52e72c3c30afad6c91a441648e21c3f7f3e2ba6eccfb5641da88"
+    },
+    "final-source/src/Borough.Godot/Main.Information.cs": {
+      "bytes": 44211,
+      "sha256": "0d7164454626f59bab3002c5bee757072d276835497b9e2236aeeaca708345bf"
+    },
+    "final-source/src/Borough.Godot/Main.Information.cs.uid": {
+      "bytes": 20,
+      "sha256": "c771b4774f5fbd710ceaa11caf4f446bbb7391d62c586cb1e51abc67b327d50d"
+    },
+    "final-source/src/Borough.Godot/Main.Massing.cs": {
+      "bytes": 42724,
+      "sha256": "93039ca913ba914aab03b5f9a632e7dde5d8b12d475a6f92f1af4c39a75e008e"
+    },
+    "final-source/src/Borough.Godot/Main.Massing.cs.uid": {
+      "bytes": 20,
+      "sha256": "fb1715f43f74f2a7e11d92b7a920297a49d39231d311ebc74a8771a8d01a6427"
+    },
+    "final-source/src/Borough.Godot/Main.MovementDrawing.cs": {
+      "bytes": 7879,
+      "sha256": "cc7391855c369a5d59edf058b1c6cb6e68d0ec599573be942d22852b4944809c"
+    },
+    "final-source/src/Borough.Godot/Main.MovementDrawing.cs.uid": {
+      "bytes": 20,
+      "sha256": "7684d87d401762124a98b89e90ceaefb61ee55ca95407c95a7d3ea0396b0e880"
+    },
+    "final-source/src/Borough.Godot/Main.Panels.cs": {
+      "bytes": 31913,
+      "sha256": "aef0eaf72068e642923f9a94cd9c3ec1d5d752f348ee62b23ebbbf1146962cfe"
+    },
+    "final-source/src/Borough.Godot/Main.Panels.cs.uid": {
+      "bytes": 19,
+      "sha256": "9212969051aa43203173ca36e55f1ac49bef4ef0633e0abcc07fcc997625fb60"
+    },
+    "final-source/src/Borough.Godot/Main.Performance.cs": {
+      "bytes": 4458,
+      "sha256": "eb9e236e0daa2ebfb897a72e8aeba9dcdc498808e6057a2c6989fc765a7207ee"
+    },
+    "final-source/src/Borough.Godot/Main.Performance.cs.uid": {
+      "bytes": 20,
+      "sha256": "9e26deab2b716dc5c3644de15017147245bb330d03d061a116927f7b27773895"
+    },
+    "final-source/src/Borough.Godot/Main.Preparation.cs": {
+      "bytes": 5872,
+      "sha256": "a11f635e9b482c2bab9d79f28a17dc952f86a9013402f9160a29ebcf3bdcff1d"
+    },
+    "final-source/src/Borough.Godot/Main.Readout.cs": {
+      "bytes": 32161,
+      "sha256": "ab6c6ac0cc38b02c2b2297bf06ac11520edbe90fbf0ec8c1f2142ee8e8f04175"
+    },
+    "final-source/src/Borough.Godot/Main.Readout.cs.uid": {
+      "bytes": 20,
+      "sha256": "1709d738f5d0bfc23887981ca638180f7e10a842a44f4ad7482fbb0e65698333"
+    },
+    "final-source/src/Borough.Godot/Main.RenderProbe.cs": {
+      "bytes": 1852,
+      "sha256": "b47b28140590a449c1a0205119072a68492fcdd6324c6c79e962442670e89ed7"
+    },
+    "final-source/src/Borough.Godot/Main.RenderProbe.cs.uid": {
+      "bytes": 19,
+      "sha256": "cb97926347ec2d82f66658ec813e20c676f43a8d004b629bd0cfb801e1562f50"
+    },
+    "final-source/src/Borough.Godot/Main.Rendering.cs": {
+      "bytes": 6781,
+      "sha256": "cd8e6276ff36648e31e80dbca877152451f421ad53ed2cf834e4f54fa6e6cfe6"
+    },
+    "final-source/src/Borough.Godot/Main.Rendering.cs.uid": {
+      "bytes": 20,
+      "sha256": "de6949dc064f47ae1ac81bcd1ef054f88aecdbf1c122782111cf3a4e2e5e0159"
+    },
+    "final-source/src/Borough.Godot/Main.RoadInformation.cs": {
+      "bytes": 14906,
+      "sha256": "51367a605a098d14012d86d0daf9b1eaaef50db5c51c8831d0c6ca444be21203"
+    },
+    "final-source/src/Borough.Godot/Main.RoadInformation.cs.uid": {
+      "bytes": 19,
+      "sha256": "d65ede630114496e2088ff57f86b49795624b85409102ae27bb380b3986e7ed3"
+    },
+    "final-source/src/Borough.Godot/Main.Sky.cs": {
+      "bytes": 23943,
+      "sha256": "f6e80e3f3ef431a2ea8bc6c1b998b0e9a54b9ea555abef61b2f156a984fc31cb"
+    },
+    "final-source/src/Borough.Godot/Main.Sky.cs.uid": {
+      "bytes": 19,
+      "sha256": "fc95b2715db3d13622976f1c285675fcd06ebcd28da8eabd7227f3baa59f9a18"
+    },
+    "final-source/src/Borough.Godot/Main.Threading.cs": {
+      "bytes": 2411,
+      "sha256": "fc3fa6b6132cec244b1aa03ad979fdb034bc53076b390375f30279a226448c63"
+    },
+    "final-source/src/Borough.Godot/Main.Travellers.cs": {
+      "bytes": 2594,
+      "sha256": "009926179252ca10ffeaccaddaf58ec29c8b4f7996b2a031ee215a5fc63dd35f"
+    },
+    "final-source/src/Borough.Godot/Main.Travellers.cs.uid": {
+      "bytes": 20,
+      "sha256": "40a61e00e7e1394af84962d52df6179b0cf7b2500459883ea4cd22c668682a46"
+    },
+    "final-source/src/Borough.Godot/Main.Verbs.cs": {
+      "bytes": 30913,
+      "sha256": "df0627f4bc905d21178854f6d5790910dd47b85fd3fe5e32b24a0116993693f7"
+    },
+    "final-source/src/Borough.Godot/Main.Verbs.cs.uid": {
+      "bytes": 20,
+      "sha256": "fbdcf605214bea2779645e41c8f5d2cadb5dcea0b3fc4f9711cc2361d2489dc6"
+    },
+    "final-source/src/Borough.Godot/Main.cs": {
+      "bytes": 94563,
+      "sha256": "7017cedc70325ebeab8883680e534567682934cfbe0742eea72a34e33ce93dc1"
+    },
+    "final-source/src/Borough.Godot/Main.cs.uid": {
+      "bytes": 19,
+      "sha256": "c384f6282228264d366df4b510c9a7f12fd46f605661162af3174e89de0d37c3"
+    },
+    "final-source/src/Borough.Godot/Main.tscn": {
+      "bytes": 151,
+      "sha256": "6e8349043bbdee831e0a4939c525a535261e6a0aace2a547921b4c371716a8b1"
+    },
+    "final-source/src/Borough.Godot/RoofMaterials.cs": {
+      "bytes": 827,
+      "sha256": "14db72adf6b6297e5ca9ce5d9fb750965490e5d64c81cd05012beb6e3e323e2a"
+    },
+    "final-source/src/Borough.Godot/RoofMaterials.cs.uid": {
+      "bytes": 19,
+      "sha256": "6ecdc41d37ee1108eba54ef8db57d50fa6eff9d1dc5c3dd20dc7081418bf84e8"
+    },
+    "final-source/src/Borough.Godot/RoofMeshes.cs": {
+      "bytes": 7264,
+      "sha256": "9db6743d9017479c427ca41a81acbabd04c0323d54d379290aa382bf24cea802"
+    },
+    "final-source/src/Borough.Godot/RoofMeshes.cs.uid": {
+      "bytes": 20,
+      "sha256": "6c968d91867830283d4c19790ab70bce024c193a1643c408b6fc893f94536724"
+    },
+    "final-source/src/Borough.Godot/RoofStudy.cs": {
+      "bytes": 4678,
+      "sha256": "5f01872da1fe3130c705273e2cfa75f37fa3dd2df6c235a3e5de0b485d15a95c"
+    },
+    "final-source/src/Borough.Godot/RoofStudy.cs.uid": {
+      "bytes": 20,
+      "sha256": "471103cf32f5b5b87137d429d0406ca212ae91dbe770b77e5f09a0c72dc5a480"
+    },
+    "final-source/src/Borough.Godot/RoofStudy.tscn": {
+      "bytes": 159,
+      "sha256": "848ed08ce31110c4de8083b901d882e4a1431bdc0a8e3682b3f2ac628242bac7"
+    },
+    "final-source/src/Borough.Godot/SimulationThread.cs": {
+      "bytes": 3192,
+      "sha256": "6506333cf4eaa03892764158f5a964351f39373aeb02ce4eb4471dd592b4b3d8"
+    },
+    "final-source/src/Borough.Godot/VisualStudy.Materials.cs": {
+      "bytes": 2143,
+      "sha256": "99584b73a0dad44b1485a42a23675e1c1b733cc682abb894ac174a27f0deb983"
+    },
+    "final-source/src/Borough.Godot/VisualStudy.Materials.cs.uid": {
+      "bytes": 20,
+      "sha256": "2c4e492f72745c82c7e62224f94aab65e6d06ad0601cffabaac0bddbc69f0b15"
+    },
+    "final-source/src/Borough.Godot/VisualStudy.cs": {
+      "bytes": 14542,
+      "sha256": "476dc439cb6883410987a7612a1d427d6efed14557505393a01aa25bd1d5f98f"
+    },
+    "final-source/src/Borough.Godot/VisualStudy.cs.uid": {
+      "bytes": 20,
+      "sha256": "eec973f137629111a3c05f4618cad68348f33a372e8d6e96de53da546f582b03"
+    },
+    "final-source/src/Borough.Godot/VisualStudy.tscn": {
+      "bytes": 165,
+      "sha256": "3a6eac06c5cc8c8d6ef104c2eca6b74e2c1f8b07150b3def687eef5e2d5ff5d5"
+    },
+    "final-source/src/Borough.Godot/buildings.gdshader": {
+      "bytes": 44510,
+      "sha256": "c1eea76fc329a68e1663114daa8dd2c7f428788f13516ebc53e9dbc49196f6e5"
+    },
+    "final-source/src/Borough.Godot/buildings.gdshader.uid": {
+      "bytes": 20,
+      "sha256": "74d1456c6f2037838ff3a09e4043401c273a894f8895026995c0156b4a9da11b"
+    },
+    "final-source/src/Borough.Godot/ground.gdshader": {
+      "bytes": 992,
+      "sha256": "40098297720424c90d28b9bb4511639dbf91adf3cc565f5db064588d93c53511"
+    },
+    "final-source/src/Borough.Godot/ground.gdshader.uid": {
+      "bytes": 20,
+      "sha256": "4feae4fc468be86a13a9c59e643343c45fb5b0249c7ea788094975ad9480bc91"
+    },
+    "final-source/src/Borough.Godot/kit-graphic.gdshader": {
+      "bytes": 316,
+      "sha256": "8e278e75abeef05822aa81dff6e6e4ba48fe23e62c99810fc0a70a256770ecae"
+    },
+    "final-source/src/Borough.Godot/kit-graphic.gdshader.uid": {
+      "bytes": 20,
+      "sha256": "039a67133b57390aee28b4ffdf76c87ef0a8082ffac2fea403fc39c3d01a279c"
+    },
+    "final-source/src/Borough.Godot/kit-miniature.gdshader": {
+      "bytes": 179,
+      "sha256": "9ae612b6d6abe9c1200b81d63671873098ba8fa9849be1079352ef6226f126a7"
+    },
+    "final-source/src/Borough.Godot/kit-miniature.gdshader.uid": {
+      "bytes": 20,
+      "sha256": "aebf74f0bf2e69f936d6cc23be795cc7959aa1dd76b1adef7d3673e1f8372fbd"
+    },
+    "final-source/src/Borough.Godot/kit-natural-wall.gdshader": {
+      "bytes": 1065,
+      "sha256": "4217e69d998d07bedb421e5e01f94d3749a3aeed426186a97c8d043e3402ee1e"
+    },
+    "final-source/src/Borough.Godot/kit-natural-wall.gdshader.uid": {
+      "bytes": 20,
+      "sha256": "fbc47eb9c22de6bc8263fdc39a52c5b9cdcc75cc1638a547fec034fe3faa23de"
+    },
+    "final-source/src/Borough.Godot/kit-outline.gdshader": {
+      "bytes": 191,
+      "sha256": "93dfc0176fae49a327d8ea42dcc4d85c46e94085599ba8abcab339b437f37476"
+    },
+    "final-source/src/Borough.Godot/kit-outline.gdshader.uid": {
+      "bytes": 20,
+      "sha256": "2f2c6f16c995be72a326b74f066cec129fb4f2f674ce6ca7e9bd2f97c7b7fef6"
+    },
+    "final-source/src/Borough.Godot/kit-painterly.gdshader": {
+      "bytes": 1833,
+      "sha256": "359bb9c9d7a7fa0e5db846e0af97bd4725cb21d14f672390f542ecc97ac383a8"
+    },
+    "final-source/src/Borough.Godot/kit-painterly.gdshader.uid": {
+      "bytes": 20,
+      "sha256": "c841b2023972093e4a5ce78192d75de208ff65e1a857a11c3a69dfcf0bd847ea"
+    },
+    "final-source/src/Borough.Godot/kit-sculpted.gdshader": {
+      "bytes": 372,
+      "sha256": "d6452afce701dc3d2823a8299880b9c2ead406f7229aca394951ee0958f79102"
+    },
+    "final-source/src/Borough.Godot/kit-sculpted.gdshader.uid": {
+      "bytes": 20,
+      "sha256": "967d16f962338eda4c4a1c635982fbf12364d5574bca41b9d9d2c7bf82a97cf3"
+    },
+    "final-source/src/Borough.Godot/overlay-buildings.gdshader": {
+      "bytes": 1792,
+      "sha256": "ce07d320c79a7cd3e95b0efc7fb02b44e3483c123c29b0d84fd0d1b4f3ce1f28"
+    },
+    "final-source/src/Borough.Godot/overlay-buildings.gdshader.uid": {
+      "bytes": 20,
+      "sha256": "a48ce06f346acceab6db69427f2518b26f45873bc0d51ee1e86fd47f3f69ed2c"
+    },
+    "final-source/src/Borough.Godot/project.godot": {
+      "bytes": 682,
+      "sha256": "15a684733efb1b52718b432b3bddf65d2243f79ea6d2af6fc567451f0a5bf414"
+    },
+    "final-source/src/Borough.Godot/surfaces.gdshader": {
+      "bytes": 11789,
+      "sha256": "bcc4844addc10d31f3dde958ee0922c6cdbc4fd33103629a9aea21379451b0f0"
+    },
+    "final-source/src/Borough.Godot/surfaces.gdshader.uid": {
+      "bytes": 19,
+      "sha256": "7e41691846eff4c005023db83ee2e0c24a069a0f9752fdfa231ecd888b2902af"
+    },
+    "final-source/tests/Borough.Tests/Borough.Tests.csproj": {
+      "bytes": 3161,
+      "sha256": "28b397a73a25db6645401df75aaccfa340b0e1c7828f7d59a341f9178273ee4e"
+    },
+    "final-source/tests/Borough.Tests/Shell/CityPreparationTests.cs": {
+      "bytes": 2681,
+      "sha256": "83c655f6895d0a1ffc1c231314d6fe8ab3035fc0bc803e8b0437bcfc2f6a51b4"
+    },
+    "final-source/tests/Borough.Tests/Shell/SimulationThreadTests.cs": {
+      "bytes": 5536,
+      "sha256": "19c5d6d33a229a7617f07f864405d36feac7f98446fc7752ba9d4abdfa591ca2"
+    },
+    "loading/checks.txt": {
+      "bytes": 189,
+      "sha256": "d280a7ba403b57c100e6c997e35a47e26620d8af65d1968bb8fc63716e21c87e"
+    },
+    "loading/command.txt": {
+      "bytes": 291,
+      "sha256": "cd00ebdedc840b775af49b57999078c797c35a0ed3bd82fa50c2485a16324216"
+    },
+    "loading/game.log": {
+      "bytes": 246,
+      "sha256": "ebe87392934af0cc1dff7ed0f552d53f6eb03c5ae873cb90bf77079652bda5c0"
+    },
+    "loading/loading-first.png": {
+      "bytes": 27203,
+      "sha256": "e918b81bda257129851adb7af6f9d062a56573e4fb2184a4994d2ead12a035b6"
+    },
+    "loading/loading-first.txt": {
+      "bytes": 49,
+      "sha256": "f0208e95be9dd0489e0d3a3b8442334b3aab524d603ae06e38a6229b8719b5ae"
+    },
+    "loading/loading-later.png": {
+      "bytes": 27889,
+      "sha256": "b4cb57fd26401b3966695334b95d55351cb8193548dd6b062ca657b9d96c7ec6"
+    },
+    "loading/loading-later.txt": {
+      "bytes": 52,
+      "sha256": "a47b65c039100c8eb599c039d377e82b6248a91d70152bd26b1e2d1be973e544"
+    },
+    "loading-driver.log": {
+      "bytes": 190,
+      "sha256": "a55e30d5aad4f40f3ac7ff355aec6036a7ae760dec35f03e7696185c4ed475ec"
+    },
+    "loading-final/checks.txt": {
+      "bytes": 189,
+      "sha256": "56d62027517b5d7fa79c52e03a3fba8cfc92443b8c74e8e8c592e4e53c45b832"
+    },
+    "loading-final/command.txt": {
+      "bytes": 291,
+      "sha256": "978fdfd15dca564fc0d71ce230f75cf48bd8205767c3958bd5871100e7be7b4d"
+    },
+    "loading-final/game.log": {
+      "bytes": 246,
+      "sha256": "3688120f670e5b6ecf146bc564cad53e664378f87f44166ffef6267b5fbae07e"
+    },
+    "loading-final/loading-first.png": {
+      "bytes": 28314,
+      "sha256": "f592348ed039af36c300217f491105ff63ba030b540599d65513566e6959ffd9"
+    },
+    "loading-final/loading-first.txt": {
+      "bytes": 49,
+      "sha256": "f0208e95be9dd0489e0d3a3b8442334b3aab524d603ae06e38a6229b8719b5ae"
+    },
+    "loading-final/loading-later.png": {
+      "bytes": 29845,
+      "sha256": "b089152e09e526dddc973d64b8dff3a6b75a8c9e5f1d2fb3cc52819e038eea90"
+    },
+    "loading-final/loading-later.txt": {
+      "bytes": 52,
+      "sha256": "d6f92bc8eaa5cdb21c7e053aa5b9909a354d058ca30aadc12e0add7ea1ec5c67"
+    },
+    "loading-final-driver.log": {
+      "bytes": 190,
+      "sha256": "70683ff4836a866a0949cb8fff4d4d378843aca90183a6268541c387fa97c4f7"
+    },
+    "regenerate/after.json": {
+      "bytes": 414902,
+      "sha256": "aa9cdbe41c71a113ef8724fe76885ffa988f03b09be84f7af206f8e9ef6f9c9b"
+    },
+    "regenerate/before.json": {
+      "bytes": 413052,
+      "sha256": "e69c178da0c671c6a3006e431d2a77788848e969039f107fb99834d069134ef2"
+    },
+    "regenerate/boot.drive": {
+      "bytes": 9,
+      "sha256": "991bdb3d087ae7e41cdbc224d14f039d5db836af5f8172cbc64404632dc8c754"
+    },
+    "regenerate/cancelled.json": {
+      "bytes": 415076,
+      "sha256": "ca80838d25a76de6185da6a459afdd7007a8d68abcac65a03f8fb84103d03035"
+    },
+    "regenerate/checks.json": {
+      "bytes": 109,
+      "sha256": "dcabd7292a0a5caedcaabb3ad8d312b7876d18064f74b5e8b6bf1de415edf444"
+    },
+    "regenerate/game.log": {
+      "bytes": 630,
+      "sha256": "567889793df75d9fa6f730c2e83de4ae620708a8be15ea89021ccf1c4d3d0cce"
+    },
+    "regenerate/regenerated.png": {
+      "bytes": 950596,
+      "sha256": "706af669b215db4098cd8fa9f2b9b40008dc3ec3fd081a588242f07ecacd95e4"
+    },
+    "regenerate/regenerated.txt": {
+      "bytes": 872,
+      "sha256": "864eb3dbb28364d1ed8e2b8711d4f3e47246e6547d54139fde3cedc700088db9"
+    },
+    "regenerate/replay.txt": {
+      "bytes": 263,
+      "sha256": "4b7434efddead9bf8378ce7c83f2f1c4db406c7b030e91d340430506a86c3b5e"
+    },
+    "regenerate-driver.log": {
+      "bytes": 110,
+      "sha256": "6566709bb75f99c544b3de1af1dd2f0f8f3d58596441fe821510d7f29b064ddf"
+    },
+    "regenerate.py": {
+      "bytes": 1878,
+      "sha256": "c3e427c5039edc7f625e76a09f19f4bfcdc037fd7b8c7b66b116958f158d7fbf"
+    }
+  },
+  "archive": {
+    "name": "preparation-evidence.tar.gz",
+    "bytes": 4183447,
+    "sha256": "0ae4d775789924bb44943b9fae38be21c88704ffa63bdf91a930382beaa8305b"
+  }
+}

@@ -255,7 +255,7 @@ public partial class Main
 
         var apply = new Button { Text = "regenerate  (enter)" };
 
-        apply.Pressed += Regenerate;
+        apply.Pressed += () => AtBoundary(Regenerate);
         box.AddChild(apply);
 
         _tunerStatus = new Label { Text = "tab closes. a regenerate is a NEW city, not a reload." };
@@ -337,7 +337,7 @@ public partial class Main
 
             int position = at;
 
-            field.TextSubmitted += _ => Govern(position);
+            field.TextSubmitted += _ => AtBoundary(() => Govern(position));
             _policyFields[at] = field;
             row.AddChild(field);
             box.AddChild(row);
@@ -419,7 +419,7 @@ public partial class Main
             // ⚠ Pressed and not Toggled: ShowTools writes ButtonPressed off the world every frame a
             // tool changes, and Toggled fires on a programmatic write as well as a click -- which
             // would make the refresh issue the command it is describing.
-            button.Pressed += () => Choose(held);
+            button.Pressed += () => AtBoundary(() => Choose(held));
             _tools.AddChild(button);
         }
 
@@ -437,7 +437,7 @@ public partial class Main
         // ⚠ NOT a hold: it opens a panel rather than choosing what a click means, so it is the one
         // button here that is not a verb. It sits in the row because the player counted it among the
         // five they could not see.
-        _policiesButton.Pressed += Govern;
+        _policiesButton.Pressed += () => AtBoundary(Govern);
 
         _tools.AddChild(_policiesButton);
         // ⚠ NO STATED HEIGHT. Vertical scrolling is off, so the ScrollContainer's own minimum in
@@ -584,7 +584,7 @@ public partial class Main
         if (_verb != Verb.Look)
         {
             var cancel = new Button { Text = "Cancel  ✕" };
-            cancel.Pressed += () => Apply(Held("look", 0));
+            cancel.Pressed += () => AtBoundary(() => Apply(Held("look", 0)));
             _choices.AddChild(cancel);
             _choices.MoveChild(cancel, 0);
         }
@@ -597,7 +597,7 @@ public partial class Main
     {
         var button = new Button { Text = text, ToggleMode = true, ButtonPressed = held };
 
-        button.Pressed += () => Apply(Held(tool, choice));
+        button.Pressed += () => AtBoundary(() => Apply(Held(tool, choice)));
         _choices.AddChild(button);
     }
 
@@ -744,69 +744,20 @@ public partial class Main
             return;
         }
 
-        _toml = toml;
-        _names = loaded.Names;
-        _citizens = citizens;
-        _seed = seed;
+        PrepareCity(loaded.Ruleset, citizens, seed, 1, simulation =>
+        {
+            _toml = toml;
+            _names = loaded.Names;
+            _citizens = citizens;
+            _seed = seed;
+            CloseInspection();
+            InstallCity(simulation);
+            FinishRegenerate();
+        });
+    }
 
-        var key = WorldKey.FromSeed(seed);
-
-        CloseInspection();
-        _world = new World(citizens, loaded.Ruleset, key) { Changes = new WorldChanges() };
-        _simulation = new Simulation(_world, key) { VerifyDecideWritesNothing = false };
-
-        _log = new InputLogBuilder(
-            _seed,
-            new WorldConfiguration(citizens),
-            RulesetFile.HashOfContent(System.Text.Encoding.UTF8.GetBytes(_toml)));
-
-        // 🔴 THE CITY ARRIVES THROUGH Simulation.Apply AND NOT BESIDE IT. This was
-        // SyntheticCity.PopulateInto called on the world directly, which is thousands of rows
-        // entering by a door the log does not account for -- and every hand-played session would
-        // therefore have replayed against an EMPTY world and diverged at Tick 0, with nothing in
-        // the file to explain it. Borough.Headless has recorded the population as a Command since
-        // slice 6 (Session.Load); the shell just did not.
-        //
-        // ⚠ IT COSTS ONE TICK, AND THAT IS THE HEADLESS RUNNER'S BEHAVIOUR RATHER THAN A CHARGE.
-        // A Command applies at the top of a Tick, so a world populated by one is populated during
-        // Tick 0 and the readout opens at Tick 1. A shell that opened at Tick 0 with a city in it
-        // would be one Tick ahead of the runner for the whole session.
-        //
-        // 🔴 AND IT IS BEHIND --empty, BECAUSE UNTIL IT WAS THERE WAS NO PATH TO A WORLD A PLAYER
-        // BUILT. adr/0090 gives the generator terrain, Woodland, hazard and the Outside Connections
-        // with their stubs -- "nothing else" -- and gives the player every road; 00-vision pillar 3
-        // makes `connects` a player verb. Populate is the OTHER thing: Command.cs calls it a verb no
-        // player has and expects it to be deleted. It ran here unconditionally, so every screenshot,
-        // every balance run and every judgement anyone has made about how this city reads was taken
-        // on a synthetic lattice the design says will not exist, and CommandKind.Connect has never
-        // been WATCHED working.
-        //
-        // ⚠ THE DEFAULT IS THE WRONG WAY ROUND AND STAYS THAT WAY UNTIL SOMEBODY HAS PLAYED THE
-        // OTHER ONE. Flipping it re-points every drive script, every recipe in .claude/skills/drive
-        // and every reading that assumes a city is standing at Tick 1 -- so the opt-in is the honest
-        // first move and the flip is a separate decision with evidence behind it.
-        // ***A default nobody has looked past is not a default anybody chose.***
-        //
-        // ⚠ WHAT --empty IS FOR IS A READING RATHER THAN A PICTURE. plans/0002 §D2: a generated
-        // city's paved extent scales with the population it serves, so the same number sizes both
-        // the demand and the supply, and v/c peaks at 0.44 at 4,000, 16,000 and 64,000 Citizens
-        // alike -- which is why [traffic]'s three hash-bearing numbers named a ratifier, ran it, and
-        // could not fire. The question to put to a hand-built city is whether v/c ever exceeds it.
-        // ***A hand-drawn network can be WRONG, and a generated one structurally cannot be.***
-        //
-        // ⚠ AND --empty IS A DIFFERENT VERB RATHER THAN NO VERB. It used to skip the Command
-        // outright, which gave a world with no ground in it at all -- measured on flooded.toml at
-        // 500 Citizens: hazard 0, water 0, tree 0, where the populated world reports 11,063, 5,058
-        // and 3,512. That is not adr/0090's world either; that ADR gives the generator terrain,
-        // Woodland, hazard and the Outside Connections. CommandKind.Ground is the ground half on
-        // its own, so BOTH branches lay ground and only one lays a city -- and both spend exactly
-        // one Tick, which is why the fast-forward below counts from 1 either way.
-        var boot = new Command(
-            _empty ? CommandKind.Ground : CommandKind.Populate, default, default);
-
-        _log.Append(Ticks.Zero, boot);
-        _simulation.Step(new TickInput([boot], 0));
-
+    private void FinishRegenerate()
+    {
         // The four layers laid once rather than per frame. Ground is fixed to the map and would
         // survive, but it is re-laid with the others so that "what a rebuild redoes" is one list.
         Ground();
@@ -826,6 +777,6 @@ public partial class Main
 
         _owed = 0d;
         _tunerStatus.Text =
-            $"new city: {citizens:N0} Citizens, seed {seed}, {_world.Lots.Rows.LiveCount:N0} Lots.";
+            $"new city: {_citizens:N0} Citizens, seed {_seed}, {_world.Lots.Rows.LiveCount:N0} Lots.";
     }
 }

@@ -201,6 +201,41 @@ public partial class Main : Node3D
     private const float RoofRiseCeilingMetres = 4.5f;
     private const float EavesMetres = .35f;
 
+    /// <summary>
+    /// Past this, a plan is too wide for one domestic span. <b>The threshold was a literal.</b>
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Named rather than changed</b>, and it was <c>18f</c> written into <c>CapFor</c>'s second
+    /// line. It has always decided a majority of this city's roofs — measured on
+    /// <c>shopping.toml</c> at 400 Citizens, Tick 600: <b>42 of 52</b> Buildings are past it — so
+    /// what it selects is the ordinary case and not the exception its position implies.
+    /// </remarks>
+    private const float BroadSpanMetres = 18f;
+
+    /// <summary>
+    /// The fewest storeys a broad body needs before it reads as <b>two ranges</b> rather than one
+    /// low volume.
+    /// </summary>
+    /// <remarks>
+    /// <b>Three, and it is a judgement about a picture rather than a measurement.</b> A broad body
+    /// of three floors or more can carry two pitched spans and read as a perimeter block; one of
+    /// two cannot, because the paired roof then stands nearly half the height of the walls under it.
+    /// ⚠ <b>It moves no State Hash</b>, so <c>adr/0052</c> does not reach it — and it is refutable
+    /// by looking, which is how it was arrived at.
+    /// ⚠ <b>WHAT IT SELECTS IS NOT A SMALL SET.</b> Measured on <c>shopping.toml</c> at 400
+    /// Citizens, <b>16 of 52</b>; on <c>minimal.toml</c> at 1,000, <b>41 of 88</b>. ***That second
+    /// figure is a reading about the city and not about this constant*** — a 52×24 m body on two
+    /// storeys is 1,248 m² a floor, and <c>minimal</c> is full of them wearing a dwelling kind. The
+    /// roof stops pitching them; nothing here makes the footprint sensible.
+    /// </remarks>
+    private const int RangeStoreysLeast = 3;
+
+    /// <summary>How far a parapet stands above the wall head it caps, in metres.</summary>
+    private const float ParapetMetres = 0.9f;
+
+    /// <summary>How far a coping stands proud of the wall below it, in metres. <b>Not an eave.</b></summary>
+    private const float CopingMetres = .08f;
+
     /// <summary>The two roofing tones a Building draws between, in sRGB.</summary>
     /// <remarks>
     /// ⚠ <b>Two tones and a jitter, rather than one colour</b> — a terrace roofed in exactly one
@@ -214,6 +249,19 @@ public partial class Main : Node3D
         new(0.55f, 0.33f, 0.26f),   // clay tile, and the shell's original
         new(0.36f, 0.34f, 0.36f),   // slate
     ];
+
+    /// <summary>What a flat roof is covered in. <b>A third covering, and not a third tone.</b></summary>
+    /// <remarks>
+    /// 🔴 <b>A PARAPET WEARING CLAY TILE IS AN ASSEMBLY THAT DOES NOT EXIST</b>, and it is what the
+    /// first driven look at <see cref="Cap.Parapet"/> showed: sixteen flat terracotta trays, because
+    /// the deck took <see cref="Slate"/> like every other roof. Research pass 03 states the rule
+    /// directly — *an 11° membrane roof and a steep tiled roof are different assemblies* — and puts
+    /// a tiled detail on a flat deck in its own table of invalid combinations. ⚠ <b>So this is not
+    /// <see cref="Roofs"/>' third entry.</b> The two there are a WEIGHTED DRAW between coverings a
+    /// pitch can take; a membrane is not in that draw at all, and offering it as one would let a
+    /// pitched roof come up felt.
+    /// </remarks>
+    private static readonly Color Membrane = new(0.30f, 0.30f, 0.31f);
 
     /// <summary>How much of a Cell's Woodland becomes a drawn tree, at most.</summary>
     /// <remarks>
@@ -581,12 +629,11 @@ public partial class Main : Node3D
     /// <summary>The rung <c>space</c> returns to, and the one a fresh shell opens at.</summary>
     private const int DesignSpeed = 5;
 
-    private Simulation _simulation = null!;
-    private World _world = null!;
     private InstanceLayer _buildings = null!;
     private InstanceLayer _roofs = null!;
     private InstanceLayer _hips = null!;
     private InstanceLayer _pairedRoofs = null!;
+    private InstanceLayer _parapets = null!;
     private InstanceLayer _yards = null!;
     private InstanceLayer _trees = null!;
     private InstanceLayer _rocks = null!;
@@ -861,6 +908,7 @@ public partial class Main : Node3D
     private readonly List<ulong> _roofIds = [];
     private readonly List<ulong> _hipIds = [];
     private readonly List<ulong> _pairedRoofIds = [];
+    private readonly List<ulong> _parapetIds = [];
 
     private readonly List<ulong> _yardIds = [];
 
@@ -945,7 +993,7 @@ public partial class Main : Node3D
         (_rulesetPath, int citizens, ulong startAt, bool govern, _empty, string? drive,
             ulong quitAt, string? listen, string? record) = Arguments();
 
-        if (!Driven(drive, quitAt))
+        if (!ThreadArguments() || !Driven(drive, quitAt))
         {
             Stop(2);
 
@@ -994,87 +1042,16 @@ public partial class Main : Node3D
         _citizens = citizens;
         _seed = 0;
 
-        var key = WorldKey.FromSeed(_seed);
-
-        _world = new World(citizens, loaded.Ruleset, key) { Changes = new WorldChanges() };
-        _simulation = new Simulation(_world, key) { VerifyDecideWritesNothing = false };
-
-        _log = new InputLogBuilder(
-            _seed,
-            new WorldConfiguration(citizens),
-            RulesetFile.HashOfContent(System.Text.Encoding.UTF8.GetBytes(_toml)));
-
-        // 🔴 THE CITY ARRIVES THROUGH Simulation.Apply AND NOT BESIDE IT. This was
-        // SyntheticCity.PopulateInto called on the world directly, which is thousands of rows
-        // entering by a door the log does not account for -- and every hand-played session would
-        // therefore have replayed against an EMPTY world and diverged at Tick 0, with nothing in
-        // the file to explain it. Borough.Headless has recorded the population as a Command since
-        // slice 6 (Session.Load); the shell just did not.
-        //
-        // ⚠ IT COSTS ONE TICK, AND THAT IS THE HEADLESS RUNNER'S BEHAVIOUR RATHER THAN A CHARGE.
-        // A Command applies at the top of a Tick, so a world populated by one is populated during
-        // Tick 0 and the readout opens at Tick 1. A shell that opened at Tick 0 with a city in it
-        // would be one Tick ahead of the runner for the whole session.
-        //
-        // 🔴 AND IT IS BEHIND --empty, BECAUSE UNTIL IT WAS THERE WAS NO PATH TO A WORLD A PLAYER
-        // BUILT. adr/0090 gives the generator terrain, Woodland, hazard and the Outside Connections
-        // with their stubs -- "nothing else" -- and gives the player every road; 00-vision pillar 3
-        // makes `connects` a player verb. Populate is the OTHER thing: Command.cs calls it a verb no
-        // player has and expects it to be deleted. It ran here unconditionally, so every screenshot,
-        // every balance run and every judgement anyone has made about how this city reads was taken
-        // on a synthetic lattice the design says will not exist, and CommandKind.Connect has never
-        // been WATCHED working.
-        //
-        // ⚠ THE DEFAULT IS THE WRONG WAY ROUND AND STAYS THAT WAY UNTIL SOMEBODY HAS PLAYED THE
-        // OTHER ONE. Flipping it re-points every drive script, every recipe in .claude/skills/drive
-        // and every reading that assumes a city is standing at Tick 1 -- so the opt-in is the honest
-        // first move and the flip is a separate decision with evidence behind it.
-        // ***A default nobody has looked past is not a default anybody chose.***
-        //
-        // ⚠ WHAT --empty IS FOR IS A READING RATHER THAN A PICTURE. plans/0002 §D2: a generated
-        // city's paved extent scales with the population it serves, so the same number sizes both
-        // the demand and the supply, and v/c peaks at 0.44 at 4,000, 16,000 and 64,000 Citizens
-        // alike -- which is why [traffic]'s three hash-bearing numbers named a ratifier, ran it, and
-        // could not fire. The question to put to a hand-built city is whether v/c ever exceeds it.
-        // ***A hand-drawn network can be WRONG, and a generated one structurally cannot be.***
-        //
-        // ⚠ AND --empty IS A DIFFERENT VERB RATHER THAN NO VERB. It used to skip the Command
-        // outright, which gave a world with no ground in it at all -- measured on flooded.toml at
-        // 500 Citizens: hazard 0, water 0, tree 0, where the populated world reports 11,063, 5,058
-        // and 3,512. That is not adr/0090's world either; that ADR gives the generator terrain,
-        // Woodland, hazard and the Outside Connections. CommandKind.Ground is the ground half on
-        // its own, so BOTH branches lay ground and only one lays a city -- and both spend exactly
-        // one Tick, which is why the fast-forward below counts from 1 either way.
-        var boot = new Command(
-            _empty ? CommandKind.Ground : CommandKind.Populate, default, default);
-
-        _log.Append(Ticks.Zero, boot);
-        _simulation.Step(new TickInput([boot], 0));
-
-        // FAST-FORWARD BEFORE THE FIRST FRAME, and it is not a rung. The ladder is what a person
-        // watches at; this is how they get to the part worth watching. A flood on flooded.toml
-        // begins at Tick 4,096, which at the top rung is two and a half minutes of staring at a dry
-        // city -- and on a machine with no screen it is the difference between a photograph of a
-        // flood and a photograph of the coast.
-        //
-        // ⚠ IT STEPS THE SIMULATION AND SKIPS NOTHING. Every Tick runs, which is why it is slow and
-        // why it is correct: a world jumped to is a different world (adr/0003), and the whole point
-        // of a shell is to look at the one the headless runner would produce.
-        // FROM ONE, because the Populate Command above already ran Tick 0. A loop from zero would
-        // put the shell one Tick past the runner on every --start-at, which is the class of
-        // off-by-one a State Hash comparison finds and a photograph never does.
-        //
-        // ⚠ AND FROM ONE UNDER --empty TOO, WHICH IT WAS NOT WHEN THAT FLAG SKIPPED THE COMMAND.
-        // A boot that issues no verb steps no Tick, so the loop had to start from 0 and the start
-        // index was a conditional. CommandKind.Ground made it a constant again: both branches issue
-        // exactly one Command at Tick 0, so both have spent one Tick by the time this runs.
-        // ***A branch that changes WHICH verb boots costs nothing here; one that changes WHETHER a
-        // verb boots costs an off-by-one at every --start-at.***
-        for (ulong tick = 1; tick < startAt; tick++)
+        PrepareCity(loaded.Ruleset, citizens, _seed, startAt, simulation =>
         {
-            _simulation.Step(default);
-        }
+            InstallCity(simulation);
+            FinishReady(govern);
+            _sceneReady = true;
+        });
+    }
 
+    private void FinishReady(bool govern)
+    {
         // THE SEA FIRST AND THE FLOOD ON TOP OF IT, and the order is the draw order. A Hazard
         // Region Cell is dry ground that a flood reaches, so the two never cover the same Cell --
         // 🔴 THE GROUND IS PAINTED FIRST AND IT IS NOT DECORATION. Without it dry land is the
@@ -1180,7 +1157,8 @@ public partial class Main : Node3D
         _roofs = Layer(Roofing, RoofMeshes.Create(0), perInstance: true);
         _hips = Layer(Roofing, RoofMeshes.Create(1), perInstance: true);
         _pairedRoofs = Layer(Roofing, RoofMeshes.Create(2), perInstance: true);
-        foreach (var roof in new[] { _roofs, _hips, _pairedRoofs }) roof.Multimesh.UseCustomData = true;
+        _parapets = Layer(Roofing, RoofMeshes.Create(3), perInstance: true);
+        foreach (var roof in new[] { _roofs, _hips, _pairedRoofs, _parapets }) roof.Multimesh.UseCustomData = true;
 
         // THE COURTYARD. A block's middle cannot hold a Lot (adr/0078) and these are not Lots: an
         // outbuilding belongs to the Building in front of it and is drawn from its scramble, which
@@ -1223,6 +1201,12 @@ public partial class Main : Node3D
 
     public override void _Process(double delta)
     {
+        if (_preparation is not null)
+        {
+            PollPreparation();
+            return;
+        }
+
         // FIRST, AND ABOVE THE STOPPING CHECK. The frame this picture wants has now been drawn, and
         // a run ending on the same Tick it photographed must still get its photograph.
         if (_pendingShot is not null)
@@ -1244,39 +1228,33 @@ public partial class Main : Node3D
         }
 
         long frameStarted = System.Diagnostics.Stopwatch.GetTimestamp();
-        _owed += delta * Ladder[_rung];
-
-        // 🔴 A QUEUED COMMAND BUYS ONE TICK, EVEN PAUSED, and that is a decision rather than a slip.
-        // A Command applies at the top of a Tick because Simulation.Apply is the single door, so a
-        // verb pressed at rung 0 would otherwise sit and look broken until somebody started the
-        // clock. ***Every reference builder lets you edit while paused***, and the cost is that
-        // acting is the one input that moves a paused world -- by exactly one Tick, and the readout
-        // says which Tick it is.
-        if (_queued.Count > 0 && _owed < 1.0)
+        _owed = Math.Min(4, _owed + delta * Ladder[_rung]);
+        double stepMilliseconds = 0;
+        int stepped = 0;
+        try { _stepThread?.TryComplete(out stepMilliseconds, out stepped); }
+        catch (Exception error)
         {
-            _owed = 1.0;
+            GD.PrintErr(error.ToString());
+            Stop(1);
+            return;
         }
-
-        // 🔴 THE CLOCK IS CLAMPED AT THE NEXT COMMAND'S TICK, AND THAT IS WHAT MAKES A DRIVEN RUN
-        // REPRODUCIBLE. A frame steps as many Ticks as the rung and the frame time between them
-        // ask for, so a command drained on "the first frame at or past Tick T" lands on a
-        // different Tick on a different machine, at a different rung, or under a different load --
-        // which is plans/0048 F4, the defect tier 1 could not fix. Stepping no further than T
-        // makes the Tick a command lands on a property of the SCRIPT rather than of the host.
-        ulong until = _next < _drive.Length ? _drive[_next].At : ulong.MaxValue;
-
-        while (_owed >= 1.0 && _world.Tick.Raw < until)
+        if (_stepThread?.OwnsWorld == true)
         {
-            _simulation.Step(Ordered());
-            _owed -= 1.0;
+            Edge(delta);
+            FinishFrame(frameStarted, 0, 0, busy: true);
+            return;
         }
-
-        // ⚠ CLAMPED, because holding the clock at a command's Tick lets the debt run past a whole
-        // Tick where the loop above used to guarantee it could not. An alpha over 1 would place a
-        // Traveller past the Address it is walking to.
+        if (stepped > 0)
+            _batchTicks = Math.Clamp((int)(16 / Math.Max(1, stepMilliseconds / stepped)), 1, 4);
+        while (_atBoundary.TryDequeue(out Action? action))
+        {
+            action();
+            if (_stopping || _preparation is not null) return;
+        }
+        _presentedTick = _world.Tick.Raw;
         _alpha = new Ratio((int)(Math.Min(_owed, 0.999_99) * 65_536));
 
-        // AFTER the loop and not inside it, because a frame that steps many Ticks may lay many
+        // After collecting the batch: a frame that steps many Ticks may lay many
         // Streets and the Road Graph only has to be correct once a frame. Pave() is O(Segments) and
         // bordered.toml has 535,817 of them, so this is a walk worth doing on the frames that
         // earned it rather than on all of them.
@@ -1302,15 +1280,42 @@ public partial class Main : Node3D
         Draw(_alpha);
         Drive();
         Answer();
-        double elapsed = System.Diagnostics.Stopwatch.GetElapsedTime(frameStarted).TotalMilliseconds;
-        _frameCount++;
-        _frameMilliseconds += elapsed;
-        _frameMaximum = Math.Max(_frameMaximum, elapsed);
+        FinishFrame(frameStarted, stepMilliseconds, stepped);
+
+        // Submit only after every shell reader has finished. Captures and Drive barriers keep
+        // the published Tick stable until their frame has been observed.
+        if (_stopping || _preparation is not null || _pendingShot is not null) return;
+        if (_queued.Count > 0 && _owed < 1) _owed = 1;
+        ulong until = _next < _drive.Length ? _drive[_next].At : ulong.MaxValue;
+        int ticks = (int)Math.Min((ulong)Math.Min(_batchTicks, (int)_owed), until > _world.Tick.Raw ? until - _world.Tick.Raw : 0);
+        if (ticks == 0) return;
+        var input = Ordered();
+        _owed -= ticks;
+        if (_threaded)
+        {
+            _stepThread ??= new SimulationThread();
+            _stepThread.Start(_simulation.Step, input, ticks);
+        }
+        else
+        {
+            long started = System.Diagnostics.Stopwatch.GetTimestamp();
+            for (int tick = 0; tick < ticks; tick++) _simulation.Step(tick == 0 ? input : default);
+            double duration = System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+            _stepTime += duration;
+            _batchTicks = Math.Clamp((int)(16 / Math.Max(1, duration / ticks)), 1, 4);
+            _performanceTicks += ticks;
+        }
     }
 
     public override void _UnhandledInput(InputEvent @event)
     {
+        if (_preparation is not null || !_sceneReady) return;
         if (_helpPanel.Visible) return;
+        if (_stepThread?.OwnsWorld == true && @event is InputEventMouseButton { ButtonIndex: MouseButton.Left } queuedClick)
+        {
+            DeferredClick(queuedClick);
+            return;
+        }
         if (@event is InputEventMouseButton button)
         {
             if (button is { Pressed: true, ButtonIndex: MouseButton.WheelUp })
@@ -1348,7 +1353,7 @@ public partial class Main : Node3D
                     else if (Aim(button.Position) is { } ground)
                         Ui($"ground {ground.East.Raw} {ground.North.Raw}");
                 }
-                else if (Aim() is { } at)
+                else if (Aim(button.Position) is { } at)
                 {
                     Apply(new DriveCommand(
                         _world.Tick.Raw,
@@ -1371,7 +1376,7 @@ public partial class Main : Node3D
             // sentence, so an ordinary click records exactly what it always did.
             if (button is { Pressed: false, ButtonIndex: MouseButton.Left })
             {
-                if (Dragging(Aim()) is { } upTo)
+                if (Dragging(Aim(button.Position)) is { } upTo)
                 {
                     Apply(new DriveCommand(
                         _world.Tick.Raw,
@@ -1441,7 +1446,7 @@ public partial class Main : Node3D
         foreach (var shortcut in Shortcuts())
             if (shortcut.Keys.Contains(key.Keycode))
             {
-                shortcut.Action();
+                AtBoundary(shortcut.Action);
                 GetViewport().SetInputAsHandled();
                 return;
             }
@@ -1451,7 +1456,7 @@ public partial class Main : Node3D
     /// <summary>
     /// <c>--ruleset PATH</c>, <c>--citizens N</c>, <c>--start-at TICK</c>, <c>--govern</c>,
     /// <c>--empty</c>, <c>--drive PATH</c>, <c>--quit-at TICK</c>, <c>--listen PATH</c> and
-    /// <c>--record PATH</c>, after Godot's <c>--</c>.
+    /// <c>--record PATH</c>, <c>--route-workers 1..8</c> and <c>--main-thread-sim</c>, after Godot's <c>--</c>.
     /// </summary>
     /// <remarks>
     /// ⚠ <b>A shell reads the command line and the core does not.</b> Every string here is this
@@ -1561,6 +1566,13 @@ public partial class Main : Node3D
         // The socket file outlives the process, so leaving it behind makes the NEXT run fail to
         // bind and report an address in use -- a message about this run that reads as one about that
         // one.
+        _preparation?.Dispose();
+        _stepThread?.Dispose();
+        // Cancel and join before disposal: blocking Accept on macOS can keep Socket.Dispose
+        // waiting forever. Reads and reply waits also cancel when a driver leaves mid-command.
+        _channelStop?.Cancel();
+        _channelThread?.Join();
+        _channelStop?.Dispose();
         _listener?.Dispose();
         _listener = null;
 
@@ -1803,7 +1815,7 @@ public partial class Main : Node3D
             Record();
         }
 
-        GetTree().Quit();
+        Stop(0);
 
         return _rung;
     }

@@ -1,3 +1,4 @@
+using Borough.Core.Arithmetic;
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
 using Borough.Core.Tables;
@@ -67,6 +68,10 @@ public sealed class BuildingResidency
     /// initialisation pass that somebody will eventually forget.
     /// </remarks>
     private readonly int[] _head = new int[CellGrid.WorldCellCount];
+
+    private const int PrefixStride = CellGrid.WorldCells + 1;
+    private readonly int[] _prefix = new int[CellGrid.WorldCells * PrefixStride];
+    private readonly bool[] _prefixValid = new bool[CellGrid.WorldCells];
 
     private readonly int[] _tail = new int[CellGrid.WorldCellCount];
 
@@ -148,6 +153,7 @@ public sealed class BuildingResidency
         Array.Clear(_head);
         Array.Clear(_tail);
         Array.Clear(_count);
+        Array.Clear(_prefixValid);
         buildings.CellNext.Span.Clear();
 
         IndexList list = List(buildings);
@@ -178,6 +184,7 @@ public sealed class BuildingResidency
         {
             List(buildings).InsertOrdered(cell, building);
             _count[cell]++;
+            _prefixValid[IntegerMath.FloorDiv(cell, CellGrid.WorldCells)] = false;
         }
     }
 
@@ -198,6 +205,7 @@ public sealed class BuildingResidency
         {
             List(buildings).Remove(cell, building);
             _count[cell]--;
+            _prefixValid[IntegerMath.FloorDiv(cell, CellGrid.WorldCells)] = false;
         }
     }
 
@@ -288,19 +296,18 @@ public sealed class BuildingResidency
     /// </remarks>
     /// <param name="area">The box, in Cells. Clamped to the map.</param>
     /// <returns>The count, which is zero for an empty or off-map box.</returns>
-    public int CountIn(CellRect area)
+    public int CountIn(CellRect area, BuildingQueryWork? work = null)
     {
+        if (work is not null) { work.CountCalls++; }
         CellRect box = area.Clamp();
+        if (box.East.Raw >= box.EastEnd.Raw) { return 0; }
         int total = 0;
-
         for (int north = box.North.Raw; north < box.NorthEnd.Raw; north++)
         {
-            for (int east = box.East.Raw; east < box.EastEnd.Raw; east++)
-            {
-                total += _count[CellGrid.Index(new Cells(east), new Cells(north))];
-            }
+            int row = PrefixRow(north, work);
+            total += _prefix[row + box.EastEnd.Raw] - _prefix[row + box.East.Raw];
+            if (work is not null) { work.PrefixReads += 2; }
         }
-
         return total;
     }
 
@@ -316,40 +323,53 @@ public sealed class BuildingResidency
     /// <param name="buildings">The table whose slots come back.</param>
     /// <param name="ordinal">A position from zero, below <see cref="CountIn"/>.</param>
     /// <returns>The Building's slot, or <see cref="Rows.NoSlot"/> when the position is past the end.</returns>
-    public int NthIn(CellRect area, BuildingTable buildings, int ordinal)
+    public int NthIn(CellRect area, BuildingTable buildings, int ordinal, BuildingQueryWork? work = null)
     {
         ArgumentNullException.ThrowIfNull(buildings);
         ArgumentOutOfRangeException.ThrowIfNegative(ordinal);
-
+        if (work is not null) { work.CandidateCalls++; }
         CellRect box = area.Clamp();
-        Span<int> next = buildings.CellNext.Span;
+        if (box.East.Raw >= box.EastEnd.Raw) { return Rows.NoSlot; }
         int remaining = ordinal;
-
         for (int north = box.North.Raw; north < box.NorthEnd.Raw; north++)
         {
-            for (int east = box.East.Raw; east < box.EastEnd.Raw; east++)
+            int row = PrefixRow(north, work);
+            int before = _prefix[row + box.East.Raw];
+            int here = _prefix[row + box.EastEnd.Raw] - before;
+            if (work is not null) { work.PrefixReads += 2; }
+            if (remaining >= here) { remaining -= here; continue; }
+
+            int rank = before + remaining;
+            int low = box.East.Raw, high = box.EastEnd.Raw - 1;
+            while (low < high)
             {
-                int cell = CellGrid.Index(new Cells(east), new Cells(north));
-                int here = _count[cell];
-
-                if (remaining >= here)
-                {
-                    remaining -= here;
-                    continue;
-                }
-
-                int encoded = _head[cell];
-
-                for (int i = 0; i < remaining; i++)
-                {
-                    encoded = next[encoded - 1];
-                }
-
-                return encoded - 1;
+                int middle = low + IntegerMath.FloorDiv(high - low, 2);
+                if (work is not null) { work.PrefixReads++; }
+                if (_prefix[row + middle + 1] <= rank) { low = middle + 1; }
+                else { high = middle; }
             }
+            remaining = rank - _prefix[row + low];
+            if (work is not null) { work.PrefixReads++; work.CandidateLinks += remaining; }
+            int encoded = _head[CellGrid.Index(new Cells(low), new Cells(north))];
+            Span<int> next = buildings.CellNext.Span;
+            for (int i = 0; i < remaining; i++) { encoded = next[encoded - 1]; }
+            return encoded - 1;
         }
-
         return Rows.NoSlot;
+    }
+
+    // Preserve row-major ordinal selection; only the search for its Cell is accelerated.
+    private int PrefixRow(int north, BuildingQueryWork? work)
+    {
+        int row = north * PrefixStride;
+        if (_prefixValid[north]) { return row; }
+        int cell = north * CellGrid.WorldCells;
+        _prefix[row] = 0;
+        for (int east = 0; east < CellGrid.WorldCells; east++)
+        { _prefix[row + east + 1] = _prefix[row + east] + _count[cell + east]; }
+        _prefixValid[north] = true;
+        if (work is not null) { work.RebuiltCells += CellGrid.WorldCells; }
+        return row;
     }
 
     /// <summary>

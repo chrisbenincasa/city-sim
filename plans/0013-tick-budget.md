@@ -1172,3 +1172,9 @@ first version of `MapLayerFixtureTests` asserted that 16 scattered emitters woul
 map resident. It leaves **26%**. The ladder now prints every rung and the assertion is made where the
 measurement put it. Small, and exactly the shape `adr/0043` is about — the claim was cheap to check
 and was nearly shipped as an argument.
+
+`ProfileDump` (`--profile`) measures whole Ticks after ageing, with daily workload counters.
+`rulesets/stress-shopping.toml` exercises weekly work, physical shopping and congested car journeys;
+it does not price the individual consumers above or represent a balanced mature economy.
+The profiler excludes setup and reporting from Tick timings and reports the Decide guard setting.
+[`0067`](0067-aged-city-performance.md) owns the aged captures, population controls and Layers attribution.

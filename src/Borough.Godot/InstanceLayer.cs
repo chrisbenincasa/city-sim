@@ -7,8 +7,20 @@ namespace Borough.Shell;
 // Disposable shell storage. An entity/component key survives enumeration order changes.
 public partial class InstanceLayer : Node3D
 {
-    // PROVISIONAL: eight Cells per Chunk; never a limit on the world or on a batch.
-    public const float ChunkMetres = 1024f;
+    // PROVISIONAL: two Cells per Chunk; never a limit on the world or on a batch.
+    public static readonly float ChunkMetres = ComparisonChunkMetres();
+
+    private static float ComparisonChunkMetres()
+    {
+        if (System.Environment.GetEnvironmentVariable("BOROUGH_RENDER_PROFILE") is null) return 256f;
+        return System.Environment.GetEnvironmentVariable("BOROUGH_RENDER_CHUNK_METRES") switch
+        {
+            null or "256" => 256f,
+            "512" => 512f,
+            "1024" => 1024f,
+            _ => throw new ArgumentException("BOROUGH_RENDER_CHUNK_METRES must be 256, 512 or 1024."),
+        };
+    }
     public float DetailDistance { get; set; }
     public InstanceBuffer Multimesh { get; }
     public InstanceLayer() => Multimesh = new InstanceBuffer(this);

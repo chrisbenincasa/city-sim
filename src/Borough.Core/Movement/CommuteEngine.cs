@@ -75,6 +75,25 @@ public sealed class CommuteEngine
 {
     private readonly World _world;
     private readonly TripEngine _trips;
+    private RouteBatch? _batch;
+    private readonly TravelRequest[] _requests = new TravelRequest[RouteBatch.TripLimit];
+    private int _requestCount;
+    private int _workers = 1;
+    public int RouteWorkerCount
+    {
+        get => _workers;
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(value, 1);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(value, 8);
+            if (_workers == value) { return; }
+            _batch = value == 1 ? null : new RouteBatch(_world.Roads, value);
+            _workers = value;
+        }
+    }
+    public RouteBatchReading LastBatch => _batch is null ? default
+        : new(_batch.Prepared, _batch.Used, _batch.Fallback);
+    private readonly record struct TravelRequest(int Citizen, bool Homeward);
 
     /// <param name="world">The world whose Citizens commute.</param>
     /// <param name="trips">The one door a Trip is created through.</param>
@@ -106,6 +125,7 @@ public sealed class CommuteEngine
     /// </remarks>
     public void Generate(Ticks tick)
     {
+        _batch?.ResetReading();
         if (!_world.Rules.Jobs.Runs || !_world.Rules.Trips.Runs)
         {
             return;
@@ -118,9 +138,10 @@ public sealed class CommuteEngine
                 if (_world.Citizens.Rows.IsLive(who)
                     && (CitizenActivity)_world.Citizens.Activity[who] == CitizenActivity.AtWork
                     && !WorkSchedule.AwayTime(_world, who, tick))
-                { Travel(who, true, tick); }
+                { QueueTravel(who, true, tick); }
             }
         }
+        Flush(tick);
         int phase = (int)(tick.Raw % Ticks.PerDay);
         CitizenTable citizens = _world.Citizens;
 
@@ -133,14 +154,16 @@ public sealed class CommuteEngine
         {
             if (!WorkSchedule.Runs(_world) || WorkSchedule.DepartsToday(_world, citizen, tick))
             {
-                Travel(citizen, homeward: false, tick);
+                QueueTravel(citizen, homeward: false, tick);
             }
         }
+        Flush(tick);
 
         foreach (int citizen in _world.Commutes.Returning(citizens, phase))
         {
-            Travel(citizen, homeward: true, tick);
+            QueueTravel(citizen, homeward: true, tick);
         }
+        Flush(tick);
     }
 
     /// <summary>Starts one leg of one Citizen's commute, in whichever direction.</summary>
@@ -155,8 +178,44 @@ public sealed class CommuteEngine
         if (WorkSchedule.OnDuty(_world, citizen, tick)) { Travel(citizen, false, tick); }
     }
 
-    private void Travel(int citizen, bool homeward, Ticks tick)
+    private void QueueTravel(int citizen, bool homeward, Ticks tick)
     {
+        if (_batch is null || _world.Roads.Nodes.Rows.SlotCount < 256)
+        { Travel(citizen, homeward, tick); return; }
+        _requests[_requestCount++] = new(citizen, homeward);
+        if (_requestCount == _requests.Length) { Flush(tick); }
+    }
+
+    private void Flush(Ticks tick)
+    {
+        if (_requestCount == 0) { return; }
+        // Scheduling overhead has no useful work to amortize in a tiny window.
+        RouteBatch? batch = _requestCount >= 8 ? _batch : null;
+        try
+        {
+            if (batch is not null)
+            {
+                batch.Clear();
+                for (int i = 0; i < _requestCount; i++)
+                {
+                    var request = _requests[i];
+                    if (TryJourney(request.Citizen, request.Homeward, out int from, out int to, out TravelMode mode))
+                    { _trips.PrepareRoutes(batch, i, request.Citizen, from, to, mode); }
+                }
+                batch.Run();
+            }
+            for (int i = 0; i < _requestCount; i++)
+            {
+                var request = _requests[i];
+                Travel(request.Citizen, request.Homeward, tick, batch, i);
+            }
+        }
+        finally { _requestCount = 0; }
+    }
+
+    private bool TryJourney(int citizen, bool homeward, out int origin, out int destination, out TravelMode mode)
+    {
+        origin = destination = -1; mode = default;
         CitizenTable citizens = _world.Citizens;
 
         // ⚠ WHERE THEY ARE, and it is checked first because it is the cheapest test here and because
@@ -175,12 +234,12 @@ public sealed class CommuteEngine
         // A Citizen mid-journey is excluded by the same test, which is the second thing it buys: a
         // roster phase arriving while somebody is still walking would otherwise start a second Trip
         // under the first.
-        if (!homeward && CivicEngine.TooIllToWork(_world, citizen)) { return; }
+        if (!homeward && CivicEngine.TooIllToWork(_world, citizen)) { return false; }
         var standing = (CitizenActivity)citizens.Activity[citizen];
 
         if (standing != (homeward ? CitizenActivity.AtWork : CitizenActivity.AtHome))
         {
-            return;
+            return false;
         }
 
         // Two hops as of milestone 27 task 7: a Workplace is a Business, and a Business sits in
@@ -191,7 +250,7 @@ public sealed class CommuteEngine
             || !_world.Buildings.Rows.TryResolve(
                 _world.Businesses.Building[employer], out int workplace))
         {
-            return;
+            return false;
         }
 
         int home = HomeOf(citizen);
@@ -201,11 +260,19 @@ public sealed class CommuteEngine
         // own that runs at its own pace. Walking from nowhere is not the honest degradation.
         if (home < 0)
         {
-            return;
+            return false;
         }
 
-        TravelMode mode = _world.ModeOf(citizen);
-        (int origin, int destination) = homeward ? (workplace, home) : (home, workplace);
+        mode = _world.ModeOf(citizen);
+        (origin, destination) = homeward ? (workplace, home) : (home, workplace);
+
+        return true;
+    }
+
+    private void Travel(int citizen, bool homeward, Ticks tick, RouteBatch? batch = null, int index = 0)
+    {
+        if (!TryJourney(citizen, homeward, out int origin, out int destination, out TravelMode mode)) { return; }
+        CitizenTable citizens = _world.Citizens;
 
         // Set BEFORE Start rather than after, and it is not a style choice: every refusal inside
         // Start resolves through World.ResolveTrip on the spot, so a journey that is never made
@@ -215,7 +282,8 @@ public sealed class CommuteEngine
             ? CitizenActivity.TravellingHome
             : CitizenActivity.TravellingToWork);
 
-        _trips.Start(citizen, origin, destination, mode, TripPurpose.Commute, tick);
+        if (batch is null) { _trips.Start(citizen, origin, destination, mode, TripPurpose.Commute, tick); }
+        else { _trips.StartPrepared(citizen, origin, destination, mode, tick, batch, index); }
     }
 
     /// <summary>The Building a Citizen lives in, or <c>-1</c> if their Household is unplaced.</summary>

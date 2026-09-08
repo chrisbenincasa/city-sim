@@ -1,0 +1,2047 @@
+{
+  "archive": "viability-evidence.tar.gz",
+  "bytes": 5371485,
+  "sha256": "af2d18de8d8e400433238e1a558114866667b480b03d6c2191ed8c7a034fbf6c",
+  "files": [
+    {
+      "path": "WalkScratch.Direction.captured.cs",
+      "bytes": 3916,
+      "sha256": "361c031e963c36f25f90a134881028a24abe09b11d2370435c529fc86b3fe8c7"
+    },
+    {
+      "path": "WalkScratch.before.cs",
+      "bytes": 25342,
+      "sha256": "e5eea2e6705225a98f3435a5c5aa3e2e7acb348fd1d0855e3f6f9d5d511d82be"
+    },
+    {
+      "path": "archive-verification.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "archive.py",
+      "bytes": 2759,
+      "sha256": "e9f45aa10b6b21933d4c5c1f07fdf20c33f50bbdbc142fa3e1d0d0f8e9698244"
+    },
+    {
+      "path": "assertions.log",
+      "bytes": 4904,
+      "sha256": "aade7a05060d91483020a2fbcf4f5cd226fae4985b6c631e939a4c4e7ba37d7c"
+    },
+    {
+      "path": "build.log",
+      "bytes": 595,
+      "sha256": "12dcdf3588eacc9f7f05ffa19ce1b37b15893d2a18774e3e94929ed3f2dfeb4c"
+    },
+    {
+      "path": "capture.py",
+      "bytes": 1975,
+      "sha256": "4d1ac7794197cc8a3dce6e82256aba1bb86de537551f718d01818180733f0d2a"
+    },
+    {
+      "path": "captures.log",
+      "bytes": 829,
+      "sha256": "c044677323b73a645ace0f2c298bd5f427f296d8ebefbef361996091f92fb155"
+    },
+    {
+      "path": "checkpoints.json",
+      "bytes": 697,
+      "sha256": "e2818c5683fbebfa9f70797971a3454e09f8878778d4f307d94d167643c1c48e"
+    },
+    {
+      "path": "checks.json",
+      "bytes": 18092,
+      "sha256": "d42472cd96663623d93c8325180eaad062f5d0036fc4803eb954eebaf4996f64"
+    },
+    {
+      "path": "civic-check.json",
+      "bytes": 182,
+      "sha256": "79397e7bb636fc25cc329512728e543503aa426240a081eec45097bf2ad4740a"
+    },
+    {
+      "path": "civic-counted.log",
+      "bytes": 106,
+      "sha256": "db06f759da43280dee3afb2f666e3145207e490946cef712ce87580dc585bc21"
+    },
+    {
+      "path": "civic-counted.py",
+      "bytes": 1590,
+      "sha256": "5373dd56777fb7af3bb95388fd7ec4a5b47bb5c0f15a809f69bb008a36272a14"
+    },
+    {
+      "path": "closeout-build/Borough.Core.dll",
+      "bytes": 692736,
+      "sha256": "dca4df8abf0950ee8081a2a29b9fd73a9268d02639e51e993f294e5d18553ce9"
+    },
+    {
+      "path": "closeout-build/Borough.Core.pdb",
+      "bytes": 233172,
+      "sha256": "0c23429483f6720300f0e06190560b4b53df7614d2b5bbc1bb8a903e378e612e"
+    },
+    {
+      "path": "closeout-build/Borough.Formats.dll",
+      "bytes": 323072,
+      "sha256": "3eb1476f282cff0e1202a6869bbe45fe5af6532cdcf5eaf0b54e5e6ded582e4c"
+    },
+    {
+      "path": "closeout-build/Borough.Formats.pdb",
+      "bytes": 44196,
+      "sha256": "2ed39baa3592b7cfbfc9ebea0e2cf502505807196bdae385e487f7b9b9010eac"
+    },
+    {
+      "path": "closeout-build/Borough.Headless",
+      "bytes": 124712,
+      "sha256": "ed7beb189f7e1ee21aca162054584ea2ac450aad2359cf29f293e905f9119148"
+    },
+    {
+      "path": "closeout-build/Borough.Headless.deps.json",
+      "bytes": 1709,
+      "sha256": "89252d4cf47de09666c91c9ce1b46a888399f895e26c904097e1c672469cae56"
+    },
+    {
+      "path": "closeout-build/Borough.Headless.dll",
+      "bytes": 451584,
+      "sha256": "8acd13684d265f357e209a86e0054b26b39d1005bc66f32710dcf66967edcc93"
+    },
+    {
+      "path": "closeout-build/Borough.Headless.pdb",
+      "bytes": 82792,
+      "sha256": "8063331198a211f307a2624060835edb1822a449aea159453a6e3feecd979d76"
+    },
+    {
+      "path": "closeout-build/Borough.Headless.runtimeconfig.json",
+      "bytes": 435,
+      "sha256": "52eccff0b97c55480c64b3a6d8dcb244f5fd098d0645dba8581d3e2190d4ea4a"
+    },
+    {
+      "path": "closeout-build/Tomlyn.dll",
+      "bytes": 323072,
+      "sha256": "2366b14ae842bf9d4eadf206c8b20c7c2217ff75b5f4567999c5c7a9caae6dea"
+    },
+    {
+      "path": "closeout.log",
+      "bytes": 193,
+      "sha256": "ce35af135de9bdcf048d5fa7f9e9452a09219050a3894a36a897623a1234a062"
+    },
+    {
+      "path": "closeout.py",
+      "bytes": 1692,
+      "sha256": "724611600c5a23943515eb628c5d923afb1820cdec86e749222c711e4e699798"
+    },
+    {
+      "path": "count-and-small.log",
+      "bytes": 754,
+      "sha256": "8f9fab6a4a7eaf8f672201bafc709fc48a1bad2a1586f1b4fe3088c83dfdb8f6"
+    },
+    {
+      "path": "count-and-small.py",
+      "bytes": 1792,
+      "sha256": "432b1218762c7578f20e10a63527107f5375646b11e3dcb277b49be37df1514d"
+    },
+    {
+      "path": "directed-build/Borough.Core.dll",
+      "bytes": 692224,
+      "sha256": "a3201003c200b49b42cf5b05403e33e25ecd4e95881a4dcba8c07648275ba21d"
+    },
+    {
+      "path": "directed-build/Borough.Core.pdb",
+      "bytes": 233092,
+      "sha256": "8811fd8543c23ef5bd1f0235e8b6d5c0102cadafece35065e1767eb4deeabe71"
+    },
+    {
+      "path": "directed-build/Borough.Formats.dll",
+      "bytes": 323072,
+      "sha256": "57164b3c61069db71c01f5eca96f06f13e23dee4b03b4a598fc14988e02d49f1"
+    },
+    {
+      "path": "directed-build/Borough.Formats.pdb",
+      "bytes": 44196,
+      "sha256": "b34b867a0fb52cab449030e9aa8deabbee3e645f8e3ec03e8a544d6d65b3957e"
+    },
+    {
+      "path": "directed-build/Borough.Headless",
+      "bytes": 124712,
+      "sha256": "ed7beb189f7e1ee21aca162054584ea2ac450aad2359cf29f293e905f9119148"
+    },
+    {
+      "path": "directed-build/Borough.Headless.deps.json",
+      "bytes": 1709,
+      "sha256": "89252d4cf47de09666c91c9ce1b46a888399f895e26c904097e1c672469cae56"
+    },
+    {
+      "path": "directed-build/Borough.Headless.dll",
+      "bytes": 450560,
+      "sha256": "80d26c5a2b8edfbdd9bf133babbc6d51a71dea6d68fa0d84ade732da20e935dd"
+    },
+    {
+      "path": "directed-build/Borough.Headless.pdb",
+      "bytes": 82704,
+      "sha256": "3273f6a81bc50087156f7136c988256b9d2c7e816662e293e58f7aca5be542e2"
+    },
+    {
+      "path": "directed-build/Borough.Headless.runtimeconfig.json",
+      "bytes": 435,
+      "sha256": "52eccff0b97c55480c64b3a6d8dcb244f5fd098d0645dba8581d3e2190d4ea4a"
+    },
+    {
+      "path": "directed-build/Tomlyn.dll",
+      "bytes": 323072,
+      "sha256": "2366b14ae842bf9d4eadf206c8b20c7c2217ff75b5f4567999c5c7a9caae6dea"
+    },
+    {
+      "path": "directed-oracle.log",
+      "bytes": 1417,
+      "sha256": "64ea250d738d863d835916c592703df66d4a6f8732891fc837ef7426df87e301"
+    },
+    {
+      "path": "directed-tests.log",
+      "bytes": 2419,
+      "sha256": "653a9e24fe1568abbd3a2cc5cd7381a5dcc31baaf4c3a4456b1a21274462d82f"
+    },
+    {
+      "path": "economy-1000.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "economy-1000.jsonl",
+      "bytes": 20800,
+      "sha256": "99f12eed81ab2faf92a599e16bfa37b6b6540ed7a0aaa3365a2a6d338428dad5"
+    },
+    {
+      "path": "economy-functional-1000.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "economy-functional-1000.jsonl",
+      "bytes": 20785,
+      "sha256": "b6295f65ed597d24b55dbaee56e1317643f2b6e5dd0a8a6e5e1b81d13a4558b4"
+    },
+    {
+      "path": "edit.py",
+      "bytes": 2444,
+      "sha256": "7f53ae19e9eb4963b2b8584cd3e4de403092e9e6b2968ec9240d9d60a2666e04"
+    },
+    {
+      "path": "final-assertions.log",
+      "bytes": 1713,
+      "sha256": "1d5463ece7dde56647cd4e3f98a75acb88ca0a8c95d417cd5fcbc9c5bf1a0812"
+    },
+    {
+      "path": "final-build/Borough.Core.dll",
+      "bytes": 692224,
+      "sha256": "896f95a70efcb7047ad4a08d38f3563c7916d050172a7137dca873515e68e720"
+    },
+    {
+      "path": "final-build/Borough.Core.pdb",
+      "bytes": 233112,
+      "sha256": "6af1cc6ac001e02e09d22a14e9ae8372a3a4e263a014cc36dabf0e9084a53441"
+    },
+    {
+      "path": "final-build/Borough.Formats.dll",
+      "bytes": 323072,
+      "sha256": "57164b3c61069db71c01f5eca96f06f13e23dee4b03b4a598fc14988e02d49f1"
+    },
+    {
+      "path": "final-build/Borough.Formats.pdb",
+      "bytes": 44196,
+      "sha256": "b34b867a0fb52cab449030e9aa8deabbee3e645f8e3ec03e8a544d6d65b3957e"
+    },
+    {
+      "path": "final-build/Borough.Headless",
+      "bytes": 124712,
+      "sha256": "ed7beb189f7e1ee21aca162054584ea2ac450aad2359cf29f293e905f9119148"
+    },
+    {
+      "path": "final-build/Borough.Headless.deps.json",
+      "bytes": 1709,
+      "sha256": "89252d4cf47de09666c91c9ce1b46a888399f895e26c904097e1c672469cae56"
+    },
+    {
+      "path": "final-build/Borough.Headless.dll",
+      "bytes": 450560,
+      "sha256": "e035f7702500c58756fd464f1de7095d01ce22e661df430bce2a2f0b653f204c"
+    },
+    {
+      "path": "final-build/Borough.Headless.pdb",
+      "bytes": 82704,
+      "sha256": "6c17fc786e5c7be7875e4926603965aef87c54dcb320016fd1f35c640dfa703d"
+    },
+    {
+      "path": "final-build/Borough.Headless.runtimeconfig.json",
+      "bytes": 435,
+      "sha256": "52eccff0b97c55480c64b3a6d8dcb244f5fd098d0645dba8581d3e2190d4ea4a"
+    },
+    {
+      "path": "final-build/Tomlyn.dll",
+      "bytes": 323072,
+      "sha256": "2366b14ae842bf9d4eadf206c8b20c7c2217ff75b5f4567999c5c7a9caae6dea"
+    },
+    {
+      "path": "final-corpus.log",
+      "bytes": 1409,
+      "sha256": "1db1ba1cf9bbedf81ef0da9656db5ee77b69c7d50e19aa9c4c255533903bcf00"
+    },
+    {
+      "path": "fixture-checks.log",
+      "bytes": 1442,
+      "sha256": "9775afc072787f6d439146aafd8590e43717eca08f3258dd51ab5bf6082addec"
+    },
+    {
+      "path": "focused.log",
+      "bytes": 6398,
+      "sha256": "94dcf055e2b3e5b4a56cee7aa923aeda38045d011ad0976db2a7239cdbc98e66"
+    },
+    {
+      "path": "focused2.log",
+      "bytes": 2394,
+      "sha256": "2795208fbb23428e5e2266987d0bfd7782e8d2acd5a61e10987c0cc70c6b8057"
+    },
+    {
+      "path": "hundred-0-after-command.json",
+      "bytes": 919,
+      "sha256": "df018a4d5ad0f34f41b0aa87f6f4a9f2c8e7e235f9a18dcdbd5f04828c5d7291"
+    },
+    {
+      "path": "hundred-0-after.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "hundred-0-after.jsonl",
+      "bytes": 2577,
+      "sha256": "cffb6ec76a1b4f2fda3cf177ffa0892298db1ca2d1893b91da4cadcca887d60b"
+    },
+    {
+      "path": "hundred-0-before-command.json",
+      "bytes": 919,
+      "sha256": "e72aaf0fab0b4d9533a2eb1a99af5c48929669473c952028880fc079fa2ce5ee"
+    },
+    {
+      "path": "hundred-0-before.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "hundred-0-before.jsonl",
+      "bytes": 2577,
+      "sha256": "28e3e62a5d702093706e3a352bb0bd908cd83f3e8e35697ee07801bfbcb902f9"
+    },
+    {
+      "path": "hundred-1-after-command.json",
+      "bytes": 919,
+      "sha256": "29167ff5afb833d3b543760961a58dcf0028981a55bf19b333a01b454936fb2f"
+    },
+    {
+      "path": "hundred-1-after.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "hundred-1-after.jsonl",
+      "bytes": 2577,
+      "sha256": "044d1a7550b00b1ced6275582ec0cc012966b38ab52ad12d123cffe6ce56ac2a"
+    },
+    {
+      "path": "hundred-1-before-command.json",
+      "bytes": 919,
+      "sha256": "50dc15893478fe8637b72dc91dc62e6e758f54c8fac6601c358057eccac87fae"
+    },
+    {
+      "path": "hundred-1-before.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "hundred-1-before.jsonl",
+      "bytes": 2577,
+      "sha256": "252705aed0d238859631e20390d80369daeca310334e07b591ec727538047392"
+    },
+    {
+      "path": "hundred-counted-after-command.json",
+      "bytes": 941,
+      "sha256": "38d82ffd971530bfc7e10b3d3df983c252640e4adbab77a6e2681ae8e2d07e29"
+    },
+    {
+      "path": "hundred-counted-after.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "hundred-counted-after.jsonl",
+      "bytes": 2292112,
+      "sha256": "cd965cb14c726806ca07769599693fe233cce7f1ab400b3342d30362577f6974"
+    },
+    {
+      "path": "hundred-counted-before-command.json",
+      "bytes": 941,
+      "sha256": "4927b9a4bed6b81cb12bcda55c35fb900971d08cc45808ad6115ac695dcf0141"
+    },
+    {
+      "path": "hundred-counted-before.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "hundred-counted-before.jsonl",
+      "bytes": 2438135,
+      "sha256": "96f80d73ee674c78d8bf2bbf2be309657ddc8efcc6e02e495f8f6943e3e88b9f"
+    },
+    {
+      "path": "hundred-final-command.json",
+      "bytes": 922,
+      "sha256": "52d9a36e2fcb82c4337b549ee6c0943def2f2d459f00a12b01308c06e75b5809"
+    },
+    {
+      "path": "hundred-final.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "hundred-final.jsonl",
+      "bytes": 2679,
+      "sha256": "9483c62b0f2234b332f63bb7cba36a1e47d52807294e80cde812f2632d3cbd44"
+    },
+    {
+      "path": "logs/borough-test-20260907-235449.log",
+      "bytes": 5658,
+      "sha256": "adcc6e201bdc528550960ff88bc52eca029b385576daf2b40d418fe89af83a49"
+    },
+    {
+      "path": "logs/borough-test-20260907-235701.log",
+      "bytes": 1768,
+      "sha256": "a135c44c6aaa6ad64e2926416413f84ee57cbaa0aeb509bcfb3fb3f37fc0778b"
+    },
+    {
+      "path": "logs/borough-test-20260907-235936.log",
+      "bytes": 1769,
+      "sha256": "e1afb27a60ef52cdd0c6aec6993966f959730f09f97c8d790d9ca501e5a3996c"
+    },
+    {
+      "path": "logs/borough-test-20260908-000051.log",
+      "bytes": 994,
+      "sha256": "1b4ed99d7f597b12f0af338fa9bcf2d18e1eaedadb88c4ecb968cf47badc1ff4"
+    },
+    {
+      "path": "logs/borough-test-20260908-000152.log",
+      "bytes": 4115,
+      "sha256": "c1bf41a560cc5e8be8a145750f7fd0624ffe70a70cc9411c887cebc9f07e23e5"
+    },
+    {
+      "path": "logs/borough-test-20260908-000534.log",
+      "bytes": 992,
+      "sha256": "c0ffb17f1db2658cc9ea9e9c714f224ad39b157e2d1917a8e64d55edddb3faa6"
+    },
+    {
+      "path": "logs/borough-test-20260908-002157.log",
+      "bytes": 995,
+      "sha256": "ebfce39fd334a5efceac666a3e10985dceebcc454e65909e0d98c8a22d6643bd"
+    },
+    {
+      "path": "logs/borough-test-20260908-002828.log",
+      "bytes": 994,
+      "sha256": "f5b71fa1a5f8c99add44050ba8a401fab87b0d709669f52d51a05df8a7526815"
+    },
+    {
+      "path": "million-8-after-command.json",
+      "bytes": 921,
+      "sha256": "db9804933fcc8cc0d1423b168508522bff6009dd5637ef8723d67bfa4ce1a6fc"
+    },
+    {
+      "path": "million-8-after.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "million-8-after.jsonl",
+      "bytes": 2611,
+      "sha256": "e7a978dd741cc2c3e6ad2a323793baa9ec4fe782c77397e2db3ed64ecfc22c20"
+    },
+    {
+      "path": "million-8-before-command.json",
+      "bytes": 921,
+      "sha256": "fea3d3b61e0904cd01bd2084b5fd16b693afc36d78dcd97ec98e64031fbea838"
+    },
+    {
+      "path": "million-8-before.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "million-8-before.jsonl",
+      "bytes": 2611,
+      "sha256": "f873e50223734c456fb62000af5bc0c6c8179ec0e4323d73b8a90a9a3d9a6868"
+    },
+    {
+      "path": "million-reuse.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "million-reuse.jsonl",
+      "bytes": 4475,
+      "sha256": "0006c92f4b4232f52364d8f125904062521ca84b161660a1480561982de4a88a"
+    },
+    {
+      "path": "probe-build/Borough.Core.dll",
+      "bytes": 690176,
+      "sha256": "69db47adea571680763822292f2e053c43c7848d4c69aba41fdb438e0d5d4123"
+    },
+    {
+      "path": "probe-build/Borough.Core.pdb",
+      "bytes": 232092,
+      "sha256": "f8da1979366235ca6a52248686645862327e60c265dab8a677aeddf0f2efbffe"
+    },
+    {
+      "path": "probe-build/Borough.Formats.dll",
+      "bytes": 323072,
+      "sha256": "7af971f746704ef3b7d0b8be36ece58b5cddecd213884ebd9416d093ad905bb1"
+    },
+    {
+      "path": "probe-build/Borough.Formats.pdb",
+      "bytes": 44196,
+      "sha256": "824c7b495b5c2fa3318028801bb456f6de27700ed3601ed23ad09c46b47429d3"
+    },
+    {
+      "path": "probe-build/Borough.Headless",
+      "bytes": 124712,
+      "sha256": "ed7beb189f7e1ee21aca162054584ea2ac450aad2359cf29f293e905f9119148"
+    },
+    {
+      "path": "probe-build/Borough.Headless.deps.json",
+      "bytes": 1709,
+      "sha256": "89252d4cf47de09666c91c9ce1b46a888399f895e26c904097e1c672469cae56"
+    },
+    {
+      "path": "probe-build/Borough.Headless.dll",
+      "bytes": 450560,
+      "sha256": "db4f6016e91ee176f801b1818d45a83d63e17bbb41ae0c6cea66166f8704a9d0"
+    },
+    {
+      "path": "probe-build/Borough.Headless.pdb",
+      "bytes": 82704,
+      "sha256": "8894d2ecdb5dcf9d69451d55676dec3c5e844003559afb80db74307460b732bc"
+    },
+    {
+      "path": "probe-build/Borough.Headless.runtimeconfig.json",
+      "bytes": 435,
+      "sha256": "52eccff0b97c55480c64b3a6d8dcb244f5fd098d0645dba8581d3e2190d4ea4a"
+    },
+    {
+      "path": "probe-build/Tomlyn.dll",
+      "bytes": 323072,
+      "sha256": "2366b14ae842bf9d4eadf206c8b20c7c2217ff75b5f4567999c5c7a9caae6dea"
+    },
+    {
+      "path": "rejected-profile-economy.toml",
+      "bytes": 6474,
+      "sha256": "df07e689b11ee46454720925789e0da90799c8c57bc1fc551d5c86caff68f165"
+    },
+    {
+      "path": "services-1000.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "services-1000.jsonl",
+      "bytes": 10438,
+      "sha256": "3361d64d507eb0696d5038bff03c4c4ab3b1245496566a17afc4d4af8d0040af"
+    },
+    {
+      "path": "services-10000-command.json",
+      "bytes": 871,
+      "sha256": "edda7325d9e1134b7176b2df23ba3d8997aee9508038a62667820f6623e80d3a"
+    },
+    {
+      "path": "services-10000.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "services-10000.jsonl",
+      "bytes": 12364,
+      "sha256": "34094de473b075001f2c4fa65627df544d441c55678f682dfbc4711fb2998563"
+    },
+    {
+      "path": "services-aged-1000.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "services-aged-1000.jsonl",
+      "bytes": 12050,
+      "sha256": "c5865e7d74aa2ad0754685da83cca190f50ed25b68a2884f366f73e7683a8fc8"
+    },
+    {
+      "path": "services-counted-final-command.json",
+      "bytes": 894,
+      "sha256": "391662c4b3c2366a7067a6204f60ea97880f84c84c121b99d1fd69d01d40e4af"
+    },
+    {
+      "path": "services-counted-final.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "services-counted-final.jsonl",
+      "bytes": 2320172,
+      "sha256": "cc30ddc85fabf1187c8e79f9cee556faff4a0273a8fcdf8c309a94fb0f28a9d2"
+    },
+    {
+      "path": "services-no-facilities-final-command.json",
+      "bytes": 868,
+      "sha256": "4164072621857a160d3721af4395f6aa5664762ede89f68887c8698cb7441e36"
+    },
+    {
+      "path": "services-no-facilities-final.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "services-no-facilities-final.jsonl",
+      "bytes": 2307619,
+      "sha256": "b20616f3965e068692d3c158fc29f6b0cc46e730af4d5b8c0bf830fa410b47e2"
+    },
+    {
+      "path": "services-untraced-final.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "services-untraced-final.jsonl",
+      "bytes": 4794,
+      "sha256": "f3c496bb4e35182d394fcc7148bc3e32a72f96db902c1513e96e0bb91c92820f"
+    },
+    {
+      "path": "small-after-command.json",
+      "bytes": 914,
+      "sha256": "3437e17facbe7f6aea13f7944122125d3d04ea25da66f95470dc8f7de592490b"
+    },
+    {
+      "path": "small-after.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "small-after.jsonl",
+      "bytes": 9747,
+      "sha256": "382a74a1d394523d3b008d192f64679fa48f10a0d001e52d935f0804eb39145b"
+    },
+    {
+      "path": "small-before-command.json",
+      "bytes": 914,
+      "sha256": "af47aed0823ee399cfee4b9b46728f3ec7a07b83b019278b700d3e59881d7019"
+    },
+    {
+      "path": "small-before.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "small-before.jsonl",
+      "bytes": 9740,
+      "sha256": "7636bc0ca7bf78d1454113ce278425850cd1a2e4176a6868172d13b7837498cd"
+    },
+    {
+      "path": "small-no-tiering-after-command.json",
+      "bytes": 1042,
+      "sha256": "d3914cef24a7e0e40cbfab8c246dccdf16daed7c9a7e8970e99ae1194e87169b"
+    },
+    {
+      "path": "small-no-tiering-after.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "small-no-tiering-after.jsonl",
+      "bytes": 9745,
+      "sha256": "946c038fc85abdebead5007680f4d49a69d465e62b89e8fa06b0715a5d4848ca"
+    },
+    {
+      "path": "small-no-tiering-before-command.json",
+      "bytes": 1042,
+      "sha256": "cf72f109999dee8640ecca666f5d144c9b7880753760d589ed4779498f187a5b"
+    },
+    {
+      "path": "small-no-tiering-before.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "small-no-tiering-before.jsonl",
+      "bytes": 9742,
+      "sha256": "7f76d0ffb53dbdc0ba2e05b91737db3962e4eb9d02e01417ba9447dbe49c4a4e"
+    },
+    {
+      "path": "small-no-tiering.log",
+      "bytes": 593,
+      "sha256": "3f99f91a4c21b07ffbf90454ebe2389bed5991e4ab1092619aa502637941dc4b"
+    },
+    {
+      "path": "small-no-tiering.py",
+      "bytes": 1623,
+      "sha256": "b129e7f1d15d08cf2eb5b572cfeee437b82741440d7f59204e7a861f5012ddd5"
+    },
+    {
+      "path": "small-repeat-after-command.json",
+      "bytes": 914,
+      "sha256": "3437e17facbe7f6aea13f7944122125d3d04ea25da66f95470dc8f7de592490b"
+    },
+    {
+      "path": "small-repeat-after.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "small-repeat-after.jsonl",
+      "bytes": 9740,
+      "sha256": "02ca3ab25aa408090d30834700896d34b0756b8afc48c0b8182b0e039c2c4968"
+    },
+    {
+      "path": "small-repeat-before-command.json",
+      "bytes": 914,
+      "sha256": "af47aed0823ee399cfee4b9b46728f3ec7a07b83b019278b700d3e59881d7019"
+    },
+    {
+      "path": "small-repeat-before.err",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "small-repeat-before.jsonl",
+      "bytes": 9748,
+      "sha256": "1075f1bfcadc4ee75acdf27707bf890ad2887f158832f31bd3c00a6c141c7f32"
+    },
+    {
+      "path": "small-repeat.log",
+      "bytes": 573,
+      "sha256": "860b7da9cb0947073b0ede0ae1a8facee046e4e4f9d67d9672cbaf00e843b1d9"
+    },
+    {
+      "path": "small-repeat.py",
+      "bytes": 1619,
+      "sha256": "7cf0ad517e948e6d430609798e1d523e2e6b32fd3fc893a37da9fb68ce49e0cf"
+    },
+    {
+      "path": "source/Borough.slnx",
+      "bytes": 675,
+      "sha256": "daccb327349b34bdacebec993508e52ce6216b3cb17dfb1bf81cdb1af5ea45d9"
+    },
+    {
+      "path": "source/Directory.Build.props",
+      "bytes": 644,
+      "sha256": "3abd9ca7a3647d8ba454c3174a026e5e21e069309222c7911a7007e91e37a4f6"
+    },
+    {
+      "path": "source/global.json",
+      "bytes": 81,
+      "sha256": "b48d6da8fa62c0da7cc8a2da4ea036ac55836660a448ba533135abb5b8451b73"
+    },
+    {
+      "path": "source/plans/0067-aged-city-performance.md",
+      "bytes": 65045,
+      "sha256": "642c90b56e2b051e28ec157c033eb9b37c2b68490e8e0f0dc9dd63c65354a1e9"
+    },
+    {
+      "path": "source/rulesets/profile-services.toml",
+      "bytes": 6781,
+      "sha256": "b54663fd0303c5d15174070499e037b810bb716106092ec5f2d592084fe1c770"
+    },
+    {
+      "path": "source/rulesets/stress-shopping.toml",
+      "bytes": 4969,
+      "sha256": "2de63becd3932f2bbbba77163f32b2ca4cde0dffc688a95f0ded9676f52914b8"
+    },
+    {
+      "path": "source/src/Borough.Analysers/BannedArithmeticAnalyser.cs",
+      "bytes": 6894,
+      "sha256": "3cca71e24dbdf6dc88e16a2d27eb71d410bb41c9198e62783bf672f0b46ba06e"
+    },
+    {
+      "path": "source/src/Borough.Analysers/Borough.Analysers.csproj",
+      "bytes": 1825,
+      "sha256": "cb19a816c0e155be7fd6d4bd3d34f82a70d3d96b5796b58cbf5d0124514ac6de"
+    },
+    {
+      "path": "source/src/Borough.Analysers/CoreConventions.cs",
+      "bytes": 8271,
+      "sha256": "6594fe7c7a00e7ccb2f69de8b0a8d2b31478b9807c7d6b7af10bdcfffa0b3a7b"
+    },
+    {
+      "path": "source/src/Borough.Analysers/Diagnostics.cs",
+      "bytes": 15362,
+      "sha256": "957cb5b32d49844758dc7f7df8e44a1cc0dba4f7baa21fdcf2d27ebe0919214a"
+    },
+    {
+      "path": "source/src/Borough.Analysers/FloatingPointAnalyser.cs",
+      "bytes": 6552,
+      "sha256": "8f23d23416c737525c5cb2920726ac2771cbd1fbee943d8b5dde3087b0f6379a"
+    },
+    {
+      "path": "source/src/Borough.Analysers/HashMapOrderAnalyser.cs",
+      "bytes": 6156,
+      "sha256": "1146169cfd1d248e9ed55dcd80e4ca93b35296b7fa09f44137429d92bfc6c597"
+    },
+    {
+      "path": "source/src/Borough.Analysers/NondeterministicApiAnalyser.cs",
+      "bytes": 7000,
+      "sha256": "8e98e253e56c79e449671255dbbea8282a884e72bed4b562d991408f229ba079"
+    },
+    {
+      "path": "source/src/Borough.Analysers/PurposeTagAnalyser.cs",
+      "bytes": 5097,
+      "sha256": "377267955a16921d84a16dc529ff0edcb3bfe121f537331c3539ea7855f84afb"
+    },
+    {
+      "path": "source/src/Borough.Analysers/ScaledRatioAnalyser.cs",
+      "bytes": 8167,
+      "sha256": "a1bd710fa262ff84ce608271b6ad0bf56a5dd872f972d9fd4e410b2423b7c3d4"
+    },
+    {
+      "path": "source/src/Borough.Analysers/TableDeclarationAnalyser.cs",
+      "bytes": 3988,
+      "sha256": "3899b65ea9959a55347b9126d47ef8935e1b6c36105f0bc079b3a3864507239f"
+    },
+    {
+      "path": "source/src/Borough.Analysers/UnmanagedStateAnalyser.cs",
+      "bytes": 5199,
+      "sha256": "cff132d0b772cac3cded33189d01293a88ef9fe0f2e0bd577e41dc1dfe433d83"
+    },
+    {
+      "path": "source/src/Borough.Core/Arithmetic/Fixed.cs",
+      "bytes": 5255,
+      "sha256": "a0ac1b3c75ec6601164b8ad8eb6f1245642639d7bd991f3a7ba7c5f5fbddd1df"
+    },
+    {
+      "path": "source/src/Borough.Core/Arithmetic/IntegerMath.cs",
+      "bytes": 11539,
+      "sha256": "f7c035cffddcaddb82f4cda2371404a46945c540944fba7a4f26ac6535c0276f"
+    },
+    {
+      "path": "source/src/Borough.Core/Arithmetic/Transcendental.cs",
+      "bytes": 10907,
+      "sha256": "547aaca26bf1fce31d0972283dc48b17253c830873d28b060bd6025757359702"
+    },
+    {
+      "path": "source/src/Borough.Core/AssemblyMarker.cs",
+      "bytes": 145,
+      "sha256": "3d904cf6c36dd8462808ea0a142b4f1d3f0d49526c18949bdba8ca53c1aca011"
+    },
+    {
+      "path": "source/src/Borough.Core/Borough.Core.csproj",
+      "bytes": 1351,
+      "sha256": "6538d580a0fb7637c616d9c186b256930047c595b2780c4e86c0cf6db9683a69"
+    },
+    {
+      "path": "source/src/Borough.Core/ColdPathAttribute.cs",
+      "bytes": 2620,
+      "sha256": "d1932b0fcc329bdf3815576a31785fc8eb77c2479f9310fb149f1e7fafc770c7"
+    },
+    {
+      "path": "source/src/Borough.Core/Determinism/ContentHash.cs",
+      "bytes": 3448,
+      "sha256": "ed696eab13450e7b7b82135a9cc8b38531ea55234595ec10263c28da5bd515ac"
+    },
+    {
+      "path": "source/src/Borough.Core/Determinism/PurposeTag.cs",
+      "bytes": 48931,
+      "sha256": "e1cc78dd912652003efac88ee37427bff0d3c1d6125c1339d88bcbea889da39b"
+    },
+    {
+      "path": "source/src/Borough.Core/Determinism/Randomness.cs",
+      "bytes": 3841,
+      "sha256": "1c0b77e1194bf1f3881bc96073bf0bb29a663bf4e45555851cffb91193fd7784"
+    },
+    {
+      "path": "source/src/Borough.Core/Determinism/WorldKey.cs",
+      "bytes": 3843,
+      "sha256": "0ff22d3b67ba7ff6048acc6887153bc6a75a3149a9a2ed9a824091dc946c5046"
+    },
+    {
+      "path": "source/src/Borough.Core/Entities/BlockTable.cs",
+      "bytes": 6584,
+      "sha256": "bea905df43c5710e1d1959c95b279aad4db43a21510f6804712ef0b1d4da6473"
+    },
+    {
+      "path": "source/src/Borough.Core/Entities/BuildingTable.cs",
+      "bytes": 24075,
+      "sha256": "af1f5720652c008c34b0a926f10d54cdde0f53e4b85cbb510c5c904e47b85e04"
+    },
+    {
+      "path": "source/src/Borough.Core/Entities/BusinessTable.cs",
+      "bytes": 17553,
+      "sha256": "36a0364a7a09fa90962d50d499245a1021c5c140b63a8dca7b03ec89d61cc72b"
+    },
+    {
+      "path": "source/src/Borough.Core/Entities/CitizenActivity.cs",
+      "bytes": 4073,
+      "sha256": "2384ba62836e0c4298038ff66d57f5847cf77b7c33d920ec9064730f74d88d5a"
+    },
+    {
+      "path": "source/src/Borough.Core/Entities/CitizenTable.cs",
+      "bytes": 33429,
+      "sha256": "44d1b05131fe849ba16be1cb2206b9ffd85c342d25694f09de9a7c274ae0b652"
+    },
+    {
+      "path": "source/src/Borough.Core/Entities/ClockTable.cs",
+      "bytes": 2696,
+      "sha256": "07598b70c72ef30ec3b6ab5d0caf715d7ed60509a0c33e2d62158418eb3738db"
+    },
+    {
+      "path": "source/src/Borough.Core/Entities/Entities.cs",
+      "bytes": 9962,
+      "sha256": "b284e421b20abc9334ba45336323831a2bf8c29fa38a031a33ecabaecceec97c"
+    },
+    {
+      "path": "source/src/Borough.Core/Entities/HouseholdTable.cs",
+      "bytes": 18172,
+      "sha256": "eb16ca16ee65b93fcd43bd3f332653823f1de7ab585e3c81fd7853703dc4f768"
+    },
+    {
+      "path": "source/src/Borough.Core/Entities/LotSubdivider.cs",
+      "bytes": 28843,
+      "sha256": "fb259d8567c95c70337e512dfc333fc646a5336b435a3fe271147380d8756054"
+    },
+    {
+      "path": "source/src/Borough.Core/Entities/LotTable.cs",
+      "bytes": 23922,
+      "sha256": "a2a2d09377ca8efa759b4b975980777eb84a2b81aaa03fec183738e202f8f274"
+    },
+    {
+      "path": "source/src/Borough.Core/Entities/MoneyLedger.cs",
+      "bytes": 6907,
+      "sha256": "b69bc6cb8f0cd811bbcf077baf5547751d8020daef1bcfa8845e4e246da13e05"
+    },
+    {
+      "path": "source/src/Borough.Core/Entities/MoneySupplyTable.cs",
+      "bytes": 4701,
+      "sha256": "b935d8d1b02c192992f7c81a1af996d7224913fb258ca40b70265e3e5145c3d3"
+    },
+    {
+      "path": "source/src/Borough.Core/Entities/PolicyTable.cs",
+      "bytes": 8786,
+      "sha256": "3a23105fcc8e2e18e66c23510cf0b4feeb525ca48a26ac6e322b9f9051d3afa8"
+    },
+    {
+      "path": "source/src/Borough.Core/Entities/SyntheticCity.cs",
+      "bytes": 92801,
+      "sha256": "8ce83099a2f40d057b5b44dfd093accf146749f002e6ef28d76dff799b40f770"
+    },
+    {
+      "path": "source/src/Borough.Core/Entities/TreasuryTable.cs",
+      "bytes": 2826,
+      "sha256": "b8d038b027f2abfd74bd396dafde32397534bfbc7f83c9425767fc182e6717f2"
+    },
+    {
+      "path": "source/src/Borough.Core/Entities/UnplacedTable.cs",
+      "bytes": 14083,
+      "sha256": "eaae5d33df995ddfc463ffdaef0ba3e27d544d822ac2356b71e91b46f1d93ed2"
+    },
+    {
+      "path": "source/src/Borough.Core/Entities/UnpremisedTable.cs",
+      "bytes": 11042,
+      "sha256": "9312ac5a0086ed132dc1776f55f779e185749a6b2d0553bdba55d4629bc82122"
+    },
+    {
+      "path": "source/src/Borough.Core/Entities/World.cs",
+      "bytes": 403551,
+      "sha256": "7815f666a704fa843cfbe44f2480b9001ea7f33848f43796b4d8cc9bd3e39ca0"
+    },
+    {
+      "path": "source/src/Borough.Core/Entities/WorldChanges.cs",
+      "bytes": 957,
+      "sha256": "dcd8b15b71fc152054126aff4404aa6691b8ef7822f8e5a62a92fbed766a3af0"
+    },
+    {
+      "path": "source/src/Borough.Core/Evidence/BuildingEvidence.cs",
+      "bytes": 13349,
+      "sha256": "1851553250c2df0de27eec90293cea495ebcfca72c127b3f97e5567926e9958b"
+    },
+    {
+      "path": "source/src/Borough.Core/Evidence/CitizenEvidence.cs",
+      "bytes": 16807,
+      "sha256": "a4b0d60af8602010fb7c255368260ccc63675127780eefde638d8e82eb81dbf6"
+    },
+    {
+      "path": "source/src/Borough.Core/Evidence/Evidence.cs",
+      "bytes": 19105,
+      "sha256": "9fffe43274350126fa743d46a8cca6256dd65bc8304243fe1a509bf05a4c69ec"
+    },
+    {
+      "path": "source/src/Borough.Core/Evidence/LotEvidence.cs",
+      "bytes": 7700,
+      "sha256": "4faf1dee80b8f8d6f7a819c69e7d8f65374cdea4882878377f93d207e3c5e62b"
+    },
+    {
+      "path": "source/src/Borough.Core/Input/Command.cs",
+      "bytes": 31519,
+      "sha256": "58f9df5ad5fb7f8581a014c97579b7aa116343b253bda8dc9b9458c44cb6b0e3"
+    },
+    {
+      "path": "source/src/Borough.Core/Input/InputLog.cs",
+      "bytes": 8263,
+      "sha256": "4b2d537fe9a416defc3e2c538a8e05a7969664717f6025745ca75009084400d8"
+    },
+    {
+      "path": "source/src/Borough.Core/Input/InputLogBuilder.cs",
+      "bytes": 6278,
+      "sha256": "c33955da6de0ed4b6d28dbbd63f4faa968b6f8adc802f073c06aa3b292d166dc"
+    },
+    {
+      "path": "source/src/Borough.Core/Input/Refusal.cs",
+      "bytes": 5944,
+      "sha256": "59269237d95e12a0c72336c2a68821969ab6297557e150545d591b8696c8a4a5"
+    },
+    {
+      "path": "source/src/Borough.Core/Input/Replay.cs",
+      "bytes": 11219,
+      "sha256": "462cf84d953c922eeceda1cd40849d57e0e3dda5739fad14e8b354ff72ad37d0"
+    },
+    {
+      "path": "source/src/Borough.Core/Input/RulesetTransition.cs",
+      "bytes": 1669,
+      "sha256": "0de4fda22bec47ad8cb2f5a7e69cd3f84dfc3a6666edbf0b59214700f131db48"
+    },
+    {
+      "path": "source/src/Borough.Core/Input/WorldConfiguration.cs",
+      "bytes": 1577,
+      "sha256": "bdcd97fbf9a6f87059ac4847bc1ff752ef0718b278d8ec1bb2210e44958acb99"
+    },
+    {
+      "path": "source/src/Borough.Core/Instruments/Census.cs",
+      "bytes": 28395,
+      "sha256": "8efe74f42e413741dae19eddcf63ffc51bb5da2b72740f2dcb88090bb7e9a70a"
+    },
+    {
+      "path": "source/src/Borough.Core/Instruments/Metric.cs",
+      "bytes": 43491,
+      "sha256": "daa4ebbf54753ba587d1e9ede2bfde5f07980d7eecbaa41bd01e9b2fe95f510b"
+    },
+    {
+      "path": "source/src/Borough.Core/Instruments/Series.cs",
+      "bytes": 2900,
+      "sha256": "c6def9c1956d824394d7859afb070c89e5722684834b76edb7e7a41553b4578e"
+    },
+    {
+      "path": "source/src/Borough.Core/Invariants/Invariant.cs",
+      "bytes": 67573,
+      "sha256": "62840827f5506a07b2649fde2a63d3ceb27ed618bae68d197a902bd6714e73b0"
+    },
+    {
+      "path": "source/src/Borough.Core/Invariants/InvariantRegistry.cs",
+      "bytes": 9864,
+      "sha256": "c4c92ad3dde159f584c2239bcd040ffb9b933e5dc4a47c3f56cca7d2dfd67d3f"
+    },
+    {
+      "path": "source/src/Borough.Core/Invariants/UnbuiltAttribute.cs",
+      "bytes": 2038,
+      "sha256": "8889e01b3524ba906bd9837eda5c360057b5ce1e79dfc5dd6b11086a05c1b607"
+    },
+    {
+      "path": "source/src/Borough.Core/Invariants/Violation.cs",
+      "bytes": 3678,
+      "sha256": "bd72838c1b90ea78a5a2007450d9bcb58b128a4135fe9f6846e34e60b1c448c0"
+    },
+    {
+      "path": "source/src/Borough.Core/Invariants/WorldInvariants.cs",
+      "bytes": 83171,
+      "sha256": "c9efc98fe92644bbde8d05b0d09dc10d8de4c679398bbeb22f6262c5f3e19090"
+    },
+    {
+      "path": "source/src/Borough.Core/Movement/CommuteEngine.cs",
+      "bytes": 15281,
+      "sha256": "965696f67feb65f9626ea559d4b92fbad247378e3e64da937d487e597155a1c2"
+    },
+    {
+      "path": "source/src/Borough.Core/Movement/CommuteRoster.cs",
+      "bytes": 16225,
+      "sha256": "7d6da85ca9b538bc81fcc2752ffb451eff931ece8f3a6a993eaee4b2ab4b26fa"
+    },
+    {
+      "path": "source/src/Borough.Core/Movement/CommuteRung.cs",
+      "bytes": 3740,
+      "sha256": "85902584278d9459fa307ca41ba7ac5c73e373da89256fa5dc2663e7c065cb38"
+    },
+    {
+      "path": "source/src/Borough.Core/Movement/LegTable.cs",
+      "bytes": 10755,
+      "sha256": "3ed5b0653b750fc1398646684cbb6e675a205a5c423d2f42493124586ec2e283"
+    },
+    {
+      "path": "source/src/Borough.Core/Movement/RouteBatch.cs",
+      "bytes": 4350,
+      "sha256": "9b2a6f1dfc9673ac5ae18ec5b71c806eff479ac12ef7f2c099aff8a045b01aea"
+    },
+    {
+      "path": "source/src/Borough.Core/Movement/RouteBatchReading.cs",
+      "bytes": 121,
+      "sha256": "9c6f59988fab01673cebab3e2f21df84a2b8f4bb129fb8590d12a9edafa6de36"
+    },
+    {
+      "path": "source/src/Borough.Core/Movement/RouteCache.cs",
+      "bytes": 20914,
+      "sha256": "72790986896bdfa7fa9c86415c8425fef5dec545d342980a0ab5f56fc51c930b"
+    },
+    {
+      "path": "source/src/Borough.Core/Movement/RouteHopTable.cs",
+      "bytes": 6391,
+      "sha256": "c1025f65d11d6b12c13fae504e8f50ae02273b181fcf9facbda9d1bd1423aa23"
+    },
+    {
+      "path": "source/src/Borough.Core/Movement/RouteStaleness.cs",
+      "bytes": 8675,
+      "sha256": "fa031d00dddda3fd6e8fdbed9fc68f31f1bb8d16d0fe253f18bd65c405a5eba7"
+    },
+    {
+      "path": "source/src/Borough.Core/Movement/RouteWork.cs",
+      "bytes": 1038,
+      "sha256": "2ab4ead698a84dddf7dea108c947bbca6ab1b479ae1be37467129266faf6ba2d"
+    },
+    {
+      "path": "source/src/Borough.Core/Movement/ShoppingTable.cs",
+      "bytes": 2955,
+      "sha256": "f7370e6bffe9ea3e5ab60763103a97fda07c0b785fe47b3bc78155899c95e2b7"
+    },
+    {
+      "path": "source/src/Borough.Core/Movement/TravelTimeMatrix.cs",
+      "bytes": 12046,
+      "sha256": "7619d0227d63c3acfacd6b00d17d585f8e9f00c1249b1379e781aa1e71d0792e"
+    },
+    {
+      "path": "source/src/Borough.Core/Movement/TravellerTable.cs",
+      "bytes": 8328,
+      "sha256": "773255b02d9434dffb66cbecf2d5c1f1ec1cfcb113451184b487b362ec828721"
+    },
+    {
+      "path": "source/src/Borough.Core/Movement/TripEngine.cs",
+      "bytes": 50184,
+      "sha256": "0fecb6e8ccb421b243cd796fa5e0cb84e8decca23269507f089f874ef31c8e86"
+    },
+    {
+      "path": "source/src/Borough.Core/Movement/TripFate.cs",
+      "bytes": 4121,
+      "sha256": "caec046ebe8d1254fdeda8254f3d39a5d3c7d3d878eccb722ac839372bdc01fe"
+    },
+    {
+      "path": "source/src/Borough.Core/Movement/TripPurpose.cs",
+      "bytes": 11662,
+      "sha256": "3be20e95f3d2ff1eea35d1d544a876fb78c2666f787637da05cc5a6695863c62"
+    },
+    {
+      "path": "source/src/Borough.Core/Movement/TripTable.cs",
+      "bytes": 12527,
+      "sha256": "d838ff732b91189d0b531610324de3d7c85b5d151797ea0af9e116792645096d"
+    },
+    {
+      "path": "source/src/Borough.Core/Movement/VisibleAgents.cs",
+      "bytes": 11459,
+      "sha256": "742e8ee3fa46781e837ca1da014691a73322855cc67ffdb7550ca3a292bc9529"
+    },
+    {
+      "path": "source/src/Borough.Core/Movement/WalkRouting.cs",
+      "bytes": 16190,
+      "sha256": "c1956b2578d945566dbb7b988c20c7662f784d35ae204048a90f91275b8fabd0"
+    },
+    {
+      "path": "source/src/Borough.Core/Movement/WalkScratch.Direction.cs",
+      "bytes": 4096,
+      "sha256": "3b4a3058f512a18cc1592f22a0d7209d100d49f6e3ecbdd99d961127636001f3"
+    },
+    {
+      "path": "source/src/Borough.Core/Movement/WalkScratch.cs",
+      "bytes": 26152,
+      "sha256": "333f44577e2a3e58660936a5a1013d92ad6f6abe8ac151dfb475a2efc871d00d"
+    },
+    {
+      "path": "source/src/Borough.Core/Movement/WorkSchedule.cs",
+      "bytes": 3924,
+      "sha256": "bdb8bf5d032cea4a8055e6bf355b61b806dc2f9666d0b09e2ed462bca15a6072"
+    },
+    {
+      "path": "source/src/Borough.Core/Parking/CarParkResidency.cs",
+      "bytes": 7841,
+      "sha256": "e12c9a28b20bf749ab2739dbee1a85c754ccea94561acd6e8bc0db02c3b3d4c6"
+    },
+    {
+      "path": "source/src/Borough.Core/Parking/CarParkTable.cs",
+      "bytes": 10444,
+      "sha256": "6d76cf509713d0875935a3a090446184f53512b08735bdda10d063be4898ea25"
+    },
+    {
+      "path": "source/src/Borough.Core/Parking/ParkingShed.cs",
+      "bytes": 13232,
+      "sha256": "966fc3422a147eaf3c09b2dbbf9fa7ae3c1e2d0a8732b5db23d8d0898829608f"
+    },
+    {
+      "path": "source/src/Borough.Core/Parking/ShedScratch.cs",
+      "bytes": 12113,
+      "sha256": "c609de5d374317f18a09458ae796ca4aa90ecda725e2207a224514a5f30453eb"
+    },
+    {
+      "path": "source/src/Borough.Core/Persistence/SaveFile.cs",
+      "bytes": 11722,
+      "sha256": "6bcf5f9061b7919e83efe46fb4a909169927315d65ea980eff9eec97fdb7b493"
+    },
+    {
+      "path": "source/src/Borough.Core/Persistence/SaveHash.cs",
+      "bytes": 10007,
+      "sha256": "ad9ee734dcd1e94e8327ef4a76b9e89ef5ac56974f53b896f12182f5d6e7289c"
+    },
+    {
+      "path": "source/src/Borough.Core/Persistence/SaveHeader.cs",
+      "bytes": 15817,
+      "sha256": "4b08c679be6fdaf7dd5b3d09a6776ae68a1c5ee8c3ade8a595f66eb34f7beb89"
+    },
+    {
+      "path": "source/src/Borough.Core/Persistence/SaveStream.cs",
+      "bytes": 2551,
+      "sha256": "3dbe0803ca33d37f1adc73f5c8c5a2b71e045161c84ace95212231a6a2a7e152"
+    },
+    {
+      "path": "source/src/Borough.Core/Persistence/WorldSnapshot.cs",
+      "bytes": 4768,
+      "sha256": "0177a525781a512fa24957d97108792eb172371b974918c68da1e18be8deb11c"
+    },
+    {
+      "path": "source/src/Borough.Core/Quantities/Money.cs",
+      "bytes": 3136,
+      "sha256": "c4bb746ca1852f365110b854a1703e32d22d9ca07b0232f45bc9ec4e8d2b1c6a"
+    },
+    {
+      "path": "source/src/Borough.Core/Quantities/Ratio.cs",
+      "bytes": 3061,
+      "sha256": "1fed4fa82073641443516411c24f7bf158e4d1af82cf89efbff144956370d315"
+    },
+    {
+      "path": "source/src/Borough.Core/Quantities/Speed.cs",
+      "bytes": 9983,
+      "sha256": "ca554f62d1354f4925aafbe3dd5047f00e35d377194d1068c6e96729638175f9"
+    },
+    {
+      "path": "source/src/Borough.Core/Quantities/SubTiles.cs",
+      "bytes": 3054,
+      "sha256": "c6cf69e4f3d2bda15807b875354c654c172651c62a77846e32e30b64b76c4e6e"
+    },
+    {
+      "path": "source/src/Borough.Core/Quantities/Ticks.cs",
+      "bytes": 13616,
+      "sha256": "b4f53798acc14d7790d5af56b7b314abce328576b09c7d34546558414c5ac970"
+    },
+    {
+      "path": "source/src/Borough.Core/Quantities/Tiles.cs",
+      "bytes": 5951,
+      "sha256": "bdfcf82880c2df2e6881c124ff7a47f6994987b04d0355a3f9b997c70126a3dc"
+    },
+    {
+      "path": "source/src/Borough.Core/Quantities/TravelTime.cs",
+      "bytes": 11791,
+      "sha256": "e531c1d702497cfc8d47438dabab749bbd44326c5f3e054d7e9c04d9cdb94061"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/BinTable.cs",
+      "bytes": 15420,
+      "sha256": "dd82e7708cd91176eb39325d6ebbb3dda4861179bf1bdb2c240ed5de3b95c392"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/CareDayTable.cs",
+      "bytes": 774,
+      "sha256": "b7167ae6dd365bff44778a435598c78c01b66b366a64efa0f1e2e97c6fa7bb43"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/CareHistoryTable.cs",
+      "bytes": 1084,
+      "sha256": "ff797e60d390938ce7cbe10121d0a79172917faa3af8d69b97724bae58fb1ba5"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/CivicEngine.cs",
+      "bytes": 41686,
+      "sha256": "0178f6dad4efdb6fe8be3cefb293725590be2082db52d3dfc1df3d4ee57fb720"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/CivicRuleset.cs",
+      "bytes": 964,
+      "sha256": "89af78bf0ea7d280ca8423f2f1f73e0af423fac34fd3aff6e1e0e9608a32d243"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/CivicTable.cs",
+      "bytes": 2731,
+      "sha256": "90f2e346cf55cd47383398137768455a799309421f0fe90c5eaec85725599ee8"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/CondemnationTrailTable.cs",
+      "bytes": 15014,
+      "sha256": "0d7755f1133ea9714d2f198c0bc325cbccc642acf1a40e9776e5d85c9dd194b4"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/DisasterRuleset.cs",
+      "bytes": 3874,
+      "sha256": "6f0fc16ee20a84761744e97b6ec78db933c16fb5446d472251c6a92f31718143"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/EmploymentEngine.cs",
+      "bytes": 29637,
+      "sha256": "4b5792de3e96390f80778f3d1c4b5547f566166717f845a137ea4cfaeac20e95"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/EventWheel.cs",
+      "bytes": 19167,
+      "sha256": "383cb5a84560b2d19182b36a73eae270845e6afcbe9838da8b32145d253596f8"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/FamilyCareTable.cs",
+      "bytes": 1052,
+      "sha256": "15d34c0ed3d20ffad8a27b0b267146fc1c6ecedbe0b61a89ecc1c22b4f4908a9"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/KnownClinicTable.cs",
+      "bytes": 685,
+      "sha256": "90182e3235b47de17145809486657e712d09618bfe2f0a3c0d817564e203bc93"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/LifeStageEngine.cs",
+      "bytes": 9852,
+      "sha256": "73ea39aaecbbe8b5cf0aa9dc02b26f88ca86f44eb40a7dcb4a42cffd49dd60d7"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/LifeStageWheel.cs",
+      "bytes": 8039,
+      "sha256": "29f40b6571878481d9c3574e3ff0f9226011208537782c00699b0fb468221dd1"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/PlacementEngine.cs",
+      "bytes": 54862,
+      "sha256": "633e912de9239fecb974a1018b393c8f8f9bc1a13950bc1f0bf3c0b137864864"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/PolicyEngine.cs",
+      "bytes": 21093,
+      "sha256": "988270f28dc65921213a2da52be5a6f9c363c0567ce6ec2e456a68d1e54fb5ba"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/Readouts.cs",
+      "bytes": 16352,
+      "sha256": "201c572abc82edf5231c498828e06615afe470532a9d8b8d720f787df2c60ef0"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/RuleEngine.cs",
+      "bytes": 74649,
+      "sha256": "63feb176614e200705c200c3a0604cc8c282ccfabf3d68013c7786fb0d13d994"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/RuleInstanceTable.cs",
+      "bytes": 13745,
+      "sha256": "9e927f38f4df6f1bb4c5dbe6cfe80322028c85c5cd705a6d11bb02fd95bd9044"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/Rules.cs",
+      "bytes": 12312,
+      "sha256": "0661d5935cc53a2bbbfc858f4b72cfabf168691588550f7926efcb4dd3da9c0b"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/Ruleset.cs",
+      "bytes": 246331,
+      "sha256": "27d3bceecdcb520992da773bc20e6613d47523fb19278ebdc168366dd7a34152"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/RulesetCatalogue.cs",
+      "bytes": 5279,
+      "sha256": "9baa9a9b34966857efd92b3fd79a4cb1882607723a0f6262b61206cbd29de69d"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/RulesetMigration.cs",
+      "bytes": 9792,
+      "sha256": "275eefad1dc5dbc1a6e68fa59b619d8d3ed504f13d926cd13148583de03e4901"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/RulesetShape.cs",
+      "bytes": 17828,
+      "sha256": "2dfbf5341a213c59feff24181c764b229107a739c6e9aa9d18057f116fe11e17"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/RulesetTrailTable.cs",
+      "bytes": 12527,
+      "sha256": "a910b86c4ec2b4575fff068115dfd89cf4435703bd5c38d75329b943664a41e0"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/ServiceEngine.cs",
+      "bytes": 49137,
+      "sha256": "19befba12fa52a68cbd17b8fc6e7e409565fc35e0b203e3aec1dc32a730b1ba8"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/ShoppingEngine.cs",
+      "bytes": 22529,
+      "sha256": "09cc545b60a3cbeb77333a38c12f50ca4dded404e03a10fd40c13c1695a929f6"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/ShoppingRuleset.cs",
+      "bytes": 1197,
+      "sha256": "810d77bb8c748280ecae0506fd9376caeeaae4dd99a6c996f2078d64c30fb68f"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/ShoppingWork.cs",
+      "bytes": 535,
+      "sha256": "709498133a96fdc3f3b03d2e721c18d7fe39c4e55062b9d72abe9b0277525612"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/TerrainRuleset.cs",
+      "bytes": 7796,
+      "sha256": "9bdd2d4a9381c4edbcfd9fa3cbc0a18cdadd977b594c2fb47087b0647fa0b25f"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/WageEngine.cs",
+      "bytes": 19031,
+      "sha256": "92374461077d0c5dbdd06cb5ff4faec788809a3cd2f144d6129948c95f1cd2fe"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/WaterRuleset.cs",
+      "bytes": 8923,
+      "sha256": "c632ed492922d25a64ca53086b0123e19712a3b288b30722acff4ce852bb0666"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/ZoneRuleEngine.cs",
+      "bytes": 65700,
+      "sha256": "a98129fa2d479c73ffe9c3ee1c5f290bbbf38ef7541a77f232d6969f60954ea3"
+    },
+    {
+      "path": "source/src/Borough.Core/Rules/ZoneSample.cs",
+      "bytes": 6340,
+      "sha256": "b24aefef76e06469f4331259af5f28674f8858c7a42d8a5cf576f7fef2c21288"
+    },
+    {
+      "path": "source/src/Borough.Core/Simulation.cs",
+      "bytes": 89788,
+      "sha256": "ef550cbac76b8da9c03b6a60fde5929e91a23353272b852dd1547d5a6f3bf210"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/Address.cs",
+      "bytes": 6955,
+      "sha256": "e435c5a9aafe90653f12beb8a5e8a9eb8423ef4c852b5ad9bbc7ded54d112199"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/BlockGround.cs",
+      "bytes": 3988,
+      "sha256": "7277ed9e9f776a3c36fa5e396ffe2b276298efc10dcddc0f7545787408e6cf8c"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/BlockLattice.cs",
+      "bytes": 16197,
+      "sha256": "9b6675774e73084dbbd238592d1519883f3136526108a9b2c3593426c6dcd51b"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/BlockPattern.cs",
+      "bytes": 67558,
+      "sha256": "f98973cb3a0951e2467f28795771872f922ed2e9e2ea4aa757451dfed98fb983"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/BlockResidency.cs",
+      "bytes": 7696,
+      "sha256": "3c8d06257e95372f2a93a7915ee069b97416cf0e1671b330af962ddcf62a0881"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/BuildingPlan.cs",
+      "bytes": 12822,
+      "sha256": "4e3ac1a54626df8a9c2815ed7e04cef8c625150b83d220d95f505ce3d7359a83"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/BuildingQueryWork.cs",
+      "bytes": 512,
+      "sha256": "0fe172283f604f9b60c171e6f575676f96a69d3f89feb21c0dd080d28cb55baa"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/BuildingResidency.cs",
+      "bytes": 21238,
+      "sha256": "547b105170702d62417094a2b194b9f0b53559d942140c2fc1360d16a55c3b13"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/CatchmentCellTable.cs",
+      "bytes": 4394,
+      "sha256": "28963e079ea27a796ad992cac6a358b2578af5272441f6eb2c051dce5bbf5dd8"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/CellGrid.cs",
+      "bytes": 13913,
+      "sha256": "83883b146b724c7daccfe2a8ae68e8519ac9f642f799388bee6c95ef13b73b14"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/CellRect.cs",
+      "bytes": 4614,
+      "sha256": "760a4749e00e9cb68b821bdb62eec07de8d7a32ead4e503e8017ef387add597d"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/CellResidency.cs",
+      "bytes": 5919,
+      "sha256": "18845811008e51fd3a6085930150ecef2b9354d5cfd60fbedf87690e8204ba39"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/Cells.cs",
+      "bytes": 4086,
+      "sha256": "f06877a8abb316926a1bd30d6c634284251f38050ff3c4b811e901641b1dde8c"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/DisasterEngine.cs",
+      "bytes": 23038,
+      "sha256": "9343cdb2cb31565efdb3d8f47d5c5f20ef7f06aafddf597b58d52eb89a4b89c4"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/DisasterTable.cs",
+      "bytes": 5736,
+      "sha256": "18ab8efdaaa3d09cc30d9558fa08975470951de01da8763b20762178f2d01ad2"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/DistrictCellTable.cs",
+      "bytes": 3362,
+      "sha256": "dee0dae07748314de32b517b287aa40823a41bbeba726c4dd45a0e0d4cd695cc"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/DistrictMarkets.cs",
+      "bytes": 18877,
+      "sha256": "96b5151f50432f164921c6492102b3aa09fcc0b1385a06d067b6278fadc8616a"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/DistrictPoolTable.cs",
+      "bytes": 11991,
+      "sha256": "1f78eb6f737cee2238c63851cf8b42fd0b08bf23e123d8cd4da9b2b0e83a9da5"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/DistrictResidency.cs",
+      "bytes": 4145,
+      "sha256": "0862aa697a3d11aa9c61be642fff9c2d5a4ab4831bff6151a774b36dedcae8cf"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/DistrictTable.cs",
+      "bytes": 3135,
+      "sha256": "8e71b52ddfe66d73b7fb244ace46e58e9aca6b7155b00eab030e1dfc4524afd6"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/DistrictWatershed.cs",
+      "bytes": 51182,
+      "sha256": "1158273601488ed63f63c9654d3aee80809249328c22f63382b249989bba3207"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/FloodCellTable.cs",
+      "bytes": 4833,
+      "sha256": "2573bdc1fd5ce543698d3405075cae03e5ec81e88199451e7840d5af810c6d79"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/FloodResidency.cs",
+      "bytes": 4311,
+      "sha256": "86a30c8a2b991ea7aefcb09d1739c7631afb09e430f65a80eb4af5fb1d5ba96f"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/Frontage.cs",
+      "bytes": 11807,
+      "sha256": "6d4b4f78bb736bcea7fe627912533cee743128824f634c41ac03cfbe87ca167b"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/InundationTable.cs",
+      "bytes": 4211,
+      "sha256": "8a3cb877aa231fb2cd0f2cd13b59425205f2d8c4573283f0ebd2308147e5f981"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/LayerCellTable.cs",
+      "bytes": 8837,
+      "sha256": "43861ccecc2b37960cafc941dcefddb53f3f8ab1d281d844bedd3e3d47fd31da"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/LayerDiffusion.cs",
+      "bytes": 8441,
+      "sha256": "e86d172c7036369b5b9aebd914685548d8a06dbeb32d4a362f7611daf2e0aa0c"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/LayerSchedule.cs",
+      "bytes": 28963,
+      "sha256": "5164d68e5a666654932de387b737ace2fd1e5f8134eb6d3b870d94775ec86956"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/LineSourceQueries.cs",
+      "bytes": 25265,
+      "sha256": "948a4fc2c7f3456e749f7e300e44b9ab7e9fd18a9c1b2c5df9d191c009b8b8c2"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/MapEdge.cs",
+      "bytes": 5145,
+      "sha256": "514906546a008e46134034550e9c99c8f04ffbb41a02d262b0e604d7206afa59"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/MapLayers.cs",
+      "bytes": 72120,
+      "sha256": "717e9bd4a215e2e69f626ad04bce34aa64139e92da1482bb3f5516136cede30f"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/RoadArcs.cs",
+      "bytes": 6232,
+      "sha256": "7a1919a95a483befe0b335755e3c78820e00aa9880d50344601ab772fbc9a75c"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/RoadConnectivity.cs",
+      "bytes": 11579,
+      "sha256": "e5e674ad35c338b79d8c2b9fc05bf91c05e7f0e5bda0d69e4de41173a3789a0a"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/RoadGenerator.cs",
+      "bytes": 45333,
+      "sha256": "36bb0247332bdac8525295c698106abd91b9e9c7e517313b2751598ea785b627"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/RoadGraph.cs",
+      "bytes": 22910,
+      "sha256": "70bf85d29bad45d32009af51ecfd8236195defe13e1cb739089ca0f2e9b28fa9"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/RoadKind.cs",
+      "bytes": 2469,
+      "sha256": "5209ca6a8516a87db60be4af198fbb2dfe87adeeed0159b2ebc997e22cd527fb"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/RoadNodeTable.cs",
+      "bytes": 4638,
+      "sha256": "577b464e3cf1eac9ce8e0fdb7e7f4e547ba33327c9cbfbd519660124e00c4dc0"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/RoadSegmentTable.cs",
+      "bytes": 19057,
+      "sha256": "24ef343f6127d377afc0d6b7db26f9099087033261aa4772b04fdd7e60e7154b"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/RoutingPartition.cs",
+      "bytes": 20369,
+      "sha256": "7161651c7da6b91e58df8cda9c180021fcde32f3740ee34f1b9adb61e84f715a"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/SeparableKernel.cs",
+      "bytes": 8977,
+      "sha256": "6fa0aa30da96e46aea3cbc373b022d1ac7ec43e11cfaef979826379283c2786d"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/Shoreline.cs",
+      "bytes": 9845,
+      "sha256": "b9d4ef21f46709b942055c506cdb58c29ff97a23d4feda18940918eb90affe45"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/StreetGrid.cs",
+      "bytes": 28767,
+      "sha256": "d1983b2025bb2ae04cbde79fe1e13d73b9f35852f5db0c5d9e1d8cd4b98b0115"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/TerrainCellTable.cs",
+      "bytes": 6721,
+      "sha256": "9d3a76c6e792aa61cd113ed205834f16a417c65fcbe60d4749dc4640b6e27677"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/TerrainGenerator.cs",
+      "bytes": 5793,
+      "sha256": "27217c065e9140dfadbd5c120fa39c5cb6ad255d875d67c572fdd49598f5f332"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/TerrainKind.cs",
+      "bytes": 3090,
+      "sha256": "ea2ecdff902ef07acc8b818b6af439b33d795014770daecacdfb02214d76a0ee"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/TrafficPresence.cs",
+      "bytes": 6628,
+      "sha256": "c0e4b95d15cb31a2af6d558900a32f0ec1bbb7b2566c0a6db89a325e60d31154"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/TravelMode.cs",
+      "bytes": 2615,
+      "sha256": "23855791ca58a65dc5b53361493e060ea268add7ac23f064b09e79729ddfd201"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/ValueNoise.cs",
+      "bytes": 6303,
+      "sha256": "4d10d8761a6352259e95d83c2605139a5225f9fbe5dce636192eb2c2c615a084"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/WaterBodyTable.cs",
+      "bytes": 8652,
+      "sha256": "df2abfd72747ff61684efe67225ab525828c1777306f2a95fc8563e68effcabe"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/WaterCellTable.cs",
+      "bytes": 2906,
+      "sha256": "26276cf058fc640d7fd9f601a6faa9feeb736f2a754da4a940d5024a93c8adf2"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/WaterGenerator.cs",
+      "bytes": 24720,
+      "sha256": "a4f2b8c665ea62a1e4d09c6f9db8a59f7ab34c4e93ce9d8fff134cd8f7dee3ed"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/WaterResidency.cs",
+      "bytes": 3782,
+      "sha256": "c14ac0e537633e602afd47d0df06fc176fd7847908fc24fc39f50ab7d27ade56"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/WoodlandCellTable.cs",
+      "bytes": 9789,
+      "sha256": "c8f9f1f4e0af5663317341e6ce1fed6a03a6ea40c68d2d1b6e250c604b536818"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/WoodlandGenerator.cs",
+      "bytes": 4103,
+      "sha256": "cd16d6ce49ed77767e8e0afb66ad7a73c0df360eab00546d006b282f36821313"
+    },
+    {
+      "path": "source/src/Borough.Core/Space/ZonedLots.cs",
+      "bytes": 8770,
+      "sha256": "dd140d21ec91906ce6a40593d69b86dfda5f75e25f967beea3d8661cb56825ee"
+    },
+    {
+      "path": "source/src/Borough.Core/Tables/Column.cs",
+      "bytes": 22843,
+      "sha256": "9833470bab85e646fccb732319dcf45150d372684be42261f3d67e1cd3bfe0c3"
+    },
+    {
+      "path": "source/src/Borough.Core/Tables/Declaration.cs",
+      "bytes": 9799,
+      "sha256": "de60b11524a5999cd07113b27ff0300fffd0a9a7ac15d5d23cbdba0863ca8028"
+    },
+    {
+      "path": "source/src/Borough.Core/Tables/Handle.cs",
+      "bytes": 3337,
+      "sha256": "9b0a1cd19ce6ac3e05eca93f8db690d66218826cded88a0843dfc677040c5603"
+    },
+    {
+      "path": "source/src/Borough.Core/Tables/IndexList.cs",
+      "bytes": 13906,
+      "sha256": "12c56469412103267319829bb38ad6bea79a7a1eebf9c475919bac95c76a8698"
+    },
+    {
+      "path": "source/src/Borough.Core/Tables/ResourceMap.cs",
+      "bytes": 5374,
+      "sha256": "b2bbd3cc804cb260865d1693e340445a060359a88f2f2af0589bef727319517c"
+    },
+    {
+      "path": "source/src/Borough.Core/Tables/Rows.cs",
+      "bytes": 37330,
+      "sha256": "d611720934d05117e48d310d566c48e12e0a2ceb337ef73d510b1f72903fb991"
+    },
+    {
+      "path": "source/src/Borough.Core/Tables/StaleHandleException.cs",
+      "bytes": 1320,
+      "sha256": "d524c05f4253661bed0b107de08378448e525064d8ef09023faa9581dd208ae3"
+    },
+    {
+      "path": "source/src/Borough.Core/Tables/TableAttribute.cs",
+      "bytes": 1362,
+      "sha256": "8c1e0b704c03856fc505b108aeb01ac73ebf34bb4dafbc79ab1cd8d07a24705a"
+    },
+    {
+      "path": "source/src/Borough.Core/Tables/TargetIds.cs",
+      "bytes": 4564,
+      "sha256": "e43fb6ed75d013d17ee003d642798df21a1f48cffef3108ff4b330a6f81d63d9"
+    },
+    {
+      "path": "source/src/Borough.Core/TickInput.cs",
+      "bytes": 2509,
+      "sha256": "eac361e8806082652ced4cfbd33cd0b026027035860a14ba6f6092b225df2b9d"
+    },
+    {
+      "path": "source/src/Borough.Core/TickPhase.cs",
+      "bytes": 5404,
+      "sha256": "1216e3c6822865dfb821066564bdc4355b32f79fadea55ce13e4fed2661258c6"
+    },
+    {
+      "path": "source/src/Borough.Formats/Borough.Formats.csproj",
+      "bytes": 2144,
+      "sha256": "22f6354c9c0dbc9921647b336501b16da58a0824b9a8f84cf3e20cd71510be92"
+    },
+    {
+      "path": "source/src/Borough.Formats/CrashArtifact.cs",
+      "bytes": 16328,
+      "sha256": "200808c8eeec8f94e235d922b9b1372706ab9e4c10559c7f2ae56d1ca476e430"
+    },
+    {
+      "path": "source/src/Borough.Formats/DriveScript.cs",
+      "bytes": 32195,
+      "sha256": "e5f8ab4e5e91d7f171ff4bb4e81541d54fe9f376083875d3b2be0dbedfeb47fb"
+    },
+    {
+      "path": "source/src/Borough.Formats/HashTrace.cs",
+      "bytes": 8830,
+      "sha256": "d752926270b7634d3bb34b03da8b6687d30b74f3e5099a6b39fa96291d2119fc"
+    },
+    {
+      "path": "source/src/Borough.Formats/InputLogCodec.cs",
+      "bytes": 17976,
+      "sha256": "8105d0707221410f8a0bd5aec63629b5e9b12fe6f0a7188bb73ee8ec6fe32ef8"
+    },
+    {
+      "path": "source/src/Borough.Formats/QuotedDecimal.cs",
+      "bytes": 6669,
+      "sha256": "05d318b2a7776897ba08845d0570fb2046a615e5d6f0a280b4b8d0d449051f0f"
+    },
+    {
+      "path": "source/src/Borough.Formats/ReadoutNames.cs",
+      "bytes": 3010,
+      "sha256": "8e78b3178698196e58665fbf172ce3a756c2c90d73eace975743e6521076f44a"
+    },
+    {
+      "path": "source/src/Borough.Formats/RulesetFile.cs",
+      "bytes": 2883,
+      "sha256": "5470271e2db5ac3bc97db700747137de41b7ecffc2128d97b8516d488e2b5807"
+    },
+    {
+      "path": "source/src/Borough.Formats/RulesetKeyKind.cs",
+      "bytes": 3006,
+      "sha256": "c6e51dd1f52f8633211b7165fe932dc2dd050596093cdb9a344d43c808b2f99b"
+    },
+    {
+      "path": "source/src/Borough.Formats/RulesetKeyNotes.cs",
+      "bytes": 59739,
+      "sha256": "a2d99e9afedf14c94cc9d5f483321e0c470bc5b2b77e0a2b71f99176d4801641"
+    },
+    {
+      "path": "source/src/Borough.Formats/RulesetLoader.cs",
+      "bytes": 419094,
+      "sha256": "c040111d61d0f022e04a1d5f7ae664b095ed81abcbad96a4d4e5c649b80705e6"
+    },
+    {
+      "path": "source/src/Borough.Formats/RulesetNames.cs",
+      "bytes": 10664,
+      "sha256": "10a8d22e11fb6d729884e52cffd1d7ec72044bca276c865ed49983d97fbb9329"
+    },
+    {
+      "path": "source/src/Borough.Formats/RulesetRefusal.cs",
+      "bytes": 6410,
+      "sha256": "93b3a87290b4e0a71c7402b345c64195cd637d633e4c2925d28d6bd4a547b451"
+    },
+    {
+      "path": "source/src/Borough.Headless/ArrivalDump.cs",
+      "bytes": 24465,
+      "sha256": "04adb69fe62aea40ec76aadb88fe4e9e703dfdf4136b0597faf45e5f9e19cf51"
+    },
+    {
+      "path": "source/src/Borough.Headless/Borough.Headless.csproj",
+      "bytes": 1081,
+      "sha256": "de05ec75fb6cf5505ab1b0706d760972b8333a68cbcb281c76dec3c71b761003"
+    },
+    {
+      "path": "source/src/Borough.Headless/BusinessDump.cs",
+      "bytes": 29213,
+      "sha256": "410bf437b5e114b2004ee7e3c6ae514a4694f4798ffec2bebc7e2d73a50df4ac"
+    },
+    {
+      "path": "source/src/Borough.Headless/CareDump.cs",
+      "bytes": 2794,
+      "sha256": "af524159d505bfb927941aa4d99f0faff81530aa7594c08704b6e5251b74cfc2"
+    },
+    {
+      "path": "source/src/Borough.Headless/CensusFamilies.cs",
+      "bytes": 13293,
+      "sha256": "5c2c7701ff3a4aa32c36b1678adc21622c174430408e67028a4d8532efa55105"
+    },
+    {
+      "path": "source/src/Borough.Headless/CensusReport.cs",
+      "bytes": 9226,
+      "sha256": "c2d0d013ddb6d69c164c8ab023ed5a31d56cd925df22310e17f29964099822fb"
+    },
+    {
+      "path": "source/src/Borough.Headless/CommuteDump.cs",
+      "bytes": 18146,
+      "sha256": "82f507c71de2542dfdae4db2f3d8fc3d18aceed2c9114686141b29758d95e84e"
+    },
+    {
+      "path": "source/src/Borough.Headless/DayDump.cs",
+      "bytes": 18131,
+      "sha256": "f75cf5315ce5fbc0c5e2eaa3e441f0571cc6e21f3aa189ba3c48f03c65780c8a"
+    },
+    {
+      "path": "source/src/Borough.Headless/EvidenceDump.cs",
+      "bytes": 36506,
+      "sha256": "937c5bd0281c3b48de78e1e76a59042ecd5ac3947c82f9701558cf5a5077de61"
+    },
+    {
+      "path": "source/src/Borough.Headless/FloodDump.cs",
+      "bytes": 14830,
+      "sha256": "89bc948fdbc05af54c2885bf9de75d2a2762990cb834d1567cb6e8c0a8761138"
+    },
+    {
+      "path": "source/src/Borough.Headless/KeyReferenceDump.cs",
+      "bytes": 12548,
+      "sha256": "de5233eadf05c96710b2e4a17b61beea4ba3af23e2fd57ecb01bdf23b03345b1"
+    },
+    {
+      "path": "source/src/Borough.Headless/KindDump.cs",
+      "bytes": 18296,
+      "sha256": "61d10640e4bda234f962927d4702dd0dd915ef11075a4a28d01f31ca5a12a12e"
+    },
+    {
+      "path": "source/src/Borough.Headless/LandValueDump.cs",
+      "bytes": 16418,
+      "sha256": "0c20c38684db05a713a9694d7ac214e2eb6a02a49344f2da817904be7f52ca34"
+    },
+    {
+      "path": "source/src/Borough.Headless/LayerDump.cs",
+      "bytes": 7436,
+      "sha256": "c8e2becb83cb78a8c2df7b52d95108d07f95cc705ca478a32ac33a4db5f9e0ad"
+    },
+    {
+      "path": "source/src/Borough.Headless/MarketDump.cs",
+      "bytes": 24287,
+      "sha256": "490c7b9e5782c8f2bd434cd2af99fb43a07431fed4b91474caee281701a26704"
+    },
+    {
+      "path": "source/src/Borough.Headless/MoneyDump.cs",
+      "bytes": 15020,
+      "sha256": "444233c8612e387ae301b40fceb7ab567c2369265f8b3ed268c484e27109a9d2"
+    },
+    {
+      "path": "source/src/Borough.Headless/MorphologyDump.cs",
+      "bytes": 32236,
+      "sha256": "e3fc7f99bd427f0993b7899c6df451be347ea356f28801ef37713ae8cecbff85"
+    },
+    {
+      "path": "source/src/Borough.Headless/Options.cs",
+      "bytes": 99365,
+      "sha256": "fb4d37edf1950c50949c75ff2ac0b60a4e98c77922b119956fa06b6bb4d9f659"
+    },
+    {
+      "path": "source/src/Borough.Headless/ParkingDump.cs",
+      "bytes": 22760,
+      "sha256": "8fcd46bdbaef07657ac477e2f9f8af0ccbd4ad3c193fca0ffbfc02cf53b7976e"
+    },
+    {
+      "path": "source/src/Borough.Headless/ProfileDump.cs",
+      "bytes": 15354,
+      "sha256": "76d70d736ba672b511128edbe7100b7919787050a567d48672f1f8dd6ebcc30c"
+    },
+    {
+      "path": "source/src/Borough.Headless/ProfileServices.cs",
+      "bytes": 2188,
+      "sha256": "948d1029d5712fe0aa14e06717cf6f5d120083f46176e63794d53100cdc5aaed"
+    },
+    {
+      "path": "source/src/Borough.Headless/Program.cs",
+      "bytes": 4880,
+      "sha256": "1cf401ed455030dc8880bbd3adb2ea766e1ca5f144407bdb7fe31c19f1d8a136"
+    },
+    {
+      "path": "source/src/Borough.Headless/Report.cs",
+      "bytes": 6677,
+      "sha256": "402bf4171ba760ecce68665b4765295cc7407f41148f944838bec4e0338214c6"
+    },
+    {
+      "path": "source/src/Borough.Headless/RoadDump.cs",
+      "bytes": 12339,
+      "sha256": "3764a13f20ed0390a266629461785266d8b23f9e57cc63884374a03f76da8daa"
+    },
+    {
+      "path": "source/src/Borough.Headless/RouteReuseProbe.cs",
+      "bytes": 1103,
+      "sha256": "b1ff52ebb86bf809d4b2c59d0c8756a0b3d49e06dd4147cd281eeb8e6cf3a251"
+    },
+    {
+      "path": "source/src/Borough.Headless/RouteReuseWindow.cs",
+      "bytes": 1945,
+      "sha256": "2fbcddee201246b673800b39bf24aba5866dbc70fa2d0a800741662a2552b7b2"
+    },
+    {
+      "path": "source/src/Borough.Headless/RulesetCheck.cs",
+      "bytes": 9610,
+      "sha256": "fcbe6f3017e25a9043ebd821c937dd29c13996ad97bf9279f7f45b2a70a31bba"
+    },
+    {
+      "path": "source/src/Borough.Headless/SaveStreams.cs",
+      "bytes": 2499,
+      "sha256": "1f72fdf0d7e4f1395aa76b3e86e03c85cf8d31826e03e65531d0c49717b78472"
+    },
+    {
+      "path": "source/src/Borough.Headless/SchemaDump.cs",
+      "bytes": 13561,
+      "sha256": "3940b5d112883b3b64b2f3aea32d0b943c9ef5c7759daba2cae2e6dabeecac85"
+    },
+    {
+      "path": "source/src/Borough.Headless/SchoolDump.cs",
+      "bytes": 17897,
+      "sha256": "26a8f45e7f6a8f142222fbd83775a1d8c10f118f2495c0a7121f345209c1be3e"
+    },
+    {
+      "path": "source/src/Borough.Headless/SeriesReport.cs",
+      "bytes": 10761,
+      "sha256": "3fceab1cf1680536856422ac1a3d4fbfe8f58c98a6516500cb4806ad0b16e54f"
+    },
+    {
+      "path": "source/src/Borough.Headless/ServiceAdmission.cs",
+      "bytes": 9121,
+      "sha256": "f8100da586578d9258e3915efba4da170ee19afebf298de14619433c626136f9"
+    },
+    {
+      "path": "source/src/Borough.Headless/Session.cs",
+      "bytes": 41450,
+      "sha256": "50df5080f4d3c321f2846d4d42ab00072658b3f8662712aaeeda40fa26784b68"
+    },
+    {
+      "path": "source/src/Borough.Headless/ShoppingDump.cs",
+      "bytes": 2487,
+      "sha256": "858ff0f4b9f7d5688fde0d71e80af241acf29c098d04274d2216dab45bf1ae89"
+    },
+    {
+      "path": "source/src/Borough.Headless/StageDump.cs",
+      "bytes": 40716,
+      "sha256": "56485a3ba711d90df6ca28c184cbd9cb9dbab0df3844eb9252b27df51492de8a"
+    },
+    {
+      "path": "source/src/Borough.Headless/TableGrowthProbe.cs",
+      "bytes": 2423,
+      "sha256": "1fd4b512d443240a7a3ca2097cca9e673ee2b4392cb5644e7d637fa549846c1c"
+    },
+    {
+      "path": "source/src/Borough.Headless/TrafficDump.cs",
+      "bytes": 27478,
+      "sha256": "cb0e264f38d539d1af34cd1ff6da705914ea137a238322daa26cf58fb30d24d4"
+    },
+    {
+      "path": "source/src/Borough.Headless/TripDump.cs",
+      "bytes": 23138,
+      "sha256": "600914a6cd02e921b12f1d3c45126b7e636a87bd953453e99545a3b8c05d67ed"
+    },
+    {
+      "path": "source/src/Borough.Headless/WatchDump.cs",
+      "bytes": 10047,
+      "sha256": "c449b885e53a9f7170d10529311b7fdbf8a4e8ebbb5e4d81c2d3d66995d51c42"
+    },
+    {
+      "path": "source/src/Borough.Headless/ZoneDump.cs",
+      "bytes": 15716,
+      "sha256": "2811339ac2c0277baaa26ca9c582f33d1ef23af41e258224e28f2b623f60a06c"
+    },
+    {
+      "path": "source/tests/Borough.Tests/Entities/TwinLatticeTests.cs",
+      "bytes": 21945,
+      "sha256": "113ae941e9c511f3484f7eb64aa3a69231248f0009385bd068a90f1a90694f59"
+    },
+    {
+      "path": "source/tests/Borough.Tests/Headless/ProfileDumpTests.cs",
+      "bytes": 16120,
+      "sha256": "430b99cbd434cd2e5149d33b87e49b72331caef1aa84463b96ddf26956b0d60e"
+    },
+    {
+      "path": "source/tests/Borough.Tests/Movement/DirectedRoutingTests.cs",
+      "bytes": 4746,
+      "sha256": "892f5d54930fbee2ffa2d4bec997e9c7236972f6141e8d8213d0205f6170488a"
+    },
+    {
+      "path": "source/tests/Borough.Tests/Movement/RouteWorkerTests.cs",
+      "bytes": 8569,
+      "sha256": "fb273f42a0d01f176698c2cac9a05059828e0f053a96eb25bbb2efcf5db44e6b"
+    },
+    {
+      "path": "source/tests/Borough.Tests/Space/DistrictWatershedTests.cs",
+      "bytes": 34198,
+      "sha256": "c0ca575b35aed445fba29e0d478b492230dc43b2169cd48892a66ba9ba431ace"
+    },
+    {
+      "path": "summarize.py",
+      "bytes": 2846,
+      "sha256": "1d442279ace0ec94134da8995ffd2041855864ce14ad7aef26f12f73be5cf656"
+    },
+    {
+      "path": "summary.log",
+      "bytes": 17401,
+      "sha256": "5bffaf6d1a3ca37e08df0a9cb63fd1182910069f2c17cad55b7463b23eed45cd"
+    }
+  ]
+}

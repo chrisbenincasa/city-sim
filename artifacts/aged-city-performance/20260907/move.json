@@ -1,0 +1,462 @@
+{
+  "source": "/private/tmp/borough-move-20260907-retry/simulation.speedscope.json",
+  "scope": "Sampled stack weight beneath TimedStep, excluding ending timestamp stacks; not CPU utilization. Self means managed leaf, including unresolved native time. Inclusive rows overlap.",
+  "selected_scope": "move",
+  "step_weight_ms": 281153.3394666429,
+  "route_weight_ms_by_caller": {
+    "shopping": 58445.730930676975,
+    "commuting": 131005.19754888475
+  },
+  "move_weight_ms_by_work": {
+    "non_search_move": 91702.41098708115,
+    "shopping_estimate_search": 20393.416286494903,
+    "other_recorded_search": 131005.19754888475,
+    "recorded_shopping_search": 38052.31464418207
+  },
+  "building_selection_weight_ms_by_caller": {
+    "shopping": 17243.12169353514
+  },
+  "methods": [
+    {
+      "method": "Borough.Core!Borough.Core.Movement.WalkScratch.PopRoot()",
+      "self_weight_ms": 108425.72674422688,
+      "self_percent": 38.564623471986515,
+      "inclusive_weight_ms": 108425.72674422688,
+      "inclusive_percent": 38.564623471986515
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Movement.WalkScratch.Search(class Borough.Core.Space.RoadGraph,value class Borough.Core.Space.TravelMode,int32,int32,value class Borough.Core.Quantities.TravelTime,value class Borough.Core.Quantities.TravelTime)",
+      "self_weight_ms": 81025.20173533485,
+      "self_percent": 28.818865139230542,
+      "inclusive_weight_ms": 189450.92847956173,
+      "inclusive_percent": 67.38348861121706
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Space.BuildingResidency.NthIn(value class Borough.Core.Space.CellRect,class Borough.Core.Entities.BuildingTable,int32,class Borough.Core.Space.BuildingQueryWork)",
+      "self_weight_ms": 17243.12169353514,
+      "self_percent": 6.132995512785268,
+      "inclusive_weight_ms": 17243.12169353514,
+      "inclusive_percent": 6.132995512785268
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Movement.CommuteEngine.Generate(value class Borough.Core.Quantities.Ticks)",
+      "self_weight_ms": 15890.949588050302,
+      "self_percent": 5.652057919068632,
+      "inclusive_weight_ms": 154653.9322620637,
+      "inclusive_percent": 55.006969703951334
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Movement.WorkSchedule.Accrue(class Borough.Core.Entities.World,value class Borough.Core.Quantities.Ticks)",
+      "self_weight_ms": 14362.517369103807,
+      "self_percent": 5.108428516748182,
+      "inclusive_weight_ms": 16451.94502614432,
+      "inclusive_percent": 5.851591539817454
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Movement.TripEngine.AdvanceTravellers(value class Borough.Core.Quantities.Ticks)",
+      "self_weight_ms": 7620.307901715305,
+      "self_percent": 2.7103743160836284,
+      "inclusive_weight_ms": 13260.616975253502,
+      "inclusive_percent": 4.7165070137204586
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Movement.TripEngine.ReleaseEnded()",
+      "self_weight_ms": 6427.4343568990325,
+      "self_percent": 2.2860956832638326,
+      "inclusive_weight_ms": 6427.4343568990325,
+      "inclusive_percent": 2.2860956832638326
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Parking.ParkingShed.Expand(class Borough.Core.Space.RoadGraph,class Borough.Core.Parking.CarParkTable,class Borough.Core.Parking.CarParkResidency,class Borough.Core.Parking.ShedScratch,value class Borough.Core.Quantities.Tiles,int32,int32&)",
+      "self_weight_ms": 4530.785405309006,
+      "self_percent": 1.611499765182962,
+      "inclusive_weight_ms": 4894.450602473516,
+      "inclusive_percent": 1.740847400837724
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Movement.TripEngine.RecordRoute(int32,value class Borough.Core.Space.Address,value class Borough.Core.Space.Address)",
+      "self_weight_ms": 3580.729835214448,
+      "self_percent": 1.2735860943381323,
+      "inclusive_weight_ms": 4220.450669757058,
+      "inclusive_percent": 1.5011205905515443
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Rules.ShoppingEngine.Step(value class Borough.Core.Quantities.Ticks)",
+      "self_weight_ms": 3467.3010180514425,
+      "self_percent": 1.233241982694933,
+      "inclusive_weight_ms": 90359.41084628232,
+      "inclusive_percent": 32.13883605924692
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Parking.ParkingShed.Nearest(class Borough.Core.Space.RoadGraph,class Borough.Core.Parking.CarParkTable,class Borough.Core.Parking.CarParkResidency,value class Borough.Core.Space.Address,value class Borough.Core.Quantities.Tiles,class Borough.Core.Parking.ShedScratch,value class System.Span`1<int32>,int32&)",
+      "self_weight_ms": 2548.352074336797,
+      "self_percent": 0.906392248148681,
+      "inclusive_weight_ms": 7501.501189139827,
+      "inclusive_percent": 2.6681174064552895
+    },
+    {
+      "method": "System.Private.CoreLib!System.Collections.Generic.GenericArraySortHelper`2[System.UInt64,System.Int32].IntroSort(value class System.Span`1<!0>,value class System.Span`1<!1>,int32)",
+      "self_weight_ms": 2329.2042590528617,
+      "self_percent": 0.8284462363034487,
+      "inclusive_weight_ms": 2329.2042590528617,
+      "inclusive_percent": 0.8284462363034487
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Movement.WorkSchedule.OnDuty(class Borough.Core.Entities.World,int32,value class Borough.Core.Quantities.Ticks)",
+      "self_weight_ms": 2098.7014890869978,
+      "self_percent": 0.746461519208096,
+      "inclusive_weight_ms": 2098.7014890869978,
+      "inclusive_percent": 0.746461519208096
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Movement.TripEngine.Enter(int32)",
+      "self_weight_ms": 2013.2734651238115,
+      "self_percent": 0.7160766679645554,
+      "inclusive_weight_ms": 2013.2734651238115,
+      "inclusive_percent": 0.7160766679645554
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Rules.ShoppingEngine.Consider(int32,int32,int32,value class Borough.Core.Quantities.Ticks)",
+      "self_weight_ms": 1882.580650787939,
+      "self_percent": 0.6695921358641005,
+      "inclusive_weight_ms": 61145.17767894308,
+      "inclusive_percent": 21.747982006878342
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Rules.ShoppingEngine.Discover(int32,int32,int32,value class Borough.Core.Quantities.Ticks)",
+      "self_weight_ms": 1716.285750946828,
+      "self_percent": 0.6104447324732755,
+      "inclusive_weight_ms": 22491.94680287523,
+      "inclusive_percent": 7.999886057033216
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Movement.TripEngine.Start(int32,int32,int32,value class Borough.Core.Space.TravelMode,value class Borough.Core.Movement.TripPurpose,value class Borough.Core.Quantities.Ticks)",
+      "self_weight_ms": 1516.7137185996883,
+      "self_percent": 0.5394613919496541,
+      "inclusive_weight_ms": 179173.16255892132,
+      "inclusive_percent": 63.727915485129465
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Rules.ShoppingEngine.DailyUse(int32,int32,value class Borough.Core.Tables.ResourceId)",
+      "self_weight_ms": 969.0750338881592,
+      "self_percent": 0.34467847179995315,
+      "inclusive_weight_ms": 1138.6922014878955,
+      "inclusive_percent": 0.4050075320634754
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Space.BuildingResidency.CountIn(value class Borough.Core.Space.CellRect,class Borough.Core.Space.BuildingQueryWork)",
+      "self_weight_ms": 845.5752259997422,
+      "self_percent": 0.30075233237628485,
+      "inclusive_weight_ms": 845.5752259997422,
+      "inclusive_percent": 0.30075233237628485
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Movement.WalkScratch.ArcsTo(int32,value class System.Span`1<int32>)",
+      "self_weight_ms": 569.2750845939204,
+      "self_percent": 0.20247850716404575,
+      "inclusive_weight_ms": 569.2750845939204,
+      "inclusive_percent": 0.20247850716404575
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Parking.ShedScratch.PopRoot()",
+      "self_weight_ms": 363.66519716450966,
+      "self_percent": 0.1293476356547621,
+      "inclusive_weight_ms": 363.66519716450966,
+      "inclusive_percent": 0.1293476356547621
+    },
+    {
+      "method": "System.Private.CoreLib!System.Collections.Generic.GenericArraySortHelper`2[System.UInt64,System.Int32].Sort(value class System.Span`1<!0>,value class System.Span`1<!1>,class System.Collections.Generic.IComparer`1<!0>)",
+      "self_weight_ms": 312.8908732377822,
+      "self_percent": 0.11128833604870085,
+      "inclusive_weight_ms": 2642.095132290644,
+      "inclusive_percent": 0.9397345723521496
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Rules.ShoppingEngine.IsReplenishment(class Borough.Core.Entities.World,int32)",
+      "self_weight_ms": 222.74062729139666,
+      "self_percent": 0.07922389529996085,
+      "inclusive_weight_ms": 222.74062729139666,
+      "inclusive_percent": 0.07922389529996085
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Movement.WalkScratch.Push(value class Borough.Core.Quantities.TravelTime,int32)",
+      "self_weight_ms": 173.3234077483512,
+      "self_percent": 0.06164728758945257,
+      "inclusive_weight_ms": 173.3234077483512,
+      "inclusive_percent": 0.06164728758945257
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Rules.ShoppingEngine.Travel(int32,int32,int32,value class Borough.Core.Quantities.Ticks)",
+      "self_weight_ms": 138.87442100844055,
+      "self_percent": 0.04939454792601428,
+      "inclusive_weight_ms": 36865.65649804246,
+      "inclusive_percent": 13.11229543564299
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Entities.World.FindLocalBin(int32,value class Borough.Core.Tables.ResourceId)",
+      "self_weight_ms": 110.32649363218661,
+      "self_percent": 0.03924068404859768,
+      "inclusive_weight_ms": 110.32649363218661,
+      "inclusive_percent": 0.03924068404859768
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Tables.Rows.FreeSlot(int32)",
+      "self_weight_ms": 102.22013908855297,
+      "self_percent": 0.03635743373436998,
+      "inclusive_weight_ms": 102.22013908855297,
+      "inclusive_percent": 0.03635743373436998
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Movement.LegTable.Create(class Borough.Core.Space.RoadSegmentTable,value class Borough.Core.Space.TravelMode,value class Borough.Core.Space.Address,value class Borough.Core.Space.Address,value class Borough.Core.Quantities.TravelTime)",
+      "self_weight_ms": 87.34340822270315,
+      "self_percent": 0.031066110894644346,
+      "inclusive_weight_ms": 92.05007522556116,
+      "inclusive_percent": 0.03274016783872572
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Rules.ShoppingEngine.Choose(int32,value class Borough.Core.Quantities.Ticks,int32)",
+      "self_weight_ms": 71.72458171931521,
+      "self_percent": 0.02551084111445345,
+      "inclusive_weight_ms": 77.36841460696905,
+      "inclusive_percent": 0.02751822715452695
+    },
+    {
+      "method": "System.Private.CoreLib!System.SpanHelpers.Memmove(unsigned int8&,unsigned int8&,unsigned int)",
+      "self_weight_ms": 70.39908282697434,
+      "self_percent": 0.025039390590388757,
+      "inclusive_weight_ms": 70.39908282697434,
+      "inclusive_percent": 0.025039390590388757
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Parking.ShedScratch.Push(value class Borough.Core.Quantities.Tiles,int32)",
+      "self_weight_ms": 58.698512329514415,
+      "self_percent": 0.020877757468884213,
+      "inclusive_weight_ms": 58.698512329514415,
+      "inclusive_percent": 0.020877757468884213
+    },
+    {
+      "method": "System.Private.CoreLib!System.Collections.Generic.Dictionary`2[System.UInt64,System.Int32].FindValue(!0)",
+      "self_weight_ms": 54.517853583281976,
+      "self_percent": 0.019390789981973588,
+      "inclusive_weight_ms": 54.517853583281976,
+      "inclusive_percent": 0.019390789981973588
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Movement.TripEngine.Itinerary(int32,int32,int32,value class Borough.Core.Space.Address,value class Borough.Core.Space.Address,value class Borough.Core.Space.TravelMode,value class System.Span`1<value class Borough.Core.Space.Address>,value class System.Span`1<value class Borough.Core.Space.TravelMode>)",
+      "self_weight_ms": 53.46804006200364,
+      "self_percent": 0.01901739462296065,
+      "inclusive_weight_ms": 4089.653873443131,
+      "inclusive_percent": 1.4545990743703556
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Rules.ShoppingEngine.Purchase(int32,int32,int32,value class Borough.Core.Quantities.Ticks)",
+      "self_weight_ms": 49.462999498529825,
+      "self_percent": 0.01759289062415647,
+      "inclusive_weight_ms": 49.462999498529825,
+      "inclusive_percent": 0.01759289062415647
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Movement.TripEngine.AtParkingBoundary(int32,int32,int32)",
+      "self_weight_ms": 30.67516089995752,
+      "self_percent": 0.010910473607800394,
+      "inclusive_weight_ms": 3524.8154693258334,
+      "inclusive_percent": 1.253698595937905
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Movement.CommuteEngine.Resume(int32,value class Borough.Core.Quantities.Ticks)",
+      "self_weight_ms": 28.897957719949773,
+      "self_percent": 0.010278361898446643,
+      "inclusive_weight_ms": 33.37791478741565,
+      "inclusive_percent": 0.011871783152472828
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Rules.ShoppingEngine.Cost(int32,int32,int32)",
+      "self_weight_ms": 26.26466583443107,
+      "self_percent": 0.00934175844550024,
+      "inclusive_weight_ms": 20437.00041062171,
+      "inclusive_percent": 7.268987254212015
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Entities.World.TryTakeParking(int32,value class Borough.Core.Space.Address,class Borough.Core.Parking.ShedScratch,int32&)",
+      "self_weight_ms": 23.976411533109967,
+      "self_percent": 0.008527877199891705,
+      "inclusive_weight_ms": 3494.140308425876,
+      "inclusive_percent": 1.2427881223301045
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Movement.WalkRouting.Cost(class Borough.Core.Space.RoadGraph,value class Borough.Core.Space.TravelMode,value class Borough.Core.Space.Address,value class Borough.Core.Space.Address,value class Borough.Core.Quantities.TravelTime,class Borough.Core.Movement.WalkScratch,bool)",
+      "self_weight_ms": 21.684873152646105,
+      "self_percent": 0.007712827880253182,
+      "inclusive_weight_ms": 189645.9367604627,
+      "inclusive_percent": 67.45284872668675
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Rules.ShoppingEngine.Continue(int32,value class Borough.Core.Quantities.Ticks)",
+      "self_weight_ms": 18.42057526640565,
+      "self_percent": 0.006551789603975569,
+      "inclusive_weight_ms": 23050.319163413864,
+      "inclusive_percent": 8.198486707339516
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Rules.ShoppingEngine.OwnerBin(value class Borough.Core.Tables.Handle`1<value class Borough.Core.Rules.Bin>,value class Borough.Core.Tables.ResourceId)",
+      "self_weight_ms": 17.708331653571804,
+      "self_percent": 0.006298460365850568,
+      "inclusive_weight_ms": 17.708331653571804,
+      "inclusive_percent": 0.006298460365850568
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Movement.TravellerTable.Create(value class Borough.Core.Tables.Handle`1<value class Borough.Core.Entities.Citizen>,value class Borough.Core.Tables.Handle`1<value class Borough.Core.Movement.Trip>,int32,value class Borough.Core.Quantities.Ticks)",
+      "self_weight_ms": 15.826039323259465,
+      "self_percent": 0.005628970779177648,
+      "inclusive_weight_ms": 17.45591424047234,
+      "inclusive_percent": 0.006208681096794647
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Movement.CommuteEngine.Travel(int32,bool,value class Borough.Core.Quantities.Ticks)",
+      "self_weight_ms": 8.866830989827577,
+      "self_percent": 0.003153734900196543,
+      "inclusive_weight_ms": 3692.2646388637368,
+      "inclusive_percent": 1.313256547429984
+    },
+    {
+      "method": "System.Private.CoreLib!System.Array.Resize(!!0[]&,int32)",
+      "self_weight_ms": 8.020500129889115,
+      "self_percent": 0.0028527138056066723,
+      "inclusive_weight_ms": 78.41958295686345,
+      "inclusive_percent": 0.02789210439599543
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Entities.World.Drain(int32,value class Borough.Core.Rules.Blocking,value class Borough.Core.Quantities.Ticks)",
+      "self_weight_ms": 6.523041999818815,
+      "self_percent": 0.0023201011989376474,
+      "inclusive_weight_ms": 7.7930419216136215,
+      "inclusive_percent": 0.0027718119715018424
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Rules.ShoppingEngine.StockBin(int32,value class Borough.Core.Tables.ResourceId)",
+      "self_weight_ms": 5.6438328876538435,
+      "self_percent": 0.0020073860400734987,
+      "inclusive_weight_ms": 5.6438328876538435,
+      "inclusive_percent": 0.0020073860400734987
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Entities.World.TryChooseParking(value class Borough.Core.Space.Address,class Borough.Core.Parking.ShedScratch,int32&)",
+      "self_weight_ms": 4.848541134066181,
+      "self_percent": 0.0017245184223185907,
+      "inclusive_weight_ms": 7506.349730273893,
+      "inclusive_percent": 2.669841924877608
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Rules.ShoppingEngine.HasTime(int32,value class Borough.Core.Quantities.Ticks,value class Borough.Core.Quantities.TravelTime)",
+      "self_weight_ms": 3.2146659559221007,
+      "self_percent": 0.0011433853007118563,
+      "inclusive_weight_ms": 3.2146659559221007,
+      "inclusive_percent": 0.0011433853007118563
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Tables.Rows.Grow()",
+      "self_weight_ms": 8.91872332431376e-07,
+      "self_percent": 3.1721918513338205e-10,
+      "inclusive_weight_ms": 78.41958384873578,
+      "inclusive_percent": 0.027892104713214613
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Simulation.Step(value class Borough.Core.TickInput&)",
+      "self_weight_ms": 0.0,
+      "self_percent": 0.0,
+      "inclusive_weight_ms": 281153.3394666429,
+      "inclusive_percent": 100.0
+    },
+    {
+      "method": "Borough.Headless!Borough.Headless.ProfileDump.TimedStep(class Borough.Core.Simulation)",
+      "self_weight_ms": 0.0,
+      "self_percent": 0.0,
+      "inclusive_weight_ms": 281153.3394666429,
+      "inclusive_percent": 100.0
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Entities.World.Deposit(value class Borough.Core.Tables.Handle`1<value class Borough.Core.Rules.Bin>,int64,value class Borough.Core.Quantities.Ticks)",
+      "self_weight_ms": 0.0,
+      "self_percent": 0.0,
+      "inclusive_weight_ms": 7.7930419216136215,
+      "inclusive_percent": 0.0027718119715018424
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Rules.RuleEngine.Requirement(class Borough.Core.Entities.World,int32,int32,value class Borough.Core.Rules.Blocking)",
+      "self_weight_ms": 0.0,
+      "self_percent": 0.0,
+      "inclusive_weight_ms": 1.2699999217948061,
+      "inclusive_percent": 0.00045171077256419493
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Movement.TripTable.Create(class Borough.Core.Space.RoadSegmentTable,value class Borough.Core.Movement.TripPurpose,value class Borough.Core.Space.Address,value class Borough.Core.Space.Address)",
+      "self_weight_ms": 0.0,
+      "self_percent": 0.0,
+      "inclusive_weight_ms": 1.6372919799759984,
+      "inclusive_percent": 0.000582348402150227
+    },
+    {
+      "method": "System.Private.CoreLib!System.Buffer.Memmove(!!0&,!!0&,unsigned int)",
+      "self_weight_ms": 0.0,
+      "self_percent": 0.0,
+      "inclusive_weight_ms": 40.46412513006362,
+      "inclusive_percent": 0.014392190826125487
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Tables.Column`1[Borough.Core.Tables.Handle`1[Borough.Core.Space.RoadSegment]].Grow(int32)",
+      "self_weight_ms": 0.0,
+      "self_percent": 0.0,
+      "inclusive_weight_ms": 32.26000101794489,
+      "inclusive_percent": 0.01147416604730471
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Tables.Rows.AllocateSlot(unsigned int32&)",
+      "self_weight_ms": 0.0,
+      "self_percent": 0.0,
+      "inclusive_weight_ms": 6.336541920070886,
+      "inclusive_percent": 0.002253767261698372
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Tables.Column`1[System.Int32].Grow(int32)",
+      "self_weight_ms": 0.0,
+      "self_percent": 0.0,
+      "inclusive_weight_ms": 14.467666956130415,
+      "inclusive_percent": 0.005145827890067411
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Tables.Column`1[System.UInt32].Grow(int32)",
+      "self_weight_ms": 0.0,
+      "self_percent": 0.0,
+      "inclusive_weight_ms": 4.4900418519973755,
+      "inclusive_percent": 0.0015970081879571954
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Tables.Column`1[Borough.Core.Quantities.Tiles].Grow(int32)",
+      "self_weight_ms": 0.0,
+      "self_percent": 0.0,
+      "inclusive_weight_ms": 1.6258749961853027,
+      "inclusive_percent": 0.0005782876345234387
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Tables.Column`1[System.UInt64].Grow(int32)",
+      "self_weight_ms": 0.0,
+      "self_percent": 0.0,
+      "inclusive_weight_ms": 10.10870739382517,
+      "inclusive_percent": 0.0035954427619468154
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Movement.TripEngine.<RecordRoute>g__AppendHop|25_2(int32,int32,bool,value class <>c__DisplayClass25_0&)",
+      "self_weight_ms": 0.0,
+      "self_percent": 0.0,
+      "inclusive_weight_ms": 70.4457499486889,
+      "inclusive_percent": 0.025055989049366015
+    },
+    {
+      "method": "Borough.Core!Borough.Core.Tables.Column`1[System.Byte].Grow(int32)",
+      "self_weight_ms": 0.0,
+      "self_percent": 0.0,
+      "inclusive_weight_ms": 15.4672907407803,
+      "inclusive_percent": 0.0055013718741958595
+    }
+  ]
+}

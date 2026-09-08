@@ -28,6 +28,8 @@ namespace Borough.Shell;
 
 public partial class Main
 {
+    private (ulong Tick, int Alpha, float Distance)? _daylightKey;
+
     /// <summary>What the weather is doing, or nothing at all when it is doing nothing.</summary>
     /// <remarks>
     /// ⚠ <b>Silent on a world with no <c>[disasters]</c></b>, which is every shipped Ruleset but
@@ -321,6 +323,9 @@ public partial class Main
     /// </remarks>
     private void Daylight()
     {
+        var key = (_world.Tick.Raw, _alpha.Raw, _distance);
+        if (_daylightKey == key) return;
+        _daylightKey = key;
         float within = _alpha.Raw / 65_536f;
         Vector3 sunward = Sunward(_world.Tick.Raw, within);
         float height = sunward.Y;

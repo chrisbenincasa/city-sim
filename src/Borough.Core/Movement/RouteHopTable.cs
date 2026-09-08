@@ -64,7 +64,7 @@ public sealed class RouteHopTable
     {
         ArgumentNullException.ThrowIfNull(segments);
 
-        _rows = new Rows<RouteHop>("route_hop", capacity, Buffering.OneCopy);
+        _rows = new Rows<RouteHop>("route_hop", capacity, Buffering.OneCopy, amortizeRestore: true);
 
         Segment = _rows.SavedHandle("segment", segments.Rows, Touch.PerTick, Reference.Severable);
         Forward = _rows.Saved<byte>("forward");
