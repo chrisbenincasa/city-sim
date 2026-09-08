@@ -856,4 +856,23 @@ public enum PurposeTag : ulong
     IllnessDeath = 50,
     ClinicDiscovery = 51,
     IllnessCadence = 52,
+
+    /// <summary>
+    /// Which of a scored candidate set a Household takes, drawn against 02 section 5.4's softmax.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Distinct from <see cref="PlacementCandidate"/> because the two answer different
+    /// questions.</b> That tag decides <em>what a Household is shown</em>; this one decides
+    /// <em>which of those it takes</em>. Sharing one would make the family that drew the widest
+    /// sample also the family that picked hardest against its own scores, correlating knowledge with
+    /// preference in a way no Ruleset authored.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>One tag serves every consumer of the choice model</b> — a dwelling, an incumbent, a
+    /// Hinterland — because the entity id already separates them and the interface is
+    /// <em>scored candidates in, one choice out</em>. A second tag would be a second choice model.
+    /// </para>
+    /// </remarks>
+    ChoiceDraw = 53,
 }

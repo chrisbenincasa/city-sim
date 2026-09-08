@@ -42,6 +42,18 @@ public sealed class PlacementEngine
     /// <summary>Where the Pool sample is written. Grown to the widest sample, then reused.</summary>
     private int[] _sample = [];
 
+    /// <summary>The Buildings one Household was shown, and what each is worth to it.</summary>
+    /// <remarks>
+    /// <b>Kept rather than folded away because a distribution needs the whole set.</b> An argmax
+    /// carries one slot and one score; 02 section 5.4 normalises over every candidate, so the loop
+    /// that used to compare and discard now retains. Grown to <c>[placement] candidates</c> and
+    /// reused, which is <see cref="_sample"/>'s arrangement and the same reason.
+    /// </remarks>
+    private int[] _candidateBuildings = [];
+
+    /// <inheritdoc cref="_candidateBuildings"/>
+    private int[] _candidateUtilities = [];
+
     private int _tickConsidered;
     private int _tickPlaced;
     private int _tickDeparted;
@@ -397,13 +409,26 @@ public sealed class PlacementEngine
         // takes the best of what it was shown, which is adr/0017's satisficing and not an optimum.
         // A Household that hates every candidate still moves in, because the alternative is a Pool
         // that fills for a reason no Ruleset authored.
-        bool scored = _world.Rules.CentralityVaries;
-        long weight = scored
+        bool varies = _world.Rules.CentralityVaries;
+
+        // 02 section 5.4 arriving. `chooses` is a SUPERSET of `varies` and not an alternative to it:
+        // a file may state a choice model over rent alone, and a file may state a taste axis and no
+        // model, in which case the argmin below is the mu -> infinity limit of the model it omits.
+        bool chooses = _world.Rules.Placement.Chooses;
+        bool scored = varies || chooses;
+
+        long weight = varies
             ? (2L * _world.Rules.CentralityTaste(
                 _key, _world.Households.Rows.IdAt(slot), _world.Households.LifeStage[slot]))
                 - Fixed.One
             : 0L;
 
+        if (chooses)
+        {
+            Retain(candidates);
+        }
+
+        int found = 0;
         int best = Rows.NoSlot;
         long bestScore = 0L;
 
@@ -492,6 +517,15 @@ public sealed class PlacementEngine
                 return true;
             }
 
+            if (chooses)
+            {
+                _candidateBuildings[found] = building;
+                _candidateUtilities[found] = Utility(lot, building, weight);
+                found++;
+
+                continue;
+            }
+
             long score = Distance(lot) * weight;
 
             if (best == Rows.NoSlot || score < bestScore)
@@ -499,6 +533,21 @@ public sealed class PlacementEngine
                 best = building;
                 bestScore = score;
             }
+        }
+
+        if (chooses && found > 0)
+        {
+            // The choice, and the first call Transcendental.Exp has ever had. Keyed on the
+            // Household's own id and this Tick, so two families shown the same three dwellings on
+            // the same Tick still choose separately -- adr/0005, and the reason the tag is not
+            // PlacementCandidate's.
+            int taken = Choice.Draw(
+                _candidateUtilities.AsSpan(0, found),
+                _world.Rules.Placement.Mu,
+                Randomness.Draw(
+                    _key, _world.Households.Rows.IdAt(slot), tick, PurposeTag.ChoiceDraw));
+
+            best = _candidateBuildings[taken];
         }
 
         if (best == Rows.NoSlot)
@@ -513,6 +562,65 @@ public sealed class PlacementEngine
         MoveIn(slot, chosen, best, tick);
 
         return true;
+    }
+
+    /// <summary>Sizes the candidate buffers to one occasion's looks.</summary>
+    private void Retain(int candidates)
+    {
+        if (_candidateBuildings.Length >= candidates)
+        {
+            return;
+        }
+
+        _candidateBuildings = new int[candidates];
+        _candidateUtilities = new int[candidates];
+    }
+
+    /// <summary>
+    /// What one dwelling is worth to one Household, in 02 section 5.4's utility units.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Two terms, both authored in domain units per utility unit.</b> A Ruleset states how many
+    /// Tiles and how much daily rent are worth one unit; nothing anywhere states a coefficient, and
+    /// adr/0023's rule is why — a constant that cannot be read off a panel is a balance hazard, and
+    /// utility is not a thing anybody sees.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Rent appears here as well as in the affordability filter, and they are different
+    /// questions.</b> <i>Can this family pay at all</i> eliminates a candidate before scoring, which
+    /// is 02 section 5.4's <i>hard constraints are filters</i>; <i>is it worth what it costs</i> is
+    /// the trade-off against distance and belongs in the sum. Neither substitutes for the other: a
+    /// steep negative coefficient would let a rich family buy its way past a rent it cannot afford,
+    /// and a filter alone makes every affordable dwelling identically priced.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The sum is clamped rather than checked.</b> A Ruleset stating a scale of one Tile puts
+    /// the far corner of the map past what Q16.16 holds, and the answer there is already known:
+    /// <see cref="Choice"/> gives every candidate past the horizon a weight of exactly zero, so a
+    /// clamp far beyond it cannot change a choice. An overflow exception would be an arithmetic
+    /// failure standing in for a Ruleset nobody would write.
+    /// </para>
+    /// </remarks>
+    private int Utility(int lot, int building, long weight)
+    {
+        PlacementRuleset placement = _world.Rules.Placement;
+
+        long centrality = -IntegerMath.FloorDiv(
+            Distance(lot) * weight, placement.CentralityTilesPerUnit);
+
+        long rent = -IntegerMath.FloorDiv(
+            (long)_world.Rules.Kind(_world.Buildings.Kind[building]).Rent.Raw * Fixed.One,
+            placement.RentPerUnit);
+
+        long total = centrality + rent;
+
+        if (total > Fixed.MaxValue)
+        {
+            return Fixed.MaxValue;
+        }
+
+        return total < Fixed.MinValue ? Fixed.MinValue : (int)total;
     }
 
     /// <summary>

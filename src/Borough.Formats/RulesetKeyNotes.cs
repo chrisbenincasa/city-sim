@@ -537,6 +537,21 @@ public static class RulesetKeyNotes
             + "grows without bound. Absent means nobody ever gives up, which is only coherent in a "
             + "world with no door in it.",
 
+        ["[placement] mu_percent"] =
+            "How sharply a Household acts on what it prefers, as a percent, where 100 is the scale "
+            + "the choice model is written around. Higher is more decisive and also narrower: an "
+            + "option far enough below the best stops being possible rather than becoming "
+            + "unlikely. Absent means the best-scoring candidate is taken outright.",
+        ["[placement] centrality_tiles_per_unit"] =
+            "How far a Household would walk to trade one unit of what it prefers, in Tiles. It is "
+            + "what makes distance comparable with rent. Required beside mu_percent and refused "
+            + "without it.",
+        ["[placement] rent_per_unit"] =
+            "The difference in daily rent worth one unit of what a Household prefers. It is what "
+            + "makes rent comparable with distance, and it is a soft trade-off rather than the "
+            + "affordability test, which stays a filter. Required beside mu_percent and refused "
+            + "without it.",
+
         // ---- [jobs] ---------------------------------------------------------------------------
         ["[jobs] interval"] =
             "How many Ticks between passes that assign work to Citizens who have none. Omitting the "

@@ -1,0 +1,244 @@
+# chosen.toml -- priced-out.toml with a second dwelling kind, five [[life_stage]] tables and
+# 02 section 5.4's choice model.
+#
+# THE FIRST SHIPPED WORLD IN WHICH A HOUSEHOLD DOES NOT TAKE THE BEST DWELLING IT WAS SHOWN. Every
+# world before it resolved a scored candidate set with an argmax: the family took the highest score,
+# every time, with probability one. That is the mu -> infinity limit of the model 02 section 5.4
+# specifies, so what this file adds is not a mechanism the others lack -- it is the scale parameter
+# they leave at infinity.
+#
+# WHAT IT DEMONSTRATES: two identical Households, shown the same three dwellings on the same Tick,
+# taking different ones. The centrality axis supplies the scores and mu supplies the spread, and
+# `Mu_is_hash_bearing` is what says the model is reached rather than merely present.
+#
+# 🔴 IT WAS BUILT WITH TWO DWELLING KINDS AT DIFFERENT RENTS AND THEY WERE TAKEN OUT AGAIN, WHICH IS
+# THE FINDING RATHER THAN A TIDY-UP. `dwelling` at 500 a Day beside `flat` at 120 would have made
+# `rent_per_unit` a trade-off a player could see. NO SUCH WORLD IS EXPRESSIBLE. The synthetic
+# populator raises the standing city out of ONE housing kind, and the Zone Rule sweep that could
+# raise the other builds about one Building per 2,048 Ticks -- so over 20,480 Ticks at 12,000
+# Citizens the second kind stood NOWHERE, whichever order the two [[zone_rule]] tables were written
+# in. `--kinds` says so in its own words: "1 Zone Rule(s) raise it on a bit this world paints, and
+# none has yet won a Lot."
+#
+# ⚠ SO `rent_per_unit` IS READ AND CANNOT BITE. Rent is per KIND, one kind means one rent, and a
+# term identical across every candidate CANCELS in a softmax -- only differences matter. The key is
+# required beside mu_percent and states a real scale; what it has no world for is a DIFFERENCE.
+# plans/0068 owns the decision that follows.
+#
+# ⚠ RENT IS IN THIS FILE TWICE AND THE TWO ARE DIFFERENT MECHANISMS. The affordability test is a
+# FILTER -- a dwelling costing more than the family holds is struck out before anything is scored --
+# and `rent_per_unit` is a SOFT TRADE-OFF among what survives. 02 section 5.4 is explicit that the
+# two must not be collapsed: as a steep coefficient the filter would let a rich family outbid its own
+# budget, and as a filter alone every affordable home would be identically priced.
+#
+# ⚠ THE THREE NUMBERS UNDER [placement] ARE PROVISIONAL AND NAME NO RATIFIER. plans/0045 standing
+# order 4 suspends adr/0052 for exactly this. What would ratify mu is A PERSON AT THE CONTROLS and
+# nothing else -- 02 section 5.4 says so itself, "when the city feels too herdy or too random, tune
+# mu, not the coefficients" -- so it is a FEEL parameter and no headless run can settle it.
+#
+# ⚠ mu IS NOT ONLY SHARPNESS. adr/0038: the argument to exp underflows below -11.09, so a candidate
+# more than 11.09 / mu utility units below the best is IMPOSSIBLE rather than unlikely. At
+# mu_percent = 100 that is eleven units; at 200 it is five and a half. Turning mu up to make the city
+# more decisive also deletes the tail of every candidate list, and the two effects compound.
+#
+# ⚠ THE TWO SCALES ARE AUTHORED IN DOMAIN UNITS PER UTILITY UNIT AND NEVER THE OTHER WAY ROUND.
+# adr/0023's rule outlives the Hinterland it was written for: 2048 Tiles is about 8 km, which is a
+# distance a designer can argue about, and 120 is a month's difference in rent. A coefficient
+# weighting "utility" would be a number with no referent anywhere in the game.
+#
+# ⚠ THE FIVE [[life_stage]] TABLES ARE choosy.toml'S, UNCHANGED, and the centrality numbers in them
+# ratify nothing here either -- read that file's header for what they are and what they are not.
+#
+# ⚠ NOT HASH-BEARING. This file is new, so no recorded hash moves with it. The three hash-bearing
+# files -- declining.toml, declining-tuned.toml, congested.toml -- state no mu and keep the argmax
+# they have.
+
+[[resource]]
+name = "sundries"
+family = "good"
+
+[[resource]]
+name = "repairs"
+family = "good"
+
+[[resource]]
+name = "money"
+family = "money"
+
+[[business]]
+name = "shop"
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+[[building]]
+name = "dwelling"
+bins = [
+    { resource = "sundries", capacity = 48, owner = "occupant" },
+    { resource = "repairs",  capacity = 4 },
+]
+houses   = true
+premises = true
+# EDIT 1 OF 3: rent raised from 50 to 500 so about half the opening band is locked out.
+rent = 500
+business = "shop"
+
+[[rule]]
+name    = "restock"
+kind    = "dwelling"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = []
+outputs = [ { scope = "local", resource = "sundries", amount = 4 } ]
+
+[[rule]]
+name    = "consume"
+kind    = "dwelling"
+rate    = 32
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "sundries", amount = 4 } ]
+outputs = []
+
+[[rule]]
+name    = "upkeep"
+kind    = "dwelling"
+rate    = 16
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "repairs", amount = 4 } ]
+outputs = []
+
+[[zone_rule]]
+name          = "housing"
+kind          = "dwelling"
+zone          = 0
+interval      = 32
+revisit_ticks = 2048
+
+[placement]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+reconsider_ticks   = 1024
+gives_up_after_days = 60
+mu_percent                = 100
+centrality_tiles_per_unit = 2048
+rent_per_unit             = 120
+
+[layers]
+noise_range_metres            = 300
+noise_intensity_percent       = 400
+desirability_pollution_percent = 100
+desirability_noise_percent     = 100
+pollution_period      = 64
+pollution_offset      = 0
+land_value_period     = 256
+land_value_offset     = 16
+kernel_metres         = 1024
+pollution_decay_ticks = 2048
+land_value_tau        = 8
+
+[roads]
+block_tiles                    = 32
+arterial_count                 = 0
+arterial_junction_tiles        = 512
+foot_crossing_every            = 4
+foot_paths_per_thousand_blocks = 40
+street_speed_kph               = 50
+arterial_speed_kph             = 90
+walk_speed_kph                 = 5
+street_capacity_per_hour       = 3600
+arterial_capacity_per_hour     = 12000
+foot_path_capacity_per_hour    = 1000
+
+[lots]
+lots_per_segment = 5
+# The most ground a Building leaves on each side of its parcel. A LENGTH and not a fraction, so
+# coverage rises with the parcel -- see minimal.toml, which carries the argument.
+setback_tiles = 2
+
+[capacity]
+# How much floor one tenancy, job or parking space takes, in Tiles -- see minimal.toml, which carries
+# the argument and the measurement. A kind says WHETHER it houses; the count derives from the ground,
+# and the three rates are what the standing city already said about a detached building, divided.
+floor_tiles_per_occupant      = 25
+floor_tiles_per_job           = 3
+floor_tiles_per_parking_space = 12
+
+[trips]
+crossing_seconds = 30
+commute_fast_minutes = 20
+commute_moderate_minutes = 40
+commute_budget_minutes = 50
+
+[jobs]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+shift_hours_min = 6
+shift_hours_max = 10
+arrive_early_max_minutes = 15
+
+# EDIT 3 OF 3: same band and circuit as taxed.toml. The levy drains toward 500; the rebate
+# does not lift fast enough to keep pace, so a Household placed at 600 crosses below 500
+# within a few Days and the reassessment sweep ejects it.
+[households]
+car_ownership_percent = 0
+opening_balance_min = 0
+opening_balance_max = 1000
+
+[[policy]]
+name = "household_levy"
+sweeps = "household"
+interval = 2048
+apply = { derived = "balance", percent = 10 }
+transfer = { from = "local", to = "global", resource = "money", amount = 1 }
+
+[[policy]]
+name = "household_rebate"
+sweeps = "household"
+interval = 2048
+apply = { min = 100, max = 100 }
+transfer = { from = "global", to = "local", resource = "money", amount = 1 }
+
+[[life_stage]]
+name          = "young"
+duration_days = 24
+spread_days   = 8
+centrality_base_percent   = 60
+centrality_spread_percent = 30
+next          = "family"
+childless     = "childless"
+children_min  = 0
+children_max  = 3
+adult_age_min_days = 1
+adult_age_max_days = 160
+
+[[life_stage]]
+name          = "family"
+duration_days = 48
+spread_days   = 16
+centrality_base_percent   = 30
+centrality_spread_percent = 10
+next          = "mature_family"
+
+[[life_stage]]
+name           = "mature_family"
+duration_days  = 48
+spread_days    = 16
+centrality_base_percent   = 25
+centrality_spread_percent = 15
+next           = "empty_nest"
+children_become = "young"
+
+[[life_stage]]
+name          = "childless"
+duration_days = 40
+spread_days   = 16
+centrality_base_percent   = 65
+centrality_spread_percent = 25
+
+[[life_stage]]
+name          = "empty_nest"
+duration_days = 40
+spread_days   = 16
+centrality_base_percent   = 30
+centrality_spread_percent = 60

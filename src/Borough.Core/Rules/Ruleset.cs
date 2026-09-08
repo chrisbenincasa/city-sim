@@ -1657,6 +1657,42 @@ public readonly record struct PlacementRuleset(
     /// <summary>Deficit that can prompt a move; zero disables shortage reassessment.</summary>
     public int MoveAtNeed { get; init; }
 
+    /// <summary>
+    /// 02 section 5.4's scale parameter as a percent; zero means the file states no choice model.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Absence is the deterministic pick, and that is the model rather than a fallback.</b> An
+    /// argmax over scored candidates <em>is</em> the logit's μ→∞ limit, so a file that states no μ
+    /// gets a city that already existed and a file that states one buys the distribution. There is
+    /// no third behaviour and no default to argue.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A feel parameter whose ratifier is a person at the controls.</b> 02 section 5.4 is
+    /// unusually explicit that the literature fixes μ at 1 for reasons that only apply when fitting
+    /// coefficients to observed data — <i>"when the city feels too herdy or too random, tune μ, not
+    /// the coefficients"</i>. ⚠ <b>It also sets where options stop existing</b>: the horizon is
+    /// <c>11.09 / μ</c> utility units and doubling μ halves it (adr/0038).
+    /// </para>
+    /// </remarks>
+    public int MuPercent { get; init; }
+
+    /// <summary>
+    /// How many Tiles of distance are worth one utility unit; zero when no choice model is stated.
+    /// </summary>
+    public int CentralityTilesPerUnit { get; init; }
+
+    /// <summary>
+    /// How much daily rent is worth one utility unit; zero when no choice model is stated.
+    /// </summary>
+    public int RentPerUnit { get; init; }
+
+    /// <summary>Whether the file states 02 section 5.4's choice model.</summary>
+    public bool Chooses => MuPercent > 0;
+
+    /// <summary>The scale parameter in Q16.16.</summary>
+    public int Mu => (int)IntegerMath.FloorDiv((long)MuPercent * Fixed.One, 100);
+
     /// <summary>A Ruleset whose city houses nobody.</summary>
     public static PlacementRuleset None => default;
 

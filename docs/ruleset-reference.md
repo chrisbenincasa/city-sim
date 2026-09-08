@@ -25,7 +25,7 @@ dotnet run --project src/Borough.Headless -- \
 
 ## The sections
 
-37 sections, 229 keys.
+37 sections, 232 keys.
 
 - [`[[band]]`](#band) — 2 keys
 - [`[[building]]`](#building) — 18 keys
@@ -57,7 +57,7 @@ dotnet run --project src/Borough.Headless -- \
 - [`[market]`](#market) — 2 keys
 - [`[needs]`](#needs) — 9 keys
 - [`[parking]`](#parking) — 2 keys
-- [`[placement]`](#placement) — 6 keys
+- [`[placement]`](#placement) — 9 keys
 - [`[roads]`](#roads) — 12 keys
 - [`[school]`](#school) — 7 keys
 - [`[shopping]`](#shopping) — 7 keys
@@ -965,6 +965,10 @@ How many Car Parks a Building's Parking Shed holds, and therefore how far a quer
 
 How many dwellings one Household looks at on one occasion before waiting for the next. A behaviour model rather than a budget: a family that sees three flats and takes the first with room is not an optimiser being approximated.
 
+**`centrality_tiles_per_unit`** · *whole number*
+
+How far a Household would walk to trade one unit of what it prefers, in Tiles. It is what makes distance comparable with rent. Required beside mu_percent and refused without it.
+
 **`gives_up_after_days`** · *whole number*
 
 How long a Household keeps looking for a home before it gives up and leaves. Required of any Ruleset with a door into the Pool — a gate kind, a reassessment sweep, or a life stage whose children leave home — because a Pool with an inflow and no sink grows without bound. Absent means nobody ever gives up, which is only coherent in a world with no door in it.
@@ -977,9 +981,17 @@ How many Ticks between passes that drain the Unplaced Pool into standing dwellin
 
 The Sustenance or Satisfaction deficit at which a continuing shortage can prompt a move. Requires reassessment and Needs; each tenancy must endure its own shortage long enough to reach this depth. Absent means shortages never prompt moves.
 
+**`mu_percent`** · *whole number*
+
+How sharply a Household acts on what it prefers, as a percent, where 100 is the scale the choice model is written around. Higher is more decisive and also narrower: an option far enough below the best stops being possible rather than becoming unlikely. Absent means the best-scoring candidate is taken outright.
+
 **`reconsider_ticks`** · *whole number*
 
 The duration used to size a sample of housed Households for reassessment, in Ticks; sampling is with replacement and does not guarantee coverage. Unaffordable rent or an enabled shortage criterion returns a Household to the Unplaced Pool, so the Ruleset owes gives_up_after_days. Absent means no reassessment.
+
+**`rent_per_unit`** · *whole number*
+
+The difference in daily rent worth one unit of what a Household prefers. It is what makes rent comparable with distance, and it is a soft trade-off rather than the affordability test, which stays a filter. Required beside mu_percent and refused without it.
 
 **`revisit_ticks`** · *whole number*
 
