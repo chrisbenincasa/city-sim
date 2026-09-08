@@ -4739,7 +4739,13 @@ public static class RulesetLoader
                     continue;
                 }
 
-                definitions.Add(new HinterlandDefinition(edge, min, max));
+                (Money rent, int centrality) = ReadOutsideAsARow(table);
+
+                definitions.Add(new HinterlandDefinition(edge, min, max)
+                {
+                    Rent = rent,
+                    CentralityTiles = centrality,
+                });
 
                 // AFTER the Add and never before, because the two lists are parallel by position and
                 // ReadPrices appends exactly one stride whatever it finds. Every `continue` above
@@ -4749,6 +4755,87 @@ public static class RulesetLoader
 
             prices = [.. authored];
             return [.. definitions];
+        }
+
+        /// <summary>
+        /// The two fields that make a Hinterland a row in 02 section 5.4's comparison.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Required with <c>[placement] mu_percent</c> and refused without it</b>, which is the
+        /// polarity the choice model's own keys already have and the first time it reaches across
+        /// two tables. A Hinterland in a file with no choice model is a market and a door; nothing
+        /// weighs it against living here, so a rent stated there would be a number no reader asks
+        /// for.
+        /// </para>
+        /// <para>
+        /// ⚠ <b><c>wage</c> is NOT read here and its absence is deliberate.</b> adr/0023 names it
+        /// among the fields a District exposes and the utility function has no term that could
+        /// weigh it — a Household choosing a home has no job yet, and there is no city-side wage for
+        /// it to be compared against. ***A field with no reader is what row 28 was opened about***,
+        /// so it arrives with the term rather than before it (adr/0070: unbuilt, not refused).
+        /// </para>
+        /// </remarks>
+        private (Money Rent, int CentralityTiles) ReadOutsideAsARow(TableSyntaxBase table)
+        {
+            bool chooses = _placementTable is not null
+                && Find(_placementTable, "mu_percent") is not null;
+
+            Money rent = ReadOutsideNumber(table, "rent", chooses, out long rentRaw) is false
+                ? Money.Zero
+                : new Money(rentRaw);
+
+            ReadOutsideNumber(table, "centrality_tiles", chooses, out long centrality);
+
+            return (rent, (int)centrality);
+        }
+
+        /// <summary>One <c>[[hinterland]]</c> field the choice model reads, and its two refusals.</summary>
+        private bool ReadOutsideNumber(
+            TableSyntaxBase table, string key, bool chooses, out long value)
+        {
+            value = 0;
+
+            if (Find(table, key) is null)
+            {
+                if (chooses)
+                {
+                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "edge") ?? table), null,
+                        $"this Hinterland states no {key} and the Ruleset states a choice model. "
+                        + "02 section 5.4 compares staying outside against moving here through one "
+                        + "utility function, so the Outside is described in the same fields a "
+                        + "District exposes or it is not a row in that comparison at all.");
+                }
+
+                return false;
+            }
+
+            if (!chooses)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, key) ?? table), null,
+                    $"this Hinterland states {key} and the Ruleset states no [placement] "
+                    + "mu_percent. Nothing weighs the Outside against living here, so the figure "
+                    + "would be read by nobody -- state a choice model, or remove the key.");
+
+                return false;
+            }
+
+            if (!TryInteger(table, key, out value, required: true))
+            {
+                return false;
+            }
+
+            if (value < 0 || value > int.MaxValue)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, key) ?? table), null,
+                    $"{key} = {value} is out of range. It describes the economy behind one map edge "
+                    + "in the units the city is measured in, so it is not negative.");
+
+                value = 0;
+                return false;
+            }
+
+            return true;
         }
 
         /// <summary>

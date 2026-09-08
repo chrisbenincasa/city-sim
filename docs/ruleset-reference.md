@@ -25,13 +25,13 @@ dotnet run --project src/Borough.Headless -- \
 
 ## The sections
 
-37 sections, 233 keys.
+37 sections, 235 keys.
 
 - [`[[band]]`](#band) — 2 keys
 - [`[[building]]`](#building) — 18 keys
 - [`[[building]] bins`](#building-bins) — 3 keys
 - [`[[business]]`](#business) — 10 keys
-- [`[[hinterland]]`](#hinterland) — 4 keys
+- [`[[hinterland]]`](#hinterland) — 6 keys
 - [`[[hinterland]] prices`](#hinterland-prices) — 2 keys
 - [`[[lattice]]`](#lattice) — 2 keys
 - [`[[life_stage]]`](#life_stage) — 12 keys
@@ -227,6 +227,10 @@ Workdays as a Monday-first weekly bit mask. Absent preserves daily work.
 
 *An array of tables — a file may declare this more than once.*
 
+**`centrality_tiles`** · *whole number*
+
+How far from a centre life out here is, in the Tiles the map is measured in. It puts the Outside on the same scale a dwelling's walk to the centre is on, so that a Household weighing one against the other is measuring both from the same place. Required beside a choice model and refused without one.
+
 **`edge`** · *quoted string*
 
 Which side of the map this Hinterland sits behind — north, south, east or west — shared by every Outside Connection on that edge. The edge is what a Hinterland is, so there is no default and two Hinterlands may not share one.
@@ -242,6 +246,10 @@ The least money a Household arriving from this Hinterland brings with it.
 **`prices`** · *array of inline tables*
 
 What this Hinterland will sell each Good for, one entry per Good. These are the only authored anchor under every price in the design: a District's Pool may charge up to the cheapest declared Hinterland price and no more.
+
+**`rent`** · *whole number*
+
+What a home costs per Day out here, in the money a [[building]] rent is in. It is what a prospective Household compares against the cost of living in the city, and what a Household waiting for somewhere to live compares against every home it is shown. Required beside a choice model and refused without one.
 
 ---
 

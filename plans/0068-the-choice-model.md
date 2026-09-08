@@ -10,8 +10,13 @@
 
 ## Status
 
-✅ **TASKS 1 AND 2 BUILT 2026-09-08 and neither moved a recorded hash**, which was the point of
-decision D1: every shipped world states no μ and keeps the argmax it had. **Task 3 unstarted.**
+✅ **ALL THREE TASKS BUILT 2026-09-08 and none moved a recorded hash**, which was the point of
+decision D1: every shipped world states no μ and keeps the argmax it had.
+
+🔴 **THE HEADLINE IS TASK 3's.** `[[building]] arrivals_per_day` has stopped being what decides how
+many people want to live here. Measured on the new `welcomed.toml` against `crowded.toml`, same
+asking, same doors: **admissions fell from a flat 96 a Day at every gate to between 1 and 11, and
+the Unplaced Pool from 839 waiting to 31.** Nothing states a rate anywhere.
 
 ✅ **D4 IS CLOSED AND THE ANSWER WAS NEITHER OPTION.** `rent_per_unit` stays required, and task 2
 gave it a difference to weigh without any second housing kind: **`moving_costs_rent` is denominated
@@ -106,9 +111,20 @@ matters; and clamping would silently give a designer a different city from the o
 ***A refusal that reads three keys against each other is the shape, and what it should say is the
 open part.***
 
-**D3 — Does `CommandKind.Arrive` survive task 3?** Open. Interest becoming emergent does not by
-itself remove a door a player or an Input Log can push somebody through, and `ArrivalDump` and every
-committed log depend on it.
+**D3 — Does `CommandKind.Arrive` survive task 3?** ✅ **Closed 2026-09-08: it survives and changes
+meaning.** The command said *admit this many* and now says ***this many present themselves***; how
+many cross is the model's answer. ⚠ **A decline is not a refusal**, so it does not break the
+admission loop the way a full gate does — the next prospect is a different person facing the same
+city. ***Nothing in `Borough.Formats` changed and every committed log still replays***, because the
+payload is unaltered.
+
+**D6 — Who knocks, and how often?** Open, and it is the half of `adr/0023` this task did not build.
+The comparison decides *whether* somebody crosses; **what decides how many present themselves is
+still outside the simulation** — a player, an Input Log, or `ArrivalDump` asking for more than the
+door can take. `adr/0023`'s answer is the **Hinterland as a stock the city draws down**, where the
+rate falls because the willing are taken first. ⚠ **Until that exists the interest half is real and
+the volume half is not**, which is a smaller gap than the one this task closed and is not a rate
+hiding in the build.
 
 ---
 
@@ -181,3 +197,36 @@ faked**: the utility of *remaining in the Pool* is the utility of not living in 
 `V_outside` **by name** — *"it has no referent; neither a designer nor a playtester nor a player can
 say whether it is too generous."* ***So the second half of task 2 is inside task 3***, and that is
 the ordering rather than an omission.
+
+---
+
+## What the gate found
+
+**Turning the choice model on at the doors changed a city more than anything else in row 28.**
+`welcomed.toml` is `crowded.toml` with a choice model and four priced Hinterlands, run at 1,000
+Citizens for 8,192 Ticks with every gate asked for 100 Households a Day against a ceiling of 96:
+
+| | `crowded.toml` | `welcomed.toml` |
+|---|---:|---:|
+| west admitted, last Day | 96 | 11 |
+| north admitted, last Day | 96 | 9 |
+| south admitted, last Day | 96 | 7 |
+| east admitted, last Day | 96 | 1 |
+| Unplaced Pool | **839 waiting** | **31 waiting** |
+
+⚠ **The four columns order by what the Outside costs, which is the only thing that differs between
+them.** The east prices a home at 300 a Day against 400 here and sends almost nobody; the north
+prices one at 1,500 and sends nine times as many. ***That ordering is not authored anywhere*** —
+`crowded.toml`'s own header says *"nothing in the simulation decides to arrive"*, and that sentence
+is now false.
+
+🔴 **A prospect that can see nowhere to live does not come, and it is not a special case.** Every
+candidate failing the affordability and vacancy filters leaves one row in the comparison, and a
+softmax over one row returns it. ***So "the city is full" falls out of the model rather than being
+written into it*** — which is why the Pool fell to 31 rather than growing without bound. ⚠ **That
+inverts `crowded.toml`'s premise**, which is why `welcomed.toml` is a second file and not an edit.
+
+⚠ **The first run of this measured almost nothing and the reason is worth keeping.** `crowded.toml`
+prices no dwelling at all, so `V_here` was zero for every prospect from every edge and the four
+Hinterlands were told apart by the draw alone — 5, 5, 4, 3. ***A comparison needs both sides
+priced***, and the city having no price is the same defect as the Outside having none.

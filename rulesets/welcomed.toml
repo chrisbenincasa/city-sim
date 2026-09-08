@@ -1,0 +1,204 @@
+# welcomed.toml -- crowded.toml with 02 section 5.4's choice model and four Hinterlands that are
+# each other's referent.
+#
+# THE FIRST SHIPPED WORLD IN WHICH SOMEBODY DECIDES NOT TO COME. Every world before it admitted
+# whoever knocked until the door's daily ceiling bound: Simulation.ApplyArrive called World.TryArrive
+# once per Household in the command and the only thing that could say no was `arrivals_per_day`.
+# crowded.toml's own header says so -- "nothing in the simulation decides to arrive" -- and that
+# sentence is now false, which is why this file exists beside it rather than replacing it.
+#
+# WHAT IT DEMONSTRATES: adr/0023's first line. THERE IS NO IMMIGRATION RATE. A prospect standing at a
+# gate compares what a home costs here against what one costs where it lives, through the identical
+# utility function a resident uses, and crosses or does not. `arrivals_per_day` goes back to being
+# what adr/0023 always said it was -- the width of a door -- and how many people walk through it is
+# the model's answer rather than the file's.
+#
+# ⚠ FOUR EDGES, FOUR RENTS, AND THAT IS THE WHOLE ARGUMENT FOR FOUR. adr/0023: "a single hidden
+# anchor has no referent; FOUR COMPARABLE MARKETS ARE EACH OTHER'S REFERENT." A player may never know
+# whether 900 is the right rent for the west, and can see perfectly well that the east at 300 sends
+# fewer people than the north at 1,500 does.
+#
+#     north   rent 1,500   centrality 9,000 Tiles    dear and remote -- most willing to leave
+#     west      rent 900   centrality 6,000 Tiles
+#     south     rent 600   centrality 4,000 Tiles
+#     east      rent 300   centrality 2,000 Tiles    cheap and central -- least willing to leave
+#
+# ⚠ centrality_tiles IS NOT WHERE THE HINTERLAND IS. A Hinterland occupies no ground and is never
+# rendered (adr/0020). The number says how central life THERE feels, on the same scale a dwelling's
+# walk to the centre is measured on -- because only DIFFERENCES matter in a logit, so leaving the
+# Outside unstated would score it at zero and hand it a perfect-centrality advantage no file asked
+# for.
+#
+# ⚠ A PROSPECT IS ANONYMOUS AND ITS TASTE WEIGHS ZERO, so the crossing decision runs on rent alone.
+# Rent is what you can see from outside; a particular flat is not. ***Nobody emigrates because they
+# have picked out an address.*** Taste, purse and home all belong to the Household that arrives.
+#
+# ⚠ THE NUMBERS HERE RATIFY NOTHING, and crowded.toml's warning about stopwatch settings applies to
+# this file unchanged -- it inherits that file's compressed `arrivals_per_day` and
+# `gives_up_after_days` along with everything else.
+
+[[resource]]
+name = "sundries"
+family = "good"
+
+[[resource]]
+name = "repairs"
+family = "good"
+
+[[resource]]
+name = "money"
+family = "money"
+
+[[business]]
+name = "shop"
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+[[building]]
+name = "dwelling"
+bins = [
+    { resource = "sundries", capacity = 48, owner = "occupant" },
+    { resource = "repairs",  capacity = 4 },
+]
+houses   = true
+premises = true
+# A price to compare a Hinterland's against. Without one V_here is zero for everybody and the four
+# edges are told apart by nothing.
+rent = 400
+# Whether it parks at all -- the count is floor area over [capacity] floor_tiles_per_parking_space.
+parked = true
+business = "shop"
+
+[[building]]
+name = "port"
+arrivals_per_day = 96
+
+[[hinterland]]
+edge = "west"
+rent = 900
+centrality_tiles = 6000
+emigrant_balance_min = 800
+emigrant_balance_max = 4000
+
+[[hinterland]]
+edge = "south"
+rent = 600
+centrality_tiles = 4000
+emigrant_balance_min = 1200
+emigrant_balance_max = 9000
+
+[[hinterland]]
+edge = "east"
+rent = 300
+centrality_tiles = 2000
+emigrant_balance_min = 2000
+emigrant_balance_max = 14000
+
+[[hinterland]]
+edge = "north"
+rent = 1500
+centrality_tiles = 9000
+emigrant_balance_min = 3000
+emigrant_balance_max = 20000
+
+[[rule]]
+name    = "restock"
+kind    = "dwelling"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = []
+outputs = [ { scope = "local", resource = "sundries", amount = 4 } ]
+
+[[rule]]
+name    = "consume"
+kind    = "dwelling"
+rate    = 32
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "sundries", amount = 4 } ]
+outputs = []
+
+[[rule]]
+name    = "upkeep"
+kind    = "dwelling"
+rate    = 16
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "repairs", amount = 4 } ]
+outputs = []
+
+[[zone_rule]]
+name          = "housing"
+kind          = "dwelling"
+zone          = 0
+interval      = 32
+revisit_ticks = 2048
+
+[placement]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+gives_up_after_days = 2
+mu_percent                = 100
+centrality_tiles_per_unit = 2048
+rent_per_unit             = 120
+moving_costs_rent         = 720
+
+[layers]
+noise_range_metres            = 300
+noise_intensity_percent       = 400
+desirability_pollution_percent = 100
+desirability_noise_percent     = 100
+pollution_period      = 64
+pollution_offset      = 0
+land_value_period     = 256
+land_value_offset     = 16
+kernel_metres         = 1024
+pollution_decay_ticks = 2048
+land_value_tau        = 8
+
+[roads]
+block_tiles                    = 32
+arterial_count                 = 16
+arterial_junction_tiles        = 512
+foot_crossing_every            = 4
+foot_paths_per_thousand_blocks = 40
+street_speed_kph               = 50
+arterial_speed_kph             = 90
+walk_speed_kph                 = 5
+street_capacity_per_hour       = 3600
+arterial_capacity_per_hour     = 12000
+foot_path_capacity_per_hour    = 1000
+
+[lots]
+lots_per_segment = 5
+# The most ground a Building leaves on each side of its parcel. A LENGTH and not a fraction, so
+# coverage rises with the parcel -- see minimal.toml, which carries the argument.
+setback_tiles = 2
+
+[capacity]
+# How much floor one tenancy, job or parking space takes, in Tiles -- see minimal.toml, which carries
+# the argument and the measurement. A kind says WHETHER it houses; the count derives from the ground,
+# and the three rates are what the standing city already said about a detached building, divided.
+floor_tiles_per_occupant      = 25
+floor_tiles_per_job           = 3
+floor_tiles_per_parking_space = 12
+
+[households]
+car_ownership_percent = 100
+
+[parking]
+radius_metres = 400
+shed_keeps = 24
+
+[trips]
+crossing_seconds = 30
+commute_fast_minutes = 20
+commute_moderate_minutes = 40
+commute_budget_minutes = 50
+
+[jobs]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+shift_hours_min = 6
+shift_hours_max = 10
+arrive_early_max_minutes = 15

@@ -21,6 +21,13 @@ public sealed class ChoiceModelRulesetLoadTests
         family = "good"
         """;
 
+    /// <summary>A money Resource, which an emigrant band needs a Bin for (adr/0114).</summary>
+    private const string Coin = """
+        [[resource]]
+        name = "money"
+        family = "money"
+        """;
+
     private const string Whole = """
         interval      = 32
         revisit_ticks = 1024
@@ -184,6 +191,47 @@ public sealed class ChoiceModelRulesetLoadTests
 
         Assert.True(placement.Chooses);
         Assert.Equal(0, placement.StayingPut);
+    }
+
+    /// <summary>A Hinterland in a file with a choice model owes the fields it will be scored on.</summary>
+    /// <remarks>
+    /// <b>The first refusal in this loader that reads <c>[[hinterland]]</c> against
+    /// <c>[placement]</c>.</b> adr/0023 makes the Outside an ordinary row in the same comparison, and
+    /// a row missing the columns everything else is scored on is not a row.
+    /// </remarks>
+    [Fact]
+    public void A_hinterland_in_a_choosing_world_owes_a_rent_and_a_centrality()
+    {
+        Assert.Contains("rent", Refused(
+            $"{Nothing}\n\n{Coin}\n\n[[hinterland]]\nedge = \"north\"\nemigrant_balance_min = 0\n"
+            + $"emigrant_balance_max = 100\n\n[placement]\n{Whole}\n{Model}").Reason);
+
+        Assert.Contains("centrality_tiles", Refused(
+            $"{Nothing}\n\n{Coin}\n\n[[hinterland]]\nedge = \"north\"\nrent = 620\n"
+            + "emigrant_balance_min = 0\nemigrant_balance_max = 100\n\n"
+            + $"[placement]\n{Whole}\n{Model}").Reason);
+    }
+
+    /// <summary>And a Hinterland in a file with no choice model is refused for stating them.</summary>
+    [Fact]
+    public void A_hinterland_outside_a_choosing_world_is_refused_those_fields()
+    {
+        Assert.Contains("mu_percent", Refused(
+            $"{Nothing}\n\n{Coin}\n\n[[hinterland]]\nedge = \"north\"\nrent = 620\n"
+            + "emigrant_balance_min = 0\nemigrant_balance_max = 100").Reason);
+    }
+
+    [Fact]
+    public void A_hinterland_states_both_fields_and_loads()
+    {
+        Ruleset rules = Accepted(
+            $"{Nothing}\n\n{Coin}\n\n[[hinterland]]\nedge = \"north\"\nrent = 620\n"
+            + "centrality_tiles = 9000\nemigrant_balance_min = 0\nemigrant_balance_max = 100\n\n"
+            + $"[placement]\n{Whole}\n{Model}");
+
+        Assert.True(rules.TryHinterland(Core.Space.MapEdge.North, out HinterlandDefinition north));
+        Assert.Equal(620, north.Rent.Raw);
+        Assert.Equal(9_000, north.CentralityTiles);
     }
 
     [Fact]

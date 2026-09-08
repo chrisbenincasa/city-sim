@@ -426,6 +426,16 @@ public static class RulesetKeyNotes
         ["[[hinterland]] emigrant_balance_max"] =
             "The most. Stated as a band rather than one figure, because a single figure gives every "
             + "arrival the same means.",
+        ["[[hinterland]] rent"] =
+            "What a home costs per Day out here, in the money a [[building]] rent is in. It is what "
+            + "a prospective Household compares against the cost of living in the city, and what a "
+            + "Household waiting for somewhere to live compares against every home it is shown. "
+            + "Required beside a choice model and refused without one.",
+        ["[[hinterland]] centrality_tiles"] =
+            "How far from a centre life out here is, in the Tiles the map is measured in. It puts "
+            + "the Outside on the same scale a dwelling's walk to the centre is on, so that a "
+            + "Household weighing one against the other is measuring both from the same place. "
+            + "Required beside a choice model and refused without one.",
         ["[[hinterland]] prices"] =
             "What this Hinterland will sell each Good for, one entry per Good. These are the only "
             + "authored anchor under every price in the design: a District's Pool may charge up to "

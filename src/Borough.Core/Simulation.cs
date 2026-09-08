@@ -1046,6 +1046,15 @@ public sealed class Simulation
 
         for (int i = 0; i < payload.Households; i++)
         {
+            // 02 §5.4 arriving at the gate: the command says how many people PRESENT THEMSELVES and
+            // the choice model says how many cross. ⚠ A decline is not a refusal and must not break
+            // the loop -- the next prospect is a different person facing the same city, where a full
+            // gate binds for everybody behind it.
+            if (!_placement.ProspectCrosses(gate, i, tick))
+            {
+                continue;
+            }
+
             // Stops on the first refusal rather than trying the rest. The only refusal reachable
             // here is the daily ceiling -- the gate resolved a line above -- and a ceiling that has
             // bound once binds for the remainder of the Day.

@@ -1569,6 +1569,46 @@ public readonly record struct HinterlandDefinition(
     MapEdge Edge, Money EmigrantBalanceMin, Money EmigrantBalanceMax)
 {
     /// <summary>
+    /// What a home costs per Day out here, in the money a <c>[[building]] rent</c> is in.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>adr/0023's whole argument, made concrete.</b> That decision rejected a hand-authored
+    /// <c>V_outside</c> because it has no referent — <i>"neither a designer nor a playtester nor a
+    /// player can say whether 4.7 is too generous"</i> — and its fix is units rather than mechanism:
+    /// author the Outside <b>in the same fields a District exposes</b> and run it through the
+    /// identical utility function. <c>rent 620</c> is a number a designer can defend and a player
+    /// can read off a panel.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Read only by 02 section 5.4's comparison, so it is required with a choice model and
+    /// refused without one.</b> A Hinterland in a file that states no <c>mu_percent</c> is a market
+    /// and a door and nothing weighs it against anywhere.
+    /// </para>
+    /// </remarks>
+    public Money Rent { get; init; }
+
+    /// <summary>
+    /// How far from a centre life out here is, in the Tiles the map is measured in.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The centrality term needs the Outside measured from the SAME zero, and this is it.</b>
+    /// A city dwelling scores its walk to the nearest <c>[[lattice]]</c> origin; giving the Outside
+    /// no such figure would score it at zero — <em>perfectly central</em> — which is an artefact of
+    /// where the distance scale happens to start and not something any file said.
+    /// ***Only differences matter in a logit, so an unstated zero is a stated advantage.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is a property of the ECONOMY behind the edge and not of the edge's position.</b> A
+    /// Hinterland is never rendered and occupies no ground (<c>adr/0020</c>); what this states is
+    /// how central life there feels, which is why a neighbouring city's suburb and a moor state
+    /// different numbers from the same edge.
+    /// </para>
+    /// </remarks>
+    public int CentralityTiles { get; init; }
+
+    /// <summary>
     /// Whether an emigrant from here carries anything at all.
     /// </summary>
     /// <remarks>

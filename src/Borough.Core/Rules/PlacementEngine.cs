@@ -63,6 +63,7 @@ public sealed class PlacementEngine
     private int _tickReassessed;
     private int _tickShortageMoves;
     private int _tickPreferredMoves;
+    private int _tickDeclined;
 
     private RuleFlow _consideredFlow;
     private RuleFlow _placedFlow;
@@ -73,6 +74,7 @@ public sealed class PlacementEngine
     private RuleFlow _reassessedFlow;
     private RuleFlow _shortageMovesFlow;
     private RuleFlow _preferredMovesFlow;
+    private RuleFlow _declinedFlow;
 
     /// <param name="world">The tables this drains, and the Ruleset it drains under. Not copied.</param>
     /// <param name="key">The world seed, as the draws' first coordinate.</param>
@@ -106,7 +108,8 @@ public sealed class PlacementEngine
     {
         var activity = new PlacementActivity(
             _consideredFlow, _placedFlow, _departedFlow, _retiredFlow, _foundedFlow,
-            _premisedFlow, _reassessedFlow, _shortageMovesFlow, _preferredMovesFlow);
+            _premisedFlow, _reassessedFlow, _shortageMovesFlow, _preferredMovesFlow,
+            _declinedFlow);
 
         _consideredFlow = default;
         _placedFlow = default;
@@ -117,6 +120,7 @@ public sealed class PlacementEngine
         _reassessedFlow = default;
         _shortageMovesFlow = default;
         _preferredMovesFlow = default;
+        _declinedFlow = default;
 
         return activity;
     }
@@ -426,12 +430,27 @@ public sealed class PlacementEngine
                 - Fixed.One
             : 0L;
 
+        // 02 section 5.4's stay-put alternative on the Pool side, and the reason it is position 0
+        // rather than a test afterwards: only DIFFERENCES matter in a logit, so "everything I was
+        // shown is terrible" is inexpressible until not-moving-in is a row somebody can draw.
+        // ⚠ IT IS THE HINTERLAND AND NEVER AN AUTHORED CONSTANT -- adr/0023 rejects a bare
+        // `V_outside` by name, because a number nobody can compare against anything is a number no
+        // designer, playtester or player can say is too generous.
+        int worthOfOutside = 0;
+        int outside = chooses && TryOutside(position, weight, out worthOfOutside) ? 1 : 0;
+
         if (chooses)
         {
-            Retain(candidates);
+            Retain(candidates + outside);
+
+            if (outside == 1)
+            {
+                _candidateBuildings[0] = Rows.NoSlot;
+                _candidateUtilities[0] = worthOfOutside;
+            }
         }
 
-        int found = 0;
+        int found = outside;
         int best = Rows.NoSlot;
         long bestScore = 0L;
 
@@ -452,7 +471,7 @@ public sealed class PlacementEngine
             int lot = _world.LotsAdmitting.Nth(
                 _world.Lots, LotTable.Housing, (int)(value % (ulong)(uint)lots));
 
-            int building = Consider(lot, seeker, out bool costsALook, out bool shown);
+            int building = Consider(lot, _world.BalanceOf(seeker), out bool costsALook, out bool shown);
 
             if (!costsALook)
             {
@@ -508,7 +527,7 @@ public sealed class PlacementEngine
             }
         }
 
-        if (chooses && found > 0)
+        if (chooses && found > outside)
         {
             // The choice, and the first call Transcendental.Exp has ever had. Keyed on the
             // Household's own id and this Tick, so two families shown the same three dwellings on
@@ -521,6 +540,14 @@ public sealed class PlacementEngine
                     _key, _world.Households.Rows.IdAt(slot), tick, PurposeTag.ChoiceDraw));
 
             best = _candidateBuildings[taken];
+
+            // The family declined every home it was shown and stayed where it was. ⚠ It is NOT a
+            // sink and must not become one: `gives_up_after_days` is what bounds the Pool, and a
+            // Household that declines this occasion is looking again on the next one.
+            if (best == Rows.NoSlot)
+            {
+                _tickDeclined++;
+            }
         }
 
         if (best == Rows.NoSlot)
@@ -541,7 +568,10 @@ public sealed class PlacementEngine
     /// What a Household drawing <paramref name="lot"/> was shown, and whether it could live there.
     /// </summary>
     /// <param name="lot">A Lot admitting a dwelling, drawn by the caller.</param>
-    /// <param name="seeker">Whose balance the affordability filter reads.</param>
+    /// <param name="purse">
+    /// What the looker can pay. <b>A quantity rather than an identity, because a prospect at a gate
+    /// is not a Household yet</b> and the filter only ever asked what was in the pocket.
+    /// </param>
     /// <param name="costsALook">
     /// False only for a shell. <b>Draws and looks are different things and an abandoned Building is
     /// the reason</b> — <c>adr/0091</c> leaves it standing, <c>World.HasRoom</c> refuses it
@@ -559,7 +589,7 @@ public sealed class PlacementEngine
     /// Household weighing somewhere else must be shown it on the same terms a Pool member is, or the
     /// stay-put row would be scored against a candidate set nobody else could have drawn.
     /// </remarks>
-    private int Consider(int lot, Handle<Household> seeker, out bool costsALook, out bool shown)
+    private int Consider(int lot, Money purse, out bool costsALook, out bool shown)
     {
         costsALook = true;
         shown = false;
@@ -593,9 +623,154 @@ public sealed class PlacementEngine
         // dwelling, which is a real thing that happens to somebody who cannot afford what they saw.
         Money kindRent = _world.Rules.Kind(_world.Buildings.Kind[building]).Rent;
 
-        return kindRent.Raw > 0 && _world.BalanceOf(seeker).Raw < kindRent.Raw
-            ? Rows.NoSlot
-            : building;
+        return kindRent.Raw > 0 && purse.Raw < kindRent.Raw ? Rows.NoSlot : building;
+    }
+
+    /// <summary>
+    /// Whether somebody standing at <paramref name="gate"/> would rather come in than stay home.
+    /// </summary>
+    /// <param name="gate">A live Outside Connection, already checked against its daily ceiling.</param>
+    /// <param name="ordinal">Which of this occasion's prospects this is.</param>
+    /// <param name="tick">The Tick being run.</param>
+    /// <remarks>
+    /// <para>
+    /// <b>adr/0023's first line, made true: there is no immigration rate.</b> What crosses is the
+    /// output of the same comparison a resident makes, so <em>interest</em> is emergent and
+    /// <c>[[building]] arrivals_per_day</c> goes back to being what a door can physically take.
+    /// ***The Ruleset no longer says how many people want to live here; it says what the alternative
+    /// costs.***
+    /// </para>
+    /// <para>
+    /// 🔴 <b>A PROSPECT IS ANONYMOUS, AND THAT IS A CHOICE RATHER THAN A SHORTCUT.</b> Its taste
+    /// weighs <b>zero</b>, so the comparison runs on rent alone — because rent is what you can see
+    /// from outside and a specific address is not. ***Nobody emigrates because they have picked out
+    /// a flat.*** Everything particular about the family — its taste, its purse, its home — happens
+    /// after it crosses.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is the BEST of what it was shown against home, and never the whole set against
+    /// home.</b> Comparing a candidate list to one alternative would make <c>[placement]
+    /// candidates</c> an immigration knob: more looks would mean more probability mass on this side
+    /// whatever the city was like. Satisficing first, then one comparison (<c>adr/0017</c>).
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The purse is drawn on the PROSPECT's id and the Household redraws on its own.</b> A
+    /// family that could afford to come is not guaranteed to be the family that arrives, which is
+    /// the seam anonymity costs. It is named rather than hidden: the alternative is deciding after
+    /// allocation and freeing a Household that has already been endowed.
+    /// </para>
+    /// </remarks>
+    public bool ProspectCrosses(int gate, int ordinal, Ticks tick)
+    {
+        PlacementRuleset placement = _world.Rules.Placement;
+
+        if (!placement.Chooses
+            || !_world.Lots.Rows.TryResolve(_world.Buildings.Lot[gate], out int gateLot)
+            || !_world.Rules.TryHinterland(_world.EdgeOf(gateLot), out HinterlandDefinition home))
+        {
+            return true;
+        }
+
+        int lots = _world.LotsAdmitting.Count(_world.Lots, LotTable.Housing);
+
+        if (lots == 0)
+        {
+            return false;
+        }
+
+        ulong id = Randomness.Mix(
+            _world.Buildings.Rows.IdAt(gate) ^ ((ulong)(uint)ordinal << 32));
+
+        Money purse = home.Endows ? home.EmigrantBalance(_key, id) : Money.Zero;
+
+        int best = 0;
+        bool anywhere = false;
+        int candidates = placement.Candidates;
+
+        for (int draw = 0; draw < candidates * 2 && !anywhere; draw++)
+        {
+            ulong entity = Randomness.Mix(id ^ ((ulong)(uint)draw << 32));
+            ulong value = Randomness.Draw(_key, entity, tick, PurposeTag.PlacementCandidate);
+
+            int lot = _world.LotsAdmitting.Nth(
+                _world.Lots, LotTable.Housing, (int)(value % (ulong)(uint)lots));
+
+            int building = Consider(lot, purse, out _, out _);
+
+            if (building == Rows.NoSlot)
+            {
+                continue;
+            }
+
+            best = Utility(lot, building, 0L);
+            anywhere = true;
+        }
+
+        // Nothing here it could live in. It is not a comparison the model can make -- there is no
+        // second row -- and 02 section 5.4's own rule says so: a hard constraint is a filter.
+        if (!anywhere)
+        {
+            return false;
+        }
+
+        Retain(2);
+
+        Span<int> both = _candidateUtilities.AsSpan(0, 2);
+
+        both[0] = Clamp(-IntegerMath.FloorDiv(home.Rent.Raw * Fixed.One, placement.RentPerUnit));
+        both[1] = best;
+
+        return Choice.Draw(both, placement.Mu,
+            Randomness.Draw(_key, id, tick, PurposeTag.ChoiceDraw)) == 1;
+    }
+
+    /// <summary>
+    /// What staying outside is worth to the Household at <paramref name="position"/> in the Pool.
+    /// </summary>
+    /// <returns>False when this Household has no Hinterland to stay in.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>Scored by the identical function the dwellings are, which is the whole of adr/0023.</b>
+    /// The Outside states a rent and a distance-from-a-centre in the units the city is measured in,
+    /// and those go through the same two terms — so the comparison is
+    /// <em>this home against that life</em> rather than a threshold somebody chose.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Three of the Pool's four entry routes have no gate, and those Households get no
+    /// row.</b> A family the city generated itself, one a demolition evicted, one that decided to
+    /// move — none of them has an Outside to go back to, and inventing one would be the authored
+    /// constant adr/0023 refuses. ***A Household with nowhere else to be takes the best of what it
+    /// was shown, exactly as before***, and `gives_up_after_days` is still what bounds the Pool.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The staying-put bonus is NOT added here.</b> <c>moving_costs_rent</c> is what a family
+    /// pays to avoid moving out of somewhere it lives, and a Household in the Pool has already
+    /// moved — it is standing at a gate with its things. Adding it would charge the same friction
+    /// twice on the reassessment path and once on nobody's behalf here.
+    /// </para>
+    /// </remarks>
+    private bool TryOutside(int position, long weight, out int worth)
+    {
+        worth = 0;
+
+        if (!_world.Buildings.Rows.TryResolve(_world.UnplacedPool.GateAt(position), out int gate)
+            || !_world.Lots.Rows.TryResolve(_world.Buildings.Lot[gate], out int lot)
+            || !_world.Rules.TryHinterland(_world.EdgeOf(lot), out HinterlandDefinition hinterland))
+        {
+            return false;
+        }
+
+        PlacementRuleset placement = _world.Rules.Placement;
+
+        long centrality = -IntegerMath.FloorDiv(
+            hinterland.CentralityTiles * weight, placement.CentralityTilesPerUnit);
+
+        long rent = -IntegerMath.FloorDiv(
+            hinterland.Rent.Raw * Fixed.One, placement.RentPerUnit);
+
+        worth = Clamp(centrality + rent);
+
+        return true;
     }
 
     /// <summary>Sizes the candidate buffers to one occasion's looks.</summary>
@@ -647,15 +822,20 @@ public sealed class PlacementEngine
             (long)_world.Rules.Kind(_world.Buildings.Kind[building]).Rent.Raw * Fixed.One,
             placement.RentPerUnit);
 
-        long total = centrality + rent;
-
-        if (total > Fixed.MaxValue)
-        {
-            return Fixed.MaxValue;
-        }
-
-        return total < Fixed.MinValue ? Fixed.MinValue : (int)total;
+        return Clamp(centrality + rent);
     }
+
+    /// <summary>
+    /// A utility sum held inside what Q16.16 represents.
+    /// </summary>
+    /// <remarks>
+    /// <b>Clamping cannot change a choice</b> — <see cref="Choice"/> gives every candidate past
+    /// adr/0038's horizon a weight of exactly zero, and the clamp sits four orders beyond it. The
+    /// alternative is an overflow exception standing in for a Ruleset nobody would write.
+    /// </remarks>
+    private static int Clamp(long utility) => utility > Fixed.MaxValue
+        ? Fixed.MaxValue
+        : utility < Fixed.MinValue ? Fixed.MinValue : (int)utility;
 
     /// <summary>
     /// How far a Lot is from the nearest <c>[[lattice]]</c> origin, in Tiles, <b>walked rather than
@@ -1263,7 +1443,8 @@ public sealed class PlacementEngine
             int lot = _world.LotsAdmitting.Nth(
                 _world.Lots, LotTable.Housing, (int)(value % (ulong)(uint)lots));
 
-            int alternative = Consider(lot, household, out bool costsALook, out _);
+            int alternative = Consider(
+                lot, _world.BalanceOf(household), out bool costsALook, out _);
 
             if (!costsALook)
             {
@@ -1355,6 +1536,7 @@ public sealed class PlacementEngine
         _reassessedFlow = _reassessedFlow.Fold(_tickReassessed);
         _shortageMovesFlow = _shortageMovesFlow.Fold(_tickShortageMoves);
         _preferredMovesFlow = _preferredMovesFlow.Fold(_tickPreferredMoves);
+        _declinedFlow = _declinedFlow.Fold(_tickDeclined);
 
         _tickConsidered = 0;
         _tickPlaced = 0;
@@ -1365,6 +1547,7 @@ public sealed class PlacementEngine
         _tickReassessed = 0;
         _tickShortageMoves = 0;
         _tickPreferredMoves = 0;
+        _tickDeclined = 0;
     }
 }
 
@@ -1395,4 +1578,4 @@ public sealed class PlacementEngine
 public readonly record struct PlacementActivity(
     RuleFlow Considered, RuleFlow Placed, RuleFlow Departed, RuleFlow Retired, RuleFlow Founded,
     RuleFlow Premised, RuleFlow Reassessed, RuleFlow ShortageMoves = default,
-    RuleFlow PreferredMoves = default);
+    RuleFlow PreferredMoves = default, RuleFlow Declined = default);

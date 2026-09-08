@@ -238,6 +238,17 @@ public enum PlacementCounter : byte
     /// deciding, so <i>reassessed out</i> minus this is <i>pushed out</i> and this is <i>moved on</i>.
     /// </remarks>
     PreferredMoves,
+
+    /// <summary>
+    /// Households that were shown homes and preferred the Outside they came from.
+    /// </summary>
+    /// <remarks>
+    /// <b>A housing shortage and an unattractive city read the same in <i>considered</i> against
+    /// <i>placed</i>, and this is what tells them apart.</b> A Pool that is being looked at and not
+    /// drained is a city out of dwellings; a Pool that is being looked at, offered homes and
+    /// declining them is a city whose homes are worse than the life people left.
+    /// </remarks>
+    Declined,
 }
 
 /// <summary>
