@@ -257,6 +257,7 @@ public partial class Main
             Color paint = _washing switch
             {
                 Wash.Health => HealthColour(slot).SrgbToLinear(),
+                Wash.Trouble => TroubleColour(slot).SrgbToLinear(),
                 Wash.Rung => Patterns[RungOf(lot)].SrgbToLinear(),
                 Wash.Age => Shade(Vintage(slot)).SrgbToLinear(),
                 _ => Rendered(shape).SrgbToLinear(),
@@ -269,7 +270,7 @@ public partial class Main
             // Membrane: the two tones Slate() draws between are both PITCHED coverings, so a flat
             // deck reaching into that draw comes up clay tile one time in five and slate the rest,
             // and neither is what is on it.
-            Color slate = _washing is Wash.Rung or Wash.Age or Wash.Health
+            Color slate = _washing is Wash.Rung or Wash.Age or Wash.Health or Wash.Trouble
                 ? paint
                 : (cap == Cap.Parapet ? Membrane : Slate(shape)).SrgbToLinear();
             float lit = table.IsAbandoned(slot) ? 0f : taken;
@@ -673,7 +674,7 @@ public partial class Main
         public bool Abandoned => ((int)Reads.A & 512) != 0;
     }
 
-    private Color RoofPaint(Massing one) => one.Abandoned && _washing is not (Wash.Rung or Wash.Age or Wash.Health)
+    private Color RoofPaint(Massing one) => one.Abandoned && _washing is not (Wash.Rung or Wash.Age or Wash.Health or Wash.Trouble)
         ? one.Slate.Darkened(0.35f) : one.Slate;
 
     private static Color YardPaint(Massing one) => one.Abandoned

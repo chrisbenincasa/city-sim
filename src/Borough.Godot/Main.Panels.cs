@@ -46,10 +46,17 @@ public partial class Main
         _zoneStart = null;
         _zoneFeedback = string.Empty;
         _policyPanel?.QueueFree();
+        _cityPanel?.QueueFree();
         _palette?.QueueFree();
         _placementRail?.QueueFree();
 
         Governing(_hud);
+        CityEvidencePanel(_hud);
+        _cityRead = false;
+        _cityGroup = -1;
+        _cityCause = null;
+        _cityFrom = 0;
+        Retrouble();
         Palette();
 
         // ⚠ The rebuild re-enters the theme. A Ruleset reload rebuilds both panels, and before this
@@ -373,6 +380,12 @@ public partial class Main
     /// <summary>Open or close the governing panel. <b>The key and the palette button share it.</b></summary>
     private void Govern()
     {
+        if (!_governing && _cityShown)
+        {
+            _cityShown = false;
+            RefreshCityEvidence();
+        }
+
         _governing = !_governing;
         _policyPanel.Visible = _governing;
         _policiesButton.ButtonPressed = _governing;

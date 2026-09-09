@@ -33,13 +33,19 @@ public partial class Main
         _layerButton.ToggleMode = true;
         UiIcons.Attach(_layerButton, "layers");
         _dataLaunchers.AddChild(_layerButton);
-        foreach (string name in new[] { "City", "Evidence", "Pins" })
-        {
-            var reserved = ConsoleButton(name, () => { });
-            reserved.Disabled = true;
-            reserved.TooltipText = name == "Evidence" ? "City-wide Evidence is not available yet; inspect a Building for its Evidence" : $"{name} view is not available yet";
-            _dataLaunchers.AddChild(reserved);
-        }
+        var reservedCity = ConsoleButton("City", () => { });
+        reservedCity.Disabled = true;
+        reservedCity.TooltipText = "City view is not available yet";
+        _dataLaunchers.AddChild(reservedCity);
+        _cityButton = ConsoleButton("Evidence", () => Ui(_cityShown ? "city off" : "city on"));
+        _cityButton.ToggleMode = true;
+        _cityButton.TooltipText = "Everything in the city that is stopped, grouped by why";
+        UiIcons.Attach(_cityButton, "trouble");
+        _dataLaunchers.AddChild(_cityButton);
+        var reservedPins = ConsoleButton("Pins", () => { });
+        reservedPins.Disabled = true;
+        reservedPins.TooltipText = "Pins view is not available yet";
+        _dataLaunchers.AddChild(reservedPins);
         _pointerRow.AddChild(_dataLaunchers);
         _cameraPanel = InformationPanel();
         _cameraPanel.AddChild(CameraControls());
@@ -140,7 +146,7 @@ public partial class Main
     private static readonly (string Name, string Label)[] Washes =
     [
         ("off", "Off"), ("pollution", "Pollution"), ("value", "Land value"), ("sealing", "Sealing"),
-        ("health", "Health"), ("rung", "Rung"), ("age", "Age"),
+        ("health", "Health"), ("trouble", "Trouble"), ("rung", "Rung"), ("age", "Age"),
     ];
 
     private static bool DebugWash(string name) => name is "rung" or "age";
@@ -153,6 +159,7 @@ public partial class Main
         Wash.Value => "value",
         Wash.Sealed => "sealing",
         Wash.Health => "health",
+        Wash.Trouble => "trouble",
         Wash.Rung => "rung",
         _ => "age",
     };
@@ -201,7 +208,7 @@ public partial class Main
             if (_legendTitle.Text != title || _legendBody.Text != body) _chromeRebuilt = true;
             _legendTitle.Text = title;
             _legendBody.Text = body;
-            _legendRamp.Colours = Bands;
+            _legendRamp.Colours = _washing == Wash.Trouble ? TroubleBands : Bands;
             _legendRamp.QueueRedraw();
         }
     }

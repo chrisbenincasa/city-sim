@@ -64,6 +64,198 @@ public static class Evidence
     }
 
     /// <summary>
+    /// Assembles the city's blocked set: everything that is stopped, grouped by why.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>One walk of every live Building's Rule Instances, and no accumulator anywhere.</b> That is
+    /// this class's own default holding at city scale — the entities holding the answer are all
+    /// standing while the question is asked, so re-deriving beats shadowing (milestone 6's D2).
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The dedupe is per Building because it can be.</b> A tenant's Rule Instances hang off the
+    /// Building it occupies, so every Rule belonging to one subject is reached inside one iteration
+    /// of the outer loop — which is what lets a subject be counted once per cause without a set
+    /// spanning the whole city.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The order is total and derived, never incidental.</b> Groups sort trouble before routine
+    /// waiting and then by how many subjects they stop; subjects sort worst first within their group
+    /// and tie-break on the never-reused row id. A panel paging through this must get the same page
+    /// twice.
+    /// </para>
+    /// </remarks>
+    /// <param name="world">The world to read.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="world"/> is null.</exception>
+    public static CityEvidence OfCity(World world)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+
+        Ticks now = world.Tick;
+        var causes = new List<CityCause>();
+        var counts = new List<int>();
+        var worst = new List<long>();
+        var subjects = new List<CitySubject>();
+        int read = 0;
+
+        for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
+        {
+            if (!world.Buildings.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            read++;
+
+            Handle<Building> building = world.Buildings.Rows.At(slot);
+            int first = subjects.Count;
+
+            foreach (int instance in world.BuildingRules.Walk(slot))
+            {
+                RuleEvidence rule = ReadRule(world, instance, now);
+
+                if (rule.Blocked == Blocking.Nothing)
+                {
+                    continue;
+                }
+
+                SubjectKind kind = !rule.Business.IsNone
+                    ? SubjectKind.Business
+                    : rule.Tenant.IsNone ? SubjectKind.Premises : SubjectKind.Household;
+
+                ulong id = kind switch
+                {
+                    SubjectKind.Business => world.Businesses.Rows.TryResolve(rule.Business, out int trade)
+                        ? world.Businesses.Rows.IdAt(trade) : 0,
+                    SubjectKind.Household => world.Households.Rows.TryResolve(rule.Tenant, out int family)
+                        ? world.Households.Rows.IdAt(family) : 0,
+                    _ => world.Buildings.Rows.IdAt(slot),
+                };
+
+                // A subject whose own row has already gone is not a subject a panel can open, and a
+                // Rule Instance outliving its owner by a Tick is ordinary rather than exceptional.
+                if (id == 0)
+                {
+                    continue;
+                }
+
+                var cause = new CityCause(
+                    kind, rule.Blocked, rule.WaitingFor, rule.WaitingOn, !rule.WaitingBin.IsNone);
+
+                int group = causes.IndexOf(cause);
+
+                if (group < 0)
+                {
+                    causes.Add(cause);
+                    counts.Add(0);
+                    worst.Add(0);
+                    group = causes.Count - 1;
+                }
+
+                int at = first;
+
+                while (at < subjects.Count
+                    && (subjects[at].Group != group || subjects[at].SubjectId != id))
+                {
+                    at++;
+                }
+
+                if (at < subjects.Count)
+                {
+                    if (rule.MissedFirings > subjects[at].MissedFirings)
+                    {
+                        subjects[at] = subjects[at] with { MissedFirings = rule.MissedFirings };
+                    }
+
+                    continue;
+                }
+
+                subjects.Add(new CitySubject(
+                    group, kind, building, rule.Tenant, rule.Business, id, rule.MissedFirings));
+                counts[group]++;
+            }
+        }
+
+        foreach (CitySubject subject in subjects)
+        {
+            if (subject.MissedFirings > worst[subject.Group])
+            {
+                worst[subject.Group] = subject.MissedFirings;
+            }
+        }
+
+        int[] order = new int[causes.Count];
+
+        for (int i = 0; i < order.Length; i++)
+        {
+            order[i] = i;
+        }
+
+        Array.Sort(order, (left, right) => Rank(causes, counts, left, right));
+
+        int[] moved = new int[causes.Count];
+        CityGroup[] groups = new CityGroup[causes.Count];
+
+        for (int i = 0; i < order.Length; i++)
+        {
+            moved[order[i]] = i;
+            groups[i] = new CityGroup(causes[order[i]], counts[order[i]], worst[order[i]]);
+        }
+
+        CitySubject[] listed = new CitySubject[subjects.Count];
+
+        for (int i = 0; i < listed.Length; i++)
+        {
+            listed[i] = subjects[i] with { Group = moved[subjects[i].Group] };
+        }
+
+        Array.Sort(listed, (left, right) => left.Group != right.Group
+            ? left.Group.CompareTo(right.Group)
+            : left.MissedFirings != right.MissedFirings
+                ? right.MissedFirings.CompareTo(left.MissedFirings)
+                : left.SubjectId.CompareTo(right.SubjectId));
+
+        return new CityEvidence(now, read, groups, listed);
+    }
+
+    /// <summary>
+    /// Orders two causes: trouble before routine waiting, then the one stopping more subjects.
+    /// </summary>
+    /// <remarks>
+    /// <b>Waiting for output space sorts last on purpose.</b> A full store is not a fault
+    /// (<c>plans/0064</c> row 7), so it may appear in the list and must never head it.
+    /// </remarks>
+    private static int Rank(List<CityCause> causes, List<int> counts, int left, int right)
+    {
+        bool routineLeft = causes[left].Blocked == Blocking.Space;
+        bool routineRight = causes[right].Blocked == Blocking.Space;
+
+        if (routineLeft != routineRight)
+        {
+            return routineLeft ? 1 : -1;
+        }
+
+        if (counts[left] != counts[right])
+        {
+            return counts[right].CompareTo(counts[left]);
+        }
+
+        if (causes[left].Kind != causes[right].Kind)
+        {
+            return causes[left].Kind.CompareTo(causes[right].Kind);
+        }
+
+        if (causes[left].WaitingFor.Raw != causes[right].WaitingFor.Raw)
+        {
+            return causes[left].WaitingFor.Raw.CompareTo(causes[right].WaitingFor.Raw);
+        }
+
+        return causes[left].WaitingOn != causes[right].WaitingOn
+            ? causes[left].WaitingOn.CompareTo(causes[right].WaitingOn)
+            : causes[right].Explained.CompareTo(causes[left].Explained);
+    }
+
+    /// <summary>
     /// Assembles <c>02 §9</c>'s Building answer.
     /// </summary>
     /// <param name="world">The world to read.</param>

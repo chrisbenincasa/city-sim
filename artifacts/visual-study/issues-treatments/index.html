@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Finding trouble · four treatments for rows 7 and 14</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:28px;background:#e3e9f0;color:#243249;font:16px/1.45 system-ui,sans-serif;
+ --paper:#f1f4f8;--surface:#fff;--ink:#243249;--muted:#5e6d82;--line:#c4cfdf;--active:#2458a3;--on:#fff;
+ --section:#d9e6f7;--warn:#714606;--warning:#fff0d6;--quiet:#6b7789;--ground:#b2b4ab;--block:#92a48b;--block2:#819b83}
+body.dark{background:#141e2b;color:#eff3fb;
+ --paper:#202938;--surface:#273447;--ink:#eff3fb;--muted:#a8b8ce;--line:#455976;--active:#82b2ff;--on:#172d50;
+ --section:#304968;--warn:#ffe0a9;--warning:#473a25;--quiet:#8b9ab0;--ground:#5c6560;--block:#4c5c4d;--block2:#445443}
+h1{font-size:30px;margin:0}
+h2{font-size:21px;margin:0 0 4px}
+h3{font-size:15px;margin:22px 0 6px}
+p{max-width:1000px;margin:8px 0 18px}
+.small{font-size:13px;color:var(--muted)}
+button{font:inherit;cursor:pointer;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:6px 10px}
+button:hover:not(:disabled){outline:2px solid var(--active);outline-offset:1px}
+button:focus-visible{outline:3px solid var(--active)}
+button.on{background:var(--active);color:var(--on);border-color:var(--active)}
+button:disabled{opacity:.5;cursor:default}
+nav,.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+nav{margin:18px 0}
+select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:6px}
+.studies{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+article{min-width:0}
+.note{min-height:60px;font-size:14px;color:var(--muted);margin:0 0 10px}
+.scene{height:560px;position:relative;overflow:hidden;border:1px solid var(--line);border-radius:12px;
+ background:var(--ground);font-size:calc(14px * var(--scale,1))}
+.map{position:absolute;inset:0;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(3,1fr);gap:10px;padding:14px;padding-bottom:118px}
+.block{position:relative;border:1px solid #768475;border-radius:2px;background:var(--block);display:grid;
+ grid-template-columns:repeat(3,1fr);align-content:center;justify-items:center;gap:4px;padding:6px}
+.block:nth-child(3n){background:var(--block2)}
+.bld{width:60%;aspect-ratio:1;background:#d5c4a6;border:1px solid #8d8069;border-radius:1px;position:relative}
+body.dark .bld{background:#9a8c72;border-color:#5f5748}
+.bld.focus{outline:3px solid #e9c162;outline-offset:2px}
+.bld.mark:after{content:'!';position:absolute;inset:-9px auto auto -9px;width:18px;height:18px;line-height:17px;
+ text-align:center;border-radius:50%;background:#c8781f;color:#fff;font-size:12px;font-weight:700}
+.wash{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .2s}
+.wash.on{opacity:1}
+.wash .cell{position:absolute;border-radius:2px}
+.badge{position:absolute;top:10px;left:10px;background:var(--paper);padding:5px 9px;border-radius:5px;font-size:.82em;pointer-events:none}
+.console{position:absolute;bottom:0;left:0;right:0;background:var(--paper);border-top:1px solid var(--line);padding:9px 11px}
+.console button{font-size:.9em;padding:5px 9px}
+.status{border-top:1px solid var(--line);padding-top:7px;margin-top:7px;font-size:.84em;min-height:38px;color:var(--muted)}
+.sep{width:1px;align-self:stretch;background:var(--line);margin:0 3px}
+.panel{position:absolute;background:var(--paper);border:1px solid var(--line);border-radius:8px;
+ box-shadow:0 10px 26px #12203238;padding:12px;overflow:auto}
+.panel[hidden]{display:none}
+.ledger{left:10px;right:10px;bottom:104px;max-height:360px}
+.inspector{right:10px;top:10px;bottom:104px;width:250px}
+.head{display:flex;align-items:baseline;gap:8px;margin-bottom:8px}
+.head strong{font-size:1.05em}
+.head .when{margin-left:auto;font-size:.8em;color:var(--muted);font-variant-numeric:tabular-nums}
+.group{border:1px solid var(--line);border-radius:5px;background:var(--surface);margin-bottom:6px}
+.group>button{width:100%;text-align:left;border:0;background:none;border-radius:5px;display:flex;gap:9px;align-items:center;padding:8px 9px}
+.group .n{font-variant-numeric:tabular-nums;font-weight:700;min-width:2.2em;text-align:right}
+.group .why{flex:1;min-width:0}
+.group .why em{font-style:normal;display:block;font-size:.82em;color:var(--muted)}
+.group.routine .n,.group.routine .why{color:var(--quiet)}
+.group.trouble .n{color:var(--warn)}
+.members{border-top:1px solid var(--line);padding:7px 9px;display:flex;flex-direction:column;gap:5px;align-items:flex-start}
+.members button{font-size:.85em;padding:4px 8px}
+.members .more{font-size:.8em;color:var(--muted)}
+.legend{position:absolute;right:10px;bottom:104px;width:180px;background:var(--paper);border:1px solid var(--line);
+ border-radius:8px;padding:10px;font-size:.82em}
+.ramp{height:12px;border-radius:2px;margin:6px 0;background:linear-gradient(90deg,#8fae8e,#e0c15e,#c8781f)}
+.sect{background:var(--section);border-radius:4px;padding:7px 9px;margin:8px 0;font-size:.85em}
+.attn{background:var(--warning);color:var(--warn);border-radius:4px;padding:7px 9px;margin:8px 0;font-size:.85em}
+.cost{margin:10px 0 0;font-size:13px;color:var(--muted)}
+.cost b{color:var(--ink);font-weight:600}
+footer{margin-top:30px;max-width:1000px}
+footer table{border-collapse:collapse;font-size:14px;width:100%}
+footer th,footer td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+footer th{background:var(--section)}
+.one .studies{grid-template-columns:1fr}
+.one article{width:min(660px,100%);margin:auto}
+.one .note{min-height:0}
+@media(max-width:1180px){.studies{grid-template-columns:1fr}article{max-width:680px;width:100%;margin:auto}.note{min-height:0}}
+@media(max-width:560px){body{padding:12px}.scene{height:600px}.inspector{width:200px}}
+</style>
+
+<h1>Finding trouble, without a field of buttons</h1>
+<p>Four sketches for plan 0064 rows 7 and 14. The floating supply warnings were removed on 2026-09-09;
+these are candidate replacements. Each sketch shows the same schematic city in the same failed state and
+differs only in how the player finds it. The city, the counts and the Resource names are sample data —
+this page is plain HTML and runs no simulation.</p>
+<p class="small">Try in each: find the trouble, reach an affected subject, then press <em>Apply rebate</em>
+and watch what the treatment does when four Households recover.</p>
+
+<nav aria-label="Study settings">
+  <button id="theme">Dark theme</button>
+  <button id="width">One column</button>
+  <label>Text <select id="size"><option value="1">100%</option><option value="1.5">150%</option></select></label>
+  <button id="reset">Reset all</button>
+</nav>
+
+<div class="studies" id="studies"></div>
+
+<footer>
+<h3>What each one can and cannot do</h3>
+<table>
+<tr><th>Treatment</th><th>Where the counts come from</th><th>Cost</th><th>Row 7</th><th>Row 14</th></tr>
+<tr><td><b>A</b> On-demand ledger</td><td>One cold-path walk of the Rule Instances, when the panel opens and on Refresh</td>
+    <td>One walk, paid by the person who clicked. Nothing per frame</td><td>Yes</td><td>Yes</td></tr>
+<tr><td><b>B</b> Standing tally</td><td>Counters in Core, moved where a Rule goes to sleep and wakes</td>
+    <td>Constant work inside a Tick; the panel is free</td><td>Yes, and always current</td><td>Yes</td></tr>
+<tr><td><b>C</b> Trouble wash</td><td>The same walk, on the Maps cadence, only while the wash is on</td>
+    <td>Slow and bounded</td><td>No — it answers <em>where</em> and never <em>what</em></td><td>Yes</td></tr>
+<tr><td><b>D</b> Attention stepper</td><td>Worst subject only</td><td>Trivial</td>
+    <td>No grouping and no counts</td><td>Yes</td></tr>
+</table>
+<h3>True of all four</h3>
+<p class="small">Waiting for output space is a routine wait and never demands attention on its own; it appears
+quietly or not at all. Missing evidence stays missing and never reads as healthy. Grouping is by Household
+and Business rather than by premises, because a premises Rule chain in every shipped Ruleset either always
+succeeds or never succeeds, so nothing keyed on premises could show a condition clearing. The rebate here
+stands in for the Government rebate the existing diagnosis fixture already drives.</p>
+</footer>
+
+<script>
+const GROUPS = [
+ {key:'money', cls:'trouble', kind:'Household', reason:'Waiting for money',
+  detail:'Balance Bin empty · rent unpaid', resolvable:4,
+  members:[['Household 101','Building 2',37,5],['Household 104','Building 2',34,5],['Household 118','Building 7',31,6],
+           ['Household 122','Building 7',28,6],['Household 130','Building 9',22,9],['Household 141','Building 9',19,9],
+           ['Household 147','Building 11',15,10],['Household 152','Building 11',11,10],['Household 160','Building 14',9,2],
+           ['Household 163','Building 14',6,2],['Household 171','Building 16',4,1],['Household 175','Building 16',3,1],
+           ['Household 180','Building 18',2,7],['Household 188','Building 18',1,7]]},
+ {key:'sundries', cls:'trouble', kind:'Business', reason:'Waiting for sundries',
+  detail:'Asleep on the District market row · nobody is selling', resolvable:0,
+  members:[['Grocer 4','Building 3',26,5],['Grocer 9','Building 6',24,6],['Grocer 12','Building 10',21,9],
+           ['Grocer 15','Building 13',17,10],['Grocer 19','Building 15',12,2],['Grocer 23','Building 17',8,7]]},
+ {key:'flour', cls:'trouble', kind:'Business', reason:'Waiting for flour',
+  detail:'Its own Bin is empty', resolvable:0,
+  members:[['Bakery 2','Building 5',44,2],['Bakery 6','Building 12',30,7],['Bakery 8','Building 20',13,10]]},
+ {key:'space', cls:'routine', kind:'Business', reason:'Waiting for output space',
+  detail:'Routine wait · a full store is not a fault', resolvable:0,
+  members:[['Mill 1','Building 4',0,3],['Mill 3','Building 8',0,8],['Mill 5','Building 19',0,11],
+           ['Mill 7','Building 21',0,1],['Mill 9','Building 22',0,6]]},
+ {key:'unknown', cls:'trouble', kind:'Building', reason:'Explanation unavailable',
+  detail:'Blocked, with no wait target recorded', resolvable:0,
+  members:[['Building 24','Block 9',5,9],['Building 26','Block 2',2,2]]}
+];
+
+const TREATMENTS = [
+ {letter:'A', name:'On-demand ledger', kind:'ledger', live:false,
+  note:'The Evidence button opens a grouped list assembled on the spot. It carries the Tick it was read at and a Refresh, because it is a snapshot and should say so.',
+  cost:'<b>Costs</b> one walk of the Rule Instances per open. Nothing runs per frame. At a million Citizens the click itself is the thing to measure.'},
+ {letter:'B', name:'Standing tally', kind:'ledger', live:true,
+  note:'The same panel, but the counts are kept by the simulation as Rules fall asleep and wake. No Refresh and no timestamp: the list is already current, and a recovery leaves it as it happens.',
+  cost:'<b>Costs</b> a small amount of work inside every Tick and a new piece of rebuilt state. Buys counts that cannot be stale.'},
+ {letter:'C', name:'Trouble wash', kind:'wash', live:false,
+  note:'No list. Trouble becomes one more entry in Maps: a wash over the ground with the usual legend. The player finds it by looking, then clicks a Building for its Evidence.',
+  cost:'<b>Costs</b> the same walk, on the Maps cadence, only while the wash is on. It can never say what is wrong or how many.'},
+ {letter:'D', name:'Attention stepper', kind:'step', live:true,
+  note:'No panel and no marks. One control in the console: how many subjects need attention, and a step that moves the camera to the next worst and opens its Evidence.',
+  cost:'<b>Costs</b> almost nothing. No grouping, no counts by cause, no way to see the shape of the problem.'}
+];
+
+const BLOCKS = 12, PER_BLOCK = 3;
+const plural = (word, n) => n === 1 ? word : word === 'Business' ? 'Businesses' : word + 's';
+const studies = document.querySelector('#studies');
+const resets = [];
+
+for (const t of TREATMENTS) {
+  const a = document.createElement('article');
+  a.innerHTML = `<h2>${t.letter} · ${t.name}</h2><p class="note">${t.note}</p>
+  <div class="scene">
+    <div class="map" aria-label="Schematic city"></div>
+    <div class="wash" aria-hidden="true"></div>
+    <span class="badge">Schematic city · sample Evidence</span>
+    <section class="panel ledger" aria-label="City Evidence" hidden></section>
+    <section class="panel inspector" aria-label="Inspection" hidden></section>
+    <aside class="legend" hidden><strong>Trouble</strong><div class="ramp"></div>
+      <div class="row" style="justify-content:space-between"><span>settled</span><span>starving</span></div>
+      <p class="small" style="margin:6px 0 0">Missed firings per Cell. Click a Building for its Evidence.</p></aside>
+    <div class="console">
+      <div class="row">
+        <span>1×</span><button aria-label="Paused">Ⅱ</button><span class="sep"></span>
+        <button class="gov">Government</button><button class="maps">Maps</button>
+        <button class="city" disabled title="Not available yet">City</button>
+        <button class="evidence">Evidence</button>
+        <button class="pins" disabled title="Not available yet">Pins</button>
+        <span class="sep"></span><button class="rebate">Apply rebate</button>
+      </div>
+      <div class="attnrow row" style="margin-top:7px" hidden></div>
+      <div class="status" aria-live="polite"></div>
+    </div>
+  </div>
+  <p class="cost">${t.cost}</p>`;
+  studies.append(a);
+
+  const map = a.querySelector('.map'), wash = a.querySelector('.wash');
+  const ledger = a.querySelector('.ledger'), inspector = a.querySelector('.inspector');
+  const legend = a.querySelector('.legend'), status = a.querySelector('.status');
+  const attnrow = a.querySelector('.attnrow');
+  const evidenceBtn = a.querySelector('.evidence'), mapsBtn = a.querySelector('.maps');
+  const buildings = [];
+
+  for (let b = 0; b < BLOCKS; b++) {
+    const block = document.createElement('div');
+    block.className = 'block';
+    for (let i = 0; i < PER_BLOCK; i++) {
+      const bld = document.createElement('button');
+      bld.className = 'bld'; bld.dataset.block = b;
+      bld.setAttribute('aria-label', `Building on block ${b + 1}`);
+      block.append(bld); buildings.push(bld);
+    }
+    map.append(block);
+  }
+
+  let resolved = 0, open = null, snapshot = null, snapAt = 512, stepAt = -1;
+
+  const state = () => GROUPS.map(g => ({...g,
+    members: g.key === 'money' ? g.members.slice(resolved) : g.members.slice()}));
+  const attention = s => s.filter(g => g.cls === 'trouble').reduce((n, g) => n + g.members.length, 0);
+  const worst = s => s.filter(g => g.cls === 'trouble').flatMap(g => g.members.map(m => [g, m]))
+    .sort((x, y) => y[1][2] - x[1][2]);
+
+  function pressure(s) {
+    const per = new Array(BLOCKS).fill(0);
+    for (const g of s) if (g.cls === 'trouble') for (const m of g.members) per[m[3]] += m[2] || 1;
+    return per;
+  }
+
+  function drawWash() {
+    const per = pressure(state()), top = Math.max(1, ...per);
+    wash.innerHTML = '';
+    for (let b = 0; b < BLOCKS; b++) {
+      const cell = document.createElement('div');
+      const share = per[b] / top;
+      cell.className = 'cell';
+      cell.style.left = `calc(${(b % 4) * 25}% + 6px)`;
+      cell.style.top = `calc(${Math.floor(b / 4) * 29}% + 6px)`;
+      cell.style.width = 'calc(25% - 12px)'; cell.style.height = 'calc(29% - 12px)';
+      cell.style.background = share < .04 ? 'rgba(143,174,142,.55)'
+        : share < .45 ? `rgba(224,193,94,${.35 + share})` : `rgba(200,120,31,${.35 + share * .5})`;
+      wash.append(cell);
+    }
+  }
+
+  function drawInspector(group, member) {
+    inspector.hidden = false;
+    inspector.innerHTML = `<div class="head"><strong>${member[0]}</strong></div>
+      <p class="small" style="margin:0 0 8px">at ${member[1]}</p>
+      <div class="${group.cls === 'routine' ? 'sect' : 'attn'}">${group.reason}<br><span class="small">${group.detail}</span></div>
+      <div class="sect">Missed firings: <b>${member[2]}</b></div>
+      <button class="close">Close</button>`;
+    inspector.querySelector('.close').onclick = () => { inspector.hidden = true; focus(-1); };
+  }
+
+  function focus(index) {
+    buildings.forEach(b => b.classList.remove('focus'));
+    if (index >= 0 && buildings[index]) buildings[index].classList.add('focus');
+  }
+
+  function memberIndex(member) { return member[3] * PER_BLOCK + (member[2] % PER_BLOCK); }
+
+  function drawLedger() {
+    const s = snapshot || state();
+    ledger.innerHTML = `<div class="head"><strong>City Evidence</strong>
+      <span class="small">${attention(s)} subjects need attention</span>
+      <span class="when">${t.live ? 'current' : `read at Tick ${snapAt}`}</span></div>`;
+    for (const g of s) {
+      const box = document.createElement('div');
+      box.className = `group ${g.cls}`;
+      if (!g.members.length) continue;
+      box.innerHTML = `<button><span class="n">${g.members.length}</span>
+        <span class="why">${plural(g.kind, g.members.length)} · ${g.reason}<em>${g.detail}</em></span>
+        <span aria-hidden="true">${open === g.key ? '▾' : '▸'}</span></button>`;
+      box.querySelector('button').onclick = () => { open = open === g.key ? null : g.key; drawLedger(); };
+      if (open === g.key) {
+        const list = document.createElement('div');
+        list.className = 'members';
+        for (const m of g.members.slice(0, 6)) {
+          const b = document.createElement('button');
+          b.textContent = `${m[0]} · ${m[1]} →`;
+          b.onclick = () => { drawInspector(g, m); focus(memberIndex(m)); say(`${m[0]} selected. Its Evidence is open.`); };
+          list.append(b);
+        }
+        if (g.members.length > 6) {
+          const more = document.createElement('span');
+          more.className = 'more';
+          more.textContent = `+${g.members.length - 6} more, listed six at a time`;
+          list.append(more);
+        }
+        box.append(list);
+      }
+      ledger.append(box);
+    }
+    if (!attention(s)) ledger.insertAdjacentHTML('beforeend', '<p class="small">Nothing needs attention.</p>');
+    if (!t.live) {
+      const r = document.createElement('button');
+      r.textContent = 'Refresh';
+      r.style.marginTop = '8px';
+      r.onclick = () => { snapshot = state(); snapAt += 128; drawLedger(); say(`Re-read at Tick ${snapAt}.`); };
+      ledger.append(r);
+    }
+  }
+
+  function drawMarks() {
+    buildings.forEach(b => b.classList.remove('mark'));
+    if (t.kind !== 'step') return;
+    const list = worst(state()).slice(0, 1);
+    for (const [, m] of list) buildings[memberIndex(m)]?.classList.add('mark');
+  }
+
+  function drawStepper() {
+    if (t.kind !== 'step') return;
+    const s = state(), n = attention(s);
+    attnrow.hidden = false;
+    attnrow.innerHTML = `<span>${n} need${n === 1 ? 's' : ''} attention</span>`;
+    const prev = document.createElement('button'); prev.textContent = '‹';
+    const next = document.createElement('button'); next.textContent = 'Next ›';
+    prev.disabled = next.disabled = !n;
+    const go = delta => {
+      const list = worst(state());
+      if (!list.length) return;
+      stepAt = (stepAt + delta + list.length) % list.length;
+      const [g, m] = list[stepAt];
+      drawInspector(g, m); focus(memberIndex(m));
+      say(`Camera moved to ${m[0]} · ${stepAt + 1} of ${list.length} · ${g.reason.toLowerCase()}.`);
+    };
+    prev.onclick = () => go(-1); next.onclick = () => go(1);
+    attnrow.append(prev, next);
+  }
+
+  function say(text) { status.textContent = text; }
+
+  function redraw() {
+    if (t.kind === 'ledger' && !ledger.hidden) drawLedger();
+    if (t.kind === 'wash') drawWash();
+    drawMarks(); drawStepper();
+  }
+
+  evidenceBtn.onclick = () => {
+    if (t.kind !== 'ledger') { say('This treatment has no city Evidence list. Trouble is found on the map.'); return; }
+    ledger.hidden = !ledger.hidden;
+    evidenceBtn.classList.toggle('on', !ledger.hidden);
+    if (!ledger.hidden) { if (!t.live) { snapshot = state(); snapAt = 512; } drawLedger();
+      say(t.live ? 'The list is current and stays current.' : `Read once, at Tick ${snapAt}.`); }
+    else say('List closed. The held tool, layer and inspection are unchanged.');
+  };
+  if (t.kind !== 'ledger') { evidenceBtn.disabled = true; evidenceBtn.title = 'Not part of this treatment'; }
+
+  mapsBtn.onclick = () => {
+    if (t.kind !== 'wash') { say('Maps holds the existing washes in every treatment.'); return; }
+    const on = wash.classList.toggle('on');
+    mapsBtn.classList.toggle('on', on);
+    legend.hidden = !on;
+    if (on) drawWash();
+    say(on ? 'Trouble wash on. Darker ground is more missed firings.' : 'Wash off. The legend goes with it.');
+  };
+  if (t.kind === 'wash') { mapsBtn.textContent = 'Maps · Trouble'; }
+
+  a.querySelector('.gov').onclick = () => say('Government would open here. The tool, layer and inspection are preserved.');
+
+  a.querySelector('.rebate').onclick = () => {
+    if (resolved >= 4) { say('The rebate has already reached those four Households.'); return; }
+    resolved = 4;
+    redraw();
+    say(t.live
+      ? 'Four Households recovered. The count fell as it happened.'
+      : t.kind === 'ledger' ? 'Four Households recovered. This list still says 14 — it was read at an earlier Tick. Press Refresh.'
+      : t.kind === 'wash' ? 'Four Households recovered. The wash lightens on its next recomputation.'
+      : 'Four Households recovered.');
+  };
+
+  buildings.forEach((b, i) => b.onclick = () => {
+    const hit = worst(state()).find(([, m]) => memberIndex(m) === i)
+      || state().flatMap(g => g.members.map(m => [g, m])).find(([, m]) => memberIndex(m) === i);
+    focus(i);
+    if (hit) { drawInspector(hit[0], hit[1]); say(`${hit[1][0]} selected from the map.`); }
+    else { inspector.hidden = false;
+      inspector.innerHTML = `<div class="head"><strong>Building</strong></div>
+        <div class="sect">No supply shortfalls reported.</div><button class="close">Close</button>`;
+      inspector.querySelector('.close').onclick = () => { inspector.hidden = true; focus(-1); };
+      say('Nothing wrong with this Building.'); }
+  });
+
+  function start() {
+    if (t.kind === 'ledger') {
+      ledger.hidden = false; evidenceBtn.classList.add('on');
+      if (!t.live) { snapshot = state(); snapAt = 512; }
+      open = null; drawLedger();
+      say(t.live ? 'The list is current and stays current.' : `Read once, at Tick ${snapAt}.`);
+    } else if (t.kind === 'wash') {
+      wash.classList.add('on'); mapsBtn.classList.add('on'); legend.hidden = false; drawWash();
+      say('Trouble wash on. Darker ground is more missed firings.');
+    } else {
+      say('The console says how many need attention. Step to the worst.');
+    }
+    redraw();
+  }
+  start();
+
+  resets.push(() => {
+    resolved = 0; open = null; snapshot = null; snapAt = 512; stepAt = -1;
+    ledger.hidden = inspector.hidden = true; evidenceBtn.classList.remove('on');
+    wash.classList.remove('on'); mapsBtn.classList.remove('on'); legend.hidden = true;
+    focus(-1); start();
+  });
+}
+
+document.querySelector('#theme').onclick = e => {
+  document.body.classList.toggle('dark');
+  e.target.textContent = document.body.classList.contains('dark') ? 'Light theme' : 'Dark theme';
+};
+document.querySelector('#width').onclick = e => {
+  document.body.classList.toggle('one');
+  e.target.textContent = document.body.classList.contains('one') ? 'Side by side' : 'One column';
+};
+document.querySelector('#size').onchange = e => document.body.style.setProperty('--scale', e.target.value);
+document.querySelector('#reset').onclick = () => resets.forEach(r => r());
+</script></html>

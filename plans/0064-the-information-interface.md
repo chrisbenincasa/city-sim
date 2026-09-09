@@ -32,11 +32,11 @@ Completed rows retain their history; other rows' status and dependencies determi
 | 10 | Complete | Game menu: Save, Load, Settings, Help, Credits and protected Quit | `CitySaveTests` and `scripts/ui/check-menu.py`; saved content travels with the city, failed loads preserve it, and menu controls work with the mouse |
 | 18 | Partial; independent | Content fitting, shadows, nested radii, quieter headings, type roles and tabular readings built; motion and full acceptance pending | Measured against the same `ui read` dumps: chrome share falls, no panel is stretched past its content, spacing values sit on one grid, panel changes preserve orientation without delaying input, live numbers stop reflowing; reduced motion preserves clear states |
 | 13 | Partial: supply diagnosis built | Evidence-backed status explanations: normal, routine waiting, trouble and unavailable explanation; concurrent causes with a primary summary and expandable detail | Removing one of two causes reveals the remaining cause; unavailable evidence never becomes normal; every emitted code has a shell sentence |
-| 14 | Withdrawn for redesign — 2026-09-09 | City-wide floating supply warnings removed at the player's request; rethink discovery with row 7 | Agree a quieter, bounded-cost way to find trouble before implementation; retain Evidence-backed inspection |
+| 14 | **Complete — 2026-09-09** | Discovery replaced: the Trouble wash, a Building-level view of the same reading row 7's list carries, opted into from Maps | `check-city-evidence.py` below; the wash costs one walk of the city per pollution period and nothing while it is off |
 | 15 | Partial: SVG family integrated | An icon family and redundant visual cues: chrome, Goods, zone permissions, map layers, entity kinds, selection and severity | Essential distinctions survive without hue in both themes and enlarged text, using shape, labels or patterns; licences recorded for Credits |
 | 16 | Partial | Road, Building, Household and Business navigation built, including Workplace links; remaining subject types pending | No displayed subject id is unnavigable; `docs/01 §6`'s no-orphan-figures rule holds over the shipped inspectors |
 | 17 | Proposed | Separate developer controls from the player's console and Help | Debug overlays leave the `O` cycle; the tuner, log write and debug readout leave the player's shortcut catalogue |
-| 7 | Proposed after first diagnosis pass | Compact current-issues list; event history remains later | Group by subject and cause; member counts reconcile; every entry opens an affected subject; resolved conditions leave the current list; routine waits do not automatically demand attention |
+| 7 | **Complete — 2026-09-09** | Compact current-issues list behind the console's Evidence button; event history remains later | `check-city-evidence.py` and `EvidenceTests` below. ⚠ **Resolution is held in Core and not in the shell** — no shipped Ruleset can express a lasting recovery |
 | 11 | Proposed | Citizen names and sex; Life Stage in inspection | Stable identity across replay/load and row reuse; inspection updates when the Household changes Stage |
 | 12 | Proposed; foundation built | Vary setbacks by built form; deterministic parcel setbacks already exist | Visible variation without parcel escapes or disagreement between drawing, picking and occupied ground |
 
@@ -185,6 +185,104 @@ was changed. An intervening run was terminated before producing a result. Logs:
 `/tmp/borough-test-20260909-141615.log`. Final centered captures are `artifacts/hud-live/foundation-final-dark.png` and
 `foundation-final-light-large.png`; other captures retain their own run's camera position.
 
+## Rows 7 and 14 — the city Evidence list and the Trouble wash, 2026-09-09
+
+**Two rows, one question, one answer.** Row 14 removed the floating supply warnings and left no way to
+find trouble; row 7 owed a compact issues list. The list answers row 7 and the wash answers row 14, and
+they draw the same reading. [Four treatments](../artifacts/visual-study/issues-treatments/index.html)
+were drawn first — an on-demand ledger, a standing tally kept by the simulation, a wash with no list,
+and a console stepper. The player took the ledger and the wash together, chose the wash coloured on
+**Buildings** rather than on ground Cells, and asked that opening a cause in the list narrow the wash
+to that cause.
+
+**`Evidence.OfCity` is the reading, and it is an assembler rather than a store** — one walk of every
+live Building's Rule Instances, on `Evidence`'s own cold-path terms, returning causes with their
+counts and every stopped subject beneath them. A subject is counted **once per cause** however many of
+its Rules are asleep on the same Bin. The grouping key is *whose Rule*, *which wait list*, *which
+Resource* and **whose Bin**: a tenant whose own larder is empty and a District where nobody is selling
+both report `sundries`, and they are two different problems with two different answers. ⚠ **Nothing it
+returns names a quantity of a Resource.** `CONTEXT.md` — *supply is a property of one named Bin and
+never of the city* — so what is counted is subjects, and a level or a total anywhere in these two
+surfaces would be the banned aggregate wearing this list's clothes.
+
+**The grouping is by Household and Business rather than by premises, and that is forced.** A premises
+Rule chain in every shipped Ruleset either always succeeds or never succeeds (`adr/0168`), so a list
+keyed on premises could never show a condition clearing. Premises subjects still appear; they are just
+not what the acceptance rests on.
+
+`Main.CityEvidence` owns both surfaces. The list opens off the console's own **Evidence** button,
+which was a disabled placeholder until this pass; **City** and **Pins** stay reserved and disabled.
+Groups sort trouble before routine waiting and then by how many subjects they stop, so *waiting for
+output space* can appear and can never head the list. Opening one lists its members six at a time with
+paging that states the range; a member opens its own subject through the same `ui building` /
+`ui household` / `ui business` path a map click uses, so inspection history and breadcrumbs behave as
+they already did. The grammar is `ui city on|off|refresh|group N|from N`.
+
+🔴 **The wash is what drives the cadence, and the list shares its reading.** With the Trouble wash on,
+the reading is retaken on the pollution period and the list's head reads *following the wash*; with it
+off, nothing retakes it and the head reads *read at Tick N*. ***A map layer that never moved while the
+city ran would be a stale instrument sitting beside a live one*** — `Rewash`'s own reason, one level
+out — and a list that moved under a reader paging through it would lose their place. **The list prints
+the Tick it is showing either way**, which is what makes both states honest rather than one of them a
+trap. ⚠ **This is the whole bill**: one walk of the city per pollution period, opted into by turning
+the wash on and paid by nobody who leaves it off.
+
+**The wash is a Building wash on `Wash.Health`'s pattern**, not a ground one: the ground and everything
+else go muted and each Building takes its own colour, so a starving Building stays visible beside nine
+healthy ones rather than being averaged into a Cell. Settled is **green and not the absence of a
+colour**, because *nothing is wrong here* and *this was not read* are two different claims —
+`Rewash`'s `Unmeasured` reasoning one level out. The legend names the scope, the peak in missed
+firings, how many subjects and Buildings are marked, how many Buildings were read, and the Tick.
+Its ramp is the wash's own three colours rather than `Bands`, which every ground wash keeps.
+
+**Government and the list take turns**, because they fit the same slot above the console beside
+inspection. Opening either folds the other away; the held tool, the layer and the inspected subject
+stand through both, and Escape folds the list before the layer picker.
+
+**Watched:** `scripts/ui/check-city-evidence.py`, against `diagnosis-fixture.py`'s city at Tick 512
+with 256 Citizens through `--listen`. It presses real button rectangles and checks that the list reads
+once on opening, that every group's count reconciles with the members under it, that a routine wait is
+its own group and stays out of the wash, that a member navigates to its own subject with the paused
+State Hash unchanged, that the wash narrows to the open cause and widens again, that the reading holds
+still without the wash and follows it with, that Government and the list take turns without dropping
+the layer or the selection, and that the panel and its fixed controls stay inside the frame at
+1280 × 800, 1440 × 960 and 1920 × 1080, both themes, 100% and 150% text. Captures and dumps are
+`artifacts/hud-live/city-evidence-*`.
+
+⚠ **Row 7's *resolved conditions leave the current list* is held in Core and not by that check, and
+the reason is the standing constraint rather than the panel.** `EvidenceTests
+.A_repaired_cause_leaves_the_city_list_and_the_other_stays` repairs the Bin a Rule is asleep on and
+watches its group disappear while the other stays;
+`The_city_list_groups_the_blocked_rules_each_building_reports_on_its_own` holds the grouping against
+the per-Building reading the inspector already uses. In the shell, neither half is reachable: a
+Household this fixture rebates is short again within its next upkeep — measured, with the levy zeroed
+and the rebate at 5,000 the blocked count still rose from 41 to 83 over 372 Ticks — and **Demolish
+refuses occupied ground**, so nothing a player can do here removes a listed subject. ***That is the
+shipped Rulesets' inability to express balance → unbalance → balance arriving in an acceptance check,
+not a gap in the panel.***
+
+🔴 **A WRAPPING `Label` REPORTS A ONE-CHARACTER MINIMUM WIDTH, and this is the second sighting.** The
+first is this plan's own *four things the live build changed against the drawing*. `ScrollAuxiliary`
+had been applying autowrap and fill to every Label **once, at build time**, so the list's rows — added
+on every rebuild — came back as a vertical column of single letters with the group buttons pushed 900
+px down the screen and unpressable. `ScrollLabel` is that treatment as a method, applied at build and
+at every rebuild. ***A rule applied once at construction is not a rule a panel that rebuilds can
+rely on.***
+
+**Verification:** the assertion lane passed **3,041 tests** and the Godot Debug build has no warnings
+or errors. `DocCommentAttachmentTests` caught two stacked `///` blocks in this pass's own files and
+they are moved back to the members they describe.
+
+⚠ **`check-information.py` fails on a hover assertion and it is not this pass's.** It stops at
+`'1 Household · 1 Business' in building['Synopsis']`, and the identical failure reproduces at
+`bc1463e` in a clean worktree with this work absent. Undiagnosed here. `check-console`,
+`check-discovery`, `check-diagnosis`, `check-hud-foundation` and the new `check-city-evidence` all
+pass.
+
+**Unmeasured:** what the city read costs at a population where it would matter. It is a walk of every
+live Building's Rule Instances, and the only figure taken is on a 33-Building fixture, which is no
+figure at all (`adr/0106`).
+
 ## Icon family — 2026-09-08
 
 The player chose custom SVGs with **outline as the default and filled on hover**. `UiIcons`
@@ -273,11 +371,10 @@ stashed, all three predate it, and none is diagnosed here.
 
 ## Current issues follow-up
 
-Supply diagnosis remains in hover and inspection. The player rejected city-wide floating warnings
-on 2026-09-09. Reconsider row 14 and row 7 together before building a replacement: the compact
-current-issues list remains a proposal, with affected subjects and causes, reconciled counts,
-subject navigation and removal of resolved conditions. Other status families, historical events and Citizen inspection
-remain pending. Large-city save/load responsiveness remains unmeasured.
+**Answered by rows 7 and 14 below.** Supply diagnosis remains in hover and inspection, and the city
+Evidence list and the Trouble wash are how a player now finds it. Other status families, historical
+events and Citizen inspection remain pending. Large-city save/load responsiveness remains unmeasured,
+and so does the cost of the city read at a population where it would matter.
 
 Row 18's desktop comparisons remain independent; preserve text scaling and both themes.
 

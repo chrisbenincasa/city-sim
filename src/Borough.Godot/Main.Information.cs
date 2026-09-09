@@ -218,7 +218,7 @@ public partial class Main
         Color shadow = colors.Shadow;
         _palette?.AddThemeStyleboxOverride("panel",
             InformationUi.Box(paper, line, 16, 12, InformationUi.PanelRadius, shadow));
-        foreach (Control panel in _informationPanels.Concat(new Control?[] { _policyPanel, _tuner })
+        foreach (Control panel in _informationPanels.Concat(new Control?[] { _policyPanel, _cityPanel, _tuner })
             .Where(p => p is not null).Select(p => p!))
         {
             panel.AddThemeStyleboxOverride("panel", InformationUi.Box(paper, line,
@@ -324,6 +324,15 @@ public partial class Main
             FitPanel(_policyPanel, scroll, body, margin, margin, policyWidth, 100,
                 Math.Max(100, consoleTop - _cameraPanel.GetCombinedMinimumSize().Y - 8 - margin * 2), true);
         }
+        if (_cityPanel is not null && _cityShown)
+        {
+            var cityScroll = _cityPanel.GetChildren().OfType<ScrollContainer>().First();
+            var cityBody = cityScroll.GetChild<Control>(0);
+            float cityWidth = Math.Min(720, size.X - width - margin * 3);
+            FitPanel(_cityPanel, cityScroll, cityBody, margin, margin, cityWidth, 100,
+                Math.Max(100, consoleTop - _cameraPanel.GetCombinedMinimumSize().Y - 8 - margin * 2), true);
+        }
+
         LayoutToolBrowser(size, margin, consoleTop, narrow, width, OpenersBottom(margin));
         LayoutLayerPanel(margin, consoleTop, narrow);
 
@@ -439,7 +448,8 @@ public partial class Main
         || _layerButton.GetGlobalRect().HasPoint(at)
         || _palette is not null && _palette.Visible && _palette.GetGlobalRect().HasPoint(at)
         || _tuner.Visible && _tuner.GetGlobalRect().HasPoint(at)
-        || _policyPanel is not null && _policyPanel.Visible && _policyPanel.GetGlobalRect().HasPoint(at));
+        || _policyPanel is not null && _policyPanel.Visible && _policyPanel.GetGlobalRect().HasPoint(at)
+        || _cityPanel is not null && _cityPanel.Visible && _cityPanel.GetGlobalRect().HasPoint(at));
 
     private void Ui(string action) => AtBoundary(() => Apply(new DriveCommand(_world.Tick.Raw, DriveVerb.Ui, 0, action)));
 
@@ -460,6 +470,7 @@ public partial class Main
             return;
         }
         if (ZoningAction(words)) return;
+        if (CityEvidenceAction(words)) return;
         switch (words[0])
         {
             case "help" when words.Length == 2 && words[1] is "on" or "off":
@@ -1249,6 +1260,40 @@ public partial class Main
             TunerVisible = _tuner.Visible,
             PoliciesVisible = _governing,
             Policies = Rect(_policyPanel),
+            CityEvidenceShown = _cityShown,
+            CityEvidencePanel = Rect(_cityPanel),
+            CityEvidence = new
+            {
+                Read = _cityRead,
+                ReadAt = _cityRead ? _cityReading.ReadAt.Raw : 0,
+                BuildingsRead = _cityRead ? _cityReading.BuildingsRead : 0,
+                OpenGroup = _cityGroup,
+                From = _cityFrom,
+                Groups = _cityRead
+                    ? _cityReading.Groups.ToArray().Select(group => new
+                    {
+                        Cause = CauseSentence(group.Cause),
+                        Detail = CauseDetail(group.Cause),
+                        Kind = group.Cause.Kind.ToString(),
+                        Blocked = group.Cause.Blocked.ToString(),
+                        group.Cause.Explained,
+                        group.Subjects,
+                        group.WorstMissedFirings,
+                    }).ToArray()
+                    : [],
+                Subjects = _cityRead ? _cityReading.Subjects.Length : 0,
+
+                // The open group's members in full rather than the page's six, so a check can hold
+                // the count under a group against the subjects actually under it.
+                OpenMembers = _cityRead && _cityGroup >= 0
+                    ? _cityReading.Subjects.ToArray()
+                        .Where(subject => subject.Group == _cityGroup)
+                        .Select(subject => subject.SubjectId).ToArray()
+                    : [],
+                WashSubjects = _troubleSubjects,
+                WashBuildings = _troubleOf.Count,
+                WashPeak = _troublePeak,
+            },
             Buttons = InformationDescendants(_hud, true).OfType<Button>().Where(b => b.IsVisibleInTree())
                 .Select(b => new { Text = UiIcons.Label(b), Icon = UiIcons.Id(b), Filled = UiIcons.Filled(b), IconWidth = b.GetThemeConstant("icon_max_width"), b.Disabled, Pressed = b.ButtonPressed, Rect = Rect(b) }).ToArray(),
         };
