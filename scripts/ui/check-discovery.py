@@ -71,7 +71,7 @@ for label, field, direction in [('↶', 'Yaw', -1), ('↷', 'Yaw', 1),
 
 for theme in ['light', 'dark']:
     command('ui theme ' + theme)
-    for width, height in [(1440, 960), (480, 640)]:
+    for width, height in [(1440, 960), (1280, 800)]:
         command(f'ui size {width} {height}')
         command('ui text-size 100')
         state = read()
@@ -116,33 +116,25 @@ for theme in ['light', 'dark']:
         assert state['Inspector']['Y'] + state['Inspector']['Height'] <= state['Console']['Y'] + 1
         command(f'shoot {output}/discovery-console-{theme}-{width}.png')
 
-# Expanded controls must share the narrow frame with inspection, even at maximum type size.
-command('ui size 480 640')
+# Every control stays reachable in the smallest design frame at maximum type size, with both
+# panels open and a wash on. The console used to be scrolled to reach Cancel here; at 1280 x 800 it
+# fits, so what is asserted is that nothing needs scrolling rather than that scrolling works.
+command('ui size 1280 800')
 command('ui text-size 150')
 command('ui tools on')
 command('ui layers on')
 command('overlay pollution')
 command('hold demolish')
 state = read('discovery-expanded-console')
-bounded(state['Console'], 480, 640)
+bounded(state['Console'], 1280, 800)
+bounded(state['Tools'], 1280, 800)
+bounded(state['Layers'], 1280, 800)
 assert state['Inspector']['Y'] + state['Inspector']['Height'] <= state['Console']['Y'] + 1
+assert state['Layers']['Y'] >= state['Tools']['Y'] + state['Tools']['Height'] - 1, (state['Tools'], state['Layers'])
+assert state['ConsoleScroll'] == 0, state['ConsoleScroll']
 area = state['ConsoleContent']
-command(f"ui wheel {round(area['X'] + area['Width'] - 3)} {round(area['Y'] + area['Height']/2)} 8")
-assert read()['ConsoleScroll'] > 0
-for _ in range(40):
-    if read()['ConsoleScroll'] == 0:
-        break
-    command(f"ui wheel {round(area['X'] + area['Width'] - 3)} {round(area['Y'] + area['Height']/2)} -20")
-assert read()['ConsoleScroll'] == 0
-for _ in range(40):
-    state = read()
-    cancel = next(b['Rect'] for b in state['Buttons'] if b['Text'] == 'Cancel')
-    area = state['ConsoleContent']
-    if cancel['Y'] >= area['Y'] and cancel['Y'] + cancel['Height'] <= area['Y'] + area['Height']:
-        break
-    command(f"ui wheel {round(area['X'] + area['Width'] - 3)} {round(area['Y'] + area['Height']/2)} 1")
-else:
-    raise AssertionError('Cancel could not be reached in the scrolling console')
+cancel = next(b['Rect'] for b in state['Buttons'] if b['Text'] == 'Cancel')
+assert cancel['Y'] >= area['Y'] and cancel['Y'] + cancel['Height'] <= area['Y'] + area['Height'], (cancel, area)
 press(state, 'Cancel')
 assert read()['Tool'] == 'Look'
 command('ui tools off')

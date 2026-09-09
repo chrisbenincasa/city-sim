@@ -80,7 +80,7 @@ command('ui theme light')
 theme = read('checked-household-light')
 assert theme['Scroll'] == household['Scroll'] and theme['Expanded'] == household['Expanded']
 command('shoot artifacts/hud-live/checked-household-light.png')
-for width, height in [(1024, 640), (640, 720), (480, 640)]:
+for width, height in [(1280, 800), (1920, 1080)]:
     command(f'ui size {width} {height}')
     command('ui debug on')
     state = read(f'checked-{width}-{height}')

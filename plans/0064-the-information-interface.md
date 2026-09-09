@@ -6,6 +6,8 @@
 1440×960 and larger. Keep text scaling, but stop tiny-window screenshots and layout work;
 480×640 is no longer an acceptance requirement. This supersedes the narrow-screen requirements
 below; existing small-screen captures remain historical evidence, not obligations for future passes.
+✅ **Enforced 2026-09-09**: the window's own minimum is **1280 × 800**, so a size no check asserts
+is no longer reachable — see *Chrome moved out of the console* below.
 
 This plan owns the UX queue: outstanding work, scope changes, completion checks and recommendations.
 Queued work starts with design agreement before implementation. The player approved the research-led
@@ -59,6 +61,72 @@ complete diagnosis interaction. Credits identifies the icons as project-created 
 Row 15 remains partial: redundant patterns on Map Layers and stronger selection cues still need
 an in-context design and verification. An icon beside a layer name does not make the layer itself
 readable without hue. The comparison sheet remains under `art/ui-study`.
+
+## Chrome moved out of the console — 2026-09-09
+
+**The player asked for four changes and all four are built.** They amend rows 4, 5 and 8; the rows
+stay Complete and their checks stay the ones named above.
+
+**The layer picker is no longer in the console.** It is an opener on the left edge, under Tools,
+opening a panel that carries the wash list and the legend — `Main.Chrome.cs`, which now owns the
+openers, the picker and the top-right trim. Both openers stay visible while their panels are open,
+because two openers stacked cannot take turns hiding without the lower one moving. When both panels
+are open the picker stacks under the tool browser, so the left column is one column and not two
+overlapping ones. The opener wears the layer's own name once a wash is on, which is why both
+openers take the wider one's width rather than a stated one.
+
+**Menu and Settings are icon buttons in a top-right trim panel**, with the frame reading beside
+them. `UiIcons.Glyph` keeps each button's name in metadata, so `ui press` still finds them by
+label. The inspector and the Settings panel now start below that trim rather than at the margin.
+
+**The frame reading is a debug build only** — `OS.IsDebugBuild()`. The sampling behind it is
+unconditional: `BOROUGH_PERFORMANCE_LOG` and the tooltip's six lines are what a driven run
+collects, and gating those on the build would make a release export unmeasurable.
+
+🔴 **`a Day in 4m16s` is gone, and so is the day counter that was commented out beside it.** The
+Day, the clock and `PhaseOfDay`'s name for the hour are the sky arc's tooltip now. ***A duration a
+person is not waiting on is a number that moves for no reason***, which is what made it a
+distraction rather than an orientation.
+
+🔴 **THE TEXT-SIZE CONTROL'S 100% WAS NOT 100%.** Point sizes were stated for a 1,080-pixel window
+and multiplied by up to **1.3×** on a taller one, so body text read at **21 point** where the panel
+said 100. `Typed()` applies the Settings percentage and nothing else now, and `ReferenceHeight`,
+`SmallestScale` and `LargestScale` are gone with it. ⚠ **The stated argument for the multiplier was
+that a driven `shoot` at 4K would otherwise be a hairline** — that is now unhandled, and a capture
+at that size will want the Settings control turned up rather than a constant put back.
+
+🔴 **THE CAMERA GROUP WAS MADE A FLOW AND THE PLAYER SAW SIX BUTTONS IN A COLUMN WITHIN THE
+HOUR.** As a box its minimum is **500 px** at 480 × 640 with 150% type, so the console overflowed a
+window it was anchored inside and `check-discovery.py` failed on it — at `e69ca57` as well as here.
+A flow fixed that minimum and cost the row: the console is itself a flow, a flow asks each child
+how narrow it can be, and a nested flow answers **one button**. ***So the console's own layer-picker
+remark generalises — a group inside a flow states a width or gets one button's*** — and the box is
+back.
+
+🔴 **THE WINDOW MINIMUM IS 1280 × 800 AND THAT IS WHAT RETIRED THE OVERFLOW.** The
+2026-09-08 desktop viewport decision at the head of this plan removed 480 × 640 from acceptance and
+left the window able to reach it, so a size nothing verified stayed reachable — and the console's
+own minimum exceeded it. `Main.Information.DesignWidth`/`DesignHeight` now bound
+`GetWindow().MinSize`, the `ui size` guard and its refusal sentence together, so the
+smallest window a player or a script can make is the smallest one a check asserts. **Every check's
+size list starts there**: `check-console`, `check-roads` and `check-information` run 1280 × 800,
+1440 × 960 and 1920 × 1080, and `check-discovery`'s 150%-type pass runs at 1280 × 800.
+
+⚠ **`LayoutInformation`'s `narrow` branch is now unreachable** — it fires under 900 px and nothing
+can be that narrow. It is left standing rather than removed in the same pass, and removing it is
+a row of its own.
+
+⚠ **`check-discovery.py`'s scrolling console assertion is gone**, because at 1280 × 800 the console
+fits and cannot be scrolled. What replaced it asserts the opposite and is the thing that matters
+now: with both left panels open, a wash on and 150% type, the console, the tool browser and the
+picker all stay inside the frame, the picker sits below the browser, `ConsoleScroll` is zero and
+`Cancel` is pressable where it stands. ***An assertion that a control can be reached by scrolling
+is worthless once nothing scrolls.***
+
+⚠ **`check-information.py`, `check-zoning.py` and `check-roads.py` fail identically before and
+after this pass** — on a selected-Building assertion, on the zone tool defaulting to parcels, and
+on a road-selection identity assertion. All three were verified against `e69ca57` with this work
+stashed, all three predate it, and none is diagnosed here.
 
 ## Next pass — current issues
 
@@ -379,8 +447,9 @@ moon every single night, and is a fib"* — so a crescent in the HUD would contr
 It becomes honest only when `Daylight()` scales the moon's energy by the same phase, and the cycle
 length is an authored constant. That is a row of its own.
 
-`Main.Console` owns the console: the pace group, the sky arc, the tool slot, the layer picker and
-its legend, the chrome, the pointer row and the refusal strip. `SkyArc` draws the day — the light's
+`Main.Console` owns the console: the pace group, the sky arc, the tool slot, the camera group, the
+pointer row and the refusal strip. ⚠ **The layer picker and the chrome left it on 2026-09-09** —
+see *Chrome moved out of the console* above. `SkyArc` draws the day — the light's
 position and the spent share of daylight are read off `Ticks.MinuteOfDay`; **the two horizon
 crossings are a drawing convention at 06:00 and 18:00 and not the sun's real height**, and the
 quarter ticks carry no labels because `01 §7`'s five phase names have no boundaries anywhere in the

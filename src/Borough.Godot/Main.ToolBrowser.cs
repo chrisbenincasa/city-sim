@@ -135,12 +135,13 @@ public partial class Main
         _emptyTools.Visible = _choices.GetChildCount() == 0;
     }
 
-    private void LayoutToolBrowser(Vector2 size, float margin, float consoleTop, bool narrow, float inspectorWidth)
+    private void LayoutToolBrowser(Vector2 size, float margin, float consoleTop, bool narrow,
+        float inspectorWidth, float top)
     {
         if (_palette is null) return;
         float width = narrow ? 176 : Math.Min(240, 190 * _textPercent / 100f);
-        FitPanel(_palette, _toolScroll, _browserBody, margin, margin, width,
-            100, Math.Max(100, consoleTop - margin * 2), _browserRebuilt);
+        FitPanel(_palette, _toolScroll, _browserBody, margin, top, width,
+            100, Math.Max(100, consoleTop - top - margin), _browserRebuilt);
         _browserRebuilt = false;
         _palette.Visible = _toolsShown;
         if (_toolsShown && !_helpPanel.Visible && !_tuner.Visible && !_governing) _hud.MoveChild(_palette, -1);

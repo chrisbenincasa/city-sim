@@ -40,8 +40,9 @@ public partial class Main
     {
         if (_settingsPanel is null) return;
         float width = Math.Min(360 * _textPercent / 100f, size.X - 2 * margin);
-        SetPanel(_settingsPanel, size.X - width - margin, margin, width,
-            Math.Min(380 * _textPercent / 100f, size.Y - 2 * margin));
+        float top = margin + _chrome.Size.Y + 8;
+        SetPanel(_settingsPanel, size.X - width - margin, top, width,
+            Math.Min(380 * _textPercent / 100f, size.Y - top - margin));
         if (_settingsPanel.Visible && !_helpPanel.Visible) _hud.MoveChild(_settingsPanel, -1);
     }
 }

@@ -64,6 +64,16 @@ public partial class Main
         new("Developer", "Write Input Log", "W", [Key.W], Record),
     ];
 
+    /// <summary>
+    /// The camera's six buttons, <b>on one row</b>.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>A BOX, AND A FLOW HERE STACKS THEM ONE PER ROW.</b> The console is itself an
+    /// <see cref="HFlowContainer"/>, and a flow asks each child how narrow it can be — a nested
+    /// flow answers <em>one button</em>, so the six came back as a column. It is the same trap
+    /// <c>Console</c>'s layer picker documented and the same answer: ***a group inside a flow
+    /// states a width or gets one button's.*** A box states one by holding its children on a line.
+    /// </remarks>
     private HBoxContainer CameraControls()
     {
         var group = new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };

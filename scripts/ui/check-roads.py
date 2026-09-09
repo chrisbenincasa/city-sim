@@ -68,7 +68,7 @@ press(read('road-building-back'), '‹ Road Segment 6')
 back = read('road-back')
 assert back['Road'] == 6 and back['Scroll'] == parent['Scroll']
 assert all(back['Expanded'].get(k) == v for k, v in parent['Expanded'].items())
-for width, height in [(1440, 960), (640, 720), (480, 640)]:
+for width, height in [(1280, 800), (1440, 960), (1920, 1080)]:
     command(f'ui size {width} {height}')
     for theme in ['light', 'dark']:
         command('ui theme ' + theme)

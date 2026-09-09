@@ -11,7 +11,7 @@ namespace Borough.Shell;
 internal sealed partial class SkyArc : Control
 {
     internal Color Ink = Colors.White, Paper = Colors.Black;
-    internal int Minute;
+    internal int Minute = -1;
     internal bool Daytime => Minute >= 360 && Minute < 1080;
     internal Vector2 Marker => At(((Minute - 360 + 1440) % 1440) / 1440f);
 
@@ -54,18 +54,15 @@ public partial class Main
 {
     private PanelContainer _console = null!;
     private ScrollContainer _consoleScroll = null!;
-    private VBoxContainer _consoleBody = null!, _layerGroup = null!;
+    private VBoxContainer _consoleBody = null!;
     private HFlowContainer _consoleTop = null!;
     private HBoxContainer _pointerRow = null!;
-    private HFlowContainer _layerChoices = null!;
     private Control _toolSlot = null!;
     private SkyArc _skyArc = null!;
-    private Label _rungLabel = null!, _dayLengthLabel = null!;//, _dayLabel = null!;
-    private Label _legendTitle = null!, _legendBody = null!, _refusalLabel = null!;
-    private LegendRamp _legendRamp = null!;
-    private Button _layerButton = null!, _pauseButton = null!, _slowerButton = null!, _fasterButton = null!;
+    private Label _rungLabel = null!;
+    private Label _refusalLabel = null!;
+    private Button _pauseButton = null!, _slowerButton = null!, _fasterButton = null!;
     private PanelContainer _refusalRow = null!;
-    private bool _layersShown;
 
     /// <summary>The overlay ramp, drawn from the same <see cref="Bands"/> the map is washed with.</summary>
     internal sealed partial class LegendRamp : Control
@@ -88,9 +85,9 @@ public partial class Main
     /// <para>
     /// <b>Composition C, chosen 2026-09-05</b> (<c>plans/0064</c> row 3). The top bar and the bottom
     /// tool palette were two strips claiming 200 px of every frame before anything had happened —
-    /// 21% of a 960 px window. They are one strip here: time at the left, tools in the centre,
-    /// the layer picker and its legend at the right, and the pointer reading and any refusal along
-    /// the bottom. ***Idle it is one row***, and the top edge belongs to the picture.
+    /// 21% of a 960 px window. They are one strip here: time and the day/night clock at the left,
+    /// the held tool in the centre, the camera at the right, and the pointer reading and any
+    /// refusal along the bottom. ***Idle it is one row***, and the top edge belongs to the picture.
     /// </para>
     /// <para>
     /// 🔴 <b>THE POINTER READING IS IN HERE AND NO LONGER A PANEL OF ITS OWN.</b> That supersedes
@@ -140,24 +137,18 @@ public partial class Main
         _fasterButton = ConsoleButton("▶▶", () => Apply(new DriveCommand(
             _world.Tick.Raw, DriveVerb.Speed, Math.Min(Ladder.Length - 1, _rung + 1), null)));
         _fasterButton.TooltipText = "Faster (])";
-        _dayLengthLabel = ConsoleLabel(string.Empty, SecondaryPoints);
         pace.AddChild(_rungLabel);
         pace.AddChild(_slowerButton);
         pace.AddChild(_pauseButton);
         pace.AddChild(_fasterButton);
-        pace.AddChild(_dayLengthLabel);
         _consoleTop.AddChild(pace);
 
         // ---- the sky ----------------------------------------------------------------------------
         var sky = new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
         sky.AddThemeConstantOverride("separation", 8);
-        _skyArc = new SkyArc { CustomMinimumSize = new Vector2(112, 44), MouseFilter = Control.MouseFilterEnum.Stop, TooltipText = "Day/night clock: dawn left, noon above, dusk right, midnight below." };
-        // _dayLabel = ConsoleLabel(string.Empty, SecondaryPoints);
-        // _dayLabel.ThemeTypeVariation = InformationUi.Reading;
+        _skyArc = new SkyArc { CustomMinimumSize = new Vector2(112, 44), MouseFilter = Control.MouseFilterEnum.Stop };
         sky.AddChild(_skyArc);
-        // sky.AddChild(_dayLabel);
         _consoleTop.AddChild(sky);
-        PerformanceDisplay();
 
         // ---- tools ------------------------------------------------------------------------------
         _toolSlot = new VBoxContainer
@@ -172,82 +163,6 @@ public partial class Main
         };
         _consoleTop.AddChild(_toolSlot);
 
-        // ---- layers -----------------------------------------------------------------------------
-        // ⚠ THE ONE GROUP THAT EXPANDS, and only once it is open. A FlowContainer breaks its lines
-        // off the minimum widths and distributes the slack afterwards, so expanding here cannot
-        // change which group lands on which row -- it changes what the picker does with the room
-        // its row already had. Without it the four washes came back as two rows beside 900 px of
-        // empty console.
-        _layerGroup = new VBoxContainer
-        {
-            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-        };
-        _layerGroup.AddThemeConstantOverride("separation", 7);
-        var layerHead = new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
-        layerHead.AddThemeConstantOverride("separation", 8);
-        _layerButton = ConsoleButton(string.Empty, () => Ui(_layersShown ? "layers off" : "layers on"));
-        UiIcons.Attach(_layerButton, "layers");
-        _layerButton.TooltipText = "Choose a map layer (o cycles)";
-        layerHead.AddChild(_layerButton);
-        // ⚠ A FLOW AND NOT A BOX, for the same reason the console itself is one: at 480 px the four
-        // shipping washes do not fit on a line, and a box would have run them off the edge rather
-        // than onto a second row.
-        _layerChoices = new HFlowContainer
-        {
-            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
-
-            // ⚠ EXPAND, or the box beside it hands the flow its MINIMUM width -- which is one
-            // button -- and four washes come back as four rows.
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-        };
-        _layerChoices.AddThemeConstantOverride("h_separation", 8);
-        _layerChoices.AddThemeConstantOverride("v_separation", 8);
-        foreach ((string name, string label) in Washes)
-        {
-            string want = name;
-            var choice = ConsoleButton(label, () => Apply(new DriveCommand(
-                _world.Tick.Raw, DriveVerb.Overlay, 0, want)));
-            UiIcons.Attach(choice, name switch
-            { "pollution" => "pollution", "value" => "value", "sealing" => "sealing", "health" => "clinic", "off" => "layers", _ => "grid" });
-            choice.ToggleMode = true;
-            _layerChoices.AddChild(choice);
-        }
-        layerHead.AddChild(_layerChoices);
-        _layerGroup.AddChild(layerHead);
-        var legend = new VBoxContainer();
-        legend.AddThemeConstantOverride("separation", 4);
-        _legendTitle = ConsoleLabel(string.Empty, CaptionPoints);
-        // ⚠ A STATED WIDTH AND NOT AN EXPANDING ONE. A ramp drawn the width of the console reads as
-        // a rule between two rows rather than as a scale, which is the opposite of what a legend is
-        // for -- it was 1,300 px in the drawings before anybody noticed.
-        _legendRamp = new LegendRamp
-        {
-            CustomMinimumSize = new Vector2(300, 7),
-            SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin,
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-        };
-        _legendBody = ConsoleLabel(string.Empty, SecondaryPoints);
-        _legendBody.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-        _legendBody.CustomMinimumSize = new Vector2(300, 0);
-        _legendBody.SizeFlagsVertical = Control.SizeFlags.ShrinkBegin;
-        legend.AddChild(_legendTitle);
-        legend.AddChild(_legendRamp);
-        legend.AddChild(_legendBody);
-        _layerGroup.AddChild(legend);
-        _consoleTop.AddChild(_layerGroup);
-
-        // ---- chrome -----------------------------------------------------------------------------
-        var trim = new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
-        trim.AddThemeConstantOverride("separation", 8);
-        _toolsButton = ConsoleButton("Tools", () => Ui("tools on"));
-        UiIcons.Attach(_toolsButton, "grid");
-        _toolsButton.AddThemeConstantOverride("icon_max_width", 22);
-        _toolsButton.Theme = _type;
-        _hud.AddChild(_toolsButton);
-        trim.AddChild(ConsoleButton("Menu", () => Ui("menu on")));
-        trim.AddChild(ConsoleButton("Settings", () => Ui(_settingsPanel.Visible ? "settings off" : "settings on")));
-        _consoleTop.AddChild(trim);
         _consoleTop.AddChild(CameraControls());
 
         _consoleTop.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
@@ -284,20 +199,6 @@ public partial class Main
         _console.AddChild(_consoleBody);
     }
 
-    /// <summary>The layer picker's entries. <b>The two debug washes appear only with the debug overlay.</b></summary>
-    /// <remarks>
-    /// ⚠ <b><c>rung</c> and <c>age</c> are named DEBUG VIEWS by <see cref="Wash"/>'s own remarks</b>,
-    /// and <c>o</c> cycled a player through both of them. They are still reachable — by the key, by
-    /// a script, and here once <c>Debug</c> is on — and they are out of the everyday list.
-    /// </remarks>
-    private static readonly (string Name, string Label)[] Washes =
-    [
-        ("off", "Off"), ("pollution", "Pollution"), ("value", "Land value"), ("sealing", "Sealing"),
-        ("health", "Health"), ("rung", "Rung"), ("age", "Age"),
-    ];
-
-    private static bool DebugWash(string name) => name is "rung" or "age";
-
     /// <summary>A console button: the shell's one button style, at the console's smaller height.</summary>
     /// <remarks>
     /// ⚠ <b><see cref="Control.SizeFlags.ShrinkCenter"/> vertically, and it is not cosmetic.</b> A
@@ -328,20 +229,18 @@ public partial class Main
     }
 
     /// <summary>
-    /// The two console groups whose widths are stated, restated against the console it is in.
+    /// The console groups whose widths are stated, restated against the console they are in.
     /// </summary>
     /// <remarks>
     /// 🔴 <b>A STATED MINIMUM WIDER THAN THE WINDOW IS AN OVERFLOW AND NOT A WRAP.</b> The tool tray
-    /// and the legend both name a width so the flow wraps around them rather than clipping them —
-    /// and at 480 px each of those numbers is wider than the console itself, so the group ran off
-    /// the right edge and took the pointer reading with it. ***A minimum is a request and the window
-    /// is the authority***, so both are capped here every frame rather than chosen once.
+    /// names a width so the flow wraps around it rather than clipping it — and at 480 px that number
+    /// is wider than the console itself, so the group ran off the right edge and took the pointer
+    /// reading with it. ***A minimum is a request and the window is the authority***, so it is
+    /// capped here every frame rather than chosen once.
     /// </remarks>
     private void SizeConsole(float inner)
     {
         _toolSlot.CustomMinimumSize = new Vector2(Math.Min(270f, inner), 0f);
-        _legendBody.CustomMinimumSize = new Vector2(Math.Min(300f, inner), 0f);
-        _legendRamp.CustomMinimumSize = new Vector2(Math.Min(300f, inner), 7f);
         _hover.CustomMinimumSize = new Vector2(Math.Max(120f, inner), 0f);
     }
 
@@ -349,24 +248,8 @@ public partial class Main
     private string RungName() => Rungs[_rung];
 
     /// <summary>
-    /// How long a Day is at this rung. <b>Kept beside the rung and not folded into a tooltip.</b>
-    /// </summary>
-    /// <remarks>
-    /// ⚠ <b><see cref="Pace"/>'s remark is the reason this is on screen.</b> The multiple of real
-    /// time was misleading on its own — <em>338× real time</em> invites a person to expect tomorrow
-    /// shortly, and the Day counter looked stuck. ***A speed is a rate and a person waiting is
-    /// holding a duration***, so the duration is the visible half and the multiple is the tooltip.
-    /// </remarks>
-    private string DayLength()
-    {
-        // Hide the real-time Day duration while paused.
-        if (Ladder[_rung] <= 0.0) return string.Empty;
-        int seconds = (int)Math.Round(Ticks.PerDay / Ladder[_rung]);
-        return seconds < 60 ? $"a Day in {seconds}s" : $"a Day in {seconds / 60}m{seconds % 60:00}s";
-    }
-
-    /// <summary>
     /// The named phase of the Day, which is what <c>01 §7</c> asks for instead of a clock.
+    /// <b>It reads in the clock's tooltip and nowhere else.</b>
     /// </summary>
     /// <remarks>
     /// ⚠ <b>THE BOUNDARIES ARE PROVISIONAL and chosen by taste</b> — <c>plans/0045</c> standing
@@ -384,6 +267,7 @@ public partial class Main
         >= 16 and < 20 => "evening peak",
         _ => "night",
     };
+
     /// <summary>
     /// Every reading in the console, restated against the world as it now is.
     /// </summary>
@@ -394,19 +278,11 @@ public partial class Main
     /// refused command shows the old state rather than the state that was asked for, which is the
     /// one behaviour a control that writes its own label cannot have.
     /// </para>
-    /// <para>
-    /// ⚠ <b>The legend's sentence is <see cref="Legend"/>'s, split rather than rewritten.</b> A
-    /// second wording of the same three facts is <c>plans/0012</c> <b>Cause 1</b> — the copy that
-    /// drifts. The split is at the first em dash, which is where <see cref="Legend"/> already puts
-    /// the boundary between the layer's name and what its colours are worth.
-    /// </para>
     /// </remarks>
     private void RefreshConsole()
     {
         _rungLabel.Text = Rungs[_rung == 0 ? _resume : _rung];
         _rungLabel.TooltipText = Pace(_rung);
-        _dayLengthLabel.Text = DayLength();
-        _dayLengthLabel.TooltipText = Pace(_rung);
         UiIcons.Glyph(_pauseButton, _rung == 0 ? "▶" : "⏸", _rung == 0 ? "play" : "pause");
         _pauseButton.SetPressedNoSignal(_rung == 0);
         _slowerButton.Disabled = _rung <= 1;
@@ -416,51 +292,14 @@ public partial class Main
         if (_skyArc.Minute != minute)
         {
             _skyArc.Minute = minute;
+            _skyArc.TooltipText = $"Day {_world.Tick.Raw / (ulong)Ticks.PerDay}, {minute / 60:00}:{minute % 60:00}"
+                + $" — {PhaseOfDay(minute)}.\nDawn left, noon above, dusk right, midnight below.";
             _skyArc.QueueRedraw();
         }
-        // _dayLabel.Text = $"Day {_world.Tick.Raw / (ulong)Ticks.PerDay} · {PhaseOfDay(minute)}"
-        //     + $"  {minute / 60:00}:{minute % 60:00}";
 
-        _layerButton.Text = _washing == Wash.None
-            ? "Layers  ▾"
-            : $"{Washes.First(w => w.Name == WashName(_washing)).Label}  ▾";
-        _layerChoices.Visible = _layersShown;
-        int shown = 0;
-        foreach (Node node in _layerChoices.GetChildren())
-        {
-            if (node is not Button choice) continue;
-            choice.Visible = !DebugWash(Washes[shown].Name) || _debugShown;
-            choice.ButtonPressed = Washes[shown].Name == WashName(_washing);
-            shown++;
-        }
-
-        string legend = Legend().TrimStart('\n');
-        bool washing = legend.Length > 0;
-        _legendTitle.Visible = washing;
-        _legendRamp.Visible = washing && _washing != Wash.Rung;
-        _legendBody.Visible = washing;
-        if (washing)
-        {
-            int dash = legend.IndexOf('—');
-            _legendTitle.Text = (dash < 0 ? legend : legend[..dash]).Trim().ToUpperInvariant();
-            _legendBody.Text = dash < 0 ? string.Empty : legend[(dash + 1)..].Trim();
-            _legendRamp.Colours = Bands;
-            _legendRamp.QueueRedraw();
-        }
+        RefreshChrome();
 
         _refusalRow.Visible = _refused.Length > 0;
         if (_refused.Length > 0) _refusalLabel.Text = _refused;
     }
-
-    /// <summary>The <see cref="Wash"/>'s name in the drive grammar, which is the console's key too.</summary>
-    private static string WashName(Wash wash) => wash switch
-    {
-        Wash.None => "off",
-        Wash.Pollution => "pollution",
-        Wash.Value => "value",
-        Wash.Sealed => "sealing",
-        Wash.Health => "health",
-        Wash.Rung => "rung",
-        _ => "age",
-    };
 }

@@ -1,85 +1,47 @@
-tick 512
-diagnosis.toml   Tick 512   Day 0   Monday   11:00
-Citizens 256   Buildings 33   vacant Lots 25   travelling 0
+tick 433
+minimal.toml   Tick 433   Day 0   Monday   10:04
+Citizens 1,000   Buildings 88   vacant Lots 24   travelling 0
 speed paused   mode look   [ ] speed, space pause, w write log, g roads, c cells, tab tune
 click acts   right-drag or two-finger scroll pans   edge of screen pans   pinch or -/= zooms   q/e turns   r/f tilts   l lens   o overlay
 hover —
-Outside the map
+road Segment · Street · 128 m · 0 Vehicles present — click for directions and connections
 debug —
-— pointing off the map —
+Tile (188, 128)    Cell (5, 4)
+dwelling — 11 of 12 occupied, 32 Tiles off
+    shop
+Lot 48, zone 0x0001
+ground: ordinary
+pollution 0    land value 0    sealing 64
 inspector —
 dwelling
 SELECTED BUILDING · 2
 Current condition
-Waiting for money · +3 other shortfalls
-Occupied places: 5 / 5
+Waiting for repairs
+Occupied places: 1 / 1
 What needs attention
-Household 3 · upkeep
-Waiting for money in a Household's stock.
-Available: 34 money units
-Current shortfall since Tick 450 · 0 missed firings
-Inspect Household 3 →
-Household 4 · upkeep
-Waiting for money in a Household's stock.
-Available: 37 money units
-Current shortfall since Tick 477 · 0 missed firings
-Inspect Household 4 →
-Household 5 · upkeep
-Waiting for money in a Household's stock.
-Available: 23 money units
-Current shortfall since Tick 310 · 0 missed firings
-Inspect Household 5 →
-Household 6 · upkeep
-Waiting for money in a Household's stock.
-Available: 55 money units
-Current shortfall since Tick 374 · 0 missed firings
-Inspect Household 6 →
-Activities
-Household 3 · restock
-Waiting for space for sundries in a Household's stock.
-Blocking stock: 48 / 48 units
+Building activity · upkeep
+Waiting for repairs in the Building's stock.
+Blocking stock: 0 / 4 units
 Inspect stocks →
-Household 3 · consume
-Scheduled.
+Current shortfall since Tick 14 · 26 missed firings
+Activities
 Household 4 · restock
 Waiting for space for sundries in a Household's stock.
 Blocking stock: 48 / 48 units
 Inspect stocks →
 Household 4 · consume
 Scheduled.
-Household 5 · restock
-Scheduled.
-Household 5 · consume
-Scheduled.
-Household 6 · restock
-Scheduled.
-Household 6 · consume
-Scheduled.
-Households · 4
-Household 3 →
+Households · 1
 Household 4 →
-Household 5 →
-Household 6 →
-Businesses · 1
-shop · Business 2 →
-Workers · 4
-Citizen 77
-Citizen 122
-Citizen 210
-Citizen 248
+Workers · 0
+No workers.
 Stocks
 Premises · repairs
 0 / 4 units
-Household 3 · sundries
-48 / 48 units
 Household 4 · sundries
 48 / 48 units
-Household 5 · sundries
-48 / 48 units
-Household 6 · sundries
-48 / 48 units
 ui theme=dark debug=False visible=True scroll=0
-inspector (1010, 24), (406, 726) min=(125, 130)
-body (1030, 138), (358, 1224) min=(54, 1224)
-scroll (1030, 138), (366, 596) min=(62, 0)
-hover (40, 901), (1360, 23) debug (24, 74), (840, 36) console (24, 774), (1392, 162)
+inspector (1010, 104), (406, 697) min=(125, 130)
+body (1030, 218), (358, 586) min=(50, 586)
+scroll (1030, 218), (366, 567) min=(58, 0)
+hover (40, 901), (1360, 23) debug (24, 120), (840, 36) console (24, 825), (1392, 111)

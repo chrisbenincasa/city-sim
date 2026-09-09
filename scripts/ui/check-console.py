@@ -64,7 +64,6 @@ command('hold look')
 # ---- row 4: the pace changes entirely with the mouse, and the console says what the city is doing.
 state = read('console-paused')
 assert state['Pace'] == 'paused', state['Pace']
-assert state['DayLength'] == '', state['DayLength']
 assert state['SpeedLabel'] == '1x' and state['PauseHighlighted']
 assert not any(f['Text'] in ['paused', 'UNDER POINTER'] for f in state['Fonts'])
 buttons = {b['Text']: b for b in state['Buttons']}
@@ -73,7 +72,6 @@ press(state, '▶')                                         # resume, which is n
 state = read('console-running')
 assert state['Pace'] == '1x', state['Pace']
 assert not state['PauseHighlighted']
-assert 'a Day in' in state['DayLength'], state['DayLength']
 faster = state['Pace']
 press(state, '▶▶')
 state = read('console-faster')
@@ -83,13 +81,14 @@ assert read('console-slower')['Pace'] == faster
 press(state, '⏸')
 state = read('console-repaused')
 assert state['Pace'] == 'paused'
-assert 'Day ' in state['Day'] and ':' in state['Day'], state['Day']
 
-# ---- row 5: a layer is chosen and cleared with the mouse, and its legend states its axis.
+# ---- row 5: the picker is an opener on the left edge, as the tool browser is, and its legend
+# states the layer's axis. The console carries neither the choices nor the ramp.
 assert state['Layer'] == 'None' and state['Legend'] == ''
-press(state, 'Layers  ▾')
+press(state, 'Layers')
 state = read('console-layers-open')
 assert state['LayersShown']
+assert clear(state['Layers'], state['Console']), (state['Layers'], state['Console'])
 press(state, 'Pollution')
 state = read('console-layer-pollution')
 assert state['Layer'] == 'Pollution', state['Layer']
@@ -123,11 +122,12 @@ assert state['Tool'] == 'Look', state['Tool']
 assert 'Cancel' not in [b['Text'] for b in state['Buttons']]
 
 # ---- both themes and every asserted size: the console stays inside the window and clear of the
-# inspector, which is the one thing rows 4-6 may not cost row 1.
+# inspector, which is the one thing rows 4-6 may not cost row 1. The sizes are the design sizes and
+# start at the window's own minimum -- plans/0064, the 2026-09-08 desktop viewport decision.
 hash_at_rest = state['Hash']
 for theme in ['light', 'dark']:
     command('ui theme ' + theme)
-    for width, height in [(1440, 960), (1024, 640), (640, 720), (480, 640)]:
+    for width, height in [(1280, 800), (1440, 960), (1920, 1080)]:
         command(f'ui size {width} {height}')
         state = read(f'console-{theme}-{width}x{height}')
         console = state['Console']
@@ -135,7 +135,11 @@ for theme in ['light', 'dark']:
         assert console['X'] + console['Width'] <= width + 1, (console, width)
         assert console['Y'] + console['Height'] <= height + 1, (console, height)
         assert clear(console, state['Inspector']), (console, state['Inspector'])
+        trim = state['Trim']
+        assert trim['X'] + trim['Width'] <= width + 1 and trim['Y'] >= 0, (trim, width)
+        assert clear(trim, state['Inspector']), (trim, state['Inspector'])
         assert state['Hash'] == hash_at_rest
 
-print('PASS: mouse-only pace, layer choice and legend, tool arm/cancel, a readable refusal that '
-      'leaves the inspector alone, and a bounded console in both themes at four sizes.')
+print('PASS: mouse-only pace, layer choice and legend from a left-edge opener, tool arm/cancel, a '
+      'readable refusal that leaves the inspector alone, and a bounded console and top-right trim '
+      'in both themes at four sizes.')

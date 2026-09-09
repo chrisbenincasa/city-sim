@@ -538,7 +538,7 @@ public partial class Main
         _cursor.Multimesh.VisibleInstanceCount = 1;
     }
 
-    // Shared typography retains each label’s role when the preference or viewport changes.
+    // Shared typography retains each label’s role when the text-size preference changes.
     private void Retype()
     {
         _readout.LabelSettings = new LabelSettings { FontSize = Typed(ReadoutPoints) };
@@ -560,18 +560,17 @@ public partial class Main
         LayoutInformation();
     }
 
-    /// <summary>The readout's size at the reference window, in points.</summary>
+    /// <summary>The readout's size, in points.</summary>
     /// <remarks>
     /// ⚠ <b>PROVISIONAL</b> under the amnesty's standing order 4 — chosen by taste, no ratifier, no
     /// <c>plans/0002</c> §D row. 🔴 <b>IT WENT TO 20 AND CAME BACK, on the same afternoon.</b> The
-    /// player asked for larger, got 20 against a 1.6× ceiling, and said it was too big — <b>32 point
-    /// on a 1,834-pixel window</b>. ***The base was never the thing that was wrong***: 18 at the
-    /// reference size is the size it always was, and what the window buys it is the ceiling's
-    /// business. So the growth moved to <see cref="LargestScale"/> and this came back to 18.
+    /// player asked for larger, got 20, and said it was too big — <b>32 point on a 1,834-pixel
+    /// window</b>. ***The base was never the thing that was wrong***: what inflated it was a window
+    /// multiplier <see cref="Typed"/> no longer applies.
     /// </remarks>
     private const int ReadoutPoints = 18;
 
-    /// <summary>The hover panel's size at the reference window, in points.</summary>
+    /// <summary>The hover panel's size, in points.</summary>
     /// <remarks>
     /// ⚠ <b>PROVISIONAL</b>, as <see cref="ReadoutPoints"/>, and it made the same round trip.
     /// <b>It stays two points under the readout</b> so the two panels keep their order of
@@ -579,7 +578,7 @@ public partial class Main
     /// </remarks>
     private const int HoverPoints = BodyPoints;
 
-    /// <summary>Every Control panel's size at the reference window, in points.</summary>
+    /// <summary>Every Control panel's size, in points.</summary>
     /// <remarks>
     /// ⚠ <b>PROVISIONAL</b>, as <see cref="ReadoutPoints"/>. Godot's own default is <b>16</b> and
     /// this is that number said out loud, so that <see cref="Retype"/> has something to scale. The
@@ -590,65 +589,17 @@ public partial class Main
     /// </remarks>
     private const int ControlPoints = BodyPoints;
 
-    /// <summary>The window height every size above is stated at.</summary>
-    private const float ReferenceHeight = 1080f;
-
-    /// <summary>How far the type may grow, and that it may never shrink.</summary>
-    /// <remarks>
-    /// 🔴 <b>THE FLOOR IS 1 AND NOT A SYMMETRIC BAND, WHICH IS THE WHOLE DECISION.</b> Scaling both
-    /// ways would make a small window ILLEGIBLE to solve a large window being roomy, and the two are
-    /// not equally bad — ***the failure of small type is that you cannot read it, and the failure of
-    /// large type is that it takes up space***. So the reference size is a MINIMUM and the window
-    /// may only buy more.
-    /// </remarks>
-    private const float SmallestScale = 1f;
-
-    /// <summary>⚠ <b>PROVISIONAL.</b> Past this the panel eats the frame it is describing.</summary>
-    /// <remarks>
-    /// 🔴 <b>IT WAS 1.6 AND THE PLAYER SAID SO WITHIN THE HOUR</b>, on 2026-09-04, on a
-    /// 3,024×1,834 window — 1.698 clamped to 1.6, which put the readout at <b>32 point</b> and the
-    /// tool strip at 26. ⚠ <b>This number is the whole of what a large window buys</b>, because the
-    /// point sizes are stated at <see cref="ReferenceHeight"/> and a 1080 window sees none of it.
-    /// ***So a complaint about the type on a big screen is a complaint about THIS constant and
-    /// never about the base sizes***, which is the mistake the first patch made in the other
-    /// direction. At 1.3 the same window reads 23 / 21 / 21.
-    /// </remarks>
-    private const float LargestScale = 1.3f;
-
     /// <summary>
-    /// A point size for this window, from a size stated at <see cref="ReferenceHeight"/>.
+    /// A point size for this window, from the sizes stated above.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// <b>Scaled rather than fixed, because this shell is photographed at resolutions nobody chose.</b>
-    /// A driven run takes a <c>shoot</c> at whatever the window happens to be, and 18 points that
-    /// read on a laptop are a hairline on a 4K capture — ***so a fixed size is not one decision, it
-    /// is a different decision at every resolution, taken by whoever set the window.***
-    /// </para>
-    /// <para>
-    /// ⚠ <b>HEIGHT AND NOT AREA OR DIAGONAL.</b> Text is read line by line, so what decides whether a
-    /// panel crowds the frame is how many lines fit down it. A width term would shrink the type on a
-    /// narrow tall window, which is the window with the most vertical room.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>A window with no height is the reference size and not zero.</b> <c>--headless</c> has no
-    /// meaningful viewport, and a font of 0 points would make every driven <c>readout</c> come back
-    /// empty while reporting success — ***the failure mode a screenshot renders as a blank panel and
-    /// a caption renders as nothing at all.***
-    /// </para>
+    /// 🔴 <b>THE WINDOW NO LONGER BUYS TYPE, AND THAT IS THE DECISION.</b> Sizes were stated at a
+    /// 1,080-pixel reference and multiplied by up to 1.3× on a taller window, so <b>100% meant 21
+    /// point on the machine it was read on</b> — a text-size control whose own 100% was not the
+    /// size anybody had chosen. ***A size the reader did not ask for is not a default***, so the
+    /// only multiplier left is the one in Settings.
     /// </remarks>
-    private int Typed(int points)
-    {
-        float tall = GetViewport()?.GetVisibleRect().Size.Y ?? 0f;
-
-        if (tall <= 0f)
-        {
-            return points;
-        }
-
-        return Mathf.RoundToInt(
-            points * _textPercent / 100f * Mathf.Clamp(tall / ReferenceHeight, SmallestScale, LargestScale));
-    }
+    private int Typed(int points) => points * _textPercent / 100;
 
     /// <summary>The panel, which is every string a human reads (<c>adr/0002</c>).</summary>
     private void Readout()
@@ -673,14 +624,12 @@ public partial class Main
         _hud = new CanvasLayer();
         _type.DefaultFontSize = Typed(ControlPoints);
 
-        // 🔴 RE-TYPED ON A RESIZE, because Typed() reads the viewport ONCE and a window is dragged.
-        // Without this the scale is a property of the size the shell HAPPENED TO OPEN AT, which is
-        // the class of bug that looks like it works: every fresh run is right and only a resized one
-        // is wrong, so nobody meets it until they are mid-session and not looking for it.
-        GetViewport().SizeChanged += Retype;
+        // Panel widths and the narrow breakpoint are read off the viewport, so a drag has to
+        // re-run the layout even though the type itself no longer depends on the window.
+        GetViewport().SizeChanged += LayoutInformation;
 
-        _hud.AddChild(new MapRuler { Camera = _camera, Position = new Vector2(24, 80),
-            MouseFilter = Control.MouseFilterEnum.Ignore });
+        _ruler = new MapRuler { Camera = _camera, MouseFilter = Control.MouseFilterEnum.Ignore };
+        _hud.AddChild(_ruler);
         _hud.AddChild(_readout);
         _readout.Visible = false;
         AddChild(_hud);

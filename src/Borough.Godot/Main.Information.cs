@@ -44,6 +44,9 @@ public partial class Main
     private string _synopsisIssue = string.Empty;
     private readonly List<Control> _informationPanels = new();
 
+    /// <summary>The smallest window the interface is designed, reviewed and checked at.</summary>
+    private const int DesignWidth = 1280, DesignHeight = 800;
+
     private sealed record InformationRow(string Text, string? Action = null, string? Icon = null);
     private sealed record InformationSection(string Key, string Title, bool Open, List<InformationRow> Rows);
 
@@ -52,7 +55,10 @@ public partial class Main
 
     private void Information()
     {
-        GetWindow().MinSize = new Vector2I(480, 640);
+        // The window may not be dragged below the size the interface is designed and checked at
+        // (plans/0064, the 2026-09-08 desktop viewport decision). Below it nothing verifies the
+        // layout, and the console's own minimum already exceeds a 480 px frame.
+        GetWindow().MinSize = new Vector2I(DesignWidth, DesignHeight);
         _debugPanel = InformationPanel();
         var debugScroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         _debugText = new Label
@@ -66,6 +72,7 @@ public partial class Main
         _debugPanel.AddChild(debugScroll);
 
         Console();
+        Chrome();
 
         _inspector = InformationPanel();
         _inspector.Size = new Vector2(406, 600);
@@ -274,9 +281,7 @@ public partial class Main
         bool narrow = size.X < 900;
         float width = Math.Min(406 * _textPercent / 100f, size.X - margin * 2);
         LayoutDiscovery(size, margin);
-        _toolsButton.Visible = !_toolsShown;
-        _toolsButton.Position = new Vector2(margin, margin);
-        _toolsButton.Size = new Vector2(110, 40);
+        LayoutChrome(size, margin);
         LayoutSettings(size, margin);
         LayoutMenu(size, margin);
         _toolSlot.Visible = true;
@@ -307,22 +312,25 @@ public partial class Main
         float consoleTop = Math.Max(margin * 2,
             size.Y - margin - Math.Max(_console.Size.Y, _console.GetCombinedMinimumSize().Y));
 
-        LayoutToolBrowser(size, margin, consoleTop, narrow, width);
+        LayoutToolBrowser(size, margin, consoleTop, narrow, width, OpenersBottom(margin));
+        LayoutLayerPanel(margin, consoleTop, narrow);
 
-        // The debug overlay stays independent and stays top-left. On a narrow window it is the one
-        // thing above the inspector rather than beside it, because there is no beside.
-        float debugTop = !_toolsShown ? margin + 50 : margin;
+        // The debug overlay stays independent and stays top-left, below whatever the opener column
+        // is showing. On a narrow window it is the one thing above the inspector rather than beside
+        // it, because there is no beside.
+        bool leftOpen = _toolsShown || _layersShown;
+        float debugTop = leftOpen ? margin : OpenersBottom(margin);
         float debugHeight = _debugShown
             ? Math.Min(narrow && _inspector.Visible ? 160 : 720 * _textPercent / 100f, consoleTop - debugTop - margin)
             : 0;
-        float left = _toolsShown ? _palette!.Position.X + _palette.Size.X + margin : margin;
+        float left = leftOpen ? LeftColumnEdge(margin) + margin : margin;
         SetPanel(_debugPanel, left, debugTop,
             Math.Min(840 * _textPercent / 100f,
                 !narrow && _inspector.Visible ? size.X - width - left - margin * 2 : size.X - left - margin),
             Math.Max(36, debugHeight));
 
-        float top = narrow && _debugShown ? debugTop + debugHeight + margin
-            : narrow && !_toolsShown ? margin + 50 : margin;
+        float chromeBottom = margin + _chrome.Size.Y + 8;
+        float top = narrow && _debugShown ? debugTop + debugHeight + margin : chromeBottom;
         FitPanel(_inspector, _inspectionScroll, _inspectionBody,
             narrow ? left : size.X - width - margin, top,
             narrow ? size.X - left - margin : width, 90, Math.Max(90, consoleTop - margin - top),
@@ -415,7 +423,8 @@ public partial class Main
     private bool OverInformation(Vector2 at) => _hud.Visible && (
         _menuOpen || _helpShade is not null && _helpShade.Visible
         || _informationPanels.Any(p => p.Visible && p.GetGlobalRect().HasPoint(at))
-        || _toolsButton.Visible && _toolsButton.GetGlobalRect().HasPoint(at)
+        || _toolsButton.GetGlobalRect().HasPoint(at)
+        || _layerButton.GetGlobalRect().HasPoint(at)
         || _palette is not null && _palette.Visible && _palette.GetGlobalRect().HasPoint(at)
         || _tuner.Visible && _tuner.GetGlobalRect().HasPoint(at)
         || _policyPanel is not null && _policyPanel.Visible && _policyPanel.GetGlobalRect().HasPoint(at));
@@ -699,11 +708,11 @@ public partial class Main
                 _inspectionScroll.ScrollVertical = Math.Max(0, scroll);
                 break;
             case "size" when words.Length == 3 && int.TryParse(words[1], out int w)
-                && int.TryParse(words[2], out int h) && w >= 480 && h >= 640:
+                && int.TryParse(words[2], out int h) && w >= DesignWidth && h >= DesignHeight:
                 GetWindow().Mode = Window.ModeEnum.Windowed;
                 GetWindow().Size = new Vector2I(w, h);
                 break;
-            default: _refused = "ui: use health, close, back, theme light|dark, debug on|off, tools on|off, layers on|off, building ID, road ID, frontage ID, household ID, section KEY on|off, point EAST NORTH, scroll PIXELS, read PATH, press X Y, or size WIDTH HEIGHT (minimum 480 × 640)."; break;
+            default: _refused = "ui: use health, close, back, theme light|dark, debug on|off, tools on|off, layers on|off, building ID, road ID, frontage ID, household ID, section KEY on|off, point EAST NORTH, scroll PIXELS, read PATH, press X Y, or size WIDTH HEIGHT (minimum 1280 × 800)."; break;
         }
         LayoutInformation();
     }
@@ -1160,14 +1169,22 @@ public partial class Main
             ConsoleContent = Rect(_consoleScroll),
             Pace = RungName(),
             Layer = _washing.ToString(),
-            Zoning = new { Dragging = _zoneStart is not null, Blocks = _zoneParcels ? 0 : ZoneSelectionCount(),
-                Parcels = _zoneParcels ? ZoneSelectionCount() : 0, Unit = _zoneParcels ? "parcels" : "blocks", Erasing = _zoneErase, Feedback = _zoneFeedback },
+            Zoning = new
+            {
+                Dragging = _zoneStart is not null,
+                Blocks = _zoneParcels ? 0 : ZoneSelectionCount(),
+                Parcels = _zoneParcels ? ZoneSelectionCount() : 0,
+                Unit = _zoneParcels ? "parcels" : "blocks",
+                Erasing = _zoneErase,
+                Feedback = _zoneFeedback
+            },
             Tool = _verb.ToString(),
             LayersShown = _layersShown,
             Legend = _legendTitle.Visible ? $"{_legendTitle.Text} {_legendBody.Text}" : string.Empty,
             Refused = _refusalRow.Visible ? _refusalLabel.Text : string.Empty,
-            Refusal = Rect(_refusalRow), /*Day = _dayLabel.Text,*/
-            DayLength = _dayLengthLabel.Text,
+            Refusal = Rect(_refusalRow),
+            Layers = Rect(_layerPanel),
+            Trim = Rect(_chrome),
             Scroll = _inspectionScroll.ScrollVertical,
             Expanded = _expanded,
             Text = _inspectionCaption,

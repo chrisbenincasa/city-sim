@@ -16,13 +16,22 @@ public partial class Main
     private string _performanceReading = "Performance: warming up";
     private readonly string? _performanceLog = System.Environment.GetEnvironmentVariable("BOROUGH_PERFORMANCE_LOG");
 
-    private void PerformanceDisplay()
+    /// <summary>
+    /// The frame reading, in the top-right trim. <b>A debug build only.</b>
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>The instrument keeps running when the label is hidden.</b> Only the reading is a
+    /// developer's; <c>BOROUGH_PERFORMANCE_LOG</c> and the tooltip's six lines are what a driven
+    /// run collects, and gating the sampling on the build would make a release export unmeasurable.
+    /// </remarks>
+    private void PerformanceDisplay(Container into)
     {
         _fpsLabel = ConsoleLabel("— FPS", SecondaryPoints);
         _fpsLabel.ThemeTypeVariation = InformationUi.Reading;
         _fpsLabel.MouseFilter = Control.MouseFilterEnum.Stop;
         _fpsLabel.CustomMinimumSize = new Vector2(84, 0);
-        _consoleTop.AddChild(_fpsLabel);
+        _fpsLabel.Visible = OS.IsDebugBuild();
+        into.AddChild(_fpsLabel);
         RenderingServer.ViewportSetMeasureRenderTime(GetViewport().GetViewportRid(), true);
         _performanceLastFrame = Stopwatch.GetTimestamp();
         _processCpu = ProcessCpuTime();

@@ -27,13 +27,7 @@ def read():
     return json.loads((out / 'settings-state.json').read_text())
 
 def press(label):
-    for _ in range(12):
-        state = read()
-        rect = next(b['Rect'] for b in state['Buttons'] if b['Text'] == label)
-        if label != 'Settings' or rect['Y'] + rect['Height'] <= state['ConsoleContent']['Y'] + state['ConsoleContent']['Height']:
-            break
-        area = state['ConsoleContent']
-        command(f"ui wheel {round(area['X']+area['Width']/2)} {round(area['Y']+area['Height']/2)} 3")
+    rect = next(b['Rect'] for b in read()['Buttons'] if b['Text'] == label)
     command(f"ui press {round(rect['X']+rect['Width']/2)} {round(rect['Y']+rect['Height']/2)}")
 
 def bounded(rect, w, h):
