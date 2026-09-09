@@ -33,6 +33,11 @@ public partial class Main
     private string _inspectionCaption = "closed", _inspectionSignature = string.Empty;
     private ulong _inspectionTick = ulong.MaxValue, _inspectionReadAt;
     private int _buildingScroll;
+
+    // Set where the inspector's cards are replaced and cleared by the layout that follows. See
+    // FitPanel: a panel whose rows were replaced this frame has to be laid out before it is
+    // measured, because nothing has given those rows a width to wrap against yet.
+    private bool _inspectionRebuilt;
     private Handle<Building> _synopsisBuilding;
     private ulong _synopsisAt, _synopsisTick;
     private string _synopsisIssue = string.Empty;
@@ -286,7 +291,9 @@ public partial class Main
             : narrow && !_toolsShown ? margin + 50 : margin;
         FitPanel(_inspector, _inspectionScroll, _inspectionBody,
             narrow ? left : size.X - width - margin, top,
-            narrow ? size.X - left - margin : width, 90, Math.Max(90, consoleTop - margin - top));
+            narrow ? size.X - left - margin : width, 90, Math.Max(90, consoleTop - margin - top),
+            _inspectionRebuilt);
+        _inspectionRebuilt = false;
     }
 
     private static void SetPanel(Control panel, float x, float y, float width, float height)
@@ -302,21 +309,73 @@ public partial class Main
     /// 12% of the whole frame was blank opaque panel over the picture (plans/0064 row 18).
     /// </summary>
     /// <remarks>
+    /// <para>
     /// The scroll container reports a small minimum whatever it holds, so the content height is the
     /// panel's own minimum with the scroll's subtracted and the scrolled body's added back — the
-    /// same arithmetic the console already uses for its footer. A body that wraps its text answers
-    /// for the width it was given last frame, so a panel whose content changes settles over one
-    /// frame rather than immediately; it is clamped both ways, so the intermediate frame is short
-    /// or tall, never wrong.
+    /// same arithmetic the console already uses for its footer.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>A PANEL REBUILT THIS FRAME MEASURED ITS OWN HEIGHT AS NONSENSE, AND THAT WAS THE
+    /// FLICKER.</b> A wrapping <c>Label</c> answers for the width it was last laid out at, and a
+    /// row no container has sorted yet has no width to answer for — so every fresh row shaped one
+    /// word to a line. Traced on <c>minimal.toml</c> at 1,000 Citizens with a Building selected:
+    /// the body's own minimum came back <b>2,813 px</b> against a true <b>533</b>, so
+    /// <c>wanted</c> cleared <c>available</c> and the inspector was clamped to the full
+    /// <b>1,625 px</b> of the frame. <see cref="RefreshInspection"/> replaces the cards up to four
+    /// times a second while the clock runs, so the panel opened to the height of the window and
+    /// shut again, four times a second, for as long as anybody watched it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>So the subtree is laid out before it is measured, and <paramref name="rebuilt"/> is
+    /// what says it needs to be.</b> The panel takes the room it might use, <see cref="Settle"/>
+    /// walks it, and the arithmetic below then reads a width every row has actually been given.
+    /// ***A measurement is taken of a layout that has happened, never of one that is queued.***
+    /// </para>
     /// </remarks>
     private static void FitPanel(Control panel, Control scroll, Control body,
-        float x, float y, float width, float floor, float available)
+        float x, float y, float width, float floor, float available, bool rebuilt)
     {
         panel.Position = new Vector2(x, y);
         panel.Size = new Vector2(Math.Max(1, width), Math.Max(1, available));
+        if (rebuilt) Settle(panel);
         float chrome = panel.GetCombinedMinimumSize().Y - scroll.GetCombinedMinimumSize().Y;
         float wanted = chrome + body.GetCombinedMinimumSize().Y;
+        // Only the height moves from here, and no row wraps against a height, so the layout the
+        // measurement was taken of is still the layout that gets drawn.
         panel.Size = new Vector2(Math.Max(1, width), Math.Clamp(wanted, Math.Min(floor, available), available));
+    }
+
+    /// <summary>
+    /// Lays a panel's subtree out <b>now</b>, rather than leaving it to the end of the frame.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// ⚠ <b>A container sorts on a QUEUED notification, and a rebuilt inspector took TWO frames to
+    /// reach its rows.</b> Adding a child queues the parent's sort; the sort hands the child a
+    /// width; the child's minimum-size cache is invalidated on a second deferred call behind that.
+    /// Traced: one frame after the cards were replaced the first of them still stood at
+    /// <b>27 px</b> wide — its own minimum, never the body's 439 — and a frame after <em>that</em>
+    /// the cached minimum was still the one shaped against no width at all.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>So both halves are forced, and the second is not redundant.</b> The notification is the
+    /// one the engine's own flush would send, parent before child, so this is the same pass a frame
+    /// early rather than a second opinion about it; <see cref="Control.UpdateMinimumSize"/> is then
+    /// what makes a re-sorted row admit its new height, because a resize alone leaves the cache
+    /// standing. ***Sorting a row and believing what it then says are two different things.***
+    /// The engine's queued pass still runs afterwards and finds nothing left to do.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Called once per rebuild rather than once per frame</b>, which is why it may walk the
+    /// whole panel: it invalidates every cached minimum it touches, so a per-frame walk would
+    /// re-shape every wrapped row in the panel every frame.
+    /// </para>
+    /// </remarks>
+    private static void Settle(Node node)
+    {
+        if (node is Container container) container.Notification((int)Container.NotificationSortChildren);
+        foreach (Node child in node.GetChildren()) Settle(child);
+        if (node is Control control) control.UpdateMinimumSize();
     }
 
     private bool OverInformation(Vector2 at) => _hud.Visible && (
@@ -665,6 +724,7 @@ public partial class Main
             ? $"‹ Building {RowId(_world.Buildings.Rows, _selectedBuilding)}" : "‹ Former Building";
         if (_selectedHousehold.IsNone && !_roadParent.IsNone)
             _inspectionBack.Text = $"‹ Road Segment {RowId(_world.Roads.Segments.Rows, _roadParent)}";
+        _inspectionRebuilt = true;
         foreach (Node child in _inspectionBody.GetChildren()) { _inspectionBody.RemoveChild(child); child.QueueFree(); }
         foreach (InformationSection section in sections)
         {

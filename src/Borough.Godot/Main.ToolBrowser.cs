@@ -15,6 +15,11 @@ public partial class Main
     private Label _emptyTools = null!;
     private string _toolCategory = "Zoning";
 
+    // The tool browser's own half of FitPanel's settle gate. Its rows are buttons and answer for
+    // their height whatever width they are given, so this has never been the flickering one -- it
+    // is here because the panel is fitted by the same arithmetic and the exemption would be silent.
+    private bool _browserRebuilt;
+
     private void BuildToolBrowser()
     {
         foreach (Node node in _toolSlot.GetChildren()) { _toolSlot.RemoveChild(node); node.QueueFree(); }
@@ -93,6 +98,7 @@ public partial class Main
         _cancelTool.Visible = _verb != Verb.Look;
         foreach (Button button in _tools.GetChildren().OfType<Button>())
             button.ButtonPressed = button.Text == _toolCategory;
+        _browserRebuilt = true;
         foreach (Node node in _choices.GetChildren()) { _choices.RemoveChild(node); node.QueueFree(); }
         foreach (ToolDefinition tool in ToolDefinitions().Where(t => t.Category == _toolCategory))
             foreach (ToolOption option in tool.Options)
@@ -122,7 +128,8 @@ public partial class Main
         if (_palette is null) return;
         float width = narrow ? 176 : Math.Min(240, 190 * _textPercent / 100f);
         FitPanel(_palette, _toolScroll, _browserBody, margin, margin, width,
-            100, Math.Max(100, consoleTop - margin * 2));
+            100, Math.Max(100, consoleTop - margin * 2), _browserRebuilt);
+        _browserRebuilt = false;
         _palette.Visible = _toolsShown;
         if (_toolsShown && !_helpPanel.Visible && !_tuner.Visible && !_governing) _hud.MoveChild(_palette, -1);
     }
