@@ -1569,6 +1569,46 @@ public readonly record struct HinterlandDefinition(
     MapEdge Edge, Money EmigrantBalanceMin, Money EmigrantBalanceMax)
 {
     /// <summary>
+    /// What a home costs per Day out here, in the money a <c>[[building]] rent</c> is in.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>adr/0023's whole argument, made concrete.</b> That decision rejected a hand-authored
+    /// <c>V_outside</c> because it has no referent — <i>"neither a designer nor a playtester nor a
+    /// player can say whether 4.7 is too generous"</i> — and its fix is units rather than mechanism:
+    /// author the Outside <b>in the same fields a District exposes</b> and run it through the
+    /// identical utility function. <c>rent 620</c> is a number a designer can defend and a player
+    /// can read off a panel.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Read only by 02 section 5.4's comparison, so it is required with a choice model and
+    /// refused without one.</b> A Hinterland in a file that states no <c>mu_percent</c> is a market
+    /// and a door and nothing weighs it against anywhere.
+    /// </para>
+    /// </remarks>
+    public Money Rent { get; init; }
+
+    /// <summary>
+    /// How far from a centre life out here is, in the Tiles the map is measured in.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The centrality term needs the Outside measured from the SAME zero, and this is it.</b>
+    /// A city dwelling scores its walk to the nearest <c>[[lattice]]</c> origin; giving the Outside
+    /// no such figure would score it at zero — <em>perfectly central</em> — which is an artefact of
+    /// where the distance scale happens to start and not something any file said.
+    /// ***Only differences matter in a logit, so an unstated zero is a stated advantage.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is a property of the ECONOMY behind the edge and not of the edge's position.</b> A
+    /// Hinterland is never rendered and occupies no ground (<c>adr/0020</c>); what this states is
+    /// how central life there feels, which is why a neighbouring city's suburb and a moor state
+    /// different numbers from the same edge.
+    /// </para>
+    /// </remarks>
+    public int CentralityTiles { get; init; }
+
+    /// <summary>
     /// Whether an emigrant from here carries anything at all.
     /// </summary>
     /// <remarks>
@@ -1656,6 +1696,75 @@ public readonly record struct PlacementRuleset(
 {
     /// <summary>Deficit that can prompt a move; zero disables shortage reassessment.</summary>
     public int MoveAtNeed { get; init; }
+
+    /// <summary>
+    /// 02 section 5.4's scale parameter as a percent; zero means the file states no choice model.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Absence is the deterministic pick, and that is the model rather than a fallback.</b> An
+    /// argmax over scored candidates <em>is</em> the logit's μ→∞ limit, so a file that states no μ
+    /// gets a city that already existed and a file that states one buys the distribution. There is
+    /// no third behaviour and no default to argue.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A feel parameter whose ratifier is a person at the controls.</b> 02 section 5.4 is
+    /// unusually explicit that the literature fixes μ at 1 for reasons that only apply when fitting
+    /// coefficients to observed data — <i>"when the city feels too herdy or too random, tune μ, not
+    /// the coefficients"</i>. ⚠ <b>It also sets where options stop existing</b>: the horizon is
+    /// <c>11.09 / μ</c> utility units and doubling μ halves it (adr/0038).
+    /// </para>
+    /// </remarks>
+    public int MuPercent { get; init; }
+
+    /// <summary>
+    /// How many Tiles of distance are worth one utility unit; zero when no choice model is stated.
+    /// </summary>
+    public int CentralityTilesPerUnit { get; init; }
+
+    /// <summary>
+    /// How much daily rent is worth one utility unit; zero when no choice model is stated.
+    /// </summary>
+    public int RentPerUnit { get; init; }
+
+    /// <summary>
+    /// The daily rent a Household will pay to avoid moving; zero means moving costs it nothing.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>adr/0017's switching threshold, authored as money rather than as utility.</b> That ADR
+    /// requires a Household to switch <i>"only when a known alternative is substantially better"</i>,
+    /// and *substantially* is the number. Stating it as rent gives it the referent adr/0023 demands:
+    /// <i>would this family pay 40 a Day to stay where it is</i> is a question a designer can answer
+    /// and a player can read off a panel, where <i>is the incumbency bonus 0.7 utility units</i> is
+    /// not.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is a term in the utility function and never a gate.</b> A threshold would make moving
+    /// impossible below it and certain above it; a term shifts the probability, which is what keeps
+    /// two identical Households facing the same marginal improvement from both moving on the same
+    /// Tick. 02 section 5.4's <i>soft trade-offs are utility</i>, and being settled somewhere is the
+    /// softest trade-off in the model.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>This is what gives <see cref="RentPerUnit"/> a difference to weigh.</b> Rent is per kind
+    /// and no world stands two housing kinds, so the rent term cancels across candidates — but the
+    /// incumbent's advantage is denominated in the same money and does not cancel, because only one
+    /// candidate has it.
+    /// </para>
+    /// </remarks>
+    public int MovingCostsRent { get; init; }
+
+    /// <summary>Whether the file states 02 section 5.4's choice model.</summary>
+    public bool Chooses => MuPercent > 0;
+
+    /// <summary>What staying where you are is worth, in Q16.16 utility units.</summary>
+    public int StayingPut => RentPerUnit == 0
+        ? 0
+        : (int)IntegerMath.FloorDiv((long)MovingCostsRent * Fixed.One, RentPerUnit);
+
+    /// <summary>The scale parameter in Q16.16.</summary>
+    public int Mu => (int)IntegerMath.FloorDiv((long)MuPercent * Fixed.One, 100);
 
     /// <summary>A Ruleset whose city houses nobody.</summary>
     public static PlacementRuleset None => default;

@@ -426,6 +426,16 @@ public static class RulesetKeyNotes
         ["[[hinterland]] emigrant_balance_max"] =
             "The most. Stated as a band rather than one figure, because a single figure gives every "
             + "arrival the same means.",
+        ["[[hinterland]] rent"] =
+            "What a home costs per Day out here, in the money a [[building]] rent is in. It is what "
+            + "a prospective Household compares against the cost of living in the city, and what a "
+            + "Household waiting for somewhere to live compares against every home it is shown. "
+            + "Required beside a choice model and refused without one.",
+        ["[[hinterland]] centrality_tiles"] =
+            "How far from a centre life out here is, in the Tiles the map is measured in. It puts "
+            + "the Outside on the same scale a dwelling's walk to the centre is on, so that a "
+            + "Household weighing one against the other is measuring both from the same place. "
+            + "Required beside a choice model and refused without one.",
         ["[[hinterland]] prices"] =
             "What this Hinterland will sell each Good for, one entry per Good. These are the only "
             + "authored anchor under every price in the design: a District's Pool may charge up to "
@@ -536,6 +546,28 @@ public static class RulesetKeyNotes
             + "life stage whose children leave home — because a Pool with an inflow and no sink "
             + "grows without bound. Absent means nobody ever gives up, which is only coherent in a "
             + "world with no door in it.",
+
+        ["[placement] mu_percent"] =
+            "How sharply a Household acts on what it prefers, as a percent, where 100 is the scale "
+            + "the choice model is written around. Higher is more decisive and also narrower: an "
+            + "option far enough below the best stops being possible rather than becoming "
+            + "unlikely. Absent means the best-scoring candidate is taken outright.",
+        ["[placement] centrality_tiles_per_unit"] =
+            "How far a Household would walk to trade one unit of what it prefers, in Tiles. It is "
+            + "what makes distance comparable with rent. Required beside mu_percent and refused "
+            + "without it.",
+        ["[placement] rent_per_unit"] =
+            "The difference in daily rent worth one unit of what a Household prefers. It is what "
+            + "makes rent comparable with distance, and it is a soft trade-off rather than the "
+            + "affordability test, which stays a filter. Required beside mu_percent and refused "
+            + "without it.",
+
+        ["[placement] moving_costs_rent"] =
+            "The daily rent a Household would pay to stay where it is rather than move. It is what "
+            + "makes a home it already has worth more to it than the same home would be to a "
+            + "stranger, so a marginal improvement elsewhere does not empty the city every time the "
+            + "reassessment sweep runs. Zero means moving costs a family nothing. Required beside "
+            + "mu_percent and refused without it.",
 
         // ---- [jobs] ---------------------------------------------------------------------------
         ["[jobs] interval"] =

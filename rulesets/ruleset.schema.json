@@ -351,6 +351,10 @@
       "items": {
         "type": "object",
         "properties": {
+          "centrality_tiles": {
+            "description": "How far from a centre life out here is, in the Tiles the map is measured in. It puts the Outside on the same scale a dwelling's walk to the centre is on, so that a Household weighing one against the other is measuring both from the same place. Required beside a choice model and refused without one.",
+            "type": "integer"
+          },
           "edge": {
             "description": "Which side of the map this Hinterland sits behind — north, south, east or west — shared by every Outside Connection on that edge. The edge is what a Hinterland is, so there is no default and two Hinterlands may not share one.",
             "type": "string"
@@ -379,6 +383,10 @@
                 }
               }
             }
+          },
+          "rent": {
+            "description": "What a home costs per Day out here, in the money a [[building]] rent is in. It is what a prospective Household compares against the cost of living in the city, and what a Household waiting for somewhere to live compares against every home it is shown. Required beside a choice model and refused without one.",
+            "type": "integer"
           }
         }
       }
@@ -685,6 +693,10 @@
           "description": "How many dwellings one Household looks at on one occasion before waiting for the next. A behaviour model rather than a budget: a family that sees three flats and takes the first with room is not an optimiser being approximated.",
           "type": "integer"
         },
+        "centrality_tiles_per_unit": {
+          "description": "How far a Household would walk to trade one unit of what it prefers, in Tiles. It is what makes distance comparable with rent. Required beside mu_percent and refused without it.",
+          "type": "integer"
+        },
         "gives_up_after_days": {
           "description": "How long a Household keeps looking for a home before it gives up and leaves. Required of any Ruleset with a door into the Pool — a gate kind, a reassessment sweep, or a life stage whose children leave home — because a Pool with an inflow and no sink grows without bound. Absent means nobody ever gives up, which is only coherent in a world with no door in it.",
           "type": "integer"
@@ -697,8 +709,20 @@
           "description": "The Sustenance or Satisfaction deficit at which a continuing shortage can prompt a move. Requires reassessment and Needs; each tenancy must endure its own shortage long enough to reach this depth. Absent means shortages never prompt moves.",
           "type": "integer"
         },
+        "moving_costs_rent": {
+          "description": "The daily rent a Household would pay to stay where it is rather than move. It is what makes a home it already has worth more to it than the same home would be to a stranger, so a marginal improvement elsewhere does not empty the city every time the reassessment sweep runs. Zero means moving costs a family nothing. Required beside mu_percent and refused without it.",
+          "type": "integer"
+        },
+        "mu_percent": {
+          "description": "How sharply a Household acts on what it prefers, as a percent, where 100 is the scale the choice model is written around. Higher is more decisive and also narrower: an option far enough below the best stops being possible rather than becoming unlikely. Absent means the best-scoring candidate is taken outright.",
+          "type": "integer"
+        },
         "reconsider_ticks": {
           "description": "The duration used to size a sample of housed Households for reassessment, in Ticks; sampling is with replacement and does not guarantee coverage. Unaffordable rent or an enabled shortage criterion returns a Household to the Unplaced Pool, so the Ruleset owes gives_up_after_days. Absent means no reassessment.",
+          "type": "integer"
+        },
+        "rent_per_unit": {
+          "description": "The difference in daily rent worth one unit of what a Household prefers. It is what makes rent comparable with distance, and it is a soft trade-off rather than the affordability test, which stays a filter. Required beside mu_percent and refused without it.",
           "type": "integer"
         },
         "revisit_ticks": {

@@ -4739,7 +4739,13 @@ public static class RulesetLoader
                     continue;
                 }
 
-                definitions.Add(new HinterlandDefinition(edge, min, max));
+                (Money rent, int centrality) = ReadOutsideAsARow(table);
+
+                definitions.Add(new HinterlandDefinition(edge, min, max)
+                {
+                    Rent = rent,
+                    CentralityTiles = centrality,
+                });
 
                 // AFTER the Add and never before, because the two lists are parallel by position and
                 // ReadPrices appends exactly one stride whatever it finds. Every `continue` above
@@ -4749,6 +4755,87 @@ public static class RulesetLoader
 
             prices = [.. authored];
             return [.. definitions];
+        }
+
+        /// <summary>
+        /// The two fields that make a Hinterland a row in 02 section 5.4's comparison.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Required with <c>[placement] mu_percent</c> and refused without it</b>, which is the
+        /// polarity the choice model's own keys already have and the first time it reaches across
+        /// two tables. A Hinterland in a file with no choice model is a market and a door; nothing
+        /// weighs it against living here, so a rent stated there would be a number no reader asks
+        /// for.
+        /// </para>
+        /// <para>
+        /// ⚠ <b><c>wage</c> is NOT read here and its absence is deliberate.</b> adr/0023 names it
+        /// among the fields a District exposes and the utility function has no term that could
+        /// weigh it — a Household choosing a home has no job yet, and there is no city-side wage for
+        /// it to be compared against. ***A field with no reader is what row 28 was opened about***,
+        /// so it arrives with the term rather than before it (adr/0070: unbuilt, not refused).
+        /// </para>
+        /// </remarks>
+        private (Money Rent, int CentralityTiles) ReadOutsideAsARow(TableSyntaxBase table)
+        {
+            bool chooses = _placementTable is not null
+                && Find(_placementTable, "mu_percent") is not null;
+
+            Money rent = ReadOutsideNumber(table, "rent", chooses, out long rentRaw) is false
+                ? Money.Zero
+                : new Money(rentRaw);
+
+            ReadOutsideNumber(table, "centrality_tiles", chooses, out long centrality);
+
+            return (rent, (int)centrality);
+        }
+
+        /// <summary>One <c>[[hinterland]]</c> field the choice model reads, and its two refusals.</summary>
+        private bool ReadOutsideNumber(
+            TableSyntaxBase table, string key, bool chooses, out long value)
+        {
+            value = 0;
+
+            if (Find(table, key) is null)
+            {
+                if (chooses)
+                {
+                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "edge") ?? table), null,
+                        $"this Hinterland states no {key} and the Ruleset states a choice model. "
+                        + "02 section 5.4 compares staying outside against moving here through one "
+                        + "utility function, so the Outside is described in the same fields a "
+                        + "District exposes or it is not a row in that comparison at all.");
+                }
+
+                return false;
+            }
+
+            if (!chooses)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, key) ?? table), null,
+                    $"this Hinterland states {key} and the Ruleset states no [placement] "
+                    + "mu_percent. Nothing weighs the Outside against living here, so the figure "
+                    + "would be read by nobody -- state a choice model, or remove the key.");
+
+                return false;
+            }
+
+            if (!TryInteger(table, key, out value, required: true))
+            {
+                return false;
+            }
+
+            if (value < 0 || value > int.MaxValue)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, key) ?? table), null,
+                    $"{key} = {value} is out of range. It describes the economy behind one map edge "
+                    + "in the units the city is measured in, so it is not negative.");
+
+                value = 0;
+                return false;
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -5426,7 +5513,173 @@ public static class RulesetLoader
 
             RefuseEmptyClockUnderTheRevisit(kinds, revisit);
 
-            return new PlacementRuleset(interval, revisit, candidates, givesUp, reconsider);
+            (int mu, int tilesPerUnit, int rentPerUnit, int movingCosts) = ReadChoiceModel();
+
+            return new PlacementRuleset(interval, revisit, candidates, givesUp, reconsider)
+            {
+                MuPercent = mu,
+                CentralityTilesPerUnit = tilesPerUnit,
+                RentPerUnit = rentPerUnit,
+                MovingCostsRent = movingCosts,
+            };
+        }
+
+        /// <summary>
+        /// The three keys 02 section 5.4 needs: the scale parameter and one domain-unit scale per
+        /// term.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>The scales are required with <c>mu_percent</c> and refused without it</b>, which is
+        /// <c>gives_up_after_days</c>'s polarity and the same argument: a file that opts into a
+        /// utility comparison owes the units the comparison is in, and one stated alone would be a
+        /// number weighting nothing.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>Both scales are authored in domain units per utility unit and never the other way
+        /// round.</b> adr/0023's rule outlives the Hinterland it was written for: a constant that
+        /// cannot be stated in something the player already sees is a balance hazard, and
+        /// <i>utility</i> is not a thing anybody sees. <c>rent_per_unit = 40</c> is a rent
+        /// difference a designer can argue about; <c>rent_weight = 0.7</c> is not.
+        /// </para>
+        /// </remarks>
+        private (int MuPercent, int CentralityTilesPerUnit, int RentPerUnit, int MovingCostsRent)
+            ReadChoiceModel()
+        {
+            bool stated = Find(_placementTable!, "mu_percent") is not null;
+
+            int tilesPerUnit = ReadChoiceScale("centrality_tiles_per_unit", stated,
+                "It is how far a Household would walk to trade one utility unit of centrality, in "
+                + "Tiles, so it is at least 1 -- a scale of zero divides by nothing and makes every "
+                + "distance infinitely important.");
+
+            int rentPerUnit = ReadChoiceScale("rent_per_unit", stated,
+                "It is the daily rent difference worth one utility unit, so it is at least 1 -- a "
+                + "scale of zero makes any rent difference at all decide the whole choice.");
+
+            int movingCosts = ReadMovingCosts(stated);
+
+            if (!stated)
+            {
+                return (0, 0, 0, 0);
+            }
+
+            if (!TryInteger(_placementTable!, "mu_percent", out long mu, required: true))
+            {
+                return (0, 0, 0, 0);
+            }
+
+            if (mu < 1 || mu > 100_000)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(_placementTable!, "mu_percent")
+                        ?? _placementTable!), null,
+                    $"mu_percent = {mu} is out of range. It is 02 section 5.4's scale parameter as a "
+                    + "percent, so 100 is the mu = 1 the design is written around, and it is at "
+                    + "least 1 -- at zero utility is ignored entirely and the choice is a coin toss, "
+                    + "which is what omitting the key already means in the other direction. Above "
+                    + "100000 the horizon is under a thousandth of a utility unit and every "
+                    + "candidate but the best is impossible.");
+                return (0, 0, 0, 0);
+            }
+
+            return ((int)mu, tilesPerUnit, rentPerUnit, movingCosts);
+        }
+
+        /// <summary>
+        /// <c>moving_costs_rent</c> — adr/0017's switching threshold, in the money a rent is in.
+        /// </summary>
+        /// <remarks>
+        /// <b>Zero is accepted where the two scales' zero is refused, and the difference is what the
+        /// key IS.</b> A scale is a divisor and a zero divides by nothing; this is an amount, and
+        /// zero is a coherent world in which a Household is exactly as happy to move as to stay.
+        /// ***An absent key and a zero one are the same city here, so the key is still required***:
+        /// what a file must not be able to do is state a choice model and leave the reader guessing
+        /// whether it meant frictionless moving or forgot.
+        /// </remarks>
+        private int ReadMovingCosts(bool stated)
+        {
+            if (Find(_placementTable!, "moving_costs_rent") is null)
+            {
+                if (stated)
+                {
+                    Refuse(LineOf((SyntaxNodeBase?)Find(_placementTable!, "mu_percent")
+                            ?? _placementTable!), null,
+                        "this [placement] table states mu_percent and no moving_costs_rent. adr/0017 "
+                        + "has a Household switch only when an alternative is SUBSTANTIALLY better, "
+                        + "and that word is this number -- without it the model has nothing to say "
+                        + "how settled anybody is. State 0 for a city where moving costs nothing.");
+                }
+
+                return 0;
+            }
+
+            if (!stated)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(_placementTable!, "moving_costs_rent")
+                        ?? _placementTable!), null,
+                    "this [placement] table states moving_costs_rent and no mu_percent. It weighs "
+                    + "staying put against moving in a comparison this file does not ask for, so "
+                    + "nothing would read it -- state mu_percent, or remove the key.");
+                return 0;
+            }
+
+            if (!TryInteger(_placementTable!, "moving_costs_rent", out long costs, required: true))
+            {
+                return 0;
+            }
+
+            if (costs < 0 || costs > int.MaxValue)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(_placementTable!, "moving_costs_rent")
+                        ?? _placementTable!), null,
+                    $"moving_costs_rent = {costs} is out of range. It is the daily rent a Household "
+                    + "would pay to stay where it is, so it is not negative -- a negative one would "
+                    + "pay families to move and every Household would churn for ever.");
+                return 0;
+            }
+
+            return (int)costs;
+        }
+
+        /// <summary>One domain-unit scale, required with the choice model and refused without it.</summary>
+        private int ReadChoiceScale(string key, bool stated, string range)
+        {
+            if (Find(_placementTable!, key) is null)
+            {
+                if (stated)
+                {
+                    Refuse(LineOf((SyntaxNodeBase?)Find(_placementTable!, "mu_percent")
+                            ?? _placementTable!), null,
+                        $"this [placement] table states mu_percent and no {key}. 02 section 5.4's "
+                        + "utilities are only comparable through a stated scale per term, so a "
+                        + "choice model missing one is scoring in units nobody authored.");
+                }
+
+                return 0;
+            }
+
+            if (!stated)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(_placementTable!, key) ?? _placementTable!), null,
+                    $"this [placement] table states {key} and no mu_percent. The scale weighs a term "
+                    + "in a choice model this file does not ask for, so nothing would read it -- "
+                    + "state mu_percent, or remove the key.");
+                return 0;
+            }
+
+            if (!TryInteger(_placementTable!, key, out long scale, required: true))
+            {
+                return 0;
+            }
+
+            if (scale < 1 || scale > int.MaxValue)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(_placementTable!, key) ?? _placementTable!), null,
+                    $"{key} = {scale} is out of range. {range}");
+                return 0;
+            }
+
+            return (int)scale;
         }
 
         /// <summary>

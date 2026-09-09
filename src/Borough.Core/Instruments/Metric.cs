@@ -228,6 +228,27 @@ public enum PlacementCounter : byte
 
     /// <summary>Reassessed Households leaving because of a continuing Need shortage.</summary>
     ShortageMoves,
+
+    /// <summary>
+    /// Reassessed Households leaving because they preferred somewhere they were shown.
+    /// </summary>
+    /// <remarks>
+    /// <b>The only counter here whose reason is a comparison rather than a threshold.</b> Every
+    /// other departure is the city crossing a line on a family's behalf; this one is the family
+    /// deciding, so <i>reassessed out</i> minus this is <i>pushed out</i> and this is <i>moved on</i>.
+    /// </remarks>
+    PreferredMoves,
+
+    /// <summary>
+    /// Households that were shown homes and preferred the Outside they came from.
+    /// </summary>
+    /// <remarks>
+    /// <b>A housing shortage and an unattractive city read the same in <i>considered</i> against
+    /// <i>placed</i>, and this is what tells them apart.</b> A Pool that is being looked at and not
+    /// drained is a city out of dwellings; a Pool that is being looked at, offered homes and
+    /// declining them is a city whose homes are worse than the life people left.
+    /// </remarks>
+    Declined,
 }
 
 /// <summary>
