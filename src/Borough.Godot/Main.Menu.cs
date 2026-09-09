@@ -110,8 +110,8 @@ public partial class Main
         {
             _menuBody.AddChild(InformationLabel("This city has unsaved progress. Save before "
                 + (_pendingMenuAction == "quit" ? "quitting?" : "loading another city?")));
-            Button("Save and continue", "save-continue");
-            Button("Discard and continue", "discard");
+            Button("Save and exit", "save-continue");
+            Button("Exit without saving", "discard");
             Button("Cancel", "cancel");
         }
         else if (_menuPage == "credits")

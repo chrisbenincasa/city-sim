@@ -7,15 +7,15 @@ namespace Borough.Shell;
 
 internal static class UiIcons
 {
-    private static readonly Dictionary<(string, bool, int), ImageTexture> Textures = new();
+    private static readonly Dictionary<(string, bool, int, bool), ImageTexture> Textures = new();
     public static string Id(Button button) => button.HasMeta("icon_id") ? (string)button.GetMeta("icon_id") : "";
     public static string Label(Button button) => button.HasMeta("icon_label") ? (string)button.GetMeta("icon_label") : button.Text;
-    public static bool Filled(Button button) => Textures.TryGetValue((Id(button), true, button.GetThemeConstant("icon_max_width")), out var texture)
+    public static bool Filled(Button button) => Textures.TryGetValue((Id(button), true, button.GetThemeConstant("icon_max_width"), button.HasMeta("center_icon")), out var texture)
         && button.Icon == texture;
 
-    public static ImageTexture Texture(string id, bool filled = false, int size = 24)
+    public static ImageTexture Texture(string id, bool filled = false, int size = 24, bool centered = false)
     {
-        var key = (id, filled, size);
+        var key = (id, filled, size, centered);
         if (Textures.TryGetValue(key, out var texture)) return texture;
         string path = $"Borough.Shell.assets.icons.{(filled ? "solid" : "outline")}.{id}.svg";
         using var stream = typeof(UiIcons).Assembly.GetManifestResourceStream(path)
@@ -25,7 +25,14 @@ internal static class UiIcons
         using var image = new Image();
         if (image.LoadSvgFromString(svg.Replace("currentColor", "white"), size / 24f) != Error.Ok)
             throw new InvalidOperationException($"Invalid icon: {path}");
-        texture = ImageTexture.CreateFromImage(image);
+        if (centered)
+        {
+            Rect2I ink = image.GetUsedRect();
+            using var canvas = Image.CreateEmpty(image.GetWidth(), image.GetHeight(), false, Image.Format.Rgba8);
+            canvas.BlitRect(image, ink, (new Vector2I(image.GetWidth(), image.GetHeight()) - ink.Size) / 2);
+            texture = ImageTexture.CreateFromImage(canvas);
+        }
+        else texture = ImageTexture.CreateFromImage(image);
         Textures.Add(key, texture);
         return texture;
     }
@@ -50,11 +57,19 @@ internal static class UiIcons
         Attach(button, id);
     }
 
+    public static void Center(Button button)
+    {
+        button.IconAlignment = HorizontalAlignment.Center;
+        button.VerticalIconAlignment = VerticalAlignment.Center;
+        button.SetMeta("center_icon", true);
+        Refresh(button);
+    }
+
     public static void Refresh(Button button)
     {
         if (Id(button) is not { Length: > 0 } id) return;
         int size = Math.Max(24, button.GetThemeFontSize("font_size") * 3 / 2);
-        var texture = Texture(id, !button.Disabled && button.IsHovered(), size);
+        var texture = Texture(id, !button.Disabled && button.IsHovered(), size, centered: button.HasMeta("center_icon"));
         if (button.Icon != texture) button.Icon = texture;
         if (button.GetThemeConstant("icon_max_width") != size)
             button.AddThemeConstantOverride("icon_max_width", size);

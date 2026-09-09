@@ -152,8 +152,7 @@ public partial class Main
         bool cars = ((roads.ModesForward[slot] | roads.ModesBackward[slot]) & (byte)TravelMode.Car) != 0;
         int present = roads.VolumeForward[slot] + roads.VolumeBackward[slot];
         return $"road Segment · {RoadName(slot)} · {roads.LengthTiles[slot].Raw * MetresPerTile:N0} m · "
-            + (cars ? $"{present:N0} {(present == 1 ? "Vehicle" : "Vehicles")} present" : "No driving permitted")
-            + " — click for directions and connections";
+            + (cars ? $"{present:N0} {(present == 1 ? "Vehicle" : "Vehicles")} present" : "No driving permitted");
     }
 
     private void RoadInformation(List<InformationSection> sections, out string title, out string identity)

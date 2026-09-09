@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Borough · HUD interaction study</title>
+<link rel="stylesheet" href="style.css">
+<header class="study">
+  <div><strong>Borough / Build & govern</strong><span>Study 03 · schematic city · sample data</span></div>
+  <nav aria-label="Prototype settings">
+    <label>Try <select id="scenario"><option value="zone">01 · Zone & erase</option><option value="supply">02 · Diagnose & intervene</option><option value="transit">03 · Transit operation</option></select></label>
+    <label>Text <select id="text-size"><option value="1">100%</option><option value="1.25">125%</option><option value="1.5">150%</option></select></label>
+    <button id="theme">Dark theme</button><button id="reset">Reset scenario</button><a href="v2/index.html">Previous study</a>
+  </nav>
+</header>
+<main id="city" aria-label="Borough prototype">
+  <svg id="map" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" aria-label="Schematic city map"></svg>
+  <div class="place-label">NORTH BANK<span>A neighbourhood to understand</span></div>
+  <nav class="rail panel" id="rail" aria-label="Main tools"></nav>
+  <section class="catalog panel" id="catalog" aria-label="Tool catalogue"></section>
+  <section class="data-panel panel" id="data-panel" aria-label="City data" hidden></section>
+  <aside class="inspector panel" id="inspector" aria-label="Inspector"></aside>
+  <div class="map-label"><span class="scale-mark"></span>100 m · schematic</div>
+  <section class="legend panel" id="legend" aria-label="Active layer legend" hidden></section>
+  <section class="camera panel" id="camera" aria-label="Camera controls" hidden>
+    <strong>Camera</strong><div class="row"><button data-camera="in">Zoom +</button><button data-camera="out">Zoom −</button><button data-camera="left">Rotate left</button><button data-camera="right">Rotate right</button><button data-camera="reset">Reset view</button></div>
+  </section>
+  <button class="camera-toggle" id="camera-toggle" aria-expanded="false">Camera</button>
+  <footer class="console panel" id="console">
+    <div class="console-main">
+      <div class="time"><button id="pause" aria-label="Resume preview clock">▶</button><button id="speed" title="Change preview clock speed">1×</button><span class="sun" aria-hidden="true">◒</span><span id="phase">Morning</span></div>
+      <div id="active" class="active"></div><div id="options" class="tool-options"></div>
+    </div>
+    <div class="feedback"><span id="feedback" role="status" aria-live="polite"></span><nav class="data-launchers" id="data-launchers" aria-label="Government and data views"></nav></div>
+  </footer>
+</main>
+<section class="guide">
+  <div><span class="eyebrow">TRY THIS</span><p id="task"></p><p id="progress" role="status"></p></div>
+  <details><summary>What this prototype is testing</summary><p>Place and edit on the left: Connections, Zoning, Municipal, Utilities and Demolish. Govern and inspect from the bottom console. Government has a separator from the data buttons because its policies change the city.</p><p>Municipal groups education, health, parks and recreation, police and fire. Utilities groups water, power, sewage and waste. These are menu groupings, not changes to the simulation's Service taxonomy. Each compact chooser fits its contents; selecting a placeable tool folds it away. Zoning retains six direct permissions and separate Erase, without search or favourites.</p><p>Government opens a grouped chooser for finance, Wards, programmes, Transit operation and unresolved land interventions. Opening it preserves the held tool, active layer and inspected subject. Selecting a policy opens its placeholder in the inspector; Transit operation retains the working sample interaction. Compare the previous study using the link above.</p><p>Badges describe the study, not an implementation audit: <b>Sketch</b> means a future placeholder; <b>Unresolved</b> means scope or interaction design remains open. All figures and outcomes are illustrative.</p><p>Keyboard: Tab and Enter navigate; Escape cancels a stroke, closes the latest open chooser, then cancels the tool. Map parcels accept Enter or Space. At 1280 × 800 and up, the study uses the desktop composition; smaller screens scroll a minimum-width study.</p><p>Reference: <a href="https://akamai.cdn.ea.com/eadownloads/u/f/manuals/GAME-SIMCITY/SimCity_2013.pdf#page=5">SimCity manual — system information and data maps</a>. It describes category-related data maps and a general map chooser. This arrangement is our exploration.</p></details>
+</section>
+<script src="prototype.js"></script>
+</html>

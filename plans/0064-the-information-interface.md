@@ -15,8 +15,12 @@ queue revision and starting row 10 on 2026-09-08. The player's 2026-09-06 expans
 below supplies the remaining scope; individual open choices do not block independent work.
 Historical rows retain their previous verification; row 10 records its new checks below.
 
-| Order | Status | Work | Completion check |
+**Row IDs are permanent references, not sequence numbers. Row 19 implements the agreed HUD foundation.**
+Completed rows retain their history; other rows' status and dependencies determine when they proceed.
+
+| Row ID | Status | Work | Completion check |
 |---|---|---|---|
+| 19 | **Complete — 2026-09-09** | Apply the [Study 03 HUD foundation](#agreed-hud-foundation--2026-09-09) to the existing playable tools | Driven zoning, supply diagnosis and Government access preserve tool, layer and inspection state; desktop layout and existing interactions pass |
 | 1 | Complete | Console pointer reading (superseding fixed-corner hover); Building and Household inspectors; expandable sections, breadcrumbs and mouse close; independent debug; light/dark themes and responsive layout | `check-information.py` and `information-lifecycle.drive` below |
 | 2 | Complete | Road inspection, surface picking, directional travel conditions, endpoint links and frontage navigation | `check-roads.py`, `check-road-types.py` and `road-lifecycle.drive` below |
 | 3 | Complete | Everyday HUD controls: agree placement and hierarchy for time, map layers and active-tool feedback as one composition | Reviewed in both themes at 1440 × 960 and 480 × 640. **Composition C, the console, is chosen**, with the pointer reading folded into it |
@@ -45,6 +49,142 @@ the actions, so a control that is drawn but unreachable fails exactly as a missi
 Broader dashboards, graphs, notifications, persistent Pins and tuner redesign remain deferred.
 Rows 8–12 promote the requested interface work, including tool icon assets and access to Policies.
 
+## Agreed HUD foundation — 2026-09-09
+
+**The player accepted Study 03 as the foundation.** This section records the agreement and owns
+its implementation scope. The [interactive prototype](../art/ui-study/hud-prototype/index.html)
+and [preview](../art/ui-study/hud-prototype/preview.png) illustrate it; [Study 02](../art/ui-study/hud-prototype/v2/index.html)
+and [Study 01](../art/ui-study/hud-prototype/v1/index.html) preserve the alternatives.
+The HTML study is independent of Godot and uses sample data. Its successful browser checks are
+not shell acceptance. The agreement covers placement, hierarchy and interaction; it does not
+replace the existing icon family or settle every visual detail.
+
+- **Left: placement and editing.** Connections, Zoning, Municipal, Utilities and Demolish.
+  Municipal groups education, health, parks/recreation, police and fire. Utilities groups water,
+  power, sewage and waste. These are menu families, not new simulation categories.
+- **Bottom: the console, Government and data access.** Keep time, active-tool options, Cancel
+  and pointer/refusal feedback together. Government sits beside, but visibly separate from,
+  Maps, City, Evidence and Pins; its actions can change the city. Camera controls remain
+  visible at bottom left, in a circular cluster beneath a clickable road minimap
+  (player amendments, 2026-09-09).
+- **Small choosers.** Fit to their contents, with scrolling only when needed. Selecting a
+  placement tool folds its chooser away; closing a chooser preserves the held tool. Zoning
+  has five expected permission types, potentially six with Mixed use, and separate Erase.
+  It needs neither search nor favourites. The study's Mixed use entry remains provisional;
+  actual permissions come from the Ruleset.
+- **Independent state.** Opening Government or a data picker preserves the tool, active layer
+  and inspected subject. Selecting another subject deliberately navigates inspection. A map
+  picker can close while its legend remains. Contextual data links, such as land value from
+  zoning, provide another route to the same view. Preserve inspection history and mouse cancel.
+
+**Implementation scope for row 19 (completed below):**
+
+1. Port the composition as one coherent interface change. Start at
+   `Main.ToolDefinitions`, `Main.BuildToolBrowser`, `Main.Chrome`, `Main.Console` and
+   `Main.LayoutInformation`; retain the existing command path, icons, themes and text scaling.
+   Bind Government to available Policies and Maps to available layers. Represent unavailable
+   capabilities honestly; prototype placeholders must not masquerade as working facilities,
+   dashboards or simulation outcomes.
+2. Watch the real interactions: choose/paint/erase zoning; inspect a supply failure, reach an
+   available intervention and return to its Evidence; open Government while a tool and layer
+   remain active. Exercise mouse and keyboard cancellation, navigation and action refusals.
+   Transit operation is still a prototype-only scenario until its mechanism exists.
+3. Build Debug before driving. Update the affected checks under `scripts/ui/`; review at
+   1280 × 800 minimum, 1440 × 960 and larger, both themes and 100%/150% text. Verify reachable
+   controls, legible labels, panel coexistence and no unwanted growth of the console. Reproduce
+   and classify the existing failures documented below; do not silently waive them. Run the
+   assertion lane before committing the shell change and record its driven evidence here.
+
+After the composition is working, revisit rows 7/14 for discovery through a compact issues list.
+The reserved homes for City, Evidence and Pins do not approve building every dashboard,
+notification system or future service. Their mechanisms and remaining interaction choices retain
+their existing owners. This is the next **interface** pass, not a reorder of the amnesty queue.
+
+## Row 19 — shell foundation, 2026-09-09
+
+`Main.ToolDefinitions`, `Main.ToolBrowser`, `Main.Chrome`, `Main.Console` and
+`Main.LayoutInformation` own the implementation. The left rail opens Connections, Zoning and
+Municipal choosers; Demolish arms directly. Utilities is disabled with an availability explanation.
+Municipal lists the services the current Ruleset declares. Government opens the existing Policies;
+City, city-wide Evidence and Pins are explicitly unavailable. Building Evidence remains in inspection.
+
+Placement choices close their chooser. Closing either chooser leaves the held tool, layer and
+inspection intact. Zoning selection size and the contextual land-value link stay in the console.
+Maps and its legend are separate panels. Camera controls stay visible at bottom left in a circular cluster below the road minimap;
+the ruler and legend sit alongside the navigation panel. This replaces the initial expandable
+Camera button at the player’s request. Government fits its content above the console, beside inspection. The rail is rebuilt
+with the Ruleset so loading a city cannot leave a duplicate set of placement controls.
+
+**Watched:** `scripts/ui/check-hud-foundation.py` exercises real button rectangles and checks the
+paused State Hash, selected subject, held tool and layer across Government, Maps and chooser closure.
+Its desktop matrix covers 1280 × 800, 1440 × 960 and 1920 × 1080, both themes, at 100% and 150% text.
+Captures and JSON dumps are under `artifacts/hud-live/foundation-*`. Use `diagnosed.toml`, 256 Citizens,
+paused at Tick 512, with a `--listen` socket. Build the Godot project in Debug before starting it.
+
+The first run exposed Camera buttons underneath the inspector. The initial expandable version
+reserved inspection space; the player’s permanent bottom-left placement supersedes that arrangement. Enlarged text also pushed the tool group onto a separate console row and split the
+Zoning heading. A narrower sky diagram keeps the console groups together, and chooser headings
+contribute their full text width. The legend also displaced the ruler; the ruler now sits beside it.
+
+`check-zoning.py` watches preview, paint, Erase and cancellation. `diagnosis-fixture.py` with
+`check-diagnosis.py` watches the Government rebate clear the money shortfall, expose remaining causes
+and return to resolved Evidence through the existing Household/Business navigation.
+
+**Camera placement amendments:** the player first rejected the expandable button, then asked for
+circular controls and a minimap, using a compact navigation panel as reference. `NavigationDial`
+arranges the existing six camera actions around a north-pointing compass; `CityMiniMap` draws a
+north-up road overview and the camera focus, with a viewport outline when all four screen corners
+intersect the ground. Clicking the minimap moves the camera through the existing recorded Focus
+command, retaining zoom, tool, layer and inspection. The drawing covers the road network's extent,
+not a terrain survey of the whole world; an empty network has an explicit tooltip.
+
+The minimap raster is cached against the Road Graph instance and Version. Camera motion redraws
+only the view marker and outline. `check-navigation.py` verifies all controls, both themes and
+text scales, click coordinates, unchanged State Hash during navigation, and cache invalidation after
+a road edit. The desktop foundation matrix also passes with the consolidated panel. A driven
+empty-city check confirms that minimap navigation preserves state before any roads exist; the final
+Debug build has no warnings or errors. `artifacts/hud-live/navigation-dark-100.png` and `navigation-light-150.png` show the
+revised composition. The earlier `camera-bottom-left.png` records the superseded straight row.
+
+**Camera icon centering correction:** the circular buttons inherited left icon alignment, and
+several SVGs carried asymmetric transparent padding. `UiIcons.Center` centers the button's icon in
+both axes and caches a version with centered artwork; `NavigationDial` snaps button rectangles to
+whole pixels. `check-camera-icons.py` first reproduced the offsets, then verified visible glyph
+bounds within one pixel of each button center in both themes, 100%/150% text, and every outline and
+filled hover state. Debug build passes without warnings or errors.
+
+**Navigation and console follow-up:** `Main.Settings` exposes Edge scrolling, saved through
+`SaveInformationPreferences` and restored at startup; `Main.Edge` honours the switch.
+`Main.ConsoleWidth` fits the bottom console to its visible groups and readable pointer feedback,
+with the viewport as its upper bound. `CityMiniMap` captures click-drag navigation until release,
+including release outside its bounds; Escape and window focus loss cancel the drag.
+`check-navigation-options.py` exercises the option using the desktop pointer and the minimap using
+mouse gestures, preserving the held tool, inspection, State Hash and cached road raster.
+The final Debug build and navigation-options check pass; the desktop foundation matrix also passes
+at 1280 × 800, 1440 × 960 and 1920 × 1080 in both themes at 100%/150% text. Restarting with the
+same isolated preferences confirms edge scrolling remains disabled. Physical mouse dragging and
+release outside the minimap pass too; `artifacts/hud-live/navigation-options-final.png` records
+the fitted console and Settings.
+
+**Previously recorded failures:** `check-information.py` passes on this paused fixture; its earlier
+selected-Building failure did not reproduce. Zoning's block-preview check had relied on the old
+selection default: the check now explicitly selects Whole blocks through the console before asserting
+block counts. The road check reproduced a failed Household navigation: its link rectangle lay below
+the inspector's visible scroll area. Scrolling the link into view before clicking makes the original
+navigation and breadcrumb assertions pass. Settings still attempted the retired 480 × 640 size;
+its size matrix now uses the supported desktop minimum. These are check corrections, with no
+simulation changes.
+
+**Verification:** Debug build has no warnings or errors. `check-console`, `check-discovery`,
+`check-information`, `check-roads`, `check-zoning`, `check-diagnosis`, `check-icons`, `check-settings`,
+`check-menu` and the new `check-hud-foundation` pass. The first assertion run passed all 3,039 tests. A later run finished 3,038/3,039:
+`RouteWorkerTests.Completion_order_does_not_change_paths_and_stale_requests_are_refused` timed out
+at its `lastCompleted.Wait` assertion. The isolated rerun passed; neither the test nor routing code
+was changed. An intervening run was terminated before producing a result. Logs:
+`/tmp/borough-test-20260909-140413.log`, `/tmp/borough-test-20260909-141339.log` and
+`/tmp/borough-test-20260909-141615.log`. Final centered captures are `artifacts/hud-live/foundation-final-dark.png` and
+`foundation-final-light-large.png`; other captures retain their own run's camera position.
+
 ## Icon family — 2026-09-08
 
 The player chose custom SVGs with **outline as the default and filled on hover**. `UiIcons`
@@ -63,6 +203,9 @@ an in-context design and verification. An icon beside a layer name does not make
 readable without hue. The comparison sheet remains under `art/ui-study`.
 
 ## Chrome moved out of the console — 2026-09-09
+
+**Historical implementation record.** The later [Study 03 agreement](#agreed-hud-foundation--2026-09-09)
+supersedes its placement direction; row 19 carries the pending shell changes.
 
 **The player asked for four changes and all four are built.** They amend rows 4, 5 and 8; the rows
 stay Complete and their checks stay the ones named above.
@@ -128,7 +271,7 @@ after this pass** — on a selected-Building assertion, on the zone tool default
 on a road-selection identity assertion. All three were verified against `e69ca57` with this work
 stashed, all three predate it, and none is diagnosed here.
 
-## Next pass — current issues
+## Current issues follow-up
 
 Supply diagnosis remains in hover and inspection. The player rejected city-wide floating warnings
 on 2026-09-09. Reconsider row 14 and row 7 together before building a replacement: the compact

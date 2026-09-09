@@ -318,8 +318,9 @@ public partial class Main
         _toolCategory = tool switch
         {
             "zone" or "erase" => "Zoning",
-            "street" or "demolish" => "Roads",
-            "service" => "Services",
+            "street" => "Connections",
+            "demolish" => "Demolish",
+            "service" => "Municipal",
             _ => _toolCategory,
         };
         ShowTools();

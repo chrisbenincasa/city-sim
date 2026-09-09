@@ -74,8 +74,7 @@ assert read()['Scroll'] == workplace_parent['Scroll']
 press('‹ Building 2')
 assert read()['Household'] == 0
 def rebate(amount):
-    command('ui tools on')
-    press('Policies')
+    press('Government')
     state = read()
     assert state['PoliciesVisible']
     click(state['Inputs'][-1]['Rect'])
@@ -83,7 +82,7 @@ def rebate(amount):
         command('ui key ' + key)
     assert read()['Inputs'][-1]['Text'] == str(amount)
     press('Set', last=True)
-    press('×', last=True)
+    press('Close Government')
     command('ui tools off')
     command('ui pointer move 720 480')
     command('focus 48 48 600')

@@ -52,6 +52,7 @@ def clear(a, b):
 
 
 command('pause')
+command('ui text-size 100')
 command('ui size 1440 960')
 command('ui theme light')
 command('ui debug off')
@@ -85,7 +86,7 @@ assert state['Pace'] == 'paused'
 # ---- row 5: the picker is an opener on the left edge, as the tool browser is, and its legend
 # states the layer's axis. The console carries neither the choices nor the ramp.
 assert state['Layer'] == 'None' and state['Legend'] == ''
-press(state, 'Layers')
+press(state, 'Maps')
 state = read('console-layers-open')
 assert state['LayersShown']
 assert clear(state['Layers'], state['Console']), (state['Layers'], state['Console'])
@@ -99,19 +100,15 @@ state = read('console-layer-off')
 assert state['Layer'] == 'None' and state['Legend'] == ''
 
 # ---- row 6: a tool is selected and cancelled with the mouse, and a refusal reads without hiding.
-command('click 68 36')
+command('ui building 2')
 state = read('console-selected')
 assert state['InspectorVisible'] and state['Selected'] != 0
-press(state, 'Tools')
-state = read('console-tools')
-press(state, 'Roads')
-state = read('console-road-tools')
 press(state, 'Demolish')
 state = read('console-tool-chosen')
-press(state, 'Close')
 state = read('console-armed')
 assert state['Tool'] == 'Demolish', state['Tool']
-command('click 68 36')                                     # occupied ground, which is refused
+target = next(p for p in state['MapTargets'] if p['Kind'] == 'building' and p['Id'] == 2)
+command(f"click {target['East']} {target['North']}")
 state = read('console-refused')
 assert 'still lives there' in state['Refused'], state['Refused']
 assert clear(state['Refusal'], state['Inspector']), (state['Refusal'], state['Inspector'])
@@ -140,6 +137,6 @@ for theme in ['light', 'dark']:
         assert clear(trim, state['Inspector']), (trim, state['Inspector'])
         assert state['Hash'] == hash_at_rest
 
-print('PASS: mouse-only pace, layer choice and legend from a left-edge opener, tool arm/cancel, a '
+print('PASS: mouse-only pace, map choice and persistent legend, tool arm/cancel, a '
       'readable refusal that leaves the inspector alone, and a bounded console and top-right trim '
-      'in both themes at four sizes.')
+      'in both themes at three desktop sizes.')

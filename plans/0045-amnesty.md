@@ -37,7 +37,7 @@ Changing a restriction requires changing its test in a commit explaining why.
 ## The queue
 
 The table's position is the order; numbers are permanent identities. Rows 29 and 30 retain their
-identities; 31 is new. All three are unstarted at this tracking update. The roadmap supplies
+identities; 31 and 32 are new. All four are unstarted. The roadmap supplies
 capabilities; this page selects the work; each item's plan owns its detailed scope and findings.
 The old [board](0000-board.md) is suspended. Read the relevant roadmap, code and gates when taking
 up an item, not the whole historical corpus. Expanded scopes do not automatically clear gates.
@@ -46,6 +46,7 @@ up an item, not the whole historical corpus. Expanded scopes do not automaticall
 |---|---|---|
 | **29** | **Education changes a Citizen's working life.** Connect actual attendance, Skill Tier, employment eligibility and access to different earnings, through the school-to-work transition and Household consequences. Include experience progressing Tier 1 → 2 and the schooling requirement for Tier 3. | **Next: scope and build the full capability.** Carries roadmap milestone 15's remaining education/employment work. Watch a Citizen's education affect the jobs available to them and their Household's circumstances, with an unsuccessful path visible too. |
 | **31** | **The city attracts people without injected arrivals.** Connect Hinterland population stock, who presents themselves, the existing choice model, gate throughput, admission and placement. Include depletion and replenishment, with population accounting and changing city conditions. | **Queued for scoping.** Continues row 28's explicitly deferred stock half; [0068 D6](0068-the-choice-model.md#decisions) owns the gap. Demonstrate arrivals changing as opportunity and the Outside change, without repeated player or Input Log requests supplying the flow. |
+| **32** | **The city spends money and the player decides on what.** Connect the treasury, a service that costs money to run, the funding lever and the consequence of withdrawing it. Include an opening balance, a cost on placing a service, and money conserved across both. | **Scoped 2026-09-09; not started.** [0070](0070-the-city-spends.md) owns the scope and the three findings. Watch a school be funded, staffed and paid, then lose its funding and close. |
 | **30** | **A player diagnoses decline, intervenes and watches the result.** Connect sustained failure sources, their consequences, Evidence and an available player action. Preserve the original Trip-failure and below-tolerance scope; include recovery and persistent failure. | **Expanded; queued for scoping and gate review.** Carries milestone 17's failure-source residue and builds on [0064](0064-the-information-interface.md#first-diagnosis-interaction--2026-09-08). Watch an intervention remove a cause and produce recovery, or expose a remaining cause that prevents it. |
 
 **29's boundary:** `CitizenTable.SkillTier`, `CivicEngine`, `EmploymentEngine`, `WorkSchedule` and
@@ -60,6 +61,14 @@ admission path. Scope the stock's composition, drawdown, recovery and relationsh
 before implementing its generator. Keep the gate's capacity distinct from willingness to arrive.
 The stock must be saved, hashed and bounded. This row does not require a new Shock system or an
 Intensity Dial; changes to existing city conditions must suffice for the demonstration.
+
+**32's boundary:** `PolicyEngine`, `WageEngine`, `World.CreateBuilding`'s trade instantiation and
+`Simulation.ApplyService` are the starting points. A Policy sweeps a whole table today, so funding a
+service needs it to name a trade first. Keep catchment staffing out: a school employs what its floor
+area divides into, and `adr/0026`'s demand-determined version stays unbuilt. The placement cost adds
+an exit door to the money supply and must keep `Invariant.MoneyIsConserved` green. Opening balance and
+funding level are provisional under standing order 4. A treasury that merely fills does not close the
+row; the player must be able to spend it and see what spending bought.
 
 **30's boundary:** `TripEngine`, `RuleEngine` and the existing decline mechanisms produce the
 causes; Evidence reports them. Specify durations and attribution without substituting event counts

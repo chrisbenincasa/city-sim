@@ -4,6 +4,8 @@ namespace Borough.Shell;
 
 public partial class MapRuler : Control
 {
+    public override Vector2 _GetMinimumSize() => new(175, 62);
+
     public Camera3D Camera { get; set; } = null!;
 
     public override void _Process(double delta) => QueueRedraw();

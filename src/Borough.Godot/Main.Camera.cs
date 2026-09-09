@@ -87,7 +87,7 @@ public partial class Main
     /// <param name="delta">Seconds since the last frame, so the pan is a rate and not a per-frame step.</param>
     private void Edge(double delta)
     {
-        if (_governing || _tuner.Visible || _helpPanel.Visible)
+        if (!_edgeScrolling || _miniMap.Dragging || _governing || _tuner.Visible || _helpPanel.Visible)
         {
             return;
         }

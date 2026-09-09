@@ -29,10 +29,15 @@ def read(name):
 
 def press(state, label):
     r = next(b['Rect'] for b in state['Buttons'] if b['Text'] == label)
+    panel = state['Inspector']
+    if r['Y'] + r['Height'] > panel['Y'] + panel['Height']:
+        command('ui scroll ' + str(round(state['Scroll'] + r['Y'] - panel['Y'] - 180)))
+        state = read('road-link-scrolled')
+        r = next(b['Rect'] for b in state['Buttons'] if b['Text'] == label)
     command(f"ui press {round(r['X']+r['Width']/2)} {round(r['Y']+r['Height']/2)}")
 
 
-for cmd in ['pause', 'hold look', 'ui close', 'ui size 1440 960', 'ui debug off', 'focus 80 32 250', 'click 80 32', 'ui point 80 32']:
+for cmd in ['pause', 'ui text-size 100', 'ui layers off', 'ui tools off', 'hold look', 'ui close', 'ui size 1440 960', 'ui debug off', 'focus 80 32 250', 'click 80 32', 'ui point 80 32']:
     command(cmd)
 road = read('road-dark')
 assert road['Road'] == 6 and road['Selected'] == 0 and 'road Segment' in road['Synopsis']
@@ -87,6 +92,6 @@ assert read('road-connected')['Road'] == 5
 press(read('road-before-close'), '×')
 closed = read('road-closed')
 assert not closed['InspectorVisible'] and closed['Road'] == 0 and closed['Hash'] == initial_hash
-print('PASS: road and Building screen picking, empty ground, live travel/frontage facts, nested breadcrumbs, connection links, both themes, narrow layouts, close, unchanged paused State Hash.')
+print('PASS: road and Building screen picking, empty ground, live travel/frontage facts, nested breadcrumbs, connection links, both themes, desktop layouts, close, unchanged paused State Hash.')
 wire.close()
 connection.close()

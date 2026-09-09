@@ -30,7 +30,6 @@ public partial class Main
     private Button _inspectionBack = null!, _themeButton = null!, _debugButton = null!;
     private MeshInstance3D _selectionRing = null!, _hoverRing = null!;
     private bool _lightUi, _debugShown, _toolsShown;
-    private Button _toolsButton = null!;
     private string _inspectionCaption = "closed", _inspectionSignature = string.Empty;
     private ulong _inspectionTick = ulong.MaxValue, _inspectionReadAt;
     private int _buildingScroll;
@@ -131,6 +130,7 @@ public partial class Main
         {
             _lightUi = (bool)preferences.GetValue("ui", "light", false);
             _debugShown = (bool)preferences.GetValue("ui", "debug", false);
+            _edgeScrolling = (bool)preferences.GetValue("ui", "edge_scrolling", true);
             _textPercent = Math.Clamp((int)preferences.GetValue("ui", "text_percent", 100), 100, 150);
         }
         BuildDiscovery();
@@ -227,6 +227,9 @@ public partial class Main
         _console.AddThemeStyleboxOverride("panel", InformationUi.Box(paper, line,
             InformationUi.ConsoleInsetX, InformationUi.ConsoleInsetY, InformationUi.PanelRadius, shadow));
 
+        _cameraPanel.AddThemeStyleboxOverride("panel", InformationUi.Box(paper, line, 8, 8,
+            InformationUi.PanelRadius, shadow));
+        _navigationDial.Colours(colors);
         _skyArc.Ink = ink;
         _skyArc.Paper = paper;
         _skyArc.QueueRedraw();
@@ -250,6 +253,7 @@ public partial class Main
             ContentMarginBottom = 8,
         });
 
+        _edgeScrollButton.ButtonPressed = _edgeScrolling;
         _themeButton.ButtonPressed = _lightUi;
         _themeButton.TooltipText = "Switch interface theme";
         _debugButton.ButtonPressed = _debugShown;
@@ -288,17 +292,17 @@ public partial class Main
         if (_palette is not null) _palette.Visible = _toolsShown;
 
         // 🔴 THE CONSOLE IS THE ONE PANEL THAT SIZES ITSELF, and it has to be. Its height is its
-        // content's -- a legend appears with a layer, a hint with a tool, a refusal with a refusal --
+        // content's -- options appear with a tool and feedback with an action --
         // and a height computed HERE is always one frame behind the change that caused it, which is
         // exactly the frame a driven `shoot` catches. Anchored to the bottom edge and grown upward,
         // the container answers the question itself and there is no second opinion to be stale.
         _console.AnchorLeft = 0f;
-        _console.AnchorRight = 1f;
+        _console.AnchorRight = 0f;
         _console.AnchorTop = 1f;
         _console.AnchorBottom = 1f;
         _console.GrowVertical = Control.GrowDirection.Begin;
         _console.OffsetLeft = margin;
-        _console.OffsetRight = -margin;
+        _console.OffsetRight = margin + ConsoleWidth(size.X - margin * 2);
         _console.OffsetBottom = -margin;
         _console.OffsetTop = 0f;
         float scrollbar = _consoleScroll.GetVScrollBar().GetCombinedMinimumSize().X;
@@ -312,6 +316,14 @@ public partial class Main
         float consoleTop = Math.Max(margin * 2,
             size.Y - margin - Math.Max(_console.Size.Y, _console.GetCombinedMinimumSize().Y));
 
+        if (_policyPanel is not null && _governing)
+        {
+            var scroll = _policyPanel.GetChildren().OfType<ScrollContainer>().First();
+            var body = scroll.GetChild<Control>(0);
+            float policyWidth = Math.Min(640, size.X - width - margin * 3);
+            FitPanel(_policyPanel, scroll, body, margin, margin, policyWidth, 100,
+                Math.Max(100, consoleTop - _cameraPanel.GetCombinedMinimumSize().Y - 8 - margin * 2), true);
+        }
         LayoutToolBrowser(size, margin, consoleTop, narrow, width, OpenersBottom(margin));
         LayoutLayerPanel(margin, consoleTop, narrow);
 
@@ -423,7 +435,7 @@ public partial class Main
     private bool OverInformation(Vector2 at) => _hud.Visible && (
         _menuOpen || _helpShade is not null && _helpShade.Visible
         || _informationPanels.Any(p => p.Visible && p.GetGlobalRect().HasPoint(at))
-        || _toolsButton.GetGlobalRect().HasPoint(at)
+        || _placementRail.GetGlobalRect().HasPoint(at)
         || _layerButton.GetGlobalRect().HasPoint(at)
         || _palette is not null && _palette.Visible && _palette.GetGlobalRect().HasPoint(at)
         || _tuner.Visible && _tuner.GetGlobalRect().HasPoint(at)
@@ -542,11 +554,27 @@ public partial class Main
                 _settingsPanel.Visible = words[1] == "on";
                 if (_settingsPanel.Visible) { _zoneStart = null; _hud.MoveChild(_settingsPanel, -1); }
                 break;
+            case "category" when words.Length == 2 && words[1] is "Connections" or "Zoning" or "Municipal" or "Demolish":
+                if (words[1] == "Demolish")
+                {
+                    Apply(Held("demolish", 0));
+                    _toolsShown = false;
+                    break;
+                }
+                _toolsShown = !_toolsShown || _toolCategory != words[1];
+                _toolCategory = words[1];
+                RefreshToolBrowser();
+                break;
             case "tools" when words.Length == 2 && words[1] is "on" or "off":
                 _toolsShown = words[1] == "on";
                 break;
             case "layers" when words.Length == 2 && words[1] is "on" or "off":
                 _layersShown = words[1] == "on";
+                break;
+            case "edge-scroll" when words.Length == 2 && words[1] is "on" or "off":
+                _edgeScrolling = words[1] == "on";
+                _edgeScrollButton.ButtonPressed = _edgeScrolling;
+                SaveInformationPreferences();
                 break;
             case "debug" when words.Length == 2 && words[1] is "on" or "off":
                 _debugShown = words[1] == "on";
@@ -722,6 +750,7 @@ public partial class Main
         var preferences = new ConfigFile();
         preferences.SetValue("ui", "light", _lightUi);
         preferences.SetValue("ui", "debug", _debugShown);
+        preferences.SetValue("ui", "edge_scrolling", _edgeScrolling);
         preferences.SetValue("ui", "text_percent", _textPercent);
         preferences.Save("user://information.cfg");
     }
@@ -1168,6 +1197,12 @@ public partial class Main
             ConsoleScroll = _consoleScroll.ScrollVertical,
             ConsoleContent = Rect(_consoleScroll),
             Pace = RungName(),
+            City = new
+            {
+                Population = _world.Citizens.Rows.LiveCount,
+                Treasury = _world.TreasuryBalance()?.Raw,
+                TreasuryShown = _treasuryLabel.Visible,
+            },
             Layer = _washing.ToString(),
             Zoning = new
             {
@@ -1184,6 +1219,24 @@ public partial class Main
             Refused = _refusalRow.Visible ? _refusalLabel.Text : string.Empty,
             Refusal = Rect(_refusalRow),
             Layers = Rect(_layerPanel),
+            LegendPanel = Rect(_legendPanel),
+            LegendVisible = _legendPanel.Visible,
+            PlacementRail = Rect(_placementRail),
+            CameraPanel = Rect(_cameraPanel),
+            MiniMap = new
+            {
+                Rect = Rect(_miniMap),
+                _miniMap.RoadCount,
+                _miniMap.Rebuilds,
+                East = _miniMap.Extent.Position.X,
+                North = _miniMap.Extent.Position.Y,
+                Width = _miniMap.Extent.Size.X,
+                Height = _miniMap.Extent.Size.Y
+            },
+            CameraShown = _cameraPanel.Visible,
+            EdgeScrolling = _edgeScrolling,
+            MiniMapDragging = _miniMap.Dragging,
+            Ruler = new { X = _ruler.Position.X, Y = _ruler.Position.Y, Width = _ruler.GetCombinedMinimumSize().X, Height = _ruler.GetCombinedMinimumSize().Y },
             Trim = Rect(_chrome),
             Scroll = _inspectionScroll.ScrollVertical,
             Expanded = _expanded,
@@ -1195,6 +1248,7 @@ public partial class Main
                 .SelectMany(l => Enumerable.Range(0, l.ItemCount).Select(i => new { Text = l.GetItemText(i), Selected = l.IsSelected(i), Disabled = l.IsItemDisabled(i), Rect = ItemRect(l, i) })).ToArray(),
             TunerVisible = _tuner.Visible,
             PoliciesVisible = _governing,
+            Policies = Rect(_policyPanel),
             Buttons = InformationDescendants(_hud, true).OfType<Button>().Where(b => b.IsVisibleInTree())
                 .Select(b => new { Text = UiIcons.Label(b), Icon = UiIcons.Id(b), Filled = UiIcons.Filled(b), IconWidth = b.GetThemeConstant("icon_max_width"), b.Disabled, Pressed = b.ButtonPressed, Rect = Rect(b) }).ToArray(),
         };

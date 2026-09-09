@@ -7,7 +7,7 @@ import sys
 import time
 
 root = Path(__file__).resolve().parents[2]
-out = root / 'art/ui-study'
+out = root / 'artifacts/hud-live'
 s = socket.socket(socket.AF_UNIX)
 s.settimeout(30)
 s.connect(sys.argv[1])
@@ -59,12 +59,12 @@ quiet()
 initial = read()
 for theme in ['dark', 'light']:
     command('ui theme ' + theme)
-    hover('Tools', 'grid')
+    hover('Zoning', 'grid')
     hover('Menu', 'menu')
     hover('Settings', 'settings')
     hover('▶', 'play')
     command('ui tools on')
-    hover('Roads', 'road')
+    hover('Connections', 'road')
     hover('Zoning', 'grid')
     command('hold zone 0')
     quiet()
@@ -78,8 +78,8 @@ for theme in ['dark', 'light']:
     command(f'shoot {out}/icons-{theme}.png')
     for scale in [100, 150]:
         command(f'ui text-size {scale}')
-        hover('Tools', 'grid')
-        assert button(read(), 'Tools')['IconWidth'] == scale * 24 // 100
+        hover('Zoning', 'grid')
+        assert button(read(), 'Zoning')['IconWidth'] == scale * 24 // 100
     command('ui text-size 100')
     command('ui close')
 quiet()

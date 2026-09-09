@@ -131,6 +131,9 @@ bounded(state['Tools'], 1280, 800)
 bounded(state['Layers'], 1280, 800)
 assert state['Inspector']['Y'] + state['Inspector']['Height'] <= state['Console']['Y'] + 1
 assert state['Layers']['Y'] >= state['Tools']['Y'] + state['Tools']['Height'] - 1, (state['Tools'], state['Layers'])
+assert state['CameraPanel']['X'] == state['Console']['X']
+assert state['CameraPanel']['Y'] < state['Console']['Y']
+assert state['Ruler']['X'] >= state['CameraPanel']['X'] + state['CameraPanel']['Width']
 assert state['ConsoleScroll'] == 0, state['ConsoleScroll']
 area = state['ConsoleContent']
 cancel = next(b['Rect'] for b in state['Buttons'] if b['Text'] == 'Cancel')

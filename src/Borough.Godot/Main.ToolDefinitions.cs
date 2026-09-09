@@ -13,7 +13,7 @@ public partial class Main
 
     private ToolDefinition[] ToolDefinitions() =>
     [
-        new("look", "Look / cancel tool", "Roads", Key.V, "Inspect the city", true, 0, [],
+        new("look", "Look / cancel tool", "Connections", Key.V, "Inspect the city", true, 0, [],
             i => Apply(Held("look", i))),
         new("zone", "Zone / next permission", "Zoning", Key.Z,
             "Click a parcel or drag an area; choose parcel or block selection below", _world.Rules.ZoneRules.Length > 0,
@@ -24,11 +24,11 @@ public partial class Main
             [new("Parcels", 0), new("Whole blocks", 1)], i => Ui(i == 0 ? "zone-size parcels" : "zone-size blocks")),
         new("erase", "Erase zoning", "Zoning", Key.None, "Remove permissions; keep existing Buildings", true, 0,
             [new("Erase zoning", 0)], i => Apply(Held("erase", i))),
-        new("street", "Street", "Roads", Key.X, "Lay one Street; Shift-click removes it", true, 0,
+        new("street", "Street", "Connections", Key.X, "Lay one Street; Shift-click removes it", true, 0,
             [new("Street", 0)], i => Apply(Held("street", i))),
-        new("demolish", "Demolish", "Roads", Key.B, "Clear an abandoned Building", true, 0,
+        new("demolish", "Demolish", "Demolish", Key.B, "Clear an abandoned Building", true, 0,
             [new("Demolish", 0)], i => Apply(Held("demolish", i))),
-        new("service", "Service / next kind", "Services", Key.S, "Place a service on a vacant Lot", NextService(0) != 0,
+        new("service", "Service / next kind", "Municipal", Key.S, "Place a service on a vacant Lot", NextService(0) != 0,
             NextService(_verb == Verb.Service ? _serviceKind : (byte)0),
             Enumerable.Range(1, _world.Rules.KindCount).Where(i => _world.Rules.Declares((byte)i)
                 && _world.Rules.Kind((byte)i).Serves != Need.None)

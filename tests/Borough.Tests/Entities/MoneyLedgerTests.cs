@@ -130,6 +130,66 @@ public sealed class MoneyLedgerTests
         Assert.NotEqual(Rows.NoSlot, ledger.Overflowed);
     }
 
+    /// <summary>
+    /// <c>World.TreasuryBalance</c> reads what the ledger reads, by a shorter walk.
+    /// </summary>
+    /// <remarks>
+    /// <b>Two walks over one quantity is the thing worth pinning.</b> The ledger files every Bin in
+    /// the world by owner kind; the reading walks the treasury's own list. They can only agree while
+    /// <c>World.CreateTreasuryBin</c> is the sole maker of a treasury-owned Bin, so this fails on the
+    /// day a second maker arrives — which is when the shell's console would start understating the
+    /// city's money with nothing else complaining.
+    /// </remarks>
+    [Fact]
+    public void The_treasury_reading_agrees_with_the_ledger()
+    {
+        World world = City();
+        ResourceId money = Money(world);
+        int vault = world.FindTreasuryBin(money);
+
+        Assert.NotEqual(Rows.NoSlot, vault);
+        Assert.Equal(0L, world.TreasuryBalance()!.Value.Raw);
+
+        world.Bins.Move(vault, 5_000);
+
+        Assert.Equal(5_000L, world.TreasuryBalance()!.Value.Raw);
+        Assert.Equal(MoneyLedger.Of(world).Treasury, world.TreasuryBalance()!.Value.Raw);
+    }
+
+    /// <summary>
+    /// A world naming no money Resource reports <see langword="null"/> rather than zero.
+    /// </summary>
+    /// <remarks>
+    /// <b>Absent and empty are different answers</b>, and the reading is nullable so that a shell can
+    /// omit the line instead of asserting a purse the city has not got. Every shipped Ruleset declares
+    /// money, so this world is hand-built on purpose.
+    /// </remarks>
+    [Fact]
+    public void A_world_that_names_no_money_reports_no_treasury_balance()
+    {
+        string toml = Endowed
+            .Replace("""
+                [[resource]]
+                name = "money"
+                family = "money"
+
+
+                """, string.Empty)
+            .Replace("opening_balance_min = 0\n", string.Empty)
+            .Replace("opening_balance_max = 1000", string.Empty);
+
+        Assert.NotEqual(Endowed, toml);
+
+        RulesetLoadResult result = RulesetLoader.Parse(toml, "moneyless.toml");
+
+        Assert.True(result.Ok, result.Describe());
+
+        var key = WorldKey.FromSeed(20_260_909);
+        var world = new World(Citizens, result.Ruleset!, key);
+
+        Assert.Null(world.TreasuryBalance());
+    }
+
     private static ResourceId Money(World world) => Resource(world, conserved: true);
 
     private static ResourceId Good(World world) => Resource(world, conserved: false);

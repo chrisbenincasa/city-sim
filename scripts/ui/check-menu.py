@@ -82,7 +82,7 @@ with tempfile.TemporaryDirectory(prefix='borough-menu-') as folder:
     press('Menu')
     press('Load city…')
     assert read()['MenuPage'] == 'confirm'
-    press('Save and continue')
+    press('Save and exit')
     press('Cancel')  # Cancelling the picker must cancel the pending load too.
     assert read()['MenuPage'] == 'main' and not read()['FilePickerVisible']
     press('Save city…')
@@ -104,7 +104,7 @@ with tempfile.TemporaryDirectory(prefix='borough-menu-') as folder:
     assert read()['Pace'] == '4x', read()['Pace']
     press('Menu')
     press('Load city…')
-    press('Discard and continue')
+    press('Exit without saving')
     choose(save, 'Open')
     loaded = read()
     assert loaded['Hash'] == saved['Hash'] and loaded['Tick'] == saved['Tick'], loaded['MenuMessage']
@@ -116,7 +116,7 @@ with tempfile.TemporaryDirectory(prefix='borough-menu-') as folder:
     assert read()['Tick'] > saved['Tick']
     press('Menu')
     press('Load city…')
-    press('Save and continue')
+    press('Save and exit')
     checkpoint = Path(folder) / 'Checkpoint.borough-city'
     command('ui file-path ' + str(checkpoint))
     press('Save')
@@ -131,7 +131,7 @@ with tempfile.TemporaryDirectory(prefix='borough-menu-') as folder:
     press('Menu')
     command(f'shoot {out}/menu-large-text.png')
     press('Quit game')
-    press('Save and continue')
+    press('Save and exit')
     final = Path(folder) / 'Final city.borough-city'
     command('ui file-path ' + str(final))
     press('Save')

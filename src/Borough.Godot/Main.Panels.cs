@@ -47,6 +47,7 @@ public partial class Main
         _zoneFeedback = string.Empty;
         _policyPanel?.QueueFree();
         _palette?.QueueFree();
+        _placementRail?.QueueFree();
 
         Governing(_hud);
         Palette();
@@ -301,8 +302,8 @@ public partial class Main
         var box = new VBoxContainer();
 
         var heading = new HBoxContainer();
-        heading.AddChild(new Label { Text = "Policies", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
-        var close = InformationButton("×", Govern);
+        heading.AddChild(new Label { Text = "Government · Policies", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
+        var close = InformationButton("Close Government", Govern);
         close.TooltipText = "Close Policies";
         heading.AddChild(close);
         box.AddChild(heading);

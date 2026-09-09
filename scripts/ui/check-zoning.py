@@ -51,14 +51,13 @@ command('ui tools off')
 command('ui close')
 command('ui debug off')
 command('focus 48 48 650')
-press('Tools')
 press('Zoning')
 state = read()
 permission = next(b['Text'] for b in state['Buttons'] if b['Text'] == 'Housing')
 press(permission)
 assert read()['Tool'] == 'Zone'
+press('Whole blocks')
 command('ui zone-begin 4 4'); command('ui zone-end 132 132')
-press('Close')
 state = read()
 assert not state['ToolsVisible']
 # Use the projected road ground points, safely away from the console.
@@ -81,7 +80,7 @@ r = read()['Console']
 pointer('up', {'X':r['X']+8, 'Y':r['Y']+8})
 assert not read()['Zoning']['Dragging']
 # Erase and repaint identical semantic bounds; the release queues, the next Tick applies.
-press('Tools'); press('Erase zoning'); press('Close')
+press('Zoning'); press('Erase zoning')
 pointer('down', p); pointer('move', q); pointer('up', q)
 assert not read()['Zoning']['Dragging'] and 'queued' in read()['Zoning']['Feedback']
 command('ui zone-begin 4 4'); command('ui zone-point 68 68')
@@ -92,7 +91,7 @@ assert any(word in read()['Zoning']['Feedback'] for word in ['queued', 'nothing 
 command('resume'); time.sleep(.5); command('pause')
 command('ui zone-begin 4 4'); command('ui zone-end 68 68')
 assert 'nothing changed' in read()['Zoning']['Feedback']
-press('Tools'); press(permission); press('Close')
+press('Zoning'); press(permission)
 command('ui zone-begin 68 68'); command('ui zone-end 4 4')
 assert 'queued' in read()['Zoning']['Feedback']
 command('resume'); time.sleep(.5); command('pause')
@@ -100,13 +99,13 @@ command('resume'); time.sleep(.5); command('pause')
 command('hold look'); command('click 68 36')
 for theme in ['light','dark']:
     command('ui theme '+theme)
-    for width,height,scale in [(1440,960,100),(480,640,100),(480,640,150)]:
+    for width,height,scale in [(1440,960,100),(1280,800,100),(1280,800,150)]:
         command(f'ui size {width} {height}'); command(f'ui text-size {scale}')
         command('ui tools on')
         state = read(f'zoning-{theme}-{width}-{scale}')
         tray = state['Tools']
         assert tray['X'] >= 0 and tray['Y'] >= 0
-        assert tray['X'] <= 24 and tray['Width'] < width / 2
+        assert tray['X'] > state['PlacementRail']['X'] and tray['Width'] < width / 2
         assert not any('Rectangle · snaps' in label['Text'] for label in state['Fonts'])
         assert tray['X']+tray['Width'] <= width+1 and tray['Y']+tray['Height'] <= height+1
         assert clear(tray,state['Console'])
@@ -120,10 +119,9 @@ for theme in ['light','dark']:
         camera = state['Camera']
         press(permission); assert read()['Tool'] == 'Zone'
         assert read()['Camera'] == camera, 'Scrolling tools moved the camera'
-        press('Close'); assert not read()['ToolsVisible']
+        assert not read()['ToolsVisible']
 command('ui size 1440 960'); command('ui text-size 100')
-press('Tools'); press('Roads'); press('Demolish')
+press('Demolish')
 assert read()['Tool'] == 'Demolish'
 press('Cancel'); assert read()['Tool'] == 'Look'
-press('Close')
-print('PASS: real mouse rectangle preview, cancellation, erase/repaint, both themes and narrow layout.')
+print('PASS: real mouse rectangle preview, cancellation, erase/repaint, both themes and desktop layout.')

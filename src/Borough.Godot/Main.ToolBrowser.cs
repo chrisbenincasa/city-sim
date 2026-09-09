@@ -13,6 +13,8 @@ public partial class Main
     private VBoxContainer _browserBody = null!;
     private ScrollContainer _toolScroll = null!;
     private Label _emptyTools = null!;
+    private VBoxContainer _placementRail = null!, _toolOptions = null!;
+    private Label _chooserTitle = null!;
     private string _toolCategory = "Zoning";
 
     // The tool browser's own half of FitPanel's settle gate. Its rows are buttons and answer for
@@ -33,10 +35,13 @@ public partial class Main
         held.AddChild(_heldTool);
         held.AddChild(_cancelTool);
         _toolSlot.AddChild(held);
+        _toolOptions = new VBoxContainer();
+        _toolSlot.AddChild(_toolOptions);
         _palette = new PanelContainer { Theme = _type, Visible = _toolsShown };
         _browserBody = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         var heading = new HBoxContainer();
-        var title = InformationLabel("Tools");
+        var title = _chooserTitle = InformationLabel(_toolCategory);
+        title.AutowrapMode = TextServer.AutowrapMode.Off;
         title.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         heading.AddChild(title);
         var close = InformationButton("Close", () => { });
@@ -45,36 +50,21 @@ public partial class Main
         heading.AddChild(close);
         var frame = new VBoxContainer();
         frame.AddChild(heading);
-        _tools = new VBoxContainer();
-        foreach (string category in new[] { "Roads", "Zoning", "Services", "Policies" })
+        _placementRail = new VBoxContainer { Theme = _type };
+        _hud.AddChild(_placementRail);
+        _tools = _placementRail;
+        foreach (string category in new[] { "Connections", "Zoning", "Municipal", "Utilities", "Demolish" })
         {
             string captured = category;
             var button = InformationButton(category, () => { });
             button.ToggleMode = true;
             UiIcons.Attach(button, ToolIconName(category));
             button.Alignment = HorizontalAlignment.Left;
-            button.AddThemeConstantOverride("icon_max_width", 26);
-            button.Pressed += () => AtBoundary(() =>
-            {
-                if (captured == "Policies")
-                {
-                    if (!_governing) Govern();
-                    _toolsShown = false;
-                    return;
-                }
-                _toolCategory = captured;
-                RefreshToolBrowser();
-            });
+            button.TooltipText = category == "Utilities" ? "No utility placement tools are available yet" : $"Open {category.ToLowerInvariant()} tools";
+            button.Disabled = category == "Utilities";
+            button.Pressed += () => Ui("category " + captured);
             _tools.AddChild(button);
-            if (category == "Policies")
-            {
-                _policiesButton = button;
-                button.Disabled = _world.Rules.Policies.Length == 0;
-                button.TooltipText = button.Disabled ? "This city has no Policies available" : "Open city Policies (P)";
-            }
         }
-        _browserBody.AddChild(_tools);
-        _browserBody.AddChild(new HSeparator());
         _choices = new VBoxContainer();
         _browserBody.AddChild(_choices);
         _emptyTools = InformationLabel("No tools available");
@@ -100,10 +90,11 @@ public partial class Main
         _heldTool.TooltipText = _heldTool.Text;
         _cancelTool.Visible = _verb != Verb.Look;
         foreach (Button button in _tools.GetChildren().OfType<Button>())
-            button.ButtonPressed = button.Text == _toolCategory;
+            button.ButtonPressed = _toolsShown && button.Text == _toolCategory;
+        _chooserTitle.Text = _toolCategory;
         _browserRebuilt = true;
         foreach (Node node in _choices.GetChildren()) { _choices.RemoveChild(node); node.QueueFree(); }
-        foreach (ToolDefinition tool in ToolDefinitions().Where(t => t.Category == _toolCategory))
+        foreach (ToolDefinition tool in ToolDefinitions().Where(t => t.Category == _toolCategory && t.Id != "zone-size"))
             foreach (ToolOption option in tool.Options)
             {
                 bool selected = tool.Id switch
@@ -129,19 +120,37 @@ public partial class Main
                     TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis
                 };
                 UiIcons.Attach(button, ToolIconName(OptionIcon(tool, option)));
-                button.Pressed += () => AtBoundary(() => tool.Select(option.Choice));
+                button.Pressed += () => AtBoundary(() => { tool.Select(option.Choice); Ui("tools off"); });
                 _choices.AddChild(button);
             }
+        _emptyTools.Text = "No placement tools available";
         _emptyTools.Visible = _choices.GetChildCount() == 0;
+        foreach (Node node in _toolOptions.GetChildren()) { _toolOptions.RemoveChild(node); node.QueueFree(); }
+        if (_verb == Verb.Zone)
+        {
+            var options = new HBoxContainer();
+            foreach (var option in ToolDefinitions().First(t => t.Id == "zone-size").Options)
+            {
+                var button = ConsoleButton(option.Label, () => Ui(option.Choice == 0 ? "zone-size parcels" : "zone-size blocks"));
+                button.ToggleMode = true;
+                button.ButtonPressed = _zoneParcels == (option.Choice == 0);
+                options.AddChild(button);
+            }
+            var value = ConsoleButton("Land value ↗", () => Apply(new Borough.Formats.DriveCommand(_world.Tick.Raw, Borough.Formats.DriveVerb.Overlay, 0, "value")));
+            value.TooltipText = "Show land value; keep the zoning tool";
+            options.AddChild(value);
+            _toolOptions.AddChild(options);
+        }
     }
 
     private void LayoutToolBrowser(Vector2 size, float margin, float consoleTop, bool narrow,
         float inspectorWidth, float top)
     {
         if (_palette is null) return;
-        float width = narrow ? 176 : Math.Min(240, 190 * _textPercent / 100f);
-        FitPanel(_palette, _toolScroll, _browserBody, margin, top, width,
-            100, Math.Max(100, consoleTop - top - margin), _browserRebuilt);
+        float width = Math.Max(240, Math.Max(_palette.GetCombinedMinimumSize().X, _choices.GetCombinedMinimumSize().X + 32));
+        float left = _placementRail.Position.X + _placementRail.Size.X + 8;
+        FitPanel(_palette, _toolScroll, _browserBody, left, margin, width,
+            100, Math.Max(100, (LeftPanelBottom(consoleTop) - margin - 8) / (_layersShown ? 2 : 1)), _browserRebuilt);
         _browserRebuilt = false;
         _palette.Visible = _toolsShown;
         if (_toolsShown && !_helpPanel.Visible && !_tuner.Visible && !_governing) _hud.MoveChild(_palette, -1);
@@ -169,12 +178,13 @@ public partial class Main
 
     private static string ToolIconName(string category) => category switch
     {
-        "Roads" or "street" => "road",
-        "Services" => "civic",
+        "Connections" or "street" => "road",
+        "Municipal" => "civic",
         "health" => "clinic",
         "house" => "housing",
         "shop" => "trade",
         "Policies" => "policies",
+        "Demolish" => "demolish",
         "school" or "mixed" or "erase" or "demolish" => category,
         _ => "grid",
     };

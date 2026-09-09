@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Borough · HUD interaction study</title>
+<link rel="stylesheet" href="style.css">
+<header class="study">
+  <div><strong>Borough / HUD study</strong><span>Schematic city · sample data · no simulation</span></div>
+  <nav aria-label="Prototype settings">
+    <label>Try <select id="scenario"><option value="zone">01 · Zone & erase</option><option value="supply">02 · Diagnose & intervene</option><option value="transit">03 · Transit operation</option></select></label>
+    <label>Text <select id="text-size"><option value="1">100%</option><option value="1.25">125%</option><option value="1.5">150%</option></select></label>
+    <button id="theme">Dark theme</button><button id="reset">Reset scenario</button>
+  </nav>
+</header>
+<main id="city" aria-label="Borough prototype">
+  <svg id="map" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" aria-label="Schematic city map"></svg>
+  <div class="place-label">NORTH BANK<span>A neighbourhood to understand</span></div>
+  <nav class="rail panel" id="rail" aria-label="Main tools"></nav>
+  <section class="catalog panel" id="catalog" aria-label="Tool catalogue"></section>
+  <aside class="inspector panel" id="inspector" aria-label="Inspector"></aside>
+  <div class="map-label"><span class="scale-mark"></span>100 m · schematic</div>
+  <section class="legend panel" id="legend" aria-label="Active layer legend" hidden></section>
+  <section class="camera panel" id="camera" aria-label="Camera controls" hidden>
+    <strong>Camera</strong><div class="row"><button data-camera="in">Zoom +</button><button data-camera="out">Zoom −</button><button data-camera="left">Rotate left</button><button data-camera="right">Rotate right</button><button data-camera="reset">Reset view</button></div>
+  </section>
+  <button class="camera-toggle" id="camera-toggle" aria-expanded="false">Camera</button>
+  <footer class="console panel" id="console">
+    <div class="console-main">
+      <div class="time"><button id="pause" aria-label="Resume preview clock">▶</button><button id="speed" title="Change preview clock speed">1×</button><span class="sun" aria-hidden="true">◒</span><span id="phase">Morning</span></div>
+      <div id="active" class="active"></div><div id="options" class="tool-options"></div>
+    </div>
+    <div class="feedback"><span id="feedback" role="status" aria-live="polite"></span><span id="mode-note">INTERACTION STUDY</span></div>
+  </footer>
+</main>
+<section class="guide">
+  <div><span class="eyebrow">TRY THIS</span><p id="task"></p><p id="progress" role="status"></p></div>
+  <details><summary>What this prototype is testing</summary><p>Stable category positions; one left workspace; tool options beside the active tool; inspection preserved while acting; layers that outlive their picker. Search spans all families. Stars create fixed-order favourites for this session.</p><p>Catalogue badges describe the study, not a full implementation audit: <b>Sketch</b> means a future interaction placeholder; <b>Unresolved</b> means scope or interaction design still needs a decision. All figures and consequences here are illustrative. No save, simulation, construction cost, or balance claim is made.</p><p>Keyboard: Tab to navigate, Enter to activate; Escape cancels a stroke, then closes the catalogue, then cancels the tool. Map parcels work with Enter or Space. Hover or focus a parcel for feedback. At 1280 × 800 and up, the study uses the desktop composition; smaller screens scroll a minimum-width study.</p><p>References: <a href="https://www.factorio.com/blog/post/fff-278">Factorio quickbar</a>, <a href="https://www.factorio.com/blog/post/fff-397">information navigation</a>, <a href="https://www.paradoxinteractive.com/games/cities-skylines-ii/features/road-tools">Cities: Skylines II road tools</a>, <a href="https://www.anno-union.com/updates/anno-1800-game-update-16/">Anno menu growth</a>.</p></details>
+</section>
+<script src="prototype.js"></script>
+</html>

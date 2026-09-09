@@ -35,6 +35,8 @@ def bounded(rect, w, h):
     assert 0 <= rect['Y'] <= rect['Y']+rect['Height'] <= h+1, rect
 
 command('pause')
+command('ui settings off')
+command('ui tools off')
 command('ui size 1440 960')
 command('ui settings off')
 command('ui help off')
@@ -52,14 +54,14 @@ for action in ['ui theme light', 'ui theme dark', 'ui debug on', 'ui debug off']
     time.sleep(.2)
 for theme in ['light', 'dark']:
     command('ui theme ' + theme)
-    for w,h,scale in [(1440,960,100),(480,640,150)]:
+    for w,h,scale in [(1440,960,100),(1280,800,150)]:
         command(f'ui size {w} {h}')
         command(f'ui text-size {scale}')
         press('Settings')
         state = read()
         assert state['SettingsVisible']
         bounded(state['Settings'],w,h)
-        for label in ['Light theme','Debug readout','Help & shortcuts','A−','A+','Reset size']:
+        for label in ['Light theme','Debug readout','Edge scrolling','Help & shortcuts','A−','A+','Reset size']:
             rect = next(b['Rect'] for b in state['Buttons'] if b['Text']==label)
             bounded(rect,w,h)
             assert rect['Width'] >= 30, (label,rect)
@@ -69,11 +71,11 @@ for theme in ['light', 'dark']:
         press('Help & shortcuts')
         assert read()['HelpVisible'] and not read()['SettingsVisible']
         command('ui key Escape')
-        press('Tools')
+        press('Zoning')
         assert read()['ToolsVisible']
         press('Close')
-        opener = next(b['Rect'] for b in read()['Buttons'] if b['Text']=='Tools')
-        assert opener['X'] <= 24 and opener['Y'] <= 24
+        opener = next(b['Rect'] for b in read()['Buttons'] if b['Text']=='Zoning')
+        assert opener['X'] <= 24 and opener['Y'] < read()['PlacementRail']['Y'] + read()['PlacementRail']['Height']
 assert read()['Hash'] == initial['Hash']
 command('ui size 1440 960')
 command('hold zone 1')

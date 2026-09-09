@@ -6,6 +6,8 @@ namespace Borough.Shell;
 public partial class Main
 {
     private PanelContainer _settingsPanel = null!;
+    private bool _edgeScrolling = true;
+    private Button _edgeScrollButton = null!;
 
     private void BuildSettings()
     {
@@ -31,6 +33,10 @@ public partial class Main
         _debugButton = InformationButton("Debug readout", () => Ui(_debugShown ? "debug off" : "debug on"));
         _debugButton.ToggleMode = true;
         body.AddChild(_debugButton);
+        _edgeScrollButton = InformationButton("Edge scrolling", () => Ui(_edgeScrolling ? "edge-scroll off" : "edge-scroll on"));
+        _edgeScrollButton.ToggleMode = true;
+        _edgeScrollButton.TooltipText = "Move the camera when the pointer reaches the window edge";
+        body.AddChild(_edgeScrollButton);
         body.AddChild(InformationButton("Help & shortcuts", () => Ui("help on")));
         ScrollAuxiliary(_settingsPanel, body);
         _settingsPanel.Visible = false;

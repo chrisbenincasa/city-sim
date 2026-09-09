@@ -60,6 +60,7 @@ public partial class Main
     private Control _toolSlot = null!;
     private SkyArc _skyArc = null!;
     private Label _rungLabel = null!;
+    private Label _populationLabel = null!, _treasuryLabel = null!;
     private Label _refusalLabel = null!;
     private Button _pauseButton = null!, _slowerButton = null!, _fasterButton = null!;
     private PanelContainer _refusalRow = null!;
@@ -78,36 +79,7 @@ public partial class Main
         }
     }
 
-    /// <summary>
-    /// The everyday controls, as <b>one console along the bottom edge</b>.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <b>Composition C, chosen 2026-09-05</b> (<c>plans/0064</c> row 3). The top bar and the bottom
-    /// tool palette were two strips claiming 200 px of every frame before anything had happened —
-    /// 21% of a 960 px window. They are one strip here: time and the day/night clock at the left,
-    /// the held tool in the centre, the camera at the right, and the pointer reading and any
-    /// refusal along the bottom. ***Idle it is one row***, and the top edge belongs to the picture.
-    /// </para>
-    /// <para>
-    /// 🔴 <b>THE POINTER READING IS IN HERE AND NO LONGER A PANEL OF ITS OWN.</b> That supersedes
-    /// row 1's <em>hover stays in a fixed lower-left corner</em>. It sits beside the tool's own
-    /// hint because they are the same kind of sentence — <em>what a click would do here</em> — and
-    /// having them at opposite corners of the screen was the whole of the complaint.
-    /// </para>
-    /// <para>
-    /// ⚠ <b><see cref="HFlowContainer"/> and not an <see cref="HBoxContainer"/></b>, because the
-    /// narrow layout is the same console with its groups wrapped rather than a second composition.
-    /// A box would have needed the orientation swapped at the breakpoint, which is two layouts to
-    /// keep in agreement and <c>plans/0012</c> <b>Cause 1</b> by construction.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>Every control here issues a <see cref="DriveCommand"/></b> and none of them touch state
-    /// directly, so the palette's own rule holds for the whole console: the keyboard, a button and
-    /// a driven script all reach the world by one path, and a session records and replays whichever
-    /// was used.
-    /// </para>
-    /// </remarks>
+    /// <summary>Time, held-tool options and pointer feedback; Chrome adds Government and data access.</summary>
     private void Console()
     {
         _console = InformationPanel();
@@ -146,24 +118,43 @@ public partial class Main
         // ---- the sky ----------------------------------------------------------------------------
         var sky = new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
         sky.AddThemeConstantOverride("separation", 8);
-        _skyArc = new SkyArc { CustomMinimumSize = new Vector2(112, 44), MouseFilter = Control.MouseFilterEnum.Stop };
+        _skyArc = new SkyArc { CustomMinimumSize = new Vector2(64, 44), MouseFilter = Control.MouseFilterEnum.Stop };
         sky.AddChild(_skyArc);
         _consoleTop.AddChild(sky);
+
+        // ---- the city ---------------------------------------------------------------------------
+        // ⚠ THE TREASURY READING IS HIDDEN RATHER THAN ZEROED on a world that declares no money,
+        // which is the rule the pointer reading already follows: zero and absent are different
+        // answers, and `Treasury 0` on a world with no money Resource asserts a purse the city has
+        // not got. ⚠ Every shipped Ruleset declares money, so the hidden case is reachable only
+        // through a hand-authored file -- which the loader permits, and ReadOpeningBalance's own
+        // refusal is written against.
+        var city = new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
+        city.AddThemeConstantOverride("separation", 12);
+        _populationLabel = ConsoleLabel(string.Empty, BodyPoints);
+        _populationLabel.ThemeTypeVariation = InformationUi.Reading;
+        _populationLabel.CustomMinimumSize = new Vector2(150, 0);
+        _populationLabel.TooltipText = "Citizens the city holds.";
+        _treasuryLabel = ConsoleLabel(string.Empty, BodyPoints);
+        _treasuryLabel.ThemeTypeVariation = InformationUi.Reading;
+        _treasuryLabel.CustomMinimumSize = new Vector2(170, 0);
+        _treasuryLabel.TooltipText = "Money the city holds, in the smallest unit.\n"
+            + "It opens empty; levies pay in and Policy transfers pay out.";
+        city.AddChild(_populationLabel);
+        city.AddChild(_treasuryLabel);
+        _consoleTop.AddChild(city);
 
         // ---- tools ------------------------------------------------------------------------------
         _toolSlot = new VBoxContainer
         {
             SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
 
-            // ⚠ A MINIMUM WIDTH SO THE FLOW WRAPS INSTEAD OF CLIPPING, and NO ExpandFill. Expanding
-            // made the tools eat the whole first line's slack, which pushed the chrome onto a second
-            // line while the layer picker stayed on the first -- the console's five groups reading
-            // in an order nobody chose. Wrapping in order is worth more than a flush right edge.
-            CustomMinimumSize = new Vector2(270, 0),
+            // Keep a readable tool caption while allowing the console to fit its contents.
+            CustomMinimumSize = new Vector2(180, 0),
         };
         _consoleTop.AddChild(_toolSlot);
 
-        _consoleTop.AddChild(CameraControls());
+
 
         _consoleTop.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         _consoleScroll = new ScrollContainer
@@ -228,20 +219,22 @@ public partial class Main
         return label;
     }
 
-    /// <summary>
-    /// The console groups whose widths are stated, restated against the console they are in.
-    /// </summary>
-    /// <remarks>
-    /// 🔴 <b>A STATED MINIMUM WIDER THAN THE WINDOW IS AN OVERFLOW AND NOT A WRAP.</b> The tool tray
-    /// names a width so the flow wraps around it rather than clipping it — and at 480 px that number
-    /// is wider than the console itself, so the group ran off the right edge and took the pointer
-    /// reading with it. ***A minimum is a request and the window is the authority***, so it is
-    /// capped here every frame rather than chosen once.
-    /// </remarks>
+    // Reserve readable pointer feedback, then fit the visible groups on a single row when possible.
+    private float ConsoleWidth(float available)
+    {
+        var groups = _consoleTop.GetChildren().OfType<Control>().Where(c => c.Visible).ToArray();
+        float top = groups.Sum(c => c.GetCombinedMinimumSize().X)
+            + Math.Max(0, groups.Length - 1) * _consoleTop.GetThemeConstant("h_separation");
+        float bottom = _dataLaunchers.GetCombinedMinimumSize().X + 280f * _textPercent / 100f
+            + _pointerRow.GetThemeConstant("separation");
+        return Math.Min(available, Math.Max(top, bottom) + 32f
+            + _consoleScroll.GetVScrollBar().GetCombinedMinimumSize().X);
+    }
+
     private void SizeConsole(float inner)
     {
-        _toolSlot.CustomMinimumSize = new Vector2(Math.Min(270f, inner), 0f);
-        _hover.CustomMinimumSize = new Vector2(Math.Max(120f, inner), 0f);
+        _toolSlot.CustomMinimumSize = new Vector2(Math.Min(180f * _textPercent / 100f, inner), 0f);
+        _hover.CustomMinimumSize = new Vector2(120f, 0f);
     }
 
     /// <summary>What the current rung is called.</summary>
@@ -287,6 +280,11 @@ public partial class Main
         _pauseButton.SetPressedNoSignal(_rung == 0);
         _slowerButton.Disabled = _rung <= 1;
         _fasterButton.Disabled = _rung >= Ladder.Length - 1;
+
+        _populationLabel.Text = $"Population {_world.Citizens.Rows.LiveCount:N0}";
+        Money? treasury = _world.TreasuryBalance();
+        _treasuryLabel.Visible = treasury is not null;
+        if (treasury is { } held) _treasuryLabel.Text = $"Treasury {held.Raw:N0}";
 
         int minute = Ticks.MinuteOfDay(_world.Tick.Raw);
         if (_skyArc.Minute != minute)

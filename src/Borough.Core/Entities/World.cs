@@ -4664,6 +4664,43 @@ public sealed class World
     }
 
     /// <summary>
+    /// Money the treasury holds, or <see langword="null"/> where the world declares no money at all.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Absent and empty are different answers</b>, which is why this is nullable rather than zero:
+    /// most shipped Rulesets declare no money Resource, so a reader printing <c>0</c> over them would
+    /// teach that the city has a treasury it has drawn down. A world that declares money opens its
+    /// treasury empty (<c>adr/0116</c>) and reads <see cref="Money.Zero"/> until a levy pays in.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It agrees with <see cref="MoneyLedger.Treasury"/> and is cheap where the ledger is not.</b>
+    /// The ledger walks every Bin in the world and files each by its owner kind; this walks the
+    /// treasury's own list, which holds one Bin per conserved Resource. The two agree because
+    /// <see cref="CreateTreasuryBin"/> is the only thing that makes a treasury-owned Bin and it
+    /// inserts into that list. A caller wanting the whole distribution still wants the ledger.
+    /// </para>
+    /// </remarks>
+    public Money? TreasuryBalance()
+    {
+        long held = 0;
+        bool declared = false;
+
+        foreach (int bin in TreasuryBins.Walk(TreasuryTable.Slot))
+        {
+            if (!Rules.IsConserved(Bins.Resource[bin]))
+            {
+                continue;
+            }
+
+            declared = true;
+            held += Bins.LevelAt(bin);
+        }
+
+        return declared ? new Money(held) : null;
+    }
+
+    /// <summary>
     /// Gives the treasury a Bin for <paramref name="resource"/>, empty and unbounded.
     /// </summary>
     /// <remarks>

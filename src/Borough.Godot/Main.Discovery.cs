@@ -64,28 +64,29 @@ public partial class Main
         new("Developer", "Write Input Log", "W", [Key.W], Record),
     ];
 
-    /// <summary>
-    /// The camera's six buttons, <b>on one row</b>.
-    /// </summary>
-    /// <remarks>
-    /// 🔴 <b>A BOX, AND A FLOW HERE STACKS THEM ONE PER ROW.</b> The console is itself an
-    /// <see cref="HFlowContainer"/>, and a flow asks each child how narrow it can be — a nested
-    /// flow answers <em>one button</em>, so the six came back as a column. It is the same trap
-    /// <c>Console</c>'s layer picker documented and the same answer: ***a group inside a flow
-    /// states a width or gets one button's.*** A box states one by holding its children on a line.
-    /// </remarks>
-    private HBoxContainer CameraControls()
+    private NavigationDial _navigationDial = null!;
+    private CityMiniMap _miniMap = null!;
+
+    private VBoxContainer CameraControls()
     {
-        var group = new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
+        var group = new VBoxContainer();
+        group.AddThemeConstantOverride("separation", 4);
+        _miniMap = new CityMiniMap { ClipContents = true, MouseDefaultCursorShape = Control.CursorShape.PointingHand };
+        _miniMap.Navigate = (east, north) => AtBoundary(() => Apply(new DriveCommand(
+            _world.Tick.Raw, DriveVerb.Focus, 0, null, east, north)));
+        group.AddChild(_miniMap);
+        _navigationDial = new NavigationDial { TooltipText = "Compass · the arrow points north" };
         string[] labels = ["↶", "↷", "↑", "↓", "+", "−"];
-        group.AddChild(ConsoleLabel("Camera", CaptionPoints));
         int i = 0;
         foreach (var shortcut in Shortcuts().Where(s => s.Group == "Camera"))
         {
             var button = ConsoleButton(labels[i++], shortcut.Action);
+            button.CustomMinimumSize = new Vector2(40, 40);
+            UiIcons.Center(button);
             button.TooltipText = $"{shortcut.Label} ({shortcut.Binding})";
-            group.AddChild(button);
+            _navigationDial.AddChild(button);
         }
+        group.AddChild(_navigationDial);
         return group;
     }
 
@@ -212,6 +213,7 @@ public partial class Main
             else if (_menuOpen) Ui(_menuPage == "main" ? "menu off" : "menu cancel");
             else if (_tuner.Visible && (!_governing || _tuner.GetIndex() > _policyPanel.GetIndex())) _tuner.Visible = false;
             else if (_governing) Govern();
+            else if (_layersShown) Ui("layers off");
             else if (_toolsShown) Ui("tools off");
             else if (_inspector!.Visible) Ui("close");
             else Apply(Held("look", 0));
