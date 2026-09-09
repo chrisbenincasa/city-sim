@@ -1121,4 +1121,18 @@ public enum Invariant
     /// </para>
     /// </remarks>
     ACoarseRowIsDueOnTheDayItsBucketNames = 56,
+
+    /// <summary>
+    /// The catchment folds as a lay-time fingerprint, so a mid-run write to it would be invisible to
+    /// the State Hash until this fires.
+    /// </summary>
+    /// <remarks>
+    /// <b>What pays for <c>World.CatchmentWasLaid</c>.</b> The State Hash folds one <c>ulong</c> in
+    /// 262,144 rows' place, which is exact for as long as nothing writes the table after
+    /// <c>WaterGenerator</c> lays it. This is the check that the premise still holds, and it is
+    /// <see cref="TerrainIsUnchangedSinceItWasLaid"/>'s sibling rather than a new kind of guard.
+    /// ⚠ <b>It stops being the right check the day anything terraforms or re-routes drainage</b>, at
+    /// which point the catchment leaves the guard's exclusion and this is replaced rather than relaxed.
+    /// </remarks>
+    CatchmentIsUnchangedSinceItWasLaid = 57,
 }

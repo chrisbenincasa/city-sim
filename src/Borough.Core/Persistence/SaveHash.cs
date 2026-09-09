@@ -120,7 +120,13 @@ public static class SaveHash
             // ⚠ WALKING THE ROWS IS FINE HERE and that asymmetry is the whole trade: a save happens
             // rarely and a fold happens twice a Tick, so the saving was never in the bytes touched but
             // in how often they are touched.
-            bool asDigest = ReferenceEquals(table, world.Layers.Terrain.Rows);
+            // The catchment joins terrain here for terrain's reason and by terrain's edit -- see
+            // CatchmentCellTable.Fold. Both sides still agree by computing the same function of the same
+            // bytes rather than by trusting each other, so a one-sided change goes red in SaveHashTests
+            // on the first run, which is how the terrain half of this was caught.
+            bool asDigest =
+                ReferenceEquals(table, world.Layers.Terrain.Rows)
+                || ReferenceEquals(table, world.Catchment.Rows);
             ulong digest = 0;
             ref ulong into = ref (asDigest ? ref digest : ref hash);
 

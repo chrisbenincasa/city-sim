@@ -51,6 +51,7 @@ public static class WorldInvariants
         // Registered here rather than being optional, because it is what pays for the Decide guard
         // skipping the terrain table. adr/0158, milestone 24 task 2. See World.TablesAPhaseCanWrite.
         invariants.Register(InvariantTier.EndOfRun, TerrainIsUnchangedSinceItWasLaid);
+        invariants.Register(InvariantTier.EndOfRun, CatchmentIsUnchangedSinceItWasLaid);
         invariants.Register(InvariantTier.EndOfRun, RuleInstancesAreQueuedExactlyOnce);
         invariants.Register(InvariantTier.EndOfRun, NoBuildingRunsRulesItsKindDoesNotDeclare);
         invariants.Register(InvariantTier.EndOfRun, LotsAndBuildingsAgreeWhoIsWhere);
@@ -935,6 +936,32 @@ public static class WorldInvariants
         if (!world.Layers.TerrainIsUnchangedSinceLaid())
         {
             report.Report(Invariant.TerrainIsUnchangedSinceItWasLaid, 0);
+        }
+    }
+
+    /// <summary>
+    /// The catchment is laid once and never written again, and the State Hash folds its lay-time
+    /// fingerprint on that promise.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Terrain's check, made a second time about the second dense Cell table.</b>
+    /// <c>World.CatchmentWasLaid</c>'s fingerprint stands in for 262,144 rows in <c>World.HashState</c>, which is
+    /// exact only while <c>WaterGenerator</c> stays the table's one writer. <c>World</c> already
+    /// excludes the table from the Decide guard's writable set on <c>adr/0021</c>'s grounds; this is
+    /// the end-of-run half, and the two are the same claim checked at two frequencies.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It stops being the right check the day drainage is something the city changes</b> — a
+    /// terraforming verb, a culvert, a reservoir — at which point the catchment leaves the exclusion
+    /// and this is replaced rather than relaxed.
+    /// </para>
+    /// </remarks>
+    internal static void CatchmentIsUnchangedSinceItWasLaid(World world, InvariantRegistry report)
+    {
+        if (!world.CatchmentIsUnchangedSinceLaid())
+        {
+            report.Report(Invariant.CatchmentIsUnchangedSinceItWasLaid, 0);
         }
     }
 

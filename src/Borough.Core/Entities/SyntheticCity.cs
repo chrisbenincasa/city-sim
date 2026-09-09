@@ -228,6 +228,12 @@ public static class SyntheticCity
             world.Rules.Water,
             key);
 
+        // The catchment is now what it will be for the life of this world, so take the fingerprint the
+        // State Hash folds in its place. CatchmentCellTable.Fold carries the argument; the short form
+        // is that this table is 262,144 rows of a constant and the fold used to walk all of them twice
+        // a Tick.
+        world.CatchmentWasLaid();
+
         // The Hazard Region's index, from the rows that pass just wrote. Rebuilt rather than filled
         // as the rows are made, unlike WaterInCells above -- the floodplain pass is a single walk of
         // the height field with no handles to thread, and threading an index through it to save one

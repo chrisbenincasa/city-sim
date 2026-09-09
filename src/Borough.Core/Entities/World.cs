@@ -63,10 +63,24 @@ public sealed class World
     // case this byte exists for and the opposite of the paragraph above. No state was added, none was
     // removed, and terrain stays in _tables because that list is also the saved set. SaveHash.Of
     // mirrors the rule, and SaveHashTests caught the one-sided version of this change immediately.
-    internal const ulong HashSeed = 0x426F_726F_7567_6803UL;
+    //
+    // 04: the catchment, on terrain's identical argument and by the identical edit -- the second of the
+    // three dense Cell tables, 262,144 rows laid once by WaterGenerator. The third, Layers.Woodland, is
+    // the same shape and the same size and CANNOT follow, because MapLayers.Seal writes it every time a
+    // Building is created. Again no state moved: the same city hashes differently.
+    internal const ulong HashSeed = 0x426F_726F_7567_6804UL;
 
     private readonly Rows[] _tables;
     private readonly Rows[] _writableTables;
+
+    // What the catchment folded to when it was laid, and what HashState folds in the table's place.
+    //
+    // ⚠ IT LIVES HERE RATHER THAN ON THE TABLE, and that is the analyser's decision rather than a
+    // preference: BOR0901 refuses an undeclared field on a [Table] class, because adr/0003 has every
+    // field declared once as (saved AND hashed) or (derived AND rebuilt) and this is neither -- it is
+    // a fold OF the columns, not a column. So it sits with the table's owner, which is exactly where
+    // terrain's sits (MapLayers._terrainLaidFold), for exactly the same reason.
+    private ulong _catchmentLaidFold;
 
     // The Day's water outflow, one entry per Water Body slot. A scratch buffer rather than a column:
     // it holds a single pass's intermediate and is meaningless between Ticks, so a column would put
@@ -239,6 +253,15 @@ public sealed class World
         // asked about dry ground, so sparsity would be storing a residency index to say "no" about
         // the Cells that are the whole point. milestone 24 task 6b, adr/0160.
         Catchment = new Space.CatchmentCellTable(Water);
+
+        // Laid, for a world that never lays water. Every row is allocated in the table's constructor
+        // and none is ever freed, so an inland world (adr/0160) is all default -- DRAINS NOWHERE, which
+        // CatchmentCellTable's remark records as a real answer rather than an absence. WaterGenerator
+        // overwrites the rows and SyntheticCity re-takes this; a world that never generates keeps this
+        // one. ⚠ WITHOUT THIS LINE the fold is a zero that no table ever produced, and every world
+        // built through the cold API fails CatchmentIsUnchangedSinceItWasLaid at end of run -- which is
+        // how its absence was found, on the invariant's first outing.
+        CatchmentWasLaid();
 
         // The Hazard Region, sized from the MAP for the water tables' own reason. A floodplain is a
         // band above the waterline, so a sixty-fourth of the map is a hint and not a claim about how
@@ -1272,6 +1295,17 @@ public sealed class World
             if (ReferenceEquals(table, Layers.Terrain.Rows))
             {
                 hash = Randomness.Mix(hash + Layers.TerrainFold);
+                continue;
+            }
+
+            // The catchment on terrain's own argument, and it is the SECOND of the three dense Cell
+            // tables rather than a generalisation of the first: 262,144 rows written once by
+            // WaterGenerator and by nothing else, which is why it is already outside the Decide guard's
+            // writable set above. The third, Layers.Woodland, is deliberately NOT here -- MapLayers.Seal
+            // writes it on every Building, so it stays walked. See CatchmentCellTable.Fold.
+            if (ReferenceEquals(table, Catchment.Rows))
+            {
+                hash = Randomness.Mix(hash + _catchmentLaidFold);
                 continue;
             }
 
@@ -2965,6 +2999,43 @@ public sealed class World
     }
 
     /// <summary>
+    /// Takes the fingerprint <see cref="HashState"/> folds in the catchment table's place. <b>Called
+    /// once the catchment is laid, and again on the load path.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>One <c>ulong</c> standing for 262,144 rows, and the coverage it gives is the same
+    /// coverage.</b> <see cref="Space.CatchmentCellTable"/> is dense — a row per Cell — and every row
+    /// is allocated in its constructor and never freed, so its contribution to <c>Rows.Fold</c>'s
+    /// allocator scalars is a constant and only the <c>body</c> column can move the hash. This folds
+    /// that column. ***A re-drained Cell changes this value and therefore changes the State Hash***,
+    /// which is <c>05 §4</c>'s guarantee kept rather than narrowed. It is
+    /// <see cref="Space.MapLayers.TerrainFold"/>'s argument made a second time, about the second of
+    /// the three dense Cell tables.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The third one cannot have it.</b> <c>Layers.Woodland</c> is the same shape and the same
+    /// size, and <c>MapLayers.Seal</c> writes it every time a Building is created — so it stays in
+    /// <see cref="TablesAPhaseCanWrite"/>'s set and stays walked. <b>The test is <em>can any phase
+    /// write it</em> and never <em>is it expensive</em>.</b>
+    /// </para>
+    /// <para>
+    /// 🔴 <b>It is the fingerprint AT LAY TIME and not a fresh one, and that is the whole saving.</b>
+    /// What makes the stored value safe to fold is that the catchment cannot change: it is written by
+    /// <c>WaterGenerator.Catchments</c> at world creation and by nothing else for the life of a world,
+    /// which is why the table is already outside the Decide guard's writable set on <c>adr/0021</c>'s
+    /// grounds. ⚠ <b>So a mid-run write would fold as the OLD value until
+    /// <c>WorldInvariants.CatchmentIsUnchangedSinceItWasLaid</c> catches it at end of run</b> — the
+    /// same bargain terrain strikes, struck again rather than differently.
+    /// </para>
+    /// </remarks>
+    public void CatchmentWasLaid() => _catchmentLaidFold = Catchment.Fingerprint();
+
+    /// <summary>Whether the catchment still folds to what it folded to when it was laid.</summary>
+    /// <remarks>What pays for <see cref="CatchmentWasLaid"/>. See the invariant of the same name.</remarks>
+    public bool CatchmentIsUnchangedSinceLaid() => Catchment.Fingerprint() == _catchmentLaidFold;
+
+    /// <summary>
     /// Rebuilds every <see cref="Disposition.Derived"/> structure from saved state.
     /// </summary>
     /// <remarks>
@@ -2978,6 +3049,12 @@ public sealed class World
     {
         Layers.RebuildDerived();
         Roads.RebuildDerived();
+
+        // The load path, and the same one that is easy to forget for terrain: a load RESTORES the
+        // catchment rows and never re-runs WaterGenerator, so without this a loaded world would fold a
+        // constructor's worth of "drains nowhere" against restored rows and hash differently from the
+        // world it was saved from.
+        CatchmentWasLaid();
 
         Buildings.OccupantHead.Span.Clear();
         Buildings.OccupantTail.Span.Clear();
