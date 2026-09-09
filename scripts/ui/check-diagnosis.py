@@ -47,9 +47,11 @@ command('focus 48 48 600')
 command('ui close')
 initial = read('diagnosis-unselected')
 assert initial['Tick'] == 512 and not initial['InspectorVisible']
-mark = next(m for m in initial['SupplyMarks'] if m['Building'] == 2 and m['Visible'])
-command('hold demolish')
-click(mark['Rect'])
+assert 'SupplyMarks' not in initial
+command('hold look')
+target = next(t for t in initial['MapTargets'] if t['Kind'] == 'building' and t['Id'] == 2)
+command(f"ui map-press {round(target['X'])} {round(target['Y'])}")
+command('ui section attention on')
 selected = read()
 assert selected['Selected'] == 2 and selected['Hash'] == initial['Hash']
 assert 'Waiting for money' in selected['Text'] and '+3 other shortfalls' in selected['Text']
@@ -93,7 +95,6 @@ for _ in range(20):
     if '+2 other shortfalls' in state['Text']:
         command('pause')
         partial = read('diagnosis-partial')
-        assert any(m['Building'] == 2 for m in partial['SupplyMarks'])
         command(f'shoot {out}/diagnosis-partial.png')
         break
 else:
@@ -110,7 +111,6 @@ for _ in range(20):
         break
 assert resolved is not None, state['Text']
 assert 'Waiting for money' not in resolved['Text']
-assert all(m['Building'] != 2 for m in resolved['SupplyMarks'])
 assert resolved['Hash'] != initial['Hash']
 command(f'shoot {out}/diagnosis-resolved.png')
-print('PASS: unselected mark; concurrent causes; mouse-safe inspection; Household, finances and Workplace links; both desktop themes; governed rebate clears explanation and mark.')
+print('PASS: map selection; concurrent causes; inspection; Household, finances and Workplace links; both desktop themes; governed rebate clears the explanation.')

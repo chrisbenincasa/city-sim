@@ -57,9 +57,6 @@ internal static class InformationUi
         // A section heading sits inside a card that already has a border, so it draws neither its
         // own border nor its own fill: an accent carried by every section marks none of them, and
         // the amber attention band is left as the one filled heading in the inspector.
-        theme.SetTypeVariation("SupplyMark", "Button");
-        ButtonStyles(theme, "SupplyMark", p.Warning, p.WarnInk, p.Warn, p.WarnInk, p.Warn,
-            horizontal: 4, vertical: 2, radius: 18);
         theme.SetTypeVariation(Heading, "Button");
         ButtonStyles(theme, Heading, p.Surface, p.SectionInk, p.Section, p.SectionInk, p.Surface);
         theme.SetTypeVariation(WarningHeading, "Button");

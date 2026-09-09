@@ -414,7 +414,6 @@ public partial class Main
 
     private bool OverInformation(Vector2 at) => _hud.Visible && (
         _menuOpen || _helpShade is not null && _helpShade.Visible
-        || _supplyMarks.Values.Any(m => m.Visible && m.GetGlobalRect().HasPoint(at))
         || _informationPanels.Any(p => p.Visible && p.GetGlobalRect().HasPoint(at))
         || _toolsButton.Visible && _toolsButton.GetGlobalRect().HasPoint(at)
         || _palette is not null && _palette.Visible && _palette.GetGlobalRect().HasPoint(at)
@@ -764,7 +763,6 @@ public partial class Main
         if (_aimed is not null || !OverInformation(GetViewport().GetMousePosition()))
             _hover.Text = Synopsis();
         RefreshInspection(false);
-        RefreshSupplyMarks();
         MarkInformation(_selectionRing, _selectedBuilding);
         if (_selectedBuilding.IsNone) _selectionRing.Visible = false;
         MarkRoad(ref _roadSelection, _selectedRoad, true);
@@ -1149,13 +1147,6 @@ public partial class Main
             Pointer = new { X = GetViewport().GetMousePosition().X, Y = GetViewport().GetMousePosition().Y },
             MapTargets = InformationMapTargets(),
             Business = RowId(_world.Businesses.Rows, _selectedBusiness),
-            SupplyMarks = _supplyMarks.Select(p => new
-            {
-                Building = RowId(_world.Buildings.Rows, p.Key),
-                Visible = p.Value.Visible,
-                Rect = Rect(p.Value),
-                Text = p.Value.TooltipText
-            }).ToArray(),
             Road = RowId(_world.Roads.Segments.Rows, _selectedRoad),
             InspectorVisible = _inspector!.Visible,
             Inspector = Rect(_inspector),

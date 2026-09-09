@@ -26,7 +26,7 @@ Historical rows retain their previous verification; row 10 records its new check
 | 10 | Complete | Game menu: Save, Load, Settings, Help, Credits and protected Quit | `CitySaveTests` and `scripts/ui/check-menu.py`; saved content travels with the city, failed loads preserve it, and menu controls work with the mouse |
 | 18 | Partial; independent | Content fitting, shadows, nested radii, quieter headings, type roles and tabular readings built; motion and full acceptance pending | Measured against the same `ui read` dumps: chrome share falls, no panel is stretched past its content, spacing values sit on one grid, panel changes preserve orientation without delaying input, live numbers stop reflowing; reduced motion preserves clear states |
 | 13 | Partial: supply diagnosis built | Evidence-backed status explanations: normal, routine waiting, trouble and unavailable explanation; concurrent causes with a primary summary and expandable detail | Removing one of two causes reveals the remaining cause; unavailable evidence never becomes normal; every emitted code has a shell sentence |
-| 14 | Partial: current supply marks built | Persistent marks in the world on troubled subjects, as a channel separate from row 7's feed | A troubled Building is discoverable without selection; retries retain one issue; resolution clears its mark; recurrence is identifiable; history labels resolved events and deleted subjects leave no broken links |
+| 14 | Withdrawn for redesign — 2026-09-09 | City-wide floating supply warnings removed at the player's request; rethink discovery with row 7 | Agree a quieter, bounded-cost way to find trouble before implementation; retain Evidence-backed inspection |
 | 15 | Partial: SVG family integrated | An icon family and redundant visual cues: chrome, Goods, zone permissions, map layers, entity kinds, selection and severity | Essential distinctions survive without hue in both themes and enlarged text, using shape, labels or patterns; licences recorded for Credits |
 | 16 | Partial | Road, Building, Household and Business navigation built, including Workplace links; remaining subject types pending | No displayed subject id is unnavigable; `docs/01 §6`'s no-orphan-figures rule holds over the shipped inspectors |
 | 17 | Proposed | Separate developer controls from the player's console and Help | Debug overlays leave the `O` cycle; the tuner, log write and debug readout leave the player's shortcut catalogue |
@@ -51,7 +51,7 @@ Buttons retain labels, tooltips and selected-state styling; selection alone does
 Disabled controls remain outlined. Non-interactive readings stay outlined.
 
 The family covers tools, zone permissions, menu and camera controls, map-layer choices,
-inspector subjects and links, stock readings and supply marks. Unrecognised Resource names use
+inspector subjects and links, and stock readings. The floating supply marks were removed on 2026-09-09. Unrecognised Resource names use
 an explicitly generic stock symbol. `scripts/ui/check-icons.py` checks actual texture changes,
 unchanged hit rectangles, selection, themes and text scaling; `check-diagnosis.py` still owns the
 complete diagnosis interaction. Credits identifies the icons as project-created assets.
@@ -62,14 +62,19 @@ readable without hue. The comparison sheet remains under `art/ui-study`.
 
 ## Next pass — current issues
 
-The first supply diagnosis interaction is built. Next is row 7's compact current-issues list,
-using the same Evidence: group affected subjects and causes, reconcile counts, open a subject,
-and remove resolved conditions. Other status families, historical events and Citizen inspection
+Supply diagnosis remains in hover and inspection. The player rejected city-wide floating warnings
+on 2026-09-09. Reconsider row 14 and row 7 together before building a replacement: the compact
+current-issues list remains a proposal, with affected subjects and causes, reconciled counts,
+subject navigation and removal of resolved conditions. Other status families, historical events and Citizen inspection
 remain pending. Large-city save/load responsiveness remains unmeasured.
 
 Row 18's desktop comparisons remain independent; preserve text scaling and both themes.
 
 ## First diagnosis interaction — 2026-09-08
+
+**Historical warning-layer behaviour below was superseded on 2026-09-09.** Floating marks were
+removed; the maintained interaction check selects the Building on the map and exercises its
+explanations and recovery. The inspector and Evidence findings remain applicable.
 
 `Evidence.SupplyOfBuilding` supplies the mark and primary summary through `ReadRule`; the primary
 is the greatest missed-firing count, with Rule Instance identity breaking ties. `RuleEvidence`
@@ -91,7 +96,7 @@ Reproduce after a Debug shell build:
 
 ```sh
 python3 scripts/ui/diagnosis-fixture.py /tmp/borough-diagnosis
-godot --path src/Borough.Godot -- --ruleset /tmp/borough-diagnosis/diagnosis.toml \
+BOROUGH_SHOT=1 godot --path src/Borough.Godot -- --ruleset /tmp/borough-diagnosis/diagnosis.toml \
   --citizens 256 --start-at 512 --drive /tmp/borough-diagnosis/diagnosis.drive \
   --listen /tmp/borough-diagnosis.sock
 python3 scripts/ui/check-diagnosis.py /tmp/borough-diagnosis.sock
@@ -533,3 +538,25 @@ Watching found Credits could scroll its Back button away and the light file pick
 dark default surfaces; both were corrected. The driver now reads popup buttons and file-item
 rectangles. Its load-path command opens the directory without silently selecting the file; the
 check clicks the entry and then Open, so it exercises the player's selection path.
+
+### Floating supply warnings removed — 2026-09-09
+
+The neighbourhood preview exposed a paused-shell slowdown in `RefreshSupplyMarks`. Its repeated
+font overrides invalidated Godot's theme and minimum-size caches. Guarding those writes removed
+the largest cost, but left a city-wide button scan and a visually overwhelming warning field.
+The player rejected the layer and requested a UX rethink. The layer, its input interception and
+its theme were removed. `SupplySummary`, `Synopsis` and `Attention` retain the explanations on
+hover and inspection. Rows 7 and 14 own the discovery redesign; no replacement is implied.
+
+`scripts/ui/check-city-performance.py` exercises displayed cities through `--listen` and
+`BOROUGH_PERFORMANCE_LOG`. It requires caller-supplied local shell and FPS ceilings, checks
+paused and running windows, and refuses floating supply buttons. Its Debug-shell readings are
+diagnostic comparisons, not Tick-budget measurements. `check-diagnosis.py` now clicks the
+Building itself and retains the concurrent-cause, navigation and recovery checks.
+Both checks passed after removal: neighbourhood at 256 and 10,000 Citizens, each with separate
+paused and running windows; diagnosis through direct map selection, both themes, partial recovery
+and complete recovery. The diagnosis run uses `BOROUGH_SHOT` to keep the desktop pointer from
+edge-panning its camera between a projected target reading and the click.
+An isolated interaction probe also exercised Settings, Tools, live Building inspection, repeated
+selection and real pointer hover. Performance comparisons must exclude concurrent assertion runs;
+those competed with the driven interaction verification and caused visible drops during this session.
