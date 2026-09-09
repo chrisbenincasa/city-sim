@@ -165,25 +165,25 @@ public partial class Main
 
         _air = new Godot.Environment
         {
-                BackgroundMode = Godot.Environment.BGMode.Sky,
-                Sky = new Sky { SkyMaterial = _above },
-                AmbientLightSource = Godot.Environment.AmbientSource.Sky,
-                AmbientLightSkyContribution = 1f,
-                AmbientLightEnergy = 1.05f,
+            BackgroundMode = Godot.Environment.BGMode.Sky,
+            Sky = new Sky { SkyMaterial = _above },
+            AmbientLightSource = Godot.Environment.AmbientSource.Sky,
+            AmbientLightSkyContribution = 1f,
+            AmbientLightEnergy = 1.05f,
 
-                // ⚠ AN INSTRUMENT AS MUCH AS A LOOK. Occlusion is what puts a Building's own
-                // shadow in the corner where it meets the ground and in the gap between two of
-                // them, so a terrace reads as a terrace and a detached pair reads as two houses.
-                // The radius is a metre and a half, which is the gap the fill factor leaves.
-                SsaoEnabled = true,
-                SsaoRadius = 2.2f,
-                SsaoIntensity = 1.6f,
-                SsaoPower = 1.8f,
+            // ⚠ AN INSTRUMENT AS MUCH AS A LOOK. Occlusion is what puts a Building's own
+            // shadow in the corner where it meets the ground and in the gap between two of
+            // them, so a terrace reads as a terrace and a detached pair reads as two houses.
+            // The radius is a metre and a half, which is the gap the fill factor leaves.
+            SsaoEnabled = true,
+            SsaoRadius = 2.2f,
+            SsaoIntensity = 1.6f,
+            SsaoPower = 1.8f,
 
-                // The sun off a wall at this hour is bright enough to clip, and a clipped wall
-                // loses exactly the shading the openings are drawn against.
-                TonemapMode = Godot.Environment.ToneMapper.Filmic,
-                TonemapWhite = 2.2f,
+            // The sun off a wall at this hour is bright enough to clip, and a clipped wall
+            // loses exactly the shading the openings are drawn against.
+            TonemapMode = Godot.Environment.ToneMapper.Filmic,
+            TonemapWhite = 2.2f,
         };
 
         AddChild(new WorldEnvironment { Environment = _air });

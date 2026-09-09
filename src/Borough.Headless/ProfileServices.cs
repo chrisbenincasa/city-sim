@@ -36,11 +36,21 @@ internal static class ProfileServices
                 world.CreateBuilding(world.Lots.Rows.At(lot), kind, world.Tick, key);
                 placed++;
             }
-            output.WriteLine(System.Text.Json.JsonSerializer.Serialize(new { type = "services", kind,
-                serves = definition.Serves.ToString(), definition.BedPercent, requested }));
+            output.WriteLine(System.Text.Json.JsonSerializer.Serialize(new
+            {
+                type = "services",
+                kind,
+                serves = definition.Serves.ToString(),
+                definition.BedPercent,
+                requested
+            }));
         }
         return placed > 0;
     }
-    internal static object Read(Simulation sim) => new { type = "civic", tick = sim.World.Tick.Raw,
-        care = sim.Civic.Read() };
+    internal static object Read(Simulation sim) => new
+    {
+        type = "civic",
+        tick = sim.World.Tick.Raw,
+        care = sim.Civic.Read()
+    };
 }

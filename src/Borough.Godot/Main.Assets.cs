@@ -33,8 +33,14 @@ public partial class Main
         new() { Radius = radius, Height = height, RadialSegments = 7, Rings = 4 };
 
     private static ArrayMesh TreeMesh() => Assemble(
-        (new CylinderMesh { TopRadius = 0.025f, BottomRadius = 0.045f, Height = 0.52f,
-            RadialSegments = 6, Rings = 0 }, new Vector3(0f, 0.26f, 0f), new Color(0.32f, 0.25f, 0.17f)),
+        (new CylinderMesh
+        {
+            TopRadius = 0.025f,
+            BottomRadius = 0.045f,
+            Height = 0.52f,
+            RadialSegments = 6,
+            Rings = 0
+        }, new Vector3(0f, 0.26f, 0f), new Color(0.32f, 0.25f, 0.17f)),
         (CrownMesh(0.31f, 0.55f), new Vector3(-0.17f, 0.57f, 0.01f), new Color(0.29f, 0.42f, 0.18f)),
         (CrownMesh(0.30f, 0.52f), new Vector3(0.18f, 0.62f, 0.08f), new Color(0.25f, 0.38f, 0.16f)),
         (CrownMesh(0.29f, 0.55f), new Vector3(0f, 0.74f, -0.10f), new Color(0.35f, 0.46f, 0.21f)));

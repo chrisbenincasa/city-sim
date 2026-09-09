@@ -143,17 +143,25 @@ internal static class InformationUi
 
     public static StyleBoxFlat Box(Color fill, Color line, int horizontal, int vertical,
         int radius = ControlRadius, Color? shadow = null) => new()
-    {
-        BgColor = fill, BorderColor = line,
-        BorderWidthBottom = 1, BorderWidthTop = 1, BorderWidthLeft = 1, BorderWidthRight = 1,
-        CornerRadiusBottomLeft = radius, CornerRadiusBottomRight = radius,
-        CornerRadiusTopLeft = radius, CornerRadiusTopRight = radius,
-        ContentMarginLeft = horizontal, ContentMarginRight = horizontal,
-        ContentMarginTop = vertical, ContentMarginBottom = vertical,
-        ShadowSize = shadow is null ? 0 : PanelShadow,
-        ShadowColor = shadow ?? Colors.Transparent,
-        ShadowOffset = shadow is null ? Vector2.Zero : new Vector2(0, PanelShadow / 3f),
-    };
+        {
+            BgColor = fill,
+            BorderColor = line,
+            BorderWidthBottom = 1,
+            BorderWidthTop = 1,
+            BorderWidthLeft = 1,
+            BorderWidthRight = 1,
+            CornerRadiusBottomLeft = radius,
+            CornerRadiusBottomRight = radius,
+            CornerRadiusTopLeft = radius,
+            CornerRadiusTopRight = radius,
+            ContentMarginLeft = horizontal,
+            ContentMarginRight = horizontal,
+            ContentMarginTop = vertical,
+            ContentMarginBottom = vertical,
+            ShadowSize = shadow is null ? 0 : PanelShadow,
+            ShadowColor = shadow ?? Colors.Transparent,
+            ShadowOffset = shadow is null ? Vector2.Zero : new Vector2(0, PanelShadow / 3f),
+        };
 
     public static VBoxContainer Stack(int gap = SectionGap)
     {
@@ -166,7 +174,8 @@ internal static class InformationUi
     {
         var label = new Label
         {
-            Text = text, MouseFilter = Control.MouseFilterEnum.Ignore,
+            Text = text,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
             AutowrapMode = compact ? TextServer.AutowrapMode.Off : TextServer.AutowrapMode.WordSmart,
             VerticalAlignment = VerticalAlignment.Center,
             SizeFlagsVertical = compact ? Control.SizeFlags.ShrinkCenter : Control.SizeFlags.Fill,
@@ -178,8 +187,13 @@ internal static class InformationUi
 
     public static Button Button(string text, Action action, bool compact = false)
     {
-        var button = new Button { Text = text, TooltipText = text, CustomMinimumSize = new Vector2(0, compact ? 30 : 36),
-            SizeFlagsVertical = compact ? Control.SizeFlags.ShrinkCenter : Control.SizeFlags.Fill };
+        var button = new Button
+        {
+            Text = text,
+            TooltipText = text,
+            CustomMinimumSize = new Vector2(0, compact ? 30 : 36),
+            SizeFlagsVertical = compact ? Control.SizeFlags.ShrinkCenter : Control.SizeFlags.Fill
+        };
         UiIcons.Common(button);
         button.Pressed += action;
         return button;

@@ -63,27 +63,38 @@ public partial class KitStudy : Node3D
             }
             _environment = new Godot.Environment
             {
-                BackgroundMode = Godot.Environment.BGMode.Color, BackgroundColor = new Color("c9d8df"),
+                BackgroundMode = Godot.Environment.BGMode.Color,
+                BackgroundColor = new Color("c9d8df"),
                 AmbientLightSource = Godot.Environment.AmbientSource.Color,
-                AmbientLightColor = new Color("d6e2ed"), AmbientLightEnergy = .55f,
+                AmbientLightColor = new Color("d6e2ed"),
+                AmbientLightEnergy = .55f,
                 TonemapMode = Godot.Environment.ToneMapper.Filmic
             };
             AddChild(new WorldEnvironment { Environment = _environment });
-            _sun = new DirectionalLight3D { RotationDegrees = new Vector3(-62,-28,0), LightEnergy = 1.15f,
-                ShadowEnabled = true, DirectionalShadowMaxDistance = 180 };
+            _sun = new DirectionalLight3D
+            {
+                RotationDegrees = new Vector3(-62, -28, 0),
+                LightEnergy = 1.15f,
+                ShadowEnabled = true,
+                DirectionalShadowMaxDistance = 180
+            };
             AddChild(_sun);
-            _ground = new MeshInstance3D { Mesh = new BoxMesh { Size = new Vector3(1,.12f,1) },
-                Position = new Vector3(0,-.06f,0), MaterialOverride = new StandardMaterial3D { AlbedoColor = new Color("b5b6aa"), Roughness = .85f } };
+            _ground = new MeshInstance3D
+            {
+                Mesh = new BoxMesh { Size = new Vector3(1, .12f, 1) },
+                Position = new Vector3(0, -.06f, 0),
+                MaterialOverride = new StandardMaterial3D { AlbedoColor = new Color("b5b6aa"), Roughness = .85f }
+            };
             AddChild(_ground);
             _camera.Fov = 40;
             _camera.Far = 600;
             var layer = new CanvasLayer();
             AddChild(layer);
-            var panel = new ColorRect { Color = new Color(.06f,.08f,.1f,.92f), Size = new Vector2(1440,88) };
+            var panel = new ColorRect { Color = new Color(.06f, .08f, .1f, .92f), Size = new Vector2(1440, 88) };
             layer.AddChild(panel);
             panel.AddChild(_caption);
-            _caption.Position = new Vector2(24,14);
-            _caption.AddThemeFontSizeOverride("font_size",20);
+            _caption.Position = new Vector2(24, 14);
+            _caption.AddThemeFontSizeOverride("font_size", 20);
             ShowSpecimen();
             if (_capture != null) Directory.CreateDirectory(_capture);
             _ready = true;
@@ -127,7 +138,7 @@ public partial class KitStudy : Node3D
                     var arrays = mesh.Mesh.SurfaceGetArrays(surface);
                     _triangles += arrays[(int)Mesh.ArrayType.Index].AsInt32Array().Length / 3;
                     foreach (Vector3 normal in arrays[(int)Mesh.ArrayType.Normal].AsVector3Array())
-                        if (!normal.IsFinite() || Math.Abs(normal.Length()-1) > .002f) throw new InvalidDataException("Invalid normal");
+                        if (!normal.IsFinite() || Math.Abs(normal.Length() - 1) > .002f) throw new InvalidDataException("Invalid normal");
                 }
             }
             foreach (Node child in node.GetChildren()) Inspect(child, transform);
@@ -140,14 +151,14 @@ public partial class KitStudy : Node3D
         Vector3 eye = Eyes[_specimen];
         if (_detail)
         {
-            target = _specimen == 0 ? new Vector3(2.3f, 4.7f, 5.3f) : _specimen == 1 ? new Vector3(2, 22, 8) : new Vector3(.65f,.75f,1);
-            eye = target + (_specimen == 0 ? new Vector3(4,1.5f,6) : _specimen == 1 ? new Vector3(8,3,12) : new Vector3(2,1,2.5f));
+            target = _specimen == 0 ? new Vector3(2.3f, 4.7f, 5.3f) : _specimen == 1 ? new Vector3(2, 22, 8) : new Vector3(.65f, .75f, 1);
+            eye = target + (_specimen == 0 ? new Vector3(4, 1.5f, 6) : _specimen == 1 ? new Vector3(8, 3, 12) : new Vector3(2, 1, 2.5f));
         }
         _camera.Position = eye;
         _camera.LookAt(target);
         _target = target;
         float size = _specimen == 0 ? 22 : _specimen == 1 ? 45 : 8;
-        _ground.Scale = new Vector3(size,1,size);
+        _ground.Scale = new Vector3(size, 1, size);
         _caption.Text = $"0063 / {Specimens[_specimen].ToUpperInvariant()} / {Treatment.ToUpperInvariant()} / NOON\nArt fixture · {(_models ? "MODEL ROUND 1 / geometry varies, warm palette shared" : _styles ? "ART STYLES / palette and shading vary" : _extremes ? "EXTREMES EXPLORATION" : "common composition")} · 1–3 specimens · Q/W/E/R treatments · D detail · Esc closes";
         if (_palettes) _caption.Text = $"0063 / {Specimens[_specimen].ToUpperInvariant()} / {Treatment.ToUpperInvariant()} / {Palette.ToUpperInvariant()}\nPalette study · identical geometry and noon light · Q/W/E palettes · D close · Esc closes";
         GD.Print($"KIT_IMPORT_OK {stem} triangles={_triangles} surfaces={_surfaces} bounds={_bounds}");
@@ -158,7 +169,7 @@ public partial class KitStudy : Node3D
         if (!_ready || @event is not InputEventKey key || !key.Pressed || key.Echo) return;
         if (key.Keycode == Key.Escape) { GetTree().Quit(); return; }
         if (_capture != null) return;
-        if (!_paletteTower && key.Keycode >= Key.Key1 && key.Keycode <= Key.Key3) _specimen = (int)(key.Keycode-Key.Key1);
+        if (!_paletteTower && key.Keycode >= Key.Key1 && key.Keycode <= Key.Key3) _specimen = (int)(key.Keycode - Key.Key1);
         else if (key.Keycode == Key.Q) _treatment = 0;
         else if (key.Keycode == Key.W) _treatment = 1;
         else if (key.Keycode == Key.E) _treatment = 2;
@@ -177,20 +188,34 @@ public partial class KitStudy : Node3D
             string view = _detail ? "detail" : "whole";
             if (_palettes) stem += "-" + Palette;
             string path = Path.Combine(_capture, stem + (_extremes || _styles || _models ? "-" + view : ""));
-            Error result = GetViewport().GetTexture().GetImage().SavePng(path+".png");
+            Error result = GetViewport().GetTexture().GetImage().SavePng(path + ".png");
             if (result != Error.Ok) throw new IOException($"PNG failed: {result}");
-            File.WriteAllText(path+".json", JsonSerializer.Serialize(new
+            File.WriteAllText(path + ".json", JsonSerializer.Serialize(new
             {
-                specimen = Specimens[_specimen], treatment = Treatment,
-                camera = _camera.Position.ToString(), target = _target.ToString(), fov = _camera.Fov,
-                viewport = GetViewport().GetVisibleRect().Size.ToString(), taa = GetViewport().UseTaa, light = "noon", exposure = 1,
-                triangles = _triangles, surfaces = _surfaces, bounds = _bounds.ToString(),
+                specimen = Specimens[_specimen],
+                treatment = Treatment,
+                camera = _camera.Position.ToString(),
+                target = _target.ToString(),
+                fov = _camera.Fov,
+                viewport = GetViewport().GetVisibleRect().Size.ToString(),
+                taa = GetViewport().UseTaa,
+                light = "noon",
+                exposure = 1,
+                triangles = _triangles,
+                surfaces = _surfaces,
+                bounds = _bounds.ToString(),
                 palette = _palettes ? Palette : null,
-                comparison = _palettes ? "palette-round-1" : _models ? "model-round-1" : _styles ? "art-styles" : _extremes ? "extremes" : "kit-v1", view = _detail ? "detail" : "whole",
+                comparison = _palettes ? "palette-round-1" : _models ? "model-round-1" : _styles ? "art-styles" : _extremes ? "extremes" : "kit-v1",
+                view = _detail ? "detail" : "whole",
                 shading = StyleDescription,
-                sunRotation = _sun.RotationDegrees.ToString(), sunEnergy = _sun.LightEnergy, sunAngularDistance = _sun.LightAngularDistance,
-                ambientEnergy = _environment.AmbientLightEnergy, ssao = _environment.SsaoEnabled,
-                tick = (int?)null, population = (int?)null, godot = Engine.GetVersionInfo()["string"].AsString(),
+                sunRotation = _sun.RotationDegrees.ToString(),
+                sunEnergy = _sun.LightEnergy,
+                sunAngularDistance = _sun.LightAngularDistance,
+                ambientEnergy = _environment.AmbientLightEnergy,
+                ssao = _environment.SsaoEnabled,
+                tick = (int?)null,
+                population = (int?)null,
+                godot = Engine.GetVersionInfo()["string"].AsString(),
                 renderer = RenderingServer.GetCurrentRenderingMethod().ToString()
             }, JsonOptions));
             if ((_extremes || _styles || _models) && !_detail) { _detail = true; ShowSpecimen(); return; }

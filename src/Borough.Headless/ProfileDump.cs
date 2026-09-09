@@ -47,10 +47,22 @@ internal static class ProfileDump
         ulong loadedTick = world.Tick.Raw;
         output.WriteLine(JsonSerializer.Serialize(new
         {
-            type = "conditions", ruleset = options.RulesetPath,
+            type = "conditions",
+            ruleset = options.RulesetPath,
             rulesetSha256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(options.RulesetPath!))),
-            options.Seed, options.Citizens, options.WarmupTicks, options.Ticks, options.DecideGuard, options.ProfileWait, options.ProfileWork, options.ProfileReuse, options.ProfileServices, options.ProfilePopulation,
-            options.ProfileLoadPath, options.ProfileSavePath, loadedTick,
+            options.Seed,
+            options.Citizens,
+            options.WarmupTicks,
+            options.Ticks,
+            options.DecideGuard,
+            options.ProfileWait,
+            options.ProfileWork,
+            options.ProfileReuse,
+            options.ProfileServices,
+            options.ProfilePopulation,
+            options.ProfileLoadPath,
+            options.ProfileSavePath,
+            loadedTick,
             startingCitizens = world.Citizens.Rows.LiveCount,
             network = Network(world),
             coreAssemblySha256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(typeof(World).Assembly.Location))),
@@ -75,8 +87,13 @@ internal static class ProfileDump
             sim.Step(default);
             if (world.Tick.Raw % Ticks.PerDay == 0)
             {
-                output.WriteLine(JsonSerializer.Serialize(new { type = "warmup", tick = world.Tick.Raw,
-                    citizens = world.Citizens.Rows.LiveCount, buildings = world.Buildings.Rows.LiveCount }));
+                output.WriteLine(JsonSerializer.Serialize(new
+                {
+                    type = "warmup",
+                    tick = world.Tick.Raw,
+                    citizens = world.Citizens.Rows.LiveCount,
+                    buildings = world.Buildings.Rows.LiveCount
+                }));
                 output.Flush();
             }
         }
@@ -128,8 +145,12 @@ internal static class ProfileDump
             writer.Write(graph.Segments.ModesForward[s]); writer.Write(graph.Segments.ModesBackward[s]);
             writer.Write(graph.Segments.FreeFlow[s].Raw); writer.Write(graph.Segments.CapacityPerDay[s]);
         }
-        return new { nodes = graph.Nodes.Rows.LiveCount, segments = graph.Segments.Rows.LiveCount,
-            sha256 = Convert.ToHexString(SHA256.HashData(bytes.ToArray())) };
+        return new
+        {
+            nodes = graph.Nodes.Rows.LiveCount,
+            segments = graph.Segments.Rows.LiveCount,
+            sha256 = Convert.ToHexString(SHA256.HashData(bytes.ToArray()))
+        };
     }
 
     internal static Sample Measure(Simulation sim, int count, TextWriter? workOutput = null, RouteReuseWindows? reuse = null)
@@ -218,14 +239,32 @@ internal static class ProfileDump
             peakVehicles = Math.Max(peakVehicles, vehicles);
             if (workOutput is not null)
             {
-                workOutput.WriteLine(JsonSerializer.Serialize(new { type = "work", tick = start + (ulong)i,
-                    ms, allocated = tickAllocated, travellers = world.Travellers.Rows.LiveCount, vehicles,
-                    shopping, shoppingWork, shoppingRoutes, civicRoutes, payrollWork = payroll!.Last,
-                    payrollTiming = payrollClock?.Last, payrollCalibration = payrollClock?.Calibrate(),
-                    otherRoutes = routes, phaseMs = phases!.Reading(),
-                    tableGrowth = growth!.Read(), routeBatch = batch,
-                    routeReuse = new { estimates = estimateReuse!.Reading(), shopping = shoppingReuse!.Reading(),
-                        other = otherReuse!.Reading() } }));
+                workOutput.WriteLine(JsonSerializer.Serialize(new
+                {
+                    type = "work",
+                    tick = start + (ulong)i,
+                    ms,
+                    allocated = tickAllocated,
+                    travellers = world.Travellers.Rows.LiveCount,
+                    vehicles,
+                    shopping,
+                    shoppingWork,
+                    shoppingRoutes,
+                    civicRoutes,
+                    payrollWork = payroll!.Last,
+                    payrollTiming = payrollClock?.Last,
+                    payrollCalibration = payrollClock?.Calibrate(),
+                    otherRoutes = routes,
+                    phaseMs = phases!.Reading(),
+                    tableGrowth = growth!.Read(),
+                    routeBatch = batch,
+                    routeReuse = new
+                    {
+                        estimates = estimateReuse!.Reading(),
+                        shopping = shoppingReuse!.Reading(),
+                        other = otherReuse!.Reading()
+                    }
+                }));
             }
         }
         sim.Civic.EventObserved = null;

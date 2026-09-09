@@ -69,24 +69,24 @@ public partial class Main
                 if (!RayBounds(inverseLayer * origin, inverseLayer.Basis * direction, batch.Bounds, distance)) continue;
                 foreach (var entry in batch.Instances)
                 {
-                int i = entry.Index;
-                Transform3D transform = layer.GlobalTransform * entry.Transform;
-                if (Math.Abs(transform.Basis.Determinant()) < .000001f) continue;
-                Transform3D inverse = transform.AffineInverse();
-                Vector3 from = inverse * origin, along = inverse.Basis * direction;
-                if (!RayBounds(from, along, bounds, distance)) continue;
-                for (int face = 0; face + 2 < faces.Length; face += 3)
-                {
-                    Variant hit = Geometry3D.RayIntersectsTriangle(from, along, faces[face], faces[face + 1], faces[face + 2]);
-                    if (hit.VariantType != Variant.Type.Vector3) continue;
-                    float depth = ((transform * hit.AsVector3()) - origin).Dot(direction);
-                    if (depth < 0 || depth > distance + .001f) continue;
-                    // Shared junction surfaces have a stable tie; a Building wins a coplanar tie.
-                    if (Math.Abs(depth - distance) <= .001f && (building != 0 || isRoad && road != 0 && instances.IdAt(i) >= road)) continue;
-                    distance = depth;
-                    building = isRoad ? 0 : instances.IdAt(i);
-                    road = isRoad ? instances.IdAt(i) : 0;
-                }
+                    int i = entry.Index;
+                    Transform3D transform = layer.GlobalTransform * entry.Transform;
+                    if (Math.Abs(transform.Basis.Determinant()) < .000001f) continue;
+                    Transform3D inverse = transform.AffineInverse();
+                    Vector3 from = inverse * origin, along = inverse.Basis * direction;
+                    if (!RayBounds(from, along, bounds, distance)) continue;
+                    for (int face = 0; face + 2 < faces.Length; face += 3)
+                    {
+                        Variant hit = Geometry3D.RayIntersectsTriangle(from, along, faces[face], faces[face + 1], faces[face + 2]);
+                        if (hit.VariantType != Variant.Type.Vector3) continue;
+                        float depth = ((transform * hit.AsVector3()) - origin).Dot(direction);
+                        if (depth < 0 || depth > distance + .001f) continue;
+                        // Shared junction surfaces have a stable tie; a Building wins a coplanar tie.
+                        if (Math.Abs(depth - distance) <= .001f && (building != 0 || isRoad && road != 0 && instances.IdAt(i) >= road)) continue;
+                        distance = depth;
+                        building = isRoad ? 0 : instances.IdAt(i);
+                        road = isRoad ? instances.IdAt(i) : 0;
+                    }
                 }
             }
         }
@@ -256,8 +256,16 @@ public partial class Main
                 if (_camera.IsPositionBehind(point)) continue;
                 Vector2 pixel = _camera.UnprojectPosition(point);
                 string name = kind == "road" ? roadNames.GetValueOrDefault(layer.Multimesh.IdAt(i), kind) : kind;
-                targets.Add(new { Kind = kind, Name = name, Id = layer.Multimesh.IdAt(i), X = pixel.X, Y = pixel.Y,
-                    East = point.X / MetresPerTile, North = -point.Z / MetresPerTile });
+                targets.Add(new
+                {
+                    Kind = kind,
+                    Name = name,
+                    Id = layer.Multimesh.IdAt(i),
+                    X = pixel.X,
+                    Y = pixel.Y,
+                    East = point.X / MetresPerTile,
+                    North = -point.Z / MetresPerTile
+                });
             }
         }
     }
@@ -281,9 +289,17 @@ public partial class Main
         if (!nodes.Rows.TryResolve(roads.NodeA[slot], out int a) || !nodes.Rows.TryResolve(roads.NodeB[slot], out int b)) return;
         if (marker is null)
         {
-            marker = new MeshInstance3D { Mesh = new BoxMesh(), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-                MaterialOverride = new StandardMaterial3D { ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-                    Transparency = BaseMaterial3D.TransparencyEnum.Alpha, AlbedoColor = selected ? new Color(.45f, .88f, .74f, .4f) : new Color(1, .95f, .8f, .25f) } };
+            marker = new MeshInstance3D
+            {
+                Mesh = new BoxMesh(),
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+                MaterialOverride = new StandardMaterial3D
+                {
+                    ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                    Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                    AlbedoColor = selected ? new Color(.45f, .88f, .74f, .4f) : new Color(1, .95f, .8f, .25f)
+                }
+            };
             AddChild(marker);
         }
         Vector3 from = new(nodes.East[a].Raw * MetresPerTile, .12f, -nodes.North[a].Raw * MetresPerTile);

@@ -62,8 +62,15 @@ public partial class Main
             ulong id = _world.Buildings.Rows.IdAt(b); live.Add(id);
             if (!_healthMarkers.TryGetValue(id, out Label3D? label))
             {
-                label = new Label3D { Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-                    NoDepthTest = true, FixedSize = true, FontSize = 22, PixelSize = .0005f, Modulate = new Color("ecf8ff") };
+                label = new Label3D
+                {
+                    Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+                    NoDepthTest = true,
+                    FixedSize = true,
+                    FontSize = 22,
+                    PixelSize = .0005f,
+                    Modulate = new Color("ecf8ff")
+                };
                 _healthMarkers[id] = label; AddChild(label);
             }
             label.Visible = true;
@@ -174,32 +181,48 @@ public partial class Main
     }
     private static string ActivitySentence(CitizenActivity activity) => activity switch
     {
-        CitizenActivity.AtSchool => "at school", CitizenActivity.InTreatment => "receiving treatment",
-        CitizenActivity.InHospital => "in hospital", CitizenActivity.ServiceTravelling => "travelling for school or care",
-        CitizenActivity.AtHome => "at home", CitizenActivity.AtWork => "at work", _ => "travelling or waiting",
+        CitizenActivity.AtSchool => "at school",
+        CitizenActivity.InTreatment => "receiving treatment",
+        CitizenActivity.InHospital => "in hospital",
+        CitizenActivity.ServiceTravelling => "travelling for school or care",
+        CitizenActivity.AtHome => "at home",
+        CitizenActivity.AtWork => "at work",
+        _ => "travelling or waiting",
     };
     private static string VisitSentence(VisitStage stage) => stage switch
     {
-        VisitStage.Waiting => "Awaiting an appointment", VisitStage.Booked => "Appointment booked",
+        VisitStage.Waiting => "Awaiting an appointment",
+        VisitStage.Booked => "Appointment booked",
         VisitStage.AwaitingBed => "Awaiting admission—no reachable bed available",
-        VisitStage.Inpatient => "Receiving inpatient care", VisitStage.Consultation => "Consultation underway",
-        VisitStage.ConsultationQueue => "Waiting at the clinic", VisitStage.Returning => "Returning home",
-        VisitStage.None => "No active visit", _ => "School or care journey scheduled or underway",
+        VisitStage.Inpatient => "Receiving inpatient care",
+        VisitStage.Consultation => "Consultation underway",
+        VisitStage.ConsultationQueue => "Waiting at the clinic",
+        VisitStage.Returning => "Returning home",
+        VisitStage.None => "No active visit",
+        _ => "School or care journey scheduled or underway",
     };
     private static string CareSentence(CareEventKind kind) => kind switch
     {
-        CareEventKind.Ill => "Illness began", CareEventKind.Worsened => "Illness worsened",
-        CareEventKind.Requested => "Care requested", CareEventKind.Booked => "Appointment booked",
+        CareEventKind.Ill => "Illness began",
+        CareEventKind.Worsened => "Illness worsened",
+        CareEventKind.Requested => "Care requested",
+        CareEventKind.Booked => "Appointment booked",
         CareEventKind.Postponed => "Appointment postponed; original waiting time retained",
         CareEventKind.NoAppointment => "No reachable clinic could offer an appointment",
-        CareEventKind.Unreachable => "Journey could not reach the provider", CareEventKind.NoBed => "No reachable bed available",
-        CareEventKind.Admitted => "Admitted to hospital", CareEventKind.Treated => "Consultation completed",
-        CareEventKind.Discharged => "Discharged; recovery may continue at home", CareEventKind.Recovered => "Recovered",
-        CareEventKind.DiedAwaitingBed => "Died while awaiting admission", CareEventKind.Died => "Died during illness",
+        CareEventKind.Unreachable => "Journey could not reach the provider",
+        CareEventKind.NoBed => "No reachable bed available",
+        CareEventKind.Admitted => "Admitted to hospital",
+        CareEventKind.Treated => "Consultation completed",
+        CareEventKind.Discharged => "Discharged; recovery may continue at home",
+        CareEventKind.Recovered => "Recovered",
+        CareEventKind.DiedAwaitingBed => "Died while awaiting admission",
+        CareEventKind.Died => "Died during illness",
         CareEventKind.MissedWork => "Missed work because of illness or care; cumulative lost earnings",
         CareEventKind.SwitchedClinic => "Changed family doctor after excessive waits",
-        CareEventKind.SchoolDeparted => "Left for school", CareEventKind.SchoolAttended => "Arrived at school",
-        CareEventKind.Returned => "Returned home", CareEventKind.FacilityLost => "Care facility no longer available",
+        CareEventKind.SchoolDeparted => "Left for school",
+        CareEventKind.SchoolAttended => "Arrived at school",
+        CareEventKind.Returned => "Returned home",
+        CareEventKind.FacilityLost => "Care facility no longer available",
         _ => "Care event",
     };
 }

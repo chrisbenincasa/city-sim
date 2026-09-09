@@ -424,20 +424,20 @@ internal static class KeyReport
                     | (uint)graph.SegmentNodeA[pair.Destination.Segment];
 
             case RouteKey.NearestNode:
-            {
-                int origin = Nearer(
-                    graph,
-                    pair.Origin,
-                    graph.SegmentNodeA[pair.Origin.Segment],
-                    graph.SegmentNodeB[pair.Origin.Segment]);
-                int destination = Nearer(
-                    graph,
-                    pair.Destination,
-                    graph.SegmentNodeA[pair.Destination.Segment],
-                    graph.SegmentNodeB[pair.Destination.Segment]);
+                {
+                    int origin = Nearer(
+                        graph,
+                        pair.Origin,
+                        graph.SegmentNodeA[pair.Origin.Segment],
+                        graph.SegmentNodeB[pair.Origin.Segment]);
+                    int destination = Nearer(
+                        graph,
+                        pair.Destination,
+                        graph.SegmentNodeA[pair.Destination.Segment],
+                        graph.SegmentNodeB[pair.Destination.Segment]);
 
-                return ((long)origin << 32) | (uint)destination;
-            }
+                    return ((long)origin << 32) | (uint)destination;
+                }
 
             default:
                 return ((long)Packed(pair.Origin) << 32) | (uint)Packed(pair.Destination);

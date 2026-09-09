@@ -52,17 +52,17 @@ public sealed class ZoneRuleCreateTests
         PlacementRuleset placement, params ZoneRuleDefinition[] zoneRules) => new(
         resources: [],
         rules: [],
-        kinds: [new KindDefinition(0, 0, 0, 0) { Houses = 1 > 0 , Premises = 1 > 0 }],
+        kinds: [new KindDefinition(0, 0, 0, 0) { Houses = 1 > 0, Premises = 1 > 0 }],
         inputs: [],
         outputs: [],
         emissions: [],
         bins: [],
         kindRules: [],
         zoneRules: zoneRules)
-    {
-        Placement = placement,
-        Capacity = new CapacityRuleset(FloorPerOccupant, 0, 0),
-    };
+        {
+            Placement = placement,
+            Capacity = new CapacityRuleset(FloorPerOccupant, 0, 0),
+        };
 
     /// <summary>One Tile of floor houses one Household, so a one-Tile Lot holds exactly one.</summary>
     /// <remarks>

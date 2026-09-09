@@ -79,8 +79,11 @@ public partial class Main
         _browserBody.AddChild(_choices);
         _emptyTools = InformationLabel("No tools available");
         _browserBody.AddChild(_emptyTools);
-        _toolScroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
-            SizeFlagsVertical = Control.SizeFlags.ExpandFill };
+        _toolScroll = new ScrollContainer
+        {
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill
+        };
         _toolScroll.AddChild(_browserBody);
         frame.AddChild(_toolScroll);
         _palette.AddChild(frame);
@@ -112,10 +115,18 @@ public partial class Main
                     "service" => _verb == Verb.Service && option.Choice == _serviceKind,
                     _ => false,
                 };
-                var button = new Button { CustomMinimumSize = new Vector2(0, 36), ClipText = true, Text = ToolLabel(option.Label), ToggleMode = true, ButtonPressed = selected,
-                    Disabled = !tool.Available, TooltipText = option.Label + "\n" + tool.Hint + (tool.Key == Key.None ? "" : $" ({tool.Key})"),
+                var button = new Button
+                {
+                    CustomMinimumSize = new Vector2(0, 36),
+                    ClipText = true,
+                    Text = ToolLabel(option.Label),
+                    ToggleMode = true,
+                    ButtonPressed = selected,
+                    Disabled = !tool.Available,
+                    TooltipText = option.Label + "\n" + tool.Hint + (tool.Key == Key.None ? "" : $" ({tool.Key})"),
                     Alignment = HorizontalAlignment.Left,
-                    TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis };
+                    TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis
+                };
                 UiIcons.Attach(button, ToolIconName(OptionIcon(tool, option)));
                 button.Pressed += () => AtBoundary(() => tool.Select(option.Choice));
                 _choices.AddChild(button);
@@ -156,8 +167,13 @@ public partial class Main
 
     private static string ToolIconName(string category) => category switch
     {
-        "Roads" or "street" => "road", "Services" => "civic", "health" => "clinic",
-        "house" => "housing", "shop" => "trade", "Policies" => "policies",
-        "school" or "mixed" or "erase" or "demolish" => category, _ => "grid",
+        "Roads" or "street" => "road",
+        "Services" => "civic",
+        "health" => "clinic",
+        "house" => "housing",
+        "shop" => "trade",
+        "Policies" => "policies",
+        "school" or "mixed" or "erase" or "demolish" => category,
+        _ => "grid",
     };
 }

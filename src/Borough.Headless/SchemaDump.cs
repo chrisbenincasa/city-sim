@@ -204,12 +204,12 @@ internal static class SchemaDump
         var buffer = new MemoryStream();
 
         using (var writer = new Utf8JsonWriter(buffer, new JsonWriterOptions
-            {
-                Indented = true,
-                // Otherwise a backtick in the description comes out as \u0060 and the file reads
-                // like an escape sequence dump. The output is a local artefact, never a response.
-                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-            }))
+        {
+            Indented = true,
+            // Otherwise a backtick in the description comes out as \u0060 and the file reads
+            // like an escape sequence dump. The output is a local artefact, never a response.
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        }))
         {
             writer.WriteStartObject();
             writer.WriteString("$schema", "https://json-schema.org/draft/2020-12/schema");

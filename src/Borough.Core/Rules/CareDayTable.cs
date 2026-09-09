@@ -1,5 +1,6 @@
 using Borough.Core.Tables;
 namespace Borough.Core.Rules;
+
 public readonly struct CareDay;
 [Table]
 public sealed class CareDayTable

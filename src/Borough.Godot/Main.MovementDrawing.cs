@@ -74,12 +74,12 @@ public partial class Main
             int bottom = Mathf.FloorToInt(bounds.Position.Z / InstanceLayer.ChunkMetres);
             int top = Mathf.FloorToInt(bounds.End.Z / InstanceLayer.ChunkMetres);
             for (int z = bottom; z <= top; z++)
-            for (int x = left; x <= right; x++)
-            {
-                var key = new Vector2I(x, z);
-                if (!_movingChunks.TryGetValue(key, out var bucket)) _movingChunks.Add(key, bucket = []);
-                bucket.Add(moving);
-            }
+                for (int x = left; x <= right; x++)
+                {
+                    var key = new Vector2I(x, z);
+                    if (!_movingChunks.TryGetValue(key, out var bucket)) _movingChunks.Add(key, bucket = []);
+                    bucket.Add(moving);
+                }
         }
         var empty = new List<Vector2I>();
         foreach (var pair in _movingChunks) if (pair.Value.Count == 0) empty.Add(pair.Key);

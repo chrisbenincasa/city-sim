@@ -26,15 +26,24 @@ public partial class KitStudy
     {
         string? hex = (Treatment, material) switch
         {
-            ("painterly", "wall") => "c9af91", ("painterly", "stone") => "ead6b8",
-            ("painterly", "roof") => "666c86", ("painterly", "glass") => "4f727c",
-            ("painterly", "paint") => "759783", ("painterly", "frame") => "8e8479",
-            ("graphic", "wall") => "dfbd77", ("graphic", "stone") => "f0dfb3",
-            ("graphic", "roof") => "37485a", ("graphic", "glass") => "2d5969",
-            ("graphic", "paint") => "da795a", ("graphic", "frame") => "435866",
-            ("miniature", "wall") => "d4c6b8", ("miniature", "stone") => "ece0cb",
-            ("miniature", "roof") => "9d9aaa", ("miniature", "glass") => "788a9c",
-            ("miniature", "paint") => "a4c3b4", ("miniature", "rubber") => "61616b",
+            ("painterly", "wall") => "c9af91",
+            ("painterly", "stone") => "ead6b8",
+            ("painterly", "roof") => "666c86",
+            ("painterly", "glass") => "4f727c",
+            ("painterly", "paint") => "759783",
+            ("painterly", "frame") => "8e8479",
+            ("graphic", "wall") => "dfbd77",
+            ("graphic", "stone") => "f0dfb3",
+            ("graphic", "roof") => "37485a",
+            ("graphic", "glass") => "2d5969",
+            ("graphic", "paint") => "da795a",
+            ("graphic", "frame") => "435866",
+            ("miniature", "wall") => "d4c6b8",
+            ("miniature", "stone") => "ece0cb",
+            ("miniature", "roof") => "9d9aaa",
+            ("miniature", "glass") => "788a9c",
+            ("miniature", "paint") => "a4c3b4",
+            ("miniature", "rubber") => "61616b",
             ("miniature", "frame") => "ada9b0",
             _ => null
         };
@@ -76,11 +85,16 @@ public partial class KitStudy
     private void StyleEnvironment()
     {
         if (!_styles && !_models) return;
-        _environment.Sky = new Sky { SkyMaterial = new ProceduralSkyMaterial
+        _environment.Sky = new Sky
         {
-            SkyTopColor = new Color("789ebd"), SkyHorizonColor = new Color("d6dfdf"),
-            GroundBottomColor = new Color("626463"), GroundHorizonColor = new Color("c4c8c3")
-        } };
+            SkyMaterial = new ProceduralSkyMaterial
+            {
+                SkyTopColor = new Color("789ebd"),
+                SkyHorizonColor = new Color("d6dfdf"),
+                GroundBottomColor = new Color("626463"),
+                GroundHorizonColor = new Color("c4c8c3")
+            }
+        };
         _environment.ReflectedLightSource = Godot.Environment.ReflectionSource.Sky;
         _environment.SsaoEnabled = _models || Treatment == "miniature" || Treatment == "naturalistic";
         _environment.SsaoRadius = Treatment == "miniature" ? .65f : .4f;

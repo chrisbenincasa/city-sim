@@ -2715,16 +2715,16 @@ internal static class StormReport
                     break;
 
                 case PathRung.NextHop:
-                {
-                    int changed = ChangedArcs(segmentArcs, gesture, changedArcs);
-                    for (int d = 0; d < districts.Count; d++)
                     {
-                        table!.RepairSubtree(
-                            d, districts.Representative[d], arcCost, changedArcs, changed);
-                    }
+                        int changed = ChangedArcs(segmentArcs, gesture, changedArcs);
+                        for (int d = 0; d < districts.Count; d++)
+                        {
+                            table!.RepairSubtree(
+                                d, districts.Representative[d], arcCost, changedArcs, changed);
+                        }
 
-                    break;
-                }
+                        break;
+                    }
 
                 case PathRung.Shared:
                     store = RouteStore.ForDistrictPairs(graph, districts, arcCost, oneToAll!);
@@ -2742,98 +2742,98 @@ internal static class StormReport
             {
                 case PathRung.Cache:
                 case PathRung.CacheTtl:
-                {
-                    long key = cache!.KeyOf(pair.Origin, pair.Destination);
-                    Lookup outcome = cache.TryGet(key, EpochRung.PerSegment, clock!, out _);
-
-                    if (outcome == Lookup.Hit)
                     {
-                        hits++;
+                        long key = cache!.KeyOf(pair.Origin, pair.Destination);
+                        Lookup outcome = cache.TryGet(key, EpochRung.PerSegment, clock!, out _);
+
+                        if (outcome == Lookup.Hit)
+                        {
+                            hits++;
+                            break;
+                        }
+
+                        if (outcome == Lookup.Stale)
+                        {
+                            stale++;
+                        }
+                        else
+                        {
+                            misses++;
+                        }
+
+                        var found = hpa!.Run(pair.Origin, pair.Destination);
+                        arcs.Clear();
+
+                        if (found.Found)
+                        {
+                            hpa.Refine(arcs);
+                            cache.Insert(key, arcs, EpochRung.PerSegment, clock!);
+                            sink += arcs.Count;
+                        }
+                        else
+                        {
+                            unroutable++;
+                        }
+
                         break;
                     }
 
-                    if (outcome == Lookup.Stale)
-                    {
-                        stale++;
-                    }
-                    else
-                    {
-                        misses++;
-                    }
-
-                    var found = hpa!.Run(pair.Origin, pair.Destination);
-                    arcs.Clear();
-
-                    if (found.Found)
-                    {
-                        hpa.Refine(arcs);
-                        cache.Insert(key, arcs, EpochRung.PerSegment, clock!);
-                        sink += arcs.Count;
-                    }
-                    else
-                    {
-                        unroutable++;
-                    }
-
-                    break;
-                }
-
                 case PathRung.NextHop:
-                {
-                    int originNode = graph.SegmentNodeA[pair.Origin.Segment];
-                    int destination = districts.OfNode[graph.SegmentNodeA[pair.Destination.Segment]];
-                    int cost = table!.Cost(originNode, destination);
-
-                    if (cost >= DistanceVector.Unreachable)
                     {
-                        unroutable++;
-                    }
-                    else
-                    {
-                        sink += cost;
-                    }
+                        int originNode = graph.SegmentNodeA[pair.Origin.Segment];
+                        int destination = districts.OfNode[graph.SegmentNodeA[pair.Destination.Segment]];
+                        int cost = table!.Cost(originNode, destination);
 
-                    break;
-                }
+                        if (cost >= DistanceVector.Unreachable)
+                        {
+                            unroutable++;
+                        }
+                        else
+                        {
+                            sink += cost;
+                        }
+
+                        break;
+                    }
 
                 case PathRung.Shared:
-                {
-                    int from = districts.OfNode[graph.SegmentNodeA[pair.Origin.Segment]];
-                    int to = districts.OfNode[graph.SegmentNodeA[pair.Destination.Segment]];
-                    int route = (from * districts.Count) + to;
-                    int length = store!.Length(route);
-
-                    if (length == 0 && from != to)
                     {
-                        unroutable++;
-                    }
-                    else
-                    {
-                        sink += length;
-                    }
+                        int from = districts.OfNode[graph.SegmentNodeA[pair.Origin.Segment]];
+                        int to = districts.OfNode[graph.SegmentNodeA[pair.Destination.Segment]];
+                        int route = (from * districts.Count) + to;
+                        int length = store!.Length(route);
 
-                    break;
-                }
+                        if (length == 0 && from != to)
+                        {
+                            unroutable++;
+                        }
+                        else
+                        {
+                            sink += length;
+                        }
+
+                        break;
+                    }
 
                 default:
-                {
-                    flat!.Bootstrap(
-                        pair.Origin, pair.Destination, Modes.Car, HeuristicKind.Chebyshev);
-                    var outcome = flat.Expand();
-                    arcs.Clear();
-
-                    if (outcome.Found)
                     {
-                        flat.PathArcs(arcs);
-                        sink += arcs.Count;
-                    }
-                    else
-                    {
-                        unroutable++;
-                    }
+                        flat!.Bootstrap(
+                            pair.Origin, pair.Destination, Modes.Car, HeuristicKind.Chebyshev);
+                        var outcome = flat.Expand();
+                        arcs.Clear();
 
-                    break;
-                }
+                        if (outcome.Found)
+                        {
+                            flat.PathArcs(arcs);
+                            sink += arcs.Count;
+                        }
+                        else
+                        {
+                            unroutable++;
+                        }
+
+                        break;
+                    }
             }
         }
     }
@@ -2876,79 +2876,79 @@ internal static class StormReport
         {
             case PathRung.Cache:
             case PathRung.CacheTtl:
-            {
-                long key = cache!.KeyOf(pair.Origin, pair.Destination);
-
-                if (cache.TryGet(key, EpochRung.PerSegment, clock!, out int slot) != Lookup.Hit)
                 {
-                    return -1;
-                }
+                    long key = cache!.KeyOf(pair.Origin, pair.Destination);
 
-                long served = ArcSum(arcCost, cache.ArcsAt(slot));
-                wasBroken = served < 0;
-                return served;
-            }
+                    if (cache.TryGet(key, EpochRung.PerSegment, clock!, out int slot) != Lookup.Hit)
+                    {
+                        return -1;
+                    }
+
+                    long served = ArcSum(arcCost, cache.ArcsAt(slot));
+                    wasBroken = served < 0;
+                    return served;
+                }
 
             case PathRung.NextHop:
-            {
-                int originNode = graph.SegmentNodeA[pair.Origin.Segment];
-                int destination = districts.OfNode[graph.SegmentNodeA[pair.Destination.Segment]];
-                int representative = districts.Representative[destination];
-
-                if (representative < 0)
                 {
-                    return -1;
+                    int originNode = graph.SegmentNodeA[pair.Origin.Segment];
+                    int destination = districts.OfNode[graph.SegmentNodeA[pair.Destination.Segment]];
+                    int representative = districts.Representative[destination];
+
+                    if (representative < 0)
+                    {
+                        return -1;
+                    }
+
+                    int viaTable = table!.Cost(originNode, destination);
+
+                    if (viaTable >= DistanceVector.Unreachable)
+                    {
+                        return -1;
+                    }
+
+                    long tail = LegCost(
+                        graph, arcCost, legSearch, scratch,
+                        new AccessPoint(FirstSegmentAt(graph, representative), 0), pair.Destination);
+
+                    return tail < 0 ? -1 : viaTable + tail;
                 }
-
-                int viaTable = table!.Cost(originNode, destination);
-
-                if (viaTable >= DistanceVector.Unreachable)
-                {
-                    return -1;
-                }
-
-                long tail = LegCost(
-                    graph, arcCost, legSearch, scratch,
-                    new AccessPoint(FirstSegmentAt(graph, representative), 0), pair.Destination);
-
-                return tail < 0 ? -1 : viaTable + tail;
-            }
 
             case PathRung.Shared:
-            {
-                int from = districts.OfNode[graph.SegmentNodeA[pair.Origin.Segment]];
-                int to = districts.OfNode[graph.SegmentNodeA[pair.Destination.Segment]];
-                int fromRepresentative = districts.Representative[from];
-                int toRepresentative = districts.Representative[to];
-
-                if (fromRepresentative < 0 || toRepresentative < 0)
                 {
-                    return -1;
+                    int from = districts.OfNode[graph.SegmentNodeA[pair.Origin.Segment]];
+                    int to = districts.OfNode[graph.SegmentNodeA[pair.Destination.Segment]];
+                    int fromRepresentative = districts.Representative[from];
+                    int toRepresentative = districts.Representative[to];
+
+                    if (fromRepresentative < 0 || toRepresentative < 0)
+                    {
+                        return -1;
+                    }
+
+                    long head = LegCost(
+                        graph, arcCost, legSearch, scratch, pair.Origin,
+                        new AccessPoint(FirstSegmentAt(graph, fromRepresentative), 0));
+
+                    if (head < 0)
+                    {
+                        return -1;
+                    }
+
+                    long between = ArcSum(arcCost, store!.Span((from * districts.Count) + to));
+
+                    if (between < 0)
+                    {
+                        wasBroken = true;
+                        return -1;
+                    }
+
+                    long tail = LegCost(
+                        graph, arcCost, legSearch, scratch,
+                        new AccessPoint(FirstSegmentAt(graph, toRepresentative), 0), pair.Destination);
+
+                    return tail < 0 ? -1 : head + between + tail;
                 }
-
-                long head = LegCost(
-                    graph, arcCost, legSearch, scratch, pair.Origin,
-                    new AccessPoint(FirstSegmentAt(graph, fromRepresentative), 0));
-
-                if (head < 0)
-                {
-                    return -1;
-                }
-
-                long between = ArcSum(arcCost, store!.Span((from * districts.Count) + to));
-
-                if (between < 0)
-                {
-                    wasBroken = true;
-                    return -1;
-                }
-
-                long tail = LegCost(
-                    graph, arcCost, legSearch, scratch,
-                    new AccessPoint(FirstSegmentAt(graph, toRepresentative), 0), pair.Destination);
-
-                return tail < 0 ? -1 : head + between + tail;
-            }
 
             default:
                 // The control, re-run through a second search instance rather than aliased to the

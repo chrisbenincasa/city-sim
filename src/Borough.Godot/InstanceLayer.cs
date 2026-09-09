@@ -145,8 +145,13 @@ public sealed class InstanceBuffer
             if (entry.Batch is not null) Remove(entry);
             if (!_batches.TryGetValue(key, out var batch))
             {
-                var mesh = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
-                    UseColors = UseColors, UseCustomData = UseCustomData, Mesh = Mesh };
+                var mesh = new MultiMesh
+                {
+                    TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
+                    UseColors = UseColors,
+                    UseCustomData = UseCustomData,
+                    Mesh = Mesh
+                };
                 batch = new Batch { Key = key, Node = _owner.CreateBatch(mesh) };
                 _batches.Add(key, batch);
             }
@@ -255,11 +260,11 @@ public sealed class InstanceBuffer
             _eye = eye;
             _detailDistance = detailDistance;
             if (partitioned)
-            foreach (Batch batch in _batches.Values)
-            {
-                bool resident = Wants(batch.Bounds, batch.Resident);
-                if (resident != batch.Resident) _dirty.Add(batch);
-            }
+                foreach (Batch batch in _batches.Values)
+                {
+                    bool resident = Wants(batch.Bounds, batch.Resident);
+                    if (resident != batch.Resident) _dirty.Add(batch);
+                }
         }
         if (_dirty.Count == 0) return;
         long start = System.Diagnostics.Stopwatch.GetTimestamp();

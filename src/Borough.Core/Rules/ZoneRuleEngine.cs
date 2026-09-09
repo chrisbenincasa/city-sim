@@ -364,7 +364,7 @@ public sealed class ZoneRuleEngine
             if (_world.DistrictPools.LastRaised[row].Raw != 0
                 && since < (ulong)definition.CooldownDays * Ticks.PerDay)
             {
-                    return false;
+                return false;
             }
         }
 

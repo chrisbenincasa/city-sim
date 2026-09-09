@@ -24,7 +24,7 @@ internal sealed class CityPreparation : IDisposable
             _cancel.Token.ThrowIfCancellationRequested();
             var world = new World(citizens, rules, key) { Changes = new WorldChanges() };
             var simulation = new Simulation(world, key)
-                { VerifyDecideWritesNothing = false, RouteWorkerCount = routeWorkers };
+            { VerifyDecideWritesNothing = false, RouteWorkerCount = routeWorkers };
             _cancel.Token.ThrowIfCancellationRequested();
             var boot = new Command(empty ? CommandKind.Ground : CommandKind.Populate, default, default);
             simulation.Step(new TickInput([boot], 0));

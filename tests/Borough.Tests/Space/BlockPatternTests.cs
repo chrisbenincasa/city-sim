@@ -561,26 +561,26 @@ public sealed class BlockPatternTests
         // band would fail here on some block at some spread, which is the whole reason to sweep both
         // rather than to assert the property once at spread 0 and call the ratchet safe.
         for (int spread = 0; spread < BlockPatterns.Count; spread++)
-        for (int block = 0; block < 32; block++)
-        for (int bandCount = 1; bandCount <= 12; bandCount++)
-        {
-            int last = -1;
+            for (int block = 0; block < 32; block++)
+                for (int bandCount = 1; bandCount <= 12; bandCount++)
+                {
+                    int last = -1;
 
-            for (byte band = 1; band <= bandCount; band++)
-            {
-                BlockPattern here = BlockPatterns.ForBand(
-                    band, bandCount, ShippedBlockTiles, ShippedLotsPerSegment,
-                    WorldKey.FromSeed(7), block, block * 3, spread);
-                int rung = BlockPatterns.Rung(here, ShippedBlockTiles, ShippedLotsPerSegment);
+                    for (byte band = 1; band <= bandCount; band++)
+                    {
+                        BlockPattern here = BlockPatterns.ForBand(
+                            band, bandCount, ShippedBlockTiles, ShippedLotsPerSegment,
+                            WorldKey.FromSeed(7), block, block * 3, spread);
+                        int rung = BlockPatterns.Rung(here, ShippedBlockTiles, ShippedLotsPerSegment);
 
-                Assert.True(
-                    rung >= last,
-                    $"spread {spread}, block {block}: band {band} of {bandCount} gets {here} at "
-                    + $"rung {rung}, below rung {last}.");
+                        Assert.True(
+                            rung >= last,
+                            $"spread {spread}, block {block}: band {band} of {bandCount} gets {here} at "
+                            + $"rung {rung}, below rung {last}.");
 
-                last = rung;
-            }
-        }
+                        last = rung;
+                    }
+                }
     }
 
     /// <summary>

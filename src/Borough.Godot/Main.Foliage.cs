@@ -51,13 +51,13 @@ public partial class Main
             Vector2I first = FoliageBlock(bounds.Position);
             Vector2I last = FoliageBlock(bounds.End);
             for (int y = first.Y; y <= last.Y; y++)
-            for (int x = first.X; x <= last.X; x++)
-            {
-                var key = new Vector2I(x, y);
-                if (!_foliageBlocks.TryGetValue(key, out var found))
-                    _foliageBlocks.Add(key, found = []);
-                found.Add(bounds);
-            }
+                for (int x = first.X; x <= last.X; x++)
+                {
+                    var key = new Vector2I(x, y);
+                    if (!_foliageBlocks.TryGetValue(key, out var found))
+                        _foliageBlocks.Add(key, found = []);
+                    found.Add(bounds);
+                }
         }
     }
 

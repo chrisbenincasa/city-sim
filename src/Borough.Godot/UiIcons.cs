@@ -64,12 +64,28 @@ internal static class UiIcons
     {
         string? id = button.Text switch
         {
-            "×" => "close", "◀◀" => "slower", "▶▶" => "faster", "⏸" => "pause", "▶" => "play",
-            "↶" => "rotate-left", "↷" => "rotate-right", "↑" => "up", "↓" => "down", "+" => "plus", "−" => "minus",
-            "Close" or "Cancel" => "close", "Tools" => "grid", "Menu" => "menu", "Settings" => "settings",
-            "Resume city" => "play", "Help & shortcuts" or "Credits" => "info", "Quit game" => "quit",
-            "Save city…" or "Save and continue" => "save", "Load city…" => "load",
-            "Back to menu" => "back", _ => null,
+            "×" => "close",
+            "◀◀" => "slower",
+            "▶▶" => "faster",
+            "⏸" => "pause",
+            "▶" => "play",
+            "↶" => "rotate-left",
+            "↷" => "rotate-right",
+            "↑" => "up",
+            "↓" => "down",
+            "+" => "plus",
+            "−" => "minus",
+            "Close" or "Cancel" => "close",
+            "Tools" => "grid",
+            "Menu" => "menu",
+            "Settings" => "settings",
+            "Resume city" => "play",
+            "Help & shortcuts" or "Credits" => "info",
+            "Quit game" => "quit",
+            "Save city…" or "Save and continue" => "save",
+            "Load city…" => "load",
+            "Back to menu" => "back",
+            _ => null,
         };
         if (id is null) return;
         if (button.Text is "×" or "◀◀" or "▶▶" or "⏸" or "▶" or "↶" or "↷" or "↑" or "↓" or "+" or "−")
@@ -79,7 +95,11 @@ internal static class UiIcons
 
     public static string Resource(string? name) => name?.ToLowerInvariant().Replace('_', '-').Replace(' ', '-') switch
     {
-        "produce" => "produce", "food" => "food", "timber" => "timber", "materials" => "materials",
-        "consumer-goods" => "consumer-goods", _ => "resource",
+        "produce" => "produce",
+        "food" => "food",
+        "timber" => "timber",
+        "materials" => "materials",
+        "consumer-goods" => "consumer-goods",
+        _ => "resource",
     };
 }

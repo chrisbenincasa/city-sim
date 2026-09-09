@@ -437,7 +437,7 @@ public partial class Main
         var listener = _listener;
         var cancellation = _channelStop.Token;
         _channelThread = new System.Threading.Thread(() => Serve(listener, cancellation))
-            { IsBackground = true, Name = "Borough drive" };
+        { IsBackground = true, Name = "Borough drive" };
         _channelThread.Start();
         GD.Print($"listening on {path}");
 

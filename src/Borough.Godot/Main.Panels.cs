@@ -221,7 +221,9 @@ public partial class Main
 
         _tuner = new PanelContainer
         {
-            Visible = false, Position = new Vector2(14f, 108f), Theme = _type,
+            Visible = false,
+            Position = new Vector2(14f, 108f),
+            Theme = _type,
         };
 
         _tuner.AddThemeStyleboxOverride("panel", backing);

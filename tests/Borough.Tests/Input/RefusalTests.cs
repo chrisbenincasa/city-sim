@@ -142,65 +142,65 @@ public sealed class RefusalTests
         {
             case Refusal.ConnectWorldHasNoLattice:
             case Refusal.TripWorldHasNoLattice:
-            {
-                (World world, Simulation simulation) = City(Pathless);
+                {
+                    (World world, Simulation simulation) = City(Pathless);
 
-                return (simulation, Case(refusal, simulation, world));
-            }
+                    return (simulation, Case(refusal, simulation, world));
+                }
 
             case Refusal.TripRulesetStatesNoTrips:
-            {
-                (World world, Simulation simulation) = City(Untravelled);
+                {
+                    (World world, Simulation simulation) = City(Untravelled);
 
-                return (simulation, Case(refusal, simulation, world));
-            }
+                    return (simulation, Case(refusal, simulation, world));
+                }
 
             case Refusal.TripOriginHoldsNoCitizen:
-            {
-                (World world, Simulation simulation) = Uninhabited();
+                {
+                    (World world, Simulation simulation) = Uninhabited();
 
-                return (simulation, Case(refusal, simulation, world));
-            }
+                    return (simulation, Case(refusal, simulation, world));
+                }
 
             case Refusal.PeopleWorldHasNoLots:
-            {
-                // A world nothing has been laid on -- which is what CommandKind.Ground now gives a
-                // player, and where a hand that lays Streets and asks for people before zoning
-                // anything ends up.
-                (World world, Simulation simulation) = Unbuilt();
+                {
+                    // A world nothing has been laid on -- which is what CommandKind.Ground now gives a
+                    // player, and where a hand that lays Streets and asks for people before zoning
+                    // anything ends up.
+                    (World world, Simulation simulation) = Unbuilt();
 
-                return (simulation, Case(refusal, simulation, world));
-            }
+                    return (simulation, Case(refusal, simulation, world));
+                }
 
             case Refusal.GovernPolicyHasNoName:
-            {
-                (World world, Simulation simulation) = City(Schooled + Anonymous);
+                {
+                    (World world, Simulation simulation) = City(Schooled + Anonymous);
 
-                return (simulation, Case(refusal, simulation, world));
-            }
+                    return (simulation, Case(refusal, simulation, world));
+                }
 
             case Refusal.GovernPolicyNotInThisWorld:
-            {
-                (World world, Simulation simulation) = City(Schooled + Levy("first"));
+                {
+                    (World world, Simulation simulation) = City(Schooled + Levy("first"));
 
-                // 🔴 THE ONLY WAY TO REACH THIS REFUSAL, and it is why the row exists: PolicyTable is
-                // sized at world creation and Adopt never resizes it, so a reload that GROWS the
-                // declared set leaves a Policy the Ruleset names and this world cannot hold.
-                world.Adopt(
-                    Parse(Schooled + Levy("first") + Levy("second")),
-                    0,
-                    Ticks.Zero,
-                    WorldKey.FromSeed(Seed));
+                    // 🔴 THE ONLY WAY TO REACH THIS REFUSAL, and it is why the row exists: PolicyTable is
+                    // sized at world creation and Adopt never resizes it, so a reload that GROWS the
+                    // declared set leaves a Policy the Ruleset names and this world cannot hold.
+                    world.Adopt(
+                        Parse(Schooled + Levy("first") + Levy("second")),
+                        0,
+                        Ticks.Zero,
+                        WorldKey.FromSeed(Seed));
 
-                return (simulation, Case(refusal, simulation, world));
-            }
+                    return (simulation, Case(refusal, simulation, world));
+                }
 
             default:
-            {
-                (World world, Simulation simulation) = City(Schooled);
+                {
+                    (World world, Simulation simulation) = City(Schooled);
 
-                return (simulation, Case(refusal, simulation, world));
-            }
+                    return (simulation, Case(refusal, simulation, world));
+                }
         }
     }
 

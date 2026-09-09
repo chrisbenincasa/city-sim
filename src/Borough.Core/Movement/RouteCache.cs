@@ -529,34 +529,34 @@ public sealed class RouteCache
                 return first + (int)((Mix(from, to) >> 16) % Ways);
 
             case RouteEviction.Mru:
-            {
-                int newest = first;
-
-                for (int slot = first + 1; slot < first + Ways; slot++)
                 {
-                    if (_used[slot] > _used[newest])
-                    {
-                        newest = slot;
-                    }
-                }
+                    int newest = first;
 
-                return newest;
-            }
+                    for (int slot = first + 1; slot < first + Ways; slot++)
+                    {
+                        if (_used[slot] > _used[newest])
+                        {
+                            newest = slot;
+                        }
+                    }
+
+                    return newest;
+                }
 
             default:
-            {
-                int oldest = first;
-
-                for (int slot = first + 1; slot < first + Ways; slot++)
                 {
-                    if (_used[slot] < _used[oldest])
-                    {
-                        oldest = slot;
-                    }
-                }
+                    int oldest = first;
 
-                return oldest;
-            }
+                    for (int slot = first + 1; slot < first + Ways; slot++)
+                    {
+                        if (_used[slot] < _used[oldest])
+                        {
+                            oldest = slot;
+                        }
+                    }
+
+                    return oldest;
+                }
         }
     }
 }

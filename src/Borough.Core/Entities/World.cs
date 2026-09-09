@@ -6991,21 +6991,21 @@ public sealed class World
 
         Citizens.Activity[citizenSlot] = (byte)((CitizenActivity)Citizens.Activity[citizenSlot]
             switch
-            {
-                CitizenActivity.TravellingToWork =>
-                    arrived ? CitizenActivity.AtWork : CitizenActivity.AtHome,
-                CitizenActivity.TravellingHome =>
-                    arrived ? CitizenActivity.AtHome : CitizenActivity.AtWork,
+        {
+            CitizenActivity.TravellingToWork =>
+                arrived ? CitizenActivity.AtWork : CitizenActivity.AtHome,
+            CitizenActivity.TravellingHome =>
+                arrived ? CitizenActivity.AtHome : CitizenActivity.AtWork,
 
-                // Whatever the Fate, because this one carries no direction -- it is every
-                // non-commute purpose at once -- so there is no second place a failed journey could
-                // leave somebody. An arrival, a shop and a school run all end at home.
-                CitizenActivity.Travelling => CitizenActivity.AtHome,
-                CitizenActivity.ShoppingTravelling => CitizenActivity.ShoppingStopped,
-                CitizenActivity.ServiceTravelling => CitizenActivity.ServiceStopped,
+            // Whatever the Fate, because this one carries no direction -- it is every
+            // non-commute purpose at once -- so there is no second place a failed journey could
+            // leave somebody. An arrival, a shop and a school run all end at home.
+            CitizenActivity.Travelling => CitizenActivity.AtHome,
+            CitizenActivity.ShoppingTravelling => CitizenActivity.ShoppingStopped,
+            CitizenActivity.ServiceTravelling => CitizenActivity.ServiceStopped,
 
-                CitizenActivity other => other,
-            });
+            CitizenActivity other => other,
+        });
 
         // Days, not Ticks: CitizenTable.LastTripEndedDay carries why, and it is a memory argument
         // rather than a precision one. FloorDiv because 05 §4's lint 3 bans the raw operator, and the

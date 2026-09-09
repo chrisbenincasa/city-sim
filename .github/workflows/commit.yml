@@ -36,3 +36,14 @@ jobs:
       # drops the sixteen hundred that did not. tests/Borough.Tests/Tier.cs carries the reasoning.
       - name: Assertion tier
         run: dotnet test -c Release --no-build --filter "tier!=instrument"
+
+      # LAST, deliberately. A formatting complaint must never mask a test failure: GitHub Actions
+      # stops at the first failing step, and "the indentation is wrong" arriving instead of "the
+      # city changed" is a worse report for the same red tick. It costs about three seconds.
+      #
+      # This runs scripts/format.sh rather than an inline `dotnet format`, because the script is
+      # what a developer runs locally and the two must be the same command -- adr/0121's identity
+      # rule applied to the format gate. In particular the script formats src/Borough.Godot, which
+      # Borough.slnx does not list and which an inline `dotnet format` here would silently skip.
+      - name: Formatting
+        run: scripts/format.sh --check

@@ -54,12 +54,18 @@ public partial class VisualStudy : Node3D
                 BackgroundMode = Godot.Environment.BGMode.Color,
                 BackgroundColor = new Color("c9d8df"),
                 AmbientLightSource = Godot.Environment.AmbientSource.Color,
-                AmbientLightColor = new Color("d6e2ed"), AmbientLightEnergy = .55f,
+                AmbientLightColor = new Color("d6e2ed"),
+                AmbientLightEnergy = .55f,
                 TonemapMode = Godot.Environment.ToneMapper.Filmic
             };
             AddChild(new WorldEnvironment { Environment = environment });
-            AddChild(new DirectionalLight3D { RotationDegrees = new Vector3(-62, -28, 0),
-                LightEnergy = 1.15f, ShadowEnabled = true, DirectionalShadowMaxDistance = 600 });
+            AddChild(new DirectionalLight3D
+            {
+                RotationDegrees = new Vector3(-62, -28, 0),
+                LightEnergy = 1.15f,
+                ShadowEnabled = true,
+                DirectionalShadowMaxDistance = 600
+            });
             _camera.Fov = 48;
             _camera.Far = 2000;
             BuildBlock(this, Vector3.Zero);
@@ -147,8 +153,13 @@ public partial class VisualStudy : Node3D
 
     private void Box(Node parent, string name, Vector3 position, Vector3 size, string color)
     {
-        var mesh = new MeshInstance3D { Name = name, Position = position,
-            Mesh = new BoxMesh { Size = size }, MaterialOverride = Material(color) };
+        var mesh = new MeshInstance3D
+        {
+            Name = name,
+            Position = position,
+            Mesh = new BoxMesh { Size = size },
+            MaterialOverride = Material(color)
+        };
         if (name == "roof_seam") mesh.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
         parent.AddChild(mesh);
     }
@@ -246,10 +257,19 @@ public partial class VisualStudy : Node3D
         if (error != Error.Ok) { GD.PushError($"Capture failed: {error}"); GetTree().Quit(1); return; }
         File.WriteAllText(Path.Combine(_capture, Views[_view] + ".json"), JsonSerializer.Serialize(new
         {
-            specimen = "plain-blockout-v1", treatment = _treatment, view = Views[_view], camera = _camera.Position.ToString(),
-            target = Targets[_view].ToString(), fov = _camera.Fov, viewport = GetViewport().GetVisibleRect().Size.ToString(),
-            light = "noon", exposure = 1, tick = (int?)null, simulatedCitizens = 0,
-            buildings = _view == 3 ? 81 : 9, renderer = RenderingServer.GetCurrentRenderingMethod().ToString(),
+            specimen = "plain-blockout-v1",
+            treatment = _treatment,
+            view = Views[_view],
+            camera = _camera.Position.ToString(),
+            target = Targets[_view].ToString(),
+            fov = _camera.Fov,
+            viewport = GetViewport().GetVisibleRect().Size.ToString(),
+            light = "noon",
+            exposure = 1,
+            tick = (int?)null,
+            simulatedCitizens = 0,
+            buildings = _view == 3 ? 81 : 9,
+            renderer = RenderingServer.GetCurrentRenderingMethod().ToString(),
             godot = Engine.GetVersionInfo()["string"].AsString()
         }, JsonOptions));
         if (_view == 3) GetTree().Quit(); else SetView(_view + 1);

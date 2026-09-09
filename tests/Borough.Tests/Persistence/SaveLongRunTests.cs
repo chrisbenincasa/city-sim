@@ -268,9 +268,9 @@ public sealed class SaveLongRunTests(ITestOutputHelper output)
 
         var resumed = new Simulation(reloaded, header.Key)
         {
-        // O(world) twice per Tick against a phase meant to be O(woken). --no-decide-guard's reason,
-        // and the guard's own correctness is covered by the tests written for it.
-        VerifyDecideWritesNothing = false,
+            // O(world) twice per Tick against a phase meant to be O(woken). --no-decide-guard's reason,
+            // and the guard's own correctness is covered by the tests written for it.
+            VerifyDecideWritesNothing = false,
         };
 
         for (int tick = 0; tick < Ticks.PerDay; tick++)
@@ -347,9 +347,9 @@ public sealed class SaveLongRunTests(ITestOutputHelper output)
         var world = new World(GoldenFixtures.Population, rules, key);
         var simulation = new Simulation(world, key)
         {
-        // O(world) twice per Tick against a phase meant to be O(woken). --no-decide-guard's reason,
-        // and the guard's own correctness is covered by the tests written for it.
-        VerifyDecideWritesNothing = false,
+            // O(world) twice per Tick against a phase meant to be O(woken). --no-decide-guard's reason,
+            // and the guard's own correctness is covered by the tests written for it.
+            VerifyDecideWritesNothing = false,
         };
 
         SyntheticCity.PopulateInto(world, key, Ticks.Zero);

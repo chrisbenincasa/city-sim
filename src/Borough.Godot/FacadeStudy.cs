@@ -9,8 +9,11 @@ public partial class FacadeStudy : Node3D
 {
     private readonly InstanceLayer _walls = new();
     private readonly ShaderMaterial _material = new();
-    private readonly StandardMaterial3D _wash = new() {
-        ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded, VertexColorUseAsAlbedo = true };
+    private readonly StandardMaterial3D _wash = new()
+    {
+        ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+        VertexColorUseAsAlbedo = true
+    };
     private readonly Label _caption = new();
     private readonly DirectionalLight3D _sun = new();
     private string _output = "";
@@ -37,17 +40,24 @@ public partial class FacadeStudy : Node3D
         _walls.Multimesh.Mesh = new BoxMesh { Material = _material };
         _walls.Multimesh.UseColors = true;
         _walls.Multimesh.UseCustomData = true;
-        var environment = new Godot.Environment {
-            BackgroundMode = Godot.Environment.BGMode.Color, BackgroundColor = new Color("637781"),
+        var environment = new Godot.Environment
+        {
+            BackgroundMode = Godot.Environment.BGMode.Color,
+            BackgroundColor = new Color("637781"),
             AmbientLightSource = Godot.Environment.AmbientSource.Color,
-            AmbientLightColor = new Color("c6d5e3"), AmbientLightEnergy = .45f,
-            TonemapMode = Godot.Environment.ToneMapper.Filmic };
+            AmbientLightColor = new Color("c6d5e3"),
+            AmbientLightEnergy = .45f,
+            TonemapMode = Godot.Environment.ToneMapper.Filmic
+        };
         AddChild(new WorldEnvironment { Environment = environment });
         _sun.RotationDegrees = new Vector3(-40, -25, 0);
         _sun.ShadowEnabled = true;
         AddChild(_sun);
-        var ground = new MeshInstance3D { Mesh = new PlaneMesh { Size = new Vector2(100, 60) },
-            MaterialOverride = new StandardMaterial3D { AlbedoColor = new Color("929088"), Roughness = 1 } };
+        var ground = new MeshInstance3D
+        {
+            Mesh = new PlaneMesh { Size = new Vector2(100, 60) },
+            MaterialOverride = new StandardMaterial3D { AlbedoColor = new Color("929088"), Roughness = 1 }
+        };
         AddChild(ground);
         _camera.Fov = 48;
         _camera.Position = new Vector3(0, 11, 48);

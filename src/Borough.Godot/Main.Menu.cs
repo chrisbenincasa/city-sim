@@ -33,8 +33,12 @@ public partial class Main
     {
         GetTree().AutoAcceptQuit = false;
         GetWindow().CloseRequested += () => AtBoundary(() => { OpenMenu(); RequestMenuAction("quit"); });
-        _menuShade = new ColorRect { Color = new Color(0, 0, 0, .45f), Visible = false,
-            MouseFilter = Control.MouseFilterEnum.Stop };
+        _menuShade = new ColorRect
+        {
+            Color = new Color(0, 0, 0, .45f),
+            Visible = false,
+            MouseFilter = Control.MouseFilterEnum.Stop
+        };
         _hud.AddChild(_menuShade);
         _menuPanel = InformationPanel();
         _menuBody = InformationUi.Stack();
@@ -49,10 +53,13 @@ public partial class Main
         _menuPanel.Visible = false;
         _cityPicker = new FileDialog
         {
-            Title = "Save city", Access = FileDialog.AccessEnum.Filesystem,
-            UseNativeDialog = false, Filters = ["*.borough-city ; Borough city"],
+            Title = "Save city",
+            Access = FileDialog.AccessEnum.Filesystem,
+            UseNativeDialog = false,
+            Filters = ["*.borough-city ; Borough city"],
             DisplayMode = FileDialog.DisplayModeEnum.List,
-            Exclusive = true, Theme = _type,
+            Exclusive = true,
+            Theme = _type,
         };
         _hud.AddChild(_cityPicker);
         _cityPicker.FileSelected += path => AtBoundary(() => PickCityFile(path));
@@ -181,7 +188,7 @@ public partial class Main
             {
                 SavedCity city = CitySave.Read(path);
                 var simulation = new Simulation(city.World, city.Header.Key)
-                    { VerifyDecideWritesNothing = false, RouteWorkerCount = _routeWorkers };
+                { VerifyDecideWritesNothing = false, RouteWorkerCount = _routeWorkers };
                 simulation.CheckEndOfRun();
                 city.World.Changes = new WorldChanges();
                 city.World.Changes.Invalidate();

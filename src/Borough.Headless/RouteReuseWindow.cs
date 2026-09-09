@@ -31,8 +31,16 @@ internal sealed class RouteReuseWindow(int capacity)
         Settled += settled;
         if (_hit) { HitSettled += settled; }
     }
-    internal object Reading() => new { Capacity = capacity, Entries = _seen.Count,
-        Searches, Hits, Settled, HitSettled, Evictions };
+    internal object Reading() => new
+    {
+        Capacity = capacity,
+        Entries = _seen.Count,
+        Searches,
+        Hits,
+        Settled,
+        HitSettled,
+        Evictions
+    };
     private readonly record struct Key(RoadGraph Graph, uint Version, TravelMode Mode, Address From, Address To);
 }
 

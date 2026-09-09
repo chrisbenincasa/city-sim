@@ -19,7 +19,7 @@ public static class RoofMeshes
             int mask = 0;
             for (int corner = 0; corner < 3; corner++)
             {
-                Vector3 a = vertices[indices[t + (corner+1)%3]], b = vertices[indices[t + (corner+2)%3]];
+                Vector3 a = vertices[indices[t + (corner + 1) % 3]], b = vertices[indices[t + (corner + 2) % 3]];
                 bool diagonal = false;
                 for (int other = 0; other < indices.Length; other += 3)
                 {
@@ -27,7 +27,7 @@ public static class RoofMeshes
                     bool hasA = false, hasB = false;
                     for (int v = 0; v < 3; v++)
                     {
-                        Vector3 p = vertices[indices[other+v]];
+                        Vector3 p = vertices[indices[other + v]];
                         hasA |= p.IsEqualApprox(a); hasB |= p.IsEqualApprox(b);
                     }
                     if (hasA && hasB) { diagonal = true; break; }
@@ -42,13 +42,13 @@ public static class RoofMeshes
                 // UV2 carries barycentric coordinates, with the third component implicit.
                 surface.SetUV(new Vector2(mask, -17));
                 surface.SetUV2(corner == 0 ? Vector2.Right : corner == 1 ? Vector2.Down : Vector2.Zero);
-                surface.AddVertex(vertices[indices[t+corner]]);
+                surface.AddVertex(vertices[indices[t + corner]]);
             }
         }
         return surface.Commit();
 
-        Vector3 Face(int t) => (vertices[indices[t+1]] - vertices[indices[t]])
-            .Cross(vertices[indices[t+2]] - vertices[indices[t]]).Normalized();
+        Vector3 Face(int t) => (vertices[indices[t + 1]] - vertices[indices[t]])
+            .Cross(vertices[indices[t + 2]] - vertices[indices[t]]).Normalized();
     }
     // How much of a parapet's own width the upstand takes, each side. Small on purpose: it is a
     // FRACTION of the body and a real coping is a thickness, so the two only agree at one span.
@@ -113,12 +113,12 @@ public static class RoofMeshes
         }
         if (family == 1)
         {
-            Vector3 a = new(-.5f,-.5f,-.5f), b = new(.5f,-.5f,-.5f);
-            Vector3 c = new(.5f,-.5f,.5f), d = new(-.5f,-.5f,.5f);
-            Vector3 e = new(0,.5f,-.15f), f = new(0,.5f,.15f);
-            Triangle(a,b,e); Triangle(b,c,f); Triangle(b,f,e);
-            Triangle(c,d,f); Triangle(d,a,e); Triangle(d,e,f);
-            Triangle(a,d,c); Triangle(a,c,b);
+            Vector3 a = new(-.5f, -.5f, -.5f), b = new(.5f, -.5f, -.5f);
+            Vector3 c = new(.5f, -.5f, .5f), d = new(-.5f, -.5f, .5f);
+            Vector3 e = new(0, .5f, -.15f), f = new(0, .5f, .15f);
+            Triangle(a, b, e); Triangle(b, c, f); Triangle(b, f, e);
+            Triangle(c, d, f); Triangle(d, a, e); Triangle(d, e, f);
+            Triangle(a, d, c); Triangle(a, c, b);
         }
         else
         {
@@ -126,17 +126,17 @@ public static class RoofMeshes
             Vector3[] v = arrays[(int)Mesh.ArrayType.Vertex].AsVector3Array();
             int[] ix = arrays[(int)Mesh.ArrayType.Index].AsInt32Array();
             for (int half = 0; half < 2; half++)
-            for (int t = 0; t < ix.Length; t += 3)
-            {
-                Vector3 Point(int at) => new(v[at].X*.5f + (half == 0 ? -.25f : .25f), v[at].Y, v[at].Z);
-                Triangle(Point(ix[t]), Point(ix[t+1]), Point(ix[t+2]));
-            }
+                for (int t = 0; t < ix.Length; t += 3)
+                {
+                    Vector3 Point(int at) => new(v[at].X * .5f + (half == 0 ? -.25f : .25f), v[at].Y, v[at].Z);
+                    Triangle(Point(ix[t]), Point(ix[t + 1]), Point(ix[t + 2]));
+                }
         }
         surface.Index(); return surface.Commit();
 
         void Triangle(Vector3 a, Vector3 b, Vector3 c)
         {
-            Vector3 normal = (c-a).Cross(b-a).Normalized();
+            Vector3 normal = (c - a).Cross(b - a).Normalized();
             surface.SetNormal(normal); surface.AddVertex(a); surface.AddVertex(b); surface.AddVertex(c);
         }
 
