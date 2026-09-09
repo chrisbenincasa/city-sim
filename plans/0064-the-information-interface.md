@@ -7,14 +7,14 @@
 480×640 is no longer an acceptance requirement. This supersedes the narrow-screen requirements
 below; existing small-screen captures remain historical evidence, not obligations for future passes.
 
-This plan owns the UX work queue. Keep outstanding work, agreed scope changes and completion checks
-here as decisions develop; recommendations in conversation must be carried into this queue.
+This plan owns the UX queue: outstanding work, scope changes, completion checks and recommendations.
 Queued work starts with design agreement before implementation. The player's 2026-09-06 expansion
-below is the next proposed sequence; individual open choices do not block independent work.
+below supplies the remaining scope; individual open choices do not block independent work.
+Status reconciled against source and commit history on 2026-09-08; checks were not rerun.
 
 | Order | Status | Work | Completion check |
 |---|---|---|---|
-| 1 | Complete | Fixed-corner hover; Building and Household inspectors; expandable sections, breadcrumbs and mouse close; independent debug; light/dark themes and responsive layout | `check-information.py` and `information-lifecycle.drive` below |
+| 1 | Complete | Console pointer reading (superseding fixed-corner hover); Building and Household inspectors; expandable sections, breadcrumbs and mouse close; independent debug; light/dark themes and responsive layout | `check-information.py` and `information-lifecycle.drive` below |
 | 2 | Complete | Road inspection, surface picking, directional travel conditions, endpoint links and frontage navigation | `check-roads.py`, `check-road-types.py` and `road-lifecycle.drive` below |
 | 3 | Complete | Everyday HUD controls: agree placement and hierarchy for time, map layers and active-tool feedback as one composition | Reviewed in both themes at 1440 × 960 and 480 × 640. **Composition C, the console, is chosen**, with the pointer reading folded into it |
 | 4 | Complete | Visible pause/resume and speed buttons with an unmistakable current state | `check-console.py` below |
@@ -22,14 +22,14 @@ below is the next proposed sequence; individual open choices do not block indepe
 | 6 | Complete | Clear active tool, mouse-accessible cancel and readable action refusals | `check-console.py` below |
 | 8 | Complete | Larger text and shared sizing; keyboard help; visible camera controls | `check-discovery.py`; both themes at 1440 × 960 and 480 × 640, including 150% text and preference restoration after restart |
 | 9 | Complete | Expandable tool browser, tool icons and contextual options; paint-to-zone with automatic subdivision | Choose, preview, paint and cancel without shortcuts; adding tools does not widen the console |
-| 10 | Proposed | Game menu: Settings, Save, Load, Quit, Help and Credits | Save/load continues the same city; failed loads preserve it; menu is usable entirely with the mouse |
+| 10 | Partial | Game menu: Settings and Help built; Save, Load, Credits and protected Quit pending | Save/load continues the same city; failed loads preserve it; menu is usable entirely with the mouse |
 | 11 | Proposed | Citizen names and sex; Life Stage in inspection | Stable identity across replay/load and row reuse; inspection updates when the Household changes Stage |
-| 12 | Proposed | Vary Building setbacks within the authoritative footprint model | Visible variation without parcel escapes or disagreement between drawing, picking and occupied ground |
-| 18 | Proposed | Visual pass: panel weight, spacing system, elevation, motion and type roles | Measured against the same `ui read` dumps: chrome share falls, no panel is stretched past its content, spacing values sit on one grid, every panel enters and leaves with a transition, live numbers stop reflowing |
+| 12 | Proposed; foundation built | Vary setbacks by built form; deterministic parcel setbacks already exist | Visible variation without parcel escapes or disagreement between drawing, picking and occupied ground |
+| 18 | Partial | Content fitting, shadows, nested radii, quieter headings, type roles and tabular readings built; motion and full acceptance pending | Measured against the same `ui read` dumps: chrome share falls, no panel is stretched past its content, spacing values sit on one grid, every panel enters and leaves with a transition, live numbers stop reflowing |
 | 13 | Proposed | A causal status vocabulary: a closed reason code on every entity that can fail to do its job, resolved to a sentence by the shell | Every subject reports a reason or an explicit normal; no state is unexplained. A code with no sentence, and a sentence with no code, both fail a test |
 | 14 | Proposed | Persistent marks in the world on troubled subjects, as a channel separate from row 7's feed | A troubled Building is visible without being selected; the mark clears when the condition does; the feed and the mark cannot disagree |
 | 15 | Proposed | An icon family: chrome, the five Goods, zone permissions, the map layers, entity kinds, alert severity | No control's meaning depends on a font's rendering of a codepoint; licences recorded for row 10's Credits |
-| 16 | Proposed | Close the Evidence chain: a Business inspector, a Citizen to Workplace link, and back navigation deeper than one level | No displayed subject id is unnavigable; `docs/01 §6`'s no-orphan-figures rule holds over the shipped inspectors |
+| 16 | Partial | Road → Building → Household back navigation built; Business inspection, Workplace links and complete subject navigation pending | No displayed subject id is unnavigable; `docs/01 §6`'s no-orphan-figures rule holds over the shipped inspectors |
 | 17 | Proposed | Separate developer controls from the player's console and Help | Debug overlays leave the `O` cycle; the tuner, log write and debug readout leave the player's shortcut catalogue |
 | 7 | Later: design | Citywide “what needs attention,” with links into the existing inspectors | Agree which evidence qualifies, how repeated issues are grouped and how resolved issues leave the view; demonstrate discovering an issue and opening its affected subject |
 
@@ -41,6 +41,14 @@ the actions, so a control that is drawn but unreachable fails exactly as a missi
 
 Broader dashboards, graphs, notifications, persistent Pins and tuner redesign remain deferred.
 Rows 8–12 promote the requested interface work, including tool icon assets and access to Policies.
+
+## Recommended next pass — row 10
+
+Complete the game menu so a player can leave and resume a city. Reuse `Main.Settings` and
+`Main.Discovery`; the Core save path in `Borough.Headless.Session` supplies the starting point.
+First agree menu placement and the unsaved-progress flow, then implement the row's full scope.
+Verify Save → Load → continue, failed-load preservation, pace restoration and mouse-only use.
+Row 18’s transitions and remaining visual checks stay pending independently.
 
 ## Research — 2026-09-08
 
@@ -104,6 +112,12 @@ live and moving before I can fully understand if your roads are OK, if your powe
 <https://bldgblog.com/2013/05/sim-city-an-interview-with-stone-librande/>
 
 ## Row 18 — the visual complaint, measured — 2026-09-08
+
+**Partial implementation:** `f61878b` landed `Main.Information.FitPanel`, shared shadows,
+nested radii, quieter headings and revised type roles in `InformationUi`, plus tabular clock and
+frame readings. The table below is the **pre-change baseline**, not the current interface.
+Panel transitions remain unbuilt. Full completion still needs a spacing audit and matched desktop
+`ui read`/capture comparisons for chrome, content fitting and changing numbers.
 
 The player's report is that the interface is *"visually unappealing and weird — it doesn't flow well for a
 human."* It is separable from rows 13–17, which are about what the interface can say. This row is about how
@@ -180,33 +194,21 @@ guessed at. <https://www.gameuidatabase.com/>
 
 ## Proposed next passes — 2026-09-06
 
-These rows cover the player's ten requests. Rows 8–9 are built; rows 10–12 remain planned. Preserve the
-chosen bottom console and both themes. Row 9 follows the selected rectangle treatment below.
+These rows cover the player's ten requests. Rows 8–9 are built; row 10 is partial; rows 11–12 remain planned.
+Preserve the chosen bottom console and both themes. Row 9 follows the selected rectangle treatment below.
 
-**8 — Readability and discovery (requests 2, 6, 8).** Increase text by roughly 15–20%, PROVISIONAL,
-and use shared typography roles across the console, inspector, tooltips and auxiliary panels.
-`Main.Information.InformationLabel` and the debug label currently override the shared sizing;
-changing `Main.Readout`'s point constants alone will miss them. Persist a text-size preference and
-resize containers with it. Add a scrollable Help window opened by `?` (including Shift+/), with
-mouse gestures and shortcuts grouped by task. Escape closes the topmost window first; typing in
-an input must not fire game shortcuts. Keep shortcut descriptions and bindings together.
-Add a compact camera group with rotate left/right, tilt up/down and zoom in/out; show shortcuts
-in tooltips and reuse the existing camera actions. Help and modal panels must consume clicks.
+**8 — Readability and discovery (requests 2, 6, 8): built.** `Main.Discovery` owns
+shared sizing, Help, shortcut handling and camera controls. The implementation and verification
+sections below retain the original acceptance evidence; Settings now owns sizing at a 100% default.
 
-**9 — Tools that can grow (requests 3, 4, 5, 9).** A compact Tools button opens a browser above the
-console. Categories: Roads, Zoning, Services and Policies. The console retains the selected tool
-and Cancel; the browser owns tool choices and their contextual options. Services can gain Schools,
-Health, utilities and other special Building kinds as they become available. Use scrollable groups
-and search when the list warrants it; do not put every future tool permanently in the console.
-Policies opens its own panel. Keep developer Ruleset editing separate from ordinary tool options.
-
-Use a consistent SVG icon family with visible labels, selected states and shortcut tooltips;
-icons alone are insufficient. A tool definition should supply its label, icon, category,
-availability, shortcut, options and action so browser and help cannot quietly disagree.
+**9 — Tools that can grow (requests 3, 4, 5, 9): built.** `Main.ToolBrowser` and
+`Main.ToolDefinitions` own the left column, categories, labelled SVG choices, contextual options
+and shared shortcuts. Policies opens its own panel. Search remains conditional on list growth.
+The rectangle treatment below supersedes the original browser-above-console proposal.
 
 **Agreed 2026-09-06:** replace Subdivide with the familiar paint-to-zone interaction. The player
 chooses permitted development and paints land; subdivision happens automatically. This supersedes
-the proposed block-click interaction above. `LotSubdivider.SubdivideAt` is an implementation starting
+the original block-click proposal. `LotSubdivider.SubdivideAt` is an implementation starting
 point, not a constraint on the brush: it currently creates Lots and does not repaint claimed frontage.
 
 **2026-09-08: option B selected, then revised by the player to a left-side column.**
@@ -225,8 +227,8 @@ Other tools retain their existing behavior; Policies opens its own panel. No new
 interaction is implied by its category.
 
 **10 — Game menu (request 10).** A visible menu button opens Save, Load, Settings, Help, Credits and
-Quit. Settings contains text size and theme initially. Opening this menu pauses the city and closing
-it restores the previous pace. Help alone leaves the pace unchanged. Load and Quit protect unsaved
+Quit. `Main.Settings` already supplies theme, text size, Debug and Help; menu lifecycle remains
+unbuilt. Opening this menu pauses the city; closing it restores the previous pace. Help alone leaves the pace unchanged. Load and Quit protect unsaved
 progress; saving reports success only after writing completes. Use the Core save mechanism already
 used by `Borough.Headless.Session`, with a file picker, explicit errors and safe replacement of saves.
 Validate a loaded world before replacing the live one, then rebuild rendering and clear stale
@@ -244,8 +246,9 @@ label: `HouseholdTable.LifeStage` owns it, and `CitizenTable.Age` is not a live 
 a personal age or Stage. Undeclared Life Stages get an explicit unavailable reading.
 
 **12 — Setbacks (request 1).** Vary front-wall distance by built form, with coherent attached
-frontages and more variation among detached Buildings. Ranges are PROVISIONAL. First trace footprint
-derivation and the imported-model placement in `Main.Assets`; `Main.Massing.Buildings` reads the
+frontages and more variation among detached Buildings. Ranges are PROVISIONAL.
+`LotRuleset.Footprint` already draws deterministic parcel setbacks; built-form variation remains owed.
+Trace imported-model placement in `Main.Assets`; `Main.Massing.Buildings` reads the
 Lot footprint directly. Keep the footprint within its parcel and preserve coherent corner geometry.
 Do not shift only the mesh. Prefer shifting an unchanged footprint where room permits; any resizing
 must also update the simulation quantities derived from its area. Variation must survive reload and
@@ -260,8 +263,8 @@ update golden fixtures through their recorder when simulation changes move the S
 
 ## Agreed design and implementation
 
-The player chose the spacing of composition B in both light and dark themes. Hover stays in a
-fixed lower-left corner. Clicking opens a persistent inspector on the right, with expandable
+The player initially chose composition B in both themes with fixed lower-left hover;
+row 3 superseded that placement with the console pointer row. Clicking opens a persistent inspector on the right, with expandable
 sections and Building → Household → back navigation. A visible close button and Escape clear
 selection. Debug information remains independently available, including Tile/Cell coordinates,
 Zone and the technical readout. These decisions supersede the earlier hover position.
@@ -339,7 +342,7 @@ connection links select the adjacent Segment. `RoadDebug` retains routing values
 
 `LayoutInformation` owns the PROVISIONAL dimensions and breakpoint. Short inspectors scroll beneath
 their fixed identity, condition, breadcrumb and close button. Narrow windows use a bottom sheet;
-the tool tray remains available through Tools. The minimum window is 480 × 640. `ThemeInformation`
+the tool tray remains available through Tools. The code minimum remains 480 × 640; review starts at 1440 × 960. `ThemeInformation`
 changes colours without rebuilding inspection state; preferences live in `user://information.cfg`.
 
 Supply shortfalls appear in the main explanation. Scheduled activities and waits for output space
@@ -350,8 +353,8 @@ tuner creates a new World.
 ## Row 8 — implemented 2026-09-06
 
 `Main.Discovery` owns shared typography roles, the saved text-size preference, Help and the shortcut
-catalogue used by keyboard actions and camera buttons. The default is 118%, PROVISIONAL; Help offers
-100–150% and Reset size. Settings can reuse this preference when row 10 is built. Help leaves pace
+catalogue used by keyboard actions and camera buttons. The original default was 118%, PROVISIONAL; the Settings corrections below supersede it
+with 100% and move the size controls there. Help leaves pace
 unchanged, consumes map clicks, and keeps its heading and size controls above scrolling content.
 Escape closes Help, then the frontmost auxiliary panel, then inspection, then the editing tool.
 Focused text inputs retain their keys. Auxiliary panels now scroll within the viewport. An overfull
