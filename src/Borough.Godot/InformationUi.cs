@@ -134,6 +134,11 @@ internal static class InformationUi
             theme.SetColor(state, type, ink);
         theme.SetColor("font_pressed_color", type, onActive);
         theme.SetColor("font_hover_pressed_color", type, onActive);
+        theme.SetColor("icon_normal_color", type, ink);
+        theme.SetColor("icon_hover_color", type, ink);
+        theme.SetColor("icon_pressed_color", type, onActive);
+        theme.SetColor("icon_hover_pressed_color", type, onActive);
+        theme.SetColor("icon_disabled_color", type, ink.Darkened(.35f));
     }
 
     public static StyleBoxFlat Box(Color fill, Color line, int horizontal, int vertical,
@@ -175,6 +180,7 @@ internal static class InformationUi
     {
         var button = new Button { Text = text, TooltipText = text, CustomMinimumSize = new Vector2(0, compact ? 30 : 36),
             SizeFlagsVertical = compact ? Control.SizeFlags.ShrinkCenter : Control.SizeFlags.Fill };
+        UiIcons.Common(button);
         button.Pressed += action;
         return button;
     }

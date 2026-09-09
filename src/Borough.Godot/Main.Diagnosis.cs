@@ -77,7 +77,7 @@ public partial class Main
                     _hud.AddChild(mark);
                     _hud.MoveChild(mark, 0);
                 }
-                mark.Text = reading.Shortfalls > 0 ? "!" : "?";
+                UiIcons.Glyph(mark, reading.Shortfalls > 0 ? "!" : "?", reading.Shortfalls > 0 ? "trouble" : "unavailable");
                 mark.TooltipText = $"Building {RowId(_world.Buildings.Rows, building)} · {SupplySummary(reading)} · click to inspect";
             }
             foreach (var key in _supplyMarks.Keys.Where(k => !live.Contains(k)).ToArray())
@@ -89,14 +89,13 @@ public partial class Main
         var occupied = new List<Rect2>();
         foreach (var (building, mark) in _supplyMarks)
         {
-            mark.Visible = false;
             mark.AddThemeFontSizeOverride("font_size", Typed(18));
             if (_photographing || _menuOpen || !_world.Buildings.Rows.TryResolve(building, out int b)
-                || !_world.Lots.Rows.TryResolve(_world.Buildings.Lot[b], out int lot)) continue;
+                || !_world.Lots.Rows.TryResolve(_world.Buildings.Lot[b], out int lot)) { mark.Visible = false; continue; }
             Vector3 point = new(_world.Lots.East[lot].Raw * MetresPerTile,
                 Math.Max(1, (int)_world.Lots.Storeys[lot]) * StoreyMetres + 4,
                 -_world.Lots.North[lot].Raw * MetresPerTile);
-            if (_camera.IsPositionBehind(point)) continue;
+            if (_camera.IsPositionBehind(point)) { mark.Visible = false; continue; }
             Vector2 screen = _camera.UnprojectPosition(point);
             Vector2 size = mark.GetCombinedMinimumSize().Max(new Vector2(36, 36));
             var rect = new Rect2(screen - new Vector2(size.X / 2, size.Y), size);
@@ -104,7 +103,7 @@ public partial class Main
                 || _informationPanels.Any(p => p.Visible && p.GetGlobalRect().Intersects(rect))
                 || _toolsShown && _palette.GetGlobalRect().Intersects(rect)
                 || _helpPanel.Visible || _tuner.Visible || _governing
-                || occupied.Any(r => r.Intersects(rect))) continue;
+                || occupied.Any(r => r.Intersects(rect))) { mark.Visible = false; continue; }
             mark.Position = rect.Position;
             mark.Size = rect.Size;
             mark.Visible = true;
@@ -141,7 +140,7 @@ public partial class Main
         while (_world.Bins.Rows.TryResolve(bin, out int at))
         {
             if (!_world.Rules.IsConserved(_world.Bins.Resource[at]))
-                stocks.Add(new($"{_names.Resource(_world.Bins.Resource[at]) ?? "Resource"}: {_world.Bins.LevelAt(at):N0} / {_world.Bins.Capacity[at]:N0} units"));
+                stocks.Add(new($"{_names.Resource(_world.Bins.Resource[at]) ?? "Resource"}: {_world.Bins.LevelAt(at):N0} / {_world.Bins.Capacity[at]:N0} units", Icon: UiIcons.Resource(_names.Resource(_world.Bins.Resource[at]))));
             bin = _world.Bins.OwnerNext[at];
         }
         if (_world.Bins.Rows.TryResolve(_world.Businesses.Balance[slot], out int balance))

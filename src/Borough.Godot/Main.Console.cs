@@ -60,7 +60,7 @@ public partial class Main
     private HFlowContainer _layerChoices = null!;
     private Control _toolSlot = null!;
     private SkyArc _skyArc = null!;
-    private Label _rungLabel = null!, _dayLengthLabel = null!, _dayLabel = null!;
+    private Label _rungLabel = null!, _dayLengthLabel = null!;//, _dayLabel = null!;
     private Label _legendTitle = null!, _legendBody = null!, _refusalLabel = null!;
     private LegendRamp _legendRamp = null!;
     private Button _layerButton = null!, _pauseButton = null!, _slowerButton = null!, _fasterButton = null!;
@@ -152,10 +152,10 @@ public partial class Main
         var sky = new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
         sky.AddThemeConstantOverride("separation", 8);
         _skyArc = new SkyArc { CustomMinimumSize = new Vector2(112, 44), MouseFilter = Control.MouseFilterEnum.Stop, TooltipText = "Day/night clock: dawn left, noon above, dusk right, midnight below." };
-        _dayLabel = ConsoleLabel(string.Empty, SecondaryPoints);
-        _dayLabel.ThemeTypeVariation = InformationUi.Reading;
+        // _dayLabel = ConsoleLabel(string.Empty, SecondaryPoints);
+        // _dayLabel.ThemeTypeVariation = InformationUi.Reading;
         sky.AddChild(_skyArc);
-        sky.AddChild(_dayLabel);
+        // sky.AddChild(_dayLabel);
         _consoleTop.AddChild(sky);
         PerformanceDisplay();
 
@@ -187,6 +187,7 @@ public partial class Main
         var layerHead = new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
         layerHead.AddThemeConstantOverride("separation", 8);
         _layerButton = ConsoleButton(string.Empty, () => Ui(_layersShown ? "layers off" : "layers on"));
+        UiIcons.Attach(_layerButton, "layers");
         _layerButton.TooltipText = "Choose a map layer (o cycles)";
         layerHead.AddChild(_layerButton);
         // ⚠ A FLOW AND NOT A BOX, for the same reason the console itself is one: at 480 px the four
@@ -207,6 +208,8 @@ public partial class Main
             string want = name;
             var choice = ConsoleButton(label, () => Apply(new DriveCommand(
                 _world.Tick.Raw, DriveVerb.Overlay, 0, want)));
+            UiIcons.Attach(choice, name switch
+            { "pollution" => "pollution", "value" => "value", "sealing" => "sealing", "health" => "clinic", "off" => "layers", _ => "grid" });
             choice.ToggleMode = true;
             _layerChoices.AddChild(choice);
         }
@@ -238,7 +241,7 @@ public partial class Main
         var trim = new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
         trim.AddThemeConstantOverride("separation", 8);
         _toolsButton = ConsoleButton("Tools", () => Ui("tools on"));
-        _toolsButton.Icon = ToolIcon("Zoning");
+        UiIcons.Attach(_toolsButton, "grid");
         _toolsButton.AddThemeConstantOverride("icon_max_width", 22);
         _toolsButton.Theme = _type;
         _hud.AddChild(_toolsButton);
@@ -404,7 +407,7 @@ public partial class Main
         _rungLabel.TooltipText = Pace(_rung);
         _dayLengthLabel.Text = DayLength();
         _dayLengthLabel.TooltipText = Pace(_rung);
-        _pauseButton.Text = _rung == 0 ? "▶" : "⏸";
+        UiIcons.Glyph(_pauseButton, _rung == 0 ? "▶" : "⏸", _rung == 0 ? "play" : "pause");
         _pauseButton.SetPressedNoSignal(_rung == 0);
         _slowerButton.Disabled = _rung <= 1;
         _fasterButton.Disabled = _rung >= Ladder.Length - 1;
@@ -415,8 +418,8 @@ public partial class Main
             _skyArc.Minute = minute;
             _skyArc.QueueRedraw();
         }
-        _dayLabel.Text = $"Day {_world.Tick.Raw / (ulong)Ticks.PerDay} · {PhaseOfDay(minute)}"
-            + $"  {minute / 60:00}:{minute % 60:00}";
+        // _dayLabel.Text = $"Day {_world.Tick.Raw / (ulong)Ticks.PerDay} · {PhaseOfDay(minute)}"
+        //     + $"  {minute / 60:00}:{minute % 60:00}";
 
         _layerButton.Text = _washing == Wash.None
             ? "Layers  ▾"

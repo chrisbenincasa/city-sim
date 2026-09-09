@@ -9,6 +9,9 @@
     <NoWarn>$(NoWarn)</NoWarn>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="assets/icons/**/*.svg" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Borough.Core\Borough.Core.csproj" />
     <ProjectReference Include="..\Borough.Formats\Borough.Formats.csproj" />
   </ItemGroup>

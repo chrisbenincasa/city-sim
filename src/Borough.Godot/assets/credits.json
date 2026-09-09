@@ -1,5 +1,5 @@
 [
-  {"asset":"Borough — procedural city models and interface icons", "creator":"Borough contributors", "license":"Project assets; no separate licence declared", "source":"Main.Assets, Main.Massing and scripts/art — created for Borough"},
+  {"asset":"Borough — procedural city models and interface icons", "creator":"Borough contributors", "license":"Project assets; no separate licence declared", "source":"Main.Assets, Main.Massing, UiIcons and assets/icons — created for Borough"},
   {"asset":"3D comparison models", "creator":"Borough contributors", "license":"Project assets; no separate licence declared", "source":"scripts/art/kit.py and art/visual-study manifests — created for Borough"},
   {"asset":"Brick Wall 001", "creator":"Dimitrios Savva and Rob Tuytel / Poly Haven", "license":"CC0-1.0", "source":"https://polyhaven.com/a/brick_wall_001"},
   {"asset":"Roof Slates 02", "creator":"Rob Tuytel / Poly Haven", "license":"CC0-1.0", "source":"https://polyhaven.com/a/roof_slates_02"},

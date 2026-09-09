@@ -27,7 +27,7 @@ Historical rows retain their previous verification; row 10 records its new check
 | 18 | Partial; independent | Content fitting, shadows, nested radii, quieter headings, type roles and tabular readings built; motion and full acceptance pending | Measured against the same `ui read` dumps: chrome share falls, no panel is stretched past its content, spacing values sit on one grid, panel changes preserve orientation without delaying input, live numbers stop reflowing; reduced motion preserves clear states |
 | 13 | Partial: supply diagnosis built | Evidence-backed status explanations: normal, routine waiting, trouble and unavailable explanation; concurrent causes with a primary summary and expandable detail | Removing one of two causes reveals the remaining cause; unavailable evidence never becomes normal; every emitted code has a shell sentence |
 | 14 | Partial: current supply marks built | Persistent marks in the world on troubled subjects, as a channel separate from row 7's feed | A troubled Building is discoverable without selection; retries retain one issue; resolution clears its mark; recurrence is identifiable; history labels resolved events and deleted subjects leave no broken links |
-| 15 | Proposed | An icon family and redundant visual cues: chrome, Goods, zone permissions, map layers, entity kinds, selection and severity | Essential distinctions survive without hue in both themes and enlarged text, using shape, labels or patterns; licences recorded for Credits |
+| 15 | Partial: SVG family integrated | An icon family and redundant visual cues: chrome, Goods, zone permissions, map layers, entity kinds, selection and severity | Essential distinctions survive without hue in both themes and enlarged text, using shape, labels or patterns; licences recorded for Credits |
 | 16 | Partial | Road, Building, Household and Business navigation built, including Workplace links; remaining subject types pending | No displayed subject id is unnavigable; `docs/01 §6`'s no-orphan-figures rule holds over the shipped inspectors |
 | 17 | Proposed | Separate developer controls from the player's console and Help | Debug overlays leave the `O` cycle; the tuner, log write and debug readout leave the player's shortcut catalogue |
 | 7 | Proposed after first diagnosis pass | Compact current-issues list; event history remains later | Group by subject and cause; member counts reconcile; every entry opens an affected subject; resolved conditions leave the current list; routine waits do not automatically demand attention |
@@ -42,6 +42,23 @@ the actions, so a control that is drawn but unreachable fails exactly as a missi
 
 Broader dashboards, graphs, notifications, persistent Pins and tuner redesign remain deferred.
 Rows 8–12 promote the requested interface work, including tool icon assets and access to Policies.
+
+## Icon family — 2026-09-08
+
+The player chose custom SVGs with **outline as the default and filled on hover**. `UiIcons`
+loads paired assets from `assets/icons`, embedded in the shell assembly, and shares textures.
+Buttons retain labels, tooltips and selected-state styling; selection alone does not fill an icon.
+Disabled controls remain outlined. Non-interactive readings stay outlined.
+
+The family covers tools, zone permissions, menu and camera controls, map-layer choices,
+inspector subjects and links, stock readings and supply marks. Unrecognised Resource names use
+an explicitly generic stock symbol. `scripts/ui/check-icons.py` checks actual texture changes,
+unchanged hit rectangles, selection, themes and text scaling; `check-diagnosis.py` still owns the
+complete diagnosis interaction. Credits identifies the icons as project-created assets.
+
+Row 15 remains partial: redundant patterns on Map Layers and stronger selection cues still need
+an in-context design and verification. An icon beside a layer name does not make the layer itself
+readable without hue. The comparison sheet remains under `art/ui-study`.
 
 ## Next pass — current issues
 

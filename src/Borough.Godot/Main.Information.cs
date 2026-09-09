@@ -24,6 +24,7 @@ public partial class Main
     private PanelContainer _debugPanel = null!;
     private ScrollContainer _inspectionScroll = null!;
     private VBoxContainer _inspectionBody = null!;
+    private TextureRect _inspectionSubjectIcon = null!;
     private Label _inspectionCondition = null!;
     private Label _inspectionTitle = null!, _inspectionIdentity = null!, _debugText = null!;
     private Button _inspectionBack = null!, _themeButton = null!, _debugButton = null!;
@@ -43,7 +44,7 @@ public partial class Main
     private string _synopsisIssue = string.Empty;
     private readonly List<Control> _informationPanels = new();
 
-    private sealed record InformationRow(string Text, string? Action = null);
+    private sealed record InformationRow(string Text, string? Action = null, string? Icon = null);
     private sealed record InformationSection(string Key, string Title, bool Open, List<InformationRow> Rows);
 
     private static ulong RowId<T>(Rows<T> rows, Handle<T> handle) where T : unmanaged =>
@@ -85,7 +86,12 @@ public partial class Main
         _inspectionTitle.AutowrapMode = TextServer.AutowrapMode.Off;
         _inspectionTitle.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
         _inspectionTitle.ClipText = true;
-        identity.AddChild(_inspectionTitle);
+        var subject = new HBoxContainer();
+        _inspectionSubjectIcon = ReadingIcon("housing");
+        _inspectionTitle.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        subject.AddChild(_inspectionSubjectIcon);
+        subject.AddChild(_inspectionTitle);
+        identity.AddChild(subject);
         _inspectionCondition = InformationLabel(string.Empty, SecondaryPoints);
         _inspectionCondition.AutowrapMode = TextServer.AutowrapMode.Off;
         _inspectionCondition.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
@@ -143,6 +149,22 @@ public partial class Main
         return label;
     }
 
+    private TextureRect ReadingIcon(string id)
+    {
+        var icon = new TextureRect
+        {
+            Texture = UiIcons.Texture(id, size: Typed(24)),
+            CustomMinimumSize = new Vector2(Typed(24), Typed(24)),
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            SizeFlagsVertical = Control.SizeFlags.ShrinkBegin,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+            Modulate = _type.GetColor("font_color", "Label")
+        };
+        icon.SetMeta("reading_icon", id);
+        return icon;
+    }
+
     private Button InformationButton(string text, Action action)
     {
         var button = InformationUi.Button(text, () => AtBoundary(action));
@@ -157,7 +179,8 @@ public partial class Main
             Mesh = new TorusMesh { InnerRadius = 2.5f, OuterRadius = 3.2f },
             MaterialOverride = new StandardMaterial3D
             {
-                AlbedoColor = colour, ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                AlbedoColor = colour,
+                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
             },
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
             Visible = false,
@@ -180,6 +203,8 @@ public partial class Main
         _type.SetColor("icon_hover_pressed_color", "Button", colors.OnActive);
         _type.SetBlockSignals(false);
         _type.EmitChanged();
+        foreach (var icon in InformationDescendants(_hud).OfType<TextureRect>().Where(t => t.HasMeta("reading_icon")))
+            icon.Modulate = ink;
         // Every panel casts a shadow. A flat panel over the city reads as a hole cut in the picture
         // rather than a thing resting above it, and weak clickability signifiers cost real reading
         // time (Nielsen Norman Group, 22% longer and 25% more fixations) — plans/0064 row 18.
@@ -204,11 +229,18 @@ public partial class Main
         {
             BgColor = colors.Warning,
             BorderColor = colors.Warn,
-            BorderWidthBottom = 1, BorderWidthLeft = 3, BorderWidthRight = 1, BorderWidthTop = 1,
-            CornerRadiusBottomLeft = InformationUi.CardRadius, CornerRadiusBottomRight = InformationUi.CardRadius,
-            CornerRadiusTopLeft = InformationUi.CardRadius, CornerRadiusTopRight = InformationUi.CardRadius,
-            ContentMarginLeft = 12, ContentMarginRight = 12,
-            ContentMarginTop = 8, ContentMarginBottom = 8,
+            BorderWidthBottom = 1,
+            BorderWidthLeft = 3,
+            BorderWidthRight = 1,
+            BorderWidthTop = 1,
+            CornerRadiusBottomLeft = InformationUi.CardRadius,
+            CornerRadiusBottomRight = InformationUi.CardRadius,
+            CornerRadiusTopLeft = InformationUi.CardRadius,
+            CornerRadiusTopRight = InformationUi.CardRadius,
+            ContentMarginLeft = 12,
+            ContentMarginRight = 12,
+            ContentMarginTop = 8,
+            ContentMarginBottom = 8,
         });
 
         _themeButton.ButtonPressed = _lightUi;
@@ -419,16 +451,29 @@ public partial class Main
                 var pointerPosition = new Vector2(pointerX, pointerY);
                 _aimed = null;
                 if (words[1] == "move")
-                    Input.ParseInputEvent(new InputEventMouseMotion { Position = pointerPosition,
-                        GlobalPosition = pointerPosition, ButtonMask = _zoneStart is null ? 0 : MouseButtonMask.Left });
+                    Input.ParseInputEvent(new InputEventMouseMotion
+                    {
+                        Position = pointerPosition,
+                        GlobalPosition = pointerPosition,
+                        ButtonMask = _zoneStart is null ? 0 : MouseButtonMask.Left
+                    });
                 else
-                    Input.ParseInputEvent(new InputEventMouseButton { Position = pointerPosition,
-                        GlobalPosition = pointerPosition, ButtonIndex = MouseButton.Left, Pressed = words[1] == "down" });
+                    Input.ParseInputEvent(new InputEventMouseButton
+                    {
+                        Position = pointerPosition,
+                        GlobalPosition = pointerPosition,
+                        ButtonIndex = MouseButton.Left,
+                        Pressed = words[1] == "down"
+                    });
                 break;
             case "key" when words.Length >= 2 && Enum.TryParse(words[1], true, out Key key):
-                Input.ParseInputEvent(new InputEventKey { Keycode = key,
+                Input.ParseInputEvent(new InputEventKey
+                {
+                    Keycode = key,
                     Unicode = (uint)key >= 32 && (uint)key <= 126 ? (uint)key : 0,
-                    Pressed = true, ShiftPressed = words.Length == 3 && words[2] == "shift" });
+                    Pressed = true,
+                    ShiftPressed = words.Length == 3 && words[2] == "shift"
+                });
                 Input.ParseInputEvent(new InputEventKey { Keycode = key, Pressed = false });
                 break;
             case "render-probe" when words.Length == 2:
@@ -572,10 +617,20 @@ public partial class Main
                     || _palette.Visible && _palette.GetGlobalRect().HasPoint(mapPosition)) break;
                 _aimed = null;
                 Input.ParseInputEvent(new InputEventMouseMotion { Position = mapPosition, GlobalPosition = mapPosition });
-                Input.ParseInputEvent(new InputEventMouseButton { Position = mapPosition, GlobalPosition = mapPosition,
-                    ButtonIndex = MouseButton.Left, Pressed = true });
-                Input.ParseInputEvent(new InputEventMouseButton { Position = mapPosition, GlobalPosition = mapPosition,
-                    ButtonIndex = MouseButton.Left, Pressed = false });
+                Input.ParseInputEvent(new InputEventMouseButton
+                {
+                    Position = mapPosition,
+                    GlobalPosition = mapPosition,
+                    ButtonIndex = MouseButton.Left,
+                    Pressed = true
+                });
+                Input.ParseInputEvent(new InputEventMouseButton
+                {
+                    Position = mapPosition,
+                    GlobalPosition = mapPosition,
+                    ButtonIndex = MouseButton.Left,
+                    Pressed = false
+                });
                 break;
             case "press" when words.Length == 3 && int.TryParse(words[1], out int px)
                 && int.TryParse(words[2], out int py):
@@ -588,28 +643,58 @@ public partial class Main
                 if (_cityPicker.Visible)
                 {
                     GetViewport().PushInput(new InputEventMouseMotion { Position = position, GlobalPosition = position }, true);
-                    GetViewport().PushInput(new InputEventMouseButton { Position = position, GlobalPosition = position,
-                        ButtonIndex = MouseButton.Left, Pressed = true }, true);
-                    GetViewport().PushInput(new InputEventMouseButton { Position = position, GlobalPosition = position,
-                        ButtonIndex = MouseButton.Left, Pressed = false }, true);
+                    GetViewport().PushInput(new InputEventMouseButton
+                    {
+                        Position = position,
+                        GlobalPosition = position,
+                        ButtonIndex = MouseButton.Left,
+                        Pressed = true
+                    }, true);
+                    GetViewport().PushInput(new InputEventMouseButton
+                    {
+                        Position = position,
+                        GlobalPosition = position,
+                        ButtonIndex = MouseButton.Left,
+                        Pressed = false
+                    }, true);
                     break;
                 }
                 Input.ParseInputEvent(new InputEventMouseMotion { Position = position, GlobalPosition = position });
-                Input.ParseInputEvent(new InputEventMouseButton { Position = position, GlobalPosition = position,
-                    ButtonIndex = MouseButton.Left, Pressed = true });
-                Input.ParseInputEvent(new InputEventMouseButton { Position = position, GlobalPosition = position,
-                    ButtonIndex = MouseButton.Left, Pressed = false });
+                Input.ParseInputEvent(new InputEventMouseButton
+                {
+                    Position = position,
+                    GlobalPosition = position,
+                    ButtonIndex = MouseButton.Left,
+                    Pressed = true
+                });
+                Input.ParseInputEvent(new InputEventMouseButton
+                {
+                    Position = position,
+                    GlobalPosition = position,
+                    ButtonIndex = MouseButton.Left,
+                    Pressed = false
+                });
                 break;
             case "wheel" when words.Length == 4 && int.TryParse(words[1], out int wx)
                 && int.TryParse(words[2], out int wy) && int.TryParse(words[3], out int steps):
                 var wheelPosition = new Vector2(wx, wy);
                 if (!OverInformation(wheelPosition)) break;
                 Input.ParseInputEvent(new InputEventMouseMotion { Position = wheelPosition, GlobalPosition = wheelPosition });
-                Input.ParseInputEvent(new InputEventMouseButton { Position = wheelPosition, GlobalPosition = wheelPosition,
+                Input.ParseInputEvent(new InputEventMouseButton
+                {
+                    Position = wheelPosition,
+                    GlobalPosition = wheelPosition,
                     ButtonIndex = steps < 0 ? MouseButton.WheelUp : MouseButton.WheelDown,
-                    Factor = Math.Max(1, Math.Abs(Math.Clamp(steps, -20, 20))), Pressed = true });
-                Input.ParseInputEvent(new InputEventMouseButton { Position = wheelPosition, GlobalPosition = wheelPosition,
-                    ButtonIndex = steps < 0 ? MouseButton.WheelUp : MouseButton.WheelDown, Pressed = false });
+                    Factor = Math.Max(1, Math.Abs(Math.Clamp(steps, -20, 20))),
+                    Pressed = true
+                });
+                Input.ParseInputEvent(new InputEventMouseButton
+                {
+                    Position = wheelPosition,
+                    GlobalPosition = wheelPosition,
+                    ButtonIndex = steps < 0 ? MouseButton.WheelUp : MouseButton.WheelDown,
+                    Pressed = false
+                });
                 break;
             case "scroll" when words.Length == 2 && int.TryParse(words[1], out int scroll):
                 _inspectionScroll.ScrollVertical = Math.Max(0, scroll);
@@ -760,12 +845,20 @@ public partial class Main
             sections.Add(new("ground", "Ground", true, rows.Select(t => new InformationRow(t)).ToList()));
             AddAreaHealth(sections, ground.East.Raw, ground.North.Raw);
         }
-        string signature = title + identity + string.Join("\n", sections.Select(s => s.Key + s.Title + string.Join("\n", s.Rows.Select(r => r.Text + r.Action))));
+        string signature = title + identity + string.Join("\n", sections.Select(s => s.Key + s.Title + string.Join("\n", s.Rows.Select(r => r.Text + r.Action + r.Icon))));
         _inspectionCaption = title + "\n" + identity + "\n" + string.Join("\n", sections.Select(s => s.Title + "\n" + string.Join("\n", s.Rows.Select(r => r.Text))));
         _inspector.Visible = true;
         if (signature == _inspectionSignature) return;
         _inspectionSignature = signature;
         int scroll = _inspectionScroll.ScrollVertical;
+        string subjectIcon = !_selectedBusiness.IsNone ? "trade" : !_selectedHousehold.IsNone ? "household"
+            : !_selectedRoad.IsNone ? "road" : _selectedBuilding.IsNone ? "layers" : "housing";
+        if (_selectedBusiness.IsNone && _selectedHousehold.IsNone
+            && _world.Buildings.Rows.TryResolve(_selectedBuilding, out int iconBuilding))
+            subjectIcon = _world.Rules.ServedBy(_world.Buildings.Kind[iconBuilding]) switch
+            { Need.Health => "clinic", Need.Education => "school", _ => "housing" };
+        _inspectionSubjectIcon.Texture = UiIcons.Texture(subjectIcon);
+        _inspectionSubjectIcon.SetMeta("reading_icon", subjectIcon);
         _inspectionTitle.Text = title;
         _inspectionTitle.TooltipText = title;
         _inspectionIdentity.Text = identity;
@@ -786,6 +879,18 @@ public partial class Main
             bool attention = section.Key == "attention" && section.Open;
             var toggle = InformationButton($"{(expanded ? "▾" : "▸")}  {section.Title}",
                 () => Ui($"section {section.Key} {(expanded ? "off" : "on")}"));
+            string? sectionIcon = section.Key switch
+            {
+                "attention" => section.Open ? "trouble" : "clear",
+                "activities" => "waiting",
+                "households" => "household",
+                "businesses" => "trade",
+                "stocks" => "resource",
+                "health" or "care" => "clinic",
+                "citizens" or "workers" => "household",
+                _ => null,
+            };
+            if (sectionIcon is not null) UiIcons.Attach(toggle, sectionIcon);
             toggle.Alignment = HorizontalAlignment.Left;
             var card = InformationUi.Section(toggle, expanded, attention, out var rows);
             card.Name = section.Key;
@@ -793,7 +898,22 @@ public partial class Main
                 foreach (InformationRow row in section.Key == "summary" ? section.Rows.Skip(1) : section.Rows)
                 {
                     if (row.Action is { } action)
-                        rows.AddChild(InformationUi.Link(row.Text, () => Ui(action)));
+                    {
+                        var link = InformationUi.Link(row.Text, () => Ui(action));
+                        string? icon = row.Icon ?? (action.StartsWith("household ") ? "household"
+                            : action.StartsWith("business ") ? "trade" : action.StartsWith("building ") ? "housing" : null);
+                        if (icon is not null) UiIcons.Attach(link, icon);
+                        rows.AddChild(link);
+                    }
+                    else if (row.Icon is { } icon)
+                    {
+                        var reading = new HBoxContainer();
+                        reading.AddChild(ReadingIcon(icon));
+                        var label = InformationLabel(row.Text);
+                        label.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+                        reading.AddChild(label);
+                        rows.AddChild(reading);
+                    }
                     else rows.AddChild(InformationLabel(row.Text));
                 }
             _inspectionBody.AddChild(card);
@@ -855,8 +975,10 @@ public partial class Main
             string resource = rule.Blocked == Blocking.Nothing ? string.Empty : _names.Resource(rule.WaitingFor) ?? $"Resource {rule.WaitingFor.Raw}";
             string target = rule.WaitingOn switch
             {
-                BinOwnerKind.District => "the District market", BinOwnerKind.Household => "a Household's stock",
-                BinOwnerKind.Business => "a Business's stock", BinOwnerKind.Building => "the Building's stock",
+                BinOwnerKind.District => "the District market",
+                BinOwnerKind.Household => "a Household's stock",
+                BinOwnerKind.Business => "a Business's stock",
+                BinOwnerKind.Building => "the Building's stock",
                 _ => "the required stock",
             };
             string waiting = rule.Blocked switch
@@ -901,7 +1023,7 @@ public partial class Main
         {
             if (onlyHousehold && bin.Tenant != household) continue;
             string owner = bin.Tenant.IsNone ? "Premises" : $"Household {RowId(_world.Households.Rows, bin.Tenant)}";
-            rows.Add(new($"{owner} · {_names.Resource(bin.Resource) ?? "Resource"}\n{bin.Level:N0} / {bin.Capacity:N0} units"));
+            rows.Add(new($"{owner} · {_names.Resource(bin.Resource) ?? "Resource"}\n{bin.Level:N0} / {bin.Capacity:N0} units", Icon: UiIcons.Resource(_names.Resource(bin.Resource))));
         }
         if (rows.Count == 0) rows.Add(new("No stocks reported."));
         return new("stocks", onlyHousehold ? "Household stocks" : "Stocks", false, rows);
@@ -980,51 +1102,92 @@ public partial class Main
         }
         var state = new
         {
-            Tick = _world.Tick.Raw, Hash = _world.HashState().ToString("X16"),
-            Theme = _lightUi ? "light" : "dark", Debug = _debugShown,
-            MenuVisible = _menuOpen, MenuPage = _menuPage, MenuMessage = _menuMessage,
+            Tick = _world.Tick.Raw,
+            Hash = _world.HashState().ToString("X16"),
+            Theme = _lightUi ? "light" : "dark",
+            Debug = _debugShown,
+            MenuVisible = _menuOpen,
+            MenuPage = _menuPage,
+            MenuMessage = _menuMessage,
             Dialogs = InformationDescendants(_hud, true).OfType<Window>().Where(w => w.Visible)
                 .Select(w => new { Name = w.Name.ToString(), w.Title, X = w.Position.X, Y = w.Position.Y, Width = w.Size.X, Height = w.Size.Y, Embedded = w.IsEmbedded() }).ToArray(),
-            Unsaved = UnsavedCity, FilePickerVisible = _cityPicker.Visible, SavePath = _savePath,
-            SettingsVisible = _settingsPanel.Visible, Settings = Rect(_settingsPanel),
-            TextPercent = _textPercent, HelpVisible = _helpPanel.Visible, Help = Rect(_helpPanel),
-            HelpScroll = _helpScroll.ScrollVertical, HelpContent = Rect(_helpScroll),
-            SpeedLabel = _rungLabel.Text, PauseHighlighted = _pauseButton.ButtonPressed,
+            Unsaved = UnsavedCity,
+            FilePickerVisible = _cityPicker.Visible,
+            SavePath = _savePath,
+            SettingsVisible = _settingsPanel.Visible,
+            Settings = Rect(_settingsPanel),
+            TextPercent = _textPercent,
+            HelpVisible = _helpPanel.Visible,
+            Help = Rect(_helpPanel),
+            HelpScroll = _helpScroll.ScrollVertical,
+            HelpContent = Rect(_helpScroll),
+            SpeedLabel = _rungLabel.Text,
+            PauseHighlighted = _pauseButton.ButtonPressed,
             Sky = new { _skyArc.Minute, _skyArc.Daytime, X = _skyArc.Marker.X / _skyArc.Size.X, Y = _skyArc.Marker.Y / _skyArc.Size.Y },
-            Camera = new { Yaw = _yaw, Pitch = _pitch, Distance = _distance,
-                Focus = new { _focus.X, _focus.Y, _focus.Z } },
-            Rendering = new { Probe = _renderProbe, ChunkMetres = InstanceLayer.ChunkMetres,
-                Scale = GetViewport().Scaling3DScale, FrameLimit = Engine.MaxFps,
+            Camera = new
+            {
+                Yaw = _yaw,
+                Pitch = _pitch,
+                Distance = _distance,
+                Focus = new { _focus.X, _focus.Y, _focus.Z }
+            },
+            Rendering = new
+            {
+                Probe = _renderProbe,
+                ChunkMetres = InstanceLayer.ChunkMetres,
+                Scale = GetViewport().Scaling3DScale,
+                FrameLimit = Engine.MaxFps,
                 Vsync = DisplayServer.WindowGetVsyncMode().ToString(),
                 Shadow16Bits = (bool)ProjectSettings.GetSetting("rendering/lights_and_shadows/directional_shadow/16_bits"),
-                Configuration = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<System.Reflection.AssemblyConfigurationAttribute>(typeof(Main).Assembly)?.Configuration },
+                Configuration = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<System.Reflection.AssemblyConfigurationAttribute>(typeof(Main).Assembly)?.Configuration
+            },
             Fonts = InformationDescendants(_hud, true).OfType<Label>().Where(l => l.IsVisibleInTree())
                 .Select(l => new { l.Text, Size = l.GetThemeFontSize("font_size") }).ToArray(),
             Viewport = new { Width = GetViewport().GetVisibleRect().Size.X, Height = GetViewport().GetVisibleRect().Size.Y },
-            Selected = RowId(_world.Buildings.Rows, _selectedBuilding), Household = RowId(_world.Households.Rows, _selectedHousehold),
+            Selected = RowId(_world.Buildings.Rows, _selectedBuilding),
+            Household = RowId(_world.Households.Rows, _selectedHousehold),
             Pointer = new { X = GetViewport().GetMousePosition().X, Y = GetViewport().GetMousePosition().Y },
             MapTargets = InformationMapTargets(),
             Business = RowId(_world.Businesses.Rows, _selectedBusiness),
-            SupplyMarks = _supplyMarks.Select(p => new { Building = RowId(_world.Buildings.Rows, p.Key),
-                Visible = p.Value.Visible, Rect = Rect(p.Value), Text = p.Value.TooltipText }).ToArray(),
+            SupplyMarks = _supplyMarks.Select(p => new
+            {
+                Building = RowId(_world.Buildings.Rows, p.Key),
+                Visible = p.Value.Visible,
+                Rect = Rect(p.Value),
+                Text = p.Value.TooltipText
+            }).ToArray(),
             Road = RowId(_world.Roads.Segments.Rows, _selectedRoad),
-            InspectorVisible = _inspector!.Visible, Inspector = Rect(_inspector),
-            Hover = Rect(_pointerRow), DebugPanel = Rect(_debugPanel), ToolsVisible = _toolsShown, Tools = Rect(_palette), ToolContent = Rect(_toolScroll),
-            Console = Rect(_console), ConsoleScroll = _consoleScroll.ScrollVertical, ConsoleContent = Rect(_consoleScroll), Pace = RungName(), Layer = _washing.ToString(),
+            InspectorVisible = _inspector!.Visible,
+            Inspector = Rect(_inspector),
+            Hover = Rect(_pointerRow),
+            DebugPanel = Rect(_debugPanel),
+            ToolsVisible = _toolsShown,
+            Tools = Rect(_palette),
+            ToolContent = Rect(_toolScroll),
+            Console = Rect(_console),
+            ConsoleScroll = _consoleScroll.ScrollVertical,
+            ConsoleContent = Rect(_consoleScroll),
+            Pace = RungName(),
+            Layer = _washing.ToString(),
             Zoning = new { Dragging = _zoneStart is not null, Blocks = ZoneSelectionCount(), Erasing = _zoneErase, Feedback = _zoneFeedback },
-            Tool = _verb.ToString(), LayersShown = _layersShown,
+            Tool = _verb.ToString(),
+            LayersShown = _layersShown,
             Legend = _legendTitle.Visible ? $"{_legendTitle.Text} {_legendBody.Text}" : string.Empty,
             Refused = _refusalRow.Visible ? _refusalLabel.Text : string.Empty,
-            Refusal = Rect(_refusalRow), Day = _dayLabel.Text, DayLength = _dayLengthLabel.Text,
-            Scroll = _inspectionScroll.ScrollVertical, Expanded = _expanded,
-            Text = _inspectionCaption, Synopsis = _hover.Text,
+            Refusal = Rect(_refusalRow), /*Day = _dayLabel.Text,*/
+            DayLength = _dayLengthLabel.Text,
+            Scroll = _inspectionScroll.ScrollVertical,
+            Expanded = _expanded,
+            Text = _inspectionCaption,
+            Synopsis = _hover.Text,
             Inputs = InformationDescendants(_hud, true).OfType<LineEdit>().Where(f => f.IsVisibleInTree())
                 .Select(f => new { f.Text, Rect = Rect(f), Focused = f.HasFocus() }).ToArray(),
             FileItems = InformationDescendants(_cityPicker, true).OfType<ItemList>().Where(l => l.IsVisibleInTree())
                 .SelectMany(l => Enumerable.Range(0, l.ItemCount).Select(i => new { Text = l.GetItemText(i), Selected = l.IsSelected(i), Disabled = l.IsItemDisabled(i), Rect = ItemRect(l, i) })).ToArray(),
-            TunerVisible = _tuner.Visible, PoliciesVisible = _governing,
+            TunerVisible = _tuner.Visible,
+            PoliciesVisible = _governing,
             Buttons = InformationDescendants(_hud, true).OfType<Button>().Where(b => b.IsVisibleInTree())
-                .Select(b => new { b.Text, b.Disabled, Pressed = b.ButtonPressed, Rect = Rect(b) }).ToArray(),
+                .Select(b => new { Text = UiIcons.Label(b), Icon = UiIcons.Id(b), Filled = UiIcons.Filled(b), IconWidth = b.GetThemeConstant("icon_max_width"), b.Disabled, Pressed = b.ButtonPressed, Rect = Rect(b) }).ToArray(),
         };
         System.IO.File.WriteAllText(Globalize(path), System.Text.Json.JsonSerializer.Serialize(state,
             InformationJson));

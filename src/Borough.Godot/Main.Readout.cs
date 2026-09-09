@@ -538,8 +538,16 @@ public partial class Main
         _type.DefaultFontSize = Typed(ControlPoints);
         _type.SetFontSize("font_size", "TooltipLabel", Typed(ControlPoints));
         foreach (Node node in InformationDescendants(_hud))
+        {
             if (node is Label label && label.HasMeta("type_points"))
                 label.AddThemeFontSizeOverride("font_size", Typed((int)label.GetMeta("type_points")));
+            if (node is TextureRect icon && icon.HasMeta("reading_icon"))
+            {
+                icon.CustomMinimumSize = new Vector2(Typed(24), Typed(24));
+                icon.Texture = UiIcons.Texture((string)icon.GetMeta("reading_icon"), size: Typed(24));
+            }
+            if (node is Button button) UiIcons.Refresh(button);
+        }
         LayoutInformation();
     }
 
