@@ -31,13 +31,38 @@ using Borough.Core.Tables;
 /// build an inspector</em>. Nothing here is stored on the <c>World</c>, because none of it is state.
 /// </para>
 /// <para>
-/// ⚠ <b>Every method here allocates and none may be called from <c>step()</c>.</b> That is the
+/// ⚠ <b>Detailed answers allocate; no method may be called from <c>step()</c>.</b> That is the
 /// hot/cold axis <see cref="ColdPathAttribute"/> records, and it is what buys the arrays. The cost is
 /// paid once by a human who is waiting.
 /// </para>
 /// </remarks>
 public static class Evidence
 {
+    public static SupplyEvidence SupplyOfBuilding(World world, Handle<Building> building,
+        Handle<Household> household = default, Handle<Business> business = default)
+    {
+        if (!world.Buildings.Rows.TryResolve(building, out int slot)) return default;
+        int shortfalls = 0, routine = 0, unavailable = 0;
+        RuleEvidence primary = default;
+        foreach (int instance in world.BuildingRules.Walk(slot))
+        {
+            RuleEvidence rule = ReadRule(world, instance, world.Tick);
+            if (!household.IsNone && rule.Tenant != household) continue;
+            if (!business.IsNone && rule.Business != business) continue;
+            if (rule.Blocked == Blocking.Nothing) continue;
+            if (rule.WaitingBin.IsNone || rule.Blocked is not (Blocking.Supply or Blocking.Space))
+                unavailable++;
+            if (rule.Blocked == Blocking.Space) routine++;
+            if (rule.Blocked != Blocking.Supply) continue;
+            shortfalls++;
+            if (primary.InstanceId == 0 || rule.MissedFirings > primary.MissedFirings
+                || rule.MissedFirings == primary.MissedFirings && rule.InstanceId < primary.InstanceId)
+                primary = rule;
+        }
+        return new SupplyEvidence(world.Rules.Declares(world.Buildings.Kind[slot]),
+            shortfalls, routine, unavailable, primary);
+    }
+
     /// <summary>
     /// Assembles <c>02 §9</c>'s Building answer.
     /// </summary>
@@ -335,7 +360,8 @@ public static class Evidence
         ResourceId waitingFor = default;
         BinOwnerKind waitingOn = BinOwnerKind.None;
 
-        if (world.Bins.Rows.TryResolve(world.RuleInstances.WaitingOn[instance], out int blocking))
+        bool hasBin = world.Bins.Rows.TryResolve(world.RuleInstances.WaitingOn[instance], out int blocking);
+        if (hasBin)
         {
             waitingFor = world.Bins.Resource[blocking];
             waitingOn = world.Bins.OwnerKind[blocking];
@@ -352,7 +378,15 @@ public static class Evidence
             rate,
             missed,
             waitingFor,
-            waitingOn);
+            waitingOn)
+        {
+            Business = world.RuleInstances.Business[instance],
+            InstanceId = world.RuleInstances.Rows.IdAt(instance),
+            WaitingBin = hasBin
+                ? world.Bins.Rows.At(blocking) : default,
+            WaitingLevel = hasBin ? world.Bins.LevelAt(blocking) : 0,
+            WaitingCapacity = hasBin ? world.Bins.Capacity[blocking] : 0,
+        };
     }
 
     /// <summary>

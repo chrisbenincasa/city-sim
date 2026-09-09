@@ -137,6 +137,9 @@ public partial class Main
 
     private void InstallCity(Simulation simulation)
     {
+        _resumedFromSave = false;
+        _savedWorld = null;
+        _savePath = null;
         _simulation = simulation;
         _world = simulation.World;
         _log = new InputLogBuilder(_seed, new WorldConfiguration(_citizens),

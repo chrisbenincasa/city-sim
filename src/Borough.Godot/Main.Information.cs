@@ -122,6 +122,7 @@ public partial class Main
         }
         BuildDiscovery();
         BuildSettings();
+        BuildMenu();
         Retype();
         ThemeInformation();
         LayoutInformation();
@@ -245,6 +246,7 @@ public partial class Main
         _toolsButton.Position = new Vector2(margin, margin);
         _toolsButton.Size = new Vector2(110, 40);
         LayoutSettings(size, margin);
+        LayoutMenu(size, margin);
         _toolSlot.Visible = true;
         if (_palette is not null) _palette.Visible = _toolsShown;
 
@@ -379,7 +381,8 @@ public partial class Main
     }
 
     private bool OverInformation(Vector2 at) => _hud.Visible && (
-        _helpShade is not null && _helpShade.Visible
+        _menuOpen || _helpShade is not null && _helpShade.Visible
+        || _supplyMarks.Values.Any(m => m.Visible && m.GetGlobalRect().HasPoint(at))
         || _informationPanels.Any(p => p.Visible && p.GetGlobalRect().HasPoint(at))
         || _toolsButton.Visible && _toolsButton.GetGlobalRect().HasPoint(at)
         || _palette is not null && _palette.Visible && _palette.GetGlobalRect().HasPoint(at)
@@ -392,6 +395,18 @@ public partial class Main
     {
         string[] words = action.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (words.Length == 0) return;
+        if (words[0] == "menu" && words.Length == 2) { MenuAction(words[1]); return; }
+        if (words[0] == "file-path" && words.Length >= 2 && _cityPicker.Visible)
+        {
+            if (_cityPicker.FileMode == FileDialog.FileModeEnum.OpenFile)
+            {
+                _cityPicker.CurrentDir = System.IO.Path.GetDirectoryName(action[10..]);
+                _cityPicker.CurrentFile = "";
+                _cityPicker.DeselectAll();
+            }
+            else _cityPicker.CurrentPath = action[10..];
+            return;
+        }
         if (ZoningAction(words)) return;
         switch (words[0])
         {
@@ -411,13 +426,16 @@ public partial class Main
                         GlobalPosition = pointerPosition, ButtonIndex = MouseButton.Left, Pressed = words[1] == "down" });
                 break;
             case "key" when words.Length >= 2 && Enum.TryParse(words[1], true, out Key key):
-                Input.ParseInputEvent(new InputEventKey { Keycode = key, Pressed = true, ShiftPressed = words.Length == 3 && words[2] == "shift" });
+                Input.ParseInputEvent(new InputEventKey { Keycode = key,
+                    Unicode = (uint)key >= 32 && (uint)key <= 126 ? (uint)key : 0,
+                    Pressed = true, ShiftPressed = words.Length == 3 && words[2] == "shift" });
                 Input.ParseInputEvent(new InputEventKey { Keycode = key, Pressed = false });
                 break;
             case "render-probe" when words.Length == 2:
                 RenderProbe(words[1]);
                 break;
             case "health" when words.Length == 1:
+                _selectedBusiness = default;
                 _healthInspection = true;
                 _selectedGround = (new Tiles(0), new Tiles(0));
                 _selectedHousehold = default;
@@ -429,7 +447,24 @@ public partial class Main
                 LayoutInformation();
                 break;
             case "close" when words.Length == 1: _healthInspection = false; CloseInspection(); break;
+            case "business" when words.Length == 2 && ulong.TryParse(words[1], out ulong businessId):
+                var business = InformationHandle(_world.Businesses.Rows, businessId);
+                if (business.IsNone) break;
+                if (_selectedBusiness.IsNone) _businessScroll = _inspectionScroll.ScrollVertical;
+                _selectedBusiness = business;
+                _inspectionSignature = string.Empty;
+                RefreshInspection(true);
+                RestoreInspectionScroll(0);
+                break;
             case "back" when words.Length == 1:
+                if (!_selectedBusiness.IsNone)
+                {
+                    _selectedBusiness = default;
+                    _inspectionSignature = string.Empty;
+                    RefreshInspection(true);
+                    RestoreInspectionScroll(_businessScroll);
+                    break;
+                }
                 if (_selectedHousehold.IsNone && !_roadParent.IsNone)
                 {
                     _selectedRoad = _roadParent;
@@ -507,6 +542,16 @@ public partial class Main
                     break;
                 }
                 break;
+            case "stocks" or "finances" when words.Length == 1:
+                _expanded[SectionKey(words[0])] = true;
+                _inspectionSignature = string.Empty;
+                RefreshInspection(true);
+                Callable.From(() =>
+                {
+                    if (_inspectionBody.GetNodeOrNull<Control>(words[0]) is { } card)
+                        _inspectionScroll.EnsureControlVisible(card);
+                }).CallDeferred();
+                break;
             case "section" when words.Length == 3 && words[2] is "on" or "off":
                 _expanded[SectionKey(words[1])] = words[2] == "on";
                 _inspectionSignature = string.Empty;
@@ -538,6 +583,15 @@ public partial class Main
                 if (!OverInformation(position) && !(_palette.Visible && _palette.GetGlobalRect().HasPoint(position)))
                 {
                     _refused = "ui press must address a visible panel.";
+                    break;
+                }
+                if (_cityPicker.Visible)
+                {
+                    GetViewport().PushInput(new InputEventMouseMotion { Position = position, GlobalPosition = position }, true);
+                    GetViewport().PushInput(new InputEventMouseButton { Position = position, GlobalPosition = position,
+                        ButtonIndex = MouseButton.Left, Pressed = true }, true);
+                    GetViewport().PushInput(new InputEventMouseButton { Position = position, GlobalPosition = position,
+                        ButtonIndex = MouseButton.Left, Pressed = false }, true);
                     break;
                 }
                 Input.ParseInputEvent(new InputEventMouseMotion { Position = position, GlobalPosition = position });
@@ -589,6 +643,7 @@ public partial class Main
     private void CloseInspection()
     {
         _healthInspection = false;
+        _selectedBusiness = default;
         _selectedBuilding = default;
         _selectedHousehold = default;
         _selectedGround = null;
@@ -613,7 +668,7 @@ public partial class Main
         + $"scroll {_inspectionScroll.GetGlobalRect()} min={_inspectionScroll.GetCombinedMinimumSize()}\n"
         + $"hover {_pointerRow.GetGlobalRect()} debug {_debugPanel.GetGlobalRect()} console {_console.GetGlobalRect()}";
 
-    private string SectionKey(string key) => $"road{RowId(_world.Roads.Segments.Rows, _selectedRoad)}:building{RowId(_world.Buildings.Rows, _selectedBuilding)}:household{RowId(_world.Households.Rows, _selectedHousehold)}:{key}";
+    private string SectionKey(string key) => $"business{RowId(_world.Businesses.Rows, _selectedBusiness)}:road{RowId(_world.Roads.Segments.Rows, _selectedRoad)}:building{RowId(_world.Buildings.Rows, _selectedBuilding)}:household{RowId(_world.Households.Rows, _selectedHousehold)}:{key}";
 
     private void RefreshInformation()
     {
@@ -624,6 +679,7 @@ public partial class Main
         if (_aimed is not null || !OverInformation(GetViewport().GetMousePosition()))
             _hover.Text = Synopsis();
         RefreshInspection(false);
+        RefreshSupplyMarks();
         MarkInformation(_selectionRing, _selectedBuilding);
         if (_selectedBuilding.IsNone) _selectionRing.Visible = false;
         MarkRoad(ref _roadSelection, _selectedRoad, true);
@@ -659,14 +715,7 @@ public partial class Main
             _synopsisBuilding = handle;
             _synopsisAt = now;
             _synopsisTick = _world.Tick.Raw;
-            _synopsisIssue = "No supply shortfalls reported";
-            foreach (RuleEvidence rule in Evidence.OfBuilding(_world, handle).Rules.Span)
-            {
-                if (rule.Blocked != Blocking.Supply) continue;
-                string resource = _names.Resource(rule.WaitingFor) ?? "a Resource";
-                _synopsisIssue = $"Waiting for {resource}";
-                break;
-            }
+            _synopsisIssue = SupplySummary(Evidence.SupplyOfBuilding(_world, handle));
         }
         return $"{_names.Kind(_world.Buildings.Kind[slot]) ?? "Building"} · {state} · {_synopsisIssue}";
     }
@@ -690,8 +739,10 @@ public partial class Main
         _inspectionReadAt = now;
         var sections = new List<InformationSection>();
         string title, identity;
-        _inspectionBack.Visible = !_selectedHousehold.IsNone || !_roadParent.IsNone;
-        if (_healthInspection)
+        _inspectionBack.Visible = !_selectedBusiness.IsNone || !_selectedHousehold.IsNone || !_roadParent.IsNone;
+        if (!_selectedBusiness.IsNone)
+            BusinessInformation(sections, out title, out identity);
+        else if (_healthInspection)
             HealthInformation(sections, out title, out identity);
         else if (!_selectedHousehold.IsNone)
             HouseholdInformation(sections, out title, out identity);
@@ -722,8 +773,10 @@ public partial class Main
         _inspectionCondition.TooltipText = _inspectionCondition.Text;
         _inspectionBack.Text = _world.Buildings.Rows.IsValid(_selectedBuilding)
             ? $"‹ Building {RowId(_world.Buildings.Rows, _selectedBuilding)}" : "‹ Former Building";
-        if (_selectedHousehold.IsNone && !_roadParent.IsNone)
+        if (_selectedBusiness.IsNone && _selectedHousehold.IsNone && !_roadParent.IsNone)
             _inspectionBack.Text = $"‹ Road Segment {RowId(_world.Roads.Segments.Rows, _roadParent)}";
+        if (!_selectedBusiness.IsNone && !_selectedHousehold.IsNone)
+            _inspectionBack.Text = $"‹ Household {RowId(_world.Households.Rows, _selectedHousehold)}";
         _inspectionRebuilt = true;
         foreach (Node child in _inspectionBody.GetChildren()) { _inspectionBody.RemoveChild(child); child.QueueFree(); }
         foreach (InformationSection section in sections)
@@ -735,8 +788,9 @@ public partial class Main
                 () => Ui($"section {section.Key} {(expanded ? "off" : "on")}"));
             toggle.Alignment = HorizontalAlignment.Left;
             var card = InformationUi.Section(toggle, expanded, attention, out var rows);
+            card.Name = section.Key;
             if (expanded)
-                foreach (InformationRow row in section.Rows)
+                foreach (InformationRow row in section.Key == "summary" ? section.Rows.Skip(1) : section.Rows)
                 {
                     if (row.Action is { } action)
                         rows.AddChild(InformationUi.Link(row.Text, () => Ui(action)));
@@ -764,6 +818,8 @@ public partial class Main
         int occupants = evidence.Occupants.Length + businesses;
         sections.Add(new("summary", "Current condition", true,
         [new(_world.Buildings.IsAbandoned(slot) ? "Abandoned" : evidence.IsDeclared ? "Occupied places: " + occupants + " / " + evidence.DeclaredOccupancy : "Kind no longer declared")]));
+        sections[0] = new("summary", "Current condition", true,
+            [new(SupplySummary(Evidence.SupplyOfBuilding(_world, _selectedBuilding))), sections[0].Rows[0]]);
         sections.Add(Attention(evidence, default, false));
         sections.Add(Attention(evidence, default, false, true));
         AddFacilityHealth(sections, slot);
@@ -777,7 +833,7 @@ public partial class Main
         sections.Add(new("households", $"Households · {evidence.Occupants.Length}", false, households));
         var trades = new List<InformationRow>();
         foreach (int business in _world.BuildingBusinesses.Walk(slot))
-            trades.Add(new($"{_names.BusinessKind(_world.Businesses.Kind[business]) ?? "Business"} · Business {_world.Businesses.Rows.IdAt(business)}"));
+            trades.Add(new($"{_names.BusinessKind(_world.Businesses.Kind[business]) ?? "Business"} · Business {_world.Businesses.Rows.IdAt(business)} →", $"business {_world.Businesses.Rows.IdAt(business)}"));
         if (trades.Count > 0) sections.Add(new("businesses", $"Businesses · {businesses}", false, trades));
         var workers = new List<InformationRow>();
         foreach (Handle<Citizen> worker in evidence.Workers.Span)
@@ -787,14 +843,15 @@ public partial class Main
         sections.Add(Stocks(evidence, default, false));
     }
 
-    private InformationSection Attention(BuildingEvidence evidence, Handle<Household> household, bool onlyHousehold, bool routine = false)
+    private InformationSection Attention(BuildingEvidence evidence, Handle<Household> household, bool onlyHousehold, bool routine = false, Handle<Business> business = default)
     {
         var rows = new List<InformationRow>();
         foreach (RuleEvidence rule in evidence.Rules.Span)
         {
             if (onlyHousehold && rule.Tenant != household) continue;
+            if (!business.IsNone && rule.Business != business) continue;
             if (routine ? rule.Blocked == Blocking.Supply : rule.Blocked != Blocking.Supply) continue;
-            string owner = rule.Tenant.IsNone ? "Building activity" : $"Household {RowId(_world.Households.Rows, rule.Tenant)}";
+            string owner = !rule.Business.IsNone ? $"Business {RowId(_world.Businesses.Rows, rule.Business)}" : rule.Tenant.IsNone ? "Building activity" : $"Household {RowId(_world.Households.Rows, rule.Tenant)}";
             string resource = rule.Blocked == Blocking.Nothing ? string.Empty : _names.Resource(rule.WaitingFor) ?? $"Resource {rule.WaitingFor.Raw}";
             string target = rule.WaitingOn switch
             {
@@ -806,9 +863,26 @@ public partial class Main
             {
                 Blocking.Nothing => "Scheduled.",
                 Blocking.Space => $"Waiting for space for {resource} in {target}.",
-                _ => $"Waiting for {resource} in {target}.",
+                Blocking.Supply => $"Waiting for {resource} in {target}.",
+                _ => "Explanation unavailable: unrecognised activity state.",
             };
+            if (rule.Blocked != Blocking.Nothing && rule.WaitingBin.IsNone)
+                waiting = "Explanation unavailable: the blocking stock cannot be read.";
             rows.Add(new($"{owner} · {_names.Rule(rule.Rule) ?? "Activity"}\n{waiting}"));
+            if (!rule.WaitingBin.IsNone)
+                rows.Add(new(_world.Rules.IsConserved(rule.WaitingFor)
+                    ? $"Available: {rule.WaitingLevel:N0} money units"
+                    : $"Blocking stock: {rule.WaitingLevel:N0} / {rule.WaitingCapacity:N0} units"));
+            if (!rule.WaitingBin.IsNone && !_world.Rules.IsConserved(rule.WaitingFor)
+                && (rule.WaitingOn == BinOwnerKind.Building || rule.WaitingOn == BinOwnerKind.Household))
+                rows.Add(new("Inspect stocks →", "stocks"));
+            if (!rule.WaitingBin.IsNone && _world.Rules.IsConserved(rule.WaitingFor) && onlyHousehold)
+                rows.Add(new("Inspect finances →", "finances"));
+            if (!routine && business.IsNone && !rule.Business.IsNone)
+                rows.Add(new($"Inspect Business {RowId(_world.Businesses.Rows, rule.Business)} →",
+                    $"business {RowId(_world.Businesses.Rows, rule.Business)}"));
+            if (rule.Blocked == Blocking.Supply)
+                rows.Add(new($"Current shortfall since Tick {rule.StarvedSince.Raw} · {rule.MissedFirings:N0} missed firings"));
             if (!onlyHousehold && !rule.Tenant.IsNone && !routine)
             {
                 ulong id = RowId(_world.Households.Rows, rule.Tenant);
@@ -848,6 +922,8 @@ public partial class Main
             [new(housed ? $"Home: Building {RowId(_world.Buildings.Rows, home)}" : "No current home")]));
         if (housed)
         {
+            sections[0] = new("summary", "Current condition", true,
+                [new(SupplySummary(Evidence.SupplyOfBuilding(_world, home, _selectedHousehold))), sections[0].Rows[0]]);
             BuildingEvidence evidence = Evidence.OfBuilding(_world, home);
             sections.Add(Attention(evidence, _selectedHousehold, true));
             sections.Add(Attention(evidence, _selectedHousehold, true, true));
@@ -867,34 +943,49 @@ public partial class Main
             balance = who.HouseholdBalance;
             string work = who.Workplace.IsNone ? "No Workplace" : $"Workplace: Business {RowId(_world.Businesses.Rows, who.Workplace)}";
             string trip = who.Trip is null ? "No current Trip" : "On a Trip";
-            citizens.Add(new($"Citizen {_world.Citizens.Rows.IdAt(member)}\n{work}\n{trip}"));
+            citizens.Add(new($"Citizen {_world.Citizens.Rows.IdAt(member)}\n{trip}"));
+            citizens.Add(new(work + (who.Workplace.IsNone ? "" : " →"), who.Workplace.IsNone
+                ? null : $"business {RowId(_world.Businesses.Rows, who.Workplace)}"));
         }
         if (citizens.Count == 0) citizens.Add(new("No Citizens in this Household."));
         sections.Add(new("citizens", "Citizens", true, citizens));
         sections.Add(new("finances", "Finances", false,
             [new(balance is { } money ? $"Household balance: {money.Raw:N0} money units" : "No Household balance reported.")]));
     }
-    private static IEnumerable<Node> InformationDescendants(Node root)
+    private static IEnumerable<Node> InformationDescendants(Node root, bool includeInternal = false)
     {
-        foreach (Node child in root.GetChildren())
+        foreach (Node child in root.GetChildren(includeInternal))
         {
             yield return child;
-            foreach (Node next in InformationDescendants(child)) yield return next;
+            foreach (Node next in InformationDescendants(child, includeInternal)) yield return next;
         }
     }
 
     private void WriteInformationState(string path)
     {
         RefreshInspection(true);
-        static object Rect(Control control)
+        object Rect(Control control)
         {
             Rect2 rect = control.GetGlobalRect();
+            if (control.GetWindow() != GetWindow()) rect.Position += control.GetWindow().Position;
+            return new { X = rect.Position.X, Y = rect.Position.Y, Width = rect.Size.X, Height = rect.Size.Y };
+        }
+        object ItemRect(ItemList list, int item)
+        {
+            Rect2 rect = list.GetItemRect(item);
+            rect.Position += list.GlobalPosition;
+            rect.Position -= new Vector2(0, (float)list.GetVScrollBar().Value);
+            if (list.GetWindow() != GetWindow()) rect.Position += list.GetWindow().Position;
             return new { X = rect.Position.X, Y = rect.Position.Y, Width = rect.Size.X, Height = rect.Size.Y };
         }
         var state = new
         {
             Tick = _world.Tick.Raw, Hash = _world.HashState().ToString("X16"),
             Theme = _lightUi ? "light" : "dark", Debug = _debugShown,
+            MenuVisible = _menuOpen, MenuPage = _menuPage, MenuMessage = _menuMessage,
+            Dialogs = InformationDescendants(_hud, true).OfType<Window>().Where(w => w.Visible)
+                .Select(w => new { Name = w.Name.ToString(), w.Title, X = w.Position.X, Y = w.Position.Y, Width = w.Size.X, Height = w.Size.Y, Embedded = w.IsEmbedded() }).ToArray(),
+            Unsaved = UnsavedCity, FilePickerVisible = _cityPicker.Visible, SavePath = _savePath,
             SettingsVisible = _settingsPanel.Visible, Settings = Rect(_settingsPanel),
             TextPercent = _textPercent, HelpVisible = _helpPanel.Visible, Help = Rect(_helpPanel),
             HelpScroll = _helpScroll.ScrollVertical, HelpContent = Rect(_helpScroll),
@@ -907,12 +998,15 @@ public partial class Main
                 Vsync = DisplayServer.WindowGetVsyncMode().ToString(),
                 Shadow16Bits = (bool)ProjectSettings.GetSetting("rendering/lights_and_shadows/directional_shadow/16_bits"),
                 Configuration = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<System.Reflection.AssemblyConfigurationAttribute>(typeof(Main).Assembly)?.Configuration },
-            Fonts = InformationDescendants(_hud).OfType<Label>().Where(l => l.IsVisibleInTree())
+            Fonts = InformationDescendants(_hud, true).OfType<Label>().Where(l => l.IsVisibleInTree())
                 .Select(l => new { l.Text, Size = l.GetThemeFontSize("font_size") }).ToArray(),
             Viewport = new { Width = GetViewport().GetVisibleRect().Size.X, Height = GetViewport().GetVisibleRect().Size.Y },
             Selected = RowId(_world.Buildings.Rows, _selectedBuilding), Household = RowId(_world.Households.Rows, _selectedHousehold),
             Pointer = new { X = GetViewport().GetMousePosition().X, Y = GetViewport().GetMousePosition().Y },
             MapTargets = InformationMapTargets(),
+            Business = RowId(_world.Businesses.Rows, _selectedBusiness),
+            SupplyMarks = _supplyMarks.Select(p => new { Building = RowId(_world.Buildings.Rows, p.Key),
+                Visible = p.Value.Visible, Rect = Rect(p.Value), Text = p.Value.TooltipText }).ToArray(),
             Road = RowId(_world.Roads.Segments.Rows, _selectedRoad),
             InspectorVisible = _inspector!.Visible, Inspector = Rect(_inspector),
             Hover = Rect(_pointerRow), DebugPanel = Rect(_debugPanel), ToolsVisible = _toolsShown, Tools = Rect(_palette), ToolContent = Rect(_toolScroll),
@@ -924,11 +1018,13 @@ public partial class Main
             Refusal = Rect(_refusalRow), Day = _dayLabel.Text, DayLength = _dayLengthLabel.Text,
             Scroll = _inspectionScroll.ScrollVertical, Expanded = _expanded,
             Text = _inspectionCaption, Synopsis = _hover.Text,
-            Inputs = InformationDescendants(_hud).OfType<LineEdit>().Where(f => f.IsVisibleInTree())
+            Inputs = InformationDescendants(_hud, true).OfType<LineEdit>().Where(f => f.IsVisibleInTree())
                 .Select(f => new { f.Text, Rect = Rect(f), Focused = f.HasFocus() }).ToArray(),
+            FileItems = InformationDescendants(_cityPicker, true).OfType<ItemList>().Where(l => l.IsVisibleInTree())
+                .SelectMany(l => Enumerable.Range(0, l.ItemCount).Select(i => new { Text = l.GetItemText(i), Selected = l.IsSelected(i), Disabled = l.IsItemDisabled(i), Rect = ItemRect(l, i) })).ToArray(),
             TunerVisible = _tuner.Visible, PoliciesVisible = _governing,
-            Buttons = InformationDescendants(_hud).OfType<Button>().Where(b => b.IsVisibleInTree())
-                .Select(b => new { b.Text, Pressed = b.ButtonPressed, Rect = Rect(b) }).ToArray(),
+            Buttons = InformationDescendants(_hud, true).OfType<Button>().Where(b => b.IsVisibleInTree())
+                .Select(b => new { b.Text, b.Disabled, Pressed = b.ButtonPressed, Rect = Rect(b) }).ToArray(),
         };
         System.IO.File.WriteAllText(Globalize(path), System.Text.Json.JsonSerializer.Serialize(state,
             InformationJson));

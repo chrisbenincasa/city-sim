@@ -242,6 +242,7 @@ public partial class Main
         _toolsButton.AddThemeConstantOverride("icon_max_width", 22);
         _toolsButton.Theme = _type;
         _hud.AddChild(_toolsButton);
+        trim.AddChild(ConsoleButton("Menu", () => Ui("menu on")));
         trim.AddChild(ConsoleButton("Settings", () => Ui(_settingsPanel.Visible ? "settings off" : "settings on")));
         _consoleTop.AddChild(trim);
         _consoleTop.AddChild(CameraControls());

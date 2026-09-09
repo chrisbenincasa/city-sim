@@ -96,6 +96,11 @@ public partial class Main
     /// </remarks>
     private void Record()
     {
+        if (_resumedFromSave)
+        {
+            GD.PrintErr("This session started from a saved city; a standalone Input Log cannot replay it. Use Save city.");
+            return;
+        }
         string path = Path.Combine(
             System.Environment.CurrentDirectory,
             $"session-{_world.Tick.Raw}{InputLogCodec.Extension}");

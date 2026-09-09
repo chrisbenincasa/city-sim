@@ -57,6 +57,9 @@ internal static class InformationUi
         // A section heading sits inside a card that already has a border, so it draws neither its
         // own border nor its own fill: an accent carried by every section marks none of them, and
         // the amber attention band is left as the one filled heading in the inspector.
+        theme.SetTypeVariation("SupplyMark", "Button");
+        ButtonStyles(theme, "SupplyMark", p.Warning, p.WarnInk, p.Warn, p.WarnInk, p.Warn,
+            horizontal: 4, vertical: 2, radius: 18);
         theme.SetTypeVariation(Heading, "Button");
         ButtonStyles(theme, Heading, p.Surface, p.SectionInk, p.Section, p.SectionInk, p.Surface);
         theme.SetTypeVariation(WarningHeading, "Button");
@@ -70,12 +73,33 @@ internal static class InformationUi
         theme.SetColor("caret_color", "LineEdit", p.Ink);
         theme.SetColor("selection_color", "LineEdit", p.Active);
         theme.SetColor("font_selected_color", "LineEdit", p.OnActive);
+        theme.SetStylebox("panel", "AcceptDialog", Box(p.Paper, p.Line, 16, 16, PanelRadius));
+        theme.SetStylebox("panel", "ItemList", Box(p.Surface, p.Line, 4, 4));
+        theme.SetColor("font_color", "ItemList", p.Ink);
+        theme.SetColor("font_selected_color", "ItemList", p.OnActive);
+        theme.SetStylebox("selected", "ItemList", Box(p.Active, p.Active, 0, 0));
+        theme.SetStylebox("selected_focus", "ItemList", Box(p.Active, p.Active, 0, 0));
+        theme.SetColor("title_color", "Window", p.Ink);
+        theme.SetIcon("close", "Window", CloseIcon(p.Ink));
+        theme.SetIcon("close_pressed", "Window", CloseIcon(p.Active));
+        theme.SetColor("file_icon_color", "FileDialog", p.Ink);
+        theme.SetColor("folder_icon_color", "FileDialog", p.Muted);
+        var frame = Box(p.Paper, p.Line, 8, 8, PanelRadius, p.Shadow);
+        frame.ExpandMarginTop = 32;
+        theme.SetStylebox("embedded_border", "Window", frame);
         theme.SetStylebox("separator", "HSeparator", new StyleBoxLine { Color = p.Line, Thickness = 1 });
         theme.SetTypeVariation("InformationWarningPanel", "PanelContainer");
         theme.SetStylebox("panel", "InformationWarningPanel", Box(p.Warning, p.Warn, 12, 10, CardRadius));
         theme.SetTypeVariation("InformationHeadingPanel", "PanelContainer");
         theme.SetStylebox("panel", "InformationHeadingPanel", Box(p.Surface, p.Surface, 12, 10, CardRadius));
         return p;
+    }
+
+    private static ImageTexture CloseIcon(Color ink)
+    {
+        using var image = new Image();
+        image.LoadSvgFromString($"<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16'><path d='M4 4L12 12M12 4L4 12' stroke='#{ink.ToHtml(false)}' stroke-width='2' stroke-linecap='round'/></svg>");
+        return ImageTexture.CreateFromImage(image);
     }
 
     /// <summary>
@@ -93,7 +117,7 @@ internal static class InformationUi
     }
 
     private static void ButtonStyles(Theme theme, string type, Color surface, Color ink,
-        Color active, Color onActive, Color line, int horizontal = 10)
+        Color active, Color onActive, Color line, int horizontal = 10, int vertical = 8, int radius = 4)
     {
         foreach (string state in new[] { "normal", "hover", "pressed", "hover_pressed", "disabled", "focus" })
         {
@@ -104,7 +128,7 @@ internal static class InformationUi
                 "focus" => Colors.Transparent,
                 _ => surface,
             };
-            theme.SetStylebox(state, type, Box(fill, state == "focus" ? active : line, horizontal, 8));
+            theme.SetStylebox(state, type, Box(fill, state == "focus" ? active : line, horizontal, vertical, radius));
         }
         foreach (string state in new[] { "font_color", "font_hover_color", "font_focus_color" })
             theme.SetColor(state, type, ink);

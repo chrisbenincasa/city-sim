@@ -131,7 +131,17 @@ public readonly record struct RuleEvidence(
     uint Rate,
     long MissedFirings,
     ResourceId WaitingFor,
-    BinOwnerKind WaitingOn);
+    BinOwnerKind WaitingOn)
+{
+    public Handle<Business> Business { get; init; }
+    public ulong InstanceId { get; init; }
+    public Handle<Bin> WaitingBin { get; init; }
+    public long WaitingLevel { get; init; }
+    public long WaitingCapacity { get; init; }
+}
+
+public readonly record struct SupplyEvidence(bool Available, int Shortfalls, int RoutineWaits,
+    int Unavailable, RuleEvidence Primary);
 
 /// <summary>
 /// <c>02 §9</c>'s Building answer: who is in it, what is in its Bins, what its Rules are doing, and

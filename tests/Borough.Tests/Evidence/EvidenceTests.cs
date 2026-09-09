@@ -48,6 +48,49 @@ namespace Borough.Tests.Evidence;
 /// </remarks>
 public sealed class EvidenceTests
 {
+    [Fact]
+    public void Supply_diagnosis_retains_other_causes_and_identifies_recurrence()
+    {
+        var (world, simulation, building) = Starving(true);
+        for (int i = 0; i < 64; i++) simulation.Step(default);
+        ulong hash = world.HashState();
+        var first = Core.Evidence.Evidence.SupplyOfBuilding(world, building);
+        Assert.True(first.Available);
+        Assert.Equal(2, first.Shortfalls);
+        Assert.Equal(hash, world.HashState());
+        Assert.Equal(0, first.Primary.WaitingLevel);
+        Assert.Equal(4, first.Primary.WaitingCapacity);
+        var repaired = first.Primary;
+        world.Deposit(repaired.WaitingBin, 4, world.Tick);
+        simulation.Step(default);
+        var remaining = Core.Evidence.Evidence.SupplyOfBuilding(world, building);
+        Assert.Equal(1, remaining.Shortfalls);
+        Assert.NotEqual(repaired.InstanceId, remaining.Primary.InstanceId);
+        world.Deposit(remaining.Primary.WaitingBin, 4, world.Tick);
+        simulation.Step(default);
+        Assert.Equal(0, Core.Evidence.Evidence.SupplyOfBuilding(world, building).Shortfalls);
+        for (int i = 0; i < 128; i++) simulation.Step(default);
+        var recurrence = Core.Evidence.Evidence.OfBuilding(world, building).Rules.ToArray()
+            .Single(r => r.InstanceId == repaired.InstanceId);
+        Assert.True(recurrence.StarvedSince.Raw > repaired.StarvedSince.Raw);
+        Assert.Equal(2, Core.Evidence.Evidence.SupplyOfBuilding(world, building).Shortfalls);
+        world.DestroyBuilding(building, world.Tick);
+        Assert.False(Core.Evidence.Evidence.SupplyOfBuilding(world, building).Available);
+    }
+
+    [Fact]
+    public void A_missing_wait_target_is_unavailable_and_not_a_healthy_reading()
+    {
+        var (world, simulation, building) = Starving(true);
+        for (int i = 0; i < 64; i++) simulation.Step(default);
+        foreach (int instance in world.BuildingRules.Walk(world.Buildings.Rows.Resolve(building)))
+            world.RuleInstances.WaitingOn[instance] = default;
+        var reading = Core.Evidence.Evidence.SupplyOfBuilding(world, building);
+        Assert.Equal(2, reading.Unavailable);
+        Assert.Equal(2, reading.Shortfalls);
+        Assert.True(reading.Primary.WaitingBin.IsNone);
+    }
+
     /// <summary>Half a Day. Long enough to employ, commute, build and condemn.</summary>
     private const int RunTicks = 1_024;
 

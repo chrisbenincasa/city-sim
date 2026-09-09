@@ -1319,7 +1319,7 @@ public partial class Main : Node3D
 
         // Submit only after every shell reader has finished. Captures and Drive barriers keep
         // the published Tick stable until their frame has been observed.
-        if (_stopping || _preparation is not null || _pendingShot is not null) return;
+        if (_stopping || _preparation is not null || _pendingShot is not null || _menuOpen) return;
         if (_queued.Count > 0 && _owed < 1) _owed = 1;
         ulong until = _next < _drive.Length ? _drive[_next].At : ulong.MaxValue;
         int ticks = (int)Math.Min((ulong)Math.Min(_batchTicks, (int)_owed), until > _world.Tick.Raw ? until - _world.Tick.Raw : 0);
@@ -1344,7 +1344,7 @@ public partial class Main : Node3D
 
     public override void _UnhandledInput(InputEvent @event)
     {
-        if (_preparation is not null || !_sceneReady) return;
+        if (_preparation is not null || !_sceneReady || _menuOpen) return;
         if (_helpPanel.Visible) return;
         if (_stepThread?.OwnsWorld == true && @event is InputEventMouseButton { ButtonIndex: MouseButton.Left } queuedClick)
         {

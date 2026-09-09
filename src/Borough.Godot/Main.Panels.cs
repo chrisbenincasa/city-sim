@@ -298,7 +298,12 @@ public partial class Main
 
         var box = new VBoxContainer();
 
-        box.AddChild(new Label { Text = "GOVERN — p closes. enter sets the amount." });
+        var heading = new HBoxContainer();
+        heading.AddChild(new Label { Text = "Policies", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
+        var close = InformationButton("×", Govern);
+        close.TooltipText = "Close Policies";
+        heading.AddChild(close);
+        box.AddChild(heading);
 
         // 🔴 THE FIELD IS THE TRANSFER AMOUNT AND NOT THE TAX RATE, and a panel that did not say so
         // would be actively misleading: on levied.toml every row reads `1` while the levy that
@@ -342,6 +347,9 @@ public partial class Main
             field.TextSubmitted += _ => AtBoundary(() => Govern(position));
             _policyFields[at] = field;
             row.AddChild(field);
+            var set = InformationButton("Set", () => Govern(position));
+            set.Disabled = !governable;
+            row.AddChild(set);
             box.AddChild(row);
         }
 

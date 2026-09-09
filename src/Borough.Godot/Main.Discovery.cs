@@ -193,11 +193,13 @@ public partial class Main
             GetViewport().SetInputAsHandled();
             return;
         }
+        if (_cityPicker is not null && _cityPicker.Visible) return;
         if (key.Keycode == Key.Escape)
         {
             if (_zoneStart is not null) Ui("zone-cancel");
             else if (_helpPanel.Visible) Ui("help off");
             else if (_settingsPanel.Visible) Ui("settings off");
+            else if (_menuOpen) Ui(_menuPage == "main" ? "menu off" : "menu cancel");
             else if (_tuner.Visible && (!_governing || _tuner.GetIndex() > _policyPanel.GetIndex())) _tuner.Visible = false;
             else if (_governing) Govern();
             else if (_toolsShown) Ui("tools off");
@@ -207,6 +209,7 @@ public partial class Main
             GetViewport().SetInputAsHandled();
             return;
         }
+        if (_menuOpen) return;
         if (GetViewport().GuiGetFocusOwner() is LineEdit or TextEdit) return;
         if (!key.CtrlPressed && !key.AltPressed && !key.MetaPressed
             && (key.Keycode == Key.Question || key.Keycode == Key.Slash && key.ShiftPressed))

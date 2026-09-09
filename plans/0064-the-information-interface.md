@@ -8,9 +8,10 @@
 below; existing small-screen captures remain historical evidence, not obligations for future passes.
 
 This plan owns the UX queue: outstanding work, scope changes, completion checks and recommendations.
-Queued work starts with design agreement before implementation. The player's 2026-09-06 expansion
+Queued work starts with design agreement before implementation. The player approved the research-led
+queue revision and starting row 10 on 2026-09-08. The player's 2026-09-06 expansion
 below supplies the remaining scope; individual open choices do not block independent work.
-Status reconciled against source and commit history on 2026-09-08; checks were not rerun.
+Historical rows retain their previous verification; row 10 records its new checks below.
 
 | Order | Status | Work | Completion check |
 |---|---|---|---|
@@ -22,16 +23,16 @@ Status reconciled against source and commit history on 2026-09-08; checks were n
 | 6 | Complete | Clear active tool, mouse-accessible cancel and readable action refusals | `check-console.py` below |
 | 8 | Complete | Larger text and shared sizing; keyboard help; visible camera controls | `check-discovery.py`; both themes at 1440 × 960 and 480 × 640, including 150% text and preference restoration after restart |
 | 9 | Complete | Expandable tool browser, tool icons and contextual options; paint-to-zone with automatic subdivision | Choose, preview, paint and cancel without shortcuts; adding tools does not widen the console |
-| 10 | Partial | Game menu: Settings and Help built; Save, Load, Credits and protected Quit pending | Save/load continues the same city; failed loads preserve it; menu is usable entirely with the mouse |
+| 10 | Complete | Game menu: Save, Load, Settings, Help, Credits and protected Quit | `CitySaveTests` and `scripts/ui/check-menu.py`; saved content travels with the city, failed loads preserve it, and menu controls work with the mouse |
+| 18 | Partial; independent | Content fitting, shadows, nested radii, quieter headings, type roles and tabular readings built; motion and full acceptance pending | Measured against the same `ui read` dumps: chrome share falls, no panel is stretched past its content, spacing values sit on one grid, panel changes preserve orientation without delaying input, live numbers stop reflowing; reduced motion preserves clear states |
+| 13 | Partial: supply diagnosis built | Evidence-backed status explanations: normal, routine waiting, trouble and unavailable explanation; concurrent causes with a primary summary and expandable detail | Removing one of two causes reveals the remaining cause; unavailable evidence never becomes normal; every emitted code has a shell sentence |
+| 14 | Partial: current supply marks built | Persistent marks in the world on troubled subjects, as a channel separate from row 7's feed | A troubled Building is discoverable without selection; retries retain one issue; resolution clears its mark; recurrence is identifiable; history labels resolved events and deleted subjects leave no broken links |
+| 15 | Proposed | An icon family and redundant visual cues: chrome, Goods, zone permissions, map layers, entity kinds, selection and severity | Essential distinctions survive without hue in both themes and enlarged text, using shape, labels or patterns; licences recorded for Credits |
+| 16 | Partial | Road, Building, Household and Business navigation built, including Workplace links; remaining subject types pending | No displayed subject id is unnavigable; `docs/01 §6`'s no-orphan-figures rule holds over the shipped inspectors |
+| 17 | Proposed | Separate developer controls from the player's console and Help | Debug overlays leave the `O` cycle; the tuner, log write and debug readout leave the player's shortcut catalogue |
+| 7 | Proposed after first diagnosis pass | Compact current-issues list; event history remains later | Group by subject and cause; member counts reconcile; every entry opens an affected subject; resolved conditions leave the current list; routine waits do not automatically demand attention |
 | 11 | Proposed | Citizen names and sex; Life Stage in inspection | Stable identity across replay/load and row reuse; inspection updates when the Household changes Stage |
 | 12 | Proposed; foundation built | Vary setbacks by built form; deterministic parcel setbacks already exist | Visible variation without parcel escapes or disagreement between drawing, picking and occupied ground |
-| 18 | Partial | Content fitting, shadows, nested radii, quieter headings, type roles and tabular readings built; motion and full acceptance pending | Measured against the same `ui read` dumps: chrome share falls, no panel is stretched past its content, spacing values sit on one grid, every panel enters and leaves with a transition, live numbers stop reflowing |
-| 13 | Proposed | A causal status vocabulary: a closed reason code on every entity that can fail to do its job, resolved to a sentence by the shell | Every subject reports a reason or an explicit normal; no state is unexplained. A code with no sentence, and a sentence with no code, both fail a test |
-| 14 | Proposed | Persistent marks in the world on troubled subjects, as a channel separate from row 7's feed | A troubled Building is visible without being selected; the mark clears when the condition does; the feed and the mark cannot disagree |
-| 15 | Proposed | An icon family: chrome, the five Goods, zone permissions, the map layers, entity kinds, alert severity | No control's meaning depends on a font's rendering of a codepoint; licences recorded for row 10's Credits |
-| 16 | Partial | Road → Building → Household back navigation built; Business inspection, Workplace links and complete subject navigation pending | No displayed subject id is unnavigable; `docs/01 §6`'s no-orphan-figures rule holds over the shipped inspectors |
-| 17 | Proposed | Separate developer controls from the player's console and Help | Debug overlays leave the `O` cycle; the tuner, log write and debug readout leave the player's shortcut catalogue |
-| 7 | Later: design | Citywide “what needs attention,” with links into the existing inspectors | Agree which evidence qualifies, how repeated issues are grouped and how resolved issues leave the view; demonstrate discovering an issue and opening its affected subject |
 
 Rows 4–6 were one implementation slice and it is built. Its shared acceptance check — pause, change
 speed, choose a map layer, inspect a subject and cancel an editing tool entirely with the mouse, in
@@ -42,13 +43,48 @@ the actions, so a control that is drawn but unreachable fails exactly as a missi
 Broader dashboards, graphs, notifications, persistent Pins and tuner redesign remain deferred.
 Rows 8–12 promote the requested interface work, including tool icon assets and access to Policies.
 
-## Recommended next pass — row 10
+## Next pass — current issues
 
-Complete the game menu so a player can leave and resume a city. Reuse `Main.Settings` and
-`Main.Discovery`; the Core save path in `Borough.Headless.Session` supplies the starting point.
-First agree menu placement and the unsaved-progress flow, then implement the row's full scope.
-Verify Save → Load → continue, failed-load preservation, pace restoration and mouse-only use.
-Row 18’s transitions and remaining visual checks stay pending independently.
+The first supply diagnosis interaction is built. Next is row 7's compact current-issues list,
+using the same Evidence: group affected subjects and causes, reconcile counts, open a subject,
+and remove resolved conditions. Other status families, historical events and Citizen inspection
+remain pending. Large-city save/load responsiveness remains unmeasured.
+
+Row 18's desktop comparisons remain independent; preserve text scaling and both themes.
+
+## First diagnosis interaction — 2026-09-08
+
+`Evidence.SupplyOfBuilding` supplies the mark and primary summary through `ReadRule`; the primary
+is the greatest missed-firing count, with Rule Instance identity breaking ties. `RuleEvidence`
+also exposes the blocking Bin, its reading, Business ownership and Rule Instance identity.
+`Main.Diagnosis` owns current supply marks and Business inspection. `Main.Information` owns
+concurrent explanations, Household finances and Workplace navigation. Marks use generational
+Building handles, disappear on resolution or deletion, and expose the current episode's starting
+Tick in inspection. They retain no event history. Routine space waits receive no trouble mark;
+missing evidence remains explicitly unavailable. The diagnosis is scoped to supply, not an
+assertion that every aspect of an unmarked Building is healthy.
+
+The driven fixture starts at Tick 512 with 256 Citizens. Building 2 has four Households waiting
+for money. A rebate of 1,000 reaches one Household while three remain blocked; the summary and
+mark retain those three. A smaller rebate of 100 is the subsequent recovery check. These are
+PROVISIONAL fixture amounts, not balance or responsiveness measurements. The fixture derives
+from `taxed.toml` without modifying it.
+
+Reproduce after a Debug shell build:
+
+```sh
+python3 scripts/ui/diagnosis-fixture.py /tmp/borough-diagnosis
+godot --path src/Borough.Godot -- --ruleset /tmp/borough-diagnosis/diagnosis.toml \
+  --citizens 256 --start-at 512 --drive /tmp/borough-diagnosis/diagnosis.drive \
+  --listen /tmp/borough-diagnosis.sock
+python3 scripts/ui/check-diagnosis.py /tmp/borough-diagnosis.sock
+```
+
+The check uses real button rectangles, follows Household → finances → Workplace → back,
+sets the rebate through Policies, and captures both desktop themes plus partial and complete
+resolution under `artifacts/hud-live/diagnosis-*`. `EvidenceTests` covers concurrent causes,
+resolution, recurrence, missing wait targets and deleted subjects. The assertion lane passed
+3,018 tests. World-mark scanning and large-city interaction costs have not been measured.
 
 ## Research — 2026-09-08
 
@@ -56,8 +92,9 @@ Outside evidence gathered for rows 13, 14, 15 and 16. Read the sources rather th
 
 **Factorio attaches a closed status enum to every entity** — roughly seventy values including
 `item-ingredient-shortage`, `full-output`, `no-path`, `waiting-for-space-in-destination` — rendered as one
-coloured dot plus one sentence in the entity's own window, and exported to mods. It is exhaustive: a
-`normal` and a `none` exist, so no entity ever carries an unexplained state. Players file bug reports when
+coloured dot plus one sentence in the entity's own window, and exported to mods. The vocabulary includes
+`normal` and `none`; this does not prove complete causal knowledge. Here `LotEvidence` can report
+several reasons or an unavailable explanation, which row 13 must preserve. Players file bug reports when
 the *wrong reason word* is chosen, which is the standard the affordance is held to.
 <https://lua-api.factorio.com/latest/types/EntityStatus.html>, <https://forums.factorio.com/viewtopic.php?t=69086>
 
@@ -65,7 +102,7 @@ the *wrong reason word* is chosen, which is the standard the affordance is held 
 selecting an empty Lot re-runs the Zone Rule's predicate and reports which clause failed, and
 `CONTEXT.md` → Frontage owns the six clauses. Row 13 generalises a design the corpus already carries.
 
-**Two channels, in every game of this class.** Factorio splits transient global alerts from persistent
+**Separate current conditions from historical events.** Factorio splits transient global alerts from persistent
 warning icons drawn on the entity; RimWorld splits condition-alerts from event-letters. Conflating them
 is what produces spam. `docs/01 §6` specifies only the event feed, which is why row 14 is separate from
 row 7 rather than part of it. <https://wiki.factorio.com/Alerts>
@@ -139,7 +176,7 @@ this window size**, not properties of the design (`plans/0012` Cause 5).
 
 **What the outside evidence says to do about it.** Read the sources; these lines are pointers.
 
-**Flatness has a measured cost.** Nielsen Norman Group's eyetracking found users spent **22% more time and
+**Weak clickability cues had a measured cost on webpages, not in this game.** Nielsen Norman Group's eyetracking found users spent **22% more time and
 made 25% more fixations** on pages with weak clickability signifiers than with strong ones. Their
 prescription is *Flat 2.0* — keep the simplicity, restore subtle shadows on interactive components,
 layering and the card metaphor.
@@ -154,7 +191,7 @@ override proximity and similarity"*, which is the cheapest way to give a flat bu
 <https://uxplanet.org/corner-radius-of-nested-elements-in-ui-design-4c27bb24a854>,
 <https://www.nngroup.com/articles/common-region/>
 
-**A motion band to adopt.** NN/G put the useful range at 100–500 ms, with 200–300 ms for a panel entering
+**Motion guidance to try, not an acceptance threshold.** NN/G put the useful range at 100–500 ms, with 200–300 ms for a panel entering
 and 400 ms already very slow; Material's desktop figure is tighter at 150–200 ms for small elements. Exit
 runs shorter than enter, ease-out on the way in and ease-in on the way out, because *"completely linear
 motion looks weird and unnatural to users."* Sibling rows stagger 30–80 ms.
@@ -184,7 +221,7 @@ conversation on 2026-09-08 and **no source supports it**. Row 8 added the camera
 mouse-only reach. It stands.
 
 **One premise corrected.** *Two or three type sizes beats six* is not the practitioner position; the common
-answer is around seven defined roles. The defect here is not the count — it is that two of the three roles
+answer in this source is around seven defined roles, not a required count for this interface. The defect here is not the count — it is that two of the three roles
 are 2 pt apart and so do not read as distinct.
 <https://cieden.com/book/sub-atomic/typography/establishing-a-type-scale>
 
@@ -227,8 +264,7 @@ Other tools retain their existing behavior; Policies opens its own panel. No new
 interaction is implied by its category.
 
 **10 — Game menu (request 10).** A visible menu button opens Save, Load, Settings, Help, Credits and
-Quit. `Main.Settings` already supplies theme, text size, Debug and Help; menu lifecycle remains
-unbuilt. Opening this menu pauses the city; closing it restores the previous pace. Help alone leaves the pace unchanged. Load and Quit protect unsaved
+Quit. `Main.Menu` supplies the menu lifecycle and reuses `Main.Settings` and Help. Opening this menu pauses the city; closing it restores the previous pace. Help alone leaves the pace unchanged. Load and Quit protect unsaved
 progress; saving reports success only after writing completes. Use the Core save mechanism already
 used by `Borough.Headless.Session`, with a file picker, explicit errors and safe replacement of saves.
 Validate a loaded world before replacing the live one, then rebuild rendering and clear stale
@@ -453,3 +489,30 @@ notifications. Startup was compared through the first rendered frames; temporary
 
 Godot Debug and the three Zoning assertions passed after these corrections. Settings, Zoning,
 discovery, console and inspector interaction checks passed; captures remain in `artifacts/hud-live/`.
+
+## Row 10 — implemented 2026-09-08
+
+`Main.Menu` owns the centred menu, pace restoration, file picker, unsaved-progress choices and
+window-close protection. Load and Quit offer Save and continue, Discard and continue, or Cancel.
+Cancelling a picker cancels the pending action. Credits reads `assets/credits.json`; its Back
+button stays outside the scrolling content. Settings and Help remain independently accessible.
+
+`CitySave` packages the Core dump with the exact Ruleset text and seed in `.borough-city` files.
+Saving happens at an owned Tick boundary without advancing the paused city, writes a sibling
+temporary file, flushes it and replaces the destination. Loading validates content identity,
+seed, saved State Hash and end-of-run invariants before installing the world, rebuilding its
+drawing and clearing selection. Names come from the embedded content. Save/load is synchronous;
+large-city responsiveness has not been measured. Standalone Input Log export after loading is
+explicitly refused because the log lacks its starting world.
+
+Six `CitySaveTests` passed, including continued equivalence under `minimal.toml` and `care.toml`,
+damaged packages and failed replacement cleanup. The assertion lane passed 3,016 tests. Godot
+Debug built without warnings. `scripts/ui/check-menu.py` passed on a driven 64-Citizen city at
+1440×960: both themes, Settings/Help/Credits, modal input, pause restoration, cancelled actions,
+failed-load preservation, exact restored State Hash, continued simulation and Save-before-Quit.
+The final Quit flow used 150% text. Captures are `artifacts/hud-live/menu-*.png`.
+
+Watching found Credits could scroll its Back button away and the light file picker inherited
+dark default surfaces; both were corrected. The driver now reads popup buttons and file-item
+rectangles. Its load-path command opens the directory without silently selecting the file; the
+check clicks the entry and then Open, so it exercises the player's selection path.
