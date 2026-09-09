@@ -81,27 +81,30 @@ public partial class Main
                 continue;
             }
 
-            float parcelWide = wideTiles * MetresPerTile;
-            float parcelDeep = deepTiles * MetresPerTile;
-
-            if (Mathf.Min(parcelWide, parcelDeep) < MinFrontageMetres)
+            float west = lots.ParcelEast[slot].Raw * MetresPerTile;
+            float south = lots.ParcelNorth[slot].Raw * MetresPerTile;
+            float eastEdge = west + wideTiles * MetresPerTile;
+            float northEdge = south + deepTiles * MetresPerTile;
+            if (Frontage.BlockOf(_world.Roads.Streets, lots.East[slot], lots.North[slot],
+                (StreetSide)lots.Side[slot], out int column, out int row)
+                && ZoneInterior(column, row) is { } interior)
             {
-                continue;
+                var half = interior.Basis.Scale * .5f;
+                west = Math.Max(west, interior.Origin.X - half.X);
+                eastEdge = Math.Min(eastEdge, interior.Origin.X + half.X);
+                south = Math.Max(south, -interior.Origin.Z - half.Z);
+                northEdge = Math.Min(northEdge, -interior.Origin.Z + half.Z);
             }
+            float parcelWide = eastEdge - west, parcelDeep = northEdge - south;
+            if (Mathf.Min(parcelWide, parcelDeep) < MinFrontageMetres) continue;
+            float east = (west + eastEdge) * .5f, north = (south + northEdge) * .5f;
 
-            // The pad IS the parcel, drawn whole -- which is the one thing in this shell that is
-            // allowed to be, because a pad is not a Building and the ground under it is exactly
-            // what the verb produced.
-            float east = (lots.ParcelEast[slot].Raw * MetresPerTile) + (parcelWide * 0.5f);
-            float north = (lots.ParcelNorth[slot].Raw * MetresPerTile) + (parcelDeep * 0.5f);
-
-            // A hand's breadth off the ground -- above the carriageway at 0.1 m so a pad on a kerb
-            // is not hidden by the road it hangs on, and far below anything that stands up.
-            Vector3 plan = new(parcelWide, 0.4f, parcelDeep);
+            // Keep road and path surfaces above the vacant parcel.
+            Vector3 plan = new(parcelWide, 0.01f, parcelDeep);
 
             yield return (
                 lots.Rows.IdAt(slot),
-                new Transform3D(Basis.FromScale(plan), new Vector3(east, 0.2f, -north)),
+                new Transform3D(Basis.FromScale(plan), new Vector3(east, 0.02f, -north)),
                 new Color(0.42f, 0.52f, 0.30f).SrgbToLinear());
         }
     }
