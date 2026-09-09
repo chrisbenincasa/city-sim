@@ -334,6 +334,7 @@ public partial class Main
     {
         StreetGrid streets = _world.Roads.Streets;
 
+
         if (streets.BlockTiles <= 0)
         {
             said.Add("no Street lattice in this world — this Ruleset states no [roads] block_tiles");
@@ -433,6 +434,14 @@ public partial class Main
     private void Virgin(System.Collections.Generic.List<string> said, (Tiles East, Tiles North) at)
     {
         StreetGrid streets = _world.Roads.Streets;
+        if (_zoneParcels)
+        {
+            var parcel = System.Linq.Enumerable.FirstOrDefault(SelectedParcels(at));
+            said.Add(parcel.Wide.Raw > 0
+                ? $"parcel {parcel.Wide.Raw * MetresPerTile:0} × {parcel.Deep.Raw * MetresPerTile:0} m — {ZoneName()}"
+                : "choose a parcel beside a Street");
+            return;
+        }
 
         if (streets.BlockTiles <= 0)
         {
@@ -670,6 +679,8 @@ public partial class Main
         // is wrong, so nobody meets it until they are mid-session and not looking for it.
         GetViewport().SizeChanged += Retype;
 
+        _hud.AddChild(new MapRuler { Camera = _camera, Position = new Vector2(24, 80),
+            MouseFilter = Control.MouseFilterEnum.Ignore });
         _hud.AddChild(_readout);
         _readout.Visible = false;
         AddChild(_hud);

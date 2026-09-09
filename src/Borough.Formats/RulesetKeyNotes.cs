@@ -662,28 +662,28 @@ public static class RulesetKeyNotes
 
         // ---- [lots] ---------------------------------------------------------------------------
         ["[lots] lots_per_segment"] =
-            "How many Lots one Street Segment carries, both sides together. A Lot is an address with "
-            + "no extent — there is no depth key, because a Lot has no depth. Omitting the whole "
-            + "[lots] table means land cannot be subdivided and the city grows nothing.",
+            "Number of Addresses per Street Segment used by block-based subdivision and form ranking. Explicit residential frontage controls Detached and Perimeter parcel counts instead.",
+
+        ["[lots] residential_frontage_tiles"] =
+            "Target parcel frontage in Tiles for Detached and Perimeter forms. Longer Streets carry more parcels. Fixed at world creation; absence uses the demonstration subdivision.",
+        ["[lots] residential_depth_tiles"] =
+            "Depth of residential parcels in Tiles, bounded by the available block interior. Fixed at world creation.",
+        ["[lots] house_width_tiles"] =
+            "Detached house frontage in Tiles, centred inside its parcel. Fixed at world creation.",
+        ["[lots] house_depth_tiles"] =
+            "Detached house depth in Tiles, centred inside its parcel. Fixed at world creation.",
+        ["[lots] house_storeys"] =
+            "Detached house height in storeys; the starting height for residential forms with explicit parcel dimensions. Fixed at world creation.",
 
         ["[lots] street_half_width_tiles"] =
             "Ground reserved on each side of a Street centreline, in Tiles. Footprints clear this "
             + "strip on all four block edges; the shell draws the same Street width. Fixed at world creation.",
 
         ["[lots] setback_tiles"] =
-            "The most ground a Building leaves on each side of its parcel, in Tiles. It is a length "
-            + "and not a fraction, so how much of a plot gets built on rises with the plot: a "
-            + "detached parcel keeps under half of itself and a slab's covers most of its site. The "
-            + "four sides are drawn independently per patch of ground, so a street varies and some "
-            + "walls stand on the pavement. Street ground remains reserved even at zero setback.",
+            "Maximum independent random inset in Tiles for block-based footprints and explicit Perimeter parcels. Explicit Detached houses use centred house dimensions instead. Reserved Street ground is always excluded.",
 
         ["[lots] storeys_per_rung"] =
-            "How much plot ratio one step up the density ladder is worth. A block's pattern gives it "
-            + "a rung, and the rung times this plus two is the floor area its Buildings put on each "
-            + "unit of block — so how tall they stand depends on how much of the block the pattern "
-            + "leaves open. A form that spreads out is short and a form that stands back is tall, at "
-            + "the same density. Two is a floor rather than a step, because a building with no upper "
-            + "floor is a shed. Omitting it means one step per rung.",
+            "Step between density rungs. Block-based forms use it in their plot-ratio target; explicit Perimeter parcels add it per rung to house_storeys. Detached houses keep house_storeys.",
 
         ["[lots] pattern_spread"] =
             "How many rungs either side of its band's own rung a block's pattern may be drawn, so a "

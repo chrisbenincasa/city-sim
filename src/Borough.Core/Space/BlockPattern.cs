@@ -213,6 +213,13 @@ public readonly record struct Parcel(
     /// <summary>The ground this parcel holds, in Tiles.</summary>
     public int AreaTiles => Wide.Raw * Deep.Raw;
 
+    public (Tiles East, Tiles North) Address(BlockGround ground) =>
+        Face is BlockFace.South or BlockFace.North
+            ? (new Tiles(ground.East + Offset.Raw),
+                new Tiles(ground.North + (Face == BlockFace.South ? 0 : ground.Deep)))
+            : (new Tiles(ground.East + (Face == BlockFace.West ? 0 : ground.Wide)),
+                new Tiles(ground.North + Offset.Raw));
+
     /// <summary>Where the Address sits — on the Street, which is never inside the parcel.</summary>
     /// <remarks>
     /// <b>The same two expressions <see cref="LotSubdivider"/> already used</b>, moved here so that the

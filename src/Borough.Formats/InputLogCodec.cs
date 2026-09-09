@@ -299,6 +299,7 @@ public static class InputLogCodec
         CommandKind kind = fields[1] switch
         {
             "zone" => CommandKind.Zone,
+            "zone-parcel" => CommandKind.ZoneParcel,
             "connect" => CommandKind.Connect,
             "service" => CommandKind.Service,
             "govern" => CommandKind.Govern,
@@ -321,6 +322,7 @@ public static class InputLogCodec
     private static string Verb(CommandKind kind) => kind switch
     {
         CommandKind.Zone => "zone",
+        CommandKind.ZoneParcel => "zone-parcel",
         CommandKind.Connect => "connect",
         CommandKind.Service => "service",
         CommandKind.Govern => "govern",

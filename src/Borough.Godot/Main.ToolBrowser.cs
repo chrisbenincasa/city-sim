@@ -108,6 +108,7 @@ public partial class Main
             {
                 bool selected = tool.Id switch
                 {
+                    "zone-size" => _zoneParcels == (option.Choice == 0),
                     "zone" => _verb == Verb.Zone && !_zoneErase && option.Choice == _zoneChoice,
                     "erase" => _verb == Verb.Zone && _zoneErase,
                     "street" => _verb == Verb.Connect,

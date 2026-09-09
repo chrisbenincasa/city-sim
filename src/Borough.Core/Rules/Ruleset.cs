@@ -2656,13 +2656,51 @@ public readonly record struct CapacityRuleset(
 /// </param>
 public readonly record struct LotRuleset(
     int LotsPerSegment, int SetbackTiles, int StoreysPerRung = 1, int PatternSpread = 0,
-    int StreetHalfWidthTiles = 1)
+    int StreetHalfWidthTiles = 1, Space.ResidentialPlots Plots = default)
 {
     /// <summary>A Ruleset whose land cannot be subdivided at all.</summary>
     public static LotRuleset None => default;
 
     /// <summary>Whether the subdivider runs.</summary>
     public bool Runs => LotsPerSegment > 0;
+
+    public int ParcelCeiling(Space.BlockGround ground) => Plots.Runs
+        ? Plots.Ceiling(ground) + Space.BlockPatterns.Ceiling(LotsPerSegment)
+        : Space.BlockPatterns.Ceiling(LotsPerSegment);
+
+    public int Carve(WorldKey key, Space.BlockPattern pattern, Space.BlockGround ground,
+        Span<Space.Parcel> into) => Plots.Applies(pattern)
+        ? Plots.Carve(ground, StreetHalfWidthTiles, into)
+        : Space.BlockPatterns.Carve(key, pattern, ground, LotsPerSegment, into);
+
+    public byte Height(WorldKey key, Space.Parcel parcel, Space.BlockPattern pattern, int blockTiles)
+    {
+        if (Plots.Applies(pattern))
+        {
+            int added = pattern == Space.BlockPattern.Detached ? 0
+                : Space.BlockPatterns.Rung(pattern, blockTiles, LotsPerSegment) * StoreysPerRung;
+            int height = Plots.HouseStoreys + added;
+            return (byte)(height > 255 ? 255 : height);
+        }
+        return StoreysOn(key, parcel.East, parcel.North,
+            Space.BlockPatterns.Storeys(pattern, blockTiles, LotsPerSegment, StoreysPerRung), StoreysPerRung);
+    }
+
+    public (Quantities.Tiles East, Quantities.Tiles North, Quantities.Tiles Wide, Quantities.Tiles Deep)
+        Footprint(WorldKey key, Space.Parcel parcel, Space.BlockGround ground, Space.BlockPattern pattern)
+    {
+        if (!Plots.Applies(pattern) || pattern != Space.BlockPattern.Detached)
+            return Footprint(key, parcel, ground);
+        bool horizontal = parcel.Face is Space.BlockFace.South or Space.BlockFace.North;
+        int desiredWide = horizontal ? Plots.HouseWidthTiles : Plots.HouseDepthTiles;
+        int desiredDeep = horizontal ? Plots.HouseDepthTiles : Plots.HouseWidthTiles;
+        int wide = desiredWide < parcel.Wide.Raw ? desiredWide : parcel.Wide.Raw;
+        int deep = desiredDeep < parcel.Deep.Raw ? desiredDeep : parcel.Deep.Raw;
+        return (new(parcel.East.Raw + Arithmetic.IntegerMath.FloorDiv(parcel.Wide.Raw - wide, 2)),
+            new(parcel.North.Raw + Arithmetic.IntegerMath.FloorDiv(parcel.Deep.Raw - deep, 2)),
+            new(wide), new(deep));
+    }
+
 
     /// <summary>Clips the drawn setbacks to the block's reserved Street edges.</summary>
     public (Quantities.Tiles East, Quantities.Tiles North, Quantities.Tiles Wide, Quantities.Tiles Deep)

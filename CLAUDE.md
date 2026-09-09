@@ -4,16 +4,12 @@ Guidance for Claude Code working in this repository.
 
 ---
 
-🔴 **AMNESTY IN FORCE. READ [`plans/0045-amnesty.md`](plans/0045-amnesty.md) AND NOTHING ELSE ON A
-COLD START — not the board.** It is the only thing in flight and it supersedes *Where to look* below
-for the duration. ⚠ **It ends at a RATIO and not on a date** — 30 words of prose per line of
-simulation, 52 as of 2026-08-31 — so no calendar lifts it, and
-`CorpusBudgetTests.The_amnesty_has_not_yet_earned_its_end` is what reports it earned. ⚠ **A ratio is
-not a word count**: prose written beside new simulation is free, prose written alone is refused, and
-doc-comments count on the numerator so nothing escapes `docs/` by relocating. No new ADRs may be
-written, and `adr/0043` and `adr/0052` are suspended. ⚠ **A session that ends without a change under
-`src/` is not committed.** Everything below this line is reference material to consult when a task
-needs it — it is not a reading list.
+🔴 **AMNESTY IN FORCE. Read [the active amnesty page](plans/0045-amnesty.md) first on a cold
+start, not the board.** It owns current status, standing orders and the capability queue; the
+roadmap supplies larger capabilities and individual plans own scope and findings. Amnesty ends
+at its tested ratio target, never on a date. No new ADRs; `adr/0043` and `adr/0052` remain suspended.
+**A session ending without a change under `src/` is not committed.** Everything below is reference
+material to consult when a task needs it, not a reading list.
 
 ---
 

@@ -274,6 +274,8 @@ public enum CommandKind : ushort
     /// </para>
     /// </remarks>
     People = 10,
+
+    ZoneParcel = 11,
 }
 
 /// <summary>

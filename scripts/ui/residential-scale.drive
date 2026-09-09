@@ -1,0 +1,19 @@
+# Run with --empty --ruleset rulesets/neighbourhood.toml --citizens 8.
+# One painted parcel among the unzoned neighbours; the ruler stays visible.
+256 speed 8
+256 focus 48 48 240
+256 hold street
+256 click 48 32
+256 click 32 48
+256 click 64 48
+256 click 48 64
+260 hold zone 1
+260 ui zone-size parcels
+260 ui zone-begin 35 35
+260 ui zone-end 35 35
+265 people
+270 pause
+270 ui zone-point 35 35
+270 shoot /tmp/borough-residential-scale.png
+270 draw /tmp/borough-residential-scale.tsv
+270 quit

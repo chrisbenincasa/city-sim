@@ -180,6 +180,11 @@ anywhere** — `plans/0012` **Cause 5** is what importing Tait's ratio would hav
 
 ## F8 — Watched in the shell, and the surprise is a Lot count nobody was measuring
 
+**Follow-up, 2026-09-09:** [0069](0069-residential-scale.md#unequal-block-follow-up) separates the current
+reproduction: the count changes by whole blocks needed to reach the generator's capacity target. It
+also fixes a separate nominal-grid Address error on varied Streets. The table below remains the
+historical reading; its per-block rounding hypothesis is not the result of that follow-up.
+
 The amnesty's Definition of done is ***a milestone is done when you have watched it happen and
 something surprised you***, so both worlds were driven, photographed and read.
 

@@ -1,7 +1,8 @@
 # 0000 — The board
 
-**Amnesty in force: read [the active queue](0045-amnesty.md#the-queue) first.** It supersedes the
-older priorities below. Shopping status belongs to row 20 there, insolvency to row 27.
+**Suspended during amnesty: [0045](0045-amnesty.md) is the sole active priority queue.**
+The roadmap supplies capabilities; individual plans own scope and findings. The priorities below
+are historical and must be re-evaluated when amnesty ends; do not maintain a second queue here.
 
 ---
 

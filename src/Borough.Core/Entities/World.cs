@@ -960,6 +960,9 @@ public sealed class World
         if (rules.Lots.StreetHalfWidthTiles != Rules.Lots.StreetHalfWidthTiles)
             throw new NotSupportedException("Street width is fixed when the world is created.");
 
+        if (rules.Lots.Plots != Rules.Lots.Plots)
+            throw new NotSupportedException("Residential parcel dimensions are fixed at world creation.");
+
         RulesetChange change = RulesetShape.Compare(Rules, rules);
         RulesetMigration? migration = null;
 
@@ -3405,8 +3408,7 @@ public sealed class World
     public void RebuildParcels()
     {
         int blockTiles = Roads.Streets.BlockTiles;
-        int perSegment = Rules.Lots.LotsPerSegment;
-        int ceiling = Space.BlockPatterns.Ceiling(perSegment);
+        int ceiling = Rules.Lots.ParcelCeiling(Space.BlockGround.Square(Roads.Lattice.Widest));
 
         Span<Space.Parcel> parcels = ceiling <= 0
             ? []
@@ -3416,7 +3418,6 @@ public sealed class World
         int atColumn = int.MinValue;
         int atRow = int.MinValue;
         int count = 0;
-        int atStoreys = 0;
         Space.BlockPattern atPattern = Space.BlockPattern.Detached;
 
         for (int slot = 0; slot < Lots.Rows.SlotCount; slot++)
@@ -3472,15 +3473,9 @@ public sealed class World
 
                 count = blockSlot == Space.BlockResidency.NotResident
                     ? 0
-                    : Space.BlockPatterns.Carve(
-                        Key,
-                        pattern,
-                        Space.BlockGround.At(Roads.Streets.Lattice, column, row),
-                        perSegment,
-                        parcels);
+                    : Rules.Lots.Carve(Key, pattern,
+                        Space.BlockGround.At(Roads.Streets.Lattice, column, row), parcels);
 
-                atStoreys = Space.BlockPatterns.Storeys(
-                    pattern, blockTiles, perSegment, Rules.Lots.StoreysPerRung);
                 atPattern = pattern;
                 atColumn = column;
                 atRow = row;
@@ -3503,14 +3498,13 @@ public sealed class World
                 // built to end, arriving one level in.
                 (Quantities.Tiles east, Quantities.Tiles north, Quantities.Tiles wide,
                     Quantities.Tiles deep) = Rules.Lots.Footprint(
-                        Key, parcels[i], Space.BlockGround.At(Roads.Streets.Lattice, column, row));
+                        Key, parcels[i], Space.BlockGround.At(Roads.Streets.Lattice, column, row), atPattern);
 
                 Lots.FootprintEast[slot] = east;
                 Lots.FootprintNorth[slot] = north;
                 Lots.FootprintWide[slot] = wide;
                 Lots.FootprintDeep[slot] = deep;
-                Lots.Storeys[slot] = Borough.Core.Rules.LotRuleset.StoreysOn(
-                    Key, parcels[i].East, parcels[i].North, atStoreys, Rules.Lots.StoreysPerRung);
+                Lots.Storeys[slot] = Rules.Lots.Height(Key, parcels[i], atPattern, blockTiles);
                 Lots.Pattern[slot] = (byte)((byte)atPattern + 1);
 
                 break;

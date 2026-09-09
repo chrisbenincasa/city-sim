@@ -597,12 +597,32 @@
     "lots": {
       "type": "object",
       "properties": {
+        "house_depth_tiles": {
+          "description": "Detached house depth in Tiles, centred inside its parcel. Fixed at world creation.",
+          "type": "integer"
+        },
+        "house_storeys": {
+          "description": "Detached house height in storeys; the starting height for residential forms with explicit parcel dimensions. Fixed at world creation.",
+          "type": "integer"
+        },
+        "house_width_tiles": {
+          "description": "Detached house frontage in Tiles, centred inside its parcel. Fixed at world creation.",
+          "type": "integer"
+        },
         "lots_per_segment": {
           "description": "How many Lots one Street Segment carries, both sides together. A Lot is an address with no extent — there is no depth key, because a Lot has no depth. Omitting the whole [lots] table means land cannot be subdivided and the city grows nothing.",
           "type": "integer"
         },
         "pattern_spread": {
           "description": "How many rungs either side of its band's own rung a block's pattern may be drawn, so a density is a mix of forms rather than one form. The band's rung stays the centre of what the band means; the draw is on the block's own ground, so a block cleared and zoned again is re-carved the same way and a re-plat can still never move a block down the ladder. Omitting it means every block takes its band's form exactly.",
+          "type": "integer"
+        },
+        "residential_depth_tiles": {
+          "description": "Depth of residential parcels in Tiles, bounded by the available block interior. Fixed at world creation.",
+          "type": "integer"
+        },
+        "residential_frontage_tiles": {
+          "description": "Target parcel frontage in Tiles for Detached and Perimeter forms. Longer Streets carry more parcels. Fixed at world creation; absence uses the demonstration subdivision.",
           "type": "integer"
         },
         "setback_tiles": {

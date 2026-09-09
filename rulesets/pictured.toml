@@ -97,10 +97,10 @@ bins = [
     { resource = "repairs",  capacity = 4 },
 ]
 houses   = true
-premises = true
+premises = false
 # Whether it parks at all -- the count is floor area over [capacity] floor_tiles_per_parking_space.
 parked = true
-business = "shop"
+
 
 [[building]]
 name = "shopfront"
@@ -404,6 +404,12 @@ beta          = 4
 clamp_percent = 400
 
 [lots]
+# PROVISIONAL: independent parcel and house dimensions; plans/0069.
+residential_frontage_tiles = 4
+residential_depth_tiles = 6
+house_width_tiles = 2
+house_depth_tiles = 3
+house_storeys = 2
 lots_per_segment = 5
 # The most ground a Building leaves on each side of its parcel. A LENGTH and not a fraction, so
 # coverage rises with the parcel -- see minimal.toml, which carries the argument.

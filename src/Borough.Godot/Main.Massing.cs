@@ -215,10 +215,24 @@ public partial class Main
             bool outhoused = ((shape >> 48) & 3u) != 0u;
             float shed = 4f + (((shape >> 52) & 0xFu) / 15f * 5f);
             float wide = Mathf.Min(along * 0.45f, 14f);
-            float off = (deep * 0.5f) + 5f + (shed * 0.5f);
+            float gap = 5f;
+            float shedHeight = shed * .8f;
+            if (_world.Rules.Lots.Plots.Applies(lots.PatternOf(lot)))
+            {
+                float plotLow = (horizontal ? lots.ParcelNorth[lot].Raw : lots.ParcelEast[lot].Raw) * MetresPerTile;
+                float plotHigh = plotLow + (horizontal ? deepTiles : wideTiles) * MetresPerTile;
+                float bodyCentre = horizontal ? north : east;
+                float space = back > 0 ? plotHigh - (bodyCentre + deep * .5f)
+                    : bodyCentre - deep * .5f - plotLow;
+                gap = .5f;
+                shed = Math.Max(0, Math.Min(shed, space - gap));
+                outhoused &= shed >= 2f;
+                shedHeight = Math.Min(3f, shed * .8f);
+            }
+            float off = (deep * 0.5f) + gap + (shed * 0.5f);
             Vector3 hut = horizontal
-                ? new Vector3(wide, shed * 0.8f, shed)
-                : new Vector3(shed, shed * 0.8f, wide);
+                ? new Vector3(wide, shedHeight, shed)
+                : new Vector3(shed, shedHeight, wide);
 
             // ⚠ THE TURN IS AN EXCLUSIVE OR AND THAT IS NOT A TRICK. A PrismMesh slopes across its
             // own X and runs its ridge along its own Z, so the quarter turn is owed whenever the
@@ -367,7 +381,7 @@ public partial class Main
                     Basis.FromScale(hut),
                     new Vector3(
                         east + (horizontal ? 0f : back * off),
-                        shed * 0.4f,
+                        shedHeight * 0.5f,
                         -(north + (horizontal ? back * off : 0f)))),
                 paint,
                 slate,

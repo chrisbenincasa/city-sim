@@ -1,7 +1,7 @@
 namespace Borough.Tests.Corpus;
 
 /// <summary>
-/// The corpus has a sink. <b>Three ceilings, frozen at their 2026-08-26 sizes.</b>
+/// The amnesty freezes design growth and ratchets the prose-to-source ratio.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -14,8 +14,8 @@ namespace Borough.Tests.Corpus;
 /// <b>These are ratchets, not judgements.</b> Nothing here says a document is wrong or too long. The
 /// ceiling is simply today's size, so growth becomes a deliberate act instead of a default one — and
 /// the escape hatch is to delete the test in its own commit saying why. That is intended to be
-/// visible rather than hard. See <c>plans/0045-amnesty.md</c>, which expires 2026-10-07; delete this
-/// class with it.
+/// visible rather than hard. See <c>plans/0045-amnesty.md</c>, whose exit is tested by
+/// <see cref="The_amnesty_has_not_yet_earned_its_end"/> rather than a calendar date.
 /// </para>
 /// <para>
 /// ⚠ <b>Words, and the definition is whitespace-separated runs</b> — what <c>wc -w</c> counts, so a
@@ -84,8 +84,9 @@ public sealed class CorpusBudgetTests
     /// predicate, the drive grammar's two new verbs and their tests. <b>1,906,965 words over 36,063
     /// lines.</b>
     /// </para>
+    /// <para>Lowered from 52 to 41 on 2026-09-09, following the current integer reading.</para>
     /// </remarks>
-    private const int RatioCeiling = 52;
+    private const int RatioCeiling = 41;
 
     /// <summary>Words of prose per line of simulation at which the amnesty has done its job.</summary>
     /// <remarks>

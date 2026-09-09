@@ -777,8 +777,8 @@ public partial class Main
         if (_roadHover is not null) _roadHover.Visible = false;
         if (Aim() is not { } at) return "Outside the map";
         if (_verb == Verb.Zone)
-            return _zoneStart is not null ? $"{ZoneSelectionCount()} blocks · {ZoneName()} · release to apply; Escape cancels"
-                : _zoneFeedback.Length > 0 ? _zoneFeedback : $"{ZoneName()} · drag a rectangle of whole blocks";
+            return _zoneStart is not null ? $"{ZoneSelectionCount()} {(_zoneParcels ? "parcels" : "blocks")} · {ZoneName()} · release to apply; Escape cancels"
+                : _zoneFeedback.Length > 0 ? _zoneFeedback : $"{ZoneName()} · {(_zoneParcels ? "click a parcel or drag an area" : "drag a rectangle of whole blocks")}";
         var picked = PickInformation();
         if (_world.Roads.Segments.Rows.TryResolve(picked.Road, out int road))
         {
@@ -1169,7 +1169,8 @@ public partial class Main
             ConsoleContent = Rect(_consoleScroll),
             Pace = RungName(),
             Layer = _washing.ToString(),
-            Zoning = new { Dragging = _zoneStart is not null, Blocks = ZoneSelectionCount(), Erasing = _zoneErase, Feedback = _zoneFeedback },
+            Zoning = new { Dragging = _zoneStart is not null, Blocks = _zoneParcels ? 0 : ZoneSelectionCount(),
+                Parcels = _zoneParcels ? ZoneSelectionCount() : 0, Unit = _zoneParcels ? "parcels" : "blocks", Erasing = _zoneErase, Feedback = _zoneFeedback },
             Tool = _verb.ToString(),
             LayersShown = _layersShown,
             Legend = _legendTitle.Visible ? $"{_legendTitle.Text} {_legendBody.Text}" : string.Empty,

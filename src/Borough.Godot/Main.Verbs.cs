@@ -219,7 +219,7 @@ public partial class Main
         {
             case Verb.Zone when _world.Rules.ZoneRules.Length > 0 || _zoneErase:
                 Send(new Command(
-                    CommandKind.Zone,
+                    _zoneParcels ? CommandKind.ZoneParcel : CommandKind.Zone,
                     at.East,
                     at.North,
                     ZonePermission()));

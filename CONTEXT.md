@@ -70,6 +70,10 @@ A named set of Cells the **player** draws, renames and redraws freely: the scope
 **Zone**
 A **permission set over land**: it lists the uses allowed there and forbids every other. A Zone never places a Building and never causes one — zoning Residential does not build houses, it forbids everything that is not housing. Density is the intensity cap *within* a permission, not a separate concept. Mixed use needs no machinery: it is a permission set with more than one entry.
 
+**Painting may select a whole block or an individual parcel.** `LotSubdivider.PaintAt` and
+`PaintParcelAt` own those paths. Individual permissions live on the Lot and survive saving; a mixed
+block keeps its subdivision until the player repaints it uniformly.
+
 **Nothing is permitted by default. Unzoned land builds nothing** — including farms and forestry. Extraction-by-default was considered and rejected: it is more elegant, and it would mean a player's food supply arranged itself before they knew they had one. The first ten minutes teach by *doing*, and a chain the player never built is a chain they cannot be taught to diagnose. It would also make a seed's fertility decide whether a city survives its opening, which is variance in the one place the design cannot afford it.
 
 Zone families follow the Goods chain rather than a tradition. Industry splits by **what determines its location**, which is the real difference:
@@ -935,6 +939,10 @@ It is the clearest payoff of treating walking as real. A city can be perfectly w
 **A location on the Road Graph: a Segment, an offset along it, and which side of it.** Never a Node. It is the value every query about *where something is* takes and returns — a Building's Access Point is a Building's Address, a Leg runs from one Address to another, and a `Car Park` has one.
 
 **The word is chosen because a street address is literally this triple**: a distance along a street plus an odd or even side. The **side** is left or right of the Segment's forward direction, which is fixed A→B by its endpoints, so it needs no geometry and no coordinate — the simulation still never sees a spline.
+
+**Residential parcel dimensions can be independent of Street spacing.** `LotRuleset.Plots` and
+`ResidentialPlots` own that subdivision; more Addresses can share an unchanged Segment. The earlier
+five-Building sizing below belongs to the demonstration layout, not a limit on a Street.
 
 **An Address is an offset along a Segment, never a Node.** A Segment's Nodes are intersections and an Address is not one. The arithmetic makes this structural rather than a matter of taste: five Buildings share a Segment at the working figures, so promoting Addresses to Nodes would split every Segment five ways and put the Road Graph at 150,000–300,000 Segments instead of ~30,000. **A routing query is therefore `Address → Address` rather than node-to-node, which is the query shape everything downstream must be measured on.**
 

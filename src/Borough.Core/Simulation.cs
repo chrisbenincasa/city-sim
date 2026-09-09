@@ -427,6 +427,9 @@ public sealed class Simulation
     {
         switch (command.Kind)
         {
+            case CommandKind.ZoneParcel:
+                LotSubdivider.PaintParcelAt(_world, command.East, command.North, command.Zone);
+                break;
             case CommandKind.Zone:
                 // 02 §2.2: Lots are **generated, not painted**. Until 5a-bis this line created exactly
                 // one Lot at the command's coordinates, and said so -- there was no Street network to
@@ -564,7 +567,7 @@ public sealed class Simulation
     /// </remarks>
     public Refusal Refuses(Command command) => command.Kind switch
     {
-        CommandKind.Zone or CommandKind.Populate => Refusal.None,
+        CommandKind.Zone or CommandKind.ZoneParcel or CommandKind.Populate => Refusal.None,
         CommandKind.Connect => RefuseConnect(command, out _),
         CommandKind.Trip => RefuseTrip(command, out _, out _, out _),
         CommandKind.Arrive => RefuseArrive(command, out _),

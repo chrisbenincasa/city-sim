@@ -6168,7 +6168,26 @@ public static class RulesetLoader
                 return LotRuleset.None;
             }
 
-            return new LotRuleset((int)value, (int)setback, (int)step, (int)spread, (int)streetHalfWidth);
+            bool plots = TryInteger(_lotsTable, "residential_frontage_tiles", out long frontage, required: false);
+            bool hasDepth = TryInteger(_lotsTable, "residential_depth_tiles", out long depth, required: plots);
+            bool hasWidth = TryInteger(_lotsTable, "house_width_tiles", out long houseWidth, required: plots);
+            bool hasHouseDepth = TryInteger(_lotsTable, "house_depth_tiles", out long houseDepth, required: plots);
+            bool hasStoreys = TryInteger(_lotsTable, "house_storeys", out long houseStoreys, required: plots);
+            if (!plots && (hasDepth || hasWidth || hasHouseDepth || hasStoreys))
+                Refuse(LineOfLot("residential_frontage_tiles"), null, "House dimensions require residential_frontage_tiles.");
+            if (plots && (frontage < 2 || frontage > Core.Space.CellGrid.WorldTiles
+                || depth < 2 || depth > Core.Space.CellGrid.WorldTiles
+                || houseWidth < 1 || houseWidth > frontage || houseDepth < 1 || houseDepth > depth
+                || houseStoreys < 1 || houseStoreys > 255))
+            {
+                Refuse(LineOfLot("residential_frontage_tiles"), null,
+                    "Residential frontage and depth must be at least two Tiles and fit the map; "
+                    + "the house must fit its parcel and have 1–255 storeys.");
+                return LotRuleset.None;
+            }
+            var dimensions = plots ? new Core.Space.ResidentialPlots((int)frontage, (int)depth,
+                (int)houseWidth, (int)houseDepth, (int)houseStoreys) : default;
+            return new LotRuleset((int)value, (int)setback, (int)step, (int)spread, (int)streetHalfWidth, dimensions);
         }
 
         /// <summary>Reads <c>[capacity]</c> — how much floor one tenancy, job, car or pupil takes.</summary>

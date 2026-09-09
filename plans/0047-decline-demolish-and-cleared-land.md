@@ -6,11 +6,15 @@
 
 ## Status
 
-🟢 **IN FLIGHT.** ⚠ **This block said *SCOPED, NOT STARTED* until 2026-08-26 while three commits
-stood** — `plans/0012` **Cause 1** in the document that owns the status, which is the copy that is
-supposed to be right.
+🟢 **MERGED AND CLOSED AS A MILESTONE.** Landed on `main` 2026-08-27 in `1447344` — *milestone 17
+lands: decline is a duration, a shell falls down, and a buyer wakes when the price moves* — and the
+branch `milestone-17-decline-and-cleared-land` is gone. **Four tasks shipped, three were never
+started**, and their residue is [`0045`](0045-amnesty.md) queue row **30**, *a player diagnoses
+decline, intervenes and watches the result*, which is unstarted and carries this milestone's
+failure-source scope with recovery added to it.
 
-**Landed** (branch `milestone-17-decline-and-cleared-land`):
+⚠ **The table below was re-read against `main` on 2026-09-09 and states what the code holds**, not
+what the branch held on the day. Two rows moved after the merge without this plan being touched.
 
 | Task | State | Where |
 |---|---|---|
@@ -18,40 +22,34 @@ supposed to be right.
 | **2** — the abandoned state | 🟢 **done**, and it is a **column** rather than derived — `AbandonedSince`, `(saved AND hashed)` | `BuildingTable.IsAbandoned` |
 | **3** — the first threshold, occupancy loss | 🟢 **done, mechanism and world together** — `sheds_occupant_after_days`, paced off the clock rather than the sweep, and it needed a wake path nobody had built (**F10**). **5 condemned per 131,072 Ticks against `declining.toml`'s 392 per 32,768** | `KindDefinition.ShedsOccupantAfterTicks`, `ZoneRuleEngine.Shed`, `World.WakeDerivedApply`, `rulesets/thinned.toml`, `OccupancySheddingTests` |
 | **4** — `Demolish`, the sixth verb | 🟡 **the narrow half is done** — over **abandoned stock only**; an occupied Building is refused by name with compulsory purchase written beside it, which stays blocked on the land value target | `CommandKind.Demolish`, `Simulation.ApplyDemolish`, `DemolishVerbTests` |
-| **5** — the `Govern` clearance programme | 🔴 **not started** | — |
-| **6** — Trips-failing as a second pressure source | 🔴 **not started** | — |
-| **7** — the contagion term | 🔴 **not started** | — |
-| **8** — something to look at | 🟡 **partial** — `--zones` prints shells as `~` and counts them; nothing shows a clearance | `ZoneDump` |
-| **9** — the long acceptance run, and decision 1's measurement | 🟡 **partial** — censuses taken and quoted in the Ruleset headers; **no committed long-run assertion** | — |
+| **5** — the `Govern` clearance programme | 🔴 **not started.** Nothing under `src/` names a clearance Policy | — |
+| **6** — Trips-failing as a second pressure source | 🔴 **not started**, and **F1** below still reads true of the code: the pressure clock starts on `Blocking.Supply` alone and is cleared on every other reason | `RuleEngine.cs:1040` |
+| **7** — the contagion term | 🔴 **not started.** No dereliction term entered the desirability composition | — |
+| **8** — something to look at | 🟢 **done after the merge, and owned by [`0064`](0064-the-information-interface.md#verification) rather than here** — the shell carries a `DEMOLISH` verb over abandoned stock, and `scripts/ui/information-lifecycle.drive` watches the selected Building become abandoned and then be demolished | `Main.Verbs.cs`, `ZoneDump` |
+| **9** — the long acceptance run | 🟡 **partial.** `ThinnedRulesetTests` asserts the thinned city keeps its stock where the declining one loses it, at 1,000 Citizens over 8,192 Ticks. **There is no 100k-Tick run and no turnover assertion**, which is the obligation closing decision 1 created | `ThinnedRulesetTests` |
 
 ✅ **DECISION 1 IS CLOSED** into [`adr/0172`](../docs/adr/0172-an-abandoned-shell-collapses-on-a-clock-because-a-bound-is-not-a-sink.md)
 — *no, a player is not a sink*, and reading (a) is refuted by measurement. **Read decision 1 below for
 the run that closed it**; this row is a pointer and holds none of it.
 
-> 🔴 ⚠ **THIS PARAGRAPH SAID *no ADR records it* FOR THE WHOLE OF 2026-08-26, AND `adr/0172` HAD ALREADY
-> LANDED IN `93b1af7`.** The decision section was updated and this one was not, so **the plan contradicted
-> itself for four commits** and a reader starting at the Landed table — which is what a Landed table is
-> for — got the stale half. It was read that way twice on the day, once into a session summary and once
-> into a hand-off prompt written for somebody else. ***This is [`plans/0012`](0012-corpus-audit.md)
-> **Cause 1** inside a single document rather than across two***: the copy that stores status drifted,
-> and the copy that stores the *argument* stayed right. **A plan with a status table has two places to
-> update and the table is the one that gets missed**, because the work that closes a decision happens in
-> the section, not in the summary of it.
-
-⚠ **What the closure did NOT settle.** It shipped inside [`dc529a2`](#), whose subject line is about the
-threshold's **unit**, so for a day the decision existed only as code — and the ADR and the measurement
-both came afterwards, ***which is the right order reversed and is kept rather than tidied away.*** **Task
-9 now owes turnover rather than boundedness**: that the built count does not trend to zero, which
-`adr/0006` does not ask and would report healthy.
-
-⚠ **Task 4 left a debt `adr/0091` had already decided against, and it is filed rather than lived with.**
-That ADR retires `Connect`'s bulldoze flag so there is **one** spelling of *remove a thing* in the Input
-Log; task 4 shipped `Demolish` over Buildings and left Streets on the old flag. 🔴 **The reason is scope
-and expressly NOT cost** — retiring it re-spells six of the committed golden session's seven `connect`
-commands, and
+⚠ **Two obligations outlived the milestone.** Task 9's turnover assertion — that the built count does
+not trend to zero, which `adr/0006` does not ask and would report healthy — and
+[`0003`](0003-build-plan.md) **queue item 26** — `Demolish` shipped over Buildings and left Streets on
+`ConnectAction.Bulldoze`, so there are two spellings of *remove a thing* in the Input Log where
+[`adr/0091`](../docs/adr/0091-clearing-land-is-bought-rather-than-taken-and-demolish-is-the-sixth-verb.md)
+says one. 🔴 **The reason is scope and expressly NOT cost**, which
 [`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)
-forbids citing baseline movement as a reason to defer. **[`0003`](0003-build-plan.md) queue item 26**,
-with the shape settled and only the work owed.
+forbids citing; the shape is settled there and only the work is owed.
+
+⚠ **A third sink arrived on 2026-08-31 and is not this milestone's**, so nothing here is superseded by
+it: `[[building]] abandoned_when_empty_after_days` gives up on a house nobody ever moved into, and it
+**abandons rather than demolishing**. [`0046`](0046-life-stages-and-a-self-generating-population.md)
+owns it and the finding that the clock is not the binding constraint.
+
+⚠ **This block spent four commits contradicting the decision section a hundred lines below it**,
+saying no ADR recorded decision 1 while `adr/0172` had already landed — and the stale half escaped
+into a hand-off written for somebody else. **[`0012`](0012-corpus-audit.md) owns the sighting, the
+range and the lesson**; a second copy here is the defect it describes.
 
 ⚠ **`dc529a2` carries three tasks and names one.** Its subject is *a decline threshold is a duration*;
 its diff also holds the shell, the collapse sink and the two-key split. That is
@@ -363,7 +361,7 @@ why the settling version cannot be authored at all.
 
 ---
 
-## Tasks — ⚠ **PROVISIONAL until decision 1**
+## Tasks — as scoped, and decision 1 has since closed
 
 1. **The second threshold stops destroying** — `ZoneRuleEngine.Condemn`'s premises verdict empties the
    Building and leaves the row standing on its Lot, instead of calling `DestroyBuilding`. Occupants are

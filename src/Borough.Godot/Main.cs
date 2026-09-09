@@ -868,7 +868,7 @@ public partial class Main : Node3D
     private int _resume = DesignSpeed;
     /// <summary>Frames drawn since the shell opened. Read only by the screenshot trigger.</summary>
     private int _frame;
-    private string _rulesetPath = "rulesets/minimal.toml";
+    private string _rulesetPath = "rulesets/neighbourhood.toml";
 
     /// <summary>The script this run is driven by, in Tick order. Empty when nobody is driving.</summary>
     private DriveCommand[] _drive = [];
@@ -1522,7 +1522,7 @@ public partial class Main : Node3D
     private static (string Ruleset, int Citizens, ulong StartAt, bool Govern, bool Empty,
         string? Drive, ulong QuitAt, string? Listen, string? Record) Arguments()
     {
-        string ruleset = "rulesets/minimal.toml";
+        string ruleset = "rulesets/neighbourhood.toml";
         int citizens = 1_000;
 
         // 🔴 THE SHELL OPENS AT 08:00 AND THE SIMULATION'S DAY STILL BEGINS AT 05:00, AND KEEPING

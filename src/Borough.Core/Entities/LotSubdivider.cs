@@ -91,6 +91,56 @@ public static class LotSubdivider
         return zone == 0 ? 0 : SubdivideBlock(world, column, row, zone);
     }
 
+    public static bool Contains(Parcel parcel, Tiles east, Tiles north) =>
+        east.Raw >= parcel.East.Raw && east.Raw < parcel.East.Raw + parcel.Wide.Raw
+        && north.Raw >= parcel.North.Raw && north.Raw < parcel.North.Raw + parcel.Deep.Raw;
+
+    public static int Preview(World world, int column, int row, Span<Parcel> into)
+    {
+        var streets = world.Roads.Streets;
+        if (column < 0 || row < 0 || column >= streets.Blocks || row >= streets.Blocks) return 0;
+        int block = world.BlockIndex.Contains(column, row) ? world.BlockIndex.Slot(column, row) : Rows.NoSlot;
+        BlockPattern pattern = world.PatternOf(block, out bool chosen);
+        if (!chosen) pattern = BlockPatterns.ForBand(block == Rows.NoSlot ? (byte)0 : world.Blocks.Band[block],
+            world.Rules.Bands.Length, streets.BlockTiles, world.Rules.Lots.LotsPerSegment,
+            world.Key, column, row, world.Rules.Lots.PatternSpread);
+        int count = world.Rules.Lots.Carve(world.Key, pattern, BlockGround.At(streets.Lattice, column, row), into);
+        int kept = 0;
+        for (int i = 0; i < count; i++)
+            if (SegmentOf(streets, into[i].Face, column, row) != Rows.NoSlot) into[kept++] = into[i];
+        return kept;
+    }
+
+    public static int PaintParcelAt(World world, Tiles east, Tiles north, ushort zone)
+    {
+        var streets = world.Roads.Streets;
+        if (streets.Blocks <= 0 || east.Raw < 0 || north.Raw < 0) return 0;
+        int column = streets.Lattice.LineAt(east.Raw), row = streets.Lattice.LineAt(north.Raw);
+        if (column < 0 || row < 0 || column >= streets.Blocks || row >= streets.Blocks) return 0;
+        var ground = BlockGround.At(streets.Lattice, column, row);
+        int ceiling = world.Rules.Lots.ParcelCeiling(ground);
+        Span<Parcel> parcels = ceiling <= 128 ? stackalloc Parcel[128] : new Parcel[ceiling];
+        int count = Preview(world, column, row, parcels);
+        bool found = false;
+        for (int i = 0; i < count; i++) found |= Contains(parcels[i], east, north);
+        if (!found) return 0;
+        int block = world.BlockIndex.Contains(column, row) ? world.BlockIndex.Slot(column, row) : Rows.NoSlot;
+        ushort previous = block == Rows.NoSlot ? (ushort)0 : world.Blocks.Zone[block];
+        SubdivideBlock(world, column, row, previous);
+        for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
+        {
+            var lots = world.Lots;
+            if (!lots.Rows.IsLive(slot) || !lots.HasFrontage(slot)
+                || east.Raw < lots.ParcelEast[slot].Raw || east.Raw >= lots.ParcelEast[slot].Raw + lots.ParcelWide[slot].Raw
+                || north.Raw < lots.ParcelNorth[slot].Raw || north.Raw >= lots.ParcelNorth[slot].Raw + lots.ParcelDeep[slot].Raw) continue;
+            if (lots.Zone[slot] == zone) return 0;
+            lots.Zone[slot] = zone;
+            world.LotsAdmitting.Invalidate();
+            return 1;
+        }
+        return 0;
+    }
+
     /// <summary>
     /// How much of a Segment's length at each junction belongs to the cross street, in Tiles.
     /// </summary>
@@ -213,8 +263,7 @@ public static class LotSubdivider
         // construction. plans/0045 row 25.
         BlockGround ground = BlockGround.At(streets.Lattice, column, row);
         int blockTiles = streets.BlockTiles;
-        int perSegment = world.Rules.Lots.LotsPerSegment;
-        int ceiling = BlockPatterns.Ceiling(perSegment);
+        int ceiling = world.Rules.Lots.ParcelCeiling(ground);
 
         if (ceiling <= 0)
         {
@@ -225,13 +274,12 @@ public static class LotSubdivider
         // block_tiles, so a coarse world must not put an unbounded frame on the stack.
         Span<Parcel> parcels = ceiling <= 64 ? stackalloc Parcel[64] : new Parcel[ceiling];
 
-        int count = BlockPatterns.Carve(world.Key, pattern, ground, perSegment, parcels);
+        int count = world.Rules.Lots.Carve(world.Key, pattern, ground, parcels);
         int created = 0;
 
         // A property of the BLOCK and hoisted out of the loop, which is what it is: every Building
         // on one block stands the same number of storeys before the per-parcel draw.
-        int patternStoreys =
-            BlockPatterns.Storeys(pattern, blockTiles, perSegment, world.Rules.Lots.StoreysPerRung);
+
 
         // The face being laid, and whether this carve has put anything on it. Carve returns parcels
         // in face order, so a change of face is the boundary at which the previous one is closed.
@@ -261,7 +309,7 @@ public static class LotSubdivider
                 continue;
             }
 
-            (Tiles east, Tiles north) = parcel.Address(column, row, blockTiles);
+            (Tiles east, Tiles north) = parcel.Address(ground);
 
             Handle<Lot> lot = world.Lots.Create(east, north, zone, side);
             int slot = world.Lots.Rows.Resolve(lot);
@@ -284,15 +332,13 @@ public static class LotSubdivider
             // line on it -- and recomputed identically by World.RebuildParcels.
             (Quantities.Tiles footEast, Quantities.Tiles footNorth, Quantities.Tiles footWide,
                 Quantities.Tiles footDeep) = world.Rules.Lots.Footprint(
-                    world.Key, parcel, ground);
+                    world.Key, parcel, ground, pattern);
 
             world.Lots.FootprintEast[slot] = footEast;
             world.Lots.FootprintNorth[slot] = footNorth;
             world.Lots.FootprintWide[slot] = footWide;
             world.Lots.FootprintDeep[slot] = footDeep;
-            world.Lots.Storeys[slot] = Rules.LotRuleset.StoreysOn(
-                world.Key, parcel.East, parcel.North, patternStoreys,
-                world.Rules.Lots.StoreysPerRung);
+            world.Lots.Storeys[slot] = world.Rules.Lots.Height(world.Key, parcel, pattern, blockTiles);
             world.Lots.Pattern[slot] = (byte)((byte)pattern + 1);
 
             created++;
@@ -443,6 +489,13 @@ public static class LotSubdivider
         {
             return 0;
         }
+
+        // Individual permissions survive until the player repaints the whole block.
+        for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
+            if (world.Lots.Rows.IsLive(slot) && world.Lots.Zone[slot] != world.Blocks.Zone[blockSlot]
+                && Frontage.BlockOf(streets, world.Lots.East[slot], world.Lots.North[slot],
+                    (StreetSide)world.Lots.Side[slot], out int c, out int r) && c == column && r == row)
+                return 0;
 
         Clear(world, column, row);
 
