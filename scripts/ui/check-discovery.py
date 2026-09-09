@@ -43,7 +43,7 @@ def bounded(rect, width, height):
 
 if len(sys.argv) == 3:
     assert read()['TextPercent'] == int(sys.argv[2]), read()['TextPercent']
-    command('ui text-size 118')
+    command('ui text-size 100')
     print('PASS: text-size preference survives restarting Godot.')
     sys.exit(0)
 
@@ -53,7 +53,7 @@ command('ui debug off')
 command('ui layers off')
 command('ui tools off')
 command('ui help off')
-command('ui text-size 118')
+command('ui text-size 100')
 command('ui size 1440 960')
 command('hold look')
 command('click 68 36')
@@ -73,21 +73,25 @@ for theme in ['light', 'dark']:
     command('ui theme ' + theme)
     for width, height in [(1440, 960), (480, 640)]:
         command(f'ui size {width} {height}')
-        command('ui text-size 118')
+        command('ui text-size 100')
         state = read()
-        press(state, 'Help ?')
+        press(state, 'Settings')
         state = read()
-        assert state['HelpVisible'] and state['Pace'] == 'paused'
-        before = next(f['Size'] for f in state['Fonts'] if f['Text'] == 'Help')
+        assert state['SettingsVisible'] and state['Pace'] == 'paused'
+        before = next(f['Size'] for f in state['Fonts'] if f['Text'] == 'Settings')
         press(state, 'A+')
         state = read()
-        assert state['TextPercent'] == 128
-        assert next(f['Size'] for f in state['Fonts'] if f['Text'] == 'Help') > before
+        assert state['TextPercent'] == 110
+        assert next(f['Size'] for f in state['Fonts'] if f['Text'] == 'Settings') > before
         command('ui text-size 150')
         state = read(f'discovery-help-{theme}-{width}')
-        bounded(state['Help'], width, height)
-        for label in ['Close Help ×', 'A−', 'A+', 'Reset size']:
+        bounded(state['Settings'], width, height)
+        for label in ['A−', 'A+', 'Reset size']:
             bounded(next(b['Rect'] for b in state['Buttons'] if b['Text'] == label), width, height)
+        press(state, 'Help & shortcuts')
+        state = read()
+        assert state['HelpVisible']
+        bounded(state['Help'], width, height)
         command(f'shoot {output}/discovery-help-{theme}-{width}.png')
         area = state['HelpContent']
         before_scroll = state['HelpScroll']
@@ -132,21 +136,21 @@ for _ in range(40):
 assert read()['ConsoleScroll'] == 0
 for _ in range(40):
     state = read()
-    cancel = next(b['Rect'] for b in state['Buttons'] if b['Text'] == 'Cancel  ✕')
+    cancel = next(b['Rect'] for b in state['Buttons'] if b['Text'] == 'Cancel')
     area = state['ConsoleContent']
     if cancel['Y'] >= area['Y'] and cancel['Y'] + cancel['Height'] <= area['Y'] + area['Height']:
         break
     command(f"ui wheel {round(area['X'] + area['Width'] - 3)} {round(area['Y'] + area['Height']/2)} 1")
 else:
     raise AssertionError('Cancel could not be reached in the scrolling console')
-press(state, 'Cancel  ✕')
+press(state, 'Cancel')
 assert read()['Tool'] == 'Look'
 command('ui tools off')
 command('ui layers off')
 command('overlay off')
 
 # Focused editable text must not rotate the camera, arm a tool or open Help.
-command('ui text-size 118')
+command('ui text-size 100')
 command('ui key Tab')
 state = read()
 assert state['TunerVisible'] and state['Inputs']
@@ -172,11 +176,12 @@ assert read()['Hash'] == original_hash
 command('resume')
 state = read()
 pace, tick = state['Pace'], state['Tick']
-press(state, 'Help ?')
+press(state, 'Settings')
+press(read(), 'Help & shortcuts')
 state = read()
 assert state['HelpVisible'] and state['Pace'] == pace and state['Tick'] > tick
 press(state, 'Close Help ×')
 assert read()['Pace'] == pace
 command('pause')
-command('ui text-size 128')
+command('ui text-size 110')
 print('PASS: camera buttons, shared sizing, both themes and widths, Help mouse shielding, keyboard discovery, focus and Escape order; paused city unchanged.')
