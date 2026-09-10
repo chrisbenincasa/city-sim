@@ -15,6 +15,46 @@ public static class WorkSchedule
         return false;
     }
 
+    /// <summary>
+    /// What one Day of this Citizen's work is worth: the trade's posted rate, graded by Skill Tier
+    /// and by the experience they have earned inside their own band.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The trade still posts ONE rate and this is what a person is worth against it.</b> Before
+    /// this, every worker at a trade earned identically and a Citizen's history bought them nothing —
+    /// ***a labour market with one kind of labour is a payroll rather than a market***.
+    /// </para>
+    /// <para>
+    /// <b>Two factors and they are different things.</b> The tier percentage is a <em>category</em>
+    /// premium: what a credential is worth, and it steps. The experience premium is
+    /// <em>continuous with a ceiling</em> and is the design's only source of productivity growth
+    /// (<c>CONTEXT.md</c> → <i>Skill Tier</i>) — without it a city of 10,000 produces the same on Day
+    /// 100 and Day 5,000.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is NOT <c>adr/0026</c>'s posted wage.</b> That ADR has a Business post a rate and move
+    /// it by its own fill rate — a price that clears. This grades a flat declared rate by who is
+    /// standing in the post, and when the posted wage ships this grading is what it multiplies.
+    /// </para>
+    /// </remarks>
+    public static long Graded(World world, int citizen, long posted)
+    {
+        JobRuleset jobs = world.Rules.Jobs;
+
+        if (posted <= 0 || (!jobs.Grades && jobs.ExperiencePremiumPercent <= 0))
+        {
+            return posted;
+        }
+
+        long graded = IntegerMath.FloorDiv(
+            posted * jobs.WagePercentOf(world.Citizens.SkillTier[citizen]), 100);
+
+        long premium = jobs.PremiumPercent(world.Citizens.Experience[citizen]);
+
+        return premium <= 0 ? graded : IntegerMath.FloorDiv(graded * (100 + premium), 100);
+    }
+
     public static bool PayrollAttributionEnabled =>
 #if PAYROLL_ATTRIBUTION
         true;
@@ -95,10 +135,11 @@ public static class WorkSchedule
 #endif
                 continue;
             }
-            long scaled = world.Citizens.WageRemainder[citizen] + trade.WagePerDay;
+            long rate = Graded(world, citizen, trade.WagePerDay);
+            long scaled = world.Citizens.WageRemainder[citizen] + rate;
             long whole = IntegerMath.FloorDiv(scaled, length);
             world.Citizens.WageRemainder[citizen] = scaled % length;
-            long cap = (long)trade.WagePerDay * trade.PayPeriodDays;
+            long cap = rate * trade.PayPeriodDays;
             long earned = world.Citizens.EarnedWage[citizen] + whole;
             world.Citizens.EarnedWage[citizen] = earned > cap ? cap : earned;
 #if PAYROLL_ATTRIBUTION

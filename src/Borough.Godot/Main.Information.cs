@@ -1104,6 +1104,7 @@ public partial class Main
                 [new($"Sustenance: {_world.Households.Sustenance[slot]:N0}\n0 is ideal; negative values indicate a deficit.")]));
         }
         AddHouseholdHealth(sections, slot);
+        AddHouseholdSchooling(sections, slot);
         var citizens = new List<InformationRow>();
         Money? balance = null;
         foreach (int member in _world.Members.Walk(slot))

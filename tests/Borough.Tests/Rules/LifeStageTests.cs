@@ -466,17 +466,29 @@ public sealed class LifeStageTests
 
         Run(simulation, days: 240);
 
-        // EVERY penny, and stage 3 does not change that even though the city is still standing.
-        // 240 Days is past the longest life the table can draw, so every endowed Household has
-        // dissolved -- and the Households alive at the end were FORMED by the spawn, which opens
-        // them at zero. ***A generated Household inherits nothing***, which is what makes this an
-        // equality rather than a band.
-        Assert.Equal(opening + estates, world.Bins.LevelAt(treasury));
+        // EVERY penny, and it is still an equality rather than a band -- but the estate now has two
+        // destinations rather than one. 240 Days is past the longest life the table can draw, so
+        // every endowed Household has dissolved; a child leaving home took an equal share of the
+        // balance with it (World.Bequeath), and what the treasury receives is what the departures
+        // left behind. So the sum of the two is the whole estate and neither half is on its own.
+        long inherited = 0;
+
+        for (int slot = 0; slot < world.Households.Rows.SlotCount; slot++)
+        {
+            if (world.Households.Rows.IsLive(slot)
+                && world.Bins.Rows.TryResolve(world.Households.Balance[slot], out int purse))
+            {
+                inherited += world.Bins.LevelAt(purse);
+            }
+        }
+
+        Assert.True(inherited > 0);
+        Assert.Equal(opening + estates, world.Bins.LevelAt(treasury) + inherited);
 
         // The supply is FLAT, and this is the load-bearing half. A death is not an emigration:
         // nothing left the city, so unlike World.Depart there is no decrement to make and making one
-        // would be the leak. ⚠ A Household FORMED by the spawn opens at zero, so generation adds
-        // nothing to the supply either -- a generated Household inherits nothing.
+        // would be the leak. ⚠ An inheritance is a MOVE between two purses and not an issue, so
+        // generation adds nothing to the supply either.
         Assert.Equal(issued, world.MoneySupply.Issued[MoneySupplyTable.Slot].Raw);
 
         // The exact equality lives here: Invariant.MoneyIsConserved walks every conserved Bin in the

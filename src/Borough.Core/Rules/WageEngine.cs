@@ -341,8 +341,13 @@ internal sealed class WageEngine(World world, WorldKey key)
                 continue;
             }
 
+            // Graded on both paths, and graded HERE rather than at the trade, because what a Day is
+            // worth is a property of who worked it. WorkSchedule.Accrue applies the same grading per
+            // Tick on the scheduled path; this is the flat fallback for a world with no work calendar.
+            long rate = Borough.Core.Movement.WorkSchedule.Graded(_world, worker, trade.WagePerDay);
+
             long due = Borough.Core.Movement.WorkSchedule.Runs(_world)
-                ? _world.Citizens.EarnedWage[worker] : days * trade.WagePerDay;
+                ? _world.Citizens.EarnedWage[worker] : days * rate;
             long available = _world.Bins.LevelAt(till);
 
             if (available < due)
@@ -374,7 +379,7 @@ internal sealed class WageEngine(World world, WorldKey key)
                 _world.Citizens.LastPaidDay[worker] = (ushort)today;
                 continue;
             }
-            long covered = IntegerMath.FloorDiv(due, trade.WagePerDay);
+            long covered = IntegerMath.FloorDiv(due, rate);
             long upTo = _world.Citizens.LastPaidDay[worker] + covered;
 
             _world.Citizens.LastPaidDay[worker] =

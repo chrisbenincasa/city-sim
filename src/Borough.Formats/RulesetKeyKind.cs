@@ -50,8 +50,8 @@ public enum RulesetKeyKind
     Array = 4,
 
     /// <summary>
-    /// An array of whole numbers, as <c>[[band]] admits</c> is — <b>the one shape in this Ruleset
-    /// that is a bare list rather than a list of tables</b>.
+    /// An array of whole numbers, as <c>[[band]] admits</c> and <c>[jobs] wage_tier_percent</c>
+    /// are — a bare list rather than a list of tables.
     /// </summary>
     /// <remarks>
     /// ⚠ <b>It is distinct from <see cref="Array"/> because the two emit different schemas</b>, and

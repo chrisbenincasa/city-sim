@@ -219,8 +219,19 @@ public sealed class CivicEngine : IComparer<int>
             || !_world.Buildings.Rows.TryResolve(State.Provider[row], out int standingSchool) || !Usable(standingSchool, Need.Education)))
         {
             if (_world.Households.Rows.TryResolve(State.Household[row], out int hh) && tick >= State.EndsAt[row])
+            {
                 RuleEngine.Write(_world.Households.Education, hh, _world.Households.Education[hh]
                     + _world.Rules.Needs.EducationRecover, _world.Rules.Needs.Floor);
+
+                // The child sat the whole day out and walked in at the start of it, so this is a Day
+                // of attendance in the sense CONTEXT.md -> Schooling means: the constant is a
+                // duration, Days of completed attendance per level. Resolved again rather than reusing
+                // the binding above, which the short-circuit leaves unassigned on this branch.
+                if (_world.Buildings.Rows.TryResolve(State.Provider[row], out int attended))
+                {
+                    _world.RecordAttendance(citizen, attended);
+                }
+            }
             Return(row, citizen, tick); return;
         }
         if (stage == VisitStage.Booked)

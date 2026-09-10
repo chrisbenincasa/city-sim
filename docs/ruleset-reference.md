@@ -25,16 +25,16 @@ dotnet run --project src/Borough.Headless -- \
 
 ## The sections
 
-37 sections, 240 keys.
+38 sections, 254 keys.
 
 - [`[[band]]`](#band) — 2 keys
-- [`[[building]]`](#building) — 18 keys
+- [`[[building]]`](#building) — 19 keys
 - [`[[building]] bins`](#building-bins) — 3 keys
-- [`[[business]]`](#business) — 10 keys
+- [`[[business]]`](#business) — 12 keys
 - [`[[hinterland]]`](#hinterland) — 6 keys
 - [`[[hinterland]] prices`](#hinterland-prices) — 2 keys
 - [`[[lattice]]`](#lattice) — 2 keys
-- [`[[life_stage]]`](#life_stage) — 12 keys
+- [`[[life_stage]]`](#life_stage) — 13 keys
 - [`[[policy]]`](#policy) — 5 keys
 - [`[[policy]] apply`](#policy-apply) — 4 keys
 - [`[[policy]] transfer`](#policy-transfer) — 4 keys
@@ -51,7 +51,7 @@ dotnet run --project src/Borough.Headless -- \
 - [`[districts]`](#districts) — 4 keys
 - [`[founding]`](#founding) — 2 keys
 - [`[households]`](#households) — 3 keys
-- [`[jobs]`](#jobs) — 6 keys
+- [`[jobs]`](#jobs) — 11 keys
 - [`[layers]`](#layers) — 20 keys
 - [`[lots]`](#lots) — 10 keys
 - [`[market]`](#market) — 2 keys
@@ -60,6 +60,7 @@ dotnet run --project src/Borough.Headless -- \
 - [`[placement]`](#placement) — 10 keys
 - [`[roads]`](#roads) — 12 keys
 - [`[school]`](#school) — 7 keys
+- [`[schooling]`](#schooling) — 5 keys
 - [`[shopping]`](#shopping) — 7 keys
 - [`[traffic]`](#traffic) — 3 keys
 - [`[trips]`](#trips) — 4 keys
@@ -128,6 +129,10 @@ How many Days the premises' own Rules may starve continuously before the Buildin
 **`houses`** · *true or false*
 
 Whether a HOUSEHOLD may take a tenancy in a Building of this kind. It says whether and never how many: the count is the Building's own floor area over [capacity] floor_tiles_per_occupant, so two Buildings of one kind on differently-sized ground hold different numbers. Households and Businesses share the one ceiling, and this is one of the two permissions over it — see premises, which does not follow from this one. Absent means no Household may live here, which is what most kinds are.
+
+**`level`** · *whole number*
+
+Which school level a kind serving education teaches: 1 primary, 2 secondary, 3 university. Refused on any kind that does not serve education. Required of an education kind exactly where the file also states [schooling]; absent otherwise means an undifferentiated school every family matches.
 
 **`name`** · *quoted string*
 
@@ -205,6 +210,10 @@ The daily opening hour for shopping purchases.
 
 How many Days pass between paydays at this trade. One is daily; zero would be a payday that never comes round.
 
+**`requires_tier`** · *whole number*
+
+The lowest Skill Tier this trade will hire, a minimum rather than a band — a Citizen above it may still take the post. Absent means it hires anybody.
+
 **`shift_start_earliest_hour`** · *whole number*
 
 The earliest hour of the Day a Business of this trade may open, as a whole in-world hour. A Workplace draws one start hour and its whole staff share it, so a Citizen stores no start hour at all. Required exactly when the trade employs somebody.
@@ -212,6 +221,10 @@ The earliest hour of the Day a Business of this trade may open, as a whole in-wo
 **`shift_start_latest_hour`** · *whole number*
 
 The latest hour a Business of this trade may open. Hour 23 is the ceiling, because this is an hour of the Day rather than a duration and hour 24 is the next Day's hour 0.
+
+**`tuition_per_day`** · *whole number*
+
+What this trade charges a Household In Education, per Day — the private-university route to a degree, rationed by what a Household can pay rather than by places. Refused unless the file declares a [[building]] serving education at level 3. Absent means the trade is not a private university.
 
 **`wage_per_day`** · *whole number*
 
@@ -328,6 +341,10 @@ What this stage of a Household's life is called. next, childless and children_be
 **`next`** · *quoted string*
 
 The stage a Household moves to when its countdown comes due. Absent means the stage is terminal, which is the only way to spell that — a stage naming itself is refused.
+
+**`school_level`** · *whole number*
+
+Which school level this stage's children attend: 1 primary, 2 secondary. A university is refused here — it is attended by a Household In Education, a state and not a Life Stage. Absent means this stage's children attend no school.
 
 **`spread_days`** · *whole number*
 
@@ -777,6 +794,14 @@ How far ahead of their Shift a Citizen may aim to arrive, in whole in-world minu
 
 How many workplaces one Citizen looks at on one occasion. A person who sees three places with a vacancy and takes the first one near enough to walk to is satisficing, not optimising.
 
+**`experience_per_day`** · *whole number*
+
+What one Day worked is worth toward promotion. Required together with tier2_experience: a rate with no ceiling is half a mechanism.
+
+**`experience_premium_percent`** · *whole number*
+
+The premium a Citizen has earned inside their own band at its ceiling, as a percent added to their pay — the design's one source of productivity growth within a tier. Absent means experience never adds to pay.
+
 **`interval`** · *whole number*
 
 How many Ticks between passes that assign work to Citizens who have none. Omitting the whole [jobs] table means nobody is ever assigned work. The table is refused without a Commute Budget above it, because the pass has no search radius of its own.
@@ -792,6 +817,18 @@ The longest working day. Staff share a start hour and so arrive together; they l
 **`shift_hours_min`** · *whole number*
 
 The shortest working day in this city, in whole in-world hours. It doubles as the gap between a Citizen's two journeys, so it must exceed the Commute Budget or somebody could still be travelling to work when the roster says they leave it.
+
+**`tier2_experience`** · *whole number*
+
+How much accumulated experience promotes a Citizen to Tier 2. Required together with experience_per_day.
+
+**`unschooled_experience_percent`** · *whole number*
+
+What one Day worked is worth to a Citizen who missed schooling, as a percent of the schooled rate. Absent means a missed childhood costs nothing on this axis.
+
+**`wage_tier_percent`** · *array of whole numbers*
+
+What each of the three Skill Tiers is paid, as a percent of the trade's posted rate — exactly three entries, the first of which restates the posted rate and can only be 100. Absent means every tier is paid the same.
 
 ---
 
@@ -1112,6 +1149,30 @@ Maximum care events retained city-wide, including events for deceased Citizens.
 **`retry_ticks`** · *whole number*
 
 Delay before retrying an interrupted service return journey.
+
+---
+
+## `[schooling]`
+
+**`attendance_weight_percent`** · *whole number*
+
+How much of the childhood score the attendance term carries; the depth term carries the rest.
+
+**`full_attendance_days`** · *whole number*
+
+Secondary Days that score a full 100 on the attendance term.
+
+**`primary_gate_days`** · *whole number*
+
+Primary Days below which secondary attendance counts for nothing at all — the gate.
+
+**`tier2_score`** · *whole number*
+
+The childhood score at or above which an adult forms at Tier 2. Also the university qualification, because the two are the same claim about the same childhood.
+
+**`university_days`** · *whole number*
+
+How many Days In Education confers Tier 3. Required exactly of a file declaring a [[building]] serving education; refused of one that declares none.
 
 ---
 

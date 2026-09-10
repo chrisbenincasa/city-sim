@@ -856,6 +856,30 @@ public readonly record struct KindDefinition(
     public WeeklyHours CareHours { get; init; }
     public int BedPercent { get; init; }
 
+    /// <summary>
+    /// Which school level a <see cref="Serves"/> <c>education</c> kind teaches — <b>1 primary,
+    /// 2 secondary, 3 university</b>. Zero on every other kind.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Primary is a gate rather than a producer</b> (<c>CONTEXT.md</c> → <i>Schooling</i>). Tier 1
+    /// is the floor already, so attending a primary school raises nobody; what it does is admit
+    /// secondary attendance to the count at all. A childhood spent entirely in secondary schools with
+    /// no primary behind it scores zero.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Levels 1 and 2 are attended by a child and level 3 is not.</b> A university is entered by
+    /// a Young Household In Education, which is a state rather than a Life Stage, so no
+    /// <see cref="LifeStageDefinition.SchoolLevel"/> ever names 3 and the child attendance pass never
+    /// gathers one.
+    /// </para>
+    /// </remarks>
+    public byte SchoolLevel { get; init; }
+
+    /// <summary>Whether this kind is a university — the only route to Skill Tier 3.</summary>
+    public bool IsUniversity =>
+        Serves == Need.Education && SchoolLevel == SchoolingRuleset.University;
+
     /// <summary>Whether a Building of this kind is attended for some Need.</summary>
     public bool IsService => Serves != Need.None;
 }
@@ -1016,6 +1040,42 @@ public readonly record struct BusinessKindDefinition
     /// </para>
     /// </remarks>
     public int GoesBankruptAfterShortPaydays { get; init; }
+
+    /// <summary>
+    /// The lowest Skill Tier this trade will hire — <b>a minimum, never a band</b>. Zero means it
+    /// hires anybody.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A filter and not a penalty.</b> <c>02 §5.4</c>: <em>hard constraints are filters, soft
+    /// trade-offs are utility</em>. A credential is the design's one genuine category boundary
+    /// (<c>CONTEXT.md</c> → <i>Skill Tier</i>), so it removes candidates rather than scoring them
+    /// down, and <c>EmploymentEngine</c> asks it beside the vacancy question and never after it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Over-qualification is not refused, deliberately.</b> A Tier 3 Citizen may take a Tier 1
+    /// post. Refusing one would strand people for no mechanism's benefit and would make the wall
+    /// two-sided, which is a second wall in a design that permits exactly one.
+    /// </para>
+    /// </remarks>
+    public byte RequiresTier { get; init; }
+
+    /// <summary>
+    /// What this trade charges a Household In Education, per Day. Zero on every trade that is not a
+    /// private university.
+    /// </summary>
+    /// <remarks>
+    /// <b>The whole difference between a public university and a private one is which scarcity
+    /// rations it</b> — a public one by places, floor area over
+    /// <c>[capacity] floor_tiles_per_place</c>, and a private one by what a Household can pay. ***The
+    /// degree is identical out of both***: letting money buy a better credential would turn a
+    /// category back into a quantity, which is the one thing <c>CONTEXT.md</c> → <i>Skill Tier</i>
+    /// says the 2 → 3 cut exists to avoid.
+    /// </remarks>
+    public int TuitionPerDay { get; init; }
+
+    /// <summary>Whether this trade charges for a degree.</summary>
+    public bool Charges => TuitionPerDay > 0;
 }
 
 
@@ -1273,6 +1333,25 @@ public readonly record struct LifeStageDefinition
 
     /// <summary>Whether a Household leaving this stage sends its children out to form their own.</summary>
     public bool Spawns => ChildrenBecome != 0;
+
+    /// <summary>
+    /// Which school level this stage's children attend — <b>1 primary, 2 secondary</b>. Zero on a
+    /// stage with no schoolchildren, which is every stage in a Ruleset declaring no school.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The level is a property of the stage rather than of the child</b>, so nothing is stored on
+    /// a Citizen saying which school they are owed. <c>CONTEXT.md</c> → <i>Schooling</i>: the three
+    /// levels <em>"attach to the Life Stages that already exist"</em>, Family to primary and Mature
+    /// Family to secondary. Children move up a level because the Household advanced, which is the
+    /// mechanism already there rather than a second clock.
+    /// </para>
+    /// <para>
+    /// ⚠ <b><see cref="SchoolingRuleset.University"/> is refused here.</b> A university is attended
+    /// by a Young Household In Education — a <em>state</em> and not a stage — so no stage names it.
+    /// </para>
+    /// </remarks>
+    public byte SchoolLevel { get; init; }
 }
 
 
@@ -2357,6 +2436,123 @@ public readonly record struct NeedRuleset(
 }
 
 /// <summary>
+/// The <c>[schooling]</c> table — <b>what a childhood was worth, and how long a degree takes</b>.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>Two records were layered to produce this and neither cites the other.</b>
+/// <c>adr/0104</c> reads a Skill Tier off the Education Need the Household accumulated while it had
+/// children, at Young Household formation, and never mentions a university.
+/// <c>CONTEXT.md</c> → <i>Schooling</i> makes a university <em>"the only route"</em> to Tier 3.
+/// ***They layer rather than compete***: childhood sets tier 1 or 2 here, and a university sets 3.
+/// <c>adr/0104</c>'s own summary already permits it — <em>"schooling influences both boundaries and
+/// gates only the top"</em> — and the number that ADR filed unset moves one level down with the same
+/// role, from <em>how well-schooled a childhood must have been to reach tier 3</em> to
+/// <em>… to qualify for university</em>.
+/// </para>
+/// <para>
+/// 🔴 <b>The score blends a duration with a depth and neither alone was enough.</b>
+/// <see cref="HouseholdTable.Education"/> is clamped to <c>[floor, 0]</c> by
+/// <c>RuleEngine.Write</c>, so it saturates: a Household schooled throughout and one schooled only
+/// for the last fortnight read identically on the Day its children leave. Attended Days do not
+/// saturate and are per <em>child</em>, so two siblings with different school access become two
+/// different adults. The depth still earns its 30 because it is the only term that can see a
+/// collapse in the final stage.
+/// </para>
+/// <para>
+/// 🔴 <b>Every number here is PROVISIONAL.</b> <c>plans/0045</c> standing order 4 suspends
+/// <c>adr/0052</c>, so they are chosen by taste, name no ratifier and open no <c>plans/0002</c> §D
+/// row. ***Nothing measured against them ratifies anything.***
+/// </para>
+/// </remarks>
+/// <param name="AttendanceWeightPercent">
+/// How much of the score the attendance term carries; the depth term carries the rest.
+/// </param>
+/// <param name="FullAttendanceDays">Secondary Days that score a full 100 on the attendance term.</param>
+/// <param name="PrimaryGateDays">
+/// Primary Days below which secondary attendance counts for <b>nothing</b> — the gate.
+/// </param>
+/// <param name="Tier2Score">
+/// The childhood score at or above which an adult forms at Tier 2. It is also the university
+/// qualification, because the two are the same claim about the same childhood.
+/// </param>
+/// <param name="UniversityDays">How many Days In Education lasts before it confers Tier 3.</param>
+public readonly record struct SchoolingRuleset(
+    int AttendanceWeightPercent,
+    int FullAttendanceDays,
+    int PrimaryGateDays,
+    int Tier2Score,
+    int UniversityDays)
+{
+    /// <summary>A Ruleset in which no childhood is worth anything.</summary>
+    public static SchoolingRuleset None => default;
+
+    /// <summary>The level a primary school teaches.</summary>
+    public const byte Primary = 1;
+
+    /// <summary>The level a secondary school teaches.</summary>
+    public const byte Secondary = 2;
+
+    /// <summary>The level a university teaches, and the only level no child attends.</summary>
+    public const byte University = 3;
+
+    /// <summary>The floor every Citizen forms at, and the tier no mechanism may go below.</summary>
+    public const byte FloorTier = 1;
+
+    /// <summary>The tier a credential separates from the two below it.</summary>
+    public const byte TopTier = 3;
+
+    /// <summary>Whether a childhood is scored in this city at all.</summary>
+    public bool Runs => FullAttendanceDays > 0;
+
+    /// <summary>Whether a Household can enrol In Education in this city.</summary>
+    public bool Enrols => Runs && UniversityDays > 0;
+
+    /// <summary>
+    /// The childhood score, 0–100, from one child's attendance and their Household's ending depth.
+    /// </summary>
+    /// <remarks>
+    /// <b>Both terms are normalised to a share before they are weighted</b>, because a count of Days
+    /// and a depth in <c>[floor, 0]</c> are not in the same units and a raw blend of them would be
+    /// arithmetic wearing a design's name. The depth term maps the floor to 0 and zero to 100.
+    /// </remarks>
+    public int Score(long primaryDays, long secondaryDays, int depth, int floor)
+    {
+        if (!Runs)
+        {
+            return 0;
+        }
+
+        long counted = primaryDays >= PrimaryGateDays ? secondaryDays : 0;
+        long attendance = IntegerMath.FloorDiv(counted * 100, FullAttendanceDays);
+
+        if (attendance > 100)
+        {
+            attendance = 100;
+        }
+
+        // A world with no Need floor has no depth term to read, so the attendance term carries the
+        // whole score rather than being diluted by a constant.
+        long depthShare = floor < 0
+            ? IntegerMath.FloorDiv(((long)depth - floor) * 100, -(long)floor)
+            : attendance;
+
+        long weight = AttendanceWeightPercent;
+
+        return (int)IntegerMath.FloorDiv(
+            (weight * attendance) + ((100 - weight) * depthShare), 100);
+    }
+
+    /// <summary>What Skill Tier a childhood scoring <paramref name="score"/> forms at.</summary>
+    /// <remarks>
+    /// <b>Never <see cref="TopTier"/>.</b> <c>adr/0104</c> keeps the credential a wall: experience
+    /// carries 1 → 2 and a university is the only thing that reaches 3.
+    /// </remarks>
+    public byte TierOf(int score) =>
+        Runs && score >= Tier2Score ? (byte)2 : FloorTier;
+}
+
+/// <summary>
 /// The <c>[market]</c> table — <b>how fast a Pool price is allowed to move</b>
 /// (<c>adr/0135</c>, milestone 12 task 6).
 /// </summary>
@@ -3385,10 +3581,71 @@ public readonly record struct JobRuleset(
     int Candidates,
     int ShiftHoursMin,
     int ShiftHoursMax,
-    int ArriveEarlyMaxMinutes)
+    int ArriveEarlyMaxMinutes,
+    int WageTier2Percent = 0,
+    int WageTier3Percent = 0,
+    int ExperiencePerDay = 0,
+    int Tier2Experience = 0,
+    int UnschooledExperiencePercent = 0,
+    int ExperiencePremiumPercent = 0)
 {
     /// <summary>A Ruleset whose city assigns nobody to work.</summary>
     public static JobRuleset None => default;
+
+    /// <summary>Whether a Citizen's history changes what they are paid in this city.</summary>
+    public bool Grades => WageTier2Percent > 0 || WageTier3Percent > 0;
+
+    /// <summary>Whether experience accumulates and promotes in this city.</summary>
+    public bool Promotes => ExperiencePerDay > 0 && Tier2Experience > 0;
+
+    /// <summary>
+    /// What a Citizen at <paramref name="tier"/> is paid, as a percent of the trade's posted rate.
+    /// </summary>
+    /// <remarks>
+    /// <b>Tier 1 is 100 by construction and is not authored.</b> The posted rate <em>is</em> the
+    /// tier 1 rate, so a file states what the two tiers above it are worth relative to it and never
+    /// restates the baseline — <c>adr/0059</c>'s shape, one quantity authored and the rest derived.
+    /// </remarks>
+    public int WagePercentOf(byte tier) =>
+        !Grades ? 100
+        : tier >= SchoolingRuleset.TopTier ? WageTier3Percent
+        : tier == 2 ? WageTier2Percent
+        : 100;
+
+    /// <summary>
+    /// What one Day worked is worth to a Citizen, given whether their childhood cleared the
+    /// schooling cut.
+    /// </summary>
+    /// <remarks>
+    /// <b>The unschooled rate is a RATIO to the schooled one</b>, so the file states one quantity and
+    /// this derives the other (<c>adr/0059</c>). <c>adr/0104</c>: a Citizen who missed schooling
+    /// still climbs to Tier 2 by working, and <em>takes longer over it</em>.
+    /// </remarks>
+    public long ExperienceFor(bool schooled) =>
+        schooled || UnschooledExperiencePercent <= 0
+            ? ExperiencePerDay
+            : IntegerMath.FloorDiv((long)ExperiencePerDay * UnschooledExperiencePercent, 100);
+
+    /// <summary>
+    /// The premium a Citizen has earned inside their own band, as a percent added to their pay.
+    /// </summary>
+    /// <remarks>
+    /// <b>The design's only source of productivity growth</b> (<c>CONTEXT.md</c> → <i>Skill Tier</i>:
+    /// <em>"within a tier, experience is continuous, with a ceiling"</em>). Without it a city of
+    /// 10,000 produces the same on Day 100 and Day 5,000. ⚠ <b>Capped at the band ceiling and never
+    /// past it</b>, which is what keeps it an intensive margin rather than a second tier ladder.
+    /// </remarks>
+    public long PremiumPercent(long experience)
+    {
+        if (ExperiencePremiumPercent <= 0 || Tier2Experience <= 0 || experience <= 0)
+        {
+            return 0;
+        }
+
+        long capped = experience > Tier2Experience ? Tier2Experience : experience;
+
+        return IntegerMath.FloorDiv((long)ExperiencePremiumPercent * capped, Tier2Experience);
+    }
 
     /// <summary>
     /// How long <paramref name="id"/> works, in Ticks. Drawn once against the band in force.
@@ -3925,6 +4182,58 @@ public sealed class Ruleset
     public SchoolRuleset School { get; init; }
     public CareRuleset Care { get; init; }
 
+    /// <summary>
+    /// The <c>[schooling]</c> table — <b>absent means a childhood is worth nothing here</b>, which is
+    /// every Ruleset shipped before this row.
+    /// </summary>
+    public SchoolingRuleset Schooling { get; init; } = SchoolingRuleset.None;
+
+    /// <summary>Which school level a kind teaches, or zero when it teaches none.</summary>
+    public byte SchoolLevelOf(byte kind) => Declares(kind) ? Kind(kind).SchoolLevel : (byte)0;
+
+    /// <summary>Which school level this Life Stage's children attend, or zero when they attend none.</summary>
+    public byte SchoolLevelOfStage(byte stage) =>
+        stage != 0 && stage <= LifeStageCount ? LifeStage(stage).SchoolLevel : (byte)0;
+
+    /// <summary>
+    /// Whether any education kind in this Ruleset names a level at all.
+    /// </summary>
+    /// <remarks>
+    /// <b>Absence is what keeps every world shipped before this row behaving exactly as it did</b>:
+    /// one undifferentiated school kind, every family matching every school, and no stage owing a
+    /// level. A file that names one level owes them on every education kind and on every stage whose
+    /// children attend, and the loader refuses the half-authored middle.
+    /// </remarks>
+    public bool DeclaresSchoolLevels
+    {
+        get
+        {
+            for (int i = 0; i < _kinds.Length; i++)
+            {
+                if (_kinds[i].Serves == Need.Education && _kinds[i].SchoolLevel != 0)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    }
+
+    /// <summary>Whether any kind in this Ruleset teaches the given level.</summary>
+    public bool TeachesLevel(byte level)
+    {
+        for (int i = 0; i < _kinds.Length; i++)
+        {
+            if (_kinds[i].Serves == Need.Education && _kinds[i].SchoolLevel == level)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>Which Need each Resource feeds, indexed by <c>resource - 1</c>.</summary>
     /// <remarks>
     /// <b>On the Resource rather than on the Rule, because it is a property of the thing consumed.</b>
@@ -4359,6 +4668,7 @@ public sealed class Ruleset
             Bands = Bands,
             Trips = Trips,
             Jobs = Jobs,
+            Schooling = Schooling,
             Households = Households,
             Traffic = Traffic,
             Parking = Parking,

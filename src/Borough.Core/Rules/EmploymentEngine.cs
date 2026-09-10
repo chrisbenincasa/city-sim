@@ -9,6 +9,45 @@ using Borough.Core.Tables;
 namespace Borough.Core.Rules;
 
 /// <summary>
+/// What a Citizen's last job-search occasion concluded — <b>employment, or the reason for its
+/// absence</b>.
+/// </summary>
+/// <remarks>
+/// <para>
+/// 🔴 <b>The reason is the whole value, because the fact was already readable.</b> Whether somebody
+/// holds a job is <c>CitizenTable.Workplace</c> resolving; what nothing in the build could say is
+/// <em>why not</em>. ***A count of the unemployed is a number; a Citizen who can name what refused
+/// them is a diagnosis***, which is what <c>LEGIBLE CAUSE</c> asks of every failure in this design.
+/// </para>
+/// <para>
+/// ⚠ <b><see cref="None"/> is not unemployment.</b> It is a Citizen the sample has not reached yet,
+/// or a child, or somebody with no dwelling to search from — states that have not failed at anything.
+/// The employment sample is paced by <c>[jobs] revisit_ticks</c> and draws with replacement, so a
+/// freshly-housed adult carries <see cref="None"/> for a while by construction.
+/// </para>
+/// </remarks>
+public enum EmploymentState : byte
+{
+    /// <summary>Nothing has been concluded about this Citizen yet.</summary>
+    None = 0,
+
+    /// <summary>Holds a job.</summary>
+    Employed = 1,
+
+    /// <summary>Posts were in reach and every one of them was full.</summary>
+    NoVacancy = 2,
+
+    /// <summary>A vacancy stood inside the box and the Road Graph could not deliver it in time.</summary>
+    BeyondReach = 3,
+
+    /// <summary>A vacancy stood in reach and wanted a Skill Tier this Citizen does not hold.</summary>
+    BelowCredential = 4,
+
+    /// <summary>In Education, and supplying no labour by design.</summary>
+    Studying = 5,
+}
+
+/// <summary>
 /// Tick phase 6, behind placement: a Citizen with no Workplace looking for one near home and taking
 /// the first acceptable job. <c>adr/0081</c>, and <c>02 §5.2</c> step 2b's *at least one reachable job
 /// in budget* arriving from the other side.
@@ -155,12 +194,78 @@ public sealed class EmploymentEngine
     }
 
     /// <summary>
+    /// One Day of on-the-job experience, and the promotion it eventually buys.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Tier 1 → 2 and never past it</b> (<c>adr/0104</c>). An apprentice becomes a technician by
+    /// doing the work; a technician does not become an analyst by staying longer, and the wall at
+    /// 2 → 3 is what protects the education → Office → exports chain from a bypass. ***If time alone
+    /// reached the top tier a patient player would never build a school.***
+    /// </para>
+    /// <para>
+    /// <b>Slower for a Citizen who missed schooling, and the second rate is DERIVED.</b>
+    /// <c>[jobs] unschooled_experience_percent</c> is a ratio to the schooled rate, so the file states
+    /// one quantity (<c>adr/0059</c>'s shape). ⚠ <b>The two are not a wall</b> — the unschooled arrive
+    /// at Tier 2 as well and take longer over it, which is the softness <c>adr/0104</c> took at the
+    /// lower boundary precisely because it costs nothing there.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Experience keeps accruing past the promotion threshold and is not spent by it.</b> Inside
+    /// a band it is also the wage premium (<c>JobRuleset.PremiumPercent</c>), which is the design's
+    /// only source of productivity growth — resetting it on promotion would make a promotion a pay
+    /// cut.
+    /// </para>
+    /// <para>
+    /// <b>A Day and not a Tick.</b> The unit everything about work is denominated in is the Day —
+    /// <c>wage_per_day</c>, <c>pay_period_days</c>, the Life Stage clock — and a per-Tick accrual
+    /// would make experience a reading of shift length. What it costs is one walk of the Citizen
+    /// table per Day, which is the same shape as <c>WageEngine.Sweep</c> one phase along.
+    /// </para>
+    /// </remarks>
+    private void Progress(Ticks tick)
+    {
+        JobRuleset jobs = _world.Rules.Jobs;
+
+        if (!jobs.Promotes || tick.Raw % (ulong)Ticks.PerDay != 0UL)
+        {
+            return;
+        }
+
+        CitizenTable citizens = _world.Citizens;
+
+        for (int slot = 0; slot < citizens.Rows.SlotCount; slot++)
+        {
+            if (!citizens.Rows.IsLive(slot)
+                || !_world.Businesses.Rows.TryResolve(citizens.Workplace[slot], out _))
+            {
+                continue;
+            }
+
+            long earned = citizens.Experience[slot] + jobs.ExperienceFor(_world.IsSchooled(slot));
+
+            citizens.Experience[slot] = earned;
+
+            if (earned >= jobs.Tier2Experience && citizens.SkillTier[slot] < 2)
+            {
+                citizens.SkillTier[slot] = 2;
+            }
+        }
+    }
+
+    /// <summary>
     /// Runs one pass if this Tick's interval divides, employing whom it can.
     /// </summary>
     /// <param name="tick">The Tick being run: the trigger test and the draws' key.</param>
     public void Assign(Ticks tick)
     {
         JobRuleset jobs = _world.Rules.Jobs;
+
+        // ⚠ AHEAD of the interval gate and not behind it. `[jobs] interval` paces the SEARCH, and
+        // nothing requires it to divide a Day -- an author who set 30 would silently stop every
+        // Citizen in the city from ever being promoted. Experience is denominated in Days and is
+        // gated on the Day boundary alone.
+        Progress(tick);
 
         if (!jobs.Runs || tick.Raw % jobs.Interval != 0)
         {
@@ -227,6 +332,14 @@ public sealed class EmploymentEngine
             }
 
             _tickConsidered++;
+
+            // A Household In Education supplies no labour, which is the whole of what makes it a net
+            // fiscal cost by design rather than a Household with a label. Ahead of `seeking` for the
+            // working-age gate's reason: a student is not somebody the labour market failed to place.
+            if (_world.IsStudying(slot))
+            {
+                continue;
+            }
 
             // plans/0046 stage 4's working-age gate. ⚠ AHEAD of the already-employed check and not
             // after it, so a child is never counted as SEEKING: this pass's three counters are a
@@ -363,6 +476,18 @@ public sealed class EmploymentEngine
         // an instrument and may depend on the knob.
         bool refusedForReach = false;
 
+        // Whether this occasion met a vacancy it could have taken but for a credential. Kept beside
+        // the reach flag and reported ahead of it, because a wall and a distance are different
+        // sentences and only one of them is fixed by building a road.
+        bool refusedForCredential = false;
+
+        // Whether anything with posts stood in the box at all. Distinguishes `no vacancy` -- every
+        // employer drawn was full -- from a Citizen the search has simply not concluded anything
+        // about, which is what EmploymentState.None means.
+        bool sawEmployer = false;
+
+        byte tier = _world.Citizens.SkillTier[slot];
+
         for (int look = 0; look < candidates; look++)
         {
             // Keyed on the Citizen's monotonic id rather than the slot, so who somebody looks at does
@@ -391,11 +516,29 @@ public sealed class EmploymentEngine
 
             foreach (int tenant in _world.BuildingBusinesses.Walk(building))
             {
-                if (_world.HasJob(tenant))
+                sawEmployer |= _world.DeclaredJobs(tenant) > 0;
+
+                if (!_world.HasJob(tenant))
                 {
-                    employer = tenant;
-                    break;
+                    continue;
                 }
+
+                // 🔴 THE CREDENTIAL IS A FILTER AND NOT A PENALTY -- 02 section 5.4's *hard
+                // constraints are filters, soft trade-offs are utility*. It sits beside the vacancy
+                // question rather than after it, because a post this Citizen may not hold is not a
+                // post they lost a competition for. A minimum only: over-qualification is not
+                // refused, and refusing it would make the wall two-sided in a design that permits
+                // exactly one wall.
+                if (_world.Rules.BusinessKind(_world.Businesses.Kind[tenant]).RequiresTier > tier)
+                {
+                    refusedForCredential = true;
+
+                    continue;
+                }
+
+                employer = tenant;
+
+                break;
             }
 
             if (employer == Rows.NoSlot)
@@ -446,6 +589,17 @@ public sealed class EmploymentEngine
             {
                 _world.RecordReachFailure(slot);
             }
+
+            // ⚠ ORDERED BY WHAT THE PLAYER COULD ACT ON, not by what happened last. A credential
+            // names a school that was never built; a reach failure names a road that was never laid;
+            // a full employer names neither and is the city working. An occasion that drew nothing at
+            // all concludes NOTHING -- the sample draws with replacement, so a freshly-housed adult
+            // is routinely looked at before anybody has looked at an employer for them.
+            _world.Citizens.Employment[slot] = (byte)(
+                refusedForCredential ? EmploymentState.BelowCredential
+                : refusedForReach ? EmploymentState.BeyondReach
+                : sawEmployer ? EmploymentState.NoVacancy
+                : EmploymentState.None);
 
             return false;
         }

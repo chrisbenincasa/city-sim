@@ -1,0 +1,447 @@
+# The schooling Ruleset. It models no city, and it exists to make ONE THING VISIBLE:
+# ***WHAT A CITIZEN'S EDUCATION IS WORTH TO THEM.***
+#
+# plans/0071, plans/0045 row 29. It is `scheduled-school.toml` -- weekday school days with real bell
+# and dismissal times -- WITH AN ECONOMY UNDER IT, so that a Skill Tier has somewhere to be spent.
+#
+# ---------------------------------------------------------------------------------------------------
+# WHAT IT EXISTS TO SHOW. adr/0104 and CONTEXT.md -> Schooling, running, in one world.
+# ---------------------------------------------------------------------------------------------------
+# A child attends a `primary` while its Household is a Family and a `secondary` while it is a Mature
+# Family. When that Household's children leave home, each one's CHILDHOOD is scored -- 70% the Days
+# they actually attended, 30% how deep their Household's Education Need was on the Day they left --
+# and the score decides whether they form at Tier 1 or Tier 2. A Tier 2 school-leaver may go to a
+# `university` or a `college`, and only a degree reaches Tier 3.
+#
+# Everything downstream of that is what makes it worth watching: `office` and `tuition` REFUSE
+# anybody below Tier 3, `wage_tier_percent` pays a technician 160% and an analyst 260% of what an
+# apprentice earns, and experience adds up to another 40% on top inside a band.
+#
+# ---------------------------------------------------------------------------------------------------
+# ⚠ THE UNSUCCESSFUL PATH IS IN THIS FILE TOO, AND IT IS THE SAME FILE.
+# ---------------------------------------------------------------------------------------------------
+# Nothing here places a single school. There is no `[[zone_rule]]` on any `serves` kind and there must
+# not be -- 01 section 5's placement exception is that the city does not site its own schools. So a run
+# of this file with no `service` command has four education kinds, a `[schooling]` table, and NOT ONE
+# SCHOOL: every child fails every occasion, every childhood scores zero, every adult forms at Tier 1,
+# and every `office` post in the city stands empty for ever.
+#
+# ***That is the file working, not the file broken***, and it is the comparison the row is for.
+# `--school --schools 0` is one pole and `--school` with every level placed is the other.
+#
+# ---------------------------------------------------------------------------------------------------
+# ⚠ A PUBLIC UNIVERSITY AND A PRIVATE COLLEGE DIFFER IN ONE THING: WHICH SCARCITY RATIONS THEM.
+# ---------------------------------------------------------------------------------------------------
+# `university` is free and rationed by PLACES -- floor area over `[capacity] floor_tiles_per_place`,
+# the same ceiling a school has. `college` charges `tuition_per_day` and is rationed by MONEY. ***The
+# degree is identical out of both.*** A private degree that was BETTER was considered and refused:
+# CONTEXT.md -> Skill Tier says the 2 -> 3 cut earns its place "because a category is not a quantity",
+# and letting money buy a better credential turns it back into one.
+#
+# A school-leaver takes a public place if one is free and tries a private one otherwise, so the
+# private system is visibly the OVERFLOW. ⚠ Read a run with a full `university` and an empty `college`
+# as public capacity sufficing, and a run with a busy `college` as public capacity that does not.
+#
+# ⚠ THE PUBLIC UNIVERSITY COSTS NOTHING TO RUN, AND THAT IS AN ABSENCE RATHER THAN A CLAIM. Funding a
+# service out of the treasury is plans/0045 row 32 by name. adr/0070: do not read a run of this file
+# as evidence that public education is cheap.
+#
+# ---------------------------------------------------------------------------------------------------
+# ⚠ WHO CAN AFFORD A COLLEGE IS DECIDED BY WHO THEIR PARENTS WERE, and that is the point.
+# ---------------------------------------------------------------------------------------------------
+# A Household formed by children leaving home opens at zero and takes an EQUAL SHARE of its parents'
+# balance -- one share each, one kept. Entry to a `college` requires covering the whole course at
+# once, so a family that never earned cannot send anybody. ***The tier-3 workforce of a city with too
+# few public places is a function of who was already comfortable***, which is the dilemma the split
+# exists to produce rather than a balance problem in it.
+#
+# ⚠ A DROP-OUT IS A CONSEQUENCE AND NOT A KNOB. Tuition is charged per Day, and a Household that
+# entered able to pay and cannot pay today leaves without a degree. There is no reserve fraction and
+# no drop-out rate: the money went on food.
+#
+# ---------------------------------------------------------------------------------------------------
+# ⚠ A DWELLING TENANTS NO TRADE HERE, WHICH IS THE ONE PLACE THIS FILE DEPARTS FROM ITS SIBLINGS.
+# ---------------------------------------------------------------------------------------------------
+# `waged.toml` instantiates `shop` into every dwelling: eight jobs apiece, no revenue, no wage. That is
+# honest there and would be ruinous here -- a city whose every dwelling employs eight people for
+# nothing has an unpaid labour market, and every earnings figure this file produces would be a reading
+# of how many people failed to get a paying job. So the only employers are `shopfront`, `officeblock`
+# and `college`, and ***every job in this world pays***.
+#
+# ⚠ EMPLOYMENT IS THEREFORE SCARCE, and no unemployment number here is evidence about a city.
+#
+# ---------------------------------------------------------------------------------------------------
+# ⚠ `office` SELLS REPAIRS AND THAT IS A STAND-IN, NOT A CHAIN. Its `advise` Rule takes no inputs, in
+# exactly the way `stock` does and for the same reason: nothing in this build produces anything, so a
+# trade that bought its inputs would starve on a Pool nobody supplies. What matters is that the money
+# an office pays a Tier 3 analyst CAME FROM SOMEWHERE -- households buying repairs -- rather than
+# being minted. adr/0024's conservation holds and this file is not a supply chain.
+#
+# ---------------------------------------------------------------------------------------------------
+# 🔴 EVERY NUMBER IN `[schooling]`, `[jobs]` AND EVERY WAGE BELOW IS PROVISIONAL AND WAS CHOSEN BY
+# TASTE. plans/0045 standing order 4 suspends adr/0052, so there is no ratifier and no plans/0002 §D
+# row. THE NUMBERS THIS FILE PRODUCES RATIFY NOTHING -- not what a degree is worth, not how many
+# universities a city needs, and not what an hour of anybody's work is worth.
+# ---------------------------------------------------------------------------------------------------
+
+# The keys below are minimal.toml's and its comments carry their arguments -- read them there.
+# What is commented HERE is what this file changes and why.
+
+[[resource]]
+name = "sundries"
+family = "good"
+
+[[resource]]
+name = "repairs"
+family = "good"
+
+[[resource]]
+name = "money"
+family = "money"
+
+[[business]]
+name = "grocer"
+wage_per_day    = 4096
+pay_period_days = 7
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+# The tier-3 consumer, and without one this whole file would be a credential nobody wants. CONTEXT.md
+# calls this chain education -> Office -> exports; the export half is unbuilt, so it sells to the city.
+[[business]]
+name = "office"
+wage_per_day    = 12288
+pay_period_days = 7
+requires_tier   = 3
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+# A private college is an EMPLOYER as well as a seller of degrees, and its staff are themselves
+# Tier 3 -- so tuition paid in comes out again as wages rather than piling up in a till for ever,
+# which would be a magnitude trending upward at steady state (adr/0006).
+[[business]]
+name = "tuition"
+tuition_per_day = 512
+wage_per_day    = 8192
+pay_period_days = 7
+requires_tier   = 3
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+[[building]]
+name = "dwelling"
+bins = [
+    { resource = "sundries", capacity = 48, owner = "occupant" },
+    { resource = "repairs",  capacity = 8,  owner = "occupant" },
+]
+houses   = true
+premises = true
+parked = true
+
+[[building]]
+name = "shopfront"
+bins = [
+    { resource = "sundries", capacity = 96, owner = "business" },
+    { resource = "money",    owner = "business" },
+]
+premises = true
+business = "grocer"
+
+[[building]]
+name = "officeblock"
+bins = [
+    { resource = "repairs", capacity = 64, owner = "business" },
+    { resource = "money",   owner = "business" },
+]
+premises = true
+business = "office"
+
+[[building]]
+name   = "primary"
+serves = "education"
+level  = 1
+
+[[building]]
+name   = "secondary"
+serves = "education"
+level  = 2
+
+[[building]]
+name   = "university"
+serves = "education"
+level  = 3
+
+[[building]]
+name     = "college"
+serves   = "education"
+level    = 3
+premises = true
+business = "tuition"
+bins = [
+    { resource = "money", owner = "business" },
+]
+
+[[rule]]
+name    = "restock"
+kind    = "dwelling"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = [ { scope = "pool", resource = "sundries", amount = 4 } ]
+outputs = [ { scope = "local", resource = "sundries", amount = 4 } ]
+
+[[rule]]
+name    = "consume"
+kind    = "dwelling"
+rate    = 32
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "sundries", amount = 4 } ]
+outputs = []
+
+# The office's customer. `upkeep` below burns what this buys, so a dwelling that cannot reach an
+# office runs its repairs down and an office with no dwellings in reach earns nothing.
+[[rule]]
+name    = "maintain"
+kind    = "dwelling"
+rate    = 16
+apply   = { min = 1, max = 2 }
+inputs  = [ { scope = "pool", resource = "repairs", amount = 2 } ]
+outputs = [ { scope = "local", resource = "repairs", amount = 2 } ]
+
+[[rule]]
+name    = "upkeep"
+kind    = "dwelling"
+rate    = 64
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "repairs", amount = 2 } ]
+outputs = []
+
+[[rule]]
+name    = "stock"
+kind    = "shopfront"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = []
+outputs = [ { scope = "local", resource = "sundries", amount = 8 } ]
+
+[[rule]]
+name    = "advise"
+kind    = "officeblock"
+rate    = 16
+apply   = { min = 1, max = 4 }
+inputs  = []
+outputs = [ { scope = "local", resource = "repairs", amount = 4 } ]
+
+[[zone_rule]]
+name          = "housing"
+kind          = "dwelling"
+zone          = 0
+interval      = 32
+revisit_ticks = 2048
+
+# BOTH trades share the trade bit, because SyntheticCity paints one and adr/0165's stride is what
+# decides where commercial land is. Which of the two a given block becomes is the sample's answer and
+# not a location theory -- see provisioned.toml's header, which carries that argument in full.
+[[zone_rule]]
+name          = "trade"
+kind          = "shopfront"
+zone          = 1
+interval      = 32
+revisit_ticks = 2048
+build_threshold_days = 1
+cooldown_days        = 1
+
+[[zone_rule]]
+name          = "offices"
+kind          = "officeblock"
+zone          = 1
+interval      = 64
+revisit_ticks = 2048
+build_threshold_days = 1
+cooldown_days        = 1
+
+[placement]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+# Internal generation is a door into the Unplaced Pool exactly as a gate kind is, so a Pool with a
+# door and no give-up rule grows without bound (adr/0006, adr/0130). It is also what makes retention
+# readable: an unaffordable city failing to house its own children is a number rather than a mood.
+gives_up_after_days = 60
+
+[layers]
+noise_range_metres            = 300
+noise_intensity_percent       = 400
+desirability_pollution_percent = 100
+desirability_noise_percent     = 100
+pollution_period      = 64
+pollution_offset      = 0
+land_value_period     = 256
+land_value_offset     = 16
+kernel_metres         = 1024
+pollution_decay_ticks = 2048
+land_value_tau        = 8
+
+[roads]
+block_tiles                    = 32
+arterial_count                 = 0
+arterial_junction_tiles        = 512
+foot_crossing_every            = 4
+foot_paths_per_thousand_blocks = 40
+street_speed_kph               = 50
+arterial_speed_kph             = 90
+walk_speed_kph                 = 5
+street_capacity_per_hour       = 3600
+arterial_capacity_per_hour     = 12000
+foot_path_capacity_per_hour    = 1000
+
+[lots]
+lots_per_segment = 5
+setback_tiles = 2
+
+[capacity]
+floor_tiles_per_occupant      = 25
+floor_tiles_per_job           = 3
+floor_tiles_per_parking_space = 12
+floor_tiles_per_place         = 3
+
+[parking]
+radius_metres = 400
+shed_keeps = 24
+
+[trips]
+crossing_seconds = 30
+commute_fast_minutes = 20
+commute_moderate_minutes = 40
+commute_budget_minutes = 50
+
+[jobs]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+shift_hours_min = 6
+shift_hours_max = 10
+arrive_early_max_minutes = 15
+# Entry one is 100 by construction: the trade's posted rate IS the tier 1 rate, so a file states what
+# the two tiers above it are worth relative to it and never restates the baseline.
+wage_tier_percent = [100, 160, 260]
+experience_per_day = 64
+tier2_experience   = 2048
+# A ratio to the schooled rate, so the file authors ONE quantity (adr/0059). adr/0104: somebody who
+# missed schooling still reaches Tier 2 by working, and takes longer over it.
+unschooled_experience_percent = 50
+experience_premium_percent    = 40
+
+[households]
+car_ownership_percent = 0
+opening_balance_min = 8192
+opening_balance_max = 40960
+
+[[life_stage]]
+name          = "young"
+duration_days = 24
+spread_days   = 8
+next          = "family"
+childless     = "childless"
+children_min  = 0
+children_max  = 3
+adult_age_min_days = 1
+adult_age_max_days = 160
+
+[[life_stage]]
+name          = "family"
+duration_days = 48
+spread_days   = 16
+next          = "mature_family"
+school_level  = 1
+
+[[life_stage]]
+name           = "mature_family"
+duration_days  = 48
+spread_days    = 16
+next           = "empty_nest"
+children_become = "young"
+school_level   = 2
+
+[[life_stage]]
+name          = "childless"
+duration_days = 40
+spread_days   = 16
+
+[[life_stage]]
+name          = "empty_nest"
+duration_days = 40
+spread_days   = 16
+
+[needs]
+sustenance_degrade   = 4
+sustenance_recover   = 1
+satisfaction_degrade = 1
+satisfaction_recover = 1
+education_degrade    = 2
+education_recover    = 2
+floor = -1000
+
+[school]
+days = 31
+bell_earliest_minute = 480
+bell_latest_minute = 540
+dismiss_earliest_minute = 900
+dismiss_latest_minute = 960
+retry_ticks = 32
+history_keeps = 1024
+
+# The childhood score, and the course. Attendance carries 70 because CONTEXT.md -> Schooling says the
+# constant is a DURATION -- Days of completed attendance per level -- and because a per-child count
+# makes two siblings with different school access into two different adults. The Household's Education
+# depth carries 30 because it SATURATES at zero and can therefore say nothing about a good childhood,
+# but is the only term that can see a collapse in the final stage.
+[schooling]
+attendance_weight_percent = 70
+full_attendance_days      = 40
+# Secondary attendance below this counts for NOTHING. CONTEXT.md: primary is "a gate, not a producer
+# -- Tier 1 is the floor already, so primary earns its place because secondary cannot accumulate
+# without it."
+primary_gate_days         = 20
+tier2_score               = 50
+university_days           = 16
+
+# A Pool is a MARKET and a market needs Districts, so this file states [districts] and two lattices
+# for provisioned.toml's reason rather than one of its own -- the grocer's restock Rule buys sundries
+# from the Pool, and a pool term in a world with no Districts cannot resolve. The second centre is
+# what makes a District derivation return more than one basin, and once [districts] is stated every
+# declared Good owes a [[hinterland]] price. The three arrive together or not at all.
+[districts]
+prominence_percent = 50
+revisit_ticks = 2048
+hysteresis_percent = 50
+migrate_cells = 16
+
+[[lattice]]
+origin_east_tiles  = 0
+origin_north_tiles = 0
+
+[[lattice]]
+origin_east_tiles  = 2048
+origin_north_tiles = 0
+
+[[hinterland]]
+edge = "north"
+emigrant_balance_min = 0
+emigrant_balance_max = 0
+prices = [
+  { resource = "sundries", price = 16 },
+  { resource = "repairs",  price = 32 },
+]
+
+[[hinterland]]
+edge = "east"
+emigrant_balance_min = 0
+emigrant_balance_max = 0
+prices = [
+  { resource = "sundries", price = 20 },
+  { resource = "repairs",  price = 40 },
+]
+
+[market]
+decay_percent = 50
+move_cap_percent = 10

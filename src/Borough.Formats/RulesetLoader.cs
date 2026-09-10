@@ -300,6 +300,7 @@ public static class RulesetLoader
         private TableSyntaxBase? _shoppingTable;
         private TableSyntaxBase? _schoolTable;
         private TableSyntaxBase? _careTable;
+        private TableSyntaxBase? _schoolingTable;
 
         /// <summary>The parsed document, kept only so <see cref="Surface"/> can walk it after.</summary>
         /// <remarks>
@@ -346,7 +347,7 @@ public static class RulesetLoader
                 out MapEmission[] emissions);
             KindDefinition[] kinds = ReadKinds(rules, inputs, outputs, out BinDeclaration[] bins,
                 out RuleId[] kindRules);
-            BusinessKindDefinition[] businessKinds = ReadBusinessKinds(capacity);
+            BusinessKindDefinition[] businessKinds = ReadBusinessKinds(capacity, kinds);
             LifeStageDefinition[] lifeStages = ReadLifeStages();
             ZoneRuleDefinition[] zoneRules = ReadZoneRules();
             BandDefinition[] bands = ReadBands();
@@ -375,6 +376,7 @@ public static class RulesetLoader
             // the pair: they are owed by a file declaring a kind that serves one and refused of a file
             // that declares none (adr/0130's rule for gives_up_after_days, one table along).
             NeedRuleset needs = ReadNeeds(kinds);
+            SchoolingRuleset schooling = ReadSchoolingRuleset(kinds);
             ShoppingRuleset shopping = ReadShopping(trips, needs, rules, inputs, outputs);
             SchoolRuleset school = ReadSchool(trips, needs);
             CareRuleset care = ReadCare(trips, needs);
@@ -464,6 +466,7 @@ public static class RulesetLoader
                 Districts = districts,
                 Market = market,
                 Needs = needs,
+                Schooling = schooling,
                 Shopping = shopping,
                 School = school,
                 Care = care,
@@ -821,6 +824,9 @@ public static class RulesetLoader
                     case "care":
                         if (_careTable is not null) { Refuse(LineOf(table), null, "duplicate [care]"); }
                         _careTable = table; break;
+                    case "schooling":
+                        if (_schoolingTable is not null) { Refuse(LineOf(table), null, "duplicate [schooling]"); }
+                        _schoolingTable = table; break;
                     case "shopping":
                         if (_shoppingTable is not null) { Refuse(LineOf(table), null, "duplicate [shopping]"); }
                         _shoppingTable = table;
@@ -1343,6 +1349,47 @@ public static class RulesetLoader
                 Refuse(LineOf(table), null, "care hours require a Health service and closing after opening");
             return new WeeklyHours(days, opens, closes);
         }
+
+        /// <summary>
+        /// Which school level a <c>[[building]] level</c> kind teaches — <b>1 primary, 2 secondary,
+        /// 3 university</b>. Refused on any kind that does not <c>serve = "education"</c>, and
+        /// required on one that does whenever the file also states <c>[schooling]</c> — the same
+        /// shape <see cref="ReadCareHours"/> already gives care hours against <c>[care]</c>.
+        /// </summary>
+        private byte ReadSchoolLevel(TableSyntaxBase table, string? name, Need serves)
+        {
+            if (serves != Need.Education)
+            {
+                if (Find(table, "level") is not null)
+                {
+                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "level") ?? table), name,
+                        "level is stated and this kind does not declare serves = \"education\". It "
+                        + "is which school level an education kind teaches -- 1 primary, 2 "
+                        + "secondary, 3 university -- and only an education kind teaches one. "
+                        + "Declare serves = \"education\", or drop the key.");
+                }
+
+                return 0;
+            }
+
+            bool required = _schoolingTable is not null;
+
+            if (!TryInteger(table, "level", out long level, required: required, name))
+            {
+                return 0;
+            }
+
+            if (level < SchoolingRuleset.Primary || level > SchoolingRuleset.University)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, "level") ?? table), name,
+                    $"level is {level}. It is which school level this kind teaches, and the three "
+                    + "that exist are 1 (primary), 2 (secondary) and 3 (university).");
+                return 0;
+            }
+
+            return (byte)level;
+        }
+
         private SchoolRuleset ReadSchool(TripRuleset trips, NeedRuleset needs)
         {
             if (_schoolTable is null) { return default; }
@@ -1544,6 +1591,107 @@ public static class RulesetLoader
             _needsTable is null ? 0
             : Find(_needsTable, key) is KeyValueSyntax entry ? LineOf(entry)
             : LineOf(_needsTable);
+
+        /// <summary>
+        /// The <c>[schooling]</c> table, on <see cref="TryAttendedRates"/>'s reasoning exactly: the
+        /// five keys are required together and required exactly of a file declaring a
+        /// <c>[[building]]</c> that serves education, refused of one that does not.
+        /// </summary>
+        private SchoolingRuleset ReadSchoolingRuleset(KindDefinition[] kinds)
+        {
+            if (_schoolingTable is null)
+            {
+                return SchoolingRuleset.None;
+            }
+
+            bool served = false;
+
+            for (int i = 0; i < kinds.Length; i++)
+            {
+                if (kinds[i].Serves == Need.Education)
+                {
+                    served = true;
+                    break;
+                }
+            }
+
+            if (!served)
+            {
+                Refuse(LineOf(_schoolingTable), null,
+                    "[schooling] is stated and no [[building]] declares serves = \"education\". It "
+                    + "is how a childhood's attendance and depth turn into a Skill Tier, and with no "
+                    + "school to attend it is a hash-bearing number nothing can reach, which reads "
+                    + "on the page as a mechanism this world has. Declare an education kind, or "
+                    + "drop the table.");
+
+                return SchoolingRuleset.None;
+            }
+
+            if (!TryInteger(_schoolingTable, "attendance_weight_percent", out long weight, required: true)
+                || !TryInteger(_schoolingTable, "full_attendance_days", out long fullDays, required: true)
+                || !TryInteger(_schoolingTable, "primary_gate_days", out long gateDays, required: true)
+                || !TryInteger(_schoolingTable, "tier2_score", out long tier2, required: true)
+                || !TryInteger(_schoolingTable, "university_days", out long universityDays, required: true))
+            {
+                return SchoolingRuleset.None;
+            }
+
+            if (weight < 0 || weight > 100)
+            {
+                Refuse(LineOfSchooling("attendance_weight_percent"), null,
+                    $"attendance_weight_percent is {weight}. It is how much of the childhood score "
+                    + "the attendance term carries -- the depth term carries the rest -- so it is a "
+                    + "percent, 0 to 100.");
+
+                return SchoolingRuleset.None;
+            }
+
+            if (fullDays < 1)
+            {
+                Refuse(LineOfSchooling("full_attendance_days"), null,
+                    $"full_attendance_days is {fullDays}. It is how many secondary Days score a "
+                    + "full 100 on the attendance term, so it is at least 1.");
+
+                return SchoolingRuleset.None;
+            }
+
+            if (gateDays < 0)
+            {
+                Refuse(LineOfSchooling("primary_gate_days"), null,
+                    $"primary_gate_days is {gateDays}. It is how many primary Days a childhood needs "
+                    + "before secondary attendance counts for anything at all -- the gate -- so it "
+                    + "cannot be negative.");
+
+                return SchoolingRuleset.None;
+            }
+
+            if (tier2 < 0 || tier2 > 100)
+            {
+                Refuse(LineOfSchooling("tier2_score"), null,
+                    $"tier2_score is {tier2}. It is the childhood score at or above which an adult "
+                    + "forms at Tier 2 -- the same score also qualifies for university -- so it is "
+                    + "a percent, 0 to 100.");
+
+                return SchoolingRuleset.None;
+            }
+
+            if (universityDays < 0)
+            {
+                Refuse(LineOfSchooling("university_days"), null,
+                    $"university_days is {universityDays}. It is how many Days In Education confers "
+                    + "Tier 3, so it cannot be negative.");
+
+                return SchoolingRuleset.None;
+            }
+
+            return new SchoolingRuleset(
+                (int)weight, (int)fullDays, (int)gateDays, (int)tier2, (int)universityDays);
+        }
+
+        private int LineOfSchooling(string key) =>
+            _schoolingTable is null ? 0
+            : Find(_schoolingTable, key) is KeyValueSyntax entry ? LineOf(entry)
+            : LineOf(_schoolingTable);
 
         /// <summary>
         /// Reads a Resource's family, which is what tells the loader money from flour.
@@ -2472,6 +2620,7 @@ public static class RulesetLoader
                     Serves = serves,
                     CareHours = ReadCareHours(table, serves),
                     BedPercent = CivicInt(table, "bed_percent", 0, 100, required: false),
+                    SchoolLevel = ReadSchoolLevel(table, name, serves),
                 };
             }
 
@@ -2582,7 +2731,7 @@ public static class RulesetLoader
         /// this pass adds exactly <b>two</b>, the negative <c>jobs</c> and the wage.
         /// </para>
         /// </remarks>
-        private BusinessKindDefinition[] ReadBusinessKinds(CapacityRuleset capacity)
+        private BusinessKindDefinition[] ReadBusinessKinds(CapacityRuleset capacity, KindDefinition[] kinds)
         {
             var definitions = new BusinessKindDefinition[_businessKindTables.Count];
 
@@ -2647,10 +2796,84 @@ public static class RulesetLoader
                         table, name, wagePerDay, payPeriodDays),
                     WorkDays = ReadDays(table, "work_days"),
                     ShopHours = ReadShopHours(table),
+                    RequiresTier = ReadRequiresTier(table, name),
+                    TuitionPerDay = ReadTuitionPerDay(table, name, kinds),
                 };
             }
 
             return definitions;
+        }
+
+        /// <summary>
+        /// The lowest Skill Tier a trade will hire — <c>requires_tier</c>, optional. Zero means it
+        /// hires anybody.
+        /// </summary>
+        private byte ReadRequiresTier(TableSyntaxBase table, string? name)
+        {
+            if (!TryInteger(table, "requires_tier", out long tier, required: false, name))
+            {
+                return 0;
+            }
+
+            if (tier < SchoolingRuleset.Primary || tier > SchoolingRuleset.TopTier)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, "requires_tier") ?? table), name,
+                    $"requires_tier is {tier}. It is the lowest Skill Tier this trade will hire, so "
+                    + "it is 1, 2 or 3; omit the key for a trade that hires anybody.");
+
+                return 0;
+            }
+
+            return (byte)tier;
+        }
+
+        /// <summary>
+        /// What a trade charges a Household In Education, per Day — <c>tuition_per_day</c>,
+        /// optional. Refused unless the file declares a <c>[[building]]</c> that serves education at
+        /// <see cref="SchoolingRuleset.University"/>, the same shape <see cref="TryAttendedRates"/>
+        /// gives an Attended Need's rates.
+        /// </summary>
+        private int ReadTuitionPerDay(TableSyntaxBase table, string? name, KindDefinition[] kinds)
+        {
+            if (!TryInteger(table, "tuition_per_day", out long tuition, required: false, name))
+            {
+                return 0;
+            }
+
+            bool university = false;
+
+            for (int i = 0; i < kinds.Length; i++)
+            {
+                if (kinds[i].IsUniversity)
+                {
+                    university = true;
+                    break;
+                }
+            }
+
+            if (!university)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, "tuition_per_day") ?? table), name,
+                    "tuition_per_day is stated and no [[building]] declares serves = \"education\" "
+                    + "at level = 3. It is what a trade charges a Household In Education, per Day, "
+                    + "and the only route to a degree this design has is a university -- so with no "
+                    + "university this rate is a hash-bearing number nothing can reach. Declare a "
+                    + "university, or drop the key.");
+
+                return 0;
+            }
+
+            if (tuition < 1)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, "tuition_per_day") ?? table), name,
+                    $"tuition_per_day is {tuition}. It is what this trade charges a Household In "
+                    + "Education, per Day, so it is at least 1; omit the key for a trade that is "
+                    + "not a private university.");
+
+                return 0;
+            }
+
+            return (int)(tuition > int.MaxValue ? int.MaxValue : tuition);
         }
 
         /// <summary>
@@ -3026,6 +3249,33 @@ public static class RulesetLoader
                         + "third wheel tier, which nothing has asked for yet.");
                 }
 
+                byte schoolLevel = 0;
+
+                if (TryInteger(table, "school_level", out long stageLevel, required: false, name))
+                {
+                    if (stageLevel == SchoolingRuleset.University)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "school_level") ?? table), name,
+                            $"school_level is {stageLevel}, naming a university. A university is "
+                            + "attended by a Young Household In Education -- a STATE and not a "
+                            + "Life Stage (CONTEXT.md -> Schooling) -- so no stage may name it. The "
+                            + "two a stage may name are 1 (primary) and 2 (secondary).");
+                    }
+                    else if (stageLevel != SchoolingRuleset.Primary
+                        && stageLevel != SchoolingRuleset.Secondary)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "school_level") ?? table), name,
+                            $"school_level is {stageLevel}. It names which school level this "
+                            + "stage's children attend, and the two a stage may name are 1 "
+                            + "(primary) and 2 (secondary); omit the key for a stage with no "
+                            + "schoolchildren.");
+                    }
+                    else
+                    {
+                        schoolLevel = (byte)stageLevel;
+                    }
+                }
+
                 definitions[i] = new LifeStageDefinition
                 {
                     DurationDays = durationDays,
@@ -3039,6 +3289,7 @@ public static class RulesetLoader
                     AdultAgeMaxDays = adultMax,
                     CentralityBasePercent = centralityBase,
                     CentralitySpreadPercent = centralitySpread,
+                    SchoolLevel = schoolLevel,
                 };
             }
 
@@ -6589,10 +6840,17 @@ public static class RulesetLoader
             int candidates = ReadJobCandidates();
             (int shiftMin, int shiftMax) = ReadShiftHours();
             int early = ReadArriveEarly();
+            (int tier2Wage, int tier3Wage) = ReadWageTierPercent();
+            (int experiencePerDay, int tier2Experience) = ReadExperience();
+            int unschooledExperiencePercent = ReadUnschooledExperiencePercent();
+            int experiencePremiumPercent = ReadExperiencePremiumPercent();
 
             RefuseShiftShorterThanTheBudget(shiftMin);
 
-            return new JobRuleset(interval, revisit, candidates, shiftMin, shiftMax, early);
+            return new JobRuleset(
+                interval, revisit, candidates, shiftMin, shiftMax, early,
+                tier2Wage, tier3Wage, experiencePerDay, tier2Experience,
+                unschooledExperiencePercent, experiencePremiumPercent);
         }
 
         // ---- households -------------------------------------------------------------------------
@@ -7956,6 +8214,185 @@ public static class RulesetLoader
             }
 
             return (int)minutes;
+        }
+
+        /// <summary>
+        /// What each of the three Skill Tiers is paid, as a percent of the trade's posted rate —
+        /// <c>wage_tier_percent</c>, optional, and the second Ruleset key that is a bare array of
+        /// whole numbers rather than an array of tables (<c>[[band]] admits</c> is the first).
+        /// </summary>
+        /// <remarks>
+        /// <b>The first entry is not authored, it is RESTATED.</b> The posted rate IS the Tier 1
+        /// rate (<c>adr/0059</c>), so a file naming three entries whose first is not 100 disagrees
+        /// with itself about what the posted rate means — three tiers are named because Tier 1's
+        /// value is fixed, never because it is free to vary.
+        /// </remarks>
+        private (int Tier2Percent, int Tier3Percent) ReadWageTierPercent()
+        {
+            KeyValueSyntax? entry = Find(_jobsTable!, "wage_tier_percent", RulesetKeyKind.Numbers);
+
+            if (entry is null)
+            {
+                return (0, 0);
+            }
+
+            if (entry.Value is not ArraySyntax array)
+            {
+                Refuse(LineOfJob("wage_tier_percent"), null,
+                    "wage_tier_percent must be an array of whole numbers.");
+                return (0, 0);
+            }
+
+            var values = new List<long>(3);
+
+            foreach (ArrayItemSyntax item in array.Items)
+            {
+                if (item.Value is not IntegerValueSyntax integer)
+                {
+                    Refuse(LineOf(item), null,
+                        "every entry of wage_tier_percent is a whole percent of the trade's posted "
+                        + "rate.");
+                    return (0, 0);
+                }
+
+                values.Add(integer.Value);
+            }
+
+            if (values.Count != 3)
+            {
+                Refuse(LineOfJob("wage_tier_percent"), null,
+                    $"wage_tier_percent names {values.Count} entries. It is what each of the three "
+                    + "Skill Tiers is paid, as a percent of the trade's posted rate, so it names "
+                    + "exactly three.");
+                return (0, 0);
+            }
+
+            if (values[0] != 100)
+            {
+                Refuse(LineOfJob("wage_tier_percent"), null,
+                    $"wage_tier_percent's first entry is {values[0]}. The posted rate IS the Tier "
+                    + "1 rate (adr/0059), so the first entry only restates that baseline and can "
+                    + "only be 100 -- a file stating anything else disagrees with itself about "
+                    + "what the posted rate means.");
+                return (0, 0);
+            }
+
+            for (int i = 0; i < values.Count; i++)
+            {
+                if (values[i] < 0)
+                {
+                    Refuse(LineOfJob("wage_tier_percent"), null,
+                        $"wage_tier_percent's entry {i + 1} is {values[i]}. Each entry is a "
+                        + "percent of the trade's posted rate, so none of them may be negative.");
+                    return (0, 0);
+                }
+            }
+
+            return ((int)values[1], (int)values[2]);
+        }
+
+        /// <summary>
+        /// What one Day worked is worth toward promotion, and how much of it promotes a Citizen to
+        /// Tier 2 — <c>experience_per_day</c> and <c>tier2_experience</c>, required together.
+        /// </summary>
+        private (int ExperiencePerDay, int Tier2Experience) ReadExperience()
+        {
+            // Both calls run unconditionally, and typed, whether or not either key is present --
+            // TryInteger's own Find call is what registers a key's kind for the schema and the key
+            // reference (KeyReferenceDump.cs), and a presence check made through an untyped Find
+            // first would leave an absent-in-every-shipped-file key looking unasserted there.
+            bool hasDaily = TryInteger(_jobsTable!, "experience_per_day", out long perDay, required: false);
+            bool hasTier2 = TryInteger(_jobsTable!, "tier2_experience", out long tier2, required: false);
+
+            if (hasDaily && !hasTier2)
+            {
+                Refuse(LineOfJob("experience_per_day"), null,
+                    "experience_per_day is stated and tier2_experience is not. The first says "
+                    + "what one Day worked is worth toward promotion; the second says how much of "
+                    + "it promotes a Citizen to Tier 2 -- a rate accumulating toward no ceiling is "
+                    + "half a mechanism, so state both or neither.");
+                return (0, 0);
+            }
+
+            if (hasTier2 && !hasDaily)
+            {
+                Refuse(LineOfJob("tier2_experience"), null,
+                    "tier2_experience is stated and experience_per_day is not. It is the ceiling "
+                    + "experience promotes a Citizen to Tier 2 at; with no experience_per_day "
+                    + "nothing ever accumulates toward it, so state both or neither.");
+                return (0, 0);
+            }
+
+            if (!hasDaily)
+            {
+                return (0, 0);
+            }
+
+            if (perDay < 0)
+            {
+                Refuse(LineOfJob("experience_per_day"), null,
+                    $"experience_per_day is {perDay}. It is what one Day worked is worth toward "
+                    + "promotion, so it cannot be negative.");
+                return (0, 0);
+            }
+
+            if (tier2 < 0)
+            {
+                Refuse(LineOfJob("tier2_experience"), null,
+                    $"tier2_experience is {tier2}. It is how much experience promotes a Citizen "
+                    + "to Tier 2, so it cannot be negative.");
+                return (0, 0);
+            }
+
+            return ((int)perDay, (int)tier2);
+        }
+
+        /// <summary>
+        /// What one Day worked is worth to a Citizen who missed schooling, as a percent of the
+        /// schooled rate — <c>unschooled_experience_percent</c>, optional.
+        /// </summary>
+        private int ReadUnschooledExperiencePercent()
+        {
+            if (!TryInteger(
+                    _jobsTable!, "unschooled_experience_percent", out long percent, required: false))
+            {
+                return 0;
+            }
+
+            if (percent < 0 || percent > 100)
+            {
+                Refuse(LineOfJob("unschooled_experience_percent"), null,
+                    $"unschooled_experience_percent is {percent}. It is what one Day worked is "
+                    + "worth to a Citizen who missed schooling, as a percent of the schooled rate, "
+                    + "so it is 0 to 100.");
+                return 0;
+            }
+
+            return (int)percent;
+        }
+
+        /// <summary>
+        /// The premium a Citizen earns inside their own band, as a percent added to their pay at
+        /// the band ceiling — <c>experience_premium_percent</c>, optional.
+        /// </summary>
+        private int ReadExperiencePremiumPercent()
+        {
+            if (!TryInteger(
+                    _jobsTable!, "experience_premium_percent", out long percent, required: false))
+            {
+                return 0;
+            }
+
+            if (percent < 0)
+            {
+                Refuse(LineOfJob("experience_premium_percent"), null,
+                    $"experience_premium_percent is {percent}. It is the premium a Citizen has "
+                    + "earned inside their own band at its ceiling, as a percent added to their "
+                    + "pay, so it cannot be negative.");
+                return 0;
+            }
+
+            return (int)percent;
         }
 
         /// <summary>

@@ -58,11 +58,36 @@ public sealed class HouseholdTable
         Education = _rows.Saved<int>("education", Touch.Cold);
         Health = _rows.Saved<int>("health", Touch.Cold);
 
+        // What a Household is DOING, which CONTEXT.md keeps deliberately apart from what it is made
+        // of: "Studying and Unemployment are states, not stages -- an In Education Household is 1-2
+        // adults with no children, which is a Young Household exactly, so it fails the definition of
+        // a stage." This is what stops the stage table accumulating rows that are really occupations.
+        State = _rows.Saved<byte>("state", Touch.Cold);
+        StateEndsDay = _rows.Saved<int>("state_ends_day", Touch.Cold);
+
+        // Severable, for CitizenTable.Workplace's reason: a university is somebody else's Building and
+        // demolishing it while a student is enrolled is the course ceasing to exist, which is a fact
+        // about the city rather than a break in the handle.
+        University = _rows.SavedHandle(
+            "university", buildings.Rows, reference: Reference.Severable);
+
         _rows.Seal();
     }
 
     /// <summary>The slot allocator, the generation counters and the column list.</summary>
     public Rows<Household> Rows => _rows;
+
+    /// <summary>
+    /// What this Household is doing — see <see cref="Borough.Core.Rules.HouseholdState"/>. <b>A state
+    /// and not a Life Stage</b>, and <c>CONTEXT.md</c> → <i>Life Stage</i> says why.
+    /// </summary>
+    public Column<byte> State { get; }
+
+    /// <summary>The Day <see cref="State"/> ends, where the state has an end.</summary>
+    public Column<int> StateEndsDay { get; }
+
+    /// <summary>Where this Household is studying, or the unset handle.</summary>
+    public HandleColumn<Building> University { get; }
 
     /// <summary>
     /// How well fed this Household is. <b>0 is ideal and negative is deficit.</b>
