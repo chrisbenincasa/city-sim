@@ -13,6 +13,13 @@ material to consult when a task needs it, not a reading list.
 
 ---
 
+## Building-model workflow
+
+**Author new Building models and visual variants in Blender first.** Follow
+[the Building authoring procedure](docs/07-the-drawing.md#building-authoring-procedure).
+Godot imports, instances and assembles the assets; procedural simulation geometry remains the
+source of footprint, floor-area and access constraints. This applies to debugging models too.
+
 ## What this is
 
 A city-builder where the city is made of people you can actually meet, the economy is made of Goods

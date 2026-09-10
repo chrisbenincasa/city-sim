@@ -111,6 +111,24 @@ Decided by the player on 2026-08-31 and 09-01, and recorded rather than argued.
 
 ## 3. How the picture gets made
 
+### Building authoring procedure
+
+**User-approved workflow: Blender first for new Building models and visual variants, including
+rudimentary debugging models.** This takes precedence over descriptions below that treat runtime
+C# massing as the authoring workflow. Existing zoning, parcel and simulation geometry work remains.
+
+1. Block out recognizable Building silhouettes in Blender at explicit dimensions, with consistent
+   scale, origins and entrance locations. Keep editable `.blend` sources alongside exported assets.
+2. Start with simple complete models at supported sizes. Extract reusable wings, storefronts,
+   warehouse bays, podiums and roofs as variation requires; avoid stretching a finished model to fit.
+3. Export the assets for Godot to import, instance and assemble. Keep Building art iteration in
+   Blender rather than growing a catalogue of hand-coded Godot/C# mesh constructions.
+4. Check supported footprints and storeys against simulation geometry: floor area, open courtyards,
+   Street access and parking capacity must agree with what is drawn. Procedural geometry remains
+   useful for these constraints and for fallback/debug rendering.
+5. Use the rudimentary roster for gameplay debugging; iterate on detailed visual design in a
+   separate session. A blockout is a foundation, not finished art.
+
 **Three pipelines, and the project's answer is the third.**
 
 | | What it is | What it costs |
