@@ -207,7 +207,12 @@ public partial class Main
                 _savedTick = _world.Tick.Raw;
                 _savePath = path;
                 _verb = Verb.Look;
-                _toolsShown = _governing = _layersShown = false;
+                _toolsShown = _governing = _layersShown = _cityShown = false;
+                _cityRead = false;
+                _cityGroup = -1;
+                _cityCause = null;
+                _cityFrom = 0;
+                Retrouble();
                 _tuner.Visible = false;
                 _aimed = null;
                 _washing = Wash.None;

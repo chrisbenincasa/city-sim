@@ -476,6 +476,13 @@ public partial class Main : Node3D
         Health,
 
         /// <summary>
+        /// Everything the city's own Evidence reading says is stopped, drawn on the Buildings it is
+        /// stopping. <b>A view of a snapshot and not of live state</b> — see
+        /// <c>Main.CityEvidence</c>, which owns the reading both this and the Evidence list draw.
+        /// </summary>
+        Trouble,
+
+        /// <summary>
         /// A Building's rung on <c>BlockPatterns.Ladder</c>. <b>A DEBUG VIEW AND NOT A SHIPPING
         /// ONE.</b>
         /// </summary>
@@ -1684,6 +1691,21 @@ public partial class Main : Node3D
             Rewash();
         }
 
+        // 🔴 THE WASH IS WHAT DRIVES THE CADENCE, AND THE LIST SHARES ITS READING, so the list
+        // follows while the wash is on and holds still while it is off. ***A map layer that never
+        // moved while the city ran would be a stale instrument sitting beside a live one*** --
+        // Rewash's own reason, one level out -- and a list that moved under a reader paging through
+        // it would lose their place. The list prints the Tick it is showing either way, which is
+        // what makes both states honest rather than one of them a trap.
+        //
+        // ⚠ This is the whole bill the Trouble wash carries: one walk of the city per pollution
+        // period, opted into by turning the wash on and paid by nobody who leaves it off.
+        if (_washing == Wash.Trouble && _cityRead
+            && tick - _cityReading.ReadAt.Raw >= (ulong)Math.Max(1, Cadence()))
+        {
+            ReadCity();
+        }
+
         // ⚠ THE MINUTE COMES FROM Ticks AND IS NO LONGER DERIVED HERE. A Day begins at 05:00, so
         // `ofDay * 24 / PerDay` is off by five hours -- and this was one of four copies of that
         // expression, which is exactly why it now lives in one place.
@@ -1706,6 +1728,7 @@ public partial class Main : Node3D
 
         RefreshInformation();
         RefreshHealthMarkers();
+        RefreshCityEvidence();
     }
 
     /// <summary>

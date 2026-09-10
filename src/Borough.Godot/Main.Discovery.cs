@@ -54,7 +54,7 @@ public partial class Main
         new("Time", "4×", "4", [Key.Key4], () => ViewCommand(DriveVerb.Speed, DesignSpeed + 3)),
         .. ToolDefinitions().Where(t => t.Key != Key.None).Select(t => new Shortcut("Tools", t.Label,
             t.Key.ToString(), [t.Key], () => { if (t.Available) t.Select(t.NextChoice); })),
-        new("Views", "Next map layer", "O", [Key.O], () => Apply(new DriveCommand(_world.Tick.Raw, DriveVerb.Overlay, 0, _washing switch { Wash.None => "pollution", Wash.Pollution => "value", Wash.Value => "sealing", Wash.Sealed => "health", Wash.Health => "rung", Wash.Rung => "age", _ => "off" }))),
+        new("Views", "Next map layer", "O", [Key.O], () => Apply(new DriveCommand(_world.Tick.Raw, DriveVerb.Overlay, 0, _washing switch { Wash.None => "pollution", Wash.Pollution => "value", Wash.Value => "sealing", Wash.Sealed => "health", Wash.Health => "trouble", Wash.Trouble => "rung", Wash.Rung => "age", _ => "off" }))),
         new("Views", "Photograph view", "L", [Key.L], () => ViewCommand(DriveVerb.Lens, _photographing ? 0 : 1)),
         new("Views", "Road drawing", "G", [Key.G], () => ViewCommand(DriveVerb.Roads, _roads.Visible ? 0 : 1)),
         new("Developer", "Cell grid", "C", [Key.C], () => ViewCommand(DriveVerb.Cells, _cells.Visible ? 0 : 1)),
@@ -142,16 +142,27 @@ public partial class Main
         }
     }
 
+    /// <summary>
+    /// What a Label inside a scrolling auxiliary panel must be.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>A wrapping Label reports a ONE-CHARACTER minimum width</b>, so a column of them inside a
+    /// container that sizes to its children's minimums collapses into a vertical column of single
+    /// letters. <see cref="ScrollAuxiliary"/> applied this once at build; a panel that adds rows
+    /// later has to apply it to those too, which is why it is a method rather than a loop body.
+    /// </remarks>
+    private static void ScrollLabel(Label label)
+    {
+        label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        label.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        label.CustomMinimumSize = Vector2.Zero;
+    }
+
     private static void ScrollAuxiliary(PanelContainer panel, VBoxContainer body)
     {
         body.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         foreach (Node node in InformationDescendants(body))
-            if (node is Label label)
-            {
-                label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-                label.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-                label.CustomMinimumSize = Vector2.Zero;
-            }
+            if (node is Label label) ScrollLabel(label);
         var scroll = new ScrollContainer
         {
             HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
@@ -213,6 +224,7 @@ public partial class Main
             else if (_menuOpen) Ui(_menuPage == "main" ? "menu off" : "menu cancel");
             else if (_tuner.Visible && (!_governing || _tuner.GetIndex() > _policyPanel.GetIndex())) _tuner.Visible = false;
             else if (_governing) Govern();
+            else if (_cityShown) Ui("city off");
             else if (_layersShown) Ui("layers off");
             else if (_toolsShown) Ui("tools off");
             else if (_inspector!.Visible) Ui("close");

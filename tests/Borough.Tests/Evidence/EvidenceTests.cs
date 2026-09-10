@@ -874,6 +874,71 @@ public sealed class EvidenceTests
     private static readonly ResourceId Parts = new(2);
 
     /// <summary>
+    /// The city list groups exactly the blocked Rules each Building reports on its own.
+    /// </summary>
+    /// <remarks>
+    /// <b>The second route is the per-Building reading the inspector already uses.</b> A city-wide
+    /// grouping that agreed with nothing would be a fourth copy of a fact (<c>plans/0012</c>
+    /// <em>Cause 1</em>); what this holds is that the counts under the groups and the subjects listed
+    /// beneath them reconcile with each other and with the Building's own answer.
+    /// </remarks>
+    [Fact]
+    public void The_city_list_groups_the_blocked_rules_each_building_reports_on_its_own()
+    {
+        var (world, simulation, building) = Starving(true);
+        for (int i = 0; i < 64; i++) simulation.Step(default);
+        ulong hash = world.HashState();
+
+        CityEvidence city = Core.Evidence.Evidence.OfCity(world);
+
+        Assert.Equal(hash, world.HashState());
+        Assert.Equal(world.Tick, city.ReadAt);
+        Assert.Equal(world.Buildings.Rows.LiveCount, city.BuildingsRead);
+
+        RuleEvidence[] blocked = Core.Evidence.Evidence.OfBuilding(world, building).Rules.ToArray()
+            .Where(rule => rule.Blocked != Blocking.Nothing).ToArray();
+
+        Assert.Equal(blocked.Length, city.Subjects.Length);
+        Assert.Equal(city.Subjects.Length, city.Groups.ToArray().Sum(group => group.Subjects));
+        Assert.All(city.Subjects.ToArray(), subject =>
+        {
+            Assert.Equal(SubjectKind.Premises, subject.Kind);
+            Assert.Equal(building, subject.Building);
+            Assert.True(subject.Group >= 0 && subject.Group < city.Groups.Length);
+        });
+        Assert.Equal(
+            blocked.Select(rule => rule.MissedFirings).OrderBy(missed => missed),
+            city.Groups.ToArray().Select(group => group.WorstMissedFirings).OrderBy(missed => missed));
+    }
+
+    /// <summary>A cause somebody repairs leaves the city list, and the rest of it stays.</summary>
+    /// <remarks>
+    /// <b><c>plans/0064</c> row 7's acceptance, held in Core rather than in a panel</b>: removing one
+    /// of two causes reveals the remaining cause. The reading carries the Tick it was taken at, so the
+    /// two answers are distinguishable as two answers rather than as one that changed.
+    /// </remarks>
+    [Fact]
+    public void A_repaired_cause_leaves_the_city_list_and_the_other_stays()
+    {
+        var (world, simulation, building) = Starving(true);
+        for (int i = 0; i < 64; i++) simulation.Step(default);
+
+        CityEvidence before = Core.Evidence.Evidence.OfCity(world);
+        Assert.Equal(2, before.Groups.Length);
+
+        RuleEvidence repaired = Core.Evidence.Evidence.SupplyOfBuilding(world, building).Primary;
+        world.Deposit(repaired.WaitingBin, 4, world.Tick);
+        simulation.Step(default);
+
+        CityEvidence after = Core.Evidence.Evidence.OfCity(world);
+
+        Assert.Single(after.Groups.ToArray());
+        Assert.DoesNotContain(
+            after.Groups.ToArray(), group => group.Cause.WaitingFor == repaired.WaitingFor);
+        Assert.True(after.ReadAt.Raw > before.ReadAt.Raw);
+    }
+
+    /// <summary>
     /// One Building whose two Rules both starve, at rates four Ticks apart, and which nothing condemns.
     /// </summary>
     /// <remarks>

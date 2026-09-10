@@ -744,6 +744,7 @@ public partial class Main
             "value" or "land" or "land-value" => Wash.Value,
             "sealing" or "sealed" => Wash.Sealed,
             "health" => Wash.Health,
+            "trouble" => Wash.Trouble,
             "rung" or "pattern" => Wash.Rung,
             "age" or "vintage" => Wash.Age,
             _ => Wash.None,
@@ -752,13 +753,17 @@ public partial class Main
         if (want == Wash.None && layer is not ("off" or "none"))
         {
             _refused = $"there is no overlay called '{layer}'. There is off, pollution, value, "
-                + "sealing, health, and the two debug ones, rung and age.";
+                + "sealing, health, trouble, and the two debug ones, rung and age.";
         }
 
         _washing = want;
 
         // Forces the next Draw to rebuild rather than trusting a cadence that has not come round.
         _washedAt = 0;
+
+        // ⚠ THE WASH AND THE LIST SHARE ONE READING, so arming the wash with a stale snapshot
+        // standing would draw a city that had already moved on. Re-read rather than trust it.
+        if (_washing == Wash.Trouble) ReadCity(); else _troubleRepaint = true;
 
         _instrument ??= new StandardMaterial3D
         {
@@ -800,7 +805,7 @@ public partial class Main
                 // difference between these two and the three ground ones. A ground overlay mutes
                 // everything and lets the plane carry the reading; a building overlay mutes
                 // everything EXCEPT the thing being measured.
-                Wash.Rung or Wash.Age or Wash.Health when name is "building" or "roof" or "hip" or "paired-roof" => _categorical,
+                Wash.Rung or Wash.Age or Wash.Health or Wash.Trouble when name is "building" or "roof" or "hip" or "paired-roof" => _categorical,
                 _ => _muted,
             };
         }
@@ -817,7 +822,7 @@ public partial class Main
         // A building wash reads nothing off a Cell, so there is no texture to build and the ground
         // goes dark rather than staying under the last layer's tint -- which would be a stale
         // instrument sitting beside a live one, and the reader has no way to tell.
-        if (_washing is Wash.Rung or Wash.Age or Wash.Health)
+        if (_washing is Wash.Rung or Wash.Age or Wash.Health or Wash.Trouble)
         {
             _washPeak = 0;
             _washCells = 0;
@@ -994,6 +999,7 @@ public partial class Main
             + $"zero. {_washCells:N0} Cells read",
         Wash.Sealed => $"\nOVERLAY sealing — dark 0 to bright {_washPeak:N0} Tiles a Cell, "
             + $"{_washCells:N0} Cells read",
+        Wash.Trouble => TroubleLegend(),
         Wash.Health => "\nHEALTH — homes: green healthy, amber to red illness or Health deficit; blue care facilities. Select a home or facility for causes and waiting times.",
         Wash.Rung =>
             "\nOVERLAY rung — DEBUG. The block pattern a Building's Lot was carved by, "

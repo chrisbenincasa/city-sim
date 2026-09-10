@@ -18,8 +18,10 @@ public partial class Main
     private void UpdateBuildings()
     {
         WorldChanges changes = _world.Changes!;
-        if (changes.Full || _visualWash != _washing || _washing == Wash.Age)
+        if (changes.Full || _visualWash != _washing || _washing == Wash.Age
+            || _troubleRepaint && _washing == Wash.Trouble)
         {
+            _troubleRepaint = false;
             _fullBuildingPasses++;
             _visualWash = _washing;
             _drawnBuildings = Massings(Buildings());
