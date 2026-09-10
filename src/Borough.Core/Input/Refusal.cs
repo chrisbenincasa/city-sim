@@ -126,4 +126,34 @@ public enum Refusal : ushort
     /// faces that are standing.
     /// </summary>
     PeopleWorldHasNoLots = 19,
+
+    /// <summary>
+    /// <c>Tax</c> names a control that is not one of <see cref="TaxControl"/>'s four. The selector is
+    /// the verb's whole payload beside the value, so a number nothing declares is a command with no
+    /// subject rather than a setting to fall back from.
+    /// </summary>
+    TaxControlNotDeclared = 20,
+
+    /// <summary><c>Tax</c> sets a marginal rate outside 0..100. A percentage is a percentage.</summary>
+    TaxRateOutOfRange = 21,
+
+    /// <summary>
+    /// <c>Tax</c> sets a negative tax-free allowance. An allowance is the earnings below which
+    /// nothing is due, and a negative one is not a heavier tax — it is a threshold no Day can be on
+    /// the wrong side of.
+    /// </summary>
+    TaxAllowanceIsNegative = 22,
+
+    /// <summary>
+    /// <c>Tax</c> would leave the upper marginal rate below the middle one — <c>plans/0072</c> D7.
+    /// Both rates are marginal, so take-home income would step <em>downward</em> at the threshold: a
+    /// Citizen keeps less for having earned more.
+    /// </summary>
+    TaxUpperRateBelowMiddleRate = 23,
+
+    /// <summary>
+    /// <c>Tax</c> would leave the upper band starting below the allowance. A band that opens before
+    /// taxation does is not a band.
+    /// </summary>
+    TaxUpperThresholdBelowAllowance = 24,
 }

@@ -421,6 +421,23 @@ public partial class Main
             "that [[policy]] states no name, and a governed amount is saved against its name — so "
             + "there would be nothing to restore it to after a reload.",
 
+        Refusal.TaxControlNotDeclared =>
+            "there is no such tax control.",
+
+        Refusal.TaxRateOutOfRange =>
+            "a marginal rate is a percentage, so it lies between 0 and 100.",
+
+        Refusal.TaxAllowanceIsNegative =>
+            "an allowance is what may be earned before any tax, so it cannot be less than nothing.",
+
+        Refusal.TaxUpperRateBelowMiddleRate =>
+            "that would leave the upper rate below the middle one, and earning more would take home "
+            + "less. Raise the upper rate first.",
+
+        Refusal.TaxUpperThresholdBelowAllowance =>
+            "that would open the upper band below the tax-free allowance, so the middle rate would "
+            + "have nothing to bite on. Move the threshold first.",
+
         Refusal.TripRulesetStatesNoTrips or Refusal.TripWorldHasNoLattice
             or Refusal.TripBlockHoldsNobody or Refusal.TripEndpointsAreOneBuilding
             or Refusal.TripOriginHoldsNoCitizen =>

@@ -102,7 +102,31 @@ public readonly record struct RuleFlow(long Sum, int Peak)
 /// <param name="Due">Rule Instances taken off the Event Wheel.</param>
 /// <param name="Evaluations">Evaluations performed — a head, each non-terminal link, each re-check.</param>
 /// <param name="ChainRungs">Chain rungs descended, the reporting terminal included.</param>
-public readonly record struct RuleActivity(RuleFlow Due, RuleFlow Evaluations, RuleFlow ChainRungs);
+/// <param name="ToTreasury">
+/// Money a fired Bin Rule <em>deposited</em> into the treasury over the interval — every output term
+/// naming <c>scope = "global"</c> in a money-family Resource, summed at the count it actually fired
+/// at.
+/// <para>
+/// 🔴 <b>It is here because it was nowhere, and the hole was 89% of a shipped world's treasury.</b>
+/// On <c>rulesets/taxing.toml</c> over 24,576 Ticks the treasury closed at <b>1,621,850</b> against a
+/// withheld column of <b>180,058</b>; the missing <b>1,441,792</b> was 88 firings of that file's
+/// <c>rates</c> Rule, whose output names <c>global</c>. Every flow the instrument carried was folded
+/// from the Policy sweeps and the paydays, so a budget's balance column could not be explained by the
+/// flow columns beside it.
+/// </para>
+/// </param>
+/// <param name="FromTreasury">
+/// Money a fired Bin Rule <em>withdrew</em> from the treasury over the interval — an input term
+/// naming <c>global</c>, on the same terms. Reported apart from <paramref name="ToTreasury"/> rather
+/// than netted, for <c>MoneyFlowCounter.FromTreasury</c>'s reason: a net cannot distinguish a city
+/// that taxed nothing and paid nothing from one that taxed heavily and paid it all back.
+/// </param>
+public readonly record struct RuleActivity(
+    RuleFlow Due,
+    RuleFlow Evaluations,
+    RuleFlow ChainRungs,
+    MoneyFlow ToTreasury = default,
+    MoneyFlow FromTreasury = default);
 
 /// <summary>
 /// Bin Rule evaluation and application: Phase 2 decides, Phase 3 applies, and nothing is partial.
@@ -181,6 +205,13 @@ public sealed class RuleEngine
     // every other seller in the District restocking. See Buy.
     private int[] _touchedBlame = new int[8];
 
+    // Whether the touched Bin is the TREASURY's and holds a money-family Resource, decided at the
+    // call site from the term's Scope rather than here from the Bin's owner. PolicyEngine.Move gives
+    // the argument for reading the Scope: a Bin is the treasury's by ownership and a transfer is the
+    // treasury's by direction. The cheapness follows from the same choice -- a Rule that names no
+    // global term pays one enum comparison per term and never touches a column.
+    private bool[] _touchedTreasury = new bool[8];
+
     // The pool draws of the Rule currently being checked, per application: which market row and how
     // much. Read by Fire to post DistrictPoolTable.Consumed, which is the tatonnement's numerator
     // and had no writer at all before this. Term structure, which the netted deltas above have lost.
@@ -197,6 +228,15 @@ public sealed class RuleEngine
     private RuleFlow _dueFlow;
     private RuleFlow _evaluationFlow;
     private RuleFlow _rungFlow;
+
+    // The same shape in Money's width, and PolicyEngine's fields exactly. Accumulated in Fire --
+    // where the deposit and the withdrawal actually happen -- and never in Check, because a Rule that
+    // is evaluated and then blocked has moved nothing and must appear in no flow.
+    private long _tickToTreasury;
+    private long _tickFromTreasury;
+
+    private MoneyFlow _toTreasuryFlow;
+    private MoneyFlow _fromTreasuryFlow;
 
     /// <param name="world">The tables this evaluates against. Not copied.</param>
     /// <param name="key">The world seed, for Phase 3's settle order.</param>
@@ -233,11 +273,14 @@ public sealed class RuleEngine
     /// </remarks>
     public RuleActivity Drain()
     {
-        var activity = new RuleActivity(_dueFlow, _evaluationFlow, _rungFlow);
+        var activity = new RuleActivity(
+            _dueFlow, _evaluationFlow, _rungFlow, _toTreasuryFlow, _fromTreasuryFlow);
 
         _dueFlow = default;
         _evaluationFlow = default;
         _rungFlow = default;
+        _toTreasuryFlow = default;
+        _fromTreasuryFlow = default;
 
         return activity;
     }
@@ -392,10 +435,14 @@ public sealed class RuleEngine
         _dueFlow = _dueFlow.Fold(_tickDue);
         _evaluationFlow = _evaluationFlow.Fold(_tickEvaluations);
         _rungFlow = _rungFlow.Fold(_tickRungs);
+        _toTreasuryFlow = _toTreasuryFlow.Fold(_tickToTreasury);
+        _fromTreasuryFlow = _fromTreasuryFlow.Fold(_tickFromTreasury);
 
         _tickDue = 0;
         _tickEvaluations = 0;
         _tickRungs = 0;
+        _tickToTreasury = 0;
+        _tickFromTreasury = 0;
     }
 
     /// <summary>Evaluates a Rule and, if it fails, its <c>on_fail</c> chain.</summary>
@@ -530,12 +577,12 @@ public sealed class RuleEngine
                 continue;
             }
 
-            Touch(Bin(_world, instance, term.Bin, rule), -term.Amount);
+            Touch(Bin(_world, instance, term.Bin, rule), -term.Amount, IsTreasuryMoney(term.Bin));
         }
 
         foreach (Term term in _world.Rules.Outputs(rule))
         {
-            Touch(Bin(_world, instance, term.Bin, rule), term.Amount);
+            Touch(Bin(_world, instance, term.Bin, rule), term.Amount, IsTreasuryMoney(term.Bin));
         }
 
         long applications = ceiling;
@@ -775,6 +822,17 @@ public sealed class RuleEngine
             {
                 _world.Withdraw(bin, -delta, tick);
 
+                // The treasury's flow, taken HERE and not in Check, and the two are different
+                // numbers: Check runs for every due Rule and for every rung of a failed chain, and
+                // a Rule that is evaluated and then blocked has moved nothing. Positive and
+                // negative are accumulated apart rather than netted for
+                // MoneyFlowCounter.FromTreasury's reason -- a net cannot distinguish a city that
+                // taxed nothing and paid nothing from one that taxed heavily and paid it all back.
+                if (_touchedTreasury[i])
+                {
+                    _tickFromTreasury += -delta;
+                }
+
                 // 04 section 6 step 6, the recovery half: a Household that DREW the Good had its
                 // occasion met. A withdrawal is the shop counter of 04 section 2 -- "a Household
                 // buys Food (an integer leaving a Bin) and its Sustenance moves toward zero".
@@ -783,6 +841,11 @@ public sealed class RuleEngine
             else if (delta > 0)
             {
                 _world.Deposit(bin, delta, tick);
+
+                if (_touchedTreasury[i])
+                {
+                    _tickToTreasury += delta;
+                }
             }
         }
 
@@ -1508,7 +1571,8 @@ public sealed class RuleEngine
     /// A linear scan because a Rule's term list is a handful — <c>02 §4.3</c>'s bakery has two — so
     /// anything cleverer would cost more to set up than the scan costs to run.
     /// </remarks>
-    private void Touch(int bin, long delta) => Touch(bin, delta, bin);
+    private void Touch(int bin, long delta, bool treasury = false) =>
+        Touch(bin, delta, bin, treasury);
 
     /// <summary>Accumulates a delta against a Bin, merging a Bin already named by this Rule.</summary>
     /// <remarks>
@@ -1522,14 +1586,22 @@ public sealed class RuleEngine
     /// touches directly keeps the market's blame — the reading that sends the waiter somewhere a
     /// restock can reach it.
     /// </para>
+    /// <para>
+    /// <b><paramref name="treasury"/> is OR-ed across a merge where the blame is not</b>, and the
+    /// asymmetry is not a nicety: blame is a choice between two Bins a reader could be sent to, so
+    /// the first writer wins; treasury-ness is a property of the Bin itself, so two terms merging
+    /// onto one Bin cannot disagree about it and an <c>|=</c> is the only spelling that stays right
+    /// if a caller ever passes <see langword="false"/> first.
+    /// </para>
     /// </remarks>
-    private void Touch(int bin, long delta, int blame)
+    private void Touch(int bin, long delta, int blame, bool treasury = false)
     {
         for (int i = 0; i < _touchedCount; i++)
         {
             if (_touchedBin[i] == bin)
             {
                 _touchedDelta[i] += delta;
+                _touchedTreasury[i] |= treasury;
                 return;
             }
         }
@@ -1537,12 +1609,40 @@ public sealed class RuleEngine
         Grow(ref _touchedBin, _touchedCount + 1);
         Grow(ref _touchedDelta, _touchedCount + 1);
         Grow(ref _touchedBlame, _touchedCount + 1);
+        Grow(ref _touchedTreasury, _touchedCount + 1);
 
         _touchedBin[_touchedCount] = bin;
         _touchedDelta[_touchedCount] = delta;
         _touchedBlame[_touchedCount] = blame;
+        _touchedTreasury[_touchedCount] = treasury;
         _touchedCount++;
     }
+
+    /// <summary>
+    /// Whether a term names the treasury's Bin for a conserved Resource — the one movement in a Bin
+    /// Rule that a city's budget has to be able to account for.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Off the term's <see cref="Scope"/> and not off the Bin's owner</b>, which is
+    /// <c>PolicyEngine.Move</c>'s decision restated: <em>a Bin is the treasury's by ownership and a
+    /// transfer is the treasury's by direction.</em> The two agree today — <c>Bin</c>'s
+    /// <see cref="Scope.Global"/> case resolves to <c>World.FindTreasuryBin</c> and nothing else does
+    /// — and reading the Scope is what keeps them agreeing for a stated reason rather than by
+    /// coincidence.
+    /// </para>
+    /// <para>
+    /// <b>The conserved test is the second half and it is not redundant.</b>
+    /// <c>World.FitTreasury</c> opens a Bin per <em>money-family</em> Resource and never removes one,
+    /// so a hot reload that demotes a Resource out of the money family (<c>adr/0015</c>) leaves a
+    /// treasury Bin standing for something a budget must not count as income. ⚠ It is behind the
+    /// Scope test rather than beside it, so a Rule naming no global term never reaches the Ruleset
+    /// at all: what a Rule that does not touch the treasury pays for this counter is one enum
+    /// comparison per term.
+    /// </para>
+    /// </remarks>
+    private bool IsTreasuryMoney(BinRef reference) =>
+        reference.Scope == Scope.Global && _world.Rules.IsConserved(reference.Resource);
 
     private static void Grow<T>(ref T[] buffer, int needed)
     {

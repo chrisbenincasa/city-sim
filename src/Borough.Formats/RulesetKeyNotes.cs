@@ -861,6 +861,26 @@ public static class RulesetKeyNotes
             "The furthest a price may travel in one Day, as a percentage of the import ceiling. Zero "
             + "would mean it never moves, which is what deleting the table already says.",
 
+        // ---- [income_tax] ---------------------------------------------------------------------
+        ["[income_tax] allowance_per_day"] =
+            "What a Citizen may earn in one Day before anything is withheld. It reads earnings for "
+            + "a Day and never a balance, so a payment covering several Days is attributed across "
+            + "them before any band is consulted. Omitting the whole [income_tax] table means no "
+            + "income tax is levied at all; a stated zero means the first unit earned is taxed.",
+        ["[income_tax] upper_threshold_per_day"] =
+            "The Day's earnings at which the upper band starts. Below it the middle rate applies to "
+            + "everything above the allowance; at or above it the upper rate applies to the excess. "
+            + "Equal to the allowance is a two-band schedule and is legitimate.",
+        ["[income_tax] middle_rate_percent"] =
+            "The share withheld from earnings between the allowance and the threshold. Marginal, so "
+            + "it never reprices what was earned below the allowance.",
+        ["[income_tax] upper_rate_percent"] =
+            "The share withheld from earnings above the threshold. It may not be below the middle "
+            + "rate: both are marginal, so a rate that fell as earnings rose would make take-home "
+            + "income step downward at the threshold and a Citizen would keep less for having "
+            + "earned more. All four keys here are one decision — state every one or delete the "
+            + "table.",
+
         // ---- [needs] --------------------------------------------------------------------------
         ["[needs] sustenance_degrade"] =
             "How far Sustenance falls on one occasion. Stated as a positive step whose direction "

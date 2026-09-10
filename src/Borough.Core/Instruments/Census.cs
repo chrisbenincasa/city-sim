@@ -113,7 +113,8 @@ public sealed class Census
     // reason: a stock read at an instant is the same number at any cadence.
     private const int MoneyCounters = 6;
 
-    private const int MoneyFlowCounters = 2;
+    /// <summary>The members of <see cref="MoneyFlowCounter"/> — one per (mechanism, direction).</summary>
+    private const int MoneyFlowCounters = 5;
 
     private const int MoneyFlowMetrics = MoneyFlowCounters * AggregatesPerRuleCounter;
 
@@ -252,7 +253,8 @@ public sealed class Census
             simulation.Placement.Drain(),
             simulation.Trips.Drain(),
             simulation.Employment.Drain(),
-            simulation.Policies.Drain());
+            simulation.Policies.Drain(),
+            simulation.Wages.DrainWithheld());
     }
 
     /// <summary>
@@ -268,12 +270,26 @@ public sealed class Census
     /// </remarks>
     /// <param name="world">The world to read. Must have the shape the census was built against.</param>
     /// <param name="tick">The Tick to stamp the reading with.</param>
-    /// <param name="activity">The Rule engine's interval since the previous reading, already drained.</param>
+    /// <param name="activity">
+    /// The Rule engine's interval since the previous reading, already drained. ⚠ <b>It carries two
+    /// money magnitudes as well as the three counters</b>: a Bin Rule whose term names
+    /// <c>scope = "global"</c> moves money across the treasury's edge, and until row 33 nothing
+    /// counted it.
+    /// </param>
     /// <param name="zoning">The Sweep family's interval since the previous reading, already drained.</param>
     /// <param name="placement">The placement pass's interval since the previous reading, already drained.</param>
     /// <param name="trips">Tick phase 4's interval since the previous reading, already drained.</param>
     /// <param name="jobs">The assignment pass's interval since the previous reading, already drained.</param>
     /// <param name="policies">The Policy sweeps' interval since the previous reading, already drained.</param>
+    /// <param name="withheld">
+    /// Citizen income tax withheld at the paydays since the previous reading, already drained.
+    /// <b>A drain rather than a last reading, and the distinction is not a nicety.</b>
+    /// <c>Simulation.LastPayroll</c> holds the most recent sweep only, and a census observes on an
+    /// interval that several paydays can fall inside — a trade's pay period staggers across its
+    /// Businesses, so most Day boundaries are somebody's payday. Sampling the last reading would
+    /// silently drop every payday but one and under-report the treasury's income by however much the
+    /// cadence exceeds a Day.
+    /// </param>
     public void Observe(
         World world,
         Ticks tick,
@@ -282,7 +298,8 @@ public sealed class Census
         PlacementActivity placement = default,
         TripActivity trips = default,
         EmploymentActivity jobs = default,
-        PolicyActivity policies = default)
+        PolicyActivity policies = default,
+        MoneyFlow withheld = default)
     {
         ArgumentNullException.ThrowIfNull(world);
 
@@ -370,6 +387,18 @@ public sealed class Census
         WriteMoney(_values, at + _moneyFlowBase, (int)MoneyFlowCounter.ToTreasury, policies.ToTreasury);
         WriteMoney(
             _values, at + _moneyFlowBase, (int)MoneyFlowCounter.FromTreasury, policies.FromTreasury);
+        WriteMoney(_values, at + _moneyFlowBase, (int)MoneyFlowCounter.Withheld, withheld);
+
+        // The third income path, and the one that reached the treasury in silence until row 33. It
+        // rides RuleActivity rather than PolicyActivity because it is the Bin Rule engine that moved
+        // it -- see MoneyFlowCounter.RuleToTreasury for why it is not folded into ToTreasury.
+        WriteMoney(
+            _values, at + _moneyFlowBase, (int)MoneyFlowCounter.RuleToTreasury, activity.ToTreasury);
+        WriteMoney(
+            _values,
+            at + _moneyFlowBase,
+            (int)MoneyFlowCounter.RuleFromTreasury,
+            activity.FromTreasury);
 
         for (int bucket = 0; bucket < TripCostCounters; bucket++)
         {
@@ -560,7 +589,8 @@ public sealed class Census
         if (metric.Source is MetricSource.MoneyFlow)
         {
             if (metric.MoneyFlowCounter is not (MoneyFlowCounter.ToTreasury
-                or MoneyFlowCounter.FromTreasury))
+                or MoneyFlowCounter.FromTreasury or MoneyFlowCounter.Withheld
+                or MoneyFlowCounter.RuleToTreasury or MoneyFlowCounter.RuleFromTreasury))
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(metric), metric.MoneyFlowCounter, "not a money movement this census reads.");

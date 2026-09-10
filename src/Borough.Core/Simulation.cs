@@ -217,6 +217,18 @@ public sealed class Simulation
     /// </remarks>
     public PolicyEngine Policies => _policies;
 
+    /// <summary>
+    /// The payroll sweep, for the one thing about it that is a flow rather than a reading.
+    /// </summary>
+    /// <remarks>
+    /// <b>Internal because <c>WageEngine</c> is</b>, and the only caller is <c>Census.Observe</c>,
+    /// which drains the income tax the paydays withheld. ⚠ <b>Not a substitute for
+    /// <see cref="LastPayroll"/> and not substitutable by it</b>: that is the last sweep's reading and
+    /// this is an accumulation across every sweep since the last observation, and an instrument
+    /// reading the wrong one of the two under-reports by however much its cadence exceeds a Day.
+    /// </remarks>
+    internal WageEngine Wages => _wages;
+
     /// <summary>What the most recent payday moved, or zeroes on a Tick that was not one.</summary>
     /// <remarks>
     /// <b>The last reading rather than a total</b>, so an instrument samples it and nothing
@@ -525,6 +537,13 @@ public sealed class Simulation
                 ApplyGovern(command);
                 break;
 
+            case CommandKind.Tax:
+                // plans/0072 D3, and Govern's sibling rather than a case of it: a Policy holds one
+                // amount and an income tax holds four numbers that constrain each other, kept as a
+                // schedule per Day because a late wage is taxed at the Day it was earned.
+                ApplyTax(command, tick);
+                break;
+
             case CommandKind.Service:
                 // 01 section 2's third verb, and the design's one acknowledged placement exception:
                 // pillar 3 is govern-don't-place, and a school appearing wherever the simulation
@@ -578,6 +597,7 @@ public sealed class Simulation
         CommandKind.Trip => RefuseTrip(command, out _, out _, out _),
         CommandKind.Arrive => RefuseArrive(command, out _),
         CommandKind.Govern => RefuseGovern(command),
+        CommandKind.Tax => RefuseTax(command, _world.Tick, out _),
         CommandKind.Demolish => RefuseDemolish(command, out _),
         CommandKind.Service => RefuseService(command, out _, out _),
         CommandKind.People => RefusePeople(),
@@ -651,6 +671,61 @@ public sealed class Simulation
         return policy >= _world.Rules.Policies.Length ? Refusal.GovernNoSuchPolicy
             : policy >= _world.Policies.Rows.SlotCount ? Refusal.GovernPolicyNotInThisWorld
             : _world.Policies.Key[policy] == 0 ? Refusal.GovernPolicyHasNoName
+            : Refusal.None;
+    }
+
+    /// <inheritdoc cref="ApplyTax"/>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>Every check is against the schedule the player is building for TOMORROW, and never
+    /// against the one in force today.</b> The four controls constrain each other, so a city moving
+    /// from 10/20 to 30/40 has to pass through a state one of them fails — and tested against today's
+    /// schedule the first of the two commands would be refused, leaving the pair unreachable in
+    /// either order. ***A verb whose four halves cannot be issued in any order is not four
+    /// controls.***
+    /// </para>
+    /// <para>
+    /// <b>So the refusal is composed on the updated schedule rather than on the value</b>, which is
+    /// also what makes the two order-independent: whichever end the player moved, what is checked is
+    /// the pair that would result.
+    /// </para>
+    /// </remarks>
+    private Refusal RefuseTax(Command command, Ticks tick, out IncomeTaxSchedule updated)
+    {
+        long today = IntegerMath.FloorDiv((long)tick.Raw, Ticks.PerDay);
+        int value = command.East.Raw;
+
+        updated = _world.IncomeTaxRates.ScheduleFor(today + 1, _world.Rules.IncomeTax);
+
+        if (command.Zone > (ushort)TaxControl.UpperRate)
+        {
+            return Refusal.TaxControlNotDeclared;
+        }
+
+        var control = (TaxControl)command.Zone;
+
+        if (control is TaxControl.MiddleRate or TaxControl.UpperRate && (value < 0 || value > 100))
+        {
+            return Refusal.TaxRateOutOfRange;
+        }
+
+        if (control == TaxControl.Allowance && value < 0)
+        {
+            return Refusal.TaxAllowanceIsNegative;
+        }
+
+        updated = control switch
+        {
+            TaxControl.Allowance => updated with { AllowancePerDay = value },
+            TaxControl.UpperThreshold => updated with { UpperThresholdPerDay = value },
+            TaxControl.MiddleRate => updated with { MiddleRatePercent = value },
+            _ => updated with { UpperRatePercent = value },
+        };
+
+        return updated.UpperRatePercent < updated.MiddleRatePercent
+                ? Refusal.TaxUpperRateBelowMiddleRate
+            : updated.UpperThresholdPerDay < updated.AllowancePerDay
+                ? Refusal.TaxUpperThresholdBelowAllowance
             : Refusal.None;
     }
 
@@ -778,6 +853,35 @@ public sealed class Simulation
             $"Govern names Policy {command.Zone} and that [[policy]] table states no name. A governed "
             + "amount is saved state that has to survive a reload, and a name is the only thing "
             + "that survives a renumbering — see Ruleset.PolicyKeys. Name the table to govern it.",
+
+        Refusal.TaxControlNotDeclared =>
+            $"tax names control {command.Zone}, and there are four: 0 the allowance, 1 the upper "
+            + "threshold, 2 the middle rate, 3 the upper rate. The control is the verb's whole "
+            + "payload beside the value, so a selector nothing declares is a command with no "
+            + "subject rather than a setting to fall back from.",
+
+        Refusal.TaxRateOutOfRange =>
+            $"tax sets a marginal rate to {command.East.Raw}, and a rate is a percentage: 0 to 100. "
+            + "It refuses rather than clamping, because a clamped rate is a schedule the player did "
+            + "not author reporting that it took the one they did.",
+
+        Refusal.TaxAllowanceIsNegative =>
+            $"tax sets the tax-free allowance to {command.East.Raw}. An allowance is the earnings "
+            + "below which nothing is due, so a negative one is not a heavier tax -- it is a "
+            + "threshold no Day's earnings can be on the wrong side of.",
+
+        Refusal.TaxUpperRateBelowMiddleRate =>
+            $"tax would leave the upper marginal rate below the middle one (plans/0072 D7). Both "
+            + "rates are marginal, so take-home income would step DOWNWARD at the threshold: a "
+            + "Citizen who earned a pound more would keep less. That is the schedule ceasing to be "
+            + "monotone, which IncomeTax.WithholdingOn leans on to keep a withholding non-negative. "
+            + "Move the upper rate first, then the middle one.",
+
+        Refusal.TaxUpperThresholdBelowAllowance =>
+            $"tax would leave the upper band starting at {command.East.Raw}, at or below the "
+            + "tax-free allowance. A band that opens before taxation does is not a band -- the "
+            + "middle rate would apply to nothing, and the schedule would have two names for one "
+            + "band.",
 
         Refusal.DemolishNoBuildingOnThatTile =>
             $"demolish names Tile ({command.East.Raw}, {command.North.Raw}), where no Building "
@@ -1105,6 +1209,47 @@ public sealed class Simulation
         }
 
         _world.Policies.Govern(command.Zone, command.East.Raw);
+    }
+
+    /// <summary>
+    /// Moves one of the four controls on the Citizen income tax, from the start of the next Day.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>Effective from TOMORROW, and that is <c>plans/0072</c> D6 rather than caution.</b> A
+    /// Citizen's Day is taxed against the schedule that governs the Day it was <em>earned</em>, and a
+    /// change written into today would reprice earnings already made — including a wage already
+    /// withheld against, whose employer cannot be asked for the difference back. ***A rate the player
+    /// moves at noon settles the Day after, not the morning behind them.***
+    /// </para>
+    /// <para>
+    /// <b>Four controls set on one Day leave ONE ring entry.</b>
+    /// <see cref="Entities.IncomeTaxTable.Govern"/> is indexed by the Day and replaces rather than
+    /// appends, so the four commands compose: each reads the pending schedule back out, replaces the
+    /// one field it names, and writes the whole thing again. That is also why the refusals are tested
+    /// against the pending schedule — see <see cref="RefuseTax"/>.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The value is refused where it is out of range and never clamped.</b> A rate outside
+    /// 0..100 or a negative allowance is a command with a wrong payload rather than an extreme
+    /// setting, and a clamp would be a schedule nobody authored reporting that it took the one they
+    /// did. What is <em>not</em> refused is a ruinous rate inside the range: <c>adr/0015</c>'s
+    /// acceptance test is that a rate moves freely, and a city taxed to death is one the player has
+    /// governed badly.
+    /// </para>
+    /// </remarks>
+    private void ApplyTax(Command command, Ticks tick)
+    {
+        Refusal refusal = RefuseTax(command, tick, out IncomeTaxSchedule updated);
+
+        if (refusal != Refusal.None)
+        {
+            throw new InvalidOperationException(Explain(refusal, command));
+        }
+
+        long today = IntegerMath.FloorDiv((long)tick.Raw, Ticks.PerDay);
+
+        _world.IncomeTaxRates.Govern(today + 1, updated);
     }
 
     /// <summary>

@@ -296,6 +296,8 @@ public static class RulesetLoader
 
         private TableSyntaxBase? _marketTable;
 
+        private TableSyntaxBase? _incomeTaxTable;
+
         private TableSyntaxBase? _needsTable;
         private TableSyntaxBase? _shoppingTable;
         private TableSyntaxBase? _schoolTable;
@@ -371,6 +373,7 @@ public static class RulesetLoader
             DisasterRuleset disasters = ReadDisasters(water);
             DistrictRuleset districts = ReadDistricts();
             MarketRuleset market = ReadMarket();
+            IncomeTaxSchedule incomeTax = ReadIncomeTax();
 
             // After ReadKinds, because whether an ATTENDED Need's rates are required is a property of
             // the pair: they are owed by a file declaring a kind that serves one and refused of a file
@@ -393,6 +396,15 @@ public static class RulesetLoader
             // The same shape one table along: [capacity]'s ceiling on attendance can only bind on a
             // kind that serves something, and ReadCapacity runs before ReadKinds so it cannot ask.
             RefuseInertServicePlaces(capacity, kinds);
+
+            // After BOTH, and it cannot live inside ReadIncomeTax for the reason RefuseUnpricedGoods
+            // cannot live inside ReadDistricts: it is a property of the PAIR. The schedule knows
+            // nothing about who pays anybody and a trade knows nothing about whether the city taxes
+            // income, so neither reader can see the defect alone. ⚠ It runs unconditionally rather
+            // than behind the clean-slate gate, on RefuseUnpricedGoods' precedent: a file with an
+            // unrelated mistake elsewhere still has this one, and reporting both is what makes one
+            // pass over the file enough.
+            RefuseUnassessablePayPeriods(businessKinds);
 
             if (_refusals.Count == 0)
             {
@@ -465,6 +477,7 @@ public static class RulesetLoader
                 Disasters = disasters,
                 Districts = districts,
                 Market = market,
+                IncomeTax = incomeTax,
                 Needs = needs,
                 Schooling = schooling,
                 Shopping = shopping,
@@ -863,6 +876,23 @@ public static class RulesetLoader
                         _marketTable = table;
                         break;
 
+                    case "income_tax":
+                        // Singular and optional, on [market]'s reasoning exactly. A city levies one
+                        // income tax: the bands are a single schedule every earner is read against,
+                        // so a second table would be a second schedule for one treasury and nothing
+                        // in the file would say which earner is read against which.
+                        if (_incomeTaxTable is not null)
+                        {
+                            Refuse(LineOf(table), null,
+                                "a second [income_tax] is declared. There is one income tax "
+                                + "schedule, so two tables of bands for it is ambiguous rather than "
+                                + "additive.");
+                            break;
+                        }
+
+                        _incomeTaxTable = table;
+                        break;
+
                     default:
                         Refuse(LineOf(table), null,
                             $"'{section}' is not a Ruleset section. The sections are "
@@ -870,7 +900,8 @@ public static class RulesetLoader
                             + "[[resource]], [[building]], [[business]], [[rule]], [[zone_rule]], "
                             + "[[policy]], [[hinterland]], [[lattice]], [[terrain]], [layers], "
                             + "[placement], [roads], [lots], [trips], [jobs], [households], "
-                            + "[traffic], [parking], [water], [districts], [market] and "
+                            + "[traffic], [parking], [water], [districts], [market], "
+                            + "[income_tax] and "
                             + "[founding]. A trade is declared with [[business]] and the founding "
                             + "channel is configured with [founding]; they are different tables.");
                         break;
@@ -7726,6 +7757,179 @@ public static class RulesetLoader
         private int LineOfMarket(string key) =>
             LineOf((SyntaxNodeBase?)Find(_marketTable!, key) ?? _marketTable!);
 
+        // ---- income tax -------------------------------------------------------------------------
+
+        /// <summary>
+        /// The <c>[income_tax]</c> table: the three marginal bands a Day's earnings are read against.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Optional, and its absence is a city that levies no income tax at all</b> — which is the
+        /// city every Ruleset described before this table existed, so nothing moves by the table
+        /// arriving. <c>[traffic]</c>'s polarity and <c>[households] car_ownership_percent</c>'s:
+        /// the absence is reached by <em>omitting the table</em>, never by a defaulted key, because
+        /// every defaultable value here is inside the range of answers a designer might mean. A rate
+        /// of zero is a real schedule that takes nothing and says so; an unwritten rate is a
+        /// placeholder that cannot announce itself.
+        /// </para>
+        /// <para>
+        /// <b>Once the table is present all four keys are required</b>, which is
+        /// <c>opening_balance_min</c>/<c>opening_balance_max</c>'s rule with four ends instead of
+        /// two. A schedule is not four independent numbers: an allowance means nothing without the
+        /// rate that starts above it, and a threshold means nothing without the rate on either side.
+        /// ***So the optionality is a property of the group rather than of each key***, which is why
+        /// the guard counts how many arrived rather than testing them one at a time.
+        /// </para>
+        /// <para>
+        /// 🔴 <b>The upper rate is refused BELOW the middle rate, and that is a design refusal rather
+        /// than a typo guard.</b> Each band is marginal, so a falling rate would make take-home
+        /// income jump <em>downward</em> as gross earnings crossed the threshold — a Citizen strictly
+        /// worse off for having earned more. Nothing in the design wants that, and it is not a
+        /// balance setting somebody could tune into: it is the schedule ceasing to be monotone, which
+        /// <see cref="IncomeTax.WithholdingOn"/> relies on to keep a withholding non-negative.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>Tuning rather than world creation</b> (<c>adr/0015</c>). Nothing in the world points
+        /// at a band — a schedule is read at the moment earnings are attributed and never stored — so
+        /// <see cref="RulesetShape"/> compares none of it and a reload retunes the standing city.
+        /// That is the same test <c>[market]</c>'s damping passes.
+        /// </para>
+        /// </remarks>
+        private IncomeTaxSchedule ReadIncomeTax()
+        {
+            if (_incomeTaxTable is null)
+            {
+                return IncomeTaxSchedule.None;
+            }
+
+            KeyValueSyntax? allowance = Find(_incomeTaxTable, "allowance_per_day");
+            KeyValueSyntax? threshold = Find(_incomeTaxTable, "upper_threshold_per_day");
+            KeyValueSyntax? middleRate = Find(_incomeTaxTable, "middle_rate_percent");
+            KeyValueSyntax? upperRate = Find(_incomeTaxTable, "upper_rate_percent");
+
+            int stated = (allowance is null ? 0 : 1)
+                + (threshold is null ? 0 : 1)
+                + (middleRate is null ? 0 : 1)
+                + (upperRate is null ? 0 : 1);
+
+            if (stated < 4)
+            {
+                Refuse(LineOfIncomeTax("allowance_per_day"), null,
+                    "[income_tax] states some of the schedule's four keys and not all of them. "
+                    + "allowance_per_day, upper_threshold_per_day, middle_rate_percent and "
+                    + "upper_rate_percent are one decision in four keys: an allowance says nothing "
+                    + "without the rate that starts above it, and a threshold says nothing without "
+                    + "the rate on either side of it. State all four, or delete the whole table for "
+                    + "a city that levies no income tax at all.");
+
+                return IncomeTaxSchedule.None;
+            }
+
+            if (!TryInteger(_incomeTaxTable, "allowance_per_day", out long free, required: true)
+                || !TryInteger(_incomeTaxTable, "upper_threshold_per_day", out long upper,
+                    required: true))
+            {
+                return IncomeTaxSchedule.None;
+            }
+
+            // A stock is never negative (adr/0003), and this one is earnings rather than wealth: a
+            // negative allowance would be a Day whose first units are taxed before any were earned.
+            if (free < 0)
+            {
+                Refuse(LineOfIncomeTax("allowance_per_day"), null,
+                    $"allowance_per_day is {free}. It is what a Citizen may earn in one Day before "
+                    + "anything is withheld, and earnings are a quantity rather than a balance, so "
+                    + "it is never negative. Zero is legitimate and means the first unit earned is "
+                    + "taxed.");
+
+                return IncomeTaxSchedule.None;
+            }
+
+            // The two are individually sane and jointly are not, which is the shape Refusal 9 has
+            // over [placement]. A band that starts below where taxation starts is not a band: the
+            // middle rate would apply over an empty interval, so one of the two rates in this file
+            // would be unreachable while both read as settings.
+            if (upper < free)
+            {
+                Refuse(LineOfIncomeTax("upper_threshold_per_day"), null,
+                    $"upper_threshold_per_day is {upper}, below allowance_per_day of {free}. The "
+                    + "middle band runs from the allowance up to the threshold, so a threshold under "
+                    + "the allowance is an empty band and the middle rate could never be reached by "
+                    + "any earner. Write a threshold at or above the allowance -- equal to it is a "
+                    + "two-band schedule and is legitimate.");
+
+                return IncomeTaxSchedule.None;
+            }
+
+            if (!ReadTaxRate("middle_rate_percent", out int middle)
+                | !ReadTaxRate("upper_rate_percent", out int top))
+            {
+                // Non-shortcutting on purpose, so a file that gets both rates wrong is told about
+                // both rather than about whichever is written first.
+                return IncomeTaxSchedule.None;
+            }
+
+            // The one refusal here that is not a range check. Both rates are marginal, so a rate that
+            // FALLS as earnings rise makes take-home income step downward at the threshold: a Citizen
+            // is strictly worse off for having earned one unit more, which is not a city anybody has
+            // designed and is not a setting somebody could tune into. It is also what
+            // IncomeTax.WithholdingOn leans on -- a difference of two totals is non-negative only
+            // while the schedule is monotone.
+            if (top < middle)
+            {
+                Refuse(LineOfIncomeTax("upper_rate_percent"), null,
+                    $"upper_rate_percent is {top}, below middle_rate_percent of {middle}. Both are "
+                    + "marginal rates, so a rate that falls as earnings rise makes take-home income "
+                    + "step DOWNWARD at the threshold -- a Citizen who earns one unit more keeps "
+                    + "less than one who earned one unit less. That is not a lighter tax on high "
+                    + "earners, it is a schedule that stops being monotone, and every reading built "
+                    + "on it reports a Citizen losing money by working.");
+
+                return IncomeTaxSchedule.None;
+            }
+
+            return new IncomeTaxSchedule(free, upper, middle, top);
+        }
+
+        /// <summary>
+        /// One of the schedule's two marginal rates, as a whole percentage.
+        /// </summary>
+        /// <remarks>
+        /// <b>One guard serving two keys, because the bound is the same bound.</b> A rate is a share
+        /// of the earnings inside its own band: below zero it pays the earner for earning, and above
+        /// 100 it takes more than the band holds, so the Citizen's take-home falls as their gross
+        /// rises inside a single band. Neither is a heavier or lighter tax — both are a quantity that
+        /// is not a share, which is <c>car_ownership_percent</c>'s sentence on a second surface.
+        /// </remarks>
+        private bool ReadTaxRate(string key, out int percent)
+        {
+            percent = 0;
+
+            if (!TryInteger(_incomeTaxTable!, key, out long rate, required: true))
+            {
+                return false;
+            }
+
+            if (rate < 0 || rate > 100)
+            {
+                Refuse(LineOfIncomeTax(key), null,
+                    $"{key} is {rate}. It is the share of the earnings inside its own band that is "
+                    + "withheld, so it is a whole percentage in 0..100 -- zero is a band that takes "
+                    + "nothing and 100 is one that takes all of it. Below zero the tax pays the "
+                    + "earner for earning; above 100 it takes more than the band holds, so a Citizen "
+                    + "keeps less for earning more inside one band.");
+
+                return false;
+            }
+
+            percent = (int)rate;
+            return true;
+        }
+
+        /// <summary>The line an <c>[income_tax]</c> key is on, or the table's.</summary>
+        private int LineOfIncomeTax(string key) =>
+            LineOf((SyntaxNodeBase?)Find(_incomeTaxTable!, key) ?? _incomeTaxTable!);
+
         /// <summary>
         /// The <c>[founding]</c> table — <c>adr/0145</c>'s founding channel.
         /// </summary>
@@ -7965,6 +8169,79 @@ public static class RulesetLoader
                     + "what that Pool can charge, so an unpriced good is not merely unanchored -- it "
                     + "is free everywhere, for ever. Add a prices entry for it to some [[hinterland]], "
                     + "or delete the [districts] table.");
+            }
+        }
+
+        /// <summary>
+        /// <b>A file stating <c>[income_tax]</c> pays nobody less often than the schedule history is
+        /// deep.</b>
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>The bound is a table depth and not a taste.</b>
+        /// <see cref="IncomeTaxTable.Retained"/> Days of schedule history is a <c>const</c> — the ring
+        /// is allocated once at world creation, on <c>RulesetTrailTable.Retained</c>'s grounds — and
+        /// <c>WageEngine.Withhold</c> walks the earning Days a payment closes one at a time, bounded
+        /// at that depth. A trade paying less often than the ring is deep therefore hands over more
+        /// Days' wages than there are Days to spread them over, and the walk assesses the remainder
+        /// against the last Day it reached.
+        /// </para>
+        /// <para>
+        /// 🔴 <b>It is the <em>loads clean and misbehaves in silence</em> class in its purest form.</b>
+        /// Nothing throws, no counter reads zero and no Citizen goes unpaid — the tax is simply wrong,
+        /// upward, because several Days' wages arrive at the bands as one Day's earnings and the
+        /// whole surplus lands above the upper threshold. ***A schedule denominated per Day is a
+        /// claim about the payment interval***, and this is the only place in the file where the two
+        /// meet.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>Gated on the table being STATED rather than on the schedule levying anything.</b> A
+        /// Ruleset whose authored rates are zero can still have a player move a rate on the Event
+        /// Wheel, and the ring the player writes into is the same fixed depth — so what the file said
+        /// about rates is not what decides whether the history is deep enough. A Ruleset with a long
+        /// pay period and <em>no</em> <c>[income_tax]</c> at all is a different city entirely and
+        /// stays loadable, which is the absence this whole table is reached by.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>It names both halves and it has to.</b> The author can fix this by shortening the
+        /// period or by deleting the table, and neither the trade's line nor the depth tells them
+        /// that alone — <c>adr/0048</c>'s rule that a refusal's whole output is a sentence.
+        /// </para>
+        /// </remarks>
+        private void RefuseUnassessablePayPeriods(BusinessKindDefinition[] businessKinds)
+        {
+            if (_incomeTaxTable is null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < businessKinds.Length && i < _businessKindTables.Count; i++)
+            {
+                int period = businessKinds[i].PayPeriodDays;
+
+                if (period <= IncomeTaxTable.Retained)
+                {
+                    continue;
+                }
+
+                TableSyntaxBase table = _businessKindTables[i];
+                string trade = TryString(table, "name", out string? found, required: false)
+                    ? found!
+                    : "this trade";
+
+                Refuse(
+                    LineOf((SyntaxNodeBase?)Find(table, "pay_period_days") ?? table),
+                    null,
+                    $"'{trade}' has pay_period_days of {period}, in a file that states "
+                    + $"[income_tax], and the city keeps only {IncomeTaxTable.Retained} Days of "
+                    + "income tax schedule. A payment is taxed by walking the earning Days it "
+                    + $"closes, one Day at a time, and the walk stops at {IncomeTaxTable.Retained} "
+                    + "-- so everything still owed past that point is assessed as ONE Day's "
+                    + $"earnings. At {period} Days that is {period - IncomeTaxTable.Retained} Days' "
+                    + "wages arriving at the bands together, taxed at the top rate, with nothing "
+                    + "anywhere reporting that it happened. Shorten pay_period_days to "
+                    + $"{IncomeTaxTable.Retained} or fewer, or delete [income_tax] for a city that "
+                    + "levies no income tax at all.");
             }
         }
 

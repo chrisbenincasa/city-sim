@@ -4170,6 +4170,19 @@ public sealed class Ruleset
     /// </summary>
     public MarketRuleset Market { get; init; } = MarketRuleset.None;
 
+    /// <summary>
+    /// The <c>[income_tax]</c> table — <b>what a Citizen keeps of a Day's earnings</b>.
+    /// <see cref="IncomeTaxSchedule.None"/> when the file states none, which is a city that levies
+    /// no income tax at all.
+    /// </summary>
+    /// <remarks>
+    /// <b>Absent means nothing is withheld</b>, reached by omitting the table rather than by a
+    /// defaulted key — <see cref="Market"/>'s shape and <see cref="Traffic"/>'s. A defaulted
+    /// allowance or rate would be a hash-bearing number arriving at a setting no designer picked,
+    /// and every Ruleset shipped before this table existed is the absent city.
+    /// </remarks>
+    public IncomeTaxSchedule IncomeTax { get; init; } = IncomeTaxSchedule.None;
+
     /// <summary>How far each Need moves, and how deep it may go. <c>[needs]</c>.</summary>
     /// <remarks>
     /// <b>Absent means no Household in this city has a Need</b>, reached by omitting the table rather
@@ -4679,6 +4692,7 @@ public sealed class Ruleset
             Hinterlands = Hinterlands,
             HinterlandPrices = HinterlandPrices,
             Market = Market,
+            IncomeTax = IncomeTax,
             Founding = Founding,
             ResourceKeys = ResourceKeys,
             KindKeys = KindKeys,

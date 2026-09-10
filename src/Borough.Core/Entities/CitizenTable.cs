@@ -113,6 +113,8 @@ public sealed class CitizenTable
         Age = _rows.Saved<ushort>("age", Touch.Cold);
         Health = _rows.Saved<byte>("health", Touch.Cold);
         LastPaidDay = _rows.Saved<ushort>("last_paid_day", Touch.Cold);
+        TaxedDay = _rows.Saved<ushort>("taxed_day", Touch.Cold);
+        TaxedGross = _rows.Saved<long>("taxed_gross", Touch.Cold);
 
         EarnedWage = _rows.Saved<long>("earned_wage");
         WageRemainder = _rows.Saved<long>("wage_remainder");
@@ -563,6 +565,36 @@ public sealed class CitizenTable
     /// </para>
     /// </remarks>
     public Column<ushort> LastPaidDay { get; }
+
+    /// <summary>
+    /// The earning Day <see cref="TaxedGross"/> refers to.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A zero fill is honest here</b>, unlike in <see cref="LastPaidDay"/>: it reads as
+    /// <i>nothing has been taxed against Day 0</i>, which is true of a Citizen who has never been
+    /// paid, and every later Day fails the match and starts the accumulator fresh.
+    /// </para>
+    /// </remarks>
+    public Column<ushort> TaxedDay { get; }
+
+    /// <summary>
+    /// Gross pay already handed over and taxed against <see cref="TaxedDay"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>This exists so that one Day paid in instalments is not given the tax-free allowance
+    /// twice</b> — <c>plans/0072</c> D5. <see cref="Rules.WageEngine"/> advances
+    /// <see cref="LastPaidDay"/> only over whole Days it covered, so a part payment hands over
+    /// money for a Day it leaves claimable and the next payday pays that same Day again.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>One Day's worth is enough, and that is a property of the payment window rather than a
+    /// simplification.</b> A payment closes a run of consecutive Days, so only the Day at the
+    /// boundary can ever have been paid before.
+    /// </para>
+    /// </remarks>
+    public Column<long> TaxedGross { get; }
     public Column<int> IllnessSeverity { get; }
     public Column<long> EarnedWage { get; }
     public Column<long> WageRemainder { get; }

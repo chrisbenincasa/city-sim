@@ -1,0 +1,466 @@
+# THE TAXING RULESET -- shopping.toml made able to pay its wages, so that taxing them means anything.
+#
+# plans/0072, amnesty row 33. It is shopping.toml with FIVE CHANGES, marked CHANGE 1 of 5 through
+# 5 of 5 where they sit, and everything else in the file is shopping.toml's, unedited. The diff is
+# the whole demonstration, on insolvent.toml's precedent and for insolvent.toml's reason.
+#
+#   1. [[business]] shop            DELETED, with the dwelling's `business = "shop"` line.
+#   2. [[business]] grocer          wage_per_day 4096 -> 2048.
+#   3. [households]                 opening_balance_min/max 12,800/25,600 -> 51,200/102,400.
+#   4. [[policy]] public_works      ADDED.
+#   5. [income_tax]                 ADDED, scaled to change 2's wage.
+#
+# 🔴 EVERY NUMBER HERE IS PROVISIONAL AND NONE IS RATIFIED. plans/0045 standing order 4 suspends
+# ratification, so no row is open for any of them anywhere, none names a ratifier, and none should be
+# read as chosen. Read them as "numbers that let the mechanism run", never as claims about what a
+# wage, a grocery bill or a public programme is worth.
+#
+# ===========================================================================================
+# WHAT IT EXISTS TO SHOW: a Citizen income tax withheld at the moment a wage is paid, and a budget
+# a player can read income against expenditure off.
+# ===========================================================================================
+# shopping.toml is the one shipped world that both PAYS A WAGE and holds a treasury Bin for money,
+# which is what an income tax needs and what no other shipped file has together. taxed.toml carries
+# the schedule as CONTENT and pays nobody, so nothing is ever withheld there.
+#
+# ⚠ IT DID NOT SHOW IT, AND THE FIRST FOUR CHANGES ARE WHY. Measured over 24,576 Ticks at 2,000
+# Citizens, on the file as it first stood -- shopping.toml verbatim plus the schedule:
+#
+#   1,719 Citizens employed, 82 wage payments made, and 40,326,483 owed and uncovered over 273
+#   short paydays. Households fell from 13,891,951 to 100,675 by Day 9.
+#
+#   Expenditure was structurally zero for the whole run, because the file declared no [[policy]].
+#
+# The withheld column moved, so the schedule was working; it was intermittent because THE PAYROLL
+# BARELY RAN, and a budget with no expenditure half is a column of income beside nothing. The same
+# reading now:
+#
+#   203 Citizens employed at 22 grocers, 115 wage payments, 702,144 reaching Households against
+#   63,808 uncovered -- 92% of the payroll met -- over 4 short paydays and no trade wound up.
+#   Households close at 30,758,390 of an opening 56,356,702, and hold 36,932,710 on Day 9.
+#
+#   The treasury takes 145,656 withheld and 1,884,160 in rates, spends 1,485,312 on public works,
+#   and closes at 544,504. Both halves of the budget are live and the columns sum to the balance.
+#
+# ===========================================================================================
+# CHANGE 1: THE DWELLING IS NOT A WORKPLACE, and this is where seven jobs in eight were.
+# ===========================================================================================
+# shopping.toml gives the `dwelling` kind the `shop` trade, and adr/0148 instantiates a kind's trade
+# on construction -- so this city had 181 shops standing in people's houses. [capacity]
+# floor_tiles_per_job derives jobs from floor, and a dwelling has a lot of floor, so THOSE shops held
+# roughly 1,500 of the 1,719 jobs. They also had no custom whatever: a dwelling declares no
+# business-owned Goods Bin, so nothing in it is ever sold, and 173 of the 195 live Businesses closed
+# the run holding exactly nothing.
+#
+# ***A trade with no revenue cannot make payroll at any wage***, which is why lowering the wage was
+# never going to fix this file. That is the same defect insolvent.toml refuses under plans/0065 P1 --
+# it strips `wage_per_day` and `pay_period_days` off `shop` so its own demonstration is not measuring
+# one -- and this file takes it one step further and deletes the trade outright, because leaving it
+# would print "1,719 Citizens employed" over a budget that taxes 203 of them. neighbourhood.toml,
+# pictured.toml and schooling.toml all declare a dwelling with no trade already.
+#
+# ⚠ SO ONLY 203 OF 2,000 CITIZENS EARN A WAGE HERE, and that is the honest count rather than a
+# smaller one. The only employer in this file is the grocer, the [[zone_rule]] raises about two
+# shopfronts a Day, and 24,576 Ticks is twelve Days: the tax base is small because the city is.
+#
+# ⚠ `--business` says "on every shipped file the dwelling kind declares a trade, so `Buildings
+# created` IS the instantiation count". It is not true of this file. Read that row here as a
+# Building count and nothing else.
+#
+# ===========================================================================================
+# CHANGE 2: THE WAGE, AND IT IS THE SMALLEST OF THE FOUR LEVERS RATHER THAN THE LARGEST.
+# ===========================================================================================
+# Swept with everything else in force, only wage_per_day moving, at 2,000 Citizens over 24,576 Ticks:
+#
+#   4096   1,353,024 paid / 178,880 uncovered   109 payments   6 short paydays
+#   2048     702,144 paid /  63,808 uncovered   115 payments   4 short paydays
+#
+# 2048 is chosen for the second row and for nothing else. ⚠ IT BUYS FOUR POINTS OF COVERAGE ACROSS A
+# HALVING, which is the shape insolvent.toml found independently over a FOURFOLD sweep -- the
+# shortfall scales with the wage and the failures do not, because a fixed subset of grocers has
+# essentially no custom whatever its payroll. ***The residual shortfall here is spatial, and no wage
+# reaches it.***
+#
+# It is not lowered further because the withholding is the column this file exists to print, and a
+# wage is what there is to withhold from. 2048 leaves 408 a Day a worker, which the schedule at the
+# foot of this file derives by hand.
+#
+# ===========================================================================================
+# CHANGE 3: THE OPENING BAND, which is the change that actually rescued the file.
+# ===========================================================================================
+# THE DIAGNOSIS IS A RATIO AND NOT A LEVEL. Measured on the repaired file, Households spend about
+# 3,200 a Day each on groceries -- 27,785,768 over twelve Days across 720 Households. shopping.toml
+# opens them on 12,800 to 25,600, a mean of 19,200, which is ABOUT SIX DAYS OF THAT. The run is
+# twelve. ***So the city was bankrupt halfway through the demonstration for a reason that had nothing
+# to do with the tax, the wage or the payroll***, and everything downstream was measuring
+# destitution.
+#
+# Quadrupled, the mean opening balance is about 24 Days of this city's groceries -- TWICE THE RUN.
+# The multiplier is derived from the run length: a Household must be able to be short of money for a
+# reason other than the clock.
+#
+# ⚠ THE ALTERNATIVE WAS REJECTED ON MEASUREMENT. Quartering the [[hinterland]] import ceiling
+# instead -- 100 to 25, which cuts the grocery bill by the same factor -- fixes the Households and
+# breaks the payroll, because a shop's revenue IS the Household's bill and a quarter of it will not
+# cover a wage denominated in money. At the same wage of 2048 that route met 554,436 of 765,952 over
+# 89 payments and 9 short paydays, against 702,144 of 765,952 over 115 payments and 4 short paydays
+# here. Halving the ceiling instead of quartering it splits the difference and leaves Households at
+# 2,589,329 and still falling at close, which is a demonstration that only just fits inside its own
+# run.
+#
+# 🔴 AND IT DID SOMETHING NOBODY PREDICTED, WHICH IS THE READING TO KEEP. Four times the money did
+# NOT buy four times the runway; a good part of it went into the PRICE. Run this file with the band
+# alone put back to 12,800/25,600 and nothing else moved, and `--market` says the sundries price
+# falls from its 100 ceiling to 60 over four moves while the two Districts trade 5,278 a Day. With
+# the band as it now stands the price never leaves the ceiling -- zero moves in twelve Days -- and
+# they trade 22,447 a Day. ***Richer Households bought more, faster, and at a higher price.***
+# Demand in this file is money-constrained rather than need-constrained, so an endowment is partly a
+# transfer to the market rather than to the Household holding it.
+#
+# ⚠ [households] opening_balance is FIXTURE CONTENT rather than a founding balance. It is read by
+# SyntheticCity, reached only by CommandKind.Populate, and it goes through World.Endow so
+# MoneySupply.Issued records it and conservation stays checkable across the issuance. taxed.toml's
+# header carries that argument in full and this file does not repeat it.
+#
+# ===========================================================================================
+# CHANGE 4: PUBLIC WORKS -- what the city buys, and why it is not a rebate.
+# ===========================================================================================
+# THE EXPENDITURE HALF OF A BUDGET HAS TO BE SOMETHING THE CITY BUYS. A [[policy]] moving money from
+# `global` to `local` is the shipped mechanism and the only one -- taxed.toml's household_levy and
+# household_rebate are the worked pair, and levied.toml's trade_levy is the third -- so what
+# distinguishes a purchase from a refund here is what it is sized and shaped by, and not which keys
+# it uses.
+#
+# `public_works` is the city's own payroll: street cleaning, the parks, the depot, paid out of the
+# treasury to the Households that supply the labour. Three things make it read as spending rather
+# than as a rebate that undoes the tax:
+#
+#   IT IS FLAT               256 a Household a Day, unrelated to what that Household was taxed. A
+#                            rebate is a function of the levy; a wage bill is a function of the work.
+#
+#   IT REACHES THE UNTAXED   203 of 2,000 Citizens earn a wage here, so the great majority of
+#                            Households paid no income tax at all and are paid by this anyway.
+#
+#   THE RATES FUND IT        Its money is overwhelmingly the shopfronts' `rates` Rule and not the
+#                            withholding -- 1,884,160 against 145,656 over the run.
+#
+# 256 IS SIZED FROM THE TREASURY'S INCOME AND NOT CHOSEN BESIDE IT. 720 Households at 256 a Day is
+# 184,320 a Day, and the rates bill plus the withholding reaches about that once the city has enough
+# shopfronts to pay it. So the run shows the programme BECOMING AFFORDABLE: it pays 16,384 on its
+# first sweep, climbs with the rates base, and is fully funded and flat from Tick 18,432 on, with the
+# treasury closing 544,504 in surplus rather than dry. ⚠ A Policy paying out of a treasury that runs
+# dry pays whom it reaches and reports where it stopped (02 §4.2) -- that branch is taxed.toml's
+# demonstration and it is deliberately NOT this file's.
+#
+# `interval = 2048` is one Day, Ticks.PerDay, and it is derived rather than chosen for taxed.toml's
+# reason: a Policy's interval is a balance constant, and a Day is the period the rest of the
+# simulation is denominated in.
+#
+# ===========================================================================================
+# ⚠ WHAT IT MUST NOT BE READ AS.
+# ===========================================================================================
+# NOT A BALANCED CITY. The grocers close the run holding about 25,000,000 and rising -- a shop in
+# this file has no costs but wages and rates, so what Households spend piles up in tills, and that
+# is shopping.toml's property rather than one this file introduced. ***Nothing here should be read as
+# a steady state***: the run is twelve Days and the demonstration is a budget, not adr/0006.
+#
+# NOT A TUNING RATIFIER, and no reading in it ratifies anything -- see the standing order above.
+#
+# NOT A CLAIM ABOUT WHAT AN INCOME TAX DOES TO A POPULATION. The schedule at the foot of this file is
+# sized to be VISIBLE rather than plausible, the tax base is 203 people, and a shipped world in which
+# a Citizen could choose to work less is not built.
+#
+# It inherits shopping.toml's synthetic shop supply, its caveat that opening ignores staff, and its
+# two [[lattice]] centres and [districts] table -- the last two for shopping.toml's reason and not
+# for one of its own.
+#
+# ⚠ IT IS NOT HASH-BEARING. It is not in GoldenFixtures and no committed .borough log replays it.
+#
+# ===========================================================================================
+
+[[resource]]
+name = "sundries"
+family = "good"
+need = "sustenance"
+
+[[resource]]
+name = "repairs"
+family = "good"
+
+[[resource]]
+name = "money"
+family = "money"
+
+# CHANGE 1 of 5. shopping.toml's `[[business]] shop` STOOD HERE AND IS DELETED, and the
+# `business = "shop"` line on the dwelling below goes with it -- see THE DWELLING IS NOT A WORKPLACE.
+
+[[business]]
+name = "grocer"
+work_days = 124
+open_days = 127
+opens_hour = 7
+closes_hour = 21
+# CHANGE 2 of 5. 4096 -> 2048 -- see THE WAGE, which carries the sweep that chose it.
+wage_per_day    = 2048
+pay_period_days = 7
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+[[building]]
+name = "dwelling"
+bins = [
+    { resource = "sundries", capacity = 128, owner = "occupant" },
+    { resource = "repairs",  capacity = 4 },
+]
+houses   = true
+premises = true
+parked = true
+
+[[building]]
+name = "shopfront"
+bins = [
+    { resource = "sundries", capacity = 1024, owner = "business" },
+    { resource = "repairs",  capacity = 4 },
+    { resource = "money",    owner = "business" },
+]
+houses   = true
+premises = true
+business = "grocer"
+
+[[rule]]
+name    = "restock"
+kind    = "dwelling"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = [ { scope = "pool", resource = "sundries", amount = 4 } ]
+outputs = [ { scope = "local", resource = "sundries", amount = 4 } ]
+
+[[rule]]
+name    = "consume"
+kind    = "dwelling"
+rate    = 256
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "sundries", amount = 4 } ]
+outputs = []
+
+[[rule]]
+name    = "upkeep"
+kind    = "dwelling"
+rate    = 16
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "repairs", amount = 4 } ]
+outputs = []
+
+[[rule]]
+name    = "stock"
+kind    = "shopfront"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = []
+outputs = [ { scope = "local", resource = "sundries", amount = 8 } ]
+
+[[rule]]
+name    = "rates"
+kind    = "shopfront"
+rate    = 2048
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local",  resource = "money", amount = 16384 } ]
+outputs = [ { scope = "global", resource = "money", amount = 16384 } ]
+
+[[zone_rule]]
+name          = "housing"
+kind          = "dwelling"
+zone          = 0
+interval      = 32
+revisit_ticks = 2048
+
+[[zone_rule]]
+name          = "trade"
+kind          = "shopfront"
+zone          = 1
+interval      = 32
+revisit_ticks = 2048
+build_threshold_days = 1
+cooldown_days        = 1
+
+[placement]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+
+[layers]
+noise_range_metres            = 300
+noise_intensity_percent       = 400
+desirability_pollution_percent = 100
+desirability_noise_percent     = 100
+pollution_period      = 64
+pollution_offset      = 0
+land_value_period     = 256
+land_value_offset     = 16
+kernel_metres         = 1024
+pollution_decay_ticks = 2048
+land_value_tau        = 8
+
+[roads]
+block_tiles                    = 32
+arterial_count                 = 0
+arterial_junction_tiles        = 512
+foot_crossing_every            = 4
+foot_paths_per_thousand_blocks = 40
+street_speed_kph               = 50
+arterial_speed_kph             = 90
+walk_speed_kph                 = 5
+street_capacity_per_hour       = 3600
+arterial_capacity_per_hour     = 12000
+foot_path_capacity_per_hour    = 1000
+
+[lots]
+lots_per_segment = 5
+setback_tiles = 2
+
+[capacity]
+floor_tiles_per_occupant      = 25
+floor_tiles_per_job           = 3
+floor_tiles_per_parking_space = 12
+
+[parking]
+radius_metres = 400
+shed_keeps = 24
+
+[trips]
+crossing_seconds = 30
+commute_fast_minutes = 20
+commute_moderate_minutes = 40
+commute_budget_minutes = 50
+
+[jobs]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+shift_hours_min = 6
+shift_hours_max = 10
+arrive_early_max_minutes = 15
+
+[households]
+car_ownership_percent = 0
+# CHANGE 3 of 5. 12,800/25,600 -> 51,200/102,400, and it is the change that rescued the file --
+# see THE OPENING BAND, which carries the derivation and the thing it did that nobody predicted.
+opening_balance_min = 51200
+opening_balance_max = 102400
+
+# CHANGE 4 of 5. ADDED, and it is the expenditure column -- see PUBLIC WORKS.
+
+[[policy]]
+name = "public_works"
+sweeps = "household"
+interval = 2048
+apply = { min = 256, max = 256 }
+transfer = { from = "global", to = "local", resource = "money", amount = 1 }
+
+[[lattice]]
+origin_east_tiles  = 0
+origin_north_tiles = 0
+
+[[lattice]]
+origin_east_tiles  = 2048
+origin_north_tiles = 0
+
+[districts]
+prominence_percent = 50
+revisit_ticks = 2048
+hysteresis_percent = 50
+migrate_cells = 16
+
+[[hinterland]]
+edge = "north"
+emigrant_balance_min = 0
+emigrant_balance_max = 0
+prices = [
+  { resource = "sundries", price = 100 },
+  { resource = "repairs",  price = 250 },
+]
+
+[[hinterland]]
+edge = "east"
+emigrant_balance_min = 0
+emigrant_balance_max = 0
+prices = [
+  { resource = "sundries", price = 120 },
+  { resource = "repairs",  price = 200 },
+]
+
+[market]
+decay_percent = 50
+move_cap_percent = 10
+[needs]
+sustenance_degrade = 4
+sustenance_recover = 4
+satisfaction_degrade = 4
+satisfaction_recover = 4
+floor = -100
+
+[shopping]
+interval = 64
+low_days = 1
+target_days = 3
+severe_need = -16
+known_shops = 3
+search_candidates = 32
+retry_ticks = 128
+
+# ===========================================================================================
+# CHANGE 5 of 5: THE INCOME TAX SCHEDULE, SCALED TO THIS FILE'S WAGE RATHER THAN TO taxed.toml's.
+# ===========================================================================================
+# The three marginal bands a Citizen's earnings for ONE DAY are read against. Each rate applies only
+# inside its own band, so crossing a threshold never reprices what came before it and take-home
+# income never steps downward. Withheld at the payday by Borough.Core.Rules.WageEngine, which spreads
+# a payment across the Days it closes before consulting any band -- so this file's seven-Day pay
+# period is taxed as seven Days and not as one enormous one.
+#
+# 🔴 PROVISIONAL, LIKE EVERYTHING ELSE HERE. What each number is anchored to:
+#
+#   allowance_per_day = 512         A QUARTER of this file's own wage_per_day of 2048. The one
+#                                   per-Day earnings figure the Ruleset already states, so the
+#                                   allowance is a fraction of a Day worked. Taste, not derivation.
+#
+#   upper_threshold_per_day = 1536  THREE QUARTERS of the same wage, so a Citizen on the posted wage
+#                                   earns into the upper band EVERY Day and BOTH BANDS ARE REACHABLE
+#                                   BY THE ONLY WAGE THIS FILE PAYS. A threshold above 2048 would
+#                                   make the upper rate unobservable here, which is the
+#                                   demonstration failing quietly rather than loudly.
+#
+#   middle_rate_percent = 20        Leaves the middle band worth 1024 a Day and takes 204 of it.
+#   upper_rate_percent  = 40        A doubling, taking 204 more from the 512 above the threshold.
+#                                   The loader refuses an upper rate BELOW the middle one outright.
+#
+# ⚠ THE PROPORTIONS ARE WHY THESE ARE THE NUMBERS, and the digits move with the wage. A quarter and
+# three quarters are what keep both bands reachable when change 2 moves wage_per_day; a schedule
+# anchored to an absolute figure would silently stop demonstrating the upper rate the moment the wage
+# went under it.
+#
+# THE HAND ARITHMETIC, so the --income column can be checked without reading any code. At the posted
+# wage of 2048 a Day:
+#
+#   0 .. 512      allowance, taxed at nothing
+#   512 .. 1536   1024 at 20%  ->  204
+#   1536 .. 2048   512 at 40%  ->  204
+#                               -------
+#                  408 a Day, an effective rate of 19.9%
+#
+# A full seven-Day payday is therefore 14,336 gross, 2,856 withheld, 11,480 net. 408 is the whole
+# rate here because nothing in this file grades a wage -- it states no [jobs] wage_tier_percent and no
+# experience_premium_percent, so WorkSchedule.Graded hands back the posted figure and 2048 is the only
+# rate anybody earns.
+#
+# ⚠ SO EVERY READING IN THE 2,000-CITIZEN, 24,576-TICK RUN QUOTED ABOVE DIVIDES BY 408 -- 20, 47, 72,
+# 48, 42, 78 and 50 Citizen-Days, 357 of them for 145,656 -- AND THAT IS A PROPERTY OF THAT READING
+# RATHER THAN A LAW. A payday that pays a worker only PART of what they are owed closes a short Day,
+# and a short Day is taxed in a lower band: at 1,000 Citizens over 12,288 Ticks the last reading is
+# 12,268, which is 30 whole Days and a remainder. ***A column that does not divide is a partial
+# payday, not a broken schedule*** -- read `owed and not covered` in --business beside it.
+
+[income_tax]
+allowance_per_day       = 512
+upper_threshold_per_day = 1536
+middle_rate_percent     = 20
+upper_rate_percent      = 40

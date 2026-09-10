@@ -73,6 +73,17 @@ public readonly struct Treasury;
 /// </remarks>
 public readonly struct Policy;
 
+/// <summary>
+/// One Citizen income-tax schedule, holding from the Day it takes effect until the next one.
+/// </summary>
+/// <remarks>
+/// <b>Empty for <see cref="Policy"/>'s reason.</b> A rate the player set is world state, so it is
+/// a row rather than a scalar, and it is a <em>history</em> rather than a single value because a
+/// wage paid late is taxed at the Day it was earned — <c>plans/0072</c> D6. See
+/// <see cref="IncomeTaxTable"/>.
+/// </remarks>
+public readonly struct IncomeTaxRate;
+
 /// <summary>A parcel of land. See <see cref="Citizen"/> for why it is empty.</summary>
 public readonly struct Lot;
 

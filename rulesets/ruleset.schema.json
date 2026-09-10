@@ -420,6 +420,27 @@
         }
       }
     },
+    "income_tax": {
+      "type": "object",
+      "properties": {
+        "allowance_per_day": {
+          "description": "What a Citizen may earn in one Day before anything is withheld. It reads earnings for a Day and never a balance, so a payment covering several Days is attributed across them before any band is consulted. Omitting the whole [income_tax] table means no income tax is levied at all; a stated zero means the first unit earned is taxed.",
+          "type": "integer"
+        },
+        "middle_rate_percent": {
+          "description": "The share withheld from earnings between the allowance and the threshold. Marginal, so it never reprices what was earned below the allowance.",
+          "type": "integer"
+        },
+        "upper_rate_percent": {
+          "description": "The share withheld from earnings above the threshold. It may not be below the middle rate: both are marginal, so a rate that fell as earnings rose would make take-home income step downward at the threshold and a Citizen would keep less for having earned more. All four keys here are one decision — state every one or delete the table.",
+          "type": "integer"
+        },
+        "upper_threshold_per_day": {
+          "description": "The Day's earnings at which the upper band starts. Below it the middle rate applies to everything above the allowance; at or above it the upper rate applies to the excess. Equal to the allowance is a two-band schedule and is legitimate.",
+          "type": "integer"
+        }
+      }
+    },
     "jobs": {
       "type": "object",
       "properties": {

@@ -309,7 +309,7 @@ public partial class Main
         var box = new VBoxContainer();
 
         var heading = new HBoxContainer();
-        heading.AddChild(new Label { Text = "Government · Policies", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
+        heading.AddChild(new Label { Text = "Government · Policies and Income Tax", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
         var close = InformationButton("Close Government", Govern);
         close.TooltipText = "Close Policies";
         heading.AddChild(close);
@@ -371,8 +371,97 @@ public partial class Main
         _policyStatus = new Label { Text = "a governed amount is saved state and survives a reload." };
 
         box.AddChild(_policyStatus);
+        Taxing(box);
         ScrollAuxiliary(_policyPanel, box);
         layer.AddChild(_policyPanel);
+    }
+
+    /// <summary>
+    /// The income-tax block: the four marginal-band controls, and what they will not accept.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>It belongs to the governing panel and is not a window of its own.</b> A rate is governed
+    /// exactly the way a Policy amount is — a <see cref="Command"/> against the standing city, at a
+    /// Tick, through the door a replay reproduces — so putting it anywhere else would say the two
+    /// are different kinds of act.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>Every field shows TOMORROW's schedule and never today's.</b> A change applies from the
+    /// start of the next Day (<c>plans/0072</c> D6), and <c>Simulation.RefuseTax</c> composes its
+    /// refusal on that same next-Day schedule — so a panel reading today's would show a player one
+    /// set of numbers and have their next command judged against another. ***The panel shows what
+    /// is being built rather than what is being earned against.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The block states the two ordering constraints rather than enforcing them.</b> The core
+    /// owns both, and a shell that greyed a field out would be a second copy of a rule that is free
+    /// to drift — <c>plans/0012</c> <b>Cause 1</b>. What it does instead is say which end to move
+    /// first, because from a city that levies nothing all four controls sit at zero and the naive
+    /// order is the refused one.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The note sits BELOW the four rows, where the Policy block's sits above them.</b> It runs
+    /// to six lines at the panel's width, and the panel is bounded by the console — driven at 1600 ×
+    /// 1000 against <c>taxed.toml</c>, a banner above the rows left three of the four controls under
+    /// the fold. ***A caveat that pushes the control it qualifies off the screen is worse than no
+    /// caveat.***
+    /// </para>
+    /// </remarks>
+    private void Taxing(VBoxContainer box)
+    {
+        box.AddChild(new HSeparator());
+        box.AddChild(new Label { Text = "Income tax — what one Day's earnings are taxed at" });
+
+        _taxFields = new LineEdit[4];
+
+        Levy(box, TaxControl.Allowance, "tax-free allowance — earned in a Day before any tax");
+        Levy(box, TaxControl.UpperThreshold, "upper band opens at — a Day's earnings");
+        Levy(box, TaxControl.MiddleRate, "middle rate — % between the allowance and that");
+        Levy(box, TaxControl.UpperRate, "upper rate — % above that");
+
+        // 🔴 THE FOUR CONTROLS CONSTRAIN EACH OTHER AND A PLAYER CANNOT SEE THAT FROM THE FIELDS.
+        // From a city that levies nothing every one of them is zero, so raising the middle rate
+        // first is refused (the upper would sit below it) and raising the allowance first is
+        // refused (the upper band would open below it). Saying so is the difference between a
+        // control that teaches its order and one that just says no.
+        box.AddChild(new Label
+        {
+            Text = "levied from the START OF THE NEXT DAY, so these fields are tomorrow's and no"
+                + " change ever reprices a Day already being earned. each rate is MARGINAL — it"
+                + " bites only on the earnings inside its own band, so crossing a threshold never"
+                + " reprices what was earned below it. the upper rate can never sit below the middle"
+                + " one, and the upper band can never open below the allowance: raise the upper rate"
+                + " before the middle one, and the threshold before the allowance.",
+        });
+
+        _taxStatus = new Label
+        {
+            Text = "a rate the player has set is saved state and survives a reload; a Ruleset's"
+                + " [income_tax] is what a city that has never been governed levies.",
+        };
+
+        box.AddChild(_taxStatus);
+    }
+
+    /// <summary>One tax control: what it is, what it is set to for tomorrow, and a way to move it.</summary>
+    private void Levy(VBoxContainer box, TaxControl control, string described)
+    {
+        var row = new HBoxContainer();
+
+        row.AddChild(new Label { Text = described, CustomMinimumSize = new Vector2(340f, 0f) });
+
+        var field = new LineEdit
+        {
+            Text = Levied(control).ToString(CultureInfo.InvariantCulture),
+            CustomMinimumSize = new Vector2(110f, 0f),
+        };
+
+        field.TextSubmitted += _ => AtBoundary(() => Tax(control));
+        _taxFields[(int)control] = field;
+        row.AddChild(field);
+        row.AddChild(InformationButton("Set", () => Tax(control)));
+        box.AddChild(row);
     }
 
     private void Palette() => BuildToolBrowser();
@@ -408,7 +497,70 @@ public partial class Main
         {
             _policyFields[at].Text = _world.Policies.AmountOf(at, declared[at]).ToString();
         }
+
+        for (int at = 0; at < _taxFields.Length; at++)
+        {
+            _taxFields[at].Text = Levied((TaxControl)at).ToString(CultureInfo.InvariantCulture);
+        }
     }
+
+    /// <summary>The Day a command issued now would take effect from.</summary>
+    /// <remarks>
+    /// ⚠ <b><c>today + 1</c>, and the <c>+ 1</c> is the whole point.</b> It is
+    /// <c>Simulation.RefuseTax</c>'s own arithmetic, so what the panel shows and what the core
+    /// judges the next command against are the same schedule.
+    /// </remarks>
+    private long Tomorrow() => IntegerMath.FloorDiv((long)_world.Tick.Raw, Ticks.PerDay) + 1;
+
+    /// <summary>What one control is set to for tomorrow, player-set or Ruleset-authored.</summary>
+    private long Levied(TaxControl control)
+    {
+        IncomeTaxSchedule schedule =
+            _world.IncomeTaxRates.ScheduleFor(Tomorrow(), _world.Rules.IncomeTax);
+
+        return control switch
+        {
+            TaxControl.Allowance => schedule.AllowancePerDay,
+            TaxControl.UpperThreshold => schedule.UpperThresholdPerDay,
+            TaxControl.MiddleRate => schedule.MiddleRatePercent,
+            _ => schedule.UpperRatePercent,
+        };
+    }
+
+    /// <summary>Queues a <c>Tax</c> for one control, or says why it cannot.</summary>
+    /// <remarks>
+    /// ⚠ <b>The refusal is <see cref="Send"/>'s and not a restatement of it.</b> All five of
+    /// <c>RefuseTax</c>'s codes reach the player through <c>Sentence</c>, the same table every
+    /// other verb's refusals go through — the panel's banner says what the constraints are so a
+    /// player is not surprised by one, and never decides whether they hold.
+    /// </remarks>
+    private void Tax(TaxControl control)
+    {
+        if (!int.TryParse(_taxFields[(int)control].Text, out int value))
+        {
+            _taxStatus.Text = "that is not a whole number.";
+
+            return;
+        }
+
+        if (!Send(Command.Tax(control, value)))
+        {
+            _taxStatus.Text = _refused;
+
+            return;
+        }
+
+        _taxStatus.Text = $"{Named(control)} set to {value:N0}, from the start of Day {Tomorrow():N0}.";
+    }
+
+    /// <summary>A <see cref="TaxControl"/> in the player's words. <b>The shell owns every one.</b></summary>
+    private static string Named(TaxControl control) => control switch
+    {
+        TaxControl.Allowance => "the tax-free allowance",
+        TaxControl.UpperThreshold => "the upper band's opening",
+        TaxControl.MiddleRate => "the middle rate",
+        _ => "the upper rate",
+    };
 
     /// <summary>Queues a <c>Govern</c> for one Policy, or says why it cannot.</summary>
     private void Govern(int position)

@@ -25,7 +25,7 @@ dotnet run --project src/Borough.Headless -- \
 
 ## The sections
 
-38 sections, 254 keys.
+39 sections, 258 keys.
 
 - [`[[band]]`](#band) — 2 keys
 - [`[[building]]`](#building) — 19 keys
@@ -51,6 +51,7 @@ dotnet run --project src/Borough.Headless -- \
 - [`[districts]`](#districts) — 4 keys
 - [`[founding]`](#founding) — 2 keys
 - [`[households]`](#households) — 3 keys
+- [`[income_tax]`](#income_tax) — 4 keys
 - [`[jobs]`](#jobs) — 11 keys
 - [`[layers]`](#layers) — 20 keys
 - [`[lots]`](#lots) — 10 keys
@@ -781,6 +782,26 @@ The most. Both ends or neither — one end alone reads either as a fixed endowme
 **`opening_balance_min`** · *whole number*
 
 The least money a Household is created with at world creation.
+
+---
+
+## `[income_tax]`
+
+**`allowance_per_day`** · *whole number*
+
+What a Citizen may earn in one Day before anything is withheld. It reads earnings for a Day and never a balance, so a payment covering several Days is attributed across them before any band is consulted. Omitting the whole [income_tax] table means no income tax is levied at all; a stated zero means the first unit earned is taxed.
+
+**`middle_rate_percent`** · *whole number*
+
+The share withheld from earnings between the allowance and the threshold. Marginal, so it never reprices what was earned below the allowance.
+
+**`upper_rate_percent`** · *whole number*
+
+The share withheld from earnings above the threshold. It may not be below the middle rate: both are marginal, so a rate that fell as earnings rose would make take-home income step downward at the threshold and a Citizen would keep less for having earned more. All four keys here are one decision — state every one or delete the table.
+
+**`upper_threshold_per_day`** · *whole number*
+
+The Day's earnings at which the upper band starts. Below it the middle rate applies to everything above the allowance; at or above it the upper rate applies to the excess. Equal to the allowance is a two-band schedule and is legitimate.
 
 ---
 

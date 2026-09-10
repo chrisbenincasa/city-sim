@@ -868,6 +868,22 @@ internal static class Session
         return MoneyDump.Run(options, writer);
     }
 
+    /// <summary><c>plans/0072</c>'s picture: the city's budget, printed.</summary>
+    /// <param name="options">The parsed command line.</param>
+    /// <returns>The process exit code.</returns>
+    internal static int DumpIncome(Options options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (options.OutPath is null)
+        {
+            return IncomeDump.Run(options, Console.Out);
+        }
+
+        using var writer = new StreamWriter(options.OutPath);
+        return IncomeDump.Run(options, writer);
+    }
+
     /// <summary>Runs the Parking dump. Milestone 7 task 7.</summary>
     /// <param name="options">The parsed command line.</param>
     /// <returns>The process exit code.</returns>

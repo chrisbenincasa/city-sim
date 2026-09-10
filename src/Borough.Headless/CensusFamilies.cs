@@ -179,7 +179,20 @@ internal static class CensusFamilies
         (MoneyCounter.Elsewhere, "elsewhere"),
     ];
 
-    /// <summary>What the Policy sweeps moved, by direction relative to the treasury.</summary>
+    /// <summary>
+    /// What moved through the treasury, by direction and by the mechanism that moved it.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b><c>withheld</c> is an income and is listed apart from <c>to treasury</c> rather than
+    /// added to it.</b> One is money a Policy moved out of a purse that already held it; the other is
+    /// money an employer withheld before the purse ever did. A reader summing the two gets the
+    /// treasury's income; a report adding them for the reader would lose which lever moved it.
+    /// ⚠ <b><c>rule to treasury</c> is the third income and the same argument again</b> — money a
+    /// Bin Rule paid in off a premises, moved by a <c>[[rule]]</c>'s <c>amount</c> where the other
+    /// two are moved by a <c>[[policy]]</c>'s and by an <c>[income_tax]</c> rate. ⚠ <b>A
+    /// family with no reader is a family nobody can see</b> — the note below on the Trip Fates is the
+    /// worked example, and it is the reason this row was added here on the day the counter was.
+    /// </remarks>
     public static readonly (MoneyFlowCounter Counter, Aggregate Aggregate, string Name)[]
         MoneyFlowCounters =
     [
@@ -187,6 +200,12 @@ internal static class CensusFamilies
         (MoneyFlowCounter.ToTreasury, Aggregate.Peak, "to treasury peak"),
         (MoneyFlowCounter.FromTreasury, Aggregate.Sum, "from treasury"),
         (MoneyFlowCounter.FromTreasury, Aggregate.Peak, "from treasury peak"),
+        (MoneyFlowCounter.Withheld, Aggregate.Sum, "withheld"),
+        (MoneyFlowCounter.Withheld, Aggregate.Peak, "withheld peak"),
+        (MoneyFlowCounter.RuleToTreasury, Aggregate.Sum, "rule to treasury"),
+        (MoneyFlowCounter.RuleToTreasury, Aggregate.Peak, "rule to treasury peak"),
+        (MoneyFlowCounter.RuleFromTreasury, Aggregate.Sum, "rule from treasury"),
+        (MoneyFlowCounter.RuleFromTreasury, Aggregate.Peak, "rule from treasury peak"),
     ];
 
     /// <summary>

@@ -808,6 +808,19 @@ public partial class Main : Node3D
     private Label _policyStatus = null!;
 
     /// <summary>
+    /// The four income-tax fields, indexed by <see cref="Borough.Core.Input.TaxControl"/>.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Indexed by the enum and not by a declaration position</b>, unlike
+    /// <see cref="_policyFields"/>. The four controls are a fixed part of the verb rather than a
+    /// reading of the Ruleset, so there is nothing here a tune can renumber.
+    /// </remarks>
+    private LineEdit[] _taxFields = [];
+
+    /// <summary>What the tax block says about the last <c>Tax</c> command.</summary>
+    private Label _taxStatus = null!;
+
+    /// <summary>
     /// Commands raised this frame, drained into the next <c>Step</c>.
     /// </summary>
     /// <remarks>
