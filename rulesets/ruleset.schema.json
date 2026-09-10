@@ -90,6 +90,10 @@
             "description": "Whether a HOUSEHOLD may take a tenancy in a Building of this kind. It says whether and never how many: the count is the Building's own floor area over [capacity] floor_tiles_per_occupant, so two Buildings of one kind on differently-sized ground hold different numbers. Households and Businesses share the one ceiling, and this is one of the two permissions over it — see premises, which does not follow from this one. Absent means no Household may live here, which is what most kinds are.",
             "type": "boolean"
           },
+          "level": {
+            "description": "Which school level a kind serving education teaches: 1 primary, 2 secondary, 3 university. Refused on any kind that does not serve education. Required of an education kind exactly where the file also states [schooling]; absent otherwise means an undifferentiated school every family matches.",
+            "type": "integer"
+          },
           "name": {
             "description": "What this kind of Building is called. [[zone_rule]] kind and [[rule]] kind refer to it by this name.",
             "type": "string"
@@ -150,12 +154,20 @@
             "description": "How many Days pass between paydays at this trade. One is daily; zero would be a payday that never comes round.",
             "type": "integer"
           },
+          "requires_tier": {
+            "description": "The lowest Skill Tier this trade will hire, a minimum rather than a band — a Citizen above it may still take the post. Absent means it hires anybody.",
+            "type": "integer"
+          },
           "shift_start_earliest_hour": {
             "description": "The earliest hour of the Day a Business of this trade may open, as a whole in-world hour. A Workplace draws one start hour and its whole staff share it, so a Citizen stores no start hour at all. Required exactly when the trade employs somebody.",
             "type": "integer"
           },
           "shift_start_latest_hour": {
             "description": "The latest hour a Business of this trade may open. Hour 23 is the ceiling, because this is an hour of the Day rather than a duration and hour 24 is the next Day's hour 0.",
+            "type": "integer"
+          },
+          "tuition_per_day": {
+            "description": "What this trade charges a Household In Education, per Day — the private-university route to a degree, rationed by what a Household can pay rather than by places. Refused unless the file declares a [[building]] serving education at level 3. Absent means the trade is not a private university.",
             "type": "integer"
           },
           "wage_per_day": {
@@ -419,6 +431,14 @@
           "description": "How many workplaces one Citizen looks at on one occasion. A person who sees three places with a vacancy and takes the first one near enough to walk to is satisficing, not optimising.",
           "type": "integer"
         },
+        "experience_per_day": {
+          "description": "What one Day worked is worth toward promotion. Required together with tier2_experience: a rate with no ceiling is half a mechanism.",
+          "type": "integer"
+        },
+        "experience_premium_percent": {
+          "description": "The premium a Citizen has earned inside their own band at its ceiling, as a percent added to their pay — the design's one source of productivity growth within a tier. Absent means experience never adds to pay.",
+          "type": "integer"
+        },
         "interval": {
           "description": "How many Ticks between passes that assign work to Citizens who have none. Omitting the whole [jobs] table means nobody is ever assigned work. The table is refused without a Commute Budget above it, because the pass has no search radius of its own.",
           "type": "integer"
@@ -434,6 +454,21 @@
         "shift_hours_min": {
           "description": "The shortest working day in this city, in whole in-world hours. It doubles as the gap between a Citizen's two journeys, so it must exceed the Commute Budget or somebody could still be travelling to work when the roster says they leave it.",
           "type": "integer"
+        },
+        "tier2_experience": {
+          "description": "How much accumulated experience promotes a Citizen to Tier 2. Required together with experience_per_day.",
+          "type": "integer"
+        },
+        "unschooled_experience_percent": {
+          "description": "What one Day worked is worth to a Citizen who missed schooling, as a percent of the schooled rate. Absent means a missed childhood costs nothing on this axis.",
+          "type": "integer"
+        },
+        "wage_tier_percent": {
+          "description": "What each of the three Skill Tiers is paid, as a percent of the trade's posted rate — exactly three entries, the first of which restates the posted rate and can only be 100. Absent means every tier is paid the same.",
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
         }
       }
     },
@@ -587,6 +622,10 @@
             "description": "The stage a Household moves to when its countdown comes due. Absent means the stage is terminal, which is the only way to spell that — a stage naming itself is refused.",
             "type": "string"
           },
+          "school_level": {
+            "description": "Which school level this stage's children attend: 1 primary, 2 secondary. A university is refused here — it is attended by a Household In Education, a state and not a Life Stage. Absent means this stage's children attend no school.",
+            "type": "integer"
+          },
           "spread_days": {
             "description": "The width of the window the countdown is drawn over, uniform on [duration, duration + spread). Zero is a real answer and means every Household in this stage leaves it on the same Day — which, for a city whose whole population was created at Tick 0, makes the founding generation's echo run for the whole game.",
             "type": "integer"
@@ -610,7 +649,7 @@
           "type": "integer"
         },
         "lots_per_segment": {
-          "description": "How many Lots one Street Segment carries, both sides together. A Lot is an address with no extent — there is no depth key, because a Lot has no depth. Omitting the whole [lots] table means land cannot be subdivided and the city grows nothing.",
+          "description": "Number of Addresses per Street Segment used by block-based subdivision and form ranking. Explicit residential frontage controls Detached and Perimeter parcel counts instead.",
           "type": "integer"
         },
         "pattern_spread": {
@@ -626,11 +665,11 @@
           "type": "integer"
         },
         "setback_tiles": {
-          "description": "The most ground a Building leaves on each side of its parcel, in Tiles. It is a length and not a fraction, so how much of a plot gets built on rises with the plot: a detached parcel keeps under half of itself and a slab's covers most of its site. The four sides are drawn independently per patch of ground, so a street varies and some walls stand on the pavement. Street ground remains reserved even at zero setback.",
+          "description": "Maximum independent random inset in Tiles for block-based footprints and explicit Perimeter parcels. Explicit Detached houses use centred house dimensions instead. Reserved Street ground is always excluded.",
           "type": "integer"
         },
         "storeys_per_rung": {
-          "description": "How much plot ratio one step up the density ladder is worth. A block's pattern gives it a rung, and the rung times this plus two is the floor area its Buildings put on each unit of block — so how tall they stand depends on how much of the block the pattern leaves open. A form that spreads out is short and a form that stands back is tall, at the same density. Two is a floor rather than a step, because a building with no upper floor is a shed. Omitting it means one step per rung.",
+          "description": "Step between density rungs. Block-based forms use it in their plot-ratio target; explicit Perimeter parcels add it per rung to house_storeys. Detached houses keep house_storeys.",
           "type": "integer"
         },
         "street_half_width_tiles": {
@@ -1016,6 +1055,31 @@
         },
         "retry_ticks": {
           "description": "Delay before retrying an interrupted service return journey.",
+          "type": "integer"
+        }
+      }
+    },
+    "schooling": {
+      "type": "object",
+      "properties": {
+        "attendance_weight_percent": {
+          "description": "How much of the childhood score the attendance term carries; the depth term carries the rest.",
+          "type": "integer"
+        },
+        "full_attendance_days": {
+          "description": "Secondary Days that score a full 100 on the attendance term.",
+          "type": "integer"
+        },
+        "primary_gate_days": {
+          "description": "Primary Days below which secondary attendance counts for nothing at all — the gate.",
+          "type": "integer"
+        },
+        "tier2_score": {
+          "description": "The childhood score at or above which an adult forms at Tier 2. Also the university qualification, because the two are the same claim about the same childhood.",
+          "type": "integer"
+        },
+        "university_days": {
+          "description": "How many Days In Education confers Tier 3. Required exactly of a file declaring a [[building]] serving education; refused of one that declares none.",
           "type": "integer"
         }
       }

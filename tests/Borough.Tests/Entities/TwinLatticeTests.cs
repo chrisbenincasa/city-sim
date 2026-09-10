@@ -171,8 +171,12 @@ public sealed class TwinLatticeTests
             // threshold on the one trade that both earns and pays -- so it inherits both lattices for
             // shopping.toml's reason. plans/0065, and its header says so.
             // stress-shopping.toml deliberately combines two centres; its header and plans/0067 own the fixture.
+            // schooling.toml IS provisioned.toml's economy with the schooling pipeline on top --
+            // plans/0071 row 29 -- so it inherits both lattices for that file's reason. Its header
+            // says so beside the [districts] table that needs them.
             if (file is "provisioned.toml" or "oversupplied.toml" or "waged.toml" or "pictured.toml"
-                or "shopping.toml" or "insolvent.toml" or "stress-shopping.toml" or "profile-services.toml")
+                or "shopping.toml" or "insolvent.toml" or "stress-shopping.toml" or "profile-services.toml"
+                or "schooling.toml")
             {
                 Assert.Equal(2, Shipped(file).Lattices.Length);
                 continue;

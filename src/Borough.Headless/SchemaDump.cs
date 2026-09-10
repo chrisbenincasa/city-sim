@@ -284,8 +284,8 @@ internal static class SchemaDump
                     break;
 
                 case RulesetKeyKind.Numbers:
-                    // A bare list of whole numbers, which no other key in this Ruleset is. It heads
-                    // no section, so the array is written here rather than through the Repeats path
+                    // A bare list of whole numbers, unlike an array-of-tables key. It heads no
+                    // section, so the array is written here rather than through the Repeats path
                     // that array-of-tables keys take.
                     writer.WriteString("type", "array");
                     writer.WriteStartObject("items");

@@ -102,6 +102,14 @@ public sealed class CitizenTable
         ParkedIn = _rows.SavedHandle(
             "parked_in", carParks.Rows, reference: Reference.Severable);
 
+        // Cold: written once a Day at most, on the Tick a school day ends, and read once in a
+        // lifetime — at the moment this Citizen stops being a child. Two columns rather than one
+        // because primary is a GATE and secondary is the QUANTITY, so the two counts are asked
+        // different questions and a single total could answer neither.
+        SchoolingPrimary = _rows.Saved<ushort>("schooling_primary", Touch.Cold);
+        SchoolingSecondary = _rows.Saved<ushort>("schooling_secondary", Touch.Cold);
+        ChildhoodScore = _rows.Saved<byte>("childhood_score", Touch.Cold);
+
         Age = _rows.Saved<ushort>("age", Touch.Cold);
         Health = _rows.Saved<byte>("health", Touch.Cold);
         LastPaidDay = _rows.Saved<ushort>("last_paid_day", Touch.Cold);
@@ -223,12 +231,53 @@ public sealed class CitizenTable
     public HandleColumn<Business> Workplace { get; }
 
     /// <summary>Accumulated on-the-job experience. An i64 accumulator, per <c>05 §3</c>'s widths.</summary>
+    /// <remarks>
+    /// <b>It carries Tier 1 → 2 and it never reaches 3</b> (<c>adr/0104</c>). An apprentice becomes a
+    /// technician by doing the work; a technician does not become an analyst by staying longer. It
+    /// accrues slower for a Citizen whose childhood missed the schooling cut —
+    /// <see cref="Borough.Core.Rules.JobRuleset.ExperienceFor"/> — and inside a band it is also the
+    /// design's only source of productivity growth.
+    /// </remarks>
     public Column<long> Experience { get; }
 
     /// <summary>Which Skill Tier. Resolved through the Ruleset.</summary>
+    /// <remarks>
+    /// <b>Written at Young Household formation from the childhood score, then by promotion and by
+    /// graduation, and never anywhere else.</b> 1 is the floor and there is no tier 0
+    /// (<c>adr/0104</c>): a never-schooled Citizen is <em>stuck at tier 1 climbing slowly</em>, which
+    /// is a state the three segments already express.
+    /// </remarks>
     public Column<byte> SkillTier { get; }
 
-    /// <summary>Employment state.</summary>
+    /// <summary>
+    /// Days of completed primary attendance, while this Citizen was a child. <b>A gate and not a
+    /// quantity</b> — see <see cref="Borough.Core.Rules.SchoolingRuleset.Score"/>.
+    /// </summary>
+    public Column<ushort> SchoolingPrimary { get; }
+
+    /// <summary>Days of completed secondary attendance, while this Citizen was a child.</summary>
+    public Column<ushort> SchoolingSecondary { get; }
+
+    /// <summary>
+    /// What this Citizen's childhood scored, 0–100, frozen on the Day they left home.
+    /// </summary>
+    /// <remarks>
+    /// <b>Kept rather than recomputed because half of it is no longer readable.</b> The depth term is
+    /// the <em>parent</em> Household's <see cref="HouseholdTable.Education"/> at the moment of
+    /// formation, and that Household advances a stage on the same Day — so the number cannot be
+    /// derived again afterwards, by a panel or by anything else.
+    /// </remarks>
+    public Column<byte> ChildhoodScore { get; }
+
+    /// <summary>
+    /// Employment state, and <b>why</b> when it is not employment — see
+    /// <see cref="Borough.Core.Rules.EmploymentState"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>The reason is the whole value of the column.</b> Whether somebody has a job is already
+    /// readable off <see cref="Workplace"/>; what nothing could say before is that three posts stood
+    /// in reach and every one of them wanted a credential this Citizen does not hold.
+    /// </remarks>
     public Column<byte> Employment { get; }
 
     /// <summary>

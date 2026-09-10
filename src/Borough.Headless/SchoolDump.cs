@@ -1,10 +1,12 @@
 namespace Borough.Headless;
 
 using System.Globalization;
+using System.Linq;
 using Borough.Core;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Input;
+using Borough.Core.Movement;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
@@ -68,8 +70,13 @@ internal static class SchoolDump
         Simulation simulation = new(world, key) { VerifyDecideWritesNothing = false };
         SyntheticCity.PopulateInto(world, key, new Ticks(0));
 
-        byte kind = ServiceKind(rules, Need.Education);
-        int placed = Found(simulation, world, kind, options.Schools, output);
+        List<EducationKind> educationKinds = EducationKinds(rules);
+        int placed = 0;
+
+        foreach (EducationKind educationKind in educationKinds)
+        {
+            placed += Found(simulation, world, educationKind.Kind, options.Schools, output);
+        }
 
         List<Reading> series = [];
 
@@ -97,13 +104,14 @@ internal static class SchoolDump
             }
         }
 
-        Header(options, rules, names, placed, series.Count, output);
+        Header(options, rules, educationKinds, names, placed, series.Count, output);
         output.WriteLine();
         Trajectory(series, output);
         output.WriteLine();
         Reach(series, world, placed, output);
-        Supply(world, output);
+        Supply(world, names, output);
         Admission(world, simulation, output);
+        Pipeline(world, names, series, output);
 
         return 0;
     }
@@ -169,24 +177,53 @@ internal static class SchoolDump
         return placed;
     }
 
-    private static byte ServiceKind(Ruleset rules, Need need)
+    /// <summary>One declared education kind: its id, the level it teaches, and whether it charges.</summary>
+    private readonly record struct EducationKind(byte Kind, byte Level, bool Private);
+
+    /// <summary>Every <c>serves = "education"</c> kind this Ruleset declares, in id order.</summary>
+    private static List<EducationKind> EducationKinds(Ruleset rules)
     {
+        List<EducationKind> kinds = [];
+
         for (byte kind = 1; rules.Declares(kind); kind++)
         {
-            if (rules.Kind(kind).Serves == need)
+            if (rules.Kind(kind).Serves == Need.Education)
             {
-                return kind;
+                kinds.Add(new EducationKind(kind, rules.Kind(kind).SchoolLevel, IsPrivate(rules, kind)));
             }
         }
 
-        return 0;
+        return kinds;
+    }
+
+    /// <summary>Whether the Business a kind tenants charges tuition — the public/private split.</summary>
+    private static bool IsPrivate(Ruleset rules, byte kind)
+    {
+        byte business = rules.Kind(kind).Business;
+
+        return business != 0 && rules.DeclaresBusiness(business) && rules.BusinessKind(business).Charges;
+    }
+
+    /// <summary>The name of the first declared kind teaching this level, or null.</summary>
+    private static string? KindNameAtLevel(Ruleset rules, RulesetNames names, byte level)
+    {
+        for (byte kind = 1; rules.Declares(kind); kind++)
+        {
+            if (rules.Kind(kind).Serves == Need.Education && rules.Kind(kind).SchoolLevel == level)
+            {
+                return names.Kind(kind);
+            }
+        }
+
+        return null;
     }
 
     // ---- the reading ---------------------------------------------------------------------------
 
     private readonly record struct Reading(
         ulong Tick, int Attended, int Unreached, int NoService, int Full, long Depth, int Schooled,
-        int Families)
+        int Families, int EnrolledPublic, int EnrolledPrivate, int Graduated, int DroppedOut,
+        int TurnedAway, int Studying, long Tuition, int Tier3)
     {
         internal static Reading Of(World world, Simulation simulation, ulong tick)
         {
@@ -220,11 +257,25 @@ internal static class SchoolDump
                 }
             }
 
+            int tier3 = 0;
+            CitizenTable citizens = world.Citizens;
+
+            for (int slot = 0; slot < citizens.Rows.SlotCount; slot++)
+            {
+                if (citizens.Rows.IsLive(slot) && citizens.SkillTier[slot] == SchoolingRuleset.TopTier)
+                {
+                    tier3++;
+                }
+            }
+
             ServiceEngine services = simulation.Services;
+            SchoolingReading schooling = simulation.LastSchooling;
 
             return new Reading(
                 tick, services.Attended, services.Unreached, services.NoService, services.Full,
-                depth, schooled, families);
+                depth, schooled, families, schooling.EnrolledPublic, schooling.EnrolledPrivate,
+                schooling.Graduated, schooling.DroppedOut, schooling.TurnedAway, schooling.Studying,
+                schooling.Tuition, tier3);
         }
     }
 
@@ -244,7 +295,8 @@ internal static class SchoolDump
     // ---- the panels ----------------------------------------------------------------------------
 
     private static void Header(
-        Options options, Ruleset rules, RulesetNames names, int placed, int days, TextWriter output)
+        Options options, Ruleset rules, List<EducationKind> educationKinds, RulesetNames names,
+        int placed, int days, TextWriter output)
     {
         output.WriteLine("# Borough school dump — who can get to a school, and what it costs the rest");
         string sizing = F($"# {options.Citizens:N0} Citizens, {options.Ticks:N0} Ticks, {days:N0} Days");
@@ -257,10 +309,16 @@ internal static class SchoolDump
         output.WriteLine(
             "# Severance, and the one number a coverage Map Layer could never have produced.");
         output.WriteLine("#");
-        string? kind = names.Kind(ServiceKind(rules, Need.Education));
+
+        string kindWord = educationKinds.Count == 1 ? "kind" : "kinds";
+        string kindLabel = educationKinds.Count == 1
+            ? F($"\"{names.Kind(educationKinds[0].Kind)}\"")
+            : string.Join(", ", educationKinds.Select(ek => F(
+                $"{names.Kind(ek.Kind)} (level {ek.Level:N0}{(ek.Private ? ", private" : string.Empty)})")));
         string rates = F(
             $"education degrade {rules.Needs.EducationDegrade:N0}/Day, recover {rules.Needs.EducationRecover:N0}, floor {rules.Needs.Floor:N0}");
-        output.WriteLine(F($"# Ruleset: {options.RulesetPath}, service kind \"{kind}\", {rates}."));
+        output.WriteLine(F(
+            $"# Ruleset: {options.RulesetPath}, service {kindWord} {kindLabel}, {rates}."));
     }
 
     private static void Trajectory(List<Reading> series, TextWriter output)
@@ -274,16 +332,27 @@ internal static class SchoolDump
 
         output.WriteLine(
             "  Day     attended  unreached  no school   full   families  at zero   mean depth"
+            + "  studying  graduates   tier3"
             + (stride > 1 ? F($"   (every {stride:N0} Days)") : string.Empty));
 
-        for (int i = 0; i < series.Count; i += stride)
+        long graduated = 0;
+
+        for (int i = 0; i < series.Count; i++)
         {
             Reading r = series[i];
+            graduated += r.Graduated;
+
+            if (i % stride != 0)
+            {
+                continue;
+            }
+
             long mean = r.Families == 0 ? 0 : r.Depth / r.Families;
 
             string flows = F($"  {i,-6:N0}  {r.Attended,8:N0}  {r.Unreached,9:N0}  {r.NoService,9:N0}");
+            string pipeline = F($"  {r.Studying,8:N0}  {graduated,9:N0}  {r.Tier3,6:N0}");
             output.WriteLine(F(
-                $"{flows}  {r.Full,5:N0}  {r.Families,9:N0}  {r.Schooled,7:N0}  {mean,11:N0}"));
+                $"{flows}  {r.Full,5:N0}  {r.Families,9:N0}  {r.Schooled,7:N0}  {mean,11:N0}{pipeline}"));
         }
     }
 
@@ -339,7 +408,7 @@ internal static class SchoolDump
     /// everywhere and the ceiling binds only where stated, so a designer can see what a school is
     /// asked for before deciding what it may give.
     /// </remarks>
-    private static void Supply(World world, TextWriter output)
+    private static void Supply(World world, RulesetNames names, TextWriter output)
     {
         int rate = world.Rules.Capacity.FloorTilesPerPlace;
 
@@ -347,7 +416,7 @@ internal static class SchoolDump
         output.WriteLine(rate > 0
             ? F($"  Each school — floor_tiles_per_place = {rate:N0}, so places derive from the ground")
             : "  Each school — no [capacity] floor_tiles_per_place, so none of them is ever full");
-        output.WriteLine("    slot      floor    places   attended on the last Day");
+        output.WriteLine("    slot      kind        floor    places   attended on the last Day");
 
         BuildingTable buildings = world.Buildings;
         int shown = 0;
@@ -366,9 +435,10 @@ internal static class SchoolDump
             string places = rate > 0
                 ? F($"{world.DeclaredPlaces(slot),8:N0}")
                 : "       —";
+            string kind = names.Kind(buildings.Kind[slot]) ?? "?";
 
             output.WriteLine(F(
-                $"    {slot,-8:N0}  {world.FloorTilesOf(slot),7:N0}  {places}  {buildings.AttendedToday[slot],9:N0}"));
+                $"    {slot,-8:N0}  {kind,-10}  {world.FloorTilesOf(slot),7:N0}  {places}  {buildings.AttendedToday[slot],9:N0}"));
         }
     }
 
@@ -420,6 +490,192 @@ internal static class SchoolDump
             ? "    ... so no family and school would both rather have had each other."
             : F($"    worst margin        {TripDump.Minutes(reading.WorstMargin.Raw),10} min of walk"));
     }
+
+    /// <summary>
+    /// What the pipeline built: who is in it, who came out of it, and what an analyst earns over an
+    /// apprentice — printed only where <see cref="SchoolingRuleset.Runs"/> gives it something to say.
+    /// </summary>
+    private static void Pipeline(World world, RulesetNames names, List<Reading> series, TextWriter output)
+    {
+        if (!world.Rules.Schooling.Runs)
+        {
+            return;
+        }
+
+        output.WriteLine();
+        output.WriteLine("  The pipeline — a childhood, and what it bought");
+
+        List<byte> levels = [];
+
+        for (byte stage = 1; stage <= world.Rules.LifeStageCount; stage++)
+        {
+            byte level = world.Rules.SchoolLevelOfStage(stage);
+
+            if (level != 0 && !levels.Contains(level))
+            {
+                levels.Add(level);
+            }
+        }
+
+        levels.Sort();
+
+        int[] childrenAtLevel = new int[levels.Count];
+        HouseholdTable households = world.Households;
+        CitizenTable citizens = world.Citizens;
+
+        for (int slot = 0; slot < households.Rows.SlotCount; slot++)
+        {
+            if (!households.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            int index = levels.IndexOf(world.Rules.SchoolLevelOfStage(households.LifeStage[slot]));
+
+            if (index < 0)
+            {
+                continue;
+            }
+
+            foreach (int member in world.Members.Walk(slot))
+            {
+                if (citizens.Age[member] == 0)
+                {
+                    childrenAtLevel[index]++;
+                }
+            }
+        }
+
+        for (int i = 0; i < levels.Count; i++)
+        {
+            string name = KindNameAtLevel(world.Rules, names, levels[i]) ?? F($"level {levels[i]:N0}");
+            Row(output, F($"children in {name} (level {levels[i]:N0})"), childrenAtLevel[i]);
+        }
+
+        int[] tierCounts = new int[SchoolingRuleset.TopTier + 1];
+        long scoreSum = 0;
+        int scoreCount = 0;
+        int[] employmentCounts = new int[Enum.GetValues<EmploymentState>().Length];
+        long[] wageSum = new long[SchoolingRuleset.TopTier + 1];
+        int[] wageCount = new int[SchoolingRuleset.TopTier + 1];
+
+        BusinessTable businesses = world.Businesses;
+
+        for (int slot = 0; slot < citizens.Rows.SlotCount; slot++)
+        {
+            if (!citizens.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            bool adult = citizens.Age[slot] != 0;
+
+            if (adult)
+            {
+                byte tier = citizens.SkillTier[slot];
+
+                if (tier < tierCounts.Length)
+                {
+                    tierCounts[tier]++;
+                }
+
+                byte score = citizens.ChildhoodScore[slot];
+
+                if (score != 0)
+                {
+                    scoreSum += score;
+                    scoreCount++;
+                }
+            }
+
+            if (!world.IsOfWorkingAge(slot))
+            {
+                continue;
+            }
+
+            byte state = citizens.Employment[slot];
+            employmentCounts[state]++;
+
+            if ((EmploymentState)state != EmploymentState.Employed
+                || !businesses.Rows.TryResolve(citizens.Workplace[slot], out int job)
+                || !world.Rules.DeclaresBusiness(businesses.Kind[job]))
+            {
+                continue;
+            }
+
+            byte earnerTier = citizens.SkillTier[slot];
+
+            if (earnerTier >= wageSum.Length)
+            {
+                continue;
+            }
+
+            BusinessKindDefinition trade = world.Rules.BusinessKind(businesses.Kind[job]);
+
+            wageSum[earnerTier] += WorkSchedule.Graded(world, slot, trade.WagePerDay);
+            wageCount[earnerTier]++;
+        }
+
+        for (byte tier = SchoolingRuleset.FloorTier; tier <= SchoolingRuleset.TopTier; tier++)
+        {
+            Row(output, F($"adults at Skill Tier {tier:N0}"), tierCounts[tier]);
+        }
+
+        long meanScore = scoreCount == 0 ? 0 : scoreSum / scoreCount;
+
+        Row(output, "childhood scored, adults formed", scoreCount);
+        Row(output, "... mean childhood score", meanScore);
+
+        long enrolledPublic = 0;
+        long enrolledPrivate = 0;
+        long turnedAway = 0;
+        long droppedOut = 0;
+        long graduated = 0;
+        long tuition = 0;
+
+        foreach (Reading r in series)
+        {
+            enrolledPublic += r.EnrolledPublic;
+            enrolledPrivate += r.EnrolledPrivate;
+            turnedAway += r.TurnedAway;
+            droppedOut += r.DroppedOut;
+            graduated += r.Graduated;
+            tuition += r.Tuition;
+        }
+
+        int studyingNow = series.Count == 0 ? 0 : series[^1].Studying;
+
+        Row(output, "enrolled public, cumulative", enrolledPublic);
+        Row(output, "enrolled private, cumulative", enrolledPrivate);
+        Row(output, "turned away, cumulative", turnedAway);
+        Row(output, "dropped out, cumulative", droppedOut);
+        Row(output, "graduated, cumulative", graduated);
+        Row(output, "studying right now", studyingNow);
+        Row(output, "tuition paid, cumulative", tuition);
+
+        output.WriteLine();
+        output.WriteLine("    employment, by reason");
+
+        foreach (EmploymentState state in Enum.GetValues<EmploymentState>())
+        {
+            Row(output, F($"... {state}"), employmentCounts[(byte)state]);
+        }
+
+        output.WriteLine();
+        output.WriteLine("    earnings, by tier — employed and their mean wage/day after grading");
+
+        for (byte tier = SchoolingRuleset.FloorTier; tier <= SchoolingRuleset.TopTier; tier++)
+        {
+            long mean = wageCount[tier] == 0 ? 0 : wageSum[tier] / wageCount[tier];
+
+            output.WriteLine(F(
+                $"    tier {tier,-4:N0}{wageCount[tier],10:N0} employed, mean wage/day {mean,10:N0}"));
+        }
+    }
+
+    /// <summary>One labelled figure, at the width every other panel's counts line up to.</summary>
+    private static void Row(TextWriter output, string label, long value) =>
+        output.WriteLine(F($"    {label,-32}{value,10:N0}"));
 
     private static string F(FormattableString text) =>
         text.ToString(CultureInfo.InvariantCulture);

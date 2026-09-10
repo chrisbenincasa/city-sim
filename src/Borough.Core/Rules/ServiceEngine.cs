@@ -472,6 +472,22 @@ public sealed class ServiceEngine
                 continue;
             }
 
+            // Which level this Household's children are owed, from the stage they are in. Zero in a
+            // Ruleset that declares no levels, which is every world shipped before this row and is
+            // what keeps `Candidates` matching everything in them.
+            byte level = need == Need.Education
+                ? _world.Rules.SchoolLevelOfStage(households.LifeStage[slot])
+                : (byte)0;
+
+            // 🔴 A STAGE WITH NO LEVEL IN A CITY THAT HAS LEVELS HAS NO OCCASION, and it is not a
+            // failure. `Traveller` already found somebody to send, so without this a Household whose
+            // stage teaches nothing would be degraded every Day for a school its children are not old
+            // enough to attend -- Collect's own rule that an absent occasion is not a failed one.
+            if (need == Need.Education && level == 0 && _world.Rules.DeclaresSchoolLevels)
+            {
+                continue;
+            }
+
             if (need == Need.Education && _world.Rules.School.Runs)
             {
                 foreach (int child in _world.Members.Walk(slot))
@@ -481,14 +497,14 @@ public sealed class ServiceEngine
                     int existing = _civic?.RowOf(child) ?? -1;
                     if (existing >= 0 && (VisitStage)_world.Civic.Stage[existing] != VisitStage.None) { continue; }
                     int first = _candidateCount;
-                    Miss refusal = Candidates(home, _world.ModeOf(child), radius, trips);
+                    Miss refusal = Candidates(home, _world.ModeOf(child), radius, trips, level);
                     if (refusal != Miss.None) { _candidateCount = first; Fail(refusal, need, depth, slot, needs); continue; }
                     Enqueue(slot, child, home, first, _candidateCount - first);
                 }
                 continue;
             }
             int start = _candidateCount;
-            Miss miss = Candidates(home, _world.ModeOf(traveller), radius, trips);
+            Miss miss = Candidates(home, _world.ModeOf(traveller), radius, trips, level);
 
             if (miss != Miss.None)
             {
@@ -535,7 +551,7 @@ public sealed class ServiceEngine
     /// reason the second stage is a real route rather than a tightened box.
     /// </para>
     /// </remarks>
-    private Miss Candidates(int home, TravelMode mode, Cells radius, TripRuleset trips)
+    private Miss Candidates(int home, TravelMode mode, Cells radius, TripRuleset trips, byte level)
     {
         if (!_world.Lots.Rows.TryResolve(_world.Buildings.Lot[home], out int lot))
         {
@@ -568,6 +584,15 @@ public sealed class ServiceEngine
             int candidate = _services[i];
 
             if (candidate == home || !Within(box, candidate))
+            {
+                continue;
+            }
+
+            // ⚠ A SCHOOL OF THE WRONG LEVEL IS NOT A SCHOOL IN THE BOX, so this sits above `inBox`
+            // and the occasion is reported as `NoService` rather than `Unreached`. A neighbourhood
+            // with three primaries and no secondary has no secondary, and calling that a reach
+            // failure would blame the Road Graph for a building nobody put up.
+            if (level != 0 && _world.Rules.SchoolLevelOf(_world.Buildings.Kind[candidate]) != level)
             {
                 continue;
             }
@@ -849,6 +874,16 @@ public sealed class ServiceEngine
         _trips.Start(traveller, _homes[entry], provider, mode, TripPurpose.School, tick);
 
         RuleEngine.Write(depth, slot, depth[slot] + needs.RecoverOf(need), needs.Floor);
+
+        // ⚠ CREDITED AT DISPATCH HERE AND AT ARRIVAL ON THE SCHEDULED PATH, because this path never
+        // consults the Trip's fate -- the recovery two lines up has the same asymmetry and has had it
+        // since attendance shipped. ***A Ruleset without [school] counts journeys begun, not school
+        // days attended***, so no attendance figure taken off one is evidence about the other.
+        if (need == Need.Education)
+        {
+            _world.RecordAttendance(traveller, provider);
+        }
+
         _tickAttended++;
     }
 
@@ -1120,6 +1155,14 @@ public sealed class ServiceEngine
             if (!buildings.Rows.IsLive(slot)
                 || buildings.IsAbandoned(slot)
                 || _world.Rules.ServedBy(buildings.Kind[slot]) != need)
+            {
+                continue;
+            }
+
+            // A university is attended by a Household In Education rather than by a child, so it is
+            // never a candidate for this pass and must not sit in a family's preference list.
+            if (need == Need.Education
+                && _world.Rules.SchoolLevelOf(buildings.Kind[slot]) == SchoolingRuleset.University)
             {
                 continue;
             }

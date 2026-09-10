@@ -773,8 +773,12 @@ public sealed class DistrictWatershedTests
             // insolvent.toml IS shopping.toml with one [[business]] key added, so it inherits
             // [districts] for that file's reason and not for one of its own -- plans/0065.
             // stress-shopping.toml combines the two-centre Shopping mechanisms for plans/0067.
+            // schooling.toml carries provisioned.toml's economy so that a wage is a wage a Business
+            // actually pays -- plans/0071 row 29. Its grocer restocks from the Pool, a Pool is a
+            // market, and a market needs Districts, so it inherits the table for that file's reason.
             bool expected = file is "twinned.toml" or "provisioned.toml" or "oversupplied.toml"
-                or "waged.toml" or "pictured.toml" or "shopping.toml" or "insolvent.toml" or "stress-shopping.toml" or "profile-services.toml";
+                or "waged.toml" or "pictured.toml" or "shopping.toml" or "insolvent.toml" or "stress-shopping.toml" or "profile-services.toml"
+                or "schooling.toml";
 
             Assert.Equal(expected, states);
         }

@@ -6,8 +6,8 @@ Updated 2026-09-09. Amnesty ends at the prose/code ratio target, never on a date
 ## Status
 
 The recent capability work is complete: housing consequences (16), shopping (20), daily schedules
-and care (19), Business insolvency (27), and the choice model with incumbent and Outside
-alternatives (28). Their findings and the earlier completed rows are preserved in
+and care (19), Business insolvency (27), the choice model with incumbent and Outside
+alternatives (28), and education changing a working life (29). Their findings and the earlier completed rows are preserved in
 [the historical queue](0045a-amnesty-history.md#the-queue). Completion is scoped to those rows;
 follow-ups below remain open.
 
@@ -37,14 +37,14 @@ Changing a restriction requires changing its test in a commit explaining why.
 ## The queue
 
 The table's position is the order; numbers are permanent identities. Rows 29 and 30 retain their
-identities; 31 and 32 are new. All four are unstarted. The roadmap supplies
+identities; 31 and 32 are new. Row 29 is done and 32 is scoped. The roadmap supplies
 capabilities; this page selects the work; each item's plan owns its detailed scope and findings.
 The old [board](0000-board.md) is suspended. Read the relevant roadmap, code and gates when taking
 up an item, not the whole historical corpus. Expanded scopes do not automatically clear gates.
 
 | Row | Capability and scope | State / completion evidence |
 |---|---|---|
-| **29** | **Education changes a Citizen's working life.** Connect actual attendance, Skill Tier, employment eligibility and access to different earnings, through the school-to-work transition and Household consequences. Include experience progressing Tier 1 → 2 and the schooling requirement for Tier 3. | **Next: scope and build the full capability.** Carries roadmap milestone 15's remaining education/employment work. Watch a Citizen's education affect the jobs available to them and their Household's circumstances, with an unsuccessful path visible too. |
+| **29** | **Education changes a Citizen's working life.** Connect actual attendance, Skill Tier, employment eligibility and access to different earnings, through the school-to-work transition and Household consequences. Include experience progressing Tier 1 → 2 and the schooling requirement for Tier 3. | **Done 2026-09-09.** [0071](0071-education-changes-a-working-life.md) owns the sixteen decisions and the eight findings. Attendance is counted per level per child, a childhood is scored 70/30 against Days attended and the Household's Education depth, and the score sets the Skill Tier at formation; experience carries Tier 1 → 2 and never past it; `[[business]] requires_tier` refuses below the credential and `CitizenTable.Employment` now names the reason; earnings are the posted wage times a tier percentage times an experience premium. A university is entered by a Household, public places first and a private college on overflow, tuition per Day with drop-out on default. `rulesets/schooling.toml` and `--school`'s pipeline panel are the demonstration. 🔴 **The unsuccessful path is the one that surprised**: every Household in that world is destitute by Day 3, so nobody can buy a private degree and the split is proved by `SchoolingTests` rather than by the world — [0071 F1](0071-education-changes-a-working-life.md). |
 | **31** | **The city attracts people without injected arrivals.** Connect Hinterland population stock, who presents themselves, the existing choice model, gate throughput, admission and placement. Include depletion and replenishment, with population accounting and changing city conditions. | **Queued for scoping.** Continues row 28's explicitly deferred stock half; [0068 D6](0068-the-choice-model.md#decisions) owns the gap. Demonstrate arrivals changing as opportunity and the Outside change, without repeated player or Input Log requests supplying the flow. |
 | **32** | **The city spends money and the player decides on what.** Connect the treasury, a service that costs money to run, the funding lever and the consequence of withdrawing it. Include an opening balance, a cost on placing a service, and money conserved across both. | **Scoped 2026-09-09; not started.** [0070](0070-the-city-spends.md) owns the scope and the three findings. Watch a school be funded, staffed and paid, then lose its funding and close. |
 | **30** | **A player diagnoses decline, intervenes and watches the result.** Connect sustained failure sources, their consequences, Evidence and an available player action. Preserve the original Trip-failure and below-tolerance scope; include recovery and persistent failure. | **Expanded; queued for scoping and gate review.** Carries milestone 17's failure-source residue and builds on [0064](0064-the-information-interface.md#first-diagnosis-interaction--2026-09-08). Watch an intervention remove a cause and produce recovery, or expose a remaining cause that prevents it. |

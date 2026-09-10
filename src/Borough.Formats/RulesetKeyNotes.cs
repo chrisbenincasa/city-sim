@@ -102,6 +102,11 @@ public static class RulesetKeyNotes
         ["[[building]] care_opens_hour"] = "Civil opening hour for outpatient appointments.",
         ["[[building]] care_closes_hour"] = "Civil closing hour for outpatient appointments.",
         ["[[building]] bed_percent"] = "Share of facility floor area reserved for inpatient beds; the rest supports outpatient treatment.",
+        ["[[building]] level"] =
+            "Which school level a kind serving education teaches: 1 primary, 2 secondary, 3 "
+            + "university. Refused on any kind that does not serve education. Required of an "
+            + "education kind exactly where the file also states [schooling]; absent otherwise "
+            + "means an undifferentiated school every family matches.",
         // ---- [[resource]] ---------------------------------------------------------------------
         ["[[resource]] name"] =
             "What this Resource is called. Every other table refers to it by this name, and the "
@@ -223,6 +228,14 @@ public static class RulesetKeyNotes
             "How many paydays running this trade may fail to pay its workers in full before it is "
             + "wound up: the staff are dismissed and the premises are left standing and empty. A "
             + "payroll met in full resets the count. Absent means it never goes bankrupt.",
+        ["[[business]] requires_tier"] =
+            "The lowest Skill Tier this trade will hire, a minimum rather than a band — a Citizen "
+            + "above it may still take the post. Absent means it hires anybody.",
+        ["[[business]] tuition_per_day"] =
+            "What this trade charges a Household In Education, per Day — the private-university "
+            + "route to a degree, rationed by what a Household can pay rather than by places. "
+            + "Refused unless the file declares a [[building]] serving education at level 3. "
+            + "Absent means the trade is not a private university.",
 
         // ---- [[rule]] -------------------------------------------------------------------------
         ["[[rule]] name"] =
@@ -364,6 +377,10 @@ public static class RulesetKeyNotes
             "The width of the band a Household of this stage draws its own position from, so that a "
             + "stage is a distribution rather than one opinion. Zero means the stage agrees with "
             + "itself completely. The band must fit inside the axis.",
+        ["[[life_stage]] school_level"] =
+            "Which school level this stage's children attend: 1 primary, 2 secondary. A university "
+            + "is refused here — it is attended by a Household In Education, a state and not a "
+            + "Life Stage. Absent means this stage's children attend no school.",
 
         // ---- [[policy]] -----------------------------------------------------------------------
         ["[[policy]] name"] =
@@ -593,6 +610,38 @@ public static class RulesetKeyNotes
             + "Start hours are on the hour, so without this the whole city departs on a handful of "
             + "Ticks and the morning comes out a plateau of equal bars. Zero means everybody cuts it "
             + "fine.",
+        ["[jobs] wage_tier_percent"] =
+            "What each of the three Skill Tiers is paid, as a percent of the trade's posted rate — "
+            + "exactly three entries, the first of which restates the posted rate and can only be "
+            + "100. Absent means every tier is paid the same.",
+        ["[jobs] experience_per_day"] =
+            "What one Day worked is worth toward promotion. Required together with "
+            + "tier2_experience: a rate with no ceiling is half a mechanism.",
+        ["[jobs] tier2_experience"] =
+            "How much accumulated experience promotes a Citizen to Tier 2. Required together with "
+            + "experience_per_day.",
+        ["[jobs] unschooled_experience_percent"] =
+            "What one Day worked is worth to a Citizen who missed schooling, as a percent of the "
+            + "schooled rate. Absent means a missed childhood costs nothing on this axis.",
+        ["[jobs] experience_premium_percent"] =
+            "The premium a Citizen has earned inside their own band at its ceiling, as a percent "
+            + "added to their pay — the design's one source of productivity growth within a tier. "
+            + "Absent means experience never adds to pay.",
+
+        // ---- [schooling] ------------------------------------------------------------------------
+        ["[schooling] attendance_weight_percent"] =
+            "How much of the childhood score the attendance term carries; the depth term carries "
+            + "the rest.",
+        ["[schooling] full_attendance_days"] =
+            "Secondary Days that score a full 100 on the attendance term.",
+        ["[schooling] primary_gate_days"] =
+            "Primary Days below which secondary attendance counts for nothing at all — the gate.",
+        ["[schooling] tier2_score"] =
+            "The childhood score at or above which an adult forms at Tier 2. Also the university "
+            + "qualification, because the two are the same claim about the same childhood.",
+        ["[schooling] university_days"] =
+            "How many Days In Education confers Tier 3. Required exactly of a file declaring a "
+            + "[[building]] serving education; refused of one that declares none.",
 
         // ---- [roads] --------------------------------------------------------------------------
         ["[roads] block_tiles"] =

@@ -2035,6 +2035,11 @@ public sealed class World
         Citizens.HouseholdOf[slot] = household;
         Citizens.Age[slot] = child ? (ushort)0 : DrawAdultAge(slot);
 
+        // 1 and not 0, because there is no tier 0 (adr/0104) and a founding adult who was schooled
+        // somewhere this simulation cannot see is exactly the state tier 1 names. A zero here would
+        // be a tier below the floor, and every credential filter in the city would refuse it.
+        Citizens.SkillTier[slot] = SchoolingRuleset.FloorTier;
+
         // 02 §10's per-Tick tier: O(changed), at the write site. A member list is small by
         // construction, so this is the cheap half of *no Citizen in two places* — complete within
         // one Household and blind across two, which is what the end-of-run walk is for.
@@ -2141,6 +2146,113 @@ public sealed class World
     }
 
     /// <summary>
+    /// Freezes a childhood into a score and a Skill Tier, on the Day a child becomes an adult.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Two records were layered here and neither cites the other.</b> <c>adr/0104</c> reads the
+    /// tier off the Education Need the Household accumulated while it had children; <c>CONTEXT.md</c>
+    /// → <i>Schooling</i> makes a university the only route to Tier 3. ***This sets 1 or 2 and a
+    /// university sets 3***, which is <c>adr/0104</c>'s own <em>"schooling influences both boundaries
+    /// and gates only the top"</em> taken literally.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A Ruleset with no <c>[schooling]</c> table leaves every Citizen at the floor tier</b>,
+    /// rather than at zero. There is no tier 0 (<c>adr/0104</c>): a never-schooled Citizen is
+    /// <em>stuck at tier 1 climbing slowly</em>, and every world shipped before this row is a world
+    /// where nobody was schooled and everybody works.
+    /// </para>
+    /// </remarks>
+    private void Score(int citizenSlot, int parentSlot)
+    {
+        SchoolingRuleset schooling = Rules.Schooling;
+
+        if (!schooling.Runs)
+        {
+            Citizens.SkillTier[citizenSlot] = SchoolingRuleset.FloorTier;
+
+            return;
+        }
+
+        int score = schooling.Score(
+            Citizens.SchoolingPrimary[citizenSlot],
+            Citizens.SchoolingSecondary[citizenSlot],
+            Households.Education[parentSlot],
+            Rules.Needs.Floor);
+
+        Citizens.ChildhoodScore[citizenSlot] = (byte)score;
+        Citizens.SkillTier[citizenSlot] = schooling.TierOf(score);
+    }
+
+    /// <summary>Whether this Citizen's Household is In Education, and therefore supplies no labour.</summary>
+    public bool IsStudying(int citizenSlot) =>
+        Households.Rows.TryResolve(Citizens.HouseholdOf[citizenSlot], out int household)
+        && (HouseholdState)Households.State[household] == HouseholdState.InEducation;
+
+    /// <summary>
+    /// Whether this Citizen's childhood cleared the schooling cut — <b>the same cut that qualifies
+    /// for a university</b>, because the two are one claim about one childhood.
+    /// </summary>
+    /// <remarks>
+    /// <b>It is what makes experience slower for somebody who missed school</b> (<c>adr/0104</c>), and
+    /// it is deliberately not a fourth Skill Tier: the state it names is already <em>tier 1, climbing
+    /// slowly</em>, and a permanent underclass would be a second wall in a design that permits one.
+    /// </remarks>
+    public bool IsSchooled(int citizenSlot) =>
+        Rules.Schooling.Runs && Citizens.ChildhoodScore[citizenSlot] >= Rules.Schooling.Tier2Score;
+
+
+    /// <summary>An equal share of this Household's balance, one for it and one for each child.</summary>
+    private long Endowment(int slot)
+    {
+        int children = 0;
+
+        foreach (int member in Members.Walk(slot))
+        {
+            if (Citizens.Age[member] == 0)
+            {
+                children++;
+            }
+        }
+
+        if (children == 0 || !Bins.Rows.TryResolve(Households.Balance[slot], out int estate))
+        {
+            return 0;
+        }
+
+        return IntegerMath.FloorDiv(Bins.LevelAt(estate), children + 1);
+    }
+
+    /// <summary>Moves one share from a parent Household's purse to a departing child's.</summary>
+    /// <remarks>
+    /// <b>Through <see cref="Withdraw"/> and <see cref="Deposit"/> rather than <c>BinTable.Move</c></b>,
+    /// so both writes drain their wait lists — <c>WageEngine.Pay</c>'s reason, and the same one holds
+    /// here. ⚠ <b>Re-checked against the purse each time rather than trusted</b>: the share was
+    /// computed once, before any of it was paid out, and integer division can leave the last child
+    /// asking for more than is left where something else drew on the balance in between.
+    /// </remarks>
+    private void Bequeath(int slot, Handle<Household> formed, long share, Ticks now)
+    {
+        if (share <= 0
+            || !Bins.Rows.TryResolve(Households.Balance[slot], out int estate)
+            || !Bins.Rows.TryResolve(Households.Balance[Households.Rows.Resolve(formed)], out int purse))
+        {
+            return;
+        }
+
+        long available = Bins.LevelAt(estate);
+        long moved = share > available ? available : share;
+
+        if (moved <= 0)
+        {
+            return;
+        }
+
+        Withdraw(Bins.Rows.At(estate), moved, now);
+        Deposit(Bins.Rows.At(purse), moved, now);
+    }
+
+    /// <summary>
     /// Sends a Household's children out to form their own, in the Unplaced Pool.
     /// </summary>
     /// <remarks>
@@ -2175,9 +2287,27 @@ public sealed class World
         int slot = Households.Rows.Resolve(household);
         int spawned = 0;
 
+        // 🔴 WHAT A FAMILY CAN DO FOR ITS CHILDREN, and it is DERIVED rather than authored: the
+        // balance is split evenly between the parent Household and each child leaving it, so a
+        // family with three children keeps a quarter and gives away three. There is no key, because
+        // an equal share is what conservation already implies and a percentage would be a number
+        // nobody could argue for.
+        //
+        // ⚠ Money is CONSERVED across it -- this is a transfer between two purses through the same
+        // doors a wage uses, never an endowment. Invariant.MoneyIsConserved stays green.
+        //
+        // ⚠ WITHOUT IT THE PRIVATE HALF OF THE UNIVERSITY IS DEAD. A formed Household opens at zero,
+        // a student supplies no labour, and enrolment is decided before anybody has ever been paid --
+        // so a school-leaver could never afford tuition and every enrolment in every city would be
+        // public. ***That is what makes family wealth a term in who reaches Tier 3***, which is the
+        // dilemma the public/private split exists to produce.
+        long share = Endowment(slot);
+
         for (int child = FirstChild(slot); child != Rows.NoSlot; child = FirstChild(slot))
         {
             Handle<Household> formed = FormHousehold(becomes, now);
+
+            Bequeath(slot, formed, share, now);
 
             // Off the roster BEFORE the move, because a commute is derived from the Household's
             // dwelling and this Citizen is about to have a different one -- none at all, since a
@@ -2191,6 +2321,25 @@ public sealed class World
 
             // The formation adr/0011 means: an adult's age is drawn once, here, and never advances.
             Citizens.Age[child] = DrawAdultAge(child);
+
+            // 🔴 THE ONE STEP adr/0104 SAYS DID NOT EXIST. Everything under it was already built --
+            // the Life Stage saying a Household has children, the Education Need refused on Space
+            // when a school is full, and the Need falling while unmet -- and what was missing was
+            // reading the accumulation at the moment a Young Household forms.
+            //
+            // ⚠ The depth term is the PARENT's, and it is readable on this Tick or never: the parent
+            // advances its stage on the same Day, and a stage without children stops attending. That
+            // is why ChildhoodScore is stored rather than recomputed by whoever wants it later.
+            Score(child, slot);
+
+            // The same cut qualifies for Tier 2 and for a university, because the two are one claim
+            // about one childhood. Whether this Household actually goes is SchoolingEngine's, and it
+            // cannot be asked here: a formed Household is unhoused, so nothing is in reach of it yet.
+            if (Rules.Schooling.Enrols && Citizens.SkillTier[child] >= 2)
+            {
+                Households.State[Households.Rows.Resolve(formed)] =
+                    (byte)HouseholdState.Considering;
+            }
 
             Commutes.Add(Citizens, Buildings, Businesses, Rules, Key, child);
 
@@ -2221,9 +2370,11 @@ public sealed class World
     /// <para>
     /// <b><see cref="TryArrive"/>'s body without the door.</b> A Household formed here came from
     /// inside the city, so there is no gate to record and no Hinterland to draw a carried balance
-    /// from — it opens at zero, and the estate its parents held goes to the treasury when they
-    /// dissolve rather than down to it. ***A generated Household inherits nothing***, which is a
-    /// consequence of <c>World.Dissolve</c>'s answer rather than a decision taken here.
+    /// from — it opens at zero. ⚠ <b>It does not stay at zero</b>:
+    /// <see cref="SpawnChildren"/> moves a share of the parent's balance across immediately after,
+    /// so what a school-leaver starts with is what their family could give them. ~~<em>A generated
+    /// Household inherits nothing</em>~~ was true until row 29 and is what made a private
+    /// university unreachable to everybody the city produced.
     /// </para>
     /// <para>
     /// ⚠ <b>No gate on the Pool membership</b>, which is the eviction path's spelling and its reason
@@ -6086,6 +6237,45 @@ public sealed class World
     }
 
     /// <summary>
+    /// Records one Day of completed attendance for a child, against the level the school teaches.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The level comes from the SCHOOL and never from the Household's stage.</b> The stage decides
+    /// which schools a child may apply to; what they attended is a property of the Building they
+    /// walked into, and reading the stage here would credit a level the child never entered on the
+    /// Day their Household advances.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Saturating rather than wrapping.</b> A count of Days over a life is bounded by the Life
+    /// Stage table, so the ceiling is unreachable in any world a designer would author — but a
+    /// counter that wraps is a magnitude that goes backwards, and <c>adr/0006</c>'s extension to
+    /// quantities has no exception for one that would never get there.
+    /// </para>
+    /// </remarks>
+    public void RecordAttendance(int citizenSlot, int buildingSlot)
+    {
+        if (citizenSlot < 0 || !Citizens.Rows.IsLive(citizenSlot)
+            || buildingSlot < 0 || !Buildings.Rows.IsLive(buildingSlot))
+        {
+            return;
+        }
+
+        byte level = Rules.SchoolLevelOf(Buildings.Kind[buildingSlot]);
+
+        Column<ushort>? column = level == SchoolingRuleset.Primary ? Citizens.SchoolingPrimary
+            : level == SchoolingRuleset.Secondary ? Citizens.SchoolingSecondary
+            : null;
+
+        if (column is null || column[citizenSlot] == ushort.MaxValue)
+        {
+            return;
+        }
+
+        column[citizenSlot]++;
+    }
+
+    /// <summary>
     /// How many <em>Households</em> a Building of <paramref name="kind"/> can hold, or <c>false</c>
     /// where the Ruleset declares no such kind.
     /// </summary>
@@ -6901,6 +7091,7 @@ public sealed class World
         Citizens.EarnedWage[slot] = 0;
         Citizens.WageRemainder[slot] = 0;
         Citizens.PlannedCommute[slot] = plannedCommute;
+        Citizens.Employment[slot] = (byte)EmploymentState.Employed;
 
         // adr/0097: the reach-failure count resets on employment and on nothing else. It is here
         // rather than in the assignment pass for the reason the paragraph above gives for the worker
@@ -7072,6 +7263,11 @@ public sealed class World
         Citizens.Workplace[slot] = default;
         Citizens.EarnedWage[slot] = 0;
         Citizens.WageRemainder[slot] = 0;
+
+        // Back to concluding nothing rather than to a refusal. A Citizen whose employer was demolished
+        // or went bankrupt has not been turned down by anybody, and the next occasion that looks at
+        // them is what decides what to say.
+        Citizens.Employment[slot] = (byte)EmploymentState.None;
     }
 
     /// <summary>

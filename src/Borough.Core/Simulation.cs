@@ -43,7 +43,9 @@ public sealed class Simulation
     private readonly WageEngine _wages;
     private PayrollReading _lastPayroll;
     private readonly LifeStageEngine _lifeStages;
+    private readonly SchoolingEngine _schooling;
     private LifeStageReading _lastLifeStages;
+    private SchoolingReading _lastSchooling;
     private readonly DisasterEngine _disasters;
     private DisasterReading _lastDisasters;
     private readonly PlacementEngine _placement;
@@ -115,6 +117,7 @@ public sealed class Simulation
         _policies = new PolicyEngine(world, key);
         _wages = new WageEngine(world, key);
         _lifeStages = new LifeStageEngine(world);
+        _schooling = new SchoolingEngine(world);
         _employment = new EmploymentEngine(world, key);
 
         // No WorldKey: nothing in Phase 4 draws. A Traveller advances when its Leg's arrival Tick has
@@ -224,6 +227,9 @@ public sealed class Simulation
 
     /// <summary>What the last Life Stage sweep did. Zero on any Tick but a Day's first.</summary>
     public LifeStageReading LastLifeStages => _lastLifeStages;
+
+    /// <summary>What the last Day of the university did — enrolment, tuition, degrees and drop-outs.</summary>
+    public SchoolingReading LastSchooling => _lastSchooling;
 
     /// <summary>What the last Tick's Disaster sweep did. Every field is a delta, not a total.</summary>
     public DisasterReading LastDisasters => _lastDisasters;
@@ -1531,6 +1537,13 @@ public sealed class Simulation
         // ⚠ It is silent on every shipped Ruleset: none declares [[life_stage]], so DeclaresLifeStages
         // is false and the sweep returns before it looks at a bucket.
         _lastLifeStages = _lifeStages.Sweep(tick);
+
+        // Immediately behind the stage sweep, because the Households it admits are the ones that
+        // sweep just formed, and ahead of placement so that a student is off the labour market before
+        // `_employment.Assign` below looks at them. ⚠ It enrols only a Household that already HAS a
+        // dwelling, so a school-leaver housed by the pass below waits a Day -- which is the decision
+        // being made once rather than a race.
+        _lastSchooling = _schooling.Sweep(tick);
 
         _policies.Sweep(tick);
 
