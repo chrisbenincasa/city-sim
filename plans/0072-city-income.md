@@ -1,8 +1,8 @@
 # 0072 — City income
 
-Amnesty row 33. Design session opened 2026-09-10. **Design in progress; implementation not started.**
-This plan owns the decisions and remaining design questions. Implementation follows a completed
-design and scope; row 32 supplies the expenditure side of the budget.
+Amnesty row 33. Design session opened 2026-09-10. **All four phases shipped, 2026-09-11.**
+This plan owns the decisions, the findings and what remains open. Row 32 supplies the spending
+mechanism the budget's expenditure half will eventually read.
 
 ## Decisions
 
@@ -250,7 +250,7 @@ Ordered by dependency. Each ships with its tests before the next starts.
 | **A** ✅ | Citizen income tax withheld at the wage payment; three bands; four player controls; the earning Day's schedule | D1–D7 |
 | **B** ✅ | Business revenue, expenses and profit on a simplified accrual basis; two profit bands; collection | D1, D8, D15 |
 | **C** ✅ | The targeted policy catalogue — charges, relief and funded subsidies, with proportional rationing | D9–D14 |
-| **D** | The budget the player reads income and expenditure off, the demonstration Ruleset and the acceptance run | — |
+| **D** ✅ | The budget the player reads income and expenditure off — in the shell, beside the rates — and the acceptance run | D35–D38 |
 
 ### Phase A tasks
 
@@ -793,3 +793,114 @@ and a tenth `--income` column. `rulesets/taxing.toml` grew from six numbered cha
 exercises all three tools, with the subsidy rationed on nine Days of twelve. Twelve new loader
 refusals; the count of record moved 297 → 309. All four golden artefacts re-recorded; no Ruleset
 content hash moved. The working lane is 3,361 green.
+
+## Phase D decisions
+
+### D35 — the shell keeps its own account and a Census is not it
+
+`Census` already carries all seven flows and the shell could have held one. It does not, for two
+reasons that are properties of the shell rather than preferences. **A Census reading walks every Bin
+in the world** — `MoneyLedger.Of` — to fill six level counters, of which a budget wants one; on a
+frame that is a spike nobody asked for, and it would fall on a Day boundary for ever. And **a Census
+keeps a series where a panel wants two intervals**, so the ring, the capacity and the `Peak` beside
+every `Sum` would all be carried and none of them shown.
+
+⚠ **What the shell holds instead is `CityBudget`, and it is Godot-free on purpose.** A `Control` is
+invisible to every test in the suite; the Day roll, the running totals and the residual are not, and
+they are the half that can be wrong quietly. It is linked into `Borough.Tests` the way `CitySave` and
+`CityPreparation` already are.
+
+🔴 **Both readers DRAIN, so a run has exactly one of them.** `Simulation.DrainTreasuryFlows` is the
+one public surface either goes through, and it says so where it is declared. A process holding both
+would see each movement once, through whichever asked first, and neither would have anything to say
+the other had taken it.
+
+### D36 — the account opens where the shell picked the world up, and states its opening balance
+
+Flows are an instrument's business and are not saved, so a world loaded from a save arrives holding a
+treasury balance and no history of how it got one. ***A running total counted from an assumed zero
+would report the save's entire past as this session's income.*** So the account records the Tick it
+opened at and what the treasury held then, and the panel prints both — which is also what makes the
+identity checkable by eye rather than by belief.
+
+### D37 — the budget sits opposite the panel that sets the rates
+
+Chosen by the user on 2026-09-11 over the mutual exclusion every other auxiliary panel has. Government
+holds the four income-tax controls, the three profit-tax controls and the funding ceiling; this holds
+what they brought in. ***A player who cannot see both at once cannot see the consequence of the lever
+they are touching***, which is the clause of amnesty row 33 the panel exists for. It is the one panel
+anchored on the right, and it sizes itself against the **laid-out rect** of whichever panel is open on
+the left rather than against a second derivation of that panel's width. ⚠ **At the 1,280 px design
+minimum a full-width budget beside an open Government overlaps it by 108 px**, so the fit is load
+bearing rather than tidy.
+
+### D38 — the residual is printed, and it is the panel's point
+
+`plans/0072` F11 found 89% of this city's income arriving through a path no column watched, and the
+treasury rising against a reported income of nothing. F12 is the same defect still open — a dissolving
+Household's estate reaches the treasury uncounted, on ten shipped Rulesets. So the panel does not
+assume the identity holds: it prints *opening plus income less expenditure* and then says whether the
+treasury holds exactly that, naming the shortfall and its known cause when it does not. ***A budget
+that assumed zero would be wrong without saying so***, which is the one thing this row exists to stop.
+
+## Phase D findings
+
+### F29 — a fast-forward's whole income sits in the accumulators, waiting for the first reading
+
+`CityPreparation` steps every Tick up to `--start-at` on its own thread and nothing drains the engines
+while it does, so the shell installs a world whose accumulators hold the entire pre-roll. Measured on
+`taxing.toml` at 2,000 Citizens, the first 8,192 Ticks move **1,228,432 into the treasury and 560,192
+out** — and all of it would have been stamped on the shell's first Tick, against an opening balance
+that already contains every unit of it. ***The residual would have been the pre-roll, negative, on the
+first reading a player ever saw.***
+
+⚠ **The default path has one too.** The shell installs at Tick 256 with no flag at all, so there is no
+launch that hands the account empty accumulators. Discharged by a drain-and-discard where the account
+opens, and held by `An_undrained_run_accumulates_its_whole_history_into_one_reading` rather than by
+this paragraph.
+
+### F30 — the city lives on the profit tax, and the tax the row is named after is 2% of its income
+
+Six Days of `taxing.toml` at 2,000 Citizens, read off the panel at Tick 12,289 in a driven run:
+
+| into the treasury | six Days, from the panel | share |
+|---|---|---|
+| profit tax | 1,841,077 | **60%** |
+| a Bin Rule's rates | 606,208 | 20% |
+| a Policy | 569,344 | 19% |
+| **withheld from wages** | **57,936** | **2%** |
+
+⚠ **Confirmed independently at a different sizing**: `--income --ruleset rulesets/taxing.toml
+--citizens 2000 --ticks 24576` reports 3,106,799 in profit tax against **146,064 withheld**, which
+is 2.2% of an income of 6,738,559. The two readings are different runs of different lengths and the
+share is the same.
+
+🔴 **Row 33's headline is *the city's income grows with the city, and the player sets the rate*, and
+the rate a player would reach for first moves two per cent of it.** The four income-tax controls are
+the most prominent thing on the Government panel and they are the smallest lever on that panel by a
+factor of thirty. ⚠ **It is a property of this world rather than of the design** — F13 and F14 already
+found that the demonstration's payroll barely runs, and a tax withheld at a payday cannot exceed the
+paydays that happen. But ***the budget is what makes it legible***, and before the panel nothing in
+the shell could have said it at all.
+
+### F31 — a Day boundary's sweeps open the Day they are counted in rather than close it
+
+`Simulation.Step` runs a Tick's phases and *then* advances the clock, so after a step the world's Tick
+is the next one and the flows just accumulated belong to the Tick before it. A payday and a profit-tax
+collection fall on a Day boundary, so **a closed Day's figures are the boundary at its head and not
+the one at its foot**. `IncomeDump` has the same property and the two therefore agree, which is what
+`The_shells_account_totals_what_a_census_of_the_same_run_totals` holds.
+
+⚠ **The panel's column heading says *Day to Tick N* and that is exact** — the window ends just before
+Tick N's own phases. ***But the sweep a reader would expect at the end of it is at the start***, and
+nothing about the reading says which. Recorded rather than repaired: moving it is a change to
+`IncomeDump` and to what `--income`'s rows mean, which is a bigger thing than this row.
+
+## Phase D — done
+
+Shipped 2026-09-11. One public drain on `Simulation` carrying the seven treasury flows, a Godot-free
+`CityBudget` holding the Day roll and the running totals, a Budget panel anchored opposite Government
+so the rates and their consequence read together, a fifth opener in the launcher row, and the account
+in the driven readout so a run can assert on it. Eight new tests, one of which holds the shell's
+account against a Census of the same run. No Ruleset changed and no golden artefact moved: nothing
+here is in the State Hash. The working lane is 3,369 green.

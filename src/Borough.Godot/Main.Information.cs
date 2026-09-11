@@ -72,6 +72,7 @@ public partial class Main
 
         Console();
         Chrome();
+        BudgetPanel(_hud);
 
         _inspector = InformationPanel();
         _inspector.Size = new Vector2(406, 600);
@@ -218,7 +219,8 @@ public partial class Main
         Color shadow = colors.Shadow;
         _palette?.AddThemeStyleboxOverride("panel",
             InformationUi.Box(paper, line, 16, 12, InformationUi.PanelRadius, shadow));
-        foreach (Control panel in _informationPanels.Concat(new Control?[] { _policyPanel, _cityPanel, _tuner })
+        foreach (Control panel in _informationPanels
+            .Concat(new Control?[] { _policyPanel, _cityPanel, _budgetPanel, _tuner })
             .Where(p => p is not null).Select(p => p!))
         {
             panel.AddThemeStyleboxOverride("panel", InformationUi.Box(paper, line,
@@ -331,6 +333,38 @@ public partial class Main
             float cityWidth = Math.Min(720, size.X - width - margin * 3);
             FitPanel(_cityPanel, cityScroll, cityBody, margin, margin, cityWidth, 100,
                 Math.Max(100, consoleTop - _cameraPanel.GetCombinedMinimumSize().Y - 8 - margin * 2), true);
+        }
+        if (_budgetPanel is not null && _budgetShown)
+        {
+            // 🔴 THE RIGHT OF THE SCREEN, AND IT IS THE ONE PANEL THAT IS. Government holds the
+            // rates and this holds what they brought in, so a player who cannot see both at once
+            // cannot see the consequence of the lever they are touching -- which is the clause of
+            // amnesty row 33 this panel exists for. Every other auxiliary panel shares the left
+            // anchor and closes its neighbours; this one has nowhere to be but opposite them.
+            var budgetScroll = _budgetPanel.GetChildren().OfType<ScrollContainer>().First();
+            var budgetBody = budgetScroll.GetChild<Control>(0);
+
+            // ⚠ Against whatever the left panel LEFT, and read off its laid-out rect rather than
+            // recomputed from the same inputs. Both are sized here and this one is sized second, so
+            // asking is exact where a second derivation is a copy that can drift. At the 1,280 px
+            // design minimum a full-width budget beside an open Government overlaps it by 108 px.
+            float budgetLeft = margin;
+
+            if (_policyPanel is not null && _governing)
+            {
+                budgetLeft = Math.Max(budgetLeft, _policyPanel.GetGlobalRect().End.X + margin);
+            }
+
+            if (_cityPanel is not null && _cityShown)
+            {
+                budgetLeft = Math.Max(budgetLeft, _cityPanel.GetGlobalRect().End.X + margin);
+            }
+
+            float budgetWidth = Math.Clamp(size.X - budgetLeft - margin, 1, 620);
+            float budgetTop = _chrome.GetGlobalRect().End.Y + margin;
+            FitPanel(_budgetPanel, budgetScroll, budgetBody,
+                Math.Max(budgetLeft, size.X - budgetWidth - margin), budgetTop, budgetWidth, 100,
+                Math.Max(100, consoleTop - budgetTop - margin), true);
         }
 
         LayoutToolBrowser(size, margin, consoleTop, narrow, width, OpenersBottom(margin));
@@ -449,7 +483,9 @@ public partial class Main
         || _palette is not null && _palette.Visible && _palette.GetGlobalRect().HasPoint(at)
         || _tuner.Visible && _tuner.GetGlobalRect().HasPoint(at)
         || _policyPanel is not null && _policyPanel.Visible && _policyPanel.GetGlobalRect().HasPoint(at)
-        || _cityPanel is not null && _cityPanel.Visible && _cityPanel.GetGlobalRect().HasPoint(at));
+        || _cityPanel is not null && _cityPanel.Visible && _cityPanel.GetGlobalRect().HasPoint(at)
+        || _budgetPanel is not null && _budgetPanel.Visible
+            && _budgetPanel.GetGlobalRect().HasPoint(at));
 
     private void Ui(string action) => AtBoundary(() => Apply(new DriveCommand(_world.Tick.Raw, DriveVerb.Ui, 0, action)));
 
@@ -471,6 +507,7 @@ public partial class Main
         }
         if (ZoningAction(words)) return;
         if (CityEvidenceAction(words)) return;
+        if (BudgetAction(words)) return;
         switch (words[0])
         {
             case "help" when words.Length == 2 && words[1] is "on" or "off":
@@ -1263,6 +1300,25 @@ public partial class Main
             Policies = Rect(_policyPanel),
             CityEvidenceShown = _cityShown,
             CityEvidencePanel = Rect(_cityPanel),
+            BudgetShown = _budgetShown,
+            BudgetPanel = Rect(_budgetPanel),
+
+            // The figures rather than the labels holding them. Every visible Label's text is in
+            // Fonts already, so a driven run could scrape them -- but a scrape reads what the panel
+            // FORMATTED, and plans/0072's whole question is whether the flows explain the balance.
+            // A residual is the one number the panel computes and no other reader can recover.
+            Budget = _budget is not { } account ? null : new
+            {
+                account.OpenedAt,
+                account.ClosedAt,
+                account.Days,
+                account.Opening,
+                Treasury = _world.TreasuryBalance()?.Raw,
+                Residual = _world.TreasuryBalance() is { } now
+                    ? account.Residual(now.Raw) : (long?)null,
+                Yesterday = account.Yesterday,
+                Running = account.Running,
+            },
             CityEvidence = new
             {
                 Read = _cityRead,

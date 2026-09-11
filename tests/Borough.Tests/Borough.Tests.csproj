@@ -27,6 +27,7 @@
     <Compile Include="../../src/Borough.Godot/CitySave.cs" Link="Shell/CitySave.cs" />
     <Compile Include="../../src/Borough.Godot/CityPreparation.cs" Link="Shell/CityPreparation.cs" />
     <Compile Include="../../src/Borough.Godot/SimulationThread.cs" Link="Shell/SimulationThread.cs" />
+    <Compile Include="../../src/Borough.Godot/CityBudget.cs" Link="Shell/CityBudget.cs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1380,12 +1380,12 @@ public partial class Main : Node3D
         if (_threaded)
         {
             _stepThread ??= new SimulationThread();
-            _stepThread.Start(_simulation.Step, input, ticks);
+            _stepThread.Start(StepAccounting, input, ticks);
         }
         else
         {
             long started = System.Diagnostics.Stopwatch.GetTimestamp();
-            for (int tick = 0; tick < ticks; tick++) _simulation.Step(tick == 0 ? input : default);
+            for (int tick = 0; tick < ticks; tick++) StepAccounting(tick == 0 ? input : default);
             double duration = System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds;
             _stepTime += duration;
             _batchTicks = Math.Clamp((int)(16 / Math.Max(1, duration / ticks)), 1, 4);
@@ -1773,6 +1773,7 @@ public partial class Main : Node3D
         RefreshInformation();
         RefreshHealthMarkers();
         RefreshCityEvidence();
+        RefreshBudget();
     }
 
     /// <summary>

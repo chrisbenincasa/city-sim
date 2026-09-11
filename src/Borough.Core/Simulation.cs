@@ -2,6 +2,7 @@ using Borough.Core.Arithmetic;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Input;
+using Borough.Core.Instruments;
 using Borough.Core.Movement;
 using Borough.Core.Persistence;
 using Borough.Core.Quantities;
@@ -248,6 +249,41 @@ public sealed class Simulation
 
     /// <summary>The subsidy sweep, for the Census to drain its Money flow.</summary>
     internal SubsidyEngine Subsidies => _subsidies;
+
+    /// <summary>
+    /// Reads every unit of Money that crossed the treasury's edge since the last call, and resets
+    /// the accumulators.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The whole of the treasury's account in one call, because a caller wanting one of the seven
+    /// wants all seven.</b> Three of the five engines behind it are internal, so before this a host
+    /// outside <c>Borough.Core</c> could see a treasury balance rise and name nothing that moved it —
+    /// which is <c>plans/0072</c> F7 and F11 arriving in the shell rather than in an instrument.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It DRAINS, so a run has exactly one caller of it and of <c>Census.Observe</c> between
+    /// them.</b> Two readers would each see a movement once, through whichever asked first, and
+    /// neither would have anything to say the other had taken it. The counters beside the money on
+    /// <c>PolicyActivity</c> and <c>RuleActivity</c> are drained here too and discarded; a host
+    /// wanting those as well takes them from a Census instead of from this.
+    /// </para>
+    /// </remarks>
+    /// <returns>The interval's flows, by the mechanism that moved each.</returns>
+    public TreasuryFlows DrainTreasuryFlows()
+    {
+        PolicyActivity policies = _policies.Drain();
+        RuleActivity rules = _rules.Drain();
+
+        return new TreasuryFlows(
+            _wages.DrainWithheld().Sum,
+            _profitTax.DrainCollected().Sum,
+            policies.ToTreasury.Sum,
+            rules.ToTreasury.Sum,
+            policies.FromTreasury.Sum,
+            rules.FromTreasury.Sum,
+            _subsidies.DrainPaid().Sum);
+    }
 
     /// <summary>What the most recent payday moved, or zeroes on a Tick that was not one.</summary>
     /// <remarks>

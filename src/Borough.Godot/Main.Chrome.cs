@@ -42,6 +42,11 @@ public partial class Main
         _cityButton.TooltipText = "Everything in the city that is stopped, grouped by why";
         UiIcons.Attach(_cityButton, "trouble");
         _dataLaunchers.AddChild(_cityButton);
+        _budgetButton = ConsoleButton("Budget", () => Ui(_budgetShown ? "budget off" : "budget on"));
+        _budgetButton.ToggleMode = true;
+        _budgetButton.TooltipText = "What the city took in, what it paid out, and what it is holding";
+        UiIcons.Attach(_budgetButton, "trade");
+        _dataLaunchers.AddChild(_budgetButton);
         var reservedPins = ConsoleButton("Pins", () => { });
         reservedPins.Disabled = true;
         reservedPins.TooltipText = "Pins view is not available yet";

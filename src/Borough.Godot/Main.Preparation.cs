@@ -148,5 +148,6 @@ public partial class Main
         _presentedTick = _world.Tick.Raw;
         _owed = 0;
         _batchTicks = 1;
+        OpenBudget();
     }
 }
