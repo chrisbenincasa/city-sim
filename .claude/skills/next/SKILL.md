@@ -19,8 +19,11 @@ stage 6 tells you which row you are on.
 ## Stage 0 — the tree, before any prose
 
 ```
+git fetch --quiet
 git log --oneline -15
+git log --oneline -15 origin/main
 git status --short
+git worktree list
 ```
 
 The board is the document most likely to be read *instead of* the build. On 2026-08-13 a sitting read
@@ -28,9 +31,18 @@ a paragraph of it to answer *what is next* and reported work that had shipped an
 same tree. [`adr/0093`](../../../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
 — *a description of the build is where to look, and never what you found* — applies to the board itself.
 
-Hold two things from this stage: **what the last three or four commits actually did**, and **whether
-the working tree is dirty**. Uncommitted changes to `plans/` or `docs/` usually mean a session was
-interrupted mid-write; that is a candidate for the next row all by itself, and it outranks the board.
+On 2026-09-11 the same failure arrived one step further out. A sitting committed a plan saying row 33
+was *queued for design* while row 33 had shipped in a sibling worktree and merged to `origin/main` as
+PR #12. ***A local branch is not the tree***: the work that contradicts the board is as likely to sit
+on the remote, or in another worktree, as in this one.
+
+Hold three things from this stage: **what the last three or four commits actually did**, **whether
+the working tree is dirty**, and **what is in flight elsewhere** — the commits `origin/main` carries
+that this branch does not, and the row each worktree's branch name claims. A row whose work is
+already merged is closed whatever the amnesty page says, and a row holding a live worktree is taken.
+
+Uncommitted changes to `plans/` or `docs/` usually mean a session was interrupted mid-write; that is
+a candidate for the next row all by itself, and it outranks the board.
 
 ## Stage 1 — the board's three live sections, and only those
 
