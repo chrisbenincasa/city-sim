@@ -475,6 +475,29 @@ State Hash fixtures through `tests/Borough.Tests/Golden/README.md`; do not paste
 New saved tables can move even stock-disabled world's hashes, so do not promise golden stability
 merely because their gameplay path is unchanged.
 
+**Task 2 declared the three tables and a subset of the columns above, and the subset is deliberate.**
+A column declared with `Rows.Saved` is allocated, folded into the State Hash and written to every
+save whether or not anything assigns it, so a column ahead of its writer is state the city carries and
+nobody maintains. What exists after task 2: on `HinterlandTable`, the edge and the lifetime flow pairs
+(replenished, returned, admitted, turnover), plus derived gate-list head and tail. On
+`HinterlandPopulationTable`, the whole composition key, the Authored flag, target, opening, stock,
+reserved, the four group flow counters and the derived per-edge link. On `PopulationLedgerTable`, the
+Sealed flag, the four opening figures and the thirteen classified flow counters. What is absent and
+which task brings it: the prospect sequence and the composition-start cursor (task 4, which is what
+advances them); the last-admitted gate id and the current-Day flow columns (task 4's rollover); the
+reconsider and recovery numerators (task 4's engine); the current- and previous-Day snapshots on the
+ledger (task 7, which is what reads them); `HouseholdTable.ArrivalEdge` and the choice identity
+(task 3). ⚠ **Each of those is a further `SaveHeader.Current` bump**, which costs nothing while nobody
+carries a save.
+
+**The city side of the account is closed and the Outside side is not, and task 5 owns the gap.**
+`World.Depart` counts its Household and its people as departures, and credits no Hinterland with
+receiving them — D9's destination choice needs `HouseholdTable.ArrivalEdge` and the choice model,
+neither of which exists yet. `World.ReturnToHinterland` and `World.CompositionOf` are built and tested
+and have no caller in `src/`. So `CityPopulationIsAccounted` and `CityHouseholdsAreAccounted` are
+whole-world equations over live rows, and there is no two-sided conservation law over city and Outside
+together until task 5 wires the credit. ***Half an account is not a conservation law.***
+
 ### D12 — Ruleset surface, validation and reload
 
 Add `HinterlandPopulationRuleset.cs` for the new immutable definitions; thread them through

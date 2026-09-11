@@ -67,7 +67,11 @@ public readonly struct SaveHeader : IEquatable<SaveHeader>
     /// new table exists is short by a table and needs a migration; the hash it was written at was never
     /// wrong.
     /// </remarks>
-    public const int Current = 1;
+    // 2: plans/0045 row 31 task 2 -- the Hinterland stock, the composition groups and the population
+    // ledger join the declaration set. A save written at version 1 is short by three tables, so it is
+    // refused rather than migrated: nothing carries a save yet, and a partial read would restore a
+    // world whose opening population figure was never written.
+    public const int Current = 2;
 
     private const ulong ByteOrderSentinel = 0x0102_0304_0506_0708UL;
 

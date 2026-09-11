@@ -197,3 +197,37 @@ public readonly struct Business;
 /// </para>
 /// </remarks>
 public readonly struct District;
+
+/// <summary>
+/// The population behind one map edge, of which there are exactly four. <b>Empty for
+/// <see cref="Citizen"/>'s reason.</b>
+/// </summary>
+/// <remarks>
+/// <b>The stock half of <c>CONTEXT.md</c> → Hinterland</b>, whose authored half — rent, wage, prices,
+/// purse range — is <see cref="Rules.HinterlandDefinition"/> and is Ruleset content. Nothing out there
+/// is Ticked or rendered; what a row holds is a count, its composition and the record of every
+/// Household that has crossed in either direction. See <see cref="HinterlandTable"/>.
+/// </remarks>
+public readonly struct Hinterland;
+
+/// <summary>
+/// One exact family composition standing behind one edge, and how many Households of it there are.
+/// <b>Empty for <see cref="Citizen"/>'s reason.</b>
+/// </summary>
+/// <remarks>
+/// <b>An aggregate row and never a person.</b> Its handle is the identity a queued prospect and a
+/// rotation cursor hold, because the composition it keys is stable while its slot is not. See
+/// <see cref="HinterlandPopulationTable"/>.
+/// </remarks>
+public readonly struct HinterlandPopulation;
+
+/// <summary>
+/// Where the city's people came from and where the ones who left went, of which there is exactly one.
+/// <b>Empty for <see cref="Citizen"/>'s reason.</b>
+/// </summary>
+/// <remarks>
+/// <b><see cref="MoneySupply"/>'s shape about people</b>, and a row for its reason: a scalar outside
+/// the field declaration is a coverage hole in the save and in the State Hash by construction. See
+/// <see cref="PopulationLedgerTable"/>.
+/// </remarks>
+public readonly struct PopulationLedger;

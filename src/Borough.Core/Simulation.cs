@@ -404,6 +404,12 @@ public sealed class Simulation
         Ticks tick = _world.Tick;
 
         Reload(input, tick);
+
+        // Before the input and after the reload, which is the only place it can go: what it folds is
+        // the world creation, and an Arrive command on Tick zero is an ordinary admission rather than
+        // part of the founding. It seals once and a load cannot seal it again.
+        _world.SealFoundingPopulation();
+
         ApplyInput(input, tick);
         PhaseCompleted?.Invoke(TickPhase.Input);
         Wake(tick);

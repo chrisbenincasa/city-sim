@@ -211,6 +211,16 @@ public sealed class FactorioTests(ITestOutputHelper output)
         // fixtures rather than about a mechanism.
         Scan(WithFloods(4_200), reached, []);
 
+        // 🔴 The ELEVENTH, plans/0045 row 31 task 2, and it is the ninth's reason exactly: the
+        // Hinterland's composition rows are created by DECLARATION -- World's constructor reads
+        // [[hinterland.population]] -- and attracted.toml is the only shipped file stating one. So
+        // every world above holds four Hinterland rows with nothing standing behind them, and all
+        // SIXTEEN of this table's saved columns were unreachable the day it landed.
+        //
+        // ⚠ Zero Ticks, because the rows exist before anything happens. What a longer run would add is
+        // a group the city created by sending somebody back, and nothing does that yet.
+        Scan(new World(GoldenFixtures.Population, Shipped("attracted.toml")), reached, []);
+
         var (careWorld, careSimulation) = Borough.Tests.Rules.CivicTests.Start();
         Borough.Tests.Rules.CivicTests.Place(careWorld, 3);
         for (int tick = 0; tick < 512; tick++) careSimulation.Step(default);

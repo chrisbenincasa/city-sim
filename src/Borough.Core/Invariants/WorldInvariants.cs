@@ -67,6 +67,16 @@ public static class WorldInvariants
         invariants.Register(InvariantTier.EndOfRun, ThePoolWaitsAtRealGates);
         invariants.Register(InvariantTier.EndOfRun, DistrictMembershipNamesLiveDistrictsAndBuiltGround);
         invariants.Register(InvariantTier.EndOfRun, DistrictPoolsAreOneLiveBinPerGood);
+
+        // Registered after the two population accounts and never before them, on the ordering rule
+        // MoneyIsConserved states: RunEndOfRun walks in order and Require throws on the first
+        // violation, so a world whose people do not add up has to report as unaccounted rather than as
+        // a broken index -- a missing group row is also a lookup that fails, and the account is the
+        // diagnosis that names the bug.
+        invariants.Register(InvariantTier.EndOfRun, CityPopulationIsAccounted);
+        invariants.Register(InvariantTier.EndOfRun, CityHouseholdsAreAccounted);
+        invariants.Register(InvariantTier.EndOfRun, HinterlandGroupsAreAccounted);
+        invariants.Register(InvariantTier.EndOfRun, TheCompositionIndexNamesEveryGroup);
     }
 
     /// <summary>
@@ -1857,5 +1867,125 @@ public static class WorldInvariants
                     raw);
             }
         }
+    }
+
+    /// <summary>
+    /// <c>plans/0073</c> D10's city-side account: the live Citizens are the opening figure plus every
+    /// classified flow.
+    /// </summary>
+    /// <remarks>
+    /// <b><see cref="MoneyIsConserved"/>'s shape, and it has content from the day it is written.</b>
+    /// Every door that creates or retires a Citizen records why, and the reasons are disjoint, so the
+    /// equality is exact rather than a bound. The argument for each half is on
+    /// <see cref="Invariant.CityPopulationIsAccounted"/>.
+    /// </remarks>
+    internal static void CityPopulationIsAccounted(World world, InvariantRegistry report)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(report);
+
+        long live = world.Citizens.Rows.LiveCount;
+        long accounted = world.PopulationLedger.People;
+
+        report.Require(
+            live == accounted,
+            Invariant.CityPopulationIsAccounted,
+            other: live - accounted);
+    }
+
+    /// <summary>The same account about Households, which no people counter implies.</summary>
+    internal static void CityHouseholdsAreAccounted(World world, InvariantRegistry report)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(report);
+
+        long live = world.Households.Rows.LiveCount;
+        long accounted = world.PopulationLedger.Households;
+
+        report.Require(
+            live == accounted,
+            Invariant.CityHouseholdsAreAccounted,
+            other: live - accounted);
+    }
+
+    /// <summary>
+    /// Every group behind an edge holds what it opened with plus every crossing since, and promises no
+    /// more than it holds.
+    /// </summary>
+    internal static void HinterlandGroupsAreAccounted(World world, InvariantRegistry report)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(report);
+
+        HinterlandPopulationTable groups = world.HinterlandPopulation;
+
+        for (int slot = 0; slot < groups.Rows.SlotCount; slot++)
+        {
+            if (!groups.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            long accounted = groups.Opening[slot]
+                + groups.Replenished[slot] + groups.Returned[slot]
+                - groups.Admitted[slot] - groups.Turnover[slot];
+
+            report.Require(
+                groups.Stock[slot] == accounted,
+                Invariant.AHinterlandGroupIsAccounted,
+                slot,
+                groups.Stock[slot] - accounted);
+
+            report.Require(
+                groups.Reserved[slot] >= 0 && groups.Reserved[slot] <= groups.Stock[slot],
+                Invariant.AHinterlandGroupIsAccounted,
+                slot,
+                groups.Reserved[slot]);
+        }
+    }
+
+    /// <summary>
+    /// The composition index and the per-edge lists name every live group exactly once.
+    /// </summary>
+    /// <remarks>
+    /// <b>Both halves of one claim.</b> The index is asked to find each live row by its own
+    /// composition, which fails if an entry is missing or points elsewhere; the lists are walked and
+    /// counted, which fails if a row was opened without being threaded or retired without being
+    /// unlinked. A rebuild reproducing neither structure is
+    /// <c>DerivedRebuildAuditTests</c>'s failure rather than this one's.
+    /// </remarks>
+    internal static void TheCompositionIndexNamesEveryGroup(World world, InvariantRegistry report)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(report);
+
+        HinterlandPopulationTable groups = world.HinterlandPopulation;
+        int listed = 0;
+
+        for (int slot = 0; slot < groups.Rows.SlotCount; slot++)
+        {
+            if (!groups.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            var edge = (MapEdge)groups.Edge[slot];
+
+            report.Require(
+                world.HinterlandCompositions.TryFind(
+                    groups, edge, groups.CompositionAt(slot), out int found) && found == slot,
+                Invariant.TheCompositionIndexNamesEveryGroup,
+                slot);
+        }
+
+        for (int edge = 0; edge < HinterlandTable.Edges; edge++)
+        {
+            listed += groups.Groups(world.Hinterlands).Length(edge);
+        }
+
+        report.Require(
+            listed == groups.Rows.LiveCount,
+            Invariant.TheCompositionIndexNamesEveryGroup,
+            other: listed - groups.Rows.LiveCount);
     }
 }

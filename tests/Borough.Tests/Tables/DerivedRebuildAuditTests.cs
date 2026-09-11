@@ -136,6 +136,7 @@ public sealed class DerivedRebuildAuditTests
             Run(Stocked()),
             Run(Orphaned()),
             Run(GoldenFixtures.Build()),
+            Run(Attracted()),
         ];
 
         string[] all = audits[0].Derived;
@@ -227,7 +228,18 @@ public sealed class DerivedRebuildAuditTests
         // ***A column is derived when the derivation's inputs are always present, and never merely
         // when a derivation exists.*** adr/0079's shape one table over: a Lot keeps ground its
         // lattice no longer explains, exactly as a Building keeps an Address it can no longer reach.
-        Assert.Equal(41, all.Length);
+        //
+        // 41 -> 44: hinterland.group_head, hinterland.group_tail and hinterland_population.group_next,
+        // plans/0045 row 31 task 2. The per-edge list of compositions standing behind a map edge,
+        // derived because every insert is ordered by slot -- so a rebuild reproduces the ORDER and not
+        // merely the membership, which is CarParkResidency's test and the one an appending rebuild
+        // fails the moment the free list recycles a slot.
+        //
+        // ⚠ All three needed a fixture named for them, which is this audit's standing corollary: the
+        // rows are created by DECLARATION -- World's constructor reads [[hinterland.population]] --
+        // and attracted.toml is the only shipped file stating one. Every world above holds four empty
+        // Hinterland rows, so all three columns were unexercised the day they were declared.
+        Assert.Equal(44, all.Length);
         Assert.Single(ScratchColumns(Stepped(0)));
     }
 
@@ -418,6 +430,25 @@ public sealed class DerivedRebuildAuditTests
         }
 
         return world;
+    }
+
+    /// <summary>A world whose map edges have Households standing behind them.</summary>
+    /// <remarks>
+    /// <b>Gated on a Ruleset key</b>, which is <see cref="Severed"/>'s shape: the composition rows
+    /// exist because a file declared them, and <c>attracted.toml</c> is the only shipped file that
+    /// does. Unstepped on purpose — the rows are there before anything happens, and what a run would
+    /// add is a group the city created by sending somebody back, which nothing does yet.
+    /// </remarks>
+    private static World Attracted()
+    {
+        string path = Path.Combine(AppContext.BaseDirectory, "Rulesets", "attracted.toml");
+        RulesetLoadResult loaded = RulesetLoader.Load(path);
+
+        Ruleset rules = loaded.Ruleset
+            ?? throw new InvalidOperationException(
+                $"{path} was refused, so the attracted world cannot be built:\n{loaded.Describe()}");
+
+        return new World(GoldenFixtures.Population, rules);
     }
 
     /// <summary>

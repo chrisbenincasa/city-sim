@@ -645,3 +645,20 @@ columns and the whole schedule table fold zeroes throughout. The trading columns
 — both baselines declare a `[[business]]`, so whether those folded anything is a property of the run
 and not of the file. ***The tax is covered by `rulesets/taxing.toml` and its suites***, which is where
 to look rather than here.
+
+**Row 31 task 2 re-recorded three artefacts — both session traces and `world-hash.txt` — and moved no
+Ruleset content hash.** The world gained three tables: `HinterlandTable` (four rows, one per map edge,
+created by the constructor and never absent), `HinterlandPopulationTable` (one row per composition of
+Households standing behind an edge) and `PopulationLedgerTable` (one row, the city's population
+account). All three are saved, so the composition moved and every number in the three files moved with
+it. No `.borough` literal and nothing in `GoldenFixtures` had to move first, and `SaveHeader.Current`
+went `1 → 2` because the declaration set is what a save is.
+
+⚠ **Two of the three tables fold almost nothing in any of these artefacts, and the third folds a real
+figure.** `attracted.toml` is the only shipped Ruleset stating `[[hinterland.population]]`, and it is
+not a baseline file — so in every artefact here `HinterlandPopulationTable` holds no rows at all and
+`HinterlandTable` holds four rows whose only non-zero column is the edge each one names. What did
+change substantively is the ledger: the founding population is folded into `opening_city_people` and
+`opening_city_households` on the first Tick of a session, and every birth, death, admission and
+departure after it lands in a counter beside them. ***So these baselines cover the account and not the
+stock***; the stock is covered by `HinterlandStockTests`, which builds `attracted.toml` directly.
