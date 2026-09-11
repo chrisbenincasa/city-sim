@@ -121,6 +121,35 @@ public sealed class BuildingTable
         // history has no ages***, which is a statement about the generator and not about age.
         RaisedAt = _rows.Saved<Ticks>("raised_at", Touch.Cold);
 
+        // 🔴 WHAT THIS BUILDING PUT OUT, ATTRIBUTABLE TO IT. `MapLayers.EmitPollution` adds into a
+        // Cell that many Lots share and that decays every cadence, so once a Rule has emitted there
+        // is nothing left in the world that says which Building did it. A charge levied per unit
+        // emitted needs that number, and no query over the Layer can reconstruct it.
+        //
+        // THREE COLUMNS AND NOT TWO, which is where this parts company with
+        // BusinessTable.TradingDay/DayRevenue/DayExpense. A Business's pair is read by a sweep
+        // pinned to the very head of the Tick, so "yesterday" there is whatever the accumulators are
+        // still carrying -- an arrangement that needs two tests to hold its phase position and that
+        // fails silently if anything moves. Emission is written at phase 3 and charged at phase 6,
+        // within one Tick, so a two-column form would hand a charge a HALF-FINISHED Day every time
+        // the Day boundary fell inside the Tick it read on. PriorEmitted is a COMPLETE Day whenever
+        // it is read, from any phase, and that is a property of the column rather than a note about
+        // the current arrangement of sweeps.
+        //
+        // ⚠ THE ROLL IS THE TABLE'S. <see cref="Emit"/> is the only write door and it rolls first;
+        // <see cref="PriorEmissionOn"/> is the only read door and it answers for the Day asked about
+        // rather than for the Day the columns happen to hold. Neither needs a midnight sweep and
+        // neither has a special case for a Building that has never emitted -- see PriorEmissionOn.
+        //
+        // A zero fill is honest, on TradingDay's precedent: Day 0 with nothing on either side reads
+        // as "this Building has emitted nothing today", which is true of one that has never emitted
+        // at all.
+        //
+        // Cold because emission is a Rule firing on its rate, not a per-Tick walk.
+        EmittingDay = _rows.Saved<ushort>("emitting_day", Touch.Cold);
+        DayEmitted = _rows.Saved<long>("day_emitted", Touch.Cold);
+        PriorEmitted = _rows.Saved<long>("prior_emitted", Touch.Cold);
+
         _rows.Seal();
     }
 
@@ -391,6 +420,148 @@ public sealed class BuildingTable
     /// </remarks>
     public bool HasStoodEmptyFor(int slot, Ticks now, ulong ticks) =>
         EmptySince[slot] != default && now + new Ticks(1) >= EmptySince[slot] + new Ticks(ticks);
+
+    /// <summary>
+    /// The Day <see cref="DayEmitted"/> is accumulating for.
+    /// </summary>
+    /// <remarks>
+    /// <b>A zero fill is honest</b>, on <see cref="BusinessTable.TradingDay"/>'s precedent: it reads
+    /// as <em>nothing has been emitted against Day 0</em>, which is true of a Building that has never
+    /// emitted, and every later Day fails the match.
+    /// </remarks>
+    public Column<ushort> EmittingDay { get; }
+
+    /// <summary>
+    /// What this Building has emitted into a Map Layer on <see cref="EmittingDay"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// ⚠ <b>It is HALF-FINISHED for as long as the Day is</b>, which is why nothing outside this
+    /// table reads it. A charge that read it would be charging for however much of the Day had
+    /// happened by the phase it ran in, and would be right on every Tick but the ones that matter.
+    /// <see cref="PriorEmissionOn"/> is the door.
+    /// </para>
+    /// <para>
+    /// <b>It counts what the Rule engine handed the Layer</b> — <c>emission.Amount ×
+    /// applications</c>, summed over every emission of every Rule this Building fired. It is not a
+    /// reading of the Layer, which has diffused and decayed by the time anybody looks at it.
+    /// </para>
+    /// </remarks>
+    public Column<long> DayEmitted { get; }
+
+    /// <summary>
+    /// What this Building emitted over the whole of the Day before <see cref="EmittingDay"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>A COMPLETE Day whenever it is read, from any phase.</b> That is the property the third
+    /// column buys and the reason it is not redundant with <see cref="DayEmitted"/>: emission is
+    /// written at phase 3 and charged later in the same Tick, so a reader of a two-column form would
+    /// see a Day still being written to on exactly the Ticks a Day boundary falls in — a wrong
+    /// number with no symptom. Nothing here depends on where in the Tick the reader runs.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Read it through <see cref="PriorEmissionOn"/> and not directly.</b> The column holds the
+    /// Day before <see cref="EmittingDay"/>, which is the Day before <em>today</em> only while the
+    /// Building is still emitting daily. A Building that last emitted a week ago has a stale pair,
+    /// and the door is what turns that into the zero it means.
+    /// </para>
+    /// </remarks>
+    public Column<long> PriorEmitted { get; }
+
+    /// <summary>
+    /// Records <paramref name="amount"/> emitted by this Building on <paramref name="today"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>The Day is rolled first, here and nowhere else</b> — see <see cref="Roll"/>. A caller hands
+    /// over the Day it is acting on and never has to know which Day the accumulators are carrying,
+    /// which is <see cref="BusinessTable.Earn"/>'s arrangement and it is here for that one's reason:
+    /// an accumulator whose reset is the caller's responsibility is reset on every path but the one
+    /// nobody thought about.
+    /// </remarks>
+    public void Emit(int slot, ushort today, long amount)
+    {
+        if (amount <= 0)
+        {
+            return;
+        }
+
+        Roll(slot, today);
+        DayEmitted[slot] += amount;
+    }
+
+    /// <summary>
+    /// What this Building emitted over the whole of the Day before <paramref name="today"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Three answers and no special case, which is the whole design of the pair.</b> The
+    /// accumulators are rolled lazily by <see cref="Emit"/>, so which column holds yesterday depends
+    /// on whether this Building has emitted yet today:
+    /// </para>
+    /// <list type="bullet">
+    /// <item><description><see cref="EmittingDay"/> <em>is</em> <paramref name="today"/> — it has
+    /// emitted today, the roll has already happened, and yesterday is
+    /// <see cref="PriorEmitted"/>.</description></item>
+    /// <item><description><see cref="EmittingDay"/> is <paramref name="today"/> less one — it has not
+    /// emitted yet today, nothing has rolled, and yesterday is <see cref="DayEmitted"/>, which is
+    /// complete because no later write can ever land on a Day that has ended.</description></item>
+    /// <item><description>Anything else — it emitted nothing at all on the Day asked about, so the
+    /// answer is <c>0</c>.</description></item>
+    /// </list>
+    /// <para>
+    /// 🔴 <b>The third branch is what a lazy roll costs and what it must pay.</b> A Building that
+    /// emitted on Day 3 and next on Day 9 reads <c>0</c> on Day 9 rather than Day 3's figure — the
+    /// columns still hold Day 3 at that moment, and a reader that trusted them would charge a
+    /// Building for six Days it emitted nothing on. ***A stale accumulator is not a small
+    /// number; it is last week's number wearing today's label.***
+    /// </para>
+    /// <para>
+    /// <b>A Building that has never emitted reads <c>0</c> without being asked about separately.</b>
+    /// A zero-filled row is <c>EmittingDay = 0</c> with both accumulators at zero, and every branch
+    /// above returns zero from it on every Day.
+    /// </para>
+    /// <para>
+    /// ⚠ <b><paramref name="today"/> is compared as an <see cref="int"/></b> so that Day 0 asks about
+    /// Day −1 and matches nothing, rather than wrapping to 65,535 and matching a row that has never
+    /// been written.
+    /// </para>
+    /// </remarks>
+    public long PriorEmissionOn(int slot, ushort today)
+    {
+        int emitting = EmittingDay[slot];
+
+        if (emitting == today)
+        {
+            return PriorEmitted[slot];
+        }
+
+        return emitting == today - 1 ? DayEmitted[slot] : 0;
+    }
+
+    /// <summary>
+    /// Closes the Day the accumulators are carrying when it is not <paramref name="today"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>The gap case is the one to get right.</b> The Day being closed becomes
+    /// <see cref="PriorEmitted"/> only when it really is the Day before <paramref name="today"/>;
+    /// a larger gap means this Building emitted nothing across the whole of yesterday, and carrying
+    /// an older Day's total forward would charge it for a Day it was idle. ⚠ <b>Private, on
+    /// <see cref="BusinessTable"/>'s reason</b> — the reset belongs to the table because a call site
+    /// that could add without rolling would fold one Day's emission into another Day's total, and
+    /// nothing downstream could tell.
+    /// </remarks>
+    private void Roll(int slot, ushort today)
+    {
+        if (EmittingDay[slot] == today)
+        {
+            return;
+        }
+
+        PriorEmitted[slot] = EmittingDay[slot] == today - 1 ? DayEmitted[slot] : 0;
+        DayEmitted[slot] = 0;
+        EmittingDay[slot] = today;
+    }
 
     /// <summary>Allocates a Building on a Lot, and records it on the Lot.</summary>
     /// <param name="lots">

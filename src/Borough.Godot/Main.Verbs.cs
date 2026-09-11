@@ -421,6 +421,40 @@ public partial class Main
             "that [[policy]] states no name, and a governed amount is saved against its name — so "
             + "there would be nothing to restore it to after a reload.",
 
+        Refusal.FundPolicyPaysNobody =>
+            "only a subsidy has a funding ceiling. a charge collects whatever is owed and a relief "
+            + "moves no money at all, so there is nothing here for a ceiling to ration — the number "
+            + "would be kept and read by nothing.",
+
+        Refusal.FundCeilingIsNegative =>
+            "a ceiling is the most this subsidy may pay out in a Day, so it cannot be less than "
+            + "nothing. set it to 0 to switch the subsidy off and pay nobody.",
+
+        Refusal.TaxControlNotDeclared =>
+            "there is no such tax control.",
+
+        Refusal.TaxRateOutOfRange =>
+            "a marginal rate is a percentage, so it lies between 0 and 100.",
+
+        Refusal.TaxAllowanceIsNegative =>
+            "an allowance is what may be earned before any tax, so it cannot be less than nothing.",
+
+        Refusal.TaxUpperRateBelowMiddleRate =>
+            "that would leave the upper rate below the middle one, and earning more would take home "
+            + "less. Raise the upper rate first.",
+
+        Refusal.TaxUpperThresholdBelowAllowance =>
+            "that would open the upper band below the tax-free allowance, so the middle rate would "
+            + "have nothing to bite on. Move the threshold first.",
+
+        Refusal.TaxProfitThresholdIsNegative =>
+            "a Business can make a loss, but the band it is taxed in cannot open below nothing. A "
+            + "Day that lost money is untaxed already.",
+
+        Refusal.TaxProfitUpperRateBelowLowerRate =>
+            "that would leave the upper rate on profit below the lower one, and making more would "
+            + "keep less. Raise the upper rate first.",
+
         Refusal.TripRulesetStatesNoTrips or Refusal.TripWorldHasNoLattice
             or Refusal.TripBlockHoldsNobody or Refusal.TripEndpointsAreOneBuilding
             or Refusal.TripOriginHoldsNoCitizen =>

@@ -276,6 +276,58 @@ public enum CommandKind : ushort
     People = 10,
 
     ZoneParcel = 11,
+
+    /// <summary>
+    /// Move one of the four controls on the Citizen income tax — the tax-free allowance, the Day's
+    /// earnings at which the upper band starts, and the two marginal rates. <c>plans/0072</c> D3.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>It is <see cref="Govern"/>'s verb and not <see cref="Govern"/>, because a Policy and a tax
+    /// schedule are different objects.</b> <see cref="Govern"/> sets <em>one amount</em> on a
+    /// <c>[[policy]]</c> the Ruleset declared, addressed by declaration position, and what it writes
+    /// is that Policy's own row. An income tax has four numbers that constrain each other — a rate
+    /// that fell as earnings rose would make take-home income step downward at the threshold
+    /// (<c>plans/0072</c> D7) — and it is a <em>schedule per Day</em> rather than a standing amount,
+    /// because a late wage is taxed at the Day it was earned (D6). Neither fact has anywhere to live
+    /// in <c>Entities.PolicyTable</c>, and a Policy that had to declare itself a tax band would be
+    /// the tax model spelled twice.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Four numbers are four commands and that is the design rather than a limitation.</b>
+    /// <see cref="Command"/> is twelve fully-defined bytes and widening it would re-spell every
+    /// committed Input Log — <c>InputLogCodec.Version</c>'s rule is that a <em>sixth field on a
+    /// command</em> bumps the format. So the payload is one control and one value, packed exactly as
+    /// <see cref="Command.Govern"/> packs a Policy and an amount, and a player who sets all four on
+    /// one Day leaves <em>one</em> ring entry because
+    /// <c>Entities.IncomeTaxTable.Govern</c> is indexed by the Day and replaces rather than appends.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It applies from TOMORROW and never from today</b> (<c>plans/0072</c> D6). A Day already
+    /// being earned must not be repriced half way through, so what the verb writes is the schedule
+    /// for the next Day and every refusal is tested against <em>that</em> schedule rather than the
+    /// one in force.
+    /// </para>
+    /// </remarks>
+    Tax = 12,
+
+    /// <summary>Set a subsidy's funding ceiling for a Day — <c>plans/0072</c> D12.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A second verb rather than a second field on <see cref="Govern"/>.</b> A subsidy carries two
+    /// player decisions that move independently — what a claim is worth, and how much may be paid out
+    /// in a Day — and raising one while leaving the other pays the same Money to fewer claimants. The
+    /// struct is twelve fully-defined bytes and cannot be widened, and a selector squeezed into
+    /// <see cref="Zone"/> beside the Policy index would cost the index half its range to carry one bit.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A ceiling is not a budget the treasury has set aside.</b> It bounds what this Policy may
+    /// pay on a Day; whether the Money is there is asked at the payment. ***A funded subsidy can still
+    /// go unpaid***, which is the sentence <c>plans/0072</c> D12 means by support being explicitly
+    /// subject to funding.
+    /// </para>
+    /// </remarks>
+    Fund = 13,
 }
 
 /// <summary>
@@ -336,6 +388,42 @@ public readonly struct Command
 
         return new Command(CommandKind.Govern, new Tiles(amount), default, (ushort)policy);
     }
+
+    /// <summary>Set a subsidy's funding ceiling for a Day — <c>plans/0072</c> D12.</summary>
+    /// <remarks>
+    /// <b>Packed exactly as <see cref="Govern"/> packs its pair</b>: the Policy by position in
+    /// declaration order in <see cref="Zone"/>, the ceiling in <see cref="East"/>,
+    /// <see cref="North"/> unused.
+    /// </remarks>
+    /// <param name="policy">Which Policy, by position in declaration order.</param>
+    /// <param name="ceiling">The most it may pay out in one Day from now on.</param>
+    public static Command Fund(int policy, int ceiling)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(policy);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(policy, ushort.MaxValue);
+
+        return new Command(CommandKind.Fund, new Tiles(ceiling), default, (ushort)policy);
+    }
+
+    /// <summary>Move one control on the Citizen income tax — <c>plans/0072</c> D3.</summary>
+    /// <remarks>
+    /// <para>
+    /// ⚠ <b><see cref="East"/> carries the value and <see cref="North"/> is unused</b>, which is
+    /// <see cref="Govern"/>'s packing taken whole rather than by analogy: the struct is twelve
+    /// fully-defined bytes, widening it would re-spell every committed Input Log, and one control
+    /// plus one number is exactly what <see cref="Govern"/> already fits. <b>This factory exists so
+    /// the packing is named in one place</b> rather than spelled at each call site.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Setting four numbers is four commands.</b> There is no widening that would carry them
+    /// together, and there does not need to be — <c>Entities.IncomeTaxTable.Govern</c> is indexed by
+    /// the Day, so four commands issued on one Day accumulate into one row rather than four.
+    /// </para>
+    /// </remarks>
+    /// <param name="control">Which of the four numbers to move.</param>
+    /// <param name="value">What it becomes, from the start of the next Day.</param>
+    public static Command Tax(TaxControl control, int value) =>
+        new(CommandKind.Tax, new Tiles(value), default, (ushort)control);
 
     /// <summary>
     /// Place a service Building of this kind on the vacant Lot at this Tile — <c>01 §2</c>'s
@@ -400,6 +488,51 @@ public readonly struct Command
 
     /// <summary>Where, northward.</summary>
     public Tiles North { get; }
+}
+
+/// <summary>
+/// Which of the four numbers a <see cref="CommandKind.Tax"/> command moves.
+/// </summary>
+/// <remarks>
+/// <b>A selector rather than a payload, and it rides in <see cref="Command.Zone"/> whole.</b>
+/// <see cref="ConnectPayload"/> and <see cref="TripPayload"/> pack several fields into that word
+/// because they had several to carry; this has one, so there is nothing to encode and nothing to
+/// mask. ⚠ <b>The values are part of every committed Input Log the moment one is written</b>, so
+/// they are stated rather than left to declaration order.
+/// </remarks>
+public enum TaxControl : ushort
+{
+    /// <summary>What a Citizen may earn in one Day before any tax is due.</summary>
+    Allowance = 0,
+
+    /// <summary>The Day's earnings at which the upper marginal band starts.</summary>
+    UpperThreshold = 1,
+
+    /// <summary>The marginal rate between the allowance and the threshold, as a percentage.</summary>
+    MiddleRate = 2,
+
+    /// <summary>The marginal rate above the threshold, as a percentage.</summary>
+    UpperRate = 3,
+
+    /// <summary>The Day's Business profit at which the upper marginal band starts.</summary>
+    /// <remarks>
+    /// ⚠ <b>Profit and earnings are different quantities and this is a different schedule.</b> The
+    /// three below belong to <c>[business_tax]</c>, which a Business pays on what it made in a Day;
+    /// the four above belong to <c>[income_tax]</c>, which a Citizen pays on what they earned.
+    /// Nothing is shared between them but this selector.
+    /// </remarks>
+    ProfitThreshold = 4,
+
+    /// <summary>The marginal rate on Business profit below the threshold, as a percentage.</summary>
+    /// <remarks>
+    /// <b>There is no tax-free band on the profit schedule and no control for one</b> —
+    /// <c>plans/0072</c> D8. Setting this to zero is how a player gets one, and the threshold then
+    /// acts as the allowance.
+    /// </remarks>
+    ProfitLowerRate = 5,
+
+    /// <summary>The marginal rate on Business profit above the threshold, as a percentage.</summary>
+    ProfitUpperRate = 6,
 }
 
 /// <summary>What a <see cref="CommandKind.Connect"/> does to the edge it names.</summary>

@@ -10,10 +10,12 @@
 # severance.toml's, congested.toml's and diagnosed.toml's precedent exactly, for their reason: a
 # mechanism minimal.toml structurally cannot demonstrate needs a file where it does.
 #
-# IT IS VERBATIM AND APPENDS THREE TABLES. severance.toml and congested.toml keep minimal.toml
+# IT IS VERBATIM AND APPENDS FOUR TABLES. severance.toml and congested.toml keep minimal.toml
 # unchanged and append; diagnosed.toml edits one Rule in place and says why. This one appends and
-# changes nothing: a [households] table and two [[policy]] tables, marked ADDITION 1 OF 3 through
-# 3 OF 3 where they sit. Every Rule, kind, Bin and Resource above them is minimal.toml's, unedited.
+# changes nothing: a [households] table, two [[policy]] tables and an [income_tax] table. Every
+# Rule, kind, Bin and Resource above them is minimal.toml's, unedited. (It said THREE for as long as
+# there were three; the fourth arrived with the income tax schedule, which is described at the foot
+# of this file rather than here because it moves no money in this city yet.)
 #
 # ===========================================================================================
 # WHERE THE MONEY COMES FROM, AND WHY IT IS A BAND RATHER THAN A FIGURE.
@@ -326,3 +328,47 @@ sweeps = "household"
 interval = 2048
 apply = { min = 100, max = 100 }
 transfer = { from = "global", to = "local", resource = "money", amount = 1 }
+
+# ===========================================================================================
+# ADDITION 4: THE INCOME TAX SCHEDULE, AND IT MOVES NOTHING IN THIS CITY YET.
+#
+# [income_tax] states the three marginal bands a Citizen's earnings for one Day are read against: a
+# tax-free allowance, a middle band running up to the threshold, and an upper band above it. It is
+# read by Ruleset.IncomeTax and Borough.Core.Rules.IncomeTax.
+#
+# ⚠ NOTHING IN THIS FILE PAYS ANYBODY, SO NOTHING IS WITHHELD HERE TODAY. A wage is refused at load
+# until milestone 15 (adr/0026), and this file's only money movements are the two [[policy]] sweeps
+# above, which are transfers rather than earnings. THE TABLE IS HERE BECAUSE THIS IS THE MONEY FILE
+# -- the one shipped Ruleset whose Households hold anything at all -- so it is where the schedule is
+# demonstrated as CONTENT the moment there are earnings to read it against. It is not a claim that
+# this city taxes income; the [[policy]] levy above is what taxes anything here.
+#
+# THE FOUR NUMBERS ARE PROVISIONAL AND NONE OF THEM IS RATIFIED. plans/0045 standing order 4
+# suspends ratification, so no row is open for them anywhere and none should be read as chosen. What
+# they are anchored to, so a reader can tell taste from derivation:
+#
+#   allowance_per_day = 50        THIS FILE'S OWN `rent = 50`, one Day of it. The only per-Day money
+#                                 figure the Ruleset already states, so the allowance is the earnings
+#                                 that cover the roof. Taste, not derivation.
+#
+#   upper_threshold_per_day = 200 Four allowances. Chosen to sit ABOVE the 100 the rebate pays and
+#                                 BELOW the 1000 top of the opening band, so both bands are reachable
+#                                 by figures this file already contains -- which is the same argument
+#                                 the opening band makes for being a band at all.
+#
+#   middle_rate_percent = 10      THE DESIGN'S OWN FRACTION, exactly as the levy above uses it, and
+#                                 for adr/0115's reason: FloorDiv(x * percent, 100) is zero below
+#                                 100/percent, so 10 puts this schedule's flooring threshold at that
+#                                 ADR's floor of ten smallest units rather than at a number chosen
+#                                 beside it.
+#
+#   upper_rate_percent = 20       A doubling, so the two bands are distinguishable in any readout
+#                                 that reports them apart. The loader refuses an upper rate BELOW the
+#                                 middle one outright: both are marginal, so a falling rate would
+#                                 make take-home income step downward at the threshold.
+
+[income_tax]
+allowance_per_day       = 50
+upper_threshold_per_day = 200
+middle_rate_percent     = 10
+upper_rate_percent      = 20

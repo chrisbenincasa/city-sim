@@ -225,6 +225,7 @@ public partial class Main
             else if (_tuner.Visible && (!_governing || _tuner.GetIndex() > _policyPanel.GetIndex())) _tuner.Visible = false;
             else if (_governing) Govern();
             else if (_cityShown) Ui("city off");
+            else if (_budgetShown) Ui("budget off");
             else if (_layersShown) Ui("layers off");
             else if (_toolsShown) Ui("tools off");
             else if (_inspector!.Visible) Ui("close");

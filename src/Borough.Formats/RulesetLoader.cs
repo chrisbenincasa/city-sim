@@ -296,6 +296,10 @@ public static class RulesetLoader
 
         private TableSyntaxBase? _marketTable;
 
+        private TableSyntaxBase? _incomeTaxTable;
+
+        private TableSyntaxBase? _businessTaxTable;
+
         private TableSyntaxBase? _needsTable;
         private TableSyntaxBase? _shoppingTable;
         private TableSyntaxBase? _schoolTable;
@@ -371,6 +375,8 @@ public static class RulesetLoader
             DisasterRuleset disasters = ReadDisasters(water);
             DistrictRuleset districts = ReadDistricts();
             MarketRuleset market = ReadMarket();
+            IncomeTaxSchedule incomeTax = ReadIncomeTax();
+            BusinessTaxSchedule businessTax = ReadBusinessTax();
 
             // After ReadKinds, because whether an ATTENDED Need's rates are required is a property of
             // the pair: they are owed by a file declaring a kind that serves one and refused of a file
@@ -393,6 +399,15 @@ public static class RulesetLoader
             // The same shape one table along: [capacity]'s ceiling on attendance can only bind on a
             // kind that serves something, and ReadCapacity runs before ReadKinds so it cannot ask.
             RefuseInertServicePlaces(capacity, kinds);
+
+            // After BOTH, and it cannot live inside ReadIncomeTax for the reason RefuseUnpricedGoods
+            // cannot live inside ReadDistricts: it is a property of the PAIR. The schedule knows
+            // nothing about who pays anybody and a trade knows nothing about whether the city taxes
+            // income, so neither reader can see the defect alone. ⚠ It runs unconditionally rather
+            // than behind the clean-slate gate, on RefuseUnpricedGoods' precedent: a file with an
+            // unrelated mistake elsewhere still has this one, and reporting both is what makes one
+            // pass over the file enough.
+            RefuseUnassessablePayPeriods(businessKinds);
 
             if (_refusals.Count == 0)
             {
@@ -465,6 +480,8 @@ public static class RulesetLoader
                 Disasters = disasters,
                 Districts = districts,
                 Market = market,
+                IncomeTax = incomeTax,
+                BusinessTax = businessTax,
                 Needs = needs,
                 Schooling = schooling,
                 Shopping = shopping,
@@ -863,6 +880,40 @@ public static class RulesetLoader
                         _marketTable = table;
                         break;
 
+                    case "income_tax":
+                        // Singular and optional, on [market]'s reasoning exactly. A city levies one
+                        // income tax: the bands are a single schedule every earner is read against,
+                        // so a second table would be a second schedule for one treasury and nothing
+                        // in the file would say which earner is read against which.
+                        if (_incomeTaxTable is not null)
+                        {
+                            Refuse(LineOf(table), null,
+                                "a second [income_tax] is declared. There is one income tax "
+                                + "schedule, so two tables of bands for it is ambiguous rather than "
+                                + "additive.");
+                            break;
+                        }
+
+                        _incomeTaxTable = table;
+                        break;
+
+                    case "business_tax":
+                        // Singular and optional, on [income_tax]'s reasoning exactly. The bands are
+                        // shared across every trade (plans/0072 D8), so a second table would be a
+                        // second schedule for one treasury with nothing saying which trade is read
+                        // against which.
+                        if (_businessTaxTable is not null)
+                        {
+                            Refuse(LineOf(table), null,
+                                "a second [business_tax] is declared. There is one profit tax "
+                                + "schedule and every trade shares it, so two tables of bands for "
+                                + "it is ambiguous rather than additive.");
+                            break;
+                        }
+
+                        _businessTaxTable = table;
+                        break;
+
                     default:
                         Refuse(LineOf(table), null,
                             $"'{section}' is not a Ruleset section. The sections are "
@@ -870,7 +921,8 @@ public static class RulesetLoader
                             + "[[resource]], [[building]], [[business]], [[rule]], [[zone_rule]], "
                             + "[[policy]], [[hinterland]], [[lattice]], [[terrain]], [layers], "
                             + "[placement], [roads], [lots], [trips], [jobs], [households], "
-                            + "[traffic], [parking], [water], [districts], [market] and "
+                            + "[traffic], [parking], [water], [districts], [market], "
+                            + "[income_tax], [business_tax] and "
                             + "[founding]. A trade is declared with [[business]] and the founding "
                             + "channel is configured with [founding]; they are different tables.");
                         break;
@@ -4652,7 +4704,9 @@ public static class RulesetLoader
         // ---- policies ---------------------------------------------------------------------------
 
         /// <summary>
-        /// Every <c>[[policy]]</c> table — refusals 60 to 68.
+        /// Every <c>[[policy]]</c> table — refusals 60 to 68, and the catalogue's four keys beside
+        /// them (<see cref="ReadTool"/>, <see cref="ReadTrade"/>, <see cref="ReadMovement"/>,
+        /// <see cref="ReadCeiling"/>).
         /// </summary>
         /// <remarks>
         /// <para>
@@ -4693,9 +4747,14 @@ public static class RulesetLoader
                 PolicySubject subject = ReadSubject(table, name);
                 uint interval = ReadInterval(table, name);
                 ApplyCount apply = ReadApply(table, name, ScopeFor(subject));
-                (Scope from, Scope to, ResourceId resource, int amount) = ReadTransfer(table, name);
+                PolicyTool tool = ReadTool(table, name);
+                byte trade = ReadTrade(table, name, subject);
+                (Scope from, Scope to, ResourceId resource, int amount) =
+                    ReadMovement(table, name, tool);
+                long ceiling = ReadCeiling(table, name, tool);
 
-                definitions.Add(new PolicyDefinition(subject, interval, apply, from, to, resource, amount));
+                definitions.Add(new PolicyDefinition(
+                    subject, interval, apply, from, to, resource, amount, ceiling, tool, trade));
             }
 
             keys = names;
@@ -4763,6 +4822,320 @@ public static class RulesetLoader
 
                     return PolicySubject.Household;
             }
+        }
+
+        /// <summary>The <c>tool</c> key — which of the catalogue's things this Policy is.</summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Optional, and its absence is the Policy every shipped file already writes.</b>
+        /// <c>plans/0072</c> <b>D10</b> adds three tools to a section that had one, so the default
+        /// has to be the unnamed one: a <c>[[policy]]</c> written before the catalogue existed is a
+        /// <see cref="PolicyTool.Transfer"/> and stays one, byte for byte.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>A misspelled tool is refused rather than defaulted</b>, which is the whole reason
+        /// this reader is not a <c>switch</c> expression with a fallthrough. <c>tool = "subsidy "</c>
+        /// quietly becoming a transfer is a Policy that pays out of the swept Business's own till,
+        /// for ever, reading on the page as a grant — <c>adr/0048</c>'s <em>loads clean and
+        /// misbehaves in silence</em> class in its purest form.
+        /// </para>
+        /// </remarks>
+        private PolicyTool ReadTool(TableSyntaxBase table, string? name)
+        {
+            if (!TryString(table, "tool", out string? tool, required: false, name) || tool is null)
+            {
+                return PolicyTool.Transfer;
+            }
+
+            switch (tool)
+            {
+                case "transfer":
+                    return PolicyTool.Transfer;
+
+                case "charge":
+                    return PolicyTool.Charge;
+
+                case "relief":
+                    return PolicyTool.Relief;
+
+                case "subsidy":
+                    return PolicyTool.Subsidy;
+
+                default:
+                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "tool") ?? table), name,
+                        $"tool = \"{tool}\" is not one of the things a Policy does. The four are "
+                        + "\"transfer\" -- the unconditional movement a [[policy]] has always been, "
+                        + "and what omitting this key means; \"charge\", money from a liable payer "
+                        + "to the treasury; \"relief\", a reduction of profit tax that moves no "
+                        + "money at all; and \"subsidy\", money out of the treasury against a daily "
+                        + "ceiling.");
+
+                    return PolicyTool.Transfer;
+            }
+        }
+
+        /// <summary>The <c>trade</c> key — the one <c>[[business]]</c> a Policy is aimed at.</summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Absent means every member of the swept population</b>, which is
+        /// <see cref="TradeKind.Any"/> and is what every Policy in the build did before
+        /// <c>plans/0072</c> <b>D28</b>. The name is resolved to a kind id here, on
+        /// <c>[[building]] business</c>'s path and for its reason: <c>[[business]]</c> registration
+        /// runs in the table walk above and the name-to-id direction is gone once <c>Read</c>
+        /// returns.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>A <c>trade</c> on a Policy sweeping households is refused, and it is the refusal
+        /// worth reading.</b> A Household has no trade, so the key would resolve, load clean, be
+        /// saved, be hashed and be consulted by nothing — the population it narrows is not the
+        /// population the Policy runs over. ***A filter that cannot match is not a narrow Policy, it
+        /// is a Policy that reads as narrow.*** The unknown-name refusal beside it is the ordinary
+        /// half.
+        /// </para>
+        /// </remarks>
+        private byte ReadTrade(TableSyntaxBase table, string? name, PolicySubject subject)
+        {
+            if (!TryString(table, "trade", out string? trade, required: false, name) || trade is null)
+            {
+                return TradeKind.Any;
+            }
+
+            if (subject != PolicySubject.Business)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, "trade") ?? table), name,
+                    $"trade = \"{trade}\" aims this Policy at one [[business]], and this Policy "
+                    + "sweeps households. A Household has no trade, so the key would load clean, be "
+                    + "saved, be hashed and narrow nothing -- write `sweeps = \"business\"`, or "
+                    + "drop the trade.");
+
+                return TradeKind.Any;
+            }
+
+            if (!_businessKinds.TryGetValue(trade, out byte kind))
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, "trade") ?? table), name,
+                    $"trade is \"{trade}\", and no [[business]] declares that trade. A Policy aimed "
+                    + "at a trade nothing declares reaches nobody, which is a Policy that triggers "
+                    + "and cannot be observed to have run.");
+
+                return TradeKind.Any;
+            }
+
+            return kind;
+        }
+
+        /// <summary>
+        /// What one application does — the <c>transfer</c> for three tools, <c>relief_percent</c> for
+        /// the fourth, and the refusal of each in the other's company.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// 🔴 <b>This is the key-combination matrix and not a dispatch.</b> <c>transfer</c>,
+        /// <c>ceiling</c> and <c>relief_percent</c> are each individually well-formed and each wrong
+        /// in the wrong company, so what is checked here is a <em>relation</em> between a key and the
+        /// tool beside it — the shape <c>[income_tax]</c>'s group refusal already has, arriving on a
+        /// section where the group is chosen by another key rather than fixed.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>A relief carries its percentage in <see cref="PolicyDefinition.Amount"/></b>, which
+        /// is free because a relief has no transfer. That is what puts a relief under the player's
+        /// existing <c>Govern</c> verb with no second amount column: the thing a player moves on a
+        /// relief is the percentage and the thing they move on a charge is the rate, and both are
+        /// the one field.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>A relief's ends are both <see cref="Scope.Local"/> and its Resource is the file's
+        /// first money one, and nothing reads either.</b> <c>PolicyEngine</c> skips a relief
+        /// outright. The Resource is not <c>default</c> because <c>Ruleset.ResourceKey</c> indexes
+        /// <c>Raw - 1</c>, so a zero there is an out-of-range read the moment <c>RulesetShape</c>
+        /// compares two Rulesets on a reload. ***A field nothing reads still has to be a value
+        /// something can index.***
+        /// </para>
+        /// </remarks>
+        private (Scope From, Scope To, ResourceId Resource, int Amount) ReadMovement(
+            TableSyntaxBase table, string? name, PolicyTool tool)
+        {
+            int relief = ReadReliefPercent(table, name, tool);
+
+            if (tool == PolicyTool.Relief)
+            {
+                if (Find(table, "transfer") is KeyValueSyntax stated)
+                {
+                    Refuse(LineOf(stated), name,
+                        "a relief states a transfer. A relief moves no money anywhere -- it takes a "
+                        + "share off a profit tax bill that has already been worked out, so it has "
+                        + "no source, no destination and no Resource (plans/0072 D10). A Policy that "
+                        + "both forgoes revenue and moves money is two Policies; write the second "
+                        + "one as `tool = \"subsidy\"` and fund it.");
+                }
+
+                return (Scope.Local, Scope.Local, FirstMoneyResource(), relief);
+            }
+
+            (Scope from, Scope to, ResourceId resource, int amount) = ReadTransfer(table, name);
+
+            if (tool == PolicyTool.Subsidy && from != Scope.Global)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, "transfer") ?? table), name,
+                    $"a subsidy draws from \"{Spell(from)}\". A subsidy is money OUT OF THE "
+                    + "TREASURY, rationed by a ceiling on what the city can afford in a Day, so it "
+                    + "states `from = \"global\"` (plans/0072 D12). One declared to pay INTO the "
+                    + "treasury is a charge wearing the wrong name, and nothing downstream would "
+                    + "notice: it would still be rationed by the ceiling, which would then bound how "
+                    + "much the city may COLLECT while reading as a bound on what it may spend.");
+            }
+
+            if (tool == PolicyTool.Charge && to != Scope.Global)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, "transfer") ?? table), name,
+                    $"a charge pays to \"{Spell(to)}\". A charge is money from a liable payer TO "
+                    + "THE TREASURY, priced on a quantity that payer is liable for (plans/0072 "
+                    + "D11), so it states `to = \"global\"`. One paying out of the treasury is a "
+                    + "subsidy, and a subsidy with no ceiling is the unfunded grant `ceiling` "
+                    + "exists to refuse.");
+            }
+
+            return (from, to, resource, amount);
+        }
+
+        /// <summary>The <c>relief_percent</c> key — required of a relief and refused of the rest.</summary>
+        /// <remarks>
+        /// ⚠ <b>Zero is accepted and 101 is not, which is the ordinary half of this reader.</b> A
+        /// relief of nothing is a relief switched off, and a player raises it through <c>Govern</c>
+        /// without reloading. The interesting half is that the key is asked for on <em>every</em>
+        /// Policy rather than only on a relief: an unread key is an unpermitted key here
+        /// (<c>RefuseUnknownKeys</c> is built on what the readers asked for), so a
+        /// <c>relief_percent</c> on a charge has to be asked for in order to be refused by this
+        /// sentence rather than by the spelling suggester.
+        /// </remarks>
+        private int ReadReliefPercent(TableSyntaxBase table, string? name, PolicyTool tool)
+        {
+            KeyValueSyntax? stated = Find(table, "relief_percent", RulesetKeyKind.Whole);
+
+            if (stated is null)
+            {
+                if (tool == PolicyTool.Relief)
+                {
+                    Refuse(LineOf(table), name,
+                        "no relief_percent. A relief is a share of a profit tax bill and nothing "
+                        + "else, so the share is the whole of what it states -- there is no transfer "
+                        + "here to carry it (plans/0072 D13).");
+                }
+
+                return 0;
+            }
+
+            if (tool != PolicyTool.Relief)
+            {
+                Refuse(LineOf(stated), name,
+                    "relief_percent is stated on a Policy that is not a relief. Only a relief has a "
+                    + "percentage to take off a bill; on anything else it would be saved, hashed, "
+                    + "carried across a reload and read by nothing. Write `tool = \"relief\"`, or "
+                    + "drop the key.");
+
+                return 0;
+            }
+
+            if (!TryInteger(table, "relief_percent", out long percent, required: true, name))
+            {
+                return 0;
+            }
+
+            if (percent < 0 || percent > 100)
+            {
+                Refuse(LineOf(stated), name,
+                    $"relief_percent = {percent} is not a share of a bill. It is 0 to 100 -- a "
+                    + "relief above the whole bill would pay the Business the difference, which is "
+                    + "expenditure and is what a subsidy is for (plans/0072 D10), and a negative one "
+                    + "would charge for a relief.");
+
+                return 0;
+            }
+
+            return (int)percent;
+        }
+
+        /// <summary>The <c>ceiling</c> key — required of a subsidy and refused of the rest.</summary>
+        /// <remarks>
+        /// <para>
+        /// <b>The most a subsidy may pay out in one Day</b>, and it is required rather than
+        /// defaulted because the ration is the whole difference between a subsidy and a transfer: a
+        /// grant with no bound is an entitlement the treasury discovers it cannot meet, one claimant
+        /// at a time and in slot order.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>Zero is accepted and is how an author ships a switched-off subsidy</b> — the
+        /// catalogue entry exists, the player can raise it through <c>Govern</c>, and nothing is paid
+        /// until they do. Negative is refused: a ceiling is a bound on an amount and not an amount.
+        /// </para>
+        /// </remarks>
+        private long ReadCeiling(TableSyntaxBase table, string? name, PolicyTool tool)
+        {
+            KeyValueSyntax? stated = Find(table, "ceiling", RulesetKeyKind.Whole);
+
+            if (stated is null)
+            {
+                if (tool == PolicyTool.Subsidy)
+                {
+                    Refuse(LineOf(table), name,
+                        "no ceiling. A subsidy pays out of the treasury and is rationed by what the "
+                        + "city can afford in one Day, so the bound is stated rather than defaulted "
+                        + "(plans/0072 D12) -- an unbounded grant is an entitlement, and the "
+                        + "treasury would discover it cannot meet it one claimant at a time. "
+                        + "`ceiling = 0` is how a subsidy ships switched off.");
+                }
+
+                return 0;
+            }
+
+            if (tool != PolicyTool.Subsidy)
+            {
+                Refuse(LineOf(stated), name,
+                    "ceiling is stated on a Policy that is not a subsidy. Only a subsidy rations a "
+                    + "Day's payments against a funding bound; on a charge or a transfer the key "
+                    + "would be saved, hashed, carried across a reload and consulted by nothing -- "
+                    + "while reading on the page as a cap on what the city collects.");
+
+                return 0;
+            }
+
+            if (!TryInteger(table, "ceiling", out long ceiling, required: true, name))
+            {
+                return 0;
+            }
+
+            if (ceiling < 0)
+            {
+                Refuse(LineOf(stated), name,
+                    $"ceiling = {ceiling} is not a bound on a Day's payments. It is at least 0, and "
+                    + "0 is a real answer -- a subsidy that pays nothing until the player raises it. "
+                    + "A negative bound has no reading at all: the ration would be exhausted before "
+                    + "the first claimant.");
+
+                return 0;
+            }
+
+            return ceiling;
+        }
+
+        /// <summary>The first money <c>[[resource]]</c> the file declares, or the first of any.</summary>
+        /// <remarks>
+        /// <b>It exists so that a relief's unread Resource is still an indexable id</b>, and for
+        /// nothing else — see <see cref="ReadMovement"/>. A file declaring no Resource at all yields
+        /// <c>default</c>, which <c>Ruleset.ResourceKey</c> handles because there is no key table for
+        /// it to index into.
+        /// </remarks>
+        private ResourceId FirstMoneyResource()
+        {
+            for (int i = 0; i < _families.Count; i++)
+            {
+                if (_families[i] == ResourceFamily.Money)
+                {
+                    return new ResourceId((ushort)(i + 1));
+                }
+            }
+
+            return _families.Count > 0 ? new ResourceId(1) : default;
         }
 
         /// <summary>The <c>transfer</c> inline table — refusals 62 to 68.</summary>
@@ -7726,6 +8099,335 @@ public static class RulesetLoader
         private int LineOfMarket(string key) =>
             LineOf((SyntaxNodeBase?)Find(_marketTable!, key) ?? _marketTable!);
 
+        // ---- income tax -------------------------------------------------------------------------
+
+        /// <summary>
+        /// The <c>[income_tax]</c> table: the three marginal bands a Day's earnings are read against.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Optional, and its absence is a city that levies no income tax at all</b> — which is the
+        /// city every Ruleset described before this table existed, so nothing moves by the table
+        /// arriving. <c>[traffic]</c>'s polarity and <c>[households] car_ownership_percent</c>'s:
+        /// the absence is reached by <em>omitting the table</em>, never by a defaulted key, because
+        /// every defaultable value here is inside the range of answers a designer might mean. A rate
+        /// of zero is a real schedule that takes nothing and says so; an unwritten rate is a
+        /// placeholder that cannot announce itself.
+        /// </para>
+        /// <para>
+        /// <b>Once the table is present all four keys are required</b>, which is
+        /// <c>opening_balance_min</c>/<c>opening_balance_max</c>'s rule with four ends instead of
+        /// two. A schedule is not four independent numbers: an allowance means nothing without the
+        /// rate that starts above it, and a threshold means nothing without the rate on either side.
+        /// ***So the optionality is a property of the group rather than of each key***, which is why
+        /// the guard counts how many arrived rather than testing them one at a time.
+        /// </para>
+        /// <para>
+        /// 🔴 <b>The upper rate is refused BELOW the middle rate, and that is a design refusal rather
+        /// than a typo guard.</b> Each band is marginal, so a falling rate would make take-home
+        /// income jump <em>downward</em> as gross earnings crossed the threshold — a Citizen strictly
+        /// worse off for having earned more. Nothing in the design wants that, and it is not a
+        /// balance setting somebody could tune into: it is the schedule ceasing to be monotone, which
+        /// <see cref="IncomeTax.WithholdingOn"/> relies on to keep a withholding non-negative.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>Tuning rather than world creation</b> (<c>adr/0015</c>). Nothing in the world points
+        /// at a band — a schedule is read at the moment earnings are attributed and never stored — so
+        /// <see cref="RulesetShape"/> compares none of it and a reload retunes the standing city.
+        /// That is the same test <c>[market]</c>'s damping passes.
+        /// </para>
+        /// </remarks>
+        private IncomeTaxSchedule ReadIncomeTax()
+        {
+            if (_incomeTaxTable is null)
+            {
+                return IncomeTaxSchedule.None;
+            }
+
+            KeyValueSyntax? allowance = Find(_incomeTaxTable, "allowance_per_day");
+            KeyValueSyntax? threshold = Find(_incomeTaxTable, "upper_threshold_per_day");
+            KeyValueSyntax? middleRate = Find(_incomeTaxTable, "middle_rate_percent");
+            KeyValueSyntax? upperRate = Find(_incomeTaxTable, "upper_rate_percent");
+
+            int stated = (allowance is null ? 0 : 1)
+                + (threshold is null ? 0 : 1)
+                + (middleRate is null ? 0 : 1)
+                + (upperRate is null ? 0 : 1);
+
+            if (stated < 4)
+            {
+                Refuse(LineOfIncomeTax("allowance_per_day"), null,
+                    "[income_tax] states some of the schedule's four keys and not all of them. "
+                    + "allowance_per_day, upper_threshold_per_day, middle_rate_percent and "
+                    + "upper_rate_percent are one decision in four keys: an allowance says nothing "
+                    + "without the rate that starts above it, and a threshold says nothing without "
+                    + "the rate on either side of it. State all four, or delete the whole table for "
+                    + "a city that levies no income tax at all.");
+
+                return IncomeTaxSchedule.None;
+            }
+
+            if (!TryInteger(_incomeTaxTable, "allowance_per_day", out long free, required: true)
+                || !TryInteger(_incomeTaxTable, "upper_threshold_per_day", out long upper,
+                    required: true))
+            {
+                return IncomeTaxSchedule.None;
+            }
+
+            // A stock is never negative (adr/0003), and this one is earnings rather than wealth: a
+            // negative allowance would be a Day whose first units are taxed before any were earned.
+            if (free < 0)
+            {
+                Refuse(LineOfIncomeTax("allowance_per_day"), null,
+                    $"allowance_per_day is {free}. It is what a Citizen may earn in one Day before "
+                    + "anything is withheld, and earnings are a quantity rather than a balance, so "
+                    + "it is never negative. Zero is legitimate and means the first unit earned is "
+                    + "taxed.");
+
+                return IncomeTaxSchedule.None;
+            }
+
+            // The two are individually sane and jointly are not, which is the shape Refusal 9 has
+            // over [placement]. A band that starts below where taxation starts is not a band: the
+            // middle rate would apply over an empty interval, so one of the two rates in this file
+            // would be unreachable while both read as settings.
+            if (upper < free)
+            {
+                Refuse(LineOfIncomeTax("upper_threshold_per_day"), null,
+                    $"upper_threshold_per_day is {upper}, below allowance_per_day of {free}. The "
+                    + "middle band runs from the allowance up to the threshold, so a threshold under "
+                    + "the allowance is an empty band and the middle rate could never be reached by "
+                    + "any earner. Write a threshold at or above the allowance -- equal to it is a "
+                    + "two-band schedule and is legitimate.");
+
+                return IncomeTaxSchedule.None;
+            }
+
+            if (!ReadTaxRate("middle_rate_percent", out int middle)
+                | !ReadTaxRate("upper_rate_percent", out int top))
+            {
+                // Non-shortcutting on purpose, so a file that gets both rates wrong is told about
+                // both rather than about whichever is written first.
+                return IncomeTaxSchedule.None;
+            }
+
+            // The one refusal here that is not a range check. Both rates are marginal, so a rate that
+            // FALLS as earnings rise makes take-home income step downward at the threshold: a Citizen
+            // is strictly worse off for having earned one unit more, which is not a city anybody has
+            // designed and is not a setting somebody could tune into. It is also what
+            // IncomeTax.WithholdingOn leans on -- a difference of two totals is non-negative only
+            // while the schedule is monotone.
+            if (top < middle)
+            {
+                Refuse(LineOfIncomeTax("upper_rate_percent"), null,
+                    $"upper_rate_percent is {top}, below middle_rate_percent of {middle}. Both are "
+                    + "marginal rates, so a rate that falls as earnings rise makes take-home income "
+                    + "step DOWNWARD at the threshold -- a Citizen who earns one unit more keeps "
+                    + "less than one who earned one unit less. That is not a lighter tax on high "
+                    + "earners, it is a schedule that stops being monotone, and every reading built "
+                    + "on it reports a Citizen losing money by working.");
+
+                return IncomeTaxSchedule.None;
+            }
+
+            return new IncomeTaxSchedule(free, upper, middle, top);
+        }
+
+        /// <summary>
+        /// One of the schedule's two marginal rates, as a whole percentage.
+        /// </summary>
+        /// <remarks>
+        /// <b>One guard serving two keys, because the bound is the same bound.</b> A rate is a share
+        /// of the earnings inside its own band: below zero it pays the earner for earning, and above
+        /// 100 it takes more than the band holds, so the Citizen's take-home falls as their gross
+        /// rises inside a single band. Neither is a heavier or lighter tax — both are a quantity that
+        /// is not a share, which is <c>car_ownership_percent</c>'s sentence on a second surface.
+        /// </remarks>
+        private bool ReadTaxRate(string key, out int percent)
+        {
+            percent = 0;
+
+            if (!TryInteger(_incomeTaxTable!, key, out long rate, required: true))
+            {
+                return false;
+            }
+
+            if (rate < 0 || rate > 100)
+            {
+                Refuse(LineOfIncomeTax(key), null,
+                    $"{key} is {rate}. It is the share of the earnings inside its own band that is "
+                    + "withheld, so it is a whole percentage in 0..100 -- zero is a band that takes "
+                    + "nothing and 100 is one that takes all of it. Below zero the tax pays the "
+                    + "earner for earning; above 100 it takes more than the band holds, so a Citizen "
+                    + "keeps less for earning more inside one band.");
+
+                return false;
+            }
+
+            percent = (int)rate;
+            return true;
+        }
+
+        /// <summary>The line an <c>[income_tax]</c> key is on, or the table's.</summary>
+        private int LineOfIncomeTax(string key) =>
+            LineOf((SyntaxNodeBase?)Find(_incomeTaxTable!, key) ?? _incomeTaxTable!);
+
+        // ---- business tax -----------------------------------------------------------------------
+
+        /// <summary>
+        /// The <c>[business_tax]</c> table: the two marginal bands a Day's profit is read against.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Optional, and its absence is a city that taxes no profit at all</b> — the city every
+        /// Ruleset described before this table existed, so nothing moves by the table arriving. The
+        /// absence is reached by <em>omitting the table</em>, never by a defaulted key, on
+        /// <see cref="ReadIncomeTax"/>'s argument word for word: a rate of zero is a real schedule
+        /// that takes nothing and says so, where an unwritten rate is a placeholder that cannot
+        /// announce itself.
+        /// </para>
+        /// <para>
+        /// 🔴 <b>TWO bands where the Citizen schedule has three, and the missing one is the
+        /// allowance.</b> <c>plans/0072</c> D8: *"There is no separate tax-free band, although
+        /// setting the lower rate to zero can provide one."* So an <c>allowance_per_day</c> here
+        /// would be a second spelling of a city that is already writable — ***two spellings of one
+        /// city is a key doing nothing while reading as a mechanism***, which is
+        /// <c>storeys_per_rung</c>'s argument arriving on a schedule.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>And there is deliberately no pay-period refusal</b>, which is the other place this
+        /// reader stops mirroring <see cref="ReadIncomeTax"/>. Profit is assessed once per Day
+        /// against a figure the Business accumulates (D23) and no schedule history stands behind it,
+        /// so there is no fixed ring for a long interval to outrun. ***The Citizen-side refusal was a
+        /// property of a table depth, not of taxation***, and copying it here would be inventing a
+        /// bound to look symmetrical.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>Tuning rather than world creation</b> (<c>adr/0015</c>). Nothing in the world points
+        /// at a band, so <see cref="RulesetShape"/> compares none of it and a reload retunes the
+        /// standing city.
+        /// </para>
+        /// </remarks>
+        private BusinessTaxSchedule ReadBusinessTax()
+        {
+            if (_businessTaxTable is null)
+            {
+                return BusinessTaxSchedule.None;
+            }
+
+            KeyValueSyntax? threshold = Find(_businessTaxTable, "threshold_per_day");
+            KeyValueSyntax? lowerRate = Find(_businessTaxTable, "lower_rate_percent");
+            KeyValueSyntax? upperRate = Find(_businessTaxTable, "upper_rate_percent");
+
+            int stated = (threshold is null ? 0 : 1)
+                + (lowerRate is null ? 0 : 1)
+                + (upperRate is null ? 0 : 1);
+
+            if (stated < 3)
+            {
+                Refuse(LineOfBusinessTax("threshold_per_day"), null,
+                    "[business_tax] states some of the schedule's three keys and not all of them. "
+                    + "threshold_per_day, lower_rate_percent and upper_rate_percent are one decision "
+                    + "in three keys: a threshold says nothing without the rate on either side of "
+                    + "it, and a rate says nothing without the band it applies to. State all three, "
+                    + "or delete the whole table for a city that taxes no profit at all. There is no "
+                    + "tax-free band to state -- write a lower_rate_percent of 0 for one.");
+
+                return BusinessTaxSchedule.None;
+            }
+
+            if (!TryInteger(_businessTaxTable, "threshold_per_day", out long band, required: true))
+            {
+                return BusinessTaxSchedule.None;
+            }
+
+            // Profit may be negative -- a loss is an untaxed Day (plans/0072 D26) -- but the
+            // THRESHOLD is the point where one band ends and the next begins, and a band boundary
+            // below zero would put the whole of the lower band where no profit can ever fall. Zero
+            // is legitimate and is how an author writes a flat tax: every unit of profit faces the
+            // upper rate.
+            if (band < 0)
+            {
+                Refuse(LineOfBusinessTax("threshold_per_day"), null,
+                    $"threshold_per_day is {band}. It is the Day's profit at which the upper band "
+                    + "starts, and a band boundary below zero puts the whole lower band where no "
+                    + "profit can ever fall -- so lower_rate_percent would be unreachable while it "
+                    + "still read as a setting. A loss is already untaxed and needs no negative "
+                    + "threshold to say so. Zero is legitimate and means every unit of profit faces "
+                    + "the upper rate.");
+
+                return BusinessTaxSchedule.None;
+            }
+
+            if (!ReadProfitRate("lower_rate_percent", out int lower)
+                | !ReadProfitRate("upper_rate_percent", out int upper))
+            {
+                // Non-shortcutting on purpose, so a file that gets both rates wrong is told about
+                // both rather than about whichever is written first.
+                return BusinessTaxSchedule.None;
+            }
+
+            // The one refusal here that is not a range check, and it is the Citizen side's D7
+            // arriving on profit. Both rates are marginal, so a rate that FALLS as profit rises makes
+            // post-tax profit step downward at the threshold: a Business is strictly worse off for
+            // having earned one unit more. plans/0072 D8 requires the upper at or above the lower.
+            if (upper < lower)
+            {
+                Refuse(LineOfBusinessTax("upper_rate_percent"), null,
+                    $"upper_rate_percent is {upper}, below lower_rate_percent of {lower}. Both are "
+                    + "marginal rates, so a rate that falls as profit rises makes post-tax profit "
+                    + "step DOWNWARD at the threshold -- a Business that earns one unit more keeps "
+                    + "less than one that earned one unit less. That is not relief on large profits, "
+                    + "it is a schedule that stops being monotone, and every reading built on it "
+                    + "reports a trade losing money by trading better.");
+
+                return BusinessTaxSchedule.None;
+            }
+
+            return new BusinessTaxSchedule(band, lower, upper);
+        }
+
+        /// <summary>
+        /// One of the schedule's two marginal rates, as a whole percentage.
+        /// </summary>
+        /// <remarks>
+        /// <b>One guard serving two keys, because the bound is the same bound</b> —
+        /// <see cref="ReadTaxRate"/>'s shape on the Business side. Below zero the tax pays the trade
+        /// for trading; above 100 it takes more than the band holds, so post-tax profit falls as
+        /// profit rises inside a single band. ⚠ <b>Zero is legitimate on the LOWER rate in a way
+        /// worth naming</b>: it is how <c>plans/0072</c> D8 says an author writes a tax-free band,
+        /// which is why no allowance key exists.
+        /// </remarks>
+        private bool ReadProfitRate(string key, out int percent)
+        {
+            percent = 0;
+
+            if (!TryInteger(_businessTaxTable!, key, out long rate, required: true))
+            {
+                return false;
+            }
+
+            if (rate < 0 || rate > 100)
+            {
+                Refuse(LineOfBusinessTax(key), null,
+                    $"{key} is {rate}. It is the share of the profit inside its own band that is "
+                    + "taken, so it is a whole percentage in 0..100 -- zero is a band that takes "
+                    + "nothing, and a lower_rate_percent of zero is how this schedule spells a "
+                    + "tax-free band, which is why there is no allowance key. Below zero the tax "
+                    + "pays the trade for trading; above 100 it takes more than the band holds, so "
+                    + "a Business keeps less for earning more inside one band.");
+
+                return false;
+            }
+
+            percent = (int)rate;
+            return true;
+        }
+
+        /// <summary>The line a <c>[business_tax]</c> key is on, or the table's.</summary>
+        private int LineOfBusinessTax(string key) =>
+            LineOf((SyntaxNodeBase?)Find(_businessTaxTable!, key) ?? _businessTaxTable!);
+
         /// <summary>
         /// The <c>[founding]</c> table — <c>adr/0145</c>'s founding channel.
         /// </summary>
@@ -7965,6 +8667,79 @@ public static class RulesetLoader
                     + "what that Pool can charge, so an unpriced good is not merely unanchored -- it "
                     + "is free everywhere, for ever. Add a prices entry for it to some [[hinterland]], "
                     + "or delete the [districts] table.");
+            }
+        }
+
+        /// <summary>
+        /// <b>A file stating <c>[income_tax]</c> pays nobody less often than the schedule history is
+        /// deep.</b>
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>The bound is a table depth and not a taste.</b>
+        /// <see cref="IncomeTaxTable.Retained"/> Days of schedule history is a <c>const</c> — the ring
+        /// is allocated once at world creation, on <c>RulesetTrailTable.Retained</c>'s grounds — and
+        /// <c>WageEngine.Withhold</c> walks the earning Days a payment closes one at a time, bounded
+        /// at that depth. A trade paying less often than the ring is deep therefore hands over more
+        /// Days' wages than there are Days to spread them over, and the walk assesses the remainder
+        /// against the last Day it reached.
+        /// </para>
+        /// <para>
+        /// 🔴 <b>It is the <em>loads clean and misbehaves in silence</em> class in its purest form.</b>
+        /// Nothing throws, no counter reads zero and no Citizen goes unpaid — the tax is simply wrong,
+        /// upward, because several Days' wages arrive at the bands as one Day's earnings and the
+        /// whole surplus lands above the upper threshold. ***A schedule denominated per Day is a
+        /// claim about the payment interval***, and this is the only place in the file where the two
+        /// meet.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>Gated on the table being STATED rather than on the schedule levying anything.</b> A
+        /// Ruleset whose authored rates are zero can still have a player move a rate on the Event
+        /// Wheel, and the ring the player writes into is the same fixed depth — so what the file said
+        /// about rates is not what decides whether the history is deep enough. A Ruleset with a long
+        /// pay period and <em>no</em> <c>[income_tax]</c> at all is a different city entirely and
+        /// stays loadable, which is the absence this whole table is reached by.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>It names both halves and it has to.</b> The author can fix this by shortening the
+        /// period or by deleting the table, and neither the trade's line nor the depth tells them
+        /// that alone — <c>adr/0048</c>'s rule that a refusal's whole output is a sentence.
+        /// </para>
+        /// </remarks>
+        private void RefuseUnassessablePayPeriods(BusinessKindDefinition[] businessKinds)
+        {
+            if (_incomeTaxTable is null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < businessKinds.Length && i < _businessKindTables.Count; i++)
+            {
+                int period = businessKinds[i].PayPeriodDays;
+
+                if (period <= IncomeTaxTable.Retained)
+                {
+                    continue;
+                }
+
+                TableSyntaxBase table = _businessKindTables[i];
+                string trade = TryString(table, "name", out string? found, required: false)
+                    ? found!
+                    : "this trade";
+
+                Refuse(
+                    LineOf((SyntaxNodeBase?)Find(table, "pay_period_days") ?? table),
+                    null,
+                    $"'{trade}' has pay_period_days of {period}, in a file that states "
+                    + $"[income_tax], and the city keeps only {IncomeTaxTable.Retained} Days of "
+                    + "income tax schedule. A payment is taxed by walking the earning Days it "
+                    + $"closes, one Day at a time, and the walk stops at {IncomeTaxTable.Retained} "
+                    + "-- so everything still owed past that point is assessed as ONE Day's "
+                    + $"earnings. At {period} Days that is {period - IncomeTaxTable.Retained} Days' "
+                    + "wages arriving at the bands together, taxed at the top rate, with nothing "
+                    + "anywhere reporting that it happened. Shorten pay_period_days to "
+                    + $"{IncomeTaxTable.Retained} or fewer, or delete [income_tax] for a city that "
+                    + "levies no income tax at all.");
             }
         }
 

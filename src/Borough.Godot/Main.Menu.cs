@@ -69,7 +69,7 @@ public partial class Main
     private void OpenMenu()
     {
         if (_menuOpen) return;
-        if (_queued.Count > 0) _simulation.Step(Ordered());
+        if (_queued.Count > 0) StepAccounting(Ordered());
         _menuPace = _rung;
         _rung = 0;
         _owed = 0;
@@ -207,7 +207,7 @@ public partial class Main
                 _savedTick = _world.Tick.Raw;
                 _savePath = path;
                 _verb = Verb.Look;
-                _toolsShown = _governing = _layersShown = _cityShown = false;
+                _toolsShown = _governing = _layersShown = _cityShown = _budgetShown = false;
                 _cityRead = false;
                 _cityGroup = -1;
                 _cityCause = null;

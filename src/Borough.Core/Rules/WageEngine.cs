@@ -28,7 +28,7 @@ namespace Borough.Core.Rules;
 /// </param>
 public readonly record struct PayrollReading(
     long Paid, int Workers, long Shortfall, int Employers, int Underpaying,
-    int Bankrupted, int Tilless);
+    int Bankrupted, int Tilless, long Withheld);
 
 /// <summary>
 /// <b>Pays wages: the one edge in the money loop that ran in no direction until 2026-08-27.</b>
@@ -67,6 +67,45 @@ internal sealed class WageEngine(World world, WorldKey key)
     private readonly WorldKey _key = key;
 
     /// <summary>
+    /// Citizen income tax withheld since the last <see cref="DrainWithheld"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Accumulated and drained, on <see cref="PolicyEngine"/>'s precedent, and it could not be a
+    /// last reading.</b> <c>Simulation.LastPayroll</c> is one sweep's total and is overwritten by the
+    /// next; a Census observes on an interval that several Day boundaries fall inside, and a trade's
+    /// payday staggers across its Businesses, so a reader sampling the most recent reading would
+    /// drop every payday but one. ***A flow has no value at an instant*** — <c>ZoneActivity</c>'s own
+    /// argument, and the reason every other money magnitude in the instrument is drained too.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Folded once per payday rather than once per Tick, and that is the same number.</b>
+    /// <c>PolicyEngine.CloseTick</c> folds on every Tick because a Policy can fire on any of
+    /// them; a payroll runs only where <c>tick % Ticks.PerDay == 0</c>, and folding a zero on the
+    /// Ticks between would move neither <see cref="MoneyFlow.Sum"/> nor <see cref="MoneyFlow.Peak"/>,
+    /// which cannot go below zero. So the Peak here is genuinely <em>the most withheld on any one
+    /// Tick</em> and not the most withheld on any Tick that happened to be read.
+    /// </para>
+    /// <para>
+    /// It is not simulation state: nothing in <c>step()</c> reads it, it is not a column of a table,
+    /// and it therefore folds into no State Hash. An instrument that moved the city would be a
+    /// different defect.
+    /// </para>
+    /// </remarks>
+    private MoneyFlow _withheldFlow;
+
+    /// <summary>Reads what the paydays withheld since the last call, and resets the accumulator.</summary>
+    /// <returns>The interval's withholding: everything taken, and the most taken on one Tick.</returns>
+    public MoneyFlow DrainWithheld()
+    {
+        MoneyFlow flow = _withheldFlow;
+
+        _withheldFlow = default;
+
+        return flow;
+    }
+
+    /// <summary>
     /// Runs every payday that falls on <paramref name="tick"/>'s Day, and nothing on other Ticks.
     /// </summary>
     /// <remarks>
@@ -98,6 +137,7 @@ internal sealed class WageEngine(World world, WorldKey key)
         int underpaying = 0;
         int bankrupted = 0;
         int tilless = 0;
+        long withheld = 0;
 
         for (int slot = 0; slot < _world.Businesses.Rows.SlotCount; slot++)
         {
@@ -126,6 +166,19 @@ internal sealed class WageEngine(World world, WorldKey key)
                 continue;
             }
 
+            // 🔴 plans/0072 D15's wage expense, and it is ABOVE the payday test on purpose. Gross
+            // wages count against the Day they were EARNED, and this sweep is the one thing in the
+            // build that runs on every Day boundary -- Pay runs on paydays only. An employer on a
+            // seven-Day period that expensed its payroll where it paid it would post one huge loss
+            // and six clean profits a week, and D23's per-Day bands would read a city of steady
+            // trades as a city of failing ones. ***The pay period says when money moves and must
+            // not reach what a Day was worth.***
+            //
+            // ⚠ A walk of the worker list per employer per Day, which is what it costs. The
+            // alternative -- workers × WagePerDay -- is a different number, because WorkSchedule
+            // .Graded prices a Day by WHO worked it.
+            BusinessAccounts.Wages(_world, slot, DailyWageBill(slot, trade), tick);
+
             if (!IsPayday(slot, trade.PayPeriodDays, today))
             {
                 continue;
@@ -141,11 +194,12 @@ internal sealed class WageEngine(World world, WorldKey key)
                 tilless++;
             }
 
-            (long moved, int reached, long owed) = Pay(slot, trade, today, tick);
+            (long moved, int reached, long owed, long taken) = Pay(slot, trade, today, tick);
 
             paid += moved;
             workers += reached;
             shortfall += owed;
+            withheld += taken;
 
             if (owed > 0)
             {
@@ -190,8 +244,10 @@ internal sealed class WageEngine(World world, WorldKey key)
             }
         }
 
+        _withheldFlow = _withheldFlow.Fold(withheld);
+
         return new PayrollReading(
-            paid, workers, shortfall, employers, underpaying, bankrupted, tilless);
+            paid, workers, shortfall, employers, underpaying, bankrupted, tilless, withheld);
     }
 
     /// <summary>Whether <paramref name="slot"/>'s payday falls on <paramref name="today"/>.</summary>
@@ -269,6 +325,35 @@ internal sealed class WageEngine(World world, WorldKey key)
         _world.DestroyBusiness(_world.Businesses.Rows.At(slot));
     }
 
+    /// <summary>
+    /// What one Day of this employer's payroll is worth, whether or not it is a payday and whether
+    /// or not the till could cover it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Graded per worker, which is <see cref="Pay"/>'s own line and its reason</b>: what a Day is
+    /// worth is a property of who worked it, so <c>workers × WagePerDay</c> is a different and
+    /// wrong number wherever a Ruleset grades a wage by Skill Tier or experience.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is an ENTITLEMENT and not a payment</b> (<c>plans/0072</c> D15). An employer that
+    /// cannot pay still owes the wage and still incurred the cost of the Day's work, so a Day's
+    /// expense does not shrink because the till was empty — the shortfall is a cash problem, which
+    /// is a different column and <see cref="Pay"/>'s.
+    /// </para>
+    /// </remarks>
+    private long DailyWageBill(int slot, in BusinessKindDefinition trade)
+    {
+        long bill = 0;
+
+        foreach (int worker in _world.Workers.Walk(slot))
+        {
+            bill += Borough.Core.Movement.WorkSchedule.Graded(_world, worker, trade.WagePerDay);
+        }
+
+        return bill;
+    }
+
     /// <summary>Pays one Business's workers, in worker-list order, until the money runs out.</summary>
     /// <remarks>
     /// <para>
@@ -289,18 +374,31 @@ internal sealed class WageEngine(World world, WorldKey key)
     /// is not a lottery, and the honest repair for it is an employer that can pay.
     /// </para>
     /// </remarks>
-    private (long Paid, int Workers, long Owed) Pay(
+    private (long Paid, int Workers, long Owed, long Withheld) Pay(
         int slot, in BusinessKindDefinition trade, long today, Ticks tick)
     {
         if (!_world.Bins.Rows.TryResolve(_world.Businesses.Balance[slot], out int till))
         {
             // A world whose Ruleset names no money. Nothing holds a balance, so there is nothing to
             // pay out of and nothing to pay into -- Readouts' own answer, one table across.
-            return (0, 0, 0);
+            return (0, 0, 0, 0);
         }
+
+        // Resolved once for the whole worker list rather than per payment. NoSlot is a world whose
+        // Ruleset names money but gives the treasury no Bin to hold this one in, and there is
+        // nowhere for a withholding to land -- so nothing is withheld rather than money vanishing.
+        int treasury = _world.FindTreasuryBin(_world.Bins.Resource[till]);
+
+        // ⚠ Asked once per employer rather than per worker, and it guards the WRITES and not just
+        // the arithmetic. A world that levies nothing must leave CitizenTable.TaxedDay and
+        // TaxedGross alone entirely, or every untaxed city's State Hash moves for a tax it does not
+        // have.
+        bool levies = treasury != Tables.Rows.NoSlot
+            && _world.IncomeTaxRates.Levies(_world.Rules.IncomeTax);
 
         long paid = 0;
         long owed = 0;
+        long withheld = 0;
         int reached = 0;
 
         foreach (int worker in _world.Workers.Walk(slot))
@@ -361,13 +459,27 @@ internal sealed class WageEngine(World world, WorldKey key)
                 continue;
             }
 
+            long tax = levies ? Withhold(worker, _world.Citizens.LastPaidDay[worker], due, rate) : 0;
+
             // Through World's doors rather than BinTable.Move, so both writes drain their wait
             // lists -- PolicyEngine.Move's reason, and the same one applies: nothing subscribes to a
             // balance today, and going round them would make that permanent.
+            //
+            // 🔴 THE SPLIT, and it is one debit against two credits that sum to it exactly.
+            // plans/0072 D5 requires that no Money is lost to taxation, so the employer's till
+            // gives up the gross and the Household gives up the tax -- rather than the treasury
+            // collecting separately from a Household that has already been paid in full, which
+            // would collect nothing from a Household that had already spent it.
             _world.Withdraw(_world.Bins.Rows.At(till), due, tick);
-            _world.Deposit(_world.Bins.Rows.At(purse), due, tick);
+            _world.Deposit(_world.Bins.Rows.At(purse), due - tax, tick);
+
+            if (tax > 0)
+            {
+                _world.Deposit(_world.Bins.Rows.At(treasury), tax, tick);
+            }
 
             paid += due;
+            withheld += tax;
             reached++;
 
             // Only as far as what was paid for. Integer division is exact when the employer paid in
@@ -386,6 +498,60 @@ internal sealed class WageEngine(World world, WorldKey key)
                 upTo >= ushort.MaxValue ? ushort.MaxValue : (ushort)upTo;
         }
 
-        return (paid, reached, owed);
+        return (paid, reached, owed, withheld);
+    }
+
+    /// <summary>
+    /// Withholds Citizen income tax from one payment, taxing each earning Day it covers
+    /// separately, and returns the total taken.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A payment is spread across the Days it closes rather than taxed as a lump.</b> Thresholds
+    /// are denominated per Day (<c>plans/0072</c> D4), so paying a week together must not read as
+    /// one enormous Day and hand the whole week a single allowance. The walk gives each Day a full
+    /// Day's rate until the money runs out, which mirrors exactly how <see cref="Pay"/> advances
+    /// <see cref="Entities.CitizenTable.LastPaidDay"/> over the Days it actually covered.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The accumulator ends the walk pointing at the boundary Day</b> — the part-paid one the
+    /// clock stops before, and therefore the only Day this Citizen can be paid for twice. Days
+    /// behind it are settled and will never be assessed again.
+    /// </para>
+    /// <para>
+    /// The walk is bounded by <see cref="Entities.IncomeTaxTable.Retained"/> and not by the pay
+    /// period, because a graded rate can be lower than the trade's and stretch the same money over
+    /// more Days than the trade has. Past that depth there is no schedule history to consult, so
+    /// the remainder is assessed against the last Day reached.
+    /// </para>
+    /// </remarks>
+    private long Withhold(int worker, long from, long due, long rate)
+    {
+        IncomeTaxSchedule authored = _world.Rules.IncomeTax;
+        long withheld = 0;
+        long remaining = due;
+        long day = from + 1;
+
+        for (int step = 0; step < Entities.IncomeTaxTable.Retained && remaining > 0; step++)
+        {
+            bool last = step == Entities.IncomeTaxTable.Retained - 1;
+            long slice = !last && rate > 0 && remaining > rate ? rate : remaining;
+
+            IncomeTaxSchedule schedule = _world.IncomeTaxRates.ScheduleFor(day, authored);
+            long already = _world.Citizens.TaxedDay[worker] == day
+                ? _world.Citizens.TaxedGross[worker]
+                : 0;
+
+            withheld += IncomeTax.WithholdingOn(already, slice, schedule);
+
+            _world.Citizens.TaxedDay[worker] =
+                day >= ushort.MaxValue ? ushort.MaxValue : (ushort)day;
+            _world.Citizens.TaxedGross[worker] = already + slice;
+
+            remaining -= slice;
+            day++;
+        }
+
+        return withheld;
     }
 }

@@ -223,6 +223,16 @@ public sealed class PolicyEngine
                     + "the loader refuses anything below 1; this Ruleset was not built by it.");
             }
 
+            // plans/0072 D33. A Policy is a transfer here and only a transfer. A relief moves no
+            // Money at all -- it reduces a bill inside the profit assessment -- and a subsidy has a
+            // funding ceiling that has to be rationed across every claimant at once, which Move
+            // cannot do because it pays each member in full or not at all. Sweeping either as a
+            // transfer would pay out a rate as though it were an entitlement.
+            if (definition.Tool is PolicyTool.Relief or PolicyTool.Subsidy)
+            {
+                continue;
+            }
+
             if (tick.Raw % definition.Interval != 0)
             {
                 continue;
@@ -299,6 +309,11 @@ public sealed class PolicyEngine
                 continue;
             }
 
+            if (!Eligible(definition, slot))
+            {
+                continue;
+            }
+
             _tickConsidered++;
 
             if (!Move(policy, definition, slot, treasury, tick, out bool payerDry))
@@ -311,6 +326,25 @@ public sealed class PolicyEngine
             }
         }
     }
+
+    /// <summary>Whether this Policy applies to the member in <paramref name="slot"/>.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The catalogue's whole eligibility test</b> — <c>plans/0072</c> D28. A Policy naming no trade
+    /// reaches every member of its subject, which is what every Policy did before the catalogue
+    /// existed.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>An ineligible member is not <em>considered</em>.</b> It is skipped before the counter,
+    /// so <c>PolicyActivity.Considered</c> keeps meaning <em>members this Policy had a decision to
+    /// make about</em>. Counting them would make a Policy aimed at one trade in a city of twenty read
+    /// as though it were failing to pay nineteen of them.
+    /// </para>
+    /// </remarks>
+    private bool Eligible(in PolicyDefinition definition, int slot) =>
+        definition.Trade == TradeKind.Any
+        || (definition.Subject == PolicySubject.Business
+            && _world.Businesses.Kind[slot] == definition.Trade);
 
     /// <summary>Whether <paramref name="slot"/> holds a live member of <paramref name="subject"/>.</summary>
     private bool IsLive(PolicySubject subject, int slot) =>

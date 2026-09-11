@@ -78,6 +78,9 @@ internal static class Program
                 case Mode.Money:
                     return Session.DumpMoney(options);
 
+                case Mode.Income:
+                    return Session.DumpIncome(options);
+
                 case Mode.Parking:
                     return Session.DumpParking(options);
 

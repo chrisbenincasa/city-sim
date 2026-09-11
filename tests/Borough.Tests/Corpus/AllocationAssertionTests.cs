@@ -136,7 +136,9 @@ public sealed class AllocationAssertionTests
             + "so plans/0002 §B's machine cannot see it and a firing there records no sample:\n  "
             + string.Join("\n  ", raw));
 
-        Assert.Equal(8, checks.Count);
+        Assert.Equal(
+            9,
+            checks.Count);
     }
 
     /// <summary>The test tree, found from the assembly's own location.</summary>

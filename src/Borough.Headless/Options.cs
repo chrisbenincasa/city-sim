@@ -271,6 +271,29 @@ internal enum Mode
     /// <c>plans/0046</c> asks is whether the founding generation's cohort ever blurs.
     /// </remarks>
     Stages,
+
+    /// <summary>
+    /// Print the city's budget: what it took in, what it paid out, and what it is holding.
+    /// <c>plans/0072</c>'s artefact.
+    /// </summary>
+    /// <remarks>
+    /// <b>A distinct mode from <see cref="Money"/> and not a column added to it, because the two
+    /// answer different questions and refuse on different grounds.</b> <see cref="Money"/> is a
+    /// balance sheet over the whole money supply — its subject is <em>where the money is</em>, its
+    /// treasury row is one of six, and it refuses a file whose Policies move nothing conserved. This
+    /// one's subject is the treasury's own account, it splits income by the <em>lever</em> that
+    /// brought it in — tax withheld at a payday against money a <c>[[policy]]</c> moved — and it
+    /// refuses a file stating no <c>[income_tax]</c>, which is a test <see cref="Money"/> passes on
+    /// every shipped world. ⚠ <b>Merging them would have cost the split</b>: the circuit's two
+    /// columns are directions, and a third column that was a <em>mechanism</em> under the same
+    /// heading would read as a third direction.
+    /// <para>
+    /// A session mode for <see cref="Money"/>'s reason at its strongest. A budget is entirely flows,
+    /// and a wage is paid on a Day boundary — so a world that has not run for a Day has an empty
+    /// table rather than a thin one. <c>rulesets/taxing.toml</c> is the file written for it.
+    /// </para>
+    /// </remarks>
+    Income,
 }
 
 /// <summary>
@@ -572,6 +595,7 @@ internal sealed class Options
         bool keyReference = false;
         bool business = false;
         bool market = false;
+        bool income = false;
         Layer? dump = null;
 
         for (int i = 0; i < arguments.Length; i++)
@@ -671,6 +695,14 @@ internal sealed class Options
                 // prints both.
                 case "--money":
                     money = true;
+                    session = true;
+                    continue;
+
+                // A session flag for --money's reason and one step past it: --money prints a level
+                // half that a populated world already has, and this prints flows only. A budget over
+                // a world that has not run is not thin, it is empty.
+                case "--income":
+                    income = true;
                     session = true;
                     continue;
 
@@ -1060,6 +1092,39 @@ internal sealed class Options
         // At the TOP, which is what the block below says a new mode should do: it names every other
         // picture, runs first and returns, so no block beneath it needs editing to admit this one.
         // Order of flags does not matter -- both bools are set by the time this runs.
+        // AT THE TOP, which is what the block below says a mode added later should do: it names
+        // every other picture, runs first and returns, so no block beneath it needs editing to admit
+        // this one. Order of flags does not matter -- every bool is set by the time this runs.
+        if (income && (kinds || school || stages || day || money || market || business || arrivals
+                       || landValue || parking || evidence || traffic || commute || zones || roads
+                       || trips || flood || watch || dump is not null))
+        {
+            complaint = "--income asks for another picture, and each picture builds its own world. "
+                      + "Ask for one.";
+            return false;
+        }
+
+        // --money's refusal for --money's reason, and the polarity is the same: the absence is not
+        // legible. A budget over a world that levies nothing prints zeroes under a heading that says
+        // income, and a zero income reads as a broken payday rather than as a file that taxes
+        // nobody. The Ruleset-level check that the file states [income_tax] is IncomeDump's, because
+        // it needs the file loaded; this only says a file is needed at all.
+        if (income && rulesets.Count == 0)
+        {
+            complaint = "--income needs --ruleset PATH. A budget is content twice over: a wage for "
+                      + "the tax to be withheld from and an [income_tax] table stating the bands. "
+                      + "rulesets/taxing.toml is the file written for this picture.";
+            return false;
+        }
+
+        // --money's refusal for --money's reason: the dump populates its own world and steps it.
+        if (income && log is not null)
+        {
+            complaint = "--income and --log disagree: the dump populates its own world and steps it, "
+                      + "so a recorded session would be replayed and then over-populated.";
+            return false;
+        }
+
         if (kinds && (school || stages || day || money || market || business || arrivals || landValue
                       || parking || evidence || traffic || commute || zones || roads || trips
                       || flood || watch || dump is not null))
@@ -1443,8 +1508,8 @@ internal sealed class Options
         // than one that is refused, because the operator reads the absence of a census as a census
         // with nothing in it. Found while adding --series; the hole was --census's since slice 10.
         if ((census || series)
-            && (zones || commute || traffic || evidence || money || parking || roads || trips
-                || market || dump is not null))
+            && (zones || commute || traffic || evidence || money || income || parking || roads
+                || trips || market || dump is not null))
         {
             string asked = series ? "--series" : "--census";
 
@@ -1546,7 +1611,8 @@ internal sealed class Options
         { complaint = "--profile accepts only --profile-reuse, --profile-services, --route-workers, --ruleset, --citizens, --seed, --ticks, --warmup-ticks, --profile-wait, --profile-work, --profile-population, --profile-load, --profile-save and --no-decide-guard; supply one Ruleset and 1..2147483647 measured Ticks."; return false; }
 
         if ((shopping || care) && (shopping && care || flood || rulesets.Count != 1 || log is not null || save is not null
-            || school || stages || day || money || market || business || arrivals || landValue
+            || school || stages || day || money || income || market || business || arrivals
+            || landValue
             || parking || evidence || traffic || commute || trips || roads || morphology || zones
             || kinds || dump is not null || watch || schema || keyReference || census))
         {
@@ -1574,6 +1640,7 @@ internal sealed class Options
                  : watch ? Mode.Watch
                  : school ? Mode.School
                  : stages ? Mode.Stages
+                 : income ? Mode.Income
                  : market ? Mode.Market
                  : business ? Mode.Business
                  : flood ? Mode.Flood
@@ -1726,6 +1793,24 @@ internal sealed class Options
                                 Policies move nothing conserved: a balance sheet over a city
                                 with no money says "conserved" and means nothing by it.
                                 rulesets/taxed.toml is the file written for it
+          --income              dump the city's BUDGET: income against expenditure, one row a
+                                Day. Income is FOUR columns -- tax withheld at the payday,
+                                profit tax collected off a Business's till at the Day
+                                boundary, money a [[policy]] moved to the treasury, and money
+                                a [[rule]] paid in off a premises -- because the four are the
+                                same arrival through different levers, and none is netted
+                                against expenditure. Expenditure is THREE: a [[policy]]
+                                transfer, a [[rule]] drawing on the treasury, and a
+                                tool = "subsidy" apportioned against its own ceiling, which
+                                leaves through none of the other doors. The treasury column is
+                                their running total less the three expenditure columns,
+                                exactly. Profit-tax RELIEF is printed under the table and is
+                                deliberately outside that arithmetic: it moves no money, so it
+                                is revenue forgone rather than spending. Prints the
+                                [income_tax] and [business_tax] bands above the table so both
+                                tax columns can be checked by hand. Steps its own world. Needs
+                                --ruleset stating [income_tax]; rulesets/taxing.toml is
+                                written for it and is the one file stating [business_tax]
           --day                 follow ONE Citizen through one Day, Tick by Tick --
                                 where they went, when, and what it cost them. Every
                                 other mode aggregates; this one is a person. Needs

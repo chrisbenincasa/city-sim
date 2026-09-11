@@ -577,9 +577,15 @@ public enum MoneyCounter : byte
 }
 
 /// <summary>
-/// The money magnitudes the Policy sweeps moved: the flow half of the balance sheet.
+/// Every money magnitude that crossed the treasury's edge, by direction and by the mechanism that
+/// moved it: the flow half of the balance sheet.
 /// </summary>
 /// <remarks>
+/// <b>One member per (mechanism, direction) and never one per direction</b>, because the three
+/// mechanisms are moved by three different levers and folding them would print a total a player
+/// could not act on — see <see cref="RuleToTreasury"/> for the argument in full, and for the
+/// identity the family exists to satisfy.
+/// <br/>
 /// <b>Its own family rather than two more <see cref="PolicyCounter"/>s, because a count and an amount
 /// are not commensurable.</b> <c>PolicyCounter.Applied</c> is how many members a transfer moved money
 /// for; these are how much money. Printed in one block they would sit under one heading and share a
@@ -589,18 +595,168 @@ public enum MoneyCounter : byte
 /// </remarks>
 public enum MoneyFlowCounter : byte
 {
-    /// <summary>Money moved into the treasury over the interval.</summary>
+    /// <summary>Money a <c>[[policy]]</c> sweep moved into the treasury over the interval.</summary>
     ToTreasury,
 
     /// <summary>
-    /// Money moved out of the treasury over the interval, reported apart from
-    /// <see cref="ToTreasury"/> rather than netted.
+    /// Money a <c>[[policy]]</c> sweep moved out of the treasury over the interval, reported apart
+    /// from <see cref="ToTreasury"/> rather than netted.
     /// </summary>
     /// <remarks>
     /// A net is the one figure that cannot say whether a city taxed nothing and paid nothing or
     /// taxed heavily and paid it all back, and those are different cities.
     /// </remarks>
     FromTreasury,
+
+    /// <summary>
+    /// Citizen income tax withheld at the payday, summed over the interval.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A third member rather than more <see cref="ToTreasury"/>, because the two arrive by
+    /// different mechanisms and a reader needs to know which.</b> <see cref="ToTreasury"/> is money
+    /// <em>a Policy moved</em> — a levy sweeping a population that already holds it, which a player
+    /// can watch leave a Household's purse. This is money <em>an employer withheld</em> before the
+    /// Household ever held it: <c>WageEngine.Pay</c> takes one debit off the till and splits it into
+    /// a smaller credit to the purse and a credit to the treasury, so nothing is ever taken back off
+    /// anybody. Folding them together would produce a treasury income a player could not act on,
+    /// because ***the lever that moves one is not the lever that moves the other*** — a rate in
+    /// <c>[income_tax]</c> against a <c>[[policy]]</c>'s amount.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is not a share of <see cref="ToTreasury"/> and must never be netted against it.</b>
+    /// The two are disjoint sums over the same interval, so treasury income is their addition; before
+    /// this member existed the withheld half reached the treasury and appeared in no flow at all, and
+    /// a balance rose against a reported income of zero.
+    /// </para>
+    /// </remarks>
+    Withheld,
+
+    /// <summary>
+    /// Money a fired <b>Bin Rule</b> deposited into the treasury over the interval — an output term
+    /// naming <c>scope = "global"</c> in a money-family Resource.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>The third income path, and it reached the treasury in silence until this member
+    /// existed.</b> On <c>rulesets/taxing.toml</c> over 24,576 Ticks the treasury closed at
+    /// <b>1,621,850</b> while <see cref="Withheld"/> accounted for <b>180,058</b> and
+    /// <see cref="ToTreasury"/> for nothing at all — the file declares no <c>[[policy]]</c>. The
+    /// missing <b>1,441,792</b> was 88 firings of that file's <c>rates</c> Rule. ***A budget whose
+    /// balance column cannot be explained by its own flow columns is not a budget***, and 89% of that
+    /// one was unattributed.
+    /// </para>
+    /// <para>
+    /// <b>A fourth and fifth member rather than more <see cref="ToTreasury"/>, and the question that
+    /// decides it is whether a player reading a budget cares HOW the money arrived.</b> They do, on
+    /// <see cref="Withheld"/>'s argument one step further out: the lever that moves this is a
+    /// <c>[[rule]]</c>'s output <c>amount</c> and its <c>rate</c>, sitting on a building kind, and
+    /// the lever that moves <see cref="ToTreasury"/> is a <c>[[policy]]</c>'s <c>amount</c> and its
+    /// <c>interval</c>, sitting on a population. A city that swapped one for the other would show an
+    /// unchanged total under a changed file. And the two differ in <em>who pays</em>: a Policy sweeps
+    /// an entitlement over every live member, a Bin Rule fires per premises off the Event Wheel and
+    /// stops when a Bin is short — <c>adr/0033</c>'s <em>the two Rule families differ in observable
+    /// behaviour</em>, which is the same reason <c>MetricSource.Zones</c> is not
+    /// <c>MetricSource.Rules</c>.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>And widening was not merely undesirable, it was unavailable.</b> Every member here
+    /// carries a <c>Peak</c> as well as a <c>Sum</c>, and the two engines fold their own Ticks into
+    /// their own accumulators. Two sums add; two peaks do not — adding them invents a Tick on which
+    /// both engines peaked together, and taking the larger silently under-reports the Tick on which
+    /// both moved money. ***There is no honest arithmetic that folds a second mechanism into an
+    /// existing flow member***, so a second mechanism gets its own.
+    /// </para>
+    /// <para>
+    /// <b>The identity these five exist to satisfy</b>: over any interval, the change in
+    /// <c>MoneyCounter.Treasury</c> equals
+    /// <c>ToTreasury + Withheld + RuleToTreasury − FromTreasury − RuleFromTreasury</c>.
+    /// ⚠ <b>One path is still outside it</b> — <c>World.Dissolve</c> passes a dissolving Household's
+    /// estate to the treasury, and no flow counts it. It cannot fire on a Ruleset that declares no
+    /// <c>[[life_stage]]</c> table, which is why the identity holds exactly on
+    /// <c>rulesets/taxing.toml</c>; it is an open hole on any file that declares both life stages and
+    /// money, and it is named here rather than left to be rediscovered.
+    /// </para>
+    /// </remarks>
+    RuleToTreasury,
+
+    /// <summary>
+    /// Money a fired <b>Bin Rule</b> withdrew from the treasury over the interval — an input term
+    /// naming <c>scope = "global"</c> in a money-family Resource.
+    /// </summary>
+    /// <remarks>
+    /// <b>Reported apart from <see cref="RuleToTreasury"/> and never netted against it</b>, which is
+    /// <see cref="FromTreasury"/>'s own remark applied to the same mechanism: a subsidy Rule that
+    /// draws what a rates Rule pays in is a city with two large flows, and a net would print it as a
+    /// city with none. ⚠ <b>No shipped Ruleset has an input term naming <c>global</c>, so this reads
+    /// zero everywhere today</b> — carried anyway, because a direction that exists only when
+    /// somebody remembers to add it is a direction that arrives unmeasured.
+    /// </remarks>
+    RuleFromTreasury,
+
+    /// <summary>
+    /// Profit tax collected from Businesses' tills at the Day boundary, summed over the interval.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A sixth member rather than more <see cref="Withheld"/>, on <see cref="RuleToTreasury"/>'s
+    /// argument turned onto the other taxpayer.</b> Both are a tax and neither is a Policy, which is
+    /// the reason a first draft wanted to fold them — and the lever is different in both halves a
+    /// player can reach: the rate lives in <c>[business_tax]</c> rather than <c>[income_tax]</c>,
+    /// and ***who pays it is a trade rather than a worker***. A city that raised one and cut the
+    /// other would show a flat column under two changed files.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is money the Business never handed to anybody first.</b> <see cref="Withheld"/> is
+    /// split out of a wage on its way to a purse, so the Household's balance already reflects it;
+    /// this is taken from a till that was holding it, so the Businesses row of
+    /// <see cref="MoneyCounter"/> falls by exactly this. ⚠ <b>And it is never the whole bill</b> —
+    /// <c>plans/0072</c> D25 forgives what a short till cannot cover, so this is what was
+    /// <em>collected</em> and <c>ProfitTaxReading.Due</c> is what was assessed.
+    /// </para>
+    /// <para>
+    /// The identity of the family becomes: over any interval, the change in
+    /// <c>MoneyCounter.Treasury</c> equals
+    /// <c>ToTreasury + Withheld + RuleToTreasury + ProfitTax − FromTreasury − RuleFromTreasury</c>.
+    /// </para>
+    /// </remarks>
+    ProfitTax,
+
+    /// <summary>
+    /// Money a <c>tool = "subsidy"</c> Policy paid out of the treasury over the interval.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>A seventh member rather than more <see cref="FromTreasury"/>, and here the alternative
+    /// was not merely worse — it was unreachable.</b> <c>SubsidyEngine</c> is not
+    /// <c>PolicyEngine</c> (<c>plans/0072</c> D33): it gathers every claim, takes the pot as the
+    /// smaller of the ceiling and the treasury, apportions, and only then pays. None of that runs
+    /// through <c>PolicyEngine.Move</c>, so none of it folds into
+    /// <see cref="FromTreasury"/>'s accumulator — ***a subsidy left the treasury through a door no
+    /// flow counter watched***, which is <see cref="RuleToTreasury"/>'s defect arriving for the
+    /// third time and on the expenditure side for the first.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is what was PAID and never what was claimed.</b> A rationed claim creates no debt
+    /// (D12), so the shortfall is not money owed and has no place in a budget's arithmetic;
+    /// <c>SubsidyReading.Claimed</c> and <c>SubsidyReading.Rationed</c> are where a reader finds out
+    /// that the pot bound, and they are a reading rather than a flow.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A <c>tool = "relief"</c> Policy has no member here and must never acquire one.</b> A
+    /// relief moves no Money at all — it reduces a profit-tax bill before the collection, so the
+    /// only trace it leaves is a <see cref="ProfitTax"/> column smaller than it would otherwise have
+    /// been. ***Revenue forgone is not expenditure***, and a member for it would put a figure that
+    /// crossed no edge into an identity about the treasury's edge.
+    /// </para>
+    /// <para>
+    /// The identity of the family becomes: over any interval, the change in
+    /// <c>MoneyCounter.Treasury</c> equals
+    /// <c>ToTreasury + Withheld + RuleToTreasury + ProfitTax − FromTreasury − RuleFromTreasury
+    /// − Subsidy</c>.
+    /// </para>
+    /// </remarks>
+    Subsidy,
 }
 
 /// <summary>Which family of thing a <see cref="Metric"/> names.</summary>

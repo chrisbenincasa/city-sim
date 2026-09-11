@@ -216,6 +216,7 @@ public sealed class World
         // not populated. Adopt re-sizes it on a reload; see PolicyTable for why the rows are state at
         // all rather than a write back into Ruleset data.
         Policies = new PolicyTable(rules);
+        IncomeTaxRates = new IncomeTaxTable();
         MoneySupply = new MoneySupplyTable();
 
         // adr/0142's collection, and its capacity hint assumes even less than the Business table's:
@@ -458,6 +459,11 @@ public sealed class World
             // every committed State Hash baseline, which costs nothing while nobody carries a save.
             Policies.Rows,
 
+            // And the income-tax rates beside them, plans/0072 row 33. Appended on the same
+            // grounds: a rate the player set is a decision about the world, so it is saved and
+            // hashed exactly as a governed Policy amount is.
+            IncomeTaxRates.Rows,
+
             // And the Blocks, plans/0053 step 1. Appended on the same grounds. A block is the unit
             // the `zone` verb acts on and it was the only such unit with no row -- so a block that
             // lost every Lot forgot it had ever been zoned, which is the limitation LotSubdivider.Relot
@@ -540,6 +546,16 @@ public sealed class World
     /// been done to those declarations since, and it is the half that is saved and hashed.
     /// </remarks>
     public PolicyTable Policies { get; }
+
+    /// <summary>
+    /// The Citizen income-tax rates the player has set, one row per Day of retained history.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Not <c>Rules.IncomeTax</c>, which is what the designer authored.</b> This table is what
+    /// the player has done to it since, and it keeps a history rather than a value so that a wage
+    /// paid late is still taxed at the Day it was earned.
+    /// </remarks>
+    public IncomeTaxTable IncomeTaxRates { get; }
 
     /// <summary>
     /// The Businesses, each occupying a Building and holding its own balance (<c>adr/0113</c>).

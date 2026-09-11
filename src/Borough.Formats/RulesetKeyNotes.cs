@@ -420,6 +420,27 @@ public static class RulesetKeyNotes
             + "only, so a global end means money.",
         ["[[policy]] transfer amount"] =
             "How much moves per application.",
+        ["[[policy]] tool"] =
+            "Which of the things a Policy does: transfer, charge, relief or subsidy. A charge takes "
+            + "money from a liable payer to the treasury; a relief takes a share off a Business's "
+            + "profit tax bill and moves no money anywhere; a subsidy pays out of the treasury "
+            + "against a daily funding bound. Absent means transfer -- the unconditional movement a "
+            + "Policy was before the catalogue, and what every Policy written without this key is.",
+        ["[[policy]] trade"] =
+            "Which [[business]] this Policy is aimed at, naming a declared trade. Absent means every "
+            + "member of the swept population. It narrows a business sweep, so it is refused beside "
+            + "a household one: a Household has no trade, and the key would load clean and narrow "
+            + "nothing.",
+        ["[[policy]] ceiling"] =
+            "The most a subsidy may pay out in one Day, rationed across every claimant at once "
+            + "rather than paid in slot order until the money runs out. Only a subsidy has one, and "
+            + "a subsidy states it: a grant with no bound is an entitlement. A stated zero is a "
+            + "subsidy shipped switched off, which the player raises through the governing panel.",
+        ["[[policy]] relief_percent"] =
+            "The share of a qualifying Business's profit tax that a relief forgoes. Only a relief "
+            + "has one, and a relief states it -- there is no transfer on a relief to carry it. A "
+            + "relief can never pay a Business that owes no tax, which is the line between forgoing "
+            + "revenue and spending it.",
 
         // ---- [[terrain]] ----------------------------------------------------------------------
         ["[[terrain]] name"] =
@@ -860,6 +881,43 @@ public static class RulesetKeyNotes
         ["[market] move_cap_percent"] =
             "The furthest a price may travel in one Day, as a percentage of the import ceiling. Zero "
             + "would mean it never moves, which is what deleting the table already says.",
+
+        // ---- [income_tax] ---------------------------------------------------------------------
+        ["[income_tax] allowance_per_day"] =
+            "What a Citizen may earn in one Day before anything is withheld. It reads earnings for "
+            + "a Day and never a balance, so a payment covering several Days is attributed across "
+            + "them before any band is consulted. Omitting the whole [income_tax] table means no "
+            + "income tax is levied at all; a stated zero means the first unit earned is taxed.",
+        ["[income_tax] upper_threshold_per_day"] =
+            "The Day's earnings at which the upper band starts. Below it the middle rate applies to "
+            + "everything above the allowance; at or above it the upper rate applies to the excess. "
+            + "Equal to the allowance is a two-band schedule and is legitimate.",
+        ["[income_tax] middle_rate_percent"] =
+            "The share withheld from earnings between the allowance and the threshold. Marginal, so "
+            + "it never reprices what was earned below the allowance.",
+        ["[income_tax] upper_rate_percent"] =
+            "The share withheld from earnings above the threshold. It may not be below the middle "
+            + "rate: both are marginal, so a rate that fell as earnings rose would make take-home "
+            + "income step downward at the threshold and a Citizen would keep less for having "
+            + "earned more. All four keys here are one decision — state every one or delete the "
+            + "table.",
+
+        // ---- [business_tax] -------------------------------------------------------------------
+        ["[business_tax] threshold_per_day"] =
+            "The Day's profit at which the upper marginal band starts. Profit below it faces the "
+            + "lower rate and profit above it the upper rate, so the two bands meet here. It reads "
+            + "profit for a Day and never a Business's balance: a Day that made a loss is simply "
+            + "untaxed, and nothing is carried forward to the next one. Omitting the whole "
+            + "[business_tax] table means no profit is taxed at all.",
+        ["[business_tax] lower_rate_percent"] =
+            "The share taken from profit below the threshold. There is no separate tax-free band in "
+            + "this schedule and no key for one -- writing zero here is how an author gets one, and "
+            + "the threshold then acts as the allowance.",
+        ["[business_tax] upper_rate_percent"] =
+            "The share taken from profit above the threshold. It may not be below the lower rate: "
+            + "both are marginal, so a rate that fell as profit rose would make post-tax profit step "
+            + "downward at the threshold and a trade would keep less for having earned more. All "
+            + "three keys here are one decision \u2014 state every one or delete the table.",
 
         // ---- [needs] --------------------------------------------------------------------------
         ["[needs] sustenance_degrade"] =

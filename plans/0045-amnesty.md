@@ -1,13 +1,13 @@
 # 0045 — The amnesty
 
-**Active. Start here; this page is the board while amnesty runs. Next: row 29.**
-Updated 2026-09-09. Amnesty ends at the prose/code ratio target, never on a date.
+**Active. Start here; this page is the board while amnesty runs. Next: row 31.**
+Updated 2026-09-11. Amnesty ends at the prose/code ratio target, never on a date.
 
 ## Status
 
 The recent capability work is complete: housing consequences (16), shopping (20), daily schedules
 and care (19), Business insolvency (27), the choice model with incumbent and Outside
-alternatives (28), and education changing a working life (29). Their findings and the earlier completed rows are preserved in
+alternatives (28), education changing a working life (29), and the city's own income (33). Their findings and the earlier completed rows are preserved in
 [the historical queue](0045a-amnesty-history.md#the-queue). Completion is scoped to those rows;
 follow-ups below remain open.
 
@@ -37,7 +37,8 @@ Changing a restriction requires changing its test in a commit explaining why.
 ## The queue
 
 The table's position is the order; numbers are permanent identities. Rows 29 and 30 retain their
-identities; 31 and 32 are new. Row 29 is done and 32 is scoped. The roadmap supplies
+identities; 31, 32 and 33 are new. Rows 29 and 33 are done, 32 is scoped, and 31 needs a design
+pass before it can be scoped. The roadmap supplies
 capabilities; this page selects the work; each item's plan owns its detailed scope and findings.
 The old [board](0000-board.md) is suspended. Read the relevant roadmap, code and gates when taking
 up an item, not the whole historical corpus. Expanded scopes do not automatically clear gates.
@@ -47,6 +48,7 @@ up an item, not the whole historical corpus. Expanded scopes do not automaticall
 | **29** | **Education changes a Citizen's working life.** Connect actual attendance, Skill Tier, employment eligibility and access to different earnings, through the school-to-work transition and Household consequences. Include experience progressing Tier 1 → 2 and the schooling requirement for Tier 3. | **Done 2026-09-09.** [0071](0071-education-changes-a-working-life.md) owns the sixteen decisions and the eight findings. Attendance is counted per level per child, a childhood is scored 70/30 against Days attended and the Household's Education depth, and the score sets the Skill Tier at formation; experience carries Tier 1 → 2 and never past it; `[[business]] requires_tier` refuses below the credential and `CitizenTable.Employment` now names the reason; earnings are the posted wage times a tier percentage times an experience premium. A university is entered by a Household, public places first and a private college on overflow, tuition per Day with drop-out on default. `rulesets/schooling.toml` and `--school`'s pipeline panel are the demonstration. 🔴 **The unsuccessful path is the one that surprised**: every Household in that world is destitute by Day 3, so nobody can buy a private degree and the split is proved by `SchoolingTests` rather than by the world — [0071 F1](0071-education-changes-a-working-life.md). |
 | **31** | **The city attracts people without injected arrivals.** Connect Hinterland population stock, who presents themselves, the existing choice model, gate throughput, admission and placement. Include depletion and replenishment, with population accounting and changing city conditions. | **Queued for scoping.** Continues row 28's explicitly deferred stock half; [0068 D6](0068-the-choice-model.md#decisions) owns the gap. Demonstrate arrivals changing as opportunity and the Outside change, without repeated player or Input Log requests supplying the flow. |
 | **32** | **The city spends money and the player decides on what.** Connect the treasury, a service that costs money to run, the funding lever and the consequence of withdrawing it. Include an opening balance, a cost on placing a service, and money conserved across both. | **Scoped 2026-09-09; not started.** [0070](0070-the-city-spends.md) owns the scope and the three findings. Watch a school be funded, staffed and paid, then lose its funding and close. |
+| **33** | **The city's income grows with the city, and the player sets the rate.** Connect a tax base that responds to the city's condition, a rate the player sets rather than a quantum, and the consequence of setting it wrong. Include a levy that reads something other than a standing balance, and a budget the player can read income and expenditure off. | **All four phases shipped.** [0072](0072-city-income.md) owns fifteen design decisions, twenty-three more taken while building, and thirty-one findings. **A Citizen's earnings are taxed at the payday**, not a standing balance: three marginal bands per Day, four rates the player sets from the Policies panel, a 32-Day schedule history so a late wage is taxed at the Day it was earned, and one till debit against two credits that sum to it. `rulesets/taxing.toml` and `--income` are the demonstration. 🔴 **What surprised was the budget rather than the tax**: two separate paths paid the treasury and no flow counted either, so **89% of its income was unattributed** — the fix is worth less than the test now asserting that the balance equals income less expenditure. **A Business is now taxed on one Day's profit** — per-Day revenue and expense on the Business, cost of goods carried on the Bin, two marginal bands and three more player controls, swept at the head of the Wake phase because all three recognisers run later and assessing after any of them collects nothing at all, silently. 🔴 **What surprised was that taking 4,142,347 out of the demonstration city changed almost nothing in it**: the same wages paid, the same shortfall, and a take exactly linear in the rates, because a grocer there has no investment to forgo and no price to set. **The catalogue ships three targeted tools** — a charge priced on a Building's own emission, a relief that cuts a profit-tax bill and moves no Money, and a subsidy paid from a rationed daily pot — each aimed by naming a trade. 🔴 **What surprised was that paying grocers to employ people left LESS reaching the people they employed**: a Bin Rule fires three phases before a payday, so the city's own rates took a fifth of the subsidy straight back and three paydays went unmet. ***A subsidy paid into a till is not a subsidy paid to a worker.*** ⚠ **Two things the demonstration exposed and did not fix**: a charge falls only on the shops that can pay it in full, so a trade too poor to pay pollutes for free; and nothing in the city can decide to emit less, so a pollution charge is a second extraction rather than the price signal it was meant to be. **The player now reads the budget in the shell**, in a panel anchored opposite Government so the rates and what they brought in are on screen together: seven flows never netted, over the Day just closed and over the whole session, against the balance they have to explain. 🔴 **What surprised was which tax the city lives on**: over six Days the profit tax brought in 60% of the income and **the Citizen income tax brought in 2%** — so the four controls the row is named after, and the most prominent thing on the governing panel, move the smallest lever on it by a factor of thirty. ⚠ **Closed.** |
 | **30** | **A player diagnoses decline, intervenes and watches the result.** Connect sustained failure sources, their consequences, Evidence and an available player action. Preserve the original Trip-failure and below-tolerance scope; include recovery and persistent failure. | **Expanded; queued for scoping and gate review.** Carries milestone 17's failure-source residue and builds on [0064](0064-the-information-interface.md#first-diagnosis-interaction--2026-09-08). Watch an intervention remove a cause and produce recovery, or expose a remaining cause that prevents it. |
 
 **29's boundary:** `CitizenTable.SkillTier`, `CivicEngine`, `EmploymentEngine`, `WorkSchedule` and
@@ -69,6 +71,47 @@ area divides into, and `adr/0026`'s demand-determined version stays unbuilt. The
 an exit door to the money supply and must keep `Invariant.MoneyIsConserved` green. Opening balance and
 funding level are provisional under standing order 4. A treasury that merely fills does not close the
 row; the player must be able to spend it and see what spending bought.
+
+**33's boundary:** `PolicyEngine.SweepMembers`, `Readouts.Declared`, `PolicyTable.Govern` and
+`Ruleset.EmigrantBalance` are the starting points. What is unbuilt, so the row can say which of it it
+builds:
+
+- **A Building population.** `02 §4.2` names three populations a Policy may sweep;
+  `PolicyEngine.SweepMembers` throws on `building` and the loader refuses it by name, because the
+  predicate that selects the rows does not exist. ⚠ `occupancy` is declared readable against a
+  Building and nothing else, so ***the one scalar suited to a property tax sits behind the one
+  population a Policy cannot reach***.
+- **A Readout that is not a standing balance.** `Readouts.Declared` holds `Occupancy` and `Balance`.
+  No earnings, output, sales or land-value scalar exists, so no levy can respond to the city
+  prospering.
+- **A rate.** `PolicyTable.Govern` edits the transfer quantum and the panel says so; `percent` is
+  Ruleset-only. `04 §5`'s lever is *set tax rates*.
+- **Borrowing.** `04 §5`'s third lever and `adr/0024`'s damper against a seizing economy.
+  `adr/0035` settles that it is a player action and never an automatic overdraft. Nothing is under it.
+- **Capital expenditure and upkeep.** `adr/0035` prices both — construction against Lane-Tiles and
+  discrete pieces, upkeep as construction cost ÷ effective life drawn per Day. Nothing draws
+  either, and `04 §5` records that both were absent from the whole corpus.
+- **A balance of payments.** `adr/0024` makes imports and exports the endgame;
+  [`0070` F3](0070-the-city-spends.md) found no import path — a Hinterland price seeds a Pool's
+  price and no Bin receives a payment. Until money crosses the gate, revenue can only move what
+  arrivals carried in.
+- **A budget the player can read.** The Census carries `ToTreasury` and `FromTreasury`; the console
+  shows a balance. Nothing states income against expenditure per Day.
+- **The regressive floor.** `FloorDiv(balance × percent, 100)` collects nothing below
+  `100/percent`, `PolicyEngine` counts it as `Floored`, and nothing acts on the count —
+  `adr/0115`.
+
+**Refused, and this row must not build either.** There is no annual budget cycle: `adr/0010` gives the
+game no calendar and revenue accrues per Day. There is no maintenance funding slider: `04 §5`
+refuses a slider whose only sensible setting is *as high as affordable*.
+
+⚠ **Scope the tax base before writing a task list.** Which base the city taxes — a standing
+balance, a flow of earnings, or a property's value — decides which of the above is on the critical
+path. `04 §5`'s second-order claims are arguments with nothing under them: a residential rate as a
+fertility decision, and a rate as a velocity control. Standing order 1 forbids a new ADR, so that
+argument belongs in this row's own plan. ***The list above is a survey and not a task list*** — a
+levy that scales with one thing the city does, a rate the player sets, and a consequence they can
+watch, closes the row.
 
 **30's boundary:** `TripEngine`, `RuleEngine` and the existing decline mechanisms produce the
 causes; Evidence reports them. Specify durations and attribution without substituting event counts

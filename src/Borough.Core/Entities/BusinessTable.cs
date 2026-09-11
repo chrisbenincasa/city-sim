@@ -102,6 +102,28 @@ public sealed class BusinessTable
         // Nothing else records that last payday was short, so a reload that recomputed this would
         // hand every insolvent Business a clean slate and reset the city's decline on every load.
         ShortPaydays = _rows.Saved<byte>("short_paydays");
+
+        // 🔴 plans/0072 D23: PROFIT IS ASSESSED PER DAY, so revenue and expense accumulate per Day
+        // and are reset at the Day boundary. Three columns rather than two, and the Day is what
+        // makes the pair readable: without it nothing distinguishes `this trade earned nothing
+        // today` from `these are yesterday's figures and nobody cleared them`.
+        //
+        // ⚠ THE ROLL IS THE TABLE'S AND NOT A CALLER'S. <see cref="Earn"/> and <see cref="Expend"/>
+        // are the only doors and both roll first, so no call site can add to a stale Day. That is
+        // CitizenTable.TaxedDay/TaxedGross's idiom one table across (plans/0072 D5), and the
+        // argument is the same one: a per-Day accumulator whose reset is the caller's
+        // responsibility is reset on every path but the one nobody thought about.
+        //
+        // ⚠ A zero fill is honest here, for TaxedDay's reason. Day 0 with nothing on either side
+        // reads as `this Business has not traded today`, which is true of one that has never traded
+        // at all -- there is no value in range that means anything else.
+        //
+        // Cold on Touch's own wording: "Household economics -- income, expenses, savings, purchases
+        // made and missed". A sale is a rare transaction and never a per-Tick walk.
+        TradingDay = _rows.Saved<ushort>("trading_day", Touch.Cold);
+        DayRevenue = _rows.Saved<long>("day_revenue", Touch.Cold);
+        DayExpense = _rows.Saved<long>("day_expense", Touch.Cold);
+
         Balance = _rows.DerivedHandle("balance", bins.Rows, reference: Reference.Required);
         BuildingNext = _rows.Derived<int>("building_next");
         PoolSlot = _rows.Derived<int>("pool_slot");
@@ -190,6 +212,42 @@ public sealed class BusinessTable
     /// </para>
     /// </remarks>
     public Column<byte> ShortPaydays { get; }
+
+    /// <summary>
+    /// The Day <see cref="DayRevenue"/> and <see cref="DayExpense"/> refer to.
+    /// </summary>
+    /// <remarks>
+    /// <b>A zero fill is honest</b>, exactly as it is in <see cref="CitizenTable.TaxedDay"/>: it
+    /// reads as <em>nothing has been recognised against Day 0</em>, which is true of a Business that
+    /// has never traded, and every later Day fails the match and starts the accumulators fresh.
+    /// </remarks>
+    public Column<ushort> TradingDay { get; }
+
+    /// <summary>
+    /// What this Business has recognised as revenue on <see cref="TradingDay"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Revenue is a delivery and not a receipt</b> (<c>plans/0072</c> D15). It is added when Goods
+    /// or a service leave the Business, whatever the money does afterwards.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Money arriving in the till is not by itself revenue.</b> Founding capital
+    /// (<c>World.Found</c>), a <c>[[policy]]</c> transfer and a Bin Rule that outputs money are all
+    /// credits to a Business's balance that nothing was sold for, and none of them is counted here.
+    /// </para>
+    /// </remarks>
+    public Column<long> DayRevenue { get; }
+
+    /// <summary>
+    /// What this Business has recognised as expense on <see cref="TradingDay"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Two things reach it</b> (<c>plans/0072</c> D15): the cost of stock as it is <em>sold</em>,
+    /// drawn off the Bin that held it — see <see cref="Rules.BinTable.CostAt"/> — and the gross wage
+    /// bill as it is <em>earned</em>, which is every Day rather than every payday.
+    /// </remarks>
+    public Column<long> DayExpense { get; }
 
     /// <summary>
     /// This Business's money Bin — its balance (<c>adr/0114</c>).
@@ -287,4 +345,83 @@ public sealed class BusinessTable
 
     /// <summary>Records that this Business is no longer in the pool.</summary>
     public void LeavePool(int slot) => PoolSlot[slot] = 0;
+
+    /// <summary>
+    /// Recognises <paramref name="amount"/> of revenue against <paramref name="today"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>The Day is rolled first, here and nowhere else</b> — see <see cref="Roll"/>. A caller
+    /// hands over the Day it is acting on and never has to know whether the accumulators are still
+    /// carrying an older one.
+    /// </remarks>
+    public void Earn(int slot, ushort today, long amount)
+    {
+        if (amount <= 0)
+        {
+            return;
+        }
+
+        Roll(slot, today);
+        DayRevenue[slot] += amount;
+    }
+
+    /// <summary>
+    /// Recognises <paramref name="amount"/> of expense against <paramref name="today"/>.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Earn"/>'s sentence, on the other side of the ledger.
+    /// </remarks>
+    public void Expend(int slot, ushort today, long amount)
+    {
+        if (amount <= 0)
+        {
+            return;
+        }
+
+        Roll(slot, today);
+        DayExpense[slot] += amount;
+    }
+
+    /// <summary>
+    /// What this Business made on <paramref name="day"/>: revenue less expense, and <c>0</c> for any
+    /// Day the accumulators are not currently holding.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// ⚠ <b>A negative is a real answer and not an error</b> (<c>plans/0072</c> D26). A Day on which
+    /// a trade paid more in wages and cost of goods than it delivered is a loss, and a loss is
+    /// simply an untaxed Day.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>A Day's figures stand until the first write of the NEXT Day rolls them</b>, which is
+    /// what makes a Day assessable after it has ended — and it is also the ordering obligation on
+    /// whatever assesses. ***A reader that wants Day N must get there before Day N+1's first
+    /// recognition***, because that write is what clears the pair. On the Day boundary Tick the
+    /// payroll sweep is such a write.
+    /// </para>
+    /// </remarks>
+    public long ProfitOn(int slot, ushort day) =>
+        TradingDay[slot] == day ? DayRevenue[slot] - DayExpense[slot] : 0;
+
+    /// <summary>
+    /// Clears the accumulators when they are carrying a Day that is not <paramref name="today"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Private, and that is the point of it.</b> <c>CivicTable.LastMissedDay</c> is the existing
+    /// once-a-Day latch in this build and its reset lives at its one call site, which is safe
+    /// because a latch has one writer. This is an <em>accumulator</em> with several, so the reset
+    /// belongs to the table: a call site that could add without rolling would fold one Day's sale
+    /// into another Day's total, and nothing downstream could tell.
+    /// </remarks>
+    private void Roll(int slot, ushort today)
+    {
+        if (TradingDay[slot] == today)
+        {
+            return;
+        }
+
+        TradingDay[slot] = today;
+        DayRevenue[slot] = 0;
+        DayExpense[slot] = 0;
+    }
 }

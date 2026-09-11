@@ -179,6 +179,14 @@ public sealed class RefusalTests
                     return (simulation, Case(refusal, simulation, world));
                 }
 
+            case Refusal.FundPolicyPaysNobody:
+            case Refusal.FundCeilingIsNegative:
+                {
+                    (World world, Simulation simulation) = City(Schooled + Levy("first"));
+
+                    return (simulation, Case(refusal, simulation, world));
+                }
+
             case Refusal.GovernPolicyNotInThisWorld:
                 {
                     (World world, Simulation simulation) = City(Schooled + Levy("first"));
@@ -263,6 +271,37 @@ public sealed class RefusalTests
 
         Refusal.ServiceNoVacantLotOnThatTile => Command.Service(
             new Tiles(9_000), new Tiles(9_000), School),
+
+        Refusal.TaxControlNotDeclared => new Command(
+            CommandKind.Tax, new Tiles(10), default, zone: 9),
+
+        Refusal.TaxRateOutOfRange => Command.Tax(TaxControl.MiddleRate, 101),
+
+        Refusal.TaxAllowanceIsNegative => Command.Tax(TaxControl.Allowance, -1),
+
+        // ⚠ THE DEFAULT WORLD AUTHORS NO [income_tax], so the pending schedule is
+        // IncomeTaxSchedule.None and every number in it is zero. A middle rate of 10 therefore puts
+        // it above an upper rate of 0, and a threshold of -1 puts the band below an allowance of 0.
+        // Both are the pair being checked rather than the value, which is RefuseTax's whole shape.
+        Refusal.TaxUpperRateBelowMiddleRate => Command.Tax(TaxControl.MiddleRate, 10),
+
+        Refusal.TaxUpperThresholdBelowAllowance => Command.Tax(TaxControl.UpperThreshold, -1),
+
+        // The profit schedule's pair, reached the same way. The default world authors no
+        // [business_tax] either, so the pending profit bands are all zero: a lower rate of 10 sits
+        // above an upper rate of 0. ⚠ The negative threshold is refused on its own VALUE rather
+        // than on the pair -- profit ranges below zero and its band boundary does not, which is the
+        // one place these two schedules do not mirror each other.
+        Refusal.TaxProfitUpperRateBelowLowerRate => Command.Tax(TaxControl.ProfitLowerRate, 10),
+
+        Refusal.TaxProfitThresholdIsNegative => Command.Tax(TaxControl.ProfitThreshold, -1),
+
+        // ⚠ BOTH AGAINST A NAMED TRANSFER, which is what makes the pair separable. The world's one
+        // Policy is a levy, so it pays nobody and a ceiling against it is refused on the Policy --
+        // but a negative ceiling is refused on its own value first, before the tool is consulted.
+        Refusal.FundPolicyPaysNobody => Command.Fund(policy: 0, ceiling: 100),
+
+        Refusal.FundCeilingIsNegative => Command.Fund(policy: 0, ceiling: -1),
 
         // ⚠ ONE COMMAND FOR TWO REFUSALS, because the verb carries no payload at all: what
         // distinguishes them is the WORLD it is applied to, which is what Case's world switch above

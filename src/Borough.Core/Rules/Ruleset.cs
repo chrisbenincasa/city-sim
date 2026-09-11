@@ -1582,6 +1582,11 @@ public enum PolicySubject : byte
 /// <param name="To">Whose Bin it enters.</param>
 /// <param name="Resource">The conserved Resource moved. <b>Structure</b>, not a number.</param>
 /// <param name="Amount">How much one application moves. <b>Hash-bearing.</b></param>
+/// <param name="Ceiling">
+/// The most this Policy may pay out in one Day, and <b>zero means it rations nothing</b>. Only a
+/// subsidy has one: a charge collects what is owed and a relief moves no Money at all.
+/// <b>Hash-bearing.</b>
+/// </param>
 public readonly record struct PolicyDefinition(
     PolicySubject Subject,
     uint Interval,
@@ -1589,7 +1594,10 @@ public readonly record struct PolicyDefinition(
     Scope From,
     Scope To,
     ResourceId Resource,
-    int Amount);
+    int Amount,
+    long Ceiling = 0,
+    PolicyTool Tool = PolicyTool.Transfer,
+    byte Trade = TradeKind.Any);
 
 /// <summary>
 /// One <c>[[hinterland]]</c> table — <b>the economy behind one map edge</b> (<c>adr/0088</c>,
@@ -4170,6 +4178,33 @@ public sealed class Ruleset
     /// </summary>
     public MarketRuleset Market { get; init; } = MarketRuleset.None;
 
+    /// <summary>
+    /// The <c>[income_tax]</c> table — <b>what a Citizen keeps of a Day's earnings</b>.
+    /// <see cref="IncomeTaxSchedule.None"/> when the file states none, which is a city that levies
+    /// no income tax at all.
+    /// </summary>
+    /// <remarks>
+    /// <b>Absent means nothing is withheld</b>, reached by omitting the table rather than by a
+    /// defaulted key — <see cref="Market"/>'s shape and <see cref="Traffic"/>'s. A defaulted
+    /// allowance or rate would be a hash-bearing number arriving at a setting no designer picked,
+    /// and every Ruleset shipped before this table existed is the absent city.
+    /// </remarks>
+    public IncomeTaxSchedule IncomeTax { get; init; } = IncomeTaxSchedule.None;
+
+    /// <summary>
+    /// The <c>[business_tax]</c> table — <b>what a Business keeps of a Day's profit</b>.
+    /// <see cref="BusinessTaxSchedule.None"/> when the file states none, which is a city that taxes
+    /// no profit at all.
+    /// </summary>
+    /// <remarks>
+    /// <b>Absent means nothing is taken</b>, reached by omitting the table rather than by a
+    /// defaulted key — <see cref="IncomeTax"/>'s shape one table along. ⚠ <b>It has two bands where
+    /// the Citizen schedule has three</b>, and the missing one is the tax-free allowance: a lower
+    /// rate of zero is how an author writes one (<c>plans/0072</c> D8), so an allowance key would be
+    /// a second spelling of a city that is already writable.
+    /// </remarks>
+    public BusinessTaxSchedule BusinessTax { get; init; } = BusinessTaxSchedule.None;
+
     /// <summary>How far each Need moves, and how deep it may go. <c>[needs]</c>.</summary>
     /// <remarks>
     /// <b>Absent means no Household in this city has a Need</b>, reached by omitting the table rather
@@ -4679,6 +4714,8 @@ public sealed class Ruleset
             Hinterlands = Hinterlands,
             HinterlandPrices = HinterlandPrices,
             Market = Market,
+            IncomeTax = IncomeTax,
+            BusinessTax = BusinessTax,
             Founding = Founding,
             ResourceKeys = ResourceKeys,
             KindKeys = KindKeys,

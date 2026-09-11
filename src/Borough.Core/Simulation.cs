@@ -2,6 +2,7 @@ using Borough.Core.Arithmetic;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Input;
+using Borough.Core.Instruments;
 using Borough.Core.Movement;
 using Borough.Core.Persistence;
 using Borough.Core.Quantities;
@@ -42,6 +43,10 @@ public sealed class Simulation
     private readonly PolicyEngine _policies;
     private readonly WageEngine _wages;
     private PayrollReading _lastPayroll;
+    private readonly BusinessTaxEngine _profitTax;
+    private ProfitTaxReading _lastProfitTax;
+    private readonly SubsidyEngine _subsidies;
+    private SubsidyReading _lastSubsidies;
     private readonly LifeStageEngine _lifeStages;
     private readonly SchoolingEngine _schooling;
     private LifeStageReading _lastLifeStages;
@@ -116,6 +121,8 @@ public sealed class Simulation
         _zoning = new ZoneRuleEngine(world, key);
         _policies = new PolicyEngine(world, key);
         _wages = new WageEngine(world, key);
+        _profitTax = new BusinessTaxEngine(world);
+        _subsidies = new SubsidyEngine(world);
         _lifeStages = new LifeStageEngine(world);
         _schooling = new SchoolingEngine(world);
         _employment = new EmploymentEngine(world, key);
@@ -217,6 +224,67 @@ public sealed class Simulation
     /// </remarks>
     public PolicyEngine Policies => _policies;
 
+    /// <summary>
+    /// The payroll sweep, for the one thing about it that is a flow rather than a reading.
+    /// </summary>
+    /// <remarks>
+    /// <b>Internal because <c>WageEngine</c> is</b>, and the only caller is <c>Census.Observe</c>,
+    /// which drains the income tax the paydays withheld. ⚠ <b>Not a substitute for
+    /// <see cref="LastPayroll"/> and not substitutable by it</b>: that is the last sweep's reading and
+    /// this is an accumulation across every sweep since the last observation, and an instrument
+    /// reading the wrong one of the two under-reports by however much its cadence exceeds a Day.
+    /// </remarks>
+    internal WageEngine Wages => _wages;
+
+    /// <summary>
+    /// The profit-tax collection, for the one thing about it that is a flow rather than a reading.
+    /// </summary>
+    /// <remarks>
+    /// <b><see cref="Wages"/>'s twin, and internal for its reason</b> — the only caller is
+    /// <c>Census.Observe</c>, which drains what the collections took. ⚠ <b>Not a substitute for
+    /// <see cref="LastProfitTax"/> and not substitutable by it</b>: that is the last sweep's reading
+    /// and this accumulates across every sweep since the last observation.
+    /// </remarks>
+    internal BusinessTaxEngine ProfitTax => _profitTax;
+
+    /// <summary>The subsidy sweep, for the Census to drain its Money flow.</summary>
+    internal SubsidyEngine Subsidies => _subsidies;
+
+    /// <summary>
+    /// Reads every unit of Money that crossed the treasury's edge since the last call, and resets
+    /// the accumulators.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The whole of the treasury's account in one call, because a caller wanting one of the seven
+    /// wants all seven.</b> Three of the five engines behind it are internal, so before this a host
+    /// outside <c>Borough.Core</c> could see a treasury balance rise and name nothing that moved it —
+    /// which is <c>plans/0072</c> F7 and F11 arriving in the shell rather than in an instrument.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It DRAINS, so a run has exactly one caller of it and of <c>Census.Observe</c> between
+    /// them.</b> Two readers would each see a movement once, through whichever asked first, and
+    /// neither would have anything to say the other had taken it. The counters beside the money on
+    /// <c>PolicyActivity</c> and <c>RuleActivity</c> are drained here too and discarded; a host
+    /// wanting those as well takes them from a Census instead of from this.
+    /// </para>
+    /// </remarks>
+    /// <returns>The interval's flows, by the mechanism that moved each.</returns>
+    public TreasuryFlows DrainTreasuryFlows()
+    {
+        PolicyActivity policies = _policies.Drain();
+        RuleActivity rules = _rules.Drain();
+
+        return new TreasuryFlows(
+            _wages.DrainWithheld().Sum,
+            _profitTax.DrainCollected().Sum,
+            policies.ToTreasury.Sum,
+            rules.ToTreasury.Sum,
+            policies.FromTreasury.Sum,
+            rules.FromTreasury.Sum,
+            _subsidies.DrainPaid().Sum);
+    }
+
     /// <summary>What the most recent payday moved, or zeroes on a Tick that was not one.</summary>
     /// <remarks>
     /// <b>The last reading rather than a total</b>, so an instrument samples it and nothing
@@ -224,6 +292,19 @@ public sealed class Simulation
     /// and only then when some trade's payday fell on that Day.
     /// </remarks>
     public PayrollReading LastPayroll => _lastPayroll;
+
+    /// <summary>
+    /// What the most recent profit-tax collection took, or zeroes on a Tick that was not a Day's
+    /// first.
+    /// </summary>
+    /// <remarks>
+    /// <b>The last reading rather than a total</b>, on <see cref="LastPayroll"/>'s terms exactly, so
+    /// an instrument samples it and nothing accumulates across a run (<c>adr/0006</c>).
+    /// </remarks>
+    public ProfitTaxReading LastProfitTax => _lastProfitTax;
+
+    /// <summary>What the last subsidy sweep claimed, funded and rationed.</summary>
+    public SubsidyReading LastSubsidies => _lastSubsidies;
 
     /// <summary>What the last Life Stage sweep did. Zero on any Tick but a Day's first.</summary>
     public LifeStageReading LastLifeStages => _lastLifeStages;
@@ -525,6 +606,20 @@ public sealed class Simulation
                 ApplyGovern(command);
                 break;
 
+            case CommandKind.Fund:
+                // plans/0072 D12. Govern's sibling: a subsidy's rate and its funding ceiling move
+                // independently, and one verb carrying both would make raising the rate alone
+                // unreachable.
+                ApplyFund(command);
+                break;
+
+            case CommandKind.Tax:
+                // plans/0072 D3, and Govern's sibling rather than a case of it: a Policy holds one
+                // amount and an income tax holds four numbers that constrain each other, kept as a
+                // schedule per Day because a late wage is taxed at the Day it was earned.
+                ApplyTax(command, tick);
+                break;
+
             case CommandKind.Service:
                 // 01 section 2's third verb, and the design's one acknowledged placement exception:
                 // pillar 3 is govern-don't-place, and a school appearing wherever the simulation
@@ -578,6 +673,8 @@ public sealed class Simulation
         CommandKind.Trip => RefuseTrip(command, out _, out _, out _),
         CommandKind.Arrive => RefuseArrive(command, out _),
         CommandKind.Govern => RefuseGovern(command),
+        CommandKind.Fund => RefuseFund(command),
+        CommandKind.Tax => RefuseTax(command, _world.Tick, out _, out _),
         CommandKind.Demolish => RefuseDemolish(command, out _),
         CommandKind.Service => RefuseService(command, out _, out _),
         CommandKind.People => RefusePeople(),
@@ -653,6 +750,123 @@ public sealed class Simulation
             : _world.Policies.Key[policy] == 0 ? Refusal.GovernPolicyHasNoName
             : Refusal.None;
     }
+
+    /// <inheritdoc cref="ApplyFund"/>
+    private Refusal RefuseFund(Command command)
+    {
+        Refusal named = RefuseGovern(command);
+
+        if (named != Refusal.None)
+        {
+            return named;
+        }
+
+        // The value before the pairing, on RefuseTax's own order: a negative ceiling has no reading
+        // against any Policy, so naming the Policy's tool instead would answer a question the player
+        // did not get wrong yet.
+        if (command.East.Raw < 0)
+        {
+            return Refusal.FundCeilingIsNegative;
+        }
+
+        return _world.Rules.Policies[command.Zone].Tool != PolicyTool.Subsidy
+            ? Refusal.FundPolicyPaysNobody
+            : Refusal.None;
+    }
+
+    /// <inheritdoc cref="ApplyTax"/>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>Every check is against the schedule the player is building for TOMORROW, and never
+    /// against the one in force today.</b> The four controls constrain each other, so a city moving
+    /// from 10/20 to 30/40 has to pass through a state one of them fails — and tested against today's
+    /// schedule the first of the two commands would be refused, leaving the pair unreachable in
+    /// either order. ***A verb whose four halves cannot be issued in any order is not four
+    /// controls.***
+    /// </para>
+    /// <para>
+    /// <b>So the refusal is composed on the updated schedule rather than on the value</b>, which is
+    /// also what makes the two order-independent: whichever end the player moved, what is checked is
+    /// the pair that would result.
+    /// </para>
+    /// </remarks>
+    private Refusal RefuseTax(
+        Command command,
+        Ticks tick,
+        out IncomeTaxSchedule earnings,
+        out BusinessTaxSchedule profit)
+    {
+        long today = IntegerMath.FloorDiv((long)tick.Raw, Ticks.PerDay);
+        int value = command.East.Raw;
+
+        // Both pending schedules, because one verb addresses two of them and the caller cannot
+        // know which until the selector is read. Resolving both here keeps the fall-through to the
+        // Ruleset in one place.
+        earnings = _world.IncomeTaxRates.ScheduleFor(today + 1, _world.Rules.IncomeTax);
+        profit = _world.IncomeTaxRates.ProfitScheduleFor(today + 1, _world.Rules.BusinessTax);
+
+        if (command.Zone > (ushort)TaxControl.ProfitUpperRate)
+        {
+            return Refusal.TaxControlNotDeclared;
+        }
+
+        var control = (TaxControl)command.Zone;
+
+        if (control is TaxControl.MiddleRate or TaxControl.UpperRate
+                or TaxControl.ProfitLowerRate or TaxControl.ProfitUpperRate
+            && (value < 0 || value > 100))
+        {
+            return Refusal.TaxRateOutOfRange;
+        }
+
+        if (control == TaxControl.Allowance && value < 0)
+        {
+            return Refusal.TaxAllowanceIsNegative;
+        }
+
+        if (control == TaxControl.ProfitThreshold && value < 0)
+        {
+            return Refusal.TaxProfitThresholdIsNegative;
+        }
+
+        if (TouchesProfit(control))
+        {
+            profit = control switch
+            {
+                TaxControl.ProfitThreshold => profit with { ThresholdPerDay = value },
+                TaxControl.ProfitLowerRate => profit with { LowerRatePercent = value },
+                _ => profit with { UpperRatePercent = value },
+            };
+
+            return profit.UpperRatePercent < profit.LowerRatePercent
+                ? Refusal.TaxProfitUpperRateBelowLowerRate
+                : Refusal.None;
+        }
+
+        earnings = control switch
+        {
+            TaxControl.Allowance => earnings with { AllowancePerDay = value },
+            TaxControl.UpperThreshold => earnings with { UpperThresholdPerDay = value },
+            TaxControl.MiddleRate => earnings with { MiddleRatePercent = value },
+            _ => earnings with { UpperRatePercent = value },
+        };
+
+        return earnings.UpperRatePercent < earnings.MiddleRatePercent
+                ? Refusal.TaxUpperRateBelowMiddleRate
+            : earnings.UpperThresholdPerDay < earnings.AllowancePerDay
+                ? Refusal.TaxUpperThresholdBelowAllowance
+            : Refusal.None;
+    }
+
+    /// <summary>Whether a control belongs to the Business profit schedule.</summary>
+    /// <remarks>
+    /// ⚠ <b>The two schedules share this verb and nothing else.</b> A Citizen pays on what they
+    /// earned in a Day and a Business on what it made in one; neither band, rate or threshold
+    /// crosses between them.
+    /// </remarks>
+    private static bool TouchesProfit(TaxControl control) =>
+        control is TaxControl.ProfitThreshold or TaxControl.ProfitLowerRate
+            or TaxControl.ProfitUpperRate;
 
     /// <inheritdoc cref="ApplyDemolish"/>
     private Refusal RefuseDemolish(Command command, out int building)
@@ -778,6 +992,58 @@ public sealed class Simulation
             $"Govern names Policy {command.Zone} and that [[policy]] table states no name. A governed "
             + "amount is saved state that has to survive a reload, and a name is the only thing "
             + "that survives a renumbering — see Ruleset.PolicyKeys. Name the table to govern it.",
+
+        Refusal.TaxControlNotDeclared =>
+            $"tax names control {command.Zone}, and there are four: 0 the allowance, 1 the upper "
+            + "threshold, 2 the middle rate, 3 the upper rate. The control is the verb's whole "
+            + "payload beside the value, so a selector nothing declares is a command with no "
+            + "subject rather than a setting to fall back from.",
+
+        Refusal.TaxRateOutOfRange =>
+            $"tax sets a marginal rate to {command.East.Raw}, and a rate is a percentage: 0 to 100. "
+            + "It refuses rather than clamping, because a clamped rate is a schedule the player did "
+            + "not author reporting that it took the one they did.",
+
+        Refusal.TaxAllowanceIsNegative =>
+            $"tax sets the tax-free allowance to {command.East.Raw}. An allowance is the earnings "
+            + "below which nothing is due, so a negative one is not a heavier tax -- it is a "
+            + "threshold no Day's earnings can be on the wrong side of.",
+
+        Refusal.TaxUpperRateBelowMiddleRate =>
+            $"tax would leave the upper marginal rate below the middle one (plans/0072 D7). Both "
+            + "rates are marginal, so take-home income would step DOWNWARD at the threshold: a "
+            + "Citizen who earned a pound more would keep less. That is the schedule ceasing to be "
+            + "monotone, which IncomeTax.WithholdingOn leans on to keep a withholding non-negative. "
+            + "Move the upper rate first, then the middle one.",
+
+        Refusal.TaxProfitThresholdIsNegative =>
+            $"tax would set the Business profit threshold to {command.East.Raw}. It is where the "
+            + "upper band opens, and opening it below zero leaves the lower rate reading as a "
+            + "setting while applying to no profit that can exist. A Day that made a loss is "
+            + "already untaxed and needs no negative threshold to say so.",
+
+        Refusal.TaxProfitUpperRateBelowLowerRate =>
+            $"tax would leave the upper marginal profit rate at {command.East.Raw}, below the "
+            + "lower one. Both are marginal, so post-tax profit would step DOWNWARD at the "
+            + "threshold and a Business that made one unit more would keep less than one that made "
+            + "one unit less. Raise the upper rate before lowering the lower one.",
+
+        Refusal.FundPolicyPaysNobody =>
+            $"fund names Policy {command.Zone}, which is not a subsidy. A funding ceiling rations "
+            + "what a subsidy pays out; a charge collects what is owed and a relief moves no money "
+            + "at all, so a ceiling on either would be saved, hashed, carried across a reload and "
+            + "read by nothing.",
+
+        Refusal.FundCeilingIsNegative =>
+            $"fund would set Policy {command.Zone}'s daily ceiling to {command.East.Raw}. A "
+            + "ceiling of zero is a subsidy switched off and is how to spell that; below zero it "
+            + "has no reading.",
+
+        Refusal.TaxUpperThresholdBelowAllowance =>
+            $"tax would leave the upper band starting at {command.East.Raw}, at or below the "
+            + "tax-free allowance. A band that opens before taxation does is not a band -- the "
+            + "middle rate would apply to nothing, and the schedule would have two names for one "
+            + "band.",
 
         Refusal.DemolishNoBuildingOnThatTile =>
             $"demolish names Tile ({command.East.Raw}, {command.North.Raw}), where no Building "
@@ -1107,6 +1373,75 @@ public sealed class Simulation
         _world.Policies.Govern(command.Zone, command.East.Raw);
     }
 
+    /// <summary>Sets what one subsidy may pay out in a Day — <c>plans/0072</c> D12.</summary>
+    /// <remarks>
+    /// ⚠ <b>A ceiling and a rate are two decisions and this verb moves only one of them.</b> Raising
+    /// what a claim is worth while leaving the ceiling alone pays the same Money to fewer claimants,
+    /// which is a real thing a player may want and would be unreachable if one verb carried both.
+    /// </remarks>
+    private void ApplyFund(Command command)
+    {
+        Refusal refusal = RefuseFund(command);
+
+        if (refusal != Refusal.None)
+        {
+            throw new InvalidOperationException(Explain(refusal, command));
+        }
+
+        _world.Policies.Fund(command.Zone, command.East.Raw);
+    }
+
+    /// <summary>
+    /// Moves one of the four controls on the Citizen income tax, from the start of the next Day.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>Effective from TOMORROW, and that is <c>plans/0072</c> D6 rather than caution.</b> A
+    /// Citizen's Day is taxed against the schedule that governs the Day it was <em>earned</em>, and a
+    /// change written into today would reprice earnings already made — including a wage already
+    /// withheld against, whose employer cannot be asked for the difference back. ***A rate the player
+    /// moves at noon settles the Day after, not the morning behind them.***
+    /// </para>
+    /// <para>
+    /// <b>Four controls set on one Day leave ONE ring entry.</b>
+    /// <see cref="Entities.IncomeTaxTable.Govern"/> is indexed by the Day and replaces rather than
+    /// appends, so the four commands compose: each reads the pending schedule back out, replaces the
+    /// one field it names, and writes the whole thing again. That is also why the refusals are tested
+    /// against the pending schedule — see <see cref="RefuseTax"/>.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The value is refused where it is out of range and never clamped.</b> A rate outside
+    /// 0..100 or a negative allowance is a command with a wrong payload rather than an extreme
+    /// setting, and a clamp would be a schedule nobody authored reporting that it took the one they
+    /// did. What is <em>not</em> refused is a ruinous rate inside the range: <c>adr/0015</c>'s
+    /// acceptance test is that a rate moves freely, and a city taxed to death is one the player has
+    /// governed badly.
+    /// </para>
+    /// </remarks>
+    private void ApplyTax(Command command, Ticks tick)
+    {
+        Refusal refusal = RefuseTax(
+            command, tick, out IncomeTaxSchedule earnings, out BusinessTaxSchedule profit);
+
+        if (refusal != Refusal.None)
+        {
+            throw new InvalidOperationException(Explain(refusal, command));
+        }
+
+        long today = IntegerMath.FloorDiv((long)tick.Raw, Ticks.PerDay);
+
+        // Only the half the selector named. The two stamp independently, so writing both would
+        // pin the untouched schedule to whatever it reads as today and stop it falling through to
+        // the Ruleset on a later reload.
+        if (TouchesProfit((TaxControl)command.Zone))
+        {
+            _world.IncomeTaxRates.GovernProfit(today + 1, profit);
+            return;
+        }
+
+        _world.IncomeTaxRates.Govern(today + 1, earnings);
+    }
+
     /// <summary>
     /// Clears an abandoned Building off the Lot at exactly the named Tile.
     /// </summary>
@@ -1349,6 +1684,27 @@ public sealed class Simulation
     {
         _phase = TickPhase.Wake;
 
+        // 🔴 FIRST IN THE TICK'S FIRST WRITING PHASE, AND THE ORDER IS THE WHOLE MECHANISM. A
+        // Business's Day figures stand until the first recognition of the NEXT Day rolls them to
+        // zero, and on a Day-boundary Tick three later phases do exactly that: phase 3's
+        // RuleEngine.Fire, phase 4's ShoppingEngine, and phase 6's WageEngine.Sweep, which accrues
+        // every employer's wage bill ABOVE its own payday test and therefore fires on every Day
+        // boundary there is. ***Behind any one of them this reads a rolled row, ProfitOn answers
+        // zero, and the city is never taxed*** -- with no other column of any readout changed.
+        //
+        // Phase 2 is read-only (adr/0037) and phase 0 is the player's, so phase 1 is the first place
+        // it can go, and it goes at the head: yesterday's books close before this Tick does anything.
+        // BusinessTaxPhaseOrderTests holds the line, because a comment here would survive the edit
+        // that broke it. BusinessTaxEngine.Sweep carries the argument in full.
+        //
+        // ⚠ AHEAD OF CollectDue rather than merely inside the phase. Withdraw and Deposit drain
+        // their Bins' wait lists and arm what they free, and World.Unlink names this exact window --
+        // before phase 1 has taken any due row out -- as the one where that is safe.
+        //
+        // ⚠ It is silent on every shipped Ruleset but taxing.toml: no other file states
+        // [business_tax], so the sweep returns on the Levies guard before it looks at a row.
+        _lastProfitTax = _profitTax.Sweep(tick);
+
         _world.Wheel.Cascade(tick);
         _rules.CollectDue(tick);
     }
@@ -1546,6 +1902,13 @@ public sealed class Simulation
         _lastSchooling = _schooling.Sweep(tick);
 
         _policies.Sweep(tick);
+
+        // Immediately behind the transfers, so a charge collected on this Tick is in the treasury
+        // before a subsidy asks what is there to pay out of. plans/0072 D12 makes support explicitly
+        // subject to funding, which means the pot has to be read at the moment of payment rather
+        // than reserved in advance -- and reading it BEFORE the Day's charges arrive would ration
+        // against a balance the city no longer has.
+        _lastSubsidies = _subsidies.Sweep(tick);
 
         _rules.SweepNeeds(tick);
 
