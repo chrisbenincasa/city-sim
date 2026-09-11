@@ -1,7 +1,7 @@
 # 0045 — The amnesty
 
-**Active. Start here; this page is the board while amnesty runs. Next: row 29.**
-Updated 2026-09-10. Amnesty ends at the prose/code ratio target, never on a date.
+**Active. Start here; this page is the board while amnesty runs. Next: row 31.**
+Updated 2026-09-11. Amnesty ends at the prose/code ratio target, never on a date.
 
 ## Status
 
