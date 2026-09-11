@@ -119,4 +119,46 @@ public sealed class ChoiceTests
     {
         Assert.Equal(1, Choice.Draw([Fixed.MinValue, 0], Mu, 0));
     }
+
+    /// <summary>
+    /// A candidate at the bottom of the clamp stays at the bottom instead of wrapping to the top.
+    /// </summary>
+    /// <remarks>
+    /// <b>Both operands span the whole of <c>int</c> because the scorer clamps rather than
+    /// checks.</b> <c>PlacementEngine.Utility</c> saturates a sum it cannot hold, so a Ruleset with
+    /// a small domain-unit scale produces exactly this pair — and a narrow subtraction turns the
+    /// worst candidate in the list into the heaviest one, silently, with the draw landing on the
+    /// home nobody would take.
+    /// </remarks>
+    [Fact]
+    public void The_widest_possible_gap_stays_negative()
+    {
+        long scaled = Transcendental.ScaleForExp(Fixed.One, int.MinValue, int.MaxValue);
+
+        Assert.True(scaled < 0, $"a gap of the whole int range scaled to {scaled}.");
+        Assert.True(Transcendental.UnderflowsFor(Fixed.One, int.MinValue, int.MaxValue));
+    }
+
+    /// <summary>The horizon is exactly where adr/0038 says it is, from both sides.</summary>
+    [Theory]
+    [InlineData(Transcendental.ExpUnderflowsBelow, true)]
+    [InlineData(Transcendental.ExpUnderflowsBelow + 1, false)]
+    public void The_horizon_is_the_stated_value(int gap, bool underflows)
+    {
+        Assert.Equal(underflows, Transcendental.UnderflowsFor(Fixed.One, gap, 0));
+        Assert.Equal(underflows, Transcendental.Exp(gap) == 0);
+    }
+
+    /// <summary>
+    /// A scale parameter above one moves the horizon in proportion, which is what makes the
+    /// stickiness ceiling depend on two keys at once.
+    /// </summary>
+    [Fact]
+    public void A_sharper_scale_brings_the_horizon_nearer()
+    {
+        int gap = Transcendental.ExpUnderflowsBelow + 1;
+
+        Assert.False(Transcendental.UnderflowsFor(Fixed.One, gap, 0));
+        Assert.True(Transcendental.UnderflowsFor(2 * Fixed.One, gap, 0));
+    }
 }

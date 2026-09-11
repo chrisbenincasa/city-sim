@@ -270,4 +270,80 @@ public class IntegerMathTests
             Assert.True((root + 1) * (root + 1) > value, $"({root}+1)^2 <= {value}");
         }
     }
+
+    /// <summary>
+    /// The product exceeds 64 bits long before either operand does, which is the whole point.
+    /// </summary>
+    /// <remarks>
+    /// <b>A duration rescaled against a retuned denominator is the caller.</b> Both operands are
+    /// quantities a Ruleset may state, and <c>value * numerator</c> wraps for values well inside
+    /// what either key admits — so the widening is the behaviour rather than a precaution.
+    /// </remarks>
+    [Theory]
+    [InlineData(0, 5, 3, 0)]
+    [InlineData(10, 1, 3, 3)]
+    [InlineData(10, 3, 1, 30)]
+    [InlineData(7, 0, 3, 0)]
+    [InlineData(long.MaxValue, 1, 1, long.MaxValue)]
+    [InlineData(long.MaxValue, 2, 4, long.MaxValue / 2)]
+    [InlineData(4_000_000_000L, 4_000_000_000L, 4_000_000_000L, 4_000_000_000L)]
+    public void MulDivFloor_holds_a_product_wider_than_its_answer(
+        long value, long numerator, long denominator, long expected) =>
+        Assert.Equal(expected, IntegerMath.MulDivFloor(value, numerator, denominator));
+
+    /// <summary>The same answer a big-integer oracle gives, at the boundaries and across a sweep.</summary>
+    [Fact]
+    public void MulDivFloor_agrees_with_an_oracle_the_core_may_not_contain()
+    {
+        long[] interesting =
+        [
+            0, 1, 2, 3, 255, 256, 65_535, 65_536, 2_147_483_647, 2_147_483_648,
+            4_294_967_295, 4_294_967_296, 1_000_000_007, long.MaxValue, long.MaxValue - 1,
+        ];
+
+        foreach (long value in interesting)
+        {
+            foreach (long numerator in interesting)
+            {
+                foreach (long denominator in interesting)
+                {
+                    if (denominator == 0)
+                    {
+                        continue;
+                    }
+
+                    System.Numerics.BigInteger oracle =
+                        (System.Numerics.BigInteger)value * numerator / denominator;
+
+                    if (oracle > long.MaxValue)
+                    {
+                        Assert.Throws<OverflowException>(
+                            () => IntegerMath.MulDivFloor(value, numerator, denominator));
+                        continue;
+                    }
+
+                    Assert.Equal(
+                        (long)oracle, IntegerMath.MulDivFloor(value, numerator, denominator));
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Negative operands and a zero denominator are refused rather than answered.
+    /// </summary>
+    /// <remarks>
+    /// <b>There is no negative caller and a wrong sign would be silent.</b> Flooring a negative
+    /// product is a decision nobody has had to make here, so the helper refuses it rather than
+    /// picking one and letting a later caller inherit it.
+    /// </remarks>
+    [Theory]
+    [InlineData(-1, 1, 1)]
+    [InlineData(1, -1, 1)]
+    [InlineData(1, 1, -1)]
+    [InlineData(1, 1, 0)]
+    public void MulDivFloor_refuses_what_it_has_no_answer_for(
+        long value, long numerator, long denominator) =>
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => IntegerMath.MulDivFloor(value, numerator, denominator));
 }

@@ -1882,6 +1882,25 @@ public readonly record struct PlacementRuleset(
     /// <summary>The scale parameter in Q16.16.</summary>
     public int Mu => (int)IntegerMath.FloorDiv((long)MuPercent * Fixed.One, 100);
 
+    /// <summary>
+    /// Whether a dwelling exactly as good as the incumbent still has a weight the model can hold.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Friction and scale together can put every alternative past adr/0038's horizon.</b>
+    /// <see cref="StayingPut"/> is the gap an alternative starts behind by, and
+    /// <see cref="Transcendental.ExpUnderflowsBelow"/> is where a gap stops being unlikely and
+    /// becomes impossible — so a file may state three plausible keys and get a city in which no
+    /// Household can ever move, with nothing to read off a panel that says why.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>This guarantees only that friction alone does not delete an equal alternative.</b> A
+    /// candidate genuinely far worse still underflows, which is the horizon working.
+    /// </para>
+    /// </remarks>
+    public bool EqualAlternativeSurvives =>
+        !Chooses || !Transcendental.UnderflowsFor(Mu, 0, StayingPut);
+
     /// <summary>A Ruleset whose city houses nobody.</summary>
     public static PlacementRuleset None => default;
 

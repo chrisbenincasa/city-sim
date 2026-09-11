@@ -6205,13 +6205,46 @@ public static class RulesetLoader
 
             (int mu, int tilesPerUnit, int rentPerUnit, int movingCosts) = ReadChoiceModel();
 
-            return new PlacementRuleset(interval, revisit, candidates, givesUp, reconsider)
+            PlacementRuleset placement =
+                new PlacementRuleset(interval, revisit, candidates, givesUp, reconsider)
+                {
+                    MuPercent = mu,
+                    CentralityTilesPerUnit = tilesPerUnit,
+                    RentPerUnit = rentPerUnit,
+                    MovingCostsRent = movingCosts,
+                };
+
+            RefuseImpossibleMove(placement);
+
+            return placement;
+        }
+
+        /// <summary>
+        /// Refuses a choice model whose friction puts an equal alternative past adr/0038's horizon.
+        /// </summary>
+        /// <remarks>
+        /// <b>Each of the three keys is in range and the combination is not.</b> The horizon moves
+        /// with mu and the gap moves with the rent scale, so no per-key bound can catch this — and
+        /// the city it produces looks like a working choice model in which nobody ever moves.
+        /// <see cref="PlacementRuleset.EqualAlternativeSurvives"/> owns the arithmetic; repeating
+        /// the constant here would be a second copy of adr/0038's horizon.
+        /// </remarks>
+        private void RefuseImpossibleMove(PlacementRuleset placement)
+        {
+            if (placement.EqualAlternativeSurvives)
             {
-                MuPercent = mu,
-                CentralityTilesPerUnit = tilesPerUnit,
-                RentPerUnit = rentPerUnit,
-                MovingCostsRent = movingCosts,
-            };
+                return;
+            }
+
+            Refuse(LineOf((SyntaxNodeBase?)Find(_placementTable!, "moving_costs_rent")
+                    ?? _placementTable!), null,
+                $"moving_costs_rent = {placement.MovingCostsRent} against rent_per_unit = "
+                + $"{placement.RentPerUnit} and mu_percent = {placement.MuPercent} makes moving "
+                + "impossible rather than expensive. Staying put is worth more than 11.09 / mu "
+                + "utility units here, which is where adr/0038's exp underflows to exactly zero -- "
+                + "so a dwelling identical to the one a Household lives in would be drawn with "
+                + "probability zero and no Household could ever move. Lower moving_costs_rent, "
+                + "lower mu_percent, or raise rent_per_unit.");
         }
 
         /// <summary>

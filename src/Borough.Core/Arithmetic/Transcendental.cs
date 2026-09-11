@@ -169,6 +169,31 @@ public static class Transcendental
     /// <summary>e raised to a Q16.16 power, in Q16.16. Underflows to zero below ln(1/65536).</summary>
     public static int Exp(int x) => x <= ExpUnderflowsBelow ? 0 : Exp2(Fixed.Mul(x, Log2E));
 
+    /// <summary>
+    /// The argument to <see cref="Exp"/> for a logit candidate, in Q16.16.
+    /// </summary>
+    /// <param name="mu">02 section 5.4's scale parameter in Q16.16.</param>
+    /// <param name="utility">The candidate's utility in Q16.16.</param>
+    /// <param name="best">The best utility in the same comparison, in Q16.16.</param>
+    /// <remarks>
+    /// <para>
+    /// <b>The difference is taken widened, because both operands span the whole of
+    /// <c>int</c>.</b> Utilities reach <see cref="Fixed.MinValue"/> and <see cref="Fixed.MaxValue"/>
+    /// by clamping rather than by accident, so a narrow subtraction wraps a candidate past the
+    /// horizon into a positive argument and gives the worst candidate the largest weight.
+    /// </para>
+    /// <para>
+    /// <b>The result exceeds <c>int</c> and is meant to.</b> A caller compares it against
+    /// <see cref="ExpUnderflowsBelow"/> first; only a value above that horizon narrows.
+    /// </para>
+    /// </remarks>
+    public static long ScaleForExp(int mu, int utility, int best) =>
+        IntegerMath.ShiftRight((long)mu * ((long)utility - best), Fixed.FractionalBits);
+
+    /// <summary>Whether <see cref="Exp"/> would give this candidate a weight of exactly zero.</summary>
+    public static bool UnderflowsFor(int mu, int utility, int best) =>
+        ScaleForExp(mu, utility, best) <= ExpUnderflowsBelow;
+
     /// <summary>Base-2 logarithm of a positive Q16.16 value, in Q16.16.</summary>
     /// <exception cref="ArgumentOutOfRangeException">The argument is zero or negative.</exception>
     public static int Log2(int x)

@@ -1430,7 +1430,7 @@ public sealed class PlacementEngine
         // Position 0 is the incumbent, so a draw landing there is the family staying. It is not a
         // special case anywhere below: it is scored, weighed and drawn exactly like the others.
         _candidateBuildings[0] = building;
-        _candidateUtilities[0] = Utility(home, building, weight) + placement.StayingPut;
+        _candidateUtilities[0] = Clamp((long)Utility(home, building, weight) + placement.StayingPut);
 
         int found = 1;
         int budget = candidates * 2;
