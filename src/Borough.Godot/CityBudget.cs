@@ -73,6 +73,18 @@ internal sealed class CityBudget
     /// <summary>What moved over the Day just closed, or zeroes before the first one has.</summary>
     internal TreasuryFlows Yesterday => _closed;
 
+    /// <summary>
+    /// What has moved since the last Day closed — the Day still being accumulated.
+    /// </summary>
+    /// <remarks>
+    /// <b>The only figure here that moves on the Tick money moves</b>, and that is what it is for.
+    /// <see cref="Yesterday"/> stands still for a whole Day by construction, so a panel showing it
+    /// alone is indistinguishable from a panel that has stopped. ⚠ <b>It is an incomplete Day and
+    /// must not be read as a rate</b>: a Day boundary's own sweeps land at the head of the Day they
+    /// open, so this is at its largest immediately after a roll and not before one.
+    /// </remarks>
+    internal TreasuryFlows Today => _open;
+
     /// <summary>What has moved since the account was opened, the open Day included.</summary>
     internal TreasuryFlows Running => _running;
 

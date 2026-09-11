@@ -365,6 +365,16 @@ public partial class Main
             FitPanel(_budgetPanel, budgetScroll, budgetBody,
                 Math.Max(budgetLeft, size.X - budgetWidth - margin), budgetTop, budgetWidth, 100,
                 Math.Max(100, consoleTop - budgetTop - margin), true);
+
+            // 🔴 ANCHORED BY THE WIDTH IT TOOK AND NOT BY THE WIDTH IT WAS OFFERED. The body cannot
+            // scroll sideways, so a row wider than the offer widens the PANEL -- and a right-anchored
+            // panel then hangs off the screen with its figures on the far side of the edge, which is
+            // the one failure a screenshot renders as a tidy layout. Re-seating it against its own
+            // minimum lets it overlap the panel on the left instead, which a player can undo.
+            float budgetTaken = Math.Max(budgetWidth, _budgetPanel.GetCombinedMinimumSize().X);
+
+            _budgetPanel.Position =
+                new Vector2(Math.Max(margin, size.X - budgetTaken - margin), budgetTop);
         }
 
         LayoutToolBrowser(size, margin, consoleTop, narrow, width, OpenersBottom(margin));

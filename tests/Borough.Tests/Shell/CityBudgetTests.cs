@@ -66,6 +66,62 @@ public sealed class CityBudgetTests
         Assert.Equal(2, budget.Days);
     }
 
+    /// <summary>
+    /// The open Day moves on the Tick money moves, which is the whole reason it is shown.
+    /// </summary>
+    /// <remarks>
+    /// <b>A closed Day stands still for 2,048 Ticks by construction</b>, so a panel showing only
+    /// that and a running total has nothing on it a player watching the city can see change until a
+    /// boundary falls. ⚠ <b>It resets to nothing at the roll and is not a rate</b>: a boundary's own
+    /// sweeps land at the head of the Day they open, so it is at its largest just after a roll.
+    /// </remarks>
+    [Fact]
+    public void The_open_day_accumulates_between_boundaries_and_resets_at_one()
+    {
+        var budget = new CityBudget(new Ticks(0), 0);
+
+        budget.Account(In(10), new Ticks(1));
+
+        Assert.Equal(10, budget.Today.Withheld);
+
+        budget.Account(In(7), new Ticks(2));
+
+        Assert.Equal(17, budget.Today.Withheld);
+        Assert.Equal(0, budget.Yesterday.Withheld);
+
+        budget.Account(In(3), new Ticks(Ticks.PerDay));
+
+        Assert.Equal(0, budget.Today.Withheld);
+        Assert.Equal(20, budget.Yesterday.Withheld);
+
+        budget.Account(In(5), new Ticks(Ticks.PerDay + 1));
+
+        Assert.Equal(5, budget.Today.Withheld);
+        Assert.Equal(20, budget.Yesterday.Withheld);
+    }
+
+    /// <summary>The three columns the panel prints never double-count and never lose a unit.</summary>
+    [Fact]
+    public void The_open_day_and_every_closed_one_sum_to_the_running_total()
+    {
+        var budget = new CityBudget(new Ticks(0), 0);
+        long closed = 0;
+
+        for (ulong tick = 1; tick <= (ulong)Ticks.PerDay * 3; tick++)
+        {
+            budget.Account(In((long)(tick % 7)), new Ticks(tick));
+
+            if (tick % (ulong)Ticks.PerDay == 0)
+            {
+                closed += budget.Yesterday.Withheld;
+            }
+
+            Assert.Equal(budget.Running.Withheld, closed + budget.Today.Withheld);
+        }
+
+        Assert.Equal(3, budget.Days);
+    }
+
     [Fact]
     public void The_opening_tick_is_not_a_day_boundary_however_it_divides()
     {

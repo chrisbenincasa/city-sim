@@ -250,7 +250,7 @@ Ordered by dependency. Each ships with its tests before the next starts.
 | **A** ✅ | Citizen income tax withheld at the wage payment; three bands; four player controls; the earning Day's schedule | D1–D7 |
 | **B** ✅ | Business revenue, expenses and profit on a simplified accrual basis; two profit bands; collection | D1, D8, D15 |
 | **C** ✅ | The targeted policy catalogue — charges, relief and funded subsidies, with proportional rationing | D9–D14 |
-| **D** ✅ | The budget the player reads income and expenditure off — in the shell, beside the rates — and the acceptance run | D35–D38 |
+| **D** ✅ | The budget the player reads income and expenditure off — in the shell, beside the rates — and the acceptance run | D35–D39 |
 
 ### Phase A tasks
 
@@ -896,11 +896,43 @@ Tick N's own phases. ***But the sweep a reader would expect at the end of it is 
 nothing about the reading says which. Recorded rather than repaired: moving it is a change to
 `IncomeDump` and to what `--income`'s rows mean, which is a bigger thing than this row.
 
+### D39 — a panel showing only a closed Day is indistinguishable from a stopped one
+
+The first Budget panel printed the Day just closed and the running total since the shell picked the
+world up. The running column was already live — driven at rung 8 and sampled every few hundred Ticks,
+`rule · in` climbed 0 → 49,152 → 98,304 → 147,456 → 212,992 inside one Day, and the on-screen labels
+matched the account exactly at every sample. **But a Day is 2,048 Ticks**, so the column a reader's
+eye goes to first — the one with a Day's name on it — stands still for two in-world minutes at 1×.
+***A figure that is correct and motionless reads as a figure that is broken.***
+
+So the open Day is now a column of its own, *today so far*, and every row has something that moves.
+⚠ **It is an incomplete Day and is not a rate.** F31's ordering puts a boundary's own sweeps at the
+head of the Day they open, so this column is at its largest just after a roll and smallest just
+before one — the opposite of the shape a reader would assume.
+
+Two things the third column forced, and neither is cosmetic:
+
+- **The refresh had to stop tearing the panel down.** Rebuilding seven rows of `Label`s every time a
+  figure moved was affordable once a Day and is not affordable every Tick. The body is now rebuilt
+  only when its **shape** changes — a treasury appearing, or the type scale moving — and every other
+  refresh sets `.Text` on labels that are already standing.
+- 🔴 **The staleness gate was wrong and the third column is what would have shown it.** The signature
+  that decides whether to redraw was keyed on the Day count, the Tick and the balance, so a Tick that
+  took in exactly what it paid out moved nothing in the signature and the panel silently kept the
+  previous figures. It is keyed on the running income and the running expenditure now, which are each
+  a sum of monotone parts — so one of them moves whenever any of the seven does.
+
+The columns are 96 px and the label 140 px. 🔴 **Those widths are a floor and not a preference**:
+`ScrollAuxiliary` disables horizontal scrolling, so a body wider than its offer widens the *panel*,
+and a right-anchored panel then walks off the screen carrying the figures with it. Measured at the
+1,280 px design minimum with Government open: Government ends at 664, the budget takes 582 px from
+674, and its right edge lands on the margin at 1,256.
+
 ## Phase D — done
 
 Shipped 2026-09-11. One public drain on `Simulation` carrying the seven treasury flows, a Godot-free
 `CityBudget` holding the Day roll and the running totals, a Budget panel anchored opposite Government
 so the rates and their consequence read together, a fifth opener in the launcher row, and the account
-in the driven readout so a run can assert on it. Eight new tests, one of which holds the shell's
+in the driven readout so a run can assert on it. Ten new tests, one of which holds the shell's
 account against a Census of the same run. No Ruleset changed and no golden artefact moved: nothing
-here is in the State Hash. The working lane is 3,369 green.
+here is in the State Hash. The working lane is 3,371 green.
