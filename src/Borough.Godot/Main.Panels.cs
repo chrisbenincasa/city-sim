@@ -413,7 +413,10 @@ public partial class Main
         box.AddChild(new HSeparator());
         box.AddChild(new Label { Text = "Income tax — what one Day's earnings are taxed at" });
 
-        _taxFields = new LineEdit[4];
+        // ⚠ SIZED BY THE ENUM AND NOT BY A COUNT. Levy indexes this by (int)control, so a control
+        // added to TaxControl and forgotten here is an IndexOutOfRange on a click rather than a
+        // compile error -- and the profit half arrived exactly that way.
+        _taxFields = new LineEdit[(int)TaxControl.ProfitUpperRate + 1];
 
         Levy(box, TaxControl.Allowance, "tax-free allowance — earned in a Day before any tax");
         Levy(box, TaxControl.UpperThreshold, "upper band opens at — a Day's earnings");
@@ -442,6 +445,66 @@ public partial class Main
         };
 
         box.AddChild(_taxStatus);
+        Profiting(box);
+    }
+
+    /// <summary>
+    /// The Business profit block: the three marginal-band controls, and what they will not accept.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>ITS OWN BLOCK, ITS OWN TITLE AND ITS OWN NOTE, because it is its own schedule.</b> A
+    /// Citizen pays on what they <em>earned</em> in a Day and a Business on what it <em>made</em>;
+    /// the two share the <see cref="TaxControl"/> selector and the effective-Day rule and nothing
+    /// else. ***Seven fields under one heading would read as one tax with seven dials***, and a
+    /// player would reasonably expect the allowance above to shelter a Business's first pound.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The missing field is the thing to say out loud.</b> There is no tax-free band on this
+    /// schedule and no control for one — <c>plans/0072</c> D8 — so a player who has just read the
+    /// earnings block above arrives here looking for an allowance that is deliberately absent. The
+    /// note says how to build one out of the two controls that do exist.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Three rows and a note, on a panel that was already full.</b> The governing panel is a
+    /// <c>ScrollContainer</c> bounded by the console, so this block sits below the fold at
+    /// 1600 × 1400 and is reached by scrolling. ***That is a reachable control and not a hidden
+    /// one***, and shortening the notes to buy it a screen would cost the sentences that stop a
+    /// player mis-reading the dial.
+    /// </para>
+    /// </remarks>
+    private void Profiting(VBoxContainer box)
+    {
+        box.AddChild(new HSeparator());
+        box.AddChild(new Label { Text = "Business profit tax — what one Day's profit is taxed at" });
+
+        Levy(box, TaxControl.ProfitThreshold, "upper band opens at — a Day's profit");
+        Levy(box, TaxControl.ProfitLowerRate, "lower rate — % on profit below that");
+        Levy(box, TaxControl.ProfitUpperRate, "upper rate — % on profit above that");
+
+        // 🔴 TWO CONTROLS AND THREE THINGS A PLAYER CANNOT SEE FROM THEM. The ordering constraint is
+        // the earnings block's again. The absent allowance is D8 and is the field a reader will look
+        // for and not find. The loss rule is D26 -- nothing carries forward, so a Business is not
+        // spared a good Day by a bad one, and that is the opposite of what most tax systems teach.
+        box.AddChild(new Label
+        {
+            Text = "levied from the START OF THE NEXT DAY, the same as earnings above, and no change"
+                + " ever reprices a Day already traded. each rate is MARGINAL — it bites only on the"
+                + " profit inside its own band. the upper rate can never sit below the lower one, so"
+                + " from a city that taxes nothing, raise the upper rate first."
+                + " THERE IS NO TAX-FREE BAND here and no control for one: set the lower rate to 0"
+                + " and the threshold becomes the allowance."
+                + " a Day that made a LOSS is untaxed and nothing carries forward, so a Business that"
+                + " loses money one Day and profits the next pays in full on the profitable Day.",
+        });
+
+        _profitStatus = new Label
+        {
+            Text = "a rate the player has set is saved state and survives a reload; a Ruleset's"
+                + " [business_tax] is what a city that has never been governed levies.",
+        };
+
+        box.AddChild(_profitStatus);
     }
 
     /// <summary>One tax control: what it is, what it is set to for tomorrow, and a way to move it.</summary>
@@ -512,9 +575,30 @@ public partial class Main
     /// </remarks>
     private long Tomorrow() => IntegerMath.FloorDiv((long)_world.Tick.Raw, Ticks.PerDay) + 1;
 
+    /// <summary>Whether a control belongs to the profit schedule rather than the earnings one.</summary>
+    private static bool OnProfit(TaxControl control) => control >= TaxControl.ProfitThreshold;
+
     /// <summary>What one control is set to for tomorrow, player-set or Ruleset-authored.</summary>
+    /// <remarks>
+    /// ⚠ <b>Two schedules and two fall-throughs.</b> Each half of a Day's row stamps on its own, so
+    /// a world that has governed earnings and never touched profit reads the player's earnings back
+    /// and the Ruleset's <c>[business_tax]</c> beside it.
+    /// </remarks>
     private long Levied(TaxControl control)
     {
+        if (OnProfit(control))
+        {
+            BusinessTaxSchedule profit =
+                _world.IncomeTaxRates.ProfitScheduleFor(Tomorrow(), _world.Rules.BusinessTax);
+
+            return control switch
+            {
+                TaxControl.ProfitThreshold => profit.ThresholdPerDay,
+                TaxControl.ProfitLowerRate => profit.LowerRatePercent,
+                _ => profit.UpperRatePercent,
+            };
+        }
+
         IncomeTaxSchedule schedule =
             _world.IncomeTaxRates.ScheduleFor(Tomorrow(), _world.Rules.IncomeTax);
 
@@ -536,21 +620,26 @@ public partial class Main
     /// </remarks>
     private void Tax(TaxControl control)
     {
+        // ⚠ THE ANSWER GOES TO THE BLOCK THE CONTROL BELONGS TO. One status line under two blocks
+        // would report a profit refusal beneath the earnings rows, several lines above the dial
+        // that was actually turned, and on a panel this tall that is off the screen.
+        Label status = OnProfit(control) ? _profitStatus : _taxStatus;
+
         if (!int.TryParse(_taxFields[(int)control].Text, out int value))
         {
-            _taxStatus.Text = "that is not a whole number.";
+            status.Text = "that is not a whole number.";
 
             return;
         }
 
         if (!Send(Command.Tax(control, value)))
         {
-            _taxStatus.Text = _refused;
+            status.Text = _refused;
 
             return;
         }
 
-        _taxStatus.Text = $"{Named(control)} set to {value:N0}, from the start of Day {Tomorrow():N0}.";
+        status.Text = $"{Named(control)} set to {value:N0}, from the start of Day {Tomorrow():N0}.";
     }
 
     /// <summary>A <see cref="TaxControl"/> in the player's words. <b>The shell owns every one.</b></summary>
@@ -559,7 +648,10 @@ public partial class Main
         TaxControl.Allowance => "the tax-free allowance",
         TaxControl.UpperThreshold => "the upper band's opening",
         TaxControl.MiddleRate => "the middle rate",
-        _ => "the upper rate",
+        TaxControl.UpperRate => "the upper rate",
+        TaxControl.ProfitThreshold => "the profit band's opening",
+        TaxControl.ProfitLowerRate => "the lower rate on profit",
+        _ => "the upper rate on profit",
     };
 
     /// <summary>Queues a <c>Govern</c> for one Policy, or says why it cannot.</summary>

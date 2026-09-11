@@ -479,6 +479,26 @@ public enum TaxControl : ushort
 
     /// <summary>The marginal rate above the threshold, as a percentage.</summary>
     UpperRate = 3,
+
+    /// <summary>The Day's Business profit at which the upper marginal band starts.</summary>
+    /// <remarks>
+    /// ⚠ <b>Profit and earnings are different quantities and this is a different schedule.</b> The
+    /// three below belong to <c>[business_tax]</c>, which a Business pays on what it made in a Day;
+    /// the four above belong to <c>[income_tax]</c>, which a Citizen pays on what they earned.
+    /// Nothing is shared between them but this selector.
+    /// </remarks>
+    ProfitThreshold = 4,
+
+    /// <summary>The marginal rate on Business profit below the threshold, as a percentage.</summary>
+    /// <remarks>
+    /// <b>There is no tax-free band on the profit schedule and no control for one</b> —
+    /// <c>plans/0072</c> D8. Setting this to zero is how a player gets one, and the threshold then
+    /// acts as the allowance.
+    /// </remarks>
+    ProfitLowerRate = 5,
+
+    /// <summary>The marginal rate on Business profit above the threshold, as a percentage.</summary>
+    ProfitUpperRate = 6,
 }
 
 /// <summary>What a <see cref="CommandKind.Connect"/> does to the edge it names.</summary>

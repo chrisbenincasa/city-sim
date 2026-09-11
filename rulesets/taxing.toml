@@ -1,7 +1,7 @@
 # THE TAXING RULESET -- shopping.toml made able to pay its wages, so that taxing them means anything.
 #
-# plans/0072, amnesty row 33. It is shopping.toml with FIVE CHANGES, marked CHANGE 1 of 5 through
-# 5 of 5 where they sit, and everything else in the file is shopping.toml's, unedited. The diff is
+# plans/0072, amnesty row 33. It is shopping.toml with SIX CHANGES, marked CHANGE 1 of 6 through
+# 6 of 6 where they sit, and everything else in the file is shopping.toml's, unedited. The diff is
 # the whole demonstration, on insolvent.toml's precedent and for insolvent.toml's reason.
 #
 #   1. [[business]] shop            DELETED, with the dwelling's `business = "shop"` line.
@@ -9,6 +9,12 @@
 #   3. [households]                 opening_balance_min/max 12,800/25,600 -> 51,200/102,400.
 #   4. [[policy]] public_works      ADDED.
 #   5. [income_tax]                 ADDED, scaled to change 2's wage.
+#   6. [business_tax]               ADDED, scaled to this file's own daily rates bill.
+#
+# ⚠ CHANGES 1 TO 5 ARE PHASE A's AND CHANGE 6 IS PHASE B's, and the phase A figures below were
+# re-measured on the file as it now stands rather than carried over. Where change 6 moved one, the
+# old reading is printed beside the new one, because ***the pair is the demonstration*** and a
+# single column cannot say what a tax did.
 #
 # 🔴 EVERY NUMBER HERE IS PROVISIONAL AND NONE IS RATIFIED. plans/0045 standing order 4 suspends
 # ratification, so no row is open for any of them anywhere, none names a ratifier, and none should be
@@ -16,8 +22,9 @@
 # wage, a grocery bill or a public programme is worth.
 #
 # ===========================================================================================
-# WHAT IT EXISTS TO SHOW: a Citizen income tax withheld at the moment a wage is paid, and a budget
-# a player can read income against expenditure off.
+# WHAT IT EXISTS TO SHOW: a Citizen income tax withheld at the moment a wage is paid, a tax on a
+# Business's profit collected at the Day boundary, and a budget a player can read income against
+# expenditure off -- with BOTH taxes in it, so a reader can see which of the two the city lives on.
 # ===========================================================================================
 # shopping.toml is the one shipped world that both PAYS A WAGE and holds a treasury Bin for money,
 # which is what an income tax needs and what no other shipped file has together. taxed.toml carries
@@ -41,6 +48,21 @@
 #
 #   The treasury takes 145,656 withheld and 1,884,160 in rates, spends 1,485,312 on public works,
 #   and closes at 544,504. Both halves of the budget are live and the columns sum to the balance.
+#
+# AND THE SAME READING WITH CHANGE 6 IN FORCE, which is the one the file now ships:
+#
+#   The treasury takes 145,440 withheld, 4,142,347 in PROFIT TAX and 1,884,160 in rates, spends
+#   2,027,520 on public works, and closes at 4,144,427.
+#
+#   The payroll reading is IDENTICAL to the line above it -- 702,144 paid, 115 payments, 63,808
+#   uncovered, 4 short paydays, 203 Citizens employed, nothing wound up. ***The profit tax moved
+#   almost nothing in this city except how much money is in the tills***: the grocers close on
+#   20,825,100 against 24,955,488 untaxed, a fall of 4,130,388 against a collection of 4,142,347.
+#
+#   ⚠ THE TWO SECOND-ORDER EFFECTS ARE 11,959 AND 216, AND BOTH ARE NAMED RATHER THAN ROUNDED AWAY.
+#   The tills fall by 11,959 LESS than was taken out of them, and the withholding falls by 216 --
+#   one worker, on one Day, paid part of what they were owed instead of all of it. That is the whole
+#   of what taxing 4,142,347 out of this city's shops did to anything but their balances.
 #
 # ===========================================================================================
 # CHANGE 1: THE DWELLING IS NOT A WORKPLACE, and this is where seven jobs in eight were.
@@ -146,11 +168,22 @@
 #
 # 256 IS SIZED FROM THE TREASURY'S INCOME AND NOT CHOSEN BESIDE IT. 720 Households at 256 a Day is
 # 184,320 a Day, and the rates bill plus the withholding reaches about that once the city has enough
-# shopfronts to pay it. So the run shows the programme BECOMING AFFORDABLE: it pays 16,384 on its
-# first sweep, climbs with the rates base, and is fully funded and flat from Tick 18,432 on, with the
-# treasury closing 544,504 in surplus rather than dry. ⚠ A Policy paying out of a treasury that runs
-# dry pays whom it reaches and reports where it stopped (02 §4.2) -- that branch is taxed.toml's
-# demonstration and it is deliberately NOT this file's.
+# shopfronts to pay it. Without change 6 the run shows the programme BECOMING AFFORDABLE: it pays
+# 16,384 on its first sweep, climbs with the rates base, and is fully funded and flat from Tick
+# 18,432 on, with the treasury closing 544,504 in surplus rather than dry. ⚠ A Policy paying out of a
+# treasury that runs dry pays whom it reaches and reports where it stopped (02 §4.2) -- that branch is
+# taxed.toml's demonstration and it is deliberately NOT this file's.
+#
+# 🔴 CHANGE 6 TOOK THAT ARC AWAY, AND SAYING SO IS THE POINT RATHER THAN AN APOLOGY. With the profit
+# tax in force the programme is fully funded and flat from Tick 4,096 -- the second sweep -- and the
+# run pays 2,027,520 against 1,485,312. The reason is measured and not guessable: profit per grocer
+# is LARGEST when there are fewest of them (the MEDIAN Day's profit is above 460,000 a shop over the
+# first four Days and between 53,000 and 122,000 from Day 6 on, once a dozen are competing for the
+# same Households), so the profit tax is FRONT-LOADED
+# exactly where the rates base is thinnest. ***So this file now shows what pays for a public
+# programme rather than when one becomes affordable***, and the answer is the profit tax: 4,142,347
+# of the run's 6,171,947 income, against 1,884,160 in rates and 145,440 withheld. A reader who wants
+# the affordability arc back deletes [business_tax] and gets the first paragraph's numbers exactly.
 #
 # `interval = 2048` is one Day, Ticks.PerDay, and it is derived rather than chosen for taxed.toml's
 # reason: a Policy's interval is a balance constant, and a Day is the period the rest of the
@@ -159,10 +192,25 @@
 # ===========================================================================================
 # ⚠ WHAT IT MUST NOT BE READ AS.
 # ===========================================================================================
-# NOT A BALANCED CITY. The grocers close the run holding about 25,000,000 and rising -- a shop in
-# this file has no costs but wages and rates, so what Households spend piles up in tills, and that
-# is shopping.toml's property rather than one this file introduced. ***Nothing here should be read as
-# a steady state***: the run is twelve Days and the demonstration is a budget, not adr/0006.
+# NOT A BALANCED CITY. The grocers close the run holding 20,825,100 and rising -- a shop in
+# this file has no costs but wages, rates and now profit tax, so what Households spend piles up in
+# tills, and that is shopping.toml's property rather than one this file introduced. ***Nothing here
+# should be read as a steady state***: the run is twelve Days and the demonstration is a budget, not
+# adr/0006. ⚠ Change 6 slowed the pile-up and did not stop it.
+#
+# 🔴 NOT A DEMONSTRATION OF D15's STOCK COST, AND THE PROFIT FIGURES HERE ARE INFLATED BECAUSE OF IT.
+# The `stock` Rule below has NO INPUTS: a shopfront's sundries arrive out of nothing, so the cost of
+# goods this file's accrual draws down is a GENUINE ZERO and a grocer's profit is its revenue less
+# its wage bill and nothing else. That is not a defect in the accounting -- BusinessAccounts.Deliver
+# posts the cost leg on every sale and it is correctly zero -- but it means ***this file exercises
+# the profit TAX without exercising the mechanism that decides what profit IS***. A world whose
+# shops bought their stock would report a smaller profit against the same revenue, and the bands
+# below would be wrong for it. Read the threshold as a figure fitted to THIS distribution.
+#
+# NOT A DEMONSTRATION OF D25's FORGIVENESS. A till that cannot cover its bill pays what it has and
+# the rest is forgiven, and NO TILL IN THIS RUN EVER COMES UP SHORT -- measured across the whole
+# rate sweep below, `underpaying` is 0 at every setting tried. The branch is covered by
+# BusinessTaxSweepTests and by no shipped world.
 #
 # NOT A TUNING RATIFIER, and no reading in it ratifies anything -- see the standing order above.
 #
@@ -191,7 +239,7 @@ family = "good"
 name = "money"
 family = "money"
 
-# CHANGE 1 of 5. shopping.toml's `[[business]] shop` STOOD HERE AND IS DELETED, and the
+# CHANGE 1 of 6. shopping.toml's `[[business]] shop` STOOD HERE AND IS DELETED, and the
 # `business = "shop"` line on the dwelling below goes with it -- see THE DWELLING IS NOT A WORKPLACE.
 
 [[business]]
@@ -200,7 +248,7 @@ work_days = 124
 open_days = 127
 opens_hour = 7
 closes_hour = 21
-# CHANGE 2 of 5. 4096 -> 2048 -- see THE WAGE, which carries the sweep that chose it.
+# CHANGE 2 of 6. 4096 -> 2048 -- see THE WAGE, which carries the sweep that chose it.
 wage_per_day    = 2048
 pay_period_days = 7
 shift_start_earliest_hour = 6
@@ -343,12 +391,12 @@ arrive_early_max_minutes = 15
 
 [households]
 car_ownership_percent = 0
-# CHANGE 3 of 5. 12,800/25,600 -> 51,200/102,400, and it is the change that rescued the file --
+# CHANGE 3 of 6. 12,800/25,600 -> 51,200/102,400, and it is the change that rescued the file --
 # see THE OPENING BAND, which carries the derivation and the thing it did that nobody predicted.
 opening_balance_min = 51200
 opening_balance_max = 102400
 
-# CHANGE 4 of 5. ADDED, and it is the expenditure column -- see PUBLIC WORKS.
+# CHANGE 4 of 6. ADDED, and it is the expenditure column -- see PUBLIC WORKS.
 
 [[policy]]
 name = "public_works"
@@ -409,7 +457,7 @@ search_candidates = 32
 retry_ticks = 128
 
 # ===========================================================================================
-# CHANGE 5 of 5: THE INCOME TAX SCHEDULE, SCALED TO THIS FILE'S WAGE RATHER THAN TO taxed.toml's.
+# CHANGE 5 of 6: THE INCOME TAX SCHEDULE, SCALED TO THIS FILE'S WAGE RATHER THAN TO taxed.toml's.
 # ===========================================================================================
 # The three marginal bands a Citizen's earnings for ONE DAY are read against. Each rate applies only
 # inside its own band, so crossing a threshold never reprices what came before it and take-home
@@ -452,15 +500,96 @@ retry_ticks = 128
 # experience_premium_percent, so WorkSchedule.Graded hands back the posted figure and 2048 is the only
 # rate anybody earns.
 #
-# ⚠ SO EVERY READING IN THE 2,000-CITIZEN, 24,576-TICK RUN QUOTED ABOVE DIVIDES BY 408 -- 20, 47, 72,
-# 48, 42, 78 and 50 Citizen-Days, 357 of them for 145,656 -- AND THAT IS A PROPERTY OF THAT READING
-# RATHER THAN A LAW. A payday that pays a worker only PART of what they are owed closes a short Day,
-# and a short Day is taxed in a lower band: at 1,000 Citizens over 12,288 Ticks the last reading is
-# 12,268, which is 30 whole Days and a remainder. ***A column that does not divide is a partial
-# payday, not a broken schedule*** -- read `owed and not covered` in --business beside it.
+# ⚠ AND THE RUN AS THE FILE NOW SHIPS DOES NOT QUITE DIVIDE, WHICH IS THE CAVEAT ARRIVING IN ITS OWN
+# PARAGRAPH. At 2,000 Citizens over 24,576 Ticks the withheld readings are 8,160 / 19,176 / 29,376 /
+# 19,584 / 16,920 / 31,824 / 20,400 -- 20, 47, 72, 48, 41-and-a-part, 78 and 50 Citizen-Days: 356
+# WHOLE Days for 145,248, and a remainder of 192 on the fifth. A payday that pays a worker only PART
+# of what they are owed closes a short Day, and a short Day is taxed in a lower band. ***A column
+# that does not divide is a partial payday, not a broken schedule*** -- read `owed and not covered`
+# in --business beside it.
+#
+# ⚠ WITHOUT CHANGE 6 THE SAME RUN DIVIDES EXACTLY: 20, 47, 72, 48, 42, 78 and 50 -- 357 whole Days
+# for 145,656. The 216 between the two is the WHOLE of the profit tax's effect on this file's
+# payroll, and it is one worker on one Day being paid part of what they were owed. `--business`
+# reports the same 702,144 paid, the same 115 payments, the same 63,808 uncovered and the same 4
+# short paydays either way.
 
 [income_tax]
 allowance_per_day       = 512
 upper_threshold_per_day = 1536
 middle_rate_percent     = 20
 upper_rate_percent      = 40
+
+# ===========================================================================================
+# CHANGE 6 of 6: THE PROFIT TAX, SCALED TO THIS FILE'S OWN RATES BILL RATHER THAN TO ITS WAGE.
+# ===========================================================================================
+# The two marginal bands a BUSINESS's profit for ONE DAY is read against. Collected once a Day, at
+# the Day boundary, by Borough.Core.Rules.BusinessTaxEngine -- which runs in phase 1, ahead of
+# everything that recognises revenue, because a Business's Day figures stand only until the first
+# recognition of the NEXT Day rolls them to zero.
+#
+# ⚠ THERE IS NO ALLOWANCE KEY AND THAT ABSENCE IS THE DECISION (plans/0072 D8). An author wanting
+# relief on small profits writes `lower_rate_percent = 10` and the threshold becomes the allowance.
+# That is why this table has three keys where [income_tax] has four.
+#
+# 🔴 PROVISIONAL, LIKE EVERYTHING ELSE HERE. What each number is anchored to:
+#
+#   threshold_per_day = 65536       FOUR TIMES the 16,384 this file's own `rates` Rule takes off a
+#                                   shopfront every Day. It is the one per-Day money figure the
+#                                   Ruleset already states on the scale a profit is measured in --
+#                                   the wage of 2,048 is two orders too small -- so the upper band
+#                                   starts where a Day's profit is four times what the premises
+#                                   costs to keep.
+#
+#   lower_rate_percent = 10         HALF of [income_tax]'s middle rate of 20.
+#   upper_rate_percent = 20         HALF of its upper rate of 40, so the doubling shape is kept.
+#                                   ⚠ HALVED FOR A STATED REASON AND NOT FOR SYMMETRY: this file's
+#                                   stock arrives free (see WHAT IT MUST NOT BE READ AS), so the
+#                                   profit these rates read against is revenue less wages and is
+#                                   larger than any world with a real cost of goods would report.
+#                                   The loader refuses an upper rate BELOW the lower one outright.
+#
+# THE THRESHOLD SWEEP, and it is the measurement that chose 65,536. 2,000 Citizens, 24,576 Ticks,
+# eleven assessed Days, 104 Business-Days closing in profit, rates held at 10/20 throughout:
+#
+#   16,384   (1x rates)    12 below / 92 above    collected 4,543,579
+#   32,768   (2x)          17 / 87                collected 4,397,596
+#   65,536   (4x)          35 / 69                collected 4,142,347
+#   131,072  (8x)          47 / 57                collected 3,743,014
+#   262,144  (16x)         61 / 43                collected 3,099,308
+#
+# ⚠ THE MOST EVEN SPLIT IS AT 8x AND IT IS NOT WHAT THIS FILE STATES. 4x populates both bands
+# comfortably -- a third of the assessed Days below it, two thirds above, and both sides occupied on
+# every Day from Day 4 on -- and 4x is the multiple with an anchor behind it. At 1x only 12 Days in
+# 104 fall in the lower band and ***the lower rate is very nearly unobservable***, which is the
+# failure mode the [income_tax] block above documents for the other schedule.
+#
+# THE RATE SWEEP, at the chosen threshold, and it produced the reading to keep:
+#
+#    5 / 10   collected 2,071,131
+#   10 / 20   collected 4,142,347
+#   20 / 40   collected 8,284,816
+#
+# 🔴 IT IS EXACTLY LINEAR, AND THAT IS A FINDING RATHER THAN AN ARITHMETIC. Doubling the rates
+# doubles the take to within 122 units -- the floor of the integer division -- because NOTHING IN
+# THIS CITY RESPONDS TO BEING TAXED. `--business` prints the same 203 employed, the same 115 wage
+# payments, the same 63,808 uncovered and the same 4 short paydays at every setting above. ***A
+# profit tax here is a pure extraction***, and it can be, because a grocer in this file has no
+# investment to forgo, no price to raise and no decision that reads its own balance. Read the
+# linearity as the absence of those mechanisms and never as evidence that a tax has no effects.
+#
+# THE HAND ARITHMETIC, so the --income column can be checked without reading any code. A grocer
+# closing a Day on 100,000 profit:
+#
+#   0 .. 65,536       65,536 at 10%  ->  6,553
+#   65,536 .. 100,000 34,464 at 20%  ->  6,892
+#                                     -------
+#                                      13,445, an effective rate of 13.4%
+#
+# A grocer closing on 50,000 pays 5,000 flat, and one closing on a loss pays nothing at all and
+# carries nothing forward into the next Day.
+
+[business_tax]
+threshold_per_day  = 65536
+lower_rate_percent = 10
+upper_rate_percent = 20

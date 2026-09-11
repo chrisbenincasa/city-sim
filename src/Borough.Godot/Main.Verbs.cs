@@ -438,6 +438,14 @@ public partial class Main
             "that would open the upper band below the tax-free allowance, so the middle rate would "
             + "have nothing to bite on. Move the threshold first.",
 
+        Refusal.TaxProfitThresholdIsNegative =>
+            "a Business can make a loss, but the band it is taxed in cannot open below nothing. A "
+            + "Day that lost money is untaxed already.",
+
+        Refusal.TaxProfitUpperRateBelowLowerRate =>
+            "that would leave the upper rate on profit below the lower one, and making more would "
+            + "keep less. Raise the upper rate first.",
+
         Refusal.TripRulesetStatesNoTrips or Refusal.TripWorldHasNoLattice
             or Refusal.TripBlockHoldsNobody or Refusal.TripEndpointsAreOneBuilding
             or Refusal.TripOriginHoldsNoCitizen =>

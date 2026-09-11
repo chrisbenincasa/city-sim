@@ -4183,6 +4183,20 @@ public sealed class Ruleset
     /// </remarks>
     public IncomeTaxSchedule IncomeTax { get; init; } = IncomeTaxSchedule.None;
 
+    /// <summary>
+    /// The <c>[business_tax]</c> table — <b>what a Business keeps of a Day's profit</b>.
+    /// <see cref="BusinessTaxSchedule.None"/> when the file states none, which is a city that taxes
+    /// no profit at all.
+    /// </summary>
+    /// <remarks>
+    /// <b>Absent means nothing is taken</b>, reached by omitting the table rather than by a
+    /// defaulted key — <see cref="IncomeTax"/>'s shape one table along. ⚠ <b>It has two bands where
+    /// the Citizen schedule has three</b>, and the missing one is the tax-free allowance: a lower
+    /// rate of zero is how an author writes one (<c>plans/0072</c> D8), so an allowance key would be
+    /// a second spelling of a city that is already writable.
+    /// </remarks>
+    public BusinessTaxSchedule BusinessTax { get; init; } = BusinessTaxSchedule.None;
+
     /// <summary>How far each Need moves, and how deep it may go. <c>[needs]</c>.</summary>
     /// <remarks>
     /// <b>Absent means no Household in this city has a Need</b>, reached by omitting the table rather
@@ -4693,6 +4707,7 @@ public sealed class Ruleset
             HinterlandPrices = HinterlandPrices,
             Market = Market,
             IncomeTax = IncomeTax,
+            BusinessTax = BusinessTax,
             Founding = Founding,
             ResourceKeys = ResourceKeys,
             KindKeys = KindKeys,

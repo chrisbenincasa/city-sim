@@ -629,3 +629,18 @@ change: `GoldenFixtures.Build()` places its Buildings and its Households by hand
 what it holds cannot move; what moved is what each row now says about how many people its Building
 could hold. ***A row-count baseline is blind to a change in what a row means***, which is why the
 hash is folded beside the counts rather than the counts being the baseline.
+
+**Row 33 re-recorded four artefacts twice — once for the income tax and once for the profit tax — and
+moved no Ruleset content hash either time.** A Citizen gained `taxed_day` and `taxed_gross`; the world
+gained an `IncomeTaxTable`; a Business gained `trading_day`, `day_revenue` and `day_expense`; a Bin
+gained the running cost of what it holds. Every one is a saved column, so the composition moved and
+every number in the four files moved with it. **None of the three baseline Rulesets was edited**, so
+this is the 5c shape rather than the `plans/0053` one: no `.borough` literal and nothing in
+`GoldenFixtures` had to move first.
+
+⚠ **What neither re-record covers is the tax itself.** **No baseline Ruleset states `[income_tax]` or
+`[business_tax]`**, so no tax is ever assessed in any of these artefacts and the two withholding
+columns and the whole schedule table fold zeroes throughout. The trading columns are a different case
+— both baselines declare a `[[business]]`, so whether those folded anything is a property of the run
+and not of the file. ***The tax is covered by `rulesets/taxing.toml` and its suites***, which is where
+to look rather than here.

@@ -23,6 +23,14 @@ namespace Borough.Tests.Invariants;
 /// thing that said so was a footnote under the budget admitting it.
 /// </para>
 /// <para>
+/// 🔴 <b>And it earned its keep a second time, on the next income path to be built.</b> The
+/// profit-tax collection — <c>BusinessTaxEngine</c>, <c>plans/0072</c> phase B — reached the
+/// treasury out of the Businesses' tills, and this went red on the third reading with a residual of
+/// <b>220,338</b> before <see cref="MoneyFlowCounter.ProfitTax"/> was wired into the Census.
+/// ***A test that only ever catches the defect it was written for is a regression test; this one is
+/// the invariant***, and the fourth term in <see cref="Income"/> is what it asked for.
+/// </para>
+/// <para>
 /// <b>Held per interval and not only at the end</b>, on <c>MoneyLongRunTests</c>' reasoning: a
 /// closing equality passes over a run in which the identity broke and was repaired by a later error
 /// of the opposite sign. What the per-interval form adds is <em>when</em>, and a failure names the
@@ -151,17 +159,23 @@ public sealed class TreasuryFlowsExplainTheBalanceTests
         long withheld = Sum(Read(census, Metric.Of(MoneyFlowCounter.Withheld, Aggregate.Sum)));
         long policy = Sum(Read(census, Metric.Of(MoneyFlowCounter.ToTreasury, Aggregate.Sum)));
         long rule = Sum(Read(census, Metric.Of(MoneyFlowCounter.RuleToTreasury, Aggregate.Sum)));
+        long profit = Sum(Read(census, Metric.Of(MoneyFlowCounter.ProfitTax, Aggregate.Sum)));
         long treasury = Read(census, Metric.Of(MoneyCounter.Treasury))[^1];
 
         Assert.True(withheld > 0, "no payday withheld anything, so the identity holds over nothing.");
         Assert.True(rule > 0, "the rates Rule never fired, so the path under test never ran.");
+        Assert.True(
+            profit > 0,
+            "no Business paid any profit tax, so the fourth income path is in the identity as a "
+            + "column of zeroes. [business_tax] is CHANGE 6 of taxing.toml; a zero here is either a "
+            + "sweep that never ran or a world in which nothing traded at a profit.");
 
         // taxing.toml declares no [[policy]], which is what makes the other two columns legible.
         Assert.Equal(0, policy);
 
         Assert.True(
-            withheld + policy != treasury,
-            $"the payday and the Policy sweeps alone account for the whole treasury of {treasury}, "
+            withheld + policy + profit != treasury,
+            $"the two taxes and the Policy sweeps alone account for the whole treasury of {treasury}, "
             + "so this world no longer exercises the unattributed path and the test has stopped "
             + "being about anything.");
 
@@ -174,12 +188,21 @@ public sealed class TreasuryFlowsExplainTheBalanceTests
 
     // ---- the fixture ---------------------------------------------------------------------------
 
-    /// <summary>Income at each reading: the three paths in, summed per reading.</summary>
+    /// <summary>Income at each reading: the four paths in, summed per reading.</summary>
+    /// <remarks>
+    /// 🔴 <b>The fourth term was added on the day the path was, and this test found it rather than
+    /// being updated alongside it.</b> The profit-tax collection reached the treasury before
+    /// <see cref="MoneyFlowCounter.ProfitTax"/> existed and the identity broke by a residual of
+    /// 220,338 on the third reading of a twelve-Day run — which is the whole of what this test is
+    /// for. ***A new income path that does not appear here is a new hole***, and the failure names
+    /// the reading rather than the run.
+    /// </remarks>
     private static long[] Income(Census census) =>
         Add(
             Read(census, Metric.Of(MoneyFlowCounter.Withheld, Aggregate.Sum)),
             Read(census, Metric.Of(MoneyFlowCounter.ToTreasury, Aggregate.Sum)),
-            Read(census, Metric.Of(MoneyFlowCounter.RuleToTreasury, Aggregate.Sum)));
+            Read(census, Metric.Of(MoneyFlowCounter.RuleToTreasury, Aggregate.Sum)),
+            Read(census, Metric.Of(MoneyFlowCounter.ProfitTax, Aggregate.Sum)));
 
     /// <summary>Expenditure at each reading: the two paths out, summed per reading.</summary>
     private static long[] Expenditure(Census census) =>

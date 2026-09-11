@@ -114,7 +114,7 @@ public sealed class Census
     private const int MoneyCounters = 6;
 
     /// <summary>The members of <see cref="MoneyFlowCounter"/> — one per (mechanism, direction).</summary>
-    private const int MoneyFlowCounters = 5;
+    private const int MoneyFlowCounters = 6;
 
     private const int MoneyFlowMetrics = MoneyFlowCounters * AggregatesPerRuleCounter;
 
@@ -254,7 +254,8 @@ public sealed class Census
             simulation.Trips.Drain(),
             simulation.Employment.Drain(),
             simulation.Policies.Drain(),
-            simulation.Wages.DrainWithheld());
+            simulation.Wages.DrainWithheld(),
+            simulation.ProfitTax.DrainCollected());
     }
 
     /// <summary>
@@ -290,6 +291,12 @@ public sealed class Census
     /// silently drop every payday but one and under-report the treasury's income by however much the
     /// cadence exceeds a Day.
     /// </param>
+    /// <param name="profitTax">
+    /// Profit tax collected from Businesses' tills since the previous reading, already drained. A
+    /// drain rather than a last reading, for <paramref name="withheld"/>'s reason exactly — the
+    /// collection falls on every Day boundary, so a census on a slower cadence would keep one Day of
+    /// however many it covered.
+    /// </param>
     public void Observe(
         World world,
         Ticks tick,
@@ -299,7 +306,8 @@ public sealed class Census
         TripActivity trips = default,
         EmploymentActivity jobs = default,
         PolicyActivity policies = default,
-        MoneyFlow withheld = default)
+        MoneyFlow withheld = default,
+        MoneyFlow profitTax = default)
     {
         ArgumentNullException.ThrowIfNull(world);
 
@@ -388,6 +396,11 @@ public sealed class Census
         WriteMoney(
             _values, at + _moneyFlowBase, (int)MoneyFlowCounter.FromTreasury, policies.FromTreasury);
         WriteMoney(_values, at + _moneyFlowBase, (int)MoneyFlowCounter.Withheld, withheld);
+
+        // The fourth income path, and the second tax. It rides its own drain rather than Withheld's
+        // because the two are levied on different taxpayers under different tables -- see
+        // MoneyFlowCounter.ProfitTax -- and because two peaks do not add.
+        WriteMoney(_values, at + _moneyFlowBase, (int)MoneyFlowCounter.ProfitTax, profitTax);
 
         // The third income path, and the one that reached the treasury in silence until row 33. It
         // rides RuleActivity rather than PolicyActivity because it is the Bin Rule engine that moved
@@ -590,7 +603,8 @@ public sealed class Census
         {
             if (metric.MoneyFlowCounter is not (MoneyFlowCounter.ToTreasury
                 or MoneyFlowCounter.FromTreasury or MoneyFlowCounter.Withheld
-                or MoneyFlowCounter.RuleToTreasury or MoneyFlowCounter.RuleFromTreasury))
+                or MoneyFlowCounter.RuleToTreasury or MoneyFlowCounter.RuleFromTreasury
+                or MoneyFlowCounter.ProfitTax))
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(metric), metric.MoneyFlowCounter, "not a money movement this census reads.");

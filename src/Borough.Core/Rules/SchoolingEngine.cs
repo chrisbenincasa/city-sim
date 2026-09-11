@@ -443,6 +443,12 @@ internal sealed class SchoolingEngine
         _world.Withdraw(_world.Bins.Rows.At(purse), tuition, tick);
         _world.Deposit(_world.Bins.Rows.At(till), tuition, tick);
 
+        // plans/0072 D15: a Day of teaching is DELIVERED here, so it is revenue here. A service and
+        // not a Good -- no Bin falls, so there is no cost of goods to set against it, which is the
+        // one shipped sale with a single leg. Whatever the university spends on teaching it reaches
+        // the ledger as wages, on the Day those were earned.
+        BusinessAccounts.Serve(_world, business, tuition, tick);
+
         _tickTuition += tuition;
 
         return true;

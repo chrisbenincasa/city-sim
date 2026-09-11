@@ -817,8 +817,11 @@ public partial class Main : Node3D
     /// </remarks>
     private LineEdit[] _taxFields = [];
 
-    /// <summary>What the tax block says about the last <c>Tax</c> command.</summary>
+    /// <summary>What the income-tax block says about the last <c>Tax</c> command of its own.</summary>
     private Label _taxStatus = null!;
+
+    /// <summary>What the Business profit block says about the last <c>Tax</c> command of its own.</summary>
+    private Label _profitStatus = null!;
 
     /// <summary>
     /// Commands raised this frame, drained into the next <c>Step</c>.

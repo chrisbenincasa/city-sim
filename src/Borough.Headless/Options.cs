@@ -1794,15 +1794,17 @@ internal sealed class Options
                                 with no money says "conserved" and means nothing by it.
                                 rulesets/taxed.toml is the file written for it
           --income              dump the city's BUDGET: income against expenditure, one row a
-                                Day. Income is THREE columns -- tax withheld at the payday,
-                                money a [[policy]] moved to the treasury, and money a [[rule]]
-                                paid in off a premises -- because the three are the same
-                                arrival through different levers, and none is netted against
-                                expenditure. The treasury column is their running total less
-                                the two expenditure columns, exactly. Prints the [income_tax]
-                                bands above the table so the withheld column can be checked by
-                                hand against the wage. Steps its own world. Needs --ruleset
-                                stating [income_tax]; rulesets/taxing.toml is written for it
+                                Day. Income is FOUR columns -- tax withheld at the payday,
+                                profit tax collected off a Business's till at the Day
+                                boundary, money a [[policy]] moved to the treasury, and money
+                                a [[rule]] paid in off a premises -- because the four are the
+                                same arrival through different levers, and none is netted
+                                against expenditure. The treasury column is their running
+                                total less the two expenditure columns, exactly. Prints the
+                                [income_tax] and [business_tax] bands above the table so both
+                                tax columns can be checked by hand. Steps its own world. Needs
+                                --ruleset stating [income_tax]; rulesets/taxing.toml is
+                                written for it and is the one file stating [business_tax]
           --day                 follow ONE Citizen through one Day, Tick by Tick --
                                 where they went, when, and what it cost them. Every
                                 other mode aggregates; this one is a person. Needs

@@ -166,6 +166,19 @@ internal sealed class WageEngine(World world, WorldKey key)
                 continue;
             }
 
+            // 🔴 plans/0072 D15's wage expense, and it is ABOVE the payday test on purpose. Gross
+            // wages count against the Day they were EARNED, and this sweep is the one thing in the
+            // build that runs on every Day boundary -- Pay runs on paydays only. An employer on a
+            // seven-Day period that expensed its payroll where it paid it would post one huge loss
+            // and six clean profits a week, and D23's per-Day bands would read a city of steady
+            // trades as a city of failing ones. ***The pay period says when money moves and must
+            // not reach what a Day was worth.***
+            //
+            // ⚠ A walk of the worker list per employer per Day, which is what it costs. The
+            // alternative -- workers × WagePerDay -- is a different number, because WorkSchedule
+            // .Graded prices a Day by WHO worked it.
+            BusinessAccounts.Wages(_world, slot, DailyWageBill(slot, trade), tick);
+
             if (!IsPayday(slot, trade.PayPeriodDays, today))
             {
                 continue;
@@ -310,6 +323,35 @@ internal sealed class WageEngine(World world, WorldKey key)
         }
 
         _world.DestroyBusiness(_world.Businesses.Rows.At(slot));
+    }
+
+    /// <summary>
+    /// What one Day of this employer's payroll is worth, whether or not it is a payday and whether
+    /// or not the till could cover it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Graded per worker, which is <see cref="Pay"/>'s own line and its reason</b>: what a Day is
+    /// worth is a property of who worked it, so <c>workers × WagePerDay</c> is a different and
+    /// wrong number wherever a Ruleset grades a wage by Skill Tier or experience.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is an ENTITLEMENT and not a payment</b> (<c>plans/0072</c> D15). An employer that
+    /// cannot pay still owes the wage and still incurred the cost of the Day's work, so a Day's
+    /// expense does not shrink because the till was empty — the shortfall is a cash problem, which
+    /// is a different column and <see cref="Pay"/>'s.
+    /// </para>
+    /// </remarks>
+    private long DailyWageBill(int slot, in BusinessKindDefinition trade)
+    {
+        long bill = 0;
+
+        foreach (int worker in _world.Workers.Walk(slot))
+        {
+            bill += Borough.Core.Movement.WorkSchedule.Graded(_world, worker, trade.WagePerDay);
+        }
+
+        return bill;
     }
 
     /// <summary>Pays one Business's workers, in worker-list order, until the money runs out.</summary>

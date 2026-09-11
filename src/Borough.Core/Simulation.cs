@@ -42,6 +42,8 @@ public sealed class Simulation
     private readonly PolicyEngine _policies;
     private readonly WageEngine _wages;
     private PayrollReading _lastPayroll;
+    private readonly BusinessTaxEngine _profitTax;
+    private ProfitTaxReading _lastProfitTax;
     private readonly LifeStageEngine _lifeStages;
     private readonly SchoolingEngine _schooling;
     private LifeStageReading _lastLifeStages;
@@ -116,6 +118,7 @@ public sealed class Simulation
         _zoning = new ZoneRuleEngine(world, key);
         _policies = new PolicyEngine(world, key);
         _wages = new WageEngine(world, key);
+        _profitTax = new BusinessTaxEngine(world);
         _lifeStages = new LifeStageEngine(world);
         _schooling = new SchoolingEngine(world);
         _employment = new EmploymentEngine(world, key);
@@ -229,6 +232,17 @@ public sealed class Simulation
     /// </remarks>
     internal WageEngine Wages => _wages;
 
+    /// <summary>
+    /// The profit-tax collection, for the one thing about it that is a flow rather than a reading.
+    /// </summary>
+    /// <remarks>
+    /// <b><see cref="Wages"/>'s twin, and internal for its reason</b> — the only caller is
+    /// <c>Census.Observe</c>, which drains what the collections took. ⚠ <b>Not a substitute for
+    /// <see cref="LastProfitTax"/> and not substitutable by it</b>: that is the last sweep's reading
+    /// and this accumulates across every sweep since the last observation.
+    /// </remarks>
+    internal BusinessTaxEngine ProfitTax => _profitTax;
+
     /// <summary>What the most recent payday moved, or zeroes on a Tick that was not one.</summary>
     /// <remarks>
     /// <b>The last reading rather than a total</b>, so an instrument samples it and nothing
@@ -236,6 +250,16 @@ public sealed class Simulation
     /// and only then when some trade's payday fell on that Day.
     /// </remarks>
     public PayrollReading LastPayroll => _lastPayroll;
+
+    /// <summary>
+    /// What the most recent profit-tax collection took, or zeroes on a Tick that was not a Day's
+    /// first.
+    /// </summary>
+    /// <remarks>
+    /// <b>The last reading rather than a total</b>, on <see cref="LastPayroll"/>'s terms exactly, so
+    /// an instrument samples it and nothing accumulates across a run (<c>adr/0006</c>).
+    /// </remarks>
+    public ProfitTaxReading LastProfitTax => _lastProfitTax;
 
     /// <summary>What the last Life Stage sweep did. Zero on any Tick but a Day's first.</summary>
     public LifeStageReading LastLifeStages => _lastLifeStages;
@@ -597,7 +621,7 @@ public sealed class Simulation
         CommandKind.Trip => RefuseTrip(command, out _, out _, out _),
         CommandKind.Arrive => RefuseArrive(command, out _),
         CommandKind.Govern => RefuseGovern(command),
-        CommandKind.Tax => RefuseTax(command, _world.Tick, out _),
+        CommandKind.Tax => RefuseTax(command, _world.Tick, out _, out _),
         CommandKind.Demolish => RefuseDemolish(command, out _),
         CommandKind.Service => RefuseService(command, out _, out _),
         CommandKind.People => RefusePeople(),
@@ -690,21 +714,31 @@ public sealed class Simulation
     /// the pair that would result.
     /// </para>
     /// </remarks>
-    private Refusal RefuseTax(Command command, Ticks tick, out IncomeTaxSchedule updated)
+    private Refusal RefuseTax(
+        Command command,
+        Ticks tick,
+        out IncomeTaxSchedule earnings,
+        out BusinessTaxSchedule profit)
     {
         long today = IntegerMath.FloorDiv((long)tick.Raw, Ticks.PerDay);
         int value = command.East.Raw;
 
-        updated = _world.IncomeTaxRates.ScheduleFor(today + 1, _world.Rules.IncomeTax);
+        // Both pending schedules, because one verb addresses two of them and the caller cannot
+        // know which until the selector is read. Resolving both here keeps the fall-through to the
+        // Ruleset in one place.
+        earnings = _world.IncomeTaxRates.ScheduleFor(today + 1, _world.Rules.IncomeTax);
+        profit = _world.IncomeTaxRates.ProfitScheduleFor(today + 1, _world.Rules.BusinessTax);
 
-        if (command.Zone > (ushort)TaxControl.UpperRate)
+        if (command.Zone > (ushort)TaxControl.ProfitUpperRate)
         {
             return Refusal.TaxControlNotDeclared;
         }
 
         var control = (TaxControl)command.Zone;
 
-        if (control is TaxControl.MiddleRate or TaxControl.UpperRate && (value < 0 || value > 100))
+        if (control is TaxControl.MiddleRate or TaxControl.UpperRate
+                or TaxControl.ProfitLowerRate or TaxControl.ProfitUpperRate
+            && (value < 0 || value > 100))
         {
             return Refusal.TaxRateOutOfRange;
         }
@@ -714,20 +748,49 @@ public sealed class Simulation
             return Refusal.TaxAllowanceIsNegative;
         }
 
-        updated = control switch
+        if (control == TaxControl.ProfitThreshold && value < 0)
         {
-            TaxControl.Allowance => updated with { AllowancePerDay = value },
-            TaxControl.UpperThreshold => updated with { UpperThresholdPerDay = value },
-            TaxControl.MiddleRate => updated with { MiddleRatePercent = value },
-            _ => updated with { UpperRatePercent = value },
+            return Refusal.TaxProfitThresholdIsNegative;
+        }
+
+        if (TouchesProfit(control))
+        {
+            profit = control switch
+            {
+                TaxControl.ProfitThreshold => profit with { ThresholdPerDay = value },
+                TaxControl.ProfitLowerRate => profit with { LowerRatePercent = value },
+                _ => profit with { UpperRatePercent = value },
+            };
+
+            return profit.UpperRatePercent < profit.LowerRatePercent
+                ? Refusal.TaxProfitUpperRateBelowLowerRate
+                : Refusal.None;
+        }
+
+        earnings = control switch
+        {
+            TaxControl.Allowance => earnings with { AllowancePerDay = value },
+            TaxControl.UpperThreshold => earnings with { UpperThresholdPerDay = value },
+            TaxControl.MiddleRate => earnings with { MiddleRatePercent = value },
+            _ => earnings with { UpperRatePercent = value },
         };
 
-        return updated.UpperRatePercent < updated.MiddleRatePercent
+        return earnings.UpperRatePercent < earnings.MiddleRatePercent
                 ? Refusal.TaxUpperRateBelowMiddleRate
-            : updated.UpperThresholdPerDay < updated.AllowancePerDay
+            : earnings.UpperThresholdPerDay < earnings.AllowancePerDay
                 ? Refusal.TaxUpperThresholdBelowAllowance
             : Refusal.None;
     }
+
+    /// <summary>Whether a control belongs to the Business profit schedule.</summary>
+    /// <remarks>
+    /// ⚠ <b>The two schedules share this verb and nothing else.</b> A Citizen pays on what they
+    /// earned in a Day and a Business on what it made in one; neither band, rate or threshold
+    /// crosses between them.
+    /// </remarks>
+    private static bool TouchesProfit(TaxControl control) =>
+        control is TaxControl.ProfitThreshold or TaxControl.ProfitLowerRate
+            or TaxControl.ProfitUpperRate;
 
     /// <inheritdoc cref="ApplyDemolish"/>
     private Refusal RefuseDemolish(Command command, out int building)
@@ -876,6 +939,18 @@ public sealed class Simulation
             + "Citizen who earned a pound more would keep less. That is the schedule ceasing to be "
             + "monotone, which IncomeTax.WithholdingOn leans on to keep a withholding non-negative. "
             + "Move the upper rate first, then the middle one.",
+
+        Refusal.TaxProfitThresholdIsNegative =>
+            $"tax would set the Business profit threshold to {command.East.Raw}. It is where the "
+            + "upper band opens, and opening it below zero leaves the lower rate reading as a "
+            + "setting while applying to no profit that can exist. A Day that made a loss is "
+            + "already untaxed and needs no negative threshold to say so.",
+
+        Refusal.TaxProfitUpperRateBelowLowerRate =>
+            $"tax would leave the upper marginal profit rate at {command.East.Raw}, below the "
+            + "lower one. Both are marginal, so post-tax profit would step DOWNWARD at the "
+            + "threshold and a Business that made one unit more would keep less than one that made "
+            + "one unit less. Raise the upper rate before lowering the lower one.",
 
         Refusal.TaxUpperThresholdBelowAllowance =>
             $"tax would leave the upper band starting at {command.East.Raw}, at or below the "
@@ -1240,7 +1315,8 @@ public sealed class Simulation
     /// </remarks>
     private void ApplyTax(Command command, Ticks tick)
     {
-        Refusal refusal = RefuseTax(command, tick, out IncomeTaxSchedule updated);
+        Refusal refusal = RefuseTax(
+            command, tick, out IncomeTaxSchedule earnings, out BusinessTaxSchedule profit);
 
         if (refusal != Refusal.None)
         {
@@ -1249,7 +1325,16 @@ public sealed class Simulation
 
         long today = IntegerMath.FloorDiv((long)tick.Raw, Ticks.PerDay);
 
-        _world.IncomeTaxRates.Govern(today + 1, updated);
+        // Only the half the selector named. The two stamp independently, so writing both would
+        // pin the untouched schedule to whatever it reads as today and stop it falling through to
+        // the Ruleset on a later reload.
+        if (TouchesProfit((TaxControl)command.Zone))
+        {
+            _world.IncomeTaxRates.GovernProfit(today + 1, profit);
+            return;
+        }
+
+        _world.IncomeTaxRates.Govern(today + 1, earnings);
     }
 
     /// <summary>
@@ -1493,6 +1578,27 @@ public sealed class Simulation
     private void Wake(Ticks tick)
     {
         _phase = TickPhase.Wake;
+
+        // 🔴 FIRST IN THE TICK'S FIRST WRITING PHASE, AND THE ORDER IS THE WHOLE MECHANISM. A
+        // Business's Day figures stand until the first recognition of the NEXT Day rolls them to
+        // zero, and on a Day-boundary Tick three later phases do exactly that: phase 3's
+        // RuleEngine.Fire, phase 4's ShoppingEngine, and phase 6's WageEngine.Sweep, which accrues
+        // every employer's wage bill ABOVE its own payday test and therefore fires on every Day
+        // boundary there is. ***Behind any one of them this reads a rolled row, ProfitOn answers
+        // zero, and the city is never taxed*** -- with no other column of any readout changed.
+        //
+        // Phase 2 is read-only (adr/0037) and phase 0 is the player's, so phase 1 is the first place
+        // it can go, and it goes at the head: yesterday's books close before this Tick does anything.
+        // BusinessTaxPhaseOrderTests holds the line, because a comment here would survive the edit
+        // that broke it. BusinessTaxEngine.Sweep carries the argument in full.
+        //
+        // ⚠ AHEAD OF CollectDue rather than merely inside the phase. Withdraw and Deposit drain
+        // their Bins' wait lists and arm what they free, and World.Unlink names this exact window --
+        // before phase 1 has taken any due row out -- as the one where that is safe.
+        //
+        // ⚠ It is silent on every shipped Ruleset but taxing.toml: no other file states
+        // [business_tax], so the sweep returns on the Levies guard before it looks at a row.
+        _lastProfitTax = _profitTax.Sweep(tick);
 
         _world.Wheel.Cascade(tick);
         _rules.CollectDue(tick);

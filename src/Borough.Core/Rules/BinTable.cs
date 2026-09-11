@@ -1,5 +1,6 @@
 namespace Borough.Core.Rules;
 
+using Borough.Core.Arithmetic;
 using Borough.Core.Entities;
 using Borough.Core.Tables;
 
@@ -48,6 +49,12 @@ public sealed class BinTable
     /// </summary>
     private readonly Column<long> _level;
 
+    /// <summary>
+    /// What the contents cost. Private for <see cref="_level"/>'s reason — see
+    /// <see cref="CostAt"/>.
+    /// </summary>
+    private readonly Column<long> _cost;
+
     /// <param name="capacity">Initial slot count.</param>
     /// <param name="buildings">The table this one's <see cref="Owner"/> handles address.</param>
     public BinTable(int capacity, BuildingTable buildings)
@@ -60,6 +67,27 @@ public sealed class BinTable
         Owner = _rows.SavedHandle("owner", buildings.Rows);
         Resource = _rows.Saved<ResourceId>("resource");
         _level = _rows.Saved<long>("level", Touch.PerTick);
+
+        // 🔴 plans/0072 D24: what this Bin's contents COST, as one total rather than a per-unit
+        // average and rather than a queue of purchases. A purchase adds its payment; selling q of
+        // n units expenses FloorDiv(cost × q, n) and deducts exactly that. ***That is a weighted
+        // average without the second column***, and FIFO's alternative is a per-purchase queue on
+        // every Bin of every Business -- a variable-length collection under adr/0036 needing a sink
+        // of its own, to answer WHICH purchase a sale drew down, which nothing asks.
+        //
+        // ⚠ MEANINGFUL ONLY ON A GOODS BIN OWNED BY A BUSINESS, and left at zero everywhere else.
+        // A Household's larder and a Building's own Bin are not trading stock, so nothing writes
+        // this on them; a money Bin has no cost of acquisition at all.
+        //
+        // ⚠ Zero means THE CONTENTS COST NOTHING, which is a fact rather than an absence of one --
+        // rulesets/shopping.toml's `stock` rule is an output with no inputs, so a grocer's sundries
+        // really did arrive free and a sale of them really does expense nothing. There is no value
+        // in range meaning `unknown`, and a column that needed one would be a column with a
+        // sentinel.
+        //
+        // Cold on Touch's own wording -- it moves on a transaction and is never walked per Tick.
+        _cost = _rows.Saved<long>("cost", Touch.Cold);
+
         Capacity = _rows.Derived<long>("capacity");
         SupplyHead = _rows.Saved<int>("supply_wait_head", Touch.PerTick);
         SupplyTail = _rows.Saved<int>("supply_wait_tail", Touch.PerTick);
@@ -183,6 +211,93 @@ public sealed class BinTable
     public long LevelAt(int slot) => _level[slot];
 
     /// <summary>
+    /// What the contents of this Bin cost to acquire (<c>plans/0072</c> D24).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>It is a TOTAL and not a unit price</b>, so the per-unit figure a reader might want is
+    /// <c>CostAt / LevelAt</c> and is deliberately not stored. Selling part of the Bin takes its
+    /// share and leaves the rest, which is what makes unsold stock keep its cost across a Day
+    /// boundary (<c>plans/0072</c> D15).
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Zero is a real answer: these contents cost nothing.</b> It carries no <em>unknown</em>
+    /// case and needs none — see the declaration.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It means nothing at all on a Bin that is not a Business's stock.</b> Nothing writes it
+    /// elsewhere, so elsewhere it reads zero.
+    /// </para>
+    /// </remarks>
+    public long CostAt(int slot) => _cost[slot];
+
+    /// <summary>
+    /// Adds what a purchase paid to the cost this Bin's contents carry.
+    /// </summary>
+    /// <remarks>
+    /// <b>An acquisition is not yet an expense</b> (<c>plans/0072</c> D15). Buying stock moves money
+    /// and moves this column; what it does <em>not</em> move is the buyer's profit, which is exactly
+    /// the difference between simplified accrual and deducting the purchase on the day it was made.
+    /// </remarks>
+    internal void AddCost(int slot, long payment)
+    {
+        if (payment <= 0)
+        {
+            return;
+        }
+
+        _cost[slot] += payment;
+    }
+
+    /// <summary>
+    /// Takes the share of the stored cost belonging to <paramref name="quantity"/> of the
+    /// <paramref name="level"/> units that were standing before they left, and returns it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><paramref name="level"/> is the level BEFORE the withdrawal</b> and the caller has to pass
+    /// it, because by the time a sale is being accounted for the Bin has usually already given the
+    /// Goods up. Reading the level here would divide by what is left rather than by what was there.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>Selling everything leaves EXACTLY zero, and that is a branch rather than a rounding
+    /// result.</b> <c>FloorDiv(cost × n, n)</c> is <c>cost</c> for every <c>cost</c> and every
+    /// <c>n</c>, so the branch changes no answer — what it buys is that the guarantee does not rest
+    /// on <c>cost × n</c> staying inside a <c>long</c>. ***A residue left behind on an empty Bin
+    /// would be cost belonging to units that no longer exist***, and the next purchase would
+    /// average it into stock it was never paid for.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A <paramref name="level"/> of zero or less returns zero rather than dividing</b>, which
+    /// is the case a Bin emptied by something other than a sale reaches: stock consumed as a Rule
+    /// input leaves without being sold, and <c>plans/0072</c> D15 files production cost as still to
+    /// be designed. Until it is, that cost stays on the Bin.
+    /// </para>
+    /// </remarks>
+    internal long DrawCost(int slot, long quantity, long level)
+    {
+        if (quantity <= 0 || level <= 0 || _cost[slot] <= 0)
+        {
+            return 0;
+        }
+
+        if (quantity >= level)
+        {
+            long everything = _cost[slot];
+
+            _cost[slot] = 0;
+
+            return everything;
+        }
+
+        long share = IntegerMath.FloorDiv(_cost[slot] * quantity, level);
+
+        _cost[slot] -= share;
+
+        return share;
+    }
+
+    /// <summary>
     /// How much more this Bin can take before its capacity refuses.
     /// </summary>
     /// <remarks>
@@ -230,6 +345,7 @@ public sealed class BinTable
         Resource[slot] = resource;
         Capacity[slot] = capacity;
         _level[slot] = 0;
+        _cost[slot] = 0;
 
         return handle;
     }
@@ -253,6 +369,7 @@ public sealed class BinTable
         Resource[slot] = resource;
         Capacity[slot] = capacity;
         _level[slot] = 0;
+        _cost[slot] = 0;
 
         return handle;
     }

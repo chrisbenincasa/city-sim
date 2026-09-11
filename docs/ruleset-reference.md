@@ -25,7 +25,7 @@ dotnet run --project src/Borough.Headless -- \
 
 ## The sections
 
-39 sections, 258 keys.
+40 sections, 261 keys.
 
 - [`[[band]]`](#band) — 2 keys
 - [`[[building]]`](#building) — 19 keys
@@ -45,6 +45,7 @@ dotnet run --project src/Borough.Headless -- \
 - [`[[rule]] outputs`](#rule-outputs) — 4 keys
 - [`[[terrain]]`](#terrain) — 3 keys
 - [`[[zone_rule]]`](#zone_rule) — 7 keys
+- [`[business_tax]`](#business_tax) — 3 keys
 - [`[capacity]`](#capacity) — 4 keys
 - [`[care]`](#care) — 25 keys
 - [`[disasters]`](#disasters) — 3 keys
@@ -594,6 +595,22 @@ How long this Rule takes to look at every Lot once, in Ticks. The sample per tri
 **`zone`** · *whole number*
 
 Which permission bit a Lot must carry for this Rule to build on it — a bit index, not a mask. A bit no zone command can paint is refused, because the Rule would sample Lots for ever and build nothing.
+
+---
+
+## `[business_tax]`
+
+**`lower_rate_percent`** · *whole number*
+
+The share taken from profit below the threshold. There is no separate tax-free band in this schedule and no key for one -- writing zero here is how an author gets one, and the threshold then acts as the allowance.
+
+**`threshold_per_day`** · *whole number*
+
+The Day's profit at which the upper marginal band starts. Profit below it faces the lower rate and profit above it the upper rate, so the two bands meet here. It reads profit for a Day and never a Business's balance: a Day that made a loss is simply untaxed, and nothing is carried forward to the next one. Omitting the whole [business_tax] table means no profit is taxed at all.
+
+**`upper_rate_percent`** · *whole number*
+
+The share taken from profit above the threshold. It may not be below the lower rate: both are marginal, so a rate that fell as profit rose would make post-tax profit step downward at the threshold and a trade would keep less for having earned more. All three keys here are one decision — state every one or delete the table.
 
 ---
 

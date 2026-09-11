@@ -279,6 +279,15 @@ public sealed class RefusalTests
 
         Refusal.TaxUpperThresholdBelowAllowance => Command.Tax(TaxControl.UpperThreshold, -1),
 
+        // The profit schedule's pair, reached the same way. The default world authors no
+        // [business_tax] either, so the pending profit bands are all zero: a lower rate of 10 sits
+        // above an upper rate of 0. ⚠ The negative threshold is refused on its own VALUE rather
+        // than on the pair -- profit ranges below zero and its band boundary does not, which is the
+        // one place these two schedules do not mirror each other.
+        Refusal.TaxProfitUpperRateBelowLowerRate => Command.Tax(TaxControl.ProfitLowerRate, 10),
+
+        Refusal.TaxProfitThresholdIsNegative => Command.Tax(TaxControl.ProfitThreshold, -1),
+
         // ⚠ ONE COMMAND FOR TWO REFUSALS, because the verb carries no payload at all: what
         // distinguishes them is the WORLD it is applied to, which is what Case's world switch above
         // selects. The default world is a generated city, so it holds people.

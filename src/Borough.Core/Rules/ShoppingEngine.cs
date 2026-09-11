@@ -385,12 +385,21 @@ public sealed class ShoppingEngine
             amount = Min(amount, IntegerMath.FloorDiv(_world.Bins.Capacity[till] - _world.Bins.LevelAt(till), price));
         }
         if (amount <= 0) { Failure(row, ShoppingFailure.Unaffordable); return; }
+
+        // plans/0072 D15: a sale is recognised where the Goods are DELIVERED, which is here -- the
+        // Household takes the units away over the counter and the money crosses at the same moment.
+        // The stock level is read BEFORE the withdrawal because the cost of what left is a share of
+        // what was standing, and by the next line it is not standing any more (D24).
+        long stock = _world.Bins.LevelAt(bin);
+
         _world.Withdraw(_world.Bins.Rows.At(bin), amount, tick);
         if (price > 0)
         {
             _world.Withdraw(_world.Bins.Rows.At(purse), amount * price, tick);
             _world.Deposit(_world.Bins.Rows.At(till), amount * price, tick);
         }
+
+        BusinessAccounts.Deliver(_world, business, bin, amount, stock, amount * price, tick);
         _world.DistrictPools.Consumed[market] += amount;
         State.Cargo[row] = amount;
         State.UnservedSince[row] = default;

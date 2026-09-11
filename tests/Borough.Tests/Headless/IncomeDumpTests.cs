@@ -65,6 +65,30 @@ public sealed class IncomeDumpTests
         Assert.Contains("to 1,536 a Day, at 20%", report, Ordinal);
         Assert.Contains("above 1,536 a Day, at 40%", report, Ordinal);
         Assert.Contains("posts 2,048 a Day and pays every 7 Days.", report, Ordinal);
+
+        // CHANGE 6 of taxing.toml, and the same argument one taxpayer along: a profit-tax column is
+        // uninterpretable without the bands it came from.
+        Assert.Contains("lower band         to 65,536 profit a Day, at 10%", report, Ordinal);
+        Assert.Contains("upper band         above 65,536 a Day, at 20%", report, Ordinal);
+    }
+
+    /// <summary>
+    /// A file with an income tax and no profit tax says so rather than printing a zero column.
+    /// </summary>
+    /// <remarks>
+    /// <b>The polarity <c>--income</c> refuses for the OTHER schedule, and the difference is which
+    /// column the mode exists to show.</b> A file with no <c>[income_tax]</c> is refused outright,
+    /// because the withheld column is the subject; the profit tax is the fourth column, so an
+    /// absence is printed rather than fatal — and ***a stated absence and a schedule that takes
+    /// nothing are different cities***, which a column of zeroes could not tell apart.
+    /// </remarks>
+    [Fact]
+    public void A_file_with_no_profit_tax_says_so_instead_of_printing_zeroes()
+    {
+        string report = Dump("shopping-taxed.toml", Untaxed());
+
+        Assert.Contains("states no [business_tax]", report, Ordinal);
+        Assert.Equal(0, Column(report, 2));
     }
 
     /// <summary>
@@ -95,6 +119,41 @@ public sealed class IncomeDumpTests
         // one.
         Assert.True(
             gross.Spent > 0, "nothing was ever spent, so there is no expenditure to read against.");
+    }
+
+    /// <summary>
+    /// 🔴 The profit tax is an income column of its own, and on this file it is the largest one.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The two taxes are the pair most easily folded and the pair that must not be.</b> They are
+    /// levied under different tables on different payers — a rate in <c>[income_tax]</c> against a
+    /// wage on its way to a purse, a rate in <c>[business_tax]</c> against a till that was already
+    /// holding it — and <c>plans/0072</c>'s whole question is which of the two a city lives on. A
+    /// report that added them could not answer it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The magnitude comparison is the half that matters.</b> On <c>taxing.toml</c> the profit
+    /// tax is more than twenty times the withholding, because the file's shops take their stock from
+    /// an input-less Rule and so post a profit that is very nearly their whole revenue. A column that
+    /// has become the smaller one is reading something other than the collection.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_profit_tax_is_its_own_income_column_and_is_not_folded_into_the_withheld_one()
+    {
+        string report = Dump("taxing.toml");
+
+        Gross gross = OverTheRun(report);
+
+        Assert.True(gross.Profit > 0, "no Business ever paid a profit tax, so the column is empty.");
+        Assert.True(gross.Withheld > 0, "no payday withheld anything, so there is nothing to hold it apart from.");
+
+        Assert.True(
+            gross.Profit > gross.Withheld,
+            $"the profit tax collected {gross.Profit} against {gross.Withheld} withheld; on this "
+            + "file the profit tax is the larger of the two taxes, and a column that has become the "
+            + "smaller one is reading something other than the collection.");
     }
 
     /// <summary>
@@ -139,6 +198,7 @@ public sealed class IncomeDumpTests
         string report = Dump("taxing.toml");
 
         Assert.Contains("withheld", report, Ordinal);
+        Assert.Contains("profit tax", report, Ordinal);
         Assert.Contains("policy in", report, Ordinal);
         Assert.Contains("rule in", report, Ordinal);
         Assert.Contains("never netted", report, Ordinal);
@@ -165,12 +225,13 @@ public sealed class IncomeDumpTests
         Gross gross = OverTheRun(report);
 
         Assert.Equal(gross.Withheld, Column(report, 1));
-        Assert.Equal(gross.Policy, Column(report, 2));
-        Assert.Equal(gross.Rule, Column(report, 3));
-        Assert.Equal(gross.Spent, Column(report, 4));
-        Assert.Equal(gross.Drawn, Column(report, 5));
+        Assert.Equal(gross.Profit, Column(report, 2));
+        Assert.Equal(gross.Policy, Column(report, 3));
+        Assert.Equal(gross.Rule, Column(report, 4));
+        Assert.Equal(gross.Spent, Column(report, 5));
+        Assert.Equal(gross.Drawn, Column(report, 6));
 
-        long income = gross.Withheld + gross.Policy + gross.Rule;
+        long income = gross.Withheld + gross.Profit + gross.Policy + gross.Rule;
         long expenditure = gross.Spent + gross.Drawn;
 
         Assert.Equal(income - expenditure, Rows(report)[^1].Treasury);
@@ -256,7 +317,7 @@ public sealed class IncomeDumpTests
     public void The_mode_is_named_in_the_usage()
     {
         Assert.Contains("--income", Options.Usage, Ordinal);
-        Assert.Contains("Income is THREE columns", Options.Usage, Ordinal);
+        Assert.Contains("Income is FOUR columns", Options.Usage, Ordinal);
     }
 
     private const StringComparison Ordinal = StringComparison.Ordinal;
@@ -265,6 +326,7 @@ public sealed class IncomeDumpTests
     private readonly record struct BudgetRow(
         long Tick,
         long Withheld,
+        long Profit,
         long Policy,
         long Rule,
         long Spent,
@@ -294,14 +356,15 @@ public sealed class IncomeDumpTests
             string[] cells = line.Split(
                 "  ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-            if (cells.Length != 8)
+            if (cells.Length != 9)
             {
                 break;
             }
 
             rows.Add(new BudgetRow(
                 Number(cells[0]), Number(cells[1]), Number(cells[2]), Number(cells[3]),
-                Number(cells[4]), Number(cells[5]), Number(cells[6]), Number(cells[7])));
+                Number(cells[4]), Number(cells[5]), Number(cells[6]), Number(cells[7]),
+                Number(cells[8])));
         }
 
         Assert.NotEmpty(rows);
@@ -319,10 +382,11 @@ public sealed class IncomeDumpTests
             total += index switch
             {
                 1 => row.Withheld,
-                2 => row.Policy,
-                3 => row.Rule,
-                4 => row.Spent,
-                5 => row.Drawn,
+                2 => row.Profit,
+                3 => row.Policy,
+                4 => row.Rule,
+                5 => row.Spent,
+                6 => row.Drawn,
                 _ => throw new ArgumentOutOfRangeException(nameof(index), index, "not a flow column."),
             };
         }
@@ -330,10 +394,11 @@ public sealed class IncomeDumpTests
         return total;
     }
 
-    /// <summary>The five gross figures from the budget's closing sentences.</summary>
+    /// <summary>The six gross figures from the budget's closing sentences.</summary>
     private static Gross OverTheRun(string report)
     {
-        // "  Into the treasury: N withheld from wages, M by a Policy, R by a Bin Rule."
+        // "  Into the treasury: N withheld from wages, P in profit tax, M by a Policy, R by a Bin
+        //  Rule."
         string[] into = Line(report, "  Into the treasury:")
             .Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
@@ -342,13 +407,13 @@ public sealed class IncomeDumpTests
             .Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
         return new Gross(
-            Number(into[3]), Number(into[7]), Number(into[11]),
+            Number(into[3]), Number(into[7]), Number(into[11]), Number(into[15]),
             Number(outOf[3]), Number(outOf[7]));
     }
 
-    /// <summary>The budget's five closing figures, named so a caller cannot transpose two.</summary>
+    /// <summary>The budget's six closing figures, named so a caller cannot transpose two.</summary>
     private readonly record struct Gross(
-        long Withheld, long Policy, long Rule, long Spent, long Drawn);
+        long Withheld, long Profit, long Policy, long Rule, long Spent, long Drawn);
 
     private static long Number(string cell) =>
         long.Parse(cell.Replace(",", string.Empty, Ordinal), CultureInfo.InvariantCulture);
@@ -361,13 +426,38 @@ public sealed class IncomeDumpTests
     private static string Ruleset(string name) =>
         Path.Combine(AppContext.BaseDirectory, "Rulesets", name);
 
-    private static string Dump(string ruleset)
+    private static string Dump(string ruleset, string? path = null)
     {
-        (int code, string report) = Run(Ruleset(ruleset));
+        (int code, string report) = Run(path ?? Ruleset(ruleset));
 
         Assert.Equal(0, code);
 
         return report;
+    }
+
+    /// <summary>
+    /// <c>rulesets/taxing.toml</c> with its <c>[business_tax]</c> table cut, written to a temporary
+    /// file.
+    /// </summary>
+    /// <remarks>
+    /// <b>The shipped file minus one table rather than a second fixture</b>, so the two runs differ
+    /// in nothing else — which is what makes
+    /// <see cref="A_file_with_no_profit_tax_says_so_instead_of_printing_zeroes"/> a statement about
+    /// the table. ⚠ <b>The LAST occurrence</b>: the header names the table several times before
+    /// declaring it.
+    /// </remarks>
+    private static string Untaxed()
+    {
+        string text = File.ReadAllText(Ruleset("taxing.toml"));
+        int at = text.LastIndexOf("[business_tax]", Ordinal);
+
+        Assert.True(at > 0, "rulesets/taxing.toml no longer declares [business_tax].");
+
+        string path = Path.Combine(Path.GetTempPath(), $"borough-untaxed-{Guid.NewGuid():N}.toml");
+
+        File.WriteAllText(path, text[..at]);
+
+        return path;
     }
 
     private static (int Code, string Report) Run(

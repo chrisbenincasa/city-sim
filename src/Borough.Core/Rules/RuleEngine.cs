@@ -219,6 +219,19 @@ public sealed class RuleEngine
     private long[] _boughtAmount = new long[4];
     private int _boughtCount;
 
+    // The same purchases again, from the two TRADERS' side rather than the market's -- who sold,
+    // out of which Bin, how much and for what, plus the Bin the Good lands in on the buyer's side.
+    // plans/0072 D15: one pool trade is a sale for one party and stock arriving for the other, and
+    // the netted deltas cannot tell them apart -- by the time Fire sees them a seller's stock Bin
+    // and a buyer's are both just Bins with a sign. Per application, like _boughtAmount, and scaled
+    // by the verdict's count in Fire.
+    private int[] _tradeSeller = new int[4];
+    private int[] _tradeStock = new int[4];
+    private int[] _tradeLanding = new int[4];
+    private long[] _tradeAmount = new long[4];
+    private long[] _tradePayment = new long[4];
+    private int _tradeCount;
+
     // 02 §4's counters. The first three are the Tick in flight; CloseTick folds them into the second
     // three, which are the interval a Census reading drains.
     private int _tickDue;
@@ -548,6 +561,7 @@ public sealed class RuleEngine
 
         _touchedCount = 0;
         _boughtCount = 0;
+        _tradeCount = 0;
 
         foreach (Term term in _world.Rules.Inputs(rule))
         {
@@ -759,6 +773,60 @@ public sealed class RuleEngine
         _boughtAmount[_boughtCount] = term.Amount;
         _boughtCount++;
 
+        // 🔴 THE DIRECTION, recorded here because this is the only place that still knows it.
+        // adr/0050: the Good moves one way and money the other. The SELLER delivered Goods out of
+        // seller.Bin and was paid, which is revenue and a cost of goods (plans/0072 D15). The BUYER
+        // paid for stock, which is not an expense and not revenue -- it is cost carried on the Bin
+        // the stock lands in, until it is sold on (D24). ***Reading the buyer's payment as revenue
+        // would invert the sign of every profit figure in the city***, which is why the two legs
+        // are posted through two differently named methods rather than one with a flag.
+        Grow(ref _tradeSeller, _tradeCount + 1);
+        Grow(ref _tradeStock, _tradeCount + 1);
+        Grow(ref _tradeLanding, _tradeCount + 1);
+        Grow(ref _tradeAmount, _tradeCount + 1);
+        Grow(ref _tradePayment, _tradeCount + 1);
+
+        _tradeSeller[_tradeCount] = seller.Business;
+        _tradeStock[_tradeCount] = seller.Bin;
+        _tradeLanding[_tradeCount] = Landing(instance, rule, term.Bin.Resource);
+        _tradeAmount[_tradeCount] = term.Amount;
+        _tradePayment[_tradeCount] = payment;
+        _tradeCount++;
+
+        return Rows.NoSlot;
+    }
+
+    /// <summary>
+    /// The Bin a <c>pool</c> purchase's Good lands in on the buyer's side, or
+    /// <see cref="Rows.NoSlot"/> when it lands nowhere.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Off the Rule's OUTPUT terms and not off the buyer's Bin list</b>, and the difference is
+    /// the whole of what this method is for. <c>Buy</c> takes the Good out of the seller's Bin and
+    /// puts it nowhere; a Rule that wants to <em>hold</em> what it bought says so with a matching
+    /// local output — <c>rulesets/shopping.toml</c>'s <c>restock</c> is <c>pool</c> in and
+    /// <c>local</c> out of the same Resource, which is a shop restocking. Asking the buyer's Bin
+    /// list instead would find a Bin whether or not the Good ever reached it, and would put the
+    /// cost of an input a Rule <em>consumed</em> onto stock it did not buy.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Nowhere is a legitimate answer and its accounting is deliberately absent.</b> A Rule
+    /// that buys a Good and consumes it in the same firing has incurred a production cost, and
+    /// <c>plans/0072</c> D15 files production cost as still to be designed. Recording it as an
+    /// expense here would be answering that question in a helper.
+    /// </para>
+    /// </remarks>
+    private int Landing(int instance, RuleId rule, ResourceId resource)
+    {
+        foreach (Term term in _world.Rules.Outputs(rule))
+        {
+            if (term.Bin.Scope == Scope.Local && term.Bin.Resource == resource)
+            {
+                return Bin(_world, instance, term.Bin, rule);
+            }
+        }
+
         return Rows.NoSlot;
     }
 
@@ -812,6 +880,30 @@ public sealed class RuleEngine
         // duration means continuous starvation rather than time since the last complaint.
         _world.RuleInstances.Reported[instance] = ConditionId.None;
         _world.RuleInstances.StarvedSince[instance] = default;
+
+        // 🔴 BEFORE the deltas and not after, because the cost of what a seller sold is a share of
+        // what the seller was HOLDING (plans/0072 D24) and the loop below is what stops it holding
+        // it. Posted here rather than in Check for DistrictPoolTable.Consumed's reason exactly: a
+        // Rule that was evaluated and then blocked has sold nothing, and Phase 2 writes nothing
+        // (adr/0037).
+        //
+        // ⚠ Zero applications is the Marketless success, and every call below is a no-op at zero.
+        for (int i = 0; i < _tradeCount; i++)
+        {
+            long sold = _tradeAmount[i] * verdict.Applications;
+            long paid = _tradePayment[i] * verdict.Applications;
+
+            BusinessAccounts.Deliver(
+                _world,
+                _tradeSeller[i],
+                _tradeStock[i],
+                sold,
+                _world.Bins.LevelAt(_tradeStock[i]),
+                paid,
+                tick);
+
+            BusinessAccounts.Stock(_world, _tradeLanding[i], paid);
+        }
 
         for (int i = 0; i < _touchedCount; i++)
         {

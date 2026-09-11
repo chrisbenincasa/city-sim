@@ -5,8 +5,8 @@ using Borough.Core.Rules;
 using Borough.Core.Tables;
 
 /// <summary>
-/// The Citizen income-tax schedules in force, one row per Day that any unpaid wage could still
-/// be attributed to.
+/// The tax schedules in force — Citizen income and Business profit both — one row per Day that any
+/// unpaid wage could still be attributed to.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -50,6 +50,10 @@ public sealed class IncomeTaxTable
         MiddleRate = _rows.Saved<int>("middle_rate", Touch.Cold);
         UpperRate = _rows.Saved<int>("upper_rate", Touch.Cold);
         Stamped = _rows.Saved<byte>("stamped", Touch.Cold);
+        ProfitStamped = _rows.Saved<byte>("profit_stamped", Touch.Cold);
+        ProfitThreshold = _rows.Saved<long>("profit_threshold", Touch.Cold);
+        ProfitLowerRate = _rows.Saved<int>("profit_lower_rate", Touch.Cold);
+        ProfitUpperRate = _rows.Saved<int>("profit_upper_rate", Touch.Cold);
 
         _rows.Seal();
 
@@ -79,6 +83,75 @@ public sealed class IncomeTaxTable
 
     /// <summary>Whether this row holds a schedule at all.</summary>
     public Column<byte> Stamped { get; }
+
+    /// <summary>Whether this row holds a Business profit schedule.</summary>
+    /// <remarks>
+    /// 🔴 <b>Separate from <see cref="Stamped"/>, and the separation is load-bearing.</b> A player
+    /// who moves an earnings rate in a world whose Ruleset authored <c>[business_tax]</c> must not
+    /// thereby set the profit bands to zero — which is what one shared stamp would do, silently
+    /// switching the profit tax off on the Day somebody adjusted an unrelated number.
+    /// </remarks>
+    public Column<byte> ProfitStamped { get; }
+
+    /// <summary>The Day's Business profit at which the upper marginal band starts.</summary>
+    public Column<long> ProfitThreshold { get; }
+
+    /// <summary>The marginal rate on Business profit below the threshold, as a percentage.</summary>
+    public Column<int> ProfitLowerRate { get; }
+
+    /// <summary>The marginal rate on Business profit above the threshold, as a percentage.</summary>
+    public Column<int> ProfitUpperRate { get; }
+
+    /// <summary>
+    /// Whether any Business profit schedule this world could consult takes anything at all.
+    /// </summary>
+    public bool Taxes(in BusinessTaxSchedule authored)
+    {
+        if (authored.Levies)
+        {
+            return true;
+        }
+
+        for (int slot = 0; slot < Retained; slot++)
+        {
+            if (ProfitStamped[slot] != 0
+                && (ProfitLowerRate[slot] > 0 || ProfitUpperRate[slot] > 0))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// The Business profit schedule that governs a Day, falling through to what the Ruleset
+    /// authored when the player has set nothing that reaches it.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>It shares this table's ring with the income tax and needs almost none of its depth.</b>
+    /// Profit is assessed the Day after it is made (<c>plans/0072</c> D23) and nothing is ever
+    /// assessed late, so two Days would do. It sits here anyway because ***the two schedules are
+    /// governed by one verb and change on one Day boundary***, and splitting them would be two
+    /// tables holding one effective Day between them.
+    /// </remarks>
+    public BusinessTaxSchedule ProfitScheduleFor(long day, in BusinessTaxSchedule authored)
+    {
+        long oldest = day - Retained + 1;
+
+        for (long probe = day; probe >= oldest && probe >= 0; probe--)
+        {
+            int slot = (int)(probe % Retained);
+
+            if (ProfitStamped[slot] != 0 && EffectiveFrom[slot] == probe)
+            {
+                return new BusinessTaxSchedule(
+                    ProfitThreshold[slot], ProfitLowerRate[slot], ProfitUpperRate[slot]);
+            }
+        }
+
+        return authored;
+    }
 
     /// <summary>
     /// Whether any schedule this world could consult takes anything at all.
@@ -116,12 +189,43 @@ public sealed class IncomeTaxTable
     {
         int slot = (int)(day % Retained);
 
+        // ⚠ A row recycled onto a different Day carries no profit schedule into it. The two
+        // halves stamp independently, so the other half's stamp has to be cleared or an entry from
+        // 32 Days ago is read as this Day's.
+        if (EffectiveFrom[slot] != day)
+        {
+            ProfitStamped[slot] = 0;
+        }
+
         EffectiveFrom[slot] = day;
         Allowance[slot] = schedule.AllowancePerDay;
         UpperThreshold[slot] = schedule.UpperThresholdPerDay;
         MiddleRate[slot] = schedule.MiddleRatePercent;
         UpperRate[slot] = schedule.UpperRatePercent;
         Stamped[slot] = 1;
+    }
+
+    /// <summary>Records a Business profit schedule taking effect from the start of a Day.</summary>
+    /// <remarks>
+    /// <b><see cref="Govern"/>'s counterpart.</b> The two halves of a row stamp independently, so
+    /// setting a profit band leaves an earnings schedule already stamped for this Day alone and
+    /// clears one inherited from a Day the row has been recycled away from.
+    /// </remarks>
+    public void GovernProfit(long day, in BusinessTaxSchedule schedule)
+    {
+        int slot = (int)(day % Retained);
+
+        if (EffectiveFrom[slot] != day)
+        {
+            Stamped[slot] = 0;
+        }
+
+        EffectiveFrom[slot] = day;
+        ProfitStamped[slot] = 1;
+
+        ProfitThreshold[slot] = schedule.ThresholdPerDay;
+        ProfitLowerRate[slot] = schedule.LowerRatePercent;
+        ProfitUpperRate[slot] = schedule.UpperRatePercent;
     }
 
     /// <summary>

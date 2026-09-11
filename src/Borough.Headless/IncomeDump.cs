@@ -22,14 +22,17 @@ using Borough.Formats;
 /// so the report has to say which of the two brought the money in.
 /// </para>
 /// <para>
-/// 🔴 <b>Income is printed in three columns and expenditure in two, and none of the five is netted
+/// 🔴 <b>Income is printed in four columns and expenditure in two, and none of the six is netted
 /// against another.</b> <c>MoneyFlowCounter.FromTreasury</c>'s own remark carries the argument: a net
 /// is the one figure that cannot say whether a city taxed nothing and paid nothing or taxed heavily
 /// and paid it all back. The split within income is the same argument one level down — money an
 /// employer <em>withheld</em> before a Household ever held it, money a <c>[[policy]]</c>
-/// <em>moved</em> out of a purse that did, and money a <c>[[rule]]</c> <em>paid in</em> off a
-/// premises are one arrival through three levers, and a city that swapped one for another would show
-/// a flat total under a changed file.
+/// <em>moved</em> out of a purse that did, money a <c>[[rule]]</c> <em>paid in</em> off a premises,
+/// and a <b>profit tax</b> taken off a trade's own till are one arrival through four levers, and a
+/// city that swapped one for another would show a flat total under a changed file. ⚠ <b>The two
+/// taxes are the pair most easily folded and the pair that must not be</b>: they are levied under
+/// different tables, on different payers, and <c>plans/0072</c>'s whole question is which of the two
+/// a city lives on.
 /// </para>
 /// <para>
 /// 🔴 <b>The rule column is why the balance column can be read at all.</b> Before it, a Bin Rule
@@ -159,6 +162,8 @@ internal static class IncomeDump
         output.WriteLine(
             "  wage is taxed as seven Days and not as one enormous one.");
 
+        Profits(output, rules);
+
         foreach ((byte kind, BusinessKindDefinition trade) in Trades(rules))
         {
             string trading = names.BusinessKind(kind)
@@ -168,6 +173,61 @@ internal static class IncomeDump
             output.WriteLine(F(
                 $"  A \"{trading}\" posts {trade.WagePerDay:N0} a Day and pays every {trade.PayPeriodDays:N0} Days."));
         }
+    }
+
+    /// <summary>
+    /// The profit-tax bands, printed under the income-tax ones for the same reason they are.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Two marginal bands and no allowance, and the absence is the decision</b> —
+    /// <c>plans/0072</c> D8. An author wanting relief on modest profits writes a lower rate of zero
+    /// and the threshold becomes the allowance, so a third key would be a second spelling of a city
+    /// that is already writable. ⚠ <b>That is why this block prints a <em>lower band</em> where the
+    /// income-tax block above prints an <em>allowance</em></b>: they are not the same shape, and a
+    /// report that printed them as one would be teaching the wrong file format.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A file stating no <c>[business_tax]</c> says so rather than printing three zeroes.</b>
+    /// <c>--income</c> refuses a file with no <c>[income_tax]</c> because the column it exists to
+    /// show would be empty; the profit tax is the fourth column and not the mode's subject, so an
+    /// absence here is legible rather than fatal — and ***a stated absence and a schedule that takes
+    /// nothing are different cities***, which three zeroes could not tell apart.
+    /// </para>
+    /// </remarks>
+    private static void Profits(TextWriter output, Ruleset rules)
+    {
+        BusinessTaxSchedule schedule = rules.BusinessTax;
+
+        output.WriteLine();
+
+        if (!schedule.Levies)
+        {
+            output.WriteLine(
+                "  This Ruleset states no [business_tax] that takes anything, so the profit tax");
+            output.WriteLine(
+                "  column below is zero throughout and no Business is ever assessed.");
+
+            return;
+        }
+
+        output.WriteLine(F(
+            $"  lower band         to {schedule.ThresholdPerDay:N0} profit a Day, at {schedule.LowerRatePercent:N0}%"));
+        output.WriteLine(F(
+            $"  upper band         above {schedule.ThresholdPerDay:N0} a Day, at {schedule.UpperRatePercent:N0}%"));
+        output.WriteLine();
+        output.WriteLine(
+            "  Marginal too, and read against ONE DAY's PROFIT -- revenue recognised on the Day the");
+        output.WriteLine(
+            "  Goods were delivered, less the cost of that stock and less the whole of the Day's");
+        output.WriteLine(
+            "  gross wage bill, whether or not that Day was a payday. A loss is simply an untaxed");
+        output.WriteLine(
+            "  Day and there is no carry-forward, and a till that cannot cover its bill pays what");
+        output.WriteLine(
+            "  it has and the rest is forgiven -- so the column is what was COLLECTED and never");
+        output.WriteLine(
+            "  what was assessed. There is no allowance key: a lower rate of 0 is how one is spelt.");
     }
 
     /// <summary>Every declared trade that actually posts a wage, in declaration order.</summary>
@@ -195,7 +255,7 @@ internal static class IncomeDump
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Eight columns and no ninth that adds any of them up.</b> The treasury column is already the
+    /// <b>Nine columns and no tenth that adds any of them up.</b> The treasury column is already the
     /// running consequence of the five flows, so a net column would be its first difference and
     /// would carry nothing the table does not have — while costing the reader the one distinction
     /// the table exists to make. <b>The households column is the counterparty</b>: a budget that
@@ -216,6 +276,7 @@ internal static class IncomeDump
         Series treasury = census.Series(Metric.Of(MoneyCounter.Treasury), window);
         Series households = census.Series(Metric.Of(MoneyCounter.Households), window);
         Series withheld = census.Series(Metric.Of(MoneyFlowCounter.Withheld, Aggregate.Sum), window);
+        Series profits = census.Series(Metric.Of(MoneyFlowCounter.ProfitTax, Aggregate.Sum), window);
         Series levied = census.Series(Metric.Of(MoneyFlowCounter.ToTreasury, Aggregate.Sum), window);
         Series spent =
             census.Series(Metric.Of(MoneyFlowCounter.FromTreasury, Aggregate.Sum), window);
@@ -228,6 +289,7 @@ internal static class IncomeDump
         var columns = new Columns(
             households.Samples.Span,
             withheld.Samples.Span,
+            profits.Samples.Span,
             levied.Samples.Span,
             ruled.Samples.Span,
             spent.Samples.Span,
@@ -237,8 +299,8 @@ internal static class IncomeDump
         output.WriteLine();
 
         string header = Row(
-            "tick", "withheld", "policy in", "rule in", "policy out", "rule out", "treasury",
-            "households");
+            "tick", "withheld", "profit tax", "policy in", "rule in", "policy out", "rule out",
+            "treasury", "households");
         output.WriteLine(header);
         output.WriteLine(new string('-', header.Length));
 
@@ -268,6 +330,7 @@ internal static class IncomeDump
         }
 
         long income = Total(columns.Withheld);
+        long profit = Total(columns.Profits);
         long moved = Total(columns.Levied);
         long paidIn = Total(columns.Ruled);
         long out_ = Total(columns.Spent);
@@ -275,22 +338,26 @@ internal static class IncomeDump
 
         output.WriteLine();
         output.WriteLine(F(
-            $"  Into the treasury: {income:N0} withheld from wages, {moved:N0} by a Policy, {paidIn:N0} by a Bin Rule."));
+            $"  Into the treasury: {income:N0} withheld from wages, {profit:N0} in profit tax, {moved:N0} by a Policy, {paidIn:N0} by a Bin Rule."));
         output.WriteLine(F(
             $"  Out of it: {out_:N0} by a Policy, {drawnOut:N0} by a Bin Rule."));
         output.WriteLine(
-            "  The five are printed apart and never netted. A net cannot say whether a city taxed");
+            "  The six are printed apart and never netted. A net cannot say whether a city taxed");
         output.WriteLine(
             "  nothing and paid nothing or taxed heavily and paid it all back; and within the");
         output.WriteLine(
-            "  income, a withholding, a levy and a rates bill are the same arrival through three");
+            "  income, a withholding, a profit tax, a levy and a rates bill are the same arrival");
         output.WriteLine(
-            "  different levers -- a rate in [income_tax], an amount in a [[policy]], and an output");
+            "  through four levers -- a rate in [income_tax], a rate in [business_tax], an amount in");
         output.WriteLine(
-            "  term in a [[rule]].");
+            "  a [[policy]], and an output term in a [[rule]]. The two taxes also fall on different");
+        output.WriteLine(
+            "  payers: one leaves a wage on its way to a purse, the other leaves a till that was");
+        output.WriteLine(
+            "  already holding it.");
         output.WriteLine();
         output.WriteLine(
-            "  The treasury column is these five columns' running total, and nothing else reaches");
+            "  The treasury column is these six columns' running total, and nothing else reaches");
         output.WriteLine(
             "  it: every unit of the balance is explained by the flows printed beside it.");
     }
@@ -306,6 +373,7 @@ internal static class IncomeDump
     private readonly ref struct Columns(
         ReadOnlySpan<CensusSample> homes,
         ReadOnlySpan<CensusSample> withheld,
+        ReadOnlySpan<CensusSample> profits,
         ReadOnlySpan<CensusSample> levied,
         ReadOnlySpan<CensusSample> ruled,
         ReadOnlySpan<CensusSample> spent,
@@ -314,6 +382,9 @@ internal static class IncomeDump
         public ReadOnlySpan<CensusSample> Homes { get; } = homes;
 
         public ReadOnlySpan<CensusSample> Withheld { get; } = withheld;
+
+        /// <summary>What the Day-boundary collection took off the Businesses' tills.</summary>
+        public ReadOnlySpan<CensusSample> Profits { get; } = profits;
 
         public ReadOnlySpan<CensusSample> Levied { get; } = levied;
 
@@ -330,6 +401,7 @@ internal static class IncomeDump
         output.WriteLine(Row(
             F($"{levels[i].Tick.Raw:N0}"),
             Cell(columns.Withheld, i),
+            Cell(columns.Profits, i),
             Cell(columns.Levied, i),
             Cell(columns.Ruled, i),
             Cell(columns.Spent, i),
@@ -384,8 +456,9 @@ internal static class IncomeDump
     }
 
     private static string Row(
-        string label, string a, string b, string c, string d, string e, string f, string g) =>
-        F($"{label,-10}  {a,11}  {b,11}  {c,11}  {d,11}  {e,11}  {f,14}  {g,14}");
+        string label, string a, string b, string c, string d, string e, string f, string g,
+        string h) =>
+        F($"{label,-10}  {a,11}  {b,11}  {c,11}  {d,11}  {e,11}  {f,11}  {g,14}  {h,14}");
 
     private static string Count(long value) => F($"{value:N0}");
 

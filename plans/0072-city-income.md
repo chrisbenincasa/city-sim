@@ -247,8 +247,8 @@ Ordered by dependency. Each ships with its tests before the next starts.
 
 | Phase | What | Decisions |
 |---|---|---|
-| **A** | Citizen income tax withheld at the wage payment; three bands; four player controls; the earning Day's schedule | D1–D7 |
-| **B** | Business revenue, expenses and profit on a simplified accrual basis; two profit bands; collection | D1, D8, D15 |
+| **A** ✅ | Citizen income tax withheld at the wage payment; three bands; four player controls; the earning Day's schedule | D1–D7 |
+| **B** ✅ | Business revenue, expenses and profit on a simplified accrual basis; two profit bands; collection | D1, D8, D15 |
 | **C** | The targeted policy catalogue — charges, relief and funded subsidies, with proportional rationing | D9–D14 |
 | **D** | The budget the player reads income and expenditure off, the demonstration Ruleset and the acceptance run | — |
 
@@ -474,3 +474,108 @@ defect: a part-paid payday closes a short Day, which is taxed in a lower band.
 All nine tasks. The tax is withheld at the payday, the player sets four rates from the panel, the
 earning Day's schedule survives a late payment, the budget states income against expenditure and
 **the treasury balance is exactly explained by the flows beside it**. Phases B, C and D remain.
+
+## Phase B decisions
+
+### D23 — Business profit is assessed per Day
+
+Accepted by the user on 2026-09-10. The same cadence as the Citizen tax, and for the same reason
+D4 gives: it needs no calendar, which `adr/0010` refuses the game outright. A Business that has a bad
+Day owes nothing for it. ⚠ **A trade with lumpy sales pays more over a span than a steady one with
+the same total** — the identical wrinkle D4 already accepted on the Citizen side, and it is accepted
+here rather than smoothed.
+
+### D24 — stock carries its total cost, and a sale expenses its share
+
+Accepted by the user on 2026-09-10 as a weighted average. **Implemented as a total rather than an
+average**, which is the same arithmetic without the second column: a stock Bin carries what its
+contents cost, a purchase adds the payment to it, and selling `q` of `n` units expenses
+`FloorDiv(cost × q, n)` and deducts it. ***One saved column per Bin and no collection***, where FIFO
+would need a per-purchase queue on every Bin of every Business — a variable-length collection under
+`adr/0036`, with a sink of its own. What is given up is being able to say which purchase a sale drew
+down, which nothing asks.
+
+### D25 — a short till pays what it has and the rest is forgiven
+
+Accepted by the user on 2026-09-10. D5 already settles the identical question on the Citizen side:
+unpaid wages generate no collectible tax debt. Carrying the shortfall would need a saved arrears
+column **and a sink**, or it is a magnitude trending upward at steady state, which `adr/0006` forbids
+outright. No collection may push a till negative.
+
+### D26 — a loss is simply an untaxed Day
+
+Accepted by the user on 2026-09-10. D8 already says a loss-making Business owes no profit tax; this
+adds nothing to it. No carry-forward, so no saved carried-loss column and no bound for it. ⚠ **A
+Business that loses money one Day and profits the next pays in full on the profitable Day**, and that
+is the consequence of the daily cadence rather than a separate decision.
+
+### D27 — both schedules live in one ring, stamped independently
+
+One row per effective Day carries the earnings schedule and the profit schedule together, because
+D19's *from the start of the next Day* is the same sentence for both and a second table would be a
+second copy of that rule. ⚠ **The two halves stamp separately.** With a shared stamp, governing an
+earnings rate in a world whose Ruleset authored `[business_tax]` would zero every profit band on the
+way past — no refusal, no diagnostic, just a tax that stopped collecting. A recycled slot clears the
+*other* half's stamp only when the row lands on a different Day; clearing it on every write wipes the
+schedule just set.
+
+🔴 **This was a real defect and a test written straight after the code caught it**, which is the
+second such catch in the row.
+
+## Phase B findings
+
+### F16 — a Rule's `Touch` moves no money, and reading it as though it did inverts the books
+
+`RuleEngine.Touch` stages a scratch delta during Phase 2's `Check`, which runs for every due Rule,
+for every rung of a failed chain, and again for Phase 3's re-check — and can end in `Stopped` having
+moved nothing. **The write is `Fire`.** Recognising revenue at `Touch` would have counted
+evaluations rather than sales, over-reporting every blocked Rule and every chain rung.
+
+⚠ **The same misreading arrived twice in one day from opposite directions** — F11's treasury
+accounting hit it too — which makes it a property of the file rather than of either task.
+`RuleEngine.Buy` resolves a `pool` input into the seller's stock down, the buyer's purse down and
+***the seller's till up***: the seller is the one making the sale. Two named doors rather than one
+with a flag, so a call site cannot get the direction wrong silently.
+
+### F17 — a bought Good does not land in a Bin by itself
+
+`Buy` debits the seller and nothing else. A Rule that means to *hold* what it bought says so with a
+matching `local` output; no such term means the Good was **consumed**, which is a production cost
+and D15 files that as still to be designed. ⚠ **Reading the buyer's Bin list instead would put the
+cost onto stock it never bought.**
+
+### F18 — the demonstration world's stock is free, so it shows the tax and not the accrual
+
+In `taxing.toml` the pool buyer is a **Household** — the dwelling's sundries Bin is owned by its
+occupant, so `restock` is a larder being filled and not a shop being supplied. The grocer's own
+stock arrives from an input-less Rule, so ***its cost of goods is a genuine zero*** and its profit
+is revenue less wages. **Not a defect**: the file demonstrates the profit tax without demonstrating
+D15's stock-cost path. The header has to say so, or a reader infers a mechanism was exercised that
+was not.
+
+### F19 — the Day's figures roll on the next Day's first write, and payroll is that write
+
+A Business's revenue and expense stand until something recognises against a later Day. On a
+Day-boundary Tick the payroll sweep accrues each employer's wage bill before anything else, so
+***Day N's profit must be assessed before it or the assessor reads zeroes and the city is never
+taxed***. Silently — there is no error and no diagnostic, only a column of nothing.
+
+⚠ **Held by a test rather than by a comment.** A comment saying *this must run first* is exactly the
+kind of thing that survives the edit which breaks it.
+
+### F20 — the governing panel no longer fits a screen, and a driven run cannot scroll it
+
+With three tax blocks the profit note and its status line sit below the fold at 1600×1400, even
+against `minimal.toml`, which is the shortest the panel gets. The block is reachable by scrolling and
+the sentences that would have to go are the ones that stop a player mis-reading a dial, so the notes
+stand. ⚠ **`ui scroll` addresses the inspector and not this panel**, so nothing below the fold can be
+asserted against by a driven run. Separately, the tool palette overlaps the panel's heading and
+Policy banner; pre-existing, and worsening as the panel grows.
+
+## Phase B — done
+
+Shipped 2026-09-10. Three saved columns on a Business, one on a Bin, a profit schedule sharing the
+earnings ring, three player controls with their own refusals and their own panel block, a sweep at the
+head of the Wake phase, a ninth `--income` column and a sixth money-flow counter. `rulesets/taxing.toml`
+gained `[business_tax]`. All four golden artefacts re-recorded; no Ruleset content hash moved. The
+working lane is 3,265 green.

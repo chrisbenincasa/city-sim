@@ -298,6 +298,8 @@ public static class RulesetLoader
 
         private TableSyntaxBase? _incomeTaxTable;
 
+        private TableSyntaxBase? _businessTaxTable;
+
         private TableSyntaxBase? _needsTable;
         private TableSyntaxBase? _shoppingTable;
         private TableSyntaxBase? _schoolTable;
@@ -374,6 +376,7 @@ public static class RulesetLoader
             DistrictRuleset districts = ReadDistricts();
             MarketRuleset market = ReadMarket();
             IncomeTaxSchedule incomeTax = ReadIncomeTax();
+            BusinessTaxSchedule businessTax = ReadBusinessTax();
 
             // After ReadKinds, because whether an ATTENDED Need's rates are required is a property of
             // the pair: they are owed by a file declaring a kind that serves one and refused of a file
@@ -478,6 +481,7 @@ public static class RulesetLoader
                 Districts = districts,
                 Market = market,
                 IncomeTax = incomeTax,
+                BusinessTax = businessTax,
                 Needs = needs,
                 Schooling = schooling,
                 Shopping = shopping,
@@ -893,6 +897,23 @@ public static class RulesetLoader
                         _incomeTaxTable = table;
                         break;
 
+                    case "business_tax":
+                        // Singular and optional, on [income_tax]'s reasoning exactly. The bands are
+                        // shared across every trade (plans/0072 D8), so a second table would be a
+                        // second schedule for one treasury with nothing saying which trade is read
+                        // against which.
+                        if (_businessTaxTable is not null)
+                        {
+                            Refuse(LineOf(table), null,
+                                "a second [business_tax] is declared. There is one profit tax "
+                                + "schedule and every trade shares it, so two tables of bands for "
+                                + "it is ambiguous rather than additive.");
+                            break;
+                        }
+
+                        _businessTaxTable = table;
+                        break;
+
                     default:
                         Refuse(LineOf(table), null,
                             $"'{section}' is not a Ruleset section. The sections are "
@@ -901,7 +922,7 @@ public static class RulesetLoader
                             + "[[policy]], [[hinterland]], [[lattice]], [[terrain]], [layers], "
                             + "[placement], [roads], [lots], [trips], [jobs], [households], "
                             + "[traffic], [parking], [water], [districts], [market], "
-                            + "[income_tax] and "
+                            + "[income_tax], [business_tax] and "
                             + "[founding]. A trade is declared with [[business]] and the founding "
                             + "channel is configured with [founding]; they are different tables.");
                         break;
@@ -7929,6 +7950,162 @@ public static class RulesetLoader
         /// <summary>The line an <c>[income_tax]</c> key is on, or the table's.</summary>
         private int LineOfIncomeTax(string key) =>
             LineOf((SyntaxNodeBase?)Find(_incomeTaxTable!, key) ?? _incomeTaxTable!);
+
+        // ---- business tax -----------------------------------------------------------------------
+
+        /// <summary>
+        /// The <c>[business_tax]</c> table: the two marginal bands a Day's profit is read against.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Optional, and its absence is a city that taxes no profit at all</b> — the city every
+        /// Ruleset described before this table existed, so nothing moves by the table arriving. The
+        /// absence is reached by <em>omitting the table</em>, never by a defaulted key, on
+        /// <see cref="ReadIncomeTax"/>'s argument word for word: a rate of zero is a real schedule
+        /// that takes nothing and says so, where an unwritten rate is a placeholder that cannot
+        /// announce itself.
+        /// </para>
+        /// <para>
+        /// 🔴 <b>TWO bands where the Citizen schedule has three, and the missing one is the
+        /// allowance.</b> <c>plans/0072</c> D8: *"There is no separate tax-free band, although
+        /// setting the lower rate to zero can provide one."* So an <c>allowance_per_day</c> here
+        /// would be a second spelling of a city that is already writable — ***two spellings of one
+        /// city is a key doing nothing while reading as a mechanism***, which is
+        /// <c>storeys_per_rung</c>'s argument arriving on a schedule.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>And there is deliberately no pay-period refusal</b>, which is the other place this
+        /// reader stops mirroring <see cref="ReadIncomeTax"/>. Profit is assessed once per Day
+        /// against a figure the Business accumulates (D23) and no schedule history stands behind it,
+        /// so there is no fixed ring for a long interval to outrun. ***The Citizen-side refusal was a
+        /// property of a table depth, not of taxation***, and copying it here would be inventing a
+        /// bound to look symmetrical.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>Tuning rather than world creation</b> (<c>adr/0015</c>). Nothing in the world points
+        /// at a band, so <see cref="RulesetShape"/> compares none of it and a reload retunes the
+        /// standing city.
+        /// </para>
+        /// </remarks>
+        private BusinessTaxSchedule ReadBusinessTax()
+        {
+            if (_businessTaxTable is null)
+            {
+                return BusinessTaxSchedule.None;
+            }
+
+            KeyValueSyntax? threshold = Find(_businessTaxTable, "threshold_per_day");
+            KeyValueSyntax? lowerRate = Find(_businessTaxTable, "lower_rate_percent");
+            KeyValueSyntax? upperRate = Find(_businessTaxTable, "upper_rate_percent");
+
+            int stated = (threshold is null ? 0 : 1)
+                + (lowerRate is null ? 0 : 1)
+                + (upperRate is null ? 0 : 1);
+
+            if (stated < 3)
+            {
+                Refuse(LineOfBusinessTax("threshold_per_day"), null,
+                    "[business_tax] states some of the schedule's three keys and not all of them. "
+                    + "threshold_per_day, lower_rate_percent and upper_rate_percent are one decision "
+                    + "in three keys: a threshold says nothing without the rate on either side of "
+                    + "it, and a rate says nothing without the band it applies to. State all three, "
+                    + "or delete the whole table for a city that taxes no profit at all. There is no "
+                    + "tax-free band to state -- write a lower_rate_percent of 0 for one.");
+
+                return BusinessTaxSchedule.None;
+            }
+
+            if (!TryInteger(_businessTaxTable, "threshold_per_day", out long band, required: true))
+            {
+                return BusinessTaxSchedule.None;
+            }
+
+            // Profit may be negative -- a loss is an untaxed Day (plans/0072 D26) -- but the
+            // THRESHOLD is the point where one band ends and the next begins, and a band boundary
+            // below zero would put the whole of the lower band where no profit can ever fall. Zero
+            // is legitimate and is how an author writes a flat tax: every unit of profit faces the
+            // upper rate.
+            if (band < 0)
+            {
+                Refuse(LineOfBusinessTax("threshold_per_day"), null,
+                    $"threshold_per_day is {band}. It is the Day's profit at which the upper band "
+                    + "starts, and a band boundary below zero puts the whole lower band where no "
+                    + "profit can ever fall -- so lower_rate_percent would be unreachable while it "
+                    + "still read as a setting. A loss is already untaxed and needs no negative "
+                    + "threshold to say so. Zero is legitimate and means every unit of profit faces "
+                    + "the upper rate.");
+
+                return BusinessTaxSchedule.None;
+            }
+
+            if (!ReadProfitRate("lower_rate_percent", out int lower)
+                | !ReadProfitRate("upper_rate_percent", out int upper))
+            {
+                // Non-shortcutting on purpose, so a file that gets both rates wrong is told about
+                // both rather than about whichever is written first.
+                return BusinessTaxSchedule.None;
+            }
+
+            // The one refusal here that is not a range check, and it is the Citizen side's D7
+            // arriving on profit. Both rates are marginal, so a rate that FALLS as profit rises makes
+            // post-tax profit step downward at the threshold: a Business is strictly worse off for
+            // having earned one unit more. plans/0072 D8 requires the upper at or above the lower.
+            if (upper < lower)
+            {
+                Refuse(LineOfBusinessTax("upper_rate_percent"), null,
+                    $"upper_rate_percent is {upper}, below lower_rate_percent of {lower}. Both are "
+                    + "marginal rates, so a rate that falls as profit rises makes post-tax profit "
+                    + "step DOWNWARD at the threshold -- a Business that earns one unit more keeps "
+                    + "less than one that earned one unit less. That is not relief on large profits, "
+                    + "it is a schedule that stops being monotone, and every reading built on it "
+                    + "reports a trade losing money by trading better.");
+
+                return BusinessTaxSchedule.None;
+            }
+
+            return new BusinessTaxSchedule(band, lower, upper);
+        }
+
+        /// <summary>
+        /// One of the schedule's two marginal rates, as a whole percentage.
+        /// </summary>
+        /// <remarks>
+        /// <b>One guard serving two keys, because the bound is the same bound</b> —
+        /// <see cref="ReadTaxRate"/>'s shape on the Business side. Below zero the tax pays the trade
+        /// for trading; above 100 it takes more than the band holds, so post-tax profit falls as
+        /// profit rises inside a single band. ⚠ <b>Zero is legitimate on the LOWER rate in a way
+        /// worth naming</b>: it is how <c>plans/0072</c> D8 says an author writes a tax-free band,
+        /// which is why no allowance key exists.
+        /// </remarks>
+        private bool ReadProfitRate(string key, out int percent)
+        {
+            percent = 0;
+
+            if (!TryInteger(_businessTaxTable!, key, out long rate, required: true))
+            {
+                return false;
+            }
+
+            if (rate < 0 || rate > 100)
+            {
+                Refuse(LineOfBusinessTax(key), null,
+                    $"{key} is {rate}. It is the share of the profit inside its own band that is "
+                    + "taken, so it is a whole percentage in 0..100 -- zero is a band that takes "
+                    + "nothing, and a lower_rate_percent of zero is how this schedule spells a "
+                    + "tax-free band, which is why there is no allowance key. Below zero the tax "
+                    + "pays the trade for trading; above 100 it takes more than the band holds, so "
+                    + "a Business keeps less for earning more inside one band.");
+
+                return false;
+            }
+
+            percent = (int)rate;
+            return true;
+        }
+
+        /// <summary>The line a <c>[business_tax]</c> key is on, or the table's.</summary>
+        private int LineOfBusinessTax(string key) =>
+            LineOf((SyntaxNodeBase?)Find(_businessTaxTable!, key) ?? _businessTaxTable!);
 
         /// <summary>
         /// The <c>[founding]</c> table — <c>adr/0145</c>'s founding channel.

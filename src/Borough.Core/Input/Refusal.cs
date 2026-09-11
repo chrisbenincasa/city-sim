@@ -128,7 +128,7 @@ public enum Refusal : ushort
     PeopleWorldHasNoLots = 19,
 
     /// <summary>
-    /// <c>Tax</c> names a control that is not one of <see cref="TaxControl"/>'s four. The selector is
+    /// <c>Tax</c> names a control that is not one of <see cref="TaxControl"/>'s seven. The selector is
     /// the verb's whole payload beside the value, so a number nothing declares is a command with no
     /// subject rather than a setting to fall back from.
     /// </summary>
@@ -156,4 +156,29 @@ public enum Refusal : ushort
     /// taxation does is not a band.
     /// </summary>
     TaxUpperThresholdBelowAllowance = 24,
+
+    /// <summary>
+    /// <c>Tax</c> sets a negative Business profit threshold. Profit itself ranges below zero, so
+    /// the obvious reading of a negative threshold is that it means something — it does not.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>A quantity's range is not its boundary's range.</b> The threshold is where the upper
+    /// band opens, and opening it below zero puts the whole lower band where no profit can reach
+    /// it, leaving <c>ProfitLowerRate</c> reading as a setting while applying to nothing. A loss is
+    /// already untaxed — <c>plans/0072</c> D26 — and needs no negative threshold to say so.
+    /// </remarks>
+    TaxProfitThresholdIsNegative = 25,
+
+    /// <summary>
+    /// <c>Tax</c> would leave the upper marginal profit rate below the lower one —
+    /// <c>plans/0072</c> D8, and <see cref="TaxUpperRateBelowMiddleRate"/>'s argument applied to
+    /// profit instead of earnings.
+    /// </summary>
+    /// <remarks>
+    /// Both are marginal, so a rate that fell as profit rose would make post-tax profit step
+    /// <em>downward</em> at the threshold: a Business that made one unit more would keep less than
+    /// one that made one unit less. That is not relief on large profits, it is a schedule that has
+    /// stopped being monotone.
+    /// </remarks>
+    TaxProfitUpperRateBelowLowerRate = 26,
 }

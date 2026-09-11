@@ -189,7 +189,10 @@ internal static class CensusFamilies
     /// treasury's income; a report adding them for the reader would lose which lever moved it.
     /// ⚠ <b><c>rule to treasury</c> is the third income and the same argument again</b> — money a
     /// Bin Rule paid in off a premises, moved by a <c>[[rule]]</c>'s <c>amount</c> where the other
-    /// two are moved by a <c>[[policy]]</c>'s and by an <c>[income_tax]</c> rate. ⚠ <b>A
+    /// two are moved by a <c>[[policy]]</c>'s and by an <c>[income_tax]</c> rate. ⚠ <b><c>profit
+    /// tax</c> is the fourth income and the second TAX</b> — money taken off a Business's till on a
+    /// <c>[business_tax]</c> band, where <c>withheld</c> is taken off a wage on an
+    /// <c>[income_tax]</c> one. ⚠ <b>A
     /// family with no reader is a family nobody can see</b> — the note below on the Trip Fates is the
     /// worked example, and it is the reason this row was added here on the day the counter was.
     /// </remarks>
@@ -206,6 +209,8 @@ internal static class CensusFamilies
         (MoneyFlowCounter.RuleToTreasury, Aggregate.Peak, "rule to treasury peak"),
         (MoneyFlowCounter.RuleFromTreasury, Aggregate.Sum, "rule from treasury"),
         (MoneyFlowCounter.RuleFromTreasury, Aggregate.Peak, "rule from treasury peak"),
+        (MoneyFlowCounter.ProfitTax, Aggregate.Sum, "profit tax"),
+        (MoneyFlowCounter.ProfitTax, Aggregate.Peak, "profit tax peak"),
     ];
 
     /// <summary>

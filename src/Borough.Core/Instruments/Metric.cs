@@ -693,6 +693,34 @@ public enum MoneyFlowCounter : byte
     /// somebody remembers to add it is a direction that arrives unmeasured.
     /// </remarks>
     RuleFromTreasury,
+
+    /// <summary>
+    /// Profit tax collected from Businesses' tills at the Day boundary, summed over the interval.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A sixth member rather than more <see cref="Withheld"/>, on <see cref="RuleToTreasury"/>'s
+    /// argument turned onto the other taxpayer.</b> Both are a tax and neither is a Policy, which is
+    /// the reason a first draft wanted to fold them — and the lever is different in both halves a
+    /// player can reach: the rate lives in <c>[business_tax]</c> rather than <c>[income_tax]</c>,
+    /// and ***who pays it is a trade rather than a worker***. A city that raised one and cut the
+    /// other would show a flat column under two changed files.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is money the Business never handed to anybody first.</b> <see cref="Withheld"/> is
+    /// split out of a wage on its way to a purse, so the Household's balance already reflects it;
+    /// this is taken from a till that was holding it, so the Businesses row of
+    /// <see cref="MoneyCounter"/> falls by exactly this. ⚠ <b>And it is never the whole bill</b> —
+    /// <c>plans/0072</c> D25 forgives what a short till cannot cover, so this is what was
+    /// <em>collected</em> and <c>ProfitTaxReading.Due</c> is what was assessed.
+    /// </para>
+    /// <para>
+    /// The identity of the family becomes: over any interval, the change in
+    /// <c>MoneyCounter.Treasury</c> equals
+    /// <c>ToTreasury + Withheld + RuleToTreasury + ProfitTax − FromTreasury − RuleFromTreasury</c>.
+    /// </para>
+    /// </remarks>
+    ProfitTax,
 }
 
 /// <summary>Which family of thing a <see cref="Metric"/> names.</summary>

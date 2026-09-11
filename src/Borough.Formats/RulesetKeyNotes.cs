@@ -881,6 +881,23 @@ public static class RulesetKeyNotes
             + "earned more. All four keys here are one decision — state every one or delete the "
             + "table.",
 
+        // ---- [business_tax] -------------------------------------------------------------------
+        ["[business_tax] threshold_per_day"] =
+            "The Day's profit at which the upper marginal band starts. Profit below it faces the "
+            + "lower rate and profit above it the upper rate, so the two bands meet here. It reads "
+            + "profit for a Day and never a Business's balance: a Day that made a loss is simply "
+            + "untaxed, and nothing is carried forward to the next one. Omitting the whole "
+            + "[business_tax] table means no profit is taxed at all.",
+        ["[business_tax] lower_rate_percent"] =
+            "The share taken from profit below the threshold. There is no separate tax-free band in "
+            + "this schedule and no key for one -- writing zero here is how an author gets one, and "
+            + "the threshold then acts as the allowance.",
+        ["[business_tax] upper_rate_percent"] =
+            "The share taken from profit above the threshold. It may not be below the lower rate: "
+            + "both are marginal, so a rate that fell as profit rose would make post-tax profit step "
+            + "downward at the threshold and a trade would keep less for having earned more. All "
+            + "three keys here are one decision \u2014 state every one or delete the table.",
+
         // ---- [needs] --------------------------------------------------------------------------
         ["[needs] sustenance_degrade"] =
             "How far Sustenance falls on one occasion. Stated as a positive step whose direction "
