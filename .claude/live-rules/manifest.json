@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "path": "rules/delegate-read-many.md",
+      "hash": "382a6700d1931049344c46b10d2db2e79177fbb137f061f4645b88feef97008f",
+      "description": "Delegate the read-many questions; keep symbol reads in the main loop",
+      "globs": [],
+      "dirs": [],
+      "prompt": [],
+      "priority": 45,
+      "enabled": true,
+      "include": []
+    },
+    {
+      "path": "rules/present-options-in-prose.md",
+      "hash": "703bd02e10fb9ccb5679023e589529233641f101241e659af214337243ffc3d7",
+      "description": "Put a decision to the user as prose with costs and trade-offs",
+      "globs": [],
+      "dirs": [],
+      "prompt": [],
+      "priority": 45,
+      "enabled": true,
+      "include": []
+    },
+    {
+      "path": "rules/reuse-first.md",
+      "hash": "386c02aa614bb13e5c2554e4c5a63634cd7e760888a985e0df324e07057780f7",
+      "description": "Reuse-first implementation",
+      "globs": [],
+      "dirs": [],
+      "prompt": [],
+      "priority": 90,
+      "enabled": true,
+      "include": []
+    },
+    {
+      "path": "rules/self-improvement.md",
+      "hash": "e6067001fc62772d5c4e23020c90ab700d962be29324e741bdfd902e590db73d",
+      "description": "Self-improvement: build the capability that makes the next goal cheaper",
+      "globs": [],
+      "dirs": [],
+      "prompt": [],
+      "priority": 40,
+      "enabled": true,
+      "include": []
+    }
+  ]
+}
