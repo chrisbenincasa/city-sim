@@ -1381,6 +1381,26 @@ public readonly record struct LifeStageDefinition
     /// </para>
     /// </remarks>
     public byte SchoolLevel { get; init; }
+
+    /// <summary>
+    /// How heavily this stage weighs rent against everything else it wants from a home, as a
+    /// percent of the neutral weight.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>100 is the weight every stage had before stages could disagree about it.</b> Below it a
+    /// stage will pay for what it wants; above it the stage is looking at the price first. A
+    /// Household newly formed from its children and a Household with two earners are not the same
+    /// shopper, and until this key there was nothing in the file that could say so.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It scales the rent term and is never a budget.</b> What a family can pay at all is the
+    /// affordability filter, which is <c>02 §5.4</c>'s <i>hard constraints are filters</i>; what a
+    /// family minds paying is this. A weight of zero is a stage that does not look at rent, not a
+    /// stage that can afford anything.
+    /// </para>
+    /// </remarks>
+    public int RentWeightPercent { get; init; }
 }
 
 
@@ -1734,6 +1754,68 @@ public readonly record struct HinterlandDefinition(
     /// nothing still arrives, still joins the Unplaced Pool and still has to be housed.
     /// </remarks>
     public bool Endows => EmigrantBalanceMax.Raw > 0;
+
+    /// <summary>How many purse bands an emigrant balance range is cut into.</summary>
+    /// <remarks>
+    /// <b>Three, and it is a representation rather than three Outside economies.</b> A stock row is
+    /// keyed by the money its Households carry, and money is a range rather than a value, so the
+    /// key needs a partition. Low, middle and high thirds is the coarsest one that still lets a
+    /// city drain the purses it can house and leave the ones it cannot.
+    /// </remarks>
+    public const int MoneyBands = 3;
+
+    /// <summary>How many distinct amounts the emigrant balance range holds, inclusive.</summary>
+    public long BalanceWidth => (EmigrantBalanceMax - EmigrantBalanceMin).Raw + 1;
+
+    /// <summary>The least money a Household in <paramref name="band"/> carries.</summary>
+    public Money BandFloor(int band) =>
+        EmigrantBalanceMin + new Money(IntegerMath.CeilDiv(band * BalanceWidth, MoneyBands));
+
+    /// <summary>The most money a Household in <paramref name="band"/> carries.</summary>
+    public Money BandCeiling(int band) =>
+        EmigrantBalanceMin
+        + new Money(IntegerMath.CeilDiv((band + 1) * BalanceWidth, MoneyBands) - 1);
+
+    /// <summary>
+    /// Whether <paramref name="band"/> holds any amount at all.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>A narrow range leaves the upper bands empty, and a file authoring stock into one is
+    /// refused.</b> A width of one has only band zero: every Household carries the same amount, so
+    /// there is no third to be in the middle of. The group would load, be counted, and never be
+    /// drawable.
+    /// </remarks>
+    public bool DeclaresBand(int band) =>
+        band >= 0 && band < MoneyBands && BandFloor(band) <= BandCeiling(band);
+
+    /// <summary>Which band <paramref name="amount"/> falls in.</summary>
+    public int BandOf(Money amount)
+    {
+        long offset = amount.Raw - EmigrantBalanceMin.Raw;
+        long width = BalanceWidth;
+
+        if (offset < 0)
+        {
+            offset = 0;
+        }
+        else if (offset > width - 1)
+        {
+            offset = width - 1;
+        }
+
+        return (int)IntegerMath.FloorDiv(MoneyBands * offset, width);
+    }
+
+    /// <summary>Where this Hinterland's opening stock starts in <c>Ruleset.HinterlandPopulations</c>.</summary>
+    public int PopulationFirst { get; init; }
+
+    /// <summary>How many opening compositions this Hinterland declares.</summary>
+    /// <remarks>
+    /// ⚠ <b>Zero is a world and is not an omission.</b> An edge behind which nobody lives is an
+    /// edge the city cannot draw on, which is the whole of the depletion demonstration: a file may
+    /// state four Hinterlands and put people behind only one of them.
+    /// </remarks>
+    public int PopulationCount { get; init; }
 
     /// <summary>
     /// What the Household whose never-reused id is <paramref name="entityId"/> carries across.
@@ -4269,6 +4351,23 @@ public sealed class Ruleset
     public Money[] HinterlandPrices { get; init; } = [];
 
     /// <summary>
+    /// Every Hinterland's opening population, flattened, indexed by
+    /// <see cref="HinterlandDefinition.PopulationFirst"/> and its count.
+    /// </summary>
+    /// <remarks>
+    /// <b>Beside the collection rather than inside the item</b>, which is
+    /// <see cref="HinterlandPrices"/>'s decision and the same constraint: a variable-length run
+    /// cannot live in a <c>record struct</c> that has to satisfy <c>unmanaged</c>. The run is
+    /// contiguous per Hinterland and in the order the file declared it.
+    /// </remarks>
+    public HinterlandPopulationDefinition[] HinterlandPopulations { get; init; } = [];
+
+    /// <summary>
+    /// <c>[immigration]</c>, or a world whose arrivals all come from a caller.
+    /// </summary>
+    public ImmigrationRuleset Immigration { get; init; } = ImmigrationRuleset.None;
+
+    /// <summary>
     /// The <c>[market]</c> table — <b>how a Pool price moves</b>. <see cref="MarketRuleset.None"/>
     /// when the file states none, which is a city whose prices never leave the ceiling.
     /// </summary>
@@ -4665,6 +4764,16 @@ public sealed class Ruleset
     /// <summary>The percent that <see cref="CentralityNeutral"/> is written as in a Ruleset.</summary>
     public const int CentralityNeutralPercent = 50;
 
+    /// <summary>The rent weight a Life Stage stating none carries.</summary>
+    /// <remarks>
+    /// <b>100 is the weight every stage had when no stage could state one</b>, so a file saying
+    /// nothing keeps the placement this build already had rather than being defaulted into an
+    /// opinion. ⚠ <b>A world that states <c>[immigration]</c> is refused without it</b>: who
+    /// presents themselves at a gate turns on what they mind paying, so a stock world leaving it
+    /// unstated is declining to answer a question it has just made load-bearing.
+    /// </remarks>
+    public const int RentNeutralPercent = 100;
+
     /// <summary>
     /// Whether any Life Stage in this Ruleset states an opinion about centrality.
     /// </summary>
@@ -4810,6 +4919,8 @@ public sealed class Ruleset
             Policies = Policies,
             Hinterlands = Hinterlands,
             HinterlandPrices = HinterlandPrices,
+            HinterlandPopulations = HinterlandPopulations,
+            Immigration = Immigration,
             Market = Market,
             IncomeTax = IncomeTax,
             BusinessTax = BusinessTax,

@@ -274,6 +274,10 @@ public static class RulesetLoader
         /// </remarks>
         private readonly List<string?> _zoneRuleNames = [];
         private readonly List<TableSyntaxBase> _hinterlandTables = [];
+
+        // Each entry carries the index of the [[hinterland]] it followed, because Tomlyn keeps
+        // every table flat and in file order: "the one above" is a position and not a link.
+        private readonly List<(int Hinterland, TableSyntaxBase Table)> _populationTables = [];
         private readonly List<TableSyntaxBase> _latticeTables = [];
         private readonly List<TableSyntaxBase> _terrainTables = [];
 
@@ -291,6 +295,7 @@ public static class RulesetLoader
         private TableSyntaxBase? _trafficTable;
         private TableSyntaxBase? _parkingTable;
 
+        private TableSyntaxBase? _immigrationTable;
         private TableSyntaxBase? _waterTable;
         private TableSyntaxBase? _disastersTable;
         private TableSyntaxBase? _districtsTable;
@@ -357,9 +362,15 @@ public static class RulesetLoader
             ZoneRuleDefinition[] zoneRules = ReadZoneRules();
             BandDefinition[] bands = ReadBands();
             PolicyDefinition[] policies = ReadPolicies(out ulong[] policyKeys);
-            HinterlandDefinition[] hinterlands = ReadHinterlands(out Money[] hinterlandPrices);
+            HinterlandDefinition[] hinterlands = ReadHinterlands(
+                lifeStages,
+                out Money[] hinterlandPrices,
+                out HinterlandPopulationDefinition[] hinterlandPopulations);
+            ImmigrationRuleset immigration = ReadImmigration();
             LayerRuleset layers = ReadLayers();
             PlacementRuleset placement = ReadPlacement(kinds);
+            RefuseIncompleteStockWorld(immigration, placement, hinterlands, lifeStages);
+
             RoadRuleset roads = ReadRoads();
 
             // After ReadRoads and not before: every refusal here is a property of an origin against
@@ -477,6 +488,8 @@ public static class RulesetLoader
                 PolicyKeys = policyKeys,
                 Hinterlands = hinterlands,
                 HinterlandPrices = hinterlandPrices,
+                HinterlandPopulations = hinterlandPopulations,
+                Immigration = immigration,
                 Parking = parking,
                 Terrain = terrain,
                 Water = water,
@@ -756,6 +769,39 @@ public static class RulesetLoader
                         _hinterlandTables.Add(table);
                         break;
 
+                    // The only nested array-of-table in the Ruleset, and it is nested because the
+                    // stock belongs to one edge rather than to the world. Tomlyn hands the dotted
+                    // name through whole, so the owner is the [[hinterland]] most recently seen --
+                    // which is why one stated before any [[hinterland]] has nothing to attach to.
+                    case "hinterland.population":
+                        if (_hinterlandTables.Count == 0)
+                        {
+                            Refuse(LineOf(table), null,
+                                "a [[hinterland.population]] is declared before any [[hinterland]]. "
+                                + "It states who lives behind ONE edge, so it attaches to the "
+                                + "[[hinterland]] above it in the file and there is none.");
+                            break;
+                        }
+
+                        _populationTables.Add((_hinterlandTables.Count - 1, table));
+                        break;
+
+                    case "immigration":
+                        // Singular and optional, on [water]'s reasoning. There is one set of
+                        // durations for the whole circuit, so two tables of them is ambiguous
+                        // rather than additive.
+                        if (_immigrationTable is not null)
+                        {
+                            Refuse(LineOf(table), null,
+                                "a second [immigration] is declared. There is one set of durations "
+                                + "for the whole circuit, so two tables of them is ambiguous rather "
+                                + "than additive.");
+                            break;
+                        }
+
+                        _immigrationTable = table;
+                        break;
+
                     case "lattice":
                         // Not registered into a name table, on [[hinterland]]'s reasoning, and a
                         // Lattice does not even carry a name to register. What it carries is an
@@ -939,6 +985,7 @@ public static class RulesetLoader
                             + "[[policy]], [[hinterland]], [[lattice]], [[terrain]], [layers], "
                             + "[placement], [roads], [lots], [trips], [jobs], [households], "
                             + "[traffic], [parking], [water], [districts], [market], "
+                            + "[immigration], [[hinterland.population]], "
                             + "[income_tax], [business_tax] and "
                             + "[founding]. A trade is declared with [[business]] and the founding "
                             + "channel is configured with [founding]; they are different tables.");
@@ -3239,6 +3286,36 @@ public static class RulesetLoader
                         + "or narrow the width.");
                 }
 
+                // Optional where the centrality pair is optional and REQUIRED where the file has
+                // made it load-bearing. A stock world's arrivals are chosen by weighing a rent
+                // against everything else a stage wants, so a file that opts into autonomous
+                // immigration and leaves the weight unstated has declined to answer the question
+                // its own arrivals turn on.
+                int rentWeight = Borough.Core.Rules.Ruleset.RentNeutralPercent;
+                bool stock = _immigrationTable is not null;
+
+                if (TryInteger(
+                    table, "rent_weight_percent", out long weight, required: stock, name))
+                {
+                    if (weight is < 0 or > 200)
+                    {
+                        Refuse(
+                            LineOf((SyntaxNodeBase?)Find(table, "rent_weight_percent") ?? table),
+                            name,
+                            $"rent_weight_percent is {weight}. It is how heavily this stage weighs "
+                            + "rent against everything else it wants from a home, as a percent of "
+                            + $"the neutral weight: {Borough.Core.Rules.Ruleset.RentNeutralPercent} "
+                            + "is the weight every stage carried before stages could disagree, 0 is "
+                            + "a stage that does not look at the price, and 200 is the most a stage "
+                            + "can mind it. It is not a budget -- what a family can pay at all is "
+                            + "the affordability filter.");
+                    }
+                    else
+                    {
+                        rentWeight = (int)weight;
+                    }
+                }
+
                 byte next = 0;
 
                 if (TryString(table, "next", out string? successor, required: false)
@@ -3407,6 +3484,7 @@ public static class RulesetLoader
                     AdultAgeMaxDays = adultMax,
                     CentralityBasePercent = centralityBase,
                     CentralitySpreadPercent = centralitySpread,
+                    RentWeightPercent = rentWeight,
                     SchoolLevel = schoolLevel,
                 };
             }
@@ -5388,13 +5466,19 @@ public static class RulesetLoader
         /// array-of-tables where the collision is in a value.
         /// </para>
         /// </remarks>
-        private HinterlandDefinition[] ReadHinterlands(out Money[] prices)
+        private HinterlandDefinition[] ReadHinterlands(
+            LifeStageDefinition[] stages,
+            out Money[] prices,
+            out HinterlandPopulationDefinition[] populations)
         {
+            var stock = new List<HinterlandPopulationDefinition>(_populationTables.Count);
             var definitions = new List<HinterlandDefinition>(_hinterlandTables.Count);
             var authored = new List<Money>(_hinterlandTables.Count * _families.Count);
 
-            foreach (TableSyntaxBase table in _hinterlandTables)
+            for (int index = 0; index < _hinterlandTables.Count; index++)
             {
+                TableSyntaxBase table = _hinterlandTables[index];
+
                 if (!TryEdge(table, out MapEdge edge))
                 {
                     continue;
@@ -5431,10 +5515,20 @@ public static class RulesetLoader
 
                 (Money rent, int centrality) = ReadOutsideAsARow(table);
 
-                definitions.Add(new HinterlandDefinition(edge, min, max)
+                var hinterland = new HinterlandDefinition(edge, min, max)
                 {
                     Rent = rent,
                     CentralityTiles = centrality,
+                };
+
+                int first = stock.Count;
+
+                ReadPopulation(index, hinterland, stages, stock);
+
+                definitions.Add(hinterland with
+                {
+                    PopulationFirst = first,
+                    PopulationCount = stock.Count - first,
                 });
 
                 // AFTER the Add and never before, because the two lists are parallel by position and
@@ -5444,6 +5538,10 @@ public static class RulesetLoader
             }
 
             prices = [.. authored];
+            populations = [.. stock];
+
+            RefuseEmptyWorld(populations);
+
             return [.. definitions];
         }
 
@@ -7885,6 +7983,588 @@ public static class RulesetLoader
         /// <summary>The line a <c>[disasters]</c> key is on, or the table's.</summary>
         private int LineOfDisasters(string key) =>
             LineOf((SyntaxNodeBase?)Find(_disastersTable!, key) ?? _disastersTable!);
+
+        /// <summary>
+        /// Reads every <c>[[hinterland.population]]</c> attached to one <c>[[hinterland]]</c>.
+        /// </summary>
+        /// <remarks>
+        /// <b>Stock is refused outright by a file that states no <c>[immigration]</c>.</b> The
+        /// durations are what turn a counted population into a flow; without them the entries would
+        /// load, be saved, be hashed, and be read by nothing at all.
+        /// </remarks>
+        private void ReadPopulation(
+            int index,
+            HinterlandDefinition hinterland,
+            LifeStageDefinition[] stages,
+            List<HinterlandPopulationDefinition> into)
+        {
+            int first = into.Count;
+
+            foreach ((int owner, TableSyntaxBase table) in _populationTables)
+            {
+                if (owner != index)
+                {
+                    continue;
+                }
+
+                if (_immigrationTable is null)
+                {
+                    Refuse(LineOf(table), null,
+                        "a [[hinterland.population]] is declared and [immigration] is not. The "
+                        + "population behind an edge is only reachable through the durations that "
+                        + "table states, so this stock would be counted and never drawn on. State "
+                        + "[immigration], or remove the population.");
+                    continue;
+                }
+
+                if (!TryPopulationStage(table, out byte stage)
+                    | !TryAdultsByTier(table, out int tier1, out int tier2, out int tier3)
+                    | !TryPopulationCount(table, "children", out int children)
+                    | !TryPopulationCount(table, "households", out int households)
+                    | !TryMoneyBand(table, hinterland, out int band))
+                {
+                    continue;
+                }
+
+                var composition = new HinterlandPopulationDefinition
+                {
+                    Stage = stage,
+                    AdultsTier1 = tier1,
+                    AdultsTier2 = tier2,
+                    AdultsTier3 = tier3,
+                    Children = children,
+                    MoneyBand = band,
+                    Households = households,
+                    Authored = true,
+                };
+
+                if (!RefuseHollowComposition(table, composition)
+                    || !RefuseChildrenWithNoSchooling(table, composition, stages)
+                    || !RefuseDuplicateComposition(table, composition, into, first)
+                    || !RefusePopulationOverflow(table, composition))
+                {
+                    continue;
+                }
+
+                into.Add(composition);
+            }
+        }
+
+        /// <summary>The Life Stage a composition names, resolved by its authored name.</summary>
+        private bool TryPopulationStage(TableSyntaxBase table, out byte stage)
+        {
+            stage = 0;
+
+            if (!TryString(table, "stage", out string? name, required: true))
+            {
+                return false;
+            }
+
+            if (!_lifeStages.TryGetValue(name!, out stage))
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, "stage") ?? table), null,
+                    $"stage is \"{name}\", which no [[life_stage]] declares. A composition is "
+                    + "resolved by the stage's authored name rather than by its position, so that "
+                    + "reordering the stages does not silently repopulate the Outside.");
+
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// <c>adults_by_tier</c> — exactly three counts, one per Skill Tier.
+        /// </summary>
+        /// <remarks>
+        /// ⚠ <b>Three entries and never a shorter list meaning the rest are zero.</b> The Tiers are
+        /// a closed set, so a two-entry array is an author who has forgotten one rather than an
+        /// author who meant none -- and the difference is a Tier 3 adult silently becoming nobody.
+        /// </remarks>
+        private bool TryAdultsByTier(
+            TableSyntaxBase table, out int tier1, out int tier2, out int tier3)
+        {
+            tier1 = 0;
+            tier2 = 0;
+            tier3 = 0;
+
+            KeyValueSyntax? entry = Find(table, "adults_by_tier", RulesetKeyKind.Numbers);
+
+            if (entry is null)
+            {
+                Refuse(LineOf(table), null, "no adults_by_tier.");
+                return false;
+            }
+
+            if (entry.Value is not ArraySyntax array)
+            {
+                Refuse(LineOf(entry), null,
+                    "adults_by_tier must be an array of three whole numbers, one per Skill Tier.");
+                return false;
+            }
+
+            if (array.Items.ChildrenCount != 3)
+            {
+                Refuse(LineOf(entry), null,
+                    $"adults_by_tier has {array.Items.ChildrenCount} entries and the Skill Tiers "
+                    + "are 3. A shorter list reads as 'the rest are zero', which is an author who "
+                    + "has forgotten a Tier and an author who meant none writing the same thing.");
+                return false;
+            }
+
+            Span<int> counts = stackalloc int[3];
+
+            for (int i = 0; i < 3; i++)
+            {
+                if (array.Items.GetChild(i) is not ArrayItemSyntax item
+                    || item.Value is not IntegerValueSyntax number)
+                {
+                    Refuse(LineOf(entry), null,
+                        "every entry of adults_by_tier must be a whole number.");
+                    return false;
+                }
+
+                if (number.Value < 0 || number.Value > int.MaxValue)
+                {
+                    Refuse(LineOf(entry), null,
+                        $"adults_by_tier holds {number.Value}. A count of people is not negative.");
+                    return false;
+                }
+
+                counts[i] = (int)number.Value;
+            }
+
+            tier1 = counts[0];
+            tier2 = counts[1];
+            tier3 = counts[2];
+
+            return true;
+        }
+
+        /// <summary>A non-negative count of people or Households on a population entry.</summary>
+        private bool TryPopulationCount(TableSyntaxBase table, string key, out int value)
+        {
+            value = 0;
+
+            if (!TryInteger(table, key, out long count, required: true))
+            {
+                return false;
+            }
+
+            if (count < 0 || count > int.MaxValue)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, key) ?? table), null,
+                    $"{key} = {count} is out of range. It counts people the Outside holds, so it is "
+                    + "not negative.");
+
+                return false;
+            }
+
+            value = (int)count;
+            return true;
+        }
+
+        /// <summary>
+        /// <c>money_band</c> — which third of this Hinterland's purse range the group carries.
+        /// </summary>
+        /// <remarks>
+        /// ⚠ <b>A narrow purse range leaves the upper bands empty and stock authored into one is
+        /// refused.</b> The bands are thirds of <c>emigrant_balance_min..max</c>, so a range of one
+        /// amount has only band 0 -- and a group in band 2 there would be counted, recovered and
+        /// never drawable, which is a population that exists in the account and nowhere else.
+        /// </remarks>
+        private bool TryMoneyBand(
+            TableSyntaxBase table, HinterlandDefinition hinterland, out int band)
+        {
+            band = 0;
+
+            if (!TryInteger(table, "money_band", out long value, required: true))
+            {
+                return false;
+            }
+
+            if (value < 0 || value >= HinterlandDefinition.MoneyBands)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, "money_band") ?? table), null,
+                    $"money_band = {value} is out of range. The purse range is cut into "
+                    + $"{HinterlandDefinition.MoneyBands} bands, so they are numbered 0 to "
+                    + $"{HinterlandDefinition.MoneyBands - 1}, lowest first.");
+
+                return false;
+            }
+
+            if (!hinterland.DeclaresBand((int)value))
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, "money_band") ?? table), null,
+                    $"money_band = {value} holds no amount. This hinterland's emigrant balance runs "
+                    + $"{hinterland.EmigrantBalanceMin.Raw} to {hinterland.EmigrantBalanceMax.Raw}, "
+                    + $"which is {hinterland.BalanceWidth} amounts cut into "
+                    + $"{HinterlandDefinition.MoneyBands} bands -- so the band is empty and nobody "
+                    + "in it could ever be drawn. Widen the balance range, or move the stock down.");
+
+                return false;
+            }
+
+            band = (int)value;
+            return true;
+        }
+
+        /// <summary>
+        /// A composition with nobody in it, or with children and no adult.
+        /// </summary>
+        /// <remarks>
+        /// ⚠ <b>A child-only opening is refused and a child-only RETURN is not, and the asymmetry
+        /// is the decision.</b> The city can produce a Household of children through a death, and
+        /// that family has to be able to go somewhere -- but authoring one at world creation states
+        /// an Outside that was never a city, with nobody who could ever have been its parent.
+        /// </remarks>
+        private bool RefuseHollowComposition(
+            TableSyntaxBase table, HinterlandPopulationDefinition composition)
+        {
+            if (composition.Members == 0)
+            {
+                Refuse(LineOf(table), null,
+                    "this composition holds nobody: no adults at any Tier and no children. It would "
+                    + "be counted as a group, recovered towards its target, and transfer zero "
+                    + "people every time it was drawn.");
+
+                return false;
+            }
+
+            if (composition.Adults == 0)
+            {
+                Refuse(LineOf(table), null,
+                    $"this composition holds {composition.Children} children and no adult. The city "
+                    + "can make such a Household -- an illness takes both parents -- and one that "
+                    + "does is returned to the Outside intact. What cannot be AUTHORED is an "
+                    + "Outside that was never a city, in which children stand behind an edge with "
+                    + "nobody who could have been their parent.");
+
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Children stated on a stage that has no school to send them to.
+        /// </summary>
+        /// <remarks>
+        /// <b>The level is a property of the stage rather than of the child</b>, which is
+        /// <c>[[life_stage]] school_level</c>'s own decision: Family attends primary and Mature
+        /// Family secondary, and a stage naming neither is a stage whose Households have no
+        /// children. Importing children into one gives the city a child nothing will ever school.
+        /// </remarks>
+        private bool RefuseChildrenWithNoSchooling(
+            TableSyntaxBase table,
+            HinterlandPopulationDefinition composition,
+            LifeStageDefinition[] stages)
+        {
+            if (composition.Children == 0)
+            {
+                return true;
+            }
+
+            if (composition.Stage - 1 >= stages.Length
+                || stages[composition.Stage - 1].SchoolLevel != 0)
+            {
+                return true;
+            }
+
+            Refuse(LineOf((SyntaxNodeBase?)Find(table, "children") ?? table), null,
+                $"this composition carries {composition.Children} children in a stage that states "
+                + "no school_level. The schooling level is a property of the STAGE and not of the "
+                + "child, so a Household in a stage naming no level is a Household with no "
+                + "children -- and these would arrive in the city with nothing to school them.");
+
+            return false;
+        }
+
+        /// <summary>
+        /// The same composition declared twice behind one edge.
+        /// </summary>
+        /// <remarks>
+        /// <b>Canonicalised rather than summed, because a composition is a KEY.</b> Two entries
+        /// naming the same stage, tiers, children and band are one group written twice, and adding
+        /// them silently would make the file's own arithmetic unreadable: an author checking the
+        /// Outside's opening size would count the rows.
+        /// </remarks>
+        private bool RefuseDuplicateComposition(
+            TableSyntaxBase table,
+            HinterlandPopulationDefinition composition,
+            List<HinterlandPopulationDefinition> into,
+            int first)
+        {
+            for (int i = first; i < into.Count; i++)
+            {
+                HinterlandPopulationDefinition declared = into[i];
+
+                if (declared.Stage != composition.Stage
+                    || declared.AdultsTier1 != composition.AdultsTier1
+                    || declared.AdultsTier2 != composition.AdultsTier2
+                    || declared.AdultsTier3 != composition.AdultsTier3
+                    || declared.Children != composition.Children
+                    || declared.MoneyBand != composition.MoneyBand)
+                {
+                    continue;
+                }
+
+                Refuse(LineOf(table), null,
+                    "a second population behind this edge states the same stage, the same adults at "
+                    + "each Tier, the same children and the same money_band. A composition is the "
+                    + "key a group is stored under, so this is one group written twice -- state one "
+                    + "entry with the households added together.");
+
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>A group holding more people than the count can express.</summary>
+        private bool RefusePopulationOverflow(
+            TableSyntaxBase table, HinterlandPopulationDefinition composition)
+        {
+            if (composition.People <= int.MaxValue)
+            {
+                return true;
+            }
+
+            Refuse(LineOf(table), null,
+                $"this composition holds {composition.Households} Households of "
+                + $"{composition.Members} people, which is more people than the population account "
+                + "counts.");
+
+            return false;
+        }
+
+        /// <summary>
+        /// A stock world in which nobody lives anywhere.
+        /// </summary>
+        /// <remarks>
+        /// ⚠ <b>The requirement is one positive group across the WORLD and not one per edge.</b> An
+        /// edge behind which nobody lives is the depletion demonstration; four of them is a file
+        /// that has opted into autonomous arrivals and left nobody to arrive.
+        /// </remarks>
+        private void RefuseEmptyWorld(HinterlandPopulationDefinition[] populations)
+        {
+            if (_immigrationTable is null)
+            {
+                return;
+            }
+
+            foreach (HinterlandPopulationDefinition group in populations)
+            {
+                if (group.Households > 0)
+                {
+                    return;
+                }
+            }
+
+            Refuse(LineOf(_immigrationTable), null,
+                "[immigration] is stated and no [[hinterland.population]] anywhere holds a single "
+                + "Household. The Outside is what supplies the people, so this world has opted into "
+                + "arrivals nobody can make. An edge with nobody behind it is a world; four of them "
+                + "is a file with nothing to draw on.");
+        }
+
+        /// <summary>
+        /// What a world must already have before its people can choose to come to it.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Each of these exists for its own reasons and <c>[immigration]</c> makes it
+        /// load-bearing.</b> The stock is drawn on by families weighing the city against where they
+        /// already are, which is <c>[placement] mu_percent</c>'s comparison; the ones who lose that
+        /// comparison have to be able to give up, which is <c>gives_up_after_days</c>; and they
+        /// arrive as people of an age carrying money, which the Life Stages and the Money family
+        /// supply. ***A prerequisite absent is not a smaller mechanism, it is the mechanism
+        /// silently doing nothing.***
+        /// </para>
+        /// <para>
+        /// ⚠ <b>Four Hinterlands and not at least one.</b> A Household leaving the city has to have
+        /// somewhere to go whichever edge it leaves by, and a gate can stand on any of the four --
+        /// so an edge with no Hinterland behind it is a departure with nowhere to be credited, and
+        /// the population account stops adding up. An edge with no PEOPLE behind it is a different
+        /// thing entirely and is permitted.
+        /// </para>
+        /// </remarks>
+        private void RefuseIncompleteStockWorld(
+            ImmigrationRuleset immigration,
+            PlacementRuleset placement,
+            HinterlandDefinition[] hinterlands,
+            LifeStageDefinition[] stages)
+        {
+            if (!immigration.Stated)
+            {
+                return;
+            }
+
+            if (!placement.Chooses)
+            {
+                Refuse(LineOfImmigration("reconsider_days"), null,
+                    "[immigration] is stated and [placement] states no mu_percent. Who presents "
+                    + "themselves at a gate is decided by weighing this city against the life they "
+                    + "already have, which is the choice model -- without it every Household "
+                    + "outside would reach the same verdict on the same Tick.");
+            }
+
+            if (!placement.GivesUp)
+            {
+                Refuse(LineOfImmigration("queue_wait_days"), null,
+                    "[immigration] is stated and [placement] states no gives_up_after_days. A "
+                    + "Household admitted through a gate stands in the Unplaced Pool until "
+                    + "something houses it, and a stock world can admit more than the city can "
+                    + "house -- so without a give-up bound the Pool grows for as long as the run "
+                    + "does and nobody ever goes home.");
+            }
+
+            if (hinterlands.Length != 4)
+            {
+                Refuse(LineOfImmigration("reconsider_days"), null,
+                    $"[immigration] is stated and this file declares {hinterlands.Length} "
+                    + "[[hinterland]] tables. A Household leaving the city has to have somewhere to "
+                    + "go whichever edge it leaves by, so a stock world states all four and a "
+                    + "departure over a missing one could not be credited to anywhere. An edge "
+                    + "with nobody BEHIND it is a different thing and is allowed.");
+            }
+
+            bool adult = false;
+
+            foreach (LifeStageDefinition stage in stages)
+            {
+                if (stage.AdultAgeMinDays > 0 && stage.AdultAgeMaxDays >= stage.AdultAgeMinDays)
+                {
+                    adult = true;
+                    break;
+                }
+            }
+
+            if (!adult)
+            {
+                Refuse(LineOfImmigration("reconsider_days"), null,
+                    "[immigration] is stated and no [[life_stage]] states an adult age band. An "
+                    + "arriving adult is created at an age, and a world with no band to draw one "
+                    + "from would import people whose age nothing set.");
+            }
+
+            bool money = false;
+
+            foreach (ResourceFamily family in _families)
+            {
+                if (family == ResourceFamily.Money)
+                {
+                    money = true;
+                    break;
+                }
+            }
+
+            if (!money)
+            {
+                Refuse(LineOfImmigration("reconsider_days"), null,
+                    "[immigration] is stated and no [[resource]] is of the money family. A "
+                    + "Household arrives carrying a purse drawn from its Hinterland's emigrant "
+                    + "balance, and there is nothing here for that purse to be denominated in.");
+            }
+        }
+
+        /// <summary>The line an <c>[immigration]</c> key is on, or the table's.</summary>
+        private int LineOfImmigration(string key) =>
+            LineOf((SyntaxNodeBase?)Find(_immigrationTable!, key) ?? _immigrationTable!);
+
+        /// <summary>
+        /// Reads <c>[immigration]</c>, or answers that every arrival comes from a caller.
+        /// </summary>
+        /// <remarks>
+        /// <b>The four durations stand or fall together</b>, on <c>[disasters]</c>'s reasoning
+        /// exactly: they describe one circuit, and a file stating three of them has left the fourth
+        /// to a default nobody chose. The reads below are joined with a non-shortcutting <c>|</c> so
+        /// an author missing two keys is told about both in one run.
+        /// </remarks>
+        private ImmigrationRuleset ReadImmigration()
+        {
+            if (_immigrationTable is null)
+            {
+                return ImmigrationRuleset.None;
+            }
+
+            if (!TryInteger(_immigrationTable, "reconsider_days", out long reconsider, required: true)
+                | !TryInteger(_immigrationTable, "recovery_days", out long recovery, required: true)
+                | !TryInteger(_immigrationTable, "queue_wait_days", out long wait, required: true)
+                | !TryInteger(
+                    _immigrationTable, "queue_reconsider_days", out long review, required: true))
+            {
+                return ImmigrationRuleset.None;
+            }
+
+            if (reconsider < 1 || wait < 1 || review < 1)
+            {
+                Refuse(LineOfImmigration("reconsider_days"), null,
+                    $"[immigration] states reconsider_days {reconsider}, queue_wait_days {wait} and "
+                    + $"queue_reconsider_days {review}. All three are durations in Days and are at "
+                    + "least 1. Zero is not a spelling for 'never' here -- a Household that "
+                    + "reconsiders the city every no Days reconsiders it on every Tick.");
+
+                return ImmigrationRuleset.None;
+            }
+
+            if (recovery < 0)
+            {
+                Refuse(LineOfImmigration("recovery_days"), null,
+                    $"recovery_days = {recovery} is negative. It is how long the Outside takes to "
+                    + "return to its resting stock, and 0 is legitimate: it freezes the stock in "
+                    + "both directions, which is the world that demonstrates depletion with nothing "
+                    + "refilling behind it.");
+
+                return ImmigrationRuleset.None;
+            }
+
+            if (review >= wait)
+            {
+                Refuse(LineOfImmigration("queue_reconsider_days"), null,
+                    $"queue_reconsider_days = {review} is not shorter than queue_wait_days = {wait}. "
+                    + "The review is how often a family waiting at a full gate weighs the wait "
+                    + "again, and the wait is when it gives up -- so a review at or beyond it never "
+                    + "runs. The key would load, read as a cadence, and fire exactly never.");
+
+                return ImmigrationRuleset.None;
+            }
+
+            if (!FitsInTicks(reconsider, "reconsider_days")
+                | !FitsInTicks(recovery, "recovery_days")
+                | !FitsInTicks(wait, "queue_wait_days")
+                | !FitsInTicks(review, "queue_reconsider_days"))
+            {
+                return ImmigrationRuleset.None;
+            }
+
+            return ImmigrationRuleset.From((int)reconsider, (int)recovery, (int)wait, (int)review);
+        }
+
+        /// <summary>
+        /// Whether a duration in Days survives the multiplication into Ticks.
+        /// </summary>
+        /// <remarks>
+        /// <b>The conversion is checked rather than saturated, because these durations are
+        /// divisors.</b> <c>InTicks</c> clamps a decline threshold to <see cref="int.MaxValue"/>,
+        /// which is a threshold nothing reaches and is the right answer there. A recovery period
+        /// clamped the same way becomes the denominator of a fraction, and a silently shortened one
+        /// refills the Outside at a rate no file states.
+        /// </remarks>
+        private bool FitsInTicks(long days, string key)
+        {
+            if (days <= int.MaxValue / Ticks.PerDay)
+            {
+                return true;
+            }
+
+            Refuse(LineOfImmigration(key), null,
+                $"{key} = {days} Days is more Ticks than the simulation counts. A Day is "
+                + $"{Ticks.PerDay} Ticks, so the longest duration statable here is "
+                + $"{int.MaxValue / Ticks.PerDay} Days.");
+
+            return false;
+        }
 
         /// <summary>The line a <c>[water]</c> key is on, or the table's.</summary>
         private int LineOfWater(string key) =>

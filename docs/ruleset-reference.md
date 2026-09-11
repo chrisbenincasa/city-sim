@@ -25,16 +25,17 @@ dotnet run --project src/Borough.Headless -- \
 
 ## The sections
 
-41 sections, 267 keys.
+42 sections, 275 keys.
 
 - [`[[band]]`](#band) — 2 keys
-- [`[[building]]`](#building) — 20 keys
+- [`[[building]]`](#building) — 19 keys
 - [`[[building]] bins`](#building-bins) — 3 keys
 - [`[[business]]`](#business) — 12 keys
+- [`[[hinterland.population]]`](#hinterlandpopulation) — 5 keys
 - [`[[hinterland]]`](#hinterland) — 6 keys
 - [`[[hinterland]] prices`](#hinterland-prices) — 2 keys
 - [`[[lattice]]`](#lattice) — 2 keys
-- [`[[life_stage]]`](#life_stage) — 13 keys
+- [`[[life_stage]]`](#life_stage) — 14 keys
 - [`[[policy]]`](#policy) — 9 keys
 - [`[[policy]] apply`](#policy-apply) — 4 keys
 - [`[[policy]] transfer`](#policy-transfer) — 4 keys
@@ -52,6 +53,7 @@ dotnet run --project src/Borough.Headless -- \
 - [`[districts]`](#districts) — 4 keys
 - [`[founding]`](#founding) — 2 keys
 - [`[households]`](#households) — 3 keys
+- [`[immigration]`](#immigration) — 4 keys
 - [`[income_tax]`](#income_tax) — 4 keys
 - [`[jobs]`](#jobs) — 11 keys
 - [`[layers]`](#layers) — 20 keys
@@ -65,7 +67,6 @@ dotnet run --project src/Borough.Headless -- \
 - [`[schooling]`](#schooling) — 5 keys
 - [`[shopping]`](#shopping) — 7 keys
 - [`[traffic]`](#traffic) — 3 keys
-- [`[treasury]`](#treasury) — 1 key
 - [`[trips]`](#trips) — 4 keys
 - [`[water]`](#water) — 6 keys
 
@@ -144,10 +145,6 @@ What this kind of Building is called. [[zone_rule]] kind and [[rule]] kind refer
 **`parked`** · *true or false*
 
 Whether Buildings of this kind carry parking at all. Whether, and never how many: the count is the Building's floor area over [capacity] floor_tiles_per_parking_space. It exists so that a detached house may carry a driveway where a tower may not — a parking minimum is a property of the city, and an exemption from it is a property of the kind. Absent means the kind provides none.
-
-**`placement_cost`** · *whole number*
-
-What the treasury pays to place a Building of this kind by hand. Absent or zero means the placement is free, which is what every kind meant before the key existed. The city pays in full or the placement is refused, and the money leaves the money supply rather than reaching anybody: construction money buys imported Materials, and there is no import path for them to arrive by. Refused in a file that names no money.
 
 **`premises`** · *true or false*
 
@@ -240,6 +237,32 @@ What one job at this trade pays for one Day worked, as a flat rate. Paired with 
 **`work_days`** · *whole number*
 
 Workdays as a Monday-first weekly bit mask. Absent preserves daily work.
+
+---
+
+## `[[hinterland.population]]`
+
+*An array of tables — a file may declare this more than once.*
+
+**`adults_by_tier`** · *array of whole numbers*
+
+How many of the Household's adults hold each Skill Tier, lowest first. Exactly three entries, because the Tiers are a closed set: a shorter list would read as 'the rest are zero', which is an author who has forgotten a Tier and an author who meant none writing the same thing. A composition with no adult at any Tier is refused.
+
+**`children`** · *whole number*
+
+How many children each Household of this composition carries. The stage must state a school_level to carry any, because the level is a property of the stage rather than of the child — children imported into a stage naming no level would arrive with nothing to school them.
+
+**`households`** · *whole number*
+
+How many Households of this exact composition stand behind the edge at world creation, and the count the Outside recovers back to. Zero is legitimate and declares a composition the Outside keeps none of but will hold returns in. At least one composition somewhere in the world holds a positive count.
+
+**`money_band`** · *whole number*
+
+Which third of this Hinterland's emigrant balance range the Households carry, numbered from 0 lowest. A band holding no amount is refused: a narrow balance range leaves the upper bands empty, and stock in one would be counted, recovered and never drawable.
+
+**`stage`** · *quoted string*
+
+Which Life Stage every Household of this composition is in, naming a [[life_stage]]. The stage decides what the family wants from a home and whether it can carry children at all. It is resolved by the stage's authored name rather than by its position, so reordering the stages does not repopulate the Outside.
 
 ---
 
@@ -348,6 +371,10 @@ What this stage of a Household's life is called. next, childless and children_be
 **`next`** · *quoted string*
 
 The stage a Household moves to when its countdown comes due. Absent means the stage is terminal, which is the only way to spell that — a stage naming itself is refused.
+
+**`rent_weight_percent`** · *whole number*
+
+How heavily this stage weighs rent against everything else it wants from a home, as a percent of the neutral weight. It scales the rent term in the comparison and is never a budget — what a Household can pay at all is the affordability filter, which runs before any scoring. Absent is the neutral weight, which is the placement this build had before stages could disagree about price; a world stating [immigration] is refused without it, because who presents themselves at a gate turns on what they mind paying.
 
 **`school_level`** · *whole number*
 
@@ -823,6 +850,26 @@ The least money a Household is created with at world creation.
 
 ---
 
+## `[immigration]`
+
+**`queue_reconsider_days`** · *whole number*
+
+How often a Household waiting at a full gate weighs that wait again. It is strictly shorter than queue_wait_days: a review at or beyond the wait it reviews never runs, because the family's patience expires first.
+
+**`queue_wait_days`** · *whole number*
+
+The longest a Household willing to come waits at a gate whose quota is spent before it gives up and goes back to the stock.
+
+**`reconsider_days`** · *whole number*
+
+How often a Household outside weighs the city against the life it already has. It counts occasions and is not an arrival rate: what each occasion decides is the choice model's answer. Stating the table at all is what turns a counted population into a flow, and every arrival in a world without it comes from an Arrive command.
+
+**`recovery_days`** · *whole number*
+
+How long the Outside takes to return to the resting stock its populations authored, from either direction — below target it adds Households, above target it removes them and reports the removal as turnover. Zero freezes the stock both ways, which is the world that demonstrates depletion with nothing refilling behind it.
+
+---
+
 ## `[income_tax]`
 
 **`allowance_per_day`** · *whole number*
@@ -1280,14 +1327,6 @@ The exponent of the volume-delay curve, a small whole number. Below 1 the functi
 **`clamp_percent`** · *whole number*
 
 The largest volume-over-capacity ratio the function will read, as a percentage. Below 100 the clamp binds before a Segment is even full; far above it the router is comparing noise.
-
----
-
-## `[treasury]`
-
-**`opening_balance`** · *whole number*
-
-What the treasury holds at world creation, so that the city can spend before any levy has been collected. It is read once, when the world is made; a hot reload that changes it is refused rather than applied, because re-reading it would mint money into a standing city. Omitting the whole [treasury] table is a city that opens with nothing, which is the treasury every Ruleset had before it.
 
 ---
 
