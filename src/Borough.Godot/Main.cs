@@ -802,7 +802,27 @@ public partial class Main : Node3D
     private readonly Theme _type = new();
 
     /// <summary>The amount field for each Policy, by declaration position.</summary>
+    /// <remarks>
+    /// ⚠ <b>What the number MEANS is a property of the Policy's tool and not of this array.</b> A
+    /// transfer and a charge hold what one application moves, a relief holds a PERCENTAGE and a
+    /// subsidy holds what one worker is worth — one <c>Govern</c> verb and four readings, which is
+    /// <c>RulesetLoader.ReadMovement</c>'s decision arriving in the panel. ***The row has to say
+    /// which***, because the field cannot.
+    /// </remarks>
     private LineEdit[] _policyFields = [];
+
+    /// <summary>
+    /// The funding-ceiling field for each Policy, by declaration position. <b>Null for every tool
+    /// but a subsidy.</b>
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Parallel to <see cref="_policyFields"/> and sparse, rather than a dense array of the
+    /// subsidies.</b> <c>Command.Fund</c> addresses a Policy by declaration position exactly as
+    /// <c>Command.Govern</c> does, so a compacted array would need a second mapping back and the
+    /// two could disagree after a tune. <b>A null entry is the truth that this Policy has no second
+    /// number</b> — <c>Simulation.RefuseFund</c> refuses one against anything but a subsidy.
+    /// </remarks>
+    private LineEdit?[] _policyCeilings = [];
 
     /// <summary>What the panel says about the last governing act.</summary>
     private Label _policyStatus = null!;
@@ -1249,10 +1269,18 @@ public partial class Main : Node3D
         // ⚠ AFTER Readout(), which is what builds the panel. Opening it from the command line is the
         // same bargain BOROUGH_SHOT strikes -- a machine with no hands cannot press `p`, and a panel
         // nobody can photograph is a panel nobody reviews.
+        // 🔴 AND IT DID NOT DO WHAT THE KEY DOES, SO THE PALETTE DREW OVER THE PANEL. Govern()
+        // raises the panel to the front of the HUD and lights the console button; this path set
+        // Visible and stopped, so the tool palette -- built later and therefore drawn later --
+        // covered the heading, the first note and the first Policy row in every photograph taken
+        // this way. ***A flag whose whole purpose is to make the panel photographable was
+        // photographing five buttons on top of it.***
         if (govern)
         {
             _governing = true;
             _policyPanel.Visible = true;
+            _policiesButton.ButtonPressed = true;
+            _hud.MoveChild(_policyPanel, -1);
             ShowPolicies();
         }
     }

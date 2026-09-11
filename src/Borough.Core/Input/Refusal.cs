@@ -181,4 +181,22 @@ public enum Refusal : ushort
     /// stopped being monotone.
     /// </remarks>
     TaxProfitUpperRateBelowLowerRate = 26,
+
+    /// <summary>
+    /// <c>Fund</c> names a Policy that pays nobody. A funding ceiling belongs to a subsidy, and
+    /// every other tool has nothing to ration.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>It reads as a setting on any Policy in the list</b>, because the panel shows one row per
+    /// Policy and a ceiling is just another number to type. A charge collects whatever is owed and a
+    /// relief moves no Money at all, so a ceiling against either would be saved, hashed, carried
+    /// across a reload and consulted by nothing.
+    /// </remarks>
+    FundPolicyPaysNobody = 27,
+
+    /// <summary>
+    /// <c>Fund</c> sets a negative funding ceiling. A ceiling of zero is a subsidy switched off and
+    /// is the way to spell that; below zero it has no reading.
+    /// </summary>
+    FundCeilingIsNegative = 28,
 }

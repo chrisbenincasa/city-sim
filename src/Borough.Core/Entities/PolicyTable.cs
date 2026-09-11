@@ -68,6 +68,8 @@ public sealed class PolicyTable
         Key = _rows.Saved<ulong>("key", Touch.Cold);
         Amount = _rows.Saved<int>("amount", Touch.Cold);
         Governed = _rows.Saved<byte>("governed", Touch.Cold);
+        Ceiling = _rows.Saved<long>("ceiling", Touch.Cold);
+        Funded = _rows.Saved<byte>("funded", Touch.Cold);
 
         _rows.Seal();
 
@@ -94,6 +96,18 @@ public sealed class PolicyTable
     /// <summary>Whether the player has governed this Policy at all.</summary>
     public Column<byte> Governed { get; }
 
+    /// <summary>The most this Policy may pay out in one Day. Meaningless unless <see cref="Funded"/> is 1.</summary>
+    /// <remarks>
+    /// ⚠ <b>A second governed number, and only a subsidy has one.</b> A subsidy's rate and its funding
+    /// ceiling are separate decisions — raising what each worker is worth while leaving the pot alone
+    /// pays the same Money to fewer claimants — so one column could not carry both. Every other tool
+    /// leaves this at zero and ungoverned, and nothing reads it.
+    /// </remarks>
+    public Column<long> Ceiling { get; }
+
+    /// <summary>Whether the player has set this Policy's funding ceiling.</summary>
+    public Column<byte> Funded { get; }
+
     /// <summary>What one application of this Policy moves, the player's decision winning.</summary>
     /// <remarks>
     /// <b>The one place the fall-through is spelled</b>, so a caller cannot read
@@ -104,11 +118,24 @@ public sealed class PolicyTable
             ? Amount[policy]
             : definition.Amount;
 
+    /// <summary>What this Policy may pay out in one Day, the player's decision winning.</summary>
+    public long CeilingOf(int policy, in PolicyDefinition definition) =>
+        policy >= 0 && policy < _rows.SlotCount && Funded[policy] != 0
+            ? Ceiling[policy]
+            : definition.Ceiling;
+
     /// <summary>Records the player's decision against one Policy.</summary>
     public void Govern(int policy, int amount)
     {
         Amount[policy] = amount;
         Governed[policy] = 1;
+    }
+
+    /// <summary>Records the player's funding ceiling against one Policy.</summary>
+    public void Fund(int policy, long ceiling)
+    {
+        Ceiling[policy] = ceiling;
+        Funded[policy] = 1;
     }
 
     /// <summary>Re-points every row at a newly adopted Ruleset, carrying governed amounts by name.</summary>
@@ -145,30 +172,46 @@ public sealed class PolicyTable
         var wasKey = new ulong[slots];
         var wasAmount = new int[slots];
         var wasGoverned = new byte[slots];
+        var wasCeiling = new long[slots];
+        var wasFunded = new byte[slots];
 
         for (int policy = 0; policy < slots; policy++)
         {
             wasKey[policy] = Key[policy];
             wasAmount[policy] = Amount[policy];
             wasGoverned[policy] = Governed[policy];
+            wasCeiling[policy] = Ceiling[policy];
+            wasFunded[policy] = Funded[policy];
 
             Key[policy] = policy < rules.Policies.Length ? rules.PolicyKey(policy) : 0;
             Amount[policy] = 0;
             Governed[policy] = 0;
+            Ceiling[policy] = 0;
+            Funded[policy] = 0;
         }
 
         for (int policy = 0; policy < slots; policy++)
         {
-            if (wasGoverned[policy] == 0)
+            if (wasGoverned[policy] == 0 && wasFunded[policy] == 0)
             {
                 continue;
             }
 
             int now = Find(wasKey[policy]);
 
-            if (now != Tables.Rows.NoSlot)
+            if (now == Tables.Rows.NoSlot)
+            {
+                continue;
+            }
+
+            if (wasGoverned[policy] != 0)
             {
                 Govern(now, wasAmount[policy]);
+            }
+
+            if (wasFunded[policy] != 0)
+            {
+                Fund(now, wasCeiling[policy]);
             }
         }
     }

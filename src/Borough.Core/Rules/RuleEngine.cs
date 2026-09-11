@@ -958,7 +958,7 @@ public sealed class RuleEngine
 
         foreach (MapEmission emission in _world.Rules.Emissions(rule))
         {
-            Emit(building, emission, verdict.Applications);
+            Emit(building, emission, verdict.Applications, tick);
         }
 
         _world.Wheel.Arm(instance, tick, definition.Rate);
@@ -1611,8 +1611,16 @@ public sealed class RuleEngine
         }
     }
 
-    /// <summary>Writes a Rule's Map Layer emission into the Cell under its Building.</summary>
+    /// <summary>
+    /// Writes a Rule's Map Layer emission into the Cell under its Building, and against the Building.
+    /// </summary>
     /// <remarks>
+    /// <para>
+    /// <b>Two destinations for one figure, and they answer different questions.</b> The Cell is the
+    /// city-wide field a Household smells; <see cref="BuildingTable.DayEmitted"/> is what this
+    /// Building put out, which the Cell stops being able to say the moment a second Lot emits into
+    /// it or the operator decays it.
+    /// </para>
     /// <b>Pollution only, and the other two Layers are named holes rather than omissions.</b> Land
     /// value is not emitted at all — <c>SetLandValueTarget</c> sets a target the momentum operator
     /// chases, which is a different verb from <em>add this much</em> — and Sealing is a footprint
@@ -1620,7 +1628,7 @@ public sealed class RuleEngine
     /// emission would mean inventing a semantic for it here, which is a design change wearing a
     /// switch statement.
     /// </remarks>
-    private void Emit(int building, in MapEmission emission, long applications)
+    private void Emit(int building, in MapEmission emission, long applications, Ticks tick)
     {
         Handle<Lot> lot = _world.Buildings.Lot[building];
         int lotSlot = _world.Lots.Rows.Resolve(lot);
@@ -1656,6 +1664,20 @@ public sealed class RuleEngine
         }
 
         _world.Layers.EmitPollution(east, north, (int)emitted);
+
+        // 🔴 THE SAME FIGURE, KEPT WHERE IT CAN STILL BE ATTRIBUTED. The line above adds into a Cell
+        // that many Lots share and that the diffusion operator decays every cadence, so from the
+        // next Layer Tick onward nothing in the world can say which Building put what there. An
+        // addition beside EmitPollution and never a replacement for it: the Map Layer is the
+        // city-wide field and this is one Building's own output, and they are different quantities
+        // that happen to agree at the instant of the firing.
+        //
+        // Written from Fire and not from Check, which is the same discipline the trade posting and
+        // DistrictPools.Consumed above are under (adr/0037: phase 2 writes nothing). Check runs for
+        // every due Rule, for every rung of a failed chain and again on the phase 3 re-check, and a
+        // Rule that was evaluated and then blocked has emitted nothing -- recording there would
+        // count evaluations rather than emissions.
+        _world.Buildings.Emit(building, BusinessAccounts.DayOf(tick), emitted);
     }
 
     /// <summary>Accumulates a delta against a Bin, merging a Bin already named by this Rule.</summary>

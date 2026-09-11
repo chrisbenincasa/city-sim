@@ -13,7 +13,11 @@ using Borough.Core.Quantities;
 /// accumulated between two readings rather than a running total, so nothing here is a collection
 /// that grows with elapsed time (<c>adr/0006</c>).
 /// </remarks>
-/// <param name="Due">What the schedule assessed on yesterday's profits, before any till was opened.</param>
+/// <param name="Due">
+/// What is owed on yesterday's profits once every targeted relief is taken off, and before any till
+/// was opened. ⚠ <b>Relief is already deducted here</b>, because what a Business owes is what it
+/// owes — see <paramref name="Relieved"/> for what the bands assessed and the catalogue then forgave.
+/// </param>
 /// <param name="Collected">What actually reached the treasury. Never more than <paramref name="Due"/>.</param>
 /// <param name="Taxable">Businesses that closed yesterday in profit.</param>
 /// <param name="Paying">Businesses that handed over something.</param>
@@ -28,8 +32,13 @@ using Borough.Core.Quantities;
 /// building kind declaring no business-owned money Bin is a Ruleset defect that would otherwise read
 /// as a city nobody taxed.
 /// </param>
+/// <param name="Relieved">
+/// Revenue the targeted reliefs forwent — what the bands assessed, less <paramref name="Due"/>.
+/// ⚠ <b>It is not expenditure and no Money moved</b> (<c>plans/0072</c> D10). A relief cannot pay a
+/// Business that owes nothing, so this can never exceed what the bands assessed.
+/// </param>
 public readonly record struct ProfitTaxReading(
-    long Due, long Collected, int Taxable, int Paying, int Underpaying, int Tilless);
+    long Due, long Collected, int Taxable, int Paying, int Underpaying, int Tilless, long Relieved);
 
 /// <summary>
 /// <b>Collects the tax on a Business's profit, once a Day, out of its till and into the treasury.</b>
@@ -172,6 +181,7 @@ internal sealed class BusinessTaxEngine(World world)
         int paying = 0;
         int shortTill = 0;
         int tilless = 0;
+        long relieved = 0;
 
         for (int slot = 0; slot < _world.Businesses.Rows.SlotCount; slot++)
         {
@@ -192,12 +202,22 @@ internal sealed class BusinessTaxEngine(World world)
 
             taxable++;
 
-            long bill = BusinessTax.DueOn(profit, schedule);
+            long assessed = BusinessTax.DueOn(profit, schedule);
+
+            // plans/0072 D13. Relief comes off AFTER the marginal bands and never before them:
+            // relieving the profit instead would move the Business down its own schedule and change
+            // which band the remainder fell in, so two 25% reliefs would depend on the threshold.
+            long bill = TaxRelief.Relieved(
+                assessed,
+                TaxRelief.PercentFor(_world.Rules, _world.Policies, _world.Businesses.Kind[slot]));
+
+            relieved += assessed - bill;
 
             if (bill <= 0)
             {
-                // A profit small enough that both bands floor to nothing. It traded at a profit, so
-                // it is counted above; it owes nothing, so it is not short.
+                // Either a profit small enough that both bands floor to nothing, or a Business
+                // relieved of the whole bill. It traded at a profit, so it is counted above; it owes
+                // nothing, so it is not short. What the relief forwent is already recorded.
                 continue;
             }
 
@@ -253,6 +273,7 @@ internal sealed class BusinessTaxEngine(World world)
 
         _collectedFlow = _collectedFlow.Fold(collected);
 
-        return new ProfitTaxReading(due, collected, taxable, paying, shortTill, tilless);
+        return new ProfitTaxReading(
+            due, collected, taxable, paying, shortTill, tilless, relieved);
     }
 }

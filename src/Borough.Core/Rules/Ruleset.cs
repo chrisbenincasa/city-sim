@@ -1582,6 +1582,11 @@ public enum PolicySubject : byte
 /// <param name="To">Whose Bin it enters.</param>
 /// <param name="Resource">The conserved Resource moved. <b>Structure</b>, not a number.</param>
 /// <param name="Amount">How much one application moves. <b>Hash-bearing.</b></param>
+/// <param name="Ceiling">
+/// The most this Policy may pay out in one Day, and <b>zero means it rations nothing</b>. Only a
+/// subsidy has one: a charge collects what is owed and a relief moves no Money at all.
+/// <b>Hash-bearing.</b>
+/// </param>
 public readonly record struct PolicyDefinition(
     PolicySubject Subject,
     uint Interval,
@@ -1589,7 +1594,10 @@ public readonly record struct PolicyDefinition(
     Scope From,
     Scope To,
     ResourceId Resource,
-    int Amount);
+    int Amount,
+    long Ceiling = 0,
+    PolicyTool Tool = PolicyTool.Transfer,
+    byte Trade = TradeKind.Any);
 
 /// <summary>
 /// One <c>[[hinterland]]</c> table — <b>the economy behind one map edge</b> (<c>adr/0088</c>,

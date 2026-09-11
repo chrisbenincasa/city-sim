@@ -1799,8 +1799,14 @@ internal sealed class Options
                                 boundary, money a [[policy]] moved to the treasury, and money
                                 a [[rule]] paid in off a premises -- because the four are the
                                 same arrival through different levers, and none is netted
-                                against expenditure. The treasury column is their running
-                                total less the two expenditure columns, exactly. Prints the
+                                against expenditure. Expenditure is THREE: a [[policy]]
+                                transfer, a [[rule]] drawing on the treasury, and a
+                                tool = "subsidy" apportioned against its own ceiling, which
+                                leaves through none of the other doors. The treasury column is
+                                their running total less the three expenditure columns,
+                                exactly. Profit-tax RELIEF is printed under the table and is
+                                deliberately outside that arithmetic: it moves no money, so it
+                                is revenue forgone rather than spending. Prints the
                                 [income_tax] and [business_tax] bands above the table so both
                                 tax columns can be checked by hand. Steps its own world. Needs
                                 --ruleset stating [income_tax]; rulesets/taxing.toml is

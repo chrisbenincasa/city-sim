@@ -114,7 +114,7 @@ public sealed class Census
     private const int MoneyCounters = 6;
 
     /// <summary>The members of <see cref="MoneyFlowCounter"/> — one per (mechanism, direction).</summary>
-    private const int MoneyFlowCounters = 6;
+    private const int MoneyFlowCounters = 7;
 
     private const int MoneyFlowMetrics = MoneyFlowCounters * AggregatesPerRuleCounter;
 
@@ -255,7 +255,8 @@ public sealed class Census
             simulation.Employment.Drain(),
             simulation.Policies.Drain(),
             simulation.Wages.DrainWithheld(),
-            simulation.ProfitTax.DrainCollected());
+            simulation.ProfitTax.DrainCollected(),
+            simulation.Subsidies.DrainPaid());
     }
 
     /// <summary>
@@ -297,6 +298,14 @@ public sealed class Census
     /// collection falls on every Day boundary, so a census on a slower cadence would keep one Day of
     /// however many it covered.
     /// </param>
+    /// <param name="subsidy">
+    /// Money paid out of the treasury by the subsidy sweeps since the previous reading, already
+    /// drained. ⚠ <b>It is a third expenditure path and not a share of
+    /// <paramref name="policies"/></b> — <c>SubsidyEngine</c> apportions a pot and pays it itself,
+    /// so none of it passes through <c>PolicyEngine.Move</c> and none of it appears in
+    /// <c>PolicyActivity.FromTreasury</c>. ⚠ <b>What was CLAIMED is not here and belongs nowhere
+    /// here</b>: a rationed claim creates no debt, so it crossed no edge.
+    /// </param>
     public void Observe(
         World world,
         Ticks tick,
@@ -307,7 +316,8 @@ public sealed class Census
         EmploymentActivity jobs = default,
         PolicyActivity policies = default,
         MoneyFlow withheld = default,
-        MoneyFlow profitTax = default)
+        MoneyFlow profitTax = default,
+        MoneyFlow subsidy = default)
     {
         ArgumentNullException.ThrowIfNull(world);
 
@@ -401,6 +411,12 @@ public sealed class Census
         // because the two are levied on different taxpayers under different tables -- see
         // MoneyFlowCounter.ProfitTax -- and because two peaks do not add.
         WriteMoney(_values, at + _moneyFlowBase, (int)MoneyFlowCounter.ProfitTax, profitTax);
+
+        // The third path OUT, and the first one that is not a [[rule]] or a PolicyEngine transfer.
+        // A subsidy is apportioned and paid by SubsidyEngine, so it reaches neither accumulator
+        // below -- see MoneyFlowCounter.Subsidy. Until this line the treasury fell by money no flow
+        // column named, which is RuleToTreasury's defect on the expenditure side.
+        WriteMoney(_values, at + _moneyFlowBase, (int)MoneyFlowCounter.Subsidy, subsidy);
 
         // The third income path, and the one that reached the treasury in silence until row 33. It
         // rides RuleActivity rather than PolicyActivity because it is the Bin Rule engine that moved
@@ -604,7 +620,7 @@ public sealed class Census
             if (metric.MoneyFlowCounter is not (MoneyFlowCounter.ToTreasury
                 or MoneyFlowCounter.FromTreasury or MoneyFlowCounter.Withheld
                 or MoneyFlowCounter.RuleToTreasury or MoneyFlowCounter.RuleFromTreasury
-                or MoneyFlowCounter.ProfitTax))
+                or MoneyFlowCounter.ProfitTax or MoneyFlowCounter.Subsidy))
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(metric), metric.MoneyFlowCounter, "not a money movement this census reads.");

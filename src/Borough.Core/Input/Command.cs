@@ -310,6 +310,24 @@ public enum CommandKind : ushort
     /// </para>
     /// </remarks>
     Tax = 12,
+
+    /// <summary>Set a subsidy's funding ceiling for a Day — <c>plans/0072</c> D12.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A second verb rather than a second field on <see cref="Govern"/>.</b> A subsidy carries two
+    /// player decisions that move independently — what a claim is worth, and how much may be paid out
+    /// in a Day — and raising one while leaving the other pays the same Money to fewer claimants. The
+    /// struct is twelve fully-defined bytes and cannot be widened, and a selector squeezed into
+    /// <see cref="Zone"/> beside the Policy index would cost the index half its range to carry one bit.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A ceiling is not a budget the treasury has set aside.</b> It bounds what this Policy may
+    /// pay on a Day; whether the Money is there is asked at the payment. ***A funded subsidy can still
+    /// go unpaid***, which is the sentence <c>plans/0072</c> D12 means by support being explicitly
+    /// subject to funding.
+    /// </para>
+    /// </remarks>
+    Fund = 13,
 }
 
 /// <summary>
@@ -369,6 +387,22 @@ public readonly struct Command
         ArgumentOutOfRangeException.ThrowIfGreaterThan(policy, ushort.MaxValue);
 
         return new Command(CommandKind.Govern, new Tiles(amount), default, (ushort)policy);
+    }
+
+    /// <summary>Set a subsidy's funding ceiling for a Day — <c>plans/0072</c> D12.</summary>
+    /// <remarks>
+    /// <b>Packed exactly as <see cref="Govern"/> packs its pair</b>: the Policy by position in
+    /// declaration order in <see cref="Zone"/>, the ceiling in <see cref="East"/>,
+    /// <see cref="North"/> unused.
+    /// </remarks>
+    /// <param name="policy">Which Policy, by position in declaration order.</param>
+    /// <param name="ceiling">The most it may pay out in one Day from now on.</param>
+    public static Command Fund(int policy, int ceiling)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(policy);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(policy, ushort.MaxValue);
+
+        return new Command(CommandKind.Fund, new Tiles(ceiling), default, (ushort)policy);
     }
 
     /// <summary>Move one control on the Citizen income tax — <c>plans/0072</c> D3.</summary>

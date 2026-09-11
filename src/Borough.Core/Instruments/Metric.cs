@@ -721,6 +721,42 @@ public enum MoneyFlowCounter : byte
     /// </para>
     /// </remarks>
     ProfitTax,
+
+    /// <summary>
+    /// Money a <c>tool = "subsidy"</c> Policy paid out of the treasury over the interval.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>A seventh member rather than more <see cref="FromTreasury"/>, and here the alternative
+    /// was not merely worse — it was unreachable.</b> <c>SubsidyEngine</c> is not
+    /// <c>PolicyEngine</c> (<c>plans/0072</c> D33): it gathers every claim, takes the pot as the
+    /// smaller of the ceiling and the treasury, apportions, and only then pays. None of that runs
+    /// through <c>PolicyEngine.Move</c>, so none of it folds into
+    /// <see cref="FromTreasury"/>'s accumulator — ***a subsidy left the treasury through a door no
+    /// flow counter watched***, which is <see cref="RuleToTreasury"/>'s defect arriving for the
+    /// third time and on the expenditure side for the first.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is what was PAID and never what was claimed.</b> A rationed claim creates no debt
+    /// (D12), so the shortfall is not money owed and has no place in a budget's arithmetic;
+    /// <c>SubsidyReading.Claimed</c> and <c>SubsidyReading.Rationed</c> are where a reader finds out
+    /// that the pot bound, and they are a reading rather than a flow.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A <c>tool = "relief"</c> Policy has no member here and must never acquire one.</b> A
+    /// relief moves no Money at all — it reduces a profit-tax bill before the collection, so the
+    /// only trace it leaves is a <see cref="ProfitTax"/> column smaller than it would otherwise have
+    /// been. ***Revenue forgone is not expenditure***, and a member for it would put a figure that
+    /// crossed no edge into an identity about the treasury's edge.
+    /// </para>
+    /// <para>
+    /// The identity of the family becomes: over any interval, the change in
+    /// <c>MoneyCounter.Treasury</c> equals
+    /// <c>ToTreasury + Withheld + RuleToTreasury + ProfitTax − FromTreasury − RuleFromTreasury
+    /// − Subsidy</c>.
+    /// </para>
+    /// </remarks>
+    Subsidy,
 }
 
 /// <summary>Which family of thing a <see cref="Metric"/> names.</summary>

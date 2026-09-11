@@ -22,7 +22,7 @@ using Borough.Formats;
 /// so the report has to say which of the two brought the money in.
 /// </para>
 /// <para>
-/// 🔴 <b>Income is printed in four columns and expenditure in two, and none of the six is netted
+/// 🔴 <b>Income is printed in four columns and expenditure in three, and none of the seven is netted
 /// against another.</b> <c>MoneyFlowCounter.FromTreasury</c>'s own remark carries the argument: a net
 /// is the one figure that cannot say whether a city taxed nothing and paid nothing or taxed heavily
 /// and paid it all back. The split within income is the same argument one level down — money an
@@ -102,9 +102,33 @@ internal static class IncomeDump
 
         census.Observe(simulation);
 
+        // 🔴 THE TWO FIGURES THE CENSUS CANNOT CARRY, accumulated here beside it rather than
+        // inside it. Relief moved no Money, so it is not a flow and has no member of
+        // MoneyFlowCounter to ride; what a subsidy CLAIMED is not what it paid, and the shortfall
+        // creates no debt (plans/0072 D12), so it crossed no edge either. Both are read off the
+        // per-sweep readings, which stand for exactly one Tick -- so they are summed every Tick and
+        // never sampled on the cadence. ⚠ Sampling them on a Day would be correct today and wrong
+        // the moment anything runs at a cadence a Day does not divide.
+        long relieved = 0;
+        long claimed = 0;
+        long cut = 0;
+        int rationedDays = 0;
+
         for (ulong tick = 0; tick < options.Ticks; tick++)
         {
             simulation.Step(default);
+
+            relieved += simulation.LastProfitTax.Relieved;
+
+            SubsidyReading subsidies = simulation.LastSubsidies;
+
+            claimed += subsidies.Claimed;
+            cut += subsidies.Rationed;
+
+            if (subsidies.Rationed > 0)
+            {
+                rationedDays++;
+            }
 
             if (simulation.Tick.Raw % cadence == 0)
             {
@@ -112,6 +136,7 @@ internal static class IncomeDump
             }
         }
 
+        var catalogue = new Catalogue(relieved, claimed, cut, rationedDays);
         var window = new Ticks(options.Ticks);
 
         output.WriteLine("# Borough income dump — the city's budget");
@@ -123,10 +148,28 @@ internal static class IncomeDump
 
         Schedule(output, rules, names);
         output.WriteLine();
-        Budget(output, census, window, cadence);
+        Budget(output, census, window, cadence, catalogue);
 
         return 0;
     }
+
+    /// <summary>
+    /// What the targeted catalogue did that no treasury flow can say.
+    /// </summary>
+    /// <remarks>
+    /// <b>Three of these four numbers describe Money that never moved</b>, which is exactly why they
+    /// are carried apart from the budget's columns rather than added to them. A relief reduces a
+    /// bill, so its trace is a <em>smaller</em> profit-tax column; a rationed claim is not a debt,
+    /// so its trace is nothing at all. ***Putting either in the identity would break it***, and
+    /// leaving both out of the report would make a city that forwent half its profit tax
+    /// indistinguishable from one whose shops traded at half the profit.
+    /// </remarks>
+    /// <param name="Relieved">Profit tax the reliefs forwent. Revenue forgone, never expenditure.</param>
+    /// <param name="Claimed">What the subsidies were asked for, before any ceiling bound.</param>
+    /// <param name="Cut">Claimant-Days paid less than they claimed.</param>
+    /// <param name="RationedDays">Days on which the pot bound at all.</param>
+    private readonly record struct Catalogue(
+        long Relieved, long Claimed, long Cut, int RationedDays);
 
     /// <summary>
     /// The schedule the run was taxed under, printed above the table it produced.
@@ -251,11 +294,11 @@ internal static class IncomeDump
     }
 
     /// <summary>
-    /// The budget: income in three columns, expenditure in two, and the two levels they moved.
+    /// The budget: income in four columns, expenditure in three, and the two levels they moved.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Nine columns and no tenth that adds any of them up.</b> The treasury column is already the
+    /// <b>Ten columns and no eleventh that adds any of them up.</b> The treasury column is already the
     /// running consequence of the five flows, so a net column would be its first difference and
     /// would carry nothing the table does not have — while costing the reader the one distinction
     /// the table exists to make. <b>The households column is the counterparty</b>: a budget that
@@ -271,7 +314,8 @@ internal static class IncomeDump
     /// interval of it.
     /// </para>
     /// </remarks>
-    private static void Budget(TextWriter output, Census census, Ticks window, uint cadence)
+    private static void Budget(
+        TextWriter output, Census census, Ticks window, uint cadence, Catalogue catalogue)
     {
         Series treasury = census.Series(Metric.Of(MoneyCounter.Treasury), window);
         Series households = census.Series(Metric.Of(MoneyCounter.Households), window);
@@ -284,6 +328,8 @@ internal static class IncomeDump
             census.Series(Metric.Of(MoneyFlowCounter.RuleToTreasury, Aggregate.Sum), window);
         Series drawn =
             census.Series(Metric.Of(MoneyFlowCounter.RuleFromTreasury, Aggregate.Sum), window);
+        Series granted =
+            census.Series(Metric.Of(MoneyFlowCounter.Subsidy, Aggregate.Sum), window);
 
         ReadOnlySpan<CensusSample> levels = treasury.Samples.Span;
         var columns = new Columns(
@@ -293,14 +339,15 @@ internal static class IncomeDump
             levied.Samples.Span,
             ruled.Samples.Span,
             spent.Samples.Span,
-            drawn.Samples.Span);
+            drawn.Samples.Span,
+            granted.Samples.Span);
 
         output.WriteLine(F($"Income and expenditure — one row per {cadence:N0} Ticks, which is a Day"));
         output.WriteLine();
 
         string header = Row(
             "tick", "withheld", "profit tax", "policy in", "rule in", "policy out", "rule out",
-            "treasury", "households");
+            "subsidy out", "treasury", "households");
         output.WriteLine(header);
         output.WriteLine(new string('-', header.Length));
 
@@ -335,14 +382,16 @@ internal static class IncomeDump
         long paidIn = Total(columns.Ruled);
         long out_ = Total(columns.Spent);
         long drawnOut = Total(columns.Drawn);
+        long grantedOut = Total(columns.Granted);
 
         output.WriteLine();
         output.WriteLine(F(
             $"  Into the treasury: {income:N0} withheld from wages, {profit:N0} in profit tax, {moved:N0} by a Policy, {paidIn:N0} by a Bin Rule."));
         output.WriteLine(F(
-            $"  Out of it: {out_:N0} by a Policy, {drawnOut:N0} by a Bin Rule."));
+            $"  Out of it: {out_:N0} by a Policy, {drawnOut:N0} by a Bin Rule, {grantedOut:N0} in subsidy."));
+        Catalogued(output, catalogue);
         output.WriteLine(
-            "  The six are printed apart and never netted. A net cannot say whether a city taxed");
+            "  The seven are printed apart and never netted. A net cannot say whether a city taxed");
         output.WriteLine(
             "  nothing and paid nothing or taxed heavily and paid it all back; and within the");
         output.WriteLine(
@@ -357,7 +406,22 @@ internal static class IncomeDump
             "  already holding it.");
         output.WriteLine();
         output.WriteLine(
-            "  The treasury column is these six columns' running total, and nothing else reaches");
+            "  ⚠ `policy in` is every Policy that pays INTO the treasury, a plain transfer and a");
+        output.WriteLine(
+            "  tool = \"charge\" alike: PolicyEngine folds both into one accumulator, so on a file");
+        output.WriteLine(
+            "  whose only inbound Policy is a charge this column IS the charge, and on any other");
+        output.WriteLine(
+            "  file it is not. `subsidy out` is apart from `policy out` because the money never");
+        output.WriteLine(
+            "  passes through that sweep at all -- a subsidy is apportioned against a ceiling by");
+        output.WriteLine(
+            "  SubsidyEngine, and until it had a column of its own the treasury fell by money no");
+        output.WriteLine(
+            "  flow here could name.");
+        output.WriteLine();
+        output.WriteLine(
+            "  The treasury column is these seven columns' running total, and nothing else reaches");
         output.WriteLine(
             "  it: every unit of the balance is explained by the flows printed beside it.");
     }
@@ -366,7 +430,7 @@ internal static class IncomeDump
     /// Every column of the budget but the tick and the treasury, which the caller already holds.
     /// </summary>
     /// <remarks>
-    /// <b>A carrier so that a row writer takes three arguments rather than nine.</b> A <c>ref
+    /// <b>A carrier so that a row writer takes three arguments rather than ten.</b> A <c>ref
     /// struct</c> because every member is a <see cref="ReadOnlySpan{T}"/> over the census's own
     /// storage — nothing is copied, and nothing outlives the reading it was taken from.
     /// </remarks>
@@ -377,7 +441,8 @@ internal static class IncomeDump
         ReadOnlySpan<CensusSample> levied,
         ReadOnlySpan<CensusSample> ruled,
         ReadOnlySpan<CensusSample> spent,
-        ReadOnlySpan<CensusSample> drawn)
+        ReadOnlySpan<CensusSample> drawn,
+        ReadOnlySpan<CensusSample> granted)
     {
         public ReadOnlySpan<CensusSample> Homes { get; } = homes;
 
@@ -393,6 +458,45 @@ internal static class IncomeDump
         public ReadOnlySpan<CensusSample> Spent { get; } = spent;
 
         public ReadOnlySpan<CensusSample> Drawn { get; } = drawn;
+
+        /// <summary>
+        /// What the subsidy sweeps apportioned out of the treasury — the third expenditure path.
+        /// </summary>
+        /// <remarks>
+        /// ⚠ <b>Its own column and not part of <see cref="Spent"/></b>, because the money does not
+        /// pass through <c>PolicyEngine.Move</c> at all: a subsidy gathers every claim, takes the
+        /// smaller of its ceiling and the treasury, and cuts everybody in proportion. Folding it in
+        /// would keep the identity and lose the one lever a player actually turns, which is the
+        /// <c>ceiling</c>.
+        /// </remarks>
+        public ReadOnlySpan<CensusSample> Granted { get; } = granted;
+    }
+
+    /// <summary>
+    /// What the catalogue did beside the budget: revenue forgone, and claims the pot could not meet.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>Printed BELOW the identity and outside it, and the placement is the whole of what this
+    /// block is for.</b> Relief is a tax the city chose not to collect: no Bin was debited, no Bin
+    /// was credited, and the treasury is exactly where it would be if the reliefs had never been
+    /// declared and the shops had simply earned less. ***Adding it to expenditure would break the
+    /// balance by precisely the amount forgone*** — and it is an easy mistake to make, because a
+    /// relief is the one tool in the catalogue whose effect a player feels as spending.
+    /// </remarks>
+    private static void Catalogued(TextWriter output, Catalogue catalogue)
+    {
+        output.WriteLine(F(
+            $"  Claimed in subsidy: {catalogue.Claimed:N0}, of which {catalogue.Cut:N0} claimant-Days were cut by the ceiling, on {catalogue.RationedDays:N0} Days."));
+        output.WriteLine(F(
+            $"  Revenue forgone: {catalogue.Relieved:N0} in profit-tax relief."));
+        output.WriteLine(
+            "  ⚠ Neither of those two lines is in the arithmetic above, and neither may be. A");
+        output.WriteLine(
+            "  relief moves NO money -- it reduces a bill before the collection, so its only trace");
+        output.WriteLine(
+            "  is a smaller profit tax column -- and a claim the ceiling cut is not a debt, so the");
+        output.WriteLine(
+            "  city owes nothing for it. Revenue forgone is not expenditure.");
     }
 
     private static void WriteBudgetRow(
@@ -406,6 +510,7 @@ internal static class IncomeDump
             Cell(columns.Ruled, i),
             Cell(columns.Spent, i),
             Cell(columns.Drawn, i),
+            Cell(columns.Granted, i),
             Count(levels[i].Value),
             Cell(columns.Homes, i)));
     }
@@ -457,8 +562,8 @@ internal static class IncomeDump
 
     private static string Row(
         string label, string a, string b, string c, string d, string e, string f, string g,
-        string h) =>
-        F($"{label,-10}  {a,11}  {b,11}  {c,11}  {d,11}  {e,11}  {f,11}  {g,14}  {h,14}");
+        string h, string i) =>
+        F($"{label,-10}  {a,11}  {b,11}  {c,11}  {d,11}  {e,11}  {f,11}  {g,11}  {h,14}  {i,14}");
 
     private static string Count(long value) => F($"{value:N0}");
 

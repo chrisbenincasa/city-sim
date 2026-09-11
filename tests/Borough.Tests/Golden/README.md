@@ -630,10 +630,11 @@ what it holds cannot move; what moved is what each row now says about how many p
 could hold. ***A row-count baseline is blind to a change in what a row means***, which is why the
 hash is folded beside the counts rather than the counts being the baseline.
 
-**Row 33 re-recorded four artefacts twice — once for the income tax and once for the profit tax — and
-moved no Ruleset content hash either time.** A Citizen gained `taxed_day` and `taxed_gross`; the world
+**Row 33 re-recorded four artefacts three times — for the income tax, the profit tax and the targeted
+policy catalogue — and moved no Ruleset content hash any time.** A Citizen gained `taxed_day` and `taxed_gross`; the world
 gained an `IncomeTaxTable`; a Business gained `trading_day`, `day_revenue` and `day_expense`; a Bin
-gained the running cost of what it holds. Every one is a saved column, so the composition moved and
+gained the running cost of what it holds; a Policy gained `ceiling` and `funded`; and a Building
+gained `emitting_day`, `day_emitted` and `prior_emitted`. Every one is a saved column, so the composition moved and
 every number in the four files moved with it. **None of the three baseline Rulesets was edited**, so
 this is the 5c shape rather than the `plans/0053` one: no `.borough` literal and nothing in
 `GoldenFixtures` had to move first.

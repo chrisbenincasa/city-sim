@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using Borough.Core;
@@ -299,6 +300,22 @@ public partial class Main
     /// <c>Command.Govern</c> is the factory that says so; the struct is twelve fully-defined bytes
     /// and widening it would re-spell every committed Input Log.
     /// </para>
+    /// <para>
+    /// 🔴 <b>FOUR TOOLS RENDERED IDENTICALLY AND THREE OF THE FOUR READINGS WERE WRONG.</b>
+    /// <c>plans/0072</c> D10 turned one transfer into four things a Policy can be, and the row said
+    /// <em>sweeps X every N</em> for all of them. ***A relief's number is a percentage and read as
+    /// money***, so a player typing 25 into one believed they had set a charge of 25; a subsidy's
+    /// second number had no field at all, so <c>Command.Fund</c> was unreachable from the panel; and
+    /// a Policy aimed at one trade looked exactly like one that levied every Business in the city.
+    /// <b>So the row now names its tool, names its trade, and grows a second field where there is a
+    /// second decision.</b>
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The trade is resolved through <see cref="RulesetNames"/> and never through the core.</b>
+    /// <c>PolicyDefinition.Trade</c> is a kind id; <c>_names.BusinessKind</c> is the same path
+    /// <see cref="Sentence"/> and the Business readout already take. <b>The shell owns every string
+    /// a human reads</b>, so a Policy naming a trade nothing can name falls back to the id.
+    /// </para>
     /// </remarks>
     private void Governing(CanvasLayer layer)
     {
@@ -320,15 +337,22 @@ public partial class Main
         // actually bites is `percent = 10` in the apply rule. Govern writes PolicyTable.Amount and
         // nothing else -- ApplyCount is Ruleset data and is not governable -- so a person turning
         // this dial expecting a rate would change the wrong number and watch nothing happen.
-        box.AddChild(new Label
-        {
-            Text = "what ONE application moves. how many and what share is the [[policy]]'s"
-                + " apply rule, which is not governable.",
-        });
+        // ⚠ ADDED HERE AND WORDED AFTER THE LOOP, because what the field means depends on which
+        // tools this city declares and the sentence has to sit ABOVE the rows it qualifies. A world
+        // of plain transfers gets the sentence it always had; naming a relief's unit to somebody who
+        // has no relief is a line of panel spent on a control that is not there.
+        var meaning = new Label();
+
+        box.AddChild(meaning);
 
         PolicyDefinition[] declared = _world.Rules.Policies;
 
         _policyFields = new LineEdit[declared.Length];
+        _policyCeilings = new LineEdit?[declared.Length];
+
+        var units = new List<Label>();
+        bool anyRelief = false;
+        bool anySubsidy = false;
 
         for (int at = 0; at < declared.Length; at++)
         {
@@ -336,12 +360,14 @@ public partial class Main
             bool governable = _world.Rules.PolicyKey(at) != 0;
             string named = _names.Policy(at) ?? "unnamed";
 
+            anyRelief |= declared[at].Tool == PolicyTool.Relief;
+            anySubsidy |= declared[at].Tool == PolicyTool.Subsidy;
+
             row.AddChild(new Label
             {
                 Text = governable
-                    ? $"{named} — sweeps {declared[at].Subject.ToString().ToLowerInvariant()} "
-                        + $"every {declared[at].Interval:N0}"
-                    : $"{named} (no name — ungovernable)",
+                    ? $"{named} · {Described(declared[at])}"
+                    : $"{named} · {Described(declared[at])} (no name — ungovernable)",
                 CustomMinimumSize = new Vector2(340f, 0f),
             });
 
@@ -357,15 +383,98 @@ public partial class Main
             field.TextSubmitted += _ => AtBoundary(() => Govern(position));
             _policyFields[at] = field;
             row.AddChild(field);
+
+            var unit = new Label { Text = Unit(declared[at].Tool) };
+
+            units.Add(unit);
+            row.AddChild(unit);
+
             var set = InformationButton("Set", () => Govern(position));
             set.Disabled = !governable;
             row.AddChild(set);
             box.AddChild(row);
+
+            if (declared[at].Tool != PolicyTool.Subsidy)
+            {
+                continue;
+            }
+
+            // ⚠ A SECOND ROW AND NOT A SECOND COLUMN. Two numbers and two buttons on one line put
+            // the rate's Set beside the ceiling's field, and the two verbs are separately refusable
+            // -- a mis-hit would report a refusal about a number the player had not touched.
+            var funding = new HBoxContainer();
+
+            funding.AddChild(new Label
+            {
+                Text = "    ↳ funding ceiling — the most it may pay out in one Day",
+                CustomMinimumSize = new Vector2(340f, 0f),
+            });
+
+            var ceiling = new LineEdit
+            {
+                Text = _world.Policies.CeilingOf(at, declared[at])
+                    .ToString(CultureInfo.InvariantCulture),
+                Editable = governable,
+                CustomMinimumSize = new Vector2(110f, 0f),
+            };
+
+            ceiling.TextSubmitted += _ => AtBoundary(() => Fund(position));
+            _policyCeilings[at] = ceiling;
+            funding.AddChild(ceiling);
+
+            var perDay = new Label { Text = "a Day" };
+
+            units.Add(perDay);
+            funding.AddChild(perDay);
+
+            var fund = InformationButton("Fund", () => Fund(position));
+
+            fund.Disabled = !governable;
+            funding.AddChild(fund);
+            box.AddChild(funding);
         }
+
+        meaning.Text = "what ONE application moves"
+            + (anyRelief && anySubsidy
+                ? ", EXCEPT where the row says otherwise: a relief's field is a PERCENTAGE of a tax"
+                    + " bill and a subsidy's is what ONE WORKER is worth"
+                : anyRelief ? ", EXCEPT a relief's field, which is a PERCENTAGE of a tax bill"
+                : anySubsidy ? ", EXCEPT a subsidy's field, which is what ONE WORKER is worth"
+                : string.Empty)
+            + ". how many and what share is the [[policy]]'s apply rule, which is not governable.";
 
         if (declared.Length == 0)
         {
             box.AddChild(new Label { Text = "this Ruleset declares no [[policy]]." });
+        }
+
+        // 🔴 TWO THINGS A PLAYER CANNOT SEE FROM THESE CONTROLS, AND EACH IS SAID ONLY WHERE THE
+        // CONTROL EXISTS. A relief's field looks like money and its effect is invisible unless a
+        // Business owed tax anyway; a ceiling looks like a reservation and is not one. ⚠ Both sit
+        // BELOW the rows, which is Taxing's own finding: a banner above the controls it qualifies
+        // pushes them under the fold, and a caveat that hides its control is worse than none.
+        if (anyRelief)
+        {
+            box.AddChild(new Label
+            {
+                Text = "a RELIEF MOVES NO MONEY. it takes its percentage off a profit tax bill that"
+                    + " has already been worked out, so a Business owing no profit tax gets nothing"
+                    + " from it however high you set it — raising a relief can never pay anybody."
+                    + " overlapping reliefs on one trade add together, and the sum stops at the"
+                    + " whole bill.",
+            });
+        }
+
+        if (anySubsidy)
+        {
+            box.AddChild(new Label
+            {
+                Text = "a CEILING IS NOT A RESERVATION. it bounds what one subsidy may pay on a Day;"
+                    + " what the treasury actually holds is asked at the moment of payment, so a"
+                    + " fully funded subsidy in a broke city pays nothing and nothing was set aside"
+                    + " for it. when the claims come to more than the pot every claimant is cut in"
+                    + " proportion, and the shortfall creates no debt.",
+            });
         }
 
         _policyStatus = new Label { Text = "a governed amount is saved state and survives a reload." };
@@ -373,8 +482,77 @@ public partial class Main
         box.AddChild(_policyStatus);
         Taxing(box);
         ScrollAuxiliary(_policyPanel, box);
+
+        // ⚠ AFTER ScrollAuxiliary AND NOT BEFORE, because that is what undoes this. It walks every
+        // Label in the body and makes it a wrapping, expanding paragraph -- right for a note and
+        // wrong for a two-character unit, which would then take half the row's spare width and sit
+        // a field's length away from the number it names. ***A unit that is not touching its field
+        // is not a unit.***
+        foreach (Label unit in units)
+        {
+            unit.AutowrapMode = TextServer.AutowrapMode.Off;
+            unit.SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin;
+            unit.CustomMinimumSize = new Vector2(72f, 0f);
+        }
+
         layer.AddChild(_policyPanel);
     }
+
+    /// <summary>
+    /// One Policy in the player's words: <b>which of the four tools it is, and who it is aimed at.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// ⚠ <b>The four do not share a sentence, which is why this is a switch and not a format
+    /// string.</b> A relief has an <c>interval</c> in its table and <c>TaxRelief.PercentFor</c>
+    /// never looks at it — the relief is taken inside the profit assessment, on whatever Day that
+    /// Business is assessed — so a relief row saying <em>every 2,048</em> would be quoting a number
+    /// that decides nothing. ***A row that names a cadence the mechanism does not have is the same
+    /// defect as a field that names the wrong unit.***
+    /// </para>
+    /// <para>
+    /// <b>The tool's word is the player's and never the enum's.</b> <c>PolicyTool.Transfer</c> is a
+    /// name for <em>what this was before the catalogue</em>, which is a fact about the build.
+    /// </para>
+    /// </remarks>
+    private string Described(in PolicyDefinition policy) => policy.Tool switch
+    {
+        PolicyTool.Charge =>
+            $"charge — charges {Aimed(policy)} every {policy.Interval:N0}, into the treasury",
+
+        PolicyTool.Relief =>
+            $"relief — takes a share off the profit tax of {Aimed(policy)}",
+
+        PolicyTool.Subsidy =>
+            $"subsidy — pays {Aimed(policy)} every {policy.Interval:N0}, out of the treasury",
+
+        _ => $"transfer — sweeps {Aimed(policy)} every {policy.Interval:N0}",
+    };
+
+    /// <summary>Who a Policy reaches, <b>naming the trade when it names one.</b></summary>
+    /// <remarks>
+    /// ⚠ <b>Absent means everybody and the row has to say so out loud</b> (<c>plans/0072</c> D28,
+    /// <c>TradeKind.Any</c>). A charge aimed at one trade and a charge aimed at every Business in
+    /// the city are the same six controls and the same number; ***the only place that difference
+    /// can be seen is this sentence.***
+    /// </remarks>
+    private string Aimed(in PolicyDefinition policy) => policy.Subject switch
+    {
+        PolicySubject.Household => "all households",
+        PolicySubject.Building => "all buildings",
+        PolicySubject.Business when policy.Trade == TradeKind.Any => "all businesses",
+        PolicySubject.Business =>
+            $"{_names.BusinessKind(policy.Trade) ?? $"trade {policy.Trade}"} businesses ONLY",
+        _ => "nobody",
+    };
+
+    /// <summary>What the number beside a Policy is counted in. <b>Empty where it is plain Money.</b></summary>
+    private static string Unit(PolicyTool tool) => tool switch
+    {
+        PolicyTool.Relief => "% of the bill",
+        PolicyTool.Subsidy => "per worker",
+        _ => string.Empty,
+    };
 
     /// <summary>
     /// The income-tax block: the four marginal-band controls, and what they will not accept.
@@ -559,6 +737,15 @@ public partial class Main
         for (int at = 0; at < _policyFields.Length && at < declared.Length; at++)
         {
             _policyFields[at].Text = _world.Policies.AmountOf(at, declared[at]).ToString();
+
+            // A null entry is a Policy with no second number rather than a field not yet built, so
+            // there is nothing to re-read and nothing to report -- Governing builds one only where
+            // Fund can be sent.
+            if (_policyCeilings.Length > at && _policyCeilings[at] is { } ceiling)
+            {
+                ceiling.Text = _world.Policies.CeilingOf(at, declared[at])
+                    .ToString(CultureInfo.InvariantCulture);
+            }
         }
 
         for (int at = 0; at < _taxFields.Length; at++)
@@ -678,6 +865,53 @@ public partial class Main
         _policyStatus.Text =
             $"{_names.Policy(position) ?? $"policy {position}"} set to {amount:N0} "
             + $"on Tick {_world.Tick.Raw + 1:N0}.";
+    }
+
+    /// <summary>Queues a <c>Fund</c> for one subsidy's daily ceiling, or says why it cannot.</summary>
+    /// <remarks>
+    /// <para>
+    /// ⚠ <b>Two verbs against one Policy, and the rate is not the ceiling.</b> Raising what a claim
+    /// is worth while leaving the pot alone pays the same Money to fewer claimants
+    /// (<c>plans/0072</c> D12), so a panel that set both from one button would make that unreachable
+    /// — which is <c>Simulation.ApplyFund</c>'s own sentence.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The button exists only on a subsidy, so <c>FundPolicyPaysNobody</c> is unreachable from
+    /// this panel — and it still has a sentence.</b> The console channel sends the same verb, and a
+    /// refusal with no sentence reads on the readout as a click that worked.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The panel states no order between the two refusals and must not.</b>
+    /// <c>Simulation.RefuseFund</c> names the Policy first, then the sign of the number, then the
+    /// tool; <see cref="Send"/> reports whichever it gave. ***A shell that ranked them would be a
+    /// second copy of an order that is free to drift.***
+    /// </para>
+    /// </remarks>
+    private void Fund(int position)
+    {
+        if (_policyCeilings.Length <= position || _policyCeilings[position] is not { } field)
+        {
+            return;
+        }
+
+        if (!int.TryParse(field.Text, out int ceiling))
+        {
+            _policyStatus.Text = "that is not a whole number.";
+
+            return;
+        }
+
+        if (!Send(Command.Fund(position, ceiling)))
+        {
+            _policyStatus.Text = _refused;
+
+            return;
+        }
+
+        _policyStatus.Text =
+            $"{_names.Policy(position) ?? $"policy {position}"} may pay out at most "
+            + $"{ceiling:N0} a Day, from Tick {_world.Tick.Raw + 1:N0}. what the treasury holds "
+            + "on the Day is asked separately.";
     }
 
     /// <summary>The current value of a field the shell owns rather than the Ruleset.</summary>

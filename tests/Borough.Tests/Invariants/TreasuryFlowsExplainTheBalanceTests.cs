@@ -160,6 +160,7 @@ public sealed class TreasuryFlowsExplainTheBalanceTests
         long policy = Sum(Read(census, Metric.Of(MoneyFlowCounter.ToTreasury, Aggregate.Sum)));
         long rule = Sum(Read(census, Metric.Of(MoneyFlowCounter.RuleToTreasury, Aggregate.Sum)));
         long profit = Sum(Read(census, Metric.Of(MoneyFlowCounter.ProfitTax, Aggregate.Sum)));
+        long subsidy = Sum(Read(census, Metric.Of(MoneyFlowCounter.Subsidy, Aggregate.Sum)));
         long treasury = Read(census, Metric.Of(MoneyCounter.Treasury))[^1];
 
         Assert.True(withheld > 0, "no payday withheld anything, so the identity holds over nothing.");
@@ -170,8 +171,22 @@ public sealed class TreasuryFlowsExplainTheBalanceTests
             + "column of zeroes. [business_tax] is CHANGE 6 of taxing.toml; a zero here is either a "
             + "sweep that never ran or a world in which nothing traded at a profit.");
 
-        // taxing.toml declares no [[policy]], which is what makes the other two columns legible.
-        Assert.Equal(0, policy);
+        // 🔴 THIS USED TO ASSERT policy == 0, and change 7 of taxing.toml ended it. The file states a
+        // tool = "charge" on the grocers' tills, and PolicyEngine folds a charge into the same
+        // accumulator as a transfer -- so the column is the charge, and a zero here is the charge
+        // never firing rather than a file with no inbound Policy.
+        Assert.True(
+            policy > 0,
+            "no Policy paid into the treasury. CHANGE 7 of taxing.toml is a charge on a grocer's "
+            + "balance; a zero is the charge never firing.");
+
+        // ⚠ Not implied by anything above: SubsidyEngine pays out through a door PolicyEngine never
+        // touches, so before MoneyFlowCounter.Subsidy this money left the treasury unattributed and
+        // the identity above went red -- which is RuleToTreasury's defect on the expenditure side.
+        Assert.True(
+            subsidy > 0,
+            "no subsidy was ever paid. CHANGE 9 of taxing.toml states one with a ceiling chosen to "
+            + "bind; a zero here leaves the third expenditure term untested.");
 
         Assert.True(
             withheld + policy + profit != treasury,
@@ -204,11 +219,22 @@ public sealed class TreasuryFlowsExplainTheBalanceTests
             Read(census, Metric.Of(MoneyFlowCounter.RuleToTreasury, Aggregate.Sum)),
             Read(census, Metric.Of(MoneyFlowCounter.ProfitTax, Aggregate.Sum)));
 
-    /// <summary>Expenditure at each reading: the two paths out, summed per reading.</summary>
+    /// <summary>Expenditure at each reading: the three paths out, summed per reading.</summary>
+    /// <remarks>
+    /// 🔴 <b>And it earned its keep a THIRD time, on the first expenditure path ever added.</b>
+    /// <c>SubsidyEngine</c> apportions a pot and pays it itself, so not one unit of it passes
+    /// through <c>PolicyEngine.Move</c> and none of it reached <c>FromTreasury</c>. The third term
+    /// is what this asked for — ***a new path out of the treasury that does not appear here is a
+    /// new hole***, in the direction a budget over-reports rather than under-reports.
+    /// ⚠ <b>Profit-tax RELIEF has no term here and must never acquire one</b>: it reduces a bill
+    /// before the collection, so it moves no Money and the treasury is exactly where it would be if
+    /// the reliefs had never been declared.
+    /// </remarks>
     private static long[] Expenditure(Census census) =>
         Add(
             Read(census, Metric.Of(MoneyFlowCounter.FromTreasury, Aggregate.Sum)),
-            Read(census, Metric.Of(MoneyFlowCounter.RuleFromTreasury, Aggregate.Sum)));
+            Read(census, Metric.Of(MoneyFlowCounter.RuleFromTreasury, Aggregate.Sum)),
+            Read(census, Metric.Of(MoneyFlowCounter.Subsidy, Aggregate.Sum)));
 
     private static long[] Add(params long[][] columns)
     {

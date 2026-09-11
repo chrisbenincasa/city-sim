@@ -216,8 +216,13 @@ public sealed class BusinessTaxPhaseOrderTests
     /// </remarks>
     private static (World World, Simulation Sim) City()
     {
-        RulesetLoadResult loaded = RulesetLoader.Load(
-            Path.Combine(AppContext.BaseDirectory, "Rulesets", "taxing.toml"));
+        // ⚠ WITHOUT THE CATALOGUE. What is under test is that the ASSESSMENT sees the Day it means
+        // to; the shipped file's 25% relief (change 9) reduces every bill after the bands, so the
+        // two figures this compares would both be relieved and the equality would hold over a
+        // quantity neither of them is about. ShippedTaxing carries the argument for stripping by
+        // `tool`.
+        RulesetLoadResult loaded = RulesetLoader.Parse(
+            ShippedTaxing.WithoutCatalogue(ShippedTaxing.Text()), "taxing.toml");
 
         Assert.True(loaded.Ok, loaded.Describe());
         Assert.True(

@@ -420,6 +420,27 @@ public static class RulesetKeyNotes
             + "only, so a global end means money.",
         ["[[policy]] transfer amount"] =
             "How much moves per application.",
+        ["[[policy]] tool"] =
+            "Which of the things a Policy does: transfer, charge, relief or subsidy. A charge takes "
+            + "money from a liable payer to the treasury; a relief takes a share off a Business's "
+            + "profit tax bill and moves no money anywhere; a subsidy pays out of the treasury "
+            + "against a daily funding bound. Absent means transfer -- the unconditional movement a "
+            + "Policy was before the catalogue, and what every Policy written without this key is.",
+        ["[[policy]] trade"] =
+            "Which [[business]] this Policy is aimed at, naming a declared trade. Absent means every "
+            + "member of the swept population. It narrows a business sweep, so it is refused beside "
+            + "a household one: a Household has no trade, and the key would load clean and narrow "
+            + "nothing.",
+        ["[[policy]] ceiling"] =
+            "The most a subsidy may pay out in one Day, rationed across every claimant at once "
+            + "rather than paid in slot order until the money runs out. Only a subsidy has one, and "
+            + "a subsidy states it: a grant with no bound is an entitlement. A stated zero is a "
+            + "subsidy shipped switched off, which the player raises through the governing panel.",
+        ["[[policy]] relief_percent"] =
+            "The share of a qualifying Business's profit tax that a relief forgoes. Only a relief "
+            + "has one, and a relief states it -- there is no transfer on a relief to carry it. A "
+            + "relief can never pay a Business that owes no tax, which is the line between forgoing "
+            + "revenue and spending it.",
 
         // ---- [[terrain]] ----------------------------------------------------------------------
         ["[[terrain]] name"] =

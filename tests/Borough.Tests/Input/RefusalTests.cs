@@ -179,6 +179,14 @@ public sealed class RefusalTests
                     return (simulation, Case(refusal, simulation, world));
                 }
 
+            case Refusal.FundPolicyPaysNobody:
+            case Refusal.FundCeilingIsNegative:
+                {
+                    (World world, Simulation simulation) = City(Schooled + Levy("first"));
+
+                    return (simulation, Case(refusal, simulation, world));
+                }
+
             case Refusal.GovernPolicyNotInThisWorld:
                 {
                     (World world, Simulation simulation) = City(Schooled + Levy("first"));
@@ -287,6 +295,13 @@ public sealed class RefusalTests
         Refusal.TaxProfitUpperRateBelowLowerRate => Command.Tax(TaxControl.ProfitLowerRate, 10),
 
         Refusal.TaxProfitThresholdIsNegative => Command.Tax(TaxControl.ProfitThreshold, -1),
+
+        // ⚠ BOTH AGAINST A NAMED TRANSFER, which is what makes the pair separable. The world's one
+        // Policy is a levy, so it pays nobody and a ceiling against it is refused on the Policy --
+        // but a negative ceiling is refused on its own value first, before the tool is consulted.
+        Refusal.FundPolicyPaysNobody => Command.Fund(policy: 0, ceiling: 100),
+
+        Refusal.FundCeilingIsNegative => Command.Fund(policy: 0, ceiling: -1),
 
         // ⚠ ONE COMMAND FOR TWO REFUSALS, because the verb carries no payload at all: what
         // distinguishes them is the WORLD it is applied to, which is what Case's world switch above

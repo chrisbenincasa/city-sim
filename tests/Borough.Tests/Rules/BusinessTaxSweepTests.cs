@@ -585,8 +585,12 @@ public sealed class BusinessTaxSweepTests
     /// </remarks>
     private static (World World, Simulation Sim, WorldKey Key) City(bool taxed)
     {
-        string text = File.ReadAllText(
-            Path.Combine(AppContext.BaseDirectory, "Rulesets", "taxing.toml"));
+        // ⚠ WITHOUT THE CATALOGUE. The shipped file declares a 25% profit-tax relief on the grocer
+        // (change 9), so every assertion below about what the BANDS charge would be an assertion
+        // about the bands and a relief together -- and the file also declares a subsidy, which is a
+        // second claimant on the treasury these tests never meant to have. ShippedTaxing says why
+        // the strip is by `tool` rather than by name.
+        string text = ShippedTaxing.WithoutCatalogue(ShippedTaxing.Text());
 
         if (!taxed)
         {

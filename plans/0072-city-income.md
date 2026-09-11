@@ -249,7 +249,7 @@ Ordered by dependency. Each ships with its tests before the next starts.
 |---|---|---|
 | **A** ✅ | Citizen income tax withheld at the wage payment; three bands; four player controls; the earning Day's schedule | D1–D7 |
 | **B** ✅ | Business revenue, expenses and profit on a simplified accrual basis; two profit bands; collection | D1, D8, D15 |
-| **C** | The targeted policy catalogue — charges, relief and funded subsidies, with proportional rationing | D9–D14 |
+| **C** ✅ | The targeted policy catalogue — charges, relief and funded subsidies, with proportional rationing | D9–D14 |
 | **D** | The budget the player reads income and expenditure off, the demonstration Ruleset and the acceptance run | — |
 
 ### Phase A tasks
@@ -579,3 +579,217 @@ earnings ring, three player controls with their own refusals and their own panel
 head of the Wake phase, a ninth `--income` column and a sixth money-flow counter. `rulesets/taxing.toml`
 gained `[business_tax]`. All four golden artefacts re-recorded; no Ruleset content hash moved. The
 working lane is 3,265 green.
+
+## Phase C findings, before any code
+
+### F21 — neither policy the design names as an example has anything to levy on
+
+The survey that opened Phase C went looking for a per-entity quantity a charge could price or a
+subsidy could pay against, and found that **D9's two worked examples both rest on mechanisms that do
+not exist**.
+
+| what D9 and D11 assume | what is there |
+|---|---|
+| attributable pollution per Building | **does not exist.** `RuleEngine.Emit` computes the emitter's own figure and passes it straight to a Map Layer Cell, which is shared by many Lots and decays. Nothing is written back |
+| an energy or fuel Good | **does not exist.** Across every shipped Ruleset the Resources are `money`, `sundries`, `repairs`, `shop`, `grocer`, `dwelling`, `sewage`; the one `utility` is sewage |
+| per-Business output or throughput | **does not exist.** A Rule Instance keeps no firing count; a Business keeps money figures and `short_paydays` |
+| a way to aim a Policy at some Buildings and not others | **does not exist.** A Policy sweeps its whole subject population unconditionally |
+
+What does exist per entity is a trade's kind id, a Building's kind id, and Phase B's per-Day revenue
+and expense. ⚠ **Under `adr/0070` that makes all four *unbuilt* rather than *refused*, so none of them
+is evidence for narrowing the design** — the answer is to build the cheapest one rather than to
+redefine the policy around its absence.
+
+### F22 — a Policy sweeps three phases after emission is written
+
+`PolicyEngine.Sweep` runs in phase 6; a Rule's map output is written in phase 3. So on a Day-boundary
+Tick a charge reading *the Day's emission* reads a **partially accumulated** Day, with no error and
+nothing to notice it. ⚠ **This is F19 arriving a second time from a different direction**, which makes
+it a property of the phase order rather than of either task.
+
+## Phase C decisions
+
+### D28 — a Policy may name the trade it applies to, and absent means all of them
+
+The catalogue's eligibility, and the narrowest form that D11 needs. `[[policy]] trade = "grocer"`
+restricts the sweep to Businesses of that kind; omitting the key keeps today's behaviour, which is
+every member of the subject population. ⚠ **Eligibility is a property of the policy definition and
+not of the player**, per D11 — the player moves the amount and never the predicate.
+
+⚠ **This is also the one genuine overlap with queue row 32**, resolved here rather than there: a
+policy that can name which trade it sweeps is what targeted spending needs, and it is a smaller thing
+than the spending mechanism that wanted it.
+
+### D29 — a Building's emission is attributed to the Building that made it
+
+Chosen by the user on 2026-09-10 over charging a flat rate per trade, and over charging a share of
+revenue. A charge on a flat rate per trade cannot be reduced by emitting less, and a charge on
+revenue is a second tax on turnover wearing a charge's name; ***neither prices the thing the city
+wants less of***, which is the whole of D9's example. The figure already exists at the write site and
+is discarded there, so the build is a column and a line rather than a mechanism.
+
+### D30 — a charge reads a Day the column has SETTLED, never a Day still being written
+
+F22's answer, and it is deliberately not F19's answer. Phase B held its assessment's position with
+two tests because a Business keeps only the Day it is accumulating; ***a position held by a test is a
+position that can be moved***. A Building keeps a third column instead — what it emitted over the
+whole of the previous Day — so a charge reads a complete Day from any phase, and the phase order
+stops being load-bearing. ⚠ **The asymmetry with `BusinessTable` is real and is not an oversight**:
+the profit assessment is committed and tested where it stands, and retrofitting it is a change to a
+working mechanism rather than a finding.
+
+### D31 — a shared allocation is apportioned by largest remainder, ties to the lower slot
+
+D12 requires that processing order not decide who is paid, that no Money be created or destroyed, and
+that a replay reproduce the payments exactly. Largest remainder gives all three: floor each claim's
+exact share, then deal the leftover units one apiece to the largest fractional remainders, breaking a
+tie on the **larger claim**, and only then on the lower slot. ⚠ **The scan start rotates on a
+`Randomness.Draw`**, so an apportioner that deals its leftovers in scan order would satisfy every
+other requirement and silently violate this one. Held by a permutation test rather than by reasoning.
+
+🔴 **The brief for this said *ties to the lower index* and that was wrong.** An index is deterministic
+within one run and still lets the scan decide: the same two claimants arrive in a different order on a
+different Tick, and the unit follows the arrival. Ordering on the claim first makes the answer a
+property of the claims. ⚠ **Two claimants holding an IDENTICAL claim remain separable only by
+position** — one unit cannot go to both and nothing else tells them apart — so order independence is
+exact per claimant while claims differ, and holds for the multiset of payments unconditionally. That
+limit is the pigeonhole rather than a weak rule, and it is stated where the code is.
+
+⚠ **The implementation bisects for the remainder threshold rather than repeatedly scanning for the
+next largest.** Leftover units are bounded by the claimant count, so the obvious form is quadratic and
+a subsidy claimed by a few thousand recipients would cost tens of millions of operations a Day.
+
+### D32 — a subsidy's claim is a rate per worker employed
+
+Chosen by the user on 2026-09-10 over a share of revenue and over a flat amount per Business. A flat
+amount makes proportional rationing arithmetically identical to an equal split, so ***D12's mechanism
+would ship exercised by no shipped world***; a share of revenue pays the most to the Businesses that
+need support least. Headcount already exists per Business, varies widely, and makes the pot running
+short visible in the panel on the Day it happens. **PROVISIONAL**, no ratifier.
+
+### D33 — a charge rides the existing `[[policy]]`; relief and a subsidy cannot
+
+A charge is a transfer of Money from a liable payer to the treasury on a derived quantity, which is
+what `[[policy]]` already is — it needs a new `Readout` and D28's eligibility and nothing else.
+**Relief moves no Money at all**: it reduces a tax bill, so it has no transfer to declare and its
+effect is only visible inside the profit assessment. **A subsidy has a pot**, and `PolicyEngine.Move`
+pays each member in full or not at all and abandons the rest of the sweep when the treasury runs
+short — which is exactly the *processing order decides who is paid* that D12 refuses. ***So the split
+is not a matter of taste***: two of the three tools are outside what a transfer can express.
+
+### Phase C tasks
+
+1. **A deterministic apportioner** — largest remainder over a span of claims, zero allocation, safe
+   to a claim total of 3,037,000,499 and refusing rather than wrapping past it. ✅
+2. **A Building's own emission** — three saved columns and one line at the write site, plus a
+   `Readout` so a `[[policy]]` can price it. ✅
+3. **The catalogue in the Ruleset** — `tool`, `trade`, `ceiling` and `relief_percent` on
+   `[[policy]]`, with the refusals for every illegal combination of them.
+4. **Eligibility in the sweep** — a Policy naming a trade reaches that trade, and a relief or a
+   subsidy is not swept as a transfer at all. ✅
+5. **Relief inside the assessment** — taken off after the marginal bands, added across overlapping
+   reliefs, capped at the whole bill. ✅
+6. **The subsidy sweep** — claims gathered, the pot taken as the smaller of the ceiling and the
+   treasury, apportioned, then paid. ✅
+7. **The player's second control** — a `Fund` verb for the ceiling, refused against a Policy that
+   pays nobody and against a negative ceiling. ✅
+8. **The panel, the counters and the reading** — three tools in the governing panel, Money flows the
+   budget can be read off, and a demonstration world that exercises all three. ✅
+
+### F23 — the charge D9 exists for was unauthorable, and nothing said so
+
+A Building holds its emission, because `RuleEngine.Emit` attributes a firing to the Building the
+Rule Instance stands in. A `[[policy]]` cannot sweep Buildings: there is no predicate that selects a
+Building population and the loader refuses `sweeps = "building"` by name. 🔴 **So a Building-scoped
+Emission Readout was one nothing could ever be charged on**, and the only quantity a charge could
+reach was a balance — ***a wealth tax wearing a charge's name***.
+
+⚠ **Every piece was built and tested and the assembly was still impossible.** The column, the write
+site, the Readout and the loader all did what they were asked; the gap was between two of them and
+lived in neither. It was found by the shell agent laying out the panel, which is three removes from
+any of them.
+
+### D34 — a Business reads the emission of the premises it occupies
+
+`Readout.Emission` is readable against a Business as well as a Building: it resolves the Business's
+premises and returns that Building's previous complete Day. An unpremised Business — one in the
+Unplaced Pool — reads zero rather than throwing, because a trade with no Building has fired no Rule
+and emitted nothing.
+
+⚠ **A Household is deliberately not admitted.** A dwelling emits and its occupant did not decide to,
+in any sense this design has settled. That is `adr/0070` *undesigned* rather than *refused*, and it
+is the reason the scope is widened by one entity rather than to everything that tenants a Building.
+
+## What watching Phase C exposed
+
+### F24 — the subsidy made the payroll WORSE, and the phase order is why
+
+Adding `employment_support` alone moved the demonstration city from 701,144 wages paid across 115
+payments with 64,808 uncovered, to **689,348 across 112 with 76,604 uncovered**. The city paid its
+grocers 170,304 to employ people and ***11,796 less reached the people they employed***.
+
+The cause is not the subsidy. A Bin Rule fires in phase 3 and a payday runs in phase 6, so the
+`rates` Rule reaches the till first: it fired twice more than it otherwise would have, taking
+32,768 — a fifth of the whole subsidy — straight back to the treasury, and three paydays that would
+have been met were not. 🔴 ***A subsidy paid into a till is not a subsidy paid to a worker***, and
+nothing in the design had said which of the two it was.
+
+⚠ **It is a finding about where money lands and not a defect in any of the three tools.** D10's
+sentence is that a subsidy *transfers Money to the eligible recipient*, and the recipient here is a
+Bin that the city's own charges empty first.
+
+### F25 — the charge falls on the shops with custom, not on the shops that emit
+
+Every standing shopfront in the demonstration emits the same amount a Day. The charge collects from
+**8 to 15** premises' worth over the last seven Days against **22 live grocers**.
+
+`PolicyEngine.Move` pays in full or not at all, so a till that cannot cover the whole bill pays
+***nothing*** and is counted `Unaffordable`. ⚠ **So the shops that pollute for free are exactly the
+shops that are doing badly**, which inverts the charge: a trade too poor to pay is a trade the city
+stops charging. This is the all-or-nothing transfer arriving on a tool it does not suit — the same
+property D33 kept a subsidy away from — and it is the one thing in Phase C that should be built
+differently. ***A charge should take what the till has, on D25's own reasoning for a short profit
+tax***; it does not, and no test asserts that it should.
+
+### F26 — the subsidy's scratch was sized once and a save is what outgrows it
+
+`SubsidyEngine` sized three scratch arrays from the Business table's capacity **at construction**
+while the gather walks the live slot count. A `Simulation` rebuilt on a reloaded world is sized to
+the rows that world had when it was written and then watches it grow, so the first Day a claim list
+is longer than the world used to be is an index past the end.
+
+⚠ **It did not fire from a fresh world at any size tried**, up to 6,000 Citizens over 40,960 Ticks.
+***It is specifically a save-and-reload hazard***, which is the shape `adr/0112`'s Factorio test
+exists for and which no amount of running forward would have found. The scratch is per-sweep and a
+sweep runs once a Day, so sizing it once was a defect wearing an optimisation's clothes.
+
+### F27 — charging the city for its pollution changed nothing else either
+
+Against the same file without the charge: withheld identical, profit tax identical, rates identical,
+public works identical, and the Businesses' money falls by **exactly** what was collected, to the
+unit. The entire second-order effect is 1,000 of payroll and one extra short payday.
+
+🔴 **This is the row's own earlier finding arriving on the lever that was supposed to be different.**
+A profit tax is a pure extraction in this city because a grocer has no investment to forgo; a
+pollution charge was meant to be the counter-example, because a Business could emit less. ***It
+cannot.*** Nothing in the Ruleset connects emission to a decision, so the charge is a second
+extraction with a different name on it. ⚠ **The mechanism is right and the world cannot answer it**,
+which is `adr/0070` *unbuilt* rather than a design fault — and it is the clearest statement yet of
+what this city still lacks.
+
+### F28 — a charge and a transfer share one accumulator
+
+`PolicyEngine.Move` folds both into one `ToTreasury` flow, so the reading cannot separate what was
+charged from what was transferred. In the demonstration the charge is the only inbound Policy, so
+the column *is* the charge — ⚠ **but that is a property of that world and not of the reading**, and
+a second inbound transfer would silently merge into it. Open.
+
+## Phase C — done
+
+Shipped 2026-09-11. A catalogue of three targeted tools on `[[policy]]`, eligibility by trade, a
+Building's own emission attributable to it, a deterministic apportioner, relief inside the profit
+assessment, a rationed subsidy sweep, a second player verb for a funding ceiling, four panel forms
+and a tenth `--income` column. `rulesets/taxing.toml` grew from six numbered changes to ten and
+exercises all three tools, with the subsidy rationed on nine Days of twelve. Twelve new loader
+refusals; the count of record moved 297 → 309. All four golden artefacts re-recorded; no Ruleset
+content hash moved. The working lane is 3,361 green.

@@ -80,6 +80,41 @@ public enum Readout : ushort
     /// </para>
     /// </remarks>
     Balance = 2,
+
+    /// <summary>
+    /// What this Building emitted into a Map Layer over the whole of the previous Day.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The previous Day and never today</b> — see <see cref="BuildingTable.PriorEmissionOn"/>. A
+    /// Readout is an apply count, so a Rule or a <c>[[policy]]</c> reading this is being charged per
+    /// unit emitted; reading a Day still in progress would make the charge depend on which phase the
+    /// reader ran in and on how much of the Day had happened, which is a number that is wrong without
+    /// ever looking wrong. ***A completed Day is the only emission figure that means the same thing
+    /// from every phase.***
+    /// </para>
+    /// <para>
+    /// <b>It is a FLOW, and it is the first one declared here.</b> <see cref="Occupancy"/> and
+    /// <see cref="Balance"/> are both stocks — what is standing right now — and this file's own note
+    /// on <see cref="Balance"/> says why the distinction matters: a percentage of a stock and a
+    /// percentage of a flow are different instruments. The consequence runs the other way here. A
+    /// Rule whose apply count comes off the Bin it spends cannot overdraw; a Rule charging for
+    /// yesterday's emission out of today's balance <b>can</b>, because the two quantities have
+    /// nothing to do with each other — so this is a Readout that reaches <c>adr/0114</c>'s failure
+    /// surface rather than one that is unfailable by construction.
+    /// </para>
+    /// <para>
+    /// <b>Building-scoped, because emission is a property of the structure and not of its tenant.</b>
+    /// <c>RuleEngine.Emit</c> attributes a firing to the Building the Rule Instance stands in,
+    /// whoever ran the Rule, so the Building is the row that has this scalar.
+    /// </para>
+    /// <para>
+    /// <b>Zero where nothing emits</b>, and it needs no case of its own to be: a Building with no
+    /// emitting Rule, and a Building whose last emission was long enough ago that yesterday was
+    /// idle, are the same zero-filled answer out of the same door.
+    /// </para>
+    /// </remarks>
+    Emission = 3,
 }
 
 /// <summary>
@@ -135,7 +170,8 @@ public enum ReadoutScope : byte
 /// </remarks>
 public static class Readouts
 {
-    private static readonly Readout[] DeclaredSet = [Readout.Occupancy, Readout.Balance];
+    private static readonly Readout[] DeclaredSet =
+        [Readout.Occupancy, Readout.Balance, Readout.Emission];
 
     /// <summary>
     /// Every declared Readout, which is the set a shell may enumerate to build an inspector.
@@ -183,6 +219,15 @@ public static class Readouts
             // over it name both owners.
             Readout.Balance => scope is ReadoutScope.Household or ReadoutScope.Business,
             Readout.Occupancy => scope is ReadoutScope.Building,
+
+            // A Building emits and a Business reads what its own premises emitted. RuleEngine.Emit
+            // attributes a firing to the Building the Rule Instance stands in whoever ran the Rule,
+            // so the Building is the only row that HOLDS this scalar -- but a Policy cannot sweep
+            // Buildings (there is no predicate that selects a Building population, and the loader
+            // refuses `sweeps = "building"` by name), so a Building-only Emission would be a Readout
+            // nothing could ever be charged on. ⚠ A Household is NOT admitted: a dwelling's emission
+            // is not its occupant's doing in any sense the design has settled.
+            Readout.Emission => scope is ReadoutScope.Building or ReadoutScope.Business,
             _ => false,
         };
 
@@ -219,6 +264,16 @@ public static class Readouts
             case Readout.Balance:
                 return world.BalanceOf(world.Businesses.Rows.At(business)).Raw;
 
+            // What the premises this Business occupies emitted over the previous whole Day. ⚠ An
+            // UNPREMISED Business reads zero rather than throwing: a trade in the Pool holds no
+            // Building, has run no Rule and has emitted nothing, so zero is the answer and not a
+            // missing one.
+            case Readout.Emission:
+                return world.Buildings.Rows.TryResolve(
+                    world.Businesses.Building[business], out int premises)
+                    ? world.Buildings.PriorEmissionOn(premises, BusinessAccounts.DayOf(world.Tick))
+                    : 0;
+
             case Readout.Occupancy:
             case Readout.None:
             default:
@@ -250,6 +305,7 @@ public static class Readouts
                 return world.BalanceOf(world.Households.Rows.At(household)).Raw;
 
             case Readout.Occupancy:
+            case Readout.Emission:
             case Readout.None:
             default:
                 throw new InvalidOperationException(
@@ -280,6 +336,15 @@ public static class Readouts
         {
             case Readout.Occupancy:
                 return Count(world.Occupants, building);
+
+            // The Day comes off the world rather than out of a parameter, and that is what keeps
+            // every reader honest. World.Tick is the Tick being stepped for the whole of Step's
+            // eight phases, so a Rule consulting this at phase 2, the same Rule re-consulting it at
+            // phase 3 and a panel drawing it between Ticks all name the same Day -- and none of them
+            // can name a different one. Threading `today` through would make the Day a caller's
+            // choice, which is a Readout that answers differently depending on who asked.
+            case Readout.Emission:
+                return world.Buildings.PriorEmissionOn(building, BusinessAccounts.DayOf(world.Tick));
 
             case Readout.Balance:
                 throw new InvalidOperationException(

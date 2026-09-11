@@ -25,7 +25,7 @@ dotnet run --project src/Borough.Headless -- \
 
 ## The sections
 
-40 sections, 261 keys.
+40 sections, 265 keys.
 
 - [`[[band]]`](#band) — 2 keys
 - [`[[building]]`](#building) — 19 keys
@@ -35,7 +35,7 @@ dotnet run --project src/Borough.Headless -- \
 - [`[[hinterland]] prices`](#hinterland-prices) — 2 keys
 - [`[[lattice]]`](#lattice) — 2 keys
 - [`[[life_stage]]`](#life_stage) — 13 keys
-- [`[[policy]]`](#policy) — 5 keys
+- [`[[policy]]`](#policy) — 9 keys
 - [`[[policy]] apply`](#policy-apply) — 4 keys
 - [`[[policy]] transfer`](#policy-transfer) — 4 keys
 - [`[[resource]]`](#resource) — 3 keys
@@ -362,6 +362,10 @@ The width of the window the countdown is drawn over, uniform on [duration, durat
 
 How many times the transfer is applied to each member on one sweep: a band, or a count derived from a Readout.
 
+**`ceiling`** · *whole number*
+
+The most a subsidy may pay out in one Day, rationed across every claimant at once rather than paid in slot order until the money runs out. Only a subsidy has one, and a subsidy states it: a grant with no bound is an entitlement. A stated zero is a subsidy shipped switched off, which the player raises through the governing panel.
+
 **`interval`** · *whole number*
 
 How many Ticks between sweeps of this Policy over that population.
@@ -370,9 +374,21 @@ How many Ticks between sweeps of this Policy over that population.
 
 What this Policy is called. The player's governing panel addresses a Policy by this and by nothing else, so an unnamed one is unaddressable rather than addressable by position.
 
+**`relief_percent`** · *whole number*
+
+The share of a qualifying Business's profit tax that a relief forgoes. Only a relief has one, and a relief states it -- there is no transfer on a relief to carry it. A relief can never pay a Business that owes no tax, which is the line between forgoing revenue and spending it.
+
 **`sweeps`** · *quoted string*
 
 Which population the Policy runs over: household or business. A third, building, is declared in the design and refused here, because a Building population is whichever rows a predicate picks and there is no predicate.
+
+**`tool`** · *quoted string*
+
+Which of the things a Policy does: transfer, charge, relief or subsidy. A charge takes money from a liable payer to the treasury; a relief takes a share off a Business's profit tax bill and moves no money anywhere; a subsidy pays out of the treasury against a daily funding bound. Absent means transfer -- the unconditional movement a Policy was before the catalogue, and what every Policy written without this key is.
+
+**`trade`** · *quoted string*
+
+Which [[business]] this Policy is aimed at, naming a declared trade. Absent means every member of the swept population. It narrows a business sweep, so it is refused beside a household one: a Household has no trade, and the key would load clean and narrow nothing.
 
 **`transfer`** · *unasserted*
 

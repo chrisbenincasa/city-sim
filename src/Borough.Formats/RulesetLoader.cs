@@ -4704,7 +4704,9 @@ public static class RulesetLoader
         // ---- policies ---------------------------------------------------------------------------
 
         /// <summary>
-        /// Every <c>[[policy]]</c> table — refusals 60 to 68.
+        /// Every <c>[[policy]]</c> table — refusals 60 to 68, and the catalogue's four keys beside
+        /// them (<see cref="ReadTool"/>, <see cref="ReadTrade"/>, <see cref="ReadMovement"/>,
+        /// <see cref="ReadCeiling"/>).
         /// </summary>
         /// <remarks>
         /// <para>
@@ -4745,9 +4747,14 @@ public static class RulesetLoader
                 PolicySubject subject = ReadSubject(table, name);
                 uint interval = ReadInterval(table, name);
                 ApplyCount apply = ReadApply(table, name, ScopeFor(subject));
-                (Scope from, Scope to, ResourceId resource, int amount) = ReadTransfer(table, name);
+                PolicyTool tool = ReadTool(table, name);
+                byte trade = ReadTrade(table, name, subject);
+                (Scope from, Scope to, ResourceId resource, int amount) =
+                    ReadMovement(table, name, tool);
+                long ceiling = ReadCeiling(table, name, tool);
 
-                definitions.Add(new PolicyDefinition(subject, interval, apply, from, to, resource, amount));
+                definitions.Add(new PolicyDefinition(
+                    subject, interval, apply, from, to, resource, amount, ceiling, tool, trade));
             }
 
             keys = names;
@@ -4815,6 +4822,320 @@ public static class RulesetLoader
 
                     return PolicySubject.Household;
             }
+        }
+
+        /// <summary>The <c>tool</c> key — which of the catalogue's things this Policy is.</summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Optional, and its absence is the Policy every shipped file already writes.</b>
+        /// <c>plans/0072</c> <b>D10</b> adds three tools to a section that had one, so the default
+        /// has to be the unnamed one: a <c>[[policy]]</c> written before the catalogue existed is a
+        /// <see cref="PolicyTool.Transfer"/> and stays one, byte for byte.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>A misspelled tool is refused rather than defaulted</b>, which is the whole reason
+        /// this reader is not a <c>switch</c> expression with a fallthrough. <c>tool = "subsidy "</c>
+        /// quietly becoming a transfer is a Policy that pays out of the swept Business's own till,
+        /// for ever, reading on the page as a grant — <c>adr/0048</c>'s <em>loads clean and
+        /// misbehaves in silence</em> class in its purest form.
+        /// </para>
+        /// </remarks>
+        private PolicyTool ReadTool(TableSyntaxBase table, string? name)
+        {
+            if (!TryString(table, "tool", out string? tool, required: false, name) || tool is null)
+            {
+                return PolicyTool.Transfer;
+            }
+
+            switch (tool)
+            {
+                case "transfer":
+                    return PolicyTool.Transfer;
+
+                case "charge":
+                    return PolicyTool.Charge;
+
+                case "relief":
+                    return PolicyTool.Relief;
+
+                case "subsidy":
+                    return PolicyTool.Subsidy;
+
+                default:
+                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "tool") ?? table), name,
+                        $"tool = \"{tool}\" is not one of the things a Policy does. The four are "
+                        + "\"transfer\" -- the unconditional movement a [[policy]] has always been, "
+                        + "and what omitting this key means; \"charge\", money from a liable payer "
+                        + "to the treasury; \"relief\", a reduction of profit tax that moves no "
+                        + "money at all; and \"subsidy\", money out of the treasury against a daily "
+                        + "ceiling.");
+
+                    return PolicyTool.Transfer;
+            }
+        }
+
+        /// <summary>The <c>trade</c> key — the one <c>[[business]]</c> a Policy is aimed at.</summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Absent means every member of the swept population</b>, which is
+        /// <see cref="TradeKind.Any"/> and is what every Policy in the build did before
+        /// <c>plans/0072</c> <b>D28</b>. The name is resolved to a kind id here, on
+        /// <c>[[building]] business</c>'s path and for its reason: <c>[[business]]</c> registration
+        /// runs in the table walk above and the name-to-id direction is gone once <c>Read</c>
+        /// returns.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>A <c>trade</c> on a Policy sweeping households is refused, and it is the refusal
+        /// worth reading.</b> A Household has no trade, so the key would resolve, load clean, be
+        /// saved, be hashed and be consulted by nothing — the population it narrows is not the
+        /// population the Policy runs over. ***A filter that cannot match is not a narrow Policy, it
+        /// is a Policy that reads as narrow.*** The unknown-name refusal beside it is the ordinary
+        /// half.
+        /// </para>
+        /// </remarks>
+        private byte ReadTrade(TableSyntaxBase table, string? name, PolicySubject subject)
+        {
+            if (!TryString(table, "trade", out string? trade, required: false, name) || trade is null)
+            {
+                return TradeKind.Any;
+            }
+
+            if (subject != PolicySubject.Business)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, "trade") ?? table), name,
+                    $"trade = \"{trade}\" aims this Policy at one [[business]], and this Policy "
+                    + "sweeps households. A Household has no trade, so the key would load clean, be "
+                    + "saved, be hashed and narrow nothing -- write `sweeps = \"business\"`, or "
+                    + "drop the trade.");
+
+                return TradeKind.Any;
+            }
+
+            if (!_businessKinds.TryGetValue(trade, out byte kind))
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, "trade") ?? table), name,
+                    $"trade is \"{trade}\", and no [[business]] declares that trade. A Policy aimed "
+                    + "at a trade nothing declares reaches nobody, which is a Policy that triggers "
+                    + "and cannot be observed to have run.");
+
+                return TradeKind.Any;
+            }
+
+            return kind;
+        }
+
+        /// <summary>
+        /// What one application does — the <c>transfer</c> for three tools, <c>relief_percent</c> for
+        /// the fourth, and the refusal of each in the other's company.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// 🔴 <b>This is the key-combination matrix and not a dispatch.</b> <c>transfer</c>,
+        /// <c>ceiling</c> and <c>relief_percent</c> are each individually well-formed and each wrong
+        /// in the wrong company, so what is checked here is a <em>relation</em> between a key and the
+        /// tool beside it — the shape <c>[income_tax]</c>'s group refusal already has, arriving on a
+        /// section where the group is chosen by another key rather than fixed.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>A relief carries its percentage in <see cref="PolicyDefinition.Amount"/></b>, which
+        /// is free because a relief has no transfer. That is what puts a relief under the player's
+        /// existing <c>Govern</c> verb with no second amount column: the thing a player moves on a
+        /// relief is the percentage and the thing they move on a charge is the rate, and both are
+        /// the one field.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>A relief's ends are both <see cref="Scope.Local"/> and its Resource is the file's
+        /// first money one, and nothing reads either.</b> <c>PolicyEngine</c> skips a relief
+        /// outright. The Resource is not <c>default</c> because <c>Ruleset.ResourceKey</c> indexes
+        /// <c>Raw - 1</c>, so a zero there is an out-of-range read the moment <c>RulesetShape</c>
+        /// compares two Rulesets on a reload. ***A field nothing reads still has to be a value
+        /// something can index.***
+        /// </para>
+        /// </remarks>
+        private (Scope From, Scope To, ResourceId Resource, int Amount) ReadMovement(
+            TableSyntaxBase table, string? name, PolicyTool tool)
+        {
+            int relief = ReadReliefPercent(table, name, tool);
+
+            if (tool == PolicyTool.Relief)
+            {
+                if (Find(table, "transfer") is KeyValueSyntax stated)
+                {
+                    Refuse(LineOf(stated), name,
+                        "a relief states a transfer. A relief moves no money anywhere -- it takes a "
+                        + "share off a profit tax bill that has already been worked out, so it has "
+                        + "no source, no destination and no Resource (plans/0072 D10). A Policy that "
+                        + "both forgoes revenue and moves money is two Policies; write the second "
+                        + "one as `tool = \"subsidy\"` and fund it.");
+                }
+
+                return (Scope.Local, Scope.Local, FirstMoneyResource(), relief);
+            }
+
+            (Scope from, Scope to, ResourceId resource, int amount) = ReadTransfer(table, name);
+
+            if (tool == PolicyTool.Subsidy && from != Scope.Global)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, "transfer") ?? table), name,
+                    $"a subsidy draws from \"{Spell(from)}\". A subsidy is money OUT OF THE "
+                    + "TREASURY, rationed by a ceiling on what the city can afford in a Day, so it "
+                    + "states `from = \"global\"` (plans/0072 D12). One declared to pay INTO the "
+                    + "treasury is a charge wearing the wrong name, and nothing downstream would "
+                    + "notice: it would still be rationed by the ceiling, which would then bound how "
+                    + "much the city may COLLECT while reading as a bound on what it may spend.");
+            }
+
+            if (tool == PolicyTool.Charge && to != Scope.Global)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, "transfer") ?? table), name,
+                    $"a charge pays to \"{Spell(to)}\". A charge is money from a liable payer TO "
+                    + "THE TREASURY, priced on a quantity that payer is liable for (plans/0072 "
+                    + "D11), so it states `to = \"global\"`. One paying out of the treasury is a "
+                    + "subsidy, and a subsidy with no ceiling is the unfunded grant `ceiling` "
+                    + "exists to refuse.");
+            }
+
+            return (from, to, resource, amount);
+        }
+
+        /// <summary>The <c>relief_percent</c> key — required of a relief and refused of the rest.</summary>
+        /// <remarks>
+        /// ⚠ <b>Zero is accepted and 101 is not, which is the ordinary half of this reader.</b> A
+        /// relief of nothing is a relief switched off, and a player raises it through <c>Govern</c>
+        /// without reloading. The interesting half is that the key is asked for on <em>every</em>
+        /// Policy rather than only on a relief: an unread key is an unpermitted key here
+        /// (<c>RefuseUnknownKeys</c> is built on what the readers asked for), so a
+        /// <c>relief_percent</c> on a charge has to be asked for in order to be refused by this
+        /// sentence rather than by the spelling suggester.
+        /// </remarks>
+        private int ReadReliefPercent(TableSyntaxBase table, string? name, PolicyTool tool)
+        {
+            KeyValueSyntax? stated = Find(table, "relief_percent", RulesetKeyKind.Whole);
+
+            if (stated is null)
+            {
+                if (tool == PolicyTool.Relief)
+                {
+                    Refuse(LineOf(table), name,
+                        "no relief_percent. A relief is a share of a profit tax bill and nothing "
+                        + "else, so the share is the whole of what it states -- there is no transfer "
+                        + "here to carry it (plans/0072 D13).");
+                }
+
+                return 0;
+            }
+
+            if (tool != PolicyTool.Relief)
+            {
+                Refuse(LineOf(stated), name,
+                    "relief_percent is stated on a Policy that is not a relief. Only a relief has a "
+                    + "percentage to take off a bill; on anything else it would be saved, hashed, "
+                    + "carried across a reload and read by nothing. Write `tool = \"relief\"`, or "
+                    + "drop the key.");
+
+                return 0;
+            }
+
+            if (!TryInteger(table, "relief_percent", out long percent, required: true, name))
+            {
+                return 0;
+            }
+
+            if (percent < 0 || percent > 100)
+            {
+                Refuse(LineOf(stated), name,
+                    $"relief_percent = {percent} is not a share of a bill. It is 0 to 100 -- a "
+                    + "relief above the whole bill would pay the Business the difference, which is "
+                    + "expenditure and is what a subsidy is for (plans/0072 D10), and a negative one "
+                    + "would charge for a relief.");
+
+                return 0;
+            }
+
+            return (int)percent;
+        }
+
+        /// <summary>The <c>ceiling</c> key — required of a subsidy and refused of the rest.</summary>
+        /// <remarks>
+        /// <para>
+        /// <b>The most a subsidy may pay out in one Day</b>, and it is required rather than
+        /// defaulted because the ration is the whole difference between a subsidy and a transfer: a
+        /// grant with no bound is an entitlement the treasury discovers it cannot meet, one claimant
+        /// at a time and in slot order.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>Zero is accepted and is how an author ships a switched-off subsidy</b> — the
+        /// catalogue entry exists, the player can raise it through <c>Govern</c>, and nothing is paid
+        /// until they do. Negative is refused: a ceiling is a bound on an amount and not an amount.
+        /// </para>
+        /// </remarks>
+        private long ReadCeiling(TableSyntaxBase table, string? name, PolicyTool tool)
+        {
+            KeyValueSyntax? stated = Find(table, "ceiling", RulesetKeyKind.Whole);
+
+            if (stated is null)
+            {
+                if (tool == PolicyTool.Subsidy)
+                {
+                    Refuse(LineOf(table), name,
+                        "no ceiling. A subsidy pays out of the treasury and is rationed by what the "
+                        + "city can afford in one Day, so the bound is stated rather than defaulted "
+                        + "(plans/0072 D12) -- an unbounded grant is an entitlement, and the "
+                        + "treasury would discover it cannot meet it one claimant at a time. "
+                        + "`ceiling = 0` is how a subsidy ships switched off.");
+                }
+
+                return 0;
+            }
+
+            if (tool != PolicyTool.Subsidy)
+            {
+                Refuse(LineOf(stated), name,
+                    "ceiling is stated on a Policy that is not a subsidy. Only a subsidy rations a "
+                    + "Day's payments against a funding bound; on a charge or a transfer the key "
+                    + "would be saved, hashed, carried across a reload and consulted by nothing -- "
+                    + "while reading on the page as a cap on what the city collects.");
+
+                return 0;
+            }
+
+            if (!TryInteger(table, "ceiling", out long ceiling, required: true, name))
+            {
+                return 0;
+            }
+
+            if (ceiling < 0)
+            {
+                Refuse(LineOf(stated), name,
+                    $"ceiling = {ceiling} is not a bound on a Day's payments. It is at least 0, and "
+                    + "0 is a real answer -- a subsidy that pays nothing until the player raises it. "
+                    + "A negative bound has no reading at all: the ration would be exhausted before "
+                    + "the first claimant.");
+
+                return 0;
+            }
+
+            return ceiling;
+        }
+
+        /// <summary>The first money <c>[[resource]]</c> the file declares, or the first of any.</summary>
+        /// <remarks>
+        /// <b>It exists so that a relief's unread Resource is still an indexable id</b>, and for
+        /// nothing else — see <see cref="ReadMovement"/>. A file declaring no Resource at all yields
+        /// <c>default</c>, which <c>Ruleset.ResourceKey</c> handles because there is no key table for
+        /// it to index into.
+        /// </remarks>
+        private ResourceId FirstMoneyResource()
+        {
+            for (int i = 0; i < _families.Count; i++)
+            {
+                if (_families[i] == ResourceFamily.Money)
+                {
+                    return new ResourceId((ushort)(i + 1));
+                }
+            }
+
+            return _families.Count > 0 ? new ResourceId(1) : default;
         }
 
         /// <summary>The <c>transfer</c> inline table — refusals 62 to 68.</summary>

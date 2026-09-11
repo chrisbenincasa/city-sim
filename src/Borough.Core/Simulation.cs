@@ -44,6 +44,8 @@ public sealed class Simulation
     private PayrollReading _lastPayroll;
     private readonly BusinessTaxEngine _profitTax;
     private ProfitTaxReading _lastProfitTax;
+    private readonly SubsidyEngine _subsidies;
+    private SubsidyReading _lastSubsidies;
     private readonly LifeStageEngine _lifeStages;
     private readonly SchoolingEngine _schooling;
     private LifeStageReading _lastLifeStages;
@@ -119,6 +121,7 @@ public sealed class Simulation
         _policies = new PolicyEngine(world, key);
         _wages = new WageEngine(world, key);
         _profitTax = new BusinessTaxEngine(world);
+        _subsidies = new SubsidyEngine(world);
         _lifeStages = new LifeStageEngine(world);
         _schooling = new SchoolingEngine(world);
         _employment = new EmploymentEngine(world, key);
@@ -243,6 +246,9 @@ public sealed class Simulation
     /// </remarks>
     internal BusinessTaxEngine ProfitTax => _profitTax;
 
+    /// <summary>The subsidy sweep, for the Census to drain its Money flow.</summary>
+    internal SubsidyEngine Subsidies => _subsidies;
+
     /// <summary>What the most recent payday moved, or zeroes on a Tick that was not one.</summary>
     /// <remarks>
     /// <b>The last reading rather than a total</b>, so an instrument samples it and nothing
@@ -260,6 +266,9 @@ public sealed class Simulation
     /// an instrument samples it and nothing accumulates across a run (<c>adr/0006</c>).
     /// </remarks>
     public ProfitTaxReading LastProfitTax => _lastProfitTax;
+
+    /// <summary>What the last subsidy sweep claimed, funded and rationed.</summary>
+    public SubsidyReading LastSubsidies => _lastSubsidies;
 
     /// <summary>What the last Life Stage sweep did. Zero on any Tick but a Day's first.</summary>
     public LifeStageReading LastLifeStages => _lastLifeStages;
@@ -561,6 +570,13 @@ public sealed class Simulation
                 ApplyGovern(command);
                 break;
 
+            case CommandKind.Fund:
+                // plans/0072 D12. Govern's sibling: a subsidy's rate and its funding ceiling move
+                // independently, and one verb carrying both would make raising the rate alone
+                // unreachable.
+                ApplyFund(command);
+                break;
+
             case CommandKind.Tax:
                 // plans/0072 D3, and Govern's sibling rather than a case of it: a Policy holds one
                 // amount and an income tax holds four numbers that constrain each other, kept as a
@@ -621,6 +637,7 @@ public sealed class Simulation
         CommandKind.Trip => RefuseTrip(command, out _, out _, out _),
         CommandKind.Arrive => RefuseArrive(command, out _),
         CommandKind.Govern => RefuseGovern(command),
+        CommandKind.Fund => RefuseFund(command),
         CommandKind.Tax => RefuseTax(command, _world.Tick, out _, out _),
         CommandKind.Demolish => RefuseDemolish(command, out _),
         CommandKind.Service => RefuseService(command, out _, out _),
@@ -695,6 +712,29 @@ public sealed class Simulation
         return policy >= _world.Rules.Policies.Length ? Refusal.GovernNoSuchPolicy
             : policy >= _world.Policies.Rows.SlotCount ? Refusal.GovernPolicyNotInThisWorld
             : _world.Policies.Key[policy] == 0 ? Refusal.GovernPolicyHasNoName
+            : Refusal.None;
+    }
+
+    /// <inheritdoc cref="ApplyFund"/>
+    private Refusal RefuseFund(Command command)
+    {
+        Refusal named = RefuseGovern(command);
+
+        if (named != Refusal.None)
+        {
+            return named;
+        }
+
+        // The value before the pairing, on RefuseTax's own order: a negative ceiling has no reading
+        // against any Policy, so naming the Policy's tool instead would answer a question the player
+        // did not get wrong yet.
+        if (command.East.Raw < 0)
+        {
+            return Refusal.FundCeilingIsNegative;
+        }
+
+        return _world.Rules.Policies[command.Zone].Tool != PolicyTool.Subsidy
+            ? Refusal.FundPolicyPaysNobody
             : Refusal.None;
     }
 
@@ -951,6 +991,17 @@ public sealed class Simulation
             + "lower one. Both are marginal, so post-tax profit would step DOWNWARD at the "
             + "threshold and a Business that made one unit more would keep less than one that made "
             + "one unit less. Raise the upper rate before lowering the lower one.",
+
+        Refusal.FundPolicyPaysNobody =>
+            $"fund names Policy {command.Zone}, which is not a subsidy. A funding ceiling rations "
+            + "what a subsidy pays out; a charge collects what is owed and a relief moves no money "
+            + "at all, so a ceiling on either would be saved, hashed, carried across a reload and "
+            + "read by nothing.",
+
+        Refusal.FundCeilingIsNegative =>
+            $"fund would set Policy {command.Zone}'s daily ceiling to {command.East.Raw}. A "
+            + "ceiling of zero is a subsidy switched off and is how to spell that; below zero it "
+            + "has no reading.",
 
         Refusal.TaxUpperThresholdBelowAllowance =>
             $"tax would leave the upper band starting at {command.East.Raw}, at or below the "
@@ -1284,6 +1335,24 @@ public sealed class Simulation
         }
 
         _world.Policies.Govern(command.Zone, command.East.Raw);
+    }
+
+    /// <summary>Sets what one subsidy may pay out in a Day — <c>plans/0072</c> D12.</summary>
+    /// <remarks>
+    /// ⚠ <b>A ceiling and a rate are two decisions and this verb moves only one of them.</b> Raising
+    /// what a claim is worth while leaving the ceiling alone pays the same Money to fewer claimants,
+    /// which is a real thing a player may want and would be unreachable if one verb carried both.
+    /// </remarks>
+    private void ApplyFund(Command command)
+    {
+        Refusal refusal = RefuseFund(command);
+
+        if (refusal != Refusal.None)
+        {
+            throw new InvalidOperationException(Explain(refusal, command));
+        }
+
+        _world.Policies.Fund(command.Zone, command.East.Raw);
     }
 
     /// <summary>
@@ -1797,6 +1866,13 @@ public sealed class Simulation
         _lastSchooling = _schooling.Sweep(tick);
 
         _policies.Sweep(tick);
+
+        // Immediately behind the transfers, so a charge collected on this Tick is in the treasury
+        // before a subsidy asks what is there to pay out of. plans/0072 D12 makes support explicitly
+        // subject to funding, which means the pot has to be read at the moment of payment rather
+        // than reserved in advance -- and reading it BEFORE the Day's charges arrive would ration
+        // against a balance the city no longer has.
+        _lastSubsidies = _subsidies.Sweep(tick);
 
         _rules.SweepNeeds(tick);
 

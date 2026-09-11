@@ -1,7 +1,7 @@
 # THE TAXING RULESET -- shopping.toml made able to pay its wages, so that taxing them means anything.
 #
-# plans/0072, amnesty row 33. It is shopping.toml with SIX CHANGES, marked CHANGE 1 of 6 through
-# 6 of 6 where they sit, and everything else in the file is shopping.toml's, unedited. The diff is
+# plans/0072, amnesty row 33. It is shopping.toml with TEN CHANGES, marked CHANGE 1 of 10 through
+# 10 of 10 where they sit, and everything else in the file is shopping.toml's, unedited. The diff is
 # the whole demonstration, on insolvent.toml's precedent and for insolvent.toml's reason.
 #
 #   1. [[business]] shop            DELETED, with the dwelling's `business = "shop"` line.
@@ -10,11 +10,21 @@
 #   4. [[policy]] public_works      ADDED.
 #   5. [income_tax]                 ADDED, scaled to change 2's wage.
 #   6. [business_tax]               ADDED, scaled to this file's own daily rates bill.
+#   7. [[rule]] deliveries          ADDED -- a `map` output, so a shopfront emits something.
+#   8. [[policy]] emissions_charge  ADDED -- tool = "charge", 1 a unit of yesterday's emission.
+#   9. [[policy]] trade_relief      ADDED -- tool = "relief", 25% off a grocer's profit tax.
+#  10. [[policy]] employment_support ADDED -- tool = "subsidy", 408 a worker a Day under a ceiling.
 #
-# ⚠ CHANGES 1 TO 5 ARE PHASE A's AND CHANGE 6 IS PHASE B's, and the phase A figures below were
-# re-measured on the file as it now stands rather than carried over. Where change 6 moved one, the
-# old reading is printed beside the new one, because ***the pair is the demonstration*** and a
-# single column cannot say what a tax did.
+# ⚠ CHANGES 1 TO 5 ARE PHASE A's, CHANGE 6 IS PHASE B's AND CHANGES 7 TO 10 ARE PHASE C's, and the
+# earlier figures below were re-measured on the file as it now stands rather than carried over.
+# Where a later change moved one, the old reading is printed beside the new one, because ***the pair
+# is the demonstration*** and a single column cannot say what a tax did.
+#
+# ⚠ THE PHASE C READINGS WERE TAKEN AGAINST THE FILE WITH CHANGES 7 TO 10 CUT OUT AND PUT BACK ONE
+# AT A TIME, which is the only way to say what each of them did. Every figure attributed to one tool
+# below is a difference between two whole runs that differ in that tool and nothing else. ⚠ CHANGE 7
+# IS NOT A TOOL and is not attributed separately: it is what change 8 needs in order to have
+# anything to read, so the two are cut and restored together.
 #
 # 🔴 EVERY NUMBER HERE IS PROVISIONAL AND NONE IS RATIFIED. plans/0045 standing order 4 suspends
 # ratification, so no row is open for any of them anywhere, none names a ratifier, and none should be
@@ -23,8 +33,10 @@
 #
 # ===========================================================================================
 # WHAT IT EXISTS TO SHOW: a Citizen income tax withheld at the moment a wage is paid, a tax on a
-# Business's profit collected at the Day boundary, and a budget a player can read income against
-# expenditure off -- with BOTH taxes in it, so a reader can see which of the two the city lives on.
+# Business's profit collected at the Day boundary, a budget a player can read income against
+# expenditure off -- with BOTH taxes in it, so a reader can see which of the two the city lives on
+# -- AND ALL THREE TOOLS OF THE TARGETED CATALOGUE: a charge, a relief and a subsidy, each aimed at
+# a named trade, so that a reader can see what each one moves and what it does not.
 # ===========================================================================================
 # shopping.toml is the one shipped world that both PAYS A WAGE and holds a treasury Bin for money,
 # which is what an income tax needs and what no other shipped file has together. taxed.toml carries
@@ -63,6 +75,42 @@
 #   The tills fall by 11,959 LESS than was taken out of them, and the withholding falls by 216 --
 #   one worker, on one Day, paid part of what they were owed instead of all of it. That is the whole
 #   of what taxing 4,142,347 out of this city's shops did to anything but their balances.
+#
+#   ⚠ ONE FIGURE IN THE PARAGRAPH ABOVE NO LONGER REPRODUCES AND IS LEFT AS IT WAS WRITTEN. Cutting
+#   changes 7 to 10 back out and re-running the same command closes the Businesses row of `--money`
+#   at 20,912,533 rather than 20,825,100. The rest of change 6's block reproduces to the unit --
+#   145,440 withheld, 4,142,347 in profit tax, 1,884,160 in rates, 2,027,520 on public works,
+#   closing at 4,144,427 -- so whatever moved it is not the tax, and rewriting somebody else's
+#   measurement to match mine would lose the fact that it moved.
+#
+# AND THE SAME READING WITH CHANGES 7 TO 10 IN FORCE, which is the file as it now ships:
+#
+#   The treasury takes 146,064 withheld, 3,106,799 in profit tax, 1,568,768 BY A POLICY -- all of
+#   it the emissions charge -- and 1,916,928 in rates; it spends 1,995,520 on public works and
+#   170,304 IN SUBSIDY, and closes at 4,572,735. It forgoes 1,035,548 in RELIEF, which is in none
+#   of those columns and must not be: no Bin was debited and none was credited.
+#
+#   Income 6,738,559 less expenditure 2,165,824 is 4,572,735, exactly, with no residual. That is
+#   the whole arithmetic of `--income` and it can be done on this comment.
+#
+#   203 Citizens employed at 22 grocers, 112 wage payments, 689,348 reaching Households against
+#   76,604 uncovered, 4 short paydays, nothing wound up. The grocers close on 20,513,927 against
+#   20,912,533 with none of the four changes -- 398,606 lower, against 1,568,768 charged, 1,035,548
+#   relieved and 170,304 subsidised.
+#
+# 🔴 THE PAYROLL GOT WORSE, AND THE SUBSIDY IS WHY. Isolated -- changes 7 and 8 held, changes 9 and
+# 10 cut, then 10 put back -- the employment subsidy moved 701,144 paid / 115 payments / 64,808
+# uncovered to 689,348 / 112 / 76,604. ***The city paid grocers 170,304 to employ people and 11,796
+# LESS reached the people they employed.*** The mechanism is the phase order and not the money: a
+# Bin Rule fires in phase 3 and a payday runs in phase 6, so the `rates` Rule reaches a till first.
+# It fired TWO more times over the run -- 1,884,160 to 1,916,928, which is 2 x 16,384 -- so 32,768
+# of the subsidy, a fifth of it, went straight back to the treasury as rates, and three paydays that
+# would have been met were not.
+#
+# ⚠ A SUBSIDY PAID INTO A TILL IS NOT A SUBSIDY PAID TO A WORKER, and this file is the worked
+# example rather than the claim. Nothing in the design says a Business spends a receipt on wages; a
+# till is a Bin and every Rule that can reach it competes for it. Read it as a property of what was
+# built, never as a finding about employment subsidies.
 #
 # ===========================================================================================
 # CHANGE 1: THE DWELLING IS NOT A WORKPLACE, and this is where seven jobs in eight were.
@@ -185,18 +233,199 @@
 # of the run's 6,171,947 income, against 1,884,160 in rates and 145,440 withheld. A reader who wants
 # the affordability arc back deletes [business_tax] and gets the first paragraph's numbers exactly.
 #
+# ⚠ THIS PARAGRAPH IS CHANGE 6's OWN RECORD AND CHANGES 7 TO 10 MOVED EVERY FIGURE IN IT. On the file
+# as it ships the profit tax is 3,106,799 of an income of 6,738,559 and the programme is a Day
+# short of affordable again -- see CHANGE 9. The figures here are the file WITHOUT changes 7 to 10,
+# kept because a pair is what says what a change did.
+#
 # `interval = 2048` is one Day, Ticks.PerDay, and it is derived rather than chosen for taxed.toml's
 # reason: a Policy's interval is a balance constant, and a Day is the period the rest of the
-# simulation is denominated in.
+# simulation is denominated in. Changes 7, 8 and 9 all state the same 2048 for the same reason and
+# the argument is not repeated three more times below.
+#
+# ===========================================================================================
+# CHANGE 7: THE EMITTING RULE -- what a grocer here is claimed to put out, and why it is here.
+# ===========================================================================================
+# 🔴 NOTHING IN THIS FILE EMITTED ANYTHING, AND A CHARGE ON EMISSION NEEDS SOMETHING TO READ.
+# plans/0072 D29 attributes a Building's emission to the Building that made it and D9's worked
+# example is a charge that prices the thing the city wants less of -- and `scope = "map"` is the
+# only write-only scope 02 section 4.1 grants, pollution the only emittable Layer. None of this
+# file's five inherited [[rule]] tables has a `map` output, so change 8 would have collected a
+# column of zeroes and read as a broken sweep rather than as a clean city.
+#
+# ⚠ SO A GROCER IN THIS FILE POLLUTES, AND THAT IS A CLAIM ABOUT THE WORLD RATHER THAN A FIXTURE.
+# It is pictured.toml's `deliveries` Rule, copied with both its numbers unchanged and for its stated
+# reason: deliveries and refrigeration are the defensible reading of a shop that emits, INDUSTRY IS
+# UNBUILT (adr/0070), and when industry exists this Rule moves to it. ***Read it as a stand-in for a
+# polluter this world does not have***, never as a claim that grocers are what a city should charge.
+#
+# WHAT IT EMITS IS DERIVED AND NOT CHOSEN ONCE THE RULE IS COPIED. `rate = 32` is 64 firings a Day
+# at Ticks.PerDay of 2,048, and 64 x 256 is 16,384 a Day from every standing shopfront -- which is
+# EXACTLY what the `rates` Rule already takes off one every Day. That coincidence is arithmetic and
+# not design, and it is stated here because it makes change 8's column readable by eye: the charge
+# moves in whole multiples of 16,384, one per shopfront that paid.
+#
+# ⚠ IT TAKES NO INPUTS, for pictured.toml's reason: a Rule that consumed a Good would starve, stop
+# firing, and let the field decay back to the nothing it started as -- and a charge whose base
+# quietly went to zero is the failure mode change 8 exists to avoid.
+#
+# ===========================================================================================
+# CHANGE 8: THE EMISSIONS CHARGE -- D9's worked example, and who actually ends up paying it.
+# ===========================================================================================
+# A CHARGE IS A TRANSFER OF MONEY FROM A LIABLE PAYER TO THE TREASURY, PRICED ON A QUANTITY THE
+# PAYER IS LIABLE FOR (plans/0072 D10, D33). It rides the existing [[policy]] and needs nothing but
+# a Readout and D28's `trade`. What makes it a charge rather than a levy is that the base is
+# SOMETHING THE CITY WANTS LESS OF: a grocer that emitted nothing yesterday owes nothing today,
+# which is what D29 chose emission for and what neither a flat rate per trade nor a share of
+# revenue can express.
+#
+# 🔴 PROVISIONAL, LIKE EVERYTHING ELSE HERE. What the two keys are anchored to:
+#
+#   percent = 100   EVERY UNIT EMITTED IS CHARGED FOR, and there is no argument for charging for
+#                   some of them. A percentage below 100 would be a discount on emission with
+#                   nothing behind it; the lever an author reaches for to make the charge softer is
+#                   the price below, which says what a unit costs.
+#
+#   amount = 1      THE PRICE OF ONE UNIT OF POLLUTION, and it is 1 because it is the first price
+#                   this design has ever put on one. ⚠ ***THERE IS NO ANCHOR FOR IT AND THIS FILE
+#                   DOES NOT PRETEND OTHERWISE.*** Nothing in the Ruleset denominates pollution
+#                   against money, and inventing a conversion would be exactly the unratified number
+#                   wearing a derivation that plans/0002 section D exists to refuse. What CAN be
+#                   said is what it lands at: 16,384 a shopfront a Day, which is the `rates` bill
+#                   again -- so a grocer that pays the charge pays its premises twice over.
+#
+# ⚠ `emission` READS THE PREVIOUS COMPLETE DAY and never the Day in progress (D30), so the charge
+# on Tick 2,048 is for Day 0 and a shopfront raised this morning owes nothing until tomorrow. That
+# is why the first two rows of the budget's `policy in` column are zero and the third is not a whole
+# multiple of 16,384.
+#
+# WHAT IT COLLECTED, isolated -- changes 7 and 8 cut out and put back, 9 and 10 absent throughout:
+# 1,568,768 over twelve Days, against 4,142,347 in profit tax and 1,884,160 in rates. It is the
+# THIRD largest of the four inbound levers and comfortably the fastest growing.
+#
+# 🔴 AND IT MOVED NOTHING ELSE IN THE CITY, WHICH IS THE READING TO KEEP. Against the file without
+# it: the withholding is 145,440 either way, the profit tax 4,142,347 either way, the rates
+# 1,884,160 either way, public works 2,027,520 either way, and the Businesses row of `--money` falls
+# from 20,912,533 to 19,343,765 -- ***a fall of exactly 1,568,768, to the unit***. The whole
+# second-order effect is 1,000 of payroll and one more short payday: 702,144 paid over 4 short
+# paydays becomes 701,144 over 5. ***So taking one and a half million out of this city's shops for
+# polluting changed nothing about how much they pollute***, because a Bin Rule fires on its rate and
+# reads no balance, and nothing here can decide to emit less. Read the flatness as the absence of
+# that decision and never as evidence that a charge has no effects.
+#
+# 🔴 AND THE SHOPS THAT PAY IT ARE NOT THE SHOPS THAT EMIT. Every standing shopfront emits the same
+# 16,384 a Day; the charge's column runs 30,464 / 61,696 / 91,904 / 123,136 / 131,072 / 131,072 /
+# 131,072 / 163,840 / 229,376 / 229,376 / 245,760, which is 8, 8, 8, 10, 14, 14 and 15 premises'
+# worth over the run's last seven Days -- against 22 live grocers at the close. `PolicyEngine.Move`
+# pays in full or not at all, so a till that cannot cover the whole 16,384 pays NOTHING and is
+# counted `Unaffordable` rather than short. ***The charge falls on the grocers with custom and the
+# ones with none emit for free***, which is this file's own "a fixed subset of grocers has
+# essentially no custom whatever its payroll" arriving from the other side. ⚠ That is a property of
+# the all-or-nothing transfer and not of the charge tool, and it is the one thing here that would be
+# worth building differently.
+#
+# CHANGE 9: THE RELIEF -- the tool that moves no money, and the one a budget can get wrong.
+# ===========================================================================================
+# A RELIEF REDUCES A BILL AND PAYS NOBODY (plans/0072 D10). It has no transfer, no source and no
+# destination; `TaxRelief.PercentFor` sums every relief a Business qualifies for, caps the sum at
+# 100%, and `BusinessTaxEngine` takes that share off AFTER the marginal bands. A Business owing no
+# profit tax gets nothing from it however many reliefs name its trade.
+#
+# 🔴 PROVISIONAL, LIKE EVERYTHING ELSE HERE. What the one number is anchored to:
+#
+#   relief_percent = 25   THE SHARE THAT PUTS CHANGE 6's OWN WORKED EXAMPLE BACK ON THE LOWER RATE.
+#                         The [business_tax] block at the foot of this file works a grocer closing a
+#                         Day on 100,000 profit by hand: 13,445, an effective rate of 13.4%. A
+#                         quarter of that bill is 3,361 and leaves 10,084 -- an effective 10.1%,
+#                         which is `lower_rate_percent` to within the flooring. ***So the relief is
+#                         sized as "this trade pays the lower band's rate on the whole of its
+#                         profit"***, and the digit follows from two numbers the file already states
+#                         rather than from a preference for quarters.
+#
+# WHAT IT FORWENT: 1,035,548 over twelve Days. ⚠ AND THE PROFIT TAX FELL BY EXACTLY THAT -- isolated,
+# 4,142,347 to 3,106,799 -- which is not a tautology and is worth checking. The collection can fall
+# by less than the relief when a till was going to come up short anyway, because D25 forgives what a
+# short till cannot cover and a relieved bill is easier to cover. No till in this run ever comes up
+# short. The two figures agree to the unit here, which is what that case looks like and is
+# consistent with WHAT IT MUST NOT BE READ AS already recording `underpaying` at 0 across change 6's
+# whole rate sweep -- ***so read the equality as evidence about the tills, never as evidence that
+# the relief arithmetic works***. TaxReliefTests is what holds the arithmetic.
+#
+# THE ONE THING IT MOVED BESIDES THE BILL IS 32,000 OF PUBLIC WORKS. With the relief in force the
+# first funded sweep pays 152,320 where it paid 184,320 without -- 125 Household-Days -- because the
+# treasury is a Day's relief short on the Tick the programme first becomes affordable, and public
+# works pays whom it reaches and reports where it stopped. After that it is flat and fully funded to
+# the end of the run. ***Change 6 took the affordability arc away and change 9 hands one Day of it
+# back***, which is the clearest statement this file makes that the two are the same treasury.
+#
+# ===========================================================================================
+# CHANGE 10: THE EMPLOYMENT SUBSIDY -- a pot, a per-worker claim, and a ceiling that binds.
+# ===========================================================================================
+# A SUBSIDY IS THE ONE TOOL THAT CANNOT BE WRITTEN AS A TRANSFER (plans/0072 D33). A [[policy]]
+# transfer pays each member in full or not at all and abandons the sweep when the treasury runs
+# short, so who is paid is decided by where the rotating scan started. `SubsidyEngine` gathers every
+# claim first, takes the pot as the SMALLER of the ceiling and the treasury, apportions it by largest
+# remainder and only then pays -- so a short pot cuts everybody and drops nobody.
+#
+# THE CLAIM IS A RATE PER WORKER EMPLOYED (D32), and it rides the transfer's `amount`. The `apply`
+# table is stated because the loader requires one of every [[policy]] and the subsidy sweep does not
+# read it; that is a property of the format rather than of this file.
+#
+# 🔴 PROVISIONAL, LIKE EVERYTHING ELSE HERE. What each number is anchored to:
+#
+#   amount = 408      EXACTLY WHAT THIS FILE WITHHOLDS FROM ONE WORKER FOR ONE DAY. The [income_tax]
+#                     block at the foot of this file derives 408 by hand from the posted wage of
+#                     2,048, and it is the only per-worker-per-Day money figure the Ruleset states.
+#                     So the subsidy reads as "the city hands the employer back what it took off the
+#                     employee", which is a sentence a reader can check against two other blocks of
+#                     this same file. ⚠ It is a SHAPE and not a claim that the two should be equal.
+#
+#   ceiling = 16384   EXACTLY THE 16,384 A SHOPFRONT PAYS IN RATES EVERY DAY -- the same anchor
+#                     change 6 used for its threshold, at a multiple of one. The city's whole daily
+#                     employment pot is worth one premises' rates. ⚠ IT IS CHOSEN TO BIND AND THE
+#                     BINDING IS THE DEMONSTRATION: 16,384 / 408 is 40.2, so the ceiling starts
+#                     cutting on the first Day the grocers between them employ 41 people. A ceiling
+#                     nothing ever reached would leave `Apportionment`'s rationing branch exercised
+#                     by no shipped world at all -- which is the whole of D12.
+#
+# WHAT IT DID: claimed 454,512 and paid 170,304, cutting 113 claimant-Days across 9 of the run's 12
+# Days. The column is flat at exactly 16,384 from Tick 8,192 to the end, which is what a bound pot
+# looks like. ⚠ THE 284,208 NOT PAID IS NOT A DEBT (D12) and appears in no column of `--income`;
+# `Claimed in subsidy` under the table is the only place a reader learns the ceiling bound at all.
+#
+# ⚠ IT BINDS AT THE SMALLER READING TOO, and that is why the ceiling is 16,384 rather than 32,768.
+# At 1,000 Citizens over 12,288 Ticks -- which is what IncomeDumpTests and
+# TreasuryFlowsExplainTheBalanceTests run -- 32,768 was never reached and the rationing branch went
+# untested by anything but a fixture. ***A demonstration that only fires at the large sizing is a
+# demonstration the suite cannot see***, so the pot was halved until it bound at both.
+#
+# 🔴 AND IT MADE THE PAYROLL WORSE, which is this file's most surprising reading and is written up
+# under WHAT IT EXISTS TO SHOW above rather than here, because it is a fact about the phase order
+# and not about the number 408.
 #
 # ===========================================================================================
 # ⚠ WHAT IT MUST NOT BE READ AS.
 # ===========================================================================================
-# NOT A BALANCED CITY. The grocers close the run holding 20,825,100 and rising -- a shop in
-# this file has no costs but wages, rates and now profit tax, so what Households spend piles up in
-# tills, and that is shopping.toml's property rather than one this file introduced. ***Nothing here
-# should be read as a steady state***: the run is twelve Days and the demonstration is a budget, not
-# adr/0006. ⚠ Change 6 slowed the pile-up and did not stop it.
+# NOT A BALANCED CITY. The grocers close the run holding 20,513,927 and rising -- a shop in
+# this file has no costs but wages, rates, profit tax and now a charge, so what Households spend
+# piles up in tills, and that is shopping.toml's property rather than one this file introduced.
+# ***Nothing here should be read as a steady state***: the run is twelve Days and the demonstration
+# is a budget, not adr/0006. ⚠ Change 6 slowed the pile-up and did not stop it, and changes 7 to 10
+# between them took 398,606 off it -- about 2% -- against a twelve-Day charge of 1,568,768.
+#
+# 🔴 NOT A DEMONSTRATION OF ELIGIBILITY, AND THIS IS THE WEAKEST POINT IN THE FILE. All three of the
+# new Policies state `trade = "grocer"`, and change 1 deleted the only other trade this world had --
+# so `grocer` and "every Business here" are the same set, and cutting the key out of all three would
+# not move one figure above. ***The targeting is stated and untested.*** What tests it is
+# SubsidySweepTests, which appends a second trade to this file in memory specifically so that aiming
+# at one can be distinguished from aiming at none. A shipped world that tells the two apart would
+# need a second trade with premises, a Goods Bin and a zone of its own, which is a different file.
+#
+# NOT A CLAIM THAT A GROCER IS A POLLUTER. Change 7 exists because change 8 needs a base to read and
+# industry is unbuilt (adr/0070); a shop's deliveries and refrigeration are the defensible reading
+# and they are a reading. ⚠ AND THE PRICE OF A UNIT OF POLLUTION IS 1 BECAUSE NOTHING DENOMINATES
+# POLLUTION IN MONEY -- see CHANGE 8. ***Of every number in this file that is the one with the least
+# behind it***, and it is the one most likely to be quoted as though it meant something.
 #
 # 🔴 NOT A DEMONSTRATION OF D15's STOCK COST, AND THE PROFIT FIGURES HERE ARE INFLATED BECAUSE OF IT.
 # The `stock` Rule below has NO INPUTS: a shopfront's sundries arrive out of nothing, so the cost of
@@ -239,7 +468,7 @@ family = "good"
 name = "money"
 family = "money"
 
-# CHANGE 1 of 6. shopping.toml's `[[business]] shop` STOOD HERE AND IS DELETED, and the
+# CHANGE 1 of 10. shopping.toml's `[[business]] shop` STOOD HERE AND IS DELETED, and the
 # `business = "shop"` line on the dwelling below goes with it -- see THE DWELLING IS NOT A WORKPLACE.
 
 [[business]]
@@ -248,7 +477,7 @@ work_days = 124
 open_days = 127
 opens_hour = 7
 closes_hour = 21
-# CHANGE 2 of 6. 4096 -> 2048 -- see THE WAGE, which carries the sweep that chose it.
+# CHANGE 2 of 10. 4096 -> 2048 -- see THE WAGE, which carries the sweep that chose it.
 wage_per_day    = 2048
 pay_period_days = 7
 shift_start_earliest_hour = 6
@@ -314,6 +543,17 @@ rate    = 2048
 apply   = { min = 1, max = 1 }
 inputs  = [ { scope = "local",  resource = "money", amount = 16384 } ]
 outputs = [ { scope = "global", resource = "money", amount = 16384 } ]
+
+# CHANGE 7 of 10. ADDED, and it is the only Rule in this file that produces nothing anybody trades
+# -- see THE EMITTING RULE. Its numbers are pictured.toml's `deliveries`, unchanged, because that
+# file already argued a shopfront emitting at this rate and this file has no better argument.
+[[rule]]
+name    = "deliveries"
+kind    = "shopfront"
+rate    = 32
+apply   = { min = 1, max = 1 }
+inputs  = []
+outputs = [ { scope = "map", layer = "pollution", amount = 256 } ]
 
 [[zone_rule]]
 name          = "housing"
@@ -391,12 +631,12 @@ arrive_early_max_minutes = 15
 
 [households]
 car_ownership_percent = 0
-# CHANGE 3 of 6. 12,800/25,600 -> 51,200/102,400, and it is the change that rescued the file --
+# CHANGE 3 of 10. 12,800/25,600 -> 51,200/102,400, and it is the change that rescued the file --
 # see THE OPENING BAND, which carries the derivation and the thing it did that nobody predicted.
 opening_balance_min = 51200
 opening_balance_max = 102400
 
-# CHANGE 4 of 6. ADDED, and it is the expenditure column -- see PUBLIC WORKS.
+# CHANGE 4 of 10. ADDED, and it is the expenditure column -- see PUBLIC WORKS.
 
 [[policy]]
 name = "public_works"
@@ -404,6 +644,42 @@ sweeps = "household"
 interval = 2048
 apply = { min = 256, max = 256 }
 transfer = { from = "global", to = "local", resource = "money", amount = 1 }
+
+# CHANGE 8 of 10. ADDED, and it is the CHARGE -- see THE EMISSIONS CHARGE. `percent = 100` charges
+# for every unit the premises emitted yesterday and `amount = 1` is the price of a unit; neither key
+# means anything without the other.
+[[policy]]
+name = "emissions_charge"
+sweeps = "business"
+tool = "charge"
+trade = "grocer"
+interval = 2048
+apply = { derived = "emission", percent = 100 }
+transfer = { from = "local", to = "global", resource = "money", amount = 1 }
+
+# CHANGE 9 of 10. ADDED, and it is the RELIEF -- see THE RELIEF. It moves no money and has no
+# transfer; its whole effect is a smaller profit-tax column.
+[[policy]]
+name = "trade_relief"
+sweeps = "business"
+tool = "relief"
+trade = "grocer"
+interval = 2048
+apply = { min = 1, max = 1 }
+relief_percent = 25
+
+# CHANGE 10 of 10. ADDED, and it is the SUBSIDY -- see THE EMPLOYMENT SUBSIDY. The per-worker rate is
+# the transfer's `amount`; `apply` is not read by the subsidy sweep and is stated because the loader
+# requires it of every [[policy]].
+[[policy]]
+name = "employment_support"
+sweeps = "business"
+tool = "subsidy"
+trade = "grocer"
+interval = 2048
+apply = { min = 1, max = 1 }
+ceiling = 16384
+transfer = { from = "global", to = "local", resource = "money", amount = 408 }
 
 [[lattice]]
 origin_east_tiles  = 0
@@ -457,7 +733,7 @@ search_candidates = 32
 retry_ticks = 128
 
 # ===========================================================================================
-# CHANGE 5 of 6: THE INCOME TAX SCHEDULE, SCALED TO THIS FILE'S WAGE RATHER THAN TO taxed.toml's.
+# CHANGE 5 of 10: THE INCOME TAX SCHEDULE, SCALED TO THIS FILE'S WAGE RATHER THAN TO taxed.toml's.
 # ===========================================================================================
 # The three marginal bands a Citizen's earnings for ONE DAY are read against. Each rate applies only
 # inside its own band, so crossing a threshold never reprices what came before it and take-home
@@ -500,7 +776,7 @@ retry_ticks = 128
 # experience_premium_percent, so WorkSchedule.Graded hands back the posted figure and 2048 is the only
 # rate anybody earns.
 #
-# ⚠ AND THE RUN AS THE FILE NOW SHIPS DOES NOT QUITE DIVIDE, WHICH IS THE CAVEAT ARRIVING IN ITS OWN
+# ⚠ WITH CHANGES 1 TO 6 ONLY, THE RUN DOES NOT QUITE DIVIDE, WHICH IS THE CAVEAT ARRIVING IN ITS OWN
 # PARAGRAPH. At 2,000 Citizens over 24,576 Ticks the withheld readings are 8,160 / 19,176 / 29,376 /
 # 19,584 / 16,920 / 31,824 / 20,400 -- 20, 47, 72, 48, 41-and-a-part, 78 and 50 Citizen-Days: 356
 # WHOLE Days for 145,248, and a remainder of 192 on the fifth. A payday that pays a worker only PART
@@ -513,6 +789,15 @@ retry_ticks = 128
 # payroll, and it is one worker on one Day being paid part of what they were owed. `--business`
 # reports the same 702,144 paid, the same 115 payments, the same 63,808 uncovered and the same 4
 # short paydays either way.
+#
+# ⚠ AND AS THE FILE NOW SHIPS IT DIVIDES AGAIN, WHICH IS NOT THE IMPROVEMENT IT LOOKS LIKE. The
+# readings are 8,160 / 19,176 / 29,376 / 19,584 / 17,544 / 0 / 31,824 / 20,400 for 146,064, and
+# every one of them is a whole multiple of 408 -- 20, 47, 72, 48, 43, 78 and 50. Isolated, it is
+# CHANGE 10 that did it and not change 9: the file with changes 7 to 9 withholds 145,533, which does
+# not divide, and the file with 7, 8 and 10 withholds the same 146,064 as the shipped one. ***The
+# subsidy bought the partial Day off and lost three whole paydays doing it*** -- 115 payments to
+# 112, and 64,808 owed and uncovered to 76,604. Read the divisibility beside those two figures or
+# not at all.
 
 [income_tax]
 allowance_per_day       = 512
@@ -521,7 +806,7 @@ middle_rate_percent     = 20
 upper_rate_percent      = 40
 
 # ===========================================================================================
-# CHANGE 6 of 6: THE PROFIT TAX, SCALED TO THIS FILE'S OWN RATES BILL RATHER THAN TO ITS WAGE.
+# CHANGE 6 of 10: THE PROFIT TAX, SCALED TO THIS FILE'S OWN RATES BILL RATHER THAN TO ITS WAGE.
 # ===========================================================================================
 # The two marginal bands a BUSINESS's profit for ONE DAY is read against. Collected once a Day, at
 # the Day boundary, by Borough.Core.Rules.BusinessTaxEngine -- which runs in phase 1, ahead of

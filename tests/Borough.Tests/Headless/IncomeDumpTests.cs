@@ -13,10 +13,14 @@ namespace Borough.Tests.Headless;
 /// because it holds the defect the mode exists to close. A tax withheld at a payday reaches the
 /// treasury without any Policy moving it, so before <c>MoneyFlowCounter.Withheld</c> the balance rose
 /// against a reported income of zero — ***and a budget that under-reports income is wrong in exactly
-/// the direction a budget exists to be right about***. The shipped file makes the assertion sharp: it
-/// declares one <c>[[policy]]</c> and it moves money only OUT of the treasury, so the policy
-/// <em>income</em> column is zero for the whole run and any income at all must have come through
-/// the payday or through a Bin Rule.
+/// the direction a budget exists to be right about***.
+/// <br/>
+/// ⚠ <b>The shipped file used to make that assertion sharp by declaring no inbound
+/// <c>[[policy]]</c> at all, and change 7 of <c>taxing.toml</c> ended that.</b> The file now states
+/// a <c>tool = "charge"</c>, which <c>PolicyEngine</c> folds into the same accumulator as a plain
+/// transfer, so the policy income column is non-zero and the test asserts the two columns DIFFER
+/// instead. ***The demonstration is worth more than the sharpness***: a catalogue no shipped world
+/// exercises is a catalogue nobody can read a budget off.
 /// </para>
 /// <para>
 /// 🔴 <b>Its pair is
@@ -97,9 +101,17 @@ public sealed class IncomeDumpTests
     /// <remarks>
     /// <b>Both halves are asserted and neither alone would do.</b> A report that had folded the
     /// withholding into the Policy column would pass an assertion that income moved; a report over a
-    /// world where nothing was ever paid would pass an assertion that the Policy column is zero.
-    /// Together they say the treasury took money in through a mechanism no <c>[[policy]]</c> could
-    /// have supplied — which is the mechanism this mode was built to make visible.
+    /// world where nothing was ever paid would pass an assertion that the two are unequal. Together
+    /// they say the treasury took money in through a mechanism no <c>[[policy]]</c> supplied — which
+    /// is the mechanism this mode was built to make visible.
+    /// <para>
+    /// 🔴 <b>This assertion USED to be <c>policy income is zero</c>, and change 7 of
+    /// <c>taxing.toml</c> took that away.</b> The file now declares a <c>tool = "charge"</c>, which
+    /// <c>PolicyEngine</c> folds into the same accumulator as a plain transfer — so the sharp form
+    /// is no longer available and the honest one is that the two columns differ. ***A test that had
+    /// been left asserting the zero would have been asserting that the catalogue was not
+    /// demonstrated.***
+    /// </para>
     /// </remarks>
     [Fact]
     public void Withholding_is_its_own_income_column_and_is_not_folded_into_the_policy_one()
@@ -110,15 +122,84 @@ public sealed class IncomeDumpTests
 
         Assert.True(
             gross.Withheld > 0, "no payday ever withheld anything, so the column proves nothing.");
-        Assert.Equal(0, gross.Policy);
+        Assert.True(
+            gross.Policy > 0,
+            "no Policy paid anything into the treasury. CHANGE 7 of taxing.toml is a charge on a "
+            + "grocer's till, and a zero here is the charge never firing.");
+        Assert.True(
+            gross.Policy != gross.Withheld,
+            $"the policy column and the withheld column both read {gross.Policy}, which is what a "
+            + "report folding one into the other would print.");
 
         // ⚠ Not zero, and asserting that it were would be asserting the demonstration is broken.
         // The file declares a Policy that spends OUT of the treasury, because row 33 needs income
-        // read against expenditure and a column of zeros is not expenditure. What keeps this test
-        // sharp is that no Policy pays money IN, so the income above still cannot have come from
-        // one.
+        // read against expenditure and a column of zeros is not expenditure.
         Assert.True(
             gross.Spent > 0, "nothing was ever spent, so there is no expenditure to read against.");
+    }
+
+    /// <summary>
+    /// 🔴 All three tools of the targeted catalogue moved something, and the subsidy's pot bound.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A demonstration where a tool never fires is a demonstration of nothing.</b> Each of the
+    /// three is individually easy to ship switched off — a charge whose <c>trade</c> matches no
+    /// Business, a relief on a city whose shops never turn a profit, a subsidy whose ceiling is
+    /// never reached — and every one of those loads clean and prints a column of zeroes.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The rationing assertion is the one that is not implied by the others.</b> A subsidy that
+    /// pays every claim in full exercises <c>Apportionment</c>'s trivial case only, so <c>Cut</c>
+    /// being non-zero is what says the largest-remainder arithmetic ran on this world at all —
+    /// <c>plans/0072</c> D12's whole subject.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void All_three_tools_of_the_catalogue_moved_something_on_the_shipped_file()
+    {
+        string report = Dump("taxing.toml");
+
+        Gross gross = OverTheRun(report);
+
+        Assert.True(gross.Policy > 0, "the charge collected nothing.");
+        Assert.True(gross.Relieved > 0, "the relief forwent nothing, so no bill was ever reduced.");
+        Assert.True(gross.Granted > 0, "the subsidy paid nothing out of the treasury.");
+        Assert.True(
+            gross.Claimed > gross.Granted,
+            $"the subsidies claimed {gross.Claimed} and were paid {gross.Granted}, so the ceiling "
+            + "never bound and Apportionment's rationing branch is unexercised by any shipped "
+            + "world. CHANGE 9 of taxing.toml states a ceiling chosen to bind.");
+        Assert.True(gross.Cut > 0, "no claimant was ever cut, so nothing was rationed.");
+    }
+
+    /// <summary>
+    /// 🔴 Relief is printed and is deliberately outside the arithmetic, because no Money moved.
+    /// </summary>
+    /// <remarks>
+    /// <b>The mistake this forbids is a one-line one and it breaks the budget by exactly the amount
+    /// forgone.</b> A relief feels like spending — the city gave something up — but it debited no
+    /// Bin and credited none, so adding it to expenditure would make the treasury column stop being
+    /// the flows beside it. ***The identity is the test***: it is asserted in
+    /// <see cref="The_columns_sum_to_what_the_run_says_and_the_balance_is_their_total"/> against a
+    /// run in which relief is large, so a report that folded it in could not pass both.
+    /// </remarks>
+    [Fact]
+    public void Relief_is_printed_as_revenue_forgone_and_is_not_in_the_identity()
+    {
+        string report = Dump("taxing.toml");
+
+        Gross gross = OverTheRun(report);
+
+        Assert.Contains("Revenue forgone", report, Ordinal);
+        Assert.Contains("Revenue forgone is not expenditure.", report, Ordinal);
+        Assert.True(gross.Relieved > 0, "nothing was relieved, so the caveat covers nothing.");
+
+        long expenditure = gross.Spent + gross.Drawn + gross.Granted;
+        long income = gross.Withheld + gross.Profit + gross.Policy + gross.Rule;
+
+        Assert.Equal(income - expenditure, Rows(report)[^1].Treasury);
+        Assert.NotEqual(income - expenditure - gross.Relieved, Rows(report)[^1].Treasury);
     }
 
     /// <summary>
@@ -177,7 +258,10 @@ public sealed class IncomeDumpTests
         Gross gross = OverTheRun(report);
 
         Assert.True(gross.Rule > 0, "the rates Rule never fired, so the column proves nothing.");
-        Assert.Equal(0, gross.Policy);
+        Assert.True(
+            gross.Rule != gross.Policy,
+            $"the rule column and the policy column both read {gross.Rule}, which is what folding "
+            + "one into the other would print.");
         Assert.Equal(0, gross.Drawn);
         Assert.True(
             gross.Rule > gross.Withheld,
@@ -201,6 +285,7 @@ public sealed class IncomeDumpTests
         Assert.Contains("profit tax", report, Ordinal);
         Assert.Contains("policy in", report, Ordinal);
         Assert.Contains("rule in", report, Ordinal);
+        Assert.Contains("subsidy out", report, Ordinal);
         Assert.Contains("never netted", report, Ordinal);
         Assert.DoesNotContain("a net of", report, Ordinal);
     }
@@ -230,9 +315,10 @@ public sealed class IncomeDumpTests
         Assert.Equal(gross.Rule, Column(report, 4));
         Assert.Equal(gross.Spent, Column(report, 5));
         Assert.Equal(gross.Drawn, Column(report, 6));
+        Assert.Equal(gross.Granted, Column(report, 7));
 
         long income = gross.Withheld + gross.Profit + gross.Policy + gross.Rule;
-        long expenditure = gross.Spent + gross.Drawn;
+        long expenditure = gross.Spent + gross.Drawn + gross.Granted;
 
         Assert.Equal(income - expenditure, Rows(report)[^1].Treasury);
     }
@@ -331,6 +417,7 @@ public sealed class IncomeDumpTests
         long Rule,
         long Spent,
         long Drawn,
+        long Granted,
         long Treasury,
         long Households);
 
@@ -356,7 +443,7 @@ public sealed class IncomeDumpTests
             string[] cells = line.Split(
                 "  ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-            if (cells.Length != 9)
+            if (cells.Length != 10)
             {
                 break;
             }
@@ -364,7 +451,7 @@ public sealed class IncomeDumpTests
             rows.Add(new BudgetRow(
                 Number(cells[0]), Number(cells[1]), Number(cells[2]), Number(cells[3]),
                 Number(cells[4]), Number(cells[5]), Number(cells[6]), Number(cells[7]),
-                Number(cells[8])));
+                Number(cells[8]), Number(cells[9])));
         }
 
         Assert.NotEmpty(rows);
@@ -387,6 +474,7 @@ public sealed class IncomeDumpTests
                 4 => row.Rule,
                 5 => row.Spent,
                 6 => row.Drawn,
+                7 => row.Granted,
                 _ => throw new ArgumentOutOfRangeException(nameof(index), index, "not a flow column."),
             };
         }
@@ -402,18 +490,44 @@ public sealed class IncomeDumpTests
         string[] into = Line(report, "  Into the treasury:")
             .Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
-        // "  Out of it: S by a Policy, D by a Bin Rule."
+        // "  Out of it: S by a Policy, D by a Bin Rule, G in subsidy."
         string[] outOf = Line(report, "  Out of it:")
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        // "  Claimed in subsidy: C, of which N claimant-Days were cut by the ceiling, on D Days."
+        string[] claim = Line(report, "  Claimed in subsidy:")
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        // "  Revenue forgone: R in profit-tax relief."
+        string[] forgone = Line(report, "  Revenue forgone:")
             .Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
         return new Gross(
             Number(into[3]), Number(into[7]), Number(into[11]), Number(into[15]),
-            Number(outOf[3]), Number(outOf[7]));
+            Number(outOf[3]), Number(outOf[7]), Number(outOf[12]),
+            Number(claim[3].TrimEnd(',')), Number(claim[6]), Number(forgone[2]));
     }
 
-    /// <summary>The budget's six closing figures, named so a caller cannot transpose two.</summary>
+    /// <summary>
+    /// The budget's closing figures, named so a caller cannot transpose two.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>The last three are NOT flows and are carried here so a test can assert they stay out of
+    /// the identity.</b> <c>Claimed</c> is what the subsidies were asked for, <c>Cut</c> how many
+    /// claimant-Days the ceiling trimmed, and <c>Relieved</c> profit tax the reliefs forwent — and
+    /// not one unit of any of them crossed the treasury's edge.
+    /// </remarks>
     private readonly record struct Gross(
-        long Withheld, long Profit, long Policy, long Rule, long Spent, long Drawn);
+        long Withheld,
+        long Profit,
+        long Policy,
+        long Rule,
+        long Spent,
+        long Drawn,
+        long Granted,
+        long Claimed,
+        long Cut,
+        long Relieved);
 
     private static long Number(string cell) =>
         long.Parse(cell.Replace(",", string.Empty, Ordinal), CultureInfo.InvariantCulture);

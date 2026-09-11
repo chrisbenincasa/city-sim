@@ -192,9 +192,16 @@ internal static class CensusFamilies
     /// two are moved by a <c>[[policy]]</c>'s and by an <c>[income_tax]</c> rate. ⚠ <b><c>profit
     /// tax</c> is the fourth income and the second TAX</b> — money taken off a Business's till on a
     /// <c>[business_tax]</c> band, where <c>withheld</c> is taken off a wage on an
-    /// <c>[income_tax]</c> one. ⚠ <b>A
+    /// <c>[income_tax]</c> one. ⚠ <b><c>subsidy</c> is the third EXPENDITURE and is listed apart from
+    /// <c>from treasury</c> for the same reason one level along</b> — a subsidy is apportioned and
+    /// paid by <c>SubsidyEngine</c> rather than by <c>PolicyEngine.Move</c>, so it is moved by a
+    /// <c>ceiling</c> and a per-worker rate where the other is moved by a <c>[[policy]]</c>'s
+    /// <c>amount</c>, and none of it passes through that counter to begin with. ⚠ <b>A
     /// family with no reader is a family nobody can see</b> — the note below on the Trip Fates is the
     /// worked example, and it is the reason this row was added here on the day the counter was.
+    /// ⚠ <b>There is no <c>relief</c> row and there must not be one</b>: a relief moves no Money, so
+    /// it is revenue forgone rather than a flow, and a row here would put it in an identity about
+    /// what crossed the treasury's edge.
     /// </remarks>
     public static readonly (MoneyFlowCounter Counter, Aggregate Aggregate, string Name)[]
         MoneyFlowCounters =
@@ -211,6 +218,8 @@ internal static class CensusFamilies
         (MoneyFlowCounter.RuleFromTreasury, Aggregate.Peak, "rule from treasury peak"),
         (MoneyFlowCounter.ProfitTax, Aggregate.Sum, "profit tax"),
         (MoneyFlowCounter.ProfitTax, Aggregate.Peak, "profit tax peak"),
+        (MoneyFlowCounter.Subsidy, Aggregate.Sum, "subsidy"),
+        (MoneyFlowCounter.Subsidy, Aggregate.Peak, "subsidy peak"),
     ];
 
     /// <summary>
