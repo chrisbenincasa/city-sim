@@ -674,6 +674,29 @@ blow-up: it costs about 63% more per Rule at 100,000 due than at 1,000.
 
 ---
 
+### ⚠️ A service Building's place count became `O(workers)`, and nobody has measured it
+
+**Filed 2026-09-12 by [`0070`](0070-the-city-spends.md) task 6, on the day, under `adr/0073`.**
+
+`World.DeclaredPlaces` used to be arithmetic on two numbers — a Building's floor area over
+`[capacity] floor_tiles_per_place`. Making understaffing degrade service (`adr/0026`) added a second
+term, and reading it **walks the premises' own trade's worker list**. `World.HasServicePlace` calls
+`DeclaredPlaces`, and `ServiceEngine` asks that **per candidate per attendance occasion**, so a path
+that was two divisions now carries a list walk per check.
+
+⚠ **The multiplicand is not the population and that is the whole question.** It is
+*attendance occasions × candidates × workers per service Building*, and only the last of those is
+small: `rulesets/funded.toml` measured **5 and 6 posts** per school. A city of a million has far more
+occasions than that file has Citizens, and ***nothing here has been measured at either scale.***
+
+**What would measure it**: `ServiceCapacityBenchmarks` against a world whose service kinds declare a
+trade, at the ledger's own population, with the staffed and unstaffed paths separated — because the
+unstaffed path short-circuits on the Ruleset key and is not the one that walks.
+
+⚠ **It is deliberately NOT a row in the ledger below.** A row needs a measured multiplicand and this
+has neither a measurement nor a machine; writing one would be the thing this file's own header
+forbids.
+
 ## The ledger
 
 At **1,000,000 Citizens**, on **one core of the reference class** ([`adr/0106`](../docs/adr/0106-a-wall-clock-budget-names-a-machine-class-and-a-thread-count-or-it-is-not-a-budget.md)).

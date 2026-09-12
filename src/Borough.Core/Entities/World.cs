@@ -4519,18 +4519,32 @@ public sealed class World
     /// handle that stops meaning anything the moment the Business leaves is the opposite of a flag.
     /// </para>
     /// </remarks>
-    private bool HoldsOwnTrade(int buildingSlot)
+    private bool HoldsOwnTrade(int buildingSlot) => OwnTrade(buildingSlot) != Rows.NoSlot;
+
+    /// <summary>
+    /// The Business this Building instantiated itself, or <see cref="Rows.NoSlot"/> where it holds
+    /// none.
+    /// </summary>
+    /// <remarks>
+    /// <b><see cref="HoldsOwnTrade"/>'s walk, with the row it found</b> — <see cref="DeclaredPlaces"/>
+    /// needs the staffing of that exact Business, and re-asking the question against a second
+    /// predicate would be two spellings of <c>adr/0148</c>'s pairing. ⚠ <b>A tenant is not the
+    /// Building's trade</b> however alike the two look: the test is
+    /// <see cref="BusinessTable.Origin"/> naming this Building, so a shop that moved into a school
+    /// answers <see cref="Rows.NoSlot"/> here.
+    /// </remarks>
+    private int OwnTrade(int buildingSlot)
     {
         foreach (int business in BuildingBusinesses.Walk(buildingSlot))
         {
             if (Buildings.Rows.TryResolve(Businesses.Origin[business], out int origin)
                 && origin == buildingSlot)
             {
-                return true;
+                return business;
             }
         }
 
-        return false;
+        return Rows.NoSlot;
     }
 
     /// <summary>
@@ -6319,6 +6333,14 @@ public sealed class World
     /// opposite. <see cref="HasServicePlace"/> is the question with the answer in it, and this method
     /// is the quantity — so ***anything deciding whether to turn a family away asks that one.***
     /// </para>
+    /// <para>
+    /// 🔴 <b>THE FLOOR IS THE CEILING AND THE STAFF ARE WHAT REACHES IT</b>, where the kind declares
+    /// a trade — <see cref="Staffed"/> scales the floor's answer by workers over declared jobs, which
+    /// is <c>adr/0026</c>'s <em>understaffing degrades service quality proportionally</em> built. ⚠
+    /// <b>It reads the jobs the Building's own floor already declares and never a wanted headcount</b>,
+    /// so the ADR's other half — teachers determined by the catchment — stays unbuilt and nothing here
+    /// lets demand decide how many teachers a school wants.
+    /// </para>
     /// </remarks>
     /// <param name="buildingSlot">The Building being asked about.</param>
     /// <returns>Its declared places a Day.</returns>
@@ -6331,9 +6353,70 @@ public sealed class World
 
         byte kind = Buildings.Kind[buildingSlot];
 
-        return Rules.Declares(kind) && Rules.Kind(kind).IsService
-            ? CapacityRuleset.Holds(FloorTilesOf(buildingSlot), Rules.Capacity.FloorTilesPerPlace)
-            : 0;
+        if (!Rules.Declares(kind) || !Rules.Kind(kind).IsService)
+        {
+            return 0;
+        }
+
+        int places = CapacityRuleset.Holds(
+            FloorTilesOf(buildingSlot), Rules.Capacity.FloorTilesPerPlace);
+
+        // ⚠ A KIND DECLARING NO TRADE KEEPS THE FLOOR'S ANSWER WHOLE, and that asymmetry is the point
+        // rather than an omission: staffing can only scale a service whose staff the Ruleset states.
+        // Every shipped school world declares no `business` on its service kind and none of them
+        // changed behaviour on the day this arrived.
+        return Rules.Kind(kind).Business == 0 ? places : Staffed(buildingSlot, places);
+    }
+
+    /// <summary>
+    /// <paramref name="places"/> scaled by how much of this service Building's own trade is staffed.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The Building's OWN trade and never a tenant that wandered in</b>, matched on
+    /// <see cref="BusinessTable.Origin"/> through <see cref="OwnTrade"/>. A shop that moved into a
+    /// school is not its teachers, and <c>adr/0147</c> counts one tenancy ceiling over both kinds of
+    /// tenant, so a foreign tenant is a thing this method must be able to see and ignore.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>A TRADE THAT DIED TEACHES NOBODY.</b> <c>WageEngine.Bankrupt</c> leaves the premises
+    /// standing rather than abandoning them, so the lost Business is the only trace a defunded school
+    /// carries — and ***that absence is this row's demonstration***: cut the funding, drain the till,
+    /// wind the trade up, and the places go to zero where a player can see them.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>NO JOBS MEANS NO RATIO, so the floor's answer stands unscaled.</b> Zero is not a staffing
+    /// verdict here — <see cref="TryDeclaredJobs"/> answers zero only where a <c>[capacity]</c> rate
+    /// the employment ceiling needs is absent, and it answers <c>false</c> for a trade the Ruleset no
+    /// longer declares, which keeps the workers it has. Both are ***a world with no employment ceiling
+    /// to be short of***, and scaling to zero there would close every school in it. ⚠ <b>Workers over
+    /// their posts clamps at <paramref name="places"/></b>, because the ceiling is a property of the
+    /// floor and a shrunk floor is momentarily overstaffed until <see cref="RebuildCapacities"/>
+    /// dismisses down to it.
+    /// </para>
+    /// </remarks>
+    /// <param name="buildingSlot">The service Building, already known to declare a trade.</param>
+    /// <param name="places">What its floor holds before staffing is read.</param>
+    /// <returns>The places its staff actually reach.</returns>
+    private int Staffed(int buildingSlot, int places)
+    {
+        int trade = OwnTrade(buildingSlot);
+
+        if (trade == Rows.NoSlot)
+        {
+            return 0;
+        }
+
+        if (!TryDeclaredJobs(Businesses.Kind[trade], trade, out int jobs) || jobs <= 0)
+        {
+            return places;
+        }
+
+        int workers = Workers.Length(trade);
+
+        return workers >= jobs
+            ? places
+            : Arithmetic.IntegerMath.FloorDiv(places * workers, jobs);
     }
 
     /// <summary>
