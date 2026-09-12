@@ -296,6 +296,104 @@ mechanisms. Generic severity and recovery alone do not provide them.
 
 ---
 
+## Prisons and courts
+
+**Status:** parked. [`adr/0030`](adr/0030-crime-is-an-incident-with-no-perpetrator.md) makes crime an Incident with no perpetrator, so there is nobody to arrest, try or hold.
+**Retrofit cost:** ⚠ **High, and it is the same cost twice.** Both need a perpetrator, and a perpetrator is a Citizen carrying a criminal state through time. That is a new Life Stage axis crossing employment, housing and the Household, which is the widest kind of change this design admits.
+
+A prison is a Building with occupants who are not a Household and do not leave. A court is a Service whose queue is measured in Days and whose customers arrive by Dispatch rather than choice. Neither is hard on its own; both rest on the perpetrator that `adr/0030` deliberately does not create.
+
+⚠ **`adr/0030`'s absence of a perpetrator is a refusal and therefore evidence under [`adr/0070`](adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md).** Nothing here may be treated as merely unbuilt.
+
+**Trigger:** revisit only if crime as a placeless Incident turns out to read as weather rather than as behaviour — specifically, if the player can lower it with a Building and never learns anything about who was committing it.
+
+---
+
+## Ferries and cable cars
+
+**Status:** parked. [`adr/0029`](adr/0029-transit-is-in-and-right-of-way-is-the-only-axis.md) admits transit with right-of-way as the only axis, and both of these are already expressible on that axis as fully-segregated right-of-way.
+**Retrofit cost:** ✅ **Low.** Each is a Ruleset transit kind with a speed, a capacity and a geometry constraint. No new mechanism.
+
+A ferry is segregated right-of-way over water; a cable car is segregated right-of-way over anything. `adr/0029` having made right-of-way the axis means neither needs a decision, only content and the admission rule for where its route may run. The water case leans on terrain the generator already produces; the cable-car case leans on elevation, which nothing reads today.
+
+**Trigger:** the first shipped map whose geography makes a road route absurd. Until a bay or a ridge exists that the player must go around, these are content for a problem no world states.
+
+---
+
+## Wildlife and ecology as a simulated stock
+
+**Status:** parked. Pollution is a stock the environment absorbs ([`adr/0051`](adr/0051-industrial-pollution-is-a-stock-the-environment-absorbs.md)) and that is the whole of the natural world the simulation reads.
+**Retrofit cost:** ⚠ **Medium-high.** A population that lives on the map, responds to land use and can collapse is a second simulated population with its own sink, and [`adr/0006`](adr/0006-no-collection-grows-with-elapsed-time.md) applies to it in full.
+
+The cheap version is a Map Layer that falls where the city is dense and recovers where it is not, read by nothing. That is a picture and not a mechanism, and this design's own guard rule — *a modelling refinement is admitted when a player decision distinguishes it* — rejects it.
+
+The expensive version gives the player a choice between development and a stock that does not come back, which is the same shape as [`adr/0022`](adr/0022-land-is-a-stock-the-city-spends.md)'s Land. That version is interesting and it is a milestone, not an addition.
+
+**Trigger:** a decision the player would make differently if a habitat existed. Absent one, this is scenery.
+
+---
+
+## Historic preservation
+
+**Status:** parked. [`adr/0057`](adr/0057-dereliction-is-a-design-time-state-and-it-is-derived-rather-than-recorded.md) derives dereliction rather than recording it, so a Building carries no age and no history for a preservation rule to protect.
+**Retrofit cost:** ⚠ **Medium.** Preservation needs a Building to remember when it was raised, which is a saved, hashed column on a table that currently derives everything of this kind.
+
+The mechanism is a refusal — a protected Building is one `ZoneRuleEngine` may not replace — and a refusal is cheap. The cost is the memory it needs, and `adr/0057`'s direction of travel is away from exactly that.
+
+⚠ **This is the one entry whose retrofit cost rises with every table that adopts `adr/0057`'s pattern**, because each one makes the exception less natural.
+
+**Trigger:** a demonstration world where good buildings are lost to redevelopment and the player has no way to object. Land banking, defined in [`plans/0074`](../plans/0074-the-systems-nobody-named.md), is the same missing actor from the other side.
+
+---
+
+## Architectural era as a content axis
+
+**Status:** parked. Visual variants are authored per `[[building]]` kind ([`07 §Building authoring procedure`](07-the-drawing.md#building-authoring-procedure)) and nothing groups them by period.
+**Retrofit cost:** ✅ **Low, and it is entirely an authoring cost.** An era is a tag on a variant plus a rule choosing among variants. No simulation state moves.
+
+The reason to want it is that a city built over a century looks uniform, which undercuts the drawing's claim that the picture tells you what happened here. The reason not to build it yet is that it needs a Building to know its age, which is the same missing column as historic preservation.
+
+**Trigger:** the same column. If a Building ever records when it was raised, this becomes nearly free and should be reconsidered the same day.
+
+---
+
+## Achievements and campaign mode
+
+**Status:** parked, and parked together because they are one question. Both are shells around the simulation rather than parts of it.
+**Retrofit cost:** ✅ **Low for achievements, medium for a campaign.** An achievement reads the world and writes nothing. A campaign needs authored starting worlds, win conditions and a save format that carries them.
+
+⚠ **[`01 §5.5`](01-player-experience.md) forbids difficulty by modifier by name** — no dial may make construction slower, services costlier or decline steeper. [`adr/0090`](adr/0090-the-generator-makes-land-and-the-player-makes-every-road.md) extends the same refusal to withholding ground. So a campaign here cannot be a difficulty ladder; it has to be a sequence of *authored situations*, which is a content discipline this project has not started.
+
+[`00-vision`](00-vision.md) asks the game to span relaxing sandbox to genuine challenge without becoming two games, and an authored-situation campaign is the only version of this that satisfies that sentence.
+
+**Trigger:** a shipped world that is interesting to inherit rather than to found. That artefact is the campaign's first level, and nothing else is.
+
+---
+
+## Snow clearing
+
+**Status:** parked. There are no seasons and no weather, and [`adr/0021`](adr/0021-the-map-is-bounded-procedural-and-terrain-never-enters-a-tick.md) keeps terrain out of a Tick entirely.
+**Retrofit cost:** ⚠ **Medium.** It needs a seasonal clock above the Day wheel, and a per-Segment condition that a Dispatched Service clears. The clock is the expensive half and nothing else wants it.
+
+Mechanically it is the cleanest possible Dispatched Service — a stock accumulating on Segments, a vehicle removing it, and a traffic penalty where it remains. It would exercise the Dispatched half of [`adr/0032`](adr/0032-services-are-delivered-by-trips-not-by-coverage.md) harder than anything currently planned, which is the argument for it.
+
+**Trigger:** a season existing for any other reason. This must not be the thing that introduces one.
+
+---
+
+## Birth rate and immigration as player levers
+
+**Status:** parked. Both quantities exist and neither is exposed. [`adr/0011`](adr/0011-household-life-stages-and-self-generating-population.md) generates population from Life Stages; [`adr/0023`](adr/0023-immigration-arrives-through-the-gate.md) brings arrivals through the gate.
+**Retrofit cost:** ✅ **Low.** Each is a Policy over a rate the simulation already computes. `PolicyEngine` is the whole of the machinery.
+
+The cost is not mechanical, it is that both levers let the player solve a spatial problem with a number. A city short of workers has a housing problem, a commute problem or a Service problem, and a birth-rate slider answers all three without the player learning which one they had.
+
+⚠ **This is the closest thing in this file to an anti-goal that has not been written as one.** If it is ever built, the argument for it should be an ADR rather than a Ruleset key appearing quietly.
+
+**Trigger:** a demonstrated case where population is the binding constraint and no spatial action can relieve it. That case would be a finding about the design, not a reason for a slider.
+
+---
+
 ## ~~Education and Health as degrading Needs~~ — **BUILT**
 
 **Status:** 🔴 **UN-PARKED 2026-08-30 by `plans/0045` queue item 10**, on the trigger this entry named

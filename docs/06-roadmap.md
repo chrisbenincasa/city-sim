@@ -435,6 +435,14 @@ routing analogy), and modding ([`adr/0057`](adr/0057-dereliction-is-a-design-tim
 an aside). ⚠ **A passing mention is not a standing**, and three of these four read as settled to a
 skim.
 
+**Every row above now has a definition, and this table still holds none of them.**
+[`plans/0074`](../plans/0074-the-systems-nobody-named.md) states each system in the design's own
+vocabulary, names the symbol or decision it would attach to, and classifies it under
+[`adr/0070`](adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md). Twelve of them went to
+[`deferred.md`](deferred.md) instead, with a retrofit cost and a revisit trigger each. ⚠ **Neither
+document places anything at a milestone and neither refuses anything**, so nothing there may be read
+as a gate on the phases above.
+
 
 ### Obligations no milestone can hold
 
