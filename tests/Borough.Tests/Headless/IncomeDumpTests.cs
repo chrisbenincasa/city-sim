@@ -195,7 +195,7 @@ public sealed class IncomeDumpTests
         Assert.Contains("Revenue forgone is not expenditure.", report, Ordinal);
         Assert.True(gross.Relieved > 0, "nothing was relieved, so the caveat covers nothing.");
 
-        long expenditure = gross.Spent + gross.Drawn + gross.Granted;
+        long expenditure = gross.Spent + gross.Drawn + gross.Granted + gross.Placed;
         long income = gross.Withheld + gross.Profit + gross.Policy + gross.Rule;
 
         Assert.Equal(income - expenditure, Rows(report)[^1].Treasury);
@@ -286,6 +286,7 @@ public sealed class IncomeDumpTests
         Assert.Contains("policy in", report, Ordinal);
         Assert.Contains("rule in", report, Ordinal);
         Assert.Contains("subsidy out", report, Ordinal);
+        Assert.Contains("placement out", report, Ordinal);
         Assert.Contains("never netted", report, Ordinal);
         Assert.DoesNotContain("a net of", report, Ordinal);
     }
@@ -316,9 +317,10 @@ public sealed class IncomeDumpTests
         Assert.Equal(gross.Spent, Column(report, 5));
         Assert.Equal(gross.Drawn, Column(report, 6));
         Assert.Equal(gross.Granted, Column(report, 7));
+        Assert.Equal(gross.Placed, Column(report, 8));
 
         long income = gross.Withheld + gross.Profit + gross.Policy + gross.Rule;
-        long expenditure = gross.Spent + gross.Drawn + gross.Granted;
+        long expenditure = gross.Spent + gross.Drawn + gross.Granted + gross.Placed;
 
         Assert.Equal(income - expenditure, Rows(report)[^1].Treasury);
     }
@@ -418,6 +420,7 @@ public sealed class IncomeDumpTests
         long Spent,
         long Drawn,
         long Granted,
+        long Placed,
         long Treasury,
         long Households);
 
@@ -443,7 +446,7 @@ public sealed class IncomeDumpTests
             string[] cells = line.Split(
                 "  ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-            if (cells.Length != 10)
+            if (cells.Length != 11)
             {
                 break;
             }
@@ -451,7 +454,7 @@ public sealed class IncomeDumpTests
             rows.Add(new BudgetRow(
                 Number(cells[0]), Number(cells[1]), Number(cells[2]), Number(cells[3]),
                 Number(cells[4]), Number(cells[5]), Number(cells[6]), Number(cells[7]),
-                Number(cells[8]), Number(cells[9])));
+                Number(cells[8]), Number(cells[9]), Number(cells[10])));
         }
 
         Assert.NotEmpty(rows);
@@ -475,6 +478,7 @@ public sealed class IncomeDumpTests
                 5 => row.Spent,
                 6 => row.Drawn,
                 7 => row.Granted,
+                8 => row.Placed,
                 _ => throw new ArgumentOutOfRangeException(nameof(index), index, "not a flow column."),
             };
         }
@@ -482,7 +486,7 @@ public sealed class IncomeDumpTests
         return total;
     }
 
-    /// <summary>The six gross figures from the budget's closing sentences.</summary>
+    /// <summary>Every gross figure from the budget's closing sentences.</summary>
     private static Gross OverTheRun(string report)
     {
         // "  Into the treasury: N withheld from wages, P in profit tax, M by a Policy, R by a Bin
@@ -490,7 +494,7 @@ public sealed class IncomeDumpTests
         string[] into = Line(report, "  Into the treasury:")
             .Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
-        // "  Out of it: S by a Policy, D by a Bin Rule, G in subsidy."
+        // "  Out of it: S by a Policy, D by a Bin Rule, G in subsidy, P on placements."
         string[] outOf = Line(report, "  Out of it:")
             .Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
@@ -504,7 +508,7 @@ public sealed class IncomeDumpTests
 
         return new Gross(
             Number(into[3]), Number(into[7]), Number(into[11]), Number(into[15]),
-            Number(outOf[3]), Number(outOf[7]), Number(outOf[12]),
+            Number(outOf[3]), Number(outOf[7]), Number(outOf[12]), Number(outOf[15]),
             Number(claim[3].TrimEnd(',')), Number(claim[6]), Number(forgone[2]));
     }
 
@@ -525,6 +529,7 @@ public sealed class IncomeDumpTests
         long Spent,
         long Drawn,
         long Granted,
+        long Placed,
         long Claimed,
         long Cut,
         long Relieved);

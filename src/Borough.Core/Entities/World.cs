@@ -1658,6 +1658,83 @@ public sealed class World
     }
 
     /// <summary>
+    /// Takes a placement's price out of the treasury and out of the money supply with it —
+    /// <c>[[building]] placement_cost</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The withdrawal and the <see cref="MoneySupplyTable.Issued"/> write-down are one call,
+    /// because the four shipped decrement sites are.</b> <c>WageEngine.Bankrupt</c>,
+    /// <see cref="Depart(Handle{Household})"/>, <see cref="Depart(Handle{Business})"/> and
+    /// <see cref="Raze"/> each pair a Bin read with the supply write at the same site.
+    /// <c>Simulation</c> is outside this class, so a caller reaching in for the Bin would have to
+    /// remember the second half — and nothing catches an unpaired write until
+    /// <see cref="Invariants.Invariant.MoneyIsConserved"/> at the end of the run, which names no
+    /// cause.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>It is the first decrement whose Bin goes on living, and the money reaches nobody.</b>
+    /// The other four read a Bin that is about to be freed — somebody left the city with their
+    /// savings. This is a live treasury paying a price with no counterparty, and that is
+    /// <c>adr/0035</c> §2 rather than a hole: construction money buys Materials and imported
+    /// Materials leave through the gate, so until an import path exists the placement is a leak and
+    /// the supply is written down to say so. ⚠ <b>It is still a treasury FLOW</b> —
+    /// <c>MoneyFlowCounter.Placement</c> counts it as expenditure, so the balance stays the sum of
+    /// its own columns.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It pays in full or throws.</b> A part-paid placement is not a thing the verb can mean,
+    /// and the caller has already asked — <c>Simulation.RefuseService</c> returns
+    /// <c>Refusal.ServiceTreasuryCannotPay</c> before the command applies, so reaching the throw is
+    /// a caller that did not.
+    /// </para>
+    /// </remarks>
+    /// <param name="amount">The price. Zero is permitted and moves nothing.</param>
+    /// <exception cref="ArgumentOutOfRangeException">The amount is negative.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// The Ruleset in force names no money, or the treasury cannot pay in full.
+    /// </exception>
+    public void SpendOnPlacement(Money amount)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(amount.Raw, nameof(amount));
+
+        if (amount.Raw == 0)
+        {
+            return;
+        }
+
+        int bin = TryMoneyResource(out ResourceId money) ? FindTreasuryBin(money) : Rows.NoSlot;
+
+        if (bin == Rows.NoSlot)
+        {
+            throw new InvalidOperationException(
+                "the treasury holds no Bin, so the Ruleset in force declares no money Resource "
+                + "(adr/0114 and adr/0116: the treasury gets one Bin per conserved Resource). A "
+                + "placement cannot be charged for in a city with no currency. The loader refuses a "
+                + "`placement_cost` in a file naming no money, so what reaches here is a hand-built "
+                + "Ruleset.");
+        }
+
+        if (Bins.LevelAt(bin) < amount.Raw)
+        {
+            throw new InvalidOperationException(
+                $"the treasury holds {Bins.LevelAt(bin)} and the placement costs {amount.Raw}. A "
+                + "placement is paid in full or not at all, and Simulation.RefuseService answers "
+                + "that off this same comparison before the command applies -- so reaching here is "
+                + "a caller that did not ask.");
+        }
+
+        // Through Withdraw rather than out of the level, for Deposit's mirror reason: a Bin written
+        // without draining its wait list strands whoever was waiting for the space.
+        Withdraw(Bins.Rows.At(bin), amount.Raw, Tick);
+
+        // Paired with the withdrawal and never left to the caller. The money buys imported
+        // Materials and leaves through a gate that is not built (adr/0035 section 2), so it leaves
+        // the supply here rather than arriving in somebody else's Bin.
+        MoneySupply.Issued[MoneySupplyTable.Slot] -= amount;
+    }
+
+    /// <summary>
     /// What a Household holds.
     /// </summary>
     /// <remarks>

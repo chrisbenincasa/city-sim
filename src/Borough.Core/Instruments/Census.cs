@@ -114,7 +114,7 @@ public sealed class Census
     private const int MoneyCounters = 6;
 
     /// <summary>The members of <see cref="MoneyFlowCounter"/> — one per (mechanism, direction).</summary>
-    private const int MoneyFlowCounters = 7;
+    private const int MoneyFlowCounters = 8;
 
     private const int MoneyFlowMetrics = MoneyFlowCounters * AggregatesPerRuleCounter;
 
@@ -256,7 +256,8 @@ public sealed class Census
             simulation.Policies.Drain(),
             simulation.Wages.DrainWithheld(),
             simulation.ProfitTax.DrainCollected(),
-            simulation.Subsidies.DrainPaid());
+            simulation.Subsidies.DrainPaid(),
+            simulation.DrainPlacementSpend());
     }
 
     /// <summary>
@@ -306,6 +307,13 @@ public sealed class Census
     /// <c>PolicyActivity.FromTreasury</c>. ⚠ <b>What was CLAIMED is not here and belongs nowhere
     /// here</b>: a rationed claim creates no debt, so it crossed no edge.
     /// </param>
+    /// <param name="placementSpend">
+    /// Money the treasury paid for hand-placed service Buildings since the previous reading, already
+    /// drained. ⚠ <b>It is a fourth expenditure path and the only one that pays nobody</b> — the
+    /// money leaves the supply, because construction money buys imported Materials and no import
+    /// path exists (<c>adr/0035</c> §2). It is counted here anyway, because the treasury's balance
+    /// fell by it.
+    /// </param>
     public void Observe(
         World world,
         Ticks tick,
@@ -317,7 +325,8 @@ public sealed class Census
         PolicyActivity policies = default,
         MoneyFlow withheld = default,
         MoneyFlow profitTax = default,
-        MoneyFlow subsidy = default)
+        MoneyFlow subsidy = default,
+        MoneyFlow placementSpend = default)
     {
         ArgumentNullException.ThrowIfNull(world);
 
@@ -417,6 +426,11 @@ public sealed class Census
         // below -- see MoneyFlowCounter.Subsidy. Until this line the treasury fell by money no flow
         // column named, which is RuleToTreasury's defect on the expenditure side.
         WriteMoney(_values, at + _moneyFlowBase, (int)MoneyFlowCounter.Subsidy, subsidy);
+
+        // The fourth path OUT, and the only one that pays nobody: a placement's price leaves the
+        // treasury and leaves the money supply with it -- see MoneyFlowCounter.Placement. It is
+        // counted because the balance fell by it, whoever received it.
+        WriteMoney(_values, at + _moneyFlowBase, (int)MoneyFlowCounter.Placement, placementSpend);
 
         // The third income path, and the one that reached the treasury in silence until row 33. It
         // rides RuleActivity rather than PolicyActivity because it is the Bin Rule engine that moved
@@ -620,7 +634,8 @@ public sealed class Census
             if (metric.MoneyFlowCounter is not (MoneyFlowCounter.ToTreasury
                 or MoneyFlowCounter.FromTreasury or MoneyFlowCounter.Withheld
                 or MoneyFlowCounter.RuleToTreasury or MoneyFlowCounter.RuleFromTreasury
-                or MoneyFlowCounter.ProfitTax or MoneyFlowCounter.Subsidy))
+                or MoneyFlowCounter.ProfitTax or MoneyFlowCounter.Subsidy
+                or MoneyFlowCounter.Placement))
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(metric), metric.MoneyFlowCounter, "not a money movement this census reads.");

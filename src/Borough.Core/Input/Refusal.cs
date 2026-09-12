@@ -199,4 +199,16 @@ public enum Refusal : ushort
     /// is the way to spell that; below zero it has no reading.
     /// </summary>
     FundCeilingIsNegative = 28,
+
+    /// <summary>
+    /// <c>Service</c> names a kind whose <c>placement_cost</c> is more than the treasury holds. The
+    /// city pays for its own placements in full or not at all.
+    /// </summary>
+    /// <remarks>
+    /// <b>It is the first refusal that turns on a LEVEL rather than on a shape</b>, so unlike every
+    /// other one here it can answer differently for the same command two Ticks apart — a levy pays
+    /// in, and the click the shell greyed out is live again. A front end asking this every frame
+    /// gets the right answer every frame, which is why it is asked rather than cached.
+    /// </remarks>
+    ServiceTreasuryCannotPay = 29,
 }

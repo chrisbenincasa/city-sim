@@ -2599,6 +2599,54 @@ public static class RulesetLoader
                     }
                 }
 
+                // plans/0070 row 32: what the treasury pays to place a Building of this kind by
+                // hand. Optional, and absent is FREE -- which is what every kind meant before the
+                // key existed, so a shipped file that says nothing places what it always placed. A
+                // stated zero means the same thing and is accepted, on `rent`'s polarity.
+                Money placementCost = Money.Zero;
+
+                if (TryInteger(table, "placement_cost", out long price, required: false, name))
+                {
+                    if (price < 0)
+                    {
+                        // `rent`'s refusal one key along. A placement the city is PAID for is a
+                        // subsidy on construction, which is a mechanism nobody has designed --
+                        // and adr/0003's signed Money would represent it silently.
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "placement_cost") ?? table), name,
+                            $"placement_cost is {price}. It is what the treasury pays to place a "
+                            + "Building of this kind, so it cannot be negative -- a placement the "
+                            + "city is paid for is a construction subsidy and nothing designs one. "
+                            + "Omit the key or state zero for a kind the city places free.");
+                    }
+                    else if (price > int.MaxValue)
+                    {
+                        // [treasury] opening_balance's ceiling, on the other side of the same
+                        // decision: the price and the balance are read against each other, so a
+                        // price no reachable treasury can meet is a kind that can never be placed.
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "placement_cost") ?? table), name,
+                            $"placement_cost is {price}, above {int.MaxValue}. The opening balance "
+                            + "is bounded there too, so a price this large is a kind no city can "
+                            + "ever afford to place -- which loads clean and refuses every click.");
+                    }
+                    else if (price > 0 && !_families.Contains(ResourceFamily.Money))
+                    {
+                        // [treasury] opening_balance's money-family refusal at a fourth door, after
+                        // [households], [[hinterland]] and the treasury itself. A city with no
+                        // currency has no treasury to charge, so the price would be kept and read
+                        // by nothing.
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "placement_cost") ?? table), name,
+                            "this kind states a placement_cost and the file names no money. The "
+                            + "treasury holds one Bin per conserved Resource (adr/0114, adr/0116), "
+                            + "so there would be nothing to pay the price out of and the key would "
+                            + "be read by nothing. Add a [[resource]] block with family = \"money\", "
+                            + "or drop the key for a kind the city places free.");
+                    }
+                    else
+                    {
+                        placementCost = new Money(price);
+                    }
+                }
+
                 // adr/0088's throughput ceiling, and it is the key that makes the kind an Outside
                 // Connection (milestone 11 task 1). Optional, because almost no kind is a gate.
                 //
@@ -2685,6 +2733,7 @@ public static class RulesetLoader
                     Parked = parked,
                     Business = business,
                     Rent = rent,
+                    PlacementCost = placementCost,
                     ArrivalsPerDay = arrivalsPerDay,
                     Serves = serves,
                     CareHours = ReadCareHours(table, serves),

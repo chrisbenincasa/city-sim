@@ -102,6 +102,10 @@
             "description": "Whether Buildings of this kind carry parking at all. Whether, and never how many: the count is the Building's floor area over [capacity] floor_tiles_per_parking_space. It exists so that a detached house may carry a driveway where a tower may not — a parking minimum is a property of the city, and an exemption from it is a property of the kind. Absent means the kind provides none.",
             "type": "boolean"
           },
+          "placement_cost": {
+            "description": "What the treasury pays to place a Building of this kind by hand. Absent or zero means the placement is free, which is what every kind meant before the key existed. The city pays in full or the placement is refused, and the money leaves the money supply rather than reaching anybody: construction money buys imported Materials, and there is no import path for them to arrive by. Refused in a file that names no money.",
+            "type": "integer"
+          },
           "premises": {
             "description": "Whether a BUSINESS may take a tenancy in a Building of this kind. houses' other half, over the same single ceiling, and it governs both ways a trade arrives: the one this kind comes with and one premised out of the unpremised pool. A kind declaring business and not this is refused, because the trade would have nowhere to sit. A kind declaring both is mixed use — the flats above the shop, competing for the same tenancies. Absent means no Business may take premises here.",
             "type": "boolean"

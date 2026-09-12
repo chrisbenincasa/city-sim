@@ -37,6 +37,9 @@ public sealed class RefusalTests
     private const byte Dwelling = 1;
     private const byte School = 2;
 
+    /// <summary>A second service kind, and the only one in these worlds that costs anything.</summary>
+    private const byte Academy = 3;
+
     /// <summary>Every refusal the simulation can give, one case each.</summary>
     public static TheoryData<Refusal> Every()
     {
@@ -172,6 +175,16 @@ public sealed class RefusalTests
                     return (simulation, Case(refusal, simulation, world));
                 }
 
+            case Refusal.ServiceTreasuryCannotPay:
+                {
+                    // The treasury opens empty (adr/0116) because no [treasury] is declared, so any
+                    // price at all is more than the city holds. ⚠ This is the one refusal that
+                    // turns on a LEVEL, so the world has to have a number in it rather than a shape.
+                    (World world, Simulation simulation) = City(Schooled + Priced);
+
+                    return (simulation, Case(refusal, simulation, world));
+                }
+
             case Refusal.GovernPolicyHasNoName:
                 {
                     (World world, Simulation simulation) = City(Schooled + Anonymous);
@@ -271,6 +284,11 @@ public sealed class RefusalTests
 
         Refusal.ServiceNoVacantLotOnThatTile => Command.Service(
             new Tiles(9_000), new Tiles(9_000), School),
+
+        Refusal.ServiceTreasuryCannotPay => Command.Service(
+            world.Lots.East[FirstVacantLot(world)],
+            world.Lots.North[FirstVacantLot(world)],
+            Academy),
 
         Refusal.TaxControlNotDeclared => new Command(
             CommandKind.Tax, new Tiles(10), default, zone: 9),
@@ -540,4 +558,13 @@ public sealed class RefusalTests
 
     /// <summary>A city with streets and no Trip model.</summary>
     private const string Untravelled = Base + Streets;
+
+    /// <summary>A service kind the city has to pay for, in a city that opens with nothing.</summary>
+    private const string Priced = """
+
+        [[building]]
+        name = "academy"
+        serves = "education"
+        placement_cost = 1000
+        """;
 }

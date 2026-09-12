@@ -251,13 +251,38 @@ public sealed class Simulation
     internal SubsidyEngine Subsidies => _subsidies;
 
     /// <summary>
+    /// What placing service Buildings has cost the treasury since the last drain.
+    /// </summary>
+    /// <remarks>
+    /// <b>It lives here rather than on an engine because the mechanism does.</b> A placement is a
+    /// command applied in phase 0, so there is no sweep to own the accumulator —
+    /// <see cref="ApplyService"/> is the only writer. ⚠ <b>Folded once per Tick and not once per
+    /// command</b>, on <c>MoneyFlow</c>'s own terms: two placements on one Tick are one Tick's
+    /// spending, and folding each apart would report a peak no Tick ever reached.
+    /// </remarks>
+    private MoneyFlow _placementFlow;
+
+    /// <summary>What this Tick's placements have cost so far, before the fold.</summary>
+    private long _placementThisTick;
+
+    /// <inheritdoc cref="Subsidies"/>
+    internal MoneyFlow DrainPlacementSpend()
+    {
+        MoneyFlow flow = _placementFlow;
+
+        _placementFlow = default;
+
+        return flow;
+    }
+
+    /// <summary>
     /// Reads every unit of Money that crossed the treasury's edge since the last call, and resets
     /// the accumulators.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>The whole of the treasury's account in one call, because a caller wanting one of the seven
-    /// wants all seven.</b> Three of the five engines behind it are internal, so before this a host
+    /// <b>The whole of the treasury's account in one call, because a caller wanting one of the eight
+    /// wants all eight.</b> Three of the five engines behind it are internal, so before this a host
     /// outside <c>Borough.Core</c> could see a treasury balance rise and name nothing that moved it —
     /// which is <c>plans/0072</c> F7 and F11 arriving in the shell rather than in an instrument.
     /// </para>
@@ -282,7 +307,8 @@ public sealed class Simulation
             rules.ToTreasury.Sum,
             policies.FromTreasury.Sum,
             rules.FromTreasury.Sum,
-            _subsidies.DrainPaid().Sum);
+            _subsidies.DrainPaid().Sum,
+            DrainPlacementSpend().Sum);
     }
 
     /// <summary>What the most recent payday moved, or zeroes on a Tick that was not one.</summary>
@@ -497,10 +523,19 @@ public sealed class Simulation
     private void ApplyInput(in TickInput input, Ticks tick)
     {
         _phase = TickPhase.Input;
+        _placementThisTick = 0;
 
         foreach (Command command in input.Commands)
         {
             Apply(command, tick);
+        }
+
+        // One fold for the Tick rather than one per placement, so the flow's Peak is a Tick's
+        // spending and not a single school's price. A Tick that placed nothing folds nothing --
+        // folding a zero moves neither the Sum nor the Peak, and skipping it says so.
+        if (_placementThisTick > 0)
+        {
+            _placementFlow = _placementFlow.Fold(_placementThisTick);
         }
     }
 
@@ -896,7 +931,23 @@ public sealed class Simulation
 
         lot = VacantLotOn(command.East, command.North);
 
-        return lot < 0 ? Refusal.ServiceNoVacantLotOnThatTile : Refusal.None;
+        if (lot < 0)
+        {
+            return Refusal.ServiceNoVacantLotOnThatTile;
+        }
+
+        // Last, because it is the only one of the four that can answer differently for one command
+        // two Ticks apart: the kind and the ground are shape and this is a level. A city short of
+        // the price is told so rather than being told the plot is wrong.
+        //
+        // ⚠ An absent placement_cost is Money.Zero and a treasury of null is a Ruleset naming no
+        // money -- so a world with no currency places a free kind, which is every world shipped
+        // before the key existed.
+        Money price = _world.Rules.Kind(kind).PlacementCost;
+
+        return price.Raw > 0 && (_world.TreasuryBalance()?.Raw ?? 0) < price.Raw
+            ? Refusal.ServiceTreasuryCannotPay
+            : Refusal.None;
     }
 
     /// <inheritdoc cref="ApplyPeople"/>
@@ -1073,6 +1124,14 @@ public sealed class Simulation
             + "an ordinary kind is refused here rather than placed. Every other kind reaches the "
             + "ground through a Zone Rule, which is the city filling in a permission set the "
             + "player painted.",
+
+        Refusal.ServiceTreasuryCannotPay =>
+            $"service names building kind {(byte)command.Zone}, whose placement_cost is "
+            + $"{_world.Rules.Kind((byte)command.Zone).PlacementCost.Raw}, and the treasury holds "
+            + $"{_world.TreasuryBalance()?.Raw ?? 0}. A placement is paid in full or not at all: "
+            + "the money buys imported Materials and leaves the city (adr/0035 section 2), so there "
+            + "is nothing to part-pay with and no creditor to owe. Raise the money first, or drop "
+            + "the key for a kind the city places free.",
 
         Refusal.ServiceNoVacantLotOnThatTile =>
             $"service names Tile ({command.East.Raw}, {command.North.Raw}), where there is no "
@@ -1551,6 +1610,14 @@ public sealed class Simulation
         {
             throw new InvalidOperationException(Explain(refusal, command));
         }
+
+        // Charged before the Building is raised, so a city that cannot pay has raised nothing --
+        // and through World's own door, because the withdrawal and the MoneySupply.Issued write-down
+        // are one operation and Simulation is outside World (plans/0070 F3).
+        Money price = _world.Rules.Kind(kind).PlacementCost;
+
+        _world.SpendOnPlacement(price);
+        _placementThisTick += price.Raw;
 
         _world.CreateBuilding(_world.Lots.Rows.At(lot), kind, tick, _key);
     }

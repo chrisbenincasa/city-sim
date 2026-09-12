@@ -2,6 +2,7 @@ using Borough.Core;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Input;
+using Borough.Core.Instruments;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Formats;
@@ -35,6 +36,11 @@ public sealed class ServiceTests
     // only enough Households for one occasion to be distinguishable from none.
     private const int Citizens = 400;
     private const int Seed = 20_260_830;
+
+    /// <summary>What <see cref="Funded"/> founds its treasury with, and what an academy costs.</summary>
+    private const long Opening = 16_384;
+
+    private const long Price = 4_096;
 
     // ---- the verb -------------------------------------------------------------------------------
 
@@ -123,6 +129,114 @@ public sealed class ServiceTests
         Assert.Equal(64, command.East.Raw);
         Assert.Equal(96, command.North.Raw);
         Assert.Equal(School, (byte)command.Zone);
+    }
+
+    // ---- the price ------------------------------------------------------------------------------
+
+    /// <summary>
+    /// 🔴 <b>The price leaves the treasury and leaves the money supply with it.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>Both halves, because either alone is a leak.</b> Taking it out of the treasury and leaving
+    /// <c>MoneySupplyTable.Issued</c> where it was is money that vanished; writing the supply down
+    /// and leaving the balance is money the city still holds and has stopped counting. The pair is
+    /// one call — <c>World.SpendOnPlacement</c> — for the reason all four shipped decrement sites
+    /// are one call, and <see cref="Invariant.MoneyIsConserved"/> at the end is the exact equality
+    /// that would name either mistake with its size.
+    /// </remarks>
+    [Fact]
+    public void The_price_leaves_the_treasury_and_the_money_supply_together()
+    {
+        (World world, Simulation simulation) = City(Funded);
+
+        long treasury = world.TreasuryBalance()!.Value.Raw;
+        long issued = world.MoneySupply.Issued[MoneySupplyTable.Slot].Raw;
+
+        Assert.Equal(Opening, treasury);
+
+        Place(simulation, world, FirstVacantLot(world), Academy);
+
+        Assert.Equal(treasury - Price, world.TreasuryBalance()!.Value.Raw);
+        Assert.Equal(issued - Price, world.MoneySupply.Issued[MoneySupplyTable.Slot].Raw);
+
+        world.Invariants.RunEndOfRun(world);
+    }
+
+    /// <summary>The price is the eighth treasury flow, and it is expenditure.</summary>
+    /// <remarks>
+    /// ⚠ <b>Without the column the balance would fall by money no flow named</b>, which is exactly
+    /// what <c>TreasuryFlowsExplainTheBalanceTests</c> refuses — a budget whose balance its own
+    /// columns cannot explain is a table rather than a budget.
+    /// </remarks>
+    [Fact]
+    public void The_price_is_counted_as_expenditure()
+    {
+        (World world, Simulation simulation) = City(Funded);
+
+        simulation.DrainTreasuryFlows();
+        Place(simulation, world, FirstVacantLot(world), Academy);
+
+        TreasuryFlows flows = simulation.DrainTreasuryFlows();
+
+        Assert.Equal(Price, flows.Placement);
+        Assert.Equal(Price, flows.Expenditure);
+        Assert.Equal(0, flows.Income);
+
+        // A drain is a drain: the second reading sees an empty interval.
+        Assert.Equal(0, simulation.DrainTreasuryFlows().Placement);
+    }
+
+    /// <summary>
+    /// 🔴 <b>A treasury that cannot pay in full refuses the placement, and nothing is raised.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>The query and the applier are asserted together</b>, on <c>RefusalTests</c>' discipline:
+    /// a shell that greys the click out is declining on the core's own finding. ⚠ <b>The second
+    /// half is the one that matters</b> — a verb that charged what it could and raised the Building
+    /// anyway would be a part-paid placement, and there is nothing to part-pay with: the money buys
+    /// imported Materials and leaves the city.
+    /// </remarks>
+    [Fact]
+    public void A_treasury_short_of_the_price_refuses_the_placement()
+    {
+        (World world, Simulation simulation) = City(Schooled + PricedKind);
+
+        int lot = FirstVacantLot(world);
+        Command command = Command.Service(world.Lots.East[lot], world.Lots.North[lot], Academy);
+
+        Assert.Equal(Refusal.ServiceTreasuryCannotPay, simulation.Refuses(command));
+
+        int before = world.Buildings.Rows.LiveCount;
+
+        InvalidOperationException refused = Assert.Throws<InvalidOperationException>(
+            () => simulation.Step(new TickInput([command], 0)));
+
+        Assert.Contains("paid in full or not at all", refused.Message, StringComparison.Ordinal);
+        Assert.Equal(before, world.Buildings.Rows.LiveCount);
+        Assert.True(world.Lots.IsVacant(lot));
+    }
+
+    /// <summary>
+    /// 🔴 <b>A kind that states no price is placed free, which is every shipped world.</b>
+    /// </summary>
+    /// <remarks>
+    /// ***A key whose absence changed a shipped world would not be an optional key.*** Two headless
+    /// instruments place schools through this verb against a treasury that opens empty, so the
+    /// absence has to mean free rather than <em>free until somebody notices</em>.
+    /// </remarks>
+    [Fact]
+    public void A_kind_that_states_no_price_costs_the_treasury_nothing()
+    {
+        (World world, Simulation simulation) = City(Funded);
+
+        long treasury = world.TreasuryBalance()!.Value.Raw;
+        long issued = world.MoneySupply.Issued[MoneySupplyTable.Slot].Raw;
+
+        Place(simulation, world, FirstVacantLot(world));
+
+        Assert.Equal(treasury, world.TreasuryBalance()!.Value.Raw);
+        Assert.Equal(issued, world.MoneySupply.Issued[MoneySupplyTable.Slot].Raw);
+        Assert.Equal(0, simulation.DrainTreasuryFlows().Placement);
     }
 
     // ---- the engine -----------------------------------------------------------------------------
@@ -358,6 +472,10 @@ public sealed class ServiceTests
 
     private const byte Dwelling = 1;
     private const byte School = 2;
+
+    /// <summary>The priced kind, declared after <c>school</c> in <see cref="Funded"/>.</summary>
+    private const byte Academy = 3;
+
     private const int EducationDegrade = 2;
 
     private static int Deepest(World world)
@@ -433,6 +551,22 @@ public sealed class ServiceTests
         serves = "education"
         """;
 
+    /// <summary>A second service kind, and the only one in these worlds the city pays for.</summary>
+    private const string PricedKind = """
+
+        [[building]]
+        name = "academy"
+        serves = "education"
+        placement_cost = 4096
+        """;
+
+    /// <summary>An opening balance, so the city can afford four academies and not five.</summary>
+    private const string Founded = """
+
+        [treasury]
+        opening_balance = 16384
+        """;
+
     /// <summary>The <c>[needs]</c> table with the attended pair in it.</summary>
     private const string AttendedNeeds = """
 
@@ -467,6 +601,9 @@ public sealed class ServiceTests
     /// duration a shipped file may not.
     /// </remarks>
     private const string Schooled = Staged + LifeStages + SchoolKind + AttendedNeeds;
+
+    /// <summary><see cref="Schooled"/>'s world with money in the treasury and a priced kind in it.</summary>
+    private const string Funded = Schooled + PricedKind + Founded;
 
     /// <summary><see cref="Schooled"/>'s world with the demographics taken out.</summary>
     private const string SchooledWithoutStages = Staged + SchoolKind + AttendedNeeds;

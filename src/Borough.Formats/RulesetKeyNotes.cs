@@ -150,6 +150,12 @@ public static class RulesetKeyNotes
             "What a Household pays per Day to live in a Building of this kind. Zero or absent "
             + "means the dwelling is free. A Household that cannot afford the rent skips the "
             + "dwelling during placement.",
+        ["[[building]] placement_cost"] =
+            "What the treasury pays to place a Building of this kind by hand. Absent or zero means "
+            + "the placement is free, which is what every kind meant before the key existed. The "
+            + "city pays in full or the placement is refused, and the money leaves the money supply "
+            + "rather than reaching anybody: construction money buys imported Materials, and there "
+            + "is no import path for them to arrive by. Refused in a file that names no money.",
         ["[[building]] arrivals_per_day"] =
             "How many Households a Building of this kind admits from the Outside each Day. Stating "
             + "this is what makes the kind an Outside Connection, so absence means the kind is not "

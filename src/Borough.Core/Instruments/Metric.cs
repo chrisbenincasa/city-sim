@@ -757,6 +757,40 @@ public enum MoneyFlowCounter : byte
     /// </para>
     /// </remarks>
     Subsidy,
+
+    /// <summary>
+    /// Money the treasury paid to place a service Building by hand, summed over the interval —
+    /// <c>[[building]] placement_cost</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>An eighth member because the balance falls and nobody is paid</b> (<c>plans/0070</c>
+    /// decision 8). Every other expenditure here moves money from the treasury's Bin into somebody
+    /// else's; this one leaves the money supply, because <c>adr/0035</c> §2 makes construction money
+    /// a purchase of imported Materials and no import path exists. ***A fall in the balance with no
+    /// counterparty is still expenditure***, and without a column of its own it would have been a
+    /// residual the budget could not name.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Its own member rather than more <see cref="FromTreasury"/></b>, on
+    /// <see cref="Subsidy"/>'s argument: the lever is a <c>[[building]]</c> kind's price and the act
+    /// is a player's click, where a Policy's is an <c>amount</c> and an <c>interval</c> sweeping a
+    /// population. A city that placed four schools and one that raised a levy's payout would show an
+    /// unchanged column under two changed files.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It counts what was PAID</b>, and a placement the treasury could not afford pays nothing
+    /// and raises nothing — <c>Refusal.ServiceTreasuryCannotPay</c> declines the command, so there
+    /// is no part-paid placement for this to under-report.
+    /// </para>
+    /// <para>
+    /// The identity of the family becomes: over any interval, the change in
+    /// <c>MoneyCounter.Treasury</c> equals
+    /// <c>ToTreasury + Withheld + RuleToTreasury + ProfitTax − FromTreasury − RuleFromTreasury
+    /// − Subsidy − Placement</c>.
+    /// </para>
+    /// </remarks>
+    Placement,
 }
 
 /// <summary>Which family of thing a <see cref="Metric"/> names.</summary>

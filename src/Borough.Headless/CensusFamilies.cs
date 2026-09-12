@@ -220,6 +220,8 @@ internal static class CensusFamilies
         (MoneyFlowCounter.ProfitTax, Aggregate.Peak, "profit tax peak"),
         (MoneyFlowCounter.Subsidy, Aggregate.Sum, "subsidy"),
         (MoneyFlowCounter.Subsidy, Aggregate.Peak, "subsidy peak"),
+        (MoneyFlowCounter.Placement, Aggregate.Sum, "placement"),
+        (MoneyFlowCounter.Placement, Aggregate.Peak, "placement peak"),
     ];
 
     /// <summary>

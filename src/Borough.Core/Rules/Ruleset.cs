@@ -767,6 +767,35 @@ public readonly record struct KindDefinition(
     public Money Rent { get; init; }
 
     /// <summary>
+    /// What the treasury pays to place a Building of this kind by hand — <c>placement_cost</c>.
+    /// <see cref="Money.Zero"/> means the placement is free.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The city's first expenditure on an act of its own</b> (<c>plans/0070</c> row 32).
+    /// <c>Simulation.ApplyService</c> charges it and refuses the click where the treasury cannot pay
+    /// it in full, so a placement is a fiscal decision rather than a free one.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The money leaves the supply and reaches nobody.</b> <c>adr/0035</c> §2 makes construction
+    /// money a purchase of Materials, and imported Materials leave through the gate — no import path
+    /// exists, so the withdrawal is paired with a <c>MoneySupplyTable.Issued</c> write-down in
+    /// <c>World.SpendOnPlacement</c> and <see cref="Invariants.Invariant.MoneyIsConserved"/> stays an
+    /// exact equality. It is counted as expenditure by <c>MoneyFlowCounter.Placement</c>, which is
+    /// what keeps the treasury's balance the sum of its own flow columns.
+    /// </para>
+    /// <para>
+    /// <b>Absent means free</b>, which is what every kind meant before the key existed — so a file
+    /// that states nothing places what it always placed.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>PROVISIONAL wherever it is authored</b> — <c>plans/0045</c> standing order 4 suspends
+    /// <c>adr/0052</c>.
+    /// </para>
+    /// </remarks>
+    public Money PlacementCost { get; init; }
+
+    /// <summary>
     /// How many Households a Building of this kind admits from the Outside per Day. Zero means this
     /// kind is not an Outside Connection at all.
     /// </summary>

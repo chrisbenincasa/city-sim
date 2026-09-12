@@ -25,10 +25,10 @@ dotnet run --project src/Borough.Headless -- \
 
 ## The sections
 
-40 sections, 265 keys.
+40 sections, 266 keys.
 
 - [`[[band]]`](#band) — 2 keys
-- [`[[building]]`](#building) — 19 keys
+- [`[[building]]`](#building) — 20 keys
 - [`[[building]] bins`](#building-bins) — 3 keys
 - [`[[business]]`](#business) — 12 keys
 - [`[[hinterland]]`](#hinterland) — 6 keys
@@ -143,6 +143,10 @@ What this kind of Building is called. [[zone_rule]] kind and [[rule]] kind refer
 **`parked`** · *true or false*
 
 Whether Buildings of this kind carry parking at all. Whether, and never how many: the count is the Building's floor area over [capacity] floor_tiles_per_parking_space. It exists so that a detached house may carry a driveway where a tower may not — a parking minimum is a property of the city, and an exemption from it is a property of the kind. Absent means the kind provides none.
+
+**`placement_cost`** · *whole number*
+
+What the treasury pays to place a Building of this kind by hand. Absent or zero means the placement is free, which is what every kind meant before the key existed. The city pays in full or the placement is refused, and the money leaves the money supply rather than reaching anybody: construction money buys imported Materials, and there is no import path for them to arrive by. Refused in a file that names no money.
 
 **`premises`** · *true or false*
 
