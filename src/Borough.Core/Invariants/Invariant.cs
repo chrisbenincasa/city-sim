@@ -1207,4 +1207,18 @@ public enum Invariant
     /// and a silent one.
     /// </remarks>
     AnAdultHoldsADeclaredSkillTier = 62,
+
+    /// <summary>
+    /// Each group's reservations are exactly the live queue rows naming it, and every row is in both
+    /// of its edge's lists.
+    /// </summary>
+    /// <remarks>
+    /// <b>The reservation is a count and the queue is rows, so the two can disagree silently.</b> A
+    /// count left behind by a cancelled row promises a Household nobody is waiting for and takes it
+    /// out of circulation for good; a row whose count was never raised lets a fresh occasion draw the
+    /// family already standing at the door, which is the double draw the reservation exists to stop.
+    /// ⚠ <b>It walks the review list as well as the admission list</b>, because a row threaded into
+    /// one and not the other waits for a service that never comes.
+    /// </remarks>
+    TheQueueMatchesItsReservations = 63,
 }

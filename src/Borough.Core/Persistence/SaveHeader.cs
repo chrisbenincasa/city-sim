@@ -76,7 +76,11 @@ public readonly struct SaveHeader : IEquatable<SaveHeader>
     // from and whose preferences it holds cannot be derived from anything else in the file: the gate
     // it crossed is demolishable and the identity it was drawn on belongs to nothing that is still a
     // row. A version 2 save is short by those three columns and is refused for version 1's reason.
-    public const int Current = 3;
+    //
+    // 4: task 4 -- the outside queue joins the declaration set, and the edge rows gain the sequence,
+    // the cursors, the queue heads and the Day flow counters the engine writes. A version 3 save is
+    // short by a table and by those columns, and it is refused for version 1's reason.
+    public const int Current = 4;
 
     private const ulong ByteOrderSentinel = 0x0102_0304_0506_0708UL;
 

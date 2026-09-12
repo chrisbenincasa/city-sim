@@ -137,6 +137,7 @@ public sealed class DerivedRebuildAuditTests
             Run(Orphaned()),
             Run(GoldenFixtures.Build()),
             Run(Attracted()),
+            Run(Attracted(512)),
         ];
 
         string[] all = audits[0].Derived;
@@ -239,7 +240,12 @@ public sealed class DerivedRebuildAuditTests
         // rows are created by DECLARATION -- World's constructor reads [[hinterland.population]] --
         // and attracted.toml is the only shipped file stating one. Every world above holds four empty
         // Hinterland rows, so all three columns were unexercised the day they were declared.
-        Assert.Equal(44, all.Length);
+        //
+        // 44 -> 47: hinterland.gate_head, hinterland.gate_tail and building.gate_next, row 31 task 4.
+        // The doors standing on one edge, derived for the composition list's reason exactly -- the
+        // insert is ordered by slot, so the round-robin over an edge's gates reads an order a rebuild
+        // reproduces rather than the order the player happened to build them in.
+        Assert.Equal(47, all.Length);
         Assert.Single(ScratchColumns(Stepped(0)));
     }
 
@@ -439,16 +445,82 @@ public sealed class DerivedRebuildAuditTests
     /// does. Unstepped on purpose — the rows are there before anything happens, and what a run would
     /// add is a group the city created by sending somebody back, which nothing does yet.
     /// </remarks>
-    private static World Attracted()
+    private static World Attracted() => new(GoldenFixtures.Population, Shipped("attracted.toml"));
+
+    /// <summary>Loads one of the Rulesets the build copies next to the test assembly.</summary>
+    private static Ruleset Shipped(string file)
     {
-        string path = Path.Combine(AppContext.BaseDirectory, "Rulesets", "attracted.toml");
+        string path = Path.Combine(AppContext.BaseDirectory, "Rulesets", file);
         RulesetLoadResult loaded = RulesetLoader.Load(path);
 
-        Ruleset rules = loaded.Ruleset
+        return loaded.Ruleset
             ?? throw new InvalidOperationException(
-                $"{path} was refused, so the attracted world cannot be built:\n{loaded.Describe()}");
+                $"{path} was refused, so the world cannot be built:\n{loaded.Describe()}");
+    }
 
-        return new World(GoldenFixtures.Population, rules);
+    /// <summary>The same world with a city in it, so its edges have doors on them.</summary>
+    /// <remarks>
+    /// <b>A gate is a Building of a kind declaring <c>arrivals_per_day</c> standing on an edge Lot</b>,
+    /// so the gate lists are empty until something builds one. <see cref="Attracted()"/> declares the
+    /// people and this one lets them in.
+    /// </remarks>
+    private static World Attracted(int ticks)
+    {
+        var key = WorldKey.FromSeed(GoldenFixtures.Seed);
+        var world = new World(GoldenFixtures.Population, Shipped("attracted.toml"), key);
+
+        SyntheticCity.PopulateInto(world, key, Ticks.Zero);
+        RaiseSecondGate(world, MapEdge.West, key);
+
+        var simulation = new Simulation(world, key) { VerifyDecideWritesNothing = false };
+
+        for (int tick = 0; tick < ticks; tick++)
+        {
+            simulation.Step(default);
+        }
+
+        return world;
+    }
+
+    /// <summary>
+    /// Puts a second door on one edge, so the gate list has a link in it rather than a single head.
+    /// </summary>
+    /// <remarks>
+    /// <b><c>SyntheticCity</c> raises one gate per edge</b>, and a list of one exercises the head and
+    /// the tail but never the link between two. Nothing in <c>src/</c> sites a gate until milestone 24
+    /// gives the player the verb, so the second one is built here through <c>CreateBuilding</c> — the
+    /// same call the first went through.
+    /// </remarks>
+    private static void RaiseSecondGate(World world, MapEdge edge, WorldKey key)
+    {
+        byte kind = 0;
+
+        for (int declared = 1; declared <= world.Rules.KindCount; declared++)
+        {
+            if (world.IsOutsideConnection((byte)declared))
+            {
+                kind = (byte)declared;
+                break;
+            }
+        }
+
+        if (kind == 0)
+        {
+            throw new InvalidOperationException("this Ruleset declares no Outside Connection.");
+        }
+
+        for (int lot = 0; lot < world.Lots.Rows.SlotCount; lot++)
+        {
+            if (world.Lots.Rows.IsLive(lot)
+                && world.Lots.IsVacant(lot)
+                && world.EdgeOf(lot) == edge)
+            {
+                world.CreateBuilding(world.Lots.Rows.At(lot), kind, Ticks.Zero, key);
+                return;
+            }
+        }
+
+        throw new InvalidOperationException($"no vacant Lot stands on the {edge} edge.");
     }
 
     /// <summary>

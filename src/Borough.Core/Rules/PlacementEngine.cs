@@ -764,13 +764,25 @@ public sealed class PlacementEngine
     /// <param name="prospect">The family standing at the edge.</param>
     /// <param name="gate">A live Outside Connection on its edge. Without one there is no city to see.</param>
     /// <param name="tick">The Tick being run.</param>
-    public bool ProspectCrosses(in ArrivalProspect prospect, Handle<Building> gate, Ticks tick)
+    public bool ProspectCrosses(in ArrivalProspect prospect, Handle<Building> gate, Ticks tick) =>
+        Compare(prospect, gate, tick) == ProspectOutcome.Willing;
+
+    /// <inheritdoc cref="ProspectCrosses(in ArrivalProspect, Handle{Building}, Ticks)"/>
+    /// <summary>
+    /// The same comparison, saying which of the three things happened.
+    /// </summary>
+    /// <remarks>
+    /// <b>An empty sample and a rejection are both <em>did not come</em> and they are not the same
+    /// event.</b> The engine counts them apart because a city with no room reads identically to a
+    /// city nobody wants when only the admissions are visible.
+    /// </remarks>
+    public ProspectOutcome Compare(in ArrivalProspect prospect, Handle<Building> gate, Ticks tick)
     {
         PlacementRuleset placement = _world.Rules.Placement;
 
         if (!_world.Rules.TryHinterland(prospect.Edge, out HinterlandDefinition home))
         {
-            return false;
+            return ProspectOutcome.NoSample;
         }
 
         int candidates = placement.Candidates;
@@ -822,13 +834,15 @@ public sealed class PlacementEngine
 
         if (found == 1)
         {
-            return false;
+            return ProspectOutcome.NoSample;
         }
 
-        return Choice.Draw(
+        int chosen = Choice.Draw(
             _candidateUtilities.AsSpan(0, found),
             placement.Mu,
-            Randomness.Draw(_key, prospect.Identity, tick, PurposeTag.ChoiceDraw)) != 0;
+            Randomness.Draw(_key, prospect.Identity, tick, PurposeTag.ChoiceDraw));
+
+        return chosen == 0 ? ProspectOutcome.StayedOutside : ProspectOutcome.Willing;
     }
 
     /// <summary>Whether this Building is already in the candidate set.</summary>

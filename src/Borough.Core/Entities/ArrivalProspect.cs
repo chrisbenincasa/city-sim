@@ -122,3 +122,23 @@ public enum Admission : byte
     /// <summary>The gate has taken its <c>arrivals_per_day</c> already.</summary>
     GateIsFullToday,
 }
+
+/// <summary>What one family made of the city on one occasion.</summary>
+/// <remarks>
+/// <b>Three disjoint outcomes, because two of them are silence and they mean different things</b>
+/// (<c>plans/0073</c>, the inspection contract). A family that sampled the city and found nothing it
+/// could live in has made no comparison at all — <c>02 §5.4</c>'s hard constraint is a filter — while
+/// one that compared and stayed has rejected what it saw. Reporting both as <em>did not come</em>
+/// would make a housing shortage read as a city nobody wants.
+/// </remarks>
+public enum ProspectOutcome : byte
+{
+    /// <summary>Nothing here it could afford or fit in, so there was nothing to weigh.</summary>
+    NoSample = 0,
+
+    /// <summary>It weighed the city against home and stayed at home.</summary>
+    StayedOutside,
+
+    /// <summary>It chose the city.</summary>
+    Willing,
+}

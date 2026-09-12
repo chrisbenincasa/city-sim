@@ -221,12 +221,19 @@ public sealed class World
 
         // Sized from the Ruleset for PolicyTable's reason -- a composition is declared and not
         // populated -- and doubled because returns open rows nobody authored. A hint; it grows.
-        Hinterlands = new HinterlandTable();
         HinterlandPopulation =
             new HinterlandPopulationTable(
                 rules.HinterlandPopulations.Length == 0
                     ? HinterlandTable.Edges
                     : rules.HinterlandPopulations.Length * 2);
+
+        // After the groups, because the edge row holds a handle into them: the walk over an edge's
+        // compositions starts where the last one stopped, and the cursor names a group.
+        Hinterlands = new HinterlandTable(HinterlandPopulation);
+
+        // A hint, and a small one: a queue only has rows while the gates cannot keep up.
+        HinterlandQueue = new HinterlandQueueTable(8, HinterlandPopulation);
+
         PopulationLedger = new PopulationLedgerTable();
 
         // adr/0142's collection, and its capacity hint assumes even less than the Business table's:
@@ -487,7 +494,8 @@ public sealed class World
             // count, and after that the number is the sum of every crossing in either direction. The
             // ledger is here for MoneySupply.Rows's reason one quantity over -- an anchor outside the
             // composition is an anchor the State Hash has agreed not to look at.
-            Hinterlands.Rows, HinterlandPopulation.Rows, PopulationLedger.Rows,
+            Hinterlands.Rows, HinterlandPopulation.Rows, HinterlandQueue.Rows,
+            PopulationLedger.Rows,
         ];
 
         // The same list minus the tables no Tick phase can write, for the Decide guard alone. See
@@ -791,6 +799,9 @@ public sealed class World
     /// Which row holds a given composition behind a given edge. <c>(derived AND rebuilt)</c>.
     /// </summary>
     public HinterlandCompositions HinterlandCompositions { get; } = new();
+
+    /// <summary>The families waiting outside the gates for room.</summary>
+    public HinterlandQueueTable HinterlandQueue { get; }
 
     /// <summary>
     /// Where this city's people came from and where the ones who left went, as one saved row. The
@@ -2335,7 +2346,8 @@ public sealed class World
         in ArrivalProspect prospect,
         Handle<Building> gate,
         Ticks now,
-        out Handle<Household> household)
+        out Handle<Household> household,
+        bool reserved = false)
     {
         household = default;
 
@@ -2352,8 +2364,14 @@ public sealed class World
             return Admission.ProspectIsNotOfThatGroup;
         }
 
-        // Free and not Stock, so a Household already promised to a gate cannot also be drawn here.
-        if (HinterlandPopulation.Free(group) < 1)
+        // A family waiting outside spends the Household it already reserved; anybody else has to find
+        // one nobody has promised. Free and not Stock in that second case, so a fresh occasion cannot
+        // draw the family standing in the queue.
+        bool available = reserved
+            ? HinterlandPopulation.Reserved[group] >= 1 && HinterlandPopulation.Stock[group] >= 1
+            : HinterlandPopulation.Free(group) >= 1;
+
+        if (!available)
         {
             return Admission.StockIsSpent;
         }
@@ -2419,6 +2437,11 @@ public sealed class World
         HinterlandPopulation.Stock[group]--;
         HinterlandPopulation.Admitted[group]++;
 
+        if (reserved)
+        {
+            HinterlandPopulation.Reserved[group]--;
+        }
+
         int edgeSlot = HinterlandTable.SlotOf(prospect.Edge);
 
         Hinterlands.AdmittedHouseholds[edgeSlot]++;
@@ -2442,7 +2465,16 @@ public sealed class World
         Buildings.ArrivalDay[gateSlot] != DayOf(now)
         || Buildings.ArrivalsToday[gateSlot] < ceiling;
 
-    /// <summary>Takes one of this gate's daily arrivals, rolling the meter over if it is stale.</summary>
+    /// <summary>Whether this gate can still admit somebody today.</summary>
+    /// <remarks>
+    /// <b>Asked before a waiting family is reconsidered rather than after</b> (<c>plans/0073</c> D5).
+    /// A queue is re-evaluated when a door has room; asking at a shut door would re-draw willingness
+    /// every Tick of the wait and cancel almost everybody before the authored wait ran out.
+    /// </remarks>
+    internal bool GateHasRoom(int gateSlot, Ticks now) =>
+        TryArrivalsPerDay(Buildings.Kind[gateSlot], out int ceiling)
+        && GateHasQuota(gateSlot, ceiling, now);
+
     private void SpendArrivalQuota(int gateSlot, Ticks now)
     {
         int day = DayOf(now);
@@ -2465,6 +2497,90 @@ public sealed class World
     /// and the exception is not this method's to grant.
     /// </remarks>
     private static int DayOf(Ticks now) => (int)IntegerMath.FloorDiv((long)now.Raw, Ticks.PerDay);
+
+    /// <summary>Puts a newly raised gate on its edge's list of doors.</summary>
+    /// <remarks>
+    /// <b>Silent on everything that is not a gate</b>, which is most of what the city builds. A
+    /// Building qualifies only while its kind is an Outside Connection and its Lot resolves to one
+    /// edge — a corner Lot reads as <see cref="MapEdge.None"/> and stands on no edge's list, which is
+    /// <c>adr/0088</c>'s refusal seen from the index side.
+    /// </remarks>
+    private void ListGate(int slot)
+    {
+        if (!IsOutsideConnection(Buildings.Kind[slot])
+            || !Lots.Rows.TryResolve(Buildings.Lot[slot], out int lotSlot))
+        {
+            return;
+        }
+
+        MapEdge edge = EdgeOf(lotSlot);
+
+        if (edge != MapEdge.None)
+        {
+            Buildings.Gates(Hinterlands).InsertOrdered(HinterlandTable.SlotOf(edge), slot);
+        }
+    }
+
+    /// <summary>Takes a gate off its edge's list of doors.</summary>
+    private void UnlistGate(int slot)
+    {
+        if (!IsOutsideConnection(Buildings.Kind[slot])
+            || !Lots.Rows.TryResolve(Buildings.Lot[slot], out int lotSlot))
+        {
+            return;
+        }
+
+        MapEdge edge = EdgeOf(lotSlot);
+
+        if (edge != MapEdge.None)
+        {
+            Buildings.Gates(Hinterlands).Remove(HinterlandTable.SlotOf(edge), slot);
+        }
+    }
+
+    /// <summary>Rebuilds every edge's list of doors from the live Buildings.</summary>
+    /// <remarks>
+    /// <b>Wholesale and in slot order</b>, on <see cref="HinterlandPopulationTable.RebuildIndexes"/>'
+    /// terms: the ordered insert is what makes a rebuilt list and a maintained one the same list, and
+    /// the round-robin over an edge's doors reads that order.
+    /// </remarks>
+    private void RebuildGates()
+    {
+        Hinterlands.GateHead.Span.Clear();
+        Hinterlands.GateTail.Span.Clear();
+        Buildings.GateNext.Span.Clear();
+
+        for (int slot = 0; slot < Buildings.Rows.SlotCount; slot++)
+        {
+            if (Buildings.Rows.IsLive(slot))
+            {
+                ListGate(slot);
+            }
+        }
+    }
+
+    /// <summary>Moves every edge's Day flow counters on, if the Day has changed.</summary>
+    /// <remarks>
+    /// <b><c>Simulation</c> drives it, once, before the inputs</b> (<c>plans/0073</c> D10), and it
+    /// runs on a Day when the immigration engine does nothing at all — a Day with no arrivals is a
+    /// Day whose figures are zero rather than a Day that never happened.
+    /// </remarks>
+    public void RollPopulationDayFlows(Ticks now) => Hinterlands.RollDay(DayOf(now));
+
+    /// <summary>
+    /// Frees a group the city created and nobody stands in any more.
+    /// </summary>
+    /// <remarks>
+    /// <b>Authored groups are never freed</b>, because their target is what the Outside recovers
+    /// towards and a row that vanished at zero would take its resting count with it. What this frees
+    /// is a composition returns invented: target zero, stock zero, nothing reserved, so nothing about
+    /// it is recoverable and nothing points at it.
+    /// </remarks>
+    public void RetireHinterlandGroup(int slot)
+    {
+        HinterlandPopulation.Retire(Hinterlands, slot);
+        HinterlandCompositions.Remove(HinterlandPopulation);
+    }
 
     /// <summary>Allocates an arriving Household and its empty balance, before anybody is in it.</summary>
     /// <remarks>
@@ -3945,6 +4061,7 @@ public sealed class World
         // ordered by slot, and the lookup because a composition is what it is keyed by.
         HinterlandPopulation.RebuildIndexes(Hinterlands);
         HinterlandCompositions.Rebuild(HinterlandPopulation);
+        RebuildGates();
 
         // The Parking Shed's supply index, rebuilt wholesale from the Car Parks' saved Addresses.
         // After Roads.RebuildDerived because it resolves a Segment handle against the rebuilt graph,
@@ -4827,6 +4944,8 @@ public sealed class World
         Handle<Building> building = Buildings.Create(Lots, lot, kind);
 
         BuildingsInCells.Add(Buildings, Lots, Buildings.Rows.Resolve(building));
+
+        ListGate(Buildings.Rows.Resolve(building));
 
         // CONTEXT.md -> Building: "a Building has a footprint (the set of Tiles it covers)" and
         // "interacts with Map Layers through that footprint". Sealing is such a Layer, and this is
@@ -8462,6 +8581,11 @@ public sealed class World
         // the Cell it is listed in and would leave a dangling entry for the next allocation of this
         // slot to be inserted into twice.
         BuildingsInCells.Remove(Buildings, Lots, slot);
+
+        // Before the Lot is freed, for BuildingsInCells' reason exactly: the edge a gate is listed
+        // under is read off its Lot's position, so unlisting it afterwards would look on the wrong
+        // edge and leave the entry standing for the next Building raised on this slot to inherit.
+        UnlistGate(slot);
 
         // Before the row is freed, because the Lot handle is read off it.
         if (Lots.Rows.TryResolve(Buildings.Lot[slot], out int lotSlot))

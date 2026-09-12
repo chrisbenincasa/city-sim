@@ -244,10 +244,10 @@ public readonly ref struct IndexList
     /// <remarks>
     /// <b>O(n) in the list's length, and that is the accepted cost of a singly-linked list.</b> The
     /// alternative is a <c>prev</c> column on every element — four bytes per row across every table
-    /// that owns a list — bought for a case none of the three named consumers has: a wait list drains
-    /// from the front, a Wheel bucket drains whole, and a Parking Shed is rebuilt rather than edited.
-    /// If a consumer appears that removes from the middle of a long list, that is when the column is
-    /// worth adding, and it is a local change.
+    /// that owns a list — bought for a case these consumers do not have: a wait list drains from the
+    /// front, a Wheel bucket drains whole, and a Parking Shed is rebuilt rather than edited. The
+    /// consumer that does remove from the middle of a long list uses
+    /// <see cref="LinkedIndexList"/>, which pays for the column where it is needed.
     /// </remarks>
     /// <returns><see langword="true"/> if the element was in the owner's list.</returns>
     public bool Remove(int owner, int node)
@@ -299,6 +299,157 @@ public readonly ref struct IndexList
     }
 
     /// <summary>Walks the owner's elements, front to back, in the order they were appended.</summary>
+    public IndexListWalk Walk(int owner) => new(_next, _head[owner]);
+}
+
+/// <summary>
+/// <see cref="IndexList"/> with a <c>prev</c> column, so an element can be unlinked from the middle
+/// without walking to it.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>The outside queue is the consumer <see cref="IndexList.Remove"/> says is worth the column.</b>
+/// A willing family waits in two lists at once — the admission order it is served in and the review
+/// order its next reconsideration is due in — and leaving either one removes it from both. So every
+/// cancellation, expiry and admission is a removal from the middle of a list as long as the queue,
+/// and the singly-linked walk would make one Tick's departures quadratic in the number waiting.
+/// </para>
+/// <para>
+/// <b>Encoded slot-plus-one and zero for empty</b>, which is <see cref="IndexList"/>'s encoding for
+/// its reason: a freed row is zeroed, and a terminator of <c>-1</c> would read as slot 0.
+/// </para>
+/// </remarks>
+public readonly ref struct LinkedIndexList
+{
+    private readonly Span<int> _head;
+    private readonly Span<int> _tail;
+    private readonly Span<int> _previous;
+    private readonly Span<int> _next;
+
+    /// <param name="head">A column on the owner table: the first element, encoded.</param>
+    /// <param name="tail">A column on the owner table: the last element, encoded.</param>
+    /// <param name="previous">A column on the element table: the preceding element, encoded.</param>
+    /// <param name="next">A column on the element table: the following element, encoded.</param>
+    public LinkedIndexList(
+        Column<int> head, Column<int> tail, Column<int> previous, Column<int> next)
+    {
+        ArgumentNullException.ThrowIfNull(head);
+        ArgumentNullException.ThrowIfNull(tail);
+        ArgumentNullException.ThrowIfNull(previous);
+        ArgumentNullException.ThrowIfNull(next);
+
+        _head = head.Span;
+        _tail = tail.Span;
+        _previous = previous.Span;
+        _next = next.Span;
+    }
+
+    /// <summary>True when the owner has no elements.</summary>
+    public bool IsEmpty(int owner) => _head[owner] == 0;
+
+    /// <summary>
+    /// The first element without removing it, or <see cref="Rows.NoSlot"/> when the list is empty.
+    /// </summary>
+    public int PeekFront(int owner)
+    {
+        int encoded = _head[owner];
+        return encoded == 0 ? Rows.NoSlot : encoded - 1;
+    }
+
+    /// <summary>The element after <paramref name="node"/>, or <see cref="Rows.NoSlot"/>.</summary>
+    /// <remarks>
+    /// <b>Read it before processing a node that may leave the list.</b> A walk that reads the link
+    /// afterwards reads a zeroed one and stops at the first departure.
+    /// </remarks>
+    public int After(int node)
+    {
+        int encoded = _next[node];
+        return encoded == 0 ? Rows.NoSlot : encoded - 1;
+    }
+
+    /// <summary>Adds an element at the end, which is where the queue's order comes from.</summary>
+    public void Append(int owner, int node)
+    {
+        _next[node] = 0;
+        _previous[node] = _tail[owner];
+
+        if (_head[owner] == 0)
+        {
+            _head[owner] = node + 1;
+        }
+        else
+        {
+            _next[_tail[owner] - 1] = node + 1;
+        }
+
+        _tail[owner] = node + 1;
+    }
+
+    /// <summary>Unlinks one element in constant time.</summary>
+    /// <returns><see langword="true"/> if the element was in the owner's list.</returns>
+    public bool Remove(int owner, int node)
+    {
+        if (_head[owner] != node + 1 && _previous[node] == 0)
+        {
+            return false;
+        }
+
+        int previous = _previous[node];
+        int next = _next[node];
+
+        if (previous == 0)
+        {
+            _head[owner] = next;
+        }
+        else
+        {
+            _next[previous - 1] = next;
+        }
+
+        if (next == 0)
+        {
+            _tail[owner] = previous;
+        }
+        else
+        {
+            _previous[next - 1] = previous;
+        }
+
+        _previous[node] = 0;
+        _next[node] = 0;
+
+        return true;
+    }
+
+    /// <summary>Moves an element already in the list to the end of it.</summary>
+    /// <remarks>
+    /// <b>What a served review does.</b> The family keeps its place in the admission order and takes
+    /// a new place in the review order, and the two lists say so by holding it in different positions
+    /// rather than by storing a second copy of when it is next due.
+    /// </remarks>
+    public void MoveToBack(int owner, int node)
+    {
+        if (_tail[owner] == node + 1)
+        {
+            return;
+        }
+
+        Remove(owner, node);
+        Append(owner, node);
+    }
+
+    /// <summary>Drops every element, without touching their links.</summary>
+    /// <remarks>
+    /// <see cref="IndexList.Clear"/>'s restriction, for its reason: correct only when the elements
+    /// are about to be freed or re-linked.
+    /// </remarks>
+    public void Clear(int owner)
+    {
+        _head[owner] = 0;
+        _tail[owner] = 0;
+    }
+
+    /// <summary>Walks the owner's elements, front to back.</summary>
     public IndexListWalk Walk(int owner) => new(_next, _head[owner]);
 }
 

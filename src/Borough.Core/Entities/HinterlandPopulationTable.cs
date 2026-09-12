@@ -124,6 +124,10 @@ public sealed class HinterlandPopulationTable
         Admitted = _rows.Saved<long>("admitted", Touch.Cold);
         Turnover = _rows.Saved<long>("turnover", Touch.Cold);
 
+        ReconsiderNumerator = _rows.Saved<long>("reconsider_numerator", Touch.Cold);
+        RecoveryNumerator = _rows.Saved<long>("recovery_numerator", Touch.Cold);
+        RecoveryDirection = _rows.Saved<sbyte>("recovery_direction", Touch.Cold);
+
         GroupNext = _rows.Derived<int>("group_next", Touch.Cold);
 
         _rows.Seal();
@@ -201,6 +205,32 @@ public sealed class HinterlandPopulationTable
 
     /// <summary>Households dropped from this group for standing above its resting count.</summary>
     public Column<long> Turnover { get; }
+
+    /// <summary>
+    /// Progress towards this group's next reconsideration occasion, in Household-Ticks.
+    /// </summary>
+    /// <remarks>
+    /// <b>Occasions are accrued and never scheduled</b> (<c>plans/0073</c> D3). Each Tick the free
+    /// Household count is added here and whole occasions are taken out at
+    /// <c>reconsider_days × Ticks.PerDay</c> apiece, so a group of one presents roughly once every
+    /// authored interval and a group of six hundred presents six hundred times as often. The
+    /// remainder is carried, which is what keeps a small group from being rounded out of existence.
+    /// ⚠ <b>It is cleared when the free stock reaches zero</b>: time spent empty is not credit earned
+    /// by whoever returns later.
+    /// </remarks>
+    public Column<long> ReconsiderNumerator { get; }
+
+    /// <summary>Progress towards this group's next replenished or dropped Household.</summary>
+    /// <remarks>
+    /// <b>One numerator for both directions, with <see cref="RecoveryDirection"/> saying which</b>
+    /// (D2). A group that crosses its resting count clears the numerator before accruing the other
+    /// way, because a fraction of a Household on its way in must not become a fraction of one on its
+    /// way out.
+    /// </remarks>
+    public Column<long> RecoveryNumerator { get; }
+
+    /// <summary>Which way <see cref="RecoveryNumerator"/> is accruing: 1 towards, -1 away, 0 at rest.</summary>
+    public Column<sbyte> RecoveryDirection { get; }
 
     /// <summary>The next composition behind the same edge, encoded. <c>(derived AND rebuilt)</c>.</summary>
     public Column<int> GroupNext { get; }

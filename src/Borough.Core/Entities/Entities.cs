@@ -231,3 +231,15 @@ public readonly struct HinterlandPopulation;
 /// <see cref="PopulationLedgerTable"/>.
 /// </remarks>
 public readonly struct PopulationLedger;
+
+/// <summary>
+/// A family that has decided it wants to come and is waiting outside a gate for room.
+/// </summary>
+/// <remarks>
+/// <b>It is standing in the Outside and not yet in the city</b>, so its people are still counted in
+/// <see cref="HinterlandPopulation"/> — what the row holds is one Household of its group reserved
+/// against a second draw, and the purse and preferences the comparison was made with. Distinct from
+/// <see cref="Unplaced"/>, which is a Household the city has already admitted and cannot yet house.
+/// See <see cref="HinterlandQueueTable"/>.
+/// </remarks>
+public readonly struct Waiting;

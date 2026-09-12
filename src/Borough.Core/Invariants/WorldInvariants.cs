@@ -77,6 +77,7 @@ public static class WorldInvariants
         invariants.Register(InvariantTier.EndOfRun, CityHouseholdsAreAccounted);
         invariants.Register(InvariantTier.EndOfRun, HinterlandGroupsAreAccounted);
         invariants.Register(InvariantTier.EndOfRun, TheCompositionIndexNamesEveryGroup);
+        invariants.Register(InvariantTier.EndOfRun, TheQueueMatchesItsReservations);
     }
 
     /// <summary>
@@ -1941,6 +1942,81 @@ public static class WorldInvariants
                 Invariant.AHinterlandGroupIsAccounted,
                 slot,
                 groups.Reserved[slot]);
+        }
+    }
+
+    /// <summary>
+    /// Every reservation is a family standing in a queue, and every waiting family holds one.
+    /// </summary>
+    internal static void TheQueueMatchesItsReservations(World world, InvariantRegistry report)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(report);
+
+        HinterlandPopulationTable groups = world.HinterlandPopulation;
+        HinterlandQueueTable queue = world.HinterlandQueue;
+
+        LinkedIndexList admissions = queue.Admissions(world.Hinterlands);
+        LinkedIndexList reviews = queue.Reviews(world.Hinterlands);
+
+        long waiting = 0;
+        long reviewing = 0;
+
+        for (int edge = 0; edge < HinterlandTable.Edges; edge++)
+        {
+            foreach (int slot in admissions.Walk(edge))
+            {
+                waiting++;
+
+                if (!groups.Rows.TryResolve(queue.Group[slot], out int group))
+                {
+                    report.Require(false, Invariant.TheQueueMatchesItsReservations, slot);
+                    continue;
+                }
+
+                report.Require(
+                    groups.Edge[group] == (byte)HinterlandTable.EdgeAt(edge),
+                    Invariant.TheQueueMatchesItsReservations,
+                    slot,
+                    group);
+            }
+
+            foreach (int slot in reviews.Walk(edge))
+            {
+                reviewing++;
+            }
+        }
+
+        report.Require(
+            waiting == queue.Rows.LiveCount && reviewing == queue.Rows.LiveCount,
+            Invariant.TheQueueMatchesItsReservations,
+            other: waiting - queue.Rows.LiveCount);
+
+        for (int slot = 0; slot < groups.Rows.SlotCount; slot++)
+        {
+            if (!groups.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            long rows = 0;
+
+            for (int edge = 0; edge < HinterlandTable.Edges; edge++)
+            {
+                foreach (int row in admissions.Walk(edge))
+                {
+                    if (groups.Rows.TryResolve(queue.Group[row], out int group) && group == slot)
+                    {
+                        rows++;
+                    }
+                }
+            }
+
+            report.Require(
+                groups.Reserved[slot] == rows,
+                Invariant.TheQueueMatchesItsReservations,
+                slot,
+                groups.Reserved[slot] - rows);
         }
     }
 

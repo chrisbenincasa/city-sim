@@ -37,8 +37,10 @@ public sealed class HinterlandTable
     private readonly Rows<Hinterland> _rows;
 
     /// <summary>Builds the four rows and stamps each with its edge.</summary>
-    public HinterlandTable()
+    public HinterlandTable(HinterlandPopulationTable groups)
     {
+        ArgumentNullException.ThrowIfNull(groups);
+
         _rows = new Rows<Hinterland>("hinterland", Edges, Buffering.OneCopy);
 
         Edge = _rows.Saved<byte>("edge", Touch.Cold);
@@ -53,6 +55,51 @@ public sealed class HinterlandTable
         AdmittedPeople = _rows.Saved<long>("admitted_people", Touch.Cold);
         TurnoverHouseholds = _rows.Saved<long>("turnover_households", Touch.Cold);
         TurnoverPeople = _rows.Saved<long>("turnover_people", Touch.Cold);
+
+        Sequence = _rows.Saved<ulong>("sequence", Touch.Cold);
+        LastGate = _rows.Saved<ulong>("last_gate", Touch.Cold);
+
+        // Severable, because the group it names can be retired under it. The cursor is advanced past
+        // a group being freed, and a handle that outlived one anyway names a row nobody has to find.
+        GroupCursor =
+            _rows.SavedHandle("group_cursor", groups.Rows, Touch.Cold, Reference.Severable);
+
+        AdmitHead = _rows.Saved<int>("admit_head", Touch.Cold);
+        AdmitTail = _rows.Saved<int>("admit_tail", Touch.Cold);
+        ReviewHead = _rows.Saved<int>("review_head", Touch.Cold);
+        ReviewTail = _rows.Saved<int>("review_tail", Touch.Cold);
+
+        GateHead = _rows.Derived<int>("gate_head", Touch.Cold);
+        GateTail = _rows.Derived<int>("gate_tail", Touch.Cold);
+
+        FlowDay = _rows.Saved<int>("flow_day", Touch.Cold);
+
+        OccasionsToday = _rows.Saved<int>("occasions_today", Touch.Cold);
+        OccasionsYesterday = _rows.Saved<int>("occasions_yesterday", Touch.Cold);
+        NoConnectionToday = _rows.Saved<int>("no_connection_today", Touch.Cold);
+        NoConnectionYesterday = _rows.Saved<int>("no_connection_yesterday", Touch.Cold);
+        NoSampleToday = _rows.Saved<int>("no_sample_today", Touch.Cold);
+        NoSampleYesterday = _rows.Saved<int>("no_sample_yesterday", Touch.Cold);
+        StayedOutsideToday = _rows.Saved<int>("stayed_outside_today", Touch.Cold);
+        StayedOutsideYesterday = _rows.Saved<int>("stayed_outside_yesterday", Touch.Cold);
+        WillingToday = _rows.Saved<int>("willing_today", Touch.Cold);
+        WillingYesterday = _rows.Saved<int>("willing_yesterday", Touch.Cold);
+        AdmittedToday = _rows.Saved<int>("admitted_today", Touch.Cold);
+        AdmittedYesterday = _rows.Saved<int>("admitted_yesterday", Touch.Cold);
+        QueuedToday = _rows.Saved<int>("queued_today", Touch.Cold);
+        QueuedYesterday = _rows.Saved<int>("queued_yesterday", Touch.Cold);
+        ExpiredToday = _rows.Saved<int>("expired_today", Touch.Cold);
+        ExpiredYesterday = _rows.Saved<int>("expired_yesterday", Touch.Cold);
+        ReviewedToday = _rows.Saved<int>("reviewed_today", Touch.Cold);
+        ReviewedYesterday = _rows.Saved<int>("reviewed_yesterday", Touch.Cold);
+        ChangedMindToday = _rows.Saved<int>("changed_mind_today", Touch.Cold);
+        ChangedMindYesterday = _rows.Saved<int>("changed_mind_yesterday", Touch.Cold);
+        ConnectionLostToday = _rows.Saved<int>("connection_lost_today", Touch.Cold);
+        ConnectionLostYesterday = _rows.Saved<int>("connection_lost_yesterday", Touch.Cold);
+        ReplenishedToday = _rows.Saved<int>("replenished_today", Touch.Cold);
+        ReplenishedYesterday = _rows.Saved<int>("replenished_yesterday", Touch.Cold);
+        TurnoverToday = _rows.Saved<int>("turnover_today", Touch.Cold);
+        TurnoverYesterday = _rows.Saved<int>("turnover_yesterday", Touch.Cold);
 
         _rows.Seal();
 
@@ -115,6 +162,178 @@ public sealed class HinterlandTable
 
     /// <summary>People those Households hold.</summary>
     public Column<long> TurnoverPeople { get; }
+
+    /// <summary>
+    /// How many families this edge has ever presented. The next one's identity comes off it.
+    /// </summary>
+    /// <remarks>
+    /// <b>Monotonic and saved, because it is what makes two families distinct</b>
+    /// (<c>plans/0073</c> D4). A recycled group slot, a queue position or a per-Tick ordinal would
+    /// each hand the same identity to two different families, and an identity is what a purse and a
+    /// taste are drawn from — so two prospects would compare the city as the same person.
+    /// </remarks>
+    public Column<ulong> Sequence { get; }
+
+    /// <summary>The monotonic id of the gate that last admitted somebody here.</summary>
+    /// <remarks>
+    /// <b>The round-robin cursor over an edge's doors</b> (D6). An id and not a slot: a demolished
+    /// gate's slot is handed to the next Building raised anywhere in the city, and a cursor comparing
+    /// slots would resume from whatever took the place of the door it meant.
+    /// </remarks>
+    public Column<ulong> LastGate { get; }
+
+    /// <summary>Where the next Tick's walk over this edge's compositions starts.</summary>
+    /// <remarks>
+    /// <b>So that declaration order does not give one group every last vacancy</b> (D3). The walk is
+    /// a rotation rather than a scan from the head, and the start advances each Tick.
+    /// </remarks>
+    public HandleColumn<HinterlandPopulation> GroupCursor { get; }
+
+    /// <summary>The first family waiting for room here. Served oldest first.</summary>
+    public Column<int> AdmitHead { get; }
+
+    /// <summary>The last family waiting for room here.</summary>
+    public Column<int> AdmitTail { get; }
+
+    /// <summary>The waiting family whose scheduled review falls due soonest.</summary>
+    public Column<int> ReviewHead { get; }
+
+    /// <summary>The waiting family whose scheduled review falls due last.</summary>
+    public Column<int> ReviewTail { get; }
+
+    /// <summary>The first Outside Connection standing on this edge, in ascending slot order.</summary>
+    /// <remarks>
+    /// <b><c>(derived AND rebuilt)</c></b>, on <see cref="GroupHead"/>'s terms: every insert is
+    /// ordered by slot, so a rebuild walking the live Buildings reproduces the order and not merely
+    /// the membership. A Building is in it only while its kind is an Outside Connection and its Lot
+    /// resolves to this edge.
+    /// </remarks>
+    public Column<int> GateHead { get; }
+
+    /// <summary>The last Outside Connection standing on this edge.</summary>
+    public Column<int> GateTail { get; }
+
+    /// <summary>Which Day the <c>Today</c> counters below are counting.</summary>
+    public Column<int> FlowDay { get; }
+
+    /// <summary>Families this edge has presented today, of its own accord.</summary>
+    public Column<int> OccasionsToday { get; }
+
+    /// <summary>What <see cref="OccasionsToday"/> held at the end of the last complete Day.</summary>
+    public Column<int> OccasionsYesterday { get; }
+
+    /// <summary>Occasions today that found no gate on this edge to look through.</summary>
+    public Column<int> NoConnectionToday { get; }
+
+    /// <inheritdoc cref="OccasionsYesterday"/>
+    public Column<int> NoConnectionYesterday { get; }
+
+    /// <summary>Occasions today that sampled the city and found nothing they could live in.</summary>
+    public Column<int> NoSampleToday { get; }
+
+    /// <inheritdoc cref="OccasionsYesterday"/>
+    public Column<int> NoSampleYesterday { get; }
+
+    /// <summary>Occasions today that compared the city with home and stayed at home.</summary>
+    public Column<int> StayedOutsideToday { get; }
+
+    /// <inheritdoc cref="OccasionsYesterday"/>
+    public Column<int> StayedOutsideYesterday { get; }
+
+    /// <summary>Occasions today that chose the city.</summary>
+    public Column<int> WillingToday { get; }
+
+    /// <inheritdoc cref="OccasionsYesterday"/>
+    public Column<int> WillingYesterday { get; }
+
+    /// <summary>Households admitted through this edge's gates today.</summary>
+    public Column<int> AdmittedToday { get; }
+
+    /// <inheritdoc cref="OccasionsYesterday"/>
+    public Column<int> AdmittedYesterday { get; }
+
+    /// <summary>Willing families that joined the queue today because no door had room.</summary>
+    public Column<int> QueuedToday { get; }
+
+    /// <inheritdoc cref="OccasionsYesterday"/>
+    public Column<int> QueuedYesterday { get; }
+
+    /// <summary>Waiting families that gave up today at the end of the authored wait.</summary>
+    public Column<int> ExpiredToday { get; }
+
+    /// <inheritdoc cref="OccasionsYesterday"/>
+    public Column<int> ExpiredYesterday { get; }
+
+    /// <summary>Scheduled reviews performed today for families already waiting.</summary>
+    public Column<int> ReviewedToday { get; }
+
+    /// <inheritdoc cref="OccasionsYesterday"/>
+    public Column<int> ReviewedYesterday { get; }
+
+    /// <summary>Waiting families that reconsidered today and went home.</summary>
+    public Column<int> ChangedMindToday { get; }
+
+    /// <inheritdoc cref="OccasionsYesterday"/>
+    public Column<int> ChangedMindYesterday { get; }
+
+    /// <summary>Waiting families cancelled today because the edge lost every gate.</summary>
+    public Column<int> ConnectionLostToday { get; }
+
+    /// <inheritdoc cref="OccasionsYesterday"/>
+    public Column<int> ConnectionLostYesterday { get; }
+
+    /// <summary>Households the Outside added here today, recovering towards its resting count.</summary>
+    public Column<int> ReplenishedToday { get; }
+
+    /// <inheritdoc cref="OccasionsYesterday"/>
+    public Column<int> ReplenishedYesterday { get; }
+
+    /// <summary>Households dropped here today for standing above the resting count.</summary>
+    public Column<int> TurnoverToday { get; }
+
+    /// <inheritdoc cref="OccasionsYesterday"/>
+    public Column<int> TurnoverYesterday { get; }
+
+    /// <summary>
+    /// Moves every edge's Day counters on, if <paramref name="day"/> is not the Day they count.
+    /// </summary>
+    /// <remarks>
+    /// <b>Driven from <c>Simulation</c> and never lazily from a reader</b> (D10). A rollover
+    /// performed by whoever looked first would make the previous Day's figures depend on being
+    /// watched, and a Day nobody inspected would fold into the next one.
+    /// </remarks>
+    public void RollDay(int day)
+    {
+        for (int slot = 0; slot < Edges; slot++)
+        {
+            if (FlowDay[slot] == day)
+            {
+                continue;
+            }
+
+            FlowDay[slot] = day;
+
+            Roll(OccasionsToday, OccasionsYesterday, slot);
+            Roll(NoConnectionToday, NoConnectionYesterday, slot);
+            Roll(NoSampleToday, NoSampleYesterday, slot);
+            Roll(StayedOutsideToday, StayedOutsideYesterday, slot);
+            Roll(WillingToday, WillingYesterday, slot);
+            Roll(AdmittedToday, AdmittedYesterday, slot);
+            Roll(QueuedToday, QueuedYesterday, slot);
+            Roll(ExpiredToday, ExpiredYesterday, slot);
+            Roll(ReviewedToday, ReviewedYesterday, slot);
+            Roll(ChangedMindToday, ChangedMindYesterday, slot);
+            Roll(ConnectionLostToday, ConnectionLostYesterday, slot);
+            Roll(ReplenishedToday, ReplenishedYesterday, slot);
+            Roll(TurnoverToday, TurnoverYesterday, slot);
+        }
+    }
+
+    private static void Roll(Column<int> today, Column<int> yesterday, int slot)
+    {
+        yesterday[slot] = today[slot];
+        today[slot] = 0;
+    }
 
     /// <summary>Which row holds <paramref name="edge"/>'s population.</summary>
     /// <exception cref="ArgumentOutOfRangeException"><see cref="MapEdge.None"/>, which has no row.</exception>

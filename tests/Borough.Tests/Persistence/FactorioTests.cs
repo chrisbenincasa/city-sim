@@ -221,6 +221,16 @@ public sealed class FactorioTests(ITestOutputHelper output)
         // a group the city created by sending somebody back, and nothing does that yet.
         Scan(new World(GoldenFixtures.Population, Shipped("attracted.toml")), reached, []);
 
+        // 🔴 The TWELFTH, plans/0045 row 31 task 4, and it is the eleventh's world with a city on it
+        // and a Day behind it. A `waiting` row exists only while somebody willing is standing at a
+        // full door, so every world above -- the bare attracted world included, which has no gate to
+        // be full -- leaves the table empty and all THIRTEEN of its saved columns unreachable.
+        //
+        // ⚠ 2,048 Ticks is one Day, and the Day is what fills the queue: attracted.toml gives each
+        // gate 96 admissions a Day against a stock that presents hundreds of families in the same
+        // period, so the doors are full long before the Day ends.
+        Scan(WithWaiting(Ticks.PerDay), reached, []);
+
         var (careWorld, careSimulation) = Borough.Tests.Rules.CivicTests.Start();
         Borough.Tests.Rules.CivicTests.Place(careWorld, 3);
         for (int tick = 0; tick < 512; tick++) careSimulation.Step(default);
@@ -516,6 +526,53 @@ public sealed class FactorioTests(ITestOutputHelper output)
     /// </remarks>
     private static World WithPolicies(int ticks) =>
         Stepped(Shipped("taxed.toml"), GoldenFixtures.Population, ticks).World;
+
+    /// <summary>A world whose gates are full, so somebody is standing outside one.</summary>
+    /// <remarks>
+    /// <b>A twelfth fixture, and this test's corollary once more</b>: a <c>waiting</c> row is written
+    /// by the immigration engine, which runs only where the Ruleset states <c>[immigration]</c> —
+    /// <see cref="WithDistricts"/>'s *gated on a Ruleset key* — and then only once a door has taken
+    /// its Day's admissions and a willing family has nowhere to go but the queue.
+    /// </remarks>
+    private static World WithWaiting(int ticks)
+    {
+        (World world, Simulation simulation) =
+            Stepped(Shipped("attracted.toml"), GoldenFixtures.Population, ticks);
+
+        // The stock presents far fewer willing families in a Day than 96 a gate, so the door has to
+        // be shut by hand for anybody to wait behind it. Arrivals are refilled every Tick because
+        // the quota is a Day's and the wait has to outlast the Day boundary.
+        for (int tick = 0; tick < Ticks.PerDay && world.HinterlandQueue.Rows.LiveCount == 0; tick++)
+        {
+            FillGates(world);
+            simulation.Step(default);
+        }
+
+        Assert.True(
+            world.HinterlandQueue.Rows.LiveCount > 0,
+            "no family is standing outside a full gate, so the queue columns are unreachable.");
+
+        return world;
+    }
+
+    /// <summary>Takes every gate's remaining arrivals for the Day, so each one refuses the next.</summary>
+    private static void FillGates(World world)
+    {
+        for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
+        {
+            if (!world.Buildings.Rows.IsLive(slot)
+                || !world.IsOutsideConnection(world.Buildings.Kind[slot]))
+            {
+                continue;
+            }
+
+            Handle<Building> gate = world.Buildings.Rows.At(slot);
+
+            while (world.TryArrive(gate, lifeStage: 1, citizens: 1, world.Tick, out _))
+            {
+            }
+        }
+    }
 
     /// <summary>
     /// A world with a Business in the unpremised pool, its premises demolished under it.

@@ -529,6 +529,34 @@ the entity id already separates them* — and the purse needed its own for `Emig
 one level down: the same id takes the same fraction of whichever span it is given, so a shared tag
 would make the richest family in the low band the richest family in the high band.
 
+**Task 4 added `HinterlandQueueTable`, `Rules/HinterlandEngine.cs` and the state the engine advances,
+so `SaveHeader.Current` is 4 and all four golden artefacts were re-recorded.** On `HinterlandTable`:
+the prospect sequence, the last-admitted gate id, the composition cursor, the two queue-list ends, the
+derived gate-list ends and the thirteen current/previous Day flow pairs, rolled by `RollDay` before the
+inputs. On `HinterlandPopulationTable`: the reconsider and recovery numerators and the recovery
+direction. The queue's admission and review lists are **saved** because join order is recoverable from
+nothing else — a rebuild would put the queue in slot order and serve a different family after a reload —
+while the gate list is derived from Kind and Lot position. `LinkedIndexList` is the doubly-linked
+sibling `IndexList.Remove`'s remark anticipated; a queue row leaves the middle of both lists at once.
+
+**A waiting family is reconsidered only when a door on its edge has room, and that ordering is the
+mechanism rather than an optimisation.** Re-asking at a shut door re-draws willingness on every Tick of
+the wait, which cancelled almost every queue member within a dozen Ticks and made the authored wait
+unreachable — caught by `A_wait_ends_at_exactly_the_authored_duration`. `World.GateHasRoom` exists for
+that question. `TryAdmitProspect` gained the `reserved` path D7 left for this task, so a queued family
+spends its own reservation and stock together.
+
+**`Invariant.TheQueueMatchesItsReservations` compares the count with the rows**, which nothing else
+does: a reservation left behind by a cancelled row takes a Household out of circulation for good, and a
+row whose count was never raised lets a fresh occasion draw the family already standing at the door.
+
+⚠ **Three of the acceptance cases named for this task are not written yet.** The reduced-quota case
+needs the reload plumbing D12 gives task 5; `StockArrivalCommandTests` is task 5's; and the
+selective-depletion ensemble belongs with task 8's observation, where a rate comparison can be read
+against the diagnostic counters rather than asserted from one run. `AutonomousArrivalTests` covers the
+attribution those tests will rest on — every occasion sums to exactly one of no-connection, no-sample,
+stayed-outside and willing.
+
 ### D12 — Ruleset surface, validation and reload
 
 Add `HinterlandPopulationRuleset.cs` for the new immutable definitions; thread them through

@@ -54,6 +54,7 @@ public sealed class Simulation
     private readonly DisasterEngine _disasters;
     private DisasterReading _lastDisasters;
     private readonly PlacementEngine _placement;
+    private readonly HinterlandEngine _hinterlands;
     private readonly EmploymentEngine _employment;
     private readonly TripEngine _trips;
     private readonly CommuteEngine _commutes;
@@ -137,6 +138,11 @@ public sealed class Simulation
         // folds World._tables, which nothing here touches.
         _disasters = new DisasterEngine(world, key);
         _placement = new PlacementEngine(world, key, _trips);
+
+        // It borrows placement's choice model rather than owning one. A family outside the city and a
+        // Household inside it weigh a dwelling the same way, and two implementations of that would be
+        // two cities (plans/0073 D4).
+        _hinterlands = new HinterlandEngine(world, key, _placement);
         _commutes = new CommuteEngine(world, _trips);
         _civic = new CivicEngine(world, _trips, _commutes);
         _services = new ServiceEngine(world, _trips, _civic);
@@ -409,6 +415,12 @@ public sealed class Simulation
         // the world creation, and an Arrive command on Tick zero is an ordinary admission rather than
         // part of the founding. It seals once and a load cannot seal it again.
         _world.SealFoundingPopulation();
+
+        // Behind the reload and ahead of the input, so a Day's figures are complete before anything
+        // this Tick adds to them, and a refused Ruleset transition has already left them alone. It
+        // runs on a Day the Outside does nothing on: an idle Day reads as zeroes rather than as
+        // yesterday's numbers standing.
+        _world.RollPopulationDayFlows(tick);
 
         ApplyInput(input, tick);
         PhaseCompleted?.Invoke(TickPhase.Input);
@@ -1984,6 +1996,16 @@ public sealed class Simulation
         _lastSubsidies = _subsidies.Sweep(tick);
 
         _rules.SweepNeeds(tick);
+
+        // IMMEDIATELY AHEAD OF PLACEMENT, and the order is the decision. A family admitted here joins
+        // the Unplaced Pool, and the line below is what drains that Pool into standing vacancy -- so
+        // somebody who crossed the edge this Tick can be housed on this Tick rather than waiting a
+        // Day for the next pass. Behind SweepNeeds for the reason the placement line is: the city
+        // these families are choosing between is the city as this Tick has left it.
+        //
+        // ⚠ It is silent on every shipped Ruleset but attracted.toml, which is the only one declaring
+        // [immigration] -- the sweep returns before it looks at an edge.
+        _hinterlands.Sweep(tick);
 
         _placement.Place(tick);
 
