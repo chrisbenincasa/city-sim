@@ -1,0 +1,62 @@
+omit-layers: accepted=True, kinds=3
+omit-roads: accepted=False
+plans/evidence/ruleset-viability/study-generated/omit-roads.toml:176: a [[lattice]] is declared and there is no [roads] table. A Lattice IS a Street lattice -- an origin the generator lays a grid-snapped network from -- so a world with no roads has nothing for one to be, and the origin would name ground nothing is ever built on.
+omit-lots: accepted=True, kinds=3
+omit-capacity: accepted=False
+plans/evidence/ruleset-viability/study-generated/omit-capacity.toml:26: rule 'grocer': this kind states a Shift-start band and employs nobody. The band is when a kind's jobs begin, so it means nothing without a `jobs` above zero -- state one, or delete the band.
+plans/evidence/ruleset-viability/study-generated/omit-capacity.toml:24: rule 'grocer': this trade states a wage and employs nobody. A wage is what one job pays for one Day worked, so it means nothing without a `jobs` above zero -- state one, or delete the wage.
+plans/evidence/ruleset-viability/study-generated/omit-capacity.toml:257: rule 'teaching': this kind states a Shift-start band and employs nobody. The band is when a kind's jobs begin, so it means nothing without a `jobs` above zero -- state one, or delete the band.
+plans/evidence/ruleset-viability/study-generated/omit-capacity.toml:254: rule 'teaching': this trade states a wage and employs nobody. A wage is what one job pays for one Day worked, so it means nothing without a `jobs` above zero -- state one, or delete the wage.
+plans/evidence/ruleset-viability/study-generated/omit-capacity.toml:256: rule 'teaching': this trade states `goes_bankrupt_after_short_paydays` and pays no wage. It counts the paydays a trade fails to meet IN FULL, and a trade with no `wage_per_day` and `pay_period_days` has no payday to fail -- so the threshold could never be reached and the key would load clean and do nothing. State a wage, or delete this key.
+omit-parking: accepted=True, kinds=3
+omit-trips: accepted=False
+plans/evidence/ruleset-viability/study-generated/omit-trips.toml:168: [jobs] is declared in a Ruleset with no [trips] commute_budget_minutes. The assignment pass has no search radius of its own -- the places a Citizen looks at are the ones a walk within the Commute Budget can reach -- so with no Budget stated there is no bound on the search, and an unbounded one draws a workplace from anywhere in the city. State a commute_budget_minutes, or delete [jobs] and let the city assign nobody.
+plans/evidence/ruleset-viability/study-generated/omit-trips.toml:235: shopping requires Trips, Needs, target_days > low_days and severe_need within the Need floor
+omit-placement: accepted=False
+plans/evidence/ruleset-viability/study-generated/omit-placement.toml:1: this Ruleset declares a [[life_stage]] whose children_become sends children into the Unplaced Pool, and [placement] states no gives_up_after_days -- so nothing ever leaves the Pool except by being housed. Internal generation is a door into the Pool exactly as a gate kind is, and a Pool with a door and no give-up rule grows without bound, which adr/0006 forbids. State how long a Household keeps looking, in Days. adr/0011 wants this anyway: an unaffordable city failing to house its own children is what makes retention a reading.
+omit-jobs: accepted=True, kinds=3
+omit-households: accepted=True, kinds=3
+omit-lattice: accepted=True, kinds=3
+omit-districts: accepted=True, kinds=3
+omit-hinterland: accepted=False
+plans/evidence/ruleset-viability/study-generated/omit-hinterland.toml:200: 'sundries' is a good and no [[hinterland]] gives it a price, in a file that states [districts]. A District opens a Pool for every good and the Hinterland's price is the only ceiling on what that Pool can charge, so an unpriced good is not merely unanchored -- it is free everywhere, for ever. Add a prices entry for it to some [[hinterland]], or delete the [districts] table.
+plans/evidence/ruleset-viability/study-generated/omit-hinterland.toml:200: 'repairs' is a good and no [[hinterland]] gives it a price, in a file that states [districts]. A District opens a Pool for every good and the Hinterland's price is the only ceiling on what that Pool can charge, so an unpriced good is not merely unanchored -- it is free everywhere, for ever. Add a prices entry for it to some [[hinterland]], or delete the [districts] table.
+omit-market: accepted=True, kinds=3
+omit-needs: accepted=False
+plans/evidence/ruleset-viability/study-generated/omit-needs.toml:232: shopping requires Trips, Needs, target_days > low_days and severe_need within the Need floor
+omit-shopping: accepted=True, kinds=3
+omit-income_tax: accepted=True, kinds=3
+omit-treasury: accepted=True, kinds=3
+omit-life_stage: accepted=True, kinds=3
+lean: accepted=True, kinds=3
+growth-c1-g1-v1-s1: accepted=True, kinds=2
+growth-c2-g1-v1-s1: accepted=True, kinds=3
+growth-c4-g1-v1-s1: accepted=True, kinds=5
+growth-c4-g2-v1-s1: accepted=True, kinds=6
+growth-c4-g4-v1-s1: accepted=True, kinds=8
+growth-c4-g2-v2-s1: accepted=True, kinds=10
+growth-c4-g2-v4-s1: accepted=True, kinds=18
+growth-c4-g2-v1-s4: accepted=True, kinds=6
+growth-c4-g2-v1-s8: accepted=True, kinds=6
+prototype: accepted=True, kinds=4
+prototype-tuned: accepted=True, kinds=4
+evolve-add-good-recipe: pinned original preserved; adopted=True, reloads=1, degradation=RulesetDegradation { BuildingsDerelicted = 0, BinsDropped = 0, RuleInstancesRearmed = 777, IsNothing = False }
+evolve-add-good-recipe: save and 256-Tick continuation passed
+evolve-add-kind: pinned original preserved; adopted=True, reloads=1, degradation=RulesetDegradation { BuildingsDerelicted = 0, BinsDropped = 0, RuleInstancesRearmed = 774, IsNothing = False }
+evolve-add-kind: save and 256-Tick continuation passed
+evolve-add-policy: pinned original preserved; adopted=True, reloads=1, degradation=RulesetDegradation { BuildingsDerelicted = 0, BinsDropped = 0, RuleInstancesRearmed = 774, IsNothing = False }
+evolve-add-policy: save and 256-Tick continuation passed
+evolve-comment: pinned original preserved; adopted=True, reloads=1, degradation=RulesetDegradation { BuildingsDerelicted = 0, BinsDropped = 0, RuleInstancesRearmed = 0, IsNothing = True }
+evolve-comment: save and 256-Tick continuation passed
+evolve-opening-balance: refused without changing State Hash or content: this world was founded with a treasury of 4194304 and the reloaded Ruleset states 4194305. An opening balance is money issued at world creation (adr/0015), so applying it again would mint into a city that has already spent what it was founded with.
+evolve-remove-kind: pinned original preserved; adopted=True, reloads=1, degradation=RulesetDegradation { BuildingsDerelicted = 1, BinsDropped = 0, RuleInstancesRearmed = 774, IsNothing = False }
+evolve-remove-kind: save and 256-Tick continuation passed
+evolve-rename-good: pinned original preserved; adopted=True, reloads=1, degradation=RulesetDegradation { BuildingsDerelicted = 0, BinsDropped = 0, RuleInstancesRearmed = 774, IsNothing = False }
+evolve-rename-good: save and 256-Tick continuation passed
+evolve-rename-kind: pinned original preserved; adopted=True, reloads=1, degradation=RulesetDegradation { BuildingsDerelicted = 1, BinsDropped = 0, RuleInstancesRearmed = 774, IsNothing = False }
+evolve-rename-kind: save and 256-Tick continuation passed
+evolve-shared-consumption: pinned original preserved; adopted=True, reloads=1, degradation=RulesetDegradation { BuildingsDerelicted = 0, BinsDropped = 0, RuleInstancesRearmed = 0, IsNothing = True }
+evolve-shared-consumption: save and 256-Tick continuation passed
+evolve-wage: pinned original preserved; adopted=True, reloads=1, degradation=RulesetDegradation { BuildingsDerelicted = 0, BinsDropped = 0, RuleInstancesRearmed = 0, IsNothing = True }
+evolve-wage: save and 256-Tick continuation passed
+Original packaged save: independent of all candidate files; 256-Tick old-content continuation passed.

@@ -1,0 +1,27 @@
+{
+  "consume_every_ticks": 256,
+  "source_every_ticks": 8,
+  "goods": [
+    {
+      "name": "produce",
+      "daily_use": 32,
+      "home_days": 4,
+      "output_per_firing": 8,
+      "producer_capacity": 1024
+    },
+    {
+      "name": "food",
+      "daily_use": 32,
+      "home_days": 4,
+      "output_per_firing": 8,
+      "producer_capacity": 1024,
+      "input": "produce"
+    }
+  ],
+  "consumers": [
+    "home_a",
+    "home_b"
+  ],
+  "variants": 1,
+  "life_stages": 1
+}

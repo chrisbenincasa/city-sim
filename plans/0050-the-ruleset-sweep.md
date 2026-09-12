@@ -6,7 +6,7 @@ settled the test on 2026-08-25 and did not apply it; its own Consequences say
 [`0012`](0012-corpus-audit.md) holds the specification and asks for **a count first**.
 
 This is the historical sweep completed on 2026-09-01. Its counts describe that revision;
-[the base-game viability investigation](base-game-ruleset-viability.md) checks current authoring
+[the base-game viability investigation](0075-base-game-ruleset-viability.md) checks current authoring
 and connected gameplay. [PROCESS.md](../PROCESS.md) owns workflow.
 
 ---

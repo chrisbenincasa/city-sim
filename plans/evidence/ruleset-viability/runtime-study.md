@@ -1,24 +1,8 @@
-# Base-game Ruleset viability
-
-## Verdict
-
-**TOML is viable for authoring and tuning the first connected gameplay slice. Today's
-mechanisms and content do not yet constitute a coherent base-game founding Ruleset.**
-Keep the existing interpreter and loader. Author one compact gameplay file, with a circuit
-report and controlled comparisons; a DSL is not a founding prerequisite. The required work
-is chiefly explicit supply/funding/founding mechanisms and connected calibration.
-
-This is a scoping result, not completion of the first playable or whole-money-circuit
-acceptance world. Three 56-Day runs on one seed show a meaningful economic response and
-expose failure; they do not demonstrate steady state, a balanced city, or all city systems.
-The recommended durable workflow is [Ruleset authoring](../docs/ruleset-authoring.md).
-
-Investigation: `ruleset-viability`, base `c38f081`, 2026-09-12. Row 31 remains owned by
-`worktree-row-31-attracts-people`; no changes from that tree were imported or modified.
+# Runtime composition evidence for plan 0075
 
 ## What was authored and exercised
 
-[connected.toml](evidence/ruleset-viability/connected.toml) combines the shopping, wages,
+[connected.toml](connected.toml) combines the shopping, wages,
 income tax and shopfront rates of `taxing.toml` with the teaching trade, school, grant,
 treasury and Life Stages of `funded.toml`. It omits taxing's four Policies, profit tax and
 pollution emission Rule, retains its fixed shopfront rates Rule, and uses funded's floor
@@ -38,7 +22,7 @@ have no supplier, grocers have no bankruptcy threshold, and private construction
 charged through a founding capital/Materials flow. The runner seeds land and residents.
 None of these shortcuts is presented as a sustainable city or paid Outside supply.
 
-[Program.cs](evidence/ruleset-viability/Program.cs) generates two variants from the single
+[Program.cs](Program.cs) generates two variants from the single
 source file. The first changes the teaching wage from 4,096 to 8,192; the second also changes
 the daily per-job grant from 4,096 to 8,192. These are **one and two scalar edits**, respectively,
 with no interpreter or production-source change. Variants are generated evidence, not three
@@ -90,8 +74,11 @@ placement, so its trajectory is separate from the command-based three-way compar
 It reports access and attendance but does not establish educational progression: the file
 has no `[schooling]` pipeline.
 
+Captured TOML comments retain the original unnumbered report filename so their recorded
+content hashes remain valid. This numbered plan owns the report.
+
 The raw daily trajectories, input variants and loader responses are in
-[evidence/ruleset-viability/results](evidence/ruleset-viability/results/).
+[evidence/ruleset-viability/results](results/).
 
 ## Authoring friction and diagnostics
 
@@ -124,8 +111,8 @@ A semantic census of the **49** shipped TOMLs (ignoring comments and key order) 
 | jobs | 49 | 2 | 48 |
 
 This measures duplication, not wasted designer controls. Distinct demonstrations may need
-identical settings. It supports avoiding copied whole fixtures as the gameplay authoring
-strategy. It does **not** measure human editing time or prove a new DSL would help.
+identical settings. It supports avoiding copied whole fixtures, but does not test the complexity
+inside one coherent Ruleset. It does **not** measure human editing time or decide the DSL question.
 
 ## Historical claims checked
 
@@ -139,8 +126,8 @@ strategy. It does **not** measure human editing time or prove a new DSL would he
   production caller is obsolete; the shell's zoning command is implemented.
 - **Deferred DSL:** the interpreter boundary still permits another input format, but the
   observed problems are copied content, cross-mechanism understanding and absent mechanisms.
-  A parser would not supply those mechanisms. A 300-line connected file is workable; this
-  says nothing conclusive about the readability of the eventual full gameplay corpus.
+  A parser would not supply those mechanisms. The connected file was assembled with implementation knowledge; its
+  length does not establish whether a human can author or maintain the game.
 
 ## Concrete prerequisites and ownership
 
@@ -152,8 +139,8 @@ strategy. It does **not** measure human editing time or prove a new DSL would he
 | Coherent arrivals and demographic horizon | 0073 owns autonomous prospects, Outside stock/recovery, income/rent affordability, queue/quota and gate commands. Integrate its completed implementation; do not use old `welcomed.toml` arrivals as proof. Tune sufficient housing/job slack and opening purse against consumption/pay cadence. | Row 31, then first playable founding loop |
 | Explain connected balance outcomes | Report payroll, employer solvency, purchases/deliveries, Needs, grant coverage, estate transfers and treasury flows in one world. Demonstrate shortage and player-led recovery, with replay/save checks. | Whole-money-circuit acceptance; first playable founding loop |
 
-The proposed composition step and richer authoring report are scoped under the existing
-Ruleset-authoring and tuner work. They are not blanket gates on starting a playable file.
+The author-facing recommendation and its evidence are in [plan 0075](../../0075-base-game-ruleset-viability.md).
+The existing Ruleset-authoring and tuner entries own implementation and product integration.
 No conclusion here requires building every deferred city system or the complete production tree.
 
 ## Reproduction and validation
@@ -189,8 +176,8 @@ The full instrument suite was not run: this investigation is not a playable mile
 Two further transitions were encoded with `InputLogCodec`: wage-only at Day 2 and matched
 grant at Day 4. Both applied, the effective wage and grant were checked, and two replays
 matched every 64 Ticks through Day 8 with end-of-run invariants. The retained
-[Input Log](evidence/ruleset-viability/results/reload.borough) names all three content hashes;
-[reload.txt](evidence/ruleset-viability/results/reload.txt) holds the final hash and result.
+[Input Log](results/reload.borough) names all three content hashes;
+[reload.txt](results/reload.txt) holds the final hash and result.
 This exercises the session path, not the specialised dumps' known reload omission.
 
 ## Driven observation
@@ -206,12 +193,12 @@ godot --path src/Borough.Godot -- --ruleset plans/evidence/ruleset-viability/con
 ```
 
 The script places the school at Tick 1 and selects its interior at Tile (69,69).
-[At Tick 2](evidence/ruleset-viability/results/placed.txt), it has one teaching Business,
+[At Tick 2](results/placed.txt), it has one teaching Business,
 zero of five posts filled and zero places on a floor built for 32. At Tick 2,304 the
-[readout](evidence/ruleset-viability/results/staffed.txt) and
-[screenshot](evidence/ruleset-viability/results/staffed.png) show five of five posts filled
+[readout](results/staffed.txt) and
+[screenshot](results/staffed.png) show five of five posts filled
 and 32 places. The budget strip reads 3,944,448; the readout also reports eight shopping
-Households and 192 Goods being carried. The [compressed draw list](evidence/ruleset-viability/results/staffed.tsv.gz)
+Households and 192 Goods being carried. The [compressed draw list](results/staffed.tsv.gz)
 contains 52 Buildings, matching the readout; Building 49 is the school. No asset was authored.
 
 What observation exposed: selecting the frontage Tile picks the Street; selecting inside

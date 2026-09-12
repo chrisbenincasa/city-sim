@@ -239,19 +239,24 @@ Parked because it is **mechanically redundant**: a city that fixes its housing s
 
 ## A purpose-built DSL for the Ruleset
 
-**Status:** deferred; use TOML and the [authoring workflow](ruleset-authoring.md).
-**Retrofit cost:** the parser boundary is separate from Core, but a new language still needs
-validation, source locations, editor support, stable identity/order and reproducible hashing.
+**Status:** representation choice follows the [human authoring viability investigation](../plans/0075-base-game-ruleset-viability.md).
+TOML remains the implemented input format; no new parser is selected.
 
-The [viability experiment](../plans/base-game-ruleset-viability.md) composes a connected
-shopping, wage, tax and public-school slice in one TOML file. A wage change takes one value;
-matching its grant takes another. The measured duplication is primarily repeated shared tables
-across demonstration files. This supports trying one canonical gameplay file and, when needed,
-TOML composition before paying for a parser and tooling ecosystem. It does not establish the
-readability of a full gameplay corpus.
+The connected experiment verifies runtime composition, not whether a human can assemble the
+game by hand. Its small size and wage/grant edits do not settle this decision. The observed
+burden includes implicit ownership and mechanism activation, distributed content dependencies,
+manual derivation of related quantities and diagnosis that requires C# knowledge. Sharing
+common TOML fragments addresses only part of that burden.
 
-**Trigger:** measured content iteration is still obstructed by TOML syntax or expression limits
-after simpler organisation/composition measures. Missing simulation mechanisms are separate work.
+**Next decision:** validate the recommended reusable domain definitions and explicit relationships
+through an independent author handoff, comparing raw TOML and the prototype on the same chain, variant,
+rebalance and diagnosis tasks. Choose the authoring model first; a TOML-based layer, DSL or
+structured editor may express it. Judge mechanical work, understanding, errors and maintenance,
+not just file length or whether the simulation runs. See [authoring requirements](ruleset-authoring.md).
+
+**Cost:** a new language needs validation, source locations, editor support, stable identity/order
+and reproducible hashing. These costs matter, but do not establish that hand-authoring the raw
+runtime representation is cheaper for creating the game.
 
 ---
 

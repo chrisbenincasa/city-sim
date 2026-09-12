@@ -1,0 +1,345 @@
+[
+  {
+    "file": "aged.toml",
+    "rules": 3,
+    "kinds": 1,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "banded.toml",
+    "rules": 5,
+    "kinds": 2,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "bordered.toml",
+    "rules": 3,
+    "kinds": 2,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "care.toml",
+    "rules": 3,
+    "kinds": 4,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "choosy.toml",
+    "rules": 3,
+    "kinds": 1,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "chosen.toml",
+    "rules": 3,
+    "kinds": 1,
+    "resources": 3,
+    "policies": 2
+  },
+  {
+    "file": "coastal.toml",
+    "rules": 3,
+    "kinds": 1,
+    "resources": 4,
+    "policies": 0
+  },
+  {
+    "file": "congested.toml",
+    "rules": 3,
+    "kinds": 1,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "crowded.toml",
+    "rules": 3,
+    "kinds": 2,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "declining-tuned.toml",
+    "rules": 3,
+    "kinds": 1,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "declining.toml",
+    "rules": 3,
+    "kinds": 1,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "diagnosed.toml",
+    "rules": 4,
+    "kinds": 1,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "evicted.toml",
+    "rules": 1,
+    "kinds": 1,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "flooded.toml",
+    "rules": 3,
+    "kinds": 1,
+    "resources": 4,
+    "policies": 0
+  },
+  {
+    "file": "fouled.toml",
+    "rules": 4,
+    "kinds": 1,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "founded.toml",
+    "rules": 3,
+    "kinds": 1,
+    "resources": 3,
+    "policies": 2
+  },
+  {
+    "file": "funded.toml",
+    "rules": 2,
+    "kinds": 2,
+    "resources": 2,
+    "policies": 1
+  },
+  {
+    "file": "gridded.toml",
+    "rules": 3,
+    "kinds": 1,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "hungry.toml",
+    "rules": 1,
+    "kinds": 1,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "insolvent.toml",
+    "rules": 5,
+    "kinds": 2,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "levied.toml",
+    "rules": 3,
+    "kinds": 1,
+    "resources": 3,
+    "policies": 3
+  },
+  {
+    "file": "maintained.toml",
+    "rules": 4,
+    "kinds": 1,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "minimal-tuned.toml",
+    "rules": 3,
+    "kinds": 1,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "minimal.toml",
+    "rules": 3,
+    "kinds": 1,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "neighbourhood.toml",
+    "rules": 3,
+    "kinds": 1,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "oversupplied.toml",
+    "rules": 5,
+    "kinds": 2,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "pictured.toml",
+    "rules": 7,
+    "kinds": 3,
+    "resources": 4,
+    "policies": 1
+  },
+  {
+    "file": "platted.toml",
+    "rules": 5,
+    "kinds": 2,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "priced-out.toml",
+    "rules": 3,
+    "kinds": 1,
+    "resources": 3,
+    "policies": 2
+  },
+  {
+    "file": "profile-services.toml",
+    "rules": 5,
+    "kinds": 5,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "provisioned.toml",
+    "rules": 5,
+    "kinds": 2,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "raised.toml",
+    "rules": 3,
+    "kinds": 1,
+    "resources": 3,
+    "policies": 2
+  },
+  {
+    "file": "restless-fed.toml",
+    "rules": 2,
+    "kinds": 1,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "restless.toml",
+    "rules": 2,
+    "kinds": 1,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "scarce.toml",
+    "rules": 3,
+    "kinds": 1,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "scheduled-school.toml",
+    "rules": 3,
+    "kinds": 2,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "schooled.toml",
+    "rules": 3,
+    "kinds": 2,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "schooling.toml",
+    "rules": 6,
+    "kinds": 7,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "severance.toml",
+    "rules": 3,
+    "kinds": 1,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "shopping.toml",
+    "rules": 5,
+    "kinds": 2,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "stress-shopping.toml",
+    "rules": 5,
+    "kinds": 2,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "taxed.toml",
+    "rules": 3,
+    "kinds": 1,
+    "resources": 3,
+    "policies": 2
+  },
+  {
+    "file": "taxing.toml",
+    "rules": 6,
+    "kinds": 2,
+    "resources": 3,
+    "policies": 4
+  },
+  {
+    "file": "tenanted.toml",
+    "rules": 3,
+    "kinds": 1,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "thinned.toml",
+    "rules": 3,
+    "kinds": 1,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "twinned.toml",
+    "rules": 3,
+    "kinds": 1,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "varied.toml",
+    "rules": 3,
+    "kinds": 1,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "waged.toml",
+    "rules": 5,
+    "kinds": 2,
+    "resources": 3,
+    "policies": 0
+  },
+  {
+    "file": "welcomed.toml",
+    "rules": 3,
+    "kinds": 2,
+    "resources": 3,
+    "policies": 0
+  }
+]

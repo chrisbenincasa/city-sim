@@ -11,6 +11,11 @@ using Borough.Formats;
 
 // Research instrument: fixture size and experiment schedule are not Ruleset controls.
 string directory = args.Length > 0 ? args[0] : "plans/evidence/ruleset-viability";
+if (args.Length > 1 && args[1] == "--content")
+{
+    ContentProbe.Run(directory);
+    return;
+}
 string text = File.ReadAllText(Path.Combine(directory, "connected.toml"));
 string expensive = text.Replace("name = \"teaching\"\nwage_per_day    = 4096",
     "name = \"teaching\"\nwage_per_day    = 8192", StringComparison.Ordinal);

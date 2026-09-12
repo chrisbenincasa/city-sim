@@ -1,0 +1,178 @@
+{
+  "measurements": [
+    {
+      "name": "lean",
+      "group": "bootstrap",
+      "rules": 4,
+      "kinds": 3,
+      "references": 21,
+      "scalar_fields": 198
+    },
+    {
+      "name": "growth-c1-g1-v1-s1",
+      "group": "growth",
+      "consumers": 1,
+      "goods": 1,
+      "variants": 1,
+      "stages": 1,
+      "rules": 3,
+      "kinds": 2,
+      "references": 12,
+      "scalar_fields": 117
+    },
+    {
+      "name": "growth-c2-g1-v1-s1",
+      "group": "growth",
+      "consumers": 2,
+      "goods": 1,
+      "variants": 1,
+      "stages": 1,
+      "rules": 5,
+      "kinds": 3,
+      "references": 18,
+      "scalar_fields": 141
+    },
+    {
+      "name": "growth-c4-g1-v1-s1",
+      "group": "growth",
+      "consumers": 4,
+      "goods": 1,
+      "variants": 1,
+      "stages": 1,
+      "rules": 9,
+      "kinds": 5,
+      "references": 30,
+      "scalar_fields": 189
+    },
+    {
+      "name": "growth-c4-g2-v1-s1",
+      "group": "growth",
+      "consumers": 4,
+      "goods": 2,
+      "variants": 1,
+      "stages": 1,
+      "rules": 18,
+      "kinds": 6,
+      "references": 60,
+      "scalar_fields": 302
+    },
+    {
+      "name": "growth-c4-g4-v1-s1",
+      "group": "growth",
+      "consumers": 4,
+      "goods": 4,
+      "variants": 1,
+      "stages": 1,
+      "rules": 36,
+      "kinds": 8,
+      "references": 120,
+      "scalar_fields": 528
+    },
+    {
+      "name": "growth-c4-g2-v2-s1",
+      "group": "growth",
+      "consumers": 4,
+      "goods": 2,
+      "variants": 2,
+      "stages": 1,
+      "rules": 34,
+      "kinds": 10,
+      "references": 108,
+      "scalar_fields": 486
+    },
+    {
+      "name": "growth-c4-g2-v4-s1",
+      "group": "growth",
+      "consumers": 4,
+      "goods": 2,
+      "variants": 4,
+      "stages": 1,
+      "rules": 66,
+      "kinds": 18,
+      "references": 204,
+      "scalar_fields": 854
+    },
+    {
+      "name": "growth-c4-g2-v1-s4",
+      "group": "growth",
+      "consumers": 4,
+      "goods": 2,
+      "variants": 1,
+      "stages": 4,
+      "rules": 18,
+      "kinds": 6,
+      "references": 60,
+      "scalar_fields": 311
+    },
+    {
+      "name": "growth-c4-g2-v1-s8",
+      "group": "growth",
+      "consumers": 4,
+      "goods": 2,
+      "variants": 1,
+      "stages": 8,
+      "rules": 18,
+      "kinds": 6,
+      "references": 60,
+      "scalar_fields": 323
+    },
+    {
+      "name": "prototype",
+      "group": "prototype",
+      "rules": 10,
+      "kinds": 4,
+      "references": 37,
+      "scalar_fields": 213
+    },
+    {
+      "name": "prototype-tuned",
+      "group": "prototype",
+      "rules": 10,
+      "kinds": 4,
+      "references": 37,
+      "scalar_fields": 213
+    }
+  ],
+  "one_intent_edit_expansion": [
+    {
+      "path": "/building/2/bins/1/capacity",
+      "before": 128,
+      "after": 192
+    },
+    {
+      "path": "/building/3/bins/1/capacity",
+      "before": 128,
+      "after": 192
+    },
+    {
+      "path": "/rule/4/inputs/0/amount",
+      "before": 4,
+      "after": 6
+    },
+    {
+      "path": "/rule/4/outputs/0/amount",
+      "before": 4,
+      "after": 6
+    },
+    {
+      "path": "/rule/5/inputs/0/amount",
+      "before": 4,
+      "after": 6
+    },
+    {
+      "path": "/rule/8/inputs/0/amount",
+      "before": 4,
+      "after": 6
+    },
+    {
+      "path": "/rule/8/outputs/0/amount",
+      "before": 4,
+      "after": 6
+    },
+    {
+      "path": "/rule/9/inputs/0/amount",
+      "before": 4,
+      "after": 6
+    }
+  ]
+}

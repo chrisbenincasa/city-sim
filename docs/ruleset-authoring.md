@@ -1,11 +1,24 @@
 # Authoring a gameplay Ruleset
 
-Use TOML with the existing loader, generated schema and key reference. Keep the first
-playable Ruleset in one file, organised by Resources, trades, Building kinds, Rules,
-Zone Rules, Policies and shared parameters. Give each authored value its unit and each
-intentional source, sink or fixture shortcut a short explanation. The
-[viability investigation](../plans/base-game-ruleset-viability.md) contains the evidence
-and the founding prerequisites; its experimental Ruleset is not base-game content.
+The current TOML exposes the simulation's execution definitions. The workflow below helps a
+developer investigate them; **it has not been validated as a human's whole-game authoring
+workflow**. The [viability investigation](../plans/0075-base-game-ruleset-viability.md) recommends
+reusable domain definitions and explicit relationships, followed by an independent author handoff.
+A compact file, successful run or schema completion does not establish
+that its dependencies and implicit behaviour are manageable by hand.
+
+The first requirements are bounded upfront specification, manageable growth in content and a
+supported evolution path once cities are saved. Readability and mechanical editing cost matter,
+but an editor or DSL cannot establish those properties by itself. Determine which behaviours
+are independently authored, shared, derived or handled by a general mechanism, then assess how
+Goods, Building kinds, recipes and variants combine. Measure expanded definitions as well as
+what a person types. Preserve deliberate design choices and explicit exceptions.
+
+Saved cities currently embed their TOML. Changing today's file therefore does not by itself
+invalidate their content hash; they still load their pinned content on a compatible build.
+Upgrading those cities is a separate compatibility task. The authoring model needs a policy for
+stable identity, supported changes and migrations; hashes do not require designing all content
+before the first save. See [0075's save boundary](../plans/0075-base-game-ruleset-viability.md#3-live-saves-and-content-evolution).
 
 ## Work from the circuit
 
@@ -69,20 +82,33 @@ Use a fresh run for changes to frozen world geometry/layer contracts. For suppor
 retain every exact Ruleset used: comments and whitespace affect the content hash. Read
 [the golden procedure](../tests/Borough.Tests/Golden/README.md) before changing golden inputs.
 
-## Scale only when needed
+## Recommended author-facing model
 
-Do not compose gameplay by copying entire demonstration Rulesets. Their different failure
-conditions are intentional, and their commentary can describe historical behaviour. The
-loader and tests establish what runs now.
+A candidate surface should let an author:
 
-One compact gameplay file needs no new language. If several maintained gameplay variants
-make repeated sections costly, first consider a small deterministic TOML composition step:
-named shared fragments and explicit overrides, duplicate-name refusal, stable declaration
-order, flattened output and source locations in diagnostics. Keep that step outside Core and
-hash the runtime TOML through Formats. This is a proposal, not existing include syntax or a
-new implementation prerequisite.
+- Define a Good's consumption, recipes, owners and supply paths together, and see missing links.
+- Express quantities with their units and intentional relations, such as four Days of storage,
+  while inspecting the integer capacities and firing schedules they expand into.
+- Share a consumption or service definition across Building kinds, with explicit local overrides.
+- Distinguish design choices from derived consequences: grant coverage need not equal payroll,
+  but its relationship to posts, workers and pay periods should be visible before a run.
+- See which actor executes each Rule and which mechanism takes over its behaviour.
+- Inspect the resulting dependency graph and connected economic report using content names,
+  with errors pointing back to the authoring source.
 
-Revisit a DSL when measured content work shows that TOML's syntax or missing expressions
-obstruct iteration after these simpler measures. A DSL cannot supply missing trade, labour or
-founding mechanisms. Keep fixture sizing in the instrument under
+These are requirements for the authoring prototype, not implemented product syntax. The bounded
+[research expander](../plans/evidence/ruleset-viability/content-study.py) demonstrates shared
+maintenance but retains the expanded Rule count; it is not a supported content format. Expansion must preserve deterministic
+identity/order and produce a Ruleset accepted by the existing loader. Its output must remain
+inspectable; hiding contradictory assumptions behind a generator would not solve the problem.
+
+Extend the bounded prototype through 0075's independent author handoff, including growth,
+maintenance, diagnosis and saved-city evolution. Track expanded Rules and explicit exceptions
+as well as authored choices. TOML with reusable domain definitions, a DSL and a
+structured editor are candidates. Includes alone reduce repeated text but do not preserve
+relationships, explain implicit ownership or make balance legible.
+
+Do not require all simulation mechanisms before testing authoring, and do not use their absence
+to dismiss the authoring problem. Runtime capability and human assembly cost need separate
+verdicts. Keep fixture sizing in the instrument under
 [ADR 0164](adr/0164-a-ruleset-key-is-designer-facing-or-it-belongs-in-the-instrument.md).
