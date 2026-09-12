@@ -388,6 +388,54 @@ of that gap is stated in *What is parked, and why* rather than left for a later 
 
 **Rows below the Segment-volume line were added 2026-08-15 by a sweep of the whole corpus** — the ADRs, `CONTEXT.md`, `00`–`05` and `plans/` — run because *the choice model was invisible to this table for its whole life* and nobody had asked what else was. Twenty-one rows came back. **The sweep is a snapshot and not an instrument**: nothing generates this list, so it must be re-run rather than trusted, and the second and third blind spots above are what it was correcting for.
 
+### Systems this corpus has never named
+
+**The two tables above both have entry conditions, and neither can hold a system nobody has thought
+of.** *Mechanisms with no milestone* needs an ADR to have settled the mechanism. *Mechanisms nothing
+designs* needs a sitting to have walked into the absence. A system the project has simply never
+considered passes through both.
+
+⚠ **This table was generated, which is what the section above says of itself it cannot be.** A sweep
+on **2026-09-11** took a standard city-builder system taxonomy and checked every entry against all of
+`docs/`, `plans/`, `CONTEXT.md`, `PROCESS.md`, `rulesets/` and the doc-comments under `src/` and
+`tests/`. **Most of the taxonomy came back discussed** — utilities, transit, freight, crime, fire,
+waste, forestry, agriculture, unemployment, rent, gentrification, difficulty and the rest each have a
+standing somewhere. What is below is what did not.
+
+⚠ **A row here is not a proposal and carries no standing.** It says a system is absent and names what
+it would attach to, so the next sitting can classify it under [`adr/0070`](adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md)
+rather than rediscover it. **The sweep is repeatable and the taxonomy is not this document's**, so
+this table goes stale the way any other does.
+
+| System | What it would attach to | Why it would matter here |
+|---|---|---|
+| **Death care — cemeteries, crematoria** | `adr/0011`'s dissolving Household; `adr/0006`'s sink rule | A Household ends and consumes no land, makes no Trip and needs no Service. It is the one sink in the design with no physical cost |
+| **Childcare and nurseries** | `CONTEXT.md` → Family and Mature Family; `adr/0026`'s labour | Every Service in the design gates a future Skill Tier or a present Need. This is the only one that would gate **present adult labour supply** |
+| **Elder care** | `CONTEXT.md` → Empty Nest | Empty Nest supplies no labour and consumes Needs, so the design already carries an ageing population's cost with no Service on the other side of it |
+| **Segregation, and a reading for it** | `adr/0027`'s per-Household preference; `02 §5.4`'s utility | The city will sort people spatially because those two mechanisms make it do so. There is no term for reading that, so the mechanism ships and the diagnosis does not |
+| **Public opinion, and anything a loser does short of leaving** | `CONTEXT.md` → Policy; `adr/0102`'s Departure | `CONTEXT.md` states no setting favours everyone. Departure is the only channel a loser has, so incidence is invisible until people are gone |
+| **Homelessness as a place** | `adr/0130`'s Unplaced Pool | Unhoused Households queue and then leave. The most legible urban failure has no place, no Trip and no picture |
+| **Road pricing and tolls** | `adr/0072`'s per-Segment properties; `01 §4`'s Govern | `adr/0072` has already located where a per-Segment toll would live. It is the one Govern lever that would act on the traffic model directly |
+| **Cycling** | `adr/0014`'s pedestrian graph; [`adr/0098`](adr/0098-a-citizen-travels-in-their-households-mode-and-mode-choice-is-undesigned-rather-than-unbuilt.md) | Severance is entirely a property of the foot graph. A third mode would make it a graded cost, and mode choice is undesigned, so the retrofit price is rising |
+| **On-map waste disposal** | `CONTEXT.md` → Waste; `adr/0088`'s Outside Connection | Waste's only sink is a price at the gate, so it is a balance-of-payments line. That is the failure `deferred.md` already names as the trigger for reopening sewage, on the other half of the same problem |
+| **Evening destinations** | [`adr/0101`](adr/0101-a-commute-is-two-journeys-and-the-days-shape-is-a-property-of-the-job.md); `adr/0152`'s Amenity | The Day's shape derives from job start hours alone, so the network has two peaks and a dead night |
+| **District heating** | `CONTEXT.md` → Utility | Named because it is the counterexample. `CONTEXT.md` claims one Utility abstraction distinguished only by storage capacity, and heat is distance-limited in a way District pooling cannot express |
+| **Land banking and withholding** | `adr/0022`'s Land as a spent stock; `02 §5.6`'s pro-forma | Withholding is what would make a finite stock adversarial. The development model has no actor who declines to build |
+| **Street lighting as a simulated quantity** | `adr/0030`'s Incident; `07 §5`'s lit windows | The shell already draws lit windows and safety is a Taste axis. This is the one system that would tie the drawing track to a simulated quantity, and today the two tracks touch nowhere |
+
+**Absent with nothing attached, recorded so the sweep does not have to run twice.** Prisons, courts,
+libraries, museums, ferries, cable cars, hotels, nightlife, wildlife and ecology, historic
+preservation, architectural era as a content axis, achievements, campaign mode, snow clearing, and
+birth-rate or immigration policy as player levers.
+
+**Named once and only as somebody else's game.** Landfill and incineration
+([`references.md`](references.md)'s prior-art survey), tourism ([`adr/0012`](adr/0012-routing-intent-lives-in-the-agent.md)'s
+tourist packs, cited as a failure to avoid), telecommunications ([`plans/0001`](../plans/0001-foundational-design.md)'s
+routing analogy), and modding ([`adr/0057`](adr/0057-dereliction-is-a-design-time-state-and-it-is-derived-rather-than-recorded.md), in
+an aside). ⚠ **A passing mention is not a standing**, and three of these four read as settled to a
+skim.
+
+
 ### Obligations no milestone can hold
 
 **Nothing below is a mechanism, so no row here can say *a milestone*.** They are collected because each is a real, named debt that the table above **cannot represent** — the third blind spot — and because three of them are the standing ratifier for numbers already baked into the build.
