@@ -70,7 +70,6 @@ public sealed class HouseholdTable
         // about the city rather than a break in the handle.
         University = _rows.SavedHandle(
             "university", buildings.Rows, reference: Reference.Severable);
-
         _rows.Seal();
     }
 
