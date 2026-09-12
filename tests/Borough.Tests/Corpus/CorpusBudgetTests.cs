@@ -84,9 +84,9 @@ public sealed class CorpusBudgetTests
     /// predicate, the drive grammar's two new verbs and their tests. <b>1,906,965 words over 36,063
     /// lines.</b>
     /// </para>
-    /// <para>Lowered from 52 to 41 on 2026-09-09, following the current integer reading.</para>
+    /// <para>Lowered to 39 on 2026-09-11, following the current integer reading.</para>
     /// </remarks>
-    private const int RatioCeiling = 41;
+    private const int RatioCeiling = 39;
 
     /// <summary>Words of prose per line of simulation at which the amnesty has done its job.</summary>
     /// <remarks>
