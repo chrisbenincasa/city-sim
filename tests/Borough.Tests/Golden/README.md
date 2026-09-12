@@ -662,3 +662,18 @@ change substantively is the ledger: the founding population is folded into `open
 `opening_city_households` on the first Tick of a session, and every birth, death, admission and
 departure after it lands in a counter beside them. ***So these baselines cover the account and not the
 stock***; the stock is covered by `HinterlandStockTests`, which builds `attracted.toml` directly.
+
+**Row 31 task 3 re-recorded the same three artefacts, for three columns rather than three tables.**
+`household` gained `arrived`, `arrival_edge` and `choice_identity` — where a family came from and
+whose preferences it holds — and `SaveHeader.Current` went `2 → 3`. In every artefact here all three
+fold zeroes on every row: no baseline Ruleset states `[[hinterland.population]]`, so nothing in these
+sessions is admitted through the stock path that writes them. ***A column of zeroes still moves the
+fold***, which is the whole reason this re-record exists and the reason a re-baseline is a signed act
+rather than a consequence.
+
+⚠ **The same commit moved the housing utility into one kernel and that moved nothing.**
+`PlacementEngine.Utility`, `TryOutside` and `Reassess`'s incumbent term now go through
+`Rules/HousingUtility.cs`, which adds a per-Life-Stage rent weight. A stage stating none carries 100,
+and at 100 the arithmetic is the same expression in the same rounding order — so if these files had
+moved for that reason it would have been a defect and not a re-baseline. What actually moved them is
+the three columns, and nothing else in this commit touches a shipped baseline world.

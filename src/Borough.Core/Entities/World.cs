@@ -2246,45 +2246,14 @@ public sealed class World
             return false;
         }
 
-        // FloorDiv rather than raw '/', which BOR0203 is an error for: a Tick count is unsigned and
-        // never crosses zero, so the two agree here -- but stating the rounding is the rule and the
-        // exception is not this method's to grant.
-        int day = (int)IntegerMath.FloorDiv((long)now.Raw, Ticks.PerDay);
-
-        // Lazily, rather than in a per-Day sweep: the reset is O(1) at the read site, costs nothing
-        // on the Buildings nobody arrives at -- which is all of them in nine of the ten shipped
-        // Rulesets -- and is right for a world loaded mid-Day, where a sweep that has already run
-        // would leave the meter counting a Day that has passed.
-        if (Buildings.ArrivalDay[gateSlot] != day)
-        {
-            Buildings.ArrivalDay[gateSlot] = day;
-            Buildings.ArrivalsToday[gateSlot] = 0;
-        }
-
-        if (Buildings.ArrivalsToday[gateSlot] >= ceiling)
+        if (!GateHasQuota(gateSlot, ceiling, now))
         {
             return false;
         }
 
-        Buildings.ArrivalsToday[gateSlot]++;
+        SpendArrivalQuota(gateSlot, now);
 
-        Handle<Household> handle = Households.Rows.Allocate();
-        int slot = Households.Rows.Resolve(handle);
-
-        Households.LifeStage[slot] = lifeStage;
-
-        // CreateHousehold's line, for its reason (adr/0114). Empty: what an emigrant carries is drawn
-        // from the Hinterland at task 5, and World.Endow is still the only door money enters by.
-        if (TryMoneyResource(out ResourceId money))
-        {
-            // adr/0143: the LIST is the saved truth and Balance is derived from it, so the append is
-            // the write that matters and the assignment is a derived column maintained at its write
-            // site -- the same shape as BuildingBins.InsertOrdered in CreateBin.
-            Handle<Bin> balance = OpenBalance(BinOwnerKind.Household, money);
-
-            AppendOwnerBin(Households.BinHead, Households.BinTail, slot, balance);
-            Households.Balance[slot] = balance;
-        }
+        int slot = OpenArrival(lifeStage, out Handle<Household> handle);
 
         // Money crosses here, which is MoneySupplyTable.Issued's second writer and the first thing in
         // this project that moves the supply after the founding. Endow is still the only door: it
@@ -2318,22 +2287,233 @@ public sealed class World
         Record(PopulationLedger.Admissions, citizens);
         Record(PopulationLedger.HouseholdsAdmitted, 1);
 
-        // The stage countdown starts when the Household does, and an arriving Household is no
-        // different from a founded one -- adr/0023's immigrants are Households like any other, and a
-        // stage clock that only ran for the locally born would make the Pool's composition a function
-        // of where its members came from.
-        ArmLifeStage(slot);
-
-        // The dwelling handle is left default by the allocator -- FreeSlot zeroes every column, so a
-        // recycled slot arrives unhoused rather than carrying its predecessor's address.
-        Invariants.Require(
-            UnplacedPool.Join(Households, handle, gate, now) == UnplacedPool.Count - 1,
-            Invariant.ThePoolAppendsInOrder,
-            slot);
+        JoinPoolAtGate(handle, slot, gate, now);
 
         household = handle;
 
         return true;
+    }
+
+    /// <summary>
+    /// Admits the family in <paramref name="prospect"/> through <paramref name="gate"/>, spending one
+    /// Household of the Outside stock it came from.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="TryArrive"/>'s door with a person behind it.</b> That one is handed a Life Stage
+    /// and a head count by its caller and invents the family on the spot; this one is handed the
+    /// family that already compared the city against home, and creates exactly it — the adults at the
+    /// Skill Tiers its group declares, the children it actually has, and the purse it was evaluated
+    /// with (<c>plans/0073</c> D7).
+    /// </para>
+    /// <para>
+    /// 🔴 <b>EVERY REFUSAL HAPPENS BEFORE THE FIRST WRITE, and that is the contract rather than the
+    /// implementation.</b> An admission moves stock, quota, population, money and the Unplaced Pool;
+    /// a refusal discovered halfway through would leave a world in which some of those had moved and
+    /// the family did not arrive, ***and nothing downstream could tell that from a city that admitted
+    /// somebody***. So the validations are a block and the writes are a block, and nothing between
+    /// them returns.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>An old Day's quota reads as zero-used and is not reset until the admission succeeds.</b>
+    /// Writing the reset during validation would make a refused attempt clear a meter, so a gate that
+    /// was full yesterday would admit its whole quota again after being asked by somebody it then
+    /// turned away.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Admission is not a promise of a home.</b> The Household joins the Pool like every other,
+    /// and it may stay unhoused, lose its gate, be evicted after placement or give up later. None of
+    /// those refunds an arrival — only an actual Departure puts anybody back behind an edge.
+    /// </para>
+    /// </remarks>
+    /// <param name="prospect">The family, its stock row and the purse it was evaluated with.</param>
+    /// <param name="gate">The Outside Connection it is being admitted through.</param>
+    /// <param name="now">The Tick the arrival happens on, which is what names the Day.</param>
+    /// <param name="household">The Household created, or a default handle on any refusal.</param>
+    /// <returns><see cref="Admission.Admitted"/>, or why not.</returns>
+    public Admission TryAdmitProspect(
+        in ArrivalProspect prospect,
+        Handle<Building> gate,
+        Ticks now,
+        out Handle<Household> household)
+    {
+        household = default;
+
+        if (!HinterlandPopulation.Rows.TryResolve(prospect.Group, out int group))
+        {
+            return Admission.GroupIsGone;
+        }
+
+        // The composition is carried on the prospect AND stored on the row, and they are checked
+        // against each other rather than one being trusted: a handle outlives a retirement, and a
+        // recycled slot holding a different composition would admit a family the Outside never had.
+        if (!HinterlandPopulation.Holds(group, prospect.Edge, prospect.Composition))
+        {
+            return Admission.ProspectIsNotOfThatGroup;
+        }
+
+        // Free and not Stock, so a Household already promised to a gate cannot also be drawn here.
+        if (HinterlandPopulation.Free(group) < 1)
+        {
+            return Admission.StockIsSpent;
+        }
+
+        if (!Buildings.Rows.TryResolve(gate, out int gateSlot)
+            || !TryArrivalsPerDay(Buildings.Kind[gateSlot], out int ceiling))
+        {
+            return Admission.GateAdmitsNobody;
+        }
+
+        // adr/0088: the edge selects the market. A gate on another edge opens onto another Hinterland
+        // altogether, and admitting through it would debit a stock nobody was standing in. A corner
+        // Lot reads as MapEdge.None and is refused here by the same comparison.
+        if (!Lots.Rows.TryResolve(Buildings.Lot[gateSlot], out int gateLot)
+            || EdgeOf(gateLot) != prospect.Edge)
+        {
+            return Admission.GateIsOnAnotherEdge;
+        }
+
+        if (!GateHasQuota(gateSlot, ceiling, now))
+        {
+            return Admission.GateIsFullToday;
+        }
+
+        SpendArrivalQuota(gateSlot, now);
+
+        int slot = OpenArrival(prospect.Stage, out Handle<Household> handle);
+
+        Households.Arrived[slot] = 1;
+        Households.ArrivalEdge[slot] = (byte)prospect.Edge;
+        Households.ChoiceIdentity[slot] = prospect.Identity;
+
+        // Exactly what the prospect was evaluated with, and not a redraw on the new Household's id.
+        // That seam is what made the old path's affordability test a statement about somebody else.
+        if (prospect.Purse.Raw > 0 && !Households.Balance[slot].IsNone)
+        {
+            Endow(handle, prospect.Purse);
+        }
+
+        HinterlandComposition who = prospect.Composition;
+
+        // Tier order, then children, so two runs building the same family lay its rows down in the
+        // same order -- the ids are folded into the State Hash and creation order is what sets them.
+        for (byte tier = SchoolingRuleset.FloorTier; tier <= SchoolingRuleset.TopTier; tier++)
+        {
+            for (int adult = 0; adult < who.AdultsAt(tier); adult++)
+            {
+                AddMember(handle, child: false, tier);
+            }
+        }
+
+        // Through AddMember and never through Bear. These children arrived; recording them as births
+        // would credit the city with a fertility it did not have, and adr/0023's finite stock is the
+        // thing that claim would be measured against.
+        for (int child = 0; child < who.Children; child++)
+        {
+            AddMember(handle, child: true);
+        }
+
+        Record(PopulationLedger.Admissions, who.Members);
+        Record(PopulationLedger.HouseholdsAdmitted, 1);
+
+        HinterlandPopulation.Stock[group]--;
+        HinterlandPopulation.Admitted[group]++;
+
+        int edgeSlot = HinterlandTable.SlotOf(prospect.Edge);
+
+        Hinterlands.AdmittedHouseholds[edgeSlot]++;
+        Hinterlands.AdmittedPeople[edgeSlot] += who.Members;
+
+        JoinPoolAtGate(handle, slot, gate, now);
+
+        household = handle;
+
+        return Admission.Admitted;
+    }
+
+    /// <summary>Whether this gate could take one more Household today, writing nothing.</summary>
+    /// <remarks>
+    /// <b>A meter belonging to a Day that has passed reads as zero-used.</b> The reset is lazy —
+    /// <c>O(1)</c> at the read site, costing nothing on the Buildings nobody arrives at, and right for
+    /// a world loaded mid-Day where a per-Day sweep that has already run would leave the meter
+    /// counting yesterday.
+    /// </remarks>
+    private bool GateHasQuota(int gateSlot, int ceiling, Ticks now) =>
+        Buildings.ArrivalDay[gateSlot] != DayOf(now)
+        || Buildings.ArrivalsToday[gateSlot] < ceiling;
+
+    /// <summary>Takes one of this gate's daily arrivals, rolling the meter over if it is stale.</summary>
+    private void SpendArrivalQuota(int gateSlot, Ticks now)
+    {
+        int day = DayOf(now);
+
+        if (Buildings.ArrivalDay[gateSlot] != day)
+        {
+            Buildings.ArrivalDay[gateSlot] = day;
+            Buildings.ArrivalsToday[gateSlot] = 0;
+        }
+
+        Buildings.ArrivalsToday[gateSlot]++;
+    }
+
+    /// <summary>
+    /// Which Day <paramref name="now"/> falls in.
+    /// </summary>
+    /// <remarks>
+    /// <b>FloorDiv rather than raw <c>/</c>, which <c>BOR0203</c> is an error for</b>: a Tick count is
+    /// unsigned and never crosses zero, so the two agree here — but stating the rounding is the rule
+    /// and the exception is not this method's to grant.
+    /// </remarks>
+    private static int DayOf(Ticks now) => (int)IntegerMath.FloorDiv((long)now.Raw, Ticks.PerDay);
+
+    /// <summary>Allocates an arriving Household and its empty balance, before anybody is in it.</summary>
+    /// <remarks>
+    /// <b>Shared by both doors so the two cannot drift</b>: a Household admitted with stock and one
+    /// admitted by an explicit instruction are the same kind of row, and a balance opened in one of
+    /// them and forgotten in the other would be a Household that cannot be paid.
+    /// </remarks>
+    private int OpenArrival(byte lifeStage, out Handle<Household> household)
+    {
+        household = Households.Rows.Allocate();
+
+        int slot = Households.Rows.Resolve(household);
+
+        Households.LifeStage[slot] = lifeStage;
+
+        // CreateHousehold's line, for its reason (adr/0114). Empty: what a family carries in is
+        // endowed by the caller, and World.Endow is still the only door money enters by.
+        if (TryMoneyResource(out ResourceId money))
+        {
+            // adr/0143: the LIST is the saved truth and Balance is derived from it, so the append is
+            // the write that matters and the assignment is a derived column maintained at its write
+            // site -- the same shape as BuildingBins.InsertOrdered in CreateBin.
+            Handle<Bin> balance = OpenBalance(BinOwnerKind.Household, money);
+
+            AppendOwnerBin(Households.BinHead, Households.BinTail, slot, balance);
+            Households.Balance[slot] = balance;
+        }
+
+        return slot;
+    }
+
+    /// <summary>Starts an arrival's stage clock and puts it in the Pool at the gate it came through.</summary>
+    /// <remarks>
+    /// <b>The stage countdown starts when the Household does</b>, and an arriving Household is no
+    /// different from a founded one — <c>adr/0023</c>'s immigrants are Households like any other, and
+    /// a stage clock that only ran for the locally born would make the Pool's composition a function
+    /// of where its members came from. ⚠ <b>The dwelling handle is left default by the allocator</b>:
+    /// <c>FreeSlot</c> zeroes every column, so a recycled slot arrives unhoused rather than carrying
+    /// its predecessor's address.
+    /// </remarks>
+    private void JoinPoolAtGate(
+        Handle<Household> household, int slot, Handle<Building> gate, Ticks now)
+    {
+        ArmLifeStage(slot);
+
+        Invariants.Require(
+            UnplacedPool.Join(Households, household, gate, now) == UnplacedPool.Count - 1,
+            Invariant.ThePoolAppendsInOrder,
+            slot);
     }
 
     /// <summary>
@@ -2452,7 +2632,15 @@ public sealed class World
         return AddMember(household, child: true);
     }
 
-    private Handle<Citizen> AddMember(Handle<Household> household, bool child)
+    /// <param name="household">The Household to add to.</param>
+    /// <param name="child">Whether this member is a child, which is what sets its age to zero.</param>
+    /// <param name="tier">
+    /// The Skill Tier the member starts at. <b>Only an arrival states one</b>: a founding adult was
+    /// schooled somewhere this simulation cannot see, which is exactly what the floor tier names,
+    /// and an imported child has no schooling anywhere yet.
+    /// </param>
+    private Handle<Citizen> AddMember(
+        Handle<Household> household, bool child, byte tier = SchoolingRuleset.FloorTier)
     {
         int householdSlot = Households.Rows.Resolve(household);
 
@@ -2462,10 +2650,9 @@ public sealed class World
         Citizens.HouseholdOf[slot] = household;
         Citizens.Age[slot] = child ? (ushort)0 : DrawAdultAge(slot);
 
-        // 1 and not 0, because there is no tier 0 (adr/0104) and a founding adult who was schooled
-        // somewhere this simulation cannot see is exactly the state tier 1 names. A zero here would
-        // be a tier below the floor, and every credential filter in the city would refuse it.
-        Citizens.SkillTier[slot] = SchoolingRuleset.FloorTier;
+        // Never 0, because there is no tier 0 (adr/0104): a zero would be a tier below the floor and
+        // every credential filter in the city would refuse it.
+        Citizens.SkillTier[slot] = tier;
 
         // 02 §10's per-Tick tier: O(changed), at the write site. A member list is small by
         // construction, so this is the cheap half of *no Citizen in two places* — complete within

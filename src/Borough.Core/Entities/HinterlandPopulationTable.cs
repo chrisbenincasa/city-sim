@@ -36,6 +36,20 @@ public readonly record struct HinterlandComposition(
     /// <summary>How many people one Household of this composition holds.</summary>
     public int Members => Adults + Children;
 
+    /// <summary>How many of this Household's adults hold <paramref name="tier"/>.</summary>
+    /// <remarks>
+    /// <b>So admission can create them in tier order</b> without three near-identical loops, which
+    /// is what makes the creation order a stated property rather than an accident of how the three
+    /// fields happen to be written out.
+    /// </remarks>
+    public int AdultsAt(byte tier) => tier switch
+    {
+        SchoolingRuleset.FloorTier => AdultsTier1,
+        2 => AdultsTier2,
+        SchoolingRuleset.TopTier => AdultsTier3,
+        _ => 0,
+    };
+
     /// <summary>The composition an authored entry states.</summary>
     public static HinterlandComposition Of(in HinterlandPopulationDefinition declared) =>
         new(

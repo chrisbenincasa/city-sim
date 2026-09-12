@@ -498,6 +498,37 @@ and have no caller in `src/`. So `CityPopulationIsAccounted` and `CityHouseholds
 whole-world equations over live rows, and there is no two-sided conservation law over city and Outside
 together until task 5 wires the credit. ***Half an account is not a conservation law.***
 
+**Task 3 added the three `HouseholdTable` columns, so `SaveHeader.Current` is 3 and all three golden
+artefacts were re-recorded.** `Arrived` is the presence flag D4 asks for and both columns beside it
+need one: zero is `MapEdge.North` and zero is a choice identity a draw can produce, so neither value
+can double as an absence. `HouseholdTable.TasteIdentity` is what both resident choice paths now draw
+on — the arrival's identity where there is one and the row's own monotonic id otherwise — which is
+identical to what they drew before in every world that has no stock.
+
+**The shared kernel is `Rules/HousingUtility.cs`, and a rent weight of 100 is bit-identical to the
+arithmetic it replaced.** `TryHouse`, `Reassess`, the Outside row and the prospect all go through
+`Worth`; `Taste` is the `2T − One` expression the first two duplicated. So the State Hash moved for
+the three columns and not for the kernel, and `attracted.toml` is the only file whose stages weigh
+rent at anything but neutral. ⚠ **The weight scales the rent *term* and never the money** — the
+affordability filter in `Consider` does not read it, and a stage at zero still cannot move into what
+it cannot afford.
+
+**`World.TryAdmitProspect` and the new `ProspectCrosses` overload have no caller in `src/`.** Task 4's
+engine and task 5's commands are what reach them; the legacy `TryArrive` and the anonymous
+`ProspectCrosses(int gate, …)` are untouched, which is what D8 requires of a stock-disabled world.
+⚠ **Two pieces of D7 are deliberately absent.** Admission requires *unreserved* stock
+(`Stock − Reserved ≥ 1`) and has no path for a caller presenting its own reservation, because nothing
+reserves yet; task 4 extends it alongside the queue, and admission must then decrement `Reserved` as
+well as `Stock`. The prospect *sequence* that makes an identity unique is task 4's too — task 3's
+`ArrivalProspect.Of` takes an identity rather than minting one.
+
+**The purse draw is `HinterlandDefinition.BandBalance` on a new `PurposeTag.ProspectPurse`; the
+candidate sample and the choice draw reuse `PlacementCandidate` and `ChoiceDraw`.** Reusing those two
+is `ChoiceDraw`'s own recorded argument — *one tag serves every consumer of the choice model, because
+the entity id already separates them* — and the purse needed its own for `EmigrantBalance`'s reason
+one level down: the same id takes the same fraction of whichever span it is given, so a shared tag
+would make the richest family in the low band the richest family in the high band.
+
 ### D12 — Ruleset surface, validation and reload
 
 Add `HinterlandPopulationRuleset.cs` for the new immutable definitions; thread them through

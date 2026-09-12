@@ -875,4 +875,25 @@ public enum PurposeTag : ulong
     /// </para>
     /// </remarks>
     ChoiceDraw = 53,
+
+    /// <summary>
+    /// What a prospect standing at a gate has in its pocket, drawn uniformly inside its stock
+    /// group's purse band.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Distinct from <see cref="EmigrantBalance"/> for that tag's own reason, one level down.</b>
+    /// That draw spans a Hinterland's whole authored range; this one spans a third of it, and the
+    /// same id takes the same fraction of whichever span it is given — so sharing would make the
+    /// richest family in the low band the richest family in the high band, which is a correlation
+    /// between a composition's key and its purse that nothing authored.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The two populations do not overlap either.</b> A world counting its Outside presents
+    /// prospects and never draws <see cref="EmigrantBalance"/>; a world that does not, does the
+    /// reverse. The tags are separate because the numbers would be wrong if they were shared, not
+    /// because the draws would collide.
+    /// </para>
+    /// </remarks>
+    ProspectPurse = 54,
 }

@@ -71,7 +71,12 @@ public readonly struct SaveHeader : IEquatable<SaveHeader>
     // ledger join the declaration set. A save written at version 1 is short by three tables, so it is
     // refused rather than migrated: nothing carries a save yet, and a partial read would restore a
     // world whose opening population figure was never written.
-    public const int Current = 2;
+    //
+    // 3: task 3 -- household gains arrived, arrival_edge and choice_identity. Where a family came
+    // from and whose preferences it holds cannot be derived from anything else in the file: the gate
+    // it crossed is demolishable and the identity it was drawn on belongs to nothing that is still a
+    // row. A version 2 save is short by those three columns and is refused for version 1's reason.
+    public const int Current = 3;
 
     private const ulong ByteOrderSentinel = 0x0102_0304_0506_0708UL;
 

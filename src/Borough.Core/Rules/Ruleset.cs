@@ -1859,6 +1859,45 @@ public readonly record struct HinterlandDefinition(
 
         return EmigrantBalanceMin + new Money((long)(draw % (ulong)span));
     }
+
+    /// <summary>
+    /// What a prospect from <paramref name="band"/> carries, drawn once and carried through.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="EmigrantBalance"/> narrowed to a third of the range</b>, because a stock group
+    /// is keyed by which third its Households carry (<c>plans/0073</c> D1) and drawing over the whole
+    /// range would file a family in one band and endow it out of another.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>This is the amount the city is compared against AND the amount that arrives.</b> The old
+    /// prospect path drew a purse to test affordability and the admitted Household drew its own, so a
+    /// family that could afford to come was not the family that came. Here the draw happens once on
+    /// the prospect's choice identity and <c>World.TryAdmitProspect</c> endows exactly it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A band the range does not hold returns its floor.</b> The loader refuses a stock group
+    /// naming one (<see cref="DeclaresBand"/>), so reaching this is a returned composition whose band
+    /// was computed against a range that has since been retuned.
+    /// </para>
+    /// </remarks>
+    /// <param name="key">The world seed.</param>
+    /// <param name="entityId">The prospect's choice identity, which the Household then keeps.</param>
+    /// <param name="band">Which third of the range this prospect stands in.</param>
+    public Money BandBalance(WorldKey key, ulong entityId, int band)
+    {
+        Money floor = BandFloor(band);
+        long span = (BandCeiling(band) - floor).Raw + 1;
+
+        if (span <= 1)
+        {
+            return floor;
+        }
+
+        ulong draw = Randomness.Draw(key, entityId, Ticks.Zero, PurposeTag.ProspectPurse);
+
+        return floor + new Money((long)(draw % (ulong)span));
+    }
 }
 
 /// <summary>
@@ -4861,6 +4900,16 @@ public sealed class Ruleset
 
         return (int)IntegerMath.FloorDiv(scaled, 100);
     }
+
+    /// <summary>How heavily a Household in <paramref name="stage"/> weighs rent.</summary>
+    /// <remarks>
+    /// <b><see cref="CentralityTaste"/>'s posture for a stage id nothing declares</b>, and the same
+    /// reason: a world with no stage table carries zero in the column, so the neutral answer has to
+    /// come back from the lookup rather than from a caller remembering to ask whether stages exist.
+    /// </remarks>
+    public int RentWeight(byte stage) => stage == 0 || stage > LifeStages.Length
+        ? RentNeutralPercent
+        : LifeStages[stage - 1].RentWeightPercent;
 
     /// <summary>This Ruleset with different Map Layer data, and everything else shared.</summary>
     /// <remarks>
