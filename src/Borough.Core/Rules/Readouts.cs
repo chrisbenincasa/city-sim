@@ -115,6 +115,46 @@ public enum Readout : ushort
     /// </para>
     /// </remarks>
     Emission = 3,
+
+    /// <summary>
+    /// How many posts this Business declares, held or not.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>DECLARED and not filled, and that is the whole distinction between funding an institution
+    /// and funding payslips.</b> A <c>subsidy</c> pays <c>rate × workers</c> and skips a claimant who
+    /// employs nobody; a transfer whose apply count comes off this pays <c>rate × posts</c>, so
+    /// ***a school the city has funded for six teachers draws six teachers' funding whether or not it
+    /// has hired them.*** An understaffed school therefore shows a rising till beside falling places,
+    /// which names the cause as hiring rather than as money.
+    /// </para>
+    /// <para>
+    /// <b>Business-scoped, because a post is declared by the trade and not by the structure.</b> A
+    /// Citizen is employed by a trade (<c>adr/0141</c>) and a trade takes ONE of its premises'
+    /// tenancies, so the count is that tenancy's share of the floor over
+    /// <c>[capacity] floor_tiles_per_job</c> — one trade employs differently in a terrace and in a
+    /// slab. A Building is <b>not</b> admitted: its floor is shared between its tenants, so it has no
+    /// post count of its own to report — and a Policy cannot sweep Buildings (there is no predicate
+    /// that selects a Building population, and the loader refuses <c>sweeps = "building"</c> by
+    /// name), so a Building-scoped Jobs would be a Readout nothing could ever be funded on. ⚠ A
+    /// Household is not admitted either: a Household holds no post.
+    /// </para>
+    /// <para>
+    /// <b>A STOCK, like <see cref="Occupancy"/> and unlike <see cref="Emission"/></b> — standing
+    /// capacity rather than a Day's flow. It is read off the floor and paid for out of a treasury,
+    /// and the two quantities have nothing to do with each other, so this reaches
+    /// <c>adr/0114</c>'s failure surface: a grant that the treasury cannot cover fails and stops the
+    /// sweep where it ran out.
+    /// </para>
+    /// <para>
+    /// <b>Zero for an unpremised Business, out of <c>World.DeclaredJobs</c> rather than out of a case
+    /// here</b>, which is <see cref="Emission"/>'s reasoning exactly: a trade in the Unplaced Pool
+    /// holds no Building, so it has no floor and declares no post — zero is the answer and not a
+    /// missing one. A trade the Ruleset in force no longer declares is derelict and reads zero
+    /// through the same door, so its funding stops without its workers being sacked.
+    /// </para>
+    /// </remarks>
+    Jobs = 4,
 }
 
 /// <summary>
@@ -171,7 +211,7 @@ public enum ReadoutScope : byte
 public static class Readouts
 {
     private static readonly Readout[] DeclaredSet =
-        [Readout.Occupancy, Readout.Balance, Readout.Emission];
+        [Readout.Occupancy, Readout.Balance, Readout.Emission, Readout.Jobs];
 
     /// <summary>
     /// Every declared Readout, which is the set a shell may enumerate to build an inspector.
@@ -228,6 +268,14 @@ public static class Readouts
             // nothing could ever be charged on. ⚠ A Household is NOT admitted: a dwelling's emission
             // is not its occupant's doing in any sense the design has settled.
             Readout.Emission => scope is ReadoutScope.Building or ReadoutScope.Business,
+
+            // A trade declares its posts and a Building does not: a Building's floor is shared
+            // between its tenants, so the count belongs to the tenancy (adr/0141). A Building is
+            // therefore not admitted -- and it could not be funded on if it were, because a Policy
+            // cannot sweep Buildings (there is no predicate that selects a Building population, and
+            // the loader refuses `sweeps = "building"` by name). ⚠ A Household is NOT admitted: a
+            // Household holds no post.
+            Readout.Jobs => scope is ReadoutScope.Business,
             _ => false,
         };
 
@@ -274,6 +322,13 @@ public static class Readouts
                     ? world.Buildings.PriorEmissionOn(premises, BusinessAccounts.DayOf(world.Tick))
                     : 0;
 
+            // The posts this trade declares, whether or not anybody holds them. ⚠ An UNPREMISED
+            // Business reads zero and needs no case of its own to: World.DeclaredJobs answers zero
+            // for a trade with no floor and for a trade the Ruleset no longer declares, which is the
+            // same zero out of the same door.
+            case Readout.Jobs:
+                return world.DeclaredJobs(business);
+
             case Readout.Occupancy:
             case Readout.None:
             default:
@@ -306,6 +361,7 @@ public static class Readouts
 
             case Readout.Occupancy:
             case Readout.Emission:
+            case Readout.Jobs:
             case Readout.None:
             default:
                 throw new InvalidOperationException(
@@ -352,6 +408,14 @@ public static class Readouts
                     + "against a Building row. Use ReadHousehold. The loader refuses a [[rule]] that "
                     + "names it, so reaching here means a Ruleset was built in code rather than "
                     + "loaded.");
+
+            case Readout.Jobs:
+                throw new InvalidOperationException(
+                    $"readout id {id.Raw} is declared and is readable against a Business, so it has "
+                    + "no value against a Building row: a Building's floor is shared between its "
+                    + "tenants and the posts belong to the tenancy. Use ReadBusiness. The loader "
+                    + "refuses a [[rule]] that names it, so reaching here means a Ruleset was built "
+                    + "in code rather than loaded.");
 
             case Readout.None:
             default:
