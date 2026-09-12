@@ -496,6 +496,15 @@ public sealed class World
         // would leave every world that loaded its Ruleset at construction with a global scope that
         // resolves to nothing, which is the same hole this task exists to close, differently spelt.
         FitTreasury();
+
+        // [treasury] opening_balance, and it is here rather than inside FitTreasury because that runs
+        // on every Ruleset swap too. A balance applied there would mint money into a standing city on
+        // every hot reload, so Adopt refuses a reload that moves it instead (adr/0015). A file that
+        // states no [treasury] founds nothing and keeps adr/0116's empty treasury.
+        if (rules.Treasury.OpeningBalance.Raw > 0)
+        {
+            EndowTreasury(rules.Treasury.OpeningBalance);
+        }
     }
 
     /// <summary>
@@ -978,6 +987,19 @@ public sealed class World
 
         if (rules.Lots.Plots != Rules.Lots.Plots)
             throw new NotSupportedException("Residential parcel dimensions are fixed at world creation.");
+
+        // [treasury] opening_balance is read once, when the world is made. Re-reading it here would
+        // mint money into a standing city on every hot reload -- and MoneyIsConserved would stay
+        // green, because the issuance is recorded. MapLayers.Adopt refuses kernel_metres the same
+        // way and for the same reason: adr/0015 makes a Ruleset hot-reloadable, not world creation.
+        if (rules.Treasury.OpeningBalance != Rules.Treasury.OpeningBalance)
+        {
+            throw new InvalidOperationException(
+                $"this world was founded with a treasury of {Rules.Treasury.OpeningBalance.Raw} and "
+                + $"the reloaded Ruleset states {rules.Treasury.OpeningBalance.Raw}. An opening "
+                + "balance is money issued at world creation (adr/0015), so applying it again would "
+                + "mint into a city that has already spent what it was founded with.");
+        }
 
         RulesetChange change = RulesetShape.Compare(Rules, rules);
         RulesetMigration? migration = null;
@@ -1581,6 +1603,56 @@ public sealed class World
         // draining its wait list leaves whoever was short of money asleep for ever. Founding a balance
         // is exactly the arrival a waiter is waiting for.
         Deposit(balance, amount.Raw, Tick);
+
+        MoneySupply.Issued[MoneySupplyTable.Slot] += amount;
+    }
+
+    /// <summary>
+    /// Founds the treasury with money that did not exist before — <c>[treasury] opening_balance</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="Endow"/>'s argument, on the treasury.</b> It deposits and writes
+    /// <see cref="MoneySupplyTable.Issued"/> in one call, so there is no spelling in which the second
+    /// half is forgotten and <see cref="Invariant.MoneyIsConserved"/> stays an exact equality rather
+    /// than a sum with a flow term. Writing the Bin's level directly would be a defect for the same
+    /// reason it is a defect on a Household.
+    /// </para>
+    /// <para>
+    /// <b>World creation only, and that is why it is not in <see cref="FitTreasury"/>.</b> The Bin is
+    /// fitted at construction and again at every Ruleset swap; the balance is applied once, beside
+    /// the first of those. A reload carrying a different figure is refused in <see cref="Adopt"/>
+    /// before anything moves (<c>adr/0015</c> makes a Ruleset hot-reloadable and world creation is
+    /// not), because re-reading it would mint money into a standing city.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It refuses a world whose Ruleset names no money rather than founding one silently</b>,
+    /// which is <see cref="Endow"/>'s refusal: the treasury holds one Bin per conserved Resource
+    /// (<c>adr/0114</c>, <c>adr/0116</c>), so no Bin means the file names no currency to found the
+    /// city in. The loader refuses that file first, so what reaches here is a hand-built Ruleset.
+    /// </para>
+    /// </remarks>
+    /// <param name="amount">Money to found the treasury with.</param>
+    /// <exception cref="ArgumentOutOfRangeException">The amount is negative.</exception>
+    /// <exception cref="InvalidOperationException">The Ruleset in force names no money.</exception>
+    public void EndowTreasury(Money amount)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(amount.Raw, nameof(amount));
+
+        int bin = TryMoneyResource(out ResourceId money) ? FindTreasuryBin(money) : Rows.NoSlot;
+
+        if (bin == Rows.NoSlot)
+        {
+            throw new InvalidOperationException(
+                "the treasury holds no Bin, so the Ruleset in force declares no money Resource "
+                + "(adr/0114 and adr/0116: the treasury gets one Bin per conserved Resource). "
+                + "Founding it would put money where the file says money does not exist. Load a "
+                + "Ruleset with a `family = \"money\"` [[resource]] block.");
+        }
+
+        // Through Deposit rather than into the level, for Endow's reason: a Bin written without
+        // draining its wait list leaves whoever was short of money asleep for ever.
+        Deposit(Bins.Rows.At(bin), amount.Raw, Tick);
 
         MoneySupply.Issued[MoneySupplyTable.Slot] += amount;
     }

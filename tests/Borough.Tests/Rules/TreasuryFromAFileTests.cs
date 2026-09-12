@@ -1,3 +1,4 @@
+using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
@@ -170,6 +171,123 @@ public sealed class TreasuryFromAFileTests
         Assert.True(world.Businesses.Balance[world.Businesses.Rows.Resolve(business)].IsNone);
 
         world.Invariants.RunEndOfRun(world);
+    }
+
+    // ---- the opening balance --------------------------------------------------------------------
+
+    /// <summary>The smallest complete Ruleset that names money.</summary>
+    private const string Named = """
+        [[resource]]
+        name = "money"
+        family = "money"
+        """;
+
+    /// <summary>
+    /// <c>[treasury] opening_balance</c> reaches the treasury's Bin, and the supply of record with
+    /// it.
+    /// </summary>
+    /// <remarks>
+    /// <b>Both halves, because one of them alone is a leak.</b> <c>World.EndowTreasury</c> deposits
+    /// and writes <c>MoneySupplyTable.Issued</c> in one call, so a balance that arrived without the
+    /// second write would be money the city holds and nothing issued —
+    /// <c>Invariant.MoneyIsConserved</c>'s failure, asserted here by running it.
+    /// </remarks>
+    [Fact]
+    public void An_opening_balance_reaches_the_treasury_bin_and_the_money_supply()
+    {
+        var world = new World(1_000, Parse($"{Named}\n\n[treasury]\nopening_balance = 4194304\n"));
+
+        Assert.Equal(new Money(4_194_304), world.TreasuryBalance());
+        Assert.Equal(new Money(4_194_304), world.MoneySupply.Issued[MoneySupplyTable.Slot]);
+
+        world.Invariants.RunEndOfRun(world);
+    }
+
+    /// <summary>
+    /// <b>A file that states no <c>[treasury]</c> opens with nothing</b>, which is <c>adr/0116</c>'s
+    /// empty treasury and the city <c>rulesets/levied.toml</c> demonstrates.
+    /// </summary>
+    [Fact]
+    public void A_ruleset_with_no_treasury_table_opens_the_treasury_empty()
+    {
+        var world = new World(1_000, Parse(Named));
+
+        Assert.Equal(Money.Zero, world.TreasuryBalance());
+        Assert.Equal(Money.Zero, world.MoneySupply.Issued[MoneySupplyTable.Slot]);
+    }
+
+    /// <summary>
+    /// <b>A reload that moves the opening balance is refused before anything moves.</b>
+    /// </summary>
+    /// <remarks>
+    /// <c>MapLayers.Adopt</c>'s shape, for its reason. A Ruleset is hot-reloadable (<c>adr/0015</c>)
+    /// and world creation is not, so re-reading the balance would mint money into a city that has
+    /// already spent what it was founded with — and <c>Invariant.MoneyIsConserved</c> would stay
+    /// green, because the issuance is recorded.
+    /// </remarks>
+    [Fact]
+    public void A_reload_that_moves_the_opening_balance_is_refused()
+    {
+        Ruleset opening = Parse($"{Named}\n\n[treasury]\nopening_balance = 1000\n");
+        var world = new World(1_000, opening);
+
+        Assert.Throws<InvalidOperationException>(() => world.Adopt(
+            Parse($"{Named}\n\n[treasury]\nopening_balance = 2000\n"),
+            contentHash: 2,
+            Ticks.Zero,
+            WorldKey.FromSeed(7)));
+
+        Assert.Same(opening, world.Rules);
+        Assert.Equal(new Money(1_000), world.TreasuryBalance());
+        Assert.Equal(new Money(1_000), world.MoneySupply.Issued[MoneySupplyTable.Slot]);
+    }
+
+    /// <summary>
+    /// <b>A reload carrying the same balance mints nothing</b>, which is what makes the refusal a
+    /// guard on the value rather than on the table.
+    /// </summary>
+    [Fact]
+    public void A_reload_carrying_the_same_opening_balance_mints_nothing()
+    {
+        string file = $"{Named}\n\n[treasury]\nopening_balance = 1000\n";
+        var world = new World(1_000, Parse(file));
+
+        world.Adopt(Parse(file), contentHash: 2, Ticks.Zero, WorldKey.FromSeed(7));
+
+        Assert.Equal(new Money(1_000), world.TreasuryBalance());
+        Assert.Equal(new Money(1_000), world.MoneySupply.Issued[MoneySupplyTable.Slot]);
+
+        world.Invariants.RunEndOfRun(world);
+    }
+
+    /// <summary>
+    /// <b>The door refuses a negative amount and a world with no money</b>, which is
+    /// <c>World.Endow</c>'s pair of refusals on the treasury.
+    /// </summary>
+    /// <remarks>
+    /// The loader refuses both files first, so what reaches these throws is a hand-built Ruleset —
+    /// and the door is public, so a fixture author is the caller the message is written for.
+    /// </remarks>
+    [Fact]
+    public void The_treasury_door_refuses_a_negative_amount_and_a_world_with_no_money()
+    {
+        var world = new World(1_000, Parse(Named));
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => world.EndowTreasury(new Money(-1)));
+
+        var moneyless = new World(1_000);
+
+        Assert.Throws<InvalidOperationException>(() => moneyless.EndowTreasury(new Money(1)));
+    }
+
+    /// <summary>A Ruleset written in the test, loaded as the shell loads one.</summary>
+    private static Ruleset Parse(string toml)
+    {
+        RulesetLoadResult result = RulesetLoader.Parse(toml, "test.toml");
+
+        Assert.True(result.Ok, result.Describe());
+
+        return result.Ruleset!;
     }
 
     /// <summary>A shipped Ruleset, loaded from beside the test assembly as the runner loads it.</summary>

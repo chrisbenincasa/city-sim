@@ -792,6 +792,14 @@ public static class RulesetKeyNotes
             + "a band reaching down to destitute, and those are different cities. Omitting both "
             + "endows nobody.",
 
+        // ---- [treasury] -----------------------------------------------------------------------
+        ["[treasury] opening_balance"] =
+            "What the treasury holds at world creation, so that the city can spend before any levy "
+            + "has been collected. It is read once, when the world is made; a hot reload that "
+            + "changes it is refused rather than applied, because re-reading it would mint money "
+            + "into a standing city. Omitting the whole [treasury] table is a city that opens with "
+            + "nothing, which is the treasury every Ruleset had before it.",
+
         // ---- [traffic] ------------------------------------------------------------------------
         ["[traffic] alpha_percent"] =
             "How much slower a Segment is at exactly its capacity, as a percentage — the alpha of "
