@@ -4,11 +4,11 @@
 
 ## Status
 
-🟢 **BUILT AND WATCHED, TASK 10 OUTSTANDING.** Tasks 2–9 are in
-`worktree-row-32-city-spends` at `ccaf60e..235dac5` plus the demonstration's own changes; task 9's
-reading is in *What the demonstration showed*. **F19 is the one open question the run raised** and it
-needs a control run. Scoped against `main` at `be07abc` on 2026-09-12, after row 33 shipped. **Two findings below were falsified by that row and are struck in
-place; task 1 is void because row 33 built it.** The readout half landed earlier and out of order —
+🟢 **BUILT, WATCHED AND MERGED 2026-09-12.** Tasks 2–9 shipped from
+`worktree-row-32-city-spends`; task 9's reading is in *What the demonstration showed*. **Task 10, the
+acceptance run, is on the backlog** — it needs a Ruleset with a private economy and a city-funded
+service in one world, and no shipped file has both. Task 1 is void because row 33 built it, and two
+findings below were falsified by that row and are struck in place. The readout half landed earlier and out of order —
 the console carries `Population` and `Treasury`, and row 33 added the budget panel beside them.
 
 ⚠ **The largest correction is F10.** A school with no staff teaches at full capacity, so the
@@ -350,23 +350,29 @@ once the public one has run. ***The defect was the claim, not the behaviour***: 
 corrected, the test's copy of it is corrected, and `schooling.toml`'s header now records the
 measurement, because a Ruleset header is what a reader must read.
 
-### F19 — the city shrank while the schools were closing, and this row cannot say whether it caused it
+### F19 — the city empties at 2,000 Citizens on its own, and the closures had nothing to do with it
 
-**Found 2026-09-12 in task 9's driven run.** The population climbed from 2,000 to **2,211** by
-Day 32 and then fell steadily from Day 42 — 2,115, 2,005, 1,888, **1,778** by Day 48 — about 110
-Citizens every two Days, while the four schools were folding one after another.
+**Raised by task 9's driven run and settled by a control on 2026-09-12.** The population climbed
+from 2,000 to 2,211 by Day 32 and fell from Day 42 — 2,115, 2,005, 1,888, 1,778 by Day 48 — while
+the four schools were folding one after another.
 
-**The timing is suggestive and the arithmetic is against it.** Only **23 posts city-wide** were
-funded, so the cash the defunding removed reaches two dozen households and cannot directly account
-for four hundred people leaving. The rising treasury says the departures are real rather than a
-counting artefact — a dissolving Household's estate is what the budget panel is short by — but
-nothing observed here separates *the schools closed, so the city emptied* from *this world empties
-at 2,000 Citizens anyway*.
+**The control places no school at all** and produces the same numbers, Day for Day:
 
-⚠ **Under `adr/0043` this is measurable and must not be settled by argument.** The number that would
-settle it is the Day-48 population of the same run **with the grant left in place**, same Ruleset,
-same seed, same 2,000 Citizens — one control run, 48 minutes of wall clock on this machine.
-***Do not write the causal claim into any document until that run exists.***
+```sh
+dotnet run -c Release --project src/Borough.Headless -- --ruleset rulesets/funded.toml \
+  --citizens 2000 --ticks 98304 --hash-every 4096 --series
+```
+
+2,000 flat to Day 24, then 2,047, 2,095, 2,162, 2,211 by Day 32, holding to Day 40, then 2,115,
+2,005, 1,888, **1,778 at Day 48** — with `business` held at 0 for the whole run, because a school is
+placed by hand and a headless session issues no commands. Same Ruleset, same seed, same 2,000
+Citizens, no school ever built, no grant ever paid or withdrawn.
+
+**So the arc belongs to the world and not to the schools.** The arithmetic already pointed this way —
+23 funded posts city-wide cannot move four hundred people — and the control removes the question.
+`funded.toml` founds 720 Households on 87 Buildings with one Good and no shops, and that population
+is not sustainable in it. ⚠ **The demonstration's population column says nothing about funding**, so
+do not read one against the other.
 
 ## Decisions
 
@@ -498,10 +504,14 @@ another.***
    *What the demonstration showed*. A school placed and paid for, staffed, funded, defunded by hand
    on Tick 53,255, and closed at Day 48 with its places at 0 on a floor built for 30. ⚠ **The lag is
    the finding**: nothing visible moved for sixteen Days, because the fold needs three staggered
-   short paydays. **F19 is open** — the city shrank at the same time and this run cannot say whether
-   the closures caused it.
-10. **The acceptance run** — a long run with the whole circuit live, money conserved end to end, and
-   the treasury neither trending to zero nor accumulating without bound.
+   short paydays. ⚠ **The population fall in the same window is the world's own** (F19) and must not
+   be read as a consequence of the closures.
+10. ➡ **The acceptance run — MOVED TO THE BACKLOG on 2026-09-12, because it needs a world nobody has
+   written.** No shipped Ruleset carries the whole circuit: `funded.toml` has this row's spending and
+   no income at all, and `taxing.toml` has income and none of this row's keys. ⚠ **A long headless run
+   on `funded.toml` exercises nothing** — 87 Buildings, `business` at 0 and the treasury flat at its
+   opening 4,194,304 for 120 Days, because a school is placed by hand and headless issues no commands.
+   What was run instead is below.
 
 ## What the demonstration showed
 
@@ -589,6 +599,21 @@ This worktree's Godot import cache never built `painted-plaster-albedo.ctex`, so
 render without their plaster in all ten screenshots. The source asset is tracked and present. It
 affects no number here.
 
+### What the long runs showed, in place of the acceptance run
+
+**Run 2026-09-12 in Release at 2,000 Citizens over 245,760 Ticks, seed 0, on this machine, three in
+parallel — so these establish behaviour and none of them is a timing.** All three exited clean, which
+is `Invariant.MoneyIsConserved` passing: it is registered at `InvariantTier.EndOfRun` and throws.
+
+| World | Mode | What it showed |
+|---|---|---|
+| `funded.toml` | `--census` | **Nothing of this row's circuit.** 87 Buildings, `business` at 0, treasury flat at 4,194,304 for 120 Days. A school is placed by hand and headless issues no commands, so nothing was ever bought, funded or defunded |
+| `taxed.toml` | `--money` | Supply flat at 354,562 and `supply == held`. The treasury oscillates between 0 and 99 over 120 Days, so it neither drains nor accumulates |
+| `taxing.toml` | `--income` | The eight columns explain the treasury exactly at every reading. It climbs from 0 to 45,069,038 while Households fall from 56,356,702 to 7,165,609, decelerating at the end |
+
+⚠ **The last two are row 33's worlds and carry none of this row's keys**, so they say this row broke
+nothing and say nothing about what it built. ***That gap is what task 10 is now on the backlog for.***
+
 ## What this must not do
 
 - **It must not build catchment staffing** (F2). That belongs to `adr/0026` and it changes who is
@@ -618,11 +643,13 @@ affects no number here.
   rather than off a log. **Watched 2026-09-12** — *What the demonstration showed* carries the arc.
   ⚠ **The falling places are the clause F10 was about**, and they needed F14's panel section before
   they could be seen at all. ⚠ **The chain reads off the interface but not instantly**: the
-  consequence lands 21 Days after the decision, which F19's tuning question is about.
-- **Money is conserved across every new path**, the placement leak included, with
+  consequence lands 21 Days after the decision, which is the tuning question the five numbers carry.
+- ✅ **Money is conserved across every new path**, the placement leak included, with
   `Invariant.MoneyIsConserved` green. ⚠ It is an **end-of-run** check that names no cause
   (`WorldInvariants.cs:1211`), so pair the withdrawal and the write-down at the write site rather
-  than relying on it.
+  than relying on it. **The placement leak is asserted by
+  `TreasuryFlowsExplainTheBalanceTests.The_identity_holds_on_a_world_that_places_a_school`**, which
+  issues a real placement command — ***no headless mode does***, so no long run reaches that path.
 - **The treasury balance still equals income less expenditure**, now over eight flows rather than
   seven — `TreasuryFlowsExplainTheBalanceTests` green on a world that places a school.
 - ~~Four provisional numbers are recorded here~~ ✅ **Five are, in *The five numbers*, each with what
