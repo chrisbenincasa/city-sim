@@ -4,8 +4,10 @@
 
 ## Status
 
-🟢 **SCOPED, RE-VERIFIED AND NUMBERED, NOT STARTED.** Re-read against `main` at `be07abc` on
-2026-09-12, after row 33 shipped. **Two findings below were falsified by that row and are struck in
+🟢 **BUILT AND WATCHED, TASK 10 OUTSTANDING.** Tasks 2–9 are in
+`worktree-row-32-city-spends` at `ccaf60e..235dac5` plus the demonstration's own changes; task 9's
+reading is in *What the demonstration showed*. **F19 is the one open question the run raised** and it
+needs a control run. Scoped against `main` at `be07abc` on 2026-09-12, after row 33 shipped. **Two findings below were falsified by that row and are struck in
 place; task 1 is void because row 33 built it.** The readout half landed earlier and out of order —
 the console carries `Population` and `Treasury`, and row 33 added the budget panel beside them.
 
@@ -250,6 +252,122 @@ kind is meaningless unless some `[[life_stage]]` claims a level, and the loader 
 front of it. Routed under `adr/0073` to `plans/0003`'s queue rather than fixed here — this row does
 not own the loader's refusal surface.
 
+### F14 — the shell showed a school's places nowhere, so the row's closing clause had nothing to fall
+
+**Found 2026-09-12 while taking task 9's driven demonstration.** `World.DeclaredPlaces` is the number
+a family is turned away against, and it appeared in **no panel, no hover and no readout**. The
+clinic has `AddFacilityHealth`, which states its treatment places and its beds; a school had no
+counterpart. `Main.Schooling.cs` held one section and it was a **Household's** education, not a
+Building's capacity.
+
+So a school at full strength and a school whose teachers had gone **presented identically**, and the
+definition of done's *the falling places* could not be watched at all. ***A capacity a player cannot
+read is a capacity that cannot be managed.***
+
+Built here rather than routed, because the demonstration is what this row is for and it is
+unwatchable without it: `AddFacilitySchooling` states the places reached, the places the floor was
+built for, today's attendance and the staffing behind all three. ⚠ **Both place counts, because the
+fall is the reading** — the floor's answer is fixed by the ground and the staffed answer moves with
+the payroll, so the pair says *built for thirty, reaching five* where either alone says nothing. It
+needed two public accessors on `World`, `FloorServicePlaces` and `ServiceStaffing`, which are
+`DeclaredPlaces` and `Staffed` with their halves handed out rather than folded.
+
+### F15 — `--reload-at` is accepted by every runner mode and honoured by one
+
+**Found 2026-09-12 trying to measure the defunding lag cheaply.** A hot reload to a Ruleset whose
+funding Policy states `amount = 0` is exactly this row's defunding, so
+`--school --ruleset funded.toml --reload-at 61440 --ruleset <defunded>` should have measured the lag
+in seconds instead of the hour the driven run costs. It ran clean and **changed nothing** — 109
+children attended on Day 68, 38 Days after the reload.
+
+`Options.ReloadTicks` has **exactly one consumer**, the Input Log builder at `Session.cs:627`. Every
+`--<mode>` dump bypasses it: `SchoolDump.Run` builds its own `Simulation` and calls
+`simulation.Step(default)` in a bare loop, so no log is drained and no reload transition exists.
+Nothing in `Options`' validation refuses the combination.
+
+⚠ **The defect is the silence and not the absence.** A mode that cannot reload should say so at the
+parse site, where `--reload-at`'s other refusals already live. As it stands the flag is accepted,
+the second `--ruleset` is read and hashed, and the run reports a Ruleset it did not switch to.
+Belongs on the backlog; this row does not own the runner's flag surface.
+
+### F16 — the driven shell's socket channel dies for the rest of the run on one lost client
+
+**Found 2026-09-12 probing for Lot coordinates.** A `--listen` session answered the first command,
+then answered nothing — no refusal, no error, and the socket file still in place. Every later
+connection was accepted and every command was dropped.
+
+`Main.Channels.cs`'s `Serve` catches around **both** loops and `return`s, so a write to a client that
+has gone takes the whole accept loop with it. The catch's own comment says *a client left
+mid-sentence* is one of the two things it expects, and that case wants `continue` on the outer loop
+rather than an exit. The first client here was a `nc` the harness had timed out and killed, which is
+the ordinary way a driver dies.
+
+⚠ **It presents as a hang rather than a failure**, which is the same trap `DriveScript.Stopped` was
+written to close at the parse site. Belongs on the backlog. `--drive` is unaffected and is what task
+9's demonstration uses.
+
+### F17 — a second command in one batch can invalidate the first's refusal check, and the shell crashes
+
+**Found 2026-09-12 in review of this row's own commits, then reproduced without money at all.** The
+shell asks `Simulation.Refuses` once per click and appends to `_queued`; `Ordered()` drains the whole
+queue as the argument to **one** `Step`. `Main.Verbs.Send`'s remark claims *"the answer is good for
+exactly as long as the world stands still, and it does"* — which is true of the clock and **false of
+the batch**, because each command in it mutates the world before the next is applied.
+
+`ApplyService` re-asks and **throws** on a refusal, by `ApplyDemolish`'s rule that a logged command
+is a thing somebody did. So a batch whose second command the first invalidated stops the session
+mid-Tick, `Main.cs` catches it and calls `Stop(1)`, and the Input Log already holds the command that
+cannot be replayed.
+
+**Reproduced on `funded.toml`** with two `service` clicks at the same Tile in one Tick:
+`System.InvalidOperationException: service names Tile (131, 128), where there is no vacant Lot.`
+⚠ **No treasury is involved**, so this row did not create the defect — Lot vacancy was already a
+predicate a sibling command could flip. What this row added is a **second** such predicate, and a
+much likelier gesture: placing two schools the city can only half afford. Worst while paused, where
+`_Process` steps nothing and the queue holds every click.
+
+⚠ **The fix is a design question and not a patch.** Re-asking in `Ordered()` gains nothing, because
+nothing has applied there either; the choice is between the shell carrying a running cost across the
+batch, `ApplyInput` reporting rather than throwing, and the shell sending at most one command a Tick.
+Belongs on the backlog with the other two; this row does not own the queue's contract.
+
+### F18 — one shipped world takes the staffed branch, and its behaviour moved unannounced
+
+**Found 2026-09-12 in review.** `b7ff963`'s comment claimed *"every shipped school world declares no
+`business` on its service kind"*. `rulesets/schooling.toml`'s `college` declares
+`business = "tuition"`, so it takes the scaled branch.
+
+**Measured** at 2,000 Citizens over 60 Days with four of each level placed: all four colleges stand
+on floors of 156, 156, 140 and 210 Tiles and declare **zero places**, where each declared its whole
+floor over `floor_tiles_per_place` before. The cause is `tuition`'s `requires_tier = 3` — a college
+can employ nobody until the world has produced a Tier 3 graduate, and the graduate comes out of the
+public `university`, which declares no trade and is unaffected.
+
+✅ **The behaviour stands, because it is the mechanism working.** A private college with no qualified
+staff teaching nobody is `adr/0026`'s decision, and it makes `schooling.toml`'s *private system is
+the overflow* reading stronger rather than wrong — the private system now starts closed and opens
+once the public one has run. ***The defect was the claim, not the behaviour***: the comment is
+corrected, the test's copy of it is corrected, and `schooling.toml`'s header now records the
+measurement, because a Ruleset header is what a reader must read.
+
+### F19 — the city shrank while the schools were closing, and this row cannot say whether it caused it
+
+**Found 2026-09-12 in task 9's driven run.** The population climbed from 2,000 to **2,211** by
+Day 32 and then fell steadily from Day 42 — 2,115, 2,005, 1,888, **1,778** by Day 48 — about 110
+Citizens every two Days, while the four schools were folding one after another.
+
+**The timing is suggestive and the arithmetic is against it.** Only **23 posts city-wide** were
+funded, so the cash the defunding removed reaches two dozen households and cannot directly account
+for four hundred people leaving. The rising treasury says the departures are real rather than a
+counting artefact — a dissolving Household's estate is what the budget panel is short by — but
+nothing observed here separates *the schools closed, so the city emptied* from *this world empties
+at 2,000 Citizens anyway*.
+
+⚠ **Under `adr/0043` this is measurable and must not be settled by argument.** The number that would
+settle it is the Day-48 population of the same run **with the grant left in place**, same Ruleset,
+same seed, same 2,000 Citizens — one control run, 48 minutes of wall clock on this machine.
+***Do not write the causal claim into any document until that run exists.***
+
 ## Decisions
 
 Decisions 1-4 were taken at scoping. **5-9 were taken on 2026-09-12 against the code as it stands
@@ -319,8 +437,8 @@ implementer.**
 
 ## The five numbers
 
-**Chosen 2026-09-12 by taste under [`0045`](0045-amnesty.md) standing order 4, at the user's explicit
-instruction to choose rather than defer.** No ratifier and no `plans/0002` §D row. ⚠ **Each is
+**All five are PROVISIONAL. Chosen 2026-09-12 by taste, at the user's explicit instruction to
+choose rather than defer.** No ratifier and no ratification row — no ledger gates a tuning number. ⚠ **Each is
 recorded with what would move it**, and ***the first two are one choice and the last two are
 another.***
 
@@ -375,11 +493,101 @@ another.***
 8. **The eighth flow** (decision 8) — a `MoneyFlowCounter` for placement, a `placement · out` row in
    the budget panel and in `--income`, and `TreasuryFlows.Expenditure` counting it, so
    `TreasuryFlowsExplainTheBalanceTests` stays green on a world that places a school.
-9. **Something to watch** — a driven run in which a school is placed and paid for, staffed, funded,
-   then defunded until its places fall and it folds. ***The last two clauses are the ones that get
-   dropped, and they are the only ones that show the decision mattering.***
+9. ✅ **Something to watch** — **taken 2026-09-12**; the script is
+   [`scripts/ui/school-funding.drive`](../scripts/ui/school-funding.drive) and the reading is in
+   *What the demonstration showed*. A school placed and paid for, staffed, funded, defunded by hand
+   on Tick 53,255, and closed at Day 48 with its places at 0 on a floor built for 30. ⚠ **The lag is
+   the finding**: nothing visible moved for sixteen Days, because the fold needs three staggered
+   short paydays. **F19 is open** — the city shrank at the same time and this run cannot say whether
+   the closures caused it.
 10. **The acceptance run** — a long run with the whole circuit live, money conserved end to end, and
    the treasury neither trending to zero nor accumulating without bound.
+
+## What the demonstration showed
+
+**Taken 2026-09-12.** The script is committed at [`scripts/ui/school-funding.drive`](../scripts/ui/school-funding.drive)
+and re-runs as it stands:
+
+```sh
+dotnet build src/Borough.Godot      # Debug. Godot loads no other configuration
+godot --path src/Borough.Godot -- --ruleset rulesets/funded.toml --citizens 2000 \
+  --govern --drive scripts/ui/school-funding.drive \
+  --record artifacts/school-funding/session.drive
+```
+
+⚠ **The window is PINNED at 1600×1000 in the script's first line**, because the Government panel is
+anchored top-left in pixels and the Day-26 defunding is driven by pointer coordinates. A different
+size moves the funding field and the defunding misses in silence. `ui size` is also clamped by the
+physical display — 2560×1371 was asked for and 1920×1080 delivered — so **read `Viewport` out of a
+`ui read` before a long run depends on where a control sits.**
+
+### The arc, read off the interface
+
+One school, Building 88, six teaching posts on a floor of 30 places. Every figure below is from the
+inspector and the budget panel, not from a log.
+
+| Day | Places | Staff | Treasury | What happened |
+|---|---|---|---|---|
+| 0 | **0** of 30 | 0 of 6 | 3,145,728 | Four schools placed. 262,144 each, 1,048,576 off a 4,194,304 opening balance |
+| 2 | **30** of 30 | 6 of 6 | — | Hired. The places arrive with the teachers and not with the building |
+| 24 | 30 | 6 of 6 | 978,944 | 94,208 a Day out, which is 23 declared posts at 4,096 |
+| 26 | 30 | 6 of 6 | 696,320 | **`school_funding` set to 0 by hand on Tick 53,255.** 2,449,408 paid over 26 Days |
+| 42 | 30 | 6 of 6 | 696,320 | Sixteen Days defunded and nothing visible has moved |
+| 48 | **0** | **no trade** | 1,126,400 | Folded. Three short paydays ran out |
+
+**Task 9's last two clauses are the two beats worth keeping.** At Day 48 the inspector reads:
+
+```
+Teaching capacity
+Places: 0 a Day, on a floor built for 30
+Attended today: 0
+Staff: this Building holds no trade of its own, so it teaches nobody
+```
+
+The Businesses and Workers sections are **gone** and the building **still stands** — a bankruptcy
+empties a Building and does not demolish one. ⚠ **Both place counts are what make the fall legible**
+(F14): the floor still answers 30 and the declared places answer 0, so the pair says *built for
+thirty, teaching nobody* where either number alone says nothing at all.
+
+### Twenty-two Days from the decision to the consequence, and the lag is the mechanism
+
+**Nothing visible moved for sixteen of them, and that is not a defect.** The grant was 24,576 a Day
+for six posts and the wage bill is the same 24,576, so the till only ever held the one Day banked
+before hiring. It emptied at Day 27 and every payday after it came up short. But `WageEngine`
+settles wages on **the employer's own payday**, and `IsPayday` draws the offset from the Business's
+monotonic id modulo `pay_period_days` — so the four schools are **staggered rather than
+synchronised**, and each needs `goes_bankrupt_after_short_paydays` consecutive failures seven Days
+apart. Three short paydays from a first failure between Day 27 and Day 33 puts the fold between
+Day 41 and Day 47. Building 88's landed at Day 47.
+
+🔴 **So the player's punishment for defunding a school arrives three weeks later, at a Day the player
+cannot predict, and the five numbers chose that lag without anyone naming it.** It is the product of
+`pay_period_days = 7` and `goes_bankrupt_after_short_paydays = 3` and it is 21 Days at the shortest.
+***A consequence a player cannot connect to the decision that caused it is not an explainable
+consequence***, which is this row's own pillar. **Whether three weeks is the right lag is a tuning
+question the demonstration has now put on the table**; both numbers are recorded PROVISIONAL in *The
+five numbers* and this is the observation that would move them.
+
+### The budget panel caught an inflow it does not watch, which is it working
+
+From Day 44 the treasury **rises** — 782,336, then 1,015,808, then 1,126,400 — and the panel says so
+itself rather than reconciling wrongly:
+
+> The treasury holds 1,126,400, which is 430,080 MORE than the flows explain. Money is crossing the
+> treasury's edge by a path no row above watches — a dissolving Household's estate is the one known
+> to do so.
+
+**That route is already documented** at `src/Borough.Godot/CityBudget.cs:36` and
+`Main.Budget.cs:339`, so the eighth flow (task 8) is not short a ninth. ⚠ **A fold is not the route
+and cannot be**: `WageEngine.Bankrupt` decrements `MoneySupply.Issued` by the till's level before
+freeing the Bin, so **bankruptcy destroys that money rather than escheating it**, and the treasury
+gains nothing when a school closes.
+
+### The cosmetic fault in every capture
+
+This worktree's Godot import cache never built `painted-plaster-albedo.ctex`, so building walls
+render without their plaster in all ten screenshots. The source asset is tracked and present. It
+affects no number here.
 
 ## What this must not do
 
@@ -405,10 +613,12 @@ another.***
 
 `CLAUDE.md`'s cumulative list, plus:
 
-- **A player watches a school be paid for, open, staff itself, be funded, and then lose its funding
-  until its places fall and it closes**, with the causal chain reading off the interface rather than
-  off a log. ⚠ **The falling places are the clause F10 was about** — without them the last half of
-  this sentence is invisible.
+- ✅ **A player watches a school be paid for, open, staff itself, be funded, and then lose its
+  funding until its places fall and it closes**, with the causal chain reading off the interface
+  rather than off a log. **Watched 2026-09-12** — *What the demonstration showed* carries the arc.
+  ⚠ **The falling places are the clause F10 was about**, and they needed F14's panel section before
+  they could be seen at all. ⚠ **The chain reads off the interface but not instantly**: the
+  consequence lands 21 Days after the decision, which F19's tuning question is about.
 - **Money is conserved across every new path**, the placement leak included, with
   `Invariant.MoneyIsConserved` green. ⚠ It is an **end-of-run** check that names no cause
   (`WorldInvariants.cs:1211`), so pair the withdrawal and the write-down at the write site rather

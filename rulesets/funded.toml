@@ -1,7 +1,7 @@
 # THE FUNDED RULESET -- a school the CITY pays for, so that a budget decision has a service under it.
 #
-# plans/0070, amnesty row 32. It is `schooling.toml` with TEN CHANGES, marked CHANGE 1 of 10 through
-# 10 of 10 where they sit, and everything else below is that file's, unedited. The diff is the whole
+# plans/0070 row 32. It is `schooling.toml` with ELEVEN CHANGES, marked CHANGE 1 of 11 through
+# 11 of 11 where they sit, and everything else below is that file's, unedited. The diff is the whole
 # demonstration, on `insolvent.toml`'s precedent and for `insolvent.toml`'s reason.
 #
 #   1. [[resource]] repairs        DELETED, with every Rule and Building that moved it.
@@ -9,11 +9,12 @@
 #   3. [[building]] school         ADDED -- serves education, premises, business = "teaching".
 #   4. [[building]] shopfront, officeblock, primary, secondary, university, college   DELETED.
 #   5. [[policy]] school_funding   ADDED -- the city's first named expenditure on a service.
-#   6. #   6. [capacity] floor_tiles_per_occupant   25 -> 16. GROUND, NOT TUNING -- see CHANGE 6.
+#   6. [capacity] floor_tiles_per_occupant   25 -> 16. GROUND, NOT TUNING -- see CHANGE 6.
 #   7. [[rule]] restock            buys from nobody; maintain, upkeep, stock, advise DELETED.
 #   8. [districts], [[lattice]], [[hinterland]], [market]   DELETED -- no `pool` term survives.
 #   9. [schooling], [school], [[life_stage]] school_level, [jobs] tier and experience keys DELETED.
 #  10. [households]                DELETED -- no Household in this world buys anything.
+#  11. [treasury] opening_balance ADDED -- the money the city is founded with.
 #
 # ===========================================================================================
 # WHAT IT EXISTS TO SHOW: ***A PUBLIC SCHOOL IS A SERVICE KIND WHOSE TRADE HAS A WAGE AND NO
@@ -117,7 +118,7 @@
 # The keys below are minimal.toml's and its comments carry their arguments -- read them there.
 # What is commented HERE is what this file changes and why.
 
-# CHANGE 1 of 10. `repairs` DELETED with the office chain that consumed it. Two Resources are left:
+# CHANGE 1 of 11. `repairs` DELETED with the office chain that consumed it. Two Resources are left:
 # one Good so a dwelling has a Bin Rule to run, and money so there is a till and a treasury.
 [[resource]]
 name = "sundries"
@@ -127,7 +128,7 @@ family = "good"
 name = "money"
 family = "money"
 
-# CHANGE 2 of 10. The three trades of `schooling.toml` are DELETED and this one replaces all of them.
+# CHANGE 2 of 11. The three trades of `schooling.toml` are DELETED and this one replaces all of them.
 # It is the whole subject of the file.
 #
 # ⚠ IT STATES NO `tuition_per_day`, AND THAT ABSENCE IS WHAT MAKES THE SCHOOL PUBLIC. `Charges` is
@@ -159,7 +160,7 @@ houses   = true
 premises = true
 parked = true
 
-# CHANGE 3 of 10. THE PUBLIC SCHOOL. Three keys together make one: `serves` makes it attended,
+# CHANGE 3 of 11. THE PUBLIC SCHOOL. Three keys together make one: `serves` makes it attended,
 # `premises` lets it hold a tenant, and `business` says which trade it comes with (adr/0148
 # instantiates it on construction, with no founder and no capital).
 #
@@ -186,7 +187,7 @@ bins = [
     { resource = "money", owner = "business" },
 ]
 
-# CHANGE 7 of 10. `restock` BUYS FROM NOBODY -- `schooling.toml`'s version took a `pool` input, and a
+# CHANGE 7 of 11. `restock` BUYS FROM NOBODY -- `schooling.toml`'s version took a `pool` input, and a
 # pool term cannot resolve in a world with no Districts (CHANGE 8). This is `schooled.toml`'s
 # spelling and it is honest for the same reason: nothing in this file is a supply chain.
 [[rule]]
@@ -212,7 +213,7 @@ zone          = 0
 interval      = 32
 revisit_ticks = 2048
 
-# CHANGE 5 of 10. THE FUNDING POLICY, and it is the reason the file exists. Every 2,048 Ticks it
+# CHANGE 5 of 11. THE FUNDING POLICY, and it is the reason the file exists. Every 2,048 Ticks it
 # moves 4,096 out of the treasury FOR EVERY POST A SCHOOL DECLARES, into the till of every Business
 # carrying on the `teaching` trade and into no other till in the city.
 #
@@ -297,7 +298,7 @@ foot_path_capacity_per_hour    = 1000
 lots_per_segment = 5
 setback_tiles = 2
 
-# CHANGE 6 of 10. 25 -> 16, AND IT IS GROUND RATHER THAN A TUNING CHOICE.
+# CHANGE 6 of 11. 25 -> 16, AND IT IS GROUND RATHER THAN A TUNING CHOICE.
 #
 # 🔴 `World.Fit` WITHHOLDS A KIND'S DECLARED TRADE WHEREVER THE OCCUPANCY CEILING IS NOT ABOVE 1, AND
 # IT DOES SO SILENTLY. A Business takes a tenancy exactly as a Household does (adr/0147), so on a
@@ -348,7 +349,7 @@ commute_fast_minutes = 20
 commute_moderate_minutes = 40
 commute_budget_minutes = 50
 
-# CHANGE 9 of 10. `wage_tier_percent`, `experience_per_day`, `tier2_experience` and the two
+# CHANGE 9 of 11. `wage_tier_percent`, `experience_per_day`, `tier2_experience` and the two
 # experience percentages are DELETED with `[schooling]`. Nothing here grades a worker: every teacher
 # is paid the posted rate, so the payroll is exactly jobs x `wage_per_day` and the grant above can be
 # stated as one multiplication.

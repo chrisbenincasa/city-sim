@@ -351,7 +351,10 @@ public sealed class ServiceStaffingTests
     /// <summary>A school whose kind comes with a teaching trade.</summary>
     private static readonly string Staffed = Fixture("business = \"tuition\"", Posts, JobRate);
 
-    /// <summary>The same school with no trade at all — every shipped school world.</summary>
+    /// <summary>
+    /// The same school with no trade at all, which is every shipped school kind
+    /// except <c>schooling.toml</c>'s <c>college</c>.
+    /// </summary>
     private static readonly string Unstaffed = Fixture("", Posts, JobRate);
 
     /// <summary>

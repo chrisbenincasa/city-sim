@@ -6346,6 +6346,34 @@ public sealed class World
     /// <returns>Its declared places a Day.</returns>
     public int DeclaredPlaces(int buildingSlot)
     {
+        int places = FloorServicePlaces(buildingSlot);
+
+        // ⚠ A KIND DECLARING NO TRADE KEEPS THE FLOOR'S ANSWER WHOLE, and that asymmetry is the point
+        // rather than an omission: staffing can only scale a service whose staff the Ruleset states.
+        //
+        // 🔴 ONE SHIPPED WORLD DOES TAKE THE SCALED BRANCH AND ITS BEHAVIOUR MOVED.
+        // `schooling.toml`'s `college` declares `business = "tuition"` at `requires_tier = 3`, so it
+        // can employ nobody until the world has produced a Tier 3 graduate -- and it now declares
+        // zero places until it does, where it declared its whole floor before. That is this method
+        // working rather than failing, and the file's header records it.
+        return places == 0 || Rules.Kind(Buildings.Kind[buildingSlot]).Business == 0
+            ? places
+            : Staffed(buildingSlot, places);
+    }
+
+    /// <summary>
+    /// What this service Building's floor holds <b>before its staffing is read</b>.
+    /// </summary>
+    /// <remarks>
+    /// <b>The ceiling the ground alone decides</b>, which is <see cref="DeclaredPlaces"/> with
+    /// <see cref="Staffed"/> left off. A panel needs both halves to say anything useful: the places a
+    /// school reaches today mean nothing beside the places it was built for, and
+    /// ***a number that fell is only legible next to the number it fell from.***
+    /// </remarks>
+    /// <param name="buildingSlot">The Building being asked about.</param>
+    /// <returns>Its places a Day on floor area alone, or zero where the kind serves nobody.</returns>
+    public int FloorServicePlaces(int buildingSlot)
+    {
         if (buildingSlot < 0 || !Buildings.Rows.IsLive(buildingSlot))
         {
             return 0;
@@ -6358,14 +6386,44 @@ public sealed class World
             return 0;
         }
 
-        int places = CapacityRuleset.Holds(
+        return CapacityRuleset.Holds(
             FloorTilesOf(buildingSlot), Rules.Capacity.FloorTilesPerPlace);
+    }
 
-        // ⚠ A KIND DECLARING NO TRADE KEEPS THE FLOOR'S ANSWER WHOLE, and that asymmetry is the point
-        // rather than an omission: staffing can only scale a service whose staff the Ruleset states.
-        // Every shipped school world declares no `business` on its service kind and none of them
-        // changed behaviour on the day this arrived.
-        return Rules.Kind(kind).Business == 0 ? places : Staffed(buildingSlot, places);
+    /// <summary>
+    /// How much of this service Building's own trade is staffed, as workers against declared posts.
+    /// </summary>
+    /// <remarks>
+    /// <b><see cref="Staffed"/>'s two terms, handed out rather than folded.</b> The ratio decides the
+    /// places and the ratio is what explains them, so a panel showing the quotient alone leaves a
+    /// player with a number and no cause. 🔴 <b><c>false</c> is the collapse and not an
+    /// absence of information</b>: a wound-up trade leaves the premises standing with no Business of
+    /// their own in them, which is the state a defunded school ends in.
+    /// </remarks>
+    /// <param name="buildingSlot">The service Building being asked about.</param>
+    /// <param name="workers">How many people work its own trade.</param>
+    /// <param name="posts">How many posts that trade's floor declares.</param>
+    /// <returns><c>true</c> where the Building holds a trade of its own with posts to fill.</returns>
+    public bool ServiceStaffing(int buildingSlot, out int workers, out int posts)
+    {
+        workers = 0;
+        posts = 0;
+
+        if (buildingSlot < 0 || !Buildings.Rows.IsLive(buildingSlot))
+        {
+            return false;
+        }
+
+        int trade = OwnTrade(buildingSlot);
+
+        if (trade == Rows.NoSlot)
+        {
+            return false;
+        }
+
+        workers = Workers.Length(trade);
+
+        return TryDeclaredJobs(Businesses.Kind[trade], trade, out posts);
     }
 
     /// <summary>
@@ -6385,11 +6443,15 @@ public sealed class World
     /// wind the trade up, and the places go to zero where a player can see them.
     /// </para>
     /// <para>
-    /// ⚠ <b>NO JOBS MEANS NO RATIO, so the floor's answer stands unscaled.</b> Zero is not a staffing
-    /// verdict here — <see cref="TryDeclaredJobs"/> answers zero only where a <c>[capacity]</c> rate
-    /// the employment ceiling needs is absent, and it answers <c>false</c> for a trade the Ruleset no
-    /// longer declares, which keeps the workers it has. Both are ***a world with no employment ceiling
-    /// to be short of***, and scaling to zero there would close every school in it. ⚠ <b>Workers over
+    /// ⚠ <b>NO JOBS MEANS NO RATIO, so the floor's answer stands unscaled — and the two ways to get
+    /// there are different worlds.</b> <see cref="TryDeclaredJobs"/> answers zero where a
+    /// <c>[capacity]</c> rate the employment ceiling needs is absent, which is ***a world with no
+    /// employment ceiling to be short of***. It answers <c>false</c> for a trade the Ruleset no longer
+    /// declares, which is a DERELICT trade keeping the workers it has — and that case returns full
+    /// places whatever the staffing, so ***a reload deleting a <c>[[business]]</c> block switches this
+    /// whole mechanism off for every school in the city.*** Deliberate, on that method's own rule that
+    /// a designer deleting a paragraph must not sack a District; scaling to zero instead would close
+    /// every school on an edit. ⚠ <b>Workers over
     /// their posts clamps at <paramref name="places"/></b>, because the ceiling is a property of the
     /// floor and a shrunk floor is momentarily overstaffed until <see cref="RebuildCapacities"/>
     /// dismisses down to it.
