@@ -19,8 +19,8 @@ stale and a draw list can.*** So, before any driven verification of a shell chan
 dotnet build src/Borough.Godot          # no -c. The default is Debug and Debug is what loads
 ```
 
-⚠ **`godot` on this Mac is a wrapper script and must stay one** — a symlink stalls the .NET module
-on an invisible modal alert. If a run hangs at `.NET: Initializing module...`, that is the cause.
+⚠ **`godot` resolves to a symlink at `~/.local/bin/godot`** pointing at the Godot 4.7.2 mono Linux
+build. A run that hangs at `.NET: Initializing module...` is not explained by the link.
 
 ---
 
@@ -254,6 +254,18 @@ failure a screenshot renders as success.***
   identity — the first headless dump had the correct layers, the correct row count and 21,504 lines
   of zeros (**F17**). The counts are CPU-side and stay true; the rows are withheld with the reason
   written into the file. ***A draw list needs a real display.***
+
+**This machine has one at `:1`**, and tmux panes inherit it from the server's global environment, so
+a driven run needs no Xvfb and no exported variable. Check it before blaming the shell:
+
+```
+echo "$DISPLAY"                 # :1
+ls /tmp/.X11-unix               # X1
+```
+
+An empty `DISPLAY` in a pane means the session environment carries a `-DISPLAY` removal marker,
+which `tmux show-environment` prints. Clear it with `tmux set-environment -u DISPLAY` rather than
+exporting a value over it.
 
 **Why the draw list is the tier that pays for the others**: almost everything the shell reads is the
 core's, so a driven shell reporting world state reports what `Borough.Headless` already reports. What
