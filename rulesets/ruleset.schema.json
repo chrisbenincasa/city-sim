@@ -1212,6 +1212,15 @@
         }
       }
     },
+    "treasury": {
+      "type": "object",
+      "properties": {
+        "opening_balance": {
+          "description": "What the treasury holds at world creation, so that the city can spend before any levy has been collected. It is read once, when the world is made; a hot reload that changes it is refused rather than applied, because re-reading it would mint money into a standing city. Omitting the whole [treasury] table is a city that opens with nothing, which is the treasury every Ruleset had before it.",
+          "type": "integer"
+        }
+      }
+    },
     "trips": {
       "type": "object",
       "properties": {

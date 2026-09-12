@@ -25,7 +25,7 @@ dotnet run --project src/Borough.Headless -- \
 
 ## The sections
 
-40 sections, 266 keys.
+41 sections, 267 keys.
 
 - [`[[band]]`](#band) — 2 keys
 - [`[[building]]`](#building) — 20 keys
@@ -65,6 +65,7 @@ dotnet run --project src/Borough.Headless -- \
 - [`[schooling]`](#schooling) — 5 keys
 - [`[shopping]`](#shopping) — 7 keys
 - [`[traffic]`](#traffic) — 3 keys
+- [`[treasury]`](#treasury) — 1 key
 - [`[trips]`](#trips) — 4 keys
 - [`[water]`](#water) — 6 keys
 
@@ -1279,6 +1280,14 @@ The exponent of the volume-delay curve, a small whole number. Below 1 the functi
 **`clamp_percent`** · *whole number*
 
 The largest volume-over-capacity ratio the function will read, as a percentage. Below 100 the clamp binds before a Segment is even full; far above it the router is comparing noise.
+
+---
+
+## `[treasury]`
+
+**`opening_balance`** · *whole number*
+
+What the treasury holds at world creation, so that the city can spend before any levy has been collected. It is read once, when the world is made; a hot reload that changes it is refused rather than applied, because re-reading it would mint money into a standing city. Omitting the whole [treasury] table is a city that opens with nothing, which is the treasury every Ruleset had before it.
 
 ---
 

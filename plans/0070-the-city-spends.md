@@ -230,6 +230,26 @@ school rather than its payslips, so it uses the **transfer** tool and F7 stands 
 ***So a public school is a service kind whose trade has a wage and no tuition***, and no new concept
 is required to express one. This row authors its own world, which contains F5 for free.
 
+### F13 — a school `level` with no stage claiming it empties the world, and the loader permits it
+
+**Found 2026-09-12 while wiring `rulesets/funded.toml`.** The file declared `[[building]] school
+level = 1` and produced **zero education occasions over 100 Days**. It lints, it loads, it raises
+four staffed schools, and no child ever attends one.
+
+The mechanism is a pair with one half missing. **One** service kind declaring a non-zero `level`
+makes `Ruleset.DeclaresSchoolLevels` true (`Ruleset.cs:4319`). `ServiceEngine.Collect` then reads
+each Household's owed level from its Life Stage and **skips the Household where that level is zero**
+(`ServiceEngine.cs:486`), which is correct — a stage whose children are too young for school has no
+occasion rather than a failed one. But `school_level` is declared on `[[life_stage]]`, and a file
+stating levels on its **kinds** and not on its **stages** owes every Household level zero. So the
+guard skips all of them, for ever.
+
+⚠ **Nothing refuses it and nothing reports it.** The row's fix was to delete the key, and the file's
+header now records the measurement. ***The defect is the missing refusal***: `level` on a service
+kind is meaningless unless some `[[life_stage]]` claims a level, and the loader has both halves in
+front of it. Routed under `adr/0073` to `plans/0003`'s queue rather than fixed here — this row does
+not own the loader's refusal surface.
+
 ## Decisions
 
 Decisions 1-4 were taken at scoping. **5-9 were taken on 2026-09-12 against the code as it stands

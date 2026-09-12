@@ -78,18 +78,28 @@ public sealed class TreasuryFromAFileTests
     }
 
     /// <summary>
-    /// A world on any shipped Ruleset opens with one treasury Bin, empty and unbounded.
+    /// A world on any shipped Ruleset opens with one unbounded treasury Bin, holding what the file
+    /// founded it with.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>This is the whole of what the <c>[[resource]]</c> block buys, and no key in it says so.</b>
     /// <c>World.FitTreasury</c> walks the Ruleset's Resources at world creation and gives the treasury
     /// one Bin per conserved one (<c>adr/0116</c>), so a three-line block is the entire vocabulary a
-    /// Ruleset has for making the treasury real — there is no table to author, no kind to declare it
-    /// on, and nothing to tune.
+    /// Ruleset has for making the treasury real — there is no kind to declare it on and nothing to
+    /// tune.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The level is the file's own <c>[treasury] opening_balance</c>, and absent means zero.</b>
+    /// This asserted a flat zero for every file while no file could author one. <c>adr/0116</c>'s
+    /// empty treasury is still the default and still what <c>levied.toml</c>'s demonstration needs —
+    /// what changed is that a world may now be founded with money, so the invariant is <em>the Bin
+    /// holds what the Ruleset says</em> rather than <em>the Bin holds nothing</em>.
+    /// </para>
     /// </remarks>
     [Theory]
     [MemberData(nameof(Shipped))]
-    public void A_world_on_a_shipped_ruleset_opens_with_one_empty_unbounded_treasury_bin(string file)
+    public void A_world_on_a_shipped_ruleset_opens_with_one_unbounded_treasury_bin(string file)
     {
         (Ruleset rules, RulesetNames names) = Load(file);
         var world = new World(1_000, rules);
@@ -99,9 +109,41 @@ public sealed class TreasuryFromAFileTests
         Assert.Single(bins);
         Assert.True(rules.IsConserved(world.Bins.Resource[bins[0]]));
         Assert.Equal("money", names.Resource(world.Bins.Resource[bins[0]]));
-        Assert.Equal(0, world.Bins.LevelAt(bins[0]));
+        Assert.Equal(rules.Treasury.OpeningBalance.Raw, world.Bins.LevelAt(bins[0]));
         Assert.Equal(long.MaxValue, world.Bins.Capacity[bins[0]]);
         Assert.Equal(BinOwnerKind.Treasury, world.Bins.OwnerKind[bins[0]]);
+    }
+
+    /// <summary>
+    /// Exactly one shipped Ruleset founds its treasury with money, and every other opens empty.
+    /// </summary>
+    /// <remarks>
+    /// <b>The survey, asserted rather than remembered.</b> <c>adr/0116</c> chose an empty opening
+    /// treasury so <c>02 §4.2</c>'s exhaustion branch is reachable on the first sweep, and a defaulted
+    /// balance would delete that reachability from every file at once. <c>funded.toml</c> overrides it
+    /// because a player with no money has no fiscal decision to make, and it is the only file that
+    /// should — so this fails when a second one acquires the key, which is the moment to ask whether
+    /// the default still holds.
+    /// </remarks>
+    [Fact]
+    public void Only_the_funded_world_opens_with_money()
+    {
+        var founded = new List<string>();
+
+        foreach (string path in Directory
+            .EnumerateFiles(System.IO.Path.Combine(AppContext.BaseDirectory, "Rulesets"), "*.toml")
+            .OrderBy(path => path, StringComparer.Ordinal))
+        {
+            string file = System.IO.Path.GetFileName(path);
+            (Ruleset rules, _) = Load(file);
+
+            if (rules.Treasury.OpeningBalance.Raw != 0)
+            {
+                founded.Add(file);
+            }
+        }
+
+        Assert.Equal(["funded.toml"], founded);
     }
 
     /// <summary>
