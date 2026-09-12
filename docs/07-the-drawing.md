@@ -209,12 +209,8 @@ derived from the current four:
   worth saying so before somebody assumes it does: a camera is a **reading**, Fidelity is a property
   of place, and a free camera changes neither.
 
-⚠ **This entry is in the wrong document and is here under protest.** *A question is written in one
-place* ([`PROCESS.md`](../PROCESS.md) → *Where things live*) and that place is
-[`plans/0002`](../plans/0002-open-questions.md). It is here because `0002` stands at **exactly**
-its `CorpusBudgetTests` ceiling — 153,786 words against 153,786 — so the file cannot take one more
-word while [`0045`](../plans/0045-amnesty.md) runs. ***It moves to `0002` on the day the amnesty
-lifts***, and this paragraph is what stops that being forgotten.
+Revisit this vision question when choosing the next drawing capability; it is linked from
+[the backlog](../plans/0000-board.md).
 
 ---
 
@@ -267,38 +263,12 @@ have — and if terraforming is ever argued, that argument reopens the renderer 
 
 ---
 
-## 8. A Lot has no width, and quantising frontage costs nothing
+## 8. Lot geometry and frontage
 
-🔴 **STALE AS OF 2026-09-02, AND ITS CONCLUSION IS FALSIFIED — DO NOT PRICE ANYTHING FROM THIS
-SECTION.** [`plans/0053`](../plans/0053-the-block.md) step 5 put four **saved** extents on `LotTable`,
-deleted `Main.Kerb`, and retired `BuildingFillLow`/`High` into the Ruleset key `[lots] setback_tiles`.
-So a Lot **has** a width, it is the city's own hashed number, and quantising it is a Core edit that
-moves the State Hash rather than the renderer change this section concludes it is. ⚠ **The section is
-left standing rather than deleted** ([`PROCESS.md`](../PROCESS.md) → *Conventions*); the full account
-and the repair it needs are [`plans/0012`](../plans/0012-corpus-audit.md) → *`docs/07 §8` says a Lot
-has no width*, found by [`plans/0049`](../plans/0049-visuals.md) **F53**.
-
-⚠ **This section exists because the opposite was asserted, in this document's own first draft, as
-the thing that gated the pipeline decision.** It was wrong.
-
-**The simulation holds no frontage width.** A Lot is seven columns — `East`, `North`, `Zone`,
-`BuildingSlot`, `Side`, `FrontageSlot`, `FrontageOffset` — and none of them is an extent.
-`Frontage.OffsetOf(index, lotsPerSegment, blockTiles)` is static arithmetic returning a **position**.
-The width is computed in `Main.Kerb`, in the shell, as the half-way line to the neighbours on the
-same side.
-
-✅ **And it is already quantised.** Five Lots on a 128 m block face sit at 12, 36, 64, 88 and 112 m;
-sides alternate, so one kerb takes three and the other two, which yields **five** stretch widths —
-34, 36, 50, 58 and 62 m. ⚠ **Computed from `Frontage.OffsetOf` rather than measured**, and the corner
-reserve trims the vertical faces further.
-
-***The only continuous quantity in the whole arrangement is `BuildingFillLow`–`High`, which is a
-constant in the shell.*** So snapping a Building's width to whole modules is a renderer change:
-no simulation edit, no State Hash movement, and
-[`adr/0078`](adr/0078-frontage-is-derived-on-the-epoch-and-a-lots-width-is-the-segments-own-building-count.md)
-untouched.
-
----
+`LotTable` owns the saved Lot extents. Changing those extents changes simulation state;
+the renderer must use them when assembling authored assets. The former claim that frontage
+width could be freely quantised in the shell is obsolete. [0053](../plans/0053-the-block.md)
+records the geometry change; current authoring follows the procedure above.
 
 ## 9. What a screenshot actually costs
 

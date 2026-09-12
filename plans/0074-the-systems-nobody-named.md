@@ -1,29 +1,20 @@
 # 0074 — The systems nobody named
 
-**Definitions for the systems [`06`](../docs/06-roadmap.md)'s *Systems this corpus has never named*
-table found absent.** Written 2026-09-11 against `main` at `1d8bded`.
+Definitions of candidate systems identified on 2026-09-11 against `main` at `1d8bded`.
+[The backlog](0000-board.md) indexes every candidate here and owns its state and next step.
 
 ## What this is
 
-[`06`](../docs/06-roadmap.md)'s sweep found a set of standard city-builder systems that the corpus had
-never mentioned once. A row in that table names an absence and what it would attach to, and stops
-there. **This document gives each one a high-level definition, so the next sitting can classify it
-under [`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) rather than
-rediscover it.**
+These definitions provide design context, attachment points and questions for scoping. They are
+not implementation plans or commitments to ship. Check current code before relying on their
+claims about what exists. In particular, an **unbuilt** label does not make an entry ready when
+its own question still leaves behaviour undecided. Only an explicit design refusal rules out a
+capability under [ADR 0070](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md).
 
-⚠ **An entry here is a definition and not a decision.** Nothing below is placed at a milestone,
-nothing below is refused, and no entry may be cited as a design constraint. `adr/0070` is explicit
-that only *refused* is evidence, and these are not refused.
-
-⚠ **Open questions raised here stay here.** [`0045`](0045-amnesty.md) standing order 2 forbids new
-entries in [`0002`](0002-open-questions.md) §A–§F while the amnesty runs, so each entry carries its
-own settling question in its last field.
-
-**Twelve further systems went to [`deferred.md`](../docs/deferred.md)** rather than here — prisons,
-courts, ferries, cable cars, wildlife and ecology, historic preservation, architectural era, the
-achievements and campaign shells, snow clearing, and birth-rate and immigration policy as player
-levers. They are parked rather than refused, and that file owns the retrofit cost and the revisit
-trigger for each.
+Related deferred candidates, including prisons, courts, ferries, cable cars, wildlife, preservation,
+architectural era, achievements, campaigns, snow clearing and population Policies, are also indexed
+on the board. [Deferred design notes](../docs/deferred.md) retain their rationale and retrofit costs.
+Resolve a selected outcome's questions in its plan under [PROCESS.md](../PROCESS.md).
 
 ## How to read an entry
 
@@ -360,11 +351,9 @@ unknown Ruleset hash does. `adr/0112` refuses a mismatch today, and that refusal
 
 ---
 
-## What this document does not do
+## Scheduling and decisions
 
-- **It places nothing at a milestone.** [`06`](../docs/06-roadmap.md) sequences work; this defines
-  terms.
-- **It refuses nothing.** Under `adr/0070` a refusal is the only classification that counts as
-  evidence, so a refusal written casually here would be worse than the silence it replaced.
-- **It opens no `plans/0002` row and no ADR**, per [`0045`](0045-amnesty.md) standing orders 1 and 2.
-- **It states no numbers.** Nothing here is tuning and nothing here is hash-bearing.
+The board owns selection and ownership; the roadmap describes capability relationships.
+Definitions here neither allocate milestones nor refuse candidates. When a candidate is selected,
+update its design in place and use a short plan for its concrete outcome. Completion belongs in
+commits and PRs. The amnesty and its restrictions are retired under [PROCESS.md](../PROCESS.md).

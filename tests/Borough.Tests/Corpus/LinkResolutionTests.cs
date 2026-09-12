@@ -2,41 +2,10 @@ using System.Text.RegularExpressions;
 
 namespace Borough.Tests.Corpus;
 
-/// <summary>
-/// Mechanical check 8 — <b>a relative link points at a file that exists</b>.
-/// </summary>
+/// <summary>Relative documentation links must resolve to existing files.</summary>
 /// <remarks>
-/// <b>Nothing in this corpus checked this until 2026-08-13, and the corpus is held together almost
-/// entirely by relative links.</b> The three checks that existed all look like they cover it and none
-/// does: <see cref="CitationTests"/> matches the <b>regex</b> <c>adr/\d{4}</c> and never opens a target,
-/// <see cref="CoverageMapTests"/> asserts a row exists, and <see cref="MarkdownStyleTests"/> asserts
-/// tables render. <b>A link to a file that does not exist passed all three.</b>
-/// <para>
-/// <b>It was found by committing it.</b> A sitting wrote <c>adr/0017</c> as
-/// <i>households-satisfice-they-do-not-optimise</i> — the ADR's <b>claim</b> rather than its
-/// <b>filename</b> (<i>agents-satisfice-they-never-optimise</i>) — ran the suite, and watched it go
-/// green. The same sitting had already told the user those tests meant <i>"citations resolve"</i>, which
-/// is <c>adr/0093</c> arriving on a <b>test name</b>: the check was described from what it is called
-/// rather than from what it opens.
-/// </para>
-/// <para>
-/// <b>It was measured before it was proposed, because a check nobody can pass is a cleanup project
-/// wearing a ratchet's clothes.</b> Across every markdown file in the tree: <b>4,064 relative links,
-/// five dead — and four of those in a stale <c>.claude/worktrees/</c> copy</b>. The live corpus had
-/// exactly <b>one</b>, <c>adr/0094:132</c> pointing at <c>../plans/0013-tick-budget.md</c> from inside
-/// <c>docs/adr/</c>, one <c>../</c> short. So this goes green the day it is written and every future
-/// breakage is a red build rather than an audit — which is the property <c>adr/0003</c>'s per-field
-/// declaration has and <i>remember to check your links</i> does not.
-/// </para>
-/// <para>
-/// <b>Two scope decisions, both earned from <see cref="CitationTests"/>' two false-green revisions.</b>
-/// <b>The worktree exclusion is structural rather than a filter</b> — <see cref="CorpusFiles"/>
-/// enumerates <c>docs/</c> and <c>plans/</c> from the repository root, so a stale corpus under
-/// <c>.claude/worktrees/</c> is unreachable rather than skipped, and cannot be re-included by somebody
-/// widening a predicate. And <b>the anchor is deliberately not checked</b>: <c>#a-heading</c> is a far
-/// weaker claim than a file existing, its slugification is renderer-specific, and folding the two
-/// together would make a strong check fail for a weak reason.
-/// </para>
+/// Scans the main documentation tree, excluding sibling worktrees by construction.
+/// External URLs and heading anchors are not validated by this filesystem check.
 /// </remarks>
 public sealed class LinkResolutionTests
 {

@@ -11,35 +11,10 @@ using Borough.Core.Tables;
 /// Fills a world with a city sized to its configuration, for measuring the simulation at scale.
 /// </summary>
 /// <remarks>
-/// <para>
-/// <b>This is an instrument, not a mechanism, and the distinction is the whole reason it is written
-/// down here rather than in the runner.</b> A real city arrives through Zone Rules and the Unplaced
-/// Pool; nothing about this class is how Citizens are meant to come into existence, and when slice 10
-/// lands there is a case for deleting it. What it exists for is spike <c>S0</c>: until a Tick has been
-/// run over a million rows, 1M is a hope, and every table sized against it rests on an unvalidated
-/// assumption.
-/// </para>
-/// <para>
-/// <b>It lives in <c>Borough.Core</c> because it enters through Phase 0 like every other input.</b>
-/// <see cref="Simulation"/> calls it from <see cref="Input.CommandKind.Populate"/>, so the population
-/// is described by the Input Log that describes the session, and replay reproduces it by construction
-/// rather than by a claim somebody has to keep true. Populating a world from the shell would have been
-/// three fewer files and a state change no replay could reproduce and no State Hash divergence could
-/// explain — which is the one thing <see cref="Simulation"/>'s only door exists to prevent.
-/// </para>
-/// <para>
-/// <b>It draws no randomness, deliberately.</b> Every value below is index arithmetic, so the city is
-/// a pure function of its size and needs no <c>purpose_tag</c> — and therefore cannot correlate itself
-/// with a simulation decision that shares a stream. That is a real hazard here rather than a
-/// hypothetical one: a fixture is exactly the kind of code somebody reaches for a convenient
-/// <c>draw()</c> in, and the correlation it would create is invisible.
-/// </para>
-/// <para>
-/// <b>What it is not is representative.</b> The Lots are laid in a 64-Tile strip, every Household has
-/// the same size, and workplaces are assigned by a stride. That is enough to answer <em>what does a
-/// Tick over a million rows cost</em> and it is not enough to answer anything spatial or economic. The
-/// shape is stated so nobody reads a distribution out of it that was never put in.
-/// </para>
+/// Synthetic fixtures support scale measurements; they do not model organic city growth.
+/// Populate enters through the Input Log so replay reproduces the population. Read the
+/// construction methods below for each fixture's spatial and economic assumptions before
+/// treating a measurement as representative of a player-built city.
 /// </remarks>
 public static class SyntheticCity
 {

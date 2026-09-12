@@ -1049,7 +1049,7 @@ The simulation is a pure function, which makes it unusually testable for a game.
 **Invariants sort by frequency, never by build configuration.** This section previously gated its assertions on *debug builds*, and that is backwards: the runs that surface these bugs are the **headless balance runs**, millions of Ticks long, and they are release builds. The gate would have been closed exactly where the exposure is. It is also unaffordable as written — *"Goods conserved, no Citizen in two places"* is `O(n)` per Tick, which was defensible at 10k and is not at 1M. [`adr/0033`](adr/0033-two-rule-families-scheduled-and-swept.md) already found the right shape for this and it was not applied here: *"unaffordable per Tick and trivial at the end of a headless run."*
 
 > ⚠ **Every invariant named in this table names its `Invariant` member in backticks, and
-> `plans/0012` **check 7** enforces it.** The convention is the check: a member that does not exist
+> `InvariantCoverageTests` enforces it.** The convention is the check: a member that does not exist
 > cannot be named, so an obligation cannot be added here and quietly built nowhere — which is what
 > happened to *parking occupancy conserved* across four documents. A member that is named but not yet
 > implemented carries `[Unbuilt]` in the enum, which is how a gap is **declared without being closed**

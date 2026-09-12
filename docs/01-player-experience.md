@@ -322,20 +322,10 @@ they have laid a road would put a number in front of them before any of the numb
 **It must be enough to get started and not enough to win.** Those are the two ends the figure is chosen
 between, and both are observable rather than argued: a balance is too small if the player cannot reach a
 first housed Household, and too large if a city grows to self-sufficiency without the player having made a
-single spatial decision. It is world-creation state that enters the treasury Bin, so it is hash-bearing and
-needs a named ratifier under [`adr/0052`](adr/0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md);
-the ratifier is the first real play session and the two refuting observations are the ones just named.
-**It is not ratified by a player failing to meet §4's two-hour mark**, which under the previous section is
-not a promise.
-
-> ⚠ **That sentence was a `plans/0002` §D row for the life of this document and no ledger carried it — filed
-> 2026-08-18** ([`adr/0116`](adr/0116-the-treasury-opens-empty-and-a-founding-balance-is-a-ratio-this-milestone-holds-neither-side-of.md)).
-> ***A number that states its own ratifier inside a design document is still unratified, because the ledger is
-> what schedules the ratification.*** **And it is not milestone 10's to choose**, though that is where the
-> treasury Bin first exists: both ends above are denominated in **what things cost**, and there is no
-> construction cost, no wage, no price surface and no gate — so a figure picked there would be a numerator with
-> no denominator. Milestone 10's treasury opens **empty**, which is a different quantity that happens to share
-> this one's range; only the missing consumer tells them apart.
+single spatial decision. It is world-creation state entering the treasury Bin and is hash-bearing.
+Choose a provisional balance against actual placement and running costs, then check both outcomes
+in play. The two-hour mark in §4 is not a promise or a calibration target. The active spending plan
+owns this work; [PROCESS.md](../PROCESS.md) describes how provisional tuning is evaluated.
 
 **What is deliberately absent from the first ten minutes:** shocks, and any failure state.
 
