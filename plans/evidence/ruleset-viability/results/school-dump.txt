@@ -1,0 +1,60 @@
+# Borough school dump — who can get to a school, and what it costs the rest
+# 1,000 Citizens, 57,344 Ticks, 28 Days, 1 schools placed through the `service` verb.
+#
+# adr/0032: a Service reaches people because somebody makes a JOURNEY. `unreached` is a
+# school inside the straight-line box that no route delivers within the Commute Budget —
+# Severance, and the one number a coverage Map Layer could never have produced.
+#
+# Ruleset: plans/evidence/ruleset-viability/connected.toml, service kind "school", education degrade 2/Day, recover 2, floor -100.
+
+  Day     attended  unreached  no school   full   families  at zero   mean depth  studying  graduates   tier3
+  0              0          0          0      0          0        0            0         0          0       0
+  1              0          0          0      0          0        0            0         0          0       0
+  2              0          0          0      0          0        0            0         0          0       0
+  3              0          0          0      0          0        0            0         0          0       0
+  4              0          0          0      0          0        0            0         0          0       0
+  5              0          0          0      0          0        0            0         0          0       0
+  6              0          0          0      0          0        0            0         0          0       0
+  7              0          0          0      0          0        0            0         0          0       0
+  8              0          0          0      0          0        0            0         0          0       0
+  9              0          0          0      0          0        0            0         0          0       0
+  10             0          0          0      0          0        0            0         0          0       0
+  11             0          0          0      0          0        0            0         0          0       0
+  12             0          0          0      0          0        0            0         0          0       0
+  13             0          0          0      0          0        0            0         0          0       0
+  14             0          0          0      0          0        0            0         0          0       0
+  15             0          0          0      0          0        0            0         0          0       0
+  16             0          0          0      0          0        0            0         0          0       0
+  17             0          0          0      0          0        0            0         0          0       0
+  18             0          0          0      0          0        0            0         0          0       0
+  19             0          0          0      0          0        0            0         0          0       0
+  20             0          0          0      0          0        0            0         0          0       0
+  21             0          0          0      0          0        0            0         0          0       0
+  22             0          0          0      0          0        0            0         0          0       0
+  23             0          0          0      0         11       11            0         0          0       0
+  24             7          0          4      0         17       13            0         0          0       0
+  25            10          0          7      0         26       19            0         0          0       0
+  26            14          0         12      0         31       19           -1         0          0       0
+  27            16          0         15      0         37       22           -2         0          0       0
+
+  Reach
+    schools standing                 1
+    occasions                       85
+    school in the box               47
+    ... and delivered               47
+    ... and unreachable              0
+    ... and full                     0
+    no school in the box            38
+    deliverable share             100%   — what a distance field would have called 100%.
+
+    80 Buildings stand, of which 1 are schools.
+
+  Each school — floor_tiles_per_place = 3, so places derive from the ground
+    slot      kind        floor    places   attended on the last Day
+    48        school           96        32         16
+
+  Admission on the last Day — is the matching stable?
+    admitted                        16
+    turned away at the door          0
+    ... of which INVERTED            0
+    ... so no family and school would both rather have had each other.

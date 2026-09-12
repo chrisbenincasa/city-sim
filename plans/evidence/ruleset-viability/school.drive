@@ -1,0 +1,12 @@
+# Launch with --start-at 1, connected.toml and --citizens 1000.
+1 hold service 3
+1 click 67 64
+2 hold look
+2 click 69 69
+2 readout /tmp/viability-drive/placed.txt
+2 speed 8
+2304 pause
+2304 focus 69 69 250
+2304 shoot /tmp/viability-drive/staffed.png
+2304 draw /tmp/viability-drive/staffed.tsv
+2304 quit

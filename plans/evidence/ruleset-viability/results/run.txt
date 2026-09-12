@@ -1,0 +1,9 @@
+baseline: school Tile 67,64; hash 34682FCBFE9F476B
+baseline: command replay at Day 7 and save continuation through Day 8 passed (17447385 bytes).
+baseline: 56 Days; invariants passed; final State Hash 01275D55E5BF58AD
+wage-only: school Tile 67,64; hash 346375CC74FBA293
+wage-only: command replay at Day 7 and save continuation through Day 8 passed (17447385 bytes).
+wage-only: 56 Days; invariants passed; final State Hash 0C627A1E794B109E
+matched-grant: school Tile 67,64; hash F35A30DEC848C0D1
+matched-grant: command replay at Day 7 and save continuation through Day 8 passed (17447385 bytes).
+matched-grant: 56 Days; invariants passed; final State Hash 509BE33F394C8F3C

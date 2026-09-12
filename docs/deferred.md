@@ -239,12 +239,19 @@ Parked because it is **mechanically redundant**: a city that fixes its housing s
 
 ## A purpose-built DSL for the Ruleset
 
-**Status:** parked. TOML for now.
-**Retrofit cost:** Low. The format is an input to a stable interpreter; changing it doesn't touch the simulation.
+**Status:** deferred; use TOML and the [authoring workflow](ruleset-authoring.md).
+**Retrofit cost:** the parser boundary is separate from Core, but a new language still needs
+validation, source locations, editor support, stable identity/order and reproducible hashing.
 
-GlassBox's custom rule DSL was significantly more readable than the equivalent TOML, and the Ruleset is the file we will read and write most. Parked because a DSL is a parser to write, test, and produce good error messages for, and `adr/0018` sets a standing bias against bespoke infrastructure.
+The [viability experiment](../plans/base-game-ruleset-viability.md) composes a connected
+shopping, wage, tax and public-school slice in one TOML file. A wage change takes one value;
+matching its grant takes another. The measured duplication is primarily repeated shared tables
+across demonstration files. This supports trying one canonical gameplay file and, when needed,
+TOML composition before paying for a parser and tooling ecosystem. It does not establish the
+readability of a full gameplay corpus.
 
-**Trigger:** the TOML has become painful enough to measure — specifically, when rule authoring is visibly slowing down balance iteration.
+**Trigger:** measured content iteration is still obstructed by TOML syntax or expression limits
+after simpler organisation/composition measures. Missing simulation mechanisms are separate work.
 
 ---
 

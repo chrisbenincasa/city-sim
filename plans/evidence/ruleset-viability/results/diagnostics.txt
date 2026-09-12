@@ -1,0 +1,9 @@
+missing-pool-sink: accepted=False
+missing-pool-sink.toml:1: this Ruleset declares a [[life_stage]] whose children_become sends children into the Unplaced Pool, and [placement] states no gives_up_after_days -- so nothing ever leaves the Pool except by being housed. Internal generation is a door into the Pool exactly as a gate kind is, and a Pool with a door and no give-up rule grows without bound, which adr/0006 forbids. State how long a Household keeps looking, in Days. adr/0011 wants this anyway: an unaffordable city failing to house its own children is what makes retention a reading.
+unknown-key: accepted=False
+unknown-key.toml:302: 'authoring' is not a Ruleset section. The sections are [needs], [[resource]], [[building]], [[business]], [[rule]], [[zone_rule]], [[policy]], [[hinterland]], [[lattice]], [[terrain]], [layers], [placement], [roads], [lots], [trips], [jobs], [households], [traffic], [parking], [water], [districts], [market], [income_tax], [business_tax] and [founding]. A trade is declared with [[business]] and the founding channel is configured with [founding]; they are different tables.
+unpriced-good: accepted=False
+unpriced-good.toml:187: 'food' is a good and no [[hinterland]] gives it a price, in a file that states [districts]. A District opens a Pool for every good and the Hinterland's price is the only ceiling on what that Pool can charge, so an unpriced good is not merely unanchored -- it is free everywhere, for ever. Add a prices entry for it to some [[hinterland]], or delete the [districts] table.
+unknown-trade: accepted=False
+unknown-trade.toml:56: rule 'shopfront': business is "typo", and no [[business]] declares that trade. A kind naming a trade nothing declares would raise Buildings that come with nothing, which loads clean and employs nobody.
+unfunded-wage-increase: accepted=True

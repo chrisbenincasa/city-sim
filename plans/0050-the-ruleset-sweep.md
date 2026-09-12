@@ -5,8 +5,9 @@ settled the test on 2026-08-25 and did not apply it; its own Consequences say
 *"🔴 The existing keys have not been swept and almost certainly contain hits."*
 [`0012`](0012-corpus-audit.md) holds the specification and asks for **a count first**.
 
-⚠ **This document owns the count and the verdict per key. It owns no decision** — `adr/0164` is the
-decision and this is its execution. Standing order 1 bans a new ADR and none is needed.
+This is the historical sweep completed on 2026-09-01. Its counts describe that revision;
+[the base-game viability investigation](base-game-ruleset-viability.md) checks current authoring
+and connected gameplay. [PROCESS.md](../PROCESS.md) owns workflow.
 
 ---
 
@@ -395,46 +396,9 @@ as a bug.***
 
 ---
 
-## Owed
+## Completion
 
-| | Work | State |
-|---|---|---|
-| 1 | The count — 169 keys, 150 set, 19 unset, 8 hits | ✅ |
-| 2 | `RefuseRetired`, the schema regenerated, `RulesetSchemaTests` guarding it | ✅ |
-| 3 | The disclaiming comment — `interval` in three tables, both lattice origins. ⚠ **The `[layers]` eleven and two of the five pacing keys already had one** | ✅ |
-| 4 | The census — one file retired, two given tests | ✅ |
-| 5 | The collapse — 13,618 lines | ✅ |
-| 6 | `thinned.toml` exercised as a file. ⚠ **`scarce.toml` deliberately not** | ✅ |
-| 7 | Should `rulesets/` join the amnesty numerator? **The real number now exists — see below** | ⚠ **user's call** |
-
-⚠ **Row 3 is deliberately last and is not a deletion.** Every one of those keys passes the test; what
-they lack is the sentence saying whether the value was chosen or derived. `adr/0164`'s third row
-exists to stop this sweep over-firing, and ***a sweep that deletes keys does more damage than the
-thing it fixes***.
-
-### 🔴 Row 7 — the numerator, measured rather than estimated
-
-**The plan reserved this for the day the real number existed. It exists.**
-
-| | words | ratio over 36,766 lines of simulation |
-|---|---|---|
-| `docs/` + `plans/` + `//` comments in `src/`+`tests/` — what `CorpusBudgetTests` counts today | **1,930,386** | **52**, against a ceiling of **52** |
-| `#` comments in `rulesets/`, after the collapse | **102,679** | — |
-| both | **2,033,065** | **55** |
-
-⚠ **The estimate in the plan was 40,000 words and it was low by 2.5×**, because it was taken off the
-line count rather than off `wc -w`. ***An estimate of a quantity nobody had measured, written into a
-plan and then reasoned from, is `plans/0042` F12's shape*** — the same reason this document quotes
-the census and not the arithmetic anywhere else.
-
-🔴 **So admitting `rulesets/` today costs a re-seed from 52 to 55, and that is the escape hatch and
-not the ratchet.** `CorpusBudgetTests`'s own remarks say a raise made by the author who tripped it
-*"is not a check"*, and this would be one: the collapse removed 264,000 words and the reward for it
-would be a ceiling three points looser than the one that has been holding. **Left undone
-deliberately, and named here rather than acted on** — it is the user's call whether the reservoir
-refills or the ceiling moves.
-
-⚠ **Note what the collapse did to the number.** `rulesets/` held **300,167** words before it and
-holds **102,679** after; at the old figure the combined ratio was **60**. ***The directory has gone
-from a quarter of the corpus to a twentieth of it*** without anything being decided about whether it
-counts.
+The sweep counted the key surface, excluded retired keys from generated schema offers,
+clarified authored cadences, exercised selected demonstration files and reduced copied prose.
+Its measurements above retain their original scope; they are not present-day key counts or a
+verdict on a coherent gameplay Ruleset.

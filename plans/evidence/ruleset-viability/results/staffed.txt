@@ -1,0 +1,47 @@
+tick 2304
+connected.toml   Tick 2,304   Day 1   Tuesday   08:00
+Citizens 1,000   Buildings 52   vacant Lots 28   travelling 4
+At work 0   Shopping 8 Households   Goods being carried 192 — bringing home 96 sundries
+speed paused   mode look   [ ] speed, space pause, w write log, g roads, c cells, tab tune
+click acts   right-drag or two-finger scroll pans   edge of screen pans   pinch or -/= zooms   q/e turns   r/f tilts   l lens   o overlay
+hover —
+school · 0 Households · 1 Business · No supply shortfalls reported
+debug —
+Tile (69, 69)    Cell (2, 2)
+school — 0 of 6 occupied, 5 Tiles off
+    teaching
+Lot 1, zone 0x0002
+ground: ordinary
+pollution 0    land value 0    sealing 137
+District 1
+inspector —
+school
+SELECTED BUILDING · 49
+Current condition
+No supply shortfalls reported
+Occupied places: 1 / 6
+What needs attention
+No supply shortfalls reported.
+Activities
+No other activities reported.
+Teaching capacity
+Places: 32 a Day, on a floor built for 32
+Attended today: 0
+Staff: 5 of 5 posts filled
+Households · 0
+No Households live here.
+Businesses · 1
+teaching · Business 1 →
+Workers · 5
+Citizen 191
+Citizen 404
+Citizen 544
+Citizen 777
+Citizen 886
+Stocks
+No stocks reported.
+ui theme=dark debug=False visible=True scroll=0
+inspector (2130, 104), (406, 732) min=(125, 130)
+body (2150, 218), (366, 602) min=(50, 602)
+scroll (2150, 218), (366, 602) min=(50, 0)
+hover (40, 1286), (908, 49) debug (24, 264), (840, 36) console (24, 1210), (940, 137)

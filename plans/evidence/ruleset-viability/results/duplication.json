@@ -1,0 +1,35 @@
+{
+  "files": 49,
+  "sections": {
+    "roads": {
+      "files": 49,
+      "distinct": 5,
+      "largest_identical_group": 40
+    },
+    "layers": {
+      "files": 49,
+      "distinct": 2,
+      "largest_identical_group": 47
+    },
+    "lots": {
+      "files": 49,
+      "distinct": 5,
+      "largest_identical_group": 44
+    },
+    "capacity": {
+      "files": 49,
+      "distinct": 4,
+      "largest_identical_group": 42
+    },
+    "placement": {
+      "files": 49,
+      "distinct": 9,
+      "largest_identical_group": 30
+    },
+    "jobs": {
+      "files": 49,
+      "distinct": 2,
+      "largest_identical_group": 48
+    }
+  }
+}
