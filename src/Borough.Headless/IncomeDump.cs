@@ -298,7 +298,7 @@ internal static class IncomeDump
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Ten columns and no eleventh that adds any of them up.</b> The treasury column is already the
+    /// <b>Eleven columns and no twelfth that adds any of them up.</b> The treasury column is already the
     /// running consequence of the five flows, so a net column would be its first difference and
     /// would carry nothing the table does not have — while costing the reader the one distinction
     /// the table exists to make. <b>The households column is the counterparty</b>: a budget that
@@ -330,6 +330,8 @@ internal static class IncomeDump
             census.Series(Metric.Of(MoneyFlowCounter.RuleFromTreasury, Aggregate.Sum), window);
         Series granted =
             census.Series(Metric.Of(MoneyFlowCounter.Subsidy, Aggregate.Sum), window);
+        Series placed =
+            census.Series(Metric.Of(MoneyFlowCounter.Placement, Aggregate.Sum), window);
 
         ReadOnlySpan<CensusSample> levels = treasury.Samples.Span;
         var columns = new Columns(
@@ -340,14 +342,15 @@ internal static class IncomeDump
             ruled.Samples.Span,
             spent.Samples.Span,
             drawn.Samples.Span,
-            granted.Samples.Span);
+            granted.Samples.Span,
+            placed.Samples.Span);
 
         output.WriteLine(F($"Income and expenditure — one row per {cadence:N0} Ticks, which is a Day"));
         output.WriteLine();
 
         string header = Row(
             "tick", "withheld", "profit tax", "policy in", "rule in", "policy out", "rule out",
-            "subsidy out", "treasury", "households");
+            "subsidy out", "placement out", "treasury", "households");
         output.WriteLine(header);
         output.WriteLine(new string('-', header.Length));
 
@@ -383,15 +386,16 @@ internal static class IncomeDump
         long out_ = Total(columns.Spent);
         long drawnOut = Total(columns.Drawn);
         long grantedOut = Total(columns.Granted);
+        long placedOut = Total(columns.Placed);
 
         output.WriteLine();
         output.WriteLine(F(
             $"  Into the treasury: {income:N0} withheld from wages, {profit:N0} in profit tax, {moved:N0} by a Policy, {paidIn:N0} by a Bin Rule."));
         output.WriteLine(F(
-            $"  Out of it: {out_:N0} by a Policy, {drawnOut:N0} by a Bin Rule, {grantedOut:N0} in subsidy."));
+            $"  Out of it: {out_:N0} by a Policy, {drawnOut:N0} by a Bin Rule, {grantedOut:N0} in subsidy, {placedOut:N0} on placements."));
         Catalogued(output, catalogue);
         output.WriteLine(
-            "  The seven are printed apart and never netted. A net cannot say whether a city taxed");
+            "  The eight are printed apart and never netted. A net cannot say whether a city taxed");
         output.WriteLine(
             "  nothing and paid nothing or taxed heavily and paid it all back; and within the");
         output.WriteLine(
@@ -421,7 +425,18 @@ internal static class IncomeDump
             "  flow here could name.");
         output.WriteLine();
         output.WriteLine(
-            "  The treasury column is these seven columns' running total, and nothing else reaches");
+            "  ⚠ `placement out` is the one column that pays NOBODY. A service Building placed by");
+        output.WriteLine(
+            "  hand costs the treasury its kind's placement_cost, and that money buys imported");
+        output.WriteLine(
+            "  Materials -- so it leaves the money supply rather than arriving in another Bin. It is");
+        output.WriteLine(
+            "  expenditure because the balance fell by it, and a column because nothing else would");
+        output.WriteLine(
+            "  name it.");
+        output.WriteLine();
+        output.WriteLine(
+            "  The treasury column is these eight columns' running total, and nothing else reaches");
         output.WriteLine(
             "  it: every unit of the balance is explained by the flows printed beside it.");
     }
@@ -442,7 +457,8 @@ internal static class IncomeDump
         ReadOnlySpan<CensusSample> ruled,
         ReadOnlySpan<CensusSample> spent,
         ReadOnlySpan<CensusSample> drawn,
-        ReadOnlySpan<CensusSample> granted)
+        ReadOnlySpan<CensusSample> granted,
+        ReadOnlySpan<CensusSample> placed)
     {
         public ReadOnlySpan<CensusSample> Homes { get; } = homes;
 
@@ -470,6 +486,18 @@ internal static class IncomeDump
         /// <c>ceiling</c>.
         /// </remarks>
         public ReadOnlySpan<CensusSample> Granted { get; } = granted;
+
+        /// <summary>
+        /// What the city paid to place service Buildings by hand — the fourth expenditure path.
+        /// </summary>
+        /// <remarks>
+        /// ⚠ <b>The one column here whose money reaches nobody.</b> A placement's price buys
+        /// imported Materials, so it leaves the money supply rather than another Bin — and it is
+        /// still expenditure, because the treasury's balance fell by it. Folding it into
+        /// <see cref="Spent"/> would keep the identity and lose the lever, which is a
+        /// <c>[[building]]</c> kind's price rather than a <c>[[policy]]</c>'s amount.
+        /// </remarks>
+        public ReadOnlySpan<CensusSample> Placed { get; } = placed;
     }
 
     /// <summary>
@@ -511,6 +539,7 @@ internal static class IncomeDump
             Cell(columns.Spent, i),
             Cell(columns.Drawn, i),
             Cell(columns.Granted, i),
+            Cell(columns.Placed, i),
             Count(levels[i].Value),
             Cell(columns.Homes, i)));
     }
@@ -562,8 +591,8 @@ internal static class IncomeDump
 
     private static string Row(
         string label, string a, string b, string c, string d, string e, string f, string g,
-        string h, string i) =>
-        F($"{label,-10}  {a,11}  {b,11}  {c,11}  {d,11}  {e,11}  {f,11}  {g,11}  {h,14}  {i,14}");
+        string h, string i, string j) =>
+        F($"{label,-10}  {a,11}  {b,11}  {c,11}  {d,11}  {e,11}  {f,11}  {g,11}  {h,13}  {i,14}  {j,14}");
 
     private static string Count(long value) => F($"{value:N0}");
 

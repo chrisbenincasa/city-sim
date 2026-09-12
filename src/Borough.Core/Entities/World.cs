@@ -496,6 +496,15 @@ public sealed class World
         // would leave every world that loaded its Ruleset at construction with a global scope that
         // resolves to nothing, which is the same hole this task exists to close, differently spelt.
         FitTreasury();
+
+        // [treasury] opening_balance, and it is here rather than inside FitTreasury because that runs
+        // on every Ruleset swap too. A balance applied there would mint money into a standing city on
+        // every hot reload, so Adopt refuses a reload that moves it instead (adr/0015). A file that
+        // states no [treasury] founds nothing and keeps adr/0116's empty treasury.
+        if (rules.Treasury.OpeningBalance.Raw > 0)
+        {
+            EndowTreasury(rules.Treasury.OpeningBalance);
+        }
     }
 
     /// <summary>
@@ -978,6 +987,19 @@ public sealed class World
 
         if (rules.Lots.Plots != Rules.Lots.Plots)
             throw new NotSupportedException("Residential parcel dimensions are fixed at world creation.");
+
+        // [treasury] opening_balance is read once, when the world is made. Re-reading it here would
+        // mint money into a standing city on every hot reload -- and MoneyIsConserved would stay
+        // green, because the issuance is recorded. MapLayers.Adopt refuses kernel_metres the same
+        // way and for the same reason: adr/0015 makes a Ruleset hot-reloadable, not world creation.
+        if (rules.Treasury.OpeningBalance != Rules.Treasury.OpeningBalance)
+        {
+            throw new InvalidOperationException(
+                $"this world was founded with a treasury of {Rules.Treasury.OpeningBalance.Raw} and "
+                + $"the reloaded Ruleset states {rules.Treasury.OpeningBalance.Raw}. An opening "
+                + "balance is money issued at world creation (adr/0015), so applying it again would "
+                + "mint into a city that has already spent what it was founded with.");
+        }
 
         RulesetChange change = RulesetShape.Compare(Rules, rules);
         RulesetMigration? migration = null;
@@ -1583,6 +1605,133 @@ public sealed class World
         Deposit(balance, amount.Raw, Tick);
 
         MoneySupply.Issued[MoneySupplyTable.Slot] += amount;
+    }
+
+    /// <summary>
+    /// Founds the treasury with money that did not exist before — <c>[treasury] opening_balance</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="Endow"/>'s argument, on the treasury.</b> It deposits and writes
+    /// <see cref="MoneySupplyTable.Issued"/> in one call, so there is no spelling in which the second
+    /// half is forgotten and <see cref="Invariant.MoneyIsConserved"/> stays an exact equality rather
+    /// than a sum with a flow term. Writing the Bin's level directly would be a defect for the same
+    /// reason it is a defect on a Household.
+    /// </para>
+    /// <para>
+    /// <b>World creation only, and that is why it is not in <see cref="FitTreasury"/>.</b> The Bin is
+    /// fitted at construction and again at every Ruleset swap; the balance is applied once, beside
+    /// the first of those. A reload carrying a different figure is refused in <see cref="Adopt"/>
+    /// before anything moves (<c>adr/0015</c> makes a Ruleset hot-reloadable and world creation is
+    /// not), because re-reading it would mint money into a standing city.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It refuses a world whose Ruleset names no money rather than founding one silently</b>,
+    /// which is <see cref="Endow"/>'s refusal: the treasury holds one Bin per conserved Resource
+    /// (<c>adr/0114</c>, <c>adr/0116</c>), so no Bin means the file names no currency to found the
+    /// city in. The loader refuses that file first, so what reaches here is a hand-built Ruleset.
+    /// </para>
+    /// </remarks>
+    /// <param name="amount">Money to found the treasury with.</param>
+    /// <exception cref="ArgumentOutOfRangeException">The amount is negative.</exception>
+    /// <exception cref="InvalidOperationException">The Ruleset in force names no money.</exception>
+    public void EndowTreasury(Money amount)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(amount.Raw, nameof(amount));
+
+        int bin = TryMoneyResource(out ResourceId money) ? FindTreasuryBin(money) : Rows.NoSlot;
+
+        if (bin == Rows.NoSlot)
+        {
+            throw new InvalidOperationException(
+                "the treasury holds no Bin, so the Ruleset in force declares no money Resource "
+                + "(adr/0114 and adr/0116: the treasury gets one Bin per conserved Resource). "
+                + "Founding it would put money where the file says money does not exist. Load a "
+                + "Ruleset with a `family = \"money\"` [[resource]] block.");
+        }
+
+        // Through Deposit rather than into the level, for Endow's reason: a Bin written without
+        // draining its wait list leaves whoever was short of money asleep for ever.
+        Deposit(Bins.Rows.At(bin), amount.Raw, Tick);
+
+        MoneySupply.Issued[MoneySupplyTable.Slot] += amount;
+    }
+
+    /// <summary>
+    /// Takes a placement's price out of the treasury and out of the money supply with it —
+    /// <c>[[building]] placement_cost</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The withdrawal and the <see cref="MoneySupplyTable.Issued"/> write-down are one call,
+    /// because the four shipped decrement sites are.</b> <c>WageEngine.Bankrupt</c>,
+    /// <see cref="Depart(Handle{Household})"/>, <see cref="Depart(Handle{Business})"/> and
+    /// <see cref="Raze"/> each pair a Bin read with the supply write at the same site.
+    /// <c>Simulation</c> is outside this class, so a caller reaching in for the Bin would have to
+    /// remember the second half — and nothing catches an unpaired write until
+    /// <see cref="Invariants.Invariant.MoneyIsConserved"/> at the end of the run, which names no
+    /// cause.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>It is the first decrement whose Bin goes on living, and the money reaches nobody.</b>
+    /// The other four read a Bin that is about to be freed — somebody left the city with their
+    /// savings. This is a live treasury paying a price with no counterparty, and that is
+    /// <c>adr/0035</c> §2 rather than a hole: construction money buys Materials and imported
+    /// Materials leave through the gate, so until an import path exists the placement is a leak and
+    /// the supply is written down to say so. ⚠ <b>It is still a treasury FLOW</b> —
+    /// <c>MoneyFlowCounter.Placement</c> counts it as expenditure, so the balance stays the sum of
+    /// its own columns.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It pays in full or throws.</b> A part-paid placement is not a thing the verb can mean,
+    /// and the caller has already asked — <c>Simulation.RefuseService</c> returns
+    /// <c>Refusal.ServiceTreasuryCannotPay</c> before the command applies, so reaching the throw is
+    /// a caller that did not.
+    /// </para>
+    /// </remarks>
+    /// <param name="amount">The price. Zero is permitted and moves nothing.</param>
+    /// <exception cref="ArgumentOutOfRangeException">The amount is negative.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// The Ruleset in force names no money, or the treasury cannot pay in full.
+    /// </exception>
+    public void SpendOnPlacement(Money amount)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(amount.Raw, nameof(amount));
+
+        if (amount.Raw == 0)
+        {
+            return;
+        }
+
+        int bin = TryMoneyResource(out ResourceId money) ? FindTreasuryBin(money) : Rows.NoSlot;
+
+        if (bin == Rows.NoSlot)
+        {
+            throw new InvalidOperationException(
+                "the treasury holds no Bin, so the Ruleset in force declares no money Resource "
+                + "(adr/0114 and adr/0116: the treasury gets one Bin per conserved Resource). A "
+                + "placement cannot be charged for in a city with no currency. The loader refuses a "
+                + "`placement_cost` in a file naming no money, so what reaches here is a hand-built "
+                + "Ruleset.");
+        }
+
+        if (Bins.LevelAt(bin) < amount.Raw)
+        {
+            throw new InvalidOperationException(
+                $"the treasury holds {Bins.LevelAt(bin)} and the placement costs {amount.Raw}. A "
+                + "placement is paid in full or not at all, and Simulation.RefuseService answers "
+                + "that off this same comparison before the command applies -- so reaching here is "
+                + "a caller that did not ask.");
+        }
+
+        // Through Withdraw rather than out of the level, for Deposit's mirror reason: a Bin written
+        // without draining its wait list strands whoever was waiting for the space.
+        Withdraw(Bins.Rows.At(bin), amount.Raw, Tick);
+
+        // Paired with the withdrawal and never left to the caller. The money buys imported
+        // Materials and leaves through a gate that is not built (adr/0035 section 2), so it leaves
+        // the supply here rather than arriving in somebody else's Bin.
+        MoneySupply.Issued[MoneySupplyTable.Slot] -= amount;
     }
 
     /// <summary>
@@ -4370,18 +4519,32 @@ public sealed class World
     /// handle that stops meaning anything the moment the Business leaves is the opposite of a flag.
     /// </para>
     /// </remarks>
-    private bool HoldsOwnTrade(int buildingSlot)
+    private bool HoldsOwnTrade(int buildingSlot) => OwnTrade(buildingSlot) != Rows.NoSlot;
+
+    /// <summary>
+    /// The Business this Building instantiated itself, or <see cref="Rows.NoSlot"/> where it holds
+    /// none.
+    /// </summary>
+    /// <remarks>
+    /// <b><see cref="HoldsOwnTrade"/>'s walk, with the row it found</b> — <see cref="DeclaredPlaces"/>
+    /// needs the staffing of that exact Business, and re-asking the question against a second
+    /// predicate would be two spellings of <c>adr/0148</c>'s pairing. ⚠ <b>A tenant is not the
+    /// Building's trade</b> however alike the two look: the test is
+    /// <see cref="BusinessTable.Origin"/> naming this Building, so a shop that moved into a school
+    /// answers <see cref="Rows.NoSlot"/> here.
+    /// </remarks>
+    private int OwnTrade(int buildingSlot)
     {
         foreach (int business in BuildingBusinesses.Walk(buildingSlot))
         {
             if (Buildings.Rows.TryResolve(Businesses.Origin[business], out int origin)
                 && origin == buildingSlot)
             {
-                return true;
+                return business;
             }
         }
 
-        return false;
+        return Rows.NoSlot;
     }
 
     /// <summary>
@@ -6170,10 +6333,46 @@ public sealed class World
     /// opposite. <see cref="HasServicePlace"/> is the question with the answer in it, and this method
     /// is the quantity — so ***anything deciding whether to turn a family away asks that one.***
     /// </para>
+    /// <para>
+    /// 🔴 <b>THE FLOOR IS THE CEILING AND THE STAFF ARE WHAT REACHES IT</b>, where the kind declares
+    /// a trade — <see cref="Staffed"/> scales the floor's answer by workers over declared jobs, which
+    /// is <c>adr/0026</c>'s <em>understaffing degrades service quality proportionally</em> built. ⚠
+    /// <b>It reads the jobs the Building's own floor already declares and never a wanted headcount</b>,
+    /// so the ADR's other half — teachers determined by the catchment — stays unbuilt and nothing here
+    /// lets demand decide how many teachers a school wants.
+    /// </para>
     /// </remarks>
     /// <param name="buildingSlot">The Building being asked about.</param>
     /// <returns>Its declared places a Day.</returns>
     public int DeclaredPlaces(int buildingSlot)
+    {
+        int places = FloorServicePlaces(buildingSlot);
+
+        // ⚠ A KIND DECLARING NO TRADE KEEPS THE FLOOR'S ANSWER WHOLE, and that asymmetry is the point
+        // rather than an omission: staffing can only scale a service whose staff the Ruleset states.
+        //
+        // 🔴 ONE SHIPPED WORLD DOES TAKE THE SCALED BRANCH AND ITS BEHAVIOUR MOVED.
+        // `schooling.toml`'s `college` declares `business = "tuition"` at `requires_tier = 3`, so it
+        // can employ nobody until the world has produced a Tier 3 graduate -- and it now declares
+        // zero places until it does, where it declared its whole floor before. That is this method
+        // working rather than failing, and the file's header records it.
+        return places == 0 || Rules.Kind(Buildings.Kind[buildingSlot]).Business == 0
+            ? places
+            : Staffed(buildingSlot, places);
+    }
+
+    /// <summary>
+    /// What this service Building's floor holds <b>before its staffing is read</b>.
+    /// </summary>
+    /// <remarks>
+    /// <b>The ceiling the ground alone decides</b>, which is <see cref="DeclaredPlaces"/> with
+    /// <see cref="Staffed"/> left off. A panel needs both halves to say anything useful: the places a
+    /// school reaches today mean nothing beside the places it was built for, and
+    /// ***a number that fell is only legible next to the number it fell from.***
+    /// </remarks>
+    /// <param name="buildingSlot">The Building being asked about.</param>
+    /// <returns>Its places a Day on floor area alone, or zero where the kind serves nobody.</returns>
+    public int FloorServicePlaces(int buildingSlot)
     {
         if (buildingSlot < 0 || !Buildings.Rows.IsLive(buildingSlot))
         {
@@ -6182,9 +6381,104 @@ public sealed class World
 
         byte kind = Buildings.Kind[buildingSlot];
 
-        return Rules.Declares(kind) && Rules.Kind(kind).IsService
-            ? CapacityRuleset.Holds(FloorTilesOf(buildingSlot), Rules.Capacity.FloorTilesPerPlace)
-            : 0;
+        if (!Rules.Declares(kind) || !Rules.Kind(kind).IsService)
+        {
+            return 0;
+        }
+
+        return CapacityRuleset.Holds(
+            FloorTilesOf(buildingSlot), Rules.Capacity.FloorTilesPerPlace);
+    }
+
+    /// <summary>
+    /// How much of this service Building's own trade is staffed, as workers against declared posts.
+    /// </summary>
+    /// <remarks>
+    /// <b><see cref="Staffed"/>'s two terms, handed out rather than folded.</b> The ratio decides the
+    /// places and the ratio is what explains them, so a panel showing the quotient alone leaves a
+    /// player with a number and no cause. 🔴 <b><c>false</c> is the collapse and not an
+    /// absence of information</b>: a wound-up trade leaves the premises standing with no Business of
+    /// their own in them, which is the state a defunded school ends in.
+    /// </remarks>
+    /// <param name="buildingSlot">The service Building being asked about.</param>
+    /// <param name="workers">How many people work its own trade.</param>
+    /// <param name="posts">How many posts that trade's floor declares.</param>
+    /// <returns><c>true</c> where the Building holds a trade of its own with posts to fill.</returns>
+    public bool ServiceStaffing(int buildingSlot, out int workers, out int posts)
+    {
+        workers = 0;
+        posts = 0;
+
+        if (buildingSlot < 0 || !Buildings.Rows.IsLive(buildingSlot))
+        {
+            return false;
+        }
+
+        int trade = OwnTrade(buildingSlot);
+
+        if (trade == Rows.NoSlot)
+        {
+            return false;
+        }
+
+        workers = Workers.Length(trade);
+
+        return TryDeclaredJobs(Businesses.Kind[trade], trade, out posts);
+    }
+
+    /// <summary>
+    /// <paramref name="places"/> scaled by how much of this service Building's own trade is staffed.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The Building's OWN trade and never a tenant that wandered in</b>, matched on
+    /// <see cref="BusinessTable.Origin"/> through <see cref="OwnTrade"/>. A shop that moved into a
+    /// school is not its teachers, and <c>adr/0147</c> counts one tenancy ceiling over both kinds of
+    /// tenant, so a foreign tenant is a thing this method must be able to see and ignore.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>A TRADE THAT DIED TEACHES NOBODY.</b> <c>WageEngine.Bankrupt</c> leaves the premises
+    /// standing rather than abandoning them, so the lost Business is the only trace a defunded school
+    /// carries — and ***that absence is this row's demonstration***: cut the funding, drain the till,
+    /// wind the trade up, and the places go to zero where a player can see them.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>NO JOBS MEANS NO RATIO, so the floor's answer stands unscaled — and the two ways to get
+    /// there are different worlds.</b> <see cref="TryDeclaredJobs"/> answers zero where a
+    /// <c>[capacity]</c> rate the employment ceiling needs is absent, which is ***a world with no
+    /// employment ceiling to be short of***. It answers <c>false</c> for a trade the Ruleset no longer
+    /// declares, which is a DERELICT trade keeping the workers it has — and that case returns full
+    /// places whatever the staffing, so ***a reload deleting a <c>[[business]]</c> block switches this
+    /// whole mechanism off for every school in the city.*** Deliberate, on that method's own rule that
+    /// a designer deleting a paragraph must not sack a District; scaling to zero instead would close
+    /// every school on an edit. ⚠ <b>Workers over
+    /// their posts clamps at <paramref name="places"/></b>, because the ceiling is a property of the
+    /// floor and a shrunk floor is momentarily overstaffed until <see cref="RebuildCapacities"/>
+    /// dismisses down to it.
+    /// </para>
+    /// </remarks>
+    /// <param name="buildingSlot">The service Building, already known to declare a trade.</param>
+    /// <param name="places">What its floor holds before staffing is read.</param>
+    /// <returns>The places its staff actually reach.</returns>
+    private int Staffed(int buildingSlot, int places)
+    {
+        int trade = OwnTrade(buildingSlot);
+
+        if (trade == Rows.NoSlot)
+        {
+            return 0;
+        }
+
+        if (!TryDeclaredJobs(Businesses.Kind[trade], trade, out int jobs) || jobs <= 0)
+        {
+            return places;
+        }
+
+        int workers = Workers.Length(trade);
+
+        return workers >= jobs
+            ? places
+            : Arithmetic.IntegerMath.FloorDiv(places * workers, jobs);
     }
 
     /// <summary>

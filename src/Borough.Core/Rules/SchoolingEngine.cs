@@ -352,12 +352,19 @@ internal sealed class SchoolingEngine
     /// <b>Absent <c>[capacity] floor_tiles_per_place</c> means NO CEILING</b>, which is
     /// <c>World.HasServicePlace</c>'s rule and is kept identical here so that one Ruleset key governs
     /// both ends of the same idea.
+    /// ⚠ <b>The key is asked and the count is not, because zero is two different cities</b> —
+    /// <c>World.DeclaredPlaces</c>'s own warning, and since understaffing scales that count a
+    /// university whose trade folded reports zero places. Reading the count for the absence would
+    /// make an unstaffed university <em>unbounded</em>, which is the opposite of what it is.
     /// </remarks>
     private bool HasRoom(int university, int index)
     {
-        int places = _world.DeclaredPlaces(university);
+        if (_world.Rules.Capacity.FloorTilesPerPlace <= 0)
+        {
+            return true;
+        }
 
-        return places <= 0 || _enrolled[index] < places;
+        return _enrolled[index] < _world.DeclaredPlaces(university);
     }
 
     private void Occupy(int university)

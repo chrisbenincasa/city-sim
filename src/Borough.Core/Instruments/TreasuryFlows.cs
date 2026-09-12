@@ -8,7 +8,7 @@ using Borough.Core.Rules;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Seven magnitudes and no eighth that nets any of them.</b> <c>MoneyFlowCounter.FromTreasury</c>
+/// <b>Eight magnitudes and no ninth that nets any of them.</b> <c>MoneyFlowCounter.FromTreasury</c>
 /// carries the argument and <c>Borough.Headless.IncomeDump</c> prints it: a net cannot say whether a
 /// city taxed nothing and paid nothing or taxed heavily and paid it all back. Within the income the
 /// same argument holds one level down — a withholding, a profit tax, a <c>[[policy]]</c> and a
@@ -42,6 +42,12 @@ using Borough.Core.Rules;
 /// <param name="PolicyOut">What <c>PolicyEngine</c> moved out of the treasury.</param>
 /// <param name="RuleOut">What a Bin Rule naming <c>scope = "global"</c> drew out.</param>
 /// <param name="Subsidy">What the subsidy sweeps apportioned out against their ceilings.</param>
+/// <param name="Placement">
+/// What the city paid to place service Buildings by hand — <c>[[building]] placement_cost</c>.
+/// ⚠ <b>The one flow here that pays nobody</b>: it leaves the money supply rather than another Bin,
+/// because construction money buys imported Materials and no import path exists (<c>adr/0035</c>
+/// §2). It is expenditure because the balance fell by it.
+/// </param>
 public readonly record struct TreasuryFlows(
     long Withheld,
     long ProfitTax,
@@ -49,13 +55,14 @@ public readonly record struct TreasuryFlows(
     long RuleIn,
     long PolicyOut,
     long RuleOut,
-    long Subsidy)
+    long Subsidy,
+    long Placement)
 {
     /// <summary>Everything that arrived, through all four levers.</summary>
     public long Income => Withheld + ProfitTax + PolicyIn + RuleIn;
 
-    /// <summary>Everything that left, through all three paths.</summary>
-    public long Expenditure => PolicyOut + RuleOut + Subsidy;
+    /// <summary>Everything that left, through all four paths.</summary>
+    public long Expenditure => PolicyOut + RuleOut + Subsidy + Placement;
 
     /// <summary>Adds another interval's flows to this one, column by column.</summary>
     /// <param name="other">The interval to add.</param>
@@ -67,5 +74,6 @@ public readonly record struct TreasuryFlows(
         RuleIn + other.RuleIn,
         PolicyOut + other.PolicyOut,
         RuleOut + other.RuleOut,
-        Subsidy + other.Subsidy);
+        Subsidy + other.Subsidy,
+        Placement + other.Placement);
 }

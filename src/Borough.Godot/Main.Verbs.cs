@@ -410,6 +410,11 @@ public partial class Main
             $"{_names.Kind((byte)command.Zone) ?? "that building"} serves nobody, and only a service "
             + "building is placed by hand — everything else is built by the city on land you zone.",
 
+        Refusal.ServiceTreasuryCannotPay =>
+            "the city cannot afford it. A building placed by hand is paid for out of the treasury "
+            + "in full, and the money buys materials from outside rather than going to anybody "
+            + "here. Raise the money first.",
+
         Refusal.ServiceNoVacantLotOnThatTile =>
             "that plot is taken. A standing building and an abandoned shell both hold one; demolish "
             + "first.",

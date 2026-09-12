@@ -21,9 +21,9 @@ namespace Borough.Tests.Shell;
 /// </remarks>
 public sealed class CityBudgetTests
 {
-    private static TreasuryFlows In(long withheld) => new(withheld, 0, 0, 0, 0, 0, 0);
+    private static TreasuryFlows In(long withheld) => new(withheld, 0, 0, 0, 0, 0, 0, 0);
 
-    private static TreasuryFlows Out(long policy) => new(0, 0, 0, 0, policy, 0, 0);
+    private static TreasuryFlows Out(long policy) => new(0, 0, 0, 0, policy, 0, 0, 0);
 
     [Fact]
     public void A_day_closes_on_the_boundary_tick_and_carries_that_ticks_own_sweeps()
@@ -160,17 +160,17 @@ public sealed class CityBudgetTests
     }
 
     [Fact]
-    public void Every_one_of_the_seven_columns_is_carried_apart()
+    public void Every_one_of_the_eight_columns_is_carried_apart()
     {
         var budget = new CityBudget(new Ticks(0), 0);
-        var flows = new TreasuryFlows(1, 2, 4, 8, 16, 32, 64);
+        var flows = new TreasuryFlows(1, 2, 4, 8, 16, 32, 64, 128);
 
         budget.Account(flows, new Ticks(Ticks.PerDay));
 
         Assert.Equal(flows, budget.Yesterday);
         Assert.Equal(flows, budget.Running);
         Assert.Equal(1 + 2 + 4 + 8, budget.Running.Income);
-        Assert.Equal(16 + 32 + 64, budget.Running.Expenditure);
+        Assert.Equal(16 + 32 + 64 + 128, budget.Running.Expenditure);
     }
 
     /// <summary>
@@ -299,7 +299,8 @@ public sealed class CityBudgetTests
             Sum(census, MoneyFlowCounter.RuleToTreasury, window),
             Sum(census, MoneyFlowCounter.FromTreasury, window),
             Sum(census, MoneyFlowCounter.RuleFromTreasury, window),
-            Sum(census, MoneyFlowCounter.Subsidy, window));
+            Sum(census, MoneyFlowCounter.Subsidy, window),
+            Sum(census, MoneyFlowCounter.Placement, window));
     }
 
     private static long Sum(Census census, MoneyFlowCounter counter, Ticks window)

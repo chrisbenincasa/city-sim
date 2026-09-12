@@ -1,6 +1,7 @@
 using Borough.Core;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
+using Borough.Core.Input;
 using Borough.Core.Instruments;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
@@ -201,6 +202,59 @@ public sealed class TreasuryFlowsExplainTheBalanceTests
             + "than the firing.");
     }
 
+    /// <summary>
+    /// 🔴 The identity holds on a world that pays for a school, which is the eighth flow's own test.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A placement is the first expenditure with no payee</b>, so it is also the first that could
+    /// break this by arithmetic rather than by omission: the balance falls and no Bin anywhere rose.
+    /// Before <see cref="MoneyFlowCounter.Placement"/> the residual would have been the whole price
+    /// of every school the city bought — ***which is <c>plans/0072</c> F11's defect arriving for the
+    /// fourth time and on the expenditure side for the second.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>This world opens with money, unlike <see cref="Run"/>'s.</b> The opening balance is not a
+    /// flow and appears in no column, so the identity is stated over the CHANGE in the balance per
+    /// interval and the closing assertion adds the opening back — an opening stock is not income.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_identity_holds_on_a_world_that_places_a_school()
+    {
+        Census census = RunPlacing(out long spent);
+
+        long[] treasury = Read(census, Metric.Of(MoneyCounter.Treasury));
+        long[] income = Income(census);
+        long[] expenditure = Expenditure(census);
+        long[] placement = Read(census, Metric.Of(MoneyFlowCounter.Placement, Aggregate.Sum));
+
+        Assert.True(treasury.Length > 1, "one reading is no interval, so nothing is under test.");
+        Assert.Equal(Opening, treasury[0]);
+
+        Assert.True(
+            spent > 0,
+            "no school was ever placed, so the eighth flow is in the identity as a column of "
+            + "zeroes and this test is about nothing.");
+
+        Assert.Equal(spent, Sum(placement));
+
+        for (int i = 1; i < treasury.Length; i++)
+        {
+            long moved = treasury[i] - treasury[i - 1];
+            long explained = income[i] - expenditure[i];
+
+            Assert.True(
+                moved == explained,
+                $"reading {i}: the treasury moved by {moved} and the flows explain {explained}, a "
+                + $"residual of {moved - explained}. A placement's price leaves the treasury and "
+                + "reaches nobody, so MoneyFlowCounter.Placement is the only column that can name "
+                + "it.");
+        }
+
+        Assert.Equal(Opening + Sum(Income(census)) - Sum(Expenditure(census)), treasury[^1]);
+    }
+
     // ---- the fixture ---------------------------------------------------------------------------
 
     /// <summary>Income at each reading: the four paths in, summed per reading.</summary>
@@ -229,12 +283,17 @@ public sealed class TreasuryFlowsExplainTheBalanceTests
     /// ⚠ <b>Profit-tax RELIEF has no term here and must never acquire one</b>: it reduces a bill
     /// before the collection, so it moves no Money and the treasury is exactly where it would be if
     /// the reliefs had never been declared.
+    /// 🔴 <b>The fourth term is the first that pays NOBODY.</b> A placement's price leaves the money
+    /// supply rather than another Bin (<c>adr/0035</c> §2), and it is expenditure all the same
+    /// because the balance fell by it — ***what makes something a term here is that it crossed the
+    /// treasury's edge, not that somebody caught it.***
     /// </remarks>
     private static long[] Expenditure(Census census) =>
         Add(
             Read(census, Metric.Of(MoneyFlowCounter.FromTreasury, Aggregate.Sum)),
             Read(census, Metric.Of(MoneyFlowCounter.RuleFromTreasury, Aggregate.Sum)),
-            Read(census, Metric.Of(MoneyFlowCounter.Subsidy, Aggregate.Sum)));
+            Read(census, Metric.Of(MoneyFlowCounter.Subsidy, Aggregate.Sum)),
+            Read(census, Metric.Of(MoneyFlowCounter.Placement, Aggregate.Sum)));
 
     private static long[] Add(params long[][] columns)
     {
@@ -323,4 +382,155 @@ public sealed class TreasuryFlowsExplainTheBalanceTests
 
         return census;
     }
+
+    /// <summary>What the placing world founds its treasury with.</summary>
+    private const long Opening = 65_536;
+
+    /// <summary>What one school costs it.</summary>
+    private const long Price = 4_096;
+
+    private const byte School = 2;
+
+    /// <summary>
+    /// A world that opens with money and buys four schools, observed every Day.
+    /// </summary>
+    /// <remarks>
+    /// <b>Authored here rather than shipped, which is the opposite of <see cref="Run"/>'s choice and
+    /// for a stated reason.</b> No shipped Ruleset prices a placement — absence is free, and that is
+    /// what keeps every shipped world placing what it always placed — so a fixture is the only world
+    /// in which this flow can be non-zero at all.
+    /// </remarks>
+    private static Census RunPlacing(out long spent)
+    {
+        RulesetLoadResult loaded = RulesetLoader.Parse(Priced, "priced.toml");
+
+        Assert.True(loaded.Ok, loaded.Describe());
+
+        var key = WorldKey.FromSeed(Seed);
+        var world = new World(200, loaded.Ruleset!, key);
+
+        SyntheticCity.PopulateInto(world, key, Ticks.Zero);
+
+        var simulation = new Simulation(world, key) { VerifyDecideWritesNothing = false };
+        var census = new Census(world, 16);
+
+        census.Observe(simulation);
+        spent = 0;
+
+        for (int day = 0; day < 8; day++)
+        {
+            for (ulong tick = 0; tick < Cadence; tick++)
+            {
+                // Two of the eight Days buy a school, so the identity is asserted over intervals
+                // that spent and over intervals that did not -- a residual only ever appears in one
+                // of the two, and a fixture that spent on every interval could not tell them apart.
+                bool buying = tick == 512 && day is 1 or 3 or 5 or 7;
+
+                simulation.Step(buying ? new TickInput([Buy(world)], 0) : default);
+
+                if (buying)
+                {
+                    spent += Price;
+                }
+            }
+
+            census.Observe(simulation);
+        }
+
+        return census;
+    }
+
+    /// <summary>A <c>Service</c> command for the first vacant Lot standing.</summary>
+    private static Command Buy(World world)
+    {
+        for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
+        {
+            if (world.Lots.Rows.IsLive(slot) && world.Lots.IsVacant(slot))
+            {
+                return Command.Service(world.Lots.East[slot], world.Lots.North[slot], School);
+            }
+        }
+
+        Assert.Fail("the generated city left no vacant Lot to buy a school on.");
+        return default;
+    }
+
+    /// <summary>A city that opens with money and a school kind it has to pay for.</summary>
+    private const string Priced = """
+        [[resource]]
+        name = "money"
+        family = "money"
+
+        [[resource]]
+        name = "sundries"
+        family = "good"
+
+        [[building]]
+        name = "dwelling"
+        houses = true
+        premises = true
+        bins = [ { resource = "sundries", capacity = 48 } ]
+
+        [[building]]
+        name = "school"
+        serves = "education"
+        placement_cost = 4096
+
+        [[zone_rule]]
+        name          = "housing"
+        kind          = "dwelling"
+        zone          = 0
+        interval      = 32
+        revisit_ticks = 2048
+
+        [placement]
+        interval      = 32
+        revisit_ticks = 1024
+        candidates    = 3
+
+        [roads]
+        block_tiles = 32
+        arterial_count = 0
+        arterial_junction_tiles = 512
+        foot_crossing_every = 4
+        foot_paths_per_thousand_blocks = 40
+        street_speed_kph = 50
+        arterial_speed_kph = 90
+        walk_speed_kph = 5
+        street_capacity_per_hour = 3600
+        arterial_capacity_per_hour = 12000
+        foot_path_capacity_per_hour = 1000
+
+        [lots]
+        lots_per_segment = 5
+        setback_tiles = 2
+
+        [capacity]
+        floor_tiles_per_occupant      = 6
+        floor_tiles_per_job           = 1
+        floor_tiles_per_parking_space = 6
+
+        [trips]
+        crossing_seconds = 30
+        commute_fast_minutes = 20
+        commute_moderate_minutes = 40
+        commute_budget_minutes = 50
+
+        [needs]
+        sustenance_degrade   = 1
+        sustenance_recover   = 1
+        satisfaction_degrade = 1
+        satisfaction_recover = 1
+        education_degrade    = 2
+        education_recover    = 2
+        floor = -1000
+
+        [households]
+        car_ownership_percent = 0
+        opening_balance_min = 0
+        opening_balance_max = 1000
+
+        [treasury]
+        opening_balance = 65536
+        """;
 }

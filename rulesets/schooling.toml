@@ -38,6 +38,15 @@
 # CONTEXT.md -> Skill Tier says the 2 -> 3 cut earns its place "because a category is not a quantity",
 # and letting money buy a better credential turns it back into one.
 #
+# 🔴 AND SINCE 2026-09-12 A `college` OFFERS NO PLACES UNTIL IT HAS STAFF. plans/0070 built
+# adr/0026's *understaffing degrades service quality proportionally*, so a service kind declaring a
+# trade has its places scaled by workers over declared posts. `tuition` states `requires_tier = 3`,
+# so a college can employ nobody until this world has produced a Tier 3 graduate -- measured at
+# 2,000 Citizens over 60 Days, all four colleges stood on floors of 156, 156, 140 and 210 Tiles and
+# declared ZERO places, where each would have declared its whole floor over `floor_tiles_per_place`
+# before. ***So the private system now starts closed and opens only once the public one has run***,
+# which is a stronger reading of the overflow below rather than a contradiction of it.
+#
 # A school-leaver takes a public place if one is free and tries a private one otherwise, so the
 # private system is visibly the OVERFLOW. ⚠ Read a run with a full `university` and an empty `college`
 # as public capacity sufficing, and a run with a busy `college` as public capacity that does not.

@@ -7,6 +7,54 @@ namespace Borough.Shell;
 
 public partial class Main
 {
+    /// <summary>
+    /// A school as a FACILITY — the places it reaches today, who attended, and the staff behind both.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>Nothing in the shell said what a school holds.</b> <c>World.DeclaredPlaces</c> is the
+    /// number a family is turned away against, and it appeared in no panel, no hover and no readout —
+    /// so a school whose teachers had gone and a school at full strength presented identically.
+    /// ***A capacity a player cannot read is a capacity that cannot be managed.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Both place counts, because the fall is the reading.</b> The floor's answer is fixed by
+    /// the ground and the staffed answer moves with the payroll, so the pair says <em>this school was
+    /// built for twelve and reaches five</em> where either alone says nothing.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Attendance is today's or nothing.</b> <c>Buildings.AttendedToday</c> is reset lazily by
+    /// <c>World.TakeServicePlace</c>, so a count left over from an earlier Day is stale until somebody
+    /// attends — the Day stamp is what makes it safe to show.
+    /// </para>
+    /// </remarks>
+    private void AddFacilitySchooling(List<InformationSection> sections, int building)
+    {
+        if (_world.Rules.ServedBy(_world.Buildings.Kind[building]) != Need.Education)
+        {
+            return;
+        }
+
+        int today = (int)(_simulation.Tick.Raw / (ulong)Ticks.PerDay);
+        int attended = _world.Buildings.AttendedDay[building] == today
+            ? _world.Buildings.AttendedToday[building]
+            : 0;
+
+        var rows = new List<InformationRow>
+        {
+            new(_world.Rules.Capacity.FloorTilesPerPlace <= 0
+                ? "Places: unbounded — this Ruleset sets no floor area a place"
+                : $"Places: {_world.DeclaredPlaces(building):N0} a Day, on a floor built for "
+                    + $"{_world.FloorServicePlaces(building):N0}"),
+            new($"Attended today: {attended:N0}"),
+            new(_world.ServiceStaffing(building, out int teachers, out int posts)
+                ? $"Staff: {teachers:N0} of {posts:N0} posts filled"
+                : "Staff: this Building holds no trade of its own, so it teaches nobody"),
+        };
+
+        sections.Add(new("places", "Teaching capacity", true, rows));
+    }
+
     private void AddHouseholdSchooling(List<InformationSection> sections, int household)
     {
         if (!_world.Rules.Schooling.Runs) { return; }

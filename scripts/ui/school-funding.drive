@@ -1,0 +1,122 @@
+# The city spends money and the player decides on what — plans/0070 task 9.
+#
+# godot --path src/Borough.Godot -- --ruleset rulesets/funded.toml --citizens 2000 \
+#   --govern --drive scripts/ui/school-funding.drive \
+#   --record artifacts/school-funding/session.drive
+#
+# Four schools are bought out of the treasury, staff themselves, are funded per declared
+# post, and are then defunded by hand on Day 26 by setting school_funding to 0 in the
+# Government panel. Every second Day writes the caption and the panel state, so the
+# school's places, its staff and the treasury are all on the record.
+#
+# ⚠ The window is PINNED, because the Government panel is driven by pointer coordinates
+# and its layout is anchored top-left in pixels. A different size moves the field.
+
+256 ui size 1600 1000
+256 ui theme dark
+256 speed 8
+258 ui budget on
+260 shoot artifacts/school-funding/01-founded.png
+262 hold service
+264 click 133 132
+266 click 144 132
+268 click 154 132
+270 click 101 100
+274 shoot artifacts/school-funding/02-bought.png
+276 hold look
+278 click 133 132
+280 ui budget on
+282 readout artifacts/school-funding/day-000.txt
+282 ui read artifacts/school-funding/day-000.json
+4096 readout artifacts/school-funding/day-002.txt
+4096 ui read artifacts/school-funding/day-002.json
+8192 readout artifacts/school-funding/day-004.txt
+8192 ui read artifacts/school-funding/day-004.json
+12288 readout artifacts/school-funding/day-006.txt
+12288 ui read artifacts/school-funding/day-006.json
+12290 shoot artifacts/school-funding/03-staffed.png
+16384 readout artifacts/school-funding/day-008.txt
+16384 ui read artifacts/school-funding/day-008.json
+20480 readout artifacts/school-funding/day-010.txt
+20480 ui read artifacts/school-funding/day-010.json
+24576 readout artifacts/school-funding/day-012.txt
+24576 ui read artifacts/school-funding/day-012.json
+28672 readout artifacts/school-funding/day-014.txt
+28672 ui read artifacts/school-funding/day-014.json
+32768 readout artifacts/school-funding/day-016.txt
+32768 ui read artifacts/school-funding/day-016.json
+36864 readout artifacts/school-funding/day-018.txt
+36864 ui read artifacts/school-funding/day-018.json
+40960 readout artifacts/school-funding/day-020.txt
+40960 ui read artifacts/school-funding/day-020.json
+45056 readout artifacts/school-funding/day-022.txt
+45056 ui read artifacts/school-funding/day-022.json
+49152 readout artifacts/school-funding/day-024.txt
+49152 ui read artifacts/school-funding/day-024.json
+49154 shoot artifacts/school-funding/04-teaching.png
+53248 readout artifacts/school-funding/day-026.txt
+53248 ui read artifacts/school-funding/day-026.json
+53250 ui pointer down 447 170
+53250 ui pointer up 447 170
+53252 ui key End
+53252 ui key Backspace
+53252 ui key Backspace
+53252 ui key Backspace
+53252 ui key Backspace
+53252 ui key Key0
+53254 ui key Enter
+53258 shoot artifacts/school-funding/05-defunded.png
+53260 readout artifacts/school-funding/day-026-defunded.txt
+53260 ui read artifacts/school-funding/day-026-defunded.json
+57344 readout artifacts/school-funding/day-028.txt
+57344 ui read artifacts/school-funding/day-028.json
+61440 readout artifacts/school-funding/day-030.txt
+61440 ui read artifacts/school-funding/day-030.json
+65536 readout artifacts/school-funding/day-032.txt
+65536 ui read artifacts/school-funding/day-032.json
+69632 readout artifacts/school-funding/day-034.txt
+69632 ui read artifacts/school-funding/day-034.json
+69634 shoot artifacts/school-funding/06-drained.png
+73728 readout artifacts/school-funding/day-036.txt
+73728 ui read artifacts/school-funding/day-036.json
+77824 readout artifacts/school-funding/day-038.txt
+77824 ui read artifacts/school-funding/day-038.json
+81920 readout artifacts/school-funding/day-040.txt
+81920 ui read artifacts/school-funding/day-040.json
+86016 readout artifacts/school-funding/day-042.txt
+86016 ui read artifacts/school-funding/day-042.json
+86018 shoot artifacts/school-funding/07-folding.png
+90112 readout artifacts/school-funding/day-044.txt
+90112 ui read artifacts/school-funding/day-044.json
+94208 readout artifacts/school-funding/day-046.txt
+94208 ui read artifacts/school-funding/day-046.json
+98304 readout artifacts/school-funding/day-048.txt
+98304 ui read artifacts/school-funding/day-048.json
+102400 readout artifacts/school-funding/day-050.txt
+102400 ui read artifacts/school-funding/day-050.json
+102402 shoot artifacts/school-funding/08-folded.png
+106496 readout artifacts/school-funding/day-052.txt
+106496 ui read artifacts/school-funding/day-052.json
+110592 readout artifacts/school-funding/day-054.txt
+110592 ui read artifacts/school-funding/day-054.json
+114688 readout artifacts/school-funding/day-056.txt
+114688 ui read artifacts/school-funding/day-056.json
+118784 readout artifacts/school-funding/day-058.txt
+118784 ui read artifacts/school-funding/day-058.json
+122880 readout artifacts/school-funding/day-060.txt
+122880 ui read artifacts/school-funding/day-060.json
+122882 shoot artifacts/school-funding/09-still-closed.png
+126976 readout artifacts/school-funding/day-062.txt
+126976 ui read artifacts/school-funding/day-062.json
+131072 readout artifacts/school-funding/day-064.txt
+131072 ui read artifacts/school-funding/day-064.json
+135168 readout artifacts/school-funding/day-066.txt
+135168 ui read artifacts/school-funding/day-066.json
+139264 readout artifacts/school-funding/day-068.txt
+139264 ui read artifacts/school-funding/day-068.json
+143360 readout artifacts/school-funding/day-070.txt
+143360 ui read artifacts/school-funding/day-070.json
+147456 readout artifacts/school-funding/day-072.txt
+147456 ui read artifacts/school-funding/day-072.json
+147458 shoot artifacts/school-funding/10-end.png
+147462 quit

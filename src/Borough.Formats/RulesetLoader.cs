@@ -287,6 +287,7 @@ public static class RulesetLoader
         private TableSyntaxBase? _tripsTable;
         private TableSyntaxBase? _jobsTable;
         private TableSyntaxBase? _householdsTable;
+        private TableSyntaxBase? _treasuryTable;
         private TableSyntaxBase? _trafficTable;
         private TableSyntaxBase? _parkingTable;
 
@@ -368,6 +369,7 @@ public static class RulesetLoader
             TripRuleset trips = ReadTrips();
             JobRuleset jobs = ReadJobs(trips);
             HouseholdRuleset households = ReadHouseholds();
+            TreasuryRuleset treasury = ReadTreasury();
             TrafficRuleset traffic = ReadTraffic();
             ParkingRuleset parking = ReadParking();
             TerrainRuleset terrain = ReadTerrain();
@@ -469,6 +471,7 @@ public static class RulesetLoader
                 Trips = trips,
                 Jobs = jobs,
                 Households = households,
+                Treasury = treasury,
                 Traffic = traffic,
                 Policies = policies,
                 PolicyKeys = policyKeys,
@@ -715,6 +718,20 @@ public static class RulesetLoader
                         }
 
                         _householdsTable = table;
+                        break;
+
+                    case "treasury":
+                        // Singular and optional, on [households]' reasoning exactly. There is one
+                        // treasury, so two tables of numbers for it is ambiguous rather than additive.
+                        if (_treasuryTable is not null)
+                        {
+                            Refuse(LineOf(table), null,
+                                "a second [treasury] is declared. There is one treasury, so two "
+                                + "tables of numbers for it is ambiguous rather than additive.");
+                            break;
+                        }
+
+                        _treasuryTable = table;
                         break;
 
                     case "traffic":
@@ -2582,6 +2599,54 @@ public static class RulesetLoader
                     }
                 }
 
+                // plans/0070 row 32: what the treasury pays to place a Building of this kind by
+                // hand. Optional, and absent is FREE -- which is what every kind meant before the
+                // key existed, so a shipped file that says nothing places what it always placed. A
+                // stated zero means the same thing and is accepted, on `rent`'s polarity.
+                Money placementCost = Money.Zero;
+
+                if (TryInteger(table, "placement_cost", out long price, required: false, name))
+                {
+                    if (price < 0)
+                    {
+                        // `rent`'s refusal one key along. A placement the city is PAID for is a
+                        // subsidy on construction, which is a mechanism nobody has designed --
+                        // and adr/0003's signed Money would represent it silently.
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "placement_cost") ?? table), name,
+                            $"placement_cost is {price}. It is what the treasury pays to place a "
+                            + "Building of this kind, so it cannot be negative -- a placement the "
+                            + "city is paid for is a construction subsidy and nothing designs one. "
+                            + "Omit the key or state zero for a kind the city places free.");
+                    }
+                    else if (price > int.MaxValue)
+                    {
+                        // [treasury] opening_balance's ceiling, on the other side of the same
+                        // decision: the price and the balance are read against each other, so a
+                        // price no reachable treasury can meet is a kind that can never be placed.
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "placement_cost") ?? table), name,
+                            $"placement_cost is {price}, above {int.MaxValue}. The opening balance "
+                            + "is bounded there too, so a price this large is a kind no city can "
+                            + "ever afford to place -- which loads clean and refuses every click.");
+                    }
+                    else if (price > 0 && !_families.Contains(ResourceFamily.Money))
+                    {
+                        // [treasury] opening_balance's money-family refusal at a fourth door, after
+                        // [households], [[hinterland]] and the treasury itself. A city with no
+                        // currency has no treasury to charge, so the price would be kept and read
+                        // by nothing.
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "placement_cost") ?? table), name,
+                            "this kind states a placement_cost and the file names no money. The "
+                            + "treasury holds one Bin per conserved Resource (adr/0114, adr/0116), "
+                            + "so there would be nothing to pay the price out of and the key would "
+                            + "be read by nothing. Add a [[resource]] block with family = \"money\", "
+                            + "or drop the key for a kind the city places free.");
+                    }
+                    else
+                    {
+                        placementCost = new Money(price);
+                    }
+                }
+
                 // adr/0088's throughput ceiling, and it is the key that makes the kind an Outside
                 // Connection (milestone 11 task 1). Optional, because almost no kind is a gate.
                 //
@@ -2668,6 +2733,7 @@ public static class RulesetLoader
                     Parked = parked,
                     Business = business,
                     Rent = rent,
+                    PlacementCost = placementCost,
                     ArrivalsPerDay = arrivalsPerDay,
                     Serves = serves,
                     CareHours = ReadCareHours(table, serves),
@@ -7368,6 +7434,84 @@ public static class RulesetLoader
 
             return (new Money(min), new Money(max));
         }
+
+        // ---- treasury ---------------------------------------------------------------------------
+
+        /// <summary>
+        /// The <c>[treasury]</c> table: what the city is founded with.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>One required key in an optional table</b>, on <c>[parking]</c>'s shape. Omitting the
+        /// table is the empty opening treasury <c>adr/0116</c> chose, which is what every Ruleset
+        /// written before <c>plans/0070</c> row 32 meant by saying nothing — so omission is
+        /// behaviour-preserving and a defaulted zero is not needed to reach it.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>A balance in a Ruleset that names no money is refused rather than ignored</b>, which
+        /// is <see cref="ReadOpeningBalance"/>'s refusal one table along. The treasury's Bin exists
+        /// only for a declared conserved Resource (<c>adr/0114</c>), so a file stating this key and
+        /// no money has authored a quantity with nowhere to sit. The families are read in the first
+        /// pass, so it is a refusal at load with a file and a line rather than a crash at world
+        /// creation.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>The ceiling is <see cref="int.MaxValue"/> and it is not the arithmetic limit.</b> A
+        /// balance is a <c>Money</c>, which is 64-bit, so the range refused here is the one where a
+        /// plausible typo stops being a tuning choice — a city founded on more money than every
+        /// Household in it will ever hold buys nothing a smaller figure does not, and it moves the
+        /// conservation sums into a magnitude <c>Invariant.MoneyIsRepresentable</c> exists to watch.
+        /// </para>
+        /// </remarks>
+        private TreasuryRuleset ReadTreasury()
+        {
+            if (_treasuryTable is null)
+            {
+                return TreasuryRuleset.None;
+            }
+
+            if (!TryInteger(_treasuryTable, "opening_balance", out long balance, required: true))
+            {
+                return TreasuryRuleset.None;
+            }
+
+            if (balance < 0)
+            {
+                Refuse(LineOfTreasury("opening_balance"), null,
+                    $"opening_balance is {balance}. A balance is a stock and a stock is never "
+                    + "negative -- a debt is not negative money (adr/0003), and founding a city in "
+                    + "arrears is a mechanism nobody has designed.");
+
+                return TreasuryRuleset.None;
+            }
+
+            if (balance > int.MaxValue)
+            {
+                Refuse(LineOfTreasury("opening_balance"), null,
+                    $"opening_balance is {balance}, above {int.MaxValue}. The treasury is founded "
+                    + "with this money and nothing ever retires it, so a figure this large is a city "
+                    + "that can never run out and a fiscal decision that can never bind. Delete the "
+                    + "[treasury] table for a city that opens with nothing.");
+
+                return TreasuryRuleset.None;
+            }
+
+            if (balance > 0 && !_families.Contains(ResourceFamily.Money))
+            {
+                Refuse(LineOfTreasury("opening_balance"), null,
+                    "this file founds a treasury and names no money. The treasury holds one Bin per "
+                    + "conserved Resource (adr/0114, adr/0116), so there would be nowhere to put it. "
+                    + "Add a [[resource]] block with family = \"money\".");
+
+                return TreasuryRuleset.None;
+            }
+
+            return new TreasuryRuleset(new Money(balance));
+        }
+
+        /// <summary>The line a <c>[treasury]</c> key sits on, or the table's own.</summary>
+        private int LineOfTreasury(string key) =>
+            LineOf((SyntaxNodeBase?)Find(_treasuryTable!, key) ?? _treasuryTable!);
 
         // ---- parking ----------------------------------------------------------------------------
 

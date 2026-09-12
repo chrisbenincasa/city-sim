@@ -25,10 +25,10 @@ dotnet run --project src/Borough.Headless -- \
 
 ## The sections
 
-40 sections, 265 keys.
+41 sections, 267 keys.
 
 - [`[[band]]`](#band) — 2 keys
-- [`[[building]]`](#building) — 19 keys
+- [`[[building]]`](#building) — 20 keys
 - [`[[building]] bins`](#building-bins) — 3 keys
 - [`[[business]]`](#business) — 12 keys
 - [`[[hinterland]]`](#hinterland) — 6 keys
@@ -65,6 +65,7 @@ dotnet run --project src/Borough.Headless -- \
 - [`[schooling]`](#schooling) — 5 keys
 - [`[shopping]`](#shopping) — 7 keys
 - [`[traffic]`](#traffic) — 3 keys
+- [`[treasury]`](#treasury) — 1 key
 - [`[trips]`](#trips) — 4 keys
 - [`[water]`](#water) — 6 keys
 
@@ -143,6 +144,10 @@ What this kind of Building is called. [[zone_rule]] kind and [[rule]] kind refer
 **`parked`** · *true or false*
 
 Whether Buildings of this kind carry parking at all. Whether, and never how many: the count is the Building's floor area over [capacity] floor_tiles_per_parking_space. It exists so that a detached house may carry a driveway where a tower may not — a parking minimum is a property of the city, and an exemption from it is a property of the kind. Absent means the kind provides none.
+
+**`placement_cost`** · *whole number*
+
+What the treasury pays to place a Building of this kind by hand. Absent or zero means the placement is free, which is what every kind meant before the key existed. The city pays in full or the placement is refused, and the money leaves the money supply rather than reaching anybody: construction money buys imported Materials, and there is no import path for them to arrive by. Refused in a file that names no money.
 
 **`premises`** · *true or false*
 
@@ -1275,6 +1280,14 @@ The exponent of the volume-delay curve, a small whole number. Below 1 the functi
 **`clamp_percent`** · *whole number*
 
 The largest volume-over-capacity ratio the function will read, as a percentage. Below 100 the clamp binds before a Segment is even full; far above it the router is comparing noise.
+
+---
+
+## `[treasury]`
+
+**`opening_balance`** · *whole number*
+
+What the treasury holds at world creation, so that the city can spend before any levy has been collected. It is read once, when the world is made; a hot reload that changes it is refused rather than applied, because re-reading it would mint money into a standing city. Omitting the whole [treasury] table is a city that opens with nothing, which is the treasury every Ruleset had before it.
 
 ---
 

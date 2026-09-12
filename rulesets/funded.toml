@@ -1,0 +1,408 @@
+# THE FUNDED RULESET -- a school the CITY pays for, so that a budget decision has a service under it.
+#
+# plans/0070 row 32. It is `schooling.toml` with ELEVEN CHANGES, marked CHANGE 1 of 11 through
+# 11 of 11 where they sit, and everything else below is that file's, unedited. The diff is the whole
+# demonstration, on `insolvent.toml`'s precedent and for `insolvent.toml`'s reason.
+#
+#   1. [[resource]] repairs        DELETED, with every Rule and Building that moved it.
+#   2. [[business]] grocer, office, tuition   DELETED. [[business]] teaching ADDED.
+#   3. [[building]] school         ADDED -- serves education, premises, business = "teaching".
+#   4. [[building]] shopfront, officeblock, primary, secondary, university, college   DELETED.
+#   5. [[policy]] school_funding   ADDED -- the city's first named expenditure on a service.
+#   6. [capacity] floor_tiles_per_occupant   25 -> 16. GROUND, NOT TUNING -- see CHANGE 6.
+#   7. [[rule]] restock            buys from nobody; maintain, upkeep, stock, advise DELETED.
+#   8. [districts], [[lattice]], [[hinterland]], [market]   DELETED -- no `pool` term survives.
+#   9. [schooling], [school], [[life_stage]] school_level, [jobs] tier and experience keys DELETED.
+#  10. [households]                DELETED -- no Household in this world buys anything.
+#  11. [treasury] opening_balance ADDED -- the money the city is founded with.
+#
+# ===========================================================================================
+# WHAT IT EXISTS TO SHOW: ***A PUBLIC SCHOOL IS A SERVICE KIND WHOSE TRADE HAS A WAGE AND NO
+# TUITION.*** The teachers are employed, they are paid out of the school's till, and NOTHING FILLS
+# THAT TILL EXCEPT THE CITY. Cut the grant and the till runs dry, the paydays go short, and
+# `goes_bankrupt_after_short_paydays` winds the trade up and dismisses its staff.
+# ===========================================================================================
+# No new concept was needed to write that sentence. `BusinessKindDefinition.Charges` is
+# `TuitionPerDay > 0`, so PRIVATE is DERIVED from the trade charging a Household and is not a flag --
+# and public is its absence. plans/0070 decision 5.
+#
+# ⚠ NEITHER SHIPPED EDUCATION WORLD CAN DEMONSTRATE THIS, AND THE TWO FAIL DIFFERENTLY.
+#
+#   `schooled.toml`'s `school` declares neither `houses` nor `premises`, so its declared occupancy
+#   is ZERO and it can never hold a Business at all. It is a building attended by children and
+#   staffed by nobody, and that is what `--school` has always run against.
+#
+#   `schooling.toml`'s `college` is PRIVATE. Its `tuition` trade states `tuition_per_day = 512`, so
+#   the students pay for it and the treasury never does. ***A public school is that same shape with
+#   the tuition key removed and a wage left standing.***
+#
+# ⚠ THIS FILE IS NOT A REPLACEMENT FOR EITHER. It teaches one level, it runs no economy, and it says
+# nothing about what a degree is worth. `schooling.toml` owns the education pipeline; this file owns
+# who pays the staff.
+#
+# ===========================================================================================
+# THE CITY OPENS WITH MONEY, BUYS ITS SCHOOLS AND THEN HAS TO KEEP THEM.
+# ===========================================================================================
+# `[treasury] opening_balance` founds the city with 4,194,304 and `[[building]] school
+# placement_cost` charges 262,144 to put one down, so four schools spend a quarter of the opening
+# balance and the fifth is a decision. ⚠ THE PLACEMENT MONEY LEAVES THE CITY: it buys imported
+# Materials and no import path exists, so `World.SpendOnPlacement` writes `MoneySupply.Issued` down
+# with the withdrawal (adr/0035 section 2). It is the one budget flow that pays nobody.
+#
+# Nothing here collects a levy, a rate or an income tax, so THE OPENING BALANCE IS ALL THE MONEY
+# THIS WORLD WILL EVER HAVE. That is deliberate and it is what makes both poles reachable in one
+# run: the grant is paid in full while the money lasts and stops dead when it does not.
+# `PolicyEngine.Move` pays in full or pays zero and `SweepMembers` returns on the first
+# dry-treasury failure, so a school gets its whole grant or none of it -- never a share, and which
+# schools go unpaid rotates, because the sweep's start slot is drawn per Tick.
+#
+# ⚠ DO NOT ADD A LEVY TO MAKE THIS WORLD SUSTAINABLE. `taxing.toml` owns the income side and this
+# file owns the spending side; a world that funds itself for ever cannot show a funding decision
+# binding on anything.
+#
+# ===========================================================================================
+# A SCHOOL WITH NO TEACHERS NOW TEACHES NOBODY, AND THAT IS WHAT MAKES THE CUT VISIBLE.
+# ===========================================================================================
+# `World.DeclaredPlaces` scales a service Building's places by its own trade's staffing --
+# `FloorDiv(places * workers, jobs)` -- so dismissing the teachers empties the school rather than
+# leaving it teaching at full capacity. adr/0026 decided this and plans/0070 F10 built it.
+#
+# ⚠ THIS IS NOT CATCHMENT STAFFING. The posts come from the Building's own floor, never from how
+# many children want a place; adr/0026's demand-determined half stays unbuilt.
+#
+# ===========================================================================================
+# WHAT IT PRINTED, so the claims above are readings rather than assertions.
+# ===========================================================================================
+# `--school --ruleset rulesets/funded.toml --citizens 2000 --ticks 204800 --schools 4`, seed 0 --
+# 100 Days, which is the length the whole arc needs:
+#
+#   91 Buildings stand, of which 4 are schools, on 90, 144, 140 and 72 Tiles of floor. ALL FOUR HELD
+#   A LIVE `teaching` BUSINESS FROM THE TICK THEY WERE RAISED and were fully staffed inside 4 Days --
+#   6, 5, 5 and 6 posts, 22 in the city. That is CHANGE 6 working, and it is the one thing the
+#   ground in this file exists to make reliable.
+#
+#   Day    attended   full   mean depth
+#    24          17      0            0     families arrive with children
+#    30          98      0            0
+#    33         109      0            0     THE FUNDED POLE -- every child taught, every Day
+#    72         109      0            0
+#    75          72     37            0     the treasury empties; teachers start being dismissed
+#    78           0    109           -6     every school stands with NO PLACES
+#    99           0    109          -48     depth falls 2/Day, which is `[needs]` education degrade
+#
+# ***ONE RUN HOLDS BOTH POLES, AND THE CLIFF IS ARITHMETIC RATHER THAN A SCRIPT.*** Four placements
+# spend 1,048,576 of the 4,194,304 opening balance; 22 posts at 4,096 draw 90,112 a Day; so the
+# 3,145,728 left funds the city for about 35 Days and the schools fold three short paydays after the
+# grants stop.
+#
+# ⚠ THE LAST COLUMN IS THE POINT AND THE FIRST TWO ARE NOT. `attended` going to zero is a counter;
+# `mean depth` falling for ever afterwards is the city getting worse because the player ran out of
+# money. Read the third column.
+#
+# ===========================================================================================
+# ⚠ F5 CANNOT FIRE HERE, AND THE REASON IS AN ABSENCE RATHER THAN A RULE.
+# ===========================================================================================
+# `premises` is a permission and not a reservation: `World.HasRoomForPremises` never reads the trade,
+# so any unpremised Business in the city may take a school's tenancy and leave the teachers short
+# (adr/0147 counts ONE ceiling over both kinds of tenant). This file declares no `[founding]`, no
+# `[districts]` and no `[[hinterland]]`, so no Citizen founds a trade and none arrives through a
+# gate, and `teaching` is the only trade declared. ***There is no foreign trade in this world to take
+# the tenancy.*** Whether a kind may reserve its own tenancy is adr/0147's question and this file
+# asks it without answering it.
+#
+# 🔴 EVERY NUMBER BELOW IS PROVISIONAL AND NONE IS RATIFIED. plans/0045 standing order 4 suspends
+# adr/0052, so no row is open for any of them, none names a ratifier, and none should be read as
+# chosen. Read them as numbers that let the mechanism run, never as claims about what a teacher's
+# work, a school's running costs or a city's education budget is worth.
+
+# The keys below are minimal.toml's and its comments carry their arguments -- read them there.
+# What is commented HERE is what this file changes and why.
+
+# CHANGE 1 of 11. `repairs` DELETED with the office chain that consumed it. Two Resources are left:
+# one Good so a dwelling has a Bin Rule to run, and money so there is a till and a treasury.
+[[resource]]
+name = "sundries"
+family = "good"
+
+[[resource]]
+name = "money"
+family = "money"
+
+# CHANGE 2 of 11. The three trades of `schooling.toml` are DELETED and this one replaces all of them.
+# It is the whole subject of the file.
+#
+# ⚠ IT STATES NO `tuition_per_day`, AND THAT ABSENCE IS WHAT MAKES THE SCHOOL PUBLIC. `Charges` is
+# `TuitionPerDay > 0`, so a trade that charges nobody has exactly one place its wages can come from.
+#
+# `wage_per_day` is `schooling.toml`'s grocer rate, unchanged, so the payroll arithmetic in CHANGE 5
+# is readable against a number that already exists elsewhere rather than one invented here.
+#
+# ⚠ `goes_bankrupt_after_short_paydays` MUST EXCEED 1 AND THE REASON IS THE PHASE ORDER. `Simulation`
+# sweeps wages BEFORE it sweeps Policies, in the same Tick, so a till is paid out of before it is
+# topped up and a school can meet a payday short before its first grant ever lands. 3 against the
+# one-Day funding interval below is that relation with a wide margin: a FUNDED school never folds on
+# a schedule, and an unfunded one folds in three paydays. It counts consecutive PAYDAYS and not Days,
+# so at `pay_period_days = 7` it is up to 21 Days of non-payment.
+[[business]]
+name = "teaching"
+wage_per_day    = 4096
+pay_period_days = 7
+goes_bankrupt_after_short_paydays = 3
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+[[building]]
+name = "dwelling"
+bins = [
+    { resource = "sundries", capacity = 48, owner = "occupant" },
+]
+houses   = true
+premises = true
+parked = true
+
+# CHANGE 3 of 11. THE PUBLIC SCHOOL. Three keys together make one: `serves` makes it attended,
+# `premises` lets it hold a tenant, and `business` says which trade it comes with (adr/0148
+# instantiates it on construction, with no founder and no capital).
+#
+# 🔴 THIS KIND STATES NO `level`, AND STATING ONE SILENTLY EMPTIES THE WORLD. One school kind
+# declaring a level makes `Ruleset.DeclaresSchoolLevels` true, and `ServiceEngine.Collect` then
+# skips every Household whose stage is owed no level -- which is every Household here, because no
+# `[[life_stage]]` in this file declares `school_level`. Measured: with `level = 1` this world ran
+# 100 Days and produced ZERO education occasions, from a file that lints and loads clean. A level is
+# a pair with the stages that claim it, and this file declares neither half.
+#
+# ⚠ THE MONEY BIN IS OWNED BY THE BUSINESS AND NOT BY THE OCCUPANT. It is the till the grant lands in
+# and the till `WageEngine` pays the teachers out of. A Building never holds money of its own.
+#
+# ⚠ NO `[[zone_rule]]` NAMES THIS KIND AND THERE MUST NOT BE ONE. 01 section 5's placement exception
+# is that the city does not site its own schools, so a run of this file with no `service` command has
+# a school kind and not one school. `--school` is the instrument that places them.
+[[building]]
+name           = "school"
+serves         = "education"
+premises       = true
+business       = "teaching"
+placement_cost = 262144
+bins = [
+    { resource = "money", owner = "business" },
+]
+
+# CHANGE 7 of 11. `restock` BUYS FROM NOBODY -- `schooling.toml`'s version took a `pool` input, and a
+# pool term cannot resolve in a world with no Districts (CHANGE 8). This is `schooled.toml`'s
+# spelling and it is honest for the same reason: nothing in this file is a supply chain.
+[[rule]]
+name    = "restock"
+kind    = "dwelling"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = []
+outputs = [ { scope = "local", resource = "sundries", amount = 4 } ]
+
+[[rule]]
+name    = "consume"
+kind    = "dwelling"
+rate    = 32
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "sundries", amount = 4 } ]
+outputs = []
+
+[[zone_rule]]
+name          = "housing"
+kind          = "dwelling"
+zone          = 0
+interval      = 32
+revisit_ticks = 2048
+
+# CHANGE 5 of 11. THE FUNDING POLICY, and it is the reason the file exists. Every 2,048 Ticks it
+# moves 4,096 out of the treasury FOR EVERY POST A SCHOOL DECLARES, into the till of every Business
+# carrying on the `teaching` trade and into no other till in the city.
+#
+# ⚠ `trade` IS WHAT MAKES *FUND THE SCHOOLS* AUTHORABLE. `sweeps` names a whole table, so without
+# this key the same grant would reach every Business in the city.
+#
+# ⚠ `tool` IS ABSENT ON PURPOSE, so this is an ordinary transfer. A `subsidy` pays `rate x workers`
+# and skips a claimant with no workers, which funds PAYSLIPS; this funds an INSTITUTION, and a
+# transfer is the tool whose exhaustion branch pays some schools in full and the rest nothing
+# (plans/0070 decision 6).
+#
+# 🔴 THE GRANT IS PER DECLARED JOB AT THE WAGE RATE. `apply` reads the `jobs` Readout against the
+# swept Business and `amount` is exactly `wage_per_day` 4096, so a school draws `posts x 4096` a Day
+# -- ITS FULL PAYROLL AT ANY SIZE. It is set at payroll rather than above it: a grant above payroll
+# makes a till a magnitude trending upward at steady state, which adr/0006 refuses outright. At
+# payroll the till is FLAT at steady state in every school rather than only in the five-job ones.
+#
+# ⚠ PER DECLARED JOB IS NOT `rate x workers` IN ANOTHER COSTUME. A `subsidy` pays per WORKER and
+# skips a Business that employs nobody; this pays per POST, so ***a school the city has funded for
+# six teachers draws six teachers' funding whether or not it has hired them.*** That is what makes
+# an understaffed school show a RISING TILL BESIDE FALLING PLACES, which names the cause as hiring
+# and not as money.
+#
+# ⚠ A FLAT PER-SCHOOL GRANT WAS THE FIRST DRAFT AND A MEASUREMENT KILLED IT. Jobs derive from the
+# TENANCY's share of the floor -- `Holds(FloorDiv(floor, tenancies), 3)` -- so a school holds 5 only
+# where that share is 15 to 17 Tiles, and measured here two of the four hold 6 because their share
+# is 18. A flat 20,480 underfunded every six-job school by 4,096 a Day and folded it on a schedule
+# in a SOLVENT city, which is the demonstration failing while it looks like it is succeeding
+# (plans/0070 decision 10).
+#
+# ⚠ `interval` IS ONE DAY BECAUSE PAYDAYS ARE STAGGERED. `IsPayday` scatters each Business's payday
+# across `pay_period_days`, so the grant has to land before whatever Day a given school's payday
+# falls on, and daily is the only interval safe for every school.
+#
+# ⚠ IT CARRIES A `name` SO A PLAYER CAN STEER IT. `Govern` edits a named Policy's amount and the
+# Policies panel lists it; an unnamed Policy is ungovernable, which would leave this file with an
+# expenditure and no decision. ⚠ WHAT THE PLAYER EDITS HERE IS THE PER-POST RATE, so the number the
+# panel shows is multiplied by each school's posts before any money moves.
+[[policy]]
+name = "school_funding"
+sweeps = "business"
+trade = "teaching"
+interval = 2048
+apply = { derived = "jobs", percent = 100 }
+transfer = { from = "global", to = "local", resource = "money", amount = 4096 }
+
+[placement]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+gives_up_after_days = 60
+
+[layers]
+noise_range_metres            = 300
+noise_intensity_percent       = 400
+desirability_pollution_percent = 100
+desirability_noise_percent     = 100
+pollution_period      = 64
+pollution_offset      = 0
+land_value_period     = 256
+land_value_offset     = 16
+kernel_metres         = 1024
+pollution_decay_ticks = 2048
+land_value_tau        = 8
+
+# `schooling.toml`'s ground, unchanged, so the floor areas that file has already measured carry over
+# to this one and CHANGE 6's arithmetic can be checked against a reading somebody else took.
+[roads]
+block_tiles                    = 32
+arterial_count                 = 0
+arterial_junction_tiles        = 512
+foot_crossing_every            = 4
+foot_paths_per_thousand_blocks = 40
+street_speed_kph               = 50
+arterial_speed_kph             = 90
+walk_speed_kph                 = 5
+street_capacity_per_hour       = 3600
+arterial_capacity_per_hour     = 12000
+foot_path_capacity_per_hour    = 1000
+
+[lots]
+lots_per_segment = 5
+setback_tiles = 2
+
+# CHANGE 6 of 11. 25 -> 16, AND IT IS GROUND RATHER THAN A TUNING CHOICE.
+#
+# 🔴 `World.Fit` WITHHOLDS A KIND'S DECLARED TRADE WHEREVER THE OCCUPANCY CEILING IS NOT ABOVE 1, AND
+# IT DOES SO SILENTLY. A Business takes a tenancy exactly as a Household does (adr/0147), so on a
+# parcel whose floor divides into ONE tenancy the trade would take the only one -- and rather than
+# allow that, `World.Fit` skips it. Nothing is logged and nothing refuses. The school stands, it is
+# attended, and NOBODY WORKS THERE. ***Whether a school gets its teachers would then be a lottery on
+# which Lot it lands, and a lottery is not a demonstration.***
+#
+# The failure is not hypothetical. `schooled.toml`'s header records four schools of 64, 54, 48 and
+# 144 Tiles, and at 25 those divide into 2, 2, 1 and 5 tenancies -- so the 48-Tile site would be
+# raised with no teachers at all. 16 moves the largest parcel that can fail from under 50 Tiles to
+# under 32, which is below anything this subdivider carves.
+#
+# ⚠ AND ON THIS FILE'S OWN GROUND, 25 WOULD HAVE WORKED TOO. Measured at 2,000 Citizens, seed 0,
+# `--schools 4`: at 16 the four schools stand on 90, 144, 140 and 72 Tiles, dividing into 5, 9, 8 and
+# 4 tenancies. At 25 the same city puts them on 90, 90, 96 and 210 Tiles, dividing into 3, 3, 3 and
+# 8, and all four keep their trade. ***So 16 is a MARGIN rather than the repair of a failure observed
+# here*** -- and the whole city moves when this key moves, so a run at 25 is a different siting and
+# not a control. What 16 buys is that the margin stops depending on where the schools land.
+#
+# ⚠ IT IS NOT A CLAIM ABOUT HOW MANY PEOPLE SHOULD LIVE IN A ROOM. It is the number that makes
+# plans/0070 decision 9 hold whatever the lattice lays, and it moves if the lattice or the setback
+# moves.
+# ⚠ AND IT REACHES EVERY KIND, the dwelling included, so this city houses more Households per
+# dwelling than `schooling.toml`'s does.
+# CHANGE 11 of 11. THE OPENING BALANCE. World-creation money, applied once from the World
+# constructor and refused on reload (adr/0015: a Ruleset is hot-reloadable and world creation is
+# not, so re-reading this would mint into a city that has already spent what it was founded with).
+#
+# ⚠ ABSENT MEANS AN EMPTY TREASURY, which is adr/0116's choice and what `levied.toml` needs. This
+# file states one because a player with no money has no fiscal decision to make.
+[treasury]
+opening_balance = 4194304
+
+[capacity]
+floor_tiles_per_occupant      = 16
+floor_tiles_per_job           = 3
+floor_tiles_per_parking_space = 12
+floor_tiles_per_place         = 3
+
+[parking]
+radius_metres = 400
+shed_keeps = 24
+
+[trips]
+crossing_seconds = 30
+commute_fast_minutes = 20
+commute_moderate_minutes = 40
+commute_budget_minutes = 50
+
+# CHANGE 9 of 11. `wage_tier_percent`, `experience_per_day`, `tier2_experience` and the two
+# experience percentages are DELETED with `[schooling]`. Nothing here grades a worker: every teacher
+# is paid the posted rate, so the payroll is exactly jobs x `wage_per_day` and the grant above can be
+# stated as one multiplication.
+[jobs]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+shift_hours_min = 6
+shift_hours_max = 10
+arrive_early_max_minutes = 15
+
+# The demographics, unchanged except that no stage states `school_level` -- that key belongs to the
+# `[schooling]` pipeline this file does not run. A child is `Citizens.Age == 0` in a world that
+# declares life stages, and without them `--school` would find a city of adults.
+[[life_stage]]
+name          = "young"
+duration_days = 24
+spread_days   = 8
+next          = "family"
+childless     = "childless"
+children_min  = 0
+children_max  = 3
+adult_age_min_days = 1
+adult_age_max_days = 160
+
+[[life_stage]]
+name          = "family"
+duration_days = 48
+spread_days   = 16
+next          = "mature_family"
+
+[[life_stage]]
+name           = "mature_family"
+duration_days  = 48
+spread_days    = 16
+next           = "empty_nest"
+children_become = "young"
+
+[[life_stage]]
+name          = "childless"
+duration_days = 40
+spread_days   = 16
+
+[[life_stage]]
+name          = "empty_nest"
+duration_days = 40
+spread_days   = 16
+
+[needs]
+sustenance_degrade   = 4
+sustenance_recover   = 1
+satisfaction_degrade = 1
+satisfaction_recover = 1
+education_degrade    = 2
+education_recover    = 2
+floor = -1000

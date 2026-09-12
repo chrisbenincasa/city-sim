@@ -767,6 +767,35 @@ public readonly record struct KindDefinition(
     public Money Rent { get; init; }
 
     /// <summary>
+    /// What the treasury pays to place a Building of this kind by hand — <c>placement_cost</c>.
+    /// <see cref="Money.Zero"/> means the placement is free.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The city's first expenditure on an act of its own</b> (<c>plans/0070</c> row 32).
+    /// <c>Simulation.ApplyService</c> charges it and refuses the click where the treasury cannot pay
+    /// it in full, so a placement is a fiscal decision rather than a free one.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The money leaves the supply and reaches nobody.</b> <c>adr/0035</c> §2 makes construction
+    /// money a purchase of Materials, and imported Materials leave through the gate — no import path
+    /// exists, so the withdrawal is paired with a <c>MoneySupplyTable.Issued</c> write-down in
+    /// <c>World.SpendOnPlacement</c> and <see cref="Invariants.Invariant.MoneyIsConserved"/> stays an
+    /// exact equality. It is counted as expenditure by <c>MoneyFlowCounter.Placement</c>, which is
+    /// what keeps the treasury's balance the sum of its own flow columns.
+    /// </para>
+    /// <para>
+    /// <b>Absent means free</b>, which is what every kind meant before the key existed — so a file
+    /// that states nothing places what it always placed.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>PROVISIONAL wherever it is authored</b> — <c>plans/0045</c> standing order 4 suspends
+    /// <c>adr/0052</c>.
+    /// </para>
+    /// </remarks>
+    public Money PlacementCost { get; init; }
+
+    /// <summary>
     /// How many Households a Building of this kind admits from the Outside per Day. Zero means this
     /// kind is not an Outside Connection at all.
     /// </summary>
@@ -3455,6 +3484,43 @@ public readonly record struct HouseholdRuleset(
 }
 
 /// <summary>
+/// The <c>[treasury]</c> table — <b>what the city is founded with</b> (<c>plans/0070</c> row 32).
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>A world-creation number in a hot-reloadable file, and the reload refuses it.</b>
+/// <c>World.Adopt</c> compares the incoming balance against the standing one and throws where they
+/// differ, on <c>MapLayers.Adopt</c>'s precedent. Re-reading it would mint money into a standing
+/// city on every swap — and <see cref="Invariants.Invariant.MoneyIsConserved"/> would stay green,
+/// because the issuance is recorded. ***A conservation check cannot report money that came in
+/// through the door money comes in by.***
+/// </para>
+/// <para>
+/// ⚠ <b>Absent by default, and that is <c>adr/0116</c> being kept rather than a defaulted zero.</b>
+/// That ADR chose an empty opening treasury so <c>02 §4.2</c>'s <em>pays whom it reaches and reports
+/// where it stopped</em> branch is reachable on the first sweep, which is what
+/// <c>rulesets/levied.toml</c> demonstrates. A defaulted balance would delete that file's
+/// demonstration to enable another file's.
+/// </para>
+/// </remarks>
+/// <param name="OpeningBalance">
+/// What the treasury holds at world creation. <b>Hash-bearing</b>: it lands in the treasury's Bin
+/// and in <c>MoneySupplyTable.Issued</c>, and both are saved and folded.
+/// </param>
+public readonly record struct TreasuryRuleset(Money OpeningBalance)
+{
+    /// <summary>
+    /// A Ruleset whose city opens broke.
+    /// </summary>
+    /// <remarks>
+    /// <b>An empty treasury is the meaning of omission</b>, on <see cref="JobRuleset.None"/>'s
+    /// polarity — and it is also the behaviour every Ruleset had before <c>plans/0070</c> row 32, so
+    /// a file that states no <c>[treasury]</c> keeps exactly the city it had.
+    /// </remarks>
+    public static TreasuryRuleset None => default;
+}
+
+/// <summary>
 /// The <c>[parking]</c> table — <b>how far a driver will walk from a Car Park</b> (<c>adr/0009</c>,
 /// milestone 7 task 2).
 /// </summary>
@@ -3993,6 +4059,17 @@ public sealed class Ruleset
     /// polarity, for <see cref="Jobs"/>' reason.
     /// </remarks>
     public HouseholdRuleset Households { get; init; } = HouseholdRuleset.None;
+
+    /// <summary>
+    /// <b>What the city is founded with</b> — the <c>[treasury]</c> table (<c>plans/0070</c> row 32).
+    /// </summary>
+    /// <remarks>
+    /// <see cref="TreasuryRuleset.None"/> when the file states no <c>[treasury]</c>, and that is the
+    /// empty opening treasury <c>adr/0116</c> chose — <see cref="Jobs"/>' polarity, for
+    /// <see cref="Jobs"/>' reason. ⚠ <b>It is read once, at world creation.</b> A reload that found a
+    /// different balance is refused in <c>World.Adopt</c> rather than applied.
+    /// </remarks>
+    public TreasuryRuleset Treasury { get; init; } = TreasuryRuleset.None;
 
     /// <summary>
     /// <b>How far a driver will walk from a Car Park</b> — the <c>[parking]</c> table (milestone 7
@@ -4705,6 +4782,7 @@ public sealed class Ruleset
             Jobs = Jobs,
             Schooling = Schooling,
             Households = Households,
+            Treasury = Treasury,
             Traffic = Traffic,
             Parking = Parking,
             Terrain = Terrain,

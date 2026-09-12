@@ -1037,6 +1037,7 @@ public partial class Main
         sections.Add(Attention(evidence, default, false));
         sections.Add(Attention(evidence, default, false, true));
         AddFacilityHealth(sections, slot);
+        AddFacilitySchooling(sections, slot);
         var households = new List<InformationRow>();
         foreach (Handle<Household> household in evidence.Occupants.Span)
         {

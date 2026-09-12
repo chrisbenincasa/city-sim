@@ -1,3 +1,4 @@
+using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
@@ -77,18 +78,28 @@ public sealed class TreasuryFromAFileTests
     }
 
     /// <summary>
-    /// A world on any shipped Ruleset opens with one treasury Bin, empty and unbounded.
+    /// A world on any shipped Ruleset opens with one unbounded treasury Bin, holding what the file
+    /// founded it with.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>This is the whole of what the <c>[[resource]]</c> block buys, and no key in it says so.</b>
     /// <c>World.FitTreasury</c> walks the Ruleset's Resources at world creation and gives the treasury
     /// one Bin per conserved one (<c>adr/0116</c>), so a three-line block is the entire vocabulary a
-    /// Ruleset has for making the treasury real — there is no table to author, no kind to declare it
-    /// on, and nothing to tune.
+    /// Ruleset has for making the treasury real — there is no kind to declare it on and nothing to
+    /// tune.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The level is the file's own <c>[treasury] opening_balance</c>, and absent means zero.</b>
+    /// This asserted a flat zero for every file while no file could author one. <c>adr/0116</c>'s
+    /// empty treasury is still the default and still what <c>levied.toml</c>'s demonstration needs —
+    /// what changed is that a world may now be founded with money, so the invariant is <em>the Bin
+    /// holds what the Ruleset says</em> rather than <em>the Bin holds nothing</em>.
+    /// </para>
     /// </remarks>
     [Theory]
     [MemberData(nameof(Shipped))]
-    public void A_world_on_a_shipped_ruleset_opens_with_one_empty_unbounded_treasury_bin(string file)
+    public void A_world_on_a_shipped_ruleset_opens_with_one_unbounded_treasury_bin(string file)
     {
         (Ruleset rules, RulesetNames names) = Load(file);
         var world = new World(1_000, rules);
@@ -98,9 +109,41 @@ public sealed class TreasuryFromAFileTests
         Assert.Single(bins);
         Assert.True(rules.IsConserved(world.Bins.Resource[bins[0]]));
         Assert.Equal("money", names.Resource(world.Bins.Resource[bins[0]]));
-        Assert.Equal(0, world.Bins.LevelAt(bins[0]));
+        Assert.Equal(rules.Treasury.OpeningBalance.Raw, world.Bins.LevelAt(bins[0]));
         Assert.Equal(long.MaxValue, world.Bins.Capacity[bins[0]]);
         Assert.Equal(BinOwnerKind.Treasury, world.Bins.OwnerKind[bins[0]]);
+    }
+
+    /// <summary>
+    /// Exactly one shipped Ruleset founds its treasury with money, and every other opens empty.
+    /// </summary>
+    /// <remarks>
+    /// <b>The survey, asserted rather than remembered.</b> <c>adr/0116</c> chose an empty opening
+    /// treasury so <c>02 §4.2</c>'s exhaustion branch is reachable on the first sweep, and a defaulted
+    /// balance would delete that reachability from every file at once. <c>funded.toml</c> overrides it
+    /// because a player with no money has no fiscal decision to make, and it is the only file that
+    /// should — so this fails when a second one acquires the key, which is the moment to ask whether
+    /// the default still holds.
+    /// </remarks>
+    [Fact]
+    public void Only_the_funded_world_opens_with_money()
+    {
+        var founded = new List<string>();
+
+        foreach (string path in Directory
+            .EnumerateFiles(System.IO.Path.Combine(AppContext.BaseDirectory, "Rulesets"), "*.toml")
+            .OrderBy(path => path, StringComparer.Ordinal))
+        {
+            string file = System.IO.Path.GetFileName(path);
+            (Ruleset rules, _) = Load(file);
+
+            if (rules.Treasury.OpeningBalance.Raw != 0)
+            {
+                founded.Add(file);
+            }
+        }
+
+        Assert.Equal(["funded.toml"], founded);
     }
 
     /// <summary>
@@ -170,6 +213,123 @@ public sealed class TreasuryFromAFileTests
         Assert.True(world.Businesses.Balance[world.Businesses.Rows.Resolve(business)].IsNone);
 
         world.Invariants.RunEndOfRun(world);
+    }
+
+    // ---- the opening balance --------------------------------------------------------------------
+
+    /// <summary>The smallest complete Ruleset that names money.</summary>
+    private const string Named = """
+        [[resource]]
+        name = "money"
+        family = "money"
+        """;
+
+    /// <summary>
+    /// <c>[treasury] opening_balance</c> reaches the treasury's Bin, and the supply of record with
+    /// it.
+    /// </summary>
+    /// <remarks>
+    /// <b>Both halves, because one of them alone is a leak.</b> <c>World.EndowTreasury</c> deposits
+    /// and writes <c>MoneySupplyTable.Issued</c> in one call, so a balance that arrived without the
+    /// second write would be money the city holds and nothing issued —
+    /// <c>Invariant.MoneyIsConserved</c>'s failure, asserted here by running it.
+    /// </remarks>
+    [Fact]
+    public void An_opening_balance_reaches_the_treasury_bin_and_the_money_supply()
+    {
+        var world = new World(1_000, Parse($"{Named}\n\n[treasury]\nopening_balance = 4194304\n"));
+
+        Assert.Equal(new Money(4_194_304), world.TreasuryBalance());
+        Assert.Equal(new Money(4_194_304), world.MoneySupply.Issued[MoneySupplyTable.Slot]);
+
+        world.Invariants.RunEndOfRun(world);
+    }
+
+    /// <summary>
+    /// <b>A file that states no <c>[treasury]</c> opens with nothing</b>, which is <c>adr/0116</c>'s
+    /// empty treasury and the city <c>rulesets/levied.toml</c> demonstrates.
+    /// </summary>
+    [Fact]
+    public void A_ruleset_with_no_treasury_table_opens_the_treasury_empty()
+    {
+        var world = new World(1_000, Parse(Named));
+
+        Assert.Equal(Money.Zero, world.TreasuryBalance());
+        Assert.Equal(Money.Zero, world.MoneySupply.Issued[MoneySupplyTable.Slot]);
+    }
+
+    /// <summary>
+    /// <b>A reload that moves the opening balance is refused before anything moves.</b>
+    /// </summary>
+    /// <remarks>
+    /// <c>MapLayers.Adopt</c>'s shape, for its reason. A Ruleset is hot-reloadable (<c>adr/0015</c>)
+    /// and world creation is not, so re-reading the balance would mint money into a city that has
+    /// already spent what it was founded with — and <c>Invariant.MoneyIsConserved</c> would stay
+    /// green, because the issuance is recorded.
+    /// </remarks>
+    [Fact]
+    public void A_reload_that_moves_the_opening_balance_is_refused()
+    {
+        Ruleset opening = Parse($"{Named}\n\n[treasury]\nopening_balance = 1000\n");
+        var world = new World(1_000, opening);
+
+        Assert.Throws<InvalidOperationException>(() => world.Adopt(
+            Parse($"{Named}\n\n[treasury]\nopening_balance = 2000\n"),
+            contentHash: 2,
+            Ticks.Zero,
+            WorldKey.FromSeed(7)));
+
+        Assert.Same(opening, world.Rules);
+        Assert.Equal(new Money(1_000), world.TreasuryBalance());
+        Assert.Equal(new Money(1_000), world.MoneySupply.Issued[MoneySupplyTable.Slot]);
+    }
+
+    /// <summary>
+    /// <b>A reload carrying the same balance mints nothing</b>, which is what makes the refusal a
+    /// guard on the value rather than on the table.
+    /// </summary>
+    [Fact]
+    public void A_reload_carrying_the_same_opening_balance_mints_nothing()
+    {
+        string file = $"{Named}\n\n[treasury]\nopening_balance = 1000\n";
+        var world = new World(1_000, Parse(file));
+
+        world.Adopt(Parse(file), contentHash: 2, Ticks.Zero, WorldKey.FromSeed(7));
+
+        Assert.Equal(new Money(1_000), world.TreasuryBalance());
+        Assert.Equal(new Money(1_000), world.MoneySupply.Issued[MoneySupplyTable.Slot]);
+
+        world.Invariants.RunEndOfRun(world);
+    }
+
+    /// <summary>
+    /// <b>The door refuses a negative amount and a world with no money</b>, which is
+    /// <c>World.Endow</c>'s pair of refusals on the treasury.
+    /// </summary>
+    /// <remarks>
+    /// The loader refuses both files first, so what reaches these throws is a hand-built Ruleset —
+    /// and the door is public, so a fixture author is the caller the message is written for.
+    /// </remarks>
+    [Fact]
+    public void The_treasury_door_refuses_a_negative_amount_and_a_world_with_no_money()
+    {
+        var world = new World(1_000, Parse(Named));
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => world.EndowTreasury(new Money(-1)));
+
+        var moneyless = new World(1_000);
+
+        Assert.Throws<InvalidOperationException>(() => moneyless.EndowTreasury(new Money(1)));
+    }
+
+    /// <summary>A Ruleset written in the test, loaded as the shell loads one.</summary>
+    private static Ruleset Parse(string toml)
+    {
+        RulesetLoadResult result = RulesetLoader.Parse(toml, "test.toml");
+
+        Assert.True(result.Ok, result.Describe());
+
+        return result.Ruleset!;
     }
 
     /// <summary>A shipped Ruleset, loaded from beside the test assembly as the runner loads it.</summary>

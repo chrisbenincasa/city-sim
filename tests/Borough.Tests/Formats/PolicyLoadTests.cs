@@ -271,6 +271,24 @@ public sealed class PolicyLoadTests
         Assert.Contains("Readable against: Household, Business", refusal.Reason, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// ⚠ <b>A grant priced per declared job against a population that declares none is refused.</b>
+    /// </summary>
+    /// <remarks>
+    /// <c>jobs</c> is the third Readout to reach this check and the first readable against one
+    /// entity only — a Household holds no post, and a Building's floor is shared between its
+    /// tenants, so the posts belong to the tenancy. <c>plans/0070</c> decision 10.
+    /// </remarks>
+    [Fact]
+    public void A_policy_sweeping_households_and_pricing_per_job_is_refused()
+    {
+        RulesetRefusal refusal = Refused(Currency + Levy.Replace(
+            "derived = \"balance\"", "derived = \"jobs\"", StringComparison.Ordinal));
+
+        Assert.Contains("not readable against a Household", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("Readable against: Business", refusal.Reason, StringComparison.Ordinal);
+    }
+
     // ---- the opening balance band -------------------------------------------------------------
 
     private const string Households = """
