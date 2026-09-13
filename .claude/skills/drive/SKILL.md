@@ -129,10 +129,11 @@ there is one applier rather than two behaviours that can part company.
 
 🔴 **The caption carries the HOVER as well as the readout, since 2026-09-04.** Every channel used to carry `_readout.Text` alone, so the panel that says *what a click would do here* — the Street tool's edge, the zone tool's free frontage, the foot path crossing the block — was invisible to every driven run. ***A caption that omits half the screen cannot be asserted against the half it omits.*** The tool palette and the two editing panels are still `Control`s and still invisible; only the hover joined.
 
-**Tools for `hold`** — `look`, `zone`, `street`, `demolish`, `service`. The second word is *which
-one*: a Zone Rule by declaration position, a service by its 1-based kind id. ⚠ **An unknown tool
-disarms the hand to `look`** and prints a refusal, rather than leaving the previous tool loaded.
-⚠ **`shift` on a `click` with `street` held is a bulldoze.**
+**Tools for `hold`** — `look`, `zone`, `street`, `demolish`, `service`, `gate`. The second word is
+*which one*: a Zone Rule by declaration position, a service or a gate by its 1-based kind id. ⚠ **An
+unknown tool disarms the hand to `look`** and prints a refusal, rather than leaving the previous
+tool loaded. ⚠ **`shift` on a `click` with `street` held is a bulldoze, and with `gate` held it
+removes the Outside Connection in that Cell.**
 
 **Layer names for `overlay`** — `off` (or `none`), `pollution`, `value` (or `land`, `land-value`),
 `sealing` (or `sealed`). An unknown name is a refusal in the readout, not a silent `off`.

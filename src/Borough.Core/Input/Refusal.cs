@@ -224,4 +224,77 @@ public enum Refusal : ushort
     /// the old verb would have invented them.
     /// </remarks>
     ArriveNoSuchFamilyOutside = 30,
+
+    /// <summary>
+    /// <c>Gate</c> names a kind id wider than the byte a kind id is, so it is refused before it is
+    /// narrowed.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Narrowing is not a safe way to fail here.</b> A kind id is a byte and the payload word is
+    /// sixteen bits, so 256 narrows to zero — and zero is this verb's removal instruction. A log
+    /// naming a kind out of range would take a standing gate away rather than refuse to place one.
+    /// </remarks>
+    GateKindIsWiderThanAKindId = 31,
+
+    /// <summary><c>Gate</c> names a Building kind this Ruleset does not declare.</summary>
+    GateKindNotDeclared = 32,
+
+    /// <summary>
+    /// <c>Gate</c> names a declared kind stating no <c>arrivals_per_day</c>, so it is an ordinary
+    /// Building rather than a door.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="ServiceKindServesNothing"/>'s shape, and taken for its reason. A verb that placed
+    /// any kind at all would be a general construction tool, which <c>01 §5</c> keeps the design
+    /// out of.
+    /// </remarks>
+    GateKindIsNotAnOutsideConnection = 33,
+
+    /// <summary><c>Gate</c> names a Tile holding no vacant Lot — a shell is not vacant.</summary>
+    GateNoVacantLotOnThatTile = 34,
+
+    /// <summary>
+    /// <c>Gate</c> names a vacant Lot in the interior of the map, where a door would open onto
+    /// nothing.
+    /// </summary>
+    GateLotIsNotOnAnEdge = 35,
+
+    /// <summary><c>Gate</c> names a Lot in a corner of the map, which touches two edges.</summary>
+    /// <remarks>
+    /// <b>Distinct from <see cref="GateLotIsNotOnAnEdge"/> because the geometry can tell them
+    /// apart</b>, and the player's mistake is a different one. An interior Lot is nowhere near an
+    /// edge; a corner Lot is on two, and which Outside stands behind it has no answer. A gate is
+    /// listed against exactly one edge's Hinterland, so a corner would have to pick one silently.
+    /// </remarks>
+    GateLotIsOnTwoEdges = 36,
+
+    /// <summary>
+    /// <c>Gate</c> names a Lot on an edge this Ruleset declares no <c>[[hinterland]]</c> behind.
+    /// </summary>
+    /// <remarks>
+    /// A door onto an unstated Outside admits nobody and has no market to compare against, so it
+    /// would stand as a Building that reads like a mechanism and is not one.
+    /// </remarks>
+    GateEdgeHasNoHinterland = 37,
+
+    /// <summary><c>Gate</c> names an edge Lot with no usable frontage, which nobody could reach.</summary>
+    /// <remarks>
+    /// An admitted Household walks from the gate to its home, and a Lot with no Street face has no
+    /// Address to start that Trip from (<c>adr/0079</c>). The player supplies the ground first, with
+    /// the Street and zoning tools.
+    /// </remarks>
+    GateLotHasNoFrontage = 38,
+
+    /// <summary><c>Gate</c> asks to remove a Tile where no Outside Connection stands.</summary>
+    GateRemoveNoGateOnThatTile = 39,
+
+    /// <summary><c>Gate</c> asks to remove a gate a Household or a Business is still in.</summary>
+    /// <remarks>
+    /// <b>A mixed-use gate is refused rather than evicted.</b> <see cref="DemolishBuildingIsOccupied"/>
+    /// keeps compulsory purchase off that verb on <c>adr/0091</c>'s terms, and adding it quietly to
+    /// this one would put the priced mechanism behind the cheapest click in the shell. ⚠ An outside
+    /// <em>queue</em> is not a tenant: the people waiting to come in are cancelled by the engine on
+    /// its next pass, which is <c>plans/0073</c> D5 and not a reason to refuse.
+    /// </remarks>
+    GateRemoveGateIsOccupied = 40,
 }

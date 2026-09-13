@@ -160,6 +160,20 @@ public partial class Main
                     + $"({_world.Lots.East[lot].Raw:N0}, {_world.Lots.North[lot].Raw:N0})");
         }
 
+        if (_verb == Verb.Gate)
+        {
+            int standing = GateNear(at);
+            int lot = standing == Rows.NoSlot ? VacantNear(at) : standing;
+
+            said.Add(lot == Rows.NoSlot
+                ? "no vacant Lot in this Cell to open a gate on"
+                : standing != Rows.NoSlot
+                    ? $"shift-click removes the gate on Lot {_world.Lots.Rows.IdAt(lot):N0} at "
+                        + $"({_world.Lots.East[lot].Raw:N0}, {_world.Lots.North[lot].Raw:N0})"
+                    : $"would open on Lot {_world.Lots.Rows.IdAt(lot):N0} at "
+                        + $"({_world.Lots.East[lot].Raw:N0}, {_world.Lots.North[lot].Raw:N0})");
+        }
+
         return string.Join('\n', said);
     }
 

@@ -769,6 +769,8 @@ public partial class Main : Node3D
     /// <summary>Which <c>serves</c> kind <see cref="Verb.Service"/> would raise.</summary>
     private byte _serviceKind;
 
+    private byte _gateKind;
+
     /// <summary>Whether the governing panel is open.</summary>
     private bool _governing;
 
@@ -1988,4 +1990,14 @@ internal enum Verb : byte
     /// name, which is what stops the exception becoming a general <em>place anything</em> verb.
     /// </remarks>
     Service = 4,
+
+    /// <summary>Place or remove an Outside Connection on a vacant edge Lot.</summary>
+    /// <remarks>
+    /// <b>The second verb that puts a Building on the ground, and <see cref="Service"/> is why it
+    /// needs to exist separately.</b> A gate declares no <c>serves</c> key, so the service verb
+    /// refuses it by name — and <c>Connect</c> edits Streets. Between them no player tool could
+    /// raise a door, which left every gate in every world the generator's. ***A city could be made
+    /// worth moving to and could not be given a way in.***
+    /// </remarks>
+    Gate = 5,
 }

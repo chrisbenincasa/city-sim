@@ -34,6 +34,12 @@ public partial class Main
                 && _world.Rules.Kind((byte)i).Serves != Need.None)
                 .Select(i => new ToolOption(_names.Kind((byte)i) ?? $"Service {i}", i)).ToArray(),
             i => Apply(Held("service", i))),
+        new("gate", "Outside Connection / next kind", "Connections", Key.None,
+            "Place a gate on a vacant edge Lot; Shift-click removes it", NextGate(0) != 0,
+            NextGate(_verb == Verb.Gate ? _gateKind : (byte)0),
+            Enumerable.Range(1, _world.Rules.KindCount).Where(i => _world.IsOutsideConnection((byte)i))
+                .Select(i => new ToolOption(_names.Kind((byte)i) ?? $"Gate {i}", i)).ToArray(),
+            i => Apply(Held("gate", i))),
         new("policies", "Policies", "Policies", Key.P, "Open city Policies", _world.Rules.Policies.Length > 0,
             0, [], _ => Govern()),
     ];

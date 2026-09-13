@@ -149,6 +149,9 @@ public partial class Main
         Verb.Service => _serviceKind != 0
             ? $"SERVICE {_names.Kind(_serviceKind) ?? _serviceKind.ToString()} (s cycles)"
             : "SERVICE — no kind declares `serves`",
+        Verb.Gate => _gateKind != 0
+            ? $"GATE {_names.Kind(_gateKind) ?? _gateKind.ToString()} (shift-click removes)"
+            : "GATE — no kind declares `arrivals_per_day`",
         _ => "look",
     };
 
@@ -241,6 +244,10 @@ public partial class Main
                 Raise(at);
                 break;
 
+            case Verb.Gate:
+                Door(at, inverted);
+                break;
+
             default:
                 break;
         }
@@ -303,6 +310,17 @@ public partial class Main
 
                 break;
 
+            case "gate":
+                _verb = Verb.Gate;
+
+                // Zero means "the first kind declaring arrivals_per_day", on the service tool's
+                // reasoning. A kind id is 1-based (Ruleset.KindCount).
+                _gateKind = choice > 0 && choice <= byte.MaxValue
+                    ? (byte)choice
+                    : NextGate(0);
+
+                break;
+
             default:
                 // 🔴 DISARMED RATHER THAN LEFT AS IT WAS, and this was found by running it: a
                 // misspelt tool left the PREVIOUS one held, so the next click acted with a verb
@@ -310,7 +328,7 @@ public partial class Main
                 // loaded hand*** -- looking is the one verb that cannot do damage.
                 _verb = Verb.Look;
                 _refused = $"there is no tool called '{tool}'. There is look, zone, street, "
-                    + "demolish and service.";
+                    + "demolish, service and gate.";
 
                 break;
         }
@@ -321,6 +339,7 @@ public partial class Main
             "street" => "Connections",
             "demolish" => "Demolish",
             "service" => "Municipal",
+            "gate" => "Connections",
             _ => _toolCategory,
         };
         ShowTools();
@@ -674,6 +693,119 @@ public partial class Main
         // THE FACTORY AND NOT THE CONSTRUCTOR, for the reason Command.Govern's own remark gives:
         // the packing is named in one place rather than spelled at each call site.
         Send(Command.Service(_world.Lots.East[lot], _world.Lots.North[lot], _serviceKind));
+    }
+
+    /// <summary>
+    /// Places a gate on the vacant Lot nearest the click, or removes the Outside Connection
+    /// standing nearest it — <c>plans/0073</c> D14.
+    /// </summary>
+    /// <remarks>
+    /// <b>Shift removes, on the Street tool's gesture rather than on a second tool.</b> What the
+    /// two verbs share is the Tile, and a player who has just placed a door in the wrong corner
+    /// wants the same hand to take it away.
+    /// </remarks>
+    private void Door((Tiles East, Tiles North) at, bool remove)
+    {
+        if (remove)
+        {
+            int standing = GateNear(at);
+
+            if (standing == Rows.NoSlot)
+            {
+                _refused = "no Outside Connection in this Cell to remove.";
+
+                return;
+            }
+
+            Send(Command.Gate(_world.Lots.East[standing], _world.Lots.North[standing], 0));
+
+            return;
+        }
+
+        if (_gateKind == 0)
+        {
+            _refused =
+                "this Ruleset declares no kind with `arrivals_per_day`, so there is no gate to place.";
+
+            return;
+        }
+
+        int lot = VacantNear(at);
+
+        if (lot == Rows.NoSlot)
+        {
+            _refused =
+                "no vacant Lot in this Cell. A gate stands on an edge Lot with a Street along it; a "
+                + "Lot holding a Building — standing or an abandoned shell — is not vacant.";
+
+            return;
+        }
+
+        Send(Command.Gate(_world.Lots.East[lot], _world.Lots.North[lot], _gateKind));
+    }
+
+    /// <summary>The Lot holding an Outside Connection nearest the click, within its Cell.</summary>
+    /// <remarks>
+    /// <see cref="VacantNear"/>'s complement, and kinded rather than merely occupied for
+    /// <c>Simulation.GateOn</c>'s reason: an ordinary Building at the aimed Tile is not the thing
+    /// this verb removes.
+    /// </remarks>
+    private int GateNear((Tiles East, Tiles North) at)
+    {
+        LotTable lots = _world.Lots;
+        Cells east = CellGrid.ToCells(at.East);
+        Cells north = CellGrid.ToCells(at.North);
+        int nearest = Rows.NoSlot;
+        long best = long.MaxValue;
+
+        for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
+        {
+            if (!lots.Rows.IsLive(slot) || lots.IsVacant(slot)
+                || CellGrid.ToCells(lots.East[slot]) != east
+                || CellGrid.ToCells(lots.North[slot]) != north)
+            {
+                continue;
+            }
+
+            int building = lots.BuildingOn(slot);
+
+            if (building < 0 || !_world.IsOutsideConnection(_world.Buildings.Kind[building]))
+            {
+                continue;
+            }
+
+            long de = lots.East[slot].Raw - at.East.Raw;
+            long dn = lots.North[slot].Raw - at.North.Raw;
+            long away = (de * de) + (dn * dn);
+
+            if (away < best)
+            {
+                best = away;
+                nearest = slot;
+            }
+        }
+
+        return nearest;
+    }
+
+    /// <summary>
+    /// The next declared gate kind after this one, cycling. Zero where the Ruleset declares none.
+    /// </summary>
+    private byte NextGate(byte after)
+    {
+        int count = _world.Rules.KindCount;
+
+        for (int step = 1; step <= count; step++)
+        {
+            var kind = (byte)(((after + step - 1) % count) + 1);
+
+            if (_world.IsOutsideConnection(kind))
+            {
+                return kind;
+            }
+        }
+
+        return 0;
     }
 
     /// <summary>The vacant Lot nearest a Tile within its own Cell, or <see cref="Rows.NoSlot"/>.</summary>
