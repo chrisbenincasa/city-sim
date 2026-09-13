@@ -652,6 +652,20 @@ does not add up to the history it sits inside. ⚠ **`RollDay` runs after `Seal`
 seals before it rolls, and the first roll is a Day after the seal — so a snapshot never stands ahead
 of a counter the seal has zeroed and a Day's figure is never negative.
 
+**`HinterlandReading` reads and never drains, and `A_reading_moves_no_state` is the assertion that
+says so.** `Instruments/HinterlandReading.cs` carries the per-edge reading with its two Days of
+flows, plus `HinterlandGateReading` and `HinterlandGroupReading`, which fill a caller's Span so a
+panel refreshing every frame allocates nothing. `Instruments/PopulationReading.cs` carries the
+account, the Pool and the residual. The Day each reading is denominated in comes from the table's own
+`FlowDay` rather than from dividing the Tick out, so the flow counters and the gate meters cannot
+disagree about which Day they are counting.
+
+⚠ **The placements and give-ups the inspection contract lists are deliberately NOT in the
+reading.** They live in `PlacementActivity`, which a **Census drains** — so a reading that carried
+them would take them from whichever of the panel and the dump asked second, and the contract's own
+first rule is that inspecting resets no meter. The two readers that want them already own a Census
+each. ***A figure that cannot be read twice does not belong in a thing that is read every frame.***
+
 ### D12 — Ruleset surface, validation and reload
 
 Add `HinterlandPopulationRuleset.cs` for the new immutable definitions; thread them through
