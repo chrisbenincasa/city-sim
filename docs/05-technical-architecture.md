@@ -75,6 +75,26 @@ Two toolchains, one repository. The .NET solution and the Godot project build se
 
 ---
 
+### Ruleset source loading
+
+The canonical [authoring contract](ruleset-authoring.md) defines scoped TOML source files,
+shared domain definitions and explicit typed references assembled into one Ruleset. This is the
+agreed design; the production loader currently accepts one execution-oriented TOML document.
+`Borough.Formats` owns collection, reference resolution, validation, deterministic assembly and
+source-located diagnostics. Hosts supply source/package bytes and use the same loader path;
+Core receives validated ids and numbers, with no file discovery or parser dependency.
+
+Source files do not establish override precedence. Duplicate typed identities are errors; local
+overrides are explicit domain data. Resolve the entire candidate and preserve source provenance
+before making it available for a registered reload. Failed loading leaves active content intact.
+[0077](../plans/0077-ruleset-source-loading.md) owns loader and authoring-guide implementation.
+
+Separate Core work must support saved profile selections and shared behaviour without copying
+kinds for storage variants. Complete source bundles and the resolution version must be retained
+for saved cities/replays; deterministic bundle identity is distinct from declaration identity.
+Preserve existing single-file hashes during introduction. The package encoding and migration
+contract are design work, not a feature already provided by `CitySave`.
+
 ## 2. The sim/render boundary
 
 The public surface of `Borough.Core` has **two flavours of query, split on the cadence of the caller**, plus persistence, which is not a query at all:
@@ -339,11 +359,18 @@ Format version is **schema**; Ruleset version is **content**. A save can be stru
 
 **The Ruleset is identified by a content hash, and the Input Log references it.** `§2`'s tuple is therefore `(world seed, configuration, Ruleset content hash, player commands per Tick)`, and a hot reload is logged as a *transition* carrying both hashes. A replay bundle is the log plus every Ruleset it references, held in a content-addressed sidecar — which keeps the log itself kilobytes, dedupes identical reloads for free, and needs no bespoke diff format (`adr/0018`). The hash earns a second keep immediately: **a replay whose Ruleset does not match refuses to run** instead of diverging silently, which is otherwise the most confusing possible failure — a replay that reproduces nothing because the data files moved underneath it.
 
-**Cross-Ruleset loading has two policies, because there are two reasons to load a save:**
+**Loading pinned content and upgrading content are separate operations.** Current `CitySave.Read`
+parses the TOML embedded in the package and verifies its hash; it does not substitute today's
+source file. Existing reload machinery supports selected explicit changes and refuses others.
+The policies below describe the compatibility intent, not a guarantee that every release or
+structural transition is implemented. The multi-file loader must preserve this distinction and
+retain the complete content bundle; see [the authoring contract](ruleset-authoring.md#saved-cities-and-evolving-content).
+
+**Cross-Ruleset continuation has two policies:**
 
 | | Cross-Ruleset load | Why |
 |---|---|---|
-| **Play** — continue a city | permitted, with warnings | Bins whose resource no longer exists are dropped; Buildings whose kind no longer exists become derelict rather than vanishing. Refusing would mean **every patch bricks every save**, which is how a city-builder loses its players |
+| **Play** — continue a city | supported explicit transitions, with degradation/refusal as applicable | Bins whose resource no longer exists are dropped; Buildings whose kind no longer exists become derelict rather than vanishing. Refusing would mean **every patch bricks every save**, which is how a city-builder loses its players |
 | **Replay / verify** — reproduce a run | refused on an **unaccounted** mismatch | A different Ruleset is a different simulation and the State Hash will diverge. That is arithmetic, not a bug |
 
 The discriminator is §4's rule again: *is the State Hash expected to mean anything here?* This maps onto the projects in §1 — `Borough.Godot` is play mode and lenient, `Borough.Headless` is replay mode and strict, which is correct given it exists to produce comparable numbers.

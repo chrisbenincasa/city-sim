@@ -239,24 +239,23 @@ Parked because it is **mechanically redundant**: a city that fixes its housing s
 
 ## A purpose-built DSL for the Ruleset
 
-**Status:** representation choice follows the [human authoring viability investigation](../plans/0075-base-game-ruleset-viability.md).
-TOML remains the implemented input format; no new parser is selected.
+**Status:** deferred. The agreed [authoring design](ruleset-authoring.md) uses scoped TOML files,
+shared domain definitions and explicit typed references. [0077](../plans/0077-ruleset-source-loading.md)
+owns the loader and authoring guide; multi-file loading is not implemented yet.
 
-The connected experiment verifies runtime composition, not whether a human can assemble the
-game by hand. Its small size and wage/grant edits do not settle this decision. The observed
-burden includes implicit ownership and mechanism activation, distributed content dependencies,
-manual derivation of related quantities and diagnosis that requires C# knowledge. Sharing
-common TOML fragments addresses only part of that burden.
+The handoff in 0076 supports local shared edits and exposed one omission/default friction point,
+which is fixed in the prototype. The growth and bakery probes identify runtime definition
+multiplication and missing work-dependent production. A new language would not implement those
+mechanics or make a copied kind/variant product disappear.
 
-**Next decision:** validate the recommended reusable domain definitions and explicit relationships
-through an independent author handoff, comparing raw TOML and the prototype on the same chain, variant,
-rebalance and diagnosis tasks. Choose the authoring model first; a TOML-based layer, DSL or
-structured editor may express it. Judge mechanical work, understanding, errors and maintenance,
-not just file length or whether the simulation runs. See [authoring requirements](ruleset-authoring.md).
+**Revisit trigger:** the supported typed authoring model and its diagnostic/preview workflow
+cannot express or explain a concrete necessary design task without unacceptable repetition or
+complexity. Demonstrate that limitation before choosing a new parser, arbitrary expressions or
+inheritance. Editor tooling can improve an existing model without replacing its language.
 
 **Cost:** a new language needs validation, source locations, editor support, stable identity/order
-and reproducible hashing. These costs matter, but do not establish that hand-authoring the raw
-runtime representation is cheaper for creating the game.
+and reproducible hashing. Neither raw TOML readability nor parser convenience alone decides
+whether the resulting authoring workflow is manageable.
 
 ---
 

@@ -412,9 +412,15 @@ A Policy, by contrast, **sweeps** its whole population, because a transfer is an
 **Ruleset**
 The complete body of Rules, Zone Rules, and tuning constants, loaded from data files at runtime and **hot-reloadable**. The compiled binary is a stable interpreter for the Ruleset. `FAST ITERATION`
 
+The canonical [authoring design](docs/ruleset-authoring.md) uses scoped TOML files with shared
+definitions and explicit references, assembled into one Ruleset before simulation. Multi-file
+assembly and separate saved profile selections are planned implementation work; the current
+production loader accepts a single execution-oriented TOML document. Source organisation must
+not introduce file-order override precedence or duplicate behaviours for storage-only variants.
+
 **It is validated where it is parsed, and a malformed one is refused rather than warned about.** Every name is resolved to an id before the simulation sees it, so the simulation never reads a string and never meets a Rule it cannot run. A Ruleset that would load with a broken chain produces a Building that fails silently, which is the outcome the refusals exist to prevent. `adr/0048`
 
-**A reload is a *transition*, not a command.** It is a property of a Tick rather than an event inside one: the Ruleset is swapped at the top of Phase 0, so a Tick has exactly one Ruleset and the commands in the reloading Tick run under the **new** Rules. The Input Log carries the transition as a pair of content hashes, so a replay reproduces it by construction and there is no reload verb. **A declaration's identity across two files is its name, never its id** — an id is a position, and removing a declaration from the middle of a file renumbers everything below it — which is what makes *this Bin's Resource survived* a question with an answer. **What the swap destroyed is kept as state**, capped, because a defect caused by a degradation three patches ago is upstream of every snapshot anybody holds (`05 §7`). `adr/0015`
+**A reload is a *transition*, not a command.** It is a property of a Tick rather than an event inside one: the Ruleset is swapped at the top of Phase 0, so a Tick has exactly one Ruleset and the commands in the reloading Tick run under the **new** Rules. The Input Log carries the transition as a pair of content hashes, so a replay reproduces it by construction and there is no reload verb. **In the current format, a declaration's identity across versions is its name-derived key, not its runtime id** — an id is a position, and removing a declaration from the middle of a file renumbers everything below it — which is what makes *this Bin's Resource survived* a question with an answer. **What the swap destroyed is kept as state**, capped, because a defect caused by a degradation three patches ago is upstream of every snapshot anybody holds (`05 §7`). `adr/0015`
 
 ---
 
