@@ -666,6 +666,23 @@ them would take them from whichever of the panel and the dump asked second, and 
 first rule is that inspecting resets no meter. The two readers that want them already own a Census
 each. ***A figure that cannot be read twice does not belong in a thing that is read every frame.***
 
+**`--arrivals` became two pictures and the Ruleset picks which, so no flag enables a Ruleset's own
+mechanism.** A file stating `[immigration]` gets a run that **issues no commands at all** — every
+Tick stepped empty — and four new panels reading the instruments: who stands behind each edge and
+who is waiting at a full door, every composition with whether the file authored it or an emigration
+created it, each door's quota spent and remaining, the whole circuit today and over the last
+complete Day, and the population account with its residual. A file without one keeps the driven run,
+now labelled **explicit presentations** in the header and in `Options.Usage`. ⚠ **The Households in
+`waiting` are not the Unplaced Pool**: they are still the Outside's stock, held as `reserved`, with
+no Citizen row anywhere — the Pool holds people already let in and looking for a home, and the
+panels say so where both appear.
+
+⚠ **The empty-Pool claim was false and is now a figure rather than a sentence.** "The Pool is empty,
+which in a world with a door in it means construction kept up with the gates" reads identically in a
+city nobody was willing to enter and one whose doors had no connection to offer. The panel now
+prints lifetime admissions and lets that discriminate, because ***a picture that cannot tell two
+cities apart must not name one of them.***
+
 ### D12 — Ruleset surface, validation and reload
 
 Add `HinterlandPopulationRuleset.cs` for the new immutable definitions; thread them through

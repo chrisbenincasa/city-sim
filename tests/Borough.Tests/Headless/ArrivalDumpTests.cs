@@ -93,7 +93,7 @@ public sealed class ArrivalDumpTests
     {
         string report = Dump();
 
-        Assert.DoesNotContain("Nobody. The Pool is empty", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("Nobody. An empty Pool does NOT", report, StringComparison.Ordinal);
         Assert.Contains("of them have waited LONGER THAN THE BOUND", report, StringComparison.Ordinal);
     }
 
@@ -135,10 +135,11 @@ public sealed class ArrivalDumpTests
     /// The mode refuses to be pointed at a recorded session, because it drives one itself.
     /// </summary>
     /// <remarks>
-    /// 🔴 <b>This is the only dump that issues Commands</b>, and it is the reason the refusal exists:
-    /// a replayed log would be stepped and then driven on top of, so the run would be neither the
-    /// recorded session nor a clean demonstration. Nothing in the simulation decides to arrive until
-    /// milestone 16 (<c>adr/0128</c>), so a mode showing arrivals has to ask for them.
+    /// 🔴 <b>This is the only dump that issues Commands</b>, over a Ruleset stating no
+    /// <c>[immigration]</c>, and it is the reason the refusal exists: a replayed log would be stepped
+    /// and then driven on top of, so the run would be neither the recorded session nor a clean
+    /// demonstration. The refusal holds for a file with a counted Outside too, which drives no
+    /// commands but still builds its own world.
     /// </remarks>
     [Fact]
     public void The_mode_refuses_a_recorded_session()
@@ -149,7 +150,7 @@ public sealed class ArrivalDumpTests
                 out Options? _,
                 out string? complaint));
 
-        Assert.Contains("issues its own arrive commands", complaint!, StringComparison.Ordinal);
+        Assert.Contains("builds and drives its own world", complaint!, StringComparison.Ordinal);
     }
 
     /// <summary>Asking for two pictures at once is refused, as every other mode refuses it.</summary>
@@ -163,6 +164,44 @@ public sealed class ArrivalDumpTests
                 out string? complaint));
 
         Assert.Contains("each picture builds its own world", complaint!, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A Ruleset with a counted Outside prints the circuit and the runner asks for nothing.
+    /// </summary>
+    /// <remarks>
+    /// <b>The Ruleset chooses the picture and no flag does.</b> <c>attracted.toml</c> states
+    /// <c>[immigration]</c>, so the mode must not knock — a single <c>Arrive</c> would put a caller
+    /// back inside the one mechanism whose point is not having one — and the panels that explain why
+    /// anybody crossed must appear. <c>asked/Day</c> is the explicit-presentation column, so its
+    /// absence is what says no command was issued.
+    /// </remarks>
+    [Fact]
+    public void A_counted_outside_prints_the_circuit_and_asks_for_nothing()
+    {
+        (int code, string report) = Run(Ruleset("attracted.toml"));
+
+        Assert.Equal(0, code);
+
+        foreach (string panel in
+            (string[])["THE OUTSIDE", "WHO IS OUT THERE", "THE CIRCUIT", "THE POPULATION ACCOUNT"])
+        {
+            Assert.Contains(panel, report, StringComparison.Ordinal);
+        }
+
+        Assert.Contains("mode           a counted Outside", report, StringComparison.Ordinal);
+        Assert.Contains("THE RUNNER ISSUES NO COMMANDS AT ALL", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("asked/Day", report, StringComparison.Ordinal);
+    }
+
+    /// <summary>A file with no counted Outside says so, and keeps the driven picture.</summary>
+    [Fact]
+    public void A_file_without_one_is_labelled_explicit_presentations()
+    {
+        string report = Dump();
+
+        Assert.Contains("mode           explicit presentations", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("THE CIRCUIT", report, StringComparison.Ordinal);
     }
 
     private static string Ruleset(string name) =>

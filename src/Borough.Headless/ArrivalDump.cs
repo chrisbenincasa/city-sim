@@ -23,21 +23,22 @@ using Borough.Formats;
 /// Departure: a large Pool can be a healthy city and a small one a city in crisis.
 /// </para>
 /// <para>
-/// 🔴 <b>The first dump that issues Commands, and that is forced.</b> Nothing here decides to
-/// arrive (<c>adr/0128</c> puts that at milestone 16), so every arrival comes through
-/// <see cref="CommandKind.Arrive"/> and somebody outside has to ask.
+/// 🔴 <b>The Ruleset decides which of two pictures this is, and no flag does.</b> A file stating
+/// <c>[immigration]</c> has a counted Outside that decides for itself, so the dump issues no
+/// Commands at all and prints the circuit as well. A file without one gets <b>explicit
+/// presentations</b>, where nobody in that world decides to come and the dump has to ask.
 /// </para>
 /// <para>
-/// 🔴 ⚠ <b>The rate is the Ruleset's rather than this file's.</b> The dump asks each gate for more
-/// than it can take and what is admitted is <c>[[building]] arrivals_per_day</c> clipped by the
-/// gate. ***A demonstration that chose its own rate would be showing the demonstration.***
-/// <b>asked</b> is printed beside <b>admitted</b> so the clipping is visible.
+/// 🔴 ⚠ <b>The rate is never this file's.</b> Under explicit presentations the dump asks each gate
+/// for more than it can take, so what is admitted is <c>[[building]] arrivals_per_day</c> clipped by
+/// the gate and <b>asked</b> is printed beside <b>admitted</b> to show the clipping. Under a counted
+/// Outside the rate is the Hinterland's own and the ceiling only clips it.
 /// </para>
 /// <para>
-/// ⚠ <b>Not to be read as an immigration rate</b>, which <c>adr/0023</c>'s first line refuses:
-/// <c>arrivals_per_day</c> is a ceiling on one door's admissions, not what a Hinterland sends. The
+/// ⚠ <b><c>arrivals_per_day</c> is not an immigration rate</b>, which <c>adr/0023</c>'s first line
+/// refuses. It is a ceiling on one door's admissions in a Day, whichever picture this is. The
 /// Households-per-command and Citizens-per-Household are the instrument's and are printed in the
-/// header, because nothing in the build models Life Stage → composition.
+/// header, because a file without a counted Outside states no composition to use instead.
 /// </para>
 /// </remarks>
 internal static class ArrivalDump
@@ -57,6 +58,15 @@ internal static class ArrivalDump
 
     /// <summary>How many waiting Households to name in the Evidence panel.</summary>
     private const int Named = 8;
+
+    /// <summary>How many of one edge's compositions to print.</summary>
+    private const int GroupsShown = 32;
+
+    /// <summary>How many of one edge's doors to print.</summary>
+    private const int DoorsShown = 32;
+
+    private static readonly MapEdge[] Edges =
+        [MapEdge.West, MapEdge.East, MapEdge.South, MapEdge.North];
 
     /// <summary>
     /// Runs a session on the given Ruleset, driving its gates, and prints what came of it.
@@ -100,10 +110,28 @@ internal static class ArrivalDump
         var series = new List<Reading>();
         long issuedAtStart = world.MoneySupply.Issued[MoneySupplyTable.Slot].Raw;
 
-        Run(simulation, world, gates, options.Ticks, series);
+        // The Ruleset decides which of the two pictures this is, and no flag does. A file stating
+        // [immigration] has its own reason for anybody to cross, so a runner knocking on its doors
+        // would be adding a caller to a mechanism whose whole point is not having one.
+        bool stock = rules.Immigration.Stated;
 
-        Header(output, options, rules, names, gates);
-        Doors(output, world, gates, names);
+        Run(simulation, world, gates, options.Ticks, series, asking: !stock);
+
+        Header(output, options, rules, names, gates, stock);
+
+        if (stock)
+        {
+            Outside(output, world);
+            Compositions(output, world, names);
+            Connections(output, world, names);
+            Circuit(output, world);
+            Account(output, world);
+        }
+        else
+        {
+            Doors(output, world, gates, names);
+        }
+
         Pool(output, series);
         Waiting(output, world);
         Money(output, world, issuedAtStart, series);
@@ -113,19 +141,27 @@ internal static class ArrivalDump
 
     // ---- the run -------------------------------------------------------------------------------
 
-    /// <summary>Steps the world, knocking on every door once a Day and sampling once a Day.</summary>
+    /// <summary>Steps the world, sampling once a Day and knocking once a Day where it asks at all.</summary>
     /// <remarks>
+    /// <para>
     /// <b>The knock is on the Day boundary because the meter is</b>: <c>World.TryArrive</c> resets a
     /// gate's quota when the Day number changes, so asking at any other point in the Day would show a
     /// ceiling half spent by the previous knock. ***A demonstration of a per-Day ceiling has to be
     /// denominated in the same Day the ceiling is.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b><paramref name="asking"/> is false over a Ruleset stating <c>[immigration]</c></b>, where
+    /// every Tick is stepped with an empty input. A single <c>Arrive</c> in that world would put a
+    /// caller back inside the one mechanism that exists to have none.
+    /// </para>
     /// </remarks>
     private static void Run(
         Simulation simulation,
         World world,
         Gate[] gates,
         ulong ticks,
-        List<Reading> series)
+        List<Reading> series,
+        bool asking)
     {
         Span<Command> knock = stackalloc Command[1];
 
@@ -135,6 +171,11 @@ internal static class ArrivalDump
             {
                 foreach (Gate gate in gates)
                 {
+                    if (!asking)
+                    {
+                        break;
+                    }
+
                     knock[0] = gate.Knock();
                     simulation.Step(new TickInput(knock, simulation.RulesetInForce));
                 }
@@ -157,7 +198,12 @@ internal static class ArrivalDump
     // ---- the panels ----------------------------------------------------------------------------
 
     private static void Header(
-        TextWriter output, Options options, Ruleset rules, RulesetNames names, Gate[] gates)
+        TextWriter output,
+        Options options,
+        Ruleset rules,
+        RulesetNames names,
+        Gate[] gates,
+        bool stock)
     {
         output.WriteLine("ARRIVAL THROUGH THE GATE");
         output.WriteLine();
@@ -165,22 +211,254 @@ internal static class ArrivalDump
         output.WriteLine(F($"  citizens       {options.Citizens} at world creation"));
         output.WriteLine(F($"  ticks          {options.Ticks} ({options.Ticks / Ticks.PerDay} Days)"));
         output.WriteLine(F($"  gates          {gates.Length}"));
+        output.WriteLine(F($"  mode           {(stock ? "a counted Outside" : "explicit presentations")}"));
         output.WriteLine(F(
             $"  gives up after {rules.Placement.GivesUpAfterDays} Days ({rules.Placement.OccasionsBeforeGivingUp} occasions at this cadence)"));
         output.WriteLine();
-        output.WriteLine("  The runner asks each gate for more than it can take, once a Day, so what");
-        output.WriteLine("  arrives is the FILE's arrivals_per_day and not a rate chosen here. Nothing");
-        output.WriteLine("  in the simulation decides to arrive (adr/0128) -- there is no immigration");
-        output.WriteLine("  rate in this build and arrivals_per_day is not one: it is a ceiling on a");
-        output.WriteLine("  Day's admissions through one door.");
+
+        if (stock)
+        {
+            output.WriteLine(F(
+                $"  This file states [immigration], so THE RUNNER ISSUES NO COMMANDS AT ALL and every"));
+            output.WriteLine("  Tick is stepped empty. Whoever arrives was generated by the Outside, weighed");
+            output.WriteLine("  the city against where they already live, and crossed -- or waited, or");
+            output.WriteLine("  stayed. arrivals_per_day is still only a ceiling on one door's Day, and it");
+            output.WriteLine("  is not the rate: THE CIRCUIT below is where the rate comes from.");
+            output.WriteLine();
+            output.WriteLine(F(
+                $"  reconsider every {rules.Immigration.ReconsiderDays} Days, recovery {rules.Immigration.RecoveryDays} Days"));
+            output.WriteLine(F(
+                $"  wait outside a full door for {rules.Immigration.QueueWaitDays} Days, reviewed every {rules.Immigration.QueueReconsiderDays} Days of it"));
+            output.WriteLine();
+            _ = names;
+
+            return;
+        }
+
+        output.WriteLine("  This file states no [immigration], so arrivals here are EXPLICIT");
+        output.WriteLine("  PRESENTATIONS: the runner asks each gate for more than it can take, once a");
+        output.WriteLine("  Day, and what arrives is the FILE's arrivals_per_day rather than a rate");
+        output.WriteLine("  chosen here. Nobody in this world decides to come -- the family at the door");
+        output.WriteLine("  was invented by the caller, and arrivals_per_day is a ceiling on a Day's");
+        output.WriteLine("  admissions through one door rather than an immigration rate.");
         output.WriteLine();
         output.WriteLine(F(
             $"  Each command carries {CitizensPerHousehold} Citizens per Household. THAT NUMBER IS THE INSTRUMENT'S:"));
-        output.WriteLine("  nothing in the build models Life Stage to composition, so a figure derived");
-        output.WriteLine("  here would be a model nobody wrote.");
+        output.WriteLine("  a file with a counted Outside states its own compositions and needs none.");
         output.WriteLine();
 
         _ = names;
+    }
+
+    /// <summary>Who stands behind each edge, and who among them is waiting at a full door.</summary>
+    private static void Outside(TextWriter output, World world)
+    {
+        output.WriteLine("THE OUTSIDE");
+        output.WriteLine();
+        output.WriteLine(F(
+            $"  {"edge",-7}   {"doors",5}   {"stock",8}   {"reserved",8}   {"resting",8}   {"people",9}   {"waiting",8}   {"longest",8}"));
+        output.WriteLine(F(
+            $"  {Dash(7)}   {Dash(5)}   {Dash(8)}   {Dash(8)}   {Dash(8)}   {Dash(9)}   {Dash(8)}   {Dash(8)}"));
+
+        foreach (MapEdge edge in Edges)
+        {
+            HinterlandReading reading = HinterlandReading.Of(world, edge);
+
+            output.WriteLine(F(
+                $"  {Edge(edge),-7}   {reading.Gates,5}   {reading.StockHouseholds,8}   {reading.ReservedHouseholds,8}   {reading.RestingHouseholds,8}   {reading.StockPeople,9}   {reading.QueueHouseholds,8}   {Days((long)reading.OldestWait),8}"));
+        }
+
+        output.WriteLine();
+        output.WriteLine("  `waiting` is outside a FULL DOOR and it is not the Unplaced Pool. These");
+        output.WriteLine("  Households are still part of the Outside's stock, still held as `reserved`");
+        output.WriteLine("  against it, and no Citizen row exists for any of them. Somebody in the Pool");
+        output.WriteLine("  has already been let in and is looking for a home inside the city.");
+        output.WriteLine();
+        output.WriteLine("  `stock` less `reserved` is who a door could still be offered today.");
+        output.WriteLine("  `resting` is the count the Outside recovers towards: a stock below it grows");
+        output.WriteLine("  back over the recovery period, and one above it is trimmed as turnover.");
+        output.WriteLine();
+        output.WriteLine("  An edge with no [[hinterland]] table prints zeros and that is not a fault.");
+        output.WriteLine("  All four are shown so an absent Outside is visible rather than merely absent.");
+        output.WriteLine();
+    }
+
+    /// <summary>Every composition standing behind an edge, and where each one came from.</summary>
+    private static void Compositions(TextWriter output, World world, RulesetNames names)
+    {
+        output.WriteLine("WHO IS OUT THERE");
+        output.WriteLine();
+        output.WriteLine(F(
+            $"  {"edge",-7}   {"stage",-10}   {"auth",4}   {"people",6}   {"target",6}   {"stock",6}   {"free",6}   {"admitted",8}   {"returned",8}"));
+        output.WriteLine(F(
+            $"  {Dash(7)}   {Dash(10)}   {Dash(4)}   {Dash(6)}   {Dash(6)}   {Dash(6)}   {Dash(6)}   {Dash(8)}   {Dash(8)}"));
+
+        Span<HinterlandGroupReading> groups = stackalloc HinterlandGroupReading[GroupsShown];
+
+        foreach (MapEdge edge in Edges)
+        {
+            int written = HinterlandGroupReading.Of(world, edge, groups);
+
+            for (int group = 0; group < written; group++)
+            {
+                HinterlandGroupReading row = groups[group];
+
+                output.WriteLine(F(
+                    $"  {Edge(edge),-7}   {Stage(names, row.Composition.Stage),-10}   {(row.Authored ? "yes" : "no"),4}   {row.Composition.Members,6}   {row.Target,6}   {row.Stock,6}   {row.Free,6}   {row.Admitted,8}   {row.Returned,8}"));
+            }
+        }
+
+        output.WriteLine();
+        output.WriteLine("  `auth` is no on a group the Ruleset never declared. An emigration credits the");
+        output.WriteLine("  Household it took back to the composition it matches, and creates that group");
+        output.WriteLine("  when the file states none -- so a `no` row with a `target` of zero is the");
+        output.WriteLine("  Outside holding people the city sent it, and it decays rather than recovers.");
+        output.WriteLine();
+        output.WriteLine("  A composition is a STORAGE KEY and not a group that decides anything. The");
+        output.WriteLine("  Households in it are counted together because they are identical, and they");
+        output.WriteLine("  split the moment one of them crosses.");
+        output.WriteLine();
+    }
+
+    /// <summary>Per gate: the quota, what has gone through it today, and what is left.</summary>
+    private static void Connections(TextWriter output, World world, RulesetNames names)
+    {
+        output.WriteLine("THE DOORS");
+        output.WriteLine();
+        output.WriteLine(F(
+            $"  {"gate",-16}  {"edge",-7}  {"ceiling/Day",11}   {"admitted today",14}   {"remaining",9}"));
+        output.WriteLine(F(
+            $"  {Dash(16)}  {Dash(7)}  {Dash(11)}   {Dash(14)}   {Dash(9)}"));
+
+        Span<HinterlandGateReading> doors = stackalloc HinterlandGateReading[DoorsShown];
+
+        foreach (MapEdge edge in Edges)
+        {
+            int written = HinterlandGateReading.Of(world, edge, doors);
+
+            for (int door = 0; door < written; door++)
+            {
+                HinterlandGateReading row = doors[door];
+
+                output.WriteLine(F(
+                    $"  {Name(names, row.Kind),-16}  {Edge(edge),-7}  {row.Ceiling,11}   {row.AdmittedToday,14}   {row.RemainingToday,9}"));
+            }
+        }
+
+        output.WriteLine();
+        output.WriteLine("  Nobody asked, so there is no `refused` column here: what came through is what");
+        output.WriteLine("  the Outside sent, clipped by the ceiling. `remaining` at the ceiling means");
+        output.WriteLine("  the door was never the constraint today -- read THE CIRCUIT for what was.");
+        output.WriteLine();
+        output.WriteLine("  A door has a QUOTA and it does not have a market. Two doors on one edge draw");
+        output.WriteLine("  on one stock, so an edge's admissions are not divisible into each door's own.");
+        output.WriteLine();
+    }
+
+    /// <summary>Every outcome an occasion can have, today and over the last complete Day.</summary>
+    private static void Circuit(TextWriter output, World world)
+    {
+        output.WriteLine("THE CIRCUIT");
+        output.WriteLine();
+        output.WriteLine("  Who considered coming. The four outcomes are exclusive and they add up to");
+        output.WriteLine("  `occasions`, so a column that does not sum is a defect rather than a finding.");
+        output.WriteLine();
+        output.WriteLine(F(
+            $"  {"edge",-7}   {"when",-9}   {"occasions",9}   {"no door",9}   {"no sample",9}   {"stayed",9}   {"willing",9}"));
+        output.WriteLine(F(
+            $"  {Dash(7)}   {Dash(9)}   {Dash(9)}   {Dash(9)}   {Dash(9)}   {Dash(9)}   {Dash(9)}"));
+
+        foreach ((MapEdge edge, string when, HinterlandFlows flows) in Flows(world))
+        {
+            output.WriteLine(F(
+                $"  {Edge(edge),-7}   {when,-9}   {flows.Occasions,9}   {flows.NoConnection,9}   {flows.NoSample,9}   {flows.StayedOutside,9}   {flows.Willing,9}"));
+        }
+
+        output.WriteLine();
+        output.WriteLine("  `no sample` is nobody the engine could compare against -- no feasible dwelling");
+        output.WriteLine("  to weigh the Outside's own rent and travel against -- and it is a different");
+        output.WriteLine("  city from `stayed`, which compared and preferred where it already lives.");
+        output.WriteLine();
+        output.WriteLine("  What became of them. `reviewed` counts second thoughts by families ALREADY");
+        output.WriteLine("  waiting and is deliberately outside the sum above: adding it to the fresh");
+        output.WriteLine("  interest would report the same family twice.");
+        output.WriteLine();
+        output.WriteLine(F(
+            $"  {"edge",-7}   {"when",-9}   {"admitted",9}   {"queued",9}   {"reviewed",9}   {"gave up",9}   {"went home",9}"));
+        output.WriteLine(F(
+            $"  {Dash(7)}   {Dash(9)}   {Dash(9)}   {Dash(9)}   {Dash(9)}   {Dash(9)}   {Dash(9)}"));
+
+        foreach ((MapEdge edge, string when, HinterlandFlows flows) in Flows(world))
+        {
+            output.WriteLine(F(
+                $"  {Edge(edge),-7}   {when,-9}   {flows.Admitted,9}   {flows.Queued,9}   {flows.Reviewed,9}   {flows.Expired,9}   {flows.ChangedMind,9}"));
+        }
+
+        output.WriteLine();
+        output.WriteLine("  `gave up` is a wait that ran out and `went home` is a review that changed its");
+        output.WriteLine("  mind before it did. Both return the Household to the stock it came from.");
+        output.WriteLine();
+        output.WriteLine("  The Outside's own arithmetic, which is nobody's decision.");
+        output.WriteLine();
+        output.WriteLine(F(
+            $"  {"edge",-7}   {"when",-9}   {"replenished",11}   {"turnover",11}   {"door lost",11}"));
+        output.WriteLine(F(
+            $"  {Dash(7)}   {Dash(9)}   {Dash(11)}   {Dash(11)}   {Dash(11)}"));
+
+        foreach ((MapEdge edge, string when, HinterlandFlows flows) in Flows(world))
+        {
+            output.WriteLine(F(
+                $"  {Edge(edge),-7}   {when,-9}   {flows.Replenished,11}   {flows.Turnover,11}   {flows.ConnectionLost,11}"));
+        }
+
+        output.WriteLine();
+        output.WriteLine("  `door lost` cancels a wait because the edge has no gate left to wait at, and");
+        output.WriteLine("  it is the demolition of a door showing up as a population figure.");
+        output.WriteLine();
+    }
+
+    /// <summary>The population account, and whether the flows agree with the standing rows.</summary>
+    private static void Account(TextWriter output, World world)
+    {
+        PopulationReading reading = PopulationReading.Of(world);
+
+        output.WriteLine("THE POPULATION ACCOUNT");
+        output.WriteLine();
+        output.WriteLine(F($"  day                  {reading.Day,10}"));
+        output.WriteLine(F(
+            $"  people               {reading.People,10}   {reading.LivePeople} rows standing, residual {reading.Residual}"));
+        output.WriteLine(F(
+            $"  households           {reading.Households,10}   {reading.LiveHouseholds} rows standing, residual {reading.HouseholdResidual}"));
+        output.WriteLine(F(
+            $"  admitted, unhoused   {reading.PoolHouseholds,10}   {reading.PoolPeople} people, longest {Days((long)reading.PoolOldestWait)}"));
+        output.WriteLine();
+        output.WriteLine(F(
+            $"  {"people",-10}   {"births",9}   {"admitted",9}   {"scenario",9}   {"departed",9}   {"died",9}   {"dissolved",9}"));
+        output.WriteLine(F(
+            $"  {Dash(10)}   {Dash(9)}   {Dash(9)}   {Dash(9)}   {Dash(9)}   {Dash(9)}   {Dash(9)}"));
+
+        People(output, "today", reading.Today);
+        People(output, "yesterday", reading.Yesterday);
+
+        output.WriteLine();
+        output.WriteLine(F(
+            $"  {"households",-10}   {"created",9}   {"formed",9}   {"admitted",9}   {"departed",9}   {"dissolved",9}   {"removed",9}"));
+        output.WriteLine(F(
+            $"  {Dash(10)}   {Dash(9)}   {Dash(9)}   {Dash(9)}   {Dash(9)}   {Dash(9)}   {Dash(9)}"));
+
+        Households(output, "today", reading.Today);
+        Households(output, "yesterday", reading.Yesterday);
+
+        output.WriteLine();
+        output.WriteLine("  A residual of zero says the classified flows and the standing rows agree about");
+        output.WriteLine("  how many people are here. It says nothing whatever about whether the city is");
+        output.WriteLine("  doing well, and a non-zero one is a door that wrote no entry -- a defect in");
+        output.WriteLine("  the accounting rather than a finding about the city.");
+        output.WriteLine();
+        output.WriteLine("  Households and people are counted apart because neither derives from the");
+        output.WriteLine("  other: a child leaving home makes a Household and adds nobody, an admission");
+        output.WriteLine("  makes one Household and several people.");
+        output.WriteLine();
     }
 
     /// <summary>Per gate: what was asked, what the ceiling allowed, and which bound.</summary>
@@ -253,8 +531,18 @@ internal static class ArrivalDump
 
         if (pool == 0)
         {
-            output.WriteLine("  Nobody. The Pool is empty, which in a world with a door in it means");
-            output.WriteLine("  construction kept up with the gates for the whole run.");
+            long admitted = world.PopulationLedger.Admissions[PopulationLedgerTable.Slot];
+
+            output.WriteLine("  Nobody. An empty Pool does NOT by itself mean construction kept up with");
+            output.WriteLine("  the doors. It reads exactly the same when nobody was willing to come and");
+            output.WriteLine("  when no door could take them, so the figure that tells them apart is what");
+            output.WriteLine("  actually came in:");
+            output.WriteLine();
+            output.WriteLine(F($"    people admitted over the run   {admitted}"));
+            output.WriteLine();
+            output.WriteLine(admitted > 0
+                ? "  Non-zero, so every Household let in found a home before the run ended."
+                : "  Zero, so there was nobody to house and the Pool says nothing about housing.");
             output.WriteLine();
             return;
         }
@@ -467,6 +755,31 @@ internal static class ArrivalDump
 
     private static string Name(RulesetNames names, byte kind) =>
         names.Kind(kind) ?? F($"kind {kind}");
+
+    private static string Stage(RulesetNames names, byte stage) =>
+        names.LifeStage(stage) ?? F($"stage {stage}");
+
+    private static string Dash(int width) => new('-', width);
+
+    private static void People(TextWriter output, string when, PopulationFlows flows) =>
+        output.WriteLine(F(
+            $"  {when,-10}   {flows.Births,9}   {flows.Admissions,9}   {flows.ScenarioAdditions,9}   {flows.Departures,9}   {flows.IllnessDeaths,9}   {flows.DissolutionPeople,9}"));
+
+    private static void Households(TextWriter output, string when, PopulationFlows flows) =>
+        output.WriteLine(F(
+            $"  {when,-10}   {flows.HouseholdsCreated,9}   {flows.HouseholdsFormed,9}   {flows.HouseholdsAdmitted,9}   {flows.HouseholdsDeparted,9}   {flows.HouseholdsDissolved,9}   {flows.HouseholdsRemoved,9}"));
+
+    /// <summary>Every edge twice, once for the Day in progress and once for the last complete one.</summary>
+    private static IEnumerable<(MapEdge Edge, string When, HinterlandFlows Flows)> Flows(World world)
+    {
+        foreach (MapEdge edge in Edges)
+        {
+            HinterlandReading reading = HinterlandReading.Of(world, edge);
+
+            yield return (edge, "today", reading.Today);
+            yield return (edge, "yesterday", reading.Yesterday);
+        }
+    }
 
     private static string Edge(MapEdge edge) => edge switch
     {

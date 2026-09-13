@@ -1189,7 +1189,7 @@ internal sealed class Options
 
         if (arrivals && log is not null)
         {
-            complaint = "--arrivals and --log disagree: this mode issues its own arrive commands, so "
+            complaint = "--arrivals and --log disagree: this mode builds and drives its own world, so "
                       + "a recorded session would be replayed and then driven on top of. If you want "
                       + "a scripted arrival, write the verb into the log and use --log alone.";
             return false;
@@ -1859,10 +1859,17 @@ internal sealed class Options
           --arrivals            dump who came through the gates, who is waiting, who gave
                                 up and what the money did. Needs --ruleset declaring a
                                 kind with arrivals_per_day -- rulesets/crowded.toml is
-                                the file it was written for. THE ONLY MODE THAT ISSUES
-                                COMMANDS: nothing decides to arrive until milestone 16,
-                                so it knocks on every gate once a Day, asking for more
-                                than the door can take, and what is admitted is the
+                                the file it was written for. THE RULESET CHOOSES WHICH
+                                OF TWO PICTURES THIS IS, and no flag does. A file
+                                stating [immigration] has a counted Outside that decides
+                                for itself, so the runner ISSUES NO COMMANDS and prints
+                                the circuit as well: what stands behind each edge, every
+                                outcome of a fresh occasion today and over the last
+                                complete Day, the queue, each door's quota and the
+                                population account. A file without one gets EXPLICIT
+                                PRESENTATIONS: nobody in that world decides to come, so
+                                the runner knocks on every gate once a Day asking for
+                                more than the door can take, and what is admitted is the
                                 file's ceiling rather than a rate chosen by the runner
           --flood               dump the floods: where the world seeded each one, how far it
                                 got, and how many Buildings it ruined and swept. Needs
