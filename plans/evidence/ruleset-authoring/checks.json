@@ -1,0 +1,208 @@
+{
+  "tasks": [
+    {
+      "task": "baseline",
+      "changed_existing_consumers": 0,
+      "counts": {
+        "consumer_kinds": 60,
+        "goods": 8,
+        "recipes": 8,
+        "expanded_kinds": 68,
+        "expanded_rules": 368,
+        "explicit_overrides": 3,
+        "basket_memberships": 6,
+        "recipe_edges": 9,
+        "runtime_references": 1133
+      }
+    },
+    {
+      "task": "shared",
+      "changed_existing_consumers": 30,
+      "counts": {
+        "consumer_kinds": 60,
+        "goods": 8,
+        "recipes": 8,
+        "expanded_kinds": 68,
+        "expanded_rules": 368,
+        "explicit_overrides": 3,
+        "basket_memberships": 6,
+        "recipe_edges": 9,
+        "runtime_references": 1133
+      }
+    },
+    {
+      "task": "variant",
+      "changed_existing_consumers": 17,
+      "counts": {
+        "consumer_kinds": 60,
+        "goods": 8,
+        "recipes": 8,
+        "expanded_kinds": 68,
+        "expanded_rules": 368,
+        "explicit_overrides": 3,
+        "basket_memberships": 6,
+        "recipe_edges": 9,
+        "runtime_references": 1133
+      }
+    },
+    {
+      "task": "add-good",
+      "changed_existing_consumers": 30,
+      "counts": {
+        "consumer_kinds": 60,
+        "goods": 9,
+        "recipes": 9,
+        "expanded_kinds": 69,
+        "expanded_rules": 429,
+        "explicit_overrides": 3,
+        "basket_memberships": 7,
+        "recipe_edges": 11,
+        "runtime_references": 1320
+      }
+    },
+    {
+      "task": "remove-override",
+      "changed_existing_consumers": 1,
+      "counts": {
+        "consumer_kinds": 60,
+        "goods": 8,
+        "recipes": 8,
+        "expanded_kinds": 68,
+        "expanded_rules": 368,
+        "explicit_overrides": 2,
+        "basket_memberships": 6,
+        "recipe_edges": 9,
+        "runtime_references": 1133
+      }
+    },
+    {
+      "task": "label",
+      "changed_existing_consumers": 3,
+      "counts": {
+        "consumer_kinds": 60,
+        "goods": 8,
+        "recipes": 8,
+        "expanded_kinds": 68,
+        "expanded_rules": 368,
+        "explicit_overrides": 3,
+        "basket_memberships": 6,
+        "recipe_edges": 9,
+        "runtime_references": 1133
+      }
+    },
+    {
+      "task": "retire",
+      "changed_existing_consumers": 0,
+      "counts": {
+        "consumer_kinds": 57,
+        "goods": 8,
+        "recipes": 8,
+        "expanded_kinds": 65,
+        "expanded_rules": 356,
+        "explicit_overrides": 2,
+        "basket_memberships": 6,
+        "recipe_edges": 9,
+        "runtime_references": 1097
+      }
+    },
+    {
+      "task": "change-id",
+      "changed_existing_consumers": 0,
+      "counts": {
+        "consumer_kinds": 60,
+        "goods": 8,
+        "recipes": 8,
+        "expanded_kinds": 68,
+        "expanded_rules": 368,
+        "explicit_overrides": 3,
+        "basket_memberships": 6,
+        "recipe_edges": 9,
+        "runtime_references": 1133
+      }
+    }
+  ],
+  "scaling": [
+    {
+      "authored_kinds": 20,
+      "counts": {
+        "consumer_kinds": 60,
+        "goods": 8,
+        "recipes": 8,
+        "expanded_kinds": 68,
+        "expanded_rules": 368,
+        "explicit_overrides": 3,
+        "basket_memberships": 6,
+        "recipe_edges": 9,
+        "runtime_references": 1133
+      }
+    },
+    {
+      "authored_kinds": 40,
+      "counts": {
+        "consumer_kinds": 120,
+        "goods": 8,
+        "recipes": 8,
+        "expanded_kinds": 128,
+        "expanded_rules": 728,
+        "explicit_overrides": 6,
+        "basket_memberships": 6,
+        "recipe_edges": 9,
+        "runtime_references": 2213
+      }
+    },
+    {
+      "authored_kinds": 80,
+      "counts": {
+        "consumer_kinds": 240,
+        "goods": 8,
+        "recipes": 8,
+        "expanded_kinds": 248,
+        "expanded_rules": 1448,
+        "explicit_overrides": 12,
+        "basket_memberships": 6,
+        "recipe_edges": 9,
+        "runtime_references": 4373
+      }
+    },
+    {
+      "authored_kinds": 83,
+      "counts": {
+        "consumer_kinds": 249,
+        "goods": 8,
+        "recipes": 8,
+        "expanded_kinds": 257,
+        "expanded_rules": 1484,
+        "explicit_overrides": 13,
+        "basket_memberships": 6,
+        "recipe_edges": 9,
+        "runtime_references": 4481
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "case": "unknown-key",
+      "diagnostic": "variants.reserve: expected keys ['days']"
+    },
+    {
+      "case": "unknown-basket",
+      "diagnostic": "kinds.home_00.basket: unknown basket basci"
+    },
+    {
+      "case": "unknown-variant",
+      "diagnostic": "kinds.home_00.overrides.resreve: unknown variant"
+    },
+    {
+      "case": "unrepresentable-use",
+      "diagnostic": "baskets.basic.use.food: daily use must be divisible by 8 at the fixture cadence of 256 Ticks"
+    },
+    {
+      "case": "unknown-recipe-good",
+      "diagnostic": "recipes.food.inputs.typo: unknown Good"
+    },
+    {
+      "case": "nonpositive-storage",
+      "diagnostic": "variants.reserve.days: expected positive integer"
+    }
+  ]
+}

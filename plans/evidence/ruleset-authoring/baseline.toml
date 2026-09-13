@@ -1,0 +1,180 @@
+# Synthetic maintenance catalogue, not balanced gameplay. Edit this source, not generated Rules.
+
+[goods.food]
+label = "Food"
+price = 100
+
+[goods.produce]
+label = "Produce"
+price = 100
+
+[goods.clothes]
+label = "Clothes"
+price = 100
+
+[goods.fuel]
+label = "Fuel"
+price = 100
+
+[goods.tools]
+label = "Tools"
+price = 100
+
+[goods.soap]
+label = "Soap"
+price = 100
+
+[goods.furniture]
+label = "Furniture"
+price = 100
+
+[goods.books]
+label = "Books"
+price = 100
+
+[baskets.basic]
+use = { "food" = 32, "fuel" = 16 }
+
+[baskets.varied]
+use = { "books" = 8, "clothes" = 8, "food" = 32, "soap" = 8 }
+
+[variants.compact]
+days = 2
+
+[variants.standard]
+days = 4
+
+[variants.reserve]
+days = 6
+
+[kinds.home_00]
+label = "Home 00"
+basket = "basic"
+overrides = { "reserve" = 8 }
+
+[kinds.home_01]
+label = "Home 01"
+basket = "basic"
+overrides = {  }
+
+[kinds.home_02]
+label = "Home 02"
+basket = "basic"
+overrides = {  }
+
+[kinds.home_03]
+label = "Home 03"
+basket = "basic"
+overrides = {  }
+
+[kinds.home_04]
+label = "Home 04"
+basket = "basic"
+overrides = {  }
+
+[kinds.home_05]
+label = "Home 05"
+basket = "basic"
+overrides = {  }
+
+[kinds.home_06]
+label = "Home 06"
+basket = "basic"
+overrides = {  }
+
+[kinds.home_07]
+label = "Home 07"
+basket = "basic"
+overrides = {  }
+
+[kinds.home_08]
+label = "Home 08"
+basket = "basic"
+overrides = {  }
+
+[kinds.home_09]
+label = "Home 09"
+basket = "basic"
+overrides = {  }
+
+[kinds.home_10]
+label = "Home 10"
+basket = "varied"
+overrides = { "reserve" = 8 }
+
+[kinds.home_11]
+label = "Home 11"
+basket = "varied"
+overrides = {  }
+
+[kinds.home_12]
+label = "Home 12"
+basket = "varied"
+overrides = {  }
+
+[kinds.home_13]
+label = "Home 13"
+basket = "varied"
+overrides = {  }
+
+[kinds.home_14]
+label = "Home 14"
+basket = "varied"
+overrides = {  }
+
+[kinds.home_15]
+label = "Home 15"
+basket = "varied"
+overrides = {  }
+
+[kinds.home_16]
+label = "Home 16"
+basket = "varied"
+overrides = {  }
+
+[kinds.home_17]
+label = "Home 17"
+basket = "varied"
+overrides = {  }
+
+[kinds.home_18]
+label = "Home 18"
+basket = "varied"
+overrides = {  }
+
+[kinds.home_19]
+label = "Home 19"
+basket = "varied"
+overrides = { "reserve" = 8 }
+
+[recipes.food]
+inputs = { "produce" = 4 }
+outputs = { "food" = 8 }
+
+[recipes.produce]
+inputs = {  }
+outputs = { "produce" = 8 }
+
+[recipes.clothes]
+inputs = {  }
+outputs = { "clothes" = 8 }
+
+[recipes.fuel]
+inputs = {  }
+outputs = { "fuel" = 8 }
+
+[recipes.tools]
+inputs = {  }
+outputs = { "tools" = 8 }
+
+[recipes.soap]
+inputs = {  }
+outputs = { "soap" = 8 }
+
+[recipes.furniture]
+inputs = {  }
+outputs = { "furniture" = 8 }
+
+[recipes.books]
+inputs = {  }
+outputs = { "books" = 8 }

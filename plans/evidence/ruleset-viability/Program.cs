@@ -11,6 +11,18 @@ using Borough.Formats;
 
 // Research instrument: fixture size and experiment schedule are not Ruleset controls.
 string directory = args.Length > 0 ? args[0] : "plans/evidence/ruleset-viability";
+if (args.Length > 1 && args[1] == "--validate")
+{
+    var candidate = RulesetLoader.Load(directory);
+    if (!candidate.Ok) throw new InvalidOperationException(candidate.Describe());
+    Console.WriteLine($"Accepted by the real Ruleset loader: {candidate.Ruleset!.KindCount} kinds.");
+    return;
+}
+if (args.Length > 1 && args[1] == "--authoring")
+{
+    AuthoringProbe.Run(directory);
+    return;
+}
 if (args.Length > 1 && args[1] == "--content")
 {
     ContentProbe.Run(directory);

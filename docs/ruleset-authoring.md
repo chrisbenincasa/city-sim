@@ -112,3 +112,8 @@ Do not require all simulation mechanisms before testing authoring, and do not us
 to dismiss the authoring problem. Runtime capability and human assembly cost need separate
 verdicts. Keep fixture sizing in the instrument under
 [ADR 0164](adr/0164-a-ruleset-key-is-designer-facing-or-it-belongs-in-the-instrument.md).
+
+The [0076 maintenance prototype](../plans/evidence/ruleset-authoring/README.md) supplies a
+source/impact-report handoff and live-save probes. Its 83-kind growth case already exceeds
+the runtime limit after variant expansion; reusable source definitions alone do not remove
+that product. Evaluate the author-facing model separately from revising its runtime expansion.
