@@ -283,6 +283,16 @@ public sealed class RefusalTests
                     return (simulation, Case(refusal, simulation, world));
                 }
 
+            case Refusal.GateTreasuryCannotPay:
+                {
+                    // No shipped Ruleset prices a door, so the world states one. The treasury opens
+                    // empty for ServiceTreasuryCannotPay's reason, and this refusal likewise turns
+                    // on a LEVEL rather than on a shape.
+                    (World world, Simulation simulation) = City(Schooled + PricedPort);
+
+                    return (simulation, Case(refusal, simulation, world));
+                }
+
             default:
                 {
                     (World world, Simulation simulation) = City(Schooled);
@@ -442,6 +452,16 @@ public sealed class RefusalTests
             new Tiles(9_000), new Tiles(9_000), kind: 0),
 
         Refusal.GateRemoveGateIsOccupied => Gated(world, FirstGateLot(world), kind: 0),
+
+        // Every check before the price passes here -- a declared gate kind on an edge Lot with
+        // frontage and a market behind it -- so the price is what is left to refuse.
+        Refusal.GateTreasuryCannotPay => Gated(
+            world,
+            VacantLot(world, (slot, edge, touching) =>
+                touching == 1
+                && world.Rules.TryHinterland(edge, out HinterlandDefinition _)
+                && world.Lots.HasFrontage(slot)),
+            GateKind(world)),
 
         _ => throw new Xunit.Sdk.XunitException(
             $"Refusal.{refusal} has no case, so nothing anywhere asserts that the query and the "
@@ -833,5 +853,39 @@ public sealed class RefusalTests
         [[building]]
         name = "port"
         arrivals_per_day = 96
+        """;
+
+    /// <summary>A door with a price on it, and a market behind every edge to open onto.</summary>
+    /// <remarks>
+    /// Four Hinterlands rather than one, because which edge the generator leaves a vacant Lot on is
+    /// not something this fixture chooses. They state no rent or centrality: those are weighed by a
+    /// choice model, and <see cref="Base"/> states none.
+    /// </remarks>
+    private const string PricedPort = """
+
+        [[building]]
+        name = "port"
+        arrivals_per_day = 96
+        placement_cost = 1000
+
+        [[hinterland]]
+        edge = "west"
+        emigrant_balance_min = 800
+        emigrant_balance_max = 4000
+
+        [[hinterland]]
+        edge = "south"
+        emigrant_balance_min = 1200
+        emigrant_balance_max = 9000
+
+        [[hinterland]]
+        edge = "east"
+        emigrant_balance_min = 2000
+        emigrant_balance_max = 14000
+
+        [[hinterland]]
+        edge = "north"
+        emigrant_balance_min = 3000
+        emigrant_balance_max = 20000
         """;
 }

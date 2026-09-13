@@ -297,4 +297,12 @@ public enum Refusal : ushort
     /// its next pass, which is <c>plans/0073</c> D5 and not a reason to refuse.
     /// </remarks>
     GateRemoveGateIsOccupied = 40,
+
+    /// <summary><c>Gate</c> names a kind whose <c>placement_cost</c> is more than the city holds.</summary>
+    /// <remarks>
+    /// A door is built and paid for like any other Building. This is the only gate refusal that turns
+    /// on a level rather than on a shape, so it is asked last and a city short of the price is told
+    /// so rather than being told the plot is wrong.
+    /// </remarks>
+    GateTreasuryCannotPay = 41,
 }

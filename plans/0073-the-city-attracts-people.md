@@ -631,6 +631,16 @@ gained the refusal in the other direction: the format version has moved five tim
 row 31, so a file one declaration set behind this build is an artefact that exists rather than a
 hypothesis. No saved column was added, so the header stayed at 5 and nothing was re-recorded.
 
+**Task 7's gate is charged, which closes the inconsistency D14 opened.** `ApplyGate` pays the kind's
+`placement_cost` through `World.SpendOnPlacement` exactly as `ApplyService` does, and
+`GateTreasuryCannotPay` is asked **last** for `RefuseService`'s reason: the six checks ahead of it
+are shape and this one is a level, so it is the only one that can answer differently for the same
+command two Ticks apart. ⚠ **No shipped Ruleset prices a door**, so every shipped world still raises
+one for nothing and the refusal is reachable only from a Ruleset that states a cost —
+`RefusalTests.PricedPort` is that world, and it declares four Hinterlands because which edge the
+generator leaves a vacant Lot on is not something a fixture chooses. Removal refunds nothing, on
+`ApplyDemolish`'s terms rather than a rule of this verb's own.
+
 ### D12 — Ruleset surface, validation and reload
 
 Add `HinterlandPopulationRuleset.cs` for the new immutable definitions; thread them through
@@ -738,8 +748,9 @@ Return a specific refusal for each failure, distinguishing a corner from an inte
 the geometry can state that difference. Do not snap to a neighbouring gate, invent a Lot, pave a
 Street or clear a Building as part of placement. On success call `World.CreateBuilding` once and
 update the gate index. The player supplies ground through the existing Street/zoning tools;
-`LotSubdivider.SubdivideAt` and `PaintParcelAt` are the existing ground paths. No new construction
-price is invented here; capital expenditure remains row 32's scope.
+`LotSubdivider.SubdivideAt` and `PaintParcelAt` are the existing ground paths. A gate is charged the
+`placement_cost` its kind states, through row 32's mechanism; no price is invented here, and a
+Ruleset that states none places a door for nothing.
 
 Remove validates a live Outside Connection at that exact Tile and no Household or Business tenants,
 then calls `World.DestroyBuilding`. A gate need not be marked abandoned: that is the ordinary

@@ -1088,7 +1088,18 @@ public sealed class Simulation
             return Refusal.GateEdgeHasNoHinterland;
         }
 
-        return _world.Lots.HasFrontage(lot) ? Refusal.None : Refusal.GateLotHasNoFrontage;
+        if (!_world.Lots.HasFrontage(lot))
+        {
+            return Refusal.GateLotHasNoFrontage;
+        }
+
+        // Last, for RefuseService's reason: the six checks above are shape and this one is a level,
+        // so it is the only one that can answer differently for the same command two Ticks apart.
+        Money price = _world.Rules.Kind(kind).PlacementCost;
+
+        return price.Raw > 0 && (_world.TreasuryBalance()?.Raw ?? 0) < price.Raw
+            ? Refusal.GateTreasuryCannotPay
+            : Refusal.None;
     }
 
     /// <inheritdoc cref="ApplyPeople"/>
@@ -1361,6 +1372,13 @@ public sealed class Simulation
             + "quietly to the cheapest click in the shell. An outside QUEUE is not a tenancy: "
             + "people waiting to come in are cancelled on the engine's next pass and never stand "
             + "in the way of this.",
+
+        Refusal.GateTreasuryCannotPay =>
+            $"gate names a kind whose placement_cost of "
+            + $"{_world.Rules.Kind((byte)command.Zone).PlacementCost.Raw} is more than the treasury "
+            + $"holds ({_world.TreasuryBalance()?.Raw ?? 0}). A door is built and paid for like any "
+            + "other Building. The plot and the kind are both fine, so this is the one gate refusal "
+            + "that answers differently once the city can afford it.",
 
         _ => $"command kind {(ushort)command.Kind} was refused with reason {(ushort)refusal}, which "
             + "this build has no diagnosis for.",
@@ -1841,10 +1859,9 @@ public sealed class Simulation
 
     /// <summary>Raises or takes away an Outside Connection — <c>plans/0073</c> D14.</summary>
     /// <remarks>
-    /// <b>It charges nothing, and that is deliberate rather than missing.</b> D14 invents no
-    /// construction price for a door; what a gate costs is a designed number that does not exist
-    /// yet. ⚠ So a gate is placed free while <see cref="ApplyService"/> pays a declared
-    /// <c>placement_cost</c>, which is an inconsistency the plan accepts for now and names.
+    /// <b>A door is priced like any other Building</b>, through the same <c>placement_cost</c> and the
+    /// same door in <c>World</c> as <see cref="ApplyService"/>. ⚠ <b>Removal refunds nothing</b>, on
+    /// <see cref="ApplyDemolish"/>'s terms rather than a rule of this verb's own.
     /// </remarks>
     private void ApplyGate(Command command, Ticks tick)
     {
@@ -1861,6 +1878,11 @@ public sealed class Simulation
 
             return;
         }
+
+        Money price = _world.Rules.Kind(kind).PlacementCost;
+
+        _world.SpendOnPlacement(price);
+        _placementThisTick += price.Raw;
 
         // Through World's own door, which lists the gate against its edge on the way past --
         // World.ListGate. A gate index maintained anywhere else would go stale on the next reload.
