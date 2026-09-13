@@ -120,8 +120,8 @@ public sealed class SaveHeaderTests
 
     /// <summary>
     /// A future format version is refused rather than read optimistically — there is no migration chain
-    /// because there has never been a second version, and reading version 2 as version 1 is exactly the
-    /// silent misinterpretation the header exists to stop.
+    /// at all, and reading one version as another is exactly the silent misinterpretation the header
+    /// exists to stop.
     /// </summary>
     [Fact]
     public void A_format_version_this_build_does_not_write_is_refused()
@@ -132,6 +132,29 @@ public sealed class SaveHeaderTests
         string refusal = Refusal(bytes);
 
         Assert.Contains($"format version {SaveHeader.Current + 1}", refusal);
+        Assert.Contains("adr/0086", refusal);
+    }
+
+    /// <summary>
+    /// A version an earlier build wrote is refused by the same check.
+    /// </summary>
+    /// <remarks>
+    /// <b>The direction that now has files behind it.</b> The version has moved five times, four of
+    /// them for row 31's tables, so a save written by a build one declaration set behind this one is an
+    /// artefact that exists rather than a hypothesis. Refusing it is <c>plans/0073</c> D11's *no partial
+    /// migration*: every column added since would read as whatever the file's next bytes happen to be.
+    /// </remarks>
+    [Fact]
+    public void A_format_version_an_earlier_build_wrote_is_refused()
+    {
+        Assert.True(SaveHeader.Current > 1, "there is no earlier version for this test to forge.");
+
+        byte[] bytes = HeaderOfThisBuild();
+        BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(8), SaveHeader.Current - 1);
+
+        string refusal = Refusal(bytes);
+
+        Assert.Contains($"format version {SaveHeader.Current - 1}", refusal);
         Assert.Contains("adr/0086", refusal);
     }
 

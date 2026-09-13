@@ -593,6 +593,44 @@ which is the one place authoring is stricter than transition; a longer queue wai
 waiting family joined at alone; and recovery switched off and back on resumes from zero and still
 empties the group.
 
+**Task 6 changed no production code, and the reason it did not is the finding.** `SaveFile` and
+`SaveHash` walk `World.Tables` and each table's saved columns, so row 31's four tables entered the
+file the moment they were appended to the world; all three derived rebuilds already clear before they
+fill. What was missing was evidence. `FactorioTests` compares a saved world against one that never
+stopped on `minimal` and `congested`, and neither states `[immigration]` — so no world with anybody
+standing behind its edges had ever been resumed, and the machinery being generic is a reason to expect
+it works rather than a demonstration that it does.
+
+**`HinterlandPersistenceTests` saves over a deliberately awkward Outside and asserts that it is
+awkward before writing the file.** An idle Outside round-trips by holding still: empty queues, whole
+fractions and unspent quotas all survive a load that does nothing. So the fixture checks, before every
+save, that a queue is non-empty, that both fractions are part-way accrued, that stock is reserved,
+that a door is spent and that a group the Ruleset never declared is standing. Nothing is staged by
+writing a meter — `recovery_days` is cut to 1 so a returned group finishes draining and frees a row,
+and the authored quota of ninety-six families a Day across four gates supplies the pressure on its
+own. ⚠ **A freed row is handed straight back to the next return**, so the drained group is identified
+by composition through `HinterlandCompositions.TryFind` and never by slot; asserting on the slot reads
+the reuse as a group that never left.
+
+⚠ **The queue exists only while the gate quota is the binding constraint, and that window closes.**
+Once the city is full enough that housing is the limit, prospects stay outside and nobody queues, so a
+later save is a save over an idle Outside. The two save points sit at Tick 4,000 and at Tick 4,090 —
+the second six Ticks before a Day rolls, so the resumed world is the one that performs the rollover
+and moves the flow counters. Join order is the one piece of Outside state no rebuild could recover: it
+lives in the admission list and nowhere else, so a load reconstructing the queue from live rows would
+come back in slot order and admit a different family. Worker-count equivalence is worth asking of a
+stock world in particular, because an admitted family joins the Unplaced Pool and its move-in Trip is
+routed on the parallel path.
+
+**Replay equivalence had never been asked of a world anybody emigrates to.** `ReplayTests` runs under
+`Ruleset.Empty`. The new case replays a log whose whole content is `Populate` at Tick 0 — a hand-built
+`Arrive` log cannot name a gate Tile, because gate positions are decided by the subdivider — twice
+under the stock Ruleset, into two Worlds sharing nothing but the log's seed. Admissions are asserted
+nonzero, since two traces over a stock engine that never ran would agree perfectly. `SaveHeaderTests`
+gained the refusal in the other direction: the format version has moved five times, four of them for
+row 31, so a file one declaration set behind this build is an artefact that exists rather than a
+hypothesis. No saved column was added, so the header stayed at 5 and nothing was re-recorded.
+
 ### D12 — Ruleset surface, validation and reload
 
 Add `HinterlandPopulationRuleset.cs` for the new immutable definitions; thread them through
