@@ -72,6 +72,55 @@ public sealed class PopulationLedgerTable
         HouseholdsDissolved = _rows.Saved<long>("households_dissolved", Touch.Cold);
         HouseholdsRemoved = _rows.Saved<long>("households_removed", Touch.Cold);
 
+        FlowDay = _rows.Saved<int>("flow_day", Touch.Cold);
+
+        BirthsAtDayStart = _rows.Saved<long>("births_at_day_start", Touch.Cold);
+        BirthsAtPreviousDayStart = _rows.Saved<long>("births_at_previous_day_start", Touch.Cold);
+        AdmissionsAtDayStart = _rows.Saved<long>("admissions_at_day_start", Touch.Cold);
+        AdmissionsAtPreviousDayStart =
+            _rows.Saved<long>("admissions_at_previous_day_start", Touch.Cold);
+        ScenarioAdditionsAtDayStart =
+            _rows.Saved<long>("scenario_additions_at_day_start", Touch.Cold);
+        ScenarioAdditionsAtPreviousDayStart =
+            _rows.Saved<long>("scenario_additions_at_previous_day_start", Touch.Cold);
+        DeparturesAtDayStart = _rows.Saved<long>("departures_at_day_start", Touch.Cold);
+        DeparturesAtPreviousDayStart =
+            _rows.Saved<long>("departures_at_previous_day_start", Touch.Cold);
+        IllnessDeathsAtDayStart = _rows.Saved<long>("illness_deaths_at_day_start", Touch.Cold);
+        IllnessDeathsAtPreviousDayStart =
+            _rows.Saved<long>("illness_deaths_at_previous_day_start", Touch.Cold);
+        DissolutionPeopleAtDayStart =
+            _rows.Saved<long>("dissolution_people_at_day_start", Touch.Cold);
+        DissolutionPeopleAtPreviousDayStart =
+            _rows.Saved<long>("dissolution_people_at_previous_day_start", Touch.Cold);
+        ScenarioRemovalsAtDayStart = _rows.Saved<long>("scenario_removals_at_day_start", Touch.Cold);
+        ScenarioRemovalsAtPreviousDayStart =
+            _rows.Saved<long>("scenario_removals_at_previous_day_start", Touch.Cold);
+
+        HouseholdsCreatedAtDayStart =
+            _rows.Saved<long>("households_created_at_day_start", Touch.Cold);
+        HouseholdsCreatedAtPreviousDayStart =
+            _rows.Saved<long>("households_created_at_previous_day_start", Touch.Cold);
+        HouseholdsFormedAtDayStart = _rows.Saved<long>("households_formed_at_day_start", Touch.Cold);
+        HouseholdsFormedAtPreviousDayStart =
+            _rows.Saved<long>("households_formed_at_previous_day_start", Touch.Cold);
+        HouseholdsAdmittedAtDayStart =
+            _rows.Saved<long>("households_admitted_at_day_start", Touch.Cold);
+        HouseholdsAdmittedAtPreviousDayStart =
+            _rows.Saved<long>("households_admitted_at_previous_day_start", Touch.Cold);
+        HouseholdsDepartedAtDayStart =
+            _rows.Saved<long>("households_departed_at_day_start", Touch.Cold);
+        HouseholdsDepartedAtPreviousDayStart =
+            _rows.Saved<long>("households_departed_at_previous_day_start", Touch.Cold);
+        HouseholdsDissolvedAtDayStart =
+            _rows.Saved<long>("households_dissolved_at_day_start", Touch.Cold);
+        HouseholdsDissolvedAtPreviousDayStart =
+            _rows.Saved<long>("households_dissolved_at_previous_day_start", Touch.Cold);
+        HouseholdsRemovedAtDayStart =
+            _rows.Saved<long>("households_removed_at_day_start", Touch.Cold);
+        HouseholdsRemovedAtPreviousDayStart =
+            _rows.Saved<long>("households_removed_at_previous_day_start", Touch.Cold);
+
         _rows.Seal();
 
         // One row for the life of the world, never freed. MoneySupplyTable's line and its reason.
@@ -148,6 +197,98 @@ public sealed class PopulationLedgerTable
     /// <summary>Households removed by an explicit instruction.</summary>
     public Column<long> HouseholdsRemoved { get; }
 
+    /// <summary>Which Day the two snapshots below were last moved on.</summary>
+    public Column<int> FlowDay { get; }
+
+    /// <summary>
+    /// What <see cref="Births"/> stood at when this Day opened, so today's births are the difference.
+    /// </summary>
+    /// <remarks>
+    /// <b>Every counter is snapshotted rather than split into a lifetime total and a daily one.</b>
+    /// A pair of counters can disagree — a writer that increments one and forgets the other reports a
+    /// Day that does not add up to the history — and a subtraction cannot. The cost is that a Day's
+    /// figure is read rather than stored, which is what <see cref="RollDay"/>'s two writes buy.
+    /// </remarks>
+    public Column<long> BirthsAtDayStart { get; }
+
+    /// <summary>What <see cref="Births"/> stood at when the last complete Day opened.</summary>
+    /// <remarks>
+    /// Yesterday's figure is the difference between this and <see cref="BirthsAtDayStart"/>.
+    /// </remarks>
+    public Column<long> BirthsAtPreviousDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtDayStart"/>
+    public Column<long> AdmissionsAtDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtPreviousDayStart"/>
+    public Column<long> AdmissionsAtPreviousDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtDayStart"/>
+    public Column<long> ScenarioAdditionsAtDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtPreviousDayStart"/>
+    public Column<long> ScenarioAdditionsAtPreviousDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtDayStart"/>
+    public Column<long> DeparturesAtDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtPreviousDayStart"/>
+    public Column<long> DeparturesAtPreviousDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtDayStart"/>
+    public Column<long> IllnessDeathsAtDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtPreviousDayStart"/>
+    public Column<long> IllnessDeathsAtPreviousDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtDayStart"/>
+    public Column<long> DissolutionPeopleAtDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtPreviousDayStart"/>
+    public Column<long> DissolutionPeopleAtPreviousDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtDayStart"/>
+    public Column<long> ScenarioRemovalsAtDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtPreviousDayStart"/>
+    public Column<long> ScenarioRemovalsAtPreviousDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtDayStart"/>
+    public Column<long> HouseholdsCreatedAtDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtPreviousDayStart"/>
+    public Column<long> HouseholdsCreatedAtPreviousDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtDayStart"/>
+    public Column<long> HouseholdsFormedAtDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtPreviousDayStart"/>
+    public Column<long> HouseholdsFormedAtPreviousDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtDayStart"/>
+    public Column<long> HouseholdsAdmittedAtDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtPreviousDayStart"/>
+    public Column<long> HouseholdsAdmittedAtPreviousDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtDayStart"/>
+    public Column<long> HouseholdsDepartedAtDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtPreviousDayStart"/>
+    public Column<long> HouseholdsDepartedAtPreviousDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtDayStart"/>
+    public Column<long> HouseholdsDissolvedAtDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtPreviousDayStart"/>
+    public Column<long> HouseholdsDissolvedAtPreviousDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtDayStart"/>
+    public Column<long> HouseholdsRemovedAtDayStart { get; }
+
+    /// <inheritdoc cref="BirthsAtPreviousDayStart"/>
+    public Column<long> HouseholdsRemovedAtPreviousDayStart { get; }
+
     /// <summary>How many people the account says are alive in the city.</summary>
     public long People =>
         OpeningCityPeople[Slot] + Births[Slot] + Admissions[Slot] + ScenarioAdditions[Slot]
@@ -158,6 +299,77 @@ public sealed class PopulationLedgerTable
         OpeningCityHouseholds[Slot] + HouseholdsCreated[Slot] + HouseholdsFormed[Slot]
         + HouseholdsAdmitted[Slot] - HouseholdsDeparted[Slot] - HouseholdsDissolved[Slot]
         - HouseholdsRemoved[Slot];
+
+    /// <summary>What <see cref="People"/> stood at when this Day opened.</summary>
+    public long PeopleAtDayStart =>
+        OpeningCityPeople[Slot] + BirthsAtDayStart[Slot] + AdmissionsAtDayStart[Slot]
+        + ScenarioAdditionsAtDayStart[Slot] - DeparturesAtDayStart[Slot]
+        - IllnessDeathsAtDayStart[Slot] - DissolutionPeopleAtDayStart[Slot]
+        - ScenarioRemovalsAtDayStart[Slot];
+
+    /// <summary>What <see cref="People"/> stood at when the last complete Day opened.</summary>
+    public long PeopleAtPreviousDayStart =>
+        OpeningCityPeople[Slot] + BirthsAtPreviousDayStart[Slot]
+        + AdmissionsAtPreviousDayStart[Slot] + ScenarioAdditionsAtPreviousDayStart[Slot]
+        - DeparturesAtPreviousDayStart[Slot] - IllnessDeathsAtPreviousDayStart[Slot]
+        - DissolutionPeopleAtPreviousDayStart[Slot] - ScenarioRemovalsAtPreviousDayStart[Slot];
+
+    /// <summary>What <see cref="Households"/> stood at when this Day opened.</summary>
+    public long HouseholdsAtDayStart =>
+        OpeningCityHouseholds[Slot] + HouseholdsCreatedAtDayStart[Slot]
+        + HouseholdsFormedAtDayStart[Slot] + HouseholdsAdmittedAtDayStart[Slot]
+        - HouseholdsDepartedAtDayStart[Slot] - HouseholdsDissolvedAtDayStart[Slot]
+        - HouseholdsRemovedAtDayStart[Slot];
+
+    /// <summary>What <see cref="Households"/> stood at when the last complete Day opened.</summary>
+    public long HouseholdsAtPreviousDayStart =>
+        OpeningCityHouseholds[Slot] + HouseholdsCreatedAtPreviousDayStart[Slot]
+        + HouseholdsFormedAtPreviousDayStart[Slot] + HouseholdsAdmittedAtPreviousDayStart[Slot]
+        - HouseholdsDepartedAtPreviousDayStart[Slot] - HouseholdsDissolvedAtPreviousDayStart[Slot]
+        - HouseholdsRemovedAtPreviousDayStart[Slot];
+
+    /// <summary>
+    /// Moves both snapshots on, if <paramref name="day"/> is not the Day they stand at.
+    /// </summary>
+    /// <remarks>
+    /// <b>Driven from <c>Simulation</c> and never lazily from a reader</b>, for
+    /// <see cref="HinterlandTable.RollDay"/>'s reason: a rollover performed by whoever looked first
+    /// would make the previous Day's figures depend on being watched. It runs after
+    /// <see cref="Seal"/>, so a snapshot never stands ahead of a counter the seal has zeroed.
+    /// </remarks>
+    public void RollDay(int day)
+    {
+        if (FlowDay[Slot] == day)
+        {
+            return;
+        }
+
+        FlowDay[Slot] = day;
+
+        Roll(Births, BirthsAtDayStart, BirthsAtPreviousDayStart);
+        Roll(Admissions, AdmissionsAtDayStart, AdmissionsAtPreviousDayStart);
+        Roll(ScenarioAdditions, ScenarioAdditionsAtDayStart, ScenarioAdditionsAtPreviousDayStart);
+        Roll(Departures, DeparturesAtDayStart, DeparturesAtPreviousDayStart);
+        Roll(IllnessDeaths, IllnessDeathsAtDayStart, IllnessDeathsAtPreviousDayStart);
+        Roll(DissolutionPeople, DissolutionPeopleAtDayStart, DissolutionPeopleAtPreviousDayStart);
+        Roll(ScenarioRemovals, ScenarioRemovalsAtDayStart, ScenarioRemovalsAtPreviousDayStart);
+
+        Roll(HouseholdsCreated, HouseholdsCreatedAtDayStart, HouseholdsCreatedAtPreviousDayStart);
+        Roll(HouseholdsFormed, HouseholdsFormedAtDayStart, HouseholdsFormedAtPreviousDayStart);
+        Roll(HouseholdsAdmitted, HouseholdsAdmittedAtDayStart, HouseholdsAdmittedAtPreviousDayStart);
+        Roll(HouseholdsDeparted, HouseholdsDepartedAtDayStart, HouseholdsDepartedAtPreviousDayStart);
+        Roll(
+            HouseholdsDissolved,
+            HouseholdsDissolvedAtDayStart,
+            HouseholdsDissolvedAtPreviousDayStart);
+        Roll(HouseholdsRemoved, HouseholdsRemovedAtDayStart, HouseholdsRemovedAtPreviousDayStart);
+    }
+
+    private static void Roll(Column<long> total, Column<long> dayStart, Column<long> previousDayStart)
+    {
+        previousDayStart[Slot] = dayStart[Slot];
+        dayStart[Slot] = total[Slot];
+    }
 
     /// <summary>
     /// Folds every setup entry into the opening figures, once.

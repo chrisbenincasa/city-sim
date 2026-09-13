@@ -691,3 +691,17 @@ twice. A baseline world has no stock behind its edges and no crossings to clear,
 those writes stores the value already there. ***A change to when a figure is taken moves nothing in a
 world where the figure is zero***, and the new `TheCityAndItsOutsideBalance` invariant returns
 immediately on all three artefacts for the same reason: none of them states `[immigration]`.
+
+**Row 31 task 7 re-recorded the same three artefacts for twenty-seven columns, and moved no Ruleset
+content hash.** `population_ledger` gained `flow_day` and, for each of its thirteen classified flow
+counters, what that counter stood at when the current Day opened and when the last complete Day
+opened — so `SaveHeader.Current` went `5 → 6`. A Day's figure is the **difference** between a counter
+and its snapshot rather than a second counter kept alongside it: two counters can disagree when a
+writer increments one and forgets the other, and a subtraction cannot.
+
+⚠ **The snapshots are written in both sessions and in neither hand-built world.** `Simulation.Step`
+rolls them at the first Tick of each Day, which is three times in the 8,192-Tick session and once in
+the 4,096-Tick one. `GoldenFixtures.Build()` never steps, so all twenty-seven of its new columns are
+zeroes and its hash moved on the declaration set alone — *a baseline that covers a column's existence
+reads exactly like one that covers its behaviour*, which is this directory's standing finding and is
+why the sessions carry this one.

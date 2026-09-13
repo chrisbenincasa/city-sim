@@ -641,6 +641,17 @@ one for nothing and the refusal is reachable only from a Ruleset that states a c
 generator leaves a vacant Lot on is not something a fixture chooses. Removal refunds nothing, on
 `ApplyDemolish`'s terms rather than a rule of this verb's own.
 
+**The ledger's Day figures are snapshots rather than a second set of counters, so a writer cannot
+forget one.** `population_ledger` gained `flow_day` and, for each of its thirteen classified flow
+counters, what that counter stood at when the current Day opened and when the last complete Day
+opened — twenty-seven saved columns, `SaveHeader.Current` `5 → 6`, three golden artefacts
+re-recorded. A Day's figure is the **difference** between a counter and its snapshot. The
+alternative pairs a lifetime counter with a daily one at each of the sixteen recording sites, and
+two counters can disagree: an increment that lands on one and misses the other reports a Day that
+does not add up to the history it sits inside. ⚠ **`RollDay` runs after `Seal`** — `Simulation.Step`
+seals before it rolls, and the first roll is a Day after the seal — so a snapshot never stands ahead
+of a counter the seal has zeroed and a Day's figure is never negative.
+
 ### D12 — Ruleset surface, validation and reload
 
 Add `HinterlandPopulationRuleset.cs` for the new immutable definitions; thread them through

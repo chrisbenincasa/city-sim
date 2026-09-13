@@ -80,7 +80,11 @@ public readonly struct SaveHeader : IEquatable<SaveHeader>
     // 4: task 4 -- the outside queue joins the declaration set, and the edge rows gain the sequence,
     // the cursors, the queue heads and the Day flow counters the engine writes. A version 3 save is
     // short by a table and by those columns, and it is refused for version 1's reason.
-    public const int Current = 5;
+    //
+    // 6: task 7 -- the population ledger gains the Day it counts and a two-Day snapshot of each of
+    // its thirteen flow counters, which is what an inspection reads a Day's figures out of. A
+    // version 5 save is short by those columns and is refused for version 1's reason.
+    public const int Current = 6;
 
     private const ulong ByteOrderSentinel = 0x0102_0304_0506_0708UL;
 

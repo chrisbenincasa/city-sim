@@ -2783,7 +2783,13 @@ public sealed class World
     /// runs on a Day when the immigration engine does nothing at all — a Day with no arrivals is a
     /// Day whose figures are zero rather than a Day that never happened.
     /// </remarks>
-    public void RollPopulationDayFlows(Ticks now) => Hinterlands.RollDay(DayOf(now));
+    public void RollPopulationDayFlows(Ticks now)
+    {
+        int day = DayOf(now);
+
+        Hinterlands.RollDay(day);
+        PopulationLedger.RollDay(day);
+    }
 
     /// <summary>
     /// Frees a group the city created and nobody stands in any more.
