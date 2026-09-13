@@ -892,9 +892,8 @@ public sealed class PlacementEngine
     {
         worth = 0;
 
-        if (!_world.Buildings.Rows.TryResolve(_world.UnplacedPool.GateAt(position), out int gate)
-            || !_world.Lots.Rows.TryResolve(_world.Buildings.Lot[gate], out int lot)
-            || !_world.Rules.TryHinterland(_world.EdgeOf(lot), out HinterlandDefinition hinterland))
+        if (!TryOutsideEdge(position, out MapEdge edge)
+            || !_world.Rules.TryHinterland(edge, out HinterlandDefinition hinterland))
         {
             return false;
         }
@@ -907,6 +906,31 @@ public sealed class PlacementEngine
             rentWeightPercent);
 
         return true;
+    }
+
+    /// <summary>Which Outside the family at <paramref name="position"/> is comparing the city with.</summary>
+    /// <remarks>
+    /// <b>The gate it came through, and its saved arrival edge when that gate is gone</b>
+    /// (<c>plans/0073</c> D9). An immigrant knows where it came from whether or not the door still
+    /// stands; a locally formed Household never had one and compares the city with nowhere, which is
+    /// the Pool's behaviour for everybody before the stock existed.
+    /// </remarks>
+    private bool TryOutsideEdge(int position, out MapEdge edge)
+    {
+        if (_world.Buildings.Rows.TryResolve(_world.UnplacedPool.GateAt(position), out int gate)
+            && _world.Lots.Rows.TryResolve(_world.Buildings.Lot[gate], out int lot))
+        {
+            edge = _world.EdgeOf(lot);
+            return edge != MapEdge.None;
+        }
+
+        int slot = _world.Households.Rows.Resolve(_world.UnplacedPool.At(position));
+
+        edge = _world.Households.Arrived[slot] == 0
+            ? MapEdge.None
+            : (MapEdge)_world.Households.ArrivalEdge[slot];
+
+        return edge != MapEdge.None;
     }
 
     /// <summary>Sizes the candidate buffers to one occasion's looks.</summary>

@@ -78,6 +78,7 @@ public static class WorldInvariants
         invariants.Register(InvariantTier.EndOfRun, HinterlandGroupsAreAccounted);
         invariants.Register(InvariantTier.EndOfRun, TheCompositionIndexNamesEveryGroup);
         invariants.Register(InvariantTier.EndOfRun, TheQueueMatchesItsReservations);
+        invariants.Register(InvariantTier.EndOfRun, TheCityAndItsOutsideBalance);
     }
 
     /// <summary>
@@ -1906,6 +1907,84 @@ public static class WorldInvariants
         report.Require(
             live == accounted,
             Invariant.CityHouseholdsAreAccounted,
+            other: live - accounted);
+    }
+
+    /// <summary>
+    /// <c>plans/0073</c> D10's global account: the city plus its Outside is the opening pair plus
+    /// every flow that crossed the world's outer boundary.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Migration cancels, and that is what this says that the per-group check cannot.</b>
+    /// <see cref="Invariant.AHinterlandGroupIsAccounted"/> asks each group whether its own counters
+    /// add up, so an admission that spent stock and created nobody satisfies it twice over. Here an
+    /// arrival leaves one side and joins the other, so a transfer written on one side only is an
+    /// imbalance.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Only in a world that states <c>[immigration]</c>.</b> Elsewhere an arrival comes from
+    /// nowhere by design — that is the mode every other shipped Ruleset runs in — and there is no
+    /// opening Outside figure for it to have come out of.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A Departure is subtracted and a return added, because the two need not be the same
+    /// number.</b> A family leaving a city that has no edge to send it to leaves the world. An arrival
+    /// has no such pair on purpose, so a gate that produced a Household without spending stock is an
+    /// imbalance rather than a cancelled transfer.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Replenishment and turnover are on the EDGE rows rather than summed off the groups.</b> A
+    /// group the city returned into and then drained is retired, and its counters go with it; the
+    /// edge keeps the history, which is the only reason the equality survives a retirement.
+    /// </para>
+    /// </remarks>
+    internal static void TheCityAndItsOutsideBalance(World world, InvariantRegistry report)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(report);
+
+        if (!world.Rules.Immigration.Stated)
+        {
+            return;
+        }
+
+        HinterlandPopulationTable groups = world.HinterlandPopulation;
+
+        long outside = 0;
+
+        for (int slot = 0; slot < groups.Rows.SlotCount; slot++)
+        {
+            if (groups.Rows.IsLive(slot))
+            {
+                outside += groups.People(slot);
+            }
+        }
+
+        long replenished = 0;
+        long returned = 0;
+        long turnover = 0;
+
+        for (int edge = 0; edge < HinterlandTable.Edges; edge++)
+        {
+            replenished += world.Hinterlands.ReplenishedPeople[edge];
+            returned += world.Hinterlands.ReturnedPeople[edge];
+            turnover += world.Hinterlands.TurnoverPeople[edge];
+        }
+
+        PopulationLedgerTable ledger = world.PopulationLedger;
+        int row = PopulationLedgerTable.Slot;
+
+        long live = world.Citizens.Rows.LiveCount + outside;
+
+        long accounted = ledger.OpeningCityPeople[row] + ledger.OpeningOutsidePeople[row]
+            + ledger.Births[row] + ledger.ScenarioAdditions[row] + replenished + returned
+            - ledger.IllnessDeaths[row] - ledger.DissolutionPeople[row] - ledger.ScenarioRemovals[row]
+            - turnover - ledger.Departures[row];
+
+        report.Require(
+            live == accounted,
+            Invariant.TheCityAndItsOutsideBalance,
             other: live - accounted);
     }
 

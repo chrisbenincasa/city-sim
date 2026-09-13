@@ -896,4 +896,33 @@ public enum PurposeTag : ulong
     /// </para>
     /// </remarks>
     ProspectPurse = 54,
+
+    /// <summary>
+    /// Which Outside a Household that has given up looking goes to.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A choice and not a return address</b> (<c>plans/0073</c> D9). The family compares all four
+    /// Hinterlands through the same utility kernel a resident uses, so where it came from carries no
+    /// weight and the gate it arrived by may not exist any more.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Distinct from <see cref="ChoiceDraw"/> although both draw over utilities.</b> A departing
+    /// family is compared against the same id on the same Tick it was last shown dwellings on — the
+    /// give-up test runs in the pass that failed to house it — so a shared tag would tie which edge it
+    /// leaves by to which dwelling it was last refused.
+    /// </para>
+    /// </remarks>
+    DepartureDestination = 55,
+
+    /// <summary>
+    /// Which group behind an edge an <c>Arrive</c> command draws the family it asked for from.
+    /// </summary>
+    /// <remarks>
+    /// <b>Distinct from the edge's own occasions although both pick a group</b> (<c>plans/0073</c>
+    /// D8). A command is an extra reconsideration on a Tick the Outside is already presenting people
+    /// on, so a shared tag would tie which family the runner asked for to which family the edge
+    /// offered of its own accord.
+    /// </remarks>
+    RequestedFamily = 56,
 }

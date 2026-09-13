@@ -677,3 +677,17 @@ rather than a consequence.
 and at 100 the arithmetic is the same expression in the same rounding order — so if these files had
 moved for that reason it would have been a defect and not a re-baseline. What actually moved them is
 the three columns, and nothing else in this commit touches a shipped baseline world.
+
+**Row 31 task 5 re-recorded the same three artefacts for one saved pair, and moved no Ruleset content
+hash.** `hinterland` gained `requested_today` and `requested_yesterday` — the arrivals a player asked
+for, split from the occasions the Outside generated on its own — and `SaveHeader.Current` went
+`4 → 5`. Both columns fold zeroes on all four edge rows in every artefact here, because no baseline
+Ruleset states `[[hinterland.population]]` and nothing in these sessions issues an `Arrive`.
+
+⚠ **The same commit changed what the founding seal takes and moved nothing.**
+`World.SealFoundingPopulation` now retakes the opening Outside figures and clears the edge crossing
+counters, so that a fixture which moved somebody across an edge before the first Tick is not counted
+twice. A baseline world has no stock behind its edges and no crossings to clear, so every one of
+those writes stores the value already there. ***A change to when a figure is taken moves nothing in a
+world where the figure is zero***, and the new `TheCityAndItsOutsideBalance` invariant returns
+immediately on all three artefacts for the same reason: none of them states `[immigration]`.

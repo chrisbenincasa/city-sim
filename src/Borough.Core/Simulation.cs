@@ -790,7 +790,42 @@ public sealed class Simulation
     {
         gate = GateOn(command.East, command.North);
 
-        return gate < 0 ? Refusal.ArriveNoGateOnThatTile : Refusal.None;
+        if (gate < 0)
+        {
+            return Refusal.ArriveNoGateOnThatTile;
+        }
+
+        ArrivePayload payload = ArrivePayload.Decode(command.Zone);
+
+        // A world with no [immigration] keeps the verb it always had, and a request for nobody is a
+        // no-op whatever the Outside holds.
+        if (!_world.Rules.Immigration.Stated || payload.Households == 0)
+        {
+            return Refusal.None;
+        }
+
+        return _hinterlands.CanRequest(EdgeOfGate(gate), payload.LifeStage, payload.Citizens)
+            ? Refusal.None
+            : Refusal.ArriveNoSuchFamilyOutside;
+    }
+
+    /// <summary>Which edge a gate stands on, or <see cref="MapEdge.None"/> if it stands on none.</summary>
+    private MapEdge EdgeOfGate(int gate) =>
+        _world.Lots.Rows.TryResolve(_world.Buildings.Lot[gate], out int lot)
+            ? _world.EdgeOf(lot)
+            : MapEdge.None;
+
+    /// <summary>Why a stock-holding edge has nobody of the shape the payload named.</summary>
+    private static string ArriveMismatch(Command command)
+    {
+        ArrivePayload payload = ArrivePayload.Decode(command.Zone);
+
+        return $"arrive asks for {payload.Households} Household(s) of {payload.Citizens} people in "
+            + $"Life Stage {payload.LifeStage}, and no Outside behind that edge holds or ever held a "
+            + "family of that shape. A stock-holding world admits the families standing behind its "
+            + "edges (plans/0073 D8), so a composition nobody declares names people this command "
+            + "would have to invent. An exhausted composition is the other answer and is not this "
+            + "one: it admits nobody today and is refused by nothing.";
     }
 
     /// <inheritdoc cref="ApplyGovern"/>
@@ -1044,6 +1079,8 @@ public sealed class Simulation
             + "nearest gate, because the edge a Household entered by selects its Hinterland "
             + "(adr/0088) -- so a substituted gate does not misplace an arrival, it changes "
             + "which market it came from.",
+
+        Refusal.ArriveNoSuchFamilyOutside => ArriveMismatch(command),
 
         Refusal.GovernNoSuchPolicy =>
             $"Govern names Policy {command.Zone} and this Ruleset declares "
@@ -1394,6 +1431,17 @@ public sealed class Simulation
         if (refusal != Refusal.None)
         {
             throw new InvalidOperationException(Explain(refusal, command));
+        }
+
+        // plans/0073 D8. Where the Outside is a counted stock the command asks IT for the families
+        // it named, and they cross through the comparison, the quota and the queue the edge's own
+        // occasions use. The verb still says how many present themselves; it no longer invents them.
+        if (_world.Rules.Immigration.Stated)
+        {
+            _hinterlands.Request(
+                EdgeOfGate(gate), payload.LifeStage, payload.Citizens, payload.Households, tick);
+
+            return;
         }
 
         Handle<Building> handle = _world.Buildings.Rows.At(gate);

@@ -1221,4 +1221,19 @@ public enum Invariant
     /// one and not the other waits for a service that never comes.
     /// </remarks>
     TheQueueMatchesItsReservations = 63,
+
+    /// <summary>
+    /// The people in the city and the people behind its edges are the opening figures plus every
+    /// flow that crossed the world's outer boundary.
+    /// </summary>
+    /// <remarks>
+    /// <b>Migration cancels, which is what this catches that the per-group account cannot.</b> An
+    /// admission moves somebody from an edge into the city and a Departure moves them back, so
+    /// neither appears here — a half-written transfer therefore shows up as an imbalance rather than
+    /// as two counters that happen to agree. ⚠ <b>It reads the edge lifetime totals rather than
+    /// summing the groups still standing</b> (<c>plans/0073</c> D10), because a returned group that
+    /// drained away and was retired took its own counters with it and its history is only on the
+    /// edge.
+    /// </remarks>
+    TheCityAndItsOutsideBalance = 64,
 }

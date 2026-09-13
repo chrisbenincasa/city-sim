@@ -92,9 +92,10 @@ public sealed class PopulationLedgerTable
 
     /// <summary>How many people stood behind the map's edges at world creation.</summary>
     /// <remarks>
-    /// <b>Taken at construction rather than at the seal, because the Outside is not built by the
-    /// public doors.</b> It comes out of validated Ruleset content in one pass, so there is nothing to
-    /// fold and no window in which a setup call could add to it.
+    /// <b>Filled in at construction from validated Ruleset content, and retaken at the seal.</b> The
+    /// Outside is not built by the public doors, so the construction pass states the whole of it. The
+    /// retake exists for the narrow window a fixture has before the first Tick, where a Departure or a
+    /// return can cross an edge that the construction figure knows nothing about.
     /// </remarks>
     public Column<long> OpeningOutsidePeople { get; }
 

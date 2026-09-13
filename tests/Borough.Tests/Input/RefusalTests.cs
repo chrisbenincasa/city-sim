@@ -175,6 +175,15 @@ public sealed class RefusalTests
                     return (simulation, Case(refusal, simulation, world));
                 }
 
+            case Refusal.ArriveNoSuchFamilyOutside:
+                {
+                    // The one shipped world whose edges hold a counted stock, so the one world in
+                    // which Arrive is answerable to who actually stands out there.
+                    (World world, Simulation simulation) = AttractedWorld();
+
+                    return (simulation, Case(refusal, simulation, world));
+                }
+
             case Refusal.ServiceTreasuryCannotPay:
                 {
                     // The treasury opens empty (adr/0116) because no [treasury] is declared, so any
@@ -261,6 +270,11 @@ public sealed class RefusalTests
             new Tiles(9_000),
             new ArrivePayload(1, 0, 1).Encode()),
 
+        // At a real gate, asking for a family of nine. Every composition attracted.toml declares
+        // holds one, two or four people, so this names nobody the Outside could ever supply -- which
+        // is the refusal, as against a composition that exists and is spent.
+        Refusal.ArriveNoSuchFamilyOutside => Arrive(world, new ArrivePayload(1, 0, 9)),
+
         Refusal.GovernNoSuchPolicy => Command.Govern(policy: 7, amount: 25),
 
         Refusal.GovernPolicyNotInThisWorld => Command.Govern(policy: 1, amount: 25),
@@ -339,6 +353,35 @@ public sealed class RefusalTests
 
         return new Command(
             CommandKind.Trip, world.Lots.East[lot], world.Lots.North[lot], payload.Encode());
+    }
+
+    /// <summary>An <c>Arrive</c> addressed at the Tile the world's first gate stands on.</summary>
+    private static Command Arrive(World world, ArrivePayload payload)
+    {
+        for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
+        {
+            if (!world.Lots.Rows.IsLive(slot) || world.Lots.IsVacant(slot))
+            {
+                continue;
+            }
+
+            int building = world.Lots.BuildingOn(slot);
+
+            if (building >= 0 && world.IsOutsideConnection(world.Buildings.Kind[building]))
+            {
+                return new Command(
+                    CommandKind.Arrive,
+                    world.Lots.East[slot],
+                    world.Lots.North[slot],
+                    payload.Encode());
+            }
+        }
+
+        // A world with no gate in it: off the map, which is refused for the other Arrive reason.
+        // Asking_writes_nothing builds every case against one world and only ever queries them, so a
+        // command that cannot be addressed there still has to be constructible.
+        return new Command(
+            CommandKind.Arrive, new Tiles(9_000), new Tiles(9_000), payload.Encode());
     }
 
     /// <summary>A <c>Demolish</c> addressed at a Building somebody is still in.</summary>
@@ -424,6 +467,31 @@ public sealed class RefusalTests
         world.CreateBuilding(world.Lots.Create(new Tiles(0), new Tiles(0), 1), Dwelling, Ticks.Zero, key);
         world.CreateBuilding(
             world.Lots.Create(new Tiles(2 * block), new Tiles(0), 1), Dwelling, Ticks.Zero, key);
+
+        return (world, simulation);
+    }
+
+    /// <summary>
+    /// The shipped world whose four edges hold a counted Outside — the only one where an
+    /// <c>Arrive</c> can name a family that does not exist.
+    /// </summary>
+    /// <remarks>
+    /// <b>The shipped file rather than a hand-written Ruleset</b>, because what is refused is a
+    /// mismatch against compositions somebody authored, and a fixture that authored its own would be
+    /// checking the refusal against itself.
+    /// </remarks>
+    private static (World World, Simulation Simulation) AttractedWorld()
+    {
+        RulesetLoadResult loaded =
+            RulesetLoader.Load(Path.Combine(AppContext.BaseDirectory, "Rulesets", "attracted.toml"));
+
+        Assert.True(loaded.Ok, loaded.Describe());
+
+        var key = WorldKey.FromSeed(Seed);
+        var world = new World(Citizens, loaded.Ruleset!, key);
+        var simulation = new Simulation(world, key) { VerifyDecideWritesNothing = false };
+
+        SyntheticCity.PopulateInto(world, key, Ticks.Zero);
 
         return (world, simulation);
     }

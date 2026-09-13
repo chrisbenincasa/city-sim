@@ -597,8 +597,58 @@ public sealed class World
     /// makes the first Tick's account read <em>this city was founded with N people</em> rather than
     /// <em>somebody added N people</em>. After it, the same call is an ordinary recorded event.
     /// </remarks>
+    /// <remarks>
+    /// ⚠ <b>The Outside is retaken here too, and its crossings are cleared.</b> Its opening figure is
+    /// filled in at construction from Ruleset content, so a setup call that moved somebody across an
+    /// edge before the first Tick would stand in the account twice — once inside the retaken figure
+    /// and once as the crossing that put them there. In a world nothing touched before its first Tick
+    /// this rewrites each row with what it already held.
+    /// </remarks>
     /// <returns>Whether this call was the one that sealed it.</returns>
-    public bool SealFoundingPopulation() => PopulationLedger.Seal();
+    public bool SealFoundingPopulation()
+    {
+        if (!PopulationLedger.Seal())
+        {
+            return false;
+        }
+
+        long people = 0;
+        long households = 0;
+
+        for (int slot = 0; slot < HinterlandPopulation.Rows.SlotCount; slot++)
+        {
+            if (!HinterlandPopulation.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            HinterlandPopulation.Opening[slot] = HinterlandPopulation.Stock[slot];
+            HinterlandPopulation.Replenished[slot] = 0;
+            HinterlandPopulation.Returned[slot] = 0;
+            HinterlandPopulation.Admitted[slot] = 0;
+            HinterlandPopulation.Turnover[slot] = 0;
+
+            people += HinterlandPopulation.People(slot);
+            households += HinterlandPopulation.Stock[slot];
+        }
+
+        for (int edge = 0; edge < HinterlandTable.Edges; edge++)
+        {
+            Hinterlands.ReplenishedHouseholds[edge] = 0;
+            Hinterlands.ReplenishedPeople[edge] = 0;
+            Hinterlands.ReturnedHouseholds[edge] = 0;
+            Hinterlands.ReturnedPeople[edge] = 0;
+            Hinterlands.AdmittedHouseholds[edge] = 0;
+            Hinterlands.AdmittedPeople[edge] = 0;
+            Hinterlands.TurnoverHouseholds[edge] = 0;
+            Hinterlands.TurnoverPeople[edge] = 0;
+        }
+
+        PopulationLedger.OpeningOutsidePeople[PopulationLedgerTable.Slot] = people;
+        PopulationLedger.OpeningOutsideHouseholds[PopulationLedgerTable.Slot] = households;
+
+        return true;
+    }
 
     /// <summary>
     /// Who a Household is made of, as the Outside would store it.
@@ -1171,6 +1221,168 @@ public sealed class World
     public Movement.KnownShopTable KnownShops { get; }
 
     /// <summary>
+    /// Refuses a reload that would move the Outside rather than retune it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Depth is a world and speed is a setting</b> (<c>plans/0073</c> D12). Rent, centrality,
+    /// purse ranges, the four durations and the per-stage preferences are comparisons the city makes
+    /// afresh every Tick, so editing them takes effect and costs nothing. How many Households stand
+    /// behind an edge, what they are made of, and which edges have an Outside at all are the state
+    /// itself — moving those would invent or destroy people, and the population account has no entry
+    /// for either.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Every restricted property is checked rather than the first difference found.</b> A file
+    /// that edits a composition and a rent together has to be refused for the composition, so this
+    /// cannot lean on which change <see cref="RulesetShape.Compare"/> happens to report.
+    /// </para>
+    /// </remarks>
+    private void RefuseIncompatibleOutside(Ruleset rules)
+    {
+        if (rules.Immigration.Stated != Rules.Immigration.Stated)
+        {
+            throw new NotSupportedException(
+                $"this world was founded {(Rules.Immigration.Stated ? "with" : "without")} a counted "
+                + $"Outside and the reloaded Ruleset states {(rules.Immigration.Stated ? "one" : "none")}. "
+                + "Enabling it would need an opening stock nobody counted, and disabling it would "
+                + "strand the Households standing behind every edge with no account to retire them "
+                + "through (plans/0073 D12).");
+        }
+
+        if (!Rules.Immigration.Stated)
+        {
+            return;
+        }
+
+        if (MoneyResourceOf(Rules).Raw != MoneyResourceOf(rules).Raw)
+        {
+            throw new NotSupportedException(
+                "the reloaded Ruleset names a different Resource as money, and every Household "
+                + "outside is filed under which third of a purse range it carries. The band indices "
+                + "already stored would keep their numbers and mean a different currency.");
+        }
+
+        for (int slot = 0; slot < HinterlandTable.Edges; slot++)
+        {
+            MapEdge edge = HinterlandTable.EdgeAt(slot);
+
+            bool had = Rules.TryHinterland(edge, out HinterlandDefinition was);
+            bool has = rules.TryHinterland(edge, out HinterlandDefinition now);
+
+            if (had != has)
+            {
+                throw new NotSupportedException(
+                    $"the reloaded Ruleset {(has ? "adds an Outside behind" : "removes the Outside behind")} "
+                    + $"the {edge} edge. A Departure draws its destination from the declared edges "
+                    + "(plans/0073 D9), so a world that lost one would have nowhere to send the "
+                    + "families that leave by it and stock standing where nothing reads.");
+            }
+
+            if (!had)
+            {
+                continue;
+            }
+
+            if (was.PopulationCount != now.PopulationCount)
+            {
+                throw new NotSupportedException(
+                    $"the {edge} Outside declares {now.PopulationCount} compositions where this world "
+                    + $"was founded with {was.PopulationCount}. A composition is the key its stock is "
+                    + "filed under, so adding or removing one leaves Households filed under a key "
+                    + "nothing declares.");
+            }
+
+            for (int entry = 0; entry < was.PopulationCount; entry++)
+            {
+                if (Rules.HinterlandPopulations[was.PopulationFirst + entry]
+                    == rules.HinterlandPopulations[now.PopulationFirst + entry])
+                {
+                    continue;
+                }
+
+                throw new NotSupportedException(
+                    $"composition {entry} behind the {edge} edge is not the one this world was founded "
+                    + "with. Its shape is the key the stock is filed under and its count is the "
+                    + "resting target recovery moves towards, so an edit here would either re-file "
+                    + "people already standing there or move a population nobody transferred "
+                    + "(plans/0073 D12). Rent, centrality, purse ranges, the durations and the stage "
+                    + "preferences all retune freely; depth needs a new world.");
+            }
+        }
+    }
+
+    /// <summary>The one conserved Resource a Ruleset declares, or none.</summary>
+    private static ResourceId MoneyResourceOf(Ruleset rules)
+    {
+        for (int raw = 1; raw <= rules.ResourceCount; raw++)
+        {
+            var resource = new ResourceId((ushort)raw);
+
+            if (rules.IsConserved(resource))
+            {
+                return resource;
+            }
+        }
+
+        return default;
+    }
+
+    /// <summary>
+    /// Keeps every part-accrued fraction meaning what it meant, against a retuned duration.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A numerator is progress towards a denominator and says nothing without one</b>
+    /// (<c>plans/0073</c> D12). A group half way to its next occasion under a two-Day cadence is half
+    /// way under a four-Day one, so the fraction is rescaled rather than carried across or cleared —
+    /// carrying it fires early, and clearing it makes every retune cost the Outside its progress.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Recovery switched off clears its fraction and its direction.</b> A frozen Outside is not
+    /// a slow one, and re-enabling starts from zero rather than resuming a fraction accrued against a
+    /// speed nothing states any more.
+    /// </para>
+    /// </remarks>
+    /// <param name="was">The durations in force before the swap.</param>
+    private void RescaleOutsideFractions(in ImmigrationRuleset was)
+    {
+        ImmigrationRuleset now = Rules.Immigration;
+
+        if (!was.Stated || !now.Stated)
+        {
+            return;
+        }
+
+        HinterlandPopulationTable groups = HinterlandPopulation;
+
+        for (int slot = 0; slot < groups.Rows.SlotCount; slot++)
+        {
+            if (!groups.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            if (was.ReconsiderTicks != now.ReconsiderTicks)
+            {
+                groups.ReconsiderNumerator[slot] = IntegerMath.MulDivFloor(
+                    groups.ReconsiderNumerator[slot], now.ReconsiderTicks, was.ReconsiderTicks);
+            }
+
+            if (!now.Recovers)
+            {
+                groups.RecoveryNumerator[slot] = 0;
+                groups.RecoveryDirection[slot] = 0;
+            }
+            else if (was.Recovers && was.RecoveryTicks != now.RecoveryTicks)
+            {
+                groups.RecoveryNumerator[slot] = IntegerMath.MulDivFloor(
+                    groups.RecoveryNumerator[slot], now.RecoveryTicks, was.RecoveryTicks);
+            }
+        }
+    }
+
+    /// <summary>
     /// Puts a different Ruleset in force, degrading whatever the new one cannot describe.
     /// </summary>
     /// <remarks>
@@ -1232,6 +1444,8 @@ public sealed class World
                 + "mint into a city that has already spent what it was founded with.");
         }
 
+        RefuseIncompatibleOutside(rules);
+
         RulesetChange change = RulesetShape.Compare(Rules, rules);
         RulesetMigration? migration = null;
 
@@ -1250,9 +1464,13 @@ public sealed class World
         }
 
         // Every refusal has run by here, so what follows cannot leave the world half-migrated.
+        ImmigrationRuleset outside = Rules.Immigration;
+
         Layers.Adopt(rules.Layers);
         Roads.Adopt(rules.Roads);
         Rules = rules;
+
+        RescaleOutsideFractions(outside);
 
         // The governed amounts follow their Policy's NAME to whatever index it now sits at; see
         // PolicyTable.Adopt for what happens to one whose name is gone. Before Migrate, because a
@@ -3306,15 +3524,84 @@ public sealed class World
         UnplacedPool.Leave(Households, position);
 
         // The emigration, counted where the money leaves and for the same reason it is written there.
-        // ⚠ NOBODY IS CREDITED ON THE OTHER SIDE YET: which edge they went to is a comparison across
-        // the stock-bearing Hinterlands, and that choice is plans/0073 D9 -- task 5. Until it lands
-        // the city's own account is complete and the two-sided one is not, which is why
-        // Invariant.CityPopulationIsAccounted is registered and no conservation across the map's edge
-        // is. ***Half an account is not a conservation law.***
         Record(PopulationLedger.Departures, Members.Length(slot));
         Record(PopulationLedger.HouseholdsDeparted, 1);
 
+        // The other side of the account, and it runs before the members are destroyed because the
+        // composition is counted off the Citizens who are still here (plans/0073 D9). A world that
+        // states no [immigration] has nowhere to credit and keeps the one-sided account it had.
+        if (Rules.Immigration.Stated)
+        {
+            MapEdge destination = DepartureEdge(slot);
+
+            if (destination != MapEdge.None
+                && Rules.TryHinterland(destination, out HinterlandDefinition outside))
+            {
+                ReturnToHinterland(destination, CompositionOf(household, outside));
+            }
+        }
+
         RetireHousehold(household);
+    }
+
+    /// <summary>
+    /// Which Outside a Household that has given up looking compares its way into.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Every declared Hinterland, weighed by the kernel a resident uses</b> (<c>plans/0073</c> D9).
+    /// There is no incumbent bonus and no preference for the edge it arrived by: this family has no
+    /// home here, so nothing about staying is being compared, and where it came from is provenance
+    /// rather than a return address.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The destination is an accounting edge and not a journey.</b> It is chosen whether or not a
+    /// gate still stands, because the question the account asks is <em>where did these people go</em>
+    /// and a demolished door does not keep them in the city.
+    /// </para>
+    /// </remarks>
+    private MapEdge DepartureEdge(int slot)
+    {
+        byte stage = Households.LifeStage[slot];
+
+        long taste = HousingUtility.Taste(Rules, Key, Households.TasteIdentity(slot), stage);
+        int rentWeight = Rules.RentWeight(stage);
+
+        Span<int> worth = stackalloc int[HinterlandTable.Edges];
+        Span<MapEdge> edges = stackalloc MapEdge[HinterlandTable.Edges];
+
+        int found = 0;
+
+        // Edge slot order, which is MapEdge numeric order, so the candidate list does not depend on
+        // the order the file happened to declare its Hinterlands in.
+        for (int edge = 0; edge < HinterlandTable.Edges; edge++)
+        {
+            MapEdge which = HinterlandTable.EdgeAt(edge);
+
+            if (!Rules.TryHinterland(which, out HinterlandDefinition outside))
+            {
+                continue;
+            }
+
+            edges[found] = which;
+            worth[found] = HousingUtility.Worth(
+                Rules.Placement, outside.CentralityTiles, taste, outside.Rent, rentWeight);
+
+            found++;
+        }
+
+        if (found == 0)
+        {
+            return MapEdge.None;
+        }
+
+        int taken = Choice.Draw(
+            worth[..found],
+            Rules.Placement.Mu,
+            Randomness.Draw(
+                Key, Households.Rows.IdAt(slot), Tick, PurposeTag.DepartureDestination));
+
+        return edges[taken];
     }
 
     /// <summary>

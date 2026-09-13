@@ -376,12 +376,16 @@ public sealed class HinterlandEngine
 
         for (long occasion = 0; occasion < occasions && _allowance[slot] > 0; occasion++)
         {
-            Consider(edge, which, slot, composition, now);
+            if (Consider(edge, which, slot, composition, now))
+            {
+                _allowance[slot]--;
+            }
         }
     }
 
     /// <summary>One family, presented once.</summary>
-    private void Consider(
+    /// <returns>Whether it wanted to come, which is what an occasion costs the group's allowance.</returns>
+    private bool Consider(
         int edge, MapEdge which, int slot, in HinterlandComposition composition, Ticks now)
     {
         HinterlandTable edges = _world.Hinterlands;
@@ -398,13 +402,13 @@ public sealed class HinterlandEngine
         if (door == Rows.NoSlot)
         {
             edges.NoConnectionToday[edge]++;
-            return;
+            return false;
         }
 
         if (!_world.Rules.TryHinterland(which, out HinterlandDefinition source))
         {
             edges.NoConnectionToday[edge]++;
-            return;
+            return false;
         }
 
         // Mixed with the edge, so the same count behind two edges is two families.
@@ -422,23 +426,22 @@ public sealed class HinterlandEngine
         {
             case ProspectOutcome.NoSample:
                 edges.NoSampleToday[edge]++;
-                return;
+                return false;
 
             case ProspectOutcome.StayedOutside:
                 edges.StayedOutsideToday[edge]++;
-                return;
+                return false;
 
             default:
                 break;
         }
 
         edges.WillingToday[edge]++;
-        _allowance[slot]--;
 
         if (TryAdmit(edge, prospect, reserved: false, now))
         {
             edges.AdmittedToday[edge]++;
-            return;
+            return true;
         }
 
         // Every door is full today. The family waits, holding one Household of its group against a
@@ -449,7 +452,161 @@ public sealed class HinterlandEngine
             edges, which, _world.HinterlandPopulation.Rows.At(slot), prospect.Purse, identity, now);
 
         edges.QueuedToday[edge]++;
+
+        return true;
     }
+
+    /// <summary>
+    /// Whether an <c>Arrive</c> command could ever be asking for somebody who exists.
+    /// </summary>
+    /// <remarks>
+    /// <b>Declared or live, and the difference between them is the whole of the check</b>
+    /// (<c>plans/0073</c> D8). A composition an edge authored is somebody the Outside supplies, even
+    /// when its stock is spent today; a composition returns created is somebody standing there now.
+    /// Anything else is a family the command would have to invent, which is what the stock-holding
+    /// world exists to stop.
+    /// </remarks>
+    /// <param name="which">The edge the named gate stands on.</param>
+    /// <param name="stage">The Life Stage the payload asks for.</param>
+    /// <param name="members">How many people the payload asks for, adults and children together.</param>
+    public bool CanRequest(MapEdge which, byte stage, int members)
+    {
+        if (which == MapEdge.None || !_world.Rules.TryHinterland(which, out HinterlandDefinition outside))
+        {
+            return false;
+        }
+
+        HinterlandPopulationTable groups = _world.HinterlandPopulation;
+
+        foreach (int slot in groups.Groups(_world.Hinterlands).Walk(HinterlandTable.SlotOf(which)))
+        {
+            if (Matches(groups, slot, stage, members))
+            {
+                return true;
+            }
+        }
+
+        for (int entry = 0; entry < outside.PopulationCount; entry++)
+        {
+            HinterlandPopulationDefinition declared =
+                _world.Rules.HinterlandPopulations[outside.PopulationFirst + entry];
+
+            int adults = declared.AdultsTier1 + declared.AdultsTier2 + declared.AdultsTier3;
+
+            if (declared.Stage == stage && adults > 0 && adults + declared.Children == members)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Presents the families an <c>Arrive</c> command asked for, out of the stock behind its edge.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>An extra reconsideration and not a second mechanism</b> (<c>plans/0073</c> D8). Each
+    /// requested Household is drawn from the groups that match the payload, weighted by how many are
+    /// unpromised, and then goes through the comparison, the quota and the queue the edge's own
+    /// occasions go through. The command decides who is <em>asked</em>; the city and the Outside
+    /// still decide who crosses.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Exhausted stock stops the loop rather than refusing.</b> A request for ten where four
+    /// stand available presents four, which is the depletion being observable — the same reading
+    /// <c>[[building]] arrivals_per_day</c> has when a gate runs out of Day.
+    /// </para>
+    /// </remarks>
+    /// <param name="which">The edge the named gate stands on.</param>
+    /// <param name="stage">The Life Stage the payload asks for.</param>
+    /// <param name="members">How many people the payload asks for, adults and children together.</param>
+    /// <param name="households">How many families to present.</param>
+    /// <param name="now">The Tick the request is made on.</param>
+    public void Request(MapEdge which, byte stage, int members, int households, Ticks now)
+    {
+        if (which == MapEdge.None || !_world.Rules.Immigration.Stated)
+        {
+            return;
+        }
+
+        int edge = HinterlandTable.SlotOf(which);
+
+        for (int asked = 0; asked < households; asked++)
+        {
+            int slot = Draw(edge, stage, members, now);
+
+            if (slot == Rows.NoSlot)
+            {
+                return;
+            }
+
+            _world.Hinterlands.RequestedToday[edge]++;
+
+            Consider(edge, which, slot, _world.HinterlandPopulation.CompositionAt(slot), now);
+        }
+    }
+
+    /// <summary>Picks one matching group, weighted by how many of its Households are unpromised.</summary>
+    /// <remarks>
+    /// <b>Weighted rather than first-fit</b>, so a request against an edge holding two matching
+    /// compositions draws from the larger one more often instead of emptying whichever was declared
+    /// first. The draw is keyed on the edge's saved sequence, which the presentation then advances,
+    /// so two requests on one Tick pick independently.
+    /// </remarks>
+    private int Draw(int edge, byte stage, int members, Ticks now)
+    {
+        HinterlandPopulationTable groups = _world.HinterlandPopulation;
+        IndexList list = groups.Groups(_world.Hinterlands);
+
+        long free = 0;
+
+        foreach (int slot in list.Walk(edge))
+        {
+            if (Matches(groups, slot, stage, members))
+            {
+                free += groups.Free(slot);
+            }
+        }
+
+        if (free <= 0)
+        {
+            return Rows.NoSlot;
+        }
+
+        long taken = (long)(Randomness.Draw(
+            _key, _world.Hinterlands.Sequence[edge], now, PurposeTag.RequestedFamily) % (ulong)free);
+
+        long running = 0;
+
+        foreach (int slot in list.Walk(edge))
+        {
+            if (!Matches(groups, slot, stage, members))
+            {
+                continue;
+            }
+
+            running += groups.Free(slot);
+
+            if (taken < running)
+            {
+                return slot;
+            }
+        }
+
+        return Rows.NoSlot;
+    }
+
+    /// <summary>Whether a group holds the family a payload names.</summary>
+    /// <remarks>
+    /// ⚠ <b>A group of nothing but children is ineligible here for the reason it is ineligible to an
+    /// occasion</b>: nobody in it can hold a job or a purse, so it declines every time it is asked.
+    /// </remarks>
+    private static bool Matches(HinterlandPopulationTable groups, int slot, byte stage, int members) =>
+        groups.Stage[slot] == stage
+        && groups.Members(slot) == members
+        && groups.AdultsTier1[slot] + groups.AdultsTier2[slot] + groups.AdultsTier3[slot] > 0;
 
     /// <summary>Frees the groups the city invented that nobody stands in any more.</summary>
     private void RetireEmptyGroups(int edge)

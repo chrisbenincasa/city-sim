@@ -468,6 +468,9 @@ public partial class Main
         Refusal.ArriveNoGateOnThatTile =>
             "no gate stands there, so nobody can arrive through it.",
 
+        Refusal.ArriveNoSuchFamilyOutside =>
+            "no family that size lives out that way, so there is nobody to ask for.",
+
         Refusal.PeopleWorldAlreadyHasAPopulation =>
             "this city already has people in it, and there is only one moving-in day.",
 

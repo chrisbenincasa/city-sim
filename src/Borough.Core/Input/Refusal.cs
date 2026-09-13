@@ -211,4 +211,17 @@ public enum Refusal : ushort
     /// gets the right answer every frame, which is why it is asked rather than cached.
     /// </remarks>
     ServiceTreasuryCannotPay = 29,
+
+    /// <summary>
+    /// <c>Arrive</c> asks a stock-holding edge for a family of a size and Life Stage no Outside
+    /// behind it holds or has ever held.
+    /// </summary>
+    /// <remarks>
+    /// <b>A composition nobody declares is a mismatch; an exhausted one is an outcome</b>
+    /// (<c>plans/0073</c> D8). A request the stock could satisfy tomorrow admits nobody today and is
+    /// not refused, because a depleted edge is the mechanism working. A request naming four people
+    /// where every group behind the edge holds one names nobody the Outside could ever supply, and
+    /// the old verb would have invented them.
+    /// </remarks>
+    ArriveNoSuchFamilyOutside = 30,
 }

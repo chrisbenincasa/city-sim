@@ -557,6 +557,42 @@ against the diagnostic counters rather than asserted from one run. `AutonomousAr
 attribution those tests will rest on — every occasion sums to exactly one of no-connection, no-sample,
 stayed-outside and willing.
 
+**Task 5 added one saved pair, so `SaveHeader.Current` is 5 and three artefacts were re-recorded.**
+`HinterlandTable` gained `requested_today` and `requested_yesterday`, rolled by `RollDay` beside the
+other Day pairs: a commanded `Arrive` is an occasion the player caused, and it increments both that
+pair and `occasions_today`, so the attribution identity task 4 rests on still holds. No shipped
+Ruleset was edited, so no content hash moved and no `.borough` literal with it.
+
+**The two-sided law this section said did not exist is now `Invariant.TheCityAndItsOutsideBalance`.**
+The city plus everybody standing behind its edges equals the two opening figures plus births,
+scenario additions, replenishment and returns, less illness deaths, dissolutions, scenario removals,
+turnover and departures. ⚠ **An arrival has no term in it, and that absence is the check.** A gate
+that produced a Household without spending stock raises the left side and leaves the right side
+alone, which is exactly what a stock-aware `ApplyArrive` must not do. Departures and returns each
+carry a term because they need not be equal — a family with no edge to go to leaves the world.
+
+**`SealFoundingPopulation` retakes the Outside figures and clears the edge crossing counters.** The
+opening stock is filled in at construction from Ruleset content, so a fixture that departed or
+returned somebody before the first Tick had them counted twice, once inside the opening figure and
+once as the crossing that moved them. It is a no-op in every world nothing touches before its first
+Tick, which is every world outside a test. ***An opening figure taken at a different moment from the
+one it is compared against is not an opening figure.***
+
+**`World.Adopt` refuses the Outside edits that would invent or destroy people, and rescales the two
+fractions the rest carry.** Refused: stating or withdrawing `[immigration]`, changing the money
+Resource, adding or removing a `[[hinterland]]`, and any inequality between two
+`HinterlandPopulationDefinition`s — which covers composition, resting count, purse band and declaration
+order in one comparison. Retuned: rent, centrality, the emigrant purse range, and the reconsider and
+recovery periods, whose accrued numerators are rescaled by `IntegerMath.MulDivFloor` into the new
+denominator. ⚠ **The refusal is taken before `RulesetShape.Compare`**, so a composition edit sitting
+beside a rent edit is refused rather than let through by whichever difference was noticed first, and
+`HinterlandReloadTests` asserts the untouched world by State Hash rather than by inspection. Four
+further allowed edits are covered there: a gate quota cut below what a door has already spent shuts
+it for the rest of the Day; a purse-range retune that empties a band keeps the stock filed under it,
+which is the one place authoring is stricter than transition; a longer queue wait leaves the Tick a
+waiting family joined at alone; and recovery switched off and back on resumes from zero and still
+empties the group.
+
 ### D12 — Ruleset surface, validation and reload
 
 Add `HinterlandPopulationRuleset.cs` for the new immutable definitions; thread them through

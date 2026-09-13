@@ -555,7 +555,12 @@ public sealed class FactorioTests(ITestOutputHelper output)
         return world;
     }
 
-    /// <summary>Takes every gate's remaining arrivals for the Day, so each one refuses the next.</summary>
+    /// <summary>Takes every gate's whole Day of arrivals, so each one refuses the next.</summary>
+    /// <remarks>
+    /// <b>The meter is written rather than spent through <c>TryArrive</c></b>. That door invents a
+    /// Household, and a world holding a counted Outside has nowhere for one to have come from — the
+    /// city would hold people no edge ever supplied.
+    /// </remarks>
     private static void FillGates(World world)
     {
         for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
@@ -566,11 +571,9 @@ public sealed class FactorioTests(ITestOutputHelper output)
                 continue;
             }
 
-            Handle<Building> gate = world.Buildings.Rows.At(slot);
-
-            while (world.TryArrive(gate, lifeStage: 1, citizens: 1, world.Tick, out _))
-            {
-            }
+            world.Buildings.ArrivalDay[slot] = (int)(world.Tick.Raw / Ticks.PerDay);
+            world.Buildings.ArrivalsToday[slot] =
+                world.Rules.Kind(world.Buildings.Kind[slot]).ArrivalsPerDay;
         }
     }
 

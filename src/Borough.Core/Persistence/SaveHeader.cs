@@ -80,7 +80,7 @@ public readonly struct SaveHeader : IEquatable<SaveHeader>
     // 4: task 4 -- the outside queue joins the declaration set, and the edge rows gain the sequence,
     // the cursors, the queue heads and the Day flow counters the engine writes. A version 3 save is
     // short by a table and by those columns, and it is refused for version 1's reason.
-    public const int Current = 4;
+    public const int Current = 5;
 
     private const ulong ByteOrderSentinel = 0x0102_0304_0506_0708UL;
 

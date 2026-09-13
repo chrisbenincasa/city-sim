@@ -76,6 +76,8 @@ public sealed class HinterlandTable
 
         OccasionsToday = _rows.Saved<int>("occasions_today", Touch.Cold);
         OccasionsYesterday = _rows.Saved<int>("occasions_yesterday", Touch.Cold);
+        RequestedToday = _rows.Saved<int>("requested_today", Touch.Cold);
+        RequestedYesterday = _rows.Saved<int>("requested_yesterday", Touch.Cold);
         NoConnectionToday = _rows.Saved<int>("no_connection_today", Touch.Cold);
         NoConnectionYesterday = _rows.Saved<int>("no_connection_yesterday", Touch.Cold);
         NoSampleToday = _rows.Saved<int>("no_sample_today", Touch.Cold);
@@ -222,6 +224,21 @@ public sealed class HinterlandTable
     /// <summary>What <see cref="OccasionsToday"/> held at the end of the last complete Day.</summary>
     public Column<int> OccasionsYesterday { get; }
 
+    /// <summary>
+    /// How many of today's occasions an <c>Arrive</c> command asked for.
+    /// </summary>
+    /// <remarks>
+    /// <b>A subset of <see cref="OccasionsToday"/> and not a second stream</b> (<c>plans/0073</c>
+    /// D8). A commanded family goes through the same comparison and lands in the same four outcomes,
+    /// so counting it outside the occasion total would break the identity every readout depends on.
+    /// What this column says is how much of the Day's flow a runner asked for rather than the Outside
+    /// deciding on its own.
+    /// </remarks>
+    public Column<int> RequestedToday { get; }
+
+    /// <inheritdoc cref="OccasionsYesterday"/>
+    public Column<int> RequestedYesterday { get; }
+
     /// <summary>Occasions today that found no gate on this edge to look through.</summary>
     public Column<int> NoConnectionToday { get; }
 
@@ -314,6 +331,7 @@ public sealed class HinterlandTable
             FlowDay[slot] = day;
 
             Roll(OccasionsToday, OccasionsYesterday, slot);
+            Roll(RequestedToday, RequestedYesterday, slot);
             Roll(NoConnectionToday, NoConnectionYesterday, slot);
             Roll(NoSampleToday, NoSampleYesterday, slot);
             Roll(StayedOutsideToday, StayedOutsideYesterday, slot);
