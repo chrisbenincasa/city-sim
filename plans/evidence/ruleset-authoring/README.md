@@ -2,7 +2,8 @@
 
 [Plan 0076](../../0076-ruleset-authoring-experiment.md) owns the experiment and failure conditions.
 This is a disposable prototype. Its synthetic catalogue is deliberately repetitive and unbalanced.
-No user handoff has happened yet.
+The user completed the initial handoff and reported generally smooth editing, with omitted
+overrides unexpectedly rejected. Omission now means inheritance; the user's edits are preserved.
 
 ## Use the prototype
 
@@ -33,7 +34,8 @@ The source has five sections:
 
 Each kind gets all three storage variants in this experiment. Storage precedence is explicit:
 a kind's override for a variant replaces that variant's shared Days; removing the override
-restores inheritance. There is no inheritance chain. A separate basket expresses a different
+restores inheritance. Omitting `overrides` entirely is equivalent to `overrides = {}`.
+There is no inheritance chain. A separate basket expresses a different
 consumption pattern; per-Good kind overrides are not implemented.
 
 Ids become runtime names and must remain stable across saves. Labels appear in authoring data
@@ -44,8 +46,7 @@ leaves runtime bytes unchanged. Changing an id is removal plus addition, not an 
 consumption, 8-Tick production/replenishment, wage/shift and producer storage conventions.
 Consumption must be divisible by eight; the compiler refuses unrepresentable rates rather than
 rounding. Storage capacities derive exactly from daily use × Days. These fixed conventions are
-limits of the experiment, not proposed universal game defaults. Pool replenishment is not paid
-shopping; production is not labour-gated. Solvency and gameplay balance are not measured here.
+limits of the experiment, not proposed universal game defaults. Pool inputs use Core's paid local-market purchase; ShoppingEngine is disabled here; production is not labour-gated. Solvency and gameplay balance are not measured here.
 
 ## Your handoff tasks
 
@@ -62,7 +63,7 @@ you uncertain; ask rather than editing generated output to make something work.
    Explain the resulting capacity and whether you expect any sibling variant to change.
 
 The observation is about your ability to make and explain these edits. The agent should not
-silently perform them in `catalogue.toml`. The source is still the untouched baseline.
+silently perform them in `catalogue.toml`. The working catalogue contains the user's completed combined edits; `baseline.toml` retains the original.
 
 ## Agent reproduction and real loader
 
@@ -101,3 +102,19 @@ This is an observed failure of the current variant-to-kind expansion at that siz
 can still be evaluated in the handoff, but this compiler is not a scalable production model yet.
 Revising variant representation or runtime factoring needs a separate decision; silently widening
 an id would not establish that all expansion costs are acceptable.
+
+## Factoring and richer behaviour
+
+[The follow-up findings](scaling-and-bakery.md) answer the two questions raised after the handoff.
+`factoring.py` checks a proposed factored representation against flat resolved definitions;
+`bakery.toml` and `bakery.py` state/exercise a finite cross-mechanism contract. Neither is a
+production runtime adapter. `BakeryProbe.cs` separately checks the current Core boundary.
+
+```sh
+python3 plans/evidence/ruleset-authoring/factoring.py
+python3 plans/evidence/ruleset-authoring/bakery.py
+python3 plans/evidence/ruleset-authoring/bakery-core-input.py
+dotnet build plans/evidence/ruleset-viability/Viability.csproj --no-restore -m:1 -nr:false
+dotnet plans/evidence/ruleset-viability/bin/Debug/net10.0/Viability.dll \
+  plans/evidence/ruleset-authoring --bakery
+```

@@ -117,3 +117,12 @@ The [0076 maintenance prototype](../plans/evidence/ruleset-authoring/README.md) 
 source/impact-report handoff and live-save probes. Its 83-kind growth case already exceeds
 the runtime limit after variant expansion; reusable source definitions alone do not remove
 that product. Evaluate the author-facing model separately from revising its runtime expansion.
+
+
+The [factoring/bakery result](../plans/evidence/ruleset-authoring/scaling-and-bakery.md) recommends
+separating saved instance storage selections from kind identity and sharing behaviour definitions.
+The isolated bakery contract preserves local edits across recipe, work, storage and commerce;
+Core still needs work-dependent production. Existing Pool purchases already exchange Goods and
+Money with local sellers. Do not translate present workers into the `jobs` Readout: it counts
+posts. These are concrete implementation boundaries, not reasons to add a general expression
+language. Omitted overrides now mean inheritance in the disposable compiler.

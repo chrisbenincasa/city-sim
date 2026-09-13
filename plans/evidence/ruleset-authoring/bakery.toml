@@ -1,0 +1,48 @@
+# A bounded design contract, not runnable Borough content. Amounts are synthetic.
+# All stock and Money below belong to one Business. No arbitrary expressions or inheritance.
+[recipe.bread]
+inputs = { produce = 4 }
+outputs = { food = 8 }
+
+[capacity]
+# Existing Core relation: posts derive from the Business tenancy's floor share.
+floor_tiles_per_job = 3
+
+[work.day_shift]
+# Desired semantics: each present worker enables this many batches per Day.
+batches_per_present_worker_day = 2
+wage_per_worker_day = 16
+
+[storage.standard]
+input_days = 2
+output_days = 1
+
+[storage.reserve]
+input_days = 4
+output_days = 3
+
+[supply.local]
+resource = "produce"
+unit_price = 1
+counterparty = "local_seller"
+# Purchase only up to planned storage and available cash/stock; no Outside stock invention.
+
+[sales.local]
+resource = "food"
+unit_price = 2
+counterparty = "local_household"
+
+[business.bakery]
+recipe = "bread"
+work = "day_shift"
+storage = "standard"
+supply = "local"
+sales = "local"
+
+[selection.standard]
+# Scenario input: allocated Business floor area, supplied by geometry/tenancy in Core.
+business_floor_tiles = 6
+
+[selection.large]
+business_floor_tiles = 12
+storage = "reserve"

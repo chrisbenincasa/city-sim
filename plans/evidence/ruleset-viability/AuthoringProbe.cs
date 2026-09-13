@@ -50,7 +50,7 @@ internal static class AuthoringProbe
             if (rules.Kind(kind).Business == 0) continue;
             int lot = Enumerable.Range(0, world.Lots.Rows.SlotCount).First(i => world.Lots.Rows.IsLive(i) && world.Lots.IsVacant(i));
             var building = world.CreateBuilding(world.Lots.Rows.At(lot), kind, baseline.Tick, key);
-            world.CreateBusiness(building, rules.Kind(kind).Business);
+            // CreateBuilding instantiates and fits its declared Business.
         }
         while (baseline.Tick.Raw < 2048) baseline.Step(new TickInput([], Hash(original)));
         baseline.CheckEndOfRun();

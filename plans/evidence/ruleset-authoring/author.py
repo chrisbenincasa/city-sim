@@ -41,8 +41,9 @@ def validate(m):
             location = f'{group}.{key}'
             if not re.fullmatch('[a-z][a-z0-9_]*', key):
                 raise ValueError(f'{location}: ids use lowercase letters, digits and underscores')
-            if not isinstance(fields, dict) or set(fields) != schema[group]:
-                raise ValueError(f'{location}: expected keys {sorted(schema[group])}')
+            required = schema[group] - ({'overrides'} if group == 'kinds' else set())
+            if not isinstance(fields, dict) or not required <= set(fields) or not set(fields) <= schema[group]:
+                raise ValueError(f'{location}: required keys {sorted(required)}; allowed keys {sorted(schema[group])}')
             if 'label' in fields and not isinstance(fields['label'], str):
                 raise ValueError(f'{location}.label: expected text')
     def positive(value, path):
@@ -59,8 +60,8 @@ def validate(m):
             if daily % 8: raise ValueError(f'baskets.{key}.use.{good}: daily use must be divisible by 8 at the fixture cadence of 256 Ticks')
     for key, kind in m['kinds'].items():
         if kind['basket'] not in m['baskets']: raise ValueError(f'kinds.{key}.basket: unknown basket {kind["basket"]}')
-        if not isinstance(kind['overrides'], dict): raise ValueError(f'kinds.{key}.overrides: expected variant/days pairs')
-        for variant, days in kind['overrides'].items():
+        if not isinstance(kind.get('overrides', {}), dict): raise ValueError(f'kinds.{key}.overrides: expected variant/days pairs')
+        for variant, days in kind.get('overrides', {}).items():
             if variant not in m['variants']: raise ValueError(f'kinds.{key}.overrides.{variant}: unknown variant')
             positive(days, f'kinds.{key}.overrides.{variant}')
     for key, recipe in m['recipes'].items():
@@ -84,8 +85,8 @@ def compile_model(m):
     for kind, fields in sorted(m['kinds'].items()):
         for variant, settings in sorted(m['variants'].items()):
             identity = kind + '.' + variant
-            override = variant in fields['overrides']
-            days = fields['overrides'].get(variant, settings['days'])
+            override = variant in fields.get('overrides', {})
+            days = fields.get('overrides', {}).get(variant, settings['days'])
             basket = fields['basket']
             use = m['baskets'][basket]['use']
             bins = [dict(resource=g, owner='occupant', capacity=daily*days) for g, daily in sorted(use.items())]
@@ -124,7 +125,7 @@ def compile_model(m):
         return 0
     counts = dict(consumer_kinds=len(resolved), goods=len(m['goods']), recipes=len(m['recipes']),
                   expanded_kinds=len(parsed['building']), expanded_rules=len(parsed['rule']),
-                  explicit_overrides=sum(len(k['overrides']) for k in m['kinds'].values()),
+                  explicit_overrides=sum(len(k.get('overrides', {})) for k in m['kinds'].values()),
                   basket_memberships=sum(len(b['use']) for b in m['baskets'].values()),
                   recipe_edges=sum(len(r['inputs'])+len(r['outputs']) for r in m['recipes'].values()),
                   runtime_references=references(parsed))
@@ -151,7 +152,7 @@ def report(model, previous=None):
              'Retired producer ids: '+(', '.join('producer.'+k for k in removed_producers) or 'none')+'. Standing producers lose their kind.', '',
              'Recipe changes: '+(', '.join(k for k in sorted(model['recipes']) if previous is None or model['recipes'][k] != previous['recipes'].get(k)) or 'none'), '',
              'Fixed scenario: 256-Tick consumption; 8-Tick replenishment/production; fixed wages/geometry from the fixture.',
-             'Pool replenishment here is a synthetic source path, not paid shopping. No balance claim.', '',
+             'Pool inputs use paid local-market purchases; ShoppingEngine is disabled. Empty-input recipes are synthetic sources. No balance claim.', '',
              '| Kind | Basket / daily use | Storage | Source of storage | Exception |',
              '|---|---|---|---|---|']
     for key in changed:

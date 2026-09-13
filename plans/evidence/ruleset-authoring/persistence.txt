@@ -13,9 +13,9 @@ scale83: real loader refuses 257 expanded kinds (limit 254). Authoring reuse doe
 Baseline Tick 2048: 360 Households; 12 standing kinds; 1452 Rule Instances. Synthetic supply, not a balanced city.
 shared: reloads=1; RulesetDegradation { BuildingsDerelicted = 0, BinsDropped = 0, RuleInstancesRearmed = 0, IsNothing = True }; save and 256-Tick continuation passed
 variant: reloads=1; RulesetDegradation { BuildingsDerelicted = 0, BinsDropped = 0, RuleInstancesRearmed = 0, IsNothing = True }; save and 256-Tick continuation passed
-add-good: reloads=1; RulesetDegradation { BuildingsDerelicted = 0, BinsDropped = 0, RuleInstancesRearmed = 1462, IsNothing = False }; save and 256-Tick continuation passed
+add-good: reloads=1; RulesetDegradation { BuildingsDerelicted = 0, BinsDropped = 0, RuleInstancesRearmed = 1454, IsNothing = False }; save and 256-Tick continuation passed
 remove-override: reloads=1; RulesetDegradation { BuildingsDerelicted = 0, BinsDropped = 0, RuleInstancesRearmed = 0, IsNothing = True }; save and 256-Tick continuation passed
 label: reloads=0; RulesetDegradation { BuildingsDerelicted = 0, BinsDropped = 0, RuleInstancesRearmed = 0, IsNothing = True }; save and 256-Tick continuation passed
-retire: reloads=1; RulesetDegradation { BuildingsDerelicted = 48, BinsDropped = 0, RuleInstancesRearmed = 28, IsNothing = False }; save and 256-Tick continuation passed
-change-id: reloads=1; RulesetDegradation { BuildingsDerelicted = 48, BinsDropped = 0, RuleInstancesRearmed = 28, IsNothing = False }; save and 256-Tick continuation passed
+retire: reloads=1; RulesetDegradation { BuildingsDerelicted = 48, BinsDropped = 0, RuleInstancesRearmed = 20, IsNothing = False }; save and 256-Tick continuation passed
+change-id: reloads=1; RulesetDegradation { BuildingsDerelicted = 48, BinsDropped = 0, RuleInstancesRearmed = 20, IsNothing = False }; save and 256-Tick continuation passed
 Original pinned save continuation passed. Candidate probes never overwrite the baseline save.

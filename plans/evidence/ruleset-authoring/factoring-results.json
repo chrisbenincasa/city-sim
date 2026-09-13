@@ -1,0 +1,50 @@
+{
+  "scope": "Definition lookup, isolated consumption and research-state roundtrip; not Core event/replay equivalence.",
+  "scaling": [
+    {
+      "kinds": 20,
+      "storage_profiles": 3,
+      "actual_pairs_checked": 60,
+      "flat_kinds": 68,
+      "factored_kinds": 28,
+      "shared_rule_templates": 20,
+      "exceptions": 3
+    },
+    {
+      "kinds": 83,
+      "storage_profiles": 3,
+      "actual_pairs_checked": 249,
+      "flat_kinds": 257,
+      "factored_kinds": 91,
+      "shared_rule_templates": 20,
+      "exceptions": 13
+    },
+    {
+      "kinds": 1000,
+      "storage_profiles": 3,
+      "actual_pairs_checked": 3000,
+      "flat_kinds": 3008,
+      "factored_kinds": 1008,
+      "shared_rule_templates": 20,
+      "exceptions": 150
+    },
+    {
+      "kinds": 1000,
+      "storage_profiles": 30,
+      "actual_pairs_checked": 30000,
+      "flat_kinds": 30008,
+      "factored_kinds": 1008,
+      "shared_rule_templates": 20,
+      "exceptions": 150
+    }
+  ],
+  "expanded_comparison_rows": 60,
+  "consumption_firings": 100,
+  "checks": [
+    "all profile/kind capacity pairs agree",
+    "isolated consumption agrees with flat definitions",
+    "saved selections survive research roundtrip",
+    "override preserved",
+    "retired selection refuses"
+  ]
+}

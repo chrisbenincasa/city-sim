@@ -1,0 +1,6 @@
+bakery-present-workers: refused
+plans/evidence/ruleset-authoring/generated/bakery-present-workers.toml:377: rule 'producer.food.produce': 'present_workers' is not a declared Readout. The readable set is declared in the simulation (02 section 4.1), not in the Ruleset, so a name is refused here rather than defaulted. Declared: occupancy, balance, emission, jobs.
+bakery-worker-slots: refused
+plans/evidence/ruleset-authoring/generated/bakery-worker-slots.toml:398: rule 'producer.food': jobs is stated on a [[business]]. How many Citizens a Business employs is DERIVED now -- its share of its premises' floor area over [capacity] floor_tiles_per_job -- so one trade employs differently in a terrace and in a slab (plans/0053). Omit the whole [capacity] key for a city that employs nobody.
+64 Ticks: declared posts=6, workers=0, Produce consumed=32, Food produced=64; invariants passed.
+Input was manually deposited; no paid-supply or balance claim. Current fixed-count production runs with no workers.

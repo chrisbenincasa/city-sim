@@ -52,10 +52,26 @@ architecture commitment.
 
 ## Progress
 
-Agent implementation and controlled maintenance checks are complete; **user handoff pending**.
-The experiment remains active until the handoff and decision. Start with the
-[README and tasks](evidence/ruleset-authoring/README.md); `catalogue.toml` remains identical to
-`baseline.toml`. The agent's generated cases do not count as the user's handoff.
+The user completed the three maintenance edits and reported that it was generally smooth,
+except that requiring an empty `overrides` field was surprising. Review confirmed the intended
+changes; the only compiler refusal was the omitted field. Accept omission as inheritance.
+No timing or observation of report usage was captured. This supports these maintenance tasks,
+not full-game scalability. The user's `catalogue.toml` is preserved as authored.
+
+The follow-up tested these agreed questions:
+
+1. Can shared behaviour and per-instance storage choices avoid a kind × variant product while
+   preserving differences and explicit exceptions? Build a factored representation, compare its
+   resolved values to the existing expansion at demanding sizes, and identify the exact Core/save
+   changes it requires. Do not present a representation experiment as a completed engine migration.
+2. Can a bakery express inputs, work, production, storage and sales with a small set of independent
+   declarations, then vary staffing and storage without copying its behaviour? Exercise maintenance
+   and interruption cases, and test actual Core capabilities. State unsupported semantics explicitly;
+   never lower present workers to declared posts or relabel free production as paid supply.
+
+Use finite typed relationships, explicit owners/units and sparse overrides. No arbitrary expression
+language, whole-economy balance claim or production framework. The outcome is an evidence-backed
+answer and an exact next implementation boundary, including any failed hypothesis.
 
 | Task | Observed static effect |
 |---|---|
@@ -76,11 +92,33 @@ and the alternate basket are deliberately inhabited so their edits affect live s
 **A concrete weakness already found:** 20/40/80 authored consumer kinds with three variants and
 eight producers expand to 68/128/248 runtime kinds and 368/728/1,448 Rules. At 83 consumer kinds,
 257 runtime kinds exceed the real loader's 254-kind limit. Reports expose the budget; this
-expansion cannot be adopted as a scalable production model unchanged. Keep the handoff to assess
-whether the author-facing relationships help, then decide how to revise the runtime expansion.
+expansion cannot be adopted as a scalable production model unchanged. The handoff supports these author-facing relationships; the follow-up below tests factoring
+the runtime expansion separately.
 No kind-width/schema change was made to make the experiment pass.
 
 The research build passes without warnings. The working lane passed **3,399 tests**, no
 failures/skips: `scripts/test.sh -- --no-restore -m:1 -nr:false`, log
 `/tmp/borough-test-20260912-235542.log`. No production simulation, shell or golden fixture changed;
 the full instrument suite is not required for this non-playable experiment.
+
+
+## Factoring and bakery decision
+
+The two follow-up questions now have bounded engineering answers in
+[scaling-and-bakery.md](evidence/ruleset-authoring/scaling-and-bakery.md). Retain the shallow
+source model; revise the runtime expansion. Separate saved instance selections and shared
+behaviour remove the demonstrated kind/profile definition product. A bakery's richer authoring
+remains local in the contract probe, but current Core produces with zero workers and lacks the
+required work-dependent execution connection. Its existing paid local-market purchase should
+be reused, not replaced by fixture supply.
+
+Representation and isolated-contract checks are not production Core/save support. The next
+implementation boundaries and acceptance are explicit in that report; no general language,
+production schema or Core behaviour was changed here. The omission/default issue is fixed in
+the compiler without editing the user's catalogue. The investigation is complete at this scope;
+implementation belongs to the authoring/runtime and private-production board items.
+
+Follow-up verification: research build and representation/contract/native probes pass. The
+working lane passed **3,399 tests**, zero failures/skips;
+`/tmp/borough-test-20260913-105449.log`. The native persistence fixture now uses each Building’s
+automatically instantiated trade, without creating a second unfitted Business.

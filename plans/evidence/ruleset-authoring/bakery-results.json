@@ -1,0 +1,136 @@
+{
+  "scope": "Isolated integer contract, not Core staffing/trips/events or a balance run.",
+  "standard": {
+    "slots": 2,
+    "batches": 4,
+    "input_per_batch": 4,
+    "output_per_batch": 8,
+    "input_capacity": 32,
+    "output_capacity": 32,
+    "batches_per_worker": 2,
+    "wage": 16,
+    "input_price": 1,
+    "output_price": 2
+  },
+  "large": {
+    "slots": 4,
+    "batches": 8,
+    "input_per_batch": 4,
+    "output_per_batch": 8,
+    "input_capacity": 128,
+    "output_capacity": 192,
+    "batches_per_worker": 2,
+    "wage": 16,
+    "input_price": 1,
+    "output_price": 2
+  },
+  "cases": [
+    {
+      "variant": "standard",
+      "event": "staffed",
+      "result": {
+        "bought": 32,
+        "batches": 4,
+        "produced": 32,
+        "sold": 32,
+        "paid": 32,
+        "shortfall": 0
+      }
+    },
+    {
+      "variant": "standard",
+      "event": "no_workers",
+      "result": {
+        "bought": 32,
+        "batches": 0,
+        "produced": 0,
+        "sold": 0,
+        "paid": 0,
+        "shortfall": 0
+      }
+    },
+    {
+      "variant": "standard",
+      "event": "half_workers",
+      "result": {
+        "bought": 32,
+        "batches": 2,
+        "produced": 16,
+        "sold": 16,
+        "paid": 16,
+        "shortfall": 0
+      }
+    },
+    {
+      "variant": "standard",
+      "event": "no_buyers",
+      "result": {
+        "bought": 0,
+        "batches": 0,
+        "produced": 0,
+        "sold": 0,
+        "paid": 32,
+        "shortfall": 0
+      }
+    },
+    {
+      "variant": "large",
+      "event": "staffed",
+      "result": {
+        "bought": 128,
+        "batches": 8,
+        "produced": 64,
+        "sold": 64,
+        "paid": 64,
+        "shortfall": 0
+      }
+    },
+    {
+      "variant": "large",
+      "event": "no_workers",
+      "result": {
+        "bought": 128,
+        "batches": 0,
+        "produced": 0,
+        "sold": 0,
+        "paid": 0,
+        "shortfall": 0
+      }
+    },
+    {
+      "variant": "large",
+      "event": "half_workers",
+      "result": {
+        "bought": 128,
+        "batches": 4,
+        "produced": 32,
+        "sold": 32,
+        "paid": 32,
+        "shortfall": 0
+      }
+    },
+    {
+      "variant": "large",
+      "event": "no_buyers",
+      "result": {
+        "bought": 0,
+        "batches": 0,
+        "produced": 0,
+        "sold": 0,
+        "paid": 32,
+        "shortfall": 32
+      }
+    }
+  ],
+  "maintenance": [
+    "large staffing edit leaves standard and shared recipe unchanged",
+    "reserve storage edit leaves standard unchanged",
+    "shared recipe edit re-derives both capacities"
+  ],
+  "boundaries": [
+    "present workers unavailable as a production Readout",
+    "allocated business floor is a scenario input here; Core must supply actual geometry/tenancy",
+    "storage selection is not currently saved separately from kind",
+    "purchase/work/sales/pay sequence here is not Core phase order"
+  ]
+}

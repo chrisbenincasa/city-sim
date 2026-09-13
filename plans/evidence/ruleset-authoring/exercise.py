@@ -20,6 +20,9 @@ case('label')['kinds']['home_00']['label']='Courtyard house'
 case('retire')['kinds'].pop('home_00')
 # Identity changes are delete/add, not aliases.
 m=case('change-id'); m['kinds']['courtyard']=m['kinds'].pop('home_00')
+omitted=copy.deepcopy(base)
+omitted['kinds']['home_01'].pop('overrides')
+assert compile_model(omitted)[0]==original
 results=[]
 scale=[]
 for count in [20,40,80,83]:

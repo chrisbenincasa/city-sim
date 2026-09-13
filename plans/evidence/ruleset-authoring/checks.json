@@ -182,7 +182,7 @@
   "diagnostics": [
     {
       "case": "unknown-key",
-      "diagnostic": "variants.reserve: expected keys ['days']"
+      "diagnostic": "variants.reserve: required keys ['days']; allowed keys ['days']"
     },
     {
       "case": "unknown-basket",
