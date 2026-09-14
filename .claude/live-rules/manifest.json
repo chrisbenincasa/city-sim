@@ -13,6 +13,17 @@
       "include": []
     },
     {
+      "path": "rules/format-before-commit.md",
+      "hash": "e26c6be5f6550984ad22f7b6ea46b06bb087c96fe1138bce4e99fdcd4aa15fb9",
+      "description": "Run the formatter check before every commit",
+      "globs": [],
+      "dirs": [],
+      "prompt": [],
+      "priority": 50,
+      "enabled": true,
+      "include": []
+    },
+    {
       "path": "rules/present-options-in-prose.md",
       "hash": "703bd02e10fb9ccb5679023e589529233641f101241e659af214337243ffc3d7",
       "description": "Put a decision to the user as prose with costs and trade-offs",
