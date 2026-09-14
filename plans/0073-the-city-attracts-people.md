@@ -6,7 +6,9 @@
 
 ## Status, authority and scope
 
-**SCOPED; NOT STARTED.** This replaces the initial scoping draft's three unanswered branches with
+**BUILT AND DEMONSTRATED.** Tasks 1–8 are built and the observation episodes are taken; the
+completion record at the end of this file carries the evidence and the defects the work found. The
+scoping text below is kept as written. This replaces the initial scoping draft's three unanswered branches with
 explicit implementation choices. **The user confirmed three design decisions during planning:**
 Life Stage housing preferences participate, willing prospects queue outside with timed
 reconsideration, and Outside population recovers towards its resting stock from either direction,
@@ -1047,3 +1049,153 @@ results, persistence/determinism evidence, tests run, relevant performance findi
 watching surprised the implementer with. Route defects to their owning task immediately. The row
 closes only when autonomous people enter, housing and Outside changes alter that flow, returns and
 recovery add up, and the player can distinguish the causes on screen.
+
+### Ruleset hashes
+
+Measured through `RulesetFile.HashOf`. Every episode below ran on `--citizens 1000`.
+
+| File | Content hash |
+|---|---|
+| `rulesets/attracted.toml` | `0xBF8F4407E4C78272` |
+| `rulesets/attracted-outside-cheaper.toml` | `0xCC003D5CA871F64D` |
+| `rulesets/attracted-declining.toml` | `0xE524A0B61FB74912` |
+
+### Final provisional settings and why they changed
+
+`attracted-declining.toml` was added during task 8 and nothing else was retuned. `attracted.toml`'s
+circuit **stops from Day 58**: Pool, placements and give-ups all read zero, the Money supply freezes
+at 1,755,996, and 3,519 Households still stand behind the four edges with none willing. Every
+long-run assertion would have passed in that world *against an immigration engine that had been
+deleted*, which is why the steady long-run fixture uses the declining file instead. It differs from
+`attracted.toml` by two keys only — `condemn_after_days = 2` and `collapses_after_days = 1` — and its
+header records that its population falls (827 against 1,377) and that the fast decline serves a
+test's horizon rather than making a claim about cities.
+
+### The observation episodes
+
+Four were driven through the shell; the rest are headless dumps or assertion tests. That split is
+recorded rather than smoothed over, because the plan asked for driven demonstrations and only
+episodes 4, 6 and 8 have one.
+
+| Episode | How | Measured result |
+|---|---|---|
+| Autonomous onset | headless `--arrivals --ticks 4096` | Pool **366** at Tick 4,096; Citizens 1,566, Buildings 111, vacant Lots 25. Stock west 820 / east 900 / south 895 / north 714, north reserving 68. North admitted 96 today with 68 queued, and no `Arrive` command was issued. Also `AutonomousArrivalTests.People_arrive_without_a_single_Arrive_command`. |
+| Selective depletion | assertion tests | 30 tests green across `AutonomousArrivalTests`, `HinterlandStockTests`, `HinterlandDepartureTests`. Corroborated over 50 Days: west 900→642, north 900→166, east 900→1,956, south flat ~899. No driven run, no per-episode figures. |
+| Scarcity and recovery | assertion tests | Same 30-test lane, plus `HinterlandReloadTests`' recovery-off and recovery-on cases. No driven run. |
+| Housing intervention | **driven**, `--start-at 4096` | See below. |
+| Outside competition | headless pair, `--reload-at 2048` | Control byte-identical to the stored onset dump, treatment differs. Numeric tables were never printed after the fix, so only that verdict stands. Regression test `ArrivalDumpTests.A_ruleset_transition_reaches_the_circuit_and_leaves_the_day_before_it_alone`. |
+| Shared gate constraint | **driven**, south edge | Gates 1→2, quota 96→192, stock unchanged at 893 Households / 1,478 people. Pool 366→469. Plus `GateCommandTests.A_second_door_on_one_edge_shares_the_stock_behind_it`. |
+| Return | assertion tests | 11 `HinterlandDepartureTests` cases, plus `HinterlandLongRunTests.A_returned_group_is_opened_and_later_retired`: 34 groups opened beyond the 12 authored, live count falling on Days 24, 37 and 39. |
+| Lost connection | **driven**, north edge | Removing the sole gate against a 52-Household queue cancelled exactly **52**, left stock untouched at 714, and a replacement door on the vacated Lot resumed ordinary admissions — 2 willing, 2 admitted by Tick 4,300. The other three edges did not move. |
+| Turnover | assertion tests | East sits above its resting count and is trimmed: 900→1,956 over 50 Days, turnover 11 today / 9 yesterday in the 64-Day run. No driven run. |
+
+### Episode 4, in full, because its premise was wrong
+
+**The plan's stated mechanism does not exist in this codebase.** This row asked to "let resubdivision
+remove its affected housing", but `LotSubdivider.Resubdivide` frees a Lot only when it is unfronted
+**and** vacant. `adr/0079` and `02 §2.2` both state that a Building whose last Street is bulldozed
+keeps standing and keeps its Occupants, and `SimulationTests.A_building_survives_losing_its_street_and_a_vacant_lot_beside_it_does_not`
+already asserts exactly that, including the vacant-Lot deletion. That test's own remark rejects the
+mechanism this plan assumed: `ZoneRuleEngine.Condemn` is keyed on a starving Rule Instance, and a
+bulldozed Street starves nothing.
+
+The first attempt demonstrated the rule rather than the plan. Bulldozing Segment 130,304 — frontage
+"3 Lots · 0 vacant", Buildings 61, 62 and 63, all dwellings — produced a treatment **identical to
+the control** at Tick 6,144 and 8,192. The Street did go: the hover changed to "LAYS a Street on the
+edge running EAST from (8,160, 8,128)", and a re-lay stood a new Segment 536,525 there.
+
+Capacity moves only where vacant Lots lose their frontage. Four Segments were cut one per Tick from
+Tick 4,096 and re-laid one per Tick from Tick 6,144 — one command a Tick deliberately, because the
+backlog records a shell crash when two arrive in one Tick.
+
+| Segment | Aim | Vacant frontage |
+|---|---|---|
+| 130,303 | (8144, 8128) | 3 of 3 Lots |
+| 130,816 | (8176, 8160) | 3 of 5 Lots |
+| 131,328 | (8176, 8192) | 2 of 5 Lots |
+| 392,959 | (8128, 8144) | 2 of 2 Lots |
+
+| Tick | Control | Treatment |
+|---|---|---|
+| 4,096 | 1,566 / 111 / **25** | — |
+| 4,112 (four cut) | — | 1,669 / 111 / **15** |
+| 6,144 | 1,604 / 112 / **24** | 1,604 / 112 / **14** |
+| 6,160 (four re-laid) | — | 1,603 / 112 / **24** |
+| 8,192 | 1,395 / 112 / **24** | 1,395 / 112 / **24** |
+
+Citizens / Buildings / vacant Lots. The ten vacant Lots lost are exactly the 3 + 3 + 2 + 2 measured
+beforehand, and re-laying returned all ten. A two-Segment control on the same world took 25 to **19**,
+exactly the six predicted. **Buildings never fell** — 111 to 112 throughout — so not one occupied
+dwelling was removed, which is `adr/0079` behaving as specified. By Tick 8,192 treatment and control
+agree exactly. ⚠ The Citizens figure at Tick 4,112 is not comparable to the control's 4,096 sample;
+vacant Lots is the measured variable here.
+
+**What the shell cannot show.** The Unplaced Pool is unreachable from a driven run. The Outside
+panel's text never reaches the `readout` caption, and `--arrivals` refuses `--log`, so the
+intervention's own Input Log cannot be replayed for the account. So episode 4's "more waiting or
+give-ups" half rests on the assertion tests above and not on this run.
+
+### Population and Money account
+
+From the 64-Day `attracted.toml` dump: people **1,377** with 1,377 rows standing and residual **0**;
+Households **470** with 470 rows standing and residual 0; admitted-unhoused 0. Money conserved
+exactly — supply 1,755,996, walked 1,755,996, no flow term — with 1,659,090 held by Households and
+96,906 by the treasury. 1,955 people were admitted over that run.
+
+### Long run
+
+`HinterlandLongRunTests`, 7 assertion tests over two fixtures, 102,400 Ticks each at seed 11.
+Steady world `attracted-declining.toml`, growing world `attracted.toml`.
+
+| | Measured |
+|---|---|
+| groups | 12 authored → 46; unauthored 0 → 34 |
+| retirement | fires on Days 24, 37, 39 |
+| storage drift, tail halves | ~8.5% against a 12.5% tripwire, still creeping — the test says so rather than implying a plateau |
+| longest wait | 1,855 Ticks on Day 2 against a 4,096 bound; 0 from Day 8 |
+| admissions | 785 by Day 8 → 2,447 by Day 50, with 81 willing on the last Day |
+| people | steady 1,000→754; growing 1,000→1,510 |
+
+⚠ `IClassFixture` construction time is not attributed to any test method, so this class reports
+milliseconds while the two runs take about 2m30s. A green duration here is not evidence the work
+happened; log mtimes are.
+
+### Persistence, determinism and tests run
+
+Full working lane green: **3,582 tests, 0 failed, 4m46s**. The persistence, replay and
+worker-equivalence classes are inside that lane. **No Release milestone suite and no instrument tier
+were run, and no performance figure is claimed** — `adr/0106` governs, and a loaded machine cannot
+establish a timing.
+
+One test is load-sensitive and it turned the lane red once. `RouteWorkerTests.Completion_order_does_not_change_paths_and_stale_requests_are_refused`
+holds a hard `TimeSpan.FromSeconds(15)` deadline inside an assertion at line 95, where worker 0 waits
+for worker 7 to prove completion order does not change paths. Under memory pressure the wait expired
+and the assertion failed at exactly 15 s; the class passes 7 of 7 in 35 s alone, and the path
+equality assertions were never reached. That is a wall-clock budget inside an assertion-tier test,
+which `adr/0106` says needs a named machine class, and it belongs to the routing row rather than to
+this one.
+
+### Defects this work found
+
+| Fixed | What |
+|---|---|
+| `270598e` | **Two of four edges could not be clicked at all.** An edge Lot on the north or east boundary anchors at exactly `CellGrid.WorldTiles`, which converts to a Cell one past the last, so `Aim` refused a cursor there and `GateNear`/`VacantNear` compared that unreachable Cell. The gate tool could not reach the north or east doors by hand or by script, though D14 promises all four. No test could catch it — `GateCommandTests` builds `Command`s directly and `Main.Verbs.cs` does not compile into the test project. The fix clamps the Lot's Cell for comparison only, so Core still receives the true anchor. |
+| `ea575d5` | `--arrivals` silently dropped `--reload-at`, so a transition run read and hashed the second Ruleset, never switched to it, and reported it anyway. The header also named only the opening Ruleset. |
+| `4afc887` | `attracted.toml`'s dead circuit, above, and the long-run tests that would have passed against it. |
+
+Open, and not this row's: `AllocationProbe`'s failure message directs a reader to `plans/0002` §D and
+`plans/0003` item 13, and **both are retired tombstones**. `AllocationAssertionTests` pins the dead
+pointer with `Assert.Contains("plans/0002", message)`, so the test changes with the message.
+
+### What watching actually surprised the implementer with
+
+1. **The plan was wrong about the corpus, and the corpus had already written the correction down.**
+   Episode 4 was scoped around resubdivision removing housing. It cannot. The test that asserts the
+   real behaviour also contains a remark rejecting the exact mechanism this plan assumed, which means
+   somebody had made and recorded this error before.
+2. **A shipped Ruleset can make a long-run test meaningless without failing it.** `attracted.toml`'s
+   circuit stops dead at Day 58 while 3,519 Households wait outside. Every balance assertion still
+   passes, because conserved nothing is still conserved.
+3. **A visible capability was unreachable on half its surface and no test could have said so.** The
+   gate tool never worked on the north or east edges. The defect lived in the one file the test
+   project cannot compile, which is precisely why the driven run is the guard.
